@@ -90,7 +90,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_State_Mod,   ONLY : HCO_GetHcoID, HCO_State
     USE HCOX_State_Mod,  ONLY : Ext_State
-    USE HCO_ExtList_Mod, ONLY : GetExtNr
+    USE HCO_ExtList_Mod, ONLY : GetExtNr, GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -113,11 +113,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL                         :: YesOrNo
     INTEGER                         :: I, ID1, ID2, N, AS
     INTEGER                         :: ExtNr, Cat, Hier
     CHARACTER(LEN=255)              :: MSG, LOC
     CHARACTER(LEN=1)                :: ISTR
-    CHARACTER(LEN=4)                :: SpcName
+    CHARACTER(LEN=15)               :: SpcName
     CHARACTER(LEN=31)               :: DiagnName 
 
     !=================================================================
@@ -273,125 +274,6 @@ CONTAINS
                               cID       = N,               & 
                               RC        = RC                ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
-
-          ! BIOGENIC
-          ExtNr = GetExtNr('MEGAN_Mono')
-          IF ( ExtNr > 0 ) THEN
-             DiagnName = 'AD07_OC_BIOGENIC'
-             CALL Diagn_Create ( am_I_Root,                   & 
-                                 HcoState,                    &
-                                 cName     = TRIM(DiagnName), &
-                                 ExtNr     = ExtNr,           &
-                                 Cat       = -1,              &
-                                 Hier      = -1,              &
-                                 HcoID     = ID2,             &
-                                 SpaceDim  = 2,               &
-                                 LevIDx    = -1,              &
-                                 OutUnit   = 'kg',            &
-                                 WriteFreq = 'Manual',        &
-                                 AutoFill  = 1,               &
-                                 cID       = N,               & 
-                                 RC        = RC                ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN 
-          ENDIF
-
-          ! SOA: NVOC BIOGENIC
-          IF ( Input_Opt%LSOA ) THEN
-             ExtNr = GetExtNr('MEGAN_SOA')
-             IF ( ExtNr < 0 ) THEN
-                MSG = 'MEGAN SOA emissions are not turned on!'
-                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-                RETURN      
-             ENDIF
-            
-             ! MTPA 
-             ID1 = HCO_GetHcoID( 'MTPA', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                CALL HCO_ERROR ( 'MTPA is not a species', RC, THISLOC=LOC )
-                RETURN      
-             ENDIF
-             CALL Diagn_Create ( am_I_Root,                        & 
-                                 HcoState,                         &
-                                 cName     = 'AD07_MTPA_BIOGENIC', &
-                                 ExtNr     = ExtNr,                &
-                                 Cat       = -1,                   &
-                                 Hier      = -1,                   &
-                                 HcoID     = ID1,                  &
-                                 SpaceDim  = 2,                    &
-                                 LevIDx    = -1,                   &
-                                 OutUnit   = 'kg',                 &
-                                 WriteFreq = 'Manual',             &
-                                 AutoFill  = 1,                    &
-                                 cID       = N,                    & 
-                                 RC        = RC                     ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN 
-
-             ! MTPO 
-             ID1 = HCO_GetHcoID( 'MTPO', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                CALL HCO_ERROR ( 'MTPO is not a species', RC, THISLOC=LOC )
-                RETURN      
-             ENDIF
-             CALL Diagn_Create ( am_I_Root,                        & 
-                                 HcoState,                         &
-                                 cName     = 'AD07_MTPO_BIOGENIC', &
-                                 ExtNr     = ExtNr,                &
-                                 Cat       = -1,                   &
-                                 Hier      = -1,                   &
-                                 HcoID     = ID1,                  &
-                                 SpaceDim  = 2,                    &
-                                 LevIDx    = -1,                   &
-                                 OutUnit   = 'kg',                 &
-                                 WriteFreq = 'Manual',             &
-                                 AutoFill  = 1,                    &
-                                 cID       = N,                    & 
-                                 RC        = RC                     ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN 
-
-             ! LIMO 
-             ID1 = HCO_GetHcoID( 'LIMO', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                CALL HCO_ERROR ( 'LIMO is not a species', RC, THISLOC=LOC )
-                RETURN      
-             ENDIF
-             CALL Diagn_Create ( am_I_Root,                        & 
-                                 HcoState,                         &
-                                 cName     = 'AD07_LIMO_BIOGENIC', &
-                                 ExtNr     = ExtNr,                &
-                                 Cat       = -1,                   &
-                                 Hier      = -1,                   &
-                                 HcoID     = ID1,                  &
-                                 SpaceDim  = 2,                    &
-                                 LevIDx    = -1,                   &
-                                 OutUnit   = 'kg',                 &
-                                 WriteFreq = 'Manual',             &
-                                 AutoFill  = 1,                    &
-                                 cID       = N,                    & 
-                                 RC        = RC                     ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN 
-
-             ! SESQ 
-             ID1 = HCO_GetHcoID( 'SESQ', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                CALL HCO_ERROR ( 'SESQ is not a species', RC, THISLOC=LOC )
-                RETURN      
-             ENDIF
-             CALL Diagn_Create ( am_I_Root,                        & 
-                                 HcoState,                         &
-                                 cName     = 'AD07_SESQ_BIOGENIC', &
-                                 ExtNr     = ExtNr,                &
-                                 Cat       = -1,                   &
-                                 Hier      = -1,                   &
-                                 HcoID     = ID1,                  &
-                                 SpaceDim  = 2,                    &
-                                 LevIDx    = -1,                   &
-                                 OutUnit   = 'kg',                 &
-                                 WriteFreq = 'Manual',             &
-                                 AutoFill  = 1,                    &
-                                 cID       = N,                    & 
-                                 RC        = RC                     ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN 
-          ENDIF
        ENDIF ! CARBON
 
        !-----------------------------------------------------------------
@@ -403,7 +285,7 @@ CONTAINS
           ExtNr = GetExtNr( 'SeaSalt' )
           IF ( ExtNr <= 0 ) THEN
              CALL HCO_ERROR ( 'Cannot find extension SeaSalt', RC, THISLOC=LOC )
-             RETURN      
+             RETURN
           ENDIF
 
           ! Do for both sea salt aerosol modes
@@ -446,7 +328,7 @@ CONTAINS
        !-----------------------------------------------------------------
        ! ACETONE (AD11)
        !-----------------------------------------------------------------
-       ! --> 3 manually defined diagnostics in MEGAN
+       ! --> 3 manually defined diagnostics in MEGAN (defined in ND46)
        ! --> 1 automatically filled diagnostics in Seaflux
        ! --> Ocean sink is passed to drydep and not explicitly written out!!
        IF ( ND11 > 0 ) THEN 
@@ -458,45 +340,6 @@ CONTAINS
              MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
              CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
              RETURN      
-          ENDIF
-
-          ! Define diagnostics in MEGAN 
-          ExtNr = GetExtNr( 'MEGAN' )
-          IF ( ExtNr <= 0 ) THEN
-             CALL HCO_WARNING ( 'Cannot find extension MEGAN', RC, THISLOC=LOC )
-          ELSE
-             ! There are three manual diagnostics in MEGAN
-             DO I = 1,3
-
-                ! Define diagnostics names. These names have to match the
-                ! names called in hcox_megan_mod.F90.
-                IF ( I == 1 ) THEN
-                   DiagnName = 'MEGAN_ACET_MONO'
-                ELSEIF ( I == 2 ) THEN
-                   DiagnName = 'MEGAN_ACET_MBO'
-                ELSEIF ( I == 3 ) THEN
-                   DiagnName = 'MEGAN_ACET_DIRECT'
-                ENDIF
-   
-                ! Create diagnostics. Don't use AutoFill here since the 
-                ! diagnostics update calls are explicitly called in 
-                ! hcox_megan_mod.F90.
-                CALL Diagn_Create ( am_I_Root,                   & 
-                                    HcoState,                    &
-                                    cName     = TRIM(DiagnName), &
-                                    ExtNr     = ExtNr,           &
-                                    Cat       = -1,              &
-                                    Hier      = -1,              &
-                                    HcoID     = ID1,             &
-                                    SpaceDim  = 2,               &
-                                    LevIDx    = -1,              &
-                                    OutUnit   = 'kg/m2/s',       &
-                                    WriteFreq = 'Manual',        &
-                                    AutoFill  = 0,               &
-                                    cID       = N,               & 
-                                    RC        = RC                ) 
-                IF ( RC /= HCO_SUCCESS ) RETURN 
-             ENDDO
           ENDIF
 
           ! Define diagnostics in SeaFlux 
@@ -783,7 +626,16 @@ CONTAINS
        ENDIF
 
        !-----------------------------------------------------------------
-       ! Biomass burning emissions (ND07, ND13, ND28, ND29, ND32) 
+       ! CO emissions (ND29) 
+       !-----------------------------------------------------------------
+       ! --> Anthropogenic, biogenic, biomass and biofuel emissions are 
+       !     all covered in the respective sections. 
+       ! --> CO produced from methanol doesn't seem to be written anymore?!
+       !     Not filled for now.
+       !-----------------------------------------------------------------
+
+       !-----------------------------------------------------------------
+       ! Biomass burning emissions (ND32, ND29, ND28, ND13, ND07)
        !-----------------------------------------------------------------
        ! ==> write one single biomass burning diagnostics per species.
        ! ==> Biomass buring comes from GFED or FINN inventory. If none
@@ -799,26 +651,884 @@ CONTAINS
           ExtNr = 0
           Cat   = 3
        ENDIF
+          
+       ! ND28 only:
+       IF ( ND28 > 0 ) THEN
+          ID1 = HCO_GetHcoID( 'ALK4', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_ALK4'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'ACET', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_ACET'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'MEK', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_MEK'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'ALD2', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_ALD2'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'PRPE', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_PRPE'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'C3H8', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_C3H8'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'CH2O', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_CH2O'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'C2H6', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_C2H6'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF ! ND28 only
+
+       IF ( ND28 > 0 .OR.                                         &
+            ( ND13 > 0 .AND. (Input_Opt%ITS_A_FULLCHEM_SIM .OR.   &
+                              Input_Opt%ITS_AN_AEROSOL_SIM     )) &
+           ) THEN
+          ID1 = HCO_GetHcoID( 'SO2', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_SO2'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'NH3', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_NH3'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       IF ( ND28 > 0 .OR. ( ND07 > 0 .AND. Input_Opt%LCARB ) ) THEN
+
+          ID1 = HCO_GetHcoID( 'OC', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_OC'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'BC', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_BC'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       ! CO (ND28 and/or ND29)
+       IF ( ND28 > 0 .OR. ND29 > 0 ) THEN
+          ID1 = HCO_GetHcoID( 'CO', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_CO'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       ! NO (ND28 and/or ND32)
+       IF ( ND28 > 0 .OR. ND32 > 0 ) THEN
+          ID1 = HCO_GetHcoID( 'NO', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOMASS_NO'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       !-----------------------------------------------------------------
+       ! Biofuel emissions (ND34, ND32, ND29 )
+       !-----------------------------------------------------------------
+       ! ==> write one single biofuel emissions diagnostics per species.
+       ! ==> most inventories include biofuel emissions in the anthrop.
+       !     sector. For explicit biofuel emissions, assume they are
+       !     assigned category 3 in the HEMCO configuration file.
+       ! ==> Diagnostics are returned in kg/m2/s.
+       !-----------------------------------------------------------------
+       ! Get ext. Nr of used extension
+       Cat   = 3
+       ExtNr = 0
  
-       ! For ND28 diagnostics, biomass burning emissions must be
-       ! turned on! 
-       IF ( ExtNr <= 0 .AND. ND28 > 0 ) THEN
-          MSG = 'ND28 error: No biomass burning emissions defined'
+       ! ND34 only:
+       IF ( ND34 > 0 ) THEN
+          ID1 = HCO_GetHcoID( 'ALK4', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOFUEL_ALK4'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'ACET', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOFUEL_ACET'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'MEK', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOFUEL_MEK'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'ALD2', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOFUEL_ALD2'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'PRPE', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOFUEL_PRPE'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'C3H8', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOFUEL_C3H8'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'CH2O', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOFUEL_CH2O'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'C2H6', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOFUEL_C2H6'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF 
+
+       ! NO (ND34 and/or ND32)
+       IF ( ND34>0 .OR. ND32>0 ) THEN
+          ID1 = HCO_GetHcoID( 'NO', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOFUEL_NO'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       ! CO (ND34 and/or ND29)
+       IF ( ND34>0 .OR. ND29>0 ) THEN
+          ID1 = HCO_GetHcoID( 'CO', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'BIOFUEL_CO'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       !-----------------------------------------------------------------
+       ! Anthropogenic emissions (ND36, ND32, ND29) 
+       !-----------------------------------------------------------------
+       ! ==> write one single anthropogenic emissions diagnostics per species.
+       ! ==> it is assumed that anthropogenic emissions are given category 1
+       !     in the HEMCO configuration file
+       ! ==> Diagnostics are returned in kg/m2/s.
+       !-----------------------------------------------------------------
+       ! Get ext. Nr of used extension
+       Cat   = 1
+       ExtNr = 0
+ 
+       ! ND36 only:
+       IF ( ND36 > 0 ) THEN
+          ID1 = HCO_GetHcoID( 'ALK4', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'ANTHROPOGENIC_ALK4'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'ACET', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'ANTHROPOGENIC_ACET'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'MEK', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'ANTHROPOGENIC_MEK'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'ALD2', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'ANTHROPOGENIC_ALD2'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'PRPE', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'ANTHROPOGENIC_PRPE'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'C3H8', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'ANTHROPOGENIC_C3H8'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'CH2O', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'ANTHROPOGENIC_CH2O'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ID1 = HCO_GetHcoID( 'C2H6', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'ANTHROPOGENIC_C2H6'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       ! NO (ND36 and/or ND32)
+       IF ( ND36>0 .OR. ND32>0 ) THEN
+          ID1 = HCO_GetHcoID( 'NO', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'ANTHROPOGENIC_NO'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       ! CO (ND36 and/or ND29)
+       IF ( ND36>0 .OR. ND29>0 ) THEN
+          ID1 = HCO_GetHcoID( 'CO', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          DiagnName = 'ANTHROPOGENIC_CO'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       !-----------------------------------------------------------------
+       ! Biogenic emissions (ND46, ND29, ND11) 
+       !-----------------------------------------------------------------
+       ! ==> Biogenic emissions are taken from MEGAN inventory
+       ! ==> write one single biogenic emissions diagnostics per species.
+       ! ==> Diagnostics are returned in kg/m2/s.
+       ! ==> Fpr now, only GC species totals are diagnosed. To add 
+       !     individual MEGAN species (Sabinene, Limonene, ...), those
+       !     have to be explicitly added to hcox_megan_mod (as for acetone) 
+       !-----------------------------------------------------------------
+
+       ! Get ext. Nr of MEGAN 
+       Cat   = -1
+       ExtNr = GetExtNr('MEGAN')
+
+       ! Make sure MEGAN is on if ND46 is used
+       IF ( ExtNr <= 0 .AND. ND46 > 0 ) THEN
+          MSG = 'MEGAN is not enabled - cannot write biogenic diagnostics!'
           CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
-
+ 
+       ! Only if MEGAN is on ... 
        IF ( ExtNr > 0 ) THEN
-          
-          ! ND28 only:
-          IF ( ND28 > 0 ) THEN
-             ID1 = HCO_GetHcoID( 'ALK4', HcoState )
+
+          ! ND46 only
+          IF ( ND46 > 0 ) THEN
+             SpcName = 'ISOP'
+             ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
              IF ( ID1 <= 0 ) THEN
                 MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
                 CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-             DiagnName = 'BIOMASS_ALK4'
+             DiagnName = 'BIOGENIC_ISOP'
              CALL Diagn_Create ( am_I_Root,                   & 
                                  HcoState,                    &
                                  cName     = TRIM(DiagnName), &
@@ -835,13 +1545,14 @@ CONTAINS
                                  RC        = RC                ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
 
-             ID1 = HCO_GetHcoID( 'ACET', HcoState )
+             SpcName = 'PRPE'
+             ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
              IF ( ID1 <= 0 ) THEN
                 MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
                 CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-             DiagnName = 'BIOMASS_ACET'
+             DiagnName = 'BIOGENIC_PRPE'
              CALL Diagn_Create ( am_I_Root,                   & 
                                  HcoState,                    &
                                  cName     = TRIM(DiagnName), &
@@ -858,17 +1569,41 @@ CONTAINS
                                  RC        = RC                ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
 
-             ID1 = HCO_GetHcoID( 'MEK', HcoState )
+             SpcName = 'C2H4'
+             ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
+             IF ( ID1 > 0 ) THEN
+                DiagnName = 'BIOGENIC_C2H4'
+                CALL Diagn_Create ( am_I_Root,                   & 
+                                    HcoState,                    &
+                                    cName     = TRIM(DiagnName), &
+                                    ExtNr     = ExtNr,           &
+                                    Cat       = Cat,             &
+                                    Hier      = -1,              &
+                                    HcoID     = ID1,             &
+                                    SpaceDim  = 2,               &
+                                    LevIDx    = -1,              &
+                                    OutUnit   = 'kg/m2/s',       &
+                                    WriteFreq = 'Manual',        &
+                                    AutoFill  = 1,               &
+                                    cID       = N,               & 
+                                    RC        = RC                ) 
+                IF ( RC /= HCO_SUCCESS ) RETURN
+             ENDIF
+   
+             ! CHBr3 and CH2Br2 are emitted through HEMCO core, i.e. 
+             ! extension number is 0!
+             SpcName = 'CHBr3'
+             ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
              IF ( ID1 <= 0 ) THEN
                 MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
                 CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-             DiagnName = 'BIOMASS_MEK'
+             DiagnName = 'BIOGENIC_CHBR3'
              CALL Diagn_Create ( am_I_Root,                   & 
                                  HcoState,                    &
                                  cName     = TRIM(DiagnName), &
-                                 ExtNr     = ExtNr,           &
+                                 ExtNr     = 0,               &
                                  Cat       = Cat,             &
                                  Hier      = -1,              &
                                  HcoID     = ID1,             &
@@ -881,17 +1616,18 @@ CONTAINS
                                  RC        = RC                ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
 
-             ID1 = HCO_GetHcoID( 'ALD2', HcoState )
+             SpcName = 'CH2Br2'
+             ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
              IF ( ID1 <= 0 ) THEN
                 MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
                 CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
-             DiagnName = 'BIOMASS_ALD2'
+             DiagnName = 'BIOGENIC_CH2BR2'
              CALL Diagn_Create ( am_I_Root,                   & 
                                  HcoState,                    &
                                  cName     = TRIM(DiagnName), &
-                                 ExtNr     = ExtNr,           &
+                                 ExtNr     = 0,               &
                                  Cat       = Cat,             &
                                  Hier      = -1,              &
                                  HcoID     = ID1,             &
@@ -904,133 +1640,18 @@ CONTAINS
                                  RC        = RC                ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
 
-             ID1 = HCO_GetHcoID( 'PRPE', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
-                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-             DiagnName = 'BIOMASS_PRPE'
-             CALL Diagn_Create ( am_I_Root,                   & 
-                                 HcoState,                    &
-                                 cName     = TRIM(DiagnName), &
-                                 ExtNr     = ExtNr,           &
-                                 Cat       = Cat,             &
-                                 Hier      = -1,              &
-                                 HcoID     = ID1,             &
-                                 SpaceDim  = 2,               &
-                                 LevIDx    = -1,              &
-                                 OutUnit   = 'kg/m2/s',       &
-                                 WriteFreq = 'Manual',        &
-                                 AutoFill  = 1,               &
-                                 cID       = N,               & 
-                                 RC        = RC                ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF !ND46 only
 
-             ID1 = HCO_GetHcoID( 'C3H8', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
-                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-             DiagnName = 'BIOMASS_C3H8'
-             CALL Diagn_Create ( am_I_Root,                   & 
-                                 HcoState,                    &
-                                 cName     = TRIM(DiagnName), &
-                                 ExtNr     = ExtNr,           &
-                                 Cat       = Cat,             &
-                                 Hier      = -1,              &
-                                 HcoID     = ID1,             &
-                                 SpaceDim  = 2,               &
-                                 LevIDx    = -1,              &
-                                 OutUnit   = 'kg/m2/s',       &
-                                 WriteFreq = 'Manual',        &
-                                 AutoFill  = 1,               &
-                                 cID       = N,               & 
-                                 RC        = RC                ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN
-
-             ID1 = HCO_GetHcoID( 'CH2O', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
-                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-             DiagnName = 'BIOMASS_CH2O'
-             CALL Diagn_Create ( am_I_Root,                   & 
-                                 HcoState,                    &
-                                 cName     = TRIM(DiagnName), &
-                                 ExtNr     = ExtNr,           &
-                                 Cat       = Cat,             &
-                                 Hier      = -1,              &
-                                 HcoID     = ID1,             &
-                                 SpaceDim  = 2,               &
-                                 LevIDx    = -1,              &
-                                 OutUnit   = 'kg/m2/s',       &
-                                 WriteFreq = 'Manual',        &
-                                 AutoFill  = 1,               &
-                                 cID       = N,               & 
-                                 RC        = RC                ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN
-
-             ID1 = HCO_GetHcoID( 'C2H6', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
-                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-             DiagnName = 'BIOMASS_C2H6'
-             CALL Diagn_Create ( am_I_Root,                   & 
-                                 HcoState,                    &
-                                 cName     = TRIM(DiagnName), &
-                                 ExtNr     = ExtNr,           &
-                                 Cat       = Cat,             &
-                                 Hier      = -1,              &
-                                 HcoID     = ID1,             &
-                                 SpaceDim  = 2,               &
-                                 LevIDx    = -1,              &
-                                 OutUnit   = 'kg/m2/s',       &
-                                 WriteFreq = 'Manual',        &
-                                 AutoFill  = 1,               &
-                                 cID       = N,               & 
-                                 RC        = RC                ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN
-          ENDIF ! ND28 only
-
-          IF ( ND28 > 0 .OR.                                         &
-               ( ND13 > 0 .AND. (Input_Opt%ITS_A_FULLCHEM_SIM .OR.   &
-                                 Input_Opt%ITS_AN_AEROSOL_SIM     )) &
-              ) THEN
-             ID1 = HCO_GetHcoID( 'SO2', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
-                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-             DiagnName = 'BIOMASS_SO2'
-             CALL Diagn_Create ( am_I_Root,                   & 
-                                 HcoState,                    &
-                                 cName     = TRIM(DiagnName), &
-                                 ExtNr     = ExtNr,           &
-                                 Cat       = Cat,             &
-                                 Hier      = -1,              &
-                                 HcoID     = ID1,             &
-                                 SpaceDim  = 2,               &
-                                 LevIDx    = -1,              &
-                                 OutUnit   = 'kg/m2/s',       &
-                                 WriteFreq = 'Manual',        &
-                                 AutoFill  = 1,               &
-                                 cID       = N,               & 
-                                 RC        = RC                ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN
-
-             ID1 = HCO_GetHcoID( 'NH3', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
-                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-             DiagnName = 'BIOMASS_NH3'
+          ! ACET (ND46 and/or ND11) 
+          SpcName = 'ACET'
+          ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          IF ( ND46 > 0 .OR. ND11 > 0 ) THEN
+             DiagnName = 'BIOGENIC_ACET'
              CALL Diagn_Create ( am_I_Root,                   & 
                                  HcoState,                    &
                                  cName     = TRIM(DiagnName), &
@@ -1048,64 +1669,85 @@ CONTAINS
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
 
-          IF ( ND28 > 0 .OR. ( ND07 > 0 .AND. Input_Opt%LCARB ) ) THEN
+          ! The following is for ND11 only: Those diagnostics are
+          ! explicitly filled in hcox_megan_mod. The diagnostics
+          ! name defined below must match the names used in the
+          ! MEGAN extension!
+          IF ( ND11 > 0 ) THEN
 
-             ID1 = HCO_GetHcoID( 'OC', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
-                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-             DiagnName = 'BIOMASS_OC'
-             CALL Diagn_Create ( am_I_Root,                   & 
-                                 HcoState,                    &
-                                 cName     = TRIM(DiagnName), &
-                                 ExtNr     = ExtNr,           &
-                                 Cat       = Cat,             &
-                                 Hier      = -1,              &
-                                 HcoID     = ID1,             &
-                                 SpaceDim  = 2,               &
-                                 LevIDx    = -1,              &
-                                 OutUnit   = 'kg/m2/s',       &
-                                 WriteFreq = 'Manual',        &
-                                 AutoFill  = 1,               &
-                                 cID       = N,               & 
-                                 RC        = RC                ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN
+             ! There are three manual diagnostics in MEGAN
+             DO I = 1,3
 
-             ID1 = HCO_GetHcoID( 'BC', HcoState )
-             IF ( ID1 <= 0 ) THEN
-                MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
-                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-                RETURN
+                ! Define diagnostics names. These names have to match the
+                ! names called in hcox_megan_mod.F90.
+                IF ( I == 1 ) THEN
+                   DiagnName = 'MEGAN_ACET_MONO'
+                ELSEIF ( I == 2 ) THEN
+                   DiagnName = 'MEGAN_ACET_MBO'
+                ELSEIF ( I == 3 ) THEN
+                   DiagnName = 'MEGAN_ACET_DIRECT'
+                ENDIF
+   
+                ! Create diagnostics. Don't use AutoFill here since the 
+                ! diagnostics update calls are explicitly called in 
+                ! hcox_megan_mod.F90.
+                CALL Diagn_Create ( am_I_Root,                   & 
+                                    HcoState,                    &
+                                    cName     = TRIM(DiagnName), &
+                                    ExtNr     = ExtNr,           &
+                                    Cat       = -1,              &
+                                    Hier      = -1,              &
+                                    HcoID     = ID1,             &
+                                    SpaceDim  = 2,               &
+                                    LevIDx    = -1,              &
+                                    OutUnit   = 'kg/m2/s',       &
+                                    WriteFreq = 'Manual',        &
+                                    AutoFill  = 0,               &
+                                    cID       = N,               & 
+                                    RC        = RC                ) 
+                IF ( RC /= HCO_SUCCESS ) RETURN 
+             ENDDO
+          ENDIF
+       ENDIF !MEGAN
+
+       ! Megan monoterpenes
+       ExtNr = GetExtNr('MEGAN_Mono')
+       IF ( ExtNr > 0 ) THEN
+
+          ! Monoterpenes 
+          IF ( ND46>0 ) THEN
+             SpcName = 'MONX'
+             ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
+             IF ( ID1 > 0 ) THEN
+                DiagnName = 'BIOGENIC_MONX'
+                CALL Diagn_Create ( am_I_Root,                   & 
+                                    HcoState,                    &
+                                    cName     = TRIM(DiagnName), &
+                                    ExtNr     = ExtNr,           &
+                                    Cat       = Cat,             &
+                                    Hier      = -1,              &
+                                    HcoID     = ID1,             &
+                                    SpaceDim  = 2,               &
+                                    LevIDx    = -1,              &
+                                    OutUnit   = 'kg/m2/s',       &
+                                    WriteFreq = 'Manual',        &
+                                    AutoFill  = 1,               &
+                                    cID       = N,               & 
+                                    RC        = RC                ) 
+                IF ( RC /= HCO_SUCCESS ) RETURN 
              ENDIF
-             DiagnName = 'BIOMASS_BC'
-             CALL Diagn_Create ( am_I_Root,                   & 
-                                 HcoState,                    &
-                                 cName     = TRIM(DiagnName), &
-                                 ExtNr     = ExtNr,           &
-                                 Cat       = Cat,             &
-                                 Hier      = -1,              &
-                                 HcoID     = ID1,             &
-                                 SpaceDim  = 2,               &
-                                 LevIDx    = -1,              &
-                                 OutUnit   = 'kg/m2/s',       &
-                                 WriteFreq = 'Manual',        &
-                                 AutoFill  = 1,               &
-                                 cID       = N,               & 
-                                 RC        = RC                ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
 
-          ! CO (ND28 and/or ND29)
-          IF ( ND28 > 0 .OR. ND29 > 0 ) THEN
-             ID1 = HCO_GetHcoID( 'CO', HcoState )
+          ! OC
+          IF ( ND07 > 0 ) THEN
+             SpcName = 'OC'
+             ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
              IF ( ID1 <= 0 ) THEN
                 MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
                 CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-                RETURN
+                RETURN      
              ENDIF
-             DiagnName = 'BIOMASS_CO'
+             DiagnName = 'BIOGENIC_OC'
              CALL Diagn_Create ( am_I_Root,                   & 
                                  HcoState,                    &
                                  cName     = TRIM(DiagnName), &
@@ -1120,18 +1762,19 @@ CONTAINS
                                  AutoFill  = 1,               &
                                  cID       = N,               & 
                                  RC        = RC                ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN
+             IF ( RC /= HCO_SUCCESS ) RETURN 
           ENDIF
 
-          ! NO (ND28 and/or ND32)
-          IF ( ND28 > 0 .OR. ND32 > 0 ) THEN
-             ID1 = HCO_GetHcoID( 'NO', HcoState )
+          ! CO
+          IF ( ND29>0 ) THEN
+             SpcName = 'CO'
+             ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
              IF ( ID1 <= 0 ) THEN
                 MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
                 CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-                RETURN
+                RETURN      
              ENDIF
-             DiagnName = 'BIOMASS_NO'
+             DiagnName = 'BIOGENIC_CO'
              CALL Diagn_Create ( am_I_Root,                   & 
                                  HcoState,                    &
                                  cName     = TRIM(DiagnName), &
@@ -1146,9 +1789,147 @@ CONTAINS
                                  AutoFill  = 1,               &
                                  cID       = N,               & 
                                  RC        = RC                ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN
+             IF ( RC /= HCO_SUCCESS ) RETURN 
           ENDIF
-       ENDIF ! Biomass burning
+       ENDIF ! Megan mono
+
+       ! Secondary organic aerosols
+       IF ( Input_Opt%LSOA .AND. (ND46>0 .OR. ND07>0) ) THEN
+          ExtNr = GetExtNr('MEGAN_SOA')
+          IF ( ExtNr < 0 ) THEN
+             MSG = 'MEGAN SOA emissions are not turned on!'
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN      
+          ENDIF
+         
+          ! MTPA 
+          ID1 = HCO_GetHcoID( 'MTPA', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             CALL HCO_ERROR ( 'MTPA is not a species', RC, THISLOC=LOC )
+             RETURN      
+          ENDIF
+          CALL Diagn_Create ( am_I_Root,                        & 
+                              HcoState,                         &
+                              cName     = 'BIOGENIC_MTPA',      &
+                              ExtNr     = ExtNr,                &
+                              Cat       = -1,                   &
+                              Hier      = -1,                   &
+                              HcoID     = ID1,                  &
+                              SpaceDim  = 2,                    &
+                              LevIDx    = -1,                   &
+                              OutUnit   = 'kg/m2/s',            &
+                              WriteFreq = 'Manual',             &
+                              AutoFill  = 1,                    &
+                              cID       = N,                    & 
+                              RC        = RC                     ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+
+          ! MTPO 
+          ID1 = HCO_GetHcoID( 'MTPO', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             CALL HCO_ERROR ( 'MTPO is not a species', RC, THISLOC=LOC )
+             RETURN      
+          ENDIF
+          CALL Diagn_Create ( am_I_Root,                        & 
+                              HcoState,                         &
+                              cName     = 'BIOGENIC_MTPO',      &
+                              ExtNr     = ExtNr,                &
+                              Cat       = -1,                   &
+                              Hier      = -1,                   &
+                              HcoID     = ID1,                  &
+                              SpaceDim  = 2,                    &
+                              LevIDx    = -1,                   &
+                              OutUnit   = 'kg/m2/s',            &
+                              WriteFreq = 'Manual',             &
+                              AutoFill  = 1,                    &
+                              cID       = N,                    & 
+                              RC        = RC                     ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+
+          ! LIMO 
+          ID1 = HCO_GetHcoID( 'LIMO', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             CALL HCO_ERROR ( 'LIMO is not a species', RC, THISLOC=LOC )
+             RETURN      
+          ENDIF
+          CALL Diagn_Create ( am_I_Root,                        & 
+                              HcoState,                         &
+                              cName     = 'BIOGENIC_LIMO',      &
+                              ExtNr     = ExtNr,                &
+                              Cat       = -1,                   &
+                              Hier      = -1,                   &
+                              HcoID     = ID1,                  &
+                              SpaceDim  = 2,                    &
+                              LevIDx    = -1,                   &
+                              OutUnit   = 'kg/m2/s',            &
+                              WriteFreq = 'Manual',             &
+                              AutoFill  = 1,                    &
+                              cID       = N,                    & 
+                              RC        = RC                     ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+
+          ! SESQ 
+          ID1 = HCO_GetHcoID( 'SESQ', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             CALL HCO_ERROR ( 'SESQ is not a species', RC, THISLOC=LOC )
+             RETURN      
+          ENDIF
+          CALL Diagn_Create ( am_I_Root,                        & 
+                              HcoState,                         &
+                              cName     = 'BIOGENIC_SESQ',      &
+                              ExtNr     = ExtNr,                &
+                              Cat       = -1,                   &
+                              Hier      = -1,                   &
+                              HcoID     = ID1,                  &
+                              SpaceDim  = 2,                    &
+                              LevIDx    = -1,                   &
+                              OutUnit   = 'kg/m2/s',            &
+                              WriteFreq = 'Manual',             &
+                              AutoFill  = 1,                    &
+                              cID       = N,                    & 
+                              RC        = RC                     ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF ! MEGAN SOA
+
+       ! Br2 from sea salt 
+       IF ( ND46>0 ) THEN
+
+          ExtNr = GetExtNr('SeaSalt')
+          IF ( ExtNr <= 0 ) THEN
+             CALL HCO_ERROR ( 'SeaSalt extension not enabled', RC, THISLOC=LOC )
+             RETURN      
+          ENDIF
+          CALL GetExtOpt ( ExtNr, 'Emit Br2', OptValBool=YesOrNo, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( YesOrNo == .FALSE. ) THEN
+             CALL HCO_ERROR ( 'SeaSalt Br2 not enabled', RC, THISLOC=LOC )
+             RETURN      
+          ENDIF
+
+          ID1 = HCO_GetHcoID( 'Br2', HcoState )
+          IF ( ID1 <= 0 ) THEN
+             CALL HCO_ERROR ( 'Br2 is not a species', RC, THISLOC=LOC )
+             RETURN      
+          ENDIF
+          CALL Diagn_Create ( am_I_Root,                        & 
+                              HcoState,                         &
+                              cName     = 'SEASALT_BR2',        &
+                              ExtNr     = ExtNr,                &
+                              Cat       = -1,                   &
+                              Hier      = -1,                   &
+                              HcoID     = ID1,                  &
+                              SpaceDim  = 2,                    &
+                              LevIDx    = -1,                   &
+                              OutUnit   = 'kg/m2/s',            &
+                              WriteFreq = 'Manual',             &
+                              AutoFill  = 1,                    &
+                              cID       = N,                    & 
+                              RC        = RC                     ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF ! SEASALT 
+
+       
+
 
 
        !=================================================================

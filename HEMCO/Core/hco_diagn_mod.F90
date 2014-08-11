@@ -554,10 +554,10 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Make sure that there is no duplicate entry (for AutoFill only)
     !-----------------------------------------------------------------------
-    CALL DiagnCont_Find( -1, ThisDiagn%ExtNr, ThisDiagn%Cat,     &
-                             ThisDiagn%Hier, ThisDiagn%HcoID, '', 1, &
+    CALL DiagnCont_Find( -1, ThisDiagn%ExtNr, ThisDiagn%Cat,         &
+                             ThisDiagn%Hier,  ThisDiagn%HcoID, '', 1, &
                              FOUND, TmpDiagn )
-    IF ( FOUND ) THEN
+    IF ( FOUND .AND. TmpDiagn%AutoFill==1 .AND. ThisDiagn%AutoFill==1 ) THEN
        MSG = 'These two diagnostics seem to be the same:'
        CALL HCO_MSG(MSG)
        CALL Diagn_Print( ThisDiagn, .TRUE. ) 
