@@ -286,6 +286,7 @@ CONTAINS
     REAL(hp), POINTER      :: Arr2D (:,:) => NULL()
     LOGICAL, SAVE          :: FIRST = .TRUE.
     LOGICAL                :: aIR, FOUND
+    CHARACTER(LEN= 31)     :: DiagnName
     CHARACTER(LEN=255)     :: MSG, DMY
 
     !=================================================================
@@ -495,6 +496,23 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
     ENDIF
+
+    ! Eventually add individual diagnostics. These are hardcoded
+    ! by name.
+
+    ! 'FERTILIZER_NO' is the fertilizer NO emissions. If an empty
+    ! pointer (i.e. not associated) is passed to Diagn_Update,
+    ! diagnostics are treated as zeros!
+    IF ( LFERTILIZERNOX ) THEN 
+       Arr2D => SOILFERT
+    ELSE
+       Arr2D => NULL()
+    ENDIF
+    DiagnName =  'FERTILIZER_NO'
+    CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, & 
+                       cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+    Arr2D => NULL()
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
@@ -807,10 +825,6 @@ CONTAINS
        ENDDO
        DEALLOCATE ( LANDTYPE )
     ENDIF
-
-    SOILFERT  => NULL()
-    CLIMARID  => NULL()
-    CLIMNARID => NULL()
 
     ! Free pointers 
     CLIMARID  => NULL()

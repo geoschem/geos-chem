@@ -44,6 +44,7 @@ MODULE HCOI_GC_DIAGN_MOD
   USE CMN_SIZE_MOD
   USE CMN_DIAG_MOD
   USE DIAG_MOD
+  USE DIAG56_MOD
 
   IMPLICIT NONE
   PRIVATE
@@ -626,16 +627,7 @@ CONTAINS
        ENDIF
 
        !-----------------------------------------------------------------
-       ! CO emissions (ND29) 
-       !-----------------------------------------------------------------
-       ! --> Anthropogenic, biogenic, biomass and biofuel emissions are 
-       !     all covered in the respective sections. 
-       ! --> CO produced from methanol doesn't seem to be written anymore?!
-       !     Not filled for now.
-       !-----------------------------------------------------------------
-
-       !-----------------------------------------------------------------
-       ! Biomass burning emissions (ND32, ND29, ND28, ND13, ND07)
+       ! Biomass burning emissions (ND28, ND07, ND13, ND29, ND32 ) 
        !-----------------------------------------------------------------
        ! ==> write one single biomass burning diagnostics per species.
        ! ==> Biomass buring comes from GFED or FINN inventory. If none
@@ -992,7 +984,143 @@ CONTAINS
        ENDIF
 
        !-----------------------------------------------------------------
-       ! Biofuel emissions (ND34, ND32, ND29 )
+       ! CO emissions (ND29) 
+       !-----------------------------------------------------------------
+       ! --> Anthropogenic, biogenic, biomass and biofuel emissions are 
+       !     all covered in the respective sections. 
+       ! --> CO produced from methanol doesn't seem to be written anymore?!
+       !     Not filled for now.
+       !-----------------------------------------------------------------
+
+       !-----------------------------------------------------------------
+       ! NO emissions (ND32) 
+       !-----------------------------------------------------------------
+       ! --> Anthropogenic, biogenic, biomass and biofuel emissions are 
+       !     all covered in the respective sections. 
+       !-----------------------------------------------------------------
+
+       ! NO emissions ...
+       ExtNr = 0
+       ID1   = HCO_GetHcoID( 'NO', HcoState )
+       IF ( ID1 <= 0 ) THEN
+          MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN      
+       ENDIF
+
+       ! ... from aircrafts ...
+       DiagnName = 'AIRCRAFT_NO'
+       CALL Diagn_Create ( am_I_Root,                   & 
+                           HcoState,                    &
+                           cName     = TRIM(DiagnName), &
+                           ExtNr     = ExtNr,           &
+                           Cat       = 20,              &
+                           Hier      = -1,              &
+                           HcoID     = ID1,             &
+                           SpaceDim  = 3,               &
+                           LevIDx    = -1,              &
+                           OutUnit   = 'kg/m2/s',       &
+                           WriteFreq = 'Manual',        &
+                           AutoFill  = 1,               &
+                           cID       = N,               & 
+                           RC        = RC                )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       ! ... ship NO ...
+       Cat   = -1
+       ExtNr = GetExtNr('ParaNOx')
+       IF ( ExtNr <= 0 ) THEN
+          ExtNr = 0
+          Cat   = 10
+       ENDIF
+       DiagnName = 'SHIP_NO'
+       CALL Diagn_Create ( am_I_Root,                   & 
+                           HcoState,                    &
+                           cName     = TRIM(DiagnName), &
+                           ExtNr     = ExtNr,           &
+                           Cat       = Cat,             &
+                           Hier      = -1,              &
+                           HcoID     = ID1,             &
+                           SpaceDim  = 2,               &
+                           LevIDx    = -1,              &
+                           OutUnit   = 'kg/m2/s',       &
+                           WriteFreq = 'Manual',        &
+                           AutoFill  = 1,               &
+                           cID       = N,               & 
+                           RC        = RC                )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       ! ... lightning ...
+       Cat   = -1
+       ExtNr = GetExtNr('LightNOx')
+       IF ( ExtNr > 0 ) THEN
+          DiagnName = 'LIGHTNING_NO'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 3,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF
+      
+       ! ... soil NOx ...
+       Cat   = -1
+       ExtNr = GetExtNr('SoilNOx')
+       IF ( ExtNr > 0 ) THEN
+          DiagnName = 'SOIL_NO'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+
+          ! ... fertilizer NOx ...
+          CALL GetExtOpt ( ExtNr, 'Use fertilizer', OptValBool=YesOrNo, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( YesOrNo == .FALSE. ) THEN
+             MSG = 'Fertilizer NOx disabled - diagnostics will be zero!'
+             CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+          ENDIF
+          DiagnName = 'FERTILIZER_NO'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 0,               &
+                              cID       = N,               & 
+                              RC        = RC                )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       ENDIF
+ 
+       !-----------------------------------------------------------------
+       ! Biofuel emissions (ND34, ND29, ND32 )
        !-----------------------------------------------------------------
        ! ==> write one single biofuel emissions diagnostics per species.
        ! ==> most inventories include biofuel emissions in the anthrop.
@@ -1928,9 +2056,58 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF ! SEASALT 
 
-       
+       !-----------------------------------------------------------------
+       ! Lightning flashes (ND56)
+       !-----------------------------------------------------------------
+       ! ==> Manually set in hcox_lightning_mod.F90
+       ! ==> It looks like the original ND56 diagnostics are never reset?!? 
+       !-----------------------------------------------------------------
 
+       IF ( ND56 > 0 ) THEN
 
+          ! Get ext. nr. 
+          ExtNr = GetExtNr('LightNOx')
+          IF ( ExtNr <= 0 ) THEN
+             MSG = 'Lightning NOx is not enabled - cannot write diagnostics ND56!'
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+
+          SpcName = 'NO'
+          ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+
+          DO I = 1,3
+             IF ( I == 1 ) THEN
+                DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
+             ELSEIF ( I == 2 ) THEN
+                DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
+             ELSEIF ( I == 3 ) THEN
+                DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
+             ENDIF
+
+             CALL Diagn_Create ( am_I_Root,                     & 
+                                 HcoState,                      &
+                                 cName     = TRIM(DiagnName),   &
+                                 ExtNr     = ExtNr,             &
+                                 Cat       = -1,                &
+                                 Hier      = -1,                &
+                                 HcoID     = ID1,               &
+                                 SpaceDim  = 2,                 &
+                                 LevIDx    = -1,                &
+                                 OutUnit   = 'flashes/min/km2', &
+                                 OutOper   = 'Cumsum',          &
+                                 WriteFreq = 'Manual',          &
+                                 AutoFill  = 0,                 &
+                                 cID       = N,                 & 
+                                 RC        = RC                  ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDDO
+       ENDIF !ND56
 
        !=================================================================
        ! Define automatic diagnostics (AutoFill)

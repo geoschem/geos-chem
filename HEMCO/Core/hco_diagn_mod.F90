@@ -66,11 +66,11 @@ MODULE HCO_Diagn_Mod
   PUBLIC  :: Diagn_GetMaxResetFlag
   PUBLIC  :: Diagn_GetDiagnPrefix
   PUBLIC  :: Diagn_Print
+  PUBLIC  :: DiagnCont_Find
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: DiagnCont_Init
-  PRIVATE :: DiagnCont_Find
   PRIVATE :: DiagnCont_PrepareOutput
   PRIVATE :: DiagnCont_Link_2D
   PRIVATE :: DiagnCont_Link_3D
@@ -80,7 +80,8 @@ MODULE HCO_Diagn_Mod
 !  19 Dec 2013 - C. Keller   - Initialization
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation  
 !  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  01 Aug 2014 - C. Keller   - Added manual output frequency.
+!  01 Aug 2014 - C. Keller   - Added manual output frequency
+!  12 Aug 2014 - C. Keller   - Added cumulative sum option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -143,8 +144,12 @@ MODULE HCO_Diagn_Mod
 ! !DEFINED PARAMETERS:
 !
   ! Parameter for averaging and summing non-standard data
-  INTEGER, PARAMETER             :: AvgFlagMean = 1
-  INTEGER, PARAMETER             :: AvgFlagSum  = 2
+  ! AvgFlagMean    : calculates the arithmetic mean
+  ! AvgFlagSum     : calculates the sum, resets after every writeout
+  ! AvgFlagCumSum  : calculates the cumulative sum, never resets.
+  INTEGER, PARAMETER             :: AvgFlagMean   = 1
+  INTEGER, PARAMETER             :: AvgFlagSum    = 2
+  INTEGER, PARAMETER             :: AvgFlagCumsum = 2
 
 CONTAINS
 !EOC
@@ -257,7 +262,8 @@ CONTAINS
 !      attribute set in Diagn\_Get.
 !\item OutOper: output operation for non-standard units. If this 
 !      argument is used, the specified operation is performed and all
-!      unit specifications are ignored. Can be one of 'Mean' or 'Sum'. 
+!      unit specifications are ignored. Can be one of 'Mean', 'Sum', 
+!      or 'Cumsum'.
 !\item AutoFill: containers with an AutoFill flag of 1 will be auto-
 !      matically updated by the HEMCO standard diagnostics calls
 !      (e.g. in hco\_calc\_mod.F90). If set to 0, the diagnostics 
@@ -462,8 +468,12 @@ CONTAINS
              ThisDiagn%AvgFlag = AvgFlagMean
           ELSEIF ( TRIM(OutOper) == 'Sum' ) THEN
              ThisDiagn%AvgFlag = AvgFlagSum
+          ELSEIF ( TRIM(OutOper) == 'Cumsum' ) THEN
+             ThisDiagn%AvgFlag = AvgFlagCumsum
           ELSE
              MSG = 'Illegal output operator: ' // TRIM(OutOper)
+             MSG = TRIM(MSG) // '. Allowed are `Mean`, `Sum`, `Cumsum`.'
+             MSG = TRIM(MSG) // ' (' // TRIM(cName) // ')'
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           ENDIF
    
@@ -549,7 +559,7 @@ CONTAINS
           ENDIF
    
        ENDIF ! OutOper not set
-    ENDIF ! DtaIsPtr
+    ENDIF ! .NOT. DtaIsPtr
    
     !-----------------------------------------------------------------------
     ! Make sure that there is no duplicate entry (for AutoFill only)
@@ -620,6 +630,10 @@ CONTAINS
 ! be updated multiple times.
 !\\
 !\\
+! If the passed array is empty (i.e. not associated), it is treated as
+! empty values (i.e. zeros).
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE Diagn_Update( am_I_Root, HcoState, cID,     cName,   &
@@ -681,7 +695,7 @@ CONTAINS
     INTEGER                  :: DgnHier, DgnHcoID
     INTEGER                  :: MinResetFlag, ThisUpdateID
     INTEGER                  :: AutoFlag
-    LOGICAL                  :: Found, OnlyPos, VertSum
+    LOGICAL                  :: Found, OnlyPos, VertSum, IsAssoc
 
     !======================================================================
     ! Diagn_Update begins here!
@@ -789,38 +803,25 @@ CONTAINS
          
        ! Pass array to diagnostics: reset to zero if counter 
        ! is zero, add to it otherwise.
-       IF ( ThisDiagn%Counter == 0 ) ThisDiagn%Arr3D%Val = 0.0_hp
+       ! Never reset containers with cumulative sums!
+       IF ( ThisDiagn%Counter == 0 .AND. &
+            ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Arr3D%Val = 0.0_hp
 
-       IF ( OnlyPos ) THEN
-          WHERE ( Array3D >= 0.0_hp )
+       ! Only if associated ...
+       IF ( ASSOCIATED(Array3D) ) THEN
+          IF ( OnlyPos ) THEN
+             WHERE ( Array3D >= 0.0_hp )
+                ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + ( Array3D * Fact )
+             END WHERE
+          ELSE
              ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + ( Array3D * Fact )
-          END WHERE
-       ELSE
-          ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + ( Array3D * Fact )
+          ENDIF
        ENDIF
 
     !----------------------------------------------------------------------
     ! To add 2D array
     !----------------------------------------------------------------------
     ELSEIF ( ThisDiagn%SpaceDim == 2 ) THEN
-
-       ! Assume that we don't have to take the vertical sum
-       VertSum = .FALSE.
-
-       ! Convert 3D array to 2D if necessary - only use first level!!
-       IF ( PRESENT(Array2D) ) THEN
-          Arr2D => Array2D
-       ELSEIF ( PRESENT(Array3D) ) THEN
-          IF ( ThisDiagn%LevIdx == -1 ) THEN
-             VertSum = .TRUE.
-          ELSE
-             Arr2D => Array3D(:,:,ThisDiagn%LevIdx)
-          ENDIF
-       ELSE
-          MSG = 'Cannot create 2D array: ' // TRIM(ThisDiagn%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
 
        ! Make sure dimensions agree and diagnostics array is allocated
        CALL HCO_ArrAssert( ThisDiagn%Arr2D, HcoState%NX, &
@@ -829,50 +830,85 @@ CONTAINS
          
        ! Pass array to diagnostics: ignore existing data if counter 
        ! is zero, add to it otherwise.
-       IF ( ThisDiagn%Counter == 0 ) ThisDiagn%Arr2D%Val = 0.0_hp
+       ! Never reset containers with cumulative sums!
+       IF ( ThisDiagn%Counter == 0 .AND. &
+            ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Arr2D%Val = 0.0_hp
 
-       ! only positive values
-       IF ( OnlyPos ) THEN
+       ! Assume that we don't have to take the vertical sum
+       VertSum = .FALSE.
 
-          ! need to do vertical summation
-          IF ( VertSum ) THEN
-             DO J=1,HcoState%NY
-             DO I=1,HcoState%NX
-                TMP = 0.0_hp
-                DO L=1,HcoState%NZ
-                   IF ( Array3D(I,J,L) >= 0.0_hp ) &
-                      TMP = TMP + ( Array3D(I,J,L) * Fact )
-                ENDDO
-                ThisDiagn%Arr2D%Val(I,J) = &
-                   ThisDiagn%Arr2D%Val(I,J) + TMP
-             ENDDO
-             ENDDO
+       ! Assume data pointer is associated
+       IsAssoc = .TRUE.
 
-          ! no vertical summation
+       ! Convert 3D array to 2D if necessary - only use first level!!
+       IF ( PRESENT(Array2D) ) THEN
+          IF ( .NOT. ASSOCIATED(Array2D) ) THEN
+             IsAssoc = .FALSE.
           ELSE
-             WHERE ( Arr2D >= 0.0_hp )
-                ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Arr2D * Fact )
-             END WHERE
+             Arr2D => Array2D
           ENDIF
-
-       ! all values
+       ELSEIF ( PRESENT(Array3D) ) THEN
+          IF ( .NOT. ASSOCIATED(Array3D) ) THEN
+             IsAssoc = .FALSE.
+          ELSE
+             IF ( ThisDiagn%LevIdx == -1 ) THEN
+                VertSum = .TRUE.
+             ELSE
+                Arr2D => Array3D(:,:,ThisDiagn%LevIdx)
+             ENDIF
+          ENDIF
        ELSE
- 
-          ! need to do vertical summation
-          IF ( VertSum ) THEN
-             DO J=1,HcoState%NY
-             DO I=1,HcoState%NX
-                TMP = SUM(Array3D(I,J,:)) * Fact
-                ThisDiagn%Arr2D%Val(I,J) = &
-                   ThisDiagn%Arr2D%Val(I,J) + TMP
-             ENDDO
-             ENDDO
-
-          ! no vertical summation
-          ELSE
-             ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Arr2D * Fact )
-          ENDIF
+          MSG = 'No array passed for updating ' // TRIM(ThisDiagn%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
        ENDIF
+
+       ! Do only if data pointer associated ...
+       IF ( IsAssoc ) THEN
+
+          ! only positive values
+          IF ( OnlyPos ) THEN
+   
+             ! need to do vertical summation
+             IF ( VertSum ) THEN
+                DO J=1,HcoState%NY
+                DO I=1,HcoState%NX
+                   TMP = 0.0_hp
+                   DO L=1,HcoState%NZ
+                      IF ( Array3D(I,J,L) >= 0.0_hp ) &
+                         TMP = TMP + ( Array3D(I,J,L) * Fact )
+                   ENDDO
+                   ThisDiagn%Arr2D%Val(I,J) = &
+                      ThisDiagn%Arr2D%Val(I,J) + TMP
+                ENDDO
+                ENDDO
+   
+             ! no vertical summation
+             ELSE
+                WHERE ( Arr2D >= 0.0_hp )
+                   ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Arr2D * Fact )
+                END WHERE
+             ENDIF
+   
+          ! all values
+          ELSE
+    
+             ! need to do vertical summation
+             IF ( VertSum ) THEN
+                DO J=1,HcoState%NY
+                DO I=1,HcoState%NX
+                   TMP = SUM(Array3D(I,J,:)) * Fact
+                   ThisDiagn%Arr2D%Val(I,J) = &
+                      ThisDiagn%Arr2D%Val(I,J) + TMP
+                ENDDO
+                ENDDO
+   
+             ! no vertical summation
+             ELSE
+                ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Arr2D * Fact )
+             ENDIF
+          ENDIF
+       ENDIF ! pointer is associated
 
     !----------------------------------------------------------------------
     ! To add scalar (1D) 
@@ -888,7 +924,9 @@ CONTAINS
 
        ! Pass array to diagnostics: ignore existing data if counter 
        ! is zero, add to it otherwise.
-       IF ( ThisDiagn%Counter == 0 ) ThisDiagn%Scalar = 0.0_hp
+       ! Never reset containers with cumulative sums!
+       IF ( ThisDiagn%Counter == 0 .AND. &
+            ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Scalar = 0.0_hp
        IF ( OnlyPos ) THEN
           IF ( Scalar >= 0.0_hp ) & 
              ThisDiagn%Scalar = ThisDiagn%Scalar + ( Scalar * Fact )
@@ -1512,7 +1550,7 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! If the averaging is forced to the sum: 
-    IF ( DgnCont%AvgFlag == AvgFlagSum ) THEN
+    IF ( DgnCont%AvgFlag == AvgFlagSum .OR. DgnCont%AvgFlag == AvgFlagCumsum ) THEN
        norm1 = 1.0_hp
        mult1 = 1.0_dp
 

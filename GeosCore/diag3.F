@@ -271,12 +271,12 @@
       REAL*8, POINTER    :: STT(:,:,:,:)
 
       ! Interface w/ HEMCO diagnostics
+      INTEGER                   :: FLAG
       INTEGER                   :: AFill
       CHARACTER(LEN= 63)        :: DiagnName
       CHARACTER(LEN=255)        :: MSG
       TYPE(DiagnCont), POINTER  :: DiagnCnt => NULL() 
       TYPE(HCO_State), POINTER  :: HcoState => NULL()
-      CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
       REAL*8                    :: FACTOR
       REAL*8, PARAMETER         :: GPERKG   = 1000d0
       REAL*8, PARAMETER         :: MWC      = 12d0
@@ -284,6 +284,8 @@
       REAL*8, PARAMETER         :: S_DMS    = 32d0 / 62d0
       REAL*8, PARAMETER         :: S_SO2    = 32d0 / 64d0
       REAL*8, PARAMETER         :: S_SO4    = 32d0 / 96d0
+
+      CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -2192,113 +2194,145 @@
      &     Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          ! All categories of NOx are in molec/cm2/s
-         UNIT = 'molec/cm2/s'
+         UNIT   = 'molec/cm2/s'
+         FACTOR = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         N      = IDTNO
 
          !==============================================================
          ! Aircraft NOx
          !==============================================================
-         CATEGORY = 'NO-AC-$'
-            
-         DO L = 1, LLCHEM
-            ARRAY(:,:,L) = AD32_ac(:,:,L) / SCALESRCE               
-         ENDDO
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
+         CATEGORY  = 'NO-AC-$'
+         DiagnName = 'AIRCRAFT_NO' 
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, LLPAR, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !==============================================================
          ! Anthropogenic NOx
          !==============================================================
-         CATEGORY = 'NO-AN-$'
+         CATEGORY  = 'NO-AN-$'
+         DiagnName = 'ANTHROPOGENIC_NO' 
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         DO L = 1, NOXEXTENT 
-            ARRAY(:,:,L) = AD32_an(:,:,L) / SCALESRCE
-         ENDDO
-
-         ! Add ship NOx to layer 1
-         ! We scale by AD32_ship_count because the ship emission diagnostic
-         ! is recorded every CHEMISTRY timestep when using INSTANT PBL mixing
-         ! and every CONVECTION timestep when using NON-LOCAL PBL mixing
-         IF ( AD32_SHIP_COUNT >= 1 ) THEN
-            ARRAY(:,:,1) = ARRAY(:,:,1) + 
-     &           AD32_SHIP(:,:) / REAL( AD32_SHIP_COUNT )
+         ! Get diagnostics
+         DiagnCnt => NULL()
+         CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt, 
+     &                   FLAG, RC,      cName=TRIM(DiagnName), 
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
          ENDIF
 
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY,  IDTNO,
-     &               UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &               IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+         ! Save into ARRAY. Convert to units
+         IF ( FLAG == HCO_SUCCESS ) THEN
+            ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+         ELSE
+            MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+            MSG = TRIM(MSG) // ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+         ENDIF
+
+         ! Add ship NO to array
+         DiagnName = 'SHIP_NO' 
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         ! Get diagnostics
+         DiagnCnt => NULL()
+         CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt, 
+     &                   FLAG, RC,      cName=TRIM(DiagnName), 
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+         ! Save into ARRAY. Convert to units
+         IF ( FLAG == HCO_SUCCESS ) THEN
+            ARRAY(:,:,1) = ARRAY(:,:,1) +
+     &                   ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+         ELSE
+            MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+            MSG = TRIM(MSG) // ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+         ENDIF
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT ,     DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+         ! Free pointer
+         DiagnCnt => NULL()
+
+!         DO L = 1, NOXEXTENT 
+!            ARRAY(:,:,L) = AD32_an(:,:,L) / SCALESRCE
+!         ENDDO
+!
+!         ! Add ship NOx to layer 1
+!         ! We scale by AD32_ship_count because the ship emission diagnostic
+!         ! is recorded every CHEMISTRY timestep when using INSTANT PBL mixing
+!         ! and every CONVECTION timestep when using NON-LOCAL PBL mixing
+!         IF ( AD32_SHIP_COUNT >= 1 ) THEN
+!            ARRAY(:,:,1) = ARRAY(:,:,1) + 
+!     &           AD32_SHIP(:,:) / REAL( AD32_SHIP_COUNT )
+!         ENDIF
+!
+!         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,     
+!     &               HALFPOLAR, CENTER180, CATEGORY,  IDTNO,
+!     &               UNIT,      DIAGb,     DIAGe,     RESERVED,   
+!     &               IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+!     &               JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
 
          !==============================================================
          ! Biomass Burning NOx
          !==============================================================
-         CATEGORY     = 'NO-BIOB'
-
-         ARRAY(:,:,1) = AD32_bb(:,:) / SCALESRCE
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CATEGORY  = 'NO-BIOB'
+         DiagnName = 'BIOMASS_NO' 
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !==============================================================
          ! Binary punch file: NOx from Biofuel
          !==============================================================
-         CATEGORY     = 'NO-BIOF'
-
-         ARRAY(:,:,1) = AD32_bf(:,:) / SCALESRCE
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &                  HALFPOLAR, CENTER180, CATEGORY, IDTNO,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CATEGORY  = 'NO-BIOF'
+         DiagnName = 'BIOFUEL_NO' 
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !==============================================================
          ! Fertilizer NOx
          !==============================================================
-         CATEGORY     = 'NO-FERT'
-
-         ARRAY(:,:,1) = AD32_fe(:,:) / SCALESRCE
-            
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CATEGORY  = 'NO-FERT'
+         DiagnName = 'FERTILIZER_NO' 
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 0, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !==============================================================
          ! Lightning NOx
          !==============================================================
-         CATEGORY = 'NO-LI-$'
-
-         DO L = 1, LLCONVM 
-            ARRAY(:,:,L) = AD32_li(:,:,L) / SCALESRCE
-         ENDDO
+         CATEGORY  = 'NO-LI-$'
+         DiagnName = 'LIGHTNING_NO' 
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, LLPAR, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
                
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LLCONVM,  IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLCONVM) )
-
          !==============================================================
          ! Soil NOx
          !==============================================================
-         CATEGORY     = 'NO-SOIL'
-
-         ARRAY(:,:,1) = AD32_so(:,:) / SCALESRCE
-            
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO ,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         CATEGORY  = 'NO-SOIL'
+         DiagnName = 'SOIL_NO' 
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !==============================================================
          ! Stratospheric NOx (boundary condition)
@@ -3591,8 +3625,47 @@
 !  ND56: Lightning flash rate diagnostics (ltm, bmy, 5/5/06))
 !******************************************************************************
 !
-      IF ( ND56 > 0 ) CALL WRITE_DIAG56
+!      IF ( ND56 > 0 ) CALL WRITE_DIAG56
 
+       IF ( ND56 > 0 ) THEN
+
+          CATEGORY = 'LFLASH-$'
+          UNIT     = 'flashes/min/km2'
+
+          ! Get scale factor
+#if   defined( MERRA )
+          FACTOR = DBLE( GET_CT_A3() ) + 1d-32
+#elif defined( GEOS_FP )
+          FACTOR = DBLE( GET_CT_I3() ) + 1d-32
+#else
+          FACTOR = DBLE( GET_CT_A6() ) + 1d-32
+#endif     
+          FACTOR = 1.0 / FACTOR
+
+          ! Loop over ND56 diagnostic tracers
+          DO M = 1, 3
+
+             ! Define quantities
+             N = TINDEX(56,M)
+            
+             SELECT CASE ( N )
+                CASE ( 1 )
+                   DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
+                CASE ( 2 )
+                   DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
+                CASE ( 3 )
+                   DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
+                CASE DEFAULT
+                   MSG = 'Lightning index N must not exceed 3!'
+                   CALL ERROR_STOP ( MSG, LOC )
+             END SELECT
+
+             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                       UNIT,   N, 1, -1,   .TRUE.,     FACTOR, RC)
+             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDDO
+
+      ENDIF
 !
 !******************************************************************************
 !  ND57: THETA
@@ -4685,13 +4758,13 @@
             ! Vertical levels
             levs = MAX(dz,1)
 
-            ! Save into ARRAY. Convert from kg to kgS.
+            ! Save into ARRAY. Apply scale factor if required 
             IF ( FLG == HCO_SUCCESS ) THEN
                IF ( dz > 0 ) THEN
                   ARRAY(:,:,1:levs) = 
      &               DgnCont%Arr3D%Val(:,:,1:levs) * dFACTOR
                ELSE 
-                  ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * dFactor 
+                  ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * dFACTOR
                ENDIF
             ELSE
                MG = 'No diagnostics returned: ' // TRIM(dname)
