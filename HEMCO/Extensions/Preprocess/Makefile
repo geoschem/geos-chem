@@ -48,11 +48,6 @@ FINN_OUT  ?=$(HCOX)/hcox_finn_include.H
 LDIST_IN  ?=$(HEMCO_DATA_ROOT)/LIGHTNOX/v2014-07/light_dist.ott2010.dat
 LDIST_OUT ?=$(HCOX)/lightning_cdf_include.H
 
-# Files for PARANOX
-PNOX_FN   ?=$(HEMCO_DATA_ROOT)/PARANOX/v2014-07/FracNOx_binary_5hrs_20gs.dat
-PNOX_OPE  ?=$(HEMCO_DATA_ROOT)/PARANOX/v2014-07/IntOPE_binary_5hrs_20gs.dat
-PNOX_OUT  ?=$(HCOX)/hcox_gfed3_include.H
-
 ###############################################################################
 ###                                                                         ###
 ###  Makefile targets: type "make help" for a complete listing!             ###
@@ -64,19 +59,21 @@ PNOX_OUT  ?=$(HCOX)/hcox_gfed3_include.H
 all: gfed3 finn lightdist paranox
 
 gfed3:
+	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 	@echo "%%% GFED3.......creating '$(GFED3_OUT)'"
-	@gfed3.pl $(GFED3_IN) $(GFED3_OUT)
+	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+	./gfed3.pl $(GFED3_IN) $(GFED3_OUT)
 
 finn:
+	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 	@echo "%%% FINN........creating '$(FINN_OUT)'"
-	@finn.pl $(FINN_CO2) $(FINN_VOC) $(FINN_OUT)
+	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+	./finn.pl $(FINN_CO2) $(FINN_VOC) $(FINN_OUT)
 
 lightdist:
+	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 	@echo "%%% LIGHTDIST...creating '$(LDIST_OUT)'"
-	@lightdist.pl $(LDIST_IN) $(LDIST_OUT)
-
-paranox:
-	@echo "%%% PARANOX.....creating '$(PNOX_OUT)'"
-#	./paranox.pl $(PNOX_FN) $(PNOX_OPE) $(PNOX_OUT)
+	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+	./lightdist.pl $(LDIST_IN) $(LDIST_OUT)
 
 #EOC

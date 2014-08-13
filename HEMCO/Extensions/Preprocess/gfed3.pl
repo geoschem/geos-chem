@@ -73,8 +73,23 @@ sub getProTeXHeader() {
 !  an ASCII file in the ESMF environment.
 !
 ! !REMARKS:
-!  This file was generated with HEMCO/Extensions/Preprocess/gfed3.pl.
+!  ABOUT THIS FILE:
+!  ----------------
+!  This file was created by script HEMCO/Extensions/Preprocess/gfed3.pl.
+!  This script can be executed with the following command:
 !
+!    cd HEMCO/Extensions/Preprocess
+!    make gfed3
+!
+!  This will regenerate this include file from the original data and 
+!  automatically place it in the HEMCO/Extensions directory.
+!
+!  White space has been removed in order to reduce the file size as much
+!  as possible.  If you have to recreate this file, then it is easier to
+!  generate via the Perl script than to try to hand edit the code below.
+!
+!  DATA:
+!  -----
 !  The GFED3_EMFAC array contains emission factors in kg/kgDM or kgC/kgDM
 !  GFED3_EMFAC(N,1) = Agricultural Waste   Emission Factor for species N
 !  GFED3_EMFAC(N,1) = Deforestation        Emission Factor for species N
@@ -167,8 +182,8 @@ sub makeGfed3Include($$) {
     chomp( $line );
 
     # Parse input lines
-    if    ( $line =~ m/Emission/ ) { print O "    ! $line\n"; }  # Header line
-    elsif ( $line =~ m/Column/   ) { print O "    ! $line\n"; }  # Header line
+    if    ( $line =~ m/Emission/ ) { ; }  # Skip header line
+    elsif ( $line =~ m/Column/   ) { ; }  # Skip header line
     else                           {
 
       # Split the line
@@ -178,14 +193,14 @@ sub makeGfed3Include($$) {
       $n      = $result[0];
 
       # Write out the F90 commands to initialize the arrays
-      print O "\n    ! $result[1]\n";
-      print O "    GFED3_SPEC_NAME($n  ) = \"$result[1]\"\n";
-      print O "    GFED3_EMFAC    ($n,1) = $result[2]_hp\n";
-      print O "    GFED3_EMFAC    ($n,2) = $result[3]_hp\n";
-      print O "    GFED3_EMFAC    ($n,3) = $result[4]_hp\n";
-      print O "    GFED3_EMFAC    ($n,4) = $result[5]_hp\n";
-      print O "    GFED3_EMFAC    ($n,5) = $result[6]_hp\n";
-      print O "    GFED3_EMFAC    ($n,6) = $result[7]_hp\n";
+      print O "\n! $result[1]\n";
+      print O "GFED3_SPEC_NAME($n)=\"$result[1]\"\n";
+      print O "GFED3_EMFAC($n,1)=$result[2]_hp\n";
+      print O "GFED3_EMFAC($n,2)=$result[3]_hp\n";
+      print O "GFED3_EMFAC($n,3)=$result[4]_hp\n";
+      print O "GFED3_EMFAC($n,4)=$result[5]_hp\n";
+      print O "GFED3_EMFAC($n,5)=$result[6]_hp\n";
+      print O "GFED3_EMFAC($n,6)=$result[7]_hp\n";
 
     }
   }
