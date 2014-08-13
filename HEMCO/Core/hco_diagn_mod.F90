@@ -20,7 +20,11 @@
 ! added to the individual containers via Diagn\_Update. Diagnostics
 ! data is fetched using Diagn\_Get. All emissions are stored in units
 ! of [kg/m2] and only converted to desired output unit when returning 
-! the data.
+! the data. The container variable IsOutFormat denotes whether data
+! is in output units or internal units. Variable nnGetCalls counts the
+! number of times a diagnostics is called through Diagn\_Get without
+! updating its content. This is useful if you want to make sure that
+! data is only written once per time step.
 !\\
 !\\
 ! There are two types of diagnostics: automatic (`AutoFill`) and 
@@ -62,11 +66,11 @@ MODULE HCO_Diagn_Mod
   PUBLIC  :: Diagn_GetMaxResetFlag
   PUBLIC  :: Diagn_GetDiagnPrefix
   PUBLIC  :: Diagn_Print
+  PUBLIC  :: DiagnCont_Find
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: DiagnCont_Init
-  PRIVATE :: DiagnCont_Find
   PRIVATE :: DiagnCont_PrepareOutput
   PRIVATE :: DiagnCont_Link_2D
   PRIVATE :: DiagnCont_Link_3D
@@ -76,7 +80,8 @@ MODULE HCO_Diagn_Mod
 !  19 Dec 2013 - C. Keller   - Initialization
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation  
 !  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  01 Aug 2014 - C. Keller   - Added manual output frequency.
+!  01 Aug 2014 - C. Keller   - Added manual output frequency
+!  12 Aug 2014 - C. Keller   - Added cumulative sum option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,6 +116,8 @@ MODULE HCO_Diagn_Mod
                                                    !  non-standard units
      INTEGER                     :: ResetFlag      ! Diagn. output frequency
      INTEGER                     :: LastUpdateID   ! Last update time
+     INTEGER                     :: nnGetCalls     ! # of Diagn_Get calls w/o update 
+     LOGICAL                     :: IsOutFormat    ! Data is in output format?
      TYPE(DiagnCont),    POINTER :: NextCont       ! Ptr to next item in list
   END TYPE DiagnCont
 
@@ -137,8 +144,12 @@ MODULE HCO_Diagn_Mod
 ! !DEFINED PARAMETERS:
 !
   ! Parameter for averaging and summing non-standard data
-  INTEGER, PARAMETER             :: AvgFlagMean = 1
-  INTEGER, PARAMETER             :: AvgFlagSum  = 2
+  ! AvgFlagMean    : calculates the arithmetic mean
+  ! AvgFlagSum     : calculates the sum, resets after every writeout
+  ! AvgFlagCumSum  : calculates the cumulative sum, never resets.
+  INTEGER, PARAMETER             :: AvgFlagMean   = 1
+  INTEGER, PARAMETER             :: AvgFlagSum    = 2
+  INTEGER, PARAMETER             :: AvgFlagCumsum = 2
 
 CONTAINS
 !EOC
@@ -251,7 +262,8 @@ CONTAINS
 !      attribute set in Diagn\_Get.
 !\item OutOper: output operation for non-standard units. If this 
 !      argument is used, the specified operation is performed and all
-!      unit specifications are ignored. Can be one of 'Mean' or 'Sum'. 
+!      unit specifications are ignored. Can be one of 'Mean', 'Sum', 
+!      or 'Cumsum'.
 !\item AutoFill: containers with an AutoFill flag of 1 will be auto-
 !      matically updated by the HEMCO standard diagnostics calls
 !      (e.g. in hco\_calc\_mod.F90). If set to 0, the diagnostics 
@@ -456,8 +468,12 @@ CONTAINS
              ThisDiagn%AvgFlag = AvgFlagMean
           ELSEIF ( TRIM(OutOper) == 'Sum' ) THEN
              ThisDiagn%AvgFlag = AvgFlagSum
+          ELSEIF ( TRIM(OutOper) == 'Cumsum' ) THEN
+             ThisDiagn%AvgFlag = AvgFlagCumsum
           ELSE
              MSG = 'Illegal output operator: ' // TRIM(OutOper)
+             MSG = TRIM(MSG) // '. Allowed are `Mean`, `Sum`, `Cumsum`.'
+             MSG = TRIM(MSG) // ' (' // TRIM(cName) // ')'
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           ENDIF
    
@@ -543,15 +559,15 @@ CONTAINS
           ENDIF
    
        ENDIF ! OutOper not set
-    ENDIF ! DtaIsPtr
+    ENDIF ! .NOT. DtaIsPtr
    
     !-----------------------------------------------------------------------
     ! Make sure that there is no duplicate entry (for AutoFill only)
     !-----------------------------------------------------------------------
-    CALL DiagnCont_Find( -1, ThisDiagn%ExtNr, ThisDiagn%Cat,     &
-                             ThisDiagn%Hier, ThisDiagn%HcoID, '', 1, &
+    CALL DiagnCont_Find( -1, ThisDiagn%ExtNr, ThisDiagn%Cat,         &
+                             ThisDiagn%Hier,  ThisDiagn%HcoID, '', 1, &
                              FOUND, TmpDiagn )
-    IF ( FOUND ) THEN
+    IF ( FOUND .AND. TmpDiagn%AutoFill==1 .AND. ThisDiagn%AutoFill==1 ) THEN
        MSG = 'These two diagnostics seem to be the same:'
        CALL HCO_MSG(MSG)
        CALL Diagn_Print( ThisDiagn, .TRUE. ) 
@@ -612,6 +628,10 @@ CONTAINS
 !\\
 ! Note that for a given time step, the same diagnostics container can 
 ! be updated multiple times.
+!\\
+!\\
+! If the passed array is empty (i.e. not associated), it is treated as
+! empty values (i.e. zeros).
 !\\
 !\\
 ! !INTERFACE:
@@ -675,7 +695,7 @@ CONTAINS
     INTEGER                  :: DgnHier, DgnHcoID
     INTEGER                  :: MinResetFlag, ThisUpdateID
     INTEGER                  :: AutoFlag
-    LOGICAL                  :: Found, OnlyPos, VertSum
+    LOGICAL                  :: Found, OnlyPos, VertSum, IsAssoc
 
     !======================================================================
     ! Diagn_Update begins here!
@@ -730,16 +750,26 @@ CONTAINS
     CALL HcoClock_Get( nSteps = ThisUpdateID, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Sanity check: if this diagnostics is at the end of its output
-    ! interval, the counter should be zero. Otherwise, the content
-    ! of this diagnostics has not been passed to the output yet (via
-    ! routine Diagn\_Get)!
+    !----------------------------------------------------------------------
+    ! Sanity check: if data is beyond its averaging interval, it should
+    ! be in output format. Otherwise, the content of this diagnostics has 
+    ! never been passed to the output yet (via routine Diagn\_Get) and 
+    ! will thus be lost!
+    !----------------------------------------------------------------------
     IF ( ThisDiagn%ResetFlag >= MinResetFlag .AND. &
-         ThisDiagn%Counter   /= 0                   ) THEN
-       MSG = 'Diagnostics is at end of its output interval ' // &
-             'but has not yet been passed to output: '       // &
+         .NOT. ThisDiagn%IsOutFormat ) THEN
+       MSG = 'Diagnostics is at end of its output interval '      // &
+             'but was not passed to output - data will be lost: ' // &
              TRIM(ThisDiagn%cName)
        CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+    ENDIF
+
+    !----------------------------------------------------------------------
+    ! If data is in output format, set counter to zero. This will make
+    ! sure that the new data is not added to the existing data.
+    !----------------------------------------------------------------------
+    IF ( ThisDiagn%IsOutFormat ) THEN
+       ThisDiagn%Counter    = 0
     ENDIF
 
     !----------------------------------------------------------------------
@@ -771,17 +801,14 @@ CONTAINS
                            HcoState%NY,     HcoState%NZ, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
          
-       ! Pass array to diagnostics: ignore existing data if counter 
+       ! Pass array to diagnostics: reset to zero if counter 
        ! is zero, add to it otherwise.
-       IF ( ThisDiagn%Counter == 0 ) THEN
-          IF ( OnlyPos ) THEN
-             WHERE ( Array3D >= 0.0_hp )
-                ThisDiagn%Arr3D%Val = Array3D * Fact
-             END WHERE
-          ELSE
-             ThisDiagn%Arr3D%Val = Array3D * Fact
-          ENDIF
-       ELSE
+       ! Never reset containers with cumulative sums!
+       IF ( ThisDiagn%Counter == 0 .AND. &
+            ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Arr3D%Val = 0.0_hp
+
+       ! Only if associated ...
+       IF ( ASSOCIATED(Array3D) ) THEN
           IF ( OnlyPos ) THEN
              WHERE ( Array3D >= 0.0_hp )
                 ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + ( Array3D * Fact )
@@ -796,24 +823,6 @@ CONTAINS
     !----------------------------------------------------------------------
     ELSEIF ( ThisDiagn%SpaceDim == 2 ) THEN
 
-       ! Assume that we don't have to take the vertical sum
-       VertSum = .FALSE.
-
-       ! Convert 3D array to 2D if necessary - only use first level!!
-       IF ( PRESENT(Array2D) ) THEN
-          Arr2D => Array2D
-       ELSEIF ( PRESENT(Array3D) ) THEN
-          IF ( ThisDiagn%LevIdx == -1 ) THEN
-             VertSum = .TRUE.
-          ELSE
-             Arr2D => Array3D(:,:,ThisDiagn%LevIdx)
-          ENDIF
-       ELSE
-          MSG = 'Cannot create 2D array: ' // TRIM(ThisDiagn%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
        ! Make sure dimensions agree and diagnostics array is allocated
        CALL HCO_ArrAssert( ThisDiagn%Arr2D, HcoState%NX, &
                            HcoState%NY,     RC            ) 
@@ -821,55 +830,45 @@ CONTAINS
          
        ! Pass array to diagnostics: ignore existing data if counter 
        ! is zero, add to it otherwise.
-       IF ( ThisDiagn%Counter == 0 ) THEN
+       ! Never reset containers with cumulative sums!
+       IF ( ThisDiagn%Counter == 0 .AND. &
+            ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Arr2D%Val = 0.0_hp
 
-          ! Only positive values
-          IF ( OnlyPos ) THEN
+       ! Assume that we don't have to take the vertical sum
+       VertSum = .FALSE.
 
-             ! need to do vertical summation
-             IF ( VertSum ) THEN
-                DO J=1,HcoState%NY
-                DO I=1,HcoState%NX
-                   TMP = 0.0_hp
-                   DO L=1,HcoState%NZ
-                      IF ( Array3D(I,J,L) >= 0.0_hp ) &
-                           TMP = TMP + ( Array3D(I,J,L) * Fact )
-                   ENDDO
-                   ThisDiagn%Arr2D%Val(I,J) = TMP
-                ENDDO
-                ENDDO
+       ! Assume data pointer is associated
+       IsAssoc = .TRUE.
 
-             ! no vertical summation
-             ELSE
-                WHERE ( Arr2D >= 0.0_hp )
-                   ThisDiagn%Arr2D%Val = Arr2D * Fact
-                END WHERE
-             ENDIF
-
-          ! all values
+       ! Convert 3D array to 2D if necessary - only use first level!!
+       IF ( PRESENT(Array2D) ) THEN
+          IF ( .NOT. ASSOCIATED(Array2D) ) THEN
+             IsAssoc = .FALSE.
           ELSE
-
-             ! need to do vertical summation
-             IF ( VertSum ) THEN
-                DO J=1,HcoState%NY
-                DO I=1,HcoState%NX
-                   TMP = SUM(Array3D(I,J,:)) * Fact
-                   ThisDiagn%Arr2D%Val(I,J) = TMP
-                ENDDO
-                ENDDO
-
-             ! no vertical summation
+             Arr2D => Array2D
+          ENDIF
+       ELSEIF ( PRESENT(Array3D) ) THEN
+          IF ( .NOT. ASSOCIATED(Array3D) ) THEN
+             IsAssoc = .FALSE.
+          ELSE
+             IF ( ThisDiagn%LevIdx == -1 ) THEN
+                VertSum = .TRUE.
              ELSE
-                ThisDiagn%Arr2D%Val = Arr2D * Fact
+                Arr2D => Array3D(:,:,ThisDiagn%LevIdx)
              ENDIF
           ENDIF
-
-       ! Counter is not zero 
        ELSE
+          MSG = 'No array passed for updating ' // TRIM(ThisDiagn%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Do only if data pointer associated ...
+       IF ( IsAssoc ) THEN
 
           ! only positive values
           IF ( OnlyPos ) THEN
-
+   
              ! need to do vertical summation
              IF ( VertSum ) THEN
                 DO J=1,HcoState%NY
@@ -877,39 +876,39 @@ CONTAINS
                    TMP = 0.0_hp
                    DO L=1,HcoState%NZ
                       IF ( Array3D(I,J,L) >= 0.0_hp ) &
-                           TMP = TMP + ( Array3D(I,J,L) * Fact )
+                         TMP = TMP + ( Array3D(I,J,L) * Fact )
                    ENDDO
                    ThisDiagn%Arr2D%Val(I,J) = &
-                        ThisDiagn%Arr2D%Val(I,J) + TMP
+                      ThisDiagn%Arr2D%Val(I,J) + TMP
                 ENDDO
                 ENDDO
-
+   
              ! no vertical summation
              ELSE
                 WHERE ( Arr2D >= 0.0_hp )
                    ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Arr2D * Fact )
                 END WHERE
              ENDIF
-
+   
           ! all values
           ELSE
- 
+    
              ! need to do vertical summation
              IF ( VertSum ) THEN
                 DO J=1,HcoState%NY
                 DO I=1,HcoState%NX
                    TMP = SUM(Array3D(I,J,:)) * Fact
                    ThisDiagn%Arr2D%Val(I,J) = &
-                        ThisDiagn%Arr2D%Val(I,J) + TMP
+                      ThisDiagn%Arr2D%Val(I,J) + TMP
                 ENDDO
                 ENDDO
-
+   
              ! no vertical summation
              ELSE
                 ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Arr2D * Fact )
              ENDIF
           ENDIF
-       ENDIF
+       ENDIF ! pointer is associated
 
     !----------------------------------------------------------------------
     ! To add scalar (1D) 
@@ -925,19 +924,14 @@ CONTAINS
 
        ! Pass array to diagnostics: ignore existing data if counter 
        ! is zero, add to it otherwise.
-       IF ( ThisDiagn%Counter == 0 ) THEN
-          IF ( OnlyPos ) THEN
-             IF ( Scalar >= 0.0_hp ) ThisDiagn%Scalar = Scalar * Fact 
-          ELSE
-             ThisDiagn%Scalar = Scalar * Fact
-          ENDIF
+       ! Never reset containers with cumulative sums!
+       IF ( ThisDiagn%Counter == 0 .AND. &
+            ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Scalar = 0.0_hp
+       IF ( OnlyPos ) THEN
+          IF ( Scalar >= 0.0_hp ) & 
+             ThisDiagn%Scalar = ThisDiagn%Scalar + ( Scalar * Fact )
        ELSE
-          IF ( OnlyPos ) THEN
-             IF ( Scalar >= 0.0_hp ) & 
-                  ThisDiagn%Scalar = ThisDiagn%Scalar + ( Scalar * Fact )
-          ELSE
-             ThisDiagn%Scalar = ThisDiagn%Scalar + ( Scalar * Fact )  
-          ENDIF
+          ThisDiagn%Scalar = ThisDiagn%Scalar + ( Scalar * Fact )  
        ENDIF
 
     ELSE
@@ -956,6 +950,12 @@ CONTAINS
        ThisDiagn%Counter      = ThisDiagn%Counter + 1
        ThisDiagn%LastUpdateID = ThisUpdateID
     ENDIF
+
+    !----------------------------------------------------------------------
+    ! Data is not in output format and hasn't been called yet by Diagn_Get.
+    !----------------------------------------------------------------------
+    ThisDiagn%IsOutFormat = .FALSE.
+    ThisDiagn%nnGetCalls  = 0
 
     ! Verbose mode 
     IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
@@ -983,9 +983,9 @@ CONTAINS
 ! update counter higher than zero, are returned. If EndOfIntvOnly is set to 
 ! TRUE, only containers at the end of their time averaging interval are 
 ! returned. The current HEMCO time will be used to determine which containers
-! are at the end of their interval. The update counter of the returned 
-! container is reset to zero, making sure that the currently saved data will 
-! be erased during the next update (Diagn\_Update).
+! are at the end of their interval. The IsOutFormat flag of the container is 
+! set to true, making sure that the currently saved data will be erased during 
+! the next update (Diagn\_Update).
 !\\
 !\\
 ! If DgnCont is already associated, the search continues from the container 
@@ -994,6 +994,7 @@ CONTAINS
 ! cName or cID is provided, this particular container is searched (through the 
 ! entire diagnostics list), but is only returned if it is at the end of it's 
 ! interval or if EndOfIntvOnly is disabled.
+!\\
 !\\
 ! The optional argument InclManual denotes whether or not containers with
 ! a manual update frequency shall be considered. This argument is only valid
@@ -1157,6 +1158,10 @@ CONTAINS
        CALL DiagnCont_PrepareOutput ( HcoState, DgnCont, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        FLAG = HCO_SUCCESS
+
+       ! Increase number of times this container has been called by
+       ! Diagn_Get
+       DgnCont%nnGetCalls = DgnCont%nnGetCalls + 1
     ENDIF
 
   END SUBROUTINE Diagn_Get
@@ -1396,6 +1401,10 @@ CONTAINS
     ! Set last update time to -1 to start with
     DgnCont%LastUpdateID = -1
 
+    ! By default, data is not in output format
+    DgnCont%IsOutFormat = .FALSE.
+    DgnCont%nnGetCalls  = 0
+
     ! Assign container ID.
     ! Set default target ID to cont. ID.
     nnDiagn              = nnDiagn + 1
@@ -1511,17 +1520,21 @@ CONTAINS
     RC  = HCO_SUCCESS
     LOC = 'DiagnCont_PrepareOutput (hco_diagn_mod.F90) '
 
+    !-----------------------------------------------------------------------
+    ! Don't do anything for pointer data and/or if data is already in 
+    ! output format
+    !-----------------------------------------------------------------------
+    IF ( DgnCont%IsOutFormat ) RETURN
+    IF ( DgnCont%DtaIsPtr    ) RETURN
+
+    !-----------------------------------------------------------------------
     ! Return w/ error if counter is still zero. This should not happen!
+    !-----------------------------------------------------------------------
     IF ( DgnCont%Counter == 0 ) THEN
        MSG = 'Counter is zero : ' // TRIM(DgnCont%cName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Don't do anything for pointer data
-    !-----------------------------------------------------------------------
-    IF ( DgnCont%DtaIsPtr ) RETURN
 
     !-----------------------------------------------------------------------
     ! Output data is calculated as: 
@@ -1537,7 +1550,7 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! If the averaging is forced to the sum: 
-    IF ( DgnCont%AvgFlag == AvgFlagSum ) THEN
+    IF ( DgnCont%AvgFlag == AvgFlagSum .OR. DgnCont%AvgFlag == AvgFlagCumsum ) THEN
        norm1 = 1.0_hp
        mult1 = 1.0_dp
 
@@ -1646,8 +1659,8 @@ CONTAINS
 
     ENDIF
 
-    ! Reset counter
-    DgnCont%Counter = 0
+    ! Data is now in output format
+    DgnCont%IsOutFormat = .TRUE.
 
   END SUBROUTINE DiagnCont_PrepareOutput
 !EOC
@@ -1923,8 +1936,9 @@ CONTAINS
     ! Update pointer switch. This will make sure that data is not modified.
     ! Also set counter to non-zero to make sure that diagnostics will be 
     ! correctly written. 
-    DgnCont%DtaIsPtr = .TRUE. 
-    DgnCont%Counter  = 1
+    DgnCont%DtaIsPtr    = .TRUE. 
+    DgnCont%Counter     = 1
+    DgnCont%IsOutFormat = .TRUE.
 
     ! Return
     RC = HCO_SUCCESS

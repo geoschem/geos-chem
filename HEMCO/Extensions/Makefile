@@ -150,7 +150,6 @@ hcox_paranox_mod.o    : hcox_paranox_mod.F90      \
 
 hcox_seaflux_mod.o    : hcox_seaflux_mod.F90      \
                         hcox_state_mod.o          \
-                        henry_mod.o               \
                         ocean_toolbox_mod.o
 
 hcox_seasalt_mod.o    : hcox_seasalt_mod.F90      \
@@ -161,9 +160,6 @@ hcox_soilnox_mod.o    : hcox_soilnox_mod.F90      \
                         drydep_toolbox_mod.o
 
 hcox_state_mod.o      : hcox_state_mod.F90
-
-
-henry_mod.o           : henry_mod.F
 
 lightning_cdf_mod.o   : lightning_cdf_mod.F90     \
                         lightning_cdf_include.H

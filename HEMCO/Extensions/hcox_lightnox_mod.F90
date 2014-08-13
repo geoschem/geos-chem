@@ -297,30 +297,20 @@ CONTAINS
     !=================================================================
     IF ( IDTNO > 0 ) THEN
 
-      ! Add flux to emission array
-      CALL HCO_EmisAdd( HcoState, SLBASE, IDTNO, RC)
-      IF ( RC /= HCO_SUCCESS ) RETURN 
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( HcoState, SLBASE, IDTNO, RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
 
-      ! Eventually update diagnostics
-      IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-         Arr3D => SLBASE
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
-                            Cat=-1, Hier=-1, HcoID=IDTNO,     &
-                            AutoFill=1, Array3D=Arr3D, RC=RC   )
-         IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr3D => NULL() 
-      ENDIF
-   ENDIF
-
-!======================================================================
-! !!! NEED TO ADD FURTHER DIAGNOSTICS HERE !!!
-!
-!         ! ND32 Diagnostic: LightNOX NOx [molec NOx/cm2/s]
-!         IF ( ND32 > 0 ) THEN
-!            AD32_li(I,J,L) = AD32_li(I,J,L) + 
-!     &                     ( TMP * State_Met%BXHEIGHT(I,J,L) * 1d2 )
-!         ENDIF
-!======================================================================
+       ! Eventually update diagnostics
+       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+          Arr3D => SLBASE
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+                             Cat=-1, Hier=-1, HcoID=IDTNO,     &
+                             AutoFill=1, Array3D=Arr3D, RC=RC   )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+          Arr3D => NULL() 
+       ENDIF
+    ENDIF
 
     ! Return w/ success
     CALL HCO_LEAVE ( RC ) 
@@ -401,7 +391,12 @@ CONTAINS
     REAL*8            :: XMID
     REAL*8            :: VERTPROF(HcoState%NZ)
     INTEGER           :: LNDTYPE, SFCTYPE
-    LOGICAL, SAVE     :: FIRST = .TRUE.
+    LOGICAL, SAVE     :: FIRST   = .TRUE.
+    LOGICAL, SAVE     :: DoDiagn = .FALSE.
+    REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,3)
+    REAL(hp), POINTER :: Arr2D(:,:) => NULL() 
+    CHARACTER(LEN=31) :: DiagnName
+    TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
 
     !=================================================================
     ! LIGHTNOX begins here!
@@ -411,20 +406,42 @@ CONTAINS
     CALL HCO_ENTER ( 'LightNOx (hcox_lightnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! ----------------------------------------------------------------
+    ! First call routines
+    ! ----------------------------------------------------------------
+    IF ( FIRST ) THEN
+
+       ! See if we have to write out manual diagnostics
+       IF ( .NOT. DoDiagn ) THEN
+          DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
+          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          TmpCnt => NULL()
+       ENDIF
+       IF ( .NOT. DoDiagn ) THEN
+          DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
+          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          TmpCnt => NULL()
+       ENDIF
+       IF ( .NOT. DoDiagn ) THEN
+          DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
+          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          TmpCnt => NULL()
+       ENDIF
+
+       ! Eventually get OTD-LIS local redistribution factors from HEMCO.
+       IF ( LOTDLOC ) THEN
+          CALL EmisList_GetDataArr( am_I_Root, 'LIGHTNOX_OTDLIS', OTDLIS, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+       FIRST = .FALSE.
+    ENDIF
+
     ! Reset arrays 
     SLBASE = 0d0
+    IF (DoDiagn) DIAGN = 0.0_hp
 
     ! LMAX: the highest L-level to look for lightnox (usually LLPAR-1)
     LMAX   = HcoState%NZ - 1
-
-    ! ----------------------------------------------------------------
-    ! Eventually get OTD-LIS local redistribution factors from HEMCO.
-    ! ----------------------------------------------------------------
-    IF ( LOTDLOC .AND. FIRST ) THEN
-       CALL EmisList_GetDataArr( am_I_Root, 'LIGHTNOX_OTDLIS', OTDLIS, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       FIRST = .FALSE.
-    ENDIF
 
 #if defined( GEOS_5 ) 
     ! Because of different convection in GEOS 5.1.0 and GEOS 5.2.0,
@@ -936,28 +953,21 @@ CONTAINS
        ! Sum of IC + CG [molec/6h]
        TOTAL = TOTAL_IC + TOTAL_CG
 
-       ! Compute LNOx emissions for tropics or midlats 
-!======================================================================
-! TODO:
-! !!! NEED TO ADD DIAGNOSTICS HERE !!!
-!
-!            !-----------------------------------------------------------
-!            ! (6f) ND56 diagnostic: store flash rates [flashes/min/km2]
-!            !-----------------------------------------------------------
-!            IF ( ND56 > 0 .and. RATE > 0d0 ) THEN
-!
-!               ! LightNOX flashes per minute per km2
-!               RATE_SAVE   = RATE / A_KM2 / 360d0
-!
-!               ! Store total, IC, and CG flash rates in AD56
-!               AD56(I,J,1) = AD56(I,J,1) +   RATE_SAVE
-!               !AD56(I,J,2) = AD56(I,J,2) + ( RATE_SAVE * ( 1d0 - X ) )
-!               AD56(I,J,3) = AD56(I,J,3) + ( RATE_SAVE *         X   )
-!
-!               AD56(I,J,2) = AD56(I,J,2) + H0 * 1d-3
-!
-!            ENDIF
-!======================================================================
+       !-----------------------------------------------------------
+       ! Store flash rates [flashes/min/km2] for diagnostics
+       !-----------------------------------------------------------
+       IF ( DoDiagn .AND. RATE > 0d0 ) THEN
+
+          ! LightNOX flashes per minute per km2
+          RATE_SAVE   = RATE / A_KM2 / 360d0
+
+          ! Store total, IC, and CG flash rates in AD56
+          DIAGN(I,J,1) = RATE_SAVE
+          DIAGN(I,J,3) = RATE_SAVE * X 
+          DIAGN(I,J,2) = H0 * 1d-3
+          !AD56(I,J,2) = AD56(I,J,2) + ( RATE_SAVE * ( 1d0 - X ) )
+
+       ENDIF
 
        !-----------------------------------------------------------
        ! (6g) LIGHTDIST computes the lightnox distribution from 
@@ -1000,6 +1010,32 @@ CONTAINS
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
+
+    ! Eventually add individual diagnostics. These go by names!
+    IF ( DoDiagn ) THEN
+       DiagnName =  'LIGHTNING_TOTAL_FLASHRATE'
+       Arr2D     => DIAGN(:,:,1)
+       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+   
+       ! Eventually add individual diagnostics. These go by names!
+       DiagnName =  'LIGHTNING_INTRACLOUD_FLASHRATE'
+       Arr2D     => DIAGN(:,:,2)
+       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+   
+       ! Eventually add individual diagnostics. These go by names!
+       DiagnName =  'LIGHTNING_CLOUDGROUND_FLASHRATE'
+       Arr2D     => DIAGN(:,:,3)
+       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+    ENDIF
 
     ! Return w/ success
     CALL HCO_LEAVE ( RC ) 
