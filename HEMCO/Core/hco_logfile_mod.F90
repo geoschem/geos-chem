@@ -185,12 +185,13 @@ CONTAINS
 !
       CHARACTER(LEN=255) :: MSG 
       INTEGER            :: nx, ny, nz, nt      
-      REAL*8             :: sm
+      REAL(sp)           :: sm
 
       ! ================================================================
       ! HCO_PrintDataCont begins here
       ! ================================================================
- 
+
+      sm = 0.0_sp 
       nx = 0 
       ny = 0
       nz = 0
