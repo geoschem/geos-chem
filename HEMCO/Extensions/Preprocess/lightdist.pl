@@ -71,7 +71,20 @@ sub getProTeXHeader() {
 !\\
 !\\
 ! !REMARKS:
-!  This file was created by HEMCO/Extensions/Preprocess/lightdist.pl.
+!  ABOUT THIS FILE:
+!  ----------------
+!  This file was created by script HEMCO/Extensions/Preprocess/lightdist.pl.
+!  This script can be executed with the following command:
+!
+!    cd HEMCO/Extensions/Preprocess
+!    make lightdist
+!
+!  This will regenerate this include file from the original data and 
+!  automatically place it in the HEMCO/Extensions directory.
+!
+!  White space has been removed in order to reduce the file size as much
+!  as possible.  If you have to recreate this file, then it is easier to
+!  generate via the Perl script than to try to hand edit the code below.
 !
 !  DATA:
 !  -----
@@ -135,6 +148,7 @@ sub makeLightDistInclude() {
 # 
 # !REVISION HISTORY: 
 #  11 Aug 2014 - R. Yantosca - Initial version
+#  13 Aug 2014 - R. Yantosca - Crunch down white space to make file smaller
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -143,17 +157,14 @@ sub makeLightDistInclude() {
 #
   # Strings
   my $line    = "";
-  my $nStr    = "";
 
   # Numbers
   my $n       = 0;
 
   # Arrays
+  my @header  = &getProTeXHeader();
   my @lines   = ();
   my @result  = ();
-
-  # Get subroutine header
-  my @header  = &getProTeXHeader();
 
   #========================================================================
   # Open files and write the subroutine header to the output file
@@ -191,17 +202,12 @@ sub makeLightDistInclude() {
       # Increment
       $n++;
 
-      # Pad spaces (cheap algorithm)
-      if    ( $n < 10   ) { $nStr = "   $n"; }
-      elsif ( $n < 100  ) { $nStr = "  $n";  }
-      elsif ( $n < 1000 ) { $nStr = " $n";   }
-      else                { $nStr = "$n";    }
-
       # Write out the F90 commands to initialize the arrays
-      print O "   PROFILE($nStr,1 ) = $result[0]d0\n";
-      print O "   PROFILE($nStr,2 ) = $result[1]d0\n";
-      print O "   PROFILE($nStr,3 ) = $result[2]d0\n";
-      print O "   PROFILE($nStr,4 ) = $result[3]d0\n\n";
+      # Scrunch down white space to make file size as small as possible
+      print O "PROFILE($n,1)=$result[0]d0\n";
+      print O "PROFILE($n,2)=$result[1]d0\n";
+      print O "PROFILE($n,3)=$result[2]d0\n";
+      print O "PROFILE($n,4)=$result[3]d0\n";
 
     }
   }
