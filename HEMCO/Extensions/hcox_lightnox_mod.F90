@@ -139,12 +139,6 @@ MODULE HCOX_LightNOx_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-!------------------------------------------------------------------------------
-! Prior to 7/22/14:
-! We hardwire the PROFILE array instead of reading it from disk.  This avoids 
-! having to read an ASCII file in the ESMF environment. (bmy, 7/22/14)
-!  INTEGER, PARAMETER           :: NLTYPE        = 4
-!------------------------------------------------------------------------------
   REAL*8,  PARAMETER           :: RFLASH_MIDLAT = 3.011d26   ! 500 mol/flash
   REAL*8,  PARAMETER           :: RFLASH_TROPIC = 1.566d26   ! 260 mol/flash
   REAL*8,  PARAMETER           :: EAST_WEST_DIV = -30d0
@@ -162,23 +156,11 @@ MODULE HCOX_LightNOx_Mod
 ! !PRIVATE TYPES:
 !
   ! Scalars
-!------------------------------------------------------------------------------
-! Prior to 7/22/14:
-! We hardwire the PROFILE array instead of reading it from disk.  This avoids 
-! having to read an ASCII file in the ESMF environment. (bmy, 7/22/14)
-!  INTEGER                      :: NNLIGHT
-!------------------------------------------------------------------------------
   REAL*8                       :: AREA_30N
   REAL*8                       :: OTD_LIS_SCALE
   LOGICAL                      :: LOTDLOC   ! Use OTD-LIS distribution factors?
 
   ! Arrays
-!------------------------------------------------------------------------------
-! Prior to 7/22/14:
-! We hardwire the PROFILE array instead of reading it from disk.  This avoids 
-! having to read an ASCII file in the ESMF environment. (bmy, 7/22/14)
-!  REAL*8,  ALLOCATABLE, TARGET :: PROFILE(:,:)
-!------------------------------------------------------------------------------
   REAL(hp),ALLOCATABLE, TARGET :: SLBASE(:,:,:)
 
   ! OTD scale factors read through configuration file
@@ -1745,11 +1727,6 @@ CONTAINS
 !
 ! !USES:
 !
-!-----------------------------------------------------------------------------
-! Prior to 7/22/14:
-! We hardwire the PROFILE array instead of reading it from disk (bmy, 7/22/14)
-!    USE inquireMod,       ONLY : findfreeLUN
-!-----------------------------------------------------------------------------
     USE HCO_STATE_MOD,    ONLY : HCO_GetHcoID
     USE HCO_STATE_MOD,    ONLY : HCO_GetExtHcoID
     USE HCO_ExtList_Mod,  ONLY : GetExtNr, GetExtOpt
@@ -1838,30 +1815,6 @@ CONTAINS
        CALL HCO_MSG(MSG)
     ENDIF
 
-!-----------------------------------------------------------------------------
-! Prior to 7/22/14:
-! We hardwire the PROFILE array instead of reading it from disk.  This avoids 
-! having to read an ASCII file in the ESMF environment. (bmy, 7/22/14)
-!    !------------------
-!    ! Define variables
-!    !------------------
-!
-!    ! NNLIGHT is the number of points for the lightnox CDF's
-!    NNLIGHT = 3200
-!
-!    !-----------------
-!    ! Allocate arrays
-!    !-----------------
-!
-!    ! Allocate PROFILE
-!    ALLOCATE( PROFILE( NNLIGHT, NLTYPE ), STAT=AS )
-!    IF( AS /= 0 ) THEN
-!       CALL HCO_ERROR ( 'PROFILE', RC )
-!       RETURN
-!    ENDIF
-!    PROFILE = 0d0
-!-----------------------------------------------------------------------------
-
     ! Allocate SLBASE
     ALLOCATE( SLBASE(HcoState%NX,HcoState%NY,HcoState%NZ), STAT=AS )
     IF( AS /= 0 ) THEN
@@ -1883,50 +1836,11 @@ CONTAINS
     CALL HCO_MSG(MSG)
 100 FORMAT( '     - INIT_LIGHTNOX: Reading ', a )
 
-!-----------------------------------------------------------------------------
-! Prior to 7/22/14:
-! We hardwire the PROFILE array instead of reading it from disk.  This avoids 
-! having to read an ASCII file in the ESMF environment. (bmy, 7/22/14)
-!    ! Find a free file LUN
-!    IU_FILE = findFreeLUN()
-!      
-!    ! Open file containing lightnox PDF data
-!    OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-!    IF ( IOS /= 0 ) THEN
-!       MSG = 'IOERROR: LightDist: 1'
-!       CALL HCO_ERROR ( MSG, RC )
-!       RETURN
-!    ENDIF
-!
-!    ! Read 12 header lines
-!    DO III = 1, 12
-!       READ( IU_FILE, '(a)', IOSTAT=IOS ) 
-!       IF ( IOS /= 0 ) THEN
-!          MSG = 'IOERROR: LightDist: 2'
-!          CALL HCO_ERROR ( MSG, RC )
-!          RETURN
-!       ENDIF
-!    ENDDO
-!         
-!    ! Read NNLIGHT types of lightnox profiles
-!    DO III = 1, NNLIGHT
-!       READ( IU_FILE,*,IOSTAT=IOS) (PROFILE(III,JJJ),JJJ=1,NLTYPE)
-!       IF ( IOS /= 0 ) THEN
-!          MSG = 'IOERROR: LightDist: 3'
-!          CALL HCO_ERROR ( MSG, RC )
-!          RETURN
-!       ENDIF
-!    ENDDO
-!         
-!    ! Close file
-!    CLOSE( IU_FILE )
-!-----------------------------------------------------------------------------
-
     ! Initialize the cumulative distribution functions (CDF's) that are 
     ! used to partition the column LNOx emissions into the vertical.
-    ! We hardwire this now in lightning_cdf_mod.F90 so as to avoid having
-    ! to read an ASCII file.  This facilitates I/O in the ESMF environment.
-    ! (bmy, 7/22/14)
+    ! We hardwire this now in include file "lightning_cdf_include.H",
+    ! which is inlined into lightning_cdf_mod.F90.  This lets us avoid 
+    ! reading an ASCII file in the ESMF/MAPL environment. (bmy, 8/13/14)
     CALL Init_Lightning_CDF()
 
     ! Activate met. fields required by this module
