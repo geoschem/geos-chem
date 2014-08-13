@@ -20,6 +20,8 @@
 #  15 Jul 2014 - R. Yantosca - Initial version
 #  22 Jul 2014 - R. Yantosca - Now compile lightning_cdf_mod.F90
 #  22 Jul 2014 - R. Yantosca - Turn off optimization for lightning_cdf_mod.F90
+#  08 Aug 2014 - R. Yantosca - Now reference include files w/ hardwired
+#                              emissions data. This facilitates I/O for ESMF.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -123,12 +125,15 @@ hcox_dustginoux_mod.o : hcox_dustginoux_mod.F90   \
                         hcox_state_mod.o
 
 hcox_gc_RnPbBe_mod.o  : hcox_gc_RnPbBe_mod.F90    \
-                        hcox_state_mod.o
+                        hcox_gc_RnPbBe_include.H  \
+                        hcox_state_mod.o          
 
 hcox_gfed3_mod.o      : hcox_gfed3_mod.F90        \
+                        hcox_gfed3_include.H      \
                         hcox_state_mod.o
 
 hcox_finn_mod.o       : hcox_finn_mod.F90         \
+                        hcox_finn_include.H       \
                         hcox_state_mod.o
 
 hcox_lightnox_mod.o   : hcox_lightnox_mod.F90     \
@@ -156,8 +161,8 @@ hcox_soilnox_mod.o    : hcox_soilnox_mod.F90      \
 
 hcox_state_mod.o      : hcox_state_mod.F90
 
-lightning_cdf_mod.o   : lightning_cdf_mod.F90
-	$(F90) -O0 -c $<
+lightning_cdf_mod.o   : lightning_cdf_mod.F90     \
+                        lightning_cdf_include.H
 
 ocean_toolbox_mod.o   : ocean_toolbox_mod.F90
 
