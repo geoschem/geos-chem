@@ -70,16 +70,16 @@ MODULE HCOI_GC_Main_Mod
   TYPE(Ext_State), POINTER        :: ExtState  => NULL()
 
   ! Internal met fields (will be used by some extensions)
-  REAL(df), ALLOCATABLE, TARGET     :: HCO_PCENTER(:,:,:)
-  REAL(df), ALLOCATABLE, TARGET     :: HCO_PEDGE  (:,:,:)
-  REAL(df), ALLOCATABLE, TARGET     :: HCO_SZAFACT(:,:)
+  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PCENTER(:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PEDGE  (:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET     :: HCO_SZAFACT(:,:)
 
   ! Arrays to store J-values (used by Paranox extension)
-  REAL(df), ALLOCATABLE, TARGET     :: JNO2(:,:)
-  REAL(df), ALLOCATABLE, TARGET     :: JO1D(:,:)
+  REAL(hp), ALLOCATABLE, TARGET     :: JNO2(:,:)
+  REAL(hp), ALLOCATABLE, TARGET     :: JO1D(:,:)
 
   ! Sigma coordinate (temporary)
-  REAL(df), ALLOCATABLE, TARGET   :: ZSIGMA(:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: ZSIGMA(:,:,:)
 
   ! Pointers used during initialization (for species matching)
   INTEGER                     :: nHcoSpec
@@ -1288,8 +1288,8 @@ CONTAINS
 
              ! Check if sun is up
              IF ( State_Met%SUNCOSmid(I,J) == 0d0 ) THEN
-                IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_df
-                IF ( ExtState%JO1D%DoUse ) JO1D = 0.0_df
+                IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_hp
+                IF ( ExtState%JO1D%DoUse ) JO1D = 0.0_hp
              ELSE
                 ! Loop over photolysis reactions to find NO2, O3
                 KMAX = JPHOTRAT(NCS)

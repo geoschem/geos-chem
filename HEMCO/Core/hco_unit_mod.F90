@@ -31,19 +31,25 @@ MODULE HCO_Unit_Mod
   PUBLIC :: HCO_IsIndexData
   PUBLIC :: HCO_UnitTolerance
 !
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: HCO_Unit_Change_SP
+  PRIVATE :: HCO_Unit_Change_DP
+!
 ! !REVISION HISTORY:
 !  15 May 2012 - C. Keller   - Initialization
 !  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  24 Jul 2014 - C. Keller   - Now define unitless & 'standard' units as
 !                              parameter
+!  13 Aug 2014 - C. Keller   - Interface for sp & dp arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-  REAL(hp),  PARAMETER :: N_0             = 6.022e+23_hp
+  REAL(dp),  PARAMETER :: N_0             = 6.022e+23_dp
   REAL(hp),  PARAMETER :: SEC_IN_DAY      = 86400_hp
   REAL(hp),  PARAMETER :: SEC_IN_LEAPYEAR = SEC_IN_DAY * 366_hp 
   REAL(hp),  PARAMETER :: SEC_IN_REGYEAR  = SEC_IN_DAY * 365_hp
@@ -73,6 +79,12 @@ MODULE HCO_Unit_Mod
                                                'kg(c)/m2/s', &
                                                'kg/m3'        /)
 
+  ! Interfaces:
+  INTERFACE HCO_UNIT_CHANGE
+     MODULE PROCEDURE HCO_UNIT_CHANGE_SP
+     MODULE PROCEDURE HCO_UNIT_CHANGE_DP
+  END INTERFACE HCO_UNIT_CHANGE
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -80,10 +92,132 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_Unit_Change 
+! !IROUTINE: HCO_Unit_Change_sp
 !
-! !DESCRIPTION: Subroutine HCO\_UNIT\_CHANGE converts the values of the 
-! passed array to units of (emitted) kg/m2/s. 
+! !DESCRIPTION: Subroutine HCO\_UNIT\_CHANGE\_SP is a wrapper routine to 
+! convert the values of the passed single precision array to units of 
+! (emitted) kg/m2/s. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_Unit_Change_SP( ARRAY,       UNITS, MW_IN, MW_OUT, &
+                                 MOLEC_RATIO, YYYY,  MM,    IsPerArea, RC )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN )     :: UNITS          ! Data unit
+    REAL(hp),         INTENT(IN )     :: MW_IN          ! MW g/mol 
+    REAL(hp),         INTENT(IN )     :: MW_OUT         ! MW g/mol
+    REAL(hp),         INTENT(IN )     :: MOLEC_RATIO    ! molec. ratio
+    INTEGER,          INTENT(IN )     :: YYYY           ! Data year 
+    INTEGER,          INTENT(IN )     :: MM             ! Data month
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(INOUT)   :: IsPerArea      ! Is per area? 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(sp),         POINTER         :: ARRAY(:,:,:,:) ! Data
+    INTEGER,          INTENT(INOUT)   :: RC
+!
+! !REVISION HISTORY:
+!  13 Aug 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    REAL(hp)     :: Factor
+
+    !=================================================================
+    ! HCO_UNIT_CHANGE_SP begins here
+    !=================================================================
+
+    CALL HCO_Unit_Factor( UNITS, MW_IN, MW_OUT,    MOLEC_RATIO, &
+                          YYYY,  MM,    IsPerArea, Factor,     RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Apply correction factor
+    ARRAY(:,:,:,:) = ARRAY(:,:,:,:) * Factor
+
+    ! Leave
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_Unit_Change_SP
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_Unit_Change_dp
+!
+! !DESCRIPTION: Subroutine HCO\_UNIT\_CHANGE\_DP is a wrapper routine to 
+! convert the values of the passed double precision array to units of 
+! (emitted) kg/m2/s. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_Unit_Change_DP( ARRAY,       UNITS, MW_IN, MW_OUT, &
+                                 MOLEC_RATIO, YYYY,  MM,    IsPerArea, RC )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN )     :: UNITS          ! Data unit
+    REAL(hp),         INTENT(IN )     :: MW_IN          ! MW g/mol 
+    REAL(hp),         INTENT(IN )     :: MW_OUT         ! MW g/mol
+    REAL(hp),         INTENT(IN )     :: MOLEC_RATIO    ! molec. ratio
+    INTEGER,          INTENT(IN )     :: YYYY           ! Data year 
+    INTEGER,          INTENT(IN )     :: MM             ! Data month
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(INOUT)   :: IsPerArea      ! Is per area? 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(dp),         POINTER         :: ARRAY(:,:,:,:) ! Data
+    INTEGER,          INTENT(INOUT)   :: RC
+!
+! !REVISION HISTORY:
+!  13 Aug 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    REAL(hp)     :: Factor
+
+    !=================================================================
+    ! HCO_UNIT_CHANGE_DP begins here
+    !=================================================================
+
+    CALL HCO_Unit_Factor( UNITS, MW_IN, MW_OUT,    MOLEC_RATIO, &
+                          YYYY,  MM,    IsPerArea, Factor,     RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Apply correction factor
+    ARRAY(:,:,:,:) = ARRAY(:,:,:,:) * Factor
+
+    ! Leave
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_Unit_Change_DP
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_Unit_Factor
+!
+! !DESCRIPTION: Subroutine HCO\_UNIT\_Factor calculates the conversion
+! factor needed to conver unit UNIT to HEMCO units. 
 !\\
 !\\
 ! The mass is in units of kg and refers to mass of emitted species. For
@@ -143,8 +277,8 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Unit_Change( ARRAY,       UNITS, MW_IN, MW_OUT, &
-                              MOLEC_RATIO, YYYY,  MM,    IsPerArea, RC )
+  SUBROUTINE HCO_Unit_Factor( UNITS, MW_IN, MW_OUT,    MOLEC_RATIO, &
+                              YYYY,  MM,    IsPerArea, Factor,      RC )
 !
 ! !USES:
 !
@@ -161,11 +295,11 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(OUT)     :: IsPerArea      ! Is per area? 
+    LOGICAL,          INTENT(  OUT)   :: IsPerArea      ! Is per area? 
+    REAL(hp),         INTENT(  OUT)   :: Factor         ! Conversion factor
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(sp),         POINTER         :: ARRAY(:,:,:,:) ! Data
     INTEGER,          INTENT(INOUT)   :: RC
 !
 ! !REVISION HISTORY:
@@ -173,24 +307,25 @@ CONTAINS
 !  23 May 2013 - C. Keller - Now use additive method
 !  01 Oct 2013 - C. Keller - Now convert to kg/m2/s instead of
 !                            molec/cm2/s
+!  13 Aug 2014 - C. Keller - Split off from subroutine HCO\_UNIT\_CHANGE 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    REAL(hp)                      :: Fact, Coef1
+    REAL(hp)                      :: Coef1
     CHARACTER(LEN=31 )            :: unt
     CHARACTER(LEN=255)            :: MSG
-    CHARACTER(LEN=255), PARAMETER :: LOC = 'HCO_UNIT_CHANGE (HCO_UNIT_MOD.F90)'
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'HCO_UNIT_FACTOR (HCO_UNIT_MOD.F90)'
 
     !=================================================================
-    ! HCO_UNIT_CHANGE begins here
+    ! HCO_UNIT_FACTOR begins here
     !=================================================================
 
     ! Init
     RC        = 0  
-    Fact      = 1.0_hp
+    Factor    = 1.0_hp
     Coef1     = 1.0_hp
     IsPerArea = .TRUE.
 
@@ -214,14 +349,14 @@ CONTAINS
        CALL HCO_ERROR ( MSG, RC, ThisLoc = LOC )
        RETURN 
     ENDIF
-    Fact = Fact * Coef1
+    Factor = Factor * Coef1
 
     !=================================================================
     ! Get scale factor for time. Skip if invalid factor. This makes
     ! sure that concentrations (e.g. kg/m3) are supported! 
     !=================================================================
     Coef1 = HCO_UNIT_GetTimeScal ( unt, MM, YYYY ) 
-    IF ( Coef1 > 0.0_hp ) Fact = Fact * Coef1
+    IF ( Coef1 > 0.0_hp ) Factor = Factor * Coef1
 
     !=================================================================
     ! Get scale factor for area/volume. If no area conversion
@@ -231,16 +366,13 @@ CONTAINS
     IF ( Coef1 < 0.0_hp ) THEN
        IsPerArea = .FALSE.
     ELSE
-       Fact = Fact * Coef1
+       Factor = Factor * Coef1
     ENDIF
-
-    ! Apply correction factor
-    ARRAY(:,:,:,:) = ARRAY(:,:,:,:) * Fact
 
     ! Leave
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_Unit_Change
+  END SUBROUTINE HCO_Unit_Factor
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

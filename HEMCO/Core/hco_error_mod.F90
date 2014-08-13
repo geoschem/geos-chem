@@ -58,7 +58,6 @@ MODULE HCO_Error_Mod
 ! !MODULE VARIABLES:
 !
   ! Double and single precision definitions
-  INTEGER, PARAMETER, PUBLIC  :: df = kind(0.d0)     ! default 
   INTEGER, PARAMETER, PUBLIC  :: dp = kind(0.d0)     ! double precision
   INTEGER, PARAMETER, PUBLIC  :: sp = 4              ! single precision
   INTEGER, PARAMETER, PUBLIC  :: hp = 8              ! HEMCO precision 

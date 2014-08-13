@@ -241,12 +241,12 @@ CONTAINS
     REAL(sp), POINTER             :: ncArr(:,:,:,:)   => NULL()
     REAL(sp), POINTER             :: ORIG_2D(:,:)     => NULL()
     REAL(hp), POINTER             :: REGR_2D(:,:)     => NULL()
-    REAL(df), POINTER             :: LevEdge(:,:,:)   => NULL()
-    REAL(df), POINTER             :: LonMid   (:)     => NULL()
-    REAL(df), POINTER             :: LatMid   (:)     => NULL()
-    REAL(df), POINTER             :: LevMid   (:)     => NULL()
-    REAL(df), POINTER             :: LonEdge  (:)     => NULL()
-    REAL(df), POINTER             :: LatEdge  (:)     => NULL()
+    REAL(hp), POINTER             :: LevEdge(:,:,:)   => NULL()
+    REAL(hp), POINTER             :: LonMid   (:)     => NULL()
+    REAL(hp), POINTER             :: LatMid   (:)     => NULL()
+    REAL(hp), POINTER             :: LevMid   (:)     => NULL()
+    REAL(hp), POINTER             :: LonEdge  (:)     => NULL()
+    REAL(hp), POINTER             :: LatEdge  (:)     => NULL()
     REAL(sp), ALLOCATABLE         :: LonEdgeI(:)
     REAL(sp), ALLOCATABLE         :: LatEdgeI(:)
     REAL(sp)                      :: LonEdgeO(HcoState%NX+1) 
@@ -1224,7 +1224,7 @@ CONTAINS
 !
     TYPE(HCO_State),  POINTER         :: HcoState           ! HEMCO state object
     INTEGER,          INTENT(IN   )   :: NLON               ! # of lon midpoints
-    REAL(df),         POINTER         :: LatEdge(:)         ! lat edges 
+    REAL(hp),         POINTER         :: LatEdge(:)         ! lat edges 
     CHARACTER(LEN=*), INTENT(IN   )   :: FN                 ! filename
 !
 ! !INPUT/OUTPUT PARAMETERS:

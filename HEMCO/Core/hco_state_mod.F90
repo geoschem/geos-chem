@@ -125,15 +125,15 @@ MODULE HCO_State_Mod
   ! ** Only used by some extensions
   !=========================================================================
   TYPE :: HcoGrid
-     REAL(df), POINTER :: XMID       (:,:)   ! mid-points in x-direction (lon)
-     REAL(df), POINTER :: YMID       (:,:)   ! mid-points in y-direction (lat)
-     REAL(df), POINTER :: ZSIGMA     (:,:,:) ! hybrid sigma coordinates
-     REAL(df), POINTER :: XEDGE      (:,:)   ! grid edges in x-direction (lon)*
-     REAL(df), POINTER :: YEDGE      (:,:)   ! grid edges in y-direction (lat)*
-     REAL(df), POINTER :: YSIN       (:,:)   ! sin of grid edges in 
+     REAL(hp), POINTER :: XMID       (:,:)   ! mid-points in x-direction (lon)
+     REAL(hp), POINTER :: YMID       (:,:)   ! mid-points in y-direction (lat)
+     REAL(hp), POINTER :: ZSIGMA     (:,:,:) ! hybrid sigma coordinates
+     REAL(hp), POINTER :: XEDGE      (:,:)   ! grid edges in x-direction (lon)*
+     REAL(hp), POINTER :: YEDGE      (:,:)   ! grid edges in y-direction (lat)*
+     REAL(hp), POINTER :: YSIN       (:,:)   ! sin of grid edges in 
                                              !  y-direction (lat)*
-     REAL(df), POINTER :: AREA_M2    (:,:)   ! grid box areas (m2)
-     REAL(df), POINTER :: BXHEIGHT_M (:,:,:) ! grid box heights (m)**
+     REAL(hp), POINTER :: AREA_M2    (:,:)   ! grid box areas (m2)
+     REAL(hp), POINTER :: BXHEIGHT_M (:,:,:) ! grid box heights (m)**
   END TYPE HcoGrid
 
   !=========================================================================

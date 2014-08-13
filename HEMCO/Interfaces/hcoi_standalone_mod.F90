@@ -118,12 +118,12 @@ MODULE HCOI_StandAlone_Mod
   INTEGER,               POINTER :: matchidx(:) => NULL()
 
   ! Grid
-  REAL(df), ALLOCATABLE, TARGET  :: XMID   (:,:,:)
-  REAL(df), ALLOCATABLE, TARGET  :: YMID   (:,:,:)
-  REAL(df), ALLOCATABLE, TARGET  :: XEDGE  (:,:,:)
-  REAL(df), ALLOCATABLE, TARGET  :: YEDGE  (:,:,:)
-  REAL(df), ALLOCATABLE, TARGET  :: YSIN   (:,:,:)
-  REAL(df), ALLOCATABLE, TARGET  :: AREA_M2(:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET  :: XMID   (:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET  :: YMID   (:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET  :: XEDGE  (:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET  :: YEDGE  (:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET  :: YSIN   (:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET  :: AREA_M2(:,:,:)
 
   ! Simulation times
   INTEGER                        :: NSTEPS
@@ -795,13 +795,13 @@ CONTAINS
     CHARACTER(LEN=2047)   :: DUM
 
     ! Arrays
-    REAL(df)              :: DVAL
-    REAL(df), ALLOCATABLE :: DLON(:,:,:)
-    REAL(df), ALLOCATABLE :: DLAT(:,:,:)
-    REAL(df), ALLOCATABLE :: YMID_R(:,:,:)
-    REAL(df), ALLOCATABLE :: YEDGE_R(:,:,:)
-    REAL(df), ALLOCATABLE :: YMID_R_W(:,:,:)
-    REAL(df), ALLOCATABLE :: YEDGE_R_W(:,:,:)
+    REAL(hp)              :: DVAL
+    REAL(hp), ALLOCATABLE :: DLON(:,:,:)
+    REAL(hp), ALLOCATABLE :: DLAT(:,:,:)
+    REAL(hp), ALLOCATABLE :: YMID_R(:,:,:)
+    REAL(hp), ALLOCATABLE :: YEDGE_R(:,:,:)
+    REAL(hp), ALLOCATABLE :: YMID_R_W(:,:,:)
+    REAL(hp), ALLOCATABLE :: YEDGE_R_W(:,:,:)
 
     !=================================================================
     ! SET_GRID begins here
@@ -857,29 +857,29 @@ CONTAINS
 
     ! Now that sizes are known, allocate all arrays
     ALLOCATE ( DLON(NX,NY,NZ) )
-    DLON = 0.0_df
+    DLON = 0.0_hp
     ALLOCATE ( DLAT(NX,NY,NZ) )
-    DLAT = 0.0_df
+    DLAT = 0.0_hp
     ALLOCATE ( XMID(NX,NY,NZ) )
-    XMID = 0.0_df
+    XMID = 0.0_hp
     ALLOCATE ( YMID(NX,NY,NZ) )
-    YMID = 0.0_df
+    YMID = 0.0_hp
     ALLOCATE ( XEDGE(NX+1,NY,NZ) )
-    XEDGE = 0.0_df
+    XEDGE = 0.0_hp
     ALLOCATE ( YEDGE(NX,NY+1,NZ) )
-    YEDGE = 0.0_df
+    YEDGE = 0.0_hp
     ALLOCATE ( YSIN(NX,NY+1,NZ) )
-    YSIN = 0.0_df
+    YSIN = 0.0_hp
     ALLOCATE ( YMID_R(NX,NY,NZ) )
-    YMID_R = 0.0_df
+    YMID_R = 0.0_hp
     ALLOCATE ( YEDGE_R(NX,NY+1,NZ) )
-    YEDGE_R = 0.0_df
+    YEDGE_R = 0.0_hp
     ALLOCATE ( AREA_M2(NX,NY,NZ) )
-    AREA_M2 = 0.0_df
+    AREA_M2 = 0.0_hp
     ALLOCATE ( YMID_R_W(NX,NY,NZ) )
-    YMID_R_W = 0.0_df
+    YMID_R_W = 0.0_hp
     ALLOCATE ( YEDGE_R_W(NX,NY+1,NZ) )
-    YEDGE_R_W = 0.0_df
+    YEDGE_R_W = 0.0_hp
 
     ! Read delta lon (dx) or lat (dy) from file. This can be
     ! specified for every grid point or as single value (applied

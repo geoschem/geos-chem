@@ -313,7 +313,7 @@ CONTAINS
           ! ==> Emission hierarchies are only important within the 
           ! same category, hence always start over at lowest hierarchy
           ! when entering a new category.
-          CatFlx(:,:,:)  = 0.0_df
+          CatFlx(:,:,:)  = 0.0_hp
           PrevHir        = -1
           ThisCat        = Dct%Cat
 
@@ -346,7 +346,7 @@ CONTAINS
              ENDIF
  
              ! Reset arrays and previous hierarchy. 
-             SpcFlx(:,:,:)  =  0.0_df
+             SpcFlx(:,:,:)  =  0.0_hp
              PrevCat        =  -1
              OutArr         => NULL()
           ENDIF
@@ -411,7 +411,7 @@ CONTAINS
        ! don't extent through the entire troposphere) and boxes with 
        ! defined but zero emissions.
        !--------------------------------------------------------------------
-       TmpFlx(:,:,:) = -999.0_df
+       TmpFlx(:,:,:) = -999.0_hp
        CALL GET_CURRENT_EMISSIONS( am_I_Root, HcoState, & 
                                    Dct,    nI, nJ, nL, TmpFlx, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -431,7 +431,7 @@ CONTAINS
        IF ( ThisHir == PrevHir ) THEN
 
           ! Ignore negative emissions!
-          WHERE ( TmpFlx >= 0.0_df )
+          WHERE ( TmpFlx >= 0.0_hp )
              CatFlx = CatFlx + TmpFlx
           END WHERE
 
@@ -447,7 +447,7 @@ CONTAINS
        ELSEIF ( ThisHir > PrevHir ) THEN
         
           ! Ignore negative emissions!
-          WHERE ( TmpFlx >= 0.0_df )
+          WHERE ( TmpFlx >= 0.0_hp )
              CatFlx = TmpFlx
           END WHERE
 

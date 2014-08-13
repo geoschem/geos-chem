@@ -110,7 +110,7 @@ CONTAINS
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
     REAL(sp), POINTER         :: nctime(:)
-    REAL(df), POINTER         :: Arr1D(:) => NULL()
+    REAL(hp), POINTER         :: Arr1D(:) => NULL()
     INTEGER,  POINTER         :: Int1D(:) => NULL()
     REAL(hp), POINTER         :: Arr3D(:,:,:) => NULL()
     REAL(hp), POINTER         :: Arr4D(:,:,:,:) => NULL()

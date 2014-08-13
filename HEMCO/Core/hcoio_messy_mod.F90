@@ -83,9 +83,9 @@ MODULE HCOIO_MESSY_MOD
     LOGICAL,          INTENT(IN   )  :: am_I_Root       ! Root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState        ! HEMCO obj.
     REAL(sp),         POINTER        :: ncArr(:,:,:,:)  ! Input array(x,y,z,t)
-    REAL(df),         POINTER        :: LonEdge(:)      ! lon edges
-    REAL(df),         POINTER        :: LatEdge(:)      ! lat edges
-    REAL(df),         POINTER        :: LevEdge(:,:,:)  ! sigma pressure edges
+    REAL(hp),         POINTER        :: LonEdge(:)      ! lon edges
+    REAL(hp),         POINTER        :: LatEdge(:)      ! lat edges
+    REAL(hp),         POINTER        :: LevEdge(:,:,:)  ! sigma pressure edges
     TYPE(ListCont),   POINTER        :: Lct             ! Target list container
     INTEGER,          INTENT(INOUT)  :: RC              ! Return code
 !
@@ -105,9 +105,9 @@ MODULE HCOIO_MESSY_MOD
     INTEGER,      POINTER   :: rcnt   (:)     => NULL()
     REAL(dp),     POINTER   :: sovl   (:)     => NULL()
     REAL(dp),     POINTER   :: dovl   (:)     => NULL()
-    REAL(df),     POINTER   :: lon    (:)     => NULL()
-    REAL(df),     POINTER   :: lat    (:)     => NULL()
-    REAL(df),     POINTER   :: lev    (:,:,:) => NULL()
+    REAL(hp),     POINTER   :: lon    (:)     => NULL()
+    REAL(hp),     POINTER   :: lat    (:)     => NULL()
+    REAL(hp),     POINTER   :: lev    (:,:,:) => NULL()
     INTEGER                 :: NLEV, NTIME
     INTEGER                 :: I, L, status
     CHARACTER(LEN=255)      :: MSG, LOC
@@ -370,9 +370,9 @@ MODULE HCOIO_MESSY_MOD
     LOGICAL,          INTENT(IN   )           :: am_I_Root
     TYPE(HCO_State),  POINTER                 :: HcoState
     TYPE(ListCont),   POINTER                 :: Lct
-    REAL(df),         POINTER                 :: Lon(:)
-    REAL(df),         POINTER                 :: Lat(:)
-    REAL(df),         POINTER                 :: Lev(:,:,:)
+    REAL(hp),         POINTER                 :: Lon(:)
+    REAL(hp),         POINTER                 :: Lat(:)
+    REAL(hp),         POINTER                 :: Lev(:,:,:)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
