@@ -67,6 +67,7 @@ MODULE GeosFp_Read_Mod
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields via Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed to geosfp_read_mod.F90
 !  14 Jan 2014 - R. Yantosca - Remove "define GEOS572_FILES #ifdef blocks
+!  14 Aug 2014 - R. Yantosca - Compute CLDTOPS field in GeosFp_Read_A3mstE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1111,6 +1112,7 @@ CONTAINS
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3dyn
 !  15 Nov 2013 - R. Yantosca - Now convert RH from [1] to [%], in order
 !                              to be consistent with GEOS-Chem convention
+!  14 Aug 2014 - R. Yantosca - Now compute CLDTOPS in GeosFP_Read_A3mstE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1224,19 +1226,6 @@ CONTAINS
     
     ! Convert RH from [1] to [%]
     State_Met%RH = State_Met%RH * 100d0
-
-    ! CLDTOPS = highest location of CMFMC in the column (I,J)
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
-       State_Met%CLDTOPS(I,J) = 1
-       DO L = LLPAR, 1, -1
-          IF ( State_Met%CMFMC(I,J,L) > 0d0 ) THEN
-             State_Met%CLDTOPS(I,J) = L + 1
-             EXIT
-          ENDIF
-       ENDDO
-    ENDDO
-    ENDDO
 
     ! ND66 diagnostic: U, V, DTRAIN met fields
     IF ( ND66 > 0 ) THEN
@@ -1460,6 +1449,7 @@ CONTAINS
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3mstE
 !  26 Sep 2013 - R. Yantosca - Now read CMFMC from GEOSFP*.nc files
+!  14 Aug 2014 - R. Yantosca - Now compute CLDTOPS here; it depends on CMFMC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1565,6 +1555,19 @@ CONTAINS
     !=================================================================
     ! Diagnostics, cleanup and quit
     !=================================================================
+
+    ! CLDTOPS = highest location of CMFMC in the column (I,J)
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+       State_Met%CLDTOPS(I,J) = 1
+       DO L = LLPAR, 1, -1
+          IF ( State_Met%CMFMC(I,J,L) > 0d0 ) THEN
+             State_Met%CLDTOPS(I,J) = L + 1
+             EXIT
+          ENDIF
+       ENDDO
+    ENDDO
+    ENDDO
 
     ! ND66 diagnostic: CMFMC met field
     IF ( ND66 > 0 ) THEN
