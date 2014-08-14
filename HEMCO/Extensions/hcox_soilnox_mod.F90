@@ -601,7 +601,7 @@ CONTAINS
 
     ! Verbose mode
     MSG = 'Use soil NOx emissions (extension module)'
-    CALL HCO_MSG( MSG )
+    CALL HCO_MSG( MSG, SEP1='-' )
 
     WRITE(MSG,*) '   - NOx species:', TRIM(SpcNames(1)), IDTNO
     CALL HCO_MSG(MSG)

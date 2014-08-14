@@ -246,36 +246,8 @@ CONTAINS
     CALL LIGHTNOX ( am_I_Root, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-!   ! Init
-!    FLUX(:,:,:) = 0.0_hp
-!
-!      ! Loop over grid boxes
-!!$OMP PARALLEL DO                                                   &
-!!$OMP DEFAULT( SHARED )                                             &
-!!$OMP PRIVATE( I, J, L                                            ) &
-!!$OMP SCHEDULE( DYNAMIC )
-!    DO L = 1, HcoState%NZ
-!    DO J = 1, HcoState%NY
-!    DO I = 1, HcoState%NX
-!
-!       ! No lightnox emissions in the stratosphere (cdh, 4/25/2013)
-!       IF ( ExtState%PEDGE%Arr%Val(I,J,L) < ExtState%TROPP%Arr%Val(I,J) ) EXIT 
-!
-!       ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
-!       ! [molec/6h/box] * [6h/21600s] * [area/AREA_M2 m2] /
-!       ! [MW/(g/mol)] / [Avgrd/(molec/mol)] * [1kg/1000g] = [kg/m2/s]
-!       FLUX(I,J,L) = SLBASE(I,J,L)                           &
-!                   / ( 21600.d0*HcoState%Grid%AREA_M2(I,J) ) &
-!                   * HcoState%Spc(IDTNO)%EmMW_g              &
-!                   / HcoState%Phys%Avgdr / 1000.0d0 
-!
-!    ENDDO
-!    ENDDO
-!    ENDDO
-!!$OMP END PARALLEL DO
-
     !=================================================================
-    ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
+    ! Pass to HEMCO State and update diagnostics 
     !=================================================================
     IF ( IDTNO > 0 ) THEN
 
@@ -458,11 +430,6 @@ CONTAINS
     DO J = 1, HcoState%NY
     DO I = 1, HcoState%NX
 
-       !%%% NOTE: Use L=1 for GRID_MOD functions.  This is OK for the
-       !%%% existing GEOS-Chem with a pure cartesian grid, but may be an
-       !%%% issue when interfaced with a GCM with a non-regular grid
-       !%%% (bmy, 3/1/12)
-
        ! Grid box surface areas in [m2] and [km2]
        A_M2     = HcoState%Grid%AREA_M2( I, J )
        A_KM2    = A_M2 / 1d6
@@ -477,19 +444,14 @@ CONTAINS
                                ExtState%ALBD%Arr%Val(I,J) ) 
 
        ! Adjust SFCTYPE variable for this module:
-
-       ! Ice
-       IF ( LNDTYPE == 2 ) THEN 
-          SFCTYPE = 2
-
-       ! Land
-       ELSEIF ( LNDTYPE == 1 ) THEN 
-          SFCTYPE = 0
-
-       ! Ocean (default)
-       ELSE
-          SFCTYPE = 1
-       ENDIF
+       SELECT CASE( LNDTYPE )
+          CASE( 2 )
+             SFCTYPE = 2    ! Ice
+          CASE( 1 )
+             SFCTYPE = 0    ! Land
+          CASE DEFAULT
+             SFCTYPE = 1    ! Ocean (default)
+       END SELECT
 
        ! Initialize
        LBOTTOM       = 0 
@@ -1805,16 +1767,14 @@ CONTAINS
     ENDIF
     IDTNO = HcoIDs(1)
 
-    ! Verbose mode
-    IF ( verb ) THEN
-       MSG = 'Use lightning NOx emissions (extension module)'
-       CALL HCO_MSG( MSG )
-       WRITE(MSG,*) 'Use species ', TRIM(SpcNames(1)), '->', IDTNO 
-       CALL HCO_MSG(MSG)
-       WRITE(MSG,*) 'Use OTD-LIS factors from file? ', LOTDLOC 
-       CALL HCO_MSG(MSG)
-    ENDIF
-
+    ! Echo info about this extension
+    MSG = 'Use lightning NOx emissions (extension module)'
+    CALL HCO_MSG( MSG, SEP1='-' )
+    WRITE(MSG,*) 'Use species ', TRIM(SpcNames(1)), '->', IDTNO 
+    CALL HCO_MSG(MSG)
+    WRITE(MSG,*) 'Use OTD-LIS factors from file? ', LOTDLOC 
+    CALL HCO_MSG(MSG)
+    
     ! Allocate SLBASE
     ALLOCATE( SLBASE(HcoState%NX,HcoState%NY,HcoState%NZ), STAT=AS )
     IF( AS /= 0 ) THEN
@@ -1827,21 +1787,18 @@ CONTAINS
     ! Obtain lightning CDF's from Ott et al [JGR, 2010]. (ltm, 1/25/11)
     !=======================================================================
 
-    ! Get filename from configuration file
-    CALL GetExtOpt ( ExtNr, 'CDF table', OptValChar=FILENAME, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Echo info
-    WRITE( MSG, 100 ) TRIM( FILENAME )
-    CALL HCO_MSG(MSG)
-100 FORMAT( '     - INIT_LIGHTNOX: Reading ', a )
-
     ! Initialize the cumulative distribution functions (CDF's) that are 
     ! used to partition the column LNOx emissions into the vertical.
     ! We hardwire this now in include file "lightning_cdf_include.H",
     ! which is inlined into lightning_cdf_mod.F90.  This lets us avoid 
-    ! reading an ASCII file in the ESMF/MAPL environment. (bmy, 8/13/14)
+    ! reading an ASCII file in the ESMF/MAPL environment.  You can 
+    ! regenerate "lightning_cdf_include.H" with the Perl script
+    ! HEMCO/Extensions/Preprocess/lightdist.pl  (bmy, 8/14/14)
     CALL Init_Lightning_CDF()
+
+    !=======================================================================
+    ! Further HEMCO setup
+    !=======================================================================
 
     ! Activate met. fields required by this module
     ExtState%PEDGE%DoUse   = .TRUE.
@@ -1898,13 +1855,7 @@ CONTAINS
 
     ! Free pointer
     OTDLIS => NULL()
-
-!-----------------------------------------------------------------------------
-! Prior to 7/22/14:
-! We hardwire the PROFILE array instead of reading it from disk (bmy, 7/22/14)
-!    IF ( ALLOCATED( PROFILE        ) ) DEALLOCATE( PROFILE        )
-!-----------------------------------------------------------------------------
-    IF ( ALLOCATED( SLBASE         ) ) DEALLOCATE( SLBASE         )
+    IF ( ALLOCATED( SLBASE ) ) DEALLOCATE( SLBASE )
 
   END SUBROUTINE HCOX_LightNOx_Final
 !EOC

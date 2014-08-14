@@ -532,7 +532,7 @@ CONTAINS
 
     ! Verbose mode
     MSG = 'Use sea salt aerosol emissions (extension module)'
-    CALL HCO_MSG( MSG )
+    CALL HCO_MSG( MSG, SEP1='-' )
 
     WRITE(MSG,*) 'Accumulation aerosol: ', TRIM(SpcNames(1)), ':', IDTSALA 
     CALL HCO_MSG(MSG)

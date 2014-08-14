@@ -519,6 +519,8 @@ CONTAINS
 !  06 Jun 2014 - R. Yantosca - Now indented using F90 free-format
 !  22 Jul 2014 - R. Yantosca - Activate ExtState%PEDGE for use in EVOLVE_PLUME
 !  13 Aug 2014 - R. Yantosca - Now read the PARANOX look-up tables here
+!  14 Aug 2014 - R. Yantosca - Minor fix, read the PARANOX look-up tables
+!                              after displaying text about PARANOX extension
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -541,24 +543,6 @@ CONTAINS
    ! Enter
    CALL HCO_ENTER( 'HCOX_ParaNOx_Init (hcox_paranox_mod.F90)', RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
-
-   !------------------------------------------------------------------------
-   ! Initialize the PARANOX look-up tables
-   !------------------------------------------------------------------------
-
-   ! Fraction of NOx remaining for ship emissions
-   CALL GetExtOpt ( ExtNr, 'FracNOx table', OptValChar=FRACNOX_FILE, RC=RC)
-   IF ( RC /= HCO_SUCCESS ) RETURN
-
-   ! Integrated Ozone production efficiency (OPE)
-   CALL GetExtOpt ( ExtNr, 'IntOPE table', OptValChar=INTOPE_FILE, RC=RC)
-   IF ( RC /= HCO_SUCCESS ) RETURN
-
-   ! Read PARANOX look-up tables from disk
-   ! NOTE: Currently these are read from binary file, which is incompatible
-   ! with the ESMF/MAPL run environment.  We are currently working on a
-   ! better implementation of this, stay tuned. (bmy, 8/13/14)
-   CALL READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE, RC )
 
    !------------------------------------------------------------------------
    ! Get species IDs
@@ -612,7 +596,7 @@ CONTAINS
 
    ! Verbose mode
    MSG = 'Use ParaNOx ship emissions (extension module)'
-   CALL HCO_MSG( MSG )
+   CALL HCO_MSG( MSG, SEP1='-' )
    MSG = '    - Use the following species: ' 
    CALL HCO_MSG( MSG )
    WRITE(MSG,*) '     NO  : ', TRIM(SpcNames(1)), IDTNO
@@ -623,6 +607,24 @@ CONTAINS
    CALL HCO_MSG(MSG)
    WRITE(MSG,*) '     HNO3: ', TRIM(SpcNames(4)), IDTHNO3
    CALL HCO_MSG(MSG)
+
+   !------------------------------------------------------------------------
+   ! Initialize the PARANOX look-up tables
+   !------------------------------------------------------------------------
+
+   ! Fraction of NOx remaining for ship emissions
+   CALL GetExtOpt ( ExtNr, 'FracNOx table', OptValChar=FRACNOX_FILE, RC=RC)
+   IF ( RC /= HCO_SUCCESS ) RETURN
+
+   ! Integrated Ozone production efficiency (OPE)
+   CALL GetExtOpt ( ExtNr, 'IntOPE table', OptValChar=INTOPE_FILE, RC=RC)
+   IF ( RC /= HCO_SUCCESS ) RETURN
+
+   ! Read PARANOX look-up tables from disk
+   ! NOTE: Currently these are read from binary file, which is incompatible
+   ! with the ESMF/MAPL run environment.  We are currently working on a
+   ! better implementation of this, stay tuned. (bmy, 8/13/14)
+   CALL READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE, RC )
 
    !------------------------------------------------------------------------
    ! Set other module variables 
