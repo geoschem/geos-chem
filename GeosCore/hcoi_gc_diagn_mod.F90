@@ -206,7 +206,7 @@ CONTAINS
           RETURN      
        ENDIF
 
-       ! Anthropogenic carbon
+       ! Anthropogenic BC
        DiagnName = 'AD07_BC_ANTHRO'
        CALL Diagn_Create ( am_I_Root,                   & 
                            HcoState,                    &
@@ -224,6 +224,7 @@ CONTAINS
                            RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
+       ! Anthropogenic OC
        DiagnName = 'AD07_OC_ANTHRO'
        CALL Diagn_Create ( am_I_Root,                   & 
                            HcoState,                    &
@@ -241,7 +242,7 @@ CONTAINS
                            RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
-       ! Biofuel
+       ! Biofuel BC
        DiagnName = 'AD07_BC_BIOFUEL'
        CALL Diagn_Create ( am_I_Root,                   & 
                            HcoState,                    &
@@ -259,6 +260,7 @@ CONTAINS
                            RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
+       ! Biofuel OC
        DiagnName = 'AD07_OC_BIOFUEL'
        CALL Diagn_Create ( am_I_Root,                   & 
                            HcoState,                    &
@@ -275,6 +277,7 @@ CONTAINS
                            cID       = N,               & 
                            RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
+
     ENDIF ! CARBON
 
     !-----------------------------------------------------------------------
@@ -1717,7 +1720,7 @@ CONTAINS
                                  RC        = RC                ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
-   
+
           ! CHBr3 and CH2Br2 are emitted through HEMCO core, i.e. 
           ! extension number is 0!
           SpcName = 'CHBr3'
