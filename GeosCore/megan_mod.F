@@ -116,6 +116,7 @@
       
       ! CO2 inhibition of isoprene (Tai, Jan 2013):
       REAL*8, PUBLIC      :: GLOBCO2   ! Global CO2 concentration [ppmv]
+      REAL*8, PUBLIC      :: GAMMA_CO2_PUB ! For use in emissdr (mps, 8/14/14)
       
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -255,6 +256,7 @@
       GAMMA_SM        = 0.d0
       
       GAMMA_CO2       = 0.d0    ! (Tai, Jan 2013)
+      GAMMA_CO2_PUB   = 0.d0
 
       ! Number of days between MISOLAI and PMISOLAI
       D_BTW_M  = DBLE( DAYS_BTW_M )
@@ -340,6 +342,9 @@
      &                             * GAMMA_T   * GAMMA_P  * GAMMA_SM
      &                             * GAMMA_CO2
          ! (Tai, Jan 2013)
+
+         ! Save for use in emissdr.F (mps, 8/14/14)
+         GAMMA_CO2_PUB = GAMMA_CO2
 
          ! Convert from [kg/box] to [atoms C/box]
          EMISOP    = EMISOP * XNUMOL

@@ -109,6 +109,7 @@
       USE MEGAN_MOD,         ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMONOT_MEGAN
+      USE MEGAN_MOD,         ONLY : GAMMA_CO2_PUB
       USE TIME_MOD,          ONLY : GET_MONTH,     GET_TAU
       USE TIME_MOD,          ONLY : GET_TS_EMIS,   GET_LOCALTIME
       USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
@@ -557,8 +558,21 @@
                   ! NOTE: Don't save into EMISRR for the tagged 
                   ! CO simulation. (jaf, mak, bmy, 2/14/08)
                   IF ( NO_TAGCO ) THEN 
+!------------------------------------------------------------------------------
+! Prior to 8/14/14:
+! Now divide by GAMMA_CO2 to remove effect of CO2 inhibition  (mps, 8/14/14)
+!                     EMISRR(I,J,IDEPRPE) = EMISRR(I,J,IDEPRPE) +
+!     &                                     ( EMIS / DTSRCE ) * BIOSCAL
+!------------------------------------------------------------------------------
+                     IF ( GAMMA_CO2_PUB > 0 ) THEN
+                     EMISRR(I,J,IDEPRPE) = EMISRR(I,J,IDEPRPE) +
+     &                                     ( ( EMIS / GAMMA_CO2_PUB) / 
+     &                                     DTSRCE ) * BIOSCAL
+                     ELSE
                      EMISRR(I,J,IDEPRPE) = EMISRR(I,J,IDEPRPE) +
      &                                     ( EMIS / DTSRCE ) * BIOSCAL
+                     ENDIF
+
                   ENDIF
                ENDIF
 
@@ -641,8 +655,21 @@
                   AD46(I,J,2) = AD46(I,J,2) + ( BIO_ACET / AREA_CM2 )
 
                   ! PRPE emissions [atoms C/cm2/s] -- tracer #3
+!------------------------------------------------------------------------------
+! Prior to 8/14/14:
+! Now divide by GAMMA_CO2 to remove effect of CO2 inhibition  (mps, 8/14/14)
+!                  AD46(I,J,3) = AD46(I,J,3) + 
+!     &                          ( EMIS * BIOSCAL / AREA_CM2 / DTSRCE )
+!------------------------------------------------------------------------------
+                  IF ( GAMMA_CO2_PUB > 0 ) THEN
+                  AD46(I,J,3) = AD46(I,J,3) + 
+     &                          ( ( EMIS / GAMMA_CO2_PUB) * BIOSCAL /
+     &                          AREA_CM2 / DTSRCE )
+                  ELSE
                   AD46(I,J,3) = AD46(I,J,3) + 
      &                          ( EMIS * BIOSCAL / AREA_CM2 / DTSRCE )
+                  ENDIF
+
 
                   ! Monoterpene emissions [atoms C/cm2/s] -- tracer #4
                   AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 /DTSRCE) 
