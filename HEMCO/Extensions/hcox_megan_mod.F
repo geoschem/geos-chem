@@ -3452,7 +3452,7 @@
 
       ! Verbose mode
       MSG = 'Use MEGAN biogenic emissions (extension module)'
-      CALL HCO_MSG( MSG )
+      CALL HCO_MSG( MSG, SEP1='-' )
       WRITE(MSG,*) '   - Use PECCA model: ', LPECCA
       CALL HCO_MSG( MSG )
       MSG = '   - Use the following species:'

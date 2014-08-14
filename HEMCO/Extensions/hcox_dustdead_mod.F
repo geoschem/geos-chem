@@ -496,7 +496,8 @@
       INTEGER,          INTENT(INOUT)  :: RC 
 
 ! !REVISION HISTORY:
-!  25 Nov 2013 - C. Keller - Now a HEMCO extension
+!  25 Nov 2013 - C. Keller   - Now a HEMCO extension
+!  14 Aug 2014 - R. Yantosca - Now always print out extension info
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -544,20 +545,18 @@
       FLX_MSS_FDG_FCT = HCOX_DustDead_GetFluxTun()
 
       ! Verbose mode
-      IF ( verb ) THEN
-         MSG = 'Use DEAD dust emissions (extension module)'
-         CALL HCO_MSG( MSG )
+      MSG = 'Use DEAD dust emissions (extension module)'
+      CALL HCO_MSG( MSG, SEP1='-' )
 
-         MSG = 'Use the following species (Name: HcoID):' 
+      MSG = 'Use the following species (Name: HcoID):' 
+      CALL HCO_MSG(MSG)
+      DO N = 1, nSpc
+         WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
          CALL HCO_MSG(MSG)
-         DO N = 1, nSpc
-            WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
-            CALL HCO_MSG(MSG)
-         ENDDO
+      ENDDO
          
-         WRITE(MSG,*) 'Global mass flux tuning factor: ',FLX_MSS_FDG_FCT
-            CALL HCO_MSG(MSG,SEP2='-')
-      ENDIF
+      WRITE(MSG,*) 'Global mass flux tuning factor: ',FLX_MSS_FDG_FCT
+      CALL HCO_MSG(MSG,SEP2='-')
 
       !-----------------------------------------------------------------
       ! Init module arrays 

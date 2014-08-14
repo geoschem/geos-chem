@@ -643,8 +643,9 @@ CONTAINS
     INTEGER,   INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!
+!  23 Sep 2013 - C. Keller   - Initialization
+!  14 Aug 2014 - R. Yantosca - Add FORM='FORMATTED' to the OPEN statement
+!                              so that the HEMCO log will be a text file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -687,8 +688,9 @@ CONTAINS
    
        ! File exists but not opened ==> reopen
        ELSEIF (exists .AND. .NOT. isOpen ) THEN
-          OPEN ( UNIT=FREELUN,   FILE=TRIM(Err%LogFile), STATUS='OLD', &
-                 ACTION='WRITE', ACCESS='APPEND',     IOSTAT=IOS   )
+          OPEN ( UNIT=FREELUN,   FILE=TRIM(Err%LogFile), STATUS='OLD',     &
+                 ACTION='WRITE', ACCESS='APPEND',        FORM='FORMATTED', &
+                 IOSTAT=IOS   )
           IF ( IOS /= 0 ) THEN
              PRINT *, 'Cannot reopen logfile: ' // TRIM(Err%LogFile)
              RC = HCO_FAIL
@@ -699,8 +701,9 @@ CONTAINS
 
        ! File does not yet exist ==> open new file
        ELSE
-          OPEN ( UNIT=FREELUN, FILE=TRIM(Err%LogFile),     & 
-               STATUS='NEW',  ACTION='WRITE', IOSTAT=IOS )
+          OPEN ( UNIT=FREELUN,    FILE=TRIM(Err%LogFile),      & 
+                 STATUS='NEW',    ACTION='WRITE', IOSTAT=IOS,  &
+                 FORM='FORMATTED'                             )
           IF ( IOS /= 0 ) THEN
              PRINT *, 'Cannot create logfile: ' // TRIM(Err%LogFile)
              RC = HCO_FAIL

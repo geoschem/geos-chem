@@ -398,11 +398,6 @@ CONTAINS
                      OptValSp=COScale, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Get scale factor table set in configuration file 
-    CALL GetExtOpt ( ExtNr, 'Scale factor table', &
-                     OptValChar=ScalFile, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     ! Use daily scale factors?
     tmpName = TRIM(ExtName) // "_monthly"
     tmpNr   = GetExtNr( TRIM(tmpName) )
@@ -421,9 +416,9 @@ CONTAINS
        Do3Hr = .FALSE.
     ENDIF
 
-    ! ---------------------------------------------------------------------- 
-    ! Read scale factors from table 
-    ! ---------------------------------------------------------------------- 
+    !----------------------------------------------------------------------- 
+    ! Initialize GFED3 scale factors
+    !----------------------------------------------------------------------- 
 
     ! Allocate scale factors table
     ALLOCATE ( GFED3_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
@@ -436,14 +431,15 @@ CONTAINS
     ! Now get definitions for GFED3_EMFAC and GFED3_SPEC_NAME from an include 
     ! file.  This avoids ASCII file reads in the ESMF environment.  To update
     ! the emission factors, one just needs to modify the include file.
-    ! (bmy, 8/8/14)
+    ! This can be done with the script HEMCO/Extensions/Preprocess/gfed3.pl,
+    ! (bmy, 8/14/14)
 #include "hcox_gfed3_include.H"
 
-    ! ---------------------------------------------------------------------- 
+    !----------------------------------------------------------------------- 
     ! Match specified species with GFED3 species
     ! The species to be used are specified in the HEMCO configuration file.
     ! Match these species with the ones found in the scale factors table.
-    ! ---------------------------------------------------------------------- 
+    !----------------------------------------------------------------------- 
 
     ! Prompt to log file
     MSG = 'Use GFED3 extension'

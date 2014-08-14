@@ -153,8 +153,21 @@ sub getProTeXHeader() {
 !  ESMF environment.
 !
 ! !REMARKS:
-!  This file was generated with script HEMCO/Extensions/Preprocess/finn.pl.
-! 
+!  ABOUT THIS FILE:
+!  ----------------
+!  This file was created by script HEMCO/Extensions/Preprocess/finn.pl.
+!  This script can be executed with the following command:
+!
+!    cd HEMCO/Extensions/Preprocess
+!    make finn
+!
+!  This will regenerate this include file from the original data and 
+!  automatically place it in the HEMCO/Extensions directory.
+!
+!  White space has been removed in order to reduce the file size as much
+!  as possible.  If you have to recreate this file, then it is easier to
+!  generate via the Perl script than to try to hand edit the code below.
+!
 ! !REVISION HISTORY: 
 !  11 Aug 2014 - R. Yantosca - Initial version
 !EOP
@@ -254,20 +267,20 @@ sub makeFinnInclude($$$) {
       $nCo2   = scalar( @result ) - 2;
 
       # Print comment lines
-      print O "      !---------------------------------------------------\n";
-      print O "      ! Data from $co2File\n";
-      print O "      !---------------------------------------------------\n\n";
-      print O "      ! Number of emissions species in $co2File\n";
-      print O "      N_SPEC_EMFAC        = $nCo2\n";
-      print O "      N_SPECSTRS          = $nCo2\n\n";
-      print O "      ! Allocate the EMFAC_IN temporary array\n";
-      print O "      ALLOCATE ( EMFAC_IN(N_SPEC_EMFAC, N_EMFAC), STAT=AS )\n";
-      print O "      IF ( AS/=0 ) THEN\n";
-      print O "         CALL HCO_ERROR( 'Cannot allocate EMFAC_IN', RC )\n";
-      print O "         RETURN\n";
-      print O "      ENDIF\n";
-      print O "      EMFAC_IN            = 0.0_dp\n\n";
-      print O "      ! Species from $co2File\n";
+      print O "!---------------------------------------------------\n";
+      print O "! Data from $co2File\n";
+      print O "!---------------------------------------------------\n\n";
+      print O "! Number of emissions species in $co2File\n";
+      print O "N_SPEC_EMFAC=$nCo2\n";
+      print O "N_SPECSTRS=$nCo2\n\n";
+      print O "! Allocate the EMFAC_IN temporary array\n";
+      print O "ALLOCATE ( EMFAC_IN(N_SPEC_EMFAC, N_EMFAC), STAT=AS )\n";
+      print O "IF ( AS/=0 ) THEN\n";
+      print O " CALL HCO_ERROR('Cannot allocate EMFAC_IN',RC)\n";
+      print O " RETURN\n";
+      print O "ENDIF\n";
+      print O "EMFAC_IN=0.0_dp\n\n";
+      print O "! Species from $co2File\n";
 
       # Loop over substrings, starting from the 2nd column
       for ( $i = 2; $i < scalar( @result ); $i++ ) {
@@ -279,7 +292,7 @@ sub makeFinnInclude($$$) {
 	$spcStr = &num2str( $i - 1 );
 
 	# Write F90 code to output file
-	print O "      IN_SPEC_NAME($spcStr)    = \"$name\"\n";
+	print O "IN_SPEC_NAME($spcStr)=\"$name\"\n";
       } 
  
       print O "\n";
@@ -299,7 +312,7 @@ sub makeFinnInclude($$$) {
       if ( $fac > 6 ) { $fac = 6 }
       		
       # Print emission factor name
-      print O "      ! $result[1] emission factors from $co2File\n";
+      print O "! $result[1] emission factors from $co2File\n";
 	
       # Loop over substrings
       for ( $i = 0; $i < $nCo2; $i++ ) {
@@ -311,7 +324,7 @@ sub makeFinnInclude($$$) {
 	$col    = $i + 2;
 	
 	# Write the F90 commands to the output file
-	print O "      EMFAC_IN($spcStr,$fac)      = $result[$col]_dp\n";
+	print O "EMFAC_IN($spcStr,$fac)=$result[$col]_dp\n";
       }
 
       print O "\n";
@@ -346,20 +359,20 @@ sub makeFinnInclude($$$) {
       $nVoc   = scalar( @result ) - 2;
 
       # Print comment lines
-      print O "      !---------------------------------------------------\n";
-      print O "      ! Data from $vocFile\n";
-      print O "      !---------------------------------------------------\n\n";
-      print O "      ! Number of emissions species in $vocFile\n";
-      print O "      N_NMOC              = $nVoc\n";
-      print O "      N_NMOCSTRS          = $nVoc\n\n";
-      print O "      ! Allocate the NMOC_RATIO_IN temporary array\n";
-      print O "      ALLOCATE ( NMOC_RATIO_IN(N_NMOC, N_EMFAC), STAT=AS )\n";
-      print O "      IF ( AS/=0 ) THEN\n";
-      print O "         CALL HCO_ERROR( 'Cannot allocate NMOC_RATIO_IN', RC )\n";
-      print O "         RETURN\n";
-      print O "      ENDIF\n";
-      print O "      NMOC_RATIO_IN       = 0.0_dp\n\n";
-      print O "      ! Species from $vocFile\n";
+      print O "!---------------------------------------------------\n";
+      print O "! Data from $vocFile\n";
+      print O "!---------------------------------------------------\n\n";
+      print O "! Number of emissions species in $vocFile\n";
+      print O "N_NMOC=$nVoc\n";
+      print O "N_NMOCSTRS=$nVoc\n\n";
+      print O "! Allocate the NMOC_RATIO_IN temporary array\n";
+      print O "ALLOCATE ( NMOC_RATIO_IN(N_NMOC, N_EMFAC), STAT=AS )\n";
+      print O "IF ( AS/=0 ) THEN\n";
+      print O " CALL HCO_ERROR('Cannot allocate NMOC_RATIO_IN',RC)\n";
+      print O " RETURN\n";
+      print O "ENDIF\n";
+      print O "NMOC_RATIO_IN=0.0_dp\n\n";
+      print O "! Species from $vocFile\n";
 
       # Loop over substrings
       for ( $i = 2; $i < scalar( @result ); $i++ ) {
@@ -371,7 +384,7 @@ sub makeFinnInclude($$$) {
 	$spcStr = &num2str( $i - 1 );
 
 	# Write F90 code to output file
-	print O "      IN_NMOC_NAME($spcStr)    = \"$name\"\n";
+	print O "IN_NMOC_NAME($spcStr)=\"$name\"\n";
       }
 
       # Print a return
@@ -392,7 +405,7 @@ sub makeFinnInclude($$$) {
       if ( $fac > 6 ) { $fac = 6 }
       	
       # Write comment header
-      print O "      ! $result[1] emission factors from $vocFile\n";
+      print O "! $result[1] emission factors from $vocFile\n";
 	
       # Loop over substrings
       for ( $i = 0; $i < $nVoc; $i++ ) {
@@ -404,7 +417,7 @@ sub makeFinnInclude($$$) {
 	$col = $i + 2;
 
 	# Write the F90 commands to the output file
-	print O "      NMOC_RATIO_IN($spcStr,$fac) = $result[$col]_dp\n";
+	print O "NMOC_RATIO_IN($spcStr,$fac)=$result[$col]_dp\n";
        }
 
       # Print a return

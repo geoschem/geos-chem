@@ -202,18 +202,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ParaNOx_Util_Mod,  ONLY : INTERPOLATE_LUT2
-    USE ParaNOx_Util_Mod,  ONLY : READ_PARANOX_LUT
-    USE HCO_FluxArr_mod,   ONLY : HCO_EmisAdd, HCO_DepvAdd
-    USE HCO_Clock_Mod,     ONLY : HcoClock_Get
-
-!------------------------------------------------------------------------------
-! Prior to 7/22/14:
-! Break the dependency on pressure_mod by using ExtState%PEDGE (bmy, 7/22/14)
-!    ! testing only
-!    USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
-!    USE PRESSURE_MOD,      ONLY : GET_PEDGE
-!------------------------------------------------------------------------------
+    USE HCO_FluxArr_mod,  ONLY : HCO_EmisAdd
+    USE HCO_FluxArr_mod,  ONLY : HCO_DepvAdd
+    USE HCO_Clock_Mod,    ONLY : HcoClock_Get
+    USE ParaNOx_Util_Mod, ONLY : Interpolate_LUT2
 !
 ! !INPUT PARAMETERS:
 !
@@ -233,6 +225,7 @@ CONTAINS
 !  24 Jun 2014 - R. Yantosca - Now pass LUT_FILENAME to READ_PARANOX_LUT
 !  22 Jul 2014 - R. Yantosca - Comment out debug print statements
 !  28 Jul 2014 - C. Keller   - Now get J-values through ExtState
+!  12 Aug 2014 - R. Yantosca - READ_PARANOX_LUT is now called from Init phase
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -240,8 +233,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: I, J, MM
-    INTEGER,  SAVE     :: SAVEMM = -999
     LOGICAL            :: ERR
+    LOGICAL, SAVE      :: FIRST = .TRUE.
     REAL*8             :: JNO2, JO1D, TS, SUNCOSmid5, SUNCOSmid
     REAL*8             :: O3molec, NOmolec, NO2molec, AIRmolec
     REAL*4             :: FRACTION_NOx, INT_OPE
@@ -276,13 +269,6 @@ CONTAINS
     ! EVOLVE_PLUME begins here!
     !=================================================================
 
-!------------------------------------------------------------------------------
-!### DEBUG -- COMMENT OUT FOR NOW
-!    ! testing only
-!    ix = -1 !71
-!    jx = -1 !35
-!------------------------------------------------------------------------------
-
     ! Enter
     CALL HCO_Enter( 'Evolve_Plume (hcox_paranox_mod.F90)', RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -298,7 +284,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! On first call, see if we need to write internal diagnostics
-    IF ( SAVEMM < 0 ) THEN
+    IF ( FIRST ) THEN
        ! See if we have to write out manual diagnostics
        IF ( .NOT. DoDiagn ) THEN
           DiagnName = 'PARANOX_NOXFRAC_REMAINING'
@@ -319,16 +305,12 @@ CONTAINS
           DiagnName = 'PARANOX_OPE'
           CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
           TmpCnt => NULL()
-       ENDIF    
+       ENDIF  
+       
+       ! Not first call any more...
+       FIRST = .FALSE.  
     ENDIF
     IF ( DoDiagn ) DIAGN(:,:,:) = 0.0_hp
-
-    ! Read look up tables every new month
-    IF ( MM /= SAVEMM ) THEN
-       CALL READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       SAVEMM = MM
-    ENDIF
 
     ! Error check
     ERR = .FALSE.
@@ -403,29 +385,6 @@ CONTAINS
           EXIT
        ENDIF
 
-       !--------------------------------------------------------------------
-       !### DEBUG -- COMMENT OUT FOR NOW
-       !! testing only
-       !if ( i==ix .and. j==jx ) then
-       !   write(*,*) 'O3molec: ', O3molec
-       !   write(*,*) 'NOmolec: ', NOmolec
-       !   write(*,*) 'NO2molec: ', NO2molec
-       !   write(*,*) 'AIRmolec: ', AIRmolec
-       !   write(*,*) 'O3molec (molec): ', O3molec*1000*6.022e23
-       !   write(*,*) 'NOmolec (molec): ', NOmolec*1000*6.022e23
-       !   write(*,*) 'NO2molec (molec): ', NO2molec*1000*6.022e23
-       !   write(*,*) 'AIRmolec (molec): ', AIRmolec*1000*6.022e23
-       !   write(*,*) 'JO1D    : ', JO1D 
-       !   write(*,*) 'JNO2    : ', JNO2 
-       !   write(*,*) 'SUNCOSmid5:' , SUNCOSmid5
-       !   write(*,*) 'SUNCOSmid :' , SUNCOSmid 
-       !   write(*,*) 'TS        :', TS
-       !   write(*,*) 'FRACTION_NOX: ', FRACTION_NOX
-       !   write(*,*) 'INT_OPE: ', Int_OPE
-       !   write(*,*) 'ShipEmis [kg/m2/s]: ', ShipNoEmis(I,J,1)
-       !endif
-       !--------------------------------------------------------------------
-
        !---------------------------
        ! Calculate NO emissions
        !---------------------------
@@ -435,14 +394,6 @@ CONTAINS
           ! survives after plume dilution and chemistry.
           ! Unit: kg/m2/s 
           FLUXNO(I,J) = ShipNoEmis(I,J,1) * FRACTION_NOx
-
-          !-----------------------------------------------------------------
-          !### DEBUG -- COMMENT OUT FOR NOW
-          !! testing only
-          !if ( i==ix .and. j==jx ) then
-          !   write(*,*) 'FLUXNO [kg/m2/s]: ', FLUXNO(I,J)
-          !endif
-          !-----------------------------------------------------------------
 
        ENDIF
 
@@ -455,14 +406,6 @@ CONTAINS
           ! is converted to HNO3 during plume dilution and chemistry. 
           ! Unit: kg/m2/s 
           FLUXHNO3(I,J) = ShipNoEmis(I,J,1) * ( 1d0 - FRACTION_NOx )
-
-          !-----------------------------------------------------------------
-          !### DEBUG -- COMMENT OUT FOR NOW
-          ! testing only
-          !if ( i==ix .and. j==jx ) then
-          !   write(*,*) 'FLUXHNO3 [kg/m2/s]: ', FLUXHNO3(I,J) 
-          !endif
-          !-----------------------------------------------------------------
 
        ENDIF
 
@@ -477,16 +420,7 @@ CONTAINS
           ! Unit: kg/m2/s 
           iFlx = ShipNoEmis(I,J,1) * (1d0-FRACTION_NOx) * INT_OPE
 
-          !-----------------------------------------------------------------
-          !### DEBUG -- COMMENT OUT FOR NOW
-          !! testing only
-          !if ( i==ix .and. j==jx ) then
-          !   write(*,*) 'FLUXO3 [kg/m2/s]: ', iFlx 
-          !endif
-          !-----------------------------------------------------------------
-
           ! For positive fluxes, add to emission flux array 
-!            if ( add2hemco ) then
           IF ( iFlx >= 0d0 ) THEN
              FLUXO3(I,J) = iFlx
 
@@ -502,16 +436,7 @@ CONTAINS
              DEPO3(I,J) = ABS(iFlx) / ExtState%O3%Arr%Val(I,J,1) &
                           * ExtState%AIRVOL%Arr%Val(I,J,1)
 
-             !--------------------------------------------------------------
-             !### DEBUG -- COMMENT OUT FOR NOW
-             !! testing only
-             !if ( i==ix .and. j==jx ) then
-             !   write(*,*) 'O3 deposition [m/s]: ', DEPO3(I,J) 
-             !endif
-             !--------------------------------------------------------------
-
           ENDIF
-!        endif  
        ENDIF
 
        ! Eventually write out into diagnostics array
@@ -541,104 +466,98 @@ CONTAINS
     !=======================================================================
     ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
     !=======================================================================
-!------------------------------------------------------------------------------
-! Prior to 7/22/14:
-! For now, assume we will add emissions directly into the HEMCO State object
-! Comment out this code, which was for testing only (bmy, 7/22/14)
-!    if ( add2hemco ) then
-!------------------------------------------------------------------------------
 
-       ! NO
-       IF ( IDTNO > 0 ) THEN
+    ! NO
+    IF ( IDTNO > 0 ) THEN
 
-          ! Add flux to emission array
-          CALL HCO_EmisAdd( HcoState, FLUXNO, IDTNO, RC)
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( HcoState, FLUXNO, IDTNO, RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       ! Eventually update diagnostics
+       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+          Arr2D => FLUXNO
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+                             Cat=-1, Hier=-1, HcoID=IDTNO,     &
+                             AutoFill=1, Array2D=Arr2D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
+          Arr2D => NULL() 
+       ENDIF
+    ENDIF
 
-          ! Eventually update diagnostics
-          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-             Arr2D => FLUXNO
-             CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
-                                Cat=-1, Hier=-1, HcoID=IDTNO,     &
-                                AutoFill=1, Array2D=Arr2D, RC=RC   )
-             IF ( RC /= HCO_SUCCESS ) RETURN 
-             Arr2D => NULL() 
-          ENDIF
+    ! HNO3 
+    IF ( IDTHNO3 > 0 ) THEN
+
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( HcoState, FLUXHNO3, IDTHNO3, RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       ! Eventually update diagnostics
+       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+          Arr2D => FLUXHNO3
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+                             Cat=-1, Hier=-1, HcoID=IDTHNO3,   &
+                             AutoFill=1, Array2D=Arr2D, RC=RC   )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+          Arr2D => NULL() 
+       ENDIF
+    ENDIF
+
+    ! O3 
+    IF ( IDTO3 > 0 ) THEN
+
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( HcoState, FLUXO3, IDTO3, RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       ! Eventually update diagnostics
+       IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+          Arr2D => FLUXO3
+          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+                             Cat=-1, Hier=-1, HcoID=IDTO3,   &
+                             AutoFill=1, Array2D=Arr2D, RC=RC   )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+          Arr2D => NULL() 
        ENDIF
 
-       ! HNO3 
-       IF ( IDTHNO3 > 0 ) THEN
+       ! Add flux to emission array
+       CALL HCO_DepvAdd( HcoState, DEPO3, IDTO3, RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
 
-          ! Add flux to emission array
-          CALL HCO_EmisAdd( HcoState, FLUXHNO3, IDTHNO3, RC)
-          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ! TODO: Add deposition diagnostics
+    ENDIF
 
-          ! Eventually update diagnostics
-          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-             Arr2D => FLUXHNO3
-             CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
-                                Cat=-1, Hier=-1, HcoID=IDTHNO3,   &
-                                AutoFill=1, Array2D=Arr2D, RC=RC   )
-             IF ( RC /= HCO_SUCCESS ) RETURN 
-             Arr2D => NULL() 
-          ENDIF
-       ENDIF
 
-       ! O3 
-       IF ( IDTO3 > 0 ) THEN
+    ! Eventually update manual diagnostics
+    IF ( DoDiagn ) THEN
+       DiagnName =  'PARANOX_NOXFRAC_REMAINING'
+       Arr2D     => DIAGN(:,:,1)
+       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Arr2D => NULL()       
+       
+       DiagnName =  'PARANOX_OPE'
+       Arr2D     => DIAGN(:,:,2)
+       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Arr2D => NULL()       
 
-          ! Add flux to emission array
-          CALL HCO_EmisAdd( HcoState, FLUXO3, IDTO3, RC)
-          IF ( RC /= HCO_SUCCESS ) RETURN 
+       DiagnName =  'PARANOX_O3_PRODUCTION'
+       Arr2D     => DIAGN(:,:,3)
+       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Arr2D => NULL()       
 
-          ! Eventually update diagnostics
-          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-             Arr2D => FLUXO3
-             CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
-                                Cat=-1, Hier=-1, HcoID=IDTO3,   &
-                                AutoFill=1, Array2D=Arr2D, RC=RC   )
-             IF ( RC /= HCO_SUCCESS ) RETURN 
-             Arr2D => NULL() 
-          ENDIF
-
-          ! Add flux to emission array
-          CALL HCO_DepvAdd( HcoState, DEPO3, IDTO3, RC)
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-
-          ! TODO: Add deposition diagnostics
-
-       ENDIF
-
-       ! Eventually update manual diagnostics
-       IF ( DoDiagn ) THEN
-          DiagnName =  'PARANOX_NOXFRAC_REMAINING'
-          Arr2D     => DIAGN(:,:,1)
-          CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
-                             cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL()       
-          
-          DiagnName =  'PARANOX_OPE'
-          Arr2D     => DIAGN(:,:,2)
-          CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
-                             cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL()       
-
-          DiagnName =  'PARANOX_O3_PRODUCTION'
-          Arr2D     => DIAGN(:,:,3)
-          CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
-                             cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL()       
-
-          DiagnName =  'PARANOX_TOTAL_SHIPNOX'
-          Arr2D     => DIAGN(:,:,4)
-          CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
-                             cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Arr2D => NULL()       
-       ENDIF
+       DiagnName =  'PARANOX_TOTAL_SHIPNOX'
+       Arr2D     => DIAGN(:,:,4)
+       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Arr2D => NULL()       
+    ENDIF
 
 !------------------------------------------------------------------------------
 ! Prior to 7/22/14:
@@ -762,10 +681,10 @@ CONTAINS
 !   endif ! add2hemco
 !------------------------------------------------------------------------------
 
-   ! Return w/ success
-   CALL HCO_LEAVE ( RC )
+    ! Return w/ success
+    CALL HCO_LEAVE ( RC )
 
- END SUBROUTINE Evolve_Plume
+  END SUBROUTINE Evolve_Plume
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -780,15 +699,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE HCOX_ParaNOx_Init ( am_I_Root, HcoState, ExtName, &
-                                ExtState,   RC                  ) 
+ SUBROUTINE HCOX_ParaNOx_Init( am_I_Root, HcoState, ExtName, ExtState, RC ) 
 !
 ! !USES:
 !
-   USE HCO_State_MOD,     ONLY : HCO_GetHcoID
-   USE HCO_State_MOD,     ONLY : HCO_GetExtHcoID
-   USE HCO_ExtList_Mod,   ONLY : GetExtNr
-   USE HCO_ExtList_Mod,   ONLY : GetExtOpt
+   USE HCO_State_MOD,    ONLY : HCO_GetHcoID
+   USE HCO_State_MOD,    ONLY : HCO_GetExtHcoID
+   USE HCO_ExtList_Mod,  ONLY : GetExtNr
+   USE HCO_ExtList_Mod,  ONLY : GetExtOpt
+   USE ParaNOx_Util_Mod, ONLY : Read_ParaNOx_LUT
 !
 ! !INPUT PARAMETERS:
 !
@@ -806,6 +725,9 @@ CONTAINS
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTex Headers
 !  06 Jun 2014 - R. Yantosca - Now indented using F90 free-format
 !  22 Jul 2014 - R. Yantosca - Activate ExtState%PEDGE for use in EVOLVE_PLUME
+!  13 Aug 2014 - R. Yantosca - Now read the PARANOX look-up tables here
+!  14 Aug 2014 - R. Yantosca - Minor fix, read the PARANOX look-up tables
+!                              after displaying text about PARANOX extension
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -817,9 +739,9 @@ CONTAINS
    CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
    CHARACTER(LEN=255)             :: MSG, LOC
 
-   !=================================================================
+   !========================================================================
    ! HCOX_PARANOX_INIT begins here!
-   !=================================================================
+   !========================================================================
 
    ! Extension Nr.
    ExtNr = GetExtNr( TRIM(ExtName) )
@@ -829,21 +751,9 @@ CONTAINS
    CALL HCO_ENTER( 'HCOX_ParaNOx_Init (hcox_paranox_mod.F90)', RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
-   ! ---------------------------------------------------------------------- 
-   ! Get the look-up-table filenames
-   ! ---------------------------------------------------------------------- 
-
-   ! Fraction of NOx remaining for ship emissions
-   CALL GetExtOpt ( ExtNr, 'FracNOx table', OptValChar=FRACNOX_FILE, RC=RC)
-   IF ( RC /= HCO_SUCCESS ) RETURN
-
-   ! Integrated Ozone production efficiency (OPE)
-   CALL GetExtOpt ( ExtNr, 'IntOPE table', OptValChar=INTOPE_FILE, RC=RC)
-   IF ( RC /= HCO_SUCCESS ) RETURN
-
-   ! ---------------------------------------------------------------------- 
+   !------------------------------------------------------------------------
    ! Get species IDs
-   ! ---------------------------------------------------------------------- 
+   !------------------------------------------------------------------------
 
    ! Get HEMCO species IDs
    CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
@@ -893,7 +803,7 @@ CONTAINS
 
    ! Verbose mode
    MSG = 'Use ParaNOx ship emissions (extension module)'
-   CALL HCO_MSG( MSG )
+   CALL HCO_MSG( MSG, SEP1='-' )
    MSG = '    - Use the following species: ' 
    CALL HCO_MSG( MSG )
    WRITE(MSG,*) '     NO  : ', TRIM(SpcNames(1)), IDTNO
@@ -905,9 +815,27 @@ CONTAINS
    WRITE(MSG,*) '     HNO3: ', TRIM(SpcNames(4)), IDTHNO3
    CALL HCO_MSG(MSG)
 
-   ! ---------------------------------------------------------------------- 
+   !------------------------------------------------------------------------
+   ! Initialize the PARANOX look-up tables
+   !------------------------------------------------------------------------
+
+   ! Fraction of NOx remaining for ship emissions
+   CALL GetExtOpt ( ExtNr, 'FracNOx table', OptValChar=FRACNOX_FILE, RC=RC)
+   IF ( RC /= HCO_SUCCESS ) RETURN
+
+   ! Integrated Ozone production efficiency (OPE)
+   CALL GetExtOpt ( ExtNr, 'IntOPE table', OptValChar=INTOPE_FILE, RC=RC)
+   IF ( RC /= HCO_SUCCESS ) RETURN
+
+   ! Read PARANOX look-up tables from disk
+   ! NOTE: Currently these are read from binary file, which is incompatible
+   ! with the ESMF/MAPL run environment.  We are currently working on a
+   ! better implementation of this, stay tuned. (bmy, 8/13/14)
+   CALL READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE, RC )
+
+   !------------------------------------------------------------------------
    ! Set other module variables 
-   ! ---------------------------------------------------------------------- 
+   !------------------------------------------------------------------------ 
    ALLOCATE ( ShipNO(HcoState%NX,HcoState%NY,HcoState%NZ), STAT=AS )
    IF ( AS /= 0 ) THEN
       CALL HCO_ERROR ( 'ShipNO', RC )
@@ -937,7 +865,9 @@ CONTAINS
    ! Enable module
    ExtState%ParaNOx = .TRUE.
 
+   !------------------------------------------------------------------------
    ! Leave w/ success
+   !------------------------------------------------------------------------
    IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
    CALL HCO_LEAVE ( RC )
@@ -962,8 +892,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  06 Aug 2013 - C. Keller - Initial Version
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format!
-! !NOTES: 
+!  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
 !EOP
 !------------------------------------------------------------------------------
 !BOC
