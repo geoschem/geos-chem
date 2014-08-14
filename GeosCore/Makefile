@@ -529,7 +529,8 @@ diag53_mod.o                : diag53_mod.F
 diag56_mod.o                : diag56_mod.F
 
 diag63_mod.o                : diag63_mod.F                                   \
-                              diag_mod.o              pbl_mix_mod.o
+                              diag_mod.o              pbl_mix_mod.o          \
+                              tracerid_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
                               chemgrid_mod.o          diag_mod.o

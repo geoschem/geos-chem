@@ -1462,7 +1462,9 @@
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
 
          ! Ship timeseries
-         IF ( ITS_TIME_FOR_DIAG63() ) CALL DIAG63()
+         IF ( ITS_TIME_FOR_DIAG63() ) THEN
+            CALL DIAG63( am_I_Root, Input_Opt, RC )
+         ENDIF
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
 
          ! Morning or afternoon timeseries

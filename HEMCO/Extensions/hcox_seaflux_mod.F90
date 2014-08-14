@@ -549,7 +549,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                        :: I, J, nSpc
-    CHARACTER(LEN=255)             :: NAME_OC, MSG
+    CHARACTER(LEN=255)             :: NAME_OC, MSG, ERR
 
     ! Arrays
     INTEGER,           ALLOCATABLE :: HcoIDs(:)
@@ -566,13 +566,15 @@ CONTAINS
     ! Enter 
     CALL HCO_ENTER (  'HCOX_SeaFlux_Init (hcox_seaflux_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    MSG = 'nOcSpc too low!'
+    ERR = 'nOcSpc too low!'
 
     ! Verbose mode
-    MSG = 'Use air-sea flux emissions (extension module)'
-    CALL HCO_MSG( MSG,SEP1='-' )
-    MSG = '   - Use species:'
-    CALL HCO_MSG( MSG )
+    IF ( am_I_Root ) THEN
+       MSG = 'Use air-sea flux emissions (extension module)'
+       CALL HCO_MSG( MSG,SEP1='-' )
+       MSG = '   - Use species:'
+       CALL HCO_MSG( MSG )
+    ENDIF
 
     ! ---------------------------------------------------------------------- 
     ! Get species IDs and settings 
@@ -600,7 +602,7 @@ CONTAINS
 
     I = I + 1
     IF ( I > nOcSpc ) THEN
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR ( ERR, RC )
        RETURN
     ENDIF
 
@@ -615,7 +617,7 @@ CONTAINS
 
     I = I + 1
     IF ( I > nOcSpc ) THEN
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR ( ERR, RC )
        RETURN
     ENDIF
 
@@ -630,7 +632,7 @@ CONTAINS
 
     I = I + 1
     IF ( I > nOcSpc ) THEN
-       CALL HCO_ERROR ( MSG, RC )
+       CALL HCO_ERROR ( ERR, RC )
        RETURN
     ENDIF
 
@@ -668,7 +670,7 @@ CONTAINS
        ENDDO !J
 
        ! verbose
-       IF ( OcSpecs(I)%HcoID > 0 ) THEN
+       IF ( OcSpecs(I)%HcoID > 0 .AND. am_I_Root ) THEN
           WRITE(MSG,*) '   - ', &
                TRIM(OcSpecs(I)%OcSpcName), OcSpecs(I)%HcoID
           CALL HCO_MSG(MSG)

@@ -3633,14 +3633,19 @@
           UNIT     = 'flashes/min/km2'
 
           ! Get scale factor
-#if   defined( MERRA )
-          FACTOR = DBLE( GET_CT_A3() ) + 1d-32
-#elif defined( GEOS_FP )
-          FACTOR = DBLE( GET_CT_I3() ) + 1d-32
-#else
-          FACTOR = DBLE( GET_CT_A6() ) + 1d-32
-#endif     
-          FACTOR = 1.0 / FACTOR
+
+          ! --> If diagnostics OutOper is set to 'Mean':
+          FACTOR = 1.0d0
+
+          ! --> If diagnostics OutOper is set to 'Cumsum' (same as original ND56):
+!#if   defined( MERRA )
+!          FACTOR = DBLE( GET_CT_A3() ) + 1d-32
+!#elif defined( GEOS_FP )
+!          FACTOR = DBLE( GET_CT_I3() ) + 1d-32
+!#else
+!          FACTOR = DBLE( GET_CT_A6() ) + 1d-32
+!#endif     
+!          FACTOR = 1.0 / FACTOR
 
           ! Loop over ND56 diagnostic tracers
           DO M = 1, 3
@@ -4692,6 +4697,9 @@
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
 
+      ! Cleanup
+      HcoState => NULL()
+      DiagnCnt => NULL()
 
       CONTAINS
 !******************************************************************************

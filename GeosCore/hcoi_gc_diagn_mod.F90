@@ -1027,28 +1027,30 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... ship NO ...
+       ! ==> Only define if ParaNOx is not used. SHIP_NO from
+       !     ParaNOx is defined in ND63.
        Cat   = -1
        ExtNr = GetExtNr('ParaNOx')
        IF ( ExtNr <= 0 ) THEN
           ExtNr = 0
           Cat   = 10
+          DiagnName = 'SHIP_NO'
+          CALL Diagn_Create ( am_I_Root,                   & 
+                              HcoState,                    &
+                              cName     = TRIM(DiagnName), &
+                              ExtNr     = ExtNr,           &
+                              Cat       = Cat,             &
+                              Hier      = -1,              &
+                              HcoID     = ID1,             &
+                              SpaceDim  = 2,               &
+                              LevIDx    = -1,              &
+                              OutUnit   = 'kg/m2/s',       &
+                              WriteFreq = 'Manual',        &
+                              AutoFill  = 1,               &
+                              cID       = N,               & 
+                              RC        = RC                )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
-       DiagnName = 'SHIP_NO'
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = ExtNr,           &
-                           Cat       = Cat,             &
-                           Hier      = -1,              &
-                           HcoID     = ID1,             &
-                           SpaceDim  = 2,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg/m2/s',       &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... lightning ...
        Cat   = -1
@@ -2060,7 +2062,13 @@ CONTAINS
        ! Lightning flashes (ND56)
        !-----------------------------------------------------------------
        ! ==> Manually set in hcox_lightning_mod.F90
-       ! ==> It looks like the original ND56 diagnostics are never reset?!? 
+       ! ==> The original code diagnoses the 'cumulative mean', i.e. it
+       !     sums all quantities and simply divides by the number of 
+       !     met. time steps when writing the diagnostics. Here, we only 
+       !     use the average since the last writeout. To simulate the
+       !     behavior of the original ND56 diagnostics, set 'OutOper' to
+       !     'Cumsum' (cumulative sum) and manually divide by the # of
+       !     timesteps when writing data to the output file!
        !-----------------------------------------------------------------
 
        IF ( ND56 > 0 ) THEN
@@ -2100,7 +2108,7 @@ CONTAINS
                                  SpaceDim  = 2,                 &
                                  LevIDx    = -1,                &
                                  OutUnit   = 'flashes/min/km2', &
-                                 OutOper   = 'Cumsum',          &
+                                 OutOper   = 'Mean',            &
                                  WriteFreq = 'Manual',          &
                                  AutoFill  = 0,                 &
                                  cID       = N,                 & 
@@ -2109,10 +2117,131 @@ CONTAINS
           ENDDO
        ENDIF !ND56
 
+       !-----------------------------------------------------------------
+       ! SHIP DIAGNOSTICS (ND63, ND32)
+       !-----------------------------------------------------------------
+       ! ==> Manually set in hcox_paranox_mod.F90
+       !-----------------------------------------------------------------
+
+       ! Get ext. nr. 
+       ExtNr = GetExtNr('ParaNOx')
+       IF ( ExtNr <= 0 .AND. ND63 > 0 ) THEN
+          MSG = 'ParaNOx is not enabled - cannot write diagnostics ND63!'
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       IF ( ExtNr > 0 ) THEN
+
+          SpcName = 'NO'
+          ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
+          IF ( ID1 <= 0 ) THEN
+             MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+   
+          ! These are the final NO emissions
+          IF ( ND63 > 0 .OR. ND32 > 0 ) THEN
+             DiagnName = 'SHIP_NO'
+             CALL Diagn_Create ( am_I_Root,                   & 
+                                 HcoState,                    &
+                                 cName     = TRIM(DiagnName), &
+                                 ExtNr     = ExtNr,           &
+                                 Cat       = -1,              &
+                                 Hier      = -1,              &
+                                 HcoID     = ID1,             &
+                                 SpaceDim  = 2,               &
+                                 LevIDx    = -1,              &
+                                 OutUnit   = 'kg/m2/s',       &
+                                 WriteFreq = 'Manual',        &
+                                 AutoFill  = 1,               &
+                                 cID       = N,               & 
+                                 RC        = RC                )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF
+ 
+          ! ParaNOx specific diagnostics
+          IF ( ND63 > 0 ) THEN
+ 
+             ! These are the ship NO emissions before PARANOX chemistry
+             DiagnName = 'PARANOX_TOTAL_SHIPNOX'
+             CALL Diagn_Create ( am_I_Root,                   & 
+                                 HcoState,                    &
+                                 cName     = TRIM(DiagnName), &
+                                 ExtNr     = ExtNr,           &
+                                 Cat       = -1,              &
+                                 Hier      = -1,              &
+                                 HcoID     = ID1,             &
+                                 SpaceDim  = 2,               &
+                                 LevIDx    = -1,              &
+                                 OutUnit   = 'kg/m2/s',       &
+                                 WriteFreq = 'Manual',        &
+                                 AutoFill  = 0,               &
+                                 cID       = N,               & 
+                                 RC        = RC                )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+  
+             ! These is the O3 production/loss through PARANOX 
+             DiagnName = 'PARANOX_O3_PRODUCTION'
+             CALL Diagn_Create ( am_I_Root,                   & 
+                                 HcoState,                    &
+                                 cName     = TRIM(DiagnName), &
+                                 ExtNr     = ExtNr,           &
+                                 Cat       = -1,              &
+                                 Hier      = -1,              &
+                                 HcoID     = ID1,             &
+                                 SpaceDim  = 2,               &
+                                 LevIDx    = -1,              &
+                                 OutUnit   = 'kg/m2/s',       &
+                                 WriteFreq = 'Manual',        &
+                                 AutoFill  = 0,               &
+                                 cID       = N,               & 
+                                 RC        = RC                )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+             DiagnName = 'PARANOX_NOXFRAC_REMAINING'
+             CALL Diagn_Create ( am_I_Root,                   & 
+                                 HcoState,                    &
+                                 cName     = TRIM(DiagnName), &
+                                 ExtNr     = ExtNr,           &
+                                 Cat       = -1,              &
+                                 Hier      = -1,              &
+                                 HcoID     = ID1,             &
+                                 SpaceDim  = 2,               &
+                                 LevIDx    = -1,              &
+                                 OutUnit   = 'unitless',      &
+                                 OutOper   = 'Mean',          &
+                                 WriteFreq = 'Manual',        &
+                                 AutoFill  = 0,               &
+                                 cID       = N,               & 
+                                 RC        = RC                )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+  
+             DiagnName = 'PARANOX_OPE'
+             CALL Diagn_Create ( am_I_Root,                   & 
+                                 HcoState,                    &
+                                 cName     = TRIM(DiagnName), &
+                                 ExtNr     = ExtNr,           &
+                                 Cat       = -1,              &
+                                 Hier      = -1,              &
+                                 HcoID     = ID1,             &
+                                 SpaceDim  = 2,               &
+                                 LevIDx    = -1,              &
+                                 OutUnit   = 'unitless',      &
+                                 OutOper   = 'Mean',          &
+                                 WriteFreq = 'Manual',        &
+                                 AutoFill  = 0,               &
+                                 cID       = N,               & 
+                                 RC        = RC                )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+          ENDIF
+       ENDIF
+   
        !=================================================================
        ! Define automatic diagnostics (AutoFill)
        !=================================================================
-
+   
        ! Total NO
        I = HCO_GetHcoID( 'NO', HcoState )
        CALL Diagn_Create ( am_I_Root, &

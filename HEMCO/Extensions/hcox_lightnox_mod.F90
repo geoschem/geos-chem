@@ -641,7 +641,7 @@ CONTAINS
 
        ! Cloud top level
        LTOP = ExtState%CLDTOPS%Arr%Val(I,J)
-       
+
        ! Error check LTOP
        IF ( LTOP == 0 ) CYCLE
 

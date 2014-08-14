@@ -57,7 +57,8 @@ MODULE HCOX_ParaNOx_MOD
 !  25 Jun 2014 - R. Yantosca - Now pass the look-up-table filenames
 !  22 Jul 2014 - R. Yantosca - Added shadow copy of FAST-JX function FJXFUNC
 !  28 Jul 2014 - C. Keller   - Now pass J-Values through ExtState. This makes
-!                              the FJXFUNC shadow copy obsolete.
+!                              the FJXFUNC shadow copy obsolete
+!  13 Aug 2014 - C. Keller   - Added manual diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -256,6 +257,12 @@ CONTAINS
     ! Pointers
     REAL(hp), POINTER  :: Arr2D(:,:) => NULL()
 
+    ! For diagnostics
+    REAL(hp), TARGET   :: DIAGN   (HcoState%NX,HcoState%NY,4)
+    LOGICAL, SAVE      :: DODIAGN = .FALSE.
+    CHARACTER(LEN=31)  :: DiagnName
+    TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
+
 !------------------------------------------------------------------------------
 !### DEBUG -- COMMENT OUT FOR NOW
 !    ! testing only
@@ -289,6 +296,32 @@ CONTAINS
     ! Get simulation month
     CALL HcoClock_Get( cMM=MM, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! On first call, see if we need to write internal diagnostics
+    IF ( SAVEMM < 0 ) THEN
+       ! See if we have to write out manual diagnostics
+       IF ( .NOT. DoDiagn ) THEN
+          DiagnName = 'PARANOX_NOXFRAC_REMAINING'
+          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          TmpCnt => NULL()
+       ENDIF
+       IF ( .NOT. DoDiagn ) THEN
+          DiagnName = 'PARANOX_O3_PRODUCTION'
+          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          TmpCnt => NULL()
+       ENDIF
+       IF ( .NOT. DoDiagn ) THEN
+          DiagnName = 'PARANOX_TOTAL_SHIPNOX'
+          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          TmpCnt => NULL()
+       ENDIF    
+       IF ( .NOT. DoDiagn ) THEN
+          DiagnName = 'PARANOX_OPE'
+          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          TmpCnt => NULL()
+       ENDIF    
+    ENDIF
+    IF ( DoDiagn ) DIAGN(:,:,:) = 0.0_hp
 
     ! Read look up tables every new month
     IF ( MM /= SAVEMM ) THEN
@@ -481,6 +514,14 @@ CONTAINS
 !        endif  
        ENDIF
 
+       ! Eventually write out into diagnostics array
+       IF ( DoDiagn ) THEN
+          DIAGN(I,J,1) = FRACTION_NOx
+          DIAGN(I,J,2) = INT_OPE
+          DIAGN(I,J,3) = ShipNoEmis(I,J,1) * ( 1.0d0-FRACTION_NOx) * INT_OPE 
+          DIAGN(I,J,4) = ShipNoEmis(I,J,1)
+       ENDIF
+
        ! Reset ship NO emissions to zero. Will be refilled on next
        ! emission step!
        ShipNoEmis(I,J,1) = 0.0d0
@@ -566,6 +607,37 @@ CONTAINS
 
           ! TODO: Add deposition diagnostics
 
+       ENDIF
+
+       ! Eventually update manual diagnostics
+       IF ( DoDiagn ) THEN
+          DiagnName =  'PARANOX_NOXFRAC_REMAINING'
+          Arr2D     => DIAGN(:,:,1)
+          CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+                             cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Arr2D => NULL()       
+          
+          DiagnName =  'PARANOX_OPE'
+          Arr2D     => DIAGN(:,:,2)
+          CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+                             cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Arr2D => NULL()       
+
+          DiagnName =  'PARANOX_O3_PRODUCTION'
+          Arr2D     => DIAGN(:,:,3)
+          CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+                             cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Arr2D => NULL()       
+
+          DiagnName =  'PARANOX_TOTAL_SHIPNOX'
+          Arr2D     => DIAGN(:,:,4)
+          CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+                             cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Arr2D => NULL()       
        ENDIF
 
 !------------------------------------------------------------------------------
