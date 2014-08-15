@@ -32,7 +32,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Developers: amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 2/25/10)

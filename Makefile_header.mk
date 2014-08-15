@@ -166,6 +166,9 @@ ERR_GRID       :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, G
 # Error message for bad NEST input
 ERR_NEST       :="Select a nested grid: NEST=ch, NEST=eu, NEST=na"
 
+# Error message for bad GIGC config
+ERR_GIGC       :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
+
 ###############################################################################
 ###                                                                         ###
 ###  Set C-preprocessor switches representing user options.  These are not  ###
@@ -187,8 +190,12 @@ ifndef OMP
 OMP            :=yes
 endif
 
-# %%%%% Disable OpenMP for HPC; we use MPI parallelizaiton instead %%%%%
 ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
+HPC :=yes
+export HPC
+endif
+# %%%%% Disable OpenMP for HPC; we use MPI parallelizaiton instead %%%%%
+ifeq ($(HPC),yes)
 OMP            :=no
 endif
 
@@ -529,7 +536,7 @@ NCI            := -I$(GC_INCLUDE)
 
 # Library link path: first try to get the list of proper linking flags
 # for this build of netCDF with nf-config and nc-config. 
-NCL            := $(shell $(GC_BIN)/nf-config --flibs)
+NCL            := $(shell $(GC_BIN)/nc-config --flibs)
 NCL            += $(shell $(GC_BIN)/nc-config --libs)
 NCL            := $(filter -l%,$(NCL))
 
@@ -563,24 +570,13 @@ LINK           :=$(LINK) -lNcUtils $(NCL)
 
 # If we are building w/ the HPC target, then include GIGC.mk as well
 # Determine if we are building with the hpc target
-ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
+#ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
+ifeq ($(HPC),yes)
+ifneq ("$(wildcard $(ROOTDIR)/GIGC/GIGC.mk)","")
 include $(ROOTDIR)/GIGC/GIGC.mk
-HPC            :=yes
+else
+$(error $(ERR_GIGC))
 endif
-
-# If HPC=yes then set 
-REGEXP         := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DESMF_
-ESMF_MOD       := -I$(ESMF_DIR)/$(ARCH)/mod
-ESMF_INC       := -I$(ESMF_DIR)/$(ARCH)/include
-ESMF_LIB       := -lrt $(ESMF_DIR)/$(ARCH)/lib/libesmf.so
-MAPL_INC       := -I$(ESMADIR)/$(ARCH)/include/MAPL_Base
-MAPL_INC       += -I$(ESMADIR)/$(ARCH)/include/GMAO_mpeu
-MAPL_LIB       := -L$(ESMADIR)/$(ARCH)/lib -lMAPL_Base -lMAPL_cfio -lGMAO_mpeu
-MPI_INC        := $(dir $(shell which mpif90))../include
-MPI_LIB        := -L$(dir $(shell which mpif90))../lib -lmpi -lmpi_cxx -lmpi_f77 -lmpi_f90 -lopen-rte -lopen-pal
-LINK           := $(LINK) -lGIGC $(ESMF_LIB) $(MAPL_LIB) $(MPI_LIB)
 endif
 
 ###############################################################################
@@ -604,8 +600,13 @@ FFLAGS         += -g -check arg_temp_created -debug all
 TRACEBACK      := yes
 USER_DEFS      += -DDEBUG
 else
-FFLAGS         :=-cpp -w $(OPT) -auto -noalign -convert big_endian
+FFLAGS         +=-cpp -w $(OPT) -auto -noalign -convert big_endian
 FFLAGS         += -vec-report0
+endif
+
+# Add include options for ESMF & MAPL
+ifeq ($(HPC),yes)
+#FFLAGS    += -double-size 32 -real-size 32 -r4
 endif
 
 # Prevent any optimizations that would change numerical results
@@ -675,17 +676,21 @@ FFLAGS         += $(USER_DEFS)
 # Include options (i.e. for finding *.h, *.mod files)
 INCLUDE        := -I$(HDR) -module $(MOD) $(NCI)
 
-# Add include options for ESMF & MAPL
+INCLUDE_ISO := $(INCLUDE) # For some reason, isoropia won't link properly, giving a math error.
 ifeq ($(HPC),yes)
-INCLUDE        += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC)
+INCLUDE   += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC) $(FV_INC)
 endif
 
 # Set the standard compiler variables
 CC             :=
 F90            :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
+F90ISO         :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE_ISO) # Compile command specifically for isoropia
 LD             :=$(COMPILE_CMD) $(FFLAGS)
 FREEFORM       := -free
-R8             := -r8
+#ifneq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
+#ifneq ($(HPC),yes)
+R8        := -r8
+#endif
 
 endif
 

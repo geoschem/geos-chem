@@ -81,6 +81,7 @@
 
       ! Meteorology State object
       TYPE(MetState), INTENT(IN)  :: State_Met
+
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -425,7 +426,7 @@
                      ! goes into level L, since that is the fraction of the 
                      ! boundary layer occupied by level L.  Store in EMIS_BL.
                      EMIS_BL    = ( GEMISNOX2(I,J)                    *
-     &                              VOLUME( JLOP(I,J,1) ) / COEF1   ) * 
+     &                    VOLUME( JLOP(I,J,1) ) / COEF1   ) * 
      &                              ( DELTPRES            / TOTPRES )
 
                      ! Since EMIS_BL is in [molec NO/box/s], we have to
@@ -938,7 +939,7 @@
                      ! fraction of the boundary layer occupied by level L.  
                      ! Store in EMIS_BL.
                      EMIS_BL  = ( BIOFUEL(NBF,I,J) *
-     &                            VOLUME( JLOP(I,J,1) ) / COEF1 ) *
+     &                      VOLUME( JLOP(I,J,1) ) / COEF1 ) *
      &                            ( DELTPRES / TOTPRES )
 
                      ! Since EMIS_BL is in [molec species/box/s], we 

@@ -57,6 +57,7 @@ MODULE GIGC_State_Met_Mod
      REAL*8,  POINTER :: GWETTOP   (:,:  )  ! Top soil moisture [1]
      REAL*8,  POINTER :: HFLUX     (:,:  )  ! Sensible heat flux [W/m2]
      REAL*8,  POINTER :: LAI       (:,:  )  ! Leaf area index [m2/m2]
+     REAL*8,  POINTER :: ITY       (:,:  )  ! Land-surface Type Index
      REAL*8,  POINTER :: LWI       (:,:  )  ! Land/water indices [1]
      REAL*8,  POINTER :: LWI_GISS  (:,:  )  ! Land fraction [1]
      REAL*8,  POINTER :: MOLENGTH  (:,:  )  ! Monin-Obhukov length [m]
@@ -317,6 +318,10 @@ CONTAINS
     ALLOCATE( State_Met%LAI       ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%LAI      = 0d0
+
+    ALLOCATE( State_Met%ITY       ( IM, JM ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%ITY      = 1.d0
 
     ALLOCATE( State_Met%LWI       ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN

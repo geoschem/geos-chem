@@ -2434,7 +2434,7 @@
 
                CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, 
      &                             aSO4, NH3, SO2_sr, H2O20, GNO3,  SR,
-     &                             State_Met )
+     &                             State_Met, Input_Opt )
 
 	    ELSE
 		SR = 0.d0
@@ -3959,14 +3959,16 @@
 ! !INTERFACE:
 !
       SUBROUTINE HET_DROP_CHEM( I, J, L, LSTOT, SSCvv, aSO4, GNH3,
-     &                          SO2_sr, H2O20, GNO3, SR, State_Met )
+     &                          SO2_sr, H2O20, GNO3, SR, State_Met, 
+     &                          Input_Opt )
 !
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : IT_IS_FINITE, GEOS_CHEM_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : TCVV
+      USE TRACER_MOD,         ONLY : TCVV, N_TRACERS
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSALC
       USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3, IDTDST4
 !
@@ -3981,6 +3983,7 @@
       REAL*8,         INTENT(IN)  :: H2O20
       REAL*8,         INTENT(IN)  :: GNO3
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -4032,6 +4035,7 @@
       AIRVOL => State_Met%AIRVOL
       U      => State_Met%U
       V      => State_Met%V
+      TCVV   = Input_Opt%TCVV(1:Input_Opt%N_TRACERS)
 
       ! Convert gas phase concentrations from [v/v] to [pptv]
       NH3  = GNH3  * 1.0d12

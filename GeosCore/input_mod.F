@@ -439,8 +439,10 @@
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root )
 
+#if !defined( ESMF_ )
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
       CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
+#endif
 
       ! Echo output
       IF ( am_I_Root ) THEN
@@ -5502,8 +5504,8 @@
          Input_Opt%TMAX(M)         = TMAX(M)
 
          ! Loop over tracers per diagnostic
-         DO N = 1, Input_Opt%MAX_TRCS
-            Input_Opt%TINDEX(M,N)  = TINDEX(M,N)
+         DO N = 1, Input_Opt%MAX_TRCS 
+           Input_Opt%TINDEX(M,N)  = TINDEX(M,N)
          ENDDO
       ENDDO
 
@@ -8817,6 +8819,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
       USE HCN_CH3CN_Mod,      ONLY : Init_HCN_CH3CN
+      USE ICOADS_Ship_Mod,    ONLY : Init_ICOADS_Ship
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
@@ -8951,6 +8954,10 @@
       ! Initialize "tagged_ox_mod.F"
       IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
          CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
+      ENDIF
+
+      IF ( Input_Opt%LICOADSSHIP ) THEN
+         CALL INIT_ICOADS_SHIP( am_I_Root, Input_Opt, RC )
       ENDIF
 
       END SUBROUTINE GIGC_Init_Extra

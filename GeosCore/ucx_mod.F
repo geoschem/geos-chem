@@ -1465,6 +1465,8 @@
 110   FORMAT(161E10.3)
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
 110   FORMAT(202E10.3)
+#elif defined( EXTERNAL_GRID )
+110   FORMAT(202E10.3) ! This is arbitrary
 #endif
 
             CLOSE(IU_FILE)
@@ -1725,6 +1727,8 @@
 110   FORMAT(161E10.3)
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
 110   FORMAT(202E10.3)
+#else
+110   FORMAT(1E10.3) ! Arbitrary  
 #endif
 
          CLOSE(IU_FILE)    

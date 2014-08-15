@@ -3515,7 +3515,6 @@
          ! (Eqs. 4, 5, 6, Jacob et al, 2000)
          C_TOT = 1d0 + L2G
          F_L   = L2G / C_TOT
-         F_I   = I2G / C_TOT
 
          ! Compute the rate constant K.
          IF ( TK >= 268d0 ) THEN

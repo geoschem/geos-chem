@@ -249,6 +249,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCH4CHEM
      LOGICAL                     :: LACTIVEH2O
      LOGICAL                     :: LO3FJX
+     INTEGER, POINTER            :: NTLOOPNCS(:)
 
      !----------------------------------------
      ! TRANSPORT MENU fields
@@ -580,10 +581,17 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      INTEGER                    :: NUMDEP
      INTEGER,           POINTER :: NDVZIND(:)
+     INTEGER,           POINTER :: NTRAIND(:)
      INTEGER,           POINTER :: IDDEP(:)
      REAL*8,            POINTER :: DUSTREFF(:)
      REAL*8,            POINTER :: DUSTDEN(:)
      CHARACTER(LEN=14), POINTER :: DEPNAME(:)
+     REAL*8,            POINTER :: F0(:)
+     REAL*8,            POINTER :: HSTAR(:)
+     REAL*8,            POINTER :: XMW(:)
+     REAL*8,            POINTER :: A_RADI(:)
+     REAL*8,            POINTER :: A_DEN(:)
+     LOGICAL,           POINTER :: AIROSOL(:)
 
      !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
@@ -1389,6 +1397,13 @@ CONTAINS
     ALLOCATE( Input_Opt%IDDEP   ( NDSTBIN ), STAT=RC ) ! Dust_mod
     ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ), STAT=RC ) ! Dust_mod
     ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ), STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%NTRAIND ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%F0      ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%HSTAR   ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%AIROSOL ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%XMW     ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%A_RADI  ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%A_DEN   ( MAX_DEP ), STAT=RC ) ! Drydep
 
     Input_Opt%NUMDEP                 = 0
     Input_Opt%NDVZIND                = 0
@@ -1396,6 +1411,12 @@ CONTAINS
     Input_Opt%DUSTREFF               = 0d0
     Input_Opt%DUSTDEN                = 0d0
     Input_Opt%DEPNAME                = ''
+    Input_Opt%F0                     = 0d0
+    Input_Opt%HSTAR                  = 0d0
+    Input_Opt%AIROSOL                = 0
+    Input_Opt%XMW                    = 0d0
+    Input_Opt%A_RADI                 = 0d0
+    Input_Opt%A_DEN                  = 0d0
 
     !----------------------------------------
     ! Fields for interface to GEOS-5 GCM

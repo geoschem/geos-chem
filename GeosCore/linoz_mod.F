@@ -422,6 +422,12 @@
 
                ! bdf stt is in v/v, make conversion to DU
                if (l.eq.lm) then !top model layer
+                  if( TCVV(NTRACER) .eq. 0 .or. 
+     &                 GET_AREA_CM2(I,J,L) .eq. 0 ) then
+                       write(*,*) 'TCVV<>', TCVV 
+                       write(*,*) 'CM2<>', GET_AREA_CM2(I,J,L)
+                  endif
+                  
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER) *
      &                 State_Met%AD(I,J,L) /
      &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *

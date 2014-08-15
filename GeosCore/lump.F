@@ -93,8 +93,8 @@
        
          ! Loop over grid boxes
          DO L = 1, NPVERT
-         DO J = 1, NLAT
-         DO I = 1, NLONG
+         DO J = 1, JJPAR !NLAT
+         DO I = 1, IIPAR !NLONG
 
             ! 1-D SMVGEAR grid box index 
             JLOOP = JLOP(I,J,L)

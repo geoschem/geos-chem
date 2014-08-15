@@ -4129,6 +4129,7 @@ c  Ensure all 'AN_' types are valid selections
       nc_path = TRIM( nc_dir ) // TRIM( nc_file )
     
       ! Open netCDF file
+
       CALL Ncop_Rd( fId, TRIM(nc_path) )
       
       ! Echo info to stdout

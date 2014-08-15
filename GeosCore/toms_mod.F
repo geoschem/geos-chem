@@ -88,7 +88,7 @@
       REAL*8, PRIVATE, ALLOCATABLE :: TOMS(:,:)               
       REAL*8, PRIVATE, ALLOCATABLE :: DTOMS1(:,:)             
       REAL*8, PRIVATE, ALLOCATABLE :: DTOMS2(:,:)     
-#if   defined( DEVEL )
+#if   defined( ESMF_ )
       REAL*8, PUBLIC,  ALLOCATABLE :: TO3_DAILY(:,:)
 #else
       REAL*8, PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
