@@ -296,16 +296,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L
-    REAL*8             :: IJSRC, IJSINK
-    INTEGER            :: SCW
-    REAL*8             :: P, V, S, VB, MW, KG
-    REAL*8             :: K0, CR, PKA
-    REAL*8             :: KH, HEFF, PH
-    REAL*8             :: TK, TC
-                       
+    INTEGER             :: I, J, L
+    REAL*8              :: IJSRC, IJSINK
+    INTEGER             :: SCW
+    REAL*8              :: P, V, VB, MW, KG
+    REAL*8              :: K0, CR, PKA
+    REAL*8              :: KH, HEFF, PH
+    REAL*8              :: TK, TC
+
+    ! For now, hardcode salinity
+    REAL(dp), PARAMETER :: S = 35.0_dp
+                   
     ! Error handling   
-    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255)  :: MSG
 
     !=================================================================
     ! CALC_SEAFLUX begins here!
@@ -332,7 +335,7 @@ CONTAINS
 !$OMP PARALLEL DO                                                   &
 !$OMP DEFAULT( SHARED )                                             &
 !$OMP PRIVATE( I,           J,        PH,       TK                ) &
-!$OMP PRIVATE( TC,          P,        MW,       VB,     S         ) &
+!$OMP PRIVATE( TC,          P,        MW,       VB                ) &
 !$OMP PRIVATE( V,           KH,       RC,       HEFF,   SCW       ) &
 !$OMP PRIVATE( KG,          IJSRC                                 ) &
 !$OMP SCHEDULE( DYNAMIC )
@@ -359,7 +362,7 @@ CONTAINS
           TC = TK - 273.15d0
  
           ! surface pressure [Pa]
-          P = ExtState%PSURF%Arr%Val(I,J) * 100d0
+          P = ExtState%PEDGE%Arr%Val(I,J,L)
 
           ! molecular weight [g/mol]
           MW = HcoState%Spc(HcoID)%MW_g
@@ -369,7 +372,7 @@ CONTAINS
 
           ! Salinity [ppt]
           ! Set to constant value for now!
-          S = 35d0 
+!          S = 35d0 
 
           ! 10-m wind speed [m/s] 
           V = ExtState%U10M%Arr%Val(I,J)**2 + &
@@ -680,7 +683,7 @@ CONTAINS
     ! Set met fields
     ExtState%U10M%DoUse   = .TRUE.
     ExtState%V10M%DoUse   = .TRUE.
-    ExtState%PSURF%DoUse  = .TRUE.
+    ExtState%PEDGE%DoUse  = .TRUE.
     ExtState%TSURFK%DoUse = .TRUE.
     ExtState%ALBD%DoUse   = .TRUE.
     ExtState%FRCLND%DoUse = .TRUE.

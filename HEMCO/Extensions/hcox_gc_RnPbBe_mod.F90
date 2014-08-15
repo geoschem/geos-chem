@@ -325,8 +325,8 @@ CONTAINS
        ! the 7Be distribution is symmetric about the equator
        LAT_TMP = ABS( HcoState%Grid%YMID( I, J ) )
 
-       ! Pressure at (I,J,L)
-       P_TMP   = ExtState%PCENTER%Arr%Val( I, J, L )
+       ! Pressure at (I,J,L) [hPa]
+       P_TMP   = ExtState%PCENTER%Arr%Val( I, J, L ) / 100.0_hp
                  
        ! Interpolate 7Be [stars/g air/sec] to GEOS-CHEM levels
        CALL SLQ( LATSOU, PRESOU, BESOU, 10, 33, LAT_TMP, P_TMP, Be_TMP )
