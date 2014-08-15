@@ -8,175 +8,6 @@
 !
 !  Module Variables:
 !  ============================================================================
-!  (1  ) NNNTRID   (INTEGER) : Max # of tracers
-!  (2  ) MMMEMBER  (INTEGER) : Max # of members per chemical family
-!  (3  ) NMEMBER   (INTEGER) : Number of members per each family tracer
-!  (4  ) IDTRMB    (INTEGER) : Species # for each component of family tracer
-!  (5  ) IDEMIS    (INTEGER) : Emission array for SMVGEAR
-!  (6  ) CTRMB     (REAL*8 ) : Array for # of moles member/moles tracer
-!  (7  ) IDO3      (INTEGER) : O3     index w/in CSPEC array ("comode_mod.f")
-!  (8  ) IDNO2     (INTEGER) : NO2    index w/in CSPEC array ("comode_mod.f")
-!  (9  ) IDNO3     (INTEGER) : NO3    index w/in CSPEC array ("comode_mod.f")
-!  (10 ) IDN2O5    (INTEGER) : N2O5   index w/in CSPEC array ("comode_mod.f")
-!  (11 ) IDHNO4    (INTEGER) : HNO4   index w/in CSPEC array ("comode_mod.f") 
-!  (12 ) IDOX      (INTEGER) : OX     index w/in CSPEC array ("comode_mod.f")
-!  (13 ) IDNOX     (INTEGER) : NOX    index w/in CSPEC array ("comode_mod.f") 
-!  (14 ) IDHC1     (INTEGER) : HC1    index w/in CSPEC array ("comode_mod.f")
-!  (15 ) IDNO      (INTEGER) : NO     index w/in CSPEC array ("comode_mod.f") 
-!  (16 ) IDHNO2    (INTEGER) : HNO2   index w/in CSPEC array ("comode_mod.f") 
-!  (17 ) IDCO      (INTEGER) : CO     index w/in CSPEC array ("comode_mod.f") 
-!  (18 ) IDPRPE    (INTEGER) : PRPE   index w/in CSPEC array ("comode_mod.f")
-!  (19 ) IDISOP    (INTEGER) : ISOP   index w/in CSPEC array ("comode_mod.f")
-!  (20 ) IDALK4    (INTEGER) : ALK4   index w/in CSPEC array ("comode_mod.f")
-!  (21 ) IDC3H8    (INTEGER) : C3H8   index w/in CSPEC array ("comode_mod.f") 
-!  (22 ) IDPAN     (INTEGER) : PAN    index w/in CSPEC array ("comode_mod.f")
-!  (23 ) IDGLPAN   (INTEGER) : GLPAN  index w/in CSPEC array ("comode_mod.f")
-!  (24 ) IDGPAN    (INTEGER) : GPAN   index w/in CSPEC array ("comode_mod.f")
-!  (25 ) IDPMN     (INTEGER) : PMN    index w/in CSPEC array ("comode_mod.f")
-!  (26 ) IDPPN     (INTEGER) : PPN    index w/in CSPEC array ("comode_mod.f")
-!  (27 ) IDHNO3    (INTEGER) : HNO3   index w/in CSPEC array ("comode_mod.f")
-!  (28 ) IDOH      (INTEGER) : OH     index w/in CSPEC array ("comode_mod.f")
-!  (29 ) IDHO2     (INTEGER) : HO2    index w/in CSPEC array ("comode_mod.f")
-!  (30 ) IDH2O2    (INTEGER) : H2O2   index w/in CSPEC array ("comode_mod.f")
-!  (31 ) IDACET    (INTEGER) : ACET   index w/in CSPEC array ("comode_mod.f")
-!  (32 ) IDMEK     (INTEGER) : MEK    index w/in CSPEC array ("comode_mod.f")
-!  (33 ) IDALD2    (INTEGER) : ALD2   index w/in CSPEC array ("comode_mod.f")
-!  (34 ) IDRCHO    (INTEGER) : RCHO   index w/in CSPEC array ("comode_mod.f") 
-!  (35 ) IDMVK     (INTEGER) : MVK    index w/in CSPEC array ("comode_mod.f") 
-!  (36 ) IDMACR    (INTEGER) : MACR   index w/in CSPEC array ("comode_mod.f") 
-!  (37 ) IDISN2    (INTEGER) : ISN2   index w/in CSPEC array ("comode_mod.f") 
-!  (38 ) IDR4N2    (INTEGER) : R4N2   index w/in CSPEC array ("comode_mod.f")
-!  (39 ) IDCH2O    (INTEGER) : CH2O   index w/in CSPEC array ("comode_mod.f")
-!  (40 ) IDC2H6    (INTEGER) : C2H6   index w/in CSPEC array ("comode_mod.f")
-!  (41 ) IDMP      (INTEGER) : MP     index w/in CSPEC array ("comode_mod.f")
-!  (42 ) IDDMS     (INTEGER) : DMS    index w/in CSPEC array ("comode_mod.f")
-!  (43 ) IDSO2     (INTEGER) : SO2    index w/in CSPEC array ("comode_mod.f")
-!  (44 ) IDSO4     (INTEGER) : SO4    index w/in CSPEC array ("comode_mod.f")
-!  (45 ) IDMSA     (INTEGER) : MSA    index w/in CSPEC array ("comode_mod.f")
-!  (46 ) IDDRYO3   (INTEGER) : DRYO3  index w/in CSPEC array ("comode_mod.f")
-!  (47 ) IDDRYPAN  (INTEGER) : DRYPAN index w/in CSPEC array ("comode_mod.f")
-!  (48 ) IDDRYNO2  (INTEGER) : DRYNO2 index w/in CSPEC array ("comode_mod.f")
-!  (49 ) IDTNOX    (INTEGER) : NOx   index w/in STT array ("tracer_mod.f")
-!  (50 ) IDTOX     (INTEGER) : Ox    index w/in STT array ("CMN_mod.F")     
-!  (51 ) IDTPAN    (INTEGER) : PAN   index w/in STT array ("tracer_mod.f")
-!  (52 ) IDTCO     (INTEGER) : CO    index w/in STT array ("tracer_mod.f")     
-!  (53 ) IDTALK4   (INTEGER) : ALK4  index w/in STT array ("tracer_mod.f")    
-!  (54 ) IDTISOP   (INTEGER) : ISOP  index w/in STT array ("tracer_mod.f")    
-!  (55 ) IDTHNO3   (INTEGER) : HNO3  index w/in STT array ("tracer_mod.f")     
-!  (56 ) IDTH2O2   (INTEGER) : H2O2  index w/in STT array ("tracer_mod.f")    
-!  (57 ) IDTACET   (INTEGER) : ACET  index w/in STT array ("tracer_mod.f")    
-!  (58 ) IDTMEK    (INTEGER) : MEK   index w/in STT array ("tracer_mod.f")    
-!  (59 ) IDTALD2   (INTEGER) : ALD2  index w/in STT array ("tracer_mod.f")    
-!  (60 ) IDTRCHO   (INTEGER) : RCHO  index w/in STT array ("tracer_mod.f")     
-!  (61 ) IDTMVK    (INTEGER) : MVK   index w/in STT array ("tracer_mod.f")    
-!  (62 ) IDTMACR   (INTEGER) : MACR  index w/in STT array ("tracer_mod.f")    
-!  (63 ) IDTPMN    (INTEGER) : PMN   index w/in STT array ("tracer_mod.f")    
-!  (64 ) IDTPPN    (INTEGER) : PPN   index w/in STT array ("tracer_mod.f")    
-!  (65 ) IDTISN2   (INTEGER) : ISN2  index w/in STT array ("tracer_mod.f")     
-!  (66 ) IDTR4N2   (INTEGER) : R4N2  index w/in STT array ("tracer_mod.f")    
-!  (67 ) IDTPRPE   (INTEGER) : PRPE  index w/in STT array ("tracer_mod.f")    
-!  (68 ) IDTC3H8   (INTEGER) : C3H8  index w/in STT array ("tracer_mod.f")    
-!  (69 ) IDTCH2O   (INTEGER) : CH2O  index w/in STT array ("tracer_mod.f")    
-!  (70 ) IDTMP     (INTEGER) : MP    index w/in STT array ("tracer_mod.f")    
-!  (71 ) IDTN2O5   (INTEGER) : N2O5  index w/in STT array ("tracer_mod.f")    
-!  (72 ) IDTHNO4   (INTEGER) : HNO4  index w/in STT array ("tracer_mod.f")    
-!  (73 ) IDTC2H6   (INTEGER) : C2H6  index w/in STT array ("tracer_mod.f")    
-!  (74 ) IDTDMS    (INTEGER) : DMS   index w/in STT array ("tracer_mod.f")     
-!  (75 ) IDTSO2    (INTEGER) : SO2   index w/in STT array ("tracer_mod.f")
-!  (76 ) IDTSO4    (INTEGER) : SO4   index w/in STT array ("tracer_mod.f")    
-!  (77 ) IDTSO4aq  (INTEGER) : SO4aq index w/in STT array ("tracer_mod.f")    
-!  (78 ) IDTSO4s   (INTEGER) : SO4s  index w/in STT array ("tracer_mod.f")    
-!  (79 ) IDTMSA    (INTEGER) : MSA   index w/in STT array ("tracer_mod.f")    
-!  (80 ) IDTNH3    (INTEGER) : NH3   index w/in STT array ("tracer_mod.f")    
-!  (81 ) IDTNH4    (INTEGER) : NH4   index w/in STT array ("tracer_mod.f")    
-!  (82 ) IDTNIT    (INTEGER) : NIT   index w/in STT array ("tracer_mod.f")    
-!  (83 ) IDTNITs   (INTEGER) : NITs  index w/in STT array ("tracer_mod.f")    
-!  (84 ) IDTRN     (INTEGER) : Rn    index w/in STT array ("tracer_mod.f")    
-!  (85 ) IDTPB     (INTEGER) : Pb    index w/in STT array ("tracer_mod.f")    
-!  (86 ) IDTBE7    (INTEGER) : Be7   index w/in STT array ("tracer_mod.f")    
-!  (87 ) IDTBCPI   (INTEGER) : BCPI  index w/in STT array ("tracer_mod.f")
-!  (88 ) IDTBCPO   (INTEGER) : BCPO  index w/in STT array ("tracer_mod.f")
-!  (89 ) IDTOCPI   (INTEGER) : OCPI  index w/in STT array ("tracer_mod.f")
-!  (90 ) IDTOCPO   (INTEGER) : OCPO  index w/in STT array ("tracer_mod.f")
-!  (91 ) IDTALPH   (INTEGER) : ALPH  index w/in STT array ("tracer_mod.f")
-!  (92 ) IDTLIMO   (INTEGER) : LIMO  index w/in STT array ("tracer_mod.f")
-!  (93 ) IDTALCO   (INTEGER) : ALCO  index w/in STT array ("tracer_mod.f")
-!  (94 ) IDTSOG1   (INTEGER) : SOG1  index w/in STT array ("tracer_mod.f")
-!  (95 ) IDTSOG2   (INTEGER) : SOG2  index w/in STT array ("tracer_mod.f")
-!  (96 ) IDTSOG3   (INTEGER) : SOG3  index w/in STT array ("tracer_mod.f")
-!  (97 ) IDTSOA1   (INTEGER) : SOA1  index w/in STT array ("tracer_mod.f")
-!  (98 ) IDTSOA2   (INTEGER) : SOA2  index w/in STT array ("tracer_mod.f")
-!  (99 ) IDTSOA3   (INTEGER) : SOA3  index w/in STT array ("tracer_mod.f")
-!  (100) IDTDST1   (INTEGER) : DST1  index w/in STT array ("tracer_mod.f")
-!  (101) IDTDST2   (INTEGER) : DST2  index w/in STT array ("tracer_mod.f")
-!  (102) IDTDST3   (INTEGER) : DST3  index w/in STT array ("tracer_mod.f")
-!  (103) IDTDST4   (INTEGER) : DST4  index w/in STT array ("tracer_mod.f")
-!  (104) IDTSALA   (INTEGER) : SALA  index w/in STT array ("tracer_mod.f")
-!  (105) IDTSALC   (INTEGER) : SALC  index w/in STT array ("tracer_mod.f")
-!  (109) IDENO     (INTEGER) : NOx   index w/in EMISRRN array ("CMN_O3")  
-!  (110) IDEO3     (INTEGER) : Ox    index w/in EMISRR  array ("CMN_O3")  
-!  (111) IDECO     (INTEGER) : CO    index w/in EMISRR  array ("CMN_O3")     
-!  (112) IDEPRPE   (INTEGER) : PRPE  index w/in EMISRR  array ("CMN_O3")     
-!  (113) IDEC3H8   (INTEGER) : C3H8  index w/in EMISRR  array ("CMN_O3")     
-!  (114) IDEALK4   (INTEGER) : ALK4  index w/in EMISRR  array ("CMN_O3")     
-!  (115) IDEC2H6   (INTEGER) : C2H6  index w/in EMISRR  array ("CMN_O3")    
-!  (116) IDEISOP   (INTEGER) : ISOP  index w/in EMISRR  array ("CMN_O3")    
-!  (117) IDEACET   (INTEGER) : ACET  index w/in EMISRR  array ("CMN_O3")     
-!  (118) IDEMEK    (INTEGER) : MEK   index w/in EMISRR  array ("CMN_O3")     
-!  (119) IDEALD2   (INTEGER) : ALD2  index w/in EMISRR  array ("CMN_O3")    
-!  (120) IDECH2O   (INTEGER) : CH2O  index w/in EMISRR  array ("CMN_O3")     
-!  (121) NEMBIOG   (INTEGER) : # of biogenic emission species for SMVGEAR
-!  (122) NEMANTHRO (INTEGER) : # of anthro   emission species for SMVGEAR
-!  (132) IDBFPRPE  (INTEGER) : PRPE index w/in BURNEMIS array (biofuel_mod.f)
-!  (133) IDBALK4   (INTEGER) : ALD4 index w/in BURNEMIS array (biomass_mod.f)
-!  (134) IDBFNOX   (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
-!  (135) IDBFCO    (INTEGER) : CO   index w/in BIOFUEL array (biofuel_mod.f)
-!  (136) IDBFALK4  (INTEGER) : ALK4 index w/in BIOFUEL array (biofuel_mod.f)
-!  (137) IDBFACET  (INTEGER) : ACET index w/in BIOFUEL array (biofuel_mod.f)
-!  (138) IDBFMEK   (INTEGER) : MEK  index w/in BIOFUEL array (biofuel_mod.f)
-!  (139) IDBFALD2  (INTEGER) : ALD2 index w/in BIOFUEL array (biofuel_mod.f)
-!  (140) IDBFPRPE  (INTEGER) : PRPE index w/in BIOFUEL array (biofuel_mod.f)
-!  (141) IDBFC3H8  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
-!  (142) IDBFCH2O  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
-!  (143) IDBFC2H6  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)   
-!  (144) IDNAP     (INTEGER) : NAP   index w/in CSPEC array ("comode_mod.f")
-!  (145) IDNRO2    (INTEGER) : NRO2  index w/in CSPEC array ("comode_mod.f")
-!  (146) IDLNRO2H  (INTEGER) : LRO2H index w/in CSPEC array ("comode_mod.f")
-!  (147) IDLNRO2N  (INTEGER) : LRO2N index w/in CSPEC array ("comode_mod.f")
-!  (148) IDTNAP    (INTEGER) : NAP   index w/in STT array ("tracer_mod.f")
-!  (149) IDTMTPA   (INTEGER) : MTPA  index w/in STT array ("tracer_mod.f")
-!  (150) IDTMTPO   (INTEGER) : MTPO  index w/in STT array ("tracer_mod.f")
-!  (151) IDTASOAN  (INTEGER) : ASOAN index w/in STT array ("tracer_mod.f")
-!  (152) IDTASOA1  (INTEGER) : ASOA1 index w/in STT array ("tracer_mod.f")
-!  (153) IDTASOA2  (INTEGER) : ASOA2 index w/in STT array ("tracer_mod.f")
-!  (154) IDTASOA3  (INTEGER) : ASOA3 index w/in STT array ("tracer_mod.f")
-!  (155) IDTASOG1  (INTEGER) : ASOG1 index w/in STT array ("tracer_mod.f")
-!  (156) IDTASOG2  (INTEGER) : ASOG2 index w/in STT array ("tracer_mod.f")
-!  (157) IDTASOG3  (INTEGER) : ASOG3 index w/in STT array ("tracer_mod.f")
-!  (158) IDTTSOA1  (INTEGER) : TSOA1 index w/in STT array ("tracer_mod.f")
-!  (159) IDTTSOA2  (INTEGER) : TSOA2 index w/in STT array ("tracer_mod.f")
-!  (160) IDTTSOA3  (INTEGER) : TSOA3 index w/in STT array ("tracer_mod.f")
-!  (161) IDTTSOG1  (INTEGER) : TSOG1 index w/in STT array ("tracer_mod.f")
-!  (162) IDTTSOG2  (INTEGER) : TSOG2 index w/in STT array ("tracer_mod.f")
-!  (163) IDTTSOG3  (INTEGER) : TSOG3 index w/in STT array ("tracer_mod.f")
-!  (164) IDTTSOA0  (INTEGER) : TSOA0 index w/in STT array ("tracer_mod.f")
-!  (165) IDTTSOG0  (INTEGER) : TSOG0 index w/in STT array ("tracer_mod.f")
-!  (166) IDTISOA1  (INTEGER) : ISOA1 index w/in STT array ("tracer_mod.f")
-!  (167) IDTISOA2  (INTEGER) : ISOA2 index w/in STT array ("tracer_mod.f")
-!  (168) IDTISOA3  (INTEGER) : ISOA3 index w/in STT array ("tracer_mod.f")
-!  (169) IDTISOG1  (INTEGER) : ISOG1 index w/in STT array ("tracer_mod.f")
-!  (170) IDTISOG2  (INTEGER) : ISOG2 index w/in STT array ("tracer_mod.f")
-!  (171) IDTISOG3  (INTEGER) : ISOG3 index w/in STT array ("tracer_mod.f")
-!  (172) IDTPOA1   (INTEGER) : POA1  index w/in STT array ("tracer_mod.f")
-!  (173) IDTPOA2   (INTEGER) : POA2  index w/in STT array ("tracer_mod.f")
-!  (174) IDTPOG1   (INTEGER) : POG1  index w/in STT array ("tracer_mod.f")
-!  (175) IDTPOG2   (INTEGER) : POG2  index w/in STT array ("tracer_mod.f")
-!  (176) IDTOPOA1  (INTEGER) : OPOA1 index w/in STT array ("tracer_mod.f")
-!  (177) IDTOPOA2  (INTEGER) : OPOA2 index w/in STT array ("tracer_mod.f")
-!  (178) IDTOPOG1  (INTEGER) : OPOG1 index w/in STT array ("tracer_mod.f")
-!  (179) IDTOPOG2  (INTEGER) : OPOG2 index w/in STT array ("tracer_mod.f")
-!  (180) IDBFNAP   (INTEGER) : FNAP  index w/in BIOFUEL array (biofuel_mod.f)
-!  (181) IDBNAP    (INTEGER) : NAP   index w/in BIOFUEL array (biofuel_mod.f)
 !
 !  Module Routines:
 !  ============================================================================
@@ -236,11 +67,13 @@
 !                              semivolatile POA simulations; Removed tracers
 !                              for old SOA simulation (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  15 Aug 2014 - R. Yantosca - We can remove the IDBF* flags as all biofuel
+!                              emissions are now handled in HEMCO
+!  15 Aug 2014 - R. Yantosca - We can remove the IDF* flags as all biomass
+!                              emissions are now handled in HEMCO
 !******************************************************************************
 !
-
       ! for CTM tracers
-
       USE CMN_SIZE_MOD, ONLY : NNNTRID=>NNPAR
 
       IMPLICIT NONE
@@ -488,11 +321,6 @@
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
       INTEGER, ALLOCATABLE :: ID_Hg0(:),  ID_Hg2(:), ID_HgP(:)
-!- eds 8/31/10 ------------------------------------------------------
-!      INTEGER              :: ID_Hg_tot,  ID_Hg_na,  ID_Hg_eu 
-!      INTEGER              :: ID_Hg_as,   ID_Hg_rw,  ID_Hg_oc
-!      INTEGER              :: ID_Hg_ln,   ID_Hg_nt
-
       INTEGER              :: ID_Hg_tot,  ID_Hg_can,  ID_Hg_usa
       INTEGER              :: ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
       INTEGER              :: ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
@@ -503,61 +331,46 @@
       INTEGER              :: ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
       INTEGER              :: ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
       INTEGER              :: ID_Hg_ocn,  ID_Hg_str
-!------------------------------------------------------------------------
 
-
-      ! GEOS-CHEM emission ID's
-      INTEGER            :: IDENO,   IDEO3,    IDECO,   IDEPRPE, IDEC3H8
-      INTEGER            :: IDEALK4, IDEC2H6,  IDEISOP, IDEACET, IDEMEK
-      INTEGER            :: IDEALD2, IDECH2O,  IDEHNO3
-      INTEGER            :: NEMBIOG, NEMANTHRO
-      INTEGER            :: IDEBENZ,  IDETOLU,   IDEXYLE,  IDEMONX
-      INTEGER            :: IDEC2H2, IDEC2H4
-      INTEGER            :: IDEMBO
-      INTEGER            :: IDEGLYC
-      INTEGER            :: IDEGLYX, IDEMGLY
-      INTEGER            :: IDEHAC
-      !%%%%(bmy 4/13/11)
-      INTEGER            :: IDERCHO, IDEHCOOH, IDEACTA       
-      !jpp, 8/24/07: emission ID's for Br biogenic emissions in fullchem runs
-      INTEGER            :: IDECHBr3, IDECH2Br2, IDEBr2      
-      ! SOAupdate: added gas phase NAP chemistry (hotp 6/24/09)
-      ! semivolpoa5: add IVOC chemistry (hotp 3/30/09)
-      INTEGER            :: IDENAP
-
-      ! Online CH4 simulation (mpayer, 1/24/12)
-      INTEGER            :: IDECH4
-
-      ! GEOS-CHEM biofuel ID's
-      INTEGER            :: IDBFNO,   IDBFCO,   IDBFALK4, IDBFACET 
-      INTEGER            :: IDBFMEK,  IDBFALD2, IDBFPRPE, IDBFC3H8
-      INTEGER            :: IDBFCH2O, IDBFC2H6
-      INTEGER            :: IDBFBENZ, IDBFTOLU, IDBFXYLE
-      INTEGER            :: IDBFC2H2, IDBFC2H4
-      INTEGER            :: IDBFGLYC
-      INTEGER            :: IDBFGLYX, IDBFMGLY
-      INTEGER            :: IDBFHAC
-      ! SOAupdate: added gas phase NAP chemistry (hotp 6/24/09)
-      ! semivolpoa5: add IVOC chemistry (hotp 3/30/09)
-      INTEGER            :: IDBFNAP
-
-      !BIOMASS BURNING  !(FP,01/27/10)
-      INTEGER            :: IDBNO,   IDBCO,   IDBALK4, IDBACET 
-      INTEGER            :: IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
-      INTEGER            :: IDBCH2O, IDBC2H6
-      INTEGER            :: IDBSO2,  IDBNH3
-      INTEGER            :: IDBBC,   IDBOC
-      INTEGER            :: IDBCO2
-!kjw
-      INTEGER            :: IDBCH4
-!kjw
-
-      INTEGER            :: IDBTOLU, IDBBENZ, IDBXYLE
-      ! add dicarbonyl emissions (ccc, 01/27/10)
-      INTEGER            :: IDBGLYX, IDBMGLY, IDBC2H4, IDBC2H2
-      INTEGER            :: IDBGLYC, IDBHAC      
-      ! add biomass burning emiss too (hotp 8/24/09)
-      INTEGER            :: IDBNAP
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% Emission ID's, keep for backwards compatibility for now
+      !%%% But these are really obsolete and we can remove them soon.
+      !%%% (bmy, 8/15/14)
+      INTEGER :: NEMANTHRO
+      INTEGER :: NEMBIOG
+      INTEGER :: IDENO
+      INTEGER :: IDECO
+      INTEGER :: IDEPRPE
+      INTEGER :: IDEC3H8
+      INTEGER :: IDEALK4
+      INTEGER :: IDEC2H6
+      INTEGER :: IDEISOP
+      INTEGER :: IDEACET
+      INTEGER :: IDEMEK
+      INTEGER :: IDEALD2
+      INTEGER :: IDECH2O
+      INTEGER :: IDEO3
+      INTEGER :: IDEHNO3
+      INTEGER :: IDECH4
+      INTEGER :: IDEGLYX
+      INTEGER :: IDEMGLY
+      INTEGER :: IDEBENZ
+      INTEGER :: IDETOLU
+      INTEGER :: IDEXYLE
+      INTEGER :: IDEMONX
+      INTEGER :: IDEC2H4
+      INTEGER :: IDEC2H2
+      INTEGER :: IDERCHO
+      INTEGER :: IDEHCOOH
+      INTEGER :: IDEACTA
+      INTEGER :: IDEMBO
+      INTEGER :: IDEGLYC
+      INTEGER :: IDEHAC
+      INTEGER :: IDECHBr3
+      INTEGER :: IDECH2Br2
+      INTEGER :: IDEBr2
+      INTEGER :: IDENAP
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       CONTAINS
 
@@ -619,6 +432,7 @@
 !                              semivolatile POA simulations; Removed tracers
 !                              for old SOA simulation (H. Pye)
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
+!  15 Aug 2014 - R. Yantosca - Removed obsolete IDBF* and IDB* indices
 !******************************************************************************
 !
       ! References to F90 modules
@@ -628,7 +442,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE ERROR_MOD,   ONLY : ERROR_STOP
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -680,10 +493,6 @@
       COUNT_Hg2 = 0
       COUNT_HgP = 0
 
-      !(fp, 6/09)
-      !Initialize COUNT_BB
-      COUNT_BB = 0
-
       !=================================================================
       ! Assign tracer, biomass, biofuel, and anthro emission ID's
       !=================================================================
@@ -704,11 +513,6 @@
             CASE ( 'NO' )
                COUNT    = COUNT + 1
                IDTNO    = N
-               IDBFNO   = COUNT
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBNO    = COUNT_BB
 
             CASE ( 'NO2' )
                IDTNO2   = N
@@ -728,11 +532,6 @@
             CASE ( 'CO' )
                COUNT    = COUNT + 1
                IDTCO    = N
-               IDBFCO   = COUNT
-
-               !(fp)             
-               COUNT_BB = COUNT_BB + 1
-               IDBCO   = COUNT_BB
 
                ! Special case: Tagged CO
                ! Set some emission flags and then exit
@@ -741,7 +540,6 @@
                ! (jaf, mak, bmy, 2/14/08)
                IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN 
                   NEMANTHRO = 1
-                  IDECO     = 1
                   IDTISOP   = 1
                   EXIT
                ENDIF
@@ -756,13 +554,11 @@
             CASE ( 'H2' )
                COUNT    = COUNT + 1
                IDTCO    = N
-               IDBFCO   = COUNT
 
                ! Special case: Tagged H2 (hup 4/28/2004)
                ! Set some emissions flags then exit
                IF ( Input_Opt%ITS_A_H2HD_SIM ) THEN
                   NEMANTHRO = 1
-                  IDECO     = 2
                   IDTISOP   = 1
                   IDTH2     = 1 ! (hup 7/14/2004)
 
@@ -777,11 +573,6 @@
             CASE ( 'ALK4' )
                COUNT    = COUNT + 1
                IDTALK4  = N
-               IDBFALK4 = COUNT
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBALK4  = COUNT_BB
 
             CASE ( 'ISOP' )
                IDTISOP  = N
@@ -795,29 +586,14 @@
             CASE ( 'ACET' )
                COUNT    = COUNT + 1
                IDTACET  = N
-               IDBFACET = COUNT
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBACET  = COUNT_BB
 
             CASE ( 'MEK' )
                COUNT    = COUNT + 1
                IDTMEK   = N
-               IDBFMEK  = COUNT
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBMEK   = COUNT_BB
 
             CASE ( 'ALD2' )
                COUNT    = COUNT + 1
                IDTALD2  = N
-               IDBFALD2 = COUNT
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBALD2   = COUNT_BB
 
             CASE ( 'RCHO' )
                IDTRCHO  = N
@@ -840,43 +616,23 @@
             CASE ( 'PRPE' )
                COUNT    = COUNT + 1
                IDTPRPE  = N
-               IDBFPRPE = COUNT
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBPRPE  = COUNT_BB
 
             CASE ( 'C3H8' )
                COUNT    = COUNT + 1
                IDTC3H8  = N
-               IDBFC3H8 = COUNT
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBC3H8  = COUNT_BB
 
             CASE ( 'CH2O' )
                COUNT    = COUNT + 1
                IDTCH2O  = N
-               IDBFCH2O = COUNT
-
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBCH2O  = COUNT_BB
 
             CASE ( 'C2H6' )
                COUNT    = COUNT + 1
                IDTC2H6  = N
-               IDBFC2H6 = COUNT
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBC2H6  = COUNT_BB
 
                ! Special case: tagged C2H6
                ! Set emission flags and then exit
                IF ( Input_Opt%ITS_A_C2H6_SIM ) THEN
                   NEMANTHRO = 1
-                  IDEC2H6   = 1
                   EXIT
                ENDIF
 
@@ -901,10 +657,6 @@
             CASE ( 'SO2' )
                IDTSO2   = N
 
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBSO2   = COUNT_BB
-
             CASE ( 'SO4' )
                IDTSO4   = N
 
@@ -916,9 +668,6 @@
 
             CASE ( 'NH3' )
                IDTNH3   = N
-               !(fp)              
-               COUNT_BB = COUNT_BB + 1
-               IDBNH3   = COUNT_BB
 
             CASE ( 'NH4' )
                IDTNH4   = N
@@ -953,15 +702,8 @@
             CASE ( 'BCPI' )
                IDTBCPI  = N
 
-               !(fp) WEIRD BUT TO BE CONSISTENT CHECK
-               COUNT_BB = COUNT_BB + 1
-               IDBBC    = COUNT_BB
-
             CASE ( 'OCPI' )
                IDTOCPI  = N
-               !(fp) WEIRD BUT TO BE CONSISTENT CHECK
-               COUNT_BB = COUNT_BB + 1
-               IDBOC    = COUNT_BB
 
             CASE ( 'BCPO' )
                IDTBCPO  = N
@@ -973,8 +715,6 @@
             ! semivolpoa: add POA (hotp 2/17/09)
             CASE ( 'POA1' )
                IDTPOA1   = N
-               COUNT_BB = COUNT_BB + 1
-               IDBOC    = COUNT_BB
 
             CASE ( 'POA2' )
                IDTPOA2   = N
@@ -1229,27 +969,16 @@
             CASE ( 'CH4' )
                IDTCH4   = N
 
-               COUNT_BB = COUNT_BB + 1
-               IDBCH4   = COUNT_BB
-
             !--------------------------------
             ! Dicarbonyls GLYX & MGLY
             !--------------------------------
             CASE ( 'GLYX' )
                COUNT    = COUNT + 1
                IDTGLYX  = N
-               IDBFGLYX = COUNT
-
-               COUNT_BB  = COUNT_BB + 1
-               IDBGLYX   = COUNT_BB
 
             CASE ( 'MGLY' )
                COUNT    = COUNT + 1
                IDTMGLY  = N
-               IDBFMGLY = COUNT
-
-               COUNT_BB  = COUNT_BB + 1
-               IDBMGLY   = COUNT_BB
 
             !--------------------------------
             ! Aromatics tracers
@@ -1257,26 +986,14 @@
             CASE ( 'BENZ' )
                COUNT    = COUNT + 1
                IDTBENZ  = N
-               IDBFBENZ = COUNT
-
-               COUNT_BB = COUNT_BB + 1
-               IDBBENZ  = COUNT_BB
 
             CASE ( 'TOLU' )
                COUNT    = COUNT + 1
                IDTTOLU  = N
-               IDBFTOLU = COUNT
 
-               COUNT_BB = COUNT_BB + 1
-               IDBTOLU  = COUNT_BB
-               
             CASE ( 'XYLE' )
                COUNT    = COUNT + 1
                IDTXYLE  = N
-               IDBFXYLE = COUNT
-
-               COUNT_BB = COUNT_BB + 1
-               IDBXYLE  = COUNT_BB
 
             ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
             !-------------------------------
@@ -1285,9 +1002,6 @@
             CASE ( 'NAP' )
                COUNT    = COUNT + 1
                IDTNAP   = N
-               IDBFNAP  = COUNT
-               COUNT_BB = COUNT_BB + 1
-               IDBNAP   = COUNT_BB
 
             !--------------------------------
             ! Monoterpene
@@ -1310,21 +1024,13 @@
             CASE ( 'C2H4' )
                COUNT    = COUNT + 1
                IDTC2H4  = N
-               IDBFC2H4 = COUNT
 
-               COUNT_BB = COUNT_BB + 1
-               IDBC2H4  = COUNT_BB
-               
             !--------------------------------
             ! C2H2
             !--------------------------------
             CASE ( 'C2H2' )
                COUNT    = COUNT + 1
                IDTC2H2  = N
-               IDBFC2H2 = COUNT
-
-               COUNT_BB = COUNT_BB + 1
-               IDBC2H2  = COUNT_BB
                
             !--------------------------------
             ! MBO
@@ -1338,10 +1044,6 @@
             CASE ( 'GLYC' )
                COUNT    = COUNT + 1
                IDTGLYC  = N
-               IDBFGLYC = COUNT
-
-               COUNT_BB  = COUNT_BB + 1
-               IDBGLYC   = COUNT_BB
 
             !--------------------------------
             ! HAC
@@ -1349,10 +1051,6 @@
             CASE ( 'HAC' )
                COUNT    = COUNT + 1
                IDTHAC   = N
-               IDBFHAC  = COUNT
-
-               COUNT_BB  = COUNT_BB + 1
-               IDBHAC    = COUNT_BB
 
             !--------------------------------
             ! new PAN species
@@ -1433,9 +1131,6 @@
             CASE ( 'CH3I', 'CH3IOC' )
                COUNT    = COUNT + 1
                IDTCO    = 1
-               IDBFCO   = COUNT
-               COUNT_BB = COUNT_BB + 1
-               IDBCO    = COUNT_BB 
                NEMANTHRO= 8      ! Reset NEMANTHRO here too (bmy, 7/25/06)
                EXIT
 
@@ -1443,9 +1138,6 @@
             CASE ( 'HCN' )
                COUNT    = COUNT + 1
                IDTCO    = 1
-               IDBFCO   = COUNT
-               COUNT_BB = COUNT_BB + 1
-               IDBCO    = COUNT_BB 
                EXIT
 
             !--------------------------------
@@ -1458,11 +1150,6 @@
                IDTHg0            = N
                ID_Hg0(COUNT_Hg0) = N
 
-               ! Special case: Hg BB emissions are scaled from CO:
-               ! (ccc, 5/21/10)
-               COUNT_BB          = COUNT_BB + 1
-               IDBCO             = COUNT_BB 
-
             CASE ( 'HG2' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
@@ -1470,98 +1157,6 @@
             CASE ( 'HGP' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
-
-!- eds 8/31/10----------------------------------------------------
-!            CASE ( 'HG0_AN_NA', 'HG0_AN' )
-!               COUNT_Hg0         = COUNT_Hg0 + 1
-!               ID_Hg_na          = COUNT_Hg0
-!               ID_Hg0(COUNT_Hg0) = N
-!
-!            CASE ( 'HG0_AN_EU', 'HG0_AE' )
-!               COUNT_Hg0         = COUNT_Hg0 + 1
-!               ID_Hg_eu          = COUNT_Hg0
-!               ID_Hg0(COUNT_Hg0) = N
-!
-!            CASE ( 'HG0_AN_AS', 'HG0_AA' )
-!               COUNT_Hg0         = COUNT_Hg0 + 1
-!               ID_Hg_as          = COUNT_Hg0
-!               ID_Hg0(COUNT_Hg0) = N
-!
-!            CASE ( 'HG0_AN_RW', 'HG0_AR' )
-!               COUNT_Hg0         = COUNT_Hg0 + 1
-!               ID_Hg_rw          = COUNT_Hg0
-!               ID_Hg0(COUNT_Hg0) = N
-!
-!            CASE ( 'HG0_OC' )
-!               COUNT_Hg0         = COUNT_Hg0 + 1
-!               ID_Hg_oc          = COUNT_Hg0
-!               ID_Hg0(COUNT_Hg0) = N
-!
-!            CASE ( 'HG0_LN' )
-!               COUNT_Hg0         = COUNT_Hg0 + 1
-!               ID_Hg_ln          = COUNT_Hg0
-!               ID_Hg0(COUNT_Hg0) = N
-!
-!            CASE ( 'HG0_NT' )
-!               COUNT_Hg0         = COUNT_Hg0 + 1
-!               ID_Hg_nt          = COUNT_Hg0
-!               ID_Hg0(COUNT_Hg0) = N
-!
-!            CASE ( 'HG2_AN_NA', 'HG2_AN' )
-!               COUNT_Hg2         = COUNT_Hg2 + 1
-!               ID_Hg2(COUNT_Hg2) = N
-!
-!            CASE ( 'HG2_AN_EU', 'HG2_AE' )
-!               COUNT_Hg2         = COUNT_Hg2 + 1
-!               ID_Hg2(COUNT_Hg2) = N
-!
-!            CASE ( 'HG2_AN_AS', 'HG2_AA' )
-!               COUNT_Hg2         = COUNT_Hg2 + 1
-!               ID_Hg2(COUNT_Hg2) = N
-!
-!            CASE ( 'HG2_AN_RW', 'HG2_AR' )
-!               COUNT_Hg2         = COUNT_Hg2 + 1
-!               ID_Hg2(COUNT_Hg2) = N
-!
-!            CASE ( 'HG2_OC' )
-!               COUNT_Hg2         = COUNT_Hg2 + 1
-!               ID_Hg2(COUNT_Hg2) = N
-!
-!            CASE ( 'HG2_LN' )
-!               COUNT_Hg2         = COUNT_Hg2 + 1
-!               ID_Hg2(COUNT_Hg2) = N
-!
-!            CASE ( 'HG2_NT' )
-!               COUNT_Hg2         = COUNT_Hg2 + 1
-!               ID_Hg2(COUNT_Hg2) = N
-!
-!            CASE ( 'HGP_AN_NA', 'HGP_AN' )
-!               COUNT_HgP         = COUNT_HgP + 1
-!               ID_HgP(COUNT_HgP) = N
-!
-!            CASE ( 'HGP_AN_EU', 'HGP_AE' )
-!               COUNT_HgP         = COUNT_HgP + 1
-!               ID_HgP(COUNT_HgP) = N
-!
-!            CASE ( 'HGP_AN_AS', 'HGP_AA' )
-!               COUNT_HgP         = COUNT_HgP + 1
-!               ID_HgP(COUNT_HgP) = N
-!
-!            CASE ( 'HGP_AN_RW', 'HGP_AR' )
-!               COUNT_HgP         = COUNT_HgP + 1
-!               ID_HgP(COUNT_HgP) = N
-!
-!            CASE ( 'HGP_OC' )
-!               COUNT_HgP         = COUNT_HgP + 1
-!               ID_HgP(COUNT_HgP) = N
-!
-!            CASE ( 'HGP_LN' )
-!               COUNT_HgP         = COUNT_HgP + 1
-!               ID_HgP(COUNT_HgP) = N
-!
-!            CASE ( 'HGP_NT' )
-!               COUNT_HgP         = COUNT_HgP + 1
-!               ID_HgP(COUNT_HgP) = N
 
             ! New Tagged Hg Simulation (eds 8/31/10)
             CASE ( 'HG0_AN_CAN', 'HG0_CAN' )
@@ -2790,11 +2385,11 @@
          ENDIF
          IF ( IDTMEK  > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
-            IDEMEK    = NEMANTHRO  ! NOX typo fix (hotp 8/5/09)
+            IDEMEK    = NEMANTHRO
          ENDIF
          IF ( IDTALD2 > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
-            IDEALD2   = NEMANTHRO  ! NOX typo fix (hotp 8/5/09)
+            IDEALD2   = NEMANTHRO
          ENDIF
          IF ( IDTCH2O > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
@@ -2808,28 +2403,22 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEHNO3   = NEMANTHRO
          ENDIF
-
-         ! Add CH4 (mpayer, 1/24/12)
          IF ( IDTCH4  > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDECH4    = NEMANTHRO
          ENDIF
-
-         ! Aromatics for SOA5 simulation
          IF ( IDTBENZ > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDEBENZ   = NEMANTHRO
          ENDIF
          IF ( IDTTOLU > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
+            IDETOLU   = NEMANTHRO
             IDETOLU   = NEMANTHRO
          ENDIF
          IF ( IDTXYLE > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDEXYLE   = NEMANTHRO
          ENDIF
-         ! SOAupdate: Add NAP emissions (hotp 8/24/09)
-         ! Used for SOA simulation
          IF ( IDTNAP  > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDENAP    = NEMANTHRO
@@ -2842,37 +2431,28 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEC2H2   = NEMANTHRO
          ENDIF
-         
-         !%%%%%%bmy add these here%%%%%%%%%%
-
          ! For now, comment this out, as RETRO does not have RCHO emissions
          ! (bmy, 8/17/11)
          !IF ( IDTRCHO > 0 ) THEN
          !   NEMANTHRO = NEMANTHRO + 1
          !   IDERCHO  = NEMANTHRO
          !ENDIF
-
          IF ( IDTHCOOH > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDEHCOOH  = NEMANTHRO
          ENDIF
-
          IF ( IDTACTA > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDEACTA   = NEMANTHRO
-          ENDIF
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ENDIF
 
-         ! Now add additional species treated in SMVGEAR that are NOT
-         ! anthropogenic, increment NEMBIOG
-         ! All non-anthropogenic species should be last (see anthroems.f
-         ! and loop over NEMANTHRO)
+         !%%% BIOGENICS START HERE %%%%%%%%%%%%%%%%%
          IF ( IDTISOP > 0 ) THEN
-           NEMBIOG    = NEMBIOG   + 1
-           IDEISOP    = NEMANTHRO + NEMBIOG
+            NEMBIOG    = NEMBIOG   + 1
+            IDEISOP    = NEMANTHRO + NEMBIOG
          ENDIF
          IF ( IDTGLYX > 0 ) THEN
-            NEMBIOG   = NEMBIOG + 1
+            NEMBIOG   = NEMBIOG   + 1
             IDEGLYX   = NEMANTHRO + NEMBIOG
          ENDIF
          IF ( IDTMGLY > 0 ) THEN
@@ -2895,7 +2475,6 @@
             NEMBIOG   = NEMBIOG + 1
             IDEMBO    = NEMANTHRO + NEMBIOG
          ENDIF
-         ! Add bromine species biogenic emissions (jpp, mpayer, 12/28/11)
          IF ( IDTCHBr3 > 0 ) THEN
             NEMBIOG   = NEMBIOG + 1
             IDECHBr3  = NEMANTHRO + NEMBIOG
@@ -2916,42 +2495,37 @@
       ! NOTE: IDEMS is in "comode.h", maybe later split this off into
       ! an F90 module somehow.  Think about this later. (bmy, 11/12/02)
       !=================================================================
-      IF ( IDENO   /= 0 ) IDEMS(IDENO  ) = IDTNO
-      IF ( IDECO   /= 0 ) IDEMS(IDECO  ) = IDTCO
-      IF ( IDEPRPE /= 0 ) IDEMS(IDEPRPE) = IDTPRPE
-      IF ( IDEC3H8 /= 0 ) IDEMS(IDEC3H8) = IDTC3H8
-      IF ( IDEALK4 /= 0 ) IDEMS(IDEALK4) = IDTALK4
-      IF ( IDEC2H6 /= 0 ) IDEMS(IDEC2H6) = IDTC2H6
-      IF ( IDEISOP /= 0 ) IDEMS(IDEISOP) = IDTISOP
-      IF ( IDEACET /= 0 ) IDEMS(IDEACET) = IDTACET
-      IF ( IDEMEK  /= 0 ) IDEMS(IDEMEK ) = IDTMEK
-      IF ( IDEALD2 /= 0 ) IDEMS(IDEALD2) = IDTALD2
-      IF ( IDECH2O /= 0 ) IDEMS(IDECH2O) = IDTCH2O
-      IF ( IDEO3   /= 0 ) IDEMS(IDEO3  ) = IDTO3
-      IF ( IDEHNO3 /= 0 ) IDEMS(IDEHNO3) = IDTHNO3  ! PHS
-      IF ( IDECH4  /= 0 ) IDEMS(IDECH4 ) = IDTCH4   ! (mpayer, 1/24/12)
-      IF ( IDEGLYX /= 0 ) IDEMS(IDEGLYX) = IDTGLYX
-      IF ( IDEMGLY /= 0 ) IDEMS(IDEMGLY) = IDTMGLY
-      IF ( IDEBENZ /= 0 ) IDEMS(IDEBENZ) = IDTBENZ
-      IF ( IDETOLU /= 0 ) IDEMS(IDETOLU) = IDTTOLU
-      IF ( IDEXYLE /= 0 ) IDEMS(IDEXYLE) = IDTXYLE
-      IF ( IDEMONX /= 0 ) IDEMS(IDEMONX) = IDTMONX
-      IF ( IDEC2H4 /= 0 ) IDEMS(IDEC2H4) = IDTC2H4
-      IF ( IDEC2H2 /= 0 ) IDEMS(IDEC2H2) = IDTC2H2
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      IF ( IDERCHO /= 0 )  IDEMS(IDERCHO) = IDTRCHO
-      IF ( IDEHCOOH /= 0 ) IDEMS(IDEHCOOH)= IDTHCOOH
-      IF ( IDEACTA /= 0 )  IDEMS(IDEACTA) = IDTACTA
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
-      IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
-      IF ( IDEHAC  /= 0 ) IDEMS(IDEHAC ) = IDTHAC
-      ! jpp:
+      IF ( IDENO     /= 0 ) IDEMS(IDENO    ) = IDTNO
+      IF ( IDECO     /= 0 ) IDEMS(IDECO    ) = IDTCO
+      IF ( IDEPRPE   /= 0 ) IDEMS(IDEPRPE  ) = IDTPRPE
+      IF ( IDEC3H8   /= 0 ) IDEMS(IDEC3H8  ) = IDTC3H8
+      IF ( IDEALK4   /= 0 ) IDEMS(IDEALK4  ) = IDTALK4
+      IF ( IDEC2H6   /= 0 ) IDEMS(IDEC2H6  ) = IDTC2H6
+      IF ( IDEISOP   /= 0 ) IDEMS(IDEISOP  ) = IDTISOP
+      IF ( IDEACET   /= 0 ) IDEMS(IDEACET  ) = IDTACET
+      IF ( IDEMEK    /= 0 ) IDEMS(IDEMEK   ) = IDTMEK
+      IF ( IDEALD2   /= 0 ) IDEMS(IDEALD2  ) = IDTALD2
+      IF ( IDECH2O   /= 0 ) IDEMS(IDECH2O  ) = IDTCH2O
+      IF ( IDEO3     /= 0 ) IDEMS(IDEO3    ) = IDTO3
+      IF ( IDEHNO3   /= 0 ) IDEMS(IDEHNO3  ) = IDTHNO3
+      IF ( IDECH4    /= 0 ) IDEMS(IDECH4   ) = IDTCH4
+      IF ( IDEGLYX   /= 0 ) IDEMS(IDEGLYX  ) = IDTGLYX
+      IF ( IDEMGLY   /= 0 ) IDEMS(IDEMGLY  ) = IDTMGLY
+      IF ( IDEBENZ   /= 0 ) IDEMS(IDEBENZ  ) = IDTBENZ
+      IF ( IDETOLU   /= 0 ) IDEMS(IDETOLU  ) = IDTTOLU
+      IF ( IDEXYLE   /= 0 ) IDEMS(IDEXYLE  ) = IDTXYLE
+      IF ( IDEMONX   /= 0 ) IDEMS(IDEMONX  ) = IDTMONX
+      IF ( IDEC2H4   /= 0 ) IDEMS(IDEC2H4  ) = IDTC2H4
+      IF ( IDEC2H2   /= 0 ) IDEMS(IDEC2H2  ) = IDTC2H2
+      IF ( IDERCHO   /= 0 ) IDEMS(IDERCHO  ) = IDTRCHO
+      IF ( IDEHCOOH  /= 0 ) IDEMS(IDEHCOOH ) = IDTHCOOH
+      IF ( IDEACTA   /= 0 ) IDEMS(IDEACTA  ) = IDTACTA
+      IF ( IDEMBO    /= 0 ) IDEMS(IDEMBO   ) = IDTMBO
+      IF ( IDEGLYC   /= 0 ) IDEMS(IDEGLYC  ) = IDTGLYC
+      IF ( IDEHAC    /= 0 ) IDEMS(IDEHAC   ) = IDTHAC
       IF ( IDECHBr3  /= 0 ) IDEMS(IDECHBr3 ) = IDTCHBr3
       IF ( IDECH2Br2 /= 0 ) IDEMS(IDECH2Br2) = IDTCH2Br2
       IF ( IDEBr2    /= 0 ) IDEMS(IDEBr2   ) = IDTBr2
-      ! SOAupdate: for gas phase NAP chemistry (hotp 6/24/09)
-      ! semivolpoa5: update for IVOC chemistry (hotp 3/30/09)
       IF ( IDENAP    /= 0 ) IDEMS(IDENAP   ) = IDTNAP
 
       ! Echo anthro & biogenic emitted tracers
@@ -2975,41 +2549,40 @@
          WRITE( 6, 115 ) '          + 3 for bromine'
          WRITE( 6, 115 ) 'NEMBIOG:   10 max'
          WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
-         WRITE( 6, 115 ) '-----------------------------------------'
-         WRITE( 6, 120 ) 'IDENO   ', IDENO
-         WRITE( 6, 120 ) 'IDECO   ', IDECO
-         WRITE( 6, 120 ) 'IDEPRPE ', IDEPRPE
-         WRITE( 6, 120 ) 'IDEC3H8 ', IDEC3H8
-         WRITE( 6, 120 ) 'IDEALK4 ', IDEALK4
-         WRITE( 6, 120 ) 'IDEC2H6 ', IDEC2H6
-         WRITE( 6, 120 ) 'IDEACET ', IDEACET
-         WRITE( 6, 120 ) 'IDEMEK  ', IDEMEK
-         WRITE( 6, 120 ) 'IDEALD2 ', IDEALD2
-         WRITE( 6, 120 ) 'IDECH2O ', IDECH2O
-         WRITE( 6, 120 ) 'IDEO3   ', IDEO3
-         WRITE( 6, 120 ) 'IDEHNO3 ', IDEHNO3
-         WRITE( 6, 120 ) 'IDECH4  ', IDECH4
-         WRITE( 6, 120 ) 'IDEISOP ', IDEISOP
-         WRITE( 6, 120 ) 'IDEGLYX ', IDEGLYX
-         WRITE( 6, 120 ) 'IDEMGLY ', IDEMGLY
-         WRITE( 6, 120 ) 'IDEBENZ ', IDEBENZ
-         WRITE( 6, 120 ) 'IDETOLU ', IDETOLU
-         WRITE( 6, 120 ) 'IDEXYLE ', IDEXYLE
-         WRITE( 6, 120 ) 'IDEMONX ', IDEMONX
-         WRITE( 6, 120 ) 'IDEC2H4 ', IDEC2H4
-         WRITE( 6, 120 ) 'IDEC2H2 ', IDEC2H2
-         WRITE( 6, 120 ) 'IDERCHO ', IDERCHO
-         WRITE( 6, 120 ) 'IDEHCOOH', IDEHCOOH
-         WRITE( 6, 120 ) 'IDEACTA ', IDEACTA
-         WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
-         WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
-         WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
+         WRITE( 6, 115 ) '---------------------------------------------'
+         WRITE( 6, 120 ) 'IDENO    ', IDENO
+         WRITE( 6, 120 ) 'IDECO    ', IDECO
+         WRITE( 6, 120 ) 'IDEPRPE  ', IDEPRPE
+         WRITE( 6, 120 ) 'IDEC3H8  ', IDEC3H8
+         WRITE( 6, 120 ) 'IDEALK4  ', IDEALK4
+         WRITE( 6, 120 ) 'IDEC2H6  ', IDEC2H6
+         WRITE( 6, 120 ) 'IDEACET  ', IDEACET
+         WRITE( 6, 120 ) 'IDEMEK   ', IDEMEK
+         WRITE( 6, 120 ) 'IDEALD2  ', IDEALD2
+         WRITE( 6, 120 ) 'IDECH2O  ', IDECH2O
+         WRITE( 6, 120 ) 'IDEO3    ', IDEO3
+         WRITE( 6, 120 ) 'IDEHNO3  ', IDEHNO3
+         WRITE( 6, 120 ) 'IDECH4   ', IDECH4
+         WRITE( 6, 120 ) 'IDEISOP  ', IDEISOP
+         WRITE( 6, 120 ) 'IDEGLYX  ', IDEGLYX
+         WRITE( 6, 120 ) 'IDEMGLY  ', IDEMGLY
+         WRITE( 6, 120 ) 'IDEBENZ  ', IDEBENZ
+         WRITE( 6, 120 ) 'IDETOLU  ', IDETOLU
+         WRITE( 6, 120 ) 'IDEXYLE  ', IDEXYLE
+         WRITE( 6, 120 ) 'IDEMONX  ', IDEMONX
+         WRITE( 6, 120 ) 'IDEC2H4  ', IDEC2H4
+         WRITE( 6, 120 ) 'IDEC2H2  ', IDEC2H2
+         WRITE( 6, 120 ) 'IDERCHO  ', IDERCHO
+         WRITE( 6, 120 ) 'IDEHCOOH ', IDEHCOOH
+         WRITE( 6, 120 ) 'IDEACTA  ', IDEACTA
+         WRITE( 6, 120 ) 'IDEMBO   ', IDEMBO
+         WRITE( 6, 120 ) 'IDEGLYC  ', IDEGLYC
+         WRITE( 6, 120 ) 'IDEHAC   ', IDEHAC
          WRITE( 6, 120 ) 'IDECHBr3 ', IDECHBr3 
          WRITE( 6, 120 ) 'IDECH2Br2', IDECH2Br2 
          WRITE( 6, 120 ) 'IDEBr2   ', IDEBr2 
-         ! Add NAP info (hotp 8/24/09)
          WRITE( 6, 120 ) 'IDENAP   ', IDENAP
-         WRITE( 6, 115 ) '-----------------------------------------'
+         WRITE( 6, 115 ) '---------------------------------------------' 
       ENDIF
  115  FORMAT( a )
  120  FORMAT( a, i3 )
@@ -4915,91 +4488,6 @@
       ! GEOS-CHEM Emission ID #'s
       NEMANTHRO = 0
       NEMBIOG   = 0
-      IDENO     = 0
-      IDEO3     = 0
-      IDECO     = 0
-      IDEPRPE   = 0
-      IDEC3H8   = 0
-      IDEALK4   = 0
-      IDEC2H6   = 0
-      IDEACET   = 0
-      IDEMEK    = 0
-      IDEALD2   = 0
-      IDEISOP   = 0
-      IDECH2O   = 0 
-      IDEHNO3   = 0 !phs (3/4/08)
-      IDEGLYX   = 0
-      IDEMGLY   = 0
-      IDEBENZ   = 0
-      IDETOLU   = 0
-      IDEXYLE   = 0
-      IDEMONX   = 0
-      IDEC2H4   = 0
-      IDEC2H2   = 0
-      IDEMBO    = 0
-      IDEGLYC   = 0
-      IDEHAC    = 0
-      IDECHBr3  = 0 ! jpp, 8/30/07
-      IDECH2Br2 = 0 ! jpp, 9/16/07
-      IDEBr2    = 0 ! jpp, 3/2/10
-      IDECH4    = 0 ! mpayer, 1/24/12
-      ! SOAudpate: for gas phase NAP chemistry (hotp 6/24/09)
-      ! semivolpoa5: IVOCs (hotp 3/30/09)
-      IDENAP    = 0
-
-      ! GEOS-CHEM Biofuel ID #'s
-      IDBFNO    = 0
-      IDBFCO    = 0
-      IDBFALK4  = 0
-      IDBFACET  = 0
-      IDBFMEK   = 0
-      IDBFALD2  = 0
-      IDBFPRPE  = 0 
-      IDBFC3H8  = 0
-      IDBFCH2O  = 0
-      IDBFC2H6  = 0
-      IDBFBENZ  = 0
-      IDBFTOLU  = 0
-      IDBFXYLE  = 0
-      IDBFC2H2  = 0
-      IDBFC2H4  = 0
-      IDBFGLYC  = 0
-      IDBFGLYX  = 0
-      IDBFMGLY  = 0
-      IDBFHAC   = 0
-      ! SOAudpate: for gas phase NAP chemistry (hotp 6/24/09)
-      ! semivolpoa5: IVOCs (hotp 3/30/09)
-      IDBFNAP   = 0
-
-      ! Initialize IDBs for BIOMASS BURNING (hotp 8/24/09)
-      IDBNO     = 0
-      IDBCO     = 0
-      IDBALK4   = 0
-      IDBACET   = 0
-      IDBMEK    = 0
-      IDBALD2   = 0
-      IDBPRPE   = 0
-      IDBC3H8   = 0
-      IDBCH2O   = 0
-      IDBC2H6   = 0
-      IDBSO2    = 0
-      IDBNH3    = 0
-      IDBBC     = 0
-      IDBOC     = 0
-      IDBCO2    = 0
-      IDBTOLU   = 0
-      IDBBENZ   = 0
-      IDBXYLE   = 0
-      IDBC2H2   = 0
-      IDBC2H4   = 0
-      IDBHAC    = 0
-      IDBGLYC   = 0
-      IDBGLYX   = 0
-      IDBMGLY   = 0
-!kjw
-      IDBCH4    = 0
-!kjw
-      IDBNAP    = 0 ! SOAupdate hotp 7/25/10
 
       !-----------------------------------
       ! Initialize tagged Hg index arrays
@@ -5007,16 +4495,7 @@
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
          ! Initialize category flags
-!- eds 8/31/10 -------------------------------------------------------
          ID_Hg_tot = 0
-!         ID_Hg_na  = 0
-!         ID_Hg_eu  = 0
-!         ID_Hg_as  = 0
-!         ID_Hg_rw  = 0
-!         ID_Hg_oc  = 0
-!         ID_Hg_ln  = 0
-!         ID_Hg_nt  = 0
-
          ID_Hg_can = 0
          ID_Hg_usa = 0
          ID_Hg_cam = 0

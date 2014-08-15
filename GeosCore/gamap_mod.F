@@ -5236,219 +5236,192 @@
 
          ELSE
 
-            !---------------------------
-            ! Full-chemistry simulation
-            !---------------------------
-
-            ! Number of tracers
-            ! Add GLYX, MGLY, GLYC, HAC, C2H2,BENZ, TOLU, XYLE, C2H4
-            !-----------------------------------------------------------------
-            ! Bug fix: omit SOA tracers if not needed. (bmy, 9/2/10)
-            !NTRAC(28) = 23
-            !-----------------------------------------------------------------
-            IF ( Input_Opt%LSOA ) THEN
-               ! SOAupdate: plus one for NAP (hotp 7/25/10)
-               NTRAC(28) = 24   ! Traditional SOA simulation
-            ELSE
-               IF (IDBCH4 == 0) THEN
-                  NTRAC(28) = 14    ! Standard simulation
-               ELSE
-                  NTRAC(28) = 15    ! Standard simulation (with CH4)
-               ENDIF
+            !---------------------------------------------
+            ! Write out all tracers that are defined
+            !---------------------------------------------
+            IF ( IDTNO > 0 ) THEN
+               NAME (T,28) = 'NO'
+               INDEX(T,28) = IDTNO + ( SPACING * 45 )
+               MWT  (T,28) = 14e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+            ENDIF
+            IF ( IDTCO > 0 ) THEN
+               NAME (T,28) = 'CO'
+               INDEX(T,28) = IDTCO + ( SPACING * 45 )
+               MWT  (T,28) = 28e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+            ENDIF
+            IF ( IDTALK4 > 0 ) THEN
+               NAME (T,28) = 'ALK4'
+               INDEX(T,28) = IDTALK4 + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 4
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTACET > 0  ) THEN
+               NAME (T,28) = 'ACET'
+               INDEX(T,28) = IDTACET + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 3
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTMEK > 0 ) THEN
+               NAME (T,28) = 'MEK'
+               INDEX(T,28) = IDTMEK + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 4
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTALD2 > 0 ) THEN
+               NAME (T,28) = 'ALD2'
+               INDEX(T,28) = IDTALD2 + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 3
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTPRPE > 0 ) THEN
+               NAME (T,28) = 'PRPE'
+               INDEX(T,28) = IDTPRPE + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 3
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTC3H8 > 0) THEN
+               NAME (T,28) = 'C3H8'
+               INDEX(T,28) = IDTC3H8 + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 3
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTCH2O > 0 ) THEN
+               NAME (T,28) = 'CH2O'
+               INDEX(T,28) = IDTCH2O + ( SPACING * 45 )
+               MWT  (T,28) = 30e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+            ENDIF
+            IF ( IDTC2H6 > 0 ) THEN
+               NAME (T,28) = 'C2H6'
+               INDEX(T,28) = IDTC2H6 + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 2
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTSO2 > 0 ) THEN
+               NAME (T,28) = 'SO2'
+               INDEX(T,28) = IDTSO2 + ( SPACING * 45 )
+               MWT  (T,28) = 32e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'atoms S/cm2/s'
+            ENDIF
+            IF ( IDTNH3 > 0 ) THEN
+               NAME (T,28) = 'NH3'
+               INDEX(T,28) = IDTNH3 + ( SPACING * 45 )
+               MWT  (T,28) = 17e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+            ENDIF
+            IF ( IDTBCPI > 0 ) THEN
+               NAME (T,28) = 'BC'
+               INDEX(T,28) = IDTBCPI + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTOCPI > 0 .or. IDTPOA1 > 0 ) THEN
+               NAME (T,28) = 'OC'
+               ! SOAupdate: allow non-vol or semi-vol POA (hotp 8/24/09)
+               IF ( IDTOCPI > 0 ) 
+     &            INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
+               IF ( IDTPOA1  > 0 )
+     &            INDEX(T,28) = IDTPOA1 + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTCH4 > 0 ) THEN
+               NAME (T,28) = 'CH4'
+               INDEX(T,28) = IDTCH4 + ( SPACING * 45 )
+               MWT  (T,28) = 16e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+            ENDIF
+            IF ( IDTGLYX > 0 ) THEN
+               NAME (T,28) = 'GLYX'
+               INDEX(T,28) = IDTGLYX + ( SPACING * 45 )
+               MWT  (T,28) = 58e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+            ENDIF
+            IF ( IDTMGLY > 0 ) THEN
+               NAME (T,28) = 'MGLY'
+               INDEX(T,28) = IDTMGLY + ( SPACING * 45 )
+               MWT  (T,28) = 72e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+            ENDIF
+            IF ( IDTBENZ > 0 ) THEN
+               NAME (T,28) = 'BENZ'
+               INDEX(T,28) = IDTBENZ + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 6
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTTOLU > 0 ) THEN
+               NAME (T,28) = 'TOLU'
+               INDEX(T,28) = IDTTOLU + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 7
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTXYLE > 0 ) THEN
+               NAME (T,28) = 'XYLE'
+               INDEX(T,28) = IDTXYLE + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 8
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTC2H4 > 0 ) THEN
+               NAME (T,28) = 'C2H4'
+               INDEX(T,28) = IDTC2H4 + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 2
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTC2H2 > 0 ) THEN
+               NAME (T,28) = 'C2H2'
+               INDEX(T,28) = IDTC2H2 + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 2
+               UNIT (T,28) = 'atoms C/cm2/s'
+            ENDIF
+            IF ( IDTGLYC > 0 ) THEN
+               NAME (T,28) = 'GLYC'
+               INDEX(T,28) = IDTGLYC + ( SPACING * 45 )
+               MWT  (T,28) = 60e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+            ENDIF
+            IF ( IDTHAC > 0 ) THEN
+               NAME (T,28) = 'HAC'
+               INDEX(T,28) = IDTHAC + ( SPACING * 45 )
+               MWT  (T,28) = 74e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'molec/cm2/s'
+            ENDIF
+            IF( IDTNAP > 0 ) THEN
+               NAME (T,28) = 'NAP'
+               INDEX(T,28) = IDTNAP + ( SPACING * 45 )
+               MWT  (T,28) = 12e-3
+               MOLC (T,28) = 1
+               UNIT (T,28) = 'atoms C/cm2/s' 
             ENDIF
 
-            ! Loop over tracers
-            DO T = 1, NTRAC(28)
-
-               ! removed hardwires (fp, 6/2009)
-               ! Case statement
-               ! Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
-               IF ( T == IDBNO ) THEN
-                  NAME (T,28) = 'NO'
-                  INDEX(T,28) = IDTNO + ( SPACING * 45 )
-                  MWT  (T,28) = 14e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-                  
-               ELSE IF ( T == IDBCO ) THEN
-                  NAME (T,28) = 'CO'
-                  INDEX(T,28) = IDTCO + ( SPACING * 45 )
-                  MWT  (T,28) = 28e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBALK4 ) THEN
-                  NAME (T,28) = 'ALK4'
-                  INDEX(T,28) = IDTALK4 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 4
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBACET ) THEN
-                  NAME (T,28) = 'ACET'
-                  INDEX(T,28) = IDTACET + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBMEK ) THEN
-                  NAME (T,28) = 'MEK'
-                  INDEX(T,28) = IDTMEK + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 4
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBALD2 ) THEN
-                  NAME (T,28) = 'ALD2'
-                  INDEX(T,28) = IDTALD2 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBPRPE ) THEN
-                  NAME (T,28) = 'PRPE'
-                  INDEX(T,28) = IDTPRPE + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBC3H8 ) THEN
-                  NAME (T,28) = 'C3H8'
-                  INDEX(T,28) = IDTC3H8 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBCH2O ) THEN
-                  NAME (T,28) = 'CH2O'
-                  INDEX(T,28) = IDTCH2O + ( SPACING * 45 )
-                  MWT  (T,28) = 30e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBC2H6 ) THEN
-                  NAME (T,28) = 'C2H6'
-                  INDEX(T,28) = IDTC2H6 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 2
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBSO2 ) THEN
-                  NAME (T,28) = 'SO2'
-                  INDEX(T,28) = IDTSO2 + ( SPACING * 45 )
-                  MWT  (T,28) = 32e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'atoms S/cm2/s'
-
-               ELSE IF ( T == IDBNH3 ) THEN
-                  NAME (T,28) = 'NH3'
-                  INDEX(T,28) = IDTNH3 + ( SPACING * 45 )
-                  MWT  (T,28) = 17e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBBC ) THEN
-                  NAME (T,28) = 'BC'
-                  INDEX(T,28) = IDTBCPI + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBOC ) THEN
-                  NAME (T,28) = 'OC'
-                  ! SOAupdate: allow non-vol or semi-vol POA (hotp 8/24/09)
-                  IF ( IDTOCPI > 0 ) 
-     &               INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
-                  IF ( IDTPOA1  > 0 )
-     &               INDEX(T,28) = IDTPOA1 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBCH4 ) THEN
-                  NAME (T,28) = 'CH4'
-                  INDEX(T,28) = IDTCH4 + ( SPACING * 45 )
-                  MWT  (T,28) = 16e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBGLYX ) THEN
-                  NAME (T,28) = 'GLYX'
-                  INDEX(T,28) = IDTGLYX + ( SPACING * 45 )
-                  MWT  (T,28) = 58e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBMGLY ) THEN
-                  NAME (T,28) = 'MGLY'
-                  INDEX(T,28) = IDTMGLY + ( SPACING * 45 )
-                  MWT  (T,28) = 72e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBBENZ ) THEN
-                  NAME (T,28) = 'BENZ'
-                  INDEX(T,28) = IDTBENZ + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 6
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBTOLU ) THEN
-                  NAME (T,28) = 'TOLU'
-                  INDEX(T,28) = IDTTOLU + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 7
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBXYLE ) THEN
-                  NAME (T,28) = 'XYLE'
-                  INDEX(T,28) = IDTXYLE + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 8
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBC2H4 ) THEN
-                  NAME (T,28) = 'C2H4'
-                  INDEX(T,28) = IDTC2H4 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 2
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBC2H2 ) THEN
-                  NAME (T,28) = 'C2H2'
-                  INDEX(T,28) = IDTC2H2 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 2
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBGLYC ) THEN
-                  NAME (T,28) = 'GLYC'
-                  INDEX(T,28) = IDTGLYC + ( SPACING * 45 )
-                  MWT  (T,28) = 60e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBHAC ) THEN
-                  NAME (T,28) = 'HAC'
-                  INDEX(T,28) = IDTHAC + ( SPACING * 45 )
-                  MWT  (T,28) = 74e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ! SOAupdate: add NAPSOA (hotp 8/23/09)
-               ELSEIF( T == IDBNAP ) THEN
-                     NAME (T,28) = 'NAP'
-                     INDEX(T,28) = IDTNAP + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'atoms C/cm2/s' 
-
-               ENDIF
-
-               ! Define other quantities
-               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-               SCALE(T,28) = 1e0
-            ENDDO
+            ! Define other quantities
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            SCALE(T,28) = 1e0
          ENDIF
       ENDIF
 
@@ -6129,12 +6102,7 @@
       !-------------------------------------      
       IF ( ND46 > 0 .or. DO_TIMESERIES ) THEN 
 
-         ! Number of tracers
-         IF ( IDBCH4 == 0 ) THEN
-            NTRAC(46) = 20
-         ELSE
-            NTRAC(46) = 21 ! Add CH4 (SDE 03/25/13)
-         ENDIF
+         NTRAC(46) = 21  
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)

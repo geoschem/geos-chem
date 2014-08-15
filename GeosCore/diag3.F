@@ -31,8 +31,6 @@
 
       ! Modules from GeosCore directory
       USE BPCH2_MOD                          ! For binary punch I/O routines
-      USE BIOMASS_MOD                        ! For biomass emissions
-      USE BIOFUEL_MOD                        ! For biofuel emissions
       USE DIAG_MOD                           ! For diagnostic arrays
       USE DIAG03_MOD                         ! For Hg diagnostic
       USE DIAG04_MOD                         ! For CO2 diagnostics
@@ -1946,6 +1944,7 @@
 !
       IF ( ND28 > 0 ) THEN
 
+         ! Category name for the BPCH file
          CATEGORY = 'BIOBSRCE'
 
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1957,143 +1956,171 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          
          !%%% NO %%%
-         DiagnName = 'BIOMASS_NO'
-         UNIT     = 'molec/cm2/s'
-         N         = IDTNO
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTNO > 0 ) THEN
+            DiagnName = 'BIOMASS_NO'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTNO
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% CO %%%
-         DiagnName = 'BIOMASS_CO'
-         UNIT      = 'molec/cm2/s'
-         N         = IDTCO
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTCO > 0 ) THEN
+            DiagnName = 'BIOMASS_CO'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTCO
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% ALK4 %%%
-         DiagnName = 'BIOMASS_ALK4'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTALK4
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTALK4 > 0 ) THEN
+            DiagnName = 'BIOMASS_ALK4'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTALK4
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% ACET %%%
-         DiagnName = 'BIOMASS_ACET'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTACET
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTACET > 0 ) THEN
+            DiagnName = 'BIOMASS_ACET'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTACET
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% MEK %%%
-         DiagnName = 'BIOMASS_MEK'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTMEK
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTMEK > 0 ) THEN
+            DiagnName = 'BIOMASS_MEK'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTMEK
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% ALD2 %%%
-         DiagnName = 'BIOMASS_ALD2'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTALD2
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTALD2 > 0 ) THEN
+            DiagnName = 'BIOMASS_ALD2'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTALD2
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% PRPE %%%
-         DiagnName = 'BIOMASS_PRPE'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTPRPE
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTPRPE > 0 ) THEN
+            DiagnName = 'BIOMASS_PRPE'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTPRPE
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% C3H8 %%%
-         DiagnName = 'BIOMASS_C3H8'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTC3H8
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTC3H8 > 0 ) THEN
+            DiagnName = 'BIOMASS_C3H8'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTC3H8
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% CH2O %%%
-         DiagnName = 'BIOMASS_CH2O'
-         UNIT      = 'molec/cm2/s'
-         N         = IDTCH2O
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTCH2O > 0 ) THEN
+            DiagnName = 'BIOMASS_CH2O'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTCH2O
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% C2H6 %%%
-         DiagnName = 'BIOMASS_C2H6'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTC2H6
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTC2H6 > 0 ) THEN
+            DiagnName = 'BIOMASS_C2H6'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTC2H6
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% SO2 %%%
-         DiagnName = 'BIOMASS_SO2'
-         UNIT      = 'molec/cm2/s'
-         N         = IDTSO2
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTSO2 > 0 ) THEN
+            DiagnName = 'BIOMASS_SO2'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTSO2
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            print*, '### SO2 FACTOR: ', FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% NH3 %%%
-         DiagnName = 'BIOMASS_NH3'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTNH3
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTNH3 > 0 ) THEN
+            DiagnName = 'BIOMASS_NH3'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTNH3
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            print*, '### NH3 FACTOR: ', FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% BC %%%
-         DiagnName = 'BIOMASS_BC'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTBCPI
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTBCPI > 0 ) THEN
+            DiagnName = 'BIOMASS_BC'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTBCPI
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% OC %%%
-         DiagnName = 'BIOMASS_OC'
-         UNIT      = 'atoms C/cm2/s'
-         IF ( IDTPOA1 /= 0 ) THEN
-            N = IDTPOA1
-         ELSE
-            N = IDTOCPI
+         IF ( IDTOCPI > 0 .or. IDTPOA1 > 0 ) THEN
+            DiagnName = 'BIOMASS_OC'
+            UNIT      = 'atoms C/cm2/s'
+            IF ( IDTPOA1 /= 0 ) THEN
+               N = IDTPOA1
+            ELSE
+               N = IDTOCPI
+            ENDIF
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
       ENDIF
 !
 !******************************************************************************
@@ -2111,15 +2138,22 @@
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
 !  (2) ND29 now uses allocatable array AD29 instead of AIJ. (bmy, 3/16/00)
 !  (3) Added CO-sources from isoprene and monoterpenes (bnd, bmy, 1/2/01)
+!
 !******************************************************************************
 
       IF ( ND29 > 0 ) THEN
-         CATEGORY ='CO--SRCE'
-         UNIT     = 'mol/cm2/s'
-         FACTOR   = Input_Opt%XNUMOL(IDTCO) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+         
+         ! Diagnostic category and units
+         CATEGORY = 'CO--SRCE'
+         UNIT     = 'molec/cm2/s'
 
-         DO N = 1,5
-            IF ( N == 4 ) CYCLE !! CO from methanol doesn't seem to be defined!?
+         ! Converts from kg/m2/s (in HEMCO) to molec/cm2/s (for bpch)
+         FACTOR   = Input_Opt%XNUMOL(IDTCO) / CM2PERM2 
+
+         ! Loop over all slots of ND29
+         DO N = 1, 5
+
+            ! Find the proper HEMCO diagnostic name 
             SELECT CASE ( N )
                CASE ( 1 )
                   DiagnName = 'ANTHROPOGENIC_CO'
@@ -2127,12 +2161,15 @@
                   DiagnName = 'BIOMASS_CO'
                CASE ( 3 )
                   DiagnName = 'BIOFUEL_CO'
+               CASE( 4 ) 
+                  CYCLE        ! CO from methanol doesn't seem to be defined!?
                CASE ( 5 )
                   DiagnName = 'BIOGENIC_CO'
                CASE DEFAULT
                   DiagnName = 'NOTHINGTOFIND'
             END SELECT
 
+            ! Write data from HEMCO to the bpch file
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2218,19 +2255,21 @@
 !  (4) Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
 !  (5) Aircraft NOx emissions now extend to LLPAR for AEIC inventory
 !       (mpayer, 7/31/13)
+!  (6) ND32 is now tracked by HEMCO (bmy, 8/15/14)
 !******************************************************************************
 !
       IF ( ND32  > 0                     .and. 
      &     IDTNO > 0                     .and. 
      &     Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
-         ! Zero
-         ARRAY  = 0e0
-
          ! All categories of NOx are in molec/cm2/s
          UNIT   = 'molec/cm2/s'
+
+         ! Diagnostic tracer number
          N      = IDTNO
-         FACTOR = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+
+         ! Converts from kg/m2/s (in HEMCO) to molec/cm2/s (for bpch)
+         FACTOR = Input_Opt%XNUMOL(IDTNO) / CM2PERM2
 
          !==============================================================
          ! Aircraft NOx
@@ -2246,11 +2285,14 @@
          !==============================================================
          CATEGORY  = 'NO-AN-$'
 
-         !------------------------------------------------------
+         !--------------------------------------------------------------
          ! (1) Get ANTHROPOGENIC NO from HEMCO data structure
-         !-------------------------------------------------------
+         !--------------------------------------------------------------
          DiagnName = 'ANTHROPOGENIC_NO' 
          DiagnCnt  => NULL()
+
+         ! Zero the diagnostic array
+         ARRAY     = 0e0
 
          ! Get diagnostics from HEMCO
          CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
@@ -2270,9 +2312,9 @@
             CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
          ENDIF
 
-         !-------------------------------------------------------
+         !-------------------------------------------------------------
          ! (2) Then get SHIP NO and add it to ANTHROPOGENIC NO
-         !-------------------------------------------------------
+         !-------------------------------------------------------------
          DiagnName = 'SHIP_NO' 
          DiagnCnt  => NULL()
 
@@ -2308,8 +2350,8 @@
          !==============================================================
          ! Biomass Burning NOx
          !==============================================================
-         CATEGORY  = 'NO-BIOB'
          DiagnName = 'BIOMASS_NO' 
+         CATEGORY  = 'NO-BIOB'
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2317,8 +2359,8 @@
          !==============================================================
          ! Binary punch file: NOx from Biofuel
          !==============================================================
-         CATEGORY  = 'NO-BIOF'
          DiagnName = 'BIOFUEL_NO' 
+         CATEGORY  = 'NO-BIOF'
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2326,8 +2368,8 @@
          !==============================================================
          ! Fertilizer NOx
          !==============================================================
-         CATEGORY  = 'NO-FERT'
          DiagnName = 'FERTILIZER_NO' 
+         CATEGORY  = 'NO-FERT'
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 0, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2335,8 +2377,8 @@
          !==============================================================
          ! Lightning NOx
          !==============================================================
+         DiagnName = 'LIGHTNING_NO'
          CATEGORY  = 'NO-LI-$'
-         DiagnName = 'LIGHTNING_NO' 
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, LLPAR, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -2344,24 +2386,28 @@
          !==============================================================
          ! Soil NOx
          !==============================================================
-         CATEGORY  = 'NO-SOIL'
          DiagnName = 'SOIL_NO' 
+         CATEGORY  = 'NO-SOIL'
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !==============================================================
-         ! Stratospheric NOx (boundary condition)
-         !==============================================================
-         CATEGORY     = 'NO-STRT'
-
-         ARRAY(:,:,1) = AD32_ub(:,:) / SCALEDYN
-            
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO ,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+!----------------------------------------------------------------------------
+! Prior to 8/15/14:
+! AD32_ub isn't used anymore, so we can remove it (bmy, 8/15/14)
+!         !==============================================================
+!         ! Stratospheric NOx (boundary condition)
+!         !==============================================================
+!         CATEGORY     = 'NO-STRT'
+!
+!         ARRAY(:,:,1) = AD32_ub(:,:) / SCALEDYN
+!            
+!         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
+!     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO ,
+!     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+!     &               IIPAR,     JJPAR,     1,        IFIRST,     
+!     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+!----------------------------------------------------------------------------
       ENDIF
 !
 !******************************************************************************
@@ -2400,6 +2446,12 @@
 !******************************************************************************
 !  ND34: Biofuel burning diagnostic 
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  HEMCO LUMPS MOST BIOFUELS IN WITH THE ANTHROPOGENICS.  THUS, MANY  %%% 
+!  %%%  OF THE BIOFUEL DIAGNOSTICS ARE NOW ZERO.  IT'S BETTER TO COMPARE   %%%
+!  %%%  SUM OF ANTHROPOGENIC + BIOFUEL EMISSIONS. (bmy, 8/15/14)           %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 !   # : Field : Description         : Units            : Scale factor
 !  --------------------------------------------------------------------------
 !  (1 ) NOx   : NOx                 : molec NOx /cm2/s : SCALESRCE
@@ -2431,127 +2483,151 @@
 
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          !%%% NOTE: FACTOR is the multiplication factor that converts
-         !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
+         !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s. 
+         !%%%
          !%%% For tracers that are carried in equivalent C atoms, FACTOR
          !%%% is further multiplied by the # of C atoms per molecule,
          !%%% which is stored in Input_Opt%TRACER_COEFF. (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          
          !%%% NO %%%
-         DiagnName = 'BIOFUEL_NO'
-         UNIT     = 'molec/cm2/s'
-         N         = IDTNO
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTNO > 0 ) THEN
+            DiagnName = 'BIOFUEL_NO'
+            UNIT     = 'molec/cm2/s'
+            N         = IDTNO
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% CO %%%
-         DiagnName = 'BIOFUEL_CO'
-         UNIT      = 'molec/cm2/s'
-         N         = IDTCO
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTCO > 0 ) THEN
+            DiagnName = 'BIOFUEL_CO'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTCO
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% ALK4 %%%
-         DiagnName = 'BIOFUEL_ALK4'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTALK4
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTALK4 > 0 ) THEN
+            DiagnName = 'BIOFUEL_ALK4'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTALK4
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% ACET %%%
-         DiagnName = 'BIOFUEL_ACET'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTACET
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTACET > 0 ) THEN
+            DiagnName = 'BIOFUEL_ACET'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTACET
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% MEK %%%
-         DiagnName = 'BIOFUEL_MEK'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTMEK
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTMEK > 0 ) THEN
+            DiagnName = 'BIOFUEL_MEK'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTMEK
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% ALD2 %%%
-         DiagnName = 'BIOFUEL_ALD2'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTALD2
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTALD2 > 0 ) THEN 
+            DiagnName = 'BIOFUEL_ALD2'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTALD2
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% PRPE %%%
-         DiagnName = 'BIOFUEL_PRPE'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTPRPE
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTPRPE > 0 ) THEN
+            DiagnName = 'BIOFUEL_PRPE'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTPRPE
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% C3H8 %%%
-         DiagnName = 'BIOFUEL_C3H8'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTC3H8
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTC3H8 > 0 ) THEN
+            DiagnName = 'BIOFUEL_C3H8'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTC3H8
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% CH2O %%%
-         DiagnName = 'BIOFUEL_CH2O'
-         UNIT      = 'molec/cm2/s'
-         N         = IDTCH2O
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTCH2O > 0 ) THEN
+            DiagnName = 'BIOFUEL_CH2O'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTCH2O
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% C2H6 %%%
-         DiagnName = 'BIOFUEL_C2H6'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTC2H6
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         FACTOR    = FACTOR              * Input_Opt%TRACER_COEFF(N,1)
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTC2H6 > 0 ) THEN
+            DiagnName = 'BIOFUEL_C2H6'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTC2H6
+            FACTOR    = Input_Opt%XNUMOL(N)         / CM2PERM2
+            FACTOR    = Input_Opt%TRACER_COEFF(N,1) * FACTOR
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% SO2 %%%
-         DiagnName = 'BIOFUEL_SO2'
-         UNIT      = 'molec/cm2/s'
-         N         = IDTSO2
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTSO2 > 0 ) THEN
+            DiagnName = 'BIOFUEL_SO2'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTSO2
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%% NH3 %%%
-         DiagnName = 'BIOFUEL_NH3'
-         UNIT      = 'atoms C/cm2/s'
-         N         = IDTNH3
-         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR,   RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
+         IF ( IDTNH3 > 0 ) THEN
+            DiagnName = 'BIOFUEL_NH3'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTNH3
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
       ENDIF
 !
 !******************************************************************************
@@ -2665,58 +2741,72 @@
                ! We haven't found a match, skip to next tracer
                IF ( MM == 0 ) CYCLE
 
-               ! Conversion factor from kg/m2/s -> molec/cm2/s
-               ! Tracers that are carried in atoms C will be further
-               ! multiplied by the # of carbons per molecule
-               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               !%%% NOTE: FACTOR is the multiplication factor that converts
+               !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
+               !%%%
+               !%%% For tracers that are carried in equivalent C atoms, 
+               !%%% FACTOR is further multiplied by the # of C atoms per 
+               !%%% molecule, which is stored in Input_Opt%TRACER_COEFF. 
+               !%%% (bmy, 8/14/14)
+               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                ! Get variables needed for HEMCO diagnostics
-               ! NOTEP 
                IF ( N == IDTNO ) THEN
                   DiagnName = 'ANTHROPOGENIC_NO'
                   UNIT      = 'molec/cm2/s'
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
 
                ELSEIF ( N == IDTCO ) THEN
                   DiagnName = 'ANTHROPOGENIC_CO'
                   UNIT      = 'molec/cm2/s'
-                         
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+                  
                ELSEIF ( N == IDTALK4 ) THEN
                   DiagnName = 'ANTHROPOGENIC_ALK4'
                   UNIT      = 'atoms C/cm2/s'
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
        
                ELSEIF ( N == IDTACET ) THEN
                   DiagnName = 'ANTHROPOGENIC_ACET'
                   UNIT      = 'atoms C/cm2/s'
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
                          
                ELSEIF ( N == IDTMEK ) THEN
                   DiagnName = 'ANTHROPOGENIC_MEK'
                   UNIT      = 'atoms C/cm2/s'
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
                ELSEIF ( N == IDTALD2 ) THEN
                   DiagnName = 'ANTHROPOGENIC_ALD2'
                   UNIT      = 'atoms C/cm2/s'
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
                ELSEIF ( N == IDTPRPE ) THEN
                   DiagnName = 'ANTHROPOGENIC_PRPE'
                   UNIT      = 'atoms C/cm2/s'
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
                ELSEIF ( N == IDTC3H8 ) THEN
                   DiagnName = 'ANTHROPOGENIC_C3H8'
                   UNIT      = 'atoms C/cm2/s'
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
                ELSEIF ( N == IDTCH2O ) THEN
                   DiagnName = 'ANTHROPOGENIC_CH2O'
                   UNIT      = 'molec/cm2/s'
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
 
                ELSEIF ( N == IDTC2H6 ) THEN
                   DiagnName = 'ANTHROPOGENIC_C2H6'
                   UNIT      = 'atoms C/cm2/s'
+                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                   FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
                ENDIF
@@ -4898,6 +4988,9 @@
 
       ! Return w/ success
       ERR = HCO_SUCCESS
+
+      ! Nullify pointer
+      DgnCont => NULL()
 
       END SUBROUTINE DIAG2BPCH
 

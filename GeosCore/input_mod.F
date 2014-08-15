@@ -1179,8 +1179,6 @@
 ! !USES:
 !
       USE CHARPAK_MOD,        ONLY : ISDIGIT
-      USE BIOFUEL_MOD,        ONLY : SET_BFTRACE
-      USE BIOMASS_MOD,        ONLY : SET_BIOTRCE
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TRACER_MOD,         ONLY : INIT_TRACER
@@ -1326,7 +1324,6 @@
       !=================================================================
       ! Read the # of tracers
       !=================================================================
-
 
       ! NTRACE
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:2' )
@@ -1556,12 +1553,6 @@
 
       ! Set up tracer flags
       CALL TRACERID( am_I_Root, Input_Opt, RC )
-
-      ! Set NBFTRACE in "biofuel_mod.f"
-      CALL SET_BFTRACE( am_I_Root )
-
-      ! Set NBIOTRACE in "biomass_mod.f"
-      CALL SET_BIOTRCE( am_I_Root, Input_Opt )
 
       ! Store the # of tracers internally in tracer_mod.F
       CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
@@ -4163,7 +4154,6 @@
 !
 ! !USES:
 !
-      USE BIOFUEL_MOD,  ONLY : NBFTRACE
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
       USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
       USE DIAG03_MOD,   ONLY : PD03_PL    !eds 9/9/10
@@ -4478,9 +4468,13 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:29' )
       READ( SUBSTRS(1), * ) ND28
-!      IF ( .not. Input_Opt%LBIOMASS ) ND28 = 0
-      CALL SET_TINDEX( am_I_Root, 28, ND28, SUBSTRS(2:N), N-1, NBIOMAX )
-
+!----------------------------------------------------------------------------
+! Prior to 8/15/14:
+! We now write out all biomass emissions from HEMCO, for now (bmy, 8/15/14)
+!!      IF ( .not. Input_Opt%LBIOMASS ) ND28 = 0
+!      CALL SET_TINDEX( am_I_Root, 28, ND28, SUBSTRS(2:N), N-1, NBIOMAX )
+!----------------------------------------------------------------------------
+ 
       !--------------------------
       ! ND29: CO sources
       !--------------------------
@@ -4521,9 +4515,14 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:35' )
       READ( SUBSTRS(1), * ) ND34
-!      IF ( .not. Input_Opt%LBIOFUEL ) ND34 = 0
-      CALL SET_TINDEX( am_I_Root, 
-     &                 34, ND34, SUBSTRS(2:N), N-1, NBFTRACE )
+!----------------------------------------------------------------------------
+! Prior to 8/15/14:
+! We now write out all biofuel emissions from HEMCO, for now (bmy, 8/15/14)
+!
+!!      IF ( .not. Input_Opt%LBIOFUEL ) ND34 = 0
+!      CALL SET_TINDEX( am_I_Root, 
+!     &                 34, ND34, SUBSTRS(2:N), N-1, NBFTRACE )
+!----------------------------------------------------------------------------
 
       !--------------------------
       ! ND35: 500 hPa tracer

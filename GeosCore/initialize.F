@@ -137,6 +137,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  08 Nov 2013 - M. Sulprizio- Removed CTO3. It is no longer used because O3
 !                              is now a tracer.
+!  15 Aug 2014 - R. Yantosca - Remove diagnostics now tracked by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,7 +165,11 @@
          IF ( ND05 > 0 ) AD05     = 0e0
          IF ( ND06 > 0 ) AD06     = 0e0
          IF ( ND08 > 0 ) AD08     = 0e0
-         IF ( ND11 > 0 ) AD11     = 0e0
+!------------------------------------------------------------------------------
+! Prior to 8/15/14:
+! ND11 is now tracked in HEMCO (bmy, 8/15/14)
+!         IF ( ND11 > 0 ) AD11     = 0e0
+!------------------------------------------------------------------------------
          IF ( ND12 > 0 ) AD12     = 0e0
          IF ( ND14 > 0 ) CONVFLUP = 0d0
          IF ( ND15 > 0 ) TURBFLUP = 0d0
@@ -176,12 +181,20 @@
          IF ( ND24 > 0 ) MASSFLEW = 0d0
          IF ( ND25 > 0 ) MASSFLNS = 0d0
          IF ( ND26 > 0 ) MASSFLUP = 0d0
-         IF ( ND28 > 0 ) AD28     = 0e0
-         IF ( ND29 > 0 ) AD29     = 0e0
+!------------------------------------------------------------------------------
+! Prior to 8/15/14:
+! ND28 and ND29 is now tracked by HEMCO (bmy, 8/15/14)
+!         IF ( ND28 > 0 ) AD28     = 0e0
+!         IF ( ND29 > 0 ) AD29     = 0e0
+!------------------------------------------------------------------------------
          IF ( ND30 > 0 ) AD30     = 0e0
          IF ( ND31 > 0 ) AD31     = 0e0
          IF ( ND33 > 0 ) AD33     = 0e0
-         IF ( ND34 > 0 ) AD34     = 0e0
+!------------------------------------------------------------------------------
+! Prior to 8/15/14:
+! ND34 is now tracked by HEMCO (bmy, 8/15/14)
+!         IF ( ND34 > 0 ) AD34     = 0e0
+!------------------------------------------------------------------------------
          IF ( ND35 > 0 ) AD35     = 0e0
          IF ( ND37 > 0 ) AD37     = 0e0
          IF ( ND38 > 0 ) AD38     = 0e0
@@ -189,7 +202,11 @@
          IF ( ND43 > 0 ) AD43     = 0e0
          IF ( ND44 > 0 ) AD44     = 0e0
          IF ( ND45 > 0 ) AD45     = 0e0
-         IF ( ND46 > 0 ) AD46     = 0e0
+!------------------------------------------------------------------------------
+! Prior to 8/15/14:
+! ND46 is now tracked by HEMCO (bmy, 8/15/14)
+!         IF ( ND46 > 0 ) AD46     = 0e0
+!------------------------------------------------------------------------------
          IF ( ND47 > 0 ) AD47     = 0e0
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
@@ -254,23 +271,26 @@
             AD10em  = 0e0
          ENDIF
 
-         ! For ND13 - sulfur emissions (bmy, 6/6/00, 5/20/04)
-         IF ( ND13 > 0 ) THEN
-            AD13_DMS    = 0e0  
-            AD13_SO2_ac = 0e0
-            AD13_SO2_an = 0e0
-            AD13_SO2_bb = 0e0
-            AD13_SO2_bf = 0e0
-            AD13_SO2_nv = 0e0
-            AD13_SO2_ev = 0e0
-            AD13_SO2_sh = 0e0
-            AD13_SO4_an = 0e0
-            AD13_SO4_bf = 0e0
-            AD13_NH3_an = 0e0
-            AD13_NH3_na = 0e0
-            AD13_NH3_bb = 0e0
-            AD13_NH3_bf = 0e0
-         ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/15/14:
+!         ! For ND13 - sulfur emissions (bmy, 6/6/00, 5/20/04)
+!         IF ( ND13 > 0 ) THEN
+!            AD13_DMS    = 0e0  
+!            AD13_SO2_ac = 0e0
+!            AD13_SO2_an = 0e0
+!            AD13_SO2_bb = 0e0
+!            AD13_SO2_bf = 0e0
+!            AD13_SO2_nv = 0e0
+!            AD13_SO2_ev = 0e0
+!            AD13_SO2_sh = 0e0
+!            AD13_SO4_an = 0e0
+!            AD13_SO4_bf = 0e0
+!            AD13_NH3_an = 0e0
+!            AD13_NH3_na = 0e0
+!            AD13_NH3_bb = 0e0
+!            AD13_NH3_bf = 0e0
+!         ENDIF
+!------------------------------------------------------------------------------
 
          ! ND21 -- optical depths
          IF ( ND21 > 0 ) THEN
@@ -278,25 +298,28 @@
             IF ( Input_Opt%LCRYST ) AD21_cr = 0e0
          ENDIF
 
-         ! For ND32 -- NOx source diagnostics (bmy, 3/28/00)
-         IF ( ND32 > 0 ) THEN 
-            AD32_ac = 0e0
-            AD32_an = 0e0
-            AD32_bb = 0e0
-            AD32_bf = 0e0
-            AD32_fe = 0e0
-            AD32_li = 0e0
-            AD32_so = 0e0
-            AD32_ub = 0e0
-            AD32_ship       = 0e0
-            AD32_ship_count = 0
-         ENDIF
-
-         IF ( ND36 > 0 ) THEN
-            AD36            = 0e0
-            AD36_SHIP       = 0e0
-            AD36_SHIP_COUNT = 0
-         ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/15/14:
+!         ! For ND32 -- NOx source diagnostics (bmy, 3/28/00)
+!         IF ( ND32 > 0 ) THEN 
+!            AD32_ac = 0e0
+!            AD32_an = 0e0
+!            AD32_bb = 0e0
+!            AD32_bf = 0e0
+!            AD32_fe = 0e0
+!            AD32_li = 0e0
+!            AD32_so = 0e0
+!            AD32_ub = 0e0
+!            AD32_ship       = 0e0
+!            AD32_ship_count = 0
+!         ENDIF
+!
+!         IF ( ND36 > 0 ) THEN
+!            AD36            = 0e0
+!            AD36_SHIP       = 0e0
+!            AD36_SHIP_COUNT = 0
+!         ENDIF
+!------------------------------------------------------------------------------
 
          ! For ND41 - afternoon PBL heights (bmy, 2/17/05)
          IF ( ND41 > 0 ) THEN
