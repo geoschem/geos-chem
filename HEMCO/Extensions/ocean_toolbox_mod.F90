@@ -119,7 +119,9 @@ CONTAINS
 !  11 Apr 2013 - C. Keller: Adapted from F. Paulot
 !  21 May 2013 - C. Keller: SCW added to argument list
 !  15 Aug 2014 - C. Keller: Now limit temperature to -40 degC to avoid overflow
-!                           error.
+!                           error. Also added error trap for temperatures
+!                           between -10.7 and -10.9 degrees that cause a div-zero
+!                           error in subroutine N_SW. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -144,6 +146,12 @@ CONTAINS
     ! Surface temperature must be greater than -40 degC. Otherwise, an
     ! overflow error may occur!
     TMP = MAX(T,TMAX)
+
+    ! Don't allow values between -10.7 and -10.9 to avoid div-zero error
+    ! in N_SW!
+    IF ( TMP > -10.7d0 .AND. TMP < -10.9d0 ) THEN
+       TMP = -10.7d0
+    ENDIF
 
     ! Calculate air resistence RA
     RA = 1d0 / CALC_KA(TMP,P,V,MW,VB,VERB)

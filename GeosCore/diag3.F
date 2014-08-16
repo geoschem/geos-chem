@@ -1922,7 +1922,8 @@
       IF ( ND28 > 0 ) THEN
 
          CATEGORY = 'BIOBSRCE'
-         UNIT     = 'molec/cm2/s'
+!         UNIT     = 'molec/cm2/s'
+         UNIT     = ''
 
          ! NO
          N         = IDTNO
@@ -3354,12 +3355,63 @@
 
          ! ACET 
          IF ( IDTACET > 0 ) THEN
-            N = 2
+
+            N      = 2
+            FACTOR = Input_Opt%XNUMOL(IDTACET) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
+
+            ! (1) BIOGENIC ACET 
             DiagnName = 'BIOGENIC_ACET'
-            FACTOR    = Input_Opt%XNUMOL(IDTACET) / CM2PERM2 ! kg/m2/s -> molec/cm2/s
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+            DiagnCnt  => NULL()
+
+            ! Get diagnostics from HEMCO
+            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                      FLAG, RC,   cName=TRIM(DiagnName), 
+     &                      AutoFill=1, InclManual=.TRUE. )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
+
+            ! Save into ARRAY. Convert to units
+            IF ( FLAG == HCO_SUCCESS ) THEN
+               ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+            ELSE
+               ARRAY(:,:,1) = 0.0
+               MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+               MSG = TRIM(MSG) // ' - will write zeros!'
+               CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ENDIF
+
+            ! (2) Then get oceanic acetone and add to it 
+            DiagnName = 'AD11_OCEAN_SOURCE'
+            DiagnCnt  => NULL()
+
+            ! Get diagnostics from HEMCO
+            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                      FLAG, RC,   cName=TRIM(DiagnName), 
+     &                      AutoFill=1, InclManual=.TRUE. )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
+
+            ! Save into ARRAY. Convert to units
+            IF ( FLAG == HCO_SUCCESS ) THEN
+                ARRAY(:,:,1) = ARRAY(:,:,1) +
+     &                      ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+            ELSE
+               MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+               MSG = TRIM(MSG) // ' - will write zeros!'
+               CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ENDIF
+
+            ! Write combined ANTHROPOGENIC NO + SHIP NO to disk
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
          ENDIF
 
          ! PRPE 
@@ -4801,7 +4853,11 @@
  
       !### DEBUG
       if ( dname == 'LIGHTNING_NO' ) then
-         print*, '### SUM ARRAY: ', SUM( ARRAY )
+         print*, '### SUM LIGHTNING NO: ', SUM( ARRAY )
+      elseif ( TRIM(dname) == TRIM('BIOMASS_SO2') ) THEN
+         write(*,*) 'total BIOMASS SO2: ', SUM(ARRAY(:,:,1:levs))
+      elseif ( TRIM(dname) == TRIM('BIOMASS_NH3') ) THEN
+         write(*,*) 'total BIOMASS NH3: ', SUM(ARRAY(:,:,1:levs))
       endif
          
       ! Write to bpch file
