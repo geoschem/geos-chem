@@ -233,11 +233,9 @@
 !     
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE BIOMASS_MOD,        ONLY : BIOMASS
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,            ONLY : GET_AREA_CM2
-      USE TRACERID_MOD,       ONLY : IDBCO
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
@@ -265,6 +263,7 @@
 !  30 Jul 2008 - N. E. Selin, C. Holmes, B. Corbitt - Initial version 
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  15 Aug 2014 - R. Yantosca - Removed reference to IDBCO; now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,8 +306,9 @@
             ! Grid box surface area, cm2
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
-            ! Convert molec CO /cm3 /s -> mol CO /gridbox /s 
-            E_CO = ( BIOMASS(I,J,IDBCO) / 6.022D23 ) * AREA_CM2
+!%%%% NOTE: NEED TO REPLACE THIS WITH HEMCO
+!            ! Convert molec CO /cm3 /s -> mol CO /gridbox /s 
+!            E_CO = ( BIOMASS(I,J,IDBCO) / 6.022D23 ) * AREA_CM2
 
             ! Convert mol CO /gridbox /s to kg Hg /gridbox /s
             EHg0_bb(I,J) = E_CO * BBRatio_Hg_CO * FMOL_HG 

@@ -992,19 +992,6 @@
      &                              day_of_year,  laiMM,     mapping,      
      &                              wasModisRead, RC )
 
-!-----------------------------------------------------------------------------
-! Prior to 7/24/14:
-! HEMCO makes all this obsolete now (bmy, 7/24/14)
-!            ! Note: this daily call to rdsoil left for backward compatibility.
-!            ! To be revised later.
-!            ! Also read soil-type info for fullchem simulation
-!            IF ( ITS_A_FULLCHEM_SIM ) THEN 
-!	       CALL READSOIL( am_I_Root, Input_Opt, RC )
-!	       CALL READFERT( am_I_Root, Input_Opt, RC ) 
-!	       CALL READCLIM( am_I_Root, Input_Opt, RC )
-!            ENDIF
-!-----------------------------------------------------------------------------
-
             !### Debug
             IF ( prtDebug ) CALL DEBUG_MSG ( '### MAIN: a DAILY DATA' )
          ENDIF
