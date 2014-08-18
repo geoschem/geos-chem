@@ -121,7 +121,10 @@
       USE TIME_MOD,     ONLY : GET_TAUb
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE DIAG_MOD,     ONLY : AD63,    AD63_COUNT     
+!------------------------------------------------------------------------
+! Prior to 8/18/14:
+!      USE DIAG_MOD,     ONLY : AD63,    AD63_COUNT     
+!------------------------------------------------------------------------
       USE ERROR_MOD,    ONLY : SAFE_DIV, ERROR_STOP
 
       USE CMN_O3_MOD	     ! Pure O3, SAVENO2
@@ -324,16 +327,20 @@
      &               ND63_IMIN+I0, ND63_JMIN+J0, 1, 
      &               REAL( Q(1:ND63_NI, 1:ND63_NJ, 1) ) )
       ENDDO
-            
-      !=================================================================
-      ! Reset the AD63 to zero
-      !=================================================================
-
-      ! Zero all elements
-      AD63(:,:,:) = 0d0
-
-      ! Reset the counter
-      AD63_COUNT = 0d0
+ 
+!-----------------------------------------------------------------------------
+! Prior to 8/18/14:
+! ND63 is now tracked by HEMCO (bmy, 8/18/14)
+!      !=================================================================
+!      ! Reset the AD63 to zero
+!      !=================================================================
+!
+!      ! Zero all elements
+!     AD63(:,:,:) = 0d0
+!
+!      ! Reset the counter
+!      AD63_COUNT = 0d0
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! Close the file at the proper time
