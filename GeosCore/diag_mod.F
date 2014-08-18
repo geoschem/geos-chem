@@ -210,14 +210,6 @@
       REAL*4,  ALLOCATABLE :: AD61_inst(:,:,:,:)
 #endif
 
-!-----------------------------------------------------------------------------
-! Prior to 8/18/14:
-! ND63 is now tracked by HEMCO (bmy, 8/18/14)
-!      ! For ND63 -- fraction of NOx remaining and Integrated OPE
-!      REAL*4,  ALLOCATABLE :: AD63(:,:,:)
-!      INTEGER, ALLOCATABLE :: AD63_COUNT
-!-----------------------------------------------------------------------------
-
       ! For ND64 -- radiative flux from FAST-JX
       REAL*4,  ALLOCATABLE :: AD64(:,:,:,:,:)
 
@@ -418,11 +410,6 @@
 #else
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
 #endif
-!-----------------------------------------------------------------------------
-! Prior to 8/18/14:
-!      IF ( ALLOCATED( AD63        ) ) DEALLOCATE( AD63        )
-!      IF ( ALLOCATED( AD63_COUNT  ) ) DEALLOCATE( AD63_COUNT  )
-!-----------------------------------------------------------------------------
       IF ( ALLOCATED( AD64        ) ) DEALLOCATE( AD64        )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )

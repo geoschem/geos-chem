@@ -1088,25 +1088,6 @@
       ENDIF
 #endif
 
-!-----------------------------------------------------------------------------
-! Prior to 8/18/14:
-! ND63 is now tracked by HEMCO (bmy, 8/18/14)
-!      !=================================================================
-!      ! ND63: FRACTION OF NOx REMAINING AND INTEGRATED OPE
-!      !=================================================================
-!      IF ( DO_SAVE_DIAG63 ) THEN 
-!
-!         ALLOCATE( AD63( IIPAR, JJPAR, 5), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63' )
-!         AD63 = 0d0
-!
-!         ALLOCATE( AD63_COUNT, STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63_COUNT' )
-!         AD63_COUNT = 0d0
-!
-!      ENDIF
-!-----------------------------------------------------------------------------
-
       !=================================================================
       ! ND64: Radiative flux from FAST-JX
       !       --> Uses AD64 array (allocatable)

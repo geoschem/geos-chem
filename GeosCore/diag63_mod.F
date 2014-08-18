@@ -121,10 +121,6 @@
       USE TIME_MOD,     ONLY : GET_TAUb
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-!------------------------------------------------------------------------
-! Prior to 8/18/14:
-!      USE DIAG_MOD,     ONLY : AD63,    AD63_COUNT     
-!------------------------------------------------------------------------
       USE ERROR_MOD,    ONLY : SAFE_DIV, ERROR_STOP
 
       USE CMN_O3_MOD	     ! Pure O3, SAVENO2
@@ -301,21 +297,6 @@
             CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
          ENDIF
  
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, X, Y)
-!            DO Y = 1, ND63_NJ
-!               J = JOFF + Y
-!            DO X = 1, ND63_NI
-!               I = GET_I( X )
-!               ! Normalize by AD63_COUNT, 
-!               ! the number of times diagnostics are summed
-!               Q(X,Y,1) = SAFE_DIV( DBLE(AD63(I,J,W)), DBLE(AD63_COUNT),
-!     &                              0d0 )
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-
          !==============================================================
          ! Save this data block to the ND63 timeseries file
          !==============================================================
@@ -328,20 +309,6 @@
      &               REAL( Q(1:ND63_NI, 1:ND63_NJ, 1) ) )
       ENDDO
  
-!-----------------------------------------------------------------------------
-! Prior to 8/18/14:
-! ND63 is now tracked by HEMCO (bmy, 8/18/14)
-!      !=================================================================
-!      ! Reset the AD63 to zero
-!      !=================================================================
-!
-!      ! Zero all elements
-!     AD63(:,:,:) = 0d0
-!
-!      ! Reset the counter
-!      AD63_COUNT = 0d0
-!-----------------------------------------------------------------------------
-
       !=================================================================
       ! Close the file at the proper time
       !=================================================================
