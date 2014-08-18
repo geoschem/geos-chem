@@ -358,15 +358,15 @@
          ! Loop over longitudes
          DO I = 1, HcoState%NX
  
-            ! Pressure [hPa] at bottom and top edge of level 1
+            ! Pressure [Pa] at bottom and top edge of level 1
             P1             = ExtState%PEDGE%Arr%Val(I,J,1) 
             P2             = ExtState%PEDGE%Arr%Val(I,J,2) 
 
             ! Pressure thickness of 1st layer [Pa]
-            PTHICK(I)      = ( P1 - P2 ) * 100d0
+            PTHICK(I)      = ( P1 - P2 ) 
 
             ! Pressure at midpt of surface layer [Pa]
-            PMID(I)        = ExtState%PCENTER%Arr%Val(I,J,1) * 100d0
+            PMID(I)        = ExtState%PCENTER%Arr%Val(I,J,1)
 
             ! Temperature [K] at midpoint of surface layer 
             TLON(I)        = ExtState%TK%Arr%Val(I,J,1)

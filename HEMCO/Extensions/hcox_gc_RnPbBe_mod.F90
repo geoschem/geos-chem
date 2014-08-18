@@ -50,6 +50,7 @@ MODULE HCOX_GC_RnPbBe_Mod
 !
 ! !REVISION HISTORY:
 !  07 Jul 2014 - R. Yantosca - Initial version
+!  15 Aug 2014 - C. Keller   - Targets now in hp precision. Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -57,24 +58,24 @@ MODULE HCOX_GC_RnPbBe_Mod
 ! !PRIVATE TYPES:
 !
   ! Emissions indices etc.
-  INTEGER                      :: ExtNr  = -1       ! HEMCO Extension number
-  INTEGER                      :: IDTRn  = -1       ! Index # for Rn tracer
-  INTEGER                      :: IDTBe7 = -1       ! Index # for 7Be tracer
+  INTEGER                       :: ExtNr  = -1       ! HEMCO Extension number
+  INTEGER                       :: IDTRn  = -1       ! Index # for Rn tracer
+  INTEGER                       :: IDTBe7 = -1       ! Index # for 7Be tracer
 
   ! For tracking Rn222 and Be7 emissions
-  REAL*8,  ALLOCATABLE, TARGET :: EmissRn (:,:  )
-  REAL*8,  ALLOCATABLE, TARGET :: EmissBe7(:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: EmissRn (:,:  )
+  REAL(hp), ALLOCATABLE, TARGET :: EmissBe7(:,:,:)
 
   ! For Lal & Peters 7Be emissions input data
-  REAL*8,  ALLOCATABLE         :: LATSOU  (:    )   ! Array for latitudes
-  REAL*8,  ALLOCATABLE         :: PRESOU  (:    )   ! Array for pressures
-  REAL*8,  ALLOCATABLE         :: BESOU   (:,:  )   ! Array for 7Be emissions
+  REAL*8,  ALLOCATABLE          :: LATSOU  (:    )   ! Array for latitudes
+  REAL*8,  ALLOCATABLE          :: PRESOU  (:    )   ! Array for pressures
+  REAL*8,  ALLOCATABLE          :: BESOU   (:,:  )   ! Array for 7Be emissions
 !
 ! !DEFINED PARAMETERS:
 !
   ! To convert kg to atoms
-  REAL*8,  PARAMETER           :: XNUMOL_Rn = ( 6.0225d23 / 222.0d-3 )    
-  REAL*8,  PARAMETER           :: XNUMOL_Be = ( 6.0225d23 /   7.0d-3 )
+  REAL*8,  PARAMETER            :: XNUMOL_Rn = ( 6.0225d23 / 222.0d-3 )    
+  REAL*8,  PARAMETER            :: XNUMOL_Be = ( 6.0225d23 /   7.0d-3 )
 
 CONTAINS
 !EOC
@@ -325,8 +326,8 @@ CONTAINS
        ! the 7Be distribution is symmetric about the equator
        LAT_TMP = ABS( HcoState%Grid%YMID( I, J ) )
 
-       ! Pressure at (I,J,L)
-       P_TMP   = ExtState%PCENTER%Arr%Val( I, J, L )
+       ! Pressure at (I,J,L) [hPa]
+       P_TMP   = ExtState%PCENTER%Arr%Val( I, J, L ) / 100.0_hp
                  
        ! Interpolate 7Be [stars/g air/sec] to GEOS-CHEM levels
        CALL SLQ( LATSOU, PRESOU, BESOU, 10, 33, LAT_TMP, P_TMP, Be_TMP )
@@ -512,22 +513,38 @@ CONTAINS
     !=======================================================================
 
     ALLOCATE( EmissRn( HcoState%Nx, HcoState%NY ), STAT=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= 0 ) THEN
+       CALL HCO_ERROR ( 'Cannot allocate EmissRn', RC )
+       RETURN
+    ENDIF 
 
     ALLOCATE( EmissBe7( HcoState%Nx, HcoState%NY, HcoState%NZ ), STAT=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= 0 ) THEN
+       CALL HCO_ERROR ( 'Cannot allocate EmissBe7', RC )
+       RETURN
+    ENDIF 
+    IF ( RC /= 0 ) RETURN
 
     ! Array for latitudes (Lal & Peters data)
     ALLOCATE( LATSOU( 10 ), STAT=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= 0 ) THEN
+       CALL HCO_ERROR ( 'Cannot allocate LATSOU', RC )
+       RETURN
+    ENDIF 
 
     ! Array for pressures (Lal & Peters data)
     ALLOCATE( PRESOU( 33 ), STAT=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= 0 ) THEN
+       CALL HCO_ERROR ( 'Cannot allocate PRESOU', RC )
+       RETURN
+    ENDIF 
 
     ! Array for 7Be emissions ( Lal & Peters data)
     ALLOCATE( BESOU( 10, 33 ), STAT=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= 0 ) THEN
+       CALL HCO_ERROR ( 'Cannot allocate BESOU', RC )
+       RETURN
+    ENDIF 
     
     ! Initialize the 7Be emisisons data arrays
     CALL Init_7Be_Emissions()

@@ -116,7 +116,6 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: PARDR       ! direct photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: PARDF       ! diffuse photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: RADSWG      ! surface radiation [W/m2]
-     TYPE(ExtDat_2R),  POINTER :: PSURF       ! surface pressure [hPa]
      TYPE(ExtDat_2R),  POINTER :: FRCLND      ! land fraction [-] 
      TYPE(ExtDat_2R),  POINTER :: CLDFRC      ! cloud fraction [-]
      TYPE(ExtDat_2R),  POINTER :: JNO2        ! J-Value for NO2 [1/s] 
@@ -127,8 +126,8 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: GC_LAI_NM   ! next month's LAI [cm2/cm2]
      INTEGER,          POINTER :: DAYS_BTW_M  ! Days between months (for LAI) 
      TYPE(ExtDat_2I),  POINTER :: CLDTOPS     ! Cloud top level index
-     TYPE(ExtDat_3R),  POINTER :: PEDGE       ! Bottom press. edge [hPa]
-     TYPE(ExtDat_3R),  POINTER :: PCENTER     ! Press. center [hPa]
+     TYPE(ExtDat_3R),  POINTER :: PEDGE       ! Bottom press. edge [Pa]
+     TYPE(ExtDat_3R),  POINTER :: PCENTER     ! Press. center [Pa]
      TYPE(ExtDat_3R),  POINTER :: SPHU        ! Spec. humidity [kg H2O/kg air] 
      TYPE(ExtDat_3R),  POINTER :: TK          ! Air temperature [K]
      TYPE(ExtDat_3R),  POINTER :: AIR         ! Air mass [kg]
@@ -296,9 +295,6 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%RADSWG, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%PSURF, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Init ( ExtState%FRCLND, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -419,7 +415,6 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%PARDR      )
        CALL ExtDat_Cleanup( ExtState%PARDF      )
        CALL ExtDat_Cleanup( ExtState%RADSWG     )
-       CALL ExtDat_Cleanup( ExtState%PSURF      )
        CALL ExtDat_Cleanup( ExtState%FRCLND     )
        CALL ExtDat_Cleanup( ExtState%CLDFRC     )
        CALL ExtDat_Cleanup( ExtState%GC_LAI     )

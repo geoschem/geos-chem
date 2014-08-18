@@ -336,7 +336,7 @@ CONTAINS
     ! --> 1 automatically filled diagnostics in Seaflux
     ! --> Ocean sink is passed to drydep and not explicitly written out!!
     !-----------------------------------------------------------------------
-    IF ( ND11 > 0 ) THEN 
+    IF ( ND11 > 0 .OR. ND46 > 0 ) THEN 
 
        ! Get HEMCO species ID 
        SpcName   = 'ACET'
@@ -836,7 +836,7 @@ CONTAINS
 
     IF ( ND28 > 0 .OR.                                         &
          ( ND13 > 0 .AND. (Input_Opt%ITS_A_FULLCHEM_SIM .OR.   &
-                              Input_Opt%ITS_AN_AEROSOL_SIM     )) &
+                           Input_Opt%ITS_AN_AEROSOL_SIM     )) &
          ) THEN
        ID1 = HCO_GetHcoID( 'SO2', HcoState )
        IF ( ID1 <= 0 ) THEN
@@ -1633,7 +1633,8 @@ CONTAINS
     ! ==> Biogenic emissions are taken from MEGAN inventory
     ! ==> write one single biogenic emissions diagnostics per species.
     ! ==> Diagnostics are returned in kg/m2/s.
-    ! ==> Fpr now, only GC species totals are diagnosed. To add 
+    ! ==> Oceanic acetone is defined in ND11.
+    ! ==> For now, only GC species totals are diagnosed. To add 
     !     individual MEGAN species (Sabinene, Limonene, ...), those
     !     have to be explicitly added to hcox_megan_mod (as for acetone) 
     !-----------------------------------------------------------------------

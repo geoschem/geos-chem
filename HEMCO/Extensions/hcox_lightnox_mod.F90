@@ -351,6 +351,7 @@ CONTAINS
     REAL(hp), POINTER :: Arr2D(:,:) => NULL() 
     CHARACTER(LEN=31) :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
+    REAL(hp)          :: TROPP
 
     !=================================================================
     ! LIGHTNOX begins here!
@@ -423,7 +424,7 @@ CONTAINS
 !$OMP PRIVATE( Z_IC,        LBOTTOM,  HBOTTOM,  CC,     FLASHRATE ) &
 !$OMP PRIVATE( IC_CG_RATIO, L_MFLUX,  MFLUX,    RAIN,   RATE      ) &
 !$OMP PRIVATE( X,           TOTAL_IC, TOTAL_CG, TOTAL,  REDIST    ) &
-!$OMP PRIVATE( RATE_SAVE,   VERTPROF, SFCTYPE,  LNDTYPE           ) &
+!$OMP PRIVATE( RATE_SAVE,   VERTPROF, SFCTYPE,  LNDTYPE, TROPP    ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes
@@ -442,6 +443,9 @@ CONTAINS
        ! the types used elsewhere else: 0 = land, 1=water, 2=ice!
        LNDTYPE = HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J),  & 
                                ExtState%ALBD%Arr%Val(I,J) ) 
+
+       ! Tropopause pressure. Convert to Pa
+       TROPP = ExtState%TROPP%Arr%Val(I,J) * 100.0_hp
 
        ! Adjust SFCTYPE variable for this module:
        SELECT CASE( LNDTYPE )
@@ -513,7 +517,7 @@ CONTAINS
        ! (1a) Define more quantities
        !-----------------------------------------------------------
            
-       ! Pressure [hPa] at the centers of grid
+       ! Pressure [Pa] at the centers of grid
        ! boxes (I,J,LCHARGE-1) and (I,J,LCHARGE)
        P1   = ExtState%PCENTER%Arr%Val( I, J, LCHARGE-1 )
        P2   = ExtState%PCENTER%Arr%Val( I, J, LCHARGE   )
@@ -532,7 +536,7 @@ CONTAINS
        DLNP = LOG( P1 / P2 ) / ( T1 - T2 ) * ( T1 - T_NEG_CTR )
        DZ   = HcoState%Phys%Rdg0 * ( ( T1 + T2 ) / 2d0 ) * DLNP
 
-       ! Pressure [hPa] at the bottom edge of box (I,J,LCHARGE),
+       ! Pressure [Pa] at the bottom edge of box (I,J,LCHARGE),
        ! or, equivalently, the top edge of box (I,J,LCHARGE-1).
        P3   = ExtState%PEDGE%Arr%Val( I, J, LCHARGE )
 
@@ -650,7 +654,7 @@ CONTAINS
        ! (3a) Define more quantities
        !-----------------------------------------------------------
 
-       ! Pressure [hPa] at the centers of grid
+       ! Pressure [Pa] at the centers of grid
        ! boxes (I,J,LBOTTOM-1) and (I,J,LBOTTOM)
        P1   = ExtState%PCENTER%Arr%Val( I, J, LBOTTOM-1 )
        P2   = ExtState%PCENTER%Arr%Val( I, J, LBOTTOM   )
@@ -669,7 +673,7 @@ CONTAINS
        DLNP = LOG( P1 / P2 ) / ( T1 - T2 ) * ( T1 - T_NEG_BOT )
        DZ   = HcoState%Phys%Rdg0 * ( ( T1 + T2 ) / 2d0 ) * DLNP
 
-       ! Pressure [hPa] at the bottom edge of box (I,J,LBOTTOM),
+       ! Pressure [Pa] at the bottom edge of box (I,J,LBOTTOM),
        ! or, equivalently, the top edge of box (I,J,BOTTOM-1).
        P3   = ExtState%PEDGE%Arr%Val( I, J, LBOTTOM )
 
@@ -934,8 +938,7 @@ CONTAINS
              SLBASE(I,J,L) = SLBASE(I,J,L) + VERTPROF(L) 
 
              ! No lightnox emissions in the stratosphere (cdh, 4/25/2013)
-             IF ( ExtState%PEDGE%Arr%Val(I,J,L) < &
-                  ExtState%TROPP%Arr%Val(I,J) ) THEN
+             IF ( ExtState%PEDGE%Arr%Val(I,J,L) < TROPP ) THEN 
                 SLBASE(I,J,L) = 0.0_hp
 
              ELSE

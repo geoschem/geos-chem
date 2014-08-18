@@ -70,9 +70,9 @@ MODULE HCOI_GC_Main_Mod
   TYPE(Ext_State), POINTER        :: ExtState  => NULL()
 
   ! Internal met fields (will be used by some extensions)
-  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PCENTER(:,:,:)
-  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PEDGE  (:,:,:)
-  REAL(hp), ALLOCATABLE, TARGET     :: HCO_SZAFACT(:,:)
+  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PCENTER(:,:,:) ! Pa
+  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PEDGE  (:,:,:) ! Pa
+  REAL(hp), ALLOCATABLE, TARGET     :: HCO_SZAFACT(:,:)   ! -
 
   ! Arrays to store J-values (used by Paranox extension)
   REAL(hp), ALLOCATABLE, TARGET     :: JNO2(:,:)
@@ -1091,9 +1091,6 @@ CONTAINS
     IF ( ExtState%RADSWG%DoUse ) THEN
        ExtState%RADSWG%Arr%Val => State_Met%RADSWG
     ENDIF
-    IF ( ExtState%PSURF%DoUse ) THEN
-       ExtState%PSURF%Arr%Val => State_Met%PSC2
-    ENDIF
     IF ( ExtState%FRCLND%DoUse ) THEN
        ExtState%FRCLND%Arr%Val => State_Met%FRCLND
     ENDIF
@@ -1264,15 +1261,15 @@ CONTAINS
        DO J = 1, JJPAR
        DO I = 1, IIPAR
 
-          ! pressure edges
+          ! pressure edges [Pa]
           IF ( ExtState%PEDGE%DoUse ) THEN
-             HCO_PEDGE(I,J,L) = GET_PEDGE(  I,J,L)
-             IF ( L==LLPAR ) HCO_PEDGE(I,J,L+1) = GET_PEDGE(I,J,L+1)
+             HCO_PEDGE(I,J,L) = GET_PEDGE( I,J,L) * 100.0_hp
+             IF ( L==LLPAR ) HCO_PEDGE(I,J,L+1) = GET_PEDGE(I,J,L+1) * 100.0_hp
           ENDIF
 
-          ! pressure centers
+          ! pressure centers [Pa]
           IF ( ExtState%PCENTER%DoUse ) THEN
-             HCO_PCENTER(I,J,L) = GET_PCENTER(I,J,L)
+             HCO_PCENTER(I,J,L) = GET_PCENTER(I,J,L) * 100.0_hp
           ENDIF
 
           ! current SZA divided by total daily SZA (2D field only)

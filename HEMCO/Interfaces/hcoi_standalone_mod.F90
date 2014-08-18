@@ -1450,9 +1450,6 @@ CONTAINS
     CALL SetExtPtr ( am_I_Root, ExtState%RADSWG, 'RADSWG', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%PSURF, 'PSURF', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL SetExtPtr ( am_I_Root, ExtState%FRCLND, 'FRCLND', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

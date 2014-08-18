@@ -118,14 +118,19 @@ CONTAINS
 ! !REVISION HISTORY:
 !  11 Apr 2013 - C. Keller: Adapted from F. Paulot
 !  21 May 2013 - C. Keller: SCW added to argument list
+!  15 Aug 2014 - C. Keller: Now limit temperature to -40 degC to avoid overflow
+!                           error. Also added error trap for temperatures
+!                           between -10.7 and -10.9 degrees that cause a div-zero
+!                           error in subroutine N_SW. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8  :: RA,RL
     LOGICAL :: VERB
+    REAL*8  :: RA,RL,TMP
+    REAL*8, PARAMETER :: TMAX = -40.0d0
 
     !=================================================================
     ! CALC_KG begins here!
@@ -138,11 +143,21 @@ CONTAINS
        VERB = .FALSE.
     ENDIF
 
+    ! Surface temperature must be greater than -40 degC. Otherwise, an
+    ! overflow error may occur!
+    TMP = MAX(T,TMAX)
+
+    ! Don't allow values between -10.7 and -10.9 to avoid div-zero error
+    ! in N_SW!
+    IF ( TMP > -10.7d0 .AND. TMP < -10.9d0 ) THEN
+       TMP = -10.7d0
+    ENDIF
+
     ! Calculate air resistence RA
-    RA = 1d0 / CALC_KA(T,P,V,MW,VB,VERB)
+    RA = 1d0 / CALC_KA(TMP,P,V,MW,VB,VERB)
 
     ! Calculate water resistence RL
-    RL = H / CALC_KL(T,V,SALT,VB,SCW,VERB)
+    RL = H / CALC_KL(TMP,V,SALT,VB,SCW,VERB)
 
     ! Calculate transfer velocity Kg
     KG = 1d0 / (RA + RL)
@@ -349,9 +364,12 @@ CONTAINS
     DO I=1,5
        W_I = MASS_FRACTION(I) * S / 1000d0       
 
-       ! NOTE: SHOULD CLEAN UP THIS LINE FOR READABILITY'S SAKE!
-       NI = exp( ((v1(I)*w_i_tot**v2(I))+v3(I)) / ((v4(I)*T)+1) ) / &
-            ( (v5(I)*(w_i_tot**v6(I))) + 1d0 )
+       NI = exp(                                          &
+                 ( ( v1(I) * w_i_tot**v2(I) ) + v3(I) ) / &
+                 ( ( v4(I) * T ) + 1d0                )   &
+               ) / (                                      &
+                     ( v5(I) * (w_i_tot**v6(I)) ) + 1d0   &
+                   )
 
        !-------------------------------------------------------------
        ! Prior to 7/1/14:

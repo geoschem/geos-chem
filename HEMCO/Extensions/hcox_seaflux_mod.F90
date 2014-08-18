@@ -290,22 +290,30 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  16 Apr 2013 - C. Keller - Initial version
+!  15 Aug 2014 - C. Keller - Now restrict calculations to temperatures above
+!                            10 deg C.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L
-    REAL*8             :: IJSRC, IJSINK
-    INTEGER            :: SCW
-    REAL*8             :: P, V, S, VB, MW, KG
-    REAL*8             :: K0, CR, PKA
-    REAL*8             :: KH, HEFF, PH
-    REAL*8             :: TK, TC
-                       
+    INTEGER             :: I, J, L
+    REAL*8              :: IJSRC, IJSINK
+    INTEGER             :: SCW
+    REAL*8              :: P, V, VB, MW, KG
+    REAL*8              :: K0, CR, PKA
+    REAL*8              :: KH, HEFF
+    REAL*8              :: TK, TC
+
+    ! For now, hardcode salinity
+    REAL(dp), PARAMETER :: S = 35.0_dp
+                  
+    ! Set seawater PH to constant value of 8
+    REAL(dp), PARAMETER :: PH = 8.0_dp
+ 
     ! Error handling   
-    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255)  :: MSG
 
     !=================================================================
     ! CALC_SEAFLUX begins here!
@@ -331,8 +339,8 @@ CONTAINS
 
 !$OMP PARALLEL DO                                                   &
 !$OMP DEFAULT( SHARED )                                             &
-!$OMP PRIVATE( I,           J,        PH,       TK                ) &
-!$OMP PRIVATE( TC,          P,        MW,       VB,     S         ) &
+!$OMP PRIVATE( I,           J,        TK                          ) &
+!$OMP PRIVATE( TC,          P,        MW,       VB                ) &
 !$OMP PRIVATE( V,           KH,       RC,       HEFF,   SCW       ) &
 !$OMP PRIVATE( KG,          IJSRC                                 ) &
 !$OMP SCHEDULE( DYNAMIC )
@@ -343,6 +351,9 @@ CONTAINS
        ! Make sure we have no negative seawater concentrations 
        IF ( SeaConc(I,J) < 0d0 ) SeaConc(I,J) = 0d0
 
+       ! Assume no air-sea exchange over snow/ice (ALBEDO > 0.4)
+       IF ( ExtState%ALBD%Arr%Val(I,J) > 0.4d0 ) CYCLE
+
        ! Do only over the ocean, i.e. if land fraction is less
        ! than 0.8
        IF ( ExtState%FRCLND%Arr%Val(I,J) < 0.8 ) THEN
@@ -350,16 +361,20 @@ CONTAINS
           !-----------------------------------------------------------
           ! Get grid box and species specific quantities
           !-----------------------------------------------------------
-
-          ! pH of sea water. For the moment, set to 8
-          PH = 8d0
  
           ! surface air temp in K and C
           TK = ExtState%TSURFK%Arr%Val(I,J) 
           TC = TK - 273.15d0
+
+          ! Assume no air-sea exchange for temperatures below -10 deg C.
+          ! This is rather arbitrary, but seawater should be frozen at
+          ! that temperature anyways. Also, this ensures that the cal-
+          ! culation of KG doesn't produce an overflow error, which occurs
+          ! at temperatures of -10.7 to -10.9 deg C. 
+          IF ( TC < -10.0d0 ) CYCLE
  
           ! surface pressure [Pa]
-          P = ExtState%PSURF%Arr%Val(I,J) * 100d0
+          P = ExtState%PEDGE%Arr%Val(I,J,L)
 
           ! molecular weight [g/mol]
           MW = HcoState%Spc(HcoID)%MW_g
@@ -369,7 +384,7 @@ CONTAINS
 
           ! Salinity [ppt]
           ! Set to constant value for now!
-          S = 35d0 
+!          S = 35d0 
 
           ! 10-m wind speed [m/s] 
           V = ExtState%U10M%Arr%Val(I,J)**2 + &
@@ -404,18 +419,12 @@ CONTAINS
           ! Calculate exchange velocity KG in [m s-1]
           !-----------------------------------------------------------
 
-          ! Assume no air-sea exchange over snow/ice (ALBEDO > 0.4)
-          IF ( ExtState%ALBD%Arr%Val(I,J) > 0.4d0 ) THEN
-             KG = 0d0
-
           ! Get exchange velocity KG (m/s) following Johnson, 2010.
           ! Kg is defined as 1 / (1/k_air + H/k_water). Note that Kg 
           ! is denoted Ka in Johnson, 2010!
           ! Use effective Henry constant here to account for
           ! hydrolysis!
-          ELSE
-             CALL CALC_KG( TC, P, V, S, HEFF, VB, MW, SCW, KG )
-          ENDIF
+          CALL CALC_KG( TC, P, V, S, HEFF, VB, MW, SCW, KG )
 
           !-----------------------------------------------------------
           ! Calculate flux from the ocean (kg m-2 s-1):
@@ -680,7 +689,7 @@ CONTAINS
     ! Set met fields
     ExtState%U10M%DoUse   = .TRUE.
     ExtState%V10M%DoUse   = .TRUE.
-    ExtState%PSURF%DoUse  = .TRUE.
+    ExtState%PEDGE%DoUse  = .TRUE.
     ExtState%TSURFK%DoUse = .TRUE.
     ExtState%ALBD%DoUse   = .TRUE.
     ExtState%FRCLND%DoUse = .TRUE.
