@@ -4468,12 +4468,6 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:29' )
       READ( SUBSTRS(1), * ) ND28
-!----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! We now write out all biomass emissions from HEMCO, for now (bmy, 8/15/14)
-!!      IF ( .not. Input_Opt%LBIOMASS ) ND28 = 0
-!      CALL SET_TINDEX( am_I_Root, 28, ND28, SUBSTRS(2:N), N-1, NBIOMAX )
-!----------------------------------------------------------------------------
  
       !--------------------------
       ! ND29: CO sources
@@ -4515,14 +4509,6 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:35' )
       READ( SUBSTRS(1), * ) ND34
-!----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! We now write out all biofuel emissions from HEMCO, for now (bmy, 8/15/14)
-!
-!!      IF ( .not. Input_Opt%LBIOFUEL ) ND34 = 0
-!      CALL SET_TINDEX( am_I_Root, 
-!     &                 34, ND34, SUBSTRS(2:N), N-1, NBFTRACE )
-!----------------------------------------------------------------------------
 
       !--------------------------
       ! ND35: 500 hPa tracer

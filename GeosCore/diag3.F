@@ -2392,22 +2392,6 @@
      &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-!----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! AD32_ub isn't used anymore, so we can remove it (bmy, 8/15/14)
-!         !==============================================================
-!         ! Stratospheric NOx (boundary condition)
-!         !==============================================================
-!         CATEGORY     = 'NO-STRT'
-!
-!         ARRAY(:,:,1) = AD32_ub(:,:) / SCALEDYN
-!            
-!         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-!     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO ,
-!     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-!     &               IIPAR,     JJPAR,     1,        IFIRST,     
-!     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-!----------------------------------------------------------------------------
       ENDIF
 !
 !******************************************************************************

@@ -30,11 +30,6 @@
       ! For ND02 -- Rn, Pb, Be decay
       REAL*4,  ALLOCATABLE :: AD02(:,:,:,:)
 
-      !--------------------------------------------
-      !! For ND03 -- Kr85 prod/loss
-      !REAL*4,  ALLOCATABLE :: AD03(:,:,:,:)
-      !--------------------------------------------
-
       ! For ND05 -- Sulfate prod/loss diagnostics
       REAL*4,  ALLOCATABLE :: AD05(:,:,:,:)
 
@@ -42,6 +37,7 @@
       REAL*4,  ALLOCATABLE :: AD06(:,:,:)
 
       ! For ND07 -- Carbon aerosol emission
+      !%%% NOTE: SOME OF THESE ARE OBSOLETE NOW (bmy, 8/18/14)
       REAL*4,  ALLOCATABLE :: AD07(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_BC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
@@ -59,39 +55,17 @@
       REAL*4,  ALLOCATABLE :: AD09(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD09_em(:,:,:)
 
-      ! For ND10 -- H2/HD prod, loss, & emiss diagnostics
-      REAL*4,  ALLOCATABLE :: AD10(:,:,:,:)
-      REAL*4,  ALLOCATABLE :: AD10em(:,:,:)
-
 !-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND11 is now tracked in HEMCO (bmy, 8/15/14)
-!      ! For ND12 -- boundary layer multiplication factor
-!      REAL*4,  ALLOCATABLE :: AD11(:,:,:)
+! Prior to 8/18/14:
+!%%% THE H2/HD SIMULATION IS OBSOLETE.  YOU CAN RESTORE IT IF YOU WANT. 
+!%%% UNTIL THEN WE WILL LEAVE THIS COMMENTED OUT.  (bmy, 8/18/14)
+!      ! For ND10 -- H2/HD prod, loss, & emiss diagnostics
+!      REAL*4,  ALLOCATABLE :: AD10(:,:,:,:)
+!      REAL*4,  ALLOCATABLE :: AD10em(:,:,:)
 !-----------------------------------------------------------------------------
 
       ! For ND12 -- boundary layer multiplication factor
       REAL*4,  ALLOCATABLE :: AD12(:,:,:)
-
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND13 is now tracked in HEMCO (bmy, 8/15/14)
-!      ! For ND13 -- Sulfur emissions
-!      REAL*4,  ALLOCATABLE :: AD13_DMS(:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_SO2_ac(:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_SO2_an(:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_SO2_bb(:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_SO2_bf(:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_SO2_nv(:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_SO2_ev(:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_SO2_sh(:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_SO4_an(:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_SO4_bf(:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_NH3_an(:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_NH3_na(:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_NH3_bb(:,:)
-!      REAL*4,  ALLOCATABLE :: AD13_NH3_bf(:,:)
-!-----------------------------------------------------------------------------
 
       ! For ND14 -- wet convection mass flux diagnostic
       REAL*8,  ALLOCATABLE :: CONVFLUP(:,:,:,:)
@@ -132,61 +106,17 @@
       ! For ND26 -- UP/DOWN transport mass flux diagnostic
       REAL*8,  ALLOCATABLE :: MASSFLUP(:,:,:,:)
 
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND28 is now tracked in HEMCO (bmy, 8/15/14)
-!     ! For ND28 -- Biomass burning diagnostic
-!      REAL*4,  ALLOCATABLE :: AD28(:,:,:)
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND29 is now tracked in HEMCO (bmy, 8/15/14)
-!      ! For ND29 -- CO source diagnostic
-!      REAL*4,  ALLOCATABLE :: AD29(:,:,:)
-!-----------------------------------------------------------------------------
-
       ! For ND30 -- land / water / ice flags
       REAL*4,  ALLOCATABLE :: AD30(:,:)
 
       ! For ND31 -- surface pressures
       REAL*4,  ALLOCATABLE :: AD31(:,:,:)
 
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND32 is now tracked in HEMCO (bmy, 8/15/14)
-!      ! For ND32 -- NOx sources 
-!      REAL*4,  ALLOCATABLE :: AD32_ac(:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD32_an(:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD32_bb(:,:)
-!      REAL*4,  ALLOCATABLE :: AD32_bf(:,:)
-!      REAL*4,  ALLOCATABLE :: AD32_fe(:,:)
-!      REAL*4,  ALLOCATABLE :: AD32_li(:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD32_so(:,:)
-!      REAL*4,  ALLOCATABLE :: AD32_ub(:,:)
-!      REAL*4,  ALLOCATABLE :: AD32_ship(:,:)
-!      INTEGER              :: AD32_ship_count
-!-----------------------------------------------------------------------------
-
       ! For ND33 -- tropopsheric sum of tracer
       REAL*4,  ALLOCATABLE :: AD33(:,:,:)
 
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND34 is now tracked in HEMCO (bmy, 8/15/14)
-!      ! For ND34 -- biofuel emissions
-!      REAL*4,  ALLOCATABLE :: AD34(:,:,:)
-!-----------------------------------------------------------------------------
-
       ! For ND35 -- 500 mb tracer
       REAL*4,  ALLOCATABLE :: AD35(:,:,:)
-
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND32 is now tracked in HEMCO (bmy, 8/15/14)
-!      ! For ND36 -- Anthropogenic source diagnostic
-!      REAL*4,  ALLOCATABLE :: AD36(:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD36_SHIP(:,:,:)
-!      INTEGER              :: AD36_SHIP_COUNT
-!-----------------------------------------------------------------------------
 
       ! For ND37 -- Fraction of tracer scavenged in cloud updrafts
       REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)      
@@ -229,13 +159,6 @@
       REAL*4,  ALLOCATABLE :: AD45(:,:,:,:)      
       INTEGER, ALLOCATABLE :: LTOTH(:,:)
       INTEGER, ALLOCATABLE :: CTOTH(:,:)
-
-!------------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND46 is now tracked in HEMCO (bmy, 8/15/14)
-!      ! For ND46 -- Tracer concentration diagnostic
-!      REAL*4,  ALLOCATABLE :: AD46(:,:,:)      
-!------------------------------------------------------------------------------
 
       ! For ND47 -- 24-h tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD47(:,:,:,:)      
@@ -440,93 +363,39 @@
       IF ( ALLOCATED( AD08        ) ) DEALLOCATE( AD08        )
       IF ( ALLOCATED( AD09        ) ) DEALLOCATE( AD09        )
       IF ( ALLOCATED( AD09_em     ) ) DEALLOCATE( AD09_em     )
-      IF ( ALLOCATED( AD10        ) ) DEALLOCATE( AD10        )
-      IF ( ALLOCATED( AD10em      ) ) DEALLOCATE( AD10em      )
 !-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND11 is now tracked in HEMCO (bmy, 8/15/14)
-!      IF ( ALLOCATED( AD11        ) ) DEALLOCATE( AD11        )
+!%%% Prior to 8/18/14:
+!%%% THE H2/HD SIMULATION IS OBSOLETE.  YOU CAN RESTORE IT IF YOU WANT. 
+!%%% UNTIL THEN WE WILL LEAVE THIS COMMENTED OUT.  (bmy, 8/18/14)
+!      IF ( ALLOCATED( AD10        ) ) DEALLOCATE( AD10        )
+!      IF ( ALLOCATED( AD10em      ) ) DEALLOCATE( AD10em      )
 !-----------------------------------------------------------------------------
       IF ( ALLOCATED( AD12        ) ) DEALLOCATE( AD12        )
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND13 is now tracked in HEMCO (bmy, 8/15/14)
-!      IF ( ALLOCATED( AD13_DMS    ) ) DEALLOCATE( AD13_DMS    )
-!      IF ( ALLOCATED( AD13_SO2_ac ) ) DEALLOCATE( AD13_SO2_ac )
-!      IF ( ALLOCATED( AD13_SO2_an ) ) DEALLOCATE( AD13_SO2_an )
-!      IF ( ALLOCATED( AD13_SO2_bb ) ) DEALLOCATE( AD13_SO2_bb )
-!      IF ( ALLOCATED( AD13_SO2_bf ) ) DEALLOCATE( AD13_SO2_bf )
-!      IF ( ALLOCATED( AD13_SO2_nv ) ) DEALLOCATE( AD13_SO2_nv )
-!      IF ( ALLOCATED( AD13_SO2_ev ) ) DEALLOCATE( AD13_SO2_ev )
-!      IF ( ALLOCATED( AD13_SO2_sh ) ) DEALLOCATE( AD13_SO2_sh )
-!      IF ( ALLOCATED( AD13_SO4_an ) ) DEALLOCATE( AD13_SO4_an )
-!      IF ( ALLOCATED( AD13_SO4_bf ) ) DEALLOCATE( AD13_SO4_bf )
-!      IF ( ALLOCATED( AD13_NH3_an ) ) DEALLOCATE( AD13_NH3_an )
-!      IF ( ALLOCATED( AD13_NH3_na ) ) DEALLOCATE( AD13_NH3_na )
-!      IF ( ALLOCATED( AD13_NH3_bb ) ) DEALLOCATE( AD13_NH3_bb )
-!      IF ( ALLOCATED( AD13_NH3_bf ) ) DEALLOCATE( AD13_NH3_bf )
-!-----------------------------------------------------------------------------
       IF ( ALLOCATED( AD16        ) ) DEALLOCATE( AD16        )
       IF ( ALLOCATED( AD17        ) ) DEALLOCATE( AD17        )
       IF ( ALLOCATED( AD18        ) ) DEALLOCATE( AD18        )
       IF ( ALLOCATED( AD21        ) ) DEALLOCATE( AD21        )
       IF ( ALLOCATED( AD21_cr     ) ) DEALLOCATE( AD21_cr     )
       IF ( ALLOCATED( AD22        ) ) DEALLOCATE( AD22        ) 
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND28 and ND29 are now tracked in HEMCO (bmy, 8/15/14)
-!      IF ( ALLOCATED( AD28        ) ) DEALLOCATE( AD28        ) 
-!      IF ( ALLOCATED( AD29        ) ) DEALLOCATE( AD29        ) 
-!-----------------------------------------------------------------------------
       IF ( ALLOCATED( AD30        ) ) DEALLOCATE( AD30        ) 
       IF ( ALLOCATED( AD31        ) ) DEALLOCATE( AD31        ) 
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! Most of ND32 is now tracked in HEMCO (bmy, 8/15/14)
-!      IF ( ALLOCATED( AD32_ac     ) ) DEALLOCATE( AD32_ac     ) 
-!      IF ( ALLOCATED( AD32_an     ) ) DEALLOCATE( AD32_an     )
-!      IF ( ALLOCATED( AD32_bb     ) ) DEALLOCATE( AD32_bb     )
-!      IF ( ALLOCATED( AD32_bf     ) ) DEALLOCATE( AD32_bf     )
-!      IF ( ALLOCATED( AD32_fe     ) ) DEALLOCATE( AD32_fe     )
-!      IF ( ALLOCATED( AD32_li     ) ) DEALLOCATE( AD32_li     )
-!      IF ( ALLOCATED( AD32_so     ) ) DEALLOCATE( AD32_so     )
-!      IF ( ALLOCATED( AD32_ship   ) ) DEALLOCATE( AD32_ship   )
-!      IF ( ALLOCATED( AD32_ub     ) ) DEALLOCATE( AD32_ub     )
-!-----------------------------------------------------------------------------
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND34 is now tracked in HEMCO (bmy, 8/15/14)
-!      IF ( ALLOCATED( AD34        ) ) DEALLOCATE( AD34        )
-!-----------------------------------------------------------------------------
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND36 is now tracked in HEMCO (bmy, 8/15/14)
-!      IF ( ALLOCATED( AD36        ) ) DEALLOCATE( AD36        )
-!      IF ( ALLOCATED( AD36_SHIP   ) ) DEALLOCATE( AD36_SHIP   )
-!-----------------------------------------------------------------------------
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
       IF ( ALLOCATED( AD45        ) ) DEALLOCATE( AD45        )
-!-----------------------------------------------------------------------------
-! Prior to 8/15/14:
-! ND46 is now tracked in HEMCO (bmy, 8/15/14)
-!      IF ( ALLOCATED( AD46        ) ) DEALLOCATE( AD46        )
-!-----------------------------------------------------------------------------
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
       IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )
       IF ( ALLOCATED( AD54        ) ) DEALLOCATE( AD54        )
       IF ( ALLOCATED( AD55        ) ) DEALLOCATE( AD55        )
-      ! For ND57 -- theta (FP 6/2009)
       IF ( ALLOCATED( AD57        ) ) DEALLOCATE( AD57        )
       IF ( ALLOCATED( AD19        ) ) DEALLOCATE( AD19        )
       IF ( ALLOCATED( AD58        ) ) DEALLOCATE( AD58        )
 #if   defined( TOMAS )
-      IF ( ALLOCATED( AD59_NUMB   ) ) DEALLOCATE( AD59_NUMB   ) !(win, 1/25/10)
+      IF ( ALLOCATED( AD59_NUMB   ) ) DEALLOCATE( AD59_NUMB   ) 
       IF ( ALLOCATED( AD59_SULF   ) ) DEALLOCATE( AD59_SULF   )
       IF ( ALLOCATED( AD59_SALT   ) ) DEALLOCATE( AD59_SALT   )
       IF ( ALLOCATED( AD59_ECIL   ) ) DEALLOCATE( AD59_ECIL   )
@@ -541,7 +410,7 @@
       IF ( ALLOCATED( AD60_ERROR  ) ) DEALLOCATE( AD60_ERROR  )
       IF ( ALLOCATED( AD60_SOA    ) ) DEALLOCATE( AD60_SOA    )
       IF ( ALLOCATED( AD61        ) ) DEALLOCATE( AD61        )
-      IF ( ALLOCATED( AD61_inst   ) ) DEALLOCATE( AD61_inst   ) !(win, 1/25/10)
+      IF ( ALLOCATED( AD61_inst   ) ) DEALLOCATE( AD61_inst   ) 
 #else
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
 #endif
@@ -565,7 +434,6 @@
       IF ( ALLOCATED( CTJV        ) ) DEALLOCATE( CTJV        )
       IF ( ALLOCATED( CTO3_24h    ) ) DEALLOCATE( CTO3_24h    )
       IF ( ALLOCATED( CTOH        ) ) DEALLOCATE( CTOH        )
-      ! update for arom (dkh, 06/21/07)  
       IF ( ALLOCATED( CTLBRO2H    ) ) DEALLOCATE( CTLBRO2H    )
       IF ( ALLOCATED( CTLBRO2N    ) ) DEALLOCATE( CTLBRO2N    )
       IF ( ALLOCATED( CTLTRO2H    ) ) DEALLOCATE( CTLTRO2H    )
@@ -578,7 +446,6 @@
       IF ( ALLOCATED( LTLTRO2N    ) ) DEALLOCATE( LTLTRO2N    )
       IF ( ALLOCATED( LTLXRO2H    ) ) DEALLOCATE( LTLXRO2H    )
       IF ( ALLOCATED( LTLXRO2N    ) ) DEALLOCATE( LTLXRO2N    )
-      ! Strat-chem (SDE 2013-07-15)
       IF ( ALLOCATED( CTO1D       ) ) DEALLOCATE( CTO1D       )
       IF ( ALLOCATED( LTO1D       ) ) DEALLOCATE( LTO1D       )
       IF ( ALLOCATED( CTO3P       ) ) DEALLOCATE( CTO3P       )
