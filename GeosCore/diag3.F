@@ -379,35 +379,63 @@
 !  (3)  Be7    : Loss of 7Be                    : kg/s       : SCALECHEM
 !******************************************************************************
 !
+!-----------------------------------------------------------------------------
+! Prior to 8/20/14:
+! ND01 is now tracked by HEMCO (bmy, 8/20/14)
+!
+!      IF ( ND01 > 0 ) THEN
+!         CATEGORY = 'RN--SRCE'
+!         UNIT     = 'kg/s'
+!
+!         DO M = 1, TMAX(1)
+!            N  = TINDEX(1,M)
+!            IF ( N > N_TRACERS ) CYCLE
+!            NN = N
+!               
+!            ! Pb "emission" comes from chemical decay of Rn, which happens 
+!            ! in the chemistry routine, so use SCALECHEM (bmy, 1/27/03)
+!            IF ( N == IDTPB ) THEN
+!               SCALEX = SCALECHEM
+!            ELSE
+!               SCALEX = SCALESRCE
+!            ENDIF
+!                 
+!            ! Divide by # of emission timesteps
+!            DO L = 1, LD01
+!               ARRAY(:,:,L) = AD01(:,:,L,N) / SCALEX
+!            ENDDO
+!
+!            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+!     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+!     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+!     &                  IIPAR,     JJPAR,     LD01,     IFIRST,     
+!     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD01) )
+!         ENDDO
+!      ENDIF
+!-----------------------------------------------------------------------------
       IF ( ND01 > 0 ) THEN
-         CATEGORY = 'RN--SRCE'
-         UNIT     = 'kg/s'
 
-         DO M = 1, TMAX(1)
-            N  = TINDEX(1,M)
-            IF ( N > N_TRACERS ) CYCLE
-            NN = N
-               
-            ! Pb "emission" comes from chemical decay of Rn, which happens 
-            ! in the chemistry routine, so use SCALECHEM (bmy, 1/27/03)
-            IF ( N == IDTPB ) THEN
-               SCALEX = SCALECHEM
-            ELSE
-               SCALEX = SCALESRCE
-            ENDIF
-                 
-            ! Divide by # of emission timesteps
-            DO L = 1, LD01
-               ARRAY(:,:,L) = AD01(:,:,L,N) / SCALEX
-            ENDDO
+         !%%%%% Rn %%%%%
+         DiagnName    = 'AD01_Rn_SOURCE'
+         CATEGORY     = 'RN--SRCE'
+         UNIT         = 'kg/s'
+         N            = IDTBCPI
+         FACTOR       = 1d0
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1)
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD01,     IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD01) )
-         ENDDO
-      ENDIF
+         !%%%%% Be7 %%%%%
+         DiagnName    = 'AD01_Be7_SOURCE'
+         CATEGORY     = 'RN--SRCE'
+         UNIT         = 'kg/s'
+         N            = IDTBCPI
+         FACTOR       = 1d0
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1)
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+      ENDIF    
 !
 !******************************************************************************
 !  ND02: Rn, Pb, Be lost to radioactive decay (Category: "RN-DECAY")
