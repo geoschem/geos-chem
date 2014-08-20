@@ -55,15 +55,6 @@
       REAL*4,  ALLOCATABLE :: AD09(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD09_em(:,:,:)
 
-!-----------------------------------------------------------------------------
-! Prior to 8/18/14:
-!%%% THE H2/HD SIMULATION IS OBSOLETE.  YOU CAN RESTORE IT IF YOU WANT. 
-!%%% UNTIL THEN WE WILL LEAVE THIS COMMENTED OUT.  (bmy, 8/18/14)
-!      ! For ND10 -- H2/HD prod, loss, & emiss diagnostics
-!      REAL*4,  ALLOCATABLE :: AD10(:,:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD10em(:,:,:)
-!-----------------------------------------------------------------------------
-
       ! For ND12 -- boundary layer multiplication factor
       REAL*4,  ALLOCATABLE :: AD12(:,:,:)
 
@@ -359,13 +350,6 @@
       IF ( ALLOCATED( AD08        ) ) DEALLOCATE( AD08        )
       IF ( ALLOCATED( AD09        ) ) DEALLOCATE( AD09        )
       IF ( ALLOCATED( AD09_em     ) ) DEALLOCATE( AD09_em     )
-!-----------------------------------------------------------------------------
-!%%% Prior to 8/18/14:
-!%%% THE H2/HD SIMULATION IS OBSOLETE.  YOU CAN RESTORE IT IF YOU WANT. 
-!%%% UNTIL THEN WE WILL LEAVE THIS COMMENTED OUT.  (bmy, 8/18/14)
-!      IF ( ALLOCATED( AD10        ) ) DEALLOCATE( AD10        )
-!      IF ( ALLOCATED( AD10em      ) ) DEALLOCATE( AD10em      )
-!-----------------------------------------------------------------------------
       IF ( ALLOCATED( AD12        ) ) DEALLOCATE( AD12        )
       IF ( ALLOCATED( AD16        ) ) DEALLOCATE( AD16        )
       IF ( ALLOCATED( AD17        ) ) DEALLOCATE( AD17        )

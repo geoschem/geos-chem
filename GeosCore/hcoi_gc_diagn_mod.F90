@@ -47,6 +47,9 @@ MODULE HCOI_GC_DIAGN_MOD
 
   IMPLICIT NONE
   PRIVATE
+
+  ! Get parameters that define the different categories
+#include "hcoi_gc_diagn_include.H"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -103,6 +106,11 @@ CONTAINS
     TYPE(EXT_State),  POINTER        :: ExtState   ! Extensions state object 
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
+! !REMARKS:
+!  The category numbers must correspond to those in the HEMCO_Config.rc file.
+!  We will have to come up with a better way of making sure that these
+!  are consistent in the future.
+!
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
@@ -130,6 +138,16 @@ CONTAINS
     LOC = 'HCOI_GC_DIAGN_INIT (hcoi_gc_diagn_mod.F90)'
     RC  = HCO_SUCCESS
 
+
+    print*, '### CATEGORY_ANTHRO   : ',CATEGORY_ANTHRO
+    print*, '### CATEGORY_BIOFUEL  : ',CATEGORY_BIOFUEL
+    print*, '### CATEGORY_NATURAL  : ',CATEGORY_NATURAL
+    print*, '### CATEGORY_BIOGENIC : ',CATEGORY_BIOGENIC
+    print*, '### CATEGORY_BIOMASS  : ',CATEGORY_BIOMASS
+    print*, '### CATEGORY_SHIP     : ',CATEGORY_SHIP
+    print*, '### CATEGORY_AIRCRAFT : ',CATEGORY_AIRCRAFT
+    print*, '### CATEGORY_VOLCANO  : ',CATEGORY_VOLCANO
+    
     !=======================================================================
     ! Define GEOS-Chem diagnostics (ADXX)
     !=======================================================================
@@ -189,18 +207,10 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( ND07 > 0 .AND. Input_Opt%LCARB ) THEN
 
-       ! Get HEMCO species names
+       !%%%%% BC %%%%%
        SpcName = 'BC'
        ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
        IF ( ID1 <= 0 ) THEN
-          MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN      
-       ENDIF
-
-       SpcName = 'OC'
-       ID2 = HCO_GetHcoID( TRIM(SpcName), HcoState )
-       IF ( ID2 <= 0 ) THEN
           MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
           CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
           RETURN      
@@ -224,23 +234,6 @@ CONTAINS
                            RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
-       ! Anthropogenic OC
-       DiagnName = 'AD07_OC_ANTHRO'
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = 0,               &
-                           Cat       = 1,               &
-                           Hier      = -1,              &
-                           HcoID     = ID2,             &
-                           SpaceDim  = 2,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg',            &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! Biofuel BC
        DiagnName = 'AD07_BC_BIOFUEL'
@@ -260,6 +253,33 @@ CONTAINS
                            RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
+       !%%%%% OC %%%%%
+       SpcName = 'OC'
+       ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
+       IF ( ID1 <= 0 ) THEN
+          MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN      
+       ENDIF
+
+       ! Anthropogenic OC
+       DiagnName = 'AD07_OC_ANTHRO'
+       CALL Diagn_Create ( am_I_Root,                   & 
+                           HcoState,                    &
+                           cName     = TRIM(DiagnName), &
+                           ExtNr     = 0,               &
+                           Cat       = 1,               &
+                           Hier      = -1,              &
+                           HcoID     = ID1,             &
+                           SpaceDim  = 2,               &
+                           LevIDx    = -1,              &
+                           OutUnit   = 'kg',            &
+                           WriteFreq = 'Manual',        &
+                           AutoFill  = 1,               &
+                           cID       = N,               & 
+                           RC        = RC                ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
        ! Biofuel OC
        DiagnName = 'AD07_OC_BIOFUEL'
        CALL Diagn_Create ( am_I_Root,                   & 
@@ -268,7 +288,7 @@ CONTAINS
                            ExtNr     = 0,               &
                            Cat       = 2,               &
                            Hier      = -1,              &
-                           HcoID     = ID2,             &
+                           HcoID     = ID1,             &
                            SpaceDim  = 2,               &
                            LevIDx    = -1,              &
                            OutUnit   = 'kg',            &
@@ -292,17 +312,18 @@ CONTAINS
           RETURN
        ENDIF
 
-       ! Do for both sea salt aerosol modes
+       ! I=1 is SALA, I=2 is SALC
        DO I = 1, 2
 
-          ! Get species name and define diagnostics name
-          IF ( I == 1 ) THEN
-             SpcName   = 'SALA'
-             DiagnName = 'AD08_SALA'
-          ELSEIF ( I == 2 ) THEN
-             SpcName   = 'SALC'
-             DiagnName = 'AD08_SALC'
-          ENDIF
+          ! Pick the proper species & diagnostic name
+          SELECT CASE( I )
+             CASE( 1 )
+                SpcName   = 'SALA'
+                DiagnName = 'AD08_SALA'
+             CASE( 2 )
+                SpcName   = 'SALC'
+                DiagnName = 'AD08_SALC'
+          END SELECT
 
           ! Get HEMCO species ID 
           ID1 = HCO_GetHcoID( TRIM(SpcName), HcoState )
@@ -311,6 +332,8 @@ CONTAINS
              CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
              RETURN      
           ENDIF
+
+          ! Create the diagnostic
           CALL Diagn_Create ( am_I_Root,                   & 
                               HcoState,                    &
                               cName     = TRIM(DiagnName), &
@@ -325,8 +348,9 @@ CONTAINS
                               AutoFill  = 1,               &
                               cID       = N,               & 
                               RC        = RC                ) 
+
           IF ( RC /= HCO_SUCCESS ) RETURN 
-       ENDDO !Loop over sea salt species
+       ENDDO 
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -384,9 +408,9 @@ CONTAINS
          ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. &
            Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
 
-       ! DMS emissions
-       ! As for acetone, only keep track of flux from ocean. Deposition
-       ! from atmosphere is handled by drydep.
+       !%%%%%% DMS emissions %%%%%%
+       ! As we did for acetone, only keep track of flux from ocean. 
+       ! Deposition from atmosphere is handled by drydep.
        ExtNr = GetExtNr( 'SeaFlux' )
        IF ( ExtNr <= 0 ) THEN
           MSG = 'Cannot find SeaFlux extension - ' // &
@@ -417,7 +441,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
-       ! SO2 emissions ...
+       !%%%%%% SO2 emissions %%%%%%
        ExtNr = 0
        ID1   = HCO_GetHcoID( 'SO2', HcoState )
        IF ( ID1 <= 0 ) THEN
@@ -428,95 +452,100 @@ CONTAINS
 
        ! ... from aircrafts ...
        DiagnName = 'AD13_SO2_AIRCRAFT'
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = ExtNr,           &
-                           Cat       = 20,              &
-                           Hier      = -1,              &
-                           HcoID     = ID1,             &
-                           SpaceDim  = 3,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg',            &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                )
+       CALL Diagn_Create ( am_I_Root,                     &   
+                           HcoState,                      &
+                           cName     = TRIM(DiagnName),   &
+                           ExtNr     = ExtNr,             &
+!                           Cat       = 20,                &
+                           Cat       = CATEGORY_AIRCRAFT, &
+                           Hier      = -1,                &
+                           HcoID     = ID1,               &
+                           SpaceDim  = 3,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg',              &
+                           WriteFreq = 'Manual',          &
+                           AutoFill  = 1,                 &
+                           cID       = N,                 & 
+                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... anthropogenic ...
        DiagnName = 'AD13_SO2_ANTHROPOGENIC'
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = ExtNr,           &
-                           Cat       = 1,               &
-                           Hier      = -1,              &
-                           HcoID     = ID1,             &
-                           SpaceDim  = 2,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg',            &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                )
+       CALL Diagn_Create ( am_I_Root,                     & 
+                           HcoState,                      &
+                           cName     = TRIM(DiagnName),   &
+                           ExtNr     = ExtNr,             &
+!                           Cat       = 1,                 &
+                           Cat       = CATEGORY_ANTHRO,   &
+                           Hier      = -1,                &
+                           HcoID     = ID1,               &
+                           SpaceDim  = 2,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg',              &
+                           WriteFreq = 'Manual',          &
+                           AutoFill  = 1,                 &
+                           cID       = N,                 & 
+                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... biofuel ...
        DiagnName = 'AD13_SO2_BIOFUEL'
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = ExtNr,           &
-                           Cat       = 2,               &
-                           Hier      = -1,              &
-                           HcoID     = ID1,             &
-                           SpaceDim  = 2,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg',            &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                )
+       CALL Diagn_Create ( am_I_Root,                     &
+                           HcoState,                      &
+                           cName     = TRIM(DiagnName),   &
+                           ExtNr     = ExtNr,             &
+!                           Cat       = 2,                  &
+                           Cat       = CATEGORY_BIOFUEL,  &
+                           Hier      = -1,                &
+                           HcoID     = ID1,               &
+                           SpaceDim  = 2,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg',              &
+                           WriteFreq = 'Manual',          &
+                           AutoFill  = 1,                 &
+                           cID       = N,                 & 
+                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... from volcanoes ...
        DiagnName = 'AD13_SO2_VOLCANO'
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = ExtNr,           &
-                           Cat       = 50,              &
-                           Hier      = -1,              &
-                           HcoID     = ID1,             &
-                           SpaceDim  = 3,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg',            &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                )
+       CALL Diagn_Create ( am_I_Root,                     & 
+                           HcoState,                      &
+                           cName     = TRIM(DiagnName),   &
+                           ExtNr     = ExtNr,             &
+!                           Cat       = 50,                &
+                           Cat       = CATEGORY_VOLCANO,  &
+                           Hier      = -1,                &
+                           HcoID     = ID1,               &
+                           SpaceDim  = 3,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg',              &
+                           WriteFreq = 'Manual',          &
+                           AutoFill  = 1,                 &
+                           cID       = N,                 & 
+                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... from ships ...
        DiagnName = 'AD13_SO2_SHIP'
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = ExtNr,           &
-                           Cat       = 10,              &
-                           Hier      = -1,              &
-                           HcoID     = ID1,             &
-                           SpaceDim  = 2,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg',            &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                )
+       CALL Diagn_Create ( am_I_Root,                     & 
+                           HcoState,                      &
+                           cName     = TRIM(DiagnName),   &
+                           ExtNr     = ExtNr,             &
+!                           Cat       = 10,                &
+                           Cat       = CATEGORY_SHIP,     &
+                           Hier      = -1,                &
+                           HcoID     = ID1,               &
+                           SpaceDim  = 2,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg',              &
+                           WriteFreq = 'Manual',          &
+                           AutoFill  = 1,                 &
+                           cID       = N,                 & 
+                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
-       ! NH3 emissions ...
+       !%%%%%% NH3 emissions %%%%%%
        ID1 = HCO_GetHcoID( 'NH3', HcoState )
        IF ( ID1 <= 0 ) THEN
           MSG = 'This is not a HEMCO species: ' // TRIM(SpcName) // &
@@ -528,61 +557,64 @@ CONTAINS
        ! ... anthropogenic ...
        ExtNr     = 0
        DiagnName = 'AD13_NH3_ANTHROPOGENIC'
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = ExtNr,           &
-                           Cat       = 1,               &
-                           Hier      = -1,              &
-                           HcoID     = ID1,             &
-                           SpaceDim  = 2,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg',            &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                )
+       CALL Diagn_Create ( am_I_Root,                     & 
+                           HcoState,                      &
+                           cName     = TRIM(DiagnName),   &
+                           ExtNr     = ExtNr,             &
+!                           Cat       = 1,                 &
+                           Cat       = CATEGORY_ANTHRO,   &
+                           Hier      = -1,                &
+                           HcoID     = ID1,               &
+                           SpaceDim  = 2,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg',              &
+                           WriteFreq = 'Manual',          &
+                           AutoFill  = 1,                 &
+                           cID       = N,                 & 
+                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... biofuel ...
        ExtNr     = 0
        DiagnName = 'AD13_NH3_BIOFUEL'
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = ExtNr,           &
-                           Cat       = 2,               &
-                           Hier      = -1,              &
-                           HcoID     = ID1,             &
-                           SpaceDim  = 2,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg',            &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                )
+       CALL Diagn_Create ( am_I_Root,                     & 
+                           HcoState,                      &
+                           cName     = TRIM(DiagnName),   &
+                           ExtNr     = ExtNr,             &
+!                           Cat       = 2,                 &
+                           Cat       = CATEGORY_BIOFUEL,  &
+                           Hier      = -1,                &
+                           HcoID     = ID1,               &
+                           SpaceDim  = 2,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg',              &
+                           WriteFreq = 'Manual',          &
+                           AutoFill  = 1,                 &
+                           cID       = N,                 & 
+                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... natural
        ExtNr     = 0
        DiagnName = 'AD13_NH3_NATURAL'
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = ExtNr,           &
-                           Cat       = 3,               &
-                           Hier      = -1,              &
-                           HcoID     = ID1,             &
-                           SpaceDim  = 2,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg',            &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                )
+       CALL Diagn_Create ( am_I_Root,                     & 
+                           HcoState,                      &
+                           cName     = TRIM(DiagnName),   &
+                           ExtNr     = ExtNr,             &
+!                           Cat       = 3,                 &
+                           Cat       = CATEGORY_NATURAL,  &
+                           Hier      = -1,                &
+                           HcoID     = ID1,               &
+                           SpaceDim  = 2,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg',              &
+                           WriteFreq = 'Manual',          &
+                           AutoFill  = 1,                 &
+                           cID       = N,                 & 
+                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
-       ! SO4 emissions ...
+       !%%%%%% SO4 emissions %%%%%%
        ID1 = HCO_GetHcoID( 'SO4', HcoState )
        IF ( ID1 <= 0 ) THEN
           MSG = 'This is not a HEMCO species: ' // TRIM(SpcName)
@@ -593,39 +625,41 @@ CONTAINS
        ! ... anthropogenic ...
        ExtNr     = 0
        DiagnName = 'AD13_SO4_ANTHROPOGENIC' 
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = ExtNr,           &
-                           Cat       = 1,               &
-                           Hier      = -1,              &
-                           HcoID     = ID1,             &
-                           SpaceDim  = 2,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg',            &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                ) 
+       CALL Diagn_Create ( am_I_Root,                     & 
+                           HcoState,                      &
+                           cName     = TRIM(DiagnName),   &
+                           ExtNr     = ExtNr,             &
+!                           Cat       = 1,                 &
+                           Cat       = CATEGORY_ANTHRO,   &
+                           Hier      = -1,                &
+                           HcoID     = ID1,               &
+                           SpaceDim  = 2,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg',              &
+                           WriteFreq = 'Manual',          &
+                           AutoFill  = 1,                 &
+                           cID       = N,                 & 
+                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! ... biofuel ...
        ExtNr     = 0
        DiagnName = 'AD13_SO4_BIOFUEL' 
-       CALL Diagn_Create ( am_I_Root,                   & 
-                           HcoState,                    &
-                           cName     = TRIM(DiagnName), &
-                           ExtNr     = ExtNr,           &
-                           Cat       = 2,               &
-                           Hier      = -1,              &
-                           HcoID     = ID1,             &
-                           SpaceDim  = 2,               &
-                           LevIDx    = -1,              &
-                           OutUnit   = 'kg',            &
-                           WriteFreq = 'Manual',        &
-                           AutoFill  = 1,               &
-                           cID       = N,               & 
-                           RC        = RC                ) 
+       CALL Diagn_Create ( am_I_Root,                     & 
+                           HcoState,                      &
+                           cName     = TRIM(DiagnName),   &
+                           ExtNr     = ExtNr,             &
+!                           Cat       = 2,                 &
+                           Cat       = CATEGORY_BIOFUEL,  &
+                           Hier      = -1,                &
+                           HcoID     = ID1,               &
+                           SpaceDim  = 2,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg',              &
+                           WriteFreq = 'Manual',          &
+                           AutoFill  = 1,                 &
+                           cID       = N,                 & 
+                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -636,6 +670,7 @@ CONTAINS
     ! ==> Biomass buring comes from GFED or FINN inventory. If none
     !     of those inventories is used, it is assumed that biomass
     !     burning has category 3.
+    !      --> NOTE: 3 is the same category as natural source NH3!
     ! ==> Diagnostics are returned in kg/m2/s.
     !-----------------------------------------------------------------------
     ! Get ext. Nr of used extension
@@ -646,7 +681,7 @@ CONTAINS
        ExtNr = 0
        Cat   = 3
     ENDIF
-          
+    
     ! ND28 only:
     IF ( ND28 > 0 ) THEN
        ID1 = HCO_GetHcoID( 'ALK4', HcoState )
@@ -1013,20 +1048,21 @@ CONTAINS
 
     ! ... from aircrafts ...
     DiagnName = 'AIRCRAFT_NO'
-    CALL Diagn_Create ( am_I_Root,                   & 
-                        HcoState,                    &
-                        cName     = TRIM(DiagnName), &
-                        ExtNr     = ExtNr,           &
-                        Cat       = 20,              &
-                        Hier      = -1,              &
-                        HcoID     = ID1,             &
-                        SpaceDim  = 3,               &
-                        LevIDx    = -1,              &
-                        OutUnit   = 'kg/m2/s',       &
-                        WriteFreq = 'Manual',        &
-                        AutoFill  = 1,               &
-                        cID       = N,               & 
-                        RC        = RC                )
+    CALL Diagn_Create ( am_I_Root,                      & 
+                        HcoState,                       &
+                        cName     = TRIM(DiagnName),    &
+                        ExtNr     = ExtNr,              &
+!                        Cat       = 20,                 &
+                        Cat       = CATEGORY_AIRCRAFT,  &
+                        Hier      = -1,                 &
+                        HcoID     = ID1,                &
+                        SpaceDim  = 3,                  &
+                        LevIDx    = -1,                 &
+                        OutUnit   = 'kg/m2/s',          &
+                        WriteFreq = 'Manual',           &
+                        AutoFill  = 1,                  &
+                        cID       = N,                  & 
+                        RC        = RC                   )
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! ... ship NO ...
@@ -1134,7 +1170,8 @@ CONTAINS
     ! ==> Diagnostics are returned in kg/m2/s.
     !-----------------------------------------------------------------------
     ! Get ext. Nr of used extension
-    Cat   = 3
+!    Cat   = 3
+    Cat   = CATEGORY_BIOFUEL
     ExtNr = 0
  
     ! ND34 only:
@@ -1385,7 +1422,8 @@ CONTAINS
     ! ==> Diagnostics are returned in kg/m2/s.
     !-----------------------------------------------------------------------
     ! Get ext. Nr of used extension
-    Cat   = 1
+!    Cat   = 1
+    Cat   = CATEGORY_ANTHRO
     ExtNr = 0
  
     ! ND36 only:
@@ -2093,15 +2131,20 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! Loop over lighthing flash quantities
        DO I = 1,3
-          IF ( I == 1 ) THEN
-             DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
-          ELSEIF ( I == 2 ) THEN
-             DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
-          ELSEIF ( I == 3 ) THEN
-             DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
-          ENDIF
 
+          ! Pick the proper diagnostic name
+          SELECT CASE( I )
+             CASE( 1 )
+                DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
+             CASE( 2 )
+                DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
+             CASE( 3 )
+                DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
+          END SELECT
+
+          ! Create the diagnostic
           CALL Diagn_Create ( am_I_Root,                     & 
                               HcoState,                      &
                               cName     = TRIM(DiagnName),   &
@@ -2246,23 +2289,24 @@ CONTAINS
     ! Define automatic diagnostics (AutoFill)
     !=======================================================================
 
-    ! Total NO
-    I = HCO_GetHcoID( 'NO', HcoState )
-    CALL Diagn_Create ( am_I_Root, &
-                        HcoState,  &
-                        cName    = 'NOtotal', &
-                        ExtNr    = -1, &
-                        Cat      = -1, &
-                        Hier     = -1, &
-                        HcoID    = I, &
-                        SpaceDim = 2, &
-                        LevIDx   = -1, &
-                        OutUnit  = 'kg/m2/s', &
-                        WriteFreq = 'Hourly',  &
-                        AutoFill  = 1, &
-                        cID       = N, & 
-                        RC        = RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN 
+! For now comment this out (bmy, 8/19/14)
+!    ! Total NO
+!    I = HCO_GetHcoID( 'NO', HcoState )
+!    CALL Diagn_Create ( am_I_Root, &
+!                        HcoState,  &
+!                        cName    = 'NOtotal', &
+!                        ExtNr    = -1, &
+!                        Cat      = -1, &
+!                        Hier     = -1, &
+!                        HcoID    = I, &
+!                        SpaceDim = 2, &
+!                        LevIDx   = -1, &
+!                        OutUnit  = 'kg/m2/s', &
+!                        WriteFreq = 'Hourly',  &
+!                        AutoFill  = 1, &
+!                        cID       = N, & 
+!                        RC        = RC ) 
+!    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! Leave w/ success
     RC = HCO_SUCCESS 
