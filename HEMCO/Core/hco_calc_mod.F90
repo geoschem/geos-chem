@@ -31,6 +31,12 @@
 ! be added therein.
 !\\
 !\\
+! In addition to emissions and surface deposition rates, HEMCO also
+! supports concentrations (v/v). Data is automatically written into
+! the concentration array HcoState%Spc(HcoID)%Conc if the source data
+! is marked as being concentration data (i.e. if Dta%IsConc is .TRUE.).
+!\\
+!\\
 ! All emission calculation settings are passed through the HcoState 
 ! options object (HcoState%Options). These include:
 !
@@ -121,6 +127,7 @@ CONTAINS
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX header
 !  03 Aug 2014 - C. Keller   - Bug fix for adding data to diagnostics. Now
 !                              explicitly check for new species OR category.
+!  21 Aug 2014 - C. Keller   - Added concentration.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,16 +389,26 @@ CONTAINS
                 RETURN
              ENDIF
 
-          ! To write emissions directly into HcoState%Emsr3D, make OutArr
-          ! point to current species' emission array in HcoState.
+          ! To write emissions directly into HcoState, make OutArr
+          ! point to current species' array in HcoState. Use emission
+          ! array for emissions, and concentration array for concentrations.
           ELSE
 
-             ! Check allocation status of emission array in HcoState and
-             ! allocate if necessary.
-             CALL HCO_ArrAssert( HcoState%Spc(ThisSpc)%Emis, &
-                                 nI, nJ, nL, RC             )
-             IF ( RC /= HCO_SUCCESS ) RETURN
-             OutArr => HcoState%Spc(ThisSpc)%Emis%Val
+             ! For concentrations:
+             IF ( Dct%Dta%IsConc ) THEN
+                CALL HCO_ArrAssert( HcoState%Spc(ThisSpc)%Conc, &
+                                    nI, nJ, nL, RC             )
+                IF ( RC /= HCO_SUCCESS ) RETURN
+                OutArr => HcoState%Spc(ThisSpc)%Conc%Val
+
+             ! For emissions:
+             ELSE
+                CALL HCO_ArrAssert( HcoState%Spc(ThisSpc)%Emis, &
+                                    nI, nJ, nL, RC             )
+                IF ( RC /= HCO_SUCCESS ) RETURN
+                OutArr => HcoState%Spc(ThisSpc)%Emis%Val
+             ENDIF
+
           ENDIF
 
           ! verbose mode

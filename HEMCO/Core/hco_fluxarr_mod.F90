@@ -64,15 +64,15 @@ CONTAINS
 !
 ! !IROUTINE: HCO_FluxarrReset 
 !
-! !DESCRIPTION: Routine HCO\_FluxarrReset (re)sets all defined 3D flux arrays 
-! (Emis) and 2D deposition arrays (Depv) of the passed HEMCO object. The
-! (optional) argument FlxDir indicates whether only emissions (+1) or 
-! deposition (-1) arrays shall be reset, or both (0, default).
+! !DESCRIPTION: Routine HCO\_FluxarrReset (re)sets all data arrays 
+! of the passed HEMCO state object. The (optional) argument Typ 
+! indicates whether only emissions (1), deposition (2), or concentration
+! (3) arrays shall be reset. To reset all, set Typ to 0 (default).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_FluxarrReset( HcoState, RC, FlxDir )
+  SUBROUTINE HCO_FluxarrReset( HcoState, RC, Typ )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
@@ -81,33 +81,34 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,         INTENT(IN   ), OPTIONAL :: FlxDir    
+    INTEGER,         INTENT(IN   ), OPTIONAL :: Typ
 !
 ! !REMARKS:
 !
 ! !REVISION HISTORY: 
 !  01 May 2013 - C. Keller - Initial version
+!  21 Aug 2014 - C. Keller - Added concentration
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    INTEGER :: N, locFlxDir 
+    INTEGER :: N, thisTyp
 
     !=====================================================================
     ! HCO_FluxarrReset begins here!
     !=====================================================================
 
     ! Set local flux direction flag
-    IF ( PRESENT(FlxDir) ) THEN
-       locFlxDir = FlxDir
+    IF ( PRESENT(Typ) ) THEN
+       thisTyp = Typ
     ELSE
-       locFlxDir = 0
+       thisTyp = 0
     ENDIF
 
     ! Loop over all arrays. 
     DO N = 1, HcoState%nSpc
 
        ! 3D flux rates array
-       IF ( locFlxDir >= 0 ) THEN
+       IF ( thisTyp == 0 .OR. thisTyp == 1 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(N)%Emis) ) THEN
              IF ( ASSOCIATED(HcoState%Spc(N)%Emis%Val) ) THEN
                 HcoState%Spc(N)%Emis%Val = 0.0_hp
@@ -116,13 +117,23 @@ CONTAINS
        ENDIF
 
        ! 2D deposition velocity array
-       IF ( locFlxDir <= 0 ) THEN
+       IF ( thisTyp == 0 .OR. thisTyp == 2 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(N)%Depv) ) THEN
              IF ( ASSOCIATED(HcoState%Spc(N)%Depv%Val) ) THEN
                 HcoState%Spc(N)%Depv%Val = 0.0_hp
              ENDIF
           ENDIF
        ENDIF
+
+       ! 3D concentrations 
+       IF ( thisTyp == 0 .OR. thisTyp == 3 ) THEN
+          IF ( ASSOCIATED(HcoState%Spc(N)%Conc) ) THEN
+             IF ( ASSOCIATED(HcoState%Spc(N)%Conc%Val) ) THEN
+                HcoState%Spc(N)%Conc%Val = 0.0_hp
+             ENDIF
+          ENDIF
+       ENDIF
+
     ENDDO
 
     ! Return w/ success

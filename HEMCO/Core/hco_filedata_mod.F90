@@ -43,6 +43,9 @@
 !       data is directly specified in the configuration file. For
 !       internal use only. 
 ! \item OrigUnit: original unit of data.
+! \item IsConc: Set to true if data is concentration. Concentration 
+!       data will be added to the concentration array instead of the
+!       emission array.
 ! \item V3: vector of 3D fields. For 3D-data, this vector will hold
 !       the 3D arrays of all time slices kept in memory (e.g. 24
 !       elements for hourly data).
@@ -93,6 +96,7 @@ MODULE HCO_FileData_Mod
 !  19 Dec 2013 - C. Keller   - Initialization
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  21 Aug 2014 - C. Keller   - Added concentration
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -115,6 +119,7 @@ MODULE HCO_FileData_Mod
      TYPE(Arr2D_HP),     POINTER :: V2(:)     ! vector of 2D fields
      TYPE(TimeIdx),      POINTER :: tIDx      ! for time slice indexing 
      CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
+     LOGICAL                     :: IsConc    ! concentration data?
      INTEGER                     :: Cover     ! data coverage
      INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3 
      INTEGER                     :: nt        ! time dimension: length of Arr
@@ -162,8 +167,8 @@ CONTAINS
     TYPE(FileData), POINTER    :: FileDta
 !
 ! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
-!
+!  19 Dec 2013 - C. Keller   - Initialization
+!  21 Aug 2014 - C. Keller   - Added concentration
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -196,6 +201,7 @@ CONTAINS
     NewFDta%nt           = 0
     NewFDta%SpaceDim     = -1
     NewFDta%OrigUnit     = ''
+    NewFDta%IsConc       = .FALSE.
     NewFDta%DoShare      = .FALSE.
 
     ! Return
@@ -482,7 +488,8 @@ CONTAINS
     INTEGER,       INTENT(INOUT) :: RC        ! Return code
 !
 ! !REVISION HISTORY:
-!  10 Jan 2014 - C. Keller: Initialization (update)
+!  10 Jan 2014 - C. Keller - Initialization (update)
+!  21 Aug 2014 - C. Keller - Added concentration
 !EOP
 !------------------------------------------------------------------------------
 !BOC

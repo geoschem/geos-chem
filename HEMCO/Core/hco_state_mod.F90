@@ -101,6 +101,7 @@ MODULE HCO_State_Mod
      REAL(hp)                :: HenryPKA   ! pKa for Henry const. correction
      TYPE(Arr2D_HP), POINTER :: Depv       ! Deposition velocity [m/s]
      TYPE(Arr3D_HP), POINTER :: Emis       ! Emission flux [kg/m2/s]
+     TYPE(Arr3D_HP), POINTER :: Conc       ! Concentration [v/v]
   END TYPE HcoSpc
 
   !=========================================================================
@@ -236,12 +237,16 @@ CONTAINS
        HcoState%Spc(I)%HenryCR    = 0.0_dp
        HcoState%Spc(I)%HenryPKA   = 0.0_dp
 
-       ! Initialize emission arrays. Pass dimension zero, which
-       ! will just create a pointer to the emission/depostion
-       ! array (Emis%Val, Depv%Val). Will specify the arrays in 
-       ! HEMCO-model interface routine.
+       ! Initialize data arrays. Pass dimension zero, which
+       ! will just create a pointer to the data array (XX%Val). 
+       ! Will specify the arrays in HEMCO-model interface routine 
+       ! or when writing to them for the first time.
        HcoState%Spc(I)%Emis => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Emis, 0, 0, 0, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       HcoState%Spc(I)%Conc => NULL()
+       CALL Hco_ArrInit( HcoState%Spc(I)%Conc, 0, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        HcoState%Spc(I)%Depv => NULL()
@@ -360,6 +365,7 @@ CONTAINS
     IF ( ASSOCIATED ( HcoState%Spc ) ) THEN
        DO I = 1, HcoState%nSpc
           CALL HCO_ArrCleanup( HcoState%Spc(I)%Emis )
+          CALL HCO_ArrCleanup( HcoState%Spc(I)%Conc )
           CALL HCO_ArrCleanup( HcoState%Spc(I)%Depv )
        ENDDO
        DEALLOCATE ( HcoState%Spc )
