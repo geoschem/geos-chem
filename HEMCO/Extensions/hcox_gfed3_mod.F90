@@ -256,29 +256,30 @@ CONTAINS
        ! Calculate emissions for all source types
        DO M = 1, N_EMFAC
          
-          ! Select emission factor array
-          IF ( M == 1 ) THEN
-             TMPPTR => GFED3_AGW
-          ELSEIF ( M == 2 ) THEN
-             TMPPTR => GFED3_DEF
-          ELSEIF ( M == 3 ) THEN
-             TMPPTR => GFED3_FOR
-          ELSEIF ( M == 4 ) THEN
-             TMPPTR => GFED3_PET
-          ELSEIF ( M == 5 ) THEN
-             TMPPTR => GFED3_SAV
-          ELSEIF ( M == 6 ) THEN
-             TMPPTR => GFED3_WDL
-          ELSE
-             CALL HCO_ERROR ( 'Undefined emission factor', RC )
-             RETURN
-          ENDIF
+          ! Point to the emission factor array for each source type
+          SELECT CASE ( M ) 
+             CASE( 1 )
+                TMPPTR => GFED3_AGW
+             CASE( 2 )
+                TMPPTR => GFED3_DEF
+             CASE( 3 )
+                TMPPTR => GFED3_FOR
+             CASE( 4 )
+                TMPPTR => GFED3_PET
+             CASE( 5 )
+                TMPPTR => GFED3_SAV
+             CASE( 6 )
+                TMPPTR => GFED3_WDL
+             CASE DEFAULT
+                CALL HCO_ERROR ( 'Undefined emission factor', RC )
+                RETURN
+          END SELECT
 
           ! Calculate emissions for this type. The emission factors 
           ! per type are in kgDM/m2/s, and the GFED3_EMFAC scale factors
           ! are in kg/kgDM (or kgC/kgDM for VOCs). This gives us TypArr
           ! in kg/m2/s.
-          TypArr(:,:) = TmpPtr(:,:) * GFED3_EMFAC(GfedIDs(N),M)
+          TypArr = TmpPtr * GFED3_EMFAC(GfedIDs(N),M)
 
           ! Use woodland emission factors for 'deforestation' outside
           ! humid tropical forest
@@ -296,10 +297,11 @@ CONTAINS
           ! For CO, multiply with CO scale factor
           IF ( IsCo ) TypArr = TypArr * COScale        
 
-          ! TODO: Add to diagnostics here
-
           ! Add to output array
           SpcArr = SpcArr + TypArr
+
+          ! Nullify pointer
+          TmpPtr  => NULL()
 
        ENDDO !M
 
@@ -318,9 +320,9 @@ CONTAINS
        ENDIF
     ENDDO !N
 
-    ! Nullify pointers
-    TmpPtr    => NULL()
-    Arr2D     => NULL()
+    ! Nullify pointers for safety's sake
+    TmpPtr  => NULL()
+    Arr2D   => NULL()
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC )

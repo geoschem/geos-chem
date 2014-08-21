@@ -16,8 +16,6 @@
 ! !USES:
 !
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
-      USE BIOMASS_MOD,             ONLY : CLEANUP_BIOMASS
-      USE BIOFUEL_MOD,             ONLY : CLEANUP_BIOFUEL
       USE C2H6_MOD,                ONLY : CLEANUP_C2H6
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
       USE CHEMGRID_MOD,            ONLY : CLEANUP_CHEMGRID
@@ -234,6 +232,8 @@
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_NOX_mod.F
 !  25 Jul 2014 - R. Yantosca - Remove reference to commsoil_mod.F90
 !  25 Jul 2014 - R. Yantosca - Now call CLEANUP_GET_NDEP
+!  15 Aug 2014 - R. Yantosca - Remove reference to biofuel_mod.F
+!  15 Aug 2014 - R. Yantosca - Remove reference to biomass_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -254,8 +254,6 @@
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()
-      CALL CLEANUP_BIOMASS()
-      CALL CLEANUP_BIOFUEL()
       CALL CLEANUP_C2H6()
       CALL CLEANUP_CARBON()
       CALL CLEANUP_CHEMGRID()

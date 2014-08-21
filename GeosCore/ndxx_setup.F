@@ -20,86 +20,28 @@
 !
 ! !USES:
 !
-      USE BIOFUEL_MOD,     ONLY : NBFTRACE
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
-      USE DIAG_MOD,        ONLY : AD06,        AD07,        AD07_BC
-      USE DIAG_MOD,        ONLY : AD07_OC,     AD07_HC,     AD08
-      USE DIAG_MOD,        ONLY : AD07_SOAGM
-      USE DIAG_MOD,        ONLY : AD09,        AD09_em,     AD11
-      USE DIAG_MOD,        ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
-      USE DIAG_MOD,        ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
-      USE DIAG_MOD,        ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
-      USE DIAG_MOD,        ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
-      USE DIAG_MOD,        ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
-      USE DIAG_MOD,        ONLY : CONVFLUP,    TURBFLUP,    AD16
-      USE DIAG_MOD,        ONLY : CT16,        AD17,        CT17
-      USE DIAG_MOD,        ONLY : AD18,        CT18,        AD21
-      USE DIAG_MOD,        ONLY : AD21_cr,     AD22,        LTJV
-      USE DIAG_MOD,        ONLY : CTJV,        MASSFLEW,    MASSFLNS
-      USE DIAG_MOD,        ONLY : MASSFLUP,    AD28,        AD29
-      USE DIAG_MOD,        ONLY : AD30,        AD31
-      USE DIAG_MOD,        ONLY : AD57
-      USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
-      USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
-      USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
-      USE DIAG_MOD,        ONLY : AD32_SHIP,   AD32_SHIP_COUNT
-      USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
-      USE DIAG_MOD,        ONLY : AD36_SHIP,   AD36_SHIP_COUNT
-      USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,        ONLY : AD43
-      USE DIAG_MOD,        ONLY : LTOH,        CTOH
-      USE DIAG_MOD,        ONLY : LTHO2,       CTHO2
-      ! Stratospheric chemistry (SDE 2013-07-15)
-      USE DIAG_MOD,        ONLY : CTO1D,       LTO1D
-      USE DIAG_MOD,        ONLY : CTO3P,       LTO3P
-      USE DIAG_MOD,        ONLY : CTLBRO2H,    CTLBRO2N
-      USE DIAG_MOD,        ONLY : CTLTRO2H,    CTLTRO2N
-      USE DIAG_MOD,        ONLY : CTLXRO2H,    CTLXRO2N
-      USE DIAG_MOD,        ONLY : LTLBRO2H,    LTLBRO2N
-      USE DIAG_MOD,        ONLY : LTLTRO2H,    LTLTRO2N
-      USE DIAG_MOD,        ONLY : LTLXRO2H,    LTLXRO2N
-      USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
-      USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,        ONLY : AD52,        AD54,        AD63
-      USE DIAG_MOD,        ONLY : AD63_COUNT
-      USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
-
-#if   defined( TOMAS )
-      USE DIAG_MOD,        ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT  !(win, 7/9/09)
-      USE DIAG_MOD,        ONLY : AD59_ECIL,   AD59_ECOB               !(win, 7/9/09)
-      USE DIAG_MOD,        ONLY : AD59_OCIL,   AD59_OCOB,   AD59_DUST  !(win, 7/9/09)
-      USE DIAG_MOD,        ONLY : AD60_COND,   AD60_COAG,   AD60_NUCL  !(win, 7/9/09)
-      USE DIAG_MOD,        ONLY : AD60_AQOX,   AD60_ERROR,  AD60_SOA   !(win, 7/9/09)
-      USE DIAG_MOD,        ONLY : AD61,        AD61_INST               !(win, 7/9/09)
-#endif
-
-      USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
-      USE DIAG_MOD,        ONLY : AD68,        AD69
-      USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
-      USE DIAG_MOD,        ONLY : AD64,        AD71,        AD71_HR
-      USE DIAG_MOD,        ONLY : AD71_COUNT,  AD71_LDAY,   AD71_LHR
-      USE DIAG_MOD,        ONLY : AD71_DAY,    AD71_HRCT
-      USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
-      USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
-      USE DRYDEP_MOD,      ONLY : NUMDEP
-      USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
+      USE DIAG_MOD
+      USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
+      USE DIAG_OH_MOD,        ONLY : INIT_DIAG_OH
+      USE DRYDEP_MOD,         ONLY : NUMDEP
+      USE ERROR_MOD,          ONLY : ALLOC_ERR,   ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
-      USE TRACERID_MOD,    ONLY : NEMANTHRO
-      USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
+      USE PLANEFLIGHT_MOD,    ONLY : SETUP_PLANEFLIGHT
+      USE TRACERID_MOD,       ONLY : NEMANTHRO
+      USE WETSCAV_MOD,        ONLY : GET_WETDEP_NMAX
 
 #if   defined( TOMAS )
-      USE TOMAS_MOD,       ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
-      USE TRACERID_MOD,    ONLY : IDTNK1    !(win, 7/14/09)
+      USE TOMAS_MOD,          ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
+      USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
 #endif
 
 #if   defined( APM )
-      USE DIAG_MOD,        ONLY : AD07_OM 
-      USE TRACER_MOD,      ONLY : N_APMTRA
+      USE DIAG_MOD,           ONLY : AD07_OM 
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
       IMPLICIT NONE
@@ -263,6 +205,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  08 Nov 2013 - M. Sulprizio- Removed CTO3 and LTO3. They are no longer used
 !                              because O3 is now a tracer.
+!  15 Aug 2014 - R. Yantosca - Removed reference to biofuel_mod.F
+!  15 Aug 2014 - R. Yantosca - Now reference all arrays in diag_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -344,15 +288,19 @@
       N_TRC_TOT = N_TRACERS              ! G-C advected tracers only
 #endif
 
-      !=================================================================
-      ! ND01: Rn, Pb, Be emissions
-      !=================================================================
-      IF ( ND01 > 0 ) THEN 
-         LD01 = MIN( ND01, LLPAR )
-
-         ALLOCATE( AD01( IIPAR, JJPAR, LD01, N_TRACERS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
-      ENDIF
+!----------------------------------------------------------------------------
+! Prior to 8/20/14:
+! ND01 is now tracked by HEMCO (bmy, 8/20/14)
+!      !=================================================================
+!      ! ND01: Rn, Pb, Be emissions
+!      !=================================================================
+!      IF ( ND01 > 0 ) THEN 
+!         LD01 = MIN( ND01, LLPAR )
+!
+!         ALLOCATE( AD01( IIPAR, JJPAR, LD01, N_TRACERS ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
+!      ENDIF
+!----------------------------------------------------------------------------
 
       !=================================================================
       ! ND02: Rn, Pb, Be decay
@@ -439,32 +387,28 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD09_em' )
       ENDIF
 
-      !=================================================================
-      ! ND10: H2/HD prod, loss, sources
-      !=================================================================
-      IF ( ND10 > 0 ) THEN
-
-         ! number of emissions tracers
-         NEMISS = 5
-
-         ! Accumulating diagnostic array
-         ALLOCATE( AD10( IIPAR, JJPAR, LD10, (PD10-NEMISS) ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD10' )
-
-         ! Accumulating diagnostic array
-         ALLOCATE( AD10em( IIPAR, JJPAR, NEMISS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD10em' )
-
-      ENDIF
-
-      !=================================================================
-      ! ND11: Acetone source diagnostics [atoms C/cm2/s]
-      !       --> uses AD11 array (allocatable)
-      !=================================================================
-      IF ( ND11 > 0 ) THEN 
-         ALLOCATE( AD11( IIPAR, JJPAR, PD11 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD11' )
-      ENDIF
+!------------------------------------------------------------------------------
+!%%% Prior to 8/18/14:
+!%%% THE H2/HD SIMULATION IS OBSOLETE.  YOU CAN RESTORE IT IF YOU WANT.
+!%%% UNTIL THEN, LEAVE THIS COMMENTED OUT. (bmy, 8/18/14)
+!      !=================================================================
+!      ! ND10: H2/HD prod, loss, sources
+!      !=================================================================
+!      IF ( ND10 > 0 ) THEN
+!
+!         ! number of emissions tracers
+!         NEMISS = 5
+!
+!         ! Accumulating diagnostic array
+!         ALLOCATE( AD10( IIPAR, JJPAR, LD10, (PD10-NEMISS) ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD10' )
+!
+!         ! Accumulating diagnostic array
+!         ALLOCATE( AD10em( IIPAR, JJPAR, NEMISS ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD10em' )
+!
+!      ENDIF
+!------------------------------------------------------------------------------
       
       !=================================================================
       ! ND12: Distribution of emissions in boundary layer [fraction]
@@ -476,55 +420,6 @@
          ALLOCATE( AD12( IIPAR, JJPAR, LD12 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PL24H' )
       ENDIF
-
-      !=================================================================
-      ! ND13: Sulfur emissions from DMS, SO2, and SO4 
-      !=================================================================
-      IF ( ND13 > 0 ) THEN 
-         LD13 = MIN( ND13, LLPAR )
-
-         ALLOCATE( AD13_DMS( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_DMS' )
-
-         ALLOCATE( AD13_SO2_ac( IIPAR, JJPAR, LD13 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_ac' )
-
-         ALLOCATE( AD13_SO2_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_an' )
-
-         ALLOCATE( AD13_SO2_bb( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_bb' )
-
-         ALLOCATE( AD13_SO2_bf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_bf' )
-
-         ALLOCATE( AD13_SO2_ev( IIPAR, JJPAR, LD13 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_ev' )
-
-         ALLOCATE( AD13_SO2_nv( IIPAR, JJPAR, LD13 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_nv' )
-
-         ALLOCATE( AD13_SO4_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO4_an' )
-
-         ALLOCATE( AD13_SO4_bf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO4_bf' )
-
-         ALLOCATE( AD13_SO2_sh( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO4_sh' )
-
-         ALLOCATE( AD13_NH3_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_NH3_an' )
-
-         ALLOCATE( AD13_NH3_na( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_NH3_na' )
-
-         ALLOCATE( AD13_NH3_bb( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_NH3_bb' )
-
-         ALLOCATE( AD13_NH3_bf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_NH3_bf' )
-      ENDIF         
 
       !=================================================================
       ! ND14: Upward flux of from wet conv [kg/s] 
@@ -729,25 +624,6 @@
          ALLOCATE( MASSFLUP( 1, 1, 1, 1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
       ENDIF
-      !=================================================================
-      ! ND28: Biomass burning diagnostic [molec/cm2/s]
-      !       (NO, CO, ALK4, ACET, MEK, ALD2, PRPE, C3H8, CH2O, C2H6) 
-      !       --> uses AD28 array (allocatable)
-      !=================================================================
-      IF ( ND28 > 0 ) THEN
-         ALLOCATE( AD28( IIPAR, JJPAR, NBIOMAX ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD28' )
-      ENDIF
-
-      !=================================================================
-      ! ND29: CO-SRCE diagnostic [molec/cm2/s]
-      !       (anthro, biomass, biofuel, from monot., from methanol) 
-      !        --> uses AD29 array (allocatable)
-      !=================================================================
-      IF ( ND29 > 0 ) THEN
-         ALLOCATE( AD29( IIPAR, JJPAR, PD29 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD29' )
-      ENDIF
 
       !=================================================================
       ! ND30: Land/water/ice flags
@@ -768,52 +644,6 @@
       ENDIF
 
       !=================================================================
-      ! ND32: Sources of NOx [molec/cm2/s]
-      !       (aircraft, biomass, biofuel, lightning, 
-      !        stratosphere, soils, fertilizer, anthropogenic) 
-      !       --> Uses AD32_xx arrays (allocatable)
-      !=================================================================
-      IF ( ND32 > 0 ) THEN
-
-         ! For aircraft NOx
-         ALLOCATE( AD32_ac( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ac' )
-         
-         ! For anthropogenic NOx
-         ALLOCATE( AD32_an( IIPAR, JJPAR, NOXEXTENT ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_an' ) 
-
-         ! For biomass burning NOx
-         ALLOCATE( AD32_bb( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_bb' )
-
-         ! For biofuel NOx
-         ALLOCATE( AD32_bf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_bf' )
-
-         ! For fertilizer NOx
-         ALLOCATE( AD32_fe( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_fe' ) 
-
-         ! For Lightning NOx
-         ALLOCATE( AD32_li( IIPAR, JJPAR, LLCONVM ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_li' )
-
-         ! For soil NOx
-         ALLOCATE( AD32_so( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_so' ) 
-
-         ! For stratospheric NOx
-         ALLOCATE( AD32_ub( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_st' ) 
-
-         ! For ship NOx
-         ALLOCATE( AD32_ship( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship' ) 
-
-      ENDIF
-
-      !=================================================================
       ! ND33: Column sum of tracer [kg]
       !       --> uses AD33 array (allocatable)!
       !=================================================================
@@ -823,39 +653,12 @@
       ENDIF
 
       !=================================================================
-      ! ND34: Biofuel burning emissions [molec/cm2/s]
-      !       (NO, CO, ALK4, ACET, MEK, ALD2, PRPE, C3H8, CH2O, C2H6)  
-      !       --> uses AD34 array (allocatable)
-      !=================================================================
-      IF ( ND34 > 0 ) THEN
-         ALLOCATE( AD34( IIPAR, JJPAR, NBFTRACE ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD34' )
-      ENDIF         
-
-      !=================================================================
       ! ND35: Tracer at 500 mb [v/v] (this is ~ level 9 for GEOS-CHEM)
       !       --> uses AD35 array (allocatable)
       !=================================================================
       IF ( ND35 > 0 ) THEN
          ALLOCATE( AD35( IIPAR, JJPAR, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD35' ) 
-      ENDIF
-
-      !=================================================================
-      ! ND36: Anthropogenic Emisisons [molec/cm2/s]
-      !       (NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, C3H8, C2H6)
-      !       --> uses AD36 array (allocatable)
-      !  
-      ! NOTE: For a CH3I run, use ND36 for CH3I emission diagnostics....
-      !=================================================================
-      IF ( IT_IS_A_CH3I_SIM ) NEMANTHRO = 8   ! for CH3I
-
-      IF ( ND36 > 0 ) THEN
-         ALLOCATE( AD36( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36' )
-
-         ALLOCATE( AD36_SHIP( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36_SHIP' )
       ENDIF
 
       !=================================================================
@@ -1090,16 +893,6 @@
       ENDIF
 
       !=================================================================
-      ! ND46: Biogenic emissions [molec/cm2/s]
-      !       (ISOP, PRPE, ACET, and MONOTERPENES)
-      !       --> uses AD46 array (allocatable)
-      !=================================================================
-      IF ( ND46 > 0 ) THEN
-         ALLOCATE( AD46( IIPAR, JJPAR, PD46 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD46' ) 
-      ENDIF
-
-      !=================================================================
       ! ND47: 24-h averaged tracer concentration [v/v]
       !       --> uses AD47 array (allocatable)
       !
@@ -1298,21 +1091,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61_INST' )
       ENDIF
 #endif
-
-      !=================================================================
-      ! ND63: FRACTION OF NOx REMAINING AND INTEGRATED OPE
-      !=================================================================
-      IF ( DO_SAVE_DIAG63 ) THEN 
-
-         ALLOCATE( AD63( IIPAR, JJPAR, 5), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63' )
-         AD63 = 0d0
-
-         ALLOCATE( AD63_COUNT, STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63_COUNT' )
-         AD63_COUNT = 0d0
-
-      ENDIF
 
       !=================================================================
       ! ND64: Radiative flux from FAST-JX
