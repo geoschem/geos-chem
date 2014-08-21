@@ -277,6 +277,7 @@ CONTAINS
 !
     INTEGER                :: I, J, N
     REAL(hp), TARGET       :: FLUX_2D(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: DIAG   (HcoState%NX,HcoState%NY)
     REAL*8                 :: FERTDIAG, DEP_FERT, SOILFRT
     REAL*8, PARAMETER      :: SEC_PER_YEAR = 3.1536d7
     REAL*4                 :: TSEMIS
@@ -288,6 +289,10 @@ CONTAINS
     LOGICAL                :: aIR, FOUND
     CHARACTER(LEN= 31)     :: DiagnName
     CHARACTER(LEN=255)     :: MSG, DMY
+
+    ! For manual diagnostics
+    LOGICAL, SAVE            :: DoDiagn = .FALSE.
+    TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
 
     !=================================================================
     ! HCOX_SoilNOx_RUN begins here!
@@ -418,6 +423,11 @@ CONTAINS
           DEALLOCATE(VecDp)
        ENDIF
 
+       ! Check if we need to write manual fertilizer NO diagnostics
+       DiagnName = 'FERTILIZER_NO'
+       CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+       TmpCnt => NULL()
+
        FIRST = .FALSE.
     ENDIF
 
@@ -428,8 +438,9 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Init
-    FLUX_2D = 0d0 
     TSEMIS  = HcoState%TS_EMIS
+    FLUX_2D = 0d0 
+    IF(DoDiagn) DIAG = 0d0 
 
     ! Loop over each land grid-box, removed loop over landpoints
 !$OMP PARALLEL DO                                               &
@@ -474,6 +485,7 @@ CONTAINS
      
        ! Write out
        FLUX_2D(I,J) = IJFLUX
+       IF (DoDiagn) DIAG(I,J) = FERTDIAG
 
     ENDDO !J 
     ENDDO !I
@@ -503,16 +515,14 @@ CONTAINS
     ! 'FERTILIZER_NO' is the fertilizer NO emissions. If an empty
     ! pointer (i.e. not associated) is passed to Diagn_Update,
     ! diagnostics are treated as zeros!
-    IF ( LFERTILIZERNOX ) THEN 
-       Arr2D => SOILFERT
-    ELSE
+    IF ( DoDiagn ) THEN
+       Arr2D => DIAG
+       DiagnName = 'FERTILIZER_NO'
+       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, & 
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL()
     ENDIF
-    DiagnName =  'FERTILIZER_NO'
-    CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, & 
-                       cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN 
-    Arr2D => NULL()
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
@@ -908,11 +918,11 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,   INTENT(OUT) :: SOILNOx         ! Soil NOx emissions [molec/cm2/s]
+    REAL*8,   INTENT(OUT) :: SOILNOx         ! Soil NOx emissions [kg/m2/s]
     REAL(hp), INTENT(OUT) :: GWET_PREV_HSN   ! Soil Moisture Prev timestep
     REAL(hp), INTENT(OUT) :: DRYPERIOD_HSN   ! Dry period length in hours
     REAL(hp), INTENT(OUT) :: PFACTOR_HSN     ! Pulsing Factor
-    REAL*8,   INTENT(OUT) :: FERTDIAG        ! Fert emissions [molec/cm2/s
+    REAL*8,   INTENT(OUT) :: FERTDIAG        ! Fert emissions [kg/m2/s]
 !
 ! !REMARKS:
 !  R_CANOPY is computed in routine GET_CANOPY_NOX of "canopy_nox_mod.f". 

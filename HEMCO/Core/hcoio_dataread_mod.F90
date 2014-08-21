@@ -89,14 +89,14 @@ CONTAINS
     REAL,             POINTER  :: Ptr3D(:,:,:)   => NULL() 
     REAL,             POINTER  :: Ptr2D(:,:)     => NULL() 
     TYPE(ESMF_State), POINTER  :: IMPORT         => NULL()
-    CHARACTER(LEN=255)         :: LOC
+    CHARACTER(LEN=255)         :: MSG
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
 
     !=================================================================
     ! HCOIO_DATAREAD begins here
     !=================================================================
 
     ! For error handling
-    LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
     CALL HCO_ENTER ( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -114,7 +114,8 @@ CONTAINS
 
        ! Check for MAPL error
        IF( MAPL_VRFY(STAT,LOC,1) ) THEN
-          CALL HCO_ERROR ( 'Cannot get xyz pointer', RC ) 
+          MSG = 'Cannot get xyz pointer: ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC ) 
           RETURN
        ENDIF
 
@@ -143,7 +144,8 @@ CONTAINS
 
        ! Check for MAPL error 
        IF( MAPL_VRFY(STAT,LOC,2) ) THEN
-          CALL HCO_ERROR ( 'Cannot get xy pointer', RC ) 
+          MSG = 'Cannot get xy pointer: ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC ) 
           RETURN
        ENDIF
 

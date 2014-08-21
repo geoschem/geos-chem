@@ -942,7 +942,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    REAL(sp),        INTENT(IN   ) :: UTC       ! UTC 
+    REAL(sp),        INTENT(IN   ) :: UTC       ! UTC time
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
