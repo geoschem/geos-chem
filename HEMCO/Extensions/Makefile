@@ -22,6 +22,7 @@
 #  22 Jul 2014 - R. Yantosca - Turn off optimization for lightning_cdf_mod.F90
 #  08 Aug 2014 - R. Yantosca - Now reference include files w/ hardwired
 #                              emissions data. This facilitates I/O for ESMF.
+#  20 Aug 2014 - M. Sulprizio- Add hcox_gc_POPs_mod.F90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -107,6 +108,7 @@ hcox_driver_mod.o     : hcox_driver_mod.F90       \
                         hcox_dustdead_mod.o       \
                         hcox_dustginoux_mod.o     \
                         hcox_finn_mod.o           \
+                        hcox_gc_POPs_mod.o        \
                         hcox_gc_RnPbBe_mod.o      \
                         hcox_gfed3_mod.o          \
                         hcox_paranox_mod.o        \
@@ -123,6 +125,9 @@ hcox_dustdead_mod.o   : hcox_dustdead_mod.F       \
 
 hcox_dustginoux_mod.o : hcox_dustginoux_mod.F90   \
                         hcox_state_mod.o
+
+hcox_gc_POPs_mod.o    : hcox_gc_POPs_mod.F90      \
+                        hcox_state_mod.o          \
 
 hcox_gc_RnPbBe_mod.o  : hcox_gc_RnPbBe_mod.F90    \
                         hcox_gc_RnPbBe_include.H  \

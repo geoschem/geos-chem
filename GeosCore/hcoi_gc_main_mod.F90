@@ -57,6 +57,7 @@ MODULE HCOI_GC_Main_Mod
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  30 Jul 2014 - C. Keller   - Added GetHcoState 
 !  01 Aug 2014 - C. Keller   - Now use only OC and BC within HEMCO. 
+!  20 Aug 2014 - M. Sulprizio- Modify for POPs simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -70,9 +71,11 @@ MODULE HCOI_GC_Main_Mod
   TYPE(Ext_State), POINTER        :: ExtState  => NULL()
 
   ! Internal met fields (will be used by some extensions)
-  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PCENTER(:,:,:) ! Pa
-  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PEDGE  (:,:,:) ! Pa
-  REAL(hp), ALLOCATABLE, TARGET     :: HCO_SZAFACT(:,:)   ! -
+  INTEGER,               TARGET     :: HCO_PBL_MAX            ! level
+  REAL(hp), ALLOCATABLE, TARGET     :: HCO_FRAC_OF_PBL(:,:,:) ! unitless
+  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PCENTER    (:,:,:) ! Pa
+  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PEDGE      (:,:,:) ! Pa
+  REAL(hp), ALLOCATABLE, TARGET     :: HCO_SZAFACT    (:,:)   ! -
 
   ! Arrays to store J-values (used by Paranox extension)
   REAL(hp), ALLOCATABLE, TARGET     :: JNO2(:,:)
@@ -259,6 +262,15 @@ CONTAINS
     ! Update logical switches in Input_Opt 
     !-----------------------------------------------------------------
     Input_Opt%LSOILNOX = ExtState%SoilNOx
+
+    !-----------------------------------------------------------------
+    ! Set constants for POPs simulation
+    !-----------------------------------------------------------------
+    IF ( ExtState%GC_POPs ) THEN
+       ExtState%POP_DEL_H = Input_Opt%POP_DEL_H
+       ExtState%POP_KOA   = Input_Opt%POP_KOA
+       ExtState%POP_KBC   = Input_Opt%POP_KBC
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Set pointers to met fields.
@@ -564,12 +576,13 @@ CONTAINS
     CALL HcoState_Final ( HcoState ) 
 
     ! Module variables
-    IF ( ALLOCATED  ( ZSIGMA      ) ) DEALLOCATE ( ZSIGMA      )
-    IF ( ALLOCATED  ( HCO_PEDGE   ) ) DEALLOCATE ( HCO_PEDGE   )
-    IF ( ALLOCATED  ( HCO_PCENTER ) ) DEALLOCATE ( HCO_PCENTER )
-    IF ( ALLOCATED  ( HCO_SZAFACT ) ) DEALLOCATE ( HCO_SZAFACT )
-    IF ( ALLOCATED  ( JNO2        ) ) DEALLOCATE ( JNO2        )
-    IF ( ALLOCATED  ( JO1D        ) ) DEALLOCATE ( JO1D        )
+    IF ( ALLOCATED  ( ZSIGMA          ) ) DEALLOCATE ( ZSIGMA          )
+    IF ( ALLOCATED  ( HCO_FRAC_OF_PBL ) ) DEALLOCATE ( HCO_FRAC_OF_PBL )
+    IF ( ALLOCATED  ( HCO_PEDGE       ) ) DEALLOCATE ( HCO_PEDGE       )
+    IF ( ALLOCATED  ( HCO_PCENTER     ) ) DEALLOCATE ( HCO_PCENTER     )
+    IF ( ALLOCATED  ( HCO_SZAFACT     ) ) DEALLOCATE ( HCO_SZAFACT     )
+    IF ( ALLOCATED  ( JNO2            ) ) DEALLOCATE ( JNO2            )
+    IF ( ALLOCATED  ( JO1D            ) ) DEALLOCATE ( JO1D            )
 
   END SUBROUTINE HCOI_GC_Final
 !EOC
@@ -976,7 +989,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
-!  23 Oct 2012 - C. Keller - Initial Version
+!  23 Oct 2012 - C. Keller   - Initial Version
+!  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1000,6 +1014,9 @@ CONTAINS
     ! HCO_PEDGE, HCO_PCENTER and HCO_SZAFACT aren't defined as 3D 
     ! arrays in Met_State. Hence need to construct here so that we 
     ! can point to them.
+    !
+    ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
+    ! simulation (mps, 8/20/14)
     ! ----------------------------------------------------------------
     IF ( ExtState%PEDGE%DoUse ) THEN 
        ALLOCATE(HCO_PEDGE  (IIPAR,JJPAR,LLPAR+1),STAT=AS)
@@ -1021,6 +1038,16 @@ CONTAINS
        HCO_SZAFACT = 0d0
        ExtState%SZAFACT%Arr%Val => HCO_SZAFACT
     ENDIF
+
+    IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN 
+       ALLOCATE(HCO_FRAC_OF_PBL(IIPAR,JJPAR,LLPAR),STAT=AS)
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_FRAC_OF_PBL', LOC )
+       HCO_FRAC_OF_PBL = 0d0
+       ExtState%FRAC_OF_PBL%Arr%Val => HCO_FRAC_OF_PBL
+    ENDIF
+
+    HCO_PBL_MAX = 0d0
+    ExtState%PBL_MAX => HCO_PBL_MAX
 
     ! ----------------------------------------------------------------
     ! The J-Values for NO2 and O3 are not defined in Met_State. We
@@ -1210,6 +1237,7 @@ CONTAINS
 
     USE PRESSURE_MOD,          ONLY : GET_PEDGE, GET_PCENTER
     USE GLOBAL_OH_MOD,         ONLY : GET_SZAFACT
+    USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
 
     USE FAST_JX_MOD,           ONLY : FJXFUNC
     USE COMODE_LOOP_MOD,       ONLY : NCS, JPHOTRAT, NRATES
@@ -1225,7 +1253,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
-!  23 Oct 2012 - C. Keller - Initial Version
+!  23 Oct 2012 - C. Keller   - Initial Version
+!  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1251,7 +1280,7 @@ CONTAINS
     ! If necessary, calculate internal met fields
     IF ( ExtState%PEDGE%DoUse   .OR. ExtState%PCENTER%DoUse .OR. &
          ExtState%SZAFACT%DoUse .OR. ExtState%JNO2%DoUse    .OR. &
-         ExtState%JO1D%DoUse                                      ) THEN
+         ExtState%JO1D%DoUse    .OR. ExtState%FRAC_OF_PBL%DoUse ) THEN
 
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
@@ -1276,6 +1305,14 @@ CONTAINS
           IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
              HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
           ENDIF
+
+          ! Fraction of PBL for each box [unitless]
+          IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
+             HCO_FRAC_OF_PBL(I,J,L) = GET_FRAC_OF_PBL(I,J,L)
+          ENDIF
+
+          ! Maximum extent of the PBL [model level]
+          HCO_PBL_MAX = GET_PBL_MAX_L()
 
           ! J-values for NO2 and O3 (2D field only)
           ! This code was moved from hcox_paranox_mod.F90 to break
