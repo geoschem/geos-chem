@@ -51,6 +51,9 @@ MODULE HCOX_GC_RnPbBe_Mod
 ! !REVISION HISTORY:
 !  07 Jul 2014 - R. Yantosca - Initial version
 !  15 Aug 2014 - C. Keller   - Targets now in hp precision. Cosmetic changes
+!  21 Aug 2014 - R. Yantosca - Add Pb as a species
+!  21 Aug 2014 - R. Yantosca - Add HEMCO species indices as module variables
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -59,8 +62,9 @@ MODULE HCOX_GC_RnPbBe_Mod
 !
   ! Emissions indices etc.
   INTEGER                       :: ExtNr  = -1       ! HEMCO Extension number
-  INTEGER                       :: IDTRn  = -1       ! Index # for Rn tracer
-  INTEGER                       :: IDTBe7 = -1       ! Index # for 7Be tracer
+  INTEGER                       :: IDTRn  = -1       ! Tracer index # for Rn
+  INTEGER                       :: IDTPb  = -1       ! Tracer index # for Pb
+  INTEGER                       :: IDTBe7 = -1       ! Tracer index # for Be7
 
   ! For tracking Rn222 and Be7 emissions
   REAL(hp), ALLOCATABLE, TARGET :: EmissRn (:,:  )
@@ -122,6 +126,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER           :: I,          J,          L,         N
+    INTEGER           :: HcoID
     REAL*8            :: A_CM2,      ADD_Be,     ADD_Rn,    Rn_LAND
     REAL*8            :: Rn_WATER,   DTSRCE,     LAT_TMP,   P_TMP
     REAL*8            :: Be_TMP,     Rn_TMP,     LAT_S,     LAT_N
@@ -367,7 +372,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Add 7Be emissions to HEMCO data structure & diagnostics
     !------------------------------------------------------------------------
-    
+
     ! Add emissions
     Arr3D => EmissBe7(:,:,:)
     CALL HCO_EmisAdd( HcoState, Arr3D, IDTBe7, RC )
@@ -378,7 +383,7 @@ CONTAINS
     IF ( Diagn_AutoFillLevelDefined(2) ) THEN
        Arr3D => EmissBe7(:,:,:)
        CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,  &
-                          Cat=-1,     Hier=-1,       HcoID=IDTRn,  &
+                          Cat=-1,     Hier=-1,       HcoID=IDTBe7, &
                           AutoFill=1, Array3D=Arr3D, RC=RC        )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -410,8 +415,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_ExtList_Mod,   ONLY : GetExtNr
-    USE HCO_STATE_MOD,     ONLY : HCO_GetExtHcoID
+    USE HCO_ExtList_Mod, ONLY : GetExtNr
+    USE HCO_State_Mod,   ONLY : HCO_GetExtHcoID
 !
 ! !INPUT PARAMETERS:
 !
@@ -426,6 +431,7 @@ CONTAINS
 
 ! !REVISION HISTORY:
 !  07 Jul 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Now define HEMCO indices as well
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -473,13 +479,15 @@ CONTAINS
        ENDDO
     ENDIF
 
-    ! Set up tracer indices
+    ! Set up tracer and HEMCO indices
     DO N = 1, nSpc
        SELECT CASE( TRIM( SpcNames(N) ) )
           CASE( 'Rn', 'Rn222', '222Rn' )
-             IDTRn = N
+             IDTRn   = HcoIDs(N)
+          CASE( 'Pb', 'Pb210', '210Pb' )
+             IDTPb   = HcoIDs(N)
           CASE( 'Be', 'Be7', '7Be' )
-             IDTBe7 = N
+             IDTBe7  = HcoIDs(N)
           CASE DEFAULT
              ! Do nothing
        END SELECT
@@ -487,14 +495,18 @@ CONTAINS
 
     ! ERROR: Rn tracer is not found!
     IF ( IDTRn <= 0 ) THEN
-       RC = HCO_FAIL
        CALL HCO_ERROR( 'Cannot find 222Rn tracer in list of species!', RC )
        RETURN
     ENDIF
     
+    ! ERROR! Pb tracer is not found
+    IF ( IDTPb <= 0 ) THEN
+       CALL HCO_ERROR( 'Cannot find 7Be tracer in list of species!', RC )
+       RETURN
+    ENDIF
+
     ! ERROR! Be7 tracer is not found
     IF ( IDTBe7 <= 0 ) THEN
-       RC = HCO_FAIL
        CALL HCO_ERROR( 'Cannot find 7Be tracer in list of species!', RC )
        RETURN
     ENDIF

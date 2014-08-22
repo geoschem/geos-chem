@@ -64,6 +64,7 @@ MODULE GIGC_State_Met_Mod
      REAL*8,  POINTER :: PARDR     (:,:  )  ! Direct  photsyn active rad [W/m2]
      REAL*8,  POINTER :: PARDF     (:,:  )  ! Diffuse photsyn active rad [W/m2]
      REAL*8,  POINTER :: PBLH      (:,:  )  ! PBL height [m]
+     INTEGER, POINTER :: PBL_TOP_L (:,:  )  ! PBL top layer [1]
      REAL*8,  POINTER :: PHIS      (:,:  )  ! Sfc geopotential height [m2/s2]
      REAL*8,  POINTER :: PRECANV   (:,:  )  ! Anvil previp @ ground [kg/m2/s]
      REAL*8,  POINTER :: PRECCON   (:,:  )  ! Conv  precip @ ground [kg/m2/s]
@@ -244,6 +245,7 @@ CONTAINS
 !  07 Mar 2013 - R. Yantosca - Now allocate PF*LSAN, PF*CU fields properly
 !                              for GEOS-5.7.x met (they are edged)
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  22 Aug 2014 - R. Yantosca - Allocate PBL_TOP_L field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -333,6 +335,10 @@ CONTAINS
     ALLOCATE( State_Met%PBLH      ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PBLH     = 0d0
+
+    ALLOCATE( State_Met%PBL_TOP_L ( IM, JM ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PBL_TOP_L = 0
 
     ALLOCATE( State_Met%PHIS      ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -874,6 +880,7 @@ CONTAINS
 !  27 Nov 2012 - R. Yantosca - Now deallocate the SUNCOS fields
 !  12 Dec 2012 - R. Yantosca - Now deallocate the IREG, ILAND, IUSE fields
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  22 Aug 2014 - R. Yantosca - Deallocate PBL_TOP_L field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -905,6 +912,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%PARDR      )) DEALLOCATE( State_Met%PARDR      )
     IF ( ASSOCIATED( State_Met%PARDF      )) DEALLOCATE( State_Met%PARDF      )
     IF ( ASSOCIATED( State_Met%PBLH       )) DEALLOCATE( State_Met%PBLH       )
+    IF ( ASSOCIATED( State_Met%PBL_TOP_L  )) DEALLOCATE( State_Met%PBL_TOP_L  )
     IF ( ASSOCIATED( State_Met%PHIS       )) DEALLOCATE( State_Met%PHIS       )
     IF ( ASSOCIATED( State_Met%PRECCON    )) DEALLOCATE( State_Met%PRECCON    )
     IF ( ASSOCIATED( State_Met%PRECTOT    )) DEALLOCATE( State_Met%PRECTOT    )

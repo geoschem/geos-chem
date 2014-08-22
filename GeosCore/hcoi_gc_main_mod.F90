@@ -43,10 +43,22 @@ MODULE HCOI_GC_Main_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HCOI_GC_Init
-  PUBLIC :: HCOI_GC_Run
-  PUBLIC :: HCOI_GC_Final
-  PUBLIC :: GetHcoState
+  PUBLIC  :: HCOI_GC_Init
+  PUBLIC  :: HCOI_GC_Run
+  PUBLIC  :: HCOI_GC_Final
+  PUBLIC  :: GetHcoState
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: Map_HCO2GC
+  PRIVATE :: Regrid_Emis2Sim
+  PRIVATE :: Set_Current_Time
+  PRIVATE :: ExtState_SetPointers
+  PRIVATE :: ExtState_UpdtPointers
+  PRIVATE :: Model_GetSpecies 
+  PRIVATE :: Set_Grid
+  PRIVATE :: Get_nnMatch 
+  PRIVATE :: Register_Species
 !
 ! !REMARKS:
 !  This module is ignored if you are using HEMCO in an ESMF environment.
@@ -57,54 +69,65 @@ MODULE HCOI_GC_Main_Mod
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  30 Jul 2014 - C. Keller   - Added GetHcoState 
 !  01 Aug 2014 - C. Keller   - Now use only OC and BC within HEMCO. 
+!  21 Aug 2014 - R. Yantosca - Added routine EmissRnPbBe; cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE MODULE VARIABLES:
 !
+  !--------------------------
+  ! %%% Pointers %%%
+  !--------------------------
+
   ! HEMCO state 
-  TYPE(HCO_State), POINTER        :: HcoState  => NULL()
+  TYPE(HCO_State),      POINTER :: HcoState               => NULL()
 
   ! HEMCO extensions state
-  TYPE(Ext_State), POINTER        :: ExtState  => NULL()
-
-  ! Internal met fields (will be used by some extensions)
-  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PCENTER(:,:,:) ! Pa
-  REAL(hp), ALLOCATABLE, TARGET     :: HCO_PEDGE  (:,:,:) ! Pa
-  REAL(hp), ALLOCATABLE, TARGET     :: HCO_SZAFACT(:,:)   ! -
-
-  ! Arrays to store J-values (used by Paranox extension)
-  REAL(hp), ALLOCATABLE, TARGET     :: JNO2(:,:)
-  REAL(hp), ALLOCATABLE, TARGET     :: JO1D(:,:)
-
-  ! Sigma coordinate (temporary)
-  REAL(hp), ALLOCATABLE, TARGET   :: ZSIGMA(:,:,:)
+  TYPE(Ext_State),      POINTER :: ExtState               => NULL()
 
   ! Pointers used during initialization (for species matching)
-  INTEGER                     :: nHcoSpec
-  CHARACTER(LEN= 31), POINTER :: HcoSpecNames(:) => NULL()
-  INTEGER                     :: nModelSpec
-  CHARACTER(LEN= 31), POINTER :: ModelSpecNames(:) => NULL()
-  INTEGER,            POINTER :: ModelSpecIDs  (:) => NULL()
-  REAL(hp),           POINTER :: ModelSpecMW   (:) => NULL()
-  REAL(hp),           POINTER :: ModelSpecEmMW (:) => NULL()
-  REAL(hp),           POINTER :: ModelSpecMolecRatio(:) => NULL()
-  REAL(hp),           POINTER :: ModelSpecK0   (:) => NULL()
-  REAL(hp),           POINTER :: ModelSpecCR   (:) => NULL()
-  REAL(hp),           POINTER :: ModelSpecPKA  (:) => NULL()
-  INTEGER,            POINTER :: matchidx(:) => NULL()
+  INTEGER                       :: nHcoSpec
+  CHARACTER(LEN= 31),   POINTER :: HcoSpecNames       (:) => NULL()
+  INTEGER                       :: nModelSpec
+  CHARACTER(LEN= 31),   POINTER :: ModelSpecNames     (:) => NULL()
+  INTEGER,              POINTER :: ModelSpecIDs       (:) => NULL()
+  REAL(hp),             POINTER :: ModelSpecMW        (:) => NULL()
+  REAL(hp),             POINTER :: ModelSpecEmMW      (:) => NULL()
+  REAL(hp),             POINTER :: ModelSpecMolecRatio(:) => NULL()
+  REAL(hp),             POINTER :: ModelSpecK0        (:) => NULL()
+  REAL(hp),             POINTER :: ModelSpecCR        (:) => NULL()
+  REAL(hp),             POINTER :: ModelSpecPKA       (:) => NULL()
+  INTEGER,              POINTER :: matchidx           (:) => NULL()
 
+  !--------------------------
+  ! %%% Arrays %%%
+  !--------------------------
+
+  ! Internal met fields (will be used by some extensions)
+  REAL(hp), ALLOCATABLE, TARGET :: HCO_PCENTER(:,:,:) ! Pa
+  REAL(hp), ALLOCATABLE, TARGET :: HCO_PEDGE  (:,:,:) ! Pa
+  REAL(hp), ALLOCATABLE, TARGET :: HCO_SZAFACT(:,:)   ! -
+
+  ! Arrays to store J-values (used by Paranox extension)
+  REAL(hp), ALLOCATABLE, TARGET :: JNO2(:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: JO1D(:,:)
+
+  ! Sigma coordinate (temporary)
+  REAL(hp), ALLOCATABLE, TARGET :: ZSIGMA(:,:,:)
+!
+! !DEFINED PARAMETERS:
+!
   ! Hydrophilic and hydrophobic fraction of black carbon
-  REAL(dp), PARAMETER    :: BC2BCPI = 0.2_dp  ! hydrophilic
-  REAL(dp), PARAMETER    :: BC2BCPO = 0.8_dp  ! hydrophobic
+  REAL(dp),           PARAMETER :: BC2BCPI = 0.2_dp  ! hydrophilic
+  REAL(dp),           PARAMETER :: BC2BCPO = 0.8_dp  ! hydrophobic
 
   ! Hydrophilic and hydrophobic fraction of organic carbon
-  REAL(dp), PARAMETER    :: OC2OCPI = 0.5_dp  ! hydrophilic
-  REAL(dp), PARAMETER    :: OC2OCPO = 0.5_dp  ! hydrophobic
+  REAL(dp),           PARAMETER :: OC2OCPI = 0.5_dp  ! hydrophilic
+  REAL(dp),           PARAMETER :: OC2OCPO = 0.5_dp  ! hydrophobic
 
   ! Temporary toggle for diagnostics
-  LOGICAL, PARAMETER :: DoDiagn = .TRUE.
+  LOGICAL,            PARAMETER :: DoDiagn = .TRUE.
 
 CONTAINS
 !EOC
@@ -344,8 +367,12 @@ CONTAINS
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
+! !REMARKS:
+!  Modifi
+!
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller    - Initial version 
+!  12 Sep 2013 - C. Keller   - Initial version 
+!  22 Aug 2014 - R. Yantosca - Now pass State_Met to MAP_HCO2GC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -355,42 +382,42 @@ CONTAINS
     INTEGER                        :: HMRC 
     CHARACTER(LEN=255), PARAMETER  :: LOC='HCOI_GC_RUN (hcoi_gc_main_mod.F90)'
 
-    !=================================================================
+    !=======================================================================
     ! HCOI_GC_RUN begins here!
-    !=================================================================
+    !=======================================================================
 
     ! Set return code flag to HCO success. This value should be
     ! preserved throughout all HCO calls, otherwise an error
     ! will be returned!
     HMRC = HCO_SUCCESS
 
-    !=================================================================
+    !=======================================================================
     ! Set HcoClock 
-    !=================================================================
+    !=======================================================================
     CALL SET_CURRENT_TIME ( am_I_Root, HcoState, HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SET_CURRENT_TIME', LOC )
 
-    !=================================================================
+    !=======================================================================
     ! Output diagnostics 
-    !=================================================================
+    !=======================================================================
     IF ( DoDiagn ) THEN
     CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_WRITEOUT', LOC )
     ENDIF
 
-    ! ================================================================
+    ! ======================================================================
     ! Reset all emission and deposition values
-    ! ================================================================
+    ! ======================================================================
     CALL HCO_FluxarrReset ( HcoState, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('ResetArrays', LOC )
        RETURN 
     ENDIF
  
-    ! ================================================================
+    !=======================================================================
     ! Set HCO options and define all arrays needed by core module 
     ! and the extensions 
-    ! ================================================================
+    !=======================================================================
 
     ! Range of tracers and emission categories.
     ! Set Extension number ExtNr to 0, indicating that the core
@@ -404,53 +431,54 @@ CONTAINS
     ! Use temporary array?
     HcoState%Options%FillBuffer = .FALSE. 
 
-    ! ================================================================
+    !=======================================================================
     ! Run HCO core module
     ! Emissions will be written into the corresponding flux arrays 
     ! in HcoState. 
-    ! ================================================================
+    !=======================================================================
     CALL HCO_RUN ( am_I_Root, HcoState, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('HCO_RUN', LOC )
        RETURN 
     ENDIF
 
-    ! ================================================================
+    !=======================================================================
     ! Eventually update variables in ExtState 
-    ! ================================================================
+    !=======================================================================
     CALL ExtState_UpdtPointers ( State_Met, State_Chm, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('ExtState_UpdtPointers', LOC )
        RETURN 
     ENDIF
 
-    ! ================================================================
+    !=======================================================================
     ! Run HCO extensions. Emissions will be added to corresponding
     ! flux arrays in HcoState.
-    ! ================================================================
+    !=======================================================================
     CALL HCOX_RUN ( am_I_Root, HcoState, ExtState, HMRC )
     IF ( HMRC/= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('HCOX_RUN', LOC )
        RETURN
     ENDIF 
 
-    !=================================================================
+    !=======================================================================
     ! Update diagnostics 
-    !=================================================================
-
+    !=======================================================================
     IF ( DoDiagn ) THEN
-    CALL HCO_DIAGN_AUTOUPDATE ( am_I_Root, HcoState, HMRC )
-    IF( HMRC /= HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_UPDATE', LOC )
+       CALL HCO_DIAGN_AUTOUPDATE ( am_I_Root, HcoState, HMRC )
+       IF( HMRC /= HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_UPDATE', LOC )
     ENDIF
 
-    ! ================================================================
+    !=======================================================================
     ! Translate emissions array from HCO state onto GC arrays
-    ! ================================================================
-    CALL MAP_HCO2GC ( HcoState, Input_Opt, State_Chm, RC )
+    !=======================================================================
+    CALL MAP_HCO2GC( HcoState, Input_Opt, State_Met, State_Chm, RC )
 
-    ! Reset deposition arrays  
+    !=======================================================================
+    ! Reset deposition arrays
     ! TODO: Do somewhere else? e.g. in drydep/wetdep routines?
-    CALL RESET_DEP_N
+    !=======================================================================
+    CALL RESET_DEP_N()
 
     ! We are now back in GEOS-Chem environment, hence set 
     ! return flag accordingly! 
@@ -588,41 +616,40 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Map_Hco2Gc( HcoState, Input_Opt, State_Chm, RC )
+  SUBROUTINE Map_Hco2Gc( HcoState, Input_Opt, State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,          ONLY : IIPAR,  JJPAR,  LLPAR
+    USE Error_Mod,             ONLY : ERROR_STOP
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod,    ONLY : OptInput
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
-    USE HCO_STATE_MOD,         ONLY : HCO_State
-
-    USE CMN_SIZE_MOD,          ONLY : IIPAR,  JJPAR,  LLPAR
-    USE ERROR_MOD,             ONLY : ERROR_STOP
-
-    ! For BC/OC speciation
-    USE TRACERID_MOD,          ONLY : IDTBCPI, IDTBCPO
-    USE TRACERID_MOD,          ONLY : IDTOCPI, IDTOCPO
-
-    ! For dust mixing
-    USE TRACERID_MOD,          ONLY : IDTDST1, IDTDST2
-    USE TRACERID_MOD,          ONLY : IDTDST3, IDTDST4
-    USE GRID_MOD,              ONLY : AREA_M2
+    USE GIGC_State_Met_Mod,    ONLY : MetState
+    USE Tracerid_Mod 
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(HCO_State), POINTER        :: HcoState    ! HCO state
-    TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input options
+    TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
+    TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry state 
+    TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
     INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
 !
+! !REMARKS:
+!  For a detailed discussion of how emissions get added from HEMCO into
+!  GEOS-Chem (and how emissions are distributed throughout the boundary
+!  layer), please see this wiki page:
+!  http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
+!  
 ! !REVISION HISTORY:
-!  01 May 2012 - C. Keller - Initial Version
-!  20 Aug 2013 - C. Keller - Now pass from HEMOC state to chemistry state
-!  14 Sep 2013 - C. Keller - Now keep in units of kg/m2/s.
+!  01 May 2012 - C. Keller   - Initial Version
+!  20 Aug 2013 - C. Keller   - Now pass from HEMOC state to chemistry state
+!  14 Sep 2013 - C. Keller   - Now keep in units of kg/m2/s.
+!  22 Aug 2014 - R. Yantosca - Now get surface area from State_Met%AREA_M2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -632,9 +659,9 @@ CONTAINS
     INTEGER                  :: N, nSpc, trcID
     CHARACTER(LEN=255)       :: MSG, LOC
 
-    !=================================================================
+    !=======================================================================
     ! MAP_HCO2GC begins here
-    !=================================================================
+    !=======================================================================
 
     ! For error handling
     LOC = 'Map_HCO2GC (hcoi_gc_main_mod.F90)'
@@ -657,9 +684,9 @@ CONTAINS
        ! If simulation grid and emission grid are equal, the 
        ! HEMCO state emission array already points to
        ! State_Chm%Trac_Tend and there is nothing to do here. 
-       IF ( (HcoState%NX == IIPAR) .AND.       &
-            (HcoState%NY == JJPAR) .AND.       &
-            (HcoState%NZ == LLPAR)       ) THEN
+       IF ( ( HcoState%NX == IIPAR ) .AND.       &
+            ( HcoState%NY == JJPAR ) .AND.       &
+            ( HcoState%NZ == LLPAR )       ) THEN
 
           ! ... nothing to do here        
  
@@ -668,7 +695,7 @@ CONTAINS
        ! TODO: needs testing
        ELSE
           ! Do regridding
-          CALL REGRID_EMIS2SIM ( HcoState, N, State_Chm, trcID, Input_Opt ) 
+          CALL REGRID_EMIS2SIM( HcoState, N, State_Chm, trcID, Input_Opt ) 
        ENDIF
 
        !----------------------------------------------------------------------
@@ -696,9 +723,10 @@ CONTAINS
        !----------------------------------------------------------------------
        IF ( trcID == IDTDST1 .OR. trcID == IDTDST2 .OR. &
             trcID == IDTDST3 .OR. trcID == IDTDST4       ) THEN
-          State_Chm%Tracers(:,:,1,trcID) = State_Chm%Tracers(:,:,1,trcID) + &
-             State_Chm%Trac_Tend(:,:,1,trcID) * AREA_M2(:,:,1) * HcoState%TS_EMIS
-!             State_Chm%Trac_Tend(:,:,1,trcID) * HcoState%Grid%AREA_M2(:,:) * HcoState%TS_EMIS
+          State_Chm%Tracers(:,:,1,trcID) = State_Chm%Tracers  (:,:,1,trcID) &
+                                         + State_Chm%Trac_Tend(:,:,1,trcID) &
+                                         * State_Met%AREA_M2(:,:,1)         &
+                                         * HcoState%TS_EMIS
           State_Chm%Trac_Tend(:,:,:,trcID) = 0.0d0
        ENDIF
 
@@ -1633,7 +1661,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Register_Species( am_I_Root, State_Chm, HcoState, RC )
+  SUBROUTINE Register_Species( am_I_Root, State_Chm, HcoState, RC )
 !
 ! !USES:
 !
@@ -1755,7 +1783,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE GetHcoState ( HcoStatePtr ) 
+  SUBROUTINE GetHcoState ( HcoStatePtr ) 
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
@@ -1773,7 +1801,7 @@ CONTAINS
 
     HcoStatePtr => HcoState
 
-    END SUBROUTINE GetHcoState
-
+  END SUBROUTINE GetHcoState
+!EOC
 END MODULE HCOI_GC_MAIN_MOD
 #endif

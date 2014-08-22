@@ -415,27 +415,57 @@
 !-----------------------------------------------------------------------------
       IF ( ND01 > 0 ) THEN
 
-         !%%%%% Rn %%%%%
-         DiagnName    = 'AD01_Rn_SOURCE'
-         CATEGORY     = 'RN--SRCE'
-         UNIT         = 'kg/s'
-         N            = IDTBCPI
-         FACTOR       = 1d0
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1)
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ! Diagnostic category
+         CATEGORY  = 'RN--SRCE'
+         UNIT      = 'kg/s'
+         
+         !-----------------------------------------------------------
+         ! %%%%% Rn222 %%%%%
+         !
+         ! NOTE: This diagnostic only writes to the first level
+         ! because the Rn source is only at the surface!!!
+         !-----------------------------------------------------------
+         IF ( IDTRn > 0 ) THEN
+            DiagnName    = 'AD01_Rn_SOURCE'
+            N            = IDTRn
+            FACTOR       = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,     N, 1, -1, .TRUE., FACTOR, RC, 
+     &                      AreaScal=1 )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
-         !%%%%% Be7 %%%%%
-         DiagnName    = 'AD01_Be7_SOURCE'
-         CATEGORY     = 'RN--SRCE'
-         UNIT         = 'kg/s'
-         N            = IDTBCPI
-         FACTOR       = 1d0
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1)
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         !-----------------------------------------------------------
+         ! %%%%% Pb210 %%%%%
+         !-----------------------------------------------------------
+         IF ( IDTPb > 0 ) THEN
 
-      ENDIF    
+            ! Divide by # of chemistry timesteps
+            DO L = 1, LD01
+               ARRAY(:,:,L) = AD01(:,:,L) / SCALECHEM
+            ENDDO
+
+            ! Write to bpch file
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, IDTPb,    
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     LD01,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD01) )
+         ENDIF
+
+         !-----------------------------------------------------------
+         ! %%%%% Be7 %%%%%
+         !-----------------------------------------------------------
+         IF ( IDTBe7 > 0 ) THEN 
+            DiagnName    = 'AD01_Be7_SOURCE'
+            N            = IDTBe7
+            FACTOR       = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, LD01, .TRUE., FACTOR, RC, 
+     &                      AreaScal=1 )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF    
+      ENDIF
 !
 !******************************************************************************
 !  ND02: Rn, Pb, Be lost to radioactive decay (Category: "RN-DECAY")
@@ -4919,13 +4949,6 @@
          ENDDO
       ENDIF
  
-      !### Debug
-      print*, '###------------------------------------'
-      print*, '### Diagnostic: ', dName
-      print*, '### UNIT      : ', bUnit
-      print*, '### FACTOR    : ', dFACTOR
-      print*, '### Sum ARRAY : ', SUM( ARRAY(:,:,1:levs) )
-
       ! Write to bpch file
       CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &            HALFPOLAR, CENTER180, bCat,     bN,

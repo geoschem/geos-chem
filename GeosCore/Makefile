@@ -820,7 +820,7 @@ restart_mod.o               : restart_mod.F                                  \
 
 RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               chemgrid_mod.o          diag_mod.o             \
-                              vdiff_pre_mod.o
+                              tracerid_mod.o
 
 rpmares_mod.o               : rpmares_mod.F                                  \
                               chemgrid_mod.o          global_hno3_mod.o      \

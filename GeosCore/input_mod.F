@@ -1216,6 +1216,8 @@
 !  28 Oct 2013 - R. Yantosca - Set Input_Opt%ITS_A_SPECIALTY_SIM = .FALSE.
 !                              when running GEOS-Chem in an ESMF environment
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  21 Aug 2014 - R. Yantosca - Bug fix: add ITS_A_RnPbBe_SIM to the test
+!                              that defines the ITS_A_SPECIALTY_SIM flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1283,7 +1285,8 @@
      &       Input_Opt%ITS_A_MERCURY_SIM   .or.
      &       Input_Opt%ITS_A_CO2_SIM       .or.
      &       Input_Opt%ITS_A_H2HD_SIM      .or.
-     &       Input_Opt%ITS_A_POPS_SIM           )
+     &       Input_Opt%ITS_A_POPS_SIM      .or.
+     &       Input_Opt%ITS_A_RnPbBe_SIM         )
 #endif
 
       ! Also pick a name corresponding to each simulation type
