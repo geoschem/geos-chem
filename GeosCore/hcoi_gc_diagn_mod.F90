@@ -252,6 +252,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use Rn-Pb-Be
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -266,6 +267,14 @@ CONTAINS
     !=======================================================================
     ! Define ND01 diagnostics (Rn-Pb-Be emissions)
     !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if the Rn-Pb-Be simulation is not selected
+    IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) RETURN
+
+    ! Define diagnostics
     IF ( ExtState%GC_RnPbBe .and. ( ND01 > 0 ) ) THEN
 
        ! HEMCO extension # for Rn-Pb-Be
@@ -301,31 +310,31 @@ CONTAINS
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
-!       !-------------------------------------------
-!       ! %%%%% Pb210 %%%%%
-!       !-------------------------------------------
-!
-!       ! HEMCO species ID
-!       HcoID = GetHemcoId( 'Pb', HcoState, LOC, RC )
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!
-!       ! Create diagnostic container
-!       DiagnName = 'AD01_Pb_SOURCE'
-!       CALL Diagn_Create( am_I_Root,                   & 
-!                          HcoState,                    &
-!                          cName     = TRIM(DiagnName), &
-!                          ExtNr     = ExtNr,           &
-!                          Cat       = -1,              &
-!                          Hier      = -1,              &
-!                          HcoID     = HcoID,           &
-!                          SpaceDim  = 3,               &
-!                          LevIDx    = -1,              &
-!                          OutUnit   = 'kg/m2/s',       &
-!                          WriteFreq = 'Manual',        &
-!                          AutoFill  = 1,               &
-!                          cID       = N,               & 
-!                          RC        = RC                ) 
-!       IF ( RC /= HCO_SUCCESS ) RETURN
+       !-------------------------------------------
+       ! %%%%% Pb210 %%%%%
+       !-------------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'Pb', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'AD01_Pb_SOURCE'
+       CALL Diagn_Create( am_I_Root,                   & 
+                          HcoState,                    &
+                          cName     = TRIM(DiagnName), &
+                          ExtNr     = ExtNr,           &
+                          Cat       = -1,              &
+                          Hier      = -1,              &
+                          HcoID     = HcoID,           &
+                          SpaceDim  = 3,               &
+                          LevIDx    = -1,              &
+                          OutUnit   = 'kg/m2/s',       &
+                          WriteFreq = 'Manual',        &
+                          AutoFill  = 1,               &
+                          cID       = N,               & 
+                          RC        = RC                ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
 
        !-------------------------------------------
@@ -396,6 +405,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use dust
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -412,6 +422,17 @@ CONTAINS
     !=======================================================================
     ! DIAGN_DUST begins here!
     !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o dust
+    IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. &
+         ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+       RETURN
+    ENDIF
+
+    ! Define diagnostics if dust is used
     IF ( ( ExtState%DustDead .OR. ExtState%DustGinoux )   .AND. &
          ( ND06 > 0                                   ) ) THEN
 
@@ -491,11 +512,11 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REMARKS:
-!  Split off code from HCOI_GC_Diagn_Init into smaller routines in order to
-!  make the code more manageable.
+!  Biomass diagnostics (ND28) are defined in routine Diagn_Biomass.
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use carbon
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -511,7 +532,16 @@ CONTAINS
     ! DIAGN_CARBON begins here!
     !=======================================================================
 
-    ! NOTE: BIOMASS diagnostics are defined below (ND28)
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o carbon aerosols
+    IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. &
+         ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+       RETURN
+    ENDIF
+   
+    ! Define diagnostics
     IF ( ND07 > 0 .AND. Input_Opt%LCARB ) THEN
 
        !-------------------------------------------
@@ -645,6 +675,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use sea salt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -660,6 +691,17 @@ CONTAINS
     !=======================================================================
     ! DIAGN_SEASALT begins here!
     !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o sea salt
+    IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. &
+         ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+       RETURN
+    ENDIF
+
+    ! Define diagnostics
     IF ( ND08 > 0 .AND. Input_Opt%LSSALT .AND. ExtState%SeaSalt ) THEN
 
        ! Get HEMCO extension # for SeaSalt
@@ -749,6 +791,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use acetone
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -764,6 +807,16 @@ CONTAINS
     !=======================================================================
     ! DIAGN_ACETSRC begins here!
     !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o acetone
+    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
+       RETURN
+    ENDIF
+
+    ! Define diagnostics
     IF ( ND11 > 0 .OR. ND46 > 0 ) THEN 
 
        ! Get extension # for SeaFlux 
@@ -845,6 +898,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use sulfur
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -859,9 +913,18 @@ CONTAINS
     !=======================================================================
     ! DIAGN_SULFUR begins here!
     !=======================================================================
-    IF (   ND13 > 0 .AND. &
-         ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. &
-           Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o carbon aerosols
+    IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. &
+         ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+       RETURN
+    ENDIF
+    
+    ! Define diagnostics
+    IF ( ND13 > 0 ) THEN
 
        !-------------------------------------------
        ! %%%%% DMS %%%%%
@@ -1163,6 +1226,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use biomass
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1177,6 +1241,14 @@ CONTAINS
     !=======================================================================
     ! DIAGN_BIOMASS begins here!
     !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o biomass
+    IF ( Input_Opt%ITS_A_POPS_SIM   ) RETURN
+    IF ( Input_Opt%ITS_A_RnPbBe_SIM ) RETURN
+    IF ( Input_Opt%ITS_A_TAGOX_SIM  ) RETURN
 
     ! First test if GFED3 is used.  If not, then test if FINN is used.
     ! If not, then use extension # 0 and the default biomass category.
@@ -1612,6 +1684,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use NO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1629,6 +1702,12 @@ CONTAINS
     !=======================================================================
     ! DIAGN_NOSRC begins here!
     !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o NO
+    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
 
     ! Extension number
     ExtNr = 0
@@ -1814,6 +1893,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use biofuels
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1828,6 +1908,15 @@ CONTAINS
     !=======================================================================
     ! DIAGN_BIOFUEL begins here!
     !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o biofuels
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
+    IF ( Input_Opt%ITS_A_POPS_SIM    ) RETURN
+    IF ( Input_Opt%ITS_A_TAGOX_SIM   ) RETURN
+    IF ( Input_Opt%ITS_A_RnPbBe_SIM  ) RETURN
 
     ! Extension number
     ExtNr = 0
@@ -2143,7 +2232,8 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
-!EOP
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use anthro
+!EOC
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -2161,7 +2251,12 @@ CONTAINS
 
     ! Extension number
     ExtNr = 0
- 
+     ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o anthro
+    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
+
     ! ND36 only:
     IF ( ND36 > 0 ) THEN
 
@@ -2479,6 +2574,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use MEGAN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2497,6 +2593,16 @@ CONTAINS
     ! DIAGN_BIOGENIC begins here!
     !=======================================================================
     
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o biofuels
+    IF ( Input_Opt%ITS_A_HCN_SIM     ) RETURN
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
+    IF ( Input_Opt%ITS_A_POPS_SIM    ) RETURN
+    IF ( Input_Opt%ITS_A_RnPbBe_SIM  ) RETURN
+    IF ( Input_Opt%ITS_A_TAGOX_SIM   ) RETURN
+
     ! Extension and category #'s for MEGAN
     ExtNr = GetExtNr('MEGAN')
     Cat   = -1
@@ -3030,6 +3136,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use lightning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3046,6 +3153,14 @@ CONTAINS
     !=======================================================================
     ! DIAGN_LFLASH begins here!
     !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o lightning
+    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
+
+    ! Define diagnostics
     IF ( ND56 > 0 ) THEN
 
        ! Extension number
@@ -3136,6 +3251,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use PARANOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3152,8 +3268,13 @@ CONTAINS
     ! DIAGN_PARANOX begins here!
     !=======================================================================
 
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if we are doing a specialty simulation w/o lightning
+    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
+
     ! Extension number
-    ! Get ext. nr. 
     ExtNr = GetExtNr('ParaNOx')
 
     ! Exit if PARANOX extension was turned off
