@@ -234,6 +234,7 @@
 !  02 Aug 2014 - C. Keller   - Connect to HEMCO diagnostics
 !  06 Aug 2014 - C. Keller   - Added wrapper subroutine for HEMCO diagnostics. 
 !  14 Aug 2014 - R. Yantosca - Corrected units for several diagnostic outputs
+!  26 Aug 2014 - M. Sulprizio- Now get ND53 POPs emissions from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -504,8 +505,13 @@
 !******************************************************************************
 !
       IF ( ND03 > 0 ) CALL WRITE_DIAG03( am_I_Root, Input_Opt, RC )
-! ADD ND53 (eck, 10/21/10)
-      IF ( ND53 > 0 ) CALL WRITE_DIAG53
+!-----------------------------------------------------------------------------
+! Prior to 8/26/14:
+! POPs emissions for ND53 are now tracked by HEMCO. Also move ND53 code so it
+! is in the correct numerical order. (mps, 8/26/14)
+!! ADD ND53 (eck, 10/21/10)
+!      IF ( ND53 > 0 ) CALL WRITE_DIAG53
+!-----------------------------------------------------------------------------
 !
 !******************************************************************************
 !  ND04: Diagnostics from CO2 simulation (pns, bmy, 7/26/05)
@@ -3668,8 +3674,94 @@
      &                    JFIRST,     LFIRST,    ARRAY(:,:,1:LD52) )
 
       ENDIF
+!
+!******************************************************************************
+!  ND53: POPs emissions (eck, 10/21/10)
+!
+!   # : Field  : Description                    : Units      : Scale factor
+!  ----------------------------------------------------------------------------
+!  (1 ) POPT   : Emissions of total POPs        : kg/s       : SCALESRCE
+!  (2 ) POPPOC : Emissions of OC-sorbed POP     : kg/s       : SCALESRCE
+!  (3 ) POPPBC : Emissions of BC-sorbed POP     : kg/s       : SCALESRCE
+!  (4 ) POPG   : Emissions of gas-phase POP     : kg/s       : SCALESRCE
+!  (5 ) POPPOC : Gross POP OC lost to gas       : kg         : 1
+!  (6 ) POPPOC : Gross POP OC formed from gas   : kg         : 1
+!  (7 ) POPPBC : Gross POP BC lost to gas       : kg         : 1
+!  (8 ) POPPBC : Gross POP BC formed from gas   : kg         : 1
+!  (9 ) POPG   : Prod of POPG from rxn with OH  : kg         : 1
+!  (10) POPPOC : Prod of POPOC from rxn with O3 : kg         : 1
+!  (11) POPPBC : Prod of POPBC from rxn with O3 : kg         : 1
+!******************************************************************************
+!
+      IF ( ND53 > 0 .and. Input_Opt%ITS_A_POPS_SIM ) THEN
 
+         CATEGORY = 'PG-SRCE'
+         UNIT     = 'kg/s'
 
+        IF ( IDTPOPG > 0 .and. IDTPOPPOC > 0 .and. IDTPOPPBC > 0 ) THEN
+
+            !--------------------------------
+            ! Total POP emissions
+            !--------------------------------
+            DiagnName = 'AD01_POPT_SOURCE'
+            N         = 1
+            FACTOR    = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC, 
+     &                      AreaScal=1 )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         ENDIF
+
+         IF ( IDTPOPPOC > 0 ) THEN
+
+            !--------------------------------
+            ! OC-sorbed POP emissions
+            !--------------------------------
+            DiagnName = 'AD01_POPPOC_SOURCE'
+            N         = 2
+            FACTOR    = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC, 
+     &                      AreaScal=1 )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         ENDIF
+
+         IF ( IDTPOPPBC > 0) THEN
+
+            !--------------------------------
+            ! BC-sorbed POP emissions
+            !--------------------------------
+            DiagnName = 'AD01_POPPBC_SOURCE'
+            N         = 3
+            FACTOR    = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC, 
+     &                      AreaScal=1 )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         ENDIF
+
+         IF ( IDTPOPG > 0 ) THEN
+
+            !--------------------------------
+            ! Gas-phase POP emissions
+            !--------------------------------
+            DiagnName = 'AD01_POPG_SOURCE'
+            N         = 4
+            FACTOR    = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC, 
+     &                      AreaScal=1 )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         ENDIF
+
+         ! Write the remaining ND53 diagnostics 
+         CALL WRITE_DIAG53
+
+      ENDIF
 !
 !******************************************************************************
 !  ND54: Time-in-the-Troposphere diagnostic

@@ -43,6 +43,7 @@ MODULE HCOI_GC_Diagn_Mod
   USE CMN_SIZE_Mod
   USE CMN_DIAG_Mod
   USE DIAG_Mod
+  USE DIAG53_Mod
   USE DIAG56_Mod
 
   IMPLICIT NONE
@@ -73,6 +74,7 @@ MODULE HCOI_GC_Diagn_Mod
 !  20 Aug 2014 - R. Yantosca - Add wrapper function GetHemcoId to simplify
 !                              the process of getting the HEMCO species ID
 !  20 Aug 2014 - R. Yantosca - Split code into several routines, for clarity
+!  26 Aug 2014 - M. Sulprizio- Add modifications for POPs emissions diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -169,6 +171,7 @@ CONTAINS
     ! (10) Biogenic emissions          : ND46
     ! (11) Lightning flash diagnostics : ND56
     ! (12) PARANOX diagnostics         : ND63
+    ! (13) POPs emissions              : ND53
     !=======================================================================
     CALL Diagn_Radon   ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     CALL Diagn_Dust    ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
@@ -183,6 +186,7 @@ CONTAINS
     CALL Diagn_Biogenic( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     CALL Diagn_LFlash  ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     CALL Diagn_ParaNOx ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+    CALL Diagn_POPs    ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
 
     !=======================================================================
     ! Define automatic diagnostics (AutoFill)
@@ -3397,6 +3401,184 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Diagn_ParaNOx
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Diagn_POPs
+!
+! !DESCRIPTION: Subroutine Diagn\_POPs initializes diagnostics for the
+!  POPs simulation (ND53).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_POPs( am_I_Root, Input_Opt, HcoState, ExtState, RC ) 
+!
+! !USES:
+!
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_State_Mod,      ONLY : HCO_State
+    USE HCOX_State_Mod,     ONLY : Ext_State
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
+    TYPE(EXT_State),  POINTER        :: ExtState   ! Extensions state object 
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REMARKS:
+!  Split off code from HCOI_GC_Diagn_Init into smaller routines in order to
+!  make the code more manageable.
+!
+! !REVISION HISTORY: 
+!  26 Aug 2014 - M. Sulprizio- Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: ExtNr, HcoID, N
+    CHARACTER(LEN=31)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGN_POPs (hcoi_gc_diagn_mod.F90)'
+
+    !=======================================================================
+    ! Define ND53 diagnostics (POPs emissions)
+    !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if the POPs simulation is not selected
+    IF ( .not. Input_Opt%ITS_A_POPS_SIM ) RETURN
+
+    ! Define diagnostics
+    IF ( ExtState%GC_POPs .and. ( ND53 > 0 ) ) THEN
+
+       ! HEMCO extension # for POPs
+       ExtNr = GetExtNr( 'GC_POPs' )
+       IF ( ExtNr <= 0 ) THEN
+          CALL HCO_Error ( 'Cannot find POPs extension', RC, THISLOC=LOC )
+          RETURN      
+       ENDIF
+
+       !-------------------------------------------
+       ! %%%%% Total POP %%%%%
+       !-------------------------------------------
+ 
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'POPG', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'AD01_POPT_SOURCE'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState,                      &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+                          WriteFreq = 'Manual',          &
+                          AutoFill  = 1,                 &
+                          cID       = N,                 & 
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       !-------------------------------------------
+       ! %%%%% OC-phase POP %%%%%
+       !-------------------------------------------
+ 
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'POPPOC', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'AD01_POPPOC_SOURCE'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState,                      &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+                          WriteFreq = 'Manual',          &
+                          AutoFill  = 1,                 &
+                          cID       = N,                 & 
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       !-------------------------------------------
+       ! %%%%% BC-phase POP %%%%%
+       !-------------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'POPPBC', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'AD01_POPPBC_SOURCE'
+       CALL Diagn_Create( am_I_Root,                   & 
+                          HcoState,                    &
+                          cName     = TRIM(DiagnName), &
+                          ExtNr     = ExtNr,           &
+                          Cat       = -1,              &
+                          Hier      = -1,              &
+                          HcoID     = HcoID,           &
+                          SpaceDim  = 2,               &
+                          LevIDx    = -1,              &
+                          OutUnit   = 'kg/m2/s',       &
+                          WriteFreq = 'Manual',        &
+                          AutoFill  = 1,               &
+                          cID       = N,               & 
+                          RC        = RC                ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+
+       !-------------------------------------------
+       ! %%%%% Gas-phase POP %%%%%
+       !-------------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'POPG', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'AD01_POPG_SOURCE'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState,                      &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+                          WriteFreq = 'Manual',          &
+                          AutoFill  = 1,                 &
+                          cID       = N,                 & 
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+  END SUBROUTINE Diagn_POPs
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
