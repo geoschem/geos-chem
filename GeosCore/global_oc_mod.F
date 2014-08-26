@@ -37,7 +37,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Array to store global monthly mean OC field
-      REAL*8, ALLOCATABLE :: OC(:,:,:)
+      REAL*8, ALLOCATABLE, TARGET :: OC(:,:,:)
 
       CONTAINS
 !EOC

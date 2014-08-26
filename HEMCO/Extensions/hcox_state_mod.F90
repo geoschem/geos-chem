@@ -160,6 +160,8 @@ MODULE HCOX_STATE_MOD
      REAL(dp)                  :: POP_DEL_H   ! Delta H [J/mol]
      REAL(dp)                  :: POP_KOA     ! POP octanol-water partition coef
      REAL(dp)                  :: POP_KBC     ! POP BC-air partition coeff.
+     TYPE(ExtDat_3R),  POINTER :: GLOB_OC     ! Global OC field [kg]
+     TYPE(ExtDat_3R),  POINTER :: GLOB_BC     ! Global BC field [kg]
 
   END TYPE Ext_State
 !
@@ -384,6 +386,12 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%WET_TOTN, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%GLOB_OC, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%GLOB_BC, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Return w/ success
     RC = HCO_SUCCESS
 
@@ -461,6 +469,8 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%HNO3       )
        CALL ExtDat_Cleanup( ExtState%DRY_TOTN   )
        CALL ExtDat_Cleanup( ExtState%WET_TOTN   )
+       CALL ExtDat_Cleanup( ExtState%GLOB_OC    )
+       CALL ExtDat_Cleanup( ExtState%GLOB_BC    )
 
        ExtState%DAYS_BTW_M => NULL()
        ExtState%DRYCOEFF   => NULL()

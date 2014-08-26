@@ -77,15 +77,15 @@ MODULE HCOX_GC_POPs_Mod
   REAL(hp), POINTER             :: C_BC(:,:,:)     => NULL()
 
   ! Calculated emissions of OC-phase, BC-phase, and gas-phase POPs
-  REAL*8,  ALLOCATABLE, TARGET  :: EPOP_OC(:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET  :: EPOP_BC(:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET  :: EPOP_G (:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: EPOP_OC(:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: EPOP_BC(:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: EPOP_G (:,:,:)
 
   ! For diagnostics
-  REAL*8,  ALLOCATABLE, TARGET  :: SUM_OC_EM (:,:)
-  REAL*8,  ALLOCATABLE, TARGET  :: SUM_BC_EM (:,:)
-  REAL*8,  ALLOCATABLE, TARGET  :: SUM_G_EM  (:,:)
-  REAL*8,  ALLOCATABLE, TARGET  :: SUM_OF_ALL(:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: SUM_OC_EM (:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: SUM_BC_EM (:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: SUM_G_EM  (:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: SUM_OF_ALL(:,:)
 
 CONTAINS
 !EOC
@@ -238,11 +238,15 @@ CONTAINS
        CALL EmisList_GetDataArr( aIR, 'TOT_POP', POP_TOT_EM, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL EmisList_GetDataArr( aIR, 'GLOB_OC', C_OC, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       CALL EmisList_GetDataArr( aIR, 'GLOB_BC', C_BC, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
+! Prior to 8/21/14:
+! For now get global OC and BC concentration from ExtState (mps, 8/21/14)
+!       CALL EmisList_GetDataArr( aIR, 'GLOB_OC', C_OC, RC )
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!       CALL EmisList_GetDataArr( aIR, 'GLOB_BC', C_BC, RC )
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
 
        FIRST = .FALSE.
 
@@ -295,8 +299,8 @@ CONTAINS
           KBC_OC_T = 1d0 / KOC_BC_T
 
           ! Get monthly mean OC and BC concentrations [kg/box]
-          C_OC1    = C_OC(I,J,L)
-          C_BC1    = C_BC(I,J,L)
+          C_OC1    = ExtState%GLOB_OC%Arr%Val(I,J,L)
+          C_BC1    = ExtState%GLOB_BC%Arr%Val(I,J,L)
            
           ! Convert C_OC and C_BC units to volume per box 
           ! [m^3 OC or BC/box]
@@ -623,6 +627,10 @@ CONTAINS
     ExtState%AIRVOL%DoUse      = .TRUE. 
     ExtState%FRAC_OF_PBL%DoUse = .TRUE. 
     ExtState%TK%DoUse          = .TRUE. 
+
+    ! Activate global BC and OC concentration
+    ExtState%GLOB_OC%DoUse     = .TRUE.
+    ExtState%GLOB_BC%DoUse     = .TRUE.
 
     ! Activate this extension
     ExtState%GC_POPs           = .TRUE.
