@@ -1805,11 +1805,10 @@ contains
     USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
-                                   GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP, &
-                                   GET_PBL_TOP_L
+                                   GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
     USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
-    USE TRACERID_MOD,       ONLY : IS_Hg0, IS_Hg2, IS_HgP
+    USE TRACERID_MOD
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
                                    NDRYDEP, emis_save
 
@@ -2049,26 +2048,45 @@ contains
     ! (ccc, bmy, 12/20/10)
     as2_scal = as2(:,:,1,:)
 
-!$OMP PARALLEL DO                                                 &
-!$OMP DEFAULT( SHARED )                                           &
-!$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top, DEP_KG ) &
-!$OMP PRIVATE( TOPMIX, TMPFLX )                                   & 
-!!$OMP PRIVATE( SNOW_HT ) &
-!$OMP PRIVATE( FRAC_NO_HG0_DEP, ZERO_HG0_DEP )
+!$OMP PARALLEL DO                                                     &
+!$OMP DEFAULT( SHARED )                                               &
+!$OMP PRIVATE( I,      J,               L,           N,      NN     ) &
+!$OMP PRIVATE( WK1,    WK2,             PBL_TOP,     DEP_KG, TOPMIX ) &
+!$OMP PRIVATE( TMPFLX, FRAC_NO_HG0_DEP, ZERO_HG0_DEP                )
     do J = 1, JJPAR
     do I = 1, IIPAR
 
        !----------------------------------------------------------------
-       ! Add emissions & deposition values calculated in HEMCO 
+       ! Add emissions & deposition values calculated in HEMCO.
+       ! Here we only consider emissions below the PBL top.
+       !
+       ! For the full-chemistry simulations, emissions above the PBL
+       ! top will be applied in routine SETEMIS, which occurs just
+       ! before the SMVGEAR/KPP solvers are invoked.
+       !
+       ! For the specialty simulations, emissions above the PBL top
+       ! will be applied in the chemistry routines for each
+       ! specialty simulation. 
+       !
+       ! For more information, please see this wiki page:
+       ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
        !----------------------------------------------------------------
        DO N = 1, N_TRACERS
-          topmix      = MAX( 1, FLOOR( GET_PBL_TOP_L(I,J) ) )
-          tmpflx      = SUM(State_Chm%Trac_Tend(I,J,1:topmix,N))
+
+          ! PBL top level [integral model levels]
+          topmix      = State_Met%PBL_TOP_L(I,J)
+
+          ! Sum emissions under the PBL top [kg/m2/s]
+          tmpflx      = SUM( State_Chm%TRAC_TEND(I,J,1:topmix,N) )
+
+          ! Add total emissions in the PBL to the EFLX array
+          ! which tracks emission fluxes.  Units are [kg/m2/s].
           eflx(I,J,N) = eflx(I,J,N) + tmpflx
 
-          ! Also add drydep frequencies calculated by HEMCO. These values 
-          ! are in m/s. Convert to s-1, then add in the same manner as all 
-          ! other drydep frequencies below. dflx will be converted to 
+          ! Also add drydep frequencies calculated by HEMCO to the DFLX
+          ! array.  These values are in originally m/s but are converted
+          ! to s-1.  They are then added in the same manner as all 
+          ! other drydep frequencies below. DFLX will be converted to 
           ! kg/m2/s lateron. (ckeller, 04/01/2014)
           dflx(I,J,N) = dflx(I,J,N)                  &
                       + ( State_Chm%DepSav(I,J,N)    &
@@ -2076,55 +2094,7 @@ contains
                         * as2_scal(I,J,N) / TCVV(N) )
 
        ENDDO
-
-!       !----------------------------------------------------------------
-!       ! Add emissions for full-chemistry simulation
-!       !----------------------------------------------------------------
-!       IF ( IS_FULLCHEM .and. NCS > 0 ) THEN
-!
-!          do N = 1, NEMIS(NCS)
-!             NN = IDEMS(N)
-!
-!             ! for emissions in the lowest model layer only
-!             IF ( NN > 0 ) THEN
-!                JLOOP = JLOP(I,J,1)
-!                eflx(I,J,NN) = REMIS(JLOOP,N) * TRACER_MW_KG(NN)
-!             ENDIF
-!
-!          enddo
-!
-!          ! additional step to convert from molec spec/cm3/s to kg/m2/s
-!          eflx(I,J,:) = eflx(I,J,:) * State_Met%BXHEIGHT(I,J,1) / &
-!                        6.022d23    * 1.d6
-!
-!          !add the tracer coef. (i.e., one ISOP molecule has five carbon atoms)
-!          ! (lin, 06/07/08) 
-!          do N = 1, N_TRACERS
-!             if ( ID_EMITTED(N) .le. 0 ) cycle
-!             eflx(I,J,N) = eflx(I,J,N) * TRACER_COEFF(N,ID_EMITTED(N))
-!          enddo
-!
-!          ! add surface emis of aerosols 
-!          ! (after converting kg/box/timestep to kg/m2/s)
-!          ! Should NOT use ID_EMITTED here, since it is only for gases 
-!          ! for SMVGEAR. (Lin, 06/10/08)
-!          do N = 1, N_TRACERS
-!             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
-!                                       / GET_AREA_M2( I, J, 1 ) &
-!                                       / GET_TS_EMIS() / 60.d0
-!          enddo
-!
-!       ENDIF
-!
-!       !----------------------------------------------------------------
-!       ! Add emissions for Rn-Pb-Be simulation
-!       !----------------------------------------------------------------
-!       IF ( IS_RnPbBe ) THEN
-!          do N = 1, N_TRACERS
-!             eflx(I,J,N) = emis_save(I,J,N) / GET_AREA_M2(I,J,1)
-!          enddo
-!       ENDIF
-!
+          
 !       !----------------------------------------------------------------
 !       ! Add emissions for offline aerosol simulation
 !       !----------------------------------------------------------------
@@ -2695,8 +2665,8 @@ contains
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_PBL_MIX_2( am_I_Root, DO_TURBDAY, Input_Opt,  &
-                           State_Met, State_Chm,  RC         )
+  SUBROUTINE DO_PBL_MIX_2( am_I_Root, DO_VDIFF,  Input_Opt,  &
+                           State_Met, State_Chm, RC         )
 !
 ! !USES:
 !
@@ -2714,7 +2684,7 @@ contains
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
-    LOGICAL,        INTENT(IN)    :: DO_TURBDAY   ! Switch which turns on PBL
+    LOGICAL,        INTENT(IN)    :: DO_VDIFF     ! Switch which turns on PBL
                                                   !  mixing of tracers
     TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
 !
@@ -2737,6 +2707,7 @@ contains
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  01 Aug 2013 - R. Yantosca - Now pass the Input_Opt object to VDIFFDR
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  22 Aug 2014 - R. Yantosca - Renamed DO_TURBDAY to DO_VDIFF for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2764,8 +2735,8 @@ contains
     ! First-time initialization
     ! NOTE: Should really move this into the init stage
     IF ( FIRST ) THEN
-       CALL INIT_PBL_MIX
-       call vdinti
+       CALL INIT_PBL_MIX()
+       call vdinti()
        FIRST = .FALSE.
     ENDIF
 
@@ -2773,7 +2744,7 @@ contains
     CALL COMPUTE_PBL_HEIGHT( State_Met )
 
     ! Do mixing of tracers in the PBL (if necessary)
-    IF ( DO_TURBDAY ) THEN
+    IF ( DO_VDIFF ) THEN
        CALL VDIFFDR( STT, Input_Opt, State_Met, State_Chm )
        IF( LPRT .and. am_I_Root ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )

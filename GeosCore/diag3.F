@@ -379,34 +379,92 @@
 !  (3)  Be7    : Loss of 7Be                    : kg/s       : SCALECHEM
 !******************************************************************************
 !
+!-----------------------------------------------------------------------------
+! Prior to 8/20/14:
+! ND01 is now tracked by HEMCO (bmy, 8/20/14)
+!
+!      IF ( ND01 > 0 ) THEN
+!         CATEGORY = 'RN--SRCE'
+!         UNIT     = 'kg/s'
+!
+!         DO M = 1, TMAX(1)
+!            N  = TINDEX(1,M)
+!            IF ( N > N_TRACERS ) CYCLE
+!            NN = N
+!               
+!            ! Pb "emission" comes from chemical decay of Rn, which happens 
+!            ! in the chemistry routine, so use SCALECHEM (bmy, 1/27/03)
+!            IF ( N == IDTPB ) THEN
+!               SCALEX = SCALECHEM
+!            ELSE
+!               SCALEX = SCALESRCE
+!            ENDIF
+!                 
+!            ! Divide by # of emission timesteps
+!            DO L = 1, LD01
+!               ARRAY(:,:,L) = AD01(:,:,L,N) / SCALEX
+!            ENDDO
+!
+!            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+!     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+!     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+!     &                  IIPAR,     JJPAR,     LD01,     IFIRST,     
+!     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD01) )
+!         ENDDO
+!      ENDIF
+!-----------------------------------------------------------------------------
       IF ( ND01 > 0 ) THEN
-         CATEGORY = 'RN--SRCE'
-         UNIT     = 'kg/s'
 
-         DO M = 1, TMAX(1)
-            N  = TINDEX(1,M)
-            IF ( N > N_TRACERS ) CYCLE
-            NN = N
-               
-            ! Pb "emission" comes from chemical decay of Rn, which happens 
-            ! in the chemistry routine, so use SCALECHEM (bmy, 1/27/03)
-            IF ( N == IDTPB ) THEN
-               SCALEX = SCALECHEM
-            ELSE
-               SCALEX = SCALESRCE
-            ENDIF
-                 
-            ! Divide by # of emission timesteps
+         ! Diagnostic category
+         CATEGORY  = 'RN--SRCE'
+         UNIT      = 'kg/s'
+         
+         !-----------------------------------------------------------
+         ! %%%%% Rn222 %%%%%
+         !
+         ! NOTE: This diagnostic only writes to the first level
+         ! because the Rn source is only at the surface!!!
+         !-----------------------------------------------------------
+         IF ( IDTRn > 0 ) THEN
+            DiagnName    = 'AD01_Rn_SOURCE'
+            N            = IDTRn
+            FACTOR       = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,     N, 1, -1, .TRUE., FACTOR, RC, 
+     &                      AreaScal=1 )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !-----------------------------------------------------------
+         ! %%%%% Pb210 %%%%%
+         !-----------------------------------------------------------
+         IF ( IDTPb > 0 ) THEN
+
+            ! Divide by # of chemistry timesteps
             DO L = 1, LD01
-               ARRAY(:,:,L) = AD01(:,:,L,N) / SCALEX
+               ARRAY(:,:,L) = AD01(:,:,L) / SCALECHEM
             ENDDO
 
+            ! Write to bpch file
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                  HALFPOLAR, CENTER180, CATEGORY, IDTPb,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     LD01,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD01) )
-         ENDDO
+         ENDIF
+
+         !-----------------------------------------------------------
+         ! %%%%% Be7 %%%%%
+         !-----------------------------------------------------------
+         IF ( IDTBe7 > 0 ) THEN 
+            DiagnName    = 'AD01_Be7_SOURCE'
+            N            = IDTBe7
+            FACTOR       = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, LD01, .TRUE., FACTOR, RC, 
+     &                      AreaScal=1 )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF    
       ENDIF
 !
 !******************************************************************************
@@ -515,6 +573,7 @@
          ! Category & unit string
          UNIT     = 'kg'
          CATEGORY = 'DUSTSRCE'
+         FACTOR   = 1.0d0
 
          ! Loop over # of dust bins
          DO N = 1, NDSTBIN 
@@ -535,8 +594,9 @@
                   DiagnName  = 'AD06_DST4'
             END SELECT
 
+            ! Write HEMCO diagnostics to bpch file
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      NN, 1, -1, .FALSE.,  1.0d0, RC )
+     &                      UNIT,      NN, 1, -1, .FALSE.,  FACTOR, RC )
 
          ENDDO !N
       ENDIF     
@@ -566,8 +626,9 @@
          CATEGORY     = 'BC-ANTH'
          UNIT         = 'kgC'
          N            = IDTBCPI
+         FACTOR       = 1d0
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                 UNIT, N, 1, -1, .TRUE., 1.0d0, RC )
+     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !%%%%% Biomass BC (convert kg/m2/s --> kg) %%%%%
@@ -577,7 +638,7 @@
          N            = IDTBCPI
          FACTOR       = SECONDS
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &           UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
+     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1)
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
             
          !%%%%% Biofuel BC %%%%%
@@ -585,10 +646,10 @@
          CATEGORY     = 'BC-BIOF'
          UNIT         = 'kgC'
          N            = IDTBCPI
-         FACTOR       = SCALESRCE
+         FACTOR       = 1.0d0
 
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., 1.0d0, RC )
+     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !%%%%% Hydrophilic BC from Hydrophobic BC %%%%%
@@ -614,13 +675,15 @@
          DiagnName    = 'AD07_OC_ANTHRO'
          CATEGORY     = 'OC-ANTH'
          UNIT         = 'kgC'
+         FACTOR       = 1.0d0
+
          ! SOAupdate (hotp 5/27/09)
          ! semivolpoa: now use POA or OCPI (hotp 2/17/09)
          IF ( IDTOCPI > 0 ) N = IDTOCPI
          IF ( IDTPOA1 > 0 ) N = IDTPOA1
 
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., 1.0d0, RC )
+     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !%%%%% Biomass OC (convert kg/m2/s --> kg) %%%%%
@@ -636,8 +699,9 @@
          DiagnName = 'AD07_OC_BIOFUEL'
          CATEGORY  = 'OC-BIOF'
          UNIT      = 'kgC'
+         FACTOR    = 1.0d0
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .FALSE., 1.0d0, RC )
+     &                   UNIT, N, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
 ! turn off for now, we seem to get no diagnostics returned
@@ -900,93 +964,6 @@
             ENDIF
          ENDDO
       ENDIF
-!------------------------------------------------------------------------------
-!%%% Prior to 8/18/14:
-!%%% THE H2/HD SIMULATION IS OBSOLETE.  YOU CAN RESTORE IT IF YOU WANT.
-!%%% UNTIL THEN, LEAVE THIS COMMENTED OUT. (bmy, 8/18/14)
-!!
-!!******************************************************************************
-!!  ND10: H2/HD source diagnostics, prod and loss (phs, 9/18/07)
-!!
-!!   #  Field   : Description             : Units     : Scale factor
-!!  --------------------------------------------------------------------------
-!!  (1 ) H2oh   : H2 Loss by OH           : mol/cm3/s : SCALECHEM
-!!  (2 ) H2iso  : H2 Prod from isoprene   : mol/cm3/s : SCALECHEM
-!!  (3 ) H2ch4  : H2 Prod from CH4        : mol/cm3/s : SCALECHEM
-!!  (4 ) H2ch3oh: H2 Prod from CH3OH      : mol/cm3/s : SCALECHEM
-!!  (5 ) H2mono : H2 Prod from monoprene  : mol/cm3/s : SCALECHEM
-!!  (6 ) H2acet : H2 Prod from acetone    : mol/cm3/s : SCALECHEM
-!!  (7 ) H2o1d  : H2 Loss by strat O1D    : mol/cm3/s : SCALECHEM
-!!
-!!  (8 ) HDoh   : H2 Loss by OH           : mol/cm3/s : SCALECHEM
-!!  (9 ) HDiso  : H2 Prod from isoprene   : mol/cm3/s : SCALECHEM
-!!  (10) HDch4  : H2 Prod from CH4        : mol/cm3/s : SCALECHEM
-!!  (11) HDch3oh: H2 Prod from CH3OH      : mol/cm3/s : SCALECHEM
-!!  (12) HDmono : H2 Prod from monoprene  : mol/cm3/s : SCALECHEM
-!!  (13) HDacet : H2 Prod from acetone    : mol/cm3/s : SCALECHEM
-!!  (14) HDo1d  : H2 Loss by strat O1D    : mol/cm3/s : SCALECHEM
-!!
-!!  (15) ALPHA  : OH k rates kHD/kH2 ratio: unitless  : SCALECHEM
-!!
-!!  (16) H2anth : H2 from Anthro Sources  : mol/cm2/s : SCALESRCE
-!!  (17) H2bb   : H2 from Biomass Burning : mol/cm2/s : SCALESRCE
-!!  (18) H2bf   : H2 from Biofuel Burning : mol/cm2/s : SCALESRCE
-!!  (19) H2ocean: H2 from Ocean           : mol/cm2/s : SCALESRCE
-!!  (19) HDocean: HD from Ocean           : mol/cm2/s : SCALESRCE
-!!
-!!  NOTES:
-!!  (1 ) Non zero only if ND10>0 and it is a H2/HD offline simulation
-!!  (2 ) 
-!!******************************************************************************
-!!
-!      IF ( ND10 > 0 ) THEN
-!         DO M = 1, TMAX(10)
-!            N = TINDEX(10,M)
-!            IF ( N > PD10 ) CYCLE
-!
-!            ! Test tracer number (NEMISS=5, see "ndxx_setup.f" )
-!            IF ( N <= ( PD10 - 5 ) ) THEN
-!
-!               !---------------------------
-!               ! H2/HD Prod-Loss
-!               !---------------------------              
-!               CATEGORY  = 'PL-H2HD-'
-!               UNIT      = 'molec/cm3/s'
-!               NN        = N
-!              
-!               DO L = 1, LD10
-!                  ARRAY(:,:,L) = AD10(:,:,L,N) / SCALECHEM
-!               ENDDO
-!
-!               ! Save to disk
-!               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-!     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
-!     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-!     &                     IIPAR,     JJPAR,     LD10,     IFIRST,
-!     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD10) )
-!
-!            ELSE 
-!
-!               !---------------------------
-!               ! H2/HD sources
-!               !---------------------------
-!               CATEGORY     = 'H2HD-SRC'
-!               UNIT         = 'molec/cm2/s'
-!               NN           = N - 15
-!
-!               ! Scale data
-!               ARRAY(:,:,1) = AD10em(:,:,NN) / SCALESRCE
-! 
-!               ! Write to disk
-!               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-!     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
-!     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-!     &                     IIPAR,     JJPAR,     1,        IFIRST,
-!     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
-!            ENDIF
-!         ENDDO
-!      ENDIF
-!------------------------------------------------------------------------------
 !
 !******************************************************************************
 !  ND11: Acetone source & sink diagnostic (Category: "ACETSRCE")
@@ -1093,8 +1070,9 @@
          !%%%%% Biogenic DMS %%%%%
          DiagnName = 'AD13_DMS_OCEAN_SOURCE'
          CATEGORY  = 'DMS-BIOG'
+         FACTOR    = S_DMS
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTDMS, 1, -1, .FALSE., S_DMS, RC )
+     &                   UNIT, IDTDMS, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !--------------------------------------------------------------
@@ -1104,15 +1082,17 @@
          !%%%%% Aircraft SO2 %%%%%
          DiagnName = 'AD13_SO2_AIRCRAFT'
          CATEGORY = 'SO2-AC-$'
+         FACTOR   = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTSO2, 1, LLPAR, .TRUE., S_SO2, RC )
+     &                   UNIT, IDTSO2, 1, LLPAR, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Anthro SO2 %%%%%
          DiagnName = 'AD13_SO2_ANTHROPOGENIC'
          CATEGORY  = 'SO2-AN-$'
+         FACTOR    =  S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTSO2, 1, -1, .FALSE., S_SO2, RC )
+     &                   UNIT, IDTSO2, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
          
          !%%%%% Biomass SO2 (convert kg/m2/s --> kg S) %%%%%
@@ -1126,22 +1106,25 @@
          !%%%%% Biofuel SO2 %%%%%
          DiagnName = 'AD13_SO2_BIOFUEL'
          CATEGORY  = 'SO2-BIOF'
+         FACTOR    = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTSO2, 1, -1, .TRUE., S_SO2, RC )
+     &                   UNIT, IDTSO2, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Volcano SO2 (now lump eruptive + non-eruptive %%%%%
          DiagnName = 'AD13_SO2_VOLCANO'
          CATEGORY  = 'SO2-EV-$'
+         FACTOR    = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTSO2, 1, LLPAR, .TRUE., S_SO2, RC )
+     &                   UNIT, IDTSO2, 1, LLPAR, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Ship SO2 %%%%%
          DiagnName = 'AD13_SO2_SHIP'
          CATEGORY  = 'SO2-SHIP'
+         FACTOR    = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTSO2, 1, -1, .TRUE., S_SO2, RC )
+     &                   UNIT, IDTSO2, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !--------------------------------------------------------------
@@ -1151,15 +1134,17 @@
          !%%%%% Anthropogenic SO4 %%%%%
          DiagnName = 'AD13_SO4_ANTHROPOGENIC'
          CATEGORY  = 'SO4-AN-$'
+         FACTOR    = S_SO4
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTSO4, 1, -1, .FALSE., S_SO4, RC )
+     &                   UNIT, IDTSO4, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Biofuel SO4 %%%%%
          DiagnName = 'AD13_SO4_BIOFUEL'
          CATEGORY  = 'SO4-BIOF'
+         FACTOR    = S_SO4
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTSO4, 1, -1, .TRUE., S_SO4, RC )
+     &                   UNIT, IDTSO4, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !--------------------------------------------------------------
@@ -1170,15 +1155,17 @@
          DiagnName = 'AD13_NH3_ANTHROPOGENIC'
          UNIT      = 'kg'
          CATEGORY  = 'NH3-ANTH'
+         FACTOR    = 1.0d0
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTNH3, 1, -1, .FALSE., 1.0d0, RC )
+     &                   UNIT, IDTNH3, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%%  Natural source NH3 %%%%%
          DiagnName = 'AD13_NH3_NATURAL'
          CATEGORY  = 'NH3-NATU'
+         FACTOR    = 1.0d0
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTNH3, 1, -1, .TRUE., 1.0d0, RC )
+     &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Biomass NH3 (convert kg/m2/s --> kg) %%%%%
@@ -1192,8 +1179,9 @@
          !%%%%% Biofuel NH3 %%%%%
          DiagnName = 'AD13_NH3_BIOFUEL'
          CATEGORY  = 'NH3-BIOF'
+         FACTOR    = 1.0d0
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, IDTNH3, 1, -1, .TRUE., 1.0d0, RC )
+     &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
       ENDIF    

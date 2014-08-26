@@ -235,6 +235,7 @@
 !                              within regrid_a2a_mod.F90.  This helps to 
 !                              break dependencies for the HEMCO implementation.
 !  25 Jul 2014 - R. Yantosca - Remove reference to commsoil_mod.F90
+!  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -509,7 +510,13 @@
       ! Define STT array from Chemistry State object.  This
       ! allows us to keep existing code intact. (mpayer, 12/6/12)
       !
-      STT => State_Chm%Tracers
+      STT               => State_Chm%Tracers
+      !
+      ! Copy surface area info from AREA_M2 array of grid_mod.F90
+      ! to the State_Met%AREA_M2 field.  This will let us convert
+      ! HEMCO emissions [kg/m2/s] to [kg] in various routines 
+      ! without the overhead of many function calls. (bmy, 8/22/14)
+      State_Met%AREA_M2 =  AREA_M2
       !
       !-----------------------------------------------------------------
 
@@ -1132,11 +1139,18 @@
 
             !===========================================================
             !             ***** E M I S S I O N S *****
+            !
+            ! NOTE: For a complete description of how emissions from
+            ! HEMCO are added into GEOS-Chem (and how they are mixed
+            ! into the boundary layer), please see the wiki page:
+            !
+            ! http://wiki-geos-chem.org/Distributing_emissions_in_the_PBL
             !===========================================================
             IF ( LEMIS ) THEN
 
-               ! HEMCO driver.  NOTE, we will have to make sure that
-               ! the specialty simulations work with HEMCO (bmy, 6/25/14)
+               ! Call the interface between GEOS-Chem and HEMCO here.
+               ! HEMCO places emissions (with a few exceptions) into
+               ! the State_Chm%TRAC_TEND array.
                CALL HCOI_GC_RUN( am_I_Root, Input_Opt, 
      &                           State_Met, State_Chm, RC )
 
@@ -1254,10 +1268,8 @@
             !             ***** E M I S S I O N S *****
             !===========================================================
             IF ( LEMIS ) THEN
-!               CALL DO_EMISSIONS
-!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-               CALL HCOI_GC_RUN ( am_I_Root, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
+               CALL HCOI_GC_RUN( am_I_Root, Input_Opt, 
+     &                           State_Met, State_Chm, RC )
             ENDIF
 
             IF ( ITS_A_FULLCHEM_SIM ) THEN

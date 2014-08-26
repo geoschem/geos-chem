@@ -294,7 +294,13 @@
       IF ( ND01 > 0 ) THEN 
          LD01 = MIN( ND01, LLPAR )
 
-         ALLOCATE( AD01( IIPAR, JJPAR, LD01, N_TRACERS ), STAT=AS )
+!-----------------------------------------------------------------------------
+! Prior to 8/21/14:
+! AD01 is now only used for Pb.  Rn and Be7 are now tracked thru HEMCO.
+! (bmy, 8/21/14)
+!         ALLOCATE( AD01( IIPAR, JJPAR, LD01, N_TRACERS ), STAT=AS )
+!-----------------------------------------------------------------------------
+         ALLOCATE( AD01( IIPAR, JJPAR, LD01 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
       ENDIF
 

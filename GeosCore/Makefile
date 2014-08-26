@@ -633,6 +633,7 @@ hcn_ch3cn_mod.o             : hcn_ch3cn_mod.F                                \
                               diag_mod.o              global_oh_mod.o
 
 hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
+                              hcoi_gc_diagn_include.H                        \
                               diag_mod.o              diag56_mod.o
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
@@ -816,7 +817,7 @@ restart_mod.o               : restart_mod.F                                  \
 
 RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               chemgrid_mod.o          diag_mod.o             \
-                              vdiff_pre_mod.o
+                              tracerid_mod.o
 
 rpmares_mod.o               : rpmares_mod.F                                  \
                               chemgrid_mod.o          global_hno3_mod.o      \

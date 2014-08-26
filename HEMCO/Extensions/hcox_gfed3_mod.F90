@@ -305,12 +305,6 @@ CONTAINS
 
        ENDDO !M
 
-       !### DEBUG
-       PRINT*, '####--------------------------------------'
-       print*, '#### GFED3 species : ', TRIM( SpcNames(N) )
-       print*, '#### GFED3 ID      : ', GfedIds(N)
-       print*, '#### GFED3 SUM     : ', SUM( SpcArr )
-
        ! Add flux to HEMCO emission array
        CALL HCO_EmisAdd( HcoState, SpcArr, HcoIDs(N), RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
