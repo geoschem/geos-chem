@@ -539,8 +539,8 @@ diag_pl_mod.o               : diag_pl_mod.F                                  \
 drydep_mod.o                : drydep_mod.F                                   \
                               comode_mod.o            dao_mod.o              \
                               diag_mod.o              get_ndep_mod.o         \
-                              get_popsinfo_mod.o      pbl_mix_mod.o          \
-                              tomas_mod.o             tracerid_mod.o
+                              pbl_mix_mod.o           tomas_mod.o            \
+                              tracerid_mod.o
 
 diagoh.o                    : diagoh.F                                       \
                               diag_mod.o
@@ -568,9 +568,8 @@ gamap_mod.o                 : gamap_mod.F                                    \
                               diag51b_mod.o           diag53_mod.o           \
                               diag56_mod.o            diag63_mod.o           \
                               diag_pl_mod.o  	      drydep_mod.o           \
-                              get_popsinfo_mod.o      tomas_mod.o            \
-                              tracerid_mod.o          tracer_mod.o           \
-                              wetscav_mod.o
+                              tomas_mod.o             tracerid_mod.o         \
+                              tracer_mod.o            wetscav_mod.o
 
 ifeq ($(COMPILER),sun)
 	$(F90) -O0 -c $<
@@ -594,8 +593,6 @@ get_global_ch4.o            : get_global_ch4.F                               \
 
 get_ndep_mod.o              : get_ndep_mod.F                                 \
                               tracerid_mod.o
-
-get_popsinfo_mod.o          : get_popsinfo_mod.F
 
 gigc_environment_mod.o      : gigc_environment_mod.F90                       \
 			      tracer_mod.o            vdiff_pre_mod.o        \
@@ -666,7 +663,7 @@ input_mod.o                 : input_mod.F                                    \
                               diag_pl_mod.o           drydep_mod.o           \
                               dust_mod.o              pops_mod.o             \
                               future_emissions_mod.o  gamap_mod.o            \
-                              get_popsinfo_mod.o      land_mercury_mod.o     \
+                              land_mercury_mod.o                             \
                               linoz_mod.o             vdiff_pre_mod.o        \
                               mercury_mod.o           modis_lai_mod.o        \
                               ocean_mercury_mod.o     planeflight_mod.o      \
@@ -801,7 +798,7 @@ planeflight_mod.o           : planeflight_mod.F                              \
 
 pops_mod.o           	    : pops_mod.F    	                             \
 			      diag_mod.o	      diag53_mod.o           \
-                              drydep_mod.o            get_popsinfo_mod.o     \
+                              drydep_mod.o                                   \
                               global_bc_mod.o	      global_oc_mod.o        \
 	        	      global_o3_mod.o         global_oh_mod.o        \
                               pbl_mix_mod.o	      tracerid_mod.o         \
@@ -927,8 +924,8 @@ vdiff_mod.o                 : vdiff_mod.F90                                  \
 wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      get_ndep_mod.o         \
-                              get_popsinfo_mod.o      tracerid_mod.o         \
-                              tracer_mod.o            tomas_mod.o
+                              tracerid_mod.o          tracer_mod.o           \
+                              tomas_mod.o
 
 ###############################################################################
 ###                                                                         ###

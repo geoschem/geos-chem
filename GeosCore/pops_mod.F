@@ -102,9 +102,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
       USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
-      USE GLOBAL_OC_MOD,      ONLY : GET_GLOBAL_OC
-      USE GLOBAL_BC_MOD,      ONLY : GET_GLOBAL_BC
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
@@ -335,12 +332,6 @@
       USE DIAG53_MOD,         ONLY : AD53_POPP_BC_O3
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_H
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_KOA
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_KBC
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPG_OH
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPP_O3A
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPP_O3B
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -513,8 +504,6 @@
 
       ! K for reaction POPP + NO3 could be added here someday
 
-      REAL*8            :: DUM
-
       ! For fields from Input_Opt
       INTEGER         :: N_TRACERS
       LOGICAL         :: LNLPBL
@@ -531,15 +520,14 @@
       !=================================================================
       ! CHEM_POPGP begins here!
       !=================================================================
-      DUM       = 1.0
-      DEL_H     = GET_POP_DEL_H(DUM)
-      KOA_298   = GET_POP_KOA(DUM)
-      KBC_298   = GET_POP_KBC(DUM)
-      K_POPG_OH = GET_POP_K_POPG_OH(DUM)
-      AK        = GET_POP_K_POPP_O3A(DUM)
-      BK        = GET_POP_K_POPP_O3B(DUM)
 
       ! Copy values from Input_Opt
+      DEL_H     = Input_Opt%POP_DEL_H
+      KOA_298   = Input_Opt%POP_KOA
+      KBC_298   = Input_Opt%POP_KBC
+      K_POPG_OH = Input_Opt%POP_K_POPG_OH
+      AK        = Input_Opt%POP_K_POPP_O3A
+      BK        = Input_Opt%POP_K_POPP_O3B
       N_TRACERS = Input_Opt%N_TRACERS
       LNLPBL    = Input_Opt%LNLPBL
       LGTMM     = Input_Opt%LGTMM
@@ -2223,67 +2211,68 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
-     &                     POP_K_POPP_O3A, POP_K_POPP_O3B, 
-     &                     POP_HSTAR, POP_DEL_H, POP_DEL_Hw, Input_Opt )
+      SUBROUTINE INIT_POPS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE DRYDEP_MOD,         ONLY : DEPNAME,   NUMDEP
-      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE GET_POPSINFO_MOD,   ONLY : INIT_POP_PARAMS
-
-      USE CMN_SIZE_MOD           ! Size parameters
-      USE CMN_DIAG_MOD           ! ND44
+      USE GLOBAL_OC_MOD,      ONLY : GET_GLOBAL_OC
+      USE GLOBAL_BC_MOD,      ONLY : GET_GLOBAL_BC
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  20 Sep 2010 - N.E. Selin  - Initial Version based on INIT_MERCURY
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt argument
+!  25 Aug 2014 - M. Sulprizio- Now accept am_I_Root and RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: IS_INIT = .FALSE. 
-      INTEGER       :: AS, N!, PBL_MAX
-      REAL*8        :: MAX_A, MIN_A
-!
-! !INPUT PARAMETERS:
-!
-      REAL*8        :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
-      REAL*8        :: POP_K_POPP_O3A, POP_K_POPP_O3B
-      REAL*8        :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
-      CHARACTER     :: POP_TYPE
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !LOCAL VARIABLES:
-!
+      INTEGER       :: AS
+      INTEGER       :: MONTH, YEAR
+
       ! For fields from Input_Opt
-      INTEGER       :: N_TRACERS
-      LOGICAL       :: LSPLIT, LDRYD, LNLPBL
+      LOGICAL       :: LDRYD, LNLPBL, LPRT
 
       !=================================================================
       ! INIT_POPS begins here!
       !=================================================================
 
-      ! Maximum extent of the PBL
-      !PBL_MAX = GET_PBL_MAX_L()
-
-      ! Return if we have already allocated arrays
-      IF ( IS_INIT ) RETURN
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
-      LSPLIT    = Input_Opt%LSPLIT
       LDRYD     = Input_Opt%LDRYD
       LNLPBL    = Input_Opt%LNLPBL
+      LPRT      = Input_Opt%LPRT
 
-      CALL INIT_POP_PARAMS( POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
-     &                      POP_K_POPP_O3A, POP_K_POPP_O3B, 
-     &                      POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
+      ! Get the current month
+      MONTH = GET_MONTH()
+
+      ! Get the current month
+      YEAR = GET_YEAR()
+
+      ! Read monthly OC and BC from disk
+      CALL GET_GLOBAL_OC( am_I_Root, Input_Opt, MONTH, YEAR, RC )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OC' )
+
+      CALL GET_GLOBAL_BC( am_I_Root, Input_Opt, MONTH, YEAR, RC )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: b GET_GLOBAL_BC' )
 
       !=================================================================
       ! Allocate and initialize arrays
@@ -2356,9 +2345,6 @@
          ZERO_DVEL = 0d0
       ENDIF
 
-      ! Reset IS_INIT, since we have already allocated arrays
-      IS_INIT = .TRUE.
-      
       END SUBROUTINE INIT_POPS
 !EOC
 !------------------------------------------------------------------------------

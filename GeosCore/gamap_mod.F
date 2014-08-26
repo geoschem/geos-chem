@@ -1701,7 +1701,6 @@
       USE DIAG_PL_MOD,        ONLY : DO_SAVE_PL,  GET_NFAM
       USE DIAG_PL_MOD,        ONLY : GET_FAM_MWT, GET_FAM_NAME
       USE DRYDEP_MOD,         ONLY : DEPNAME,     NUMDEP,    NTRAIND
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_XMW
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACERID_MOD
@@ -6423,7 +6422,7 @@
             ! Define quantities
             UNIT (T,53) = 'kg'
             MOLC (T,53) = 1
-            MWT  (T,53) = GET_POP_XMW(DUM)
+            MWT  (T,53) = Input_Opt%POP_XMW
             SCALE(T,53) = 1e0
 
             ! Get name, long-name, index, and new units

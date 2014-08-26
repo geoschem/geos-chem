@@ -296,7 +296,7 @@
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-      CALL WETDEP_MERRA( State_Met, State_Chm, LS=.TRUE. )
+      CALL WETDEP_MERRA( Input_Opt, State_Met, State_Chm, LS=.TRUE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #elif defined( GEOS_5 )
@@ -310,7 +310,7 @@
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-      CALL WETDEP(  State_Met, State_Chm, LS=.TRUE. )
+      CALL WETDEP( Input_Opt, State_Met, State_Chm, LS=.TRUE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #else
@@ -328,7 +328,7 @@
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-      CALL WETDEP(  State_Met, State_Chm, LS=.TRUE. )
+      CALL WETDEP( Input_Opt, State_Met, State_Chm, LS=.TRUE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
       !---------------------
@@ -340,7 +340,7 @@
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
 
       !  Do wet deposition
-      CALL WETDEP(  State_Met, State_Chm, LS=.FALSE. )
+      CALL WETDEP( Input_opt, State_Met, State_Chm, LS=.FALSE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
 #endif
@@ -820,8 +820,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_HSTAR
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_Hw
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -920,8 +918,6 @@
       ! Scalars
       INTEGER             :: I, J, L, NN, N_TRACERS
       REAL*8              :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
-      REAL*8,  SAVE       :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
-      REAL*8              :: DUM
 #if defined( TOMAS )
       ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
       REAL*8              :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
@@ -958,7 +954,6 @@
       BXHEIGHT  => State_Met%BXHEIGHT
       T         => State_Met%T
       N_TRACERS =  Input_Opt%N_TRACERS
-      DUM       =  1.0
 
       !-------------------------------
       ! 210Pb and 7Be (aerosols)
@@ -2281,7 +2276,7 @@
             ! al and del_H from Scharzenbach 2003, p200)
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.65d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
-            CALL COMPUTE_L2G( GET_POP_HSTAR(DUM), GET_POP_DEL_Hw(DUM), 
+            CALL COMPUTE_L2G( Input_Opt%POP_HSTAR, Input_Opt%POP_DEL_Hw, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
@@ -2916,14 +2911,13 @@
 ! !INTERFACE:
 !
       SUBROUTINE RAINOUT( I, J, L, N, K_RAIN, DT, F, RAINFRAC,
-     &                    State_Met )
+     &                    Input_Opt, State_Met )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_HSTAR
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_Hw
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTPB,   IDTBE7,   IDTHNO3, IDTH2O2 
       USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMP,    IDTSO2,  IDTSO4  
@@ -2976,6 +2970,7 @@
       REAL*8,         INTENT(IN)  :: DT         ! Timestep for rainout event [s]
       REAL*8,         INTENT(IN)  :: F          ! Fraction of grid box that is
                                                 !  precipitating [unitless]
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
       TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -3025,6 +3020,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3045,18 +3041,12 @@
       ! 0.9 is ( molecular weight NH3 / molecular weight water )
       REAL*8, PARAMETER :: CONV_NH3  = 5.69209978831d-1
 
-      REAL*8,    SAVE     :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
-      REAL*8              :: DUM
-
       !==================================================================
       ! RAINOUT begins here!
       !
       ! For aerosols, set K = K_RAIN and compute RAINFRAC according
       ! to Eq. 10 of Jacob et al 2000.  Call function GET_RAINFRAC.
       !==================================================================
-
-      ! Initialize
-      DUM = 1.0
 
       ! Save the local temperature in TK for convenience
       TK = State_Met%T(I,J,L)
@@ -4127,7 +4117,7 @@
             ! al and del_H from Scharzenbach 2003, p200)
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.17d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
-            CALL COMPUTE_L2G( GET_POP_HSTAR(DUM), GET_POP_DEL_Hw(DUM), 
+            CALL COMPUTE_L2G( Input_Opt%POP_HSTAR, Input_Opt%POP_DEL_Hw,
      &                        TK, CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
@@ -4238,9 +4228,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WASHOUT( I, J, L,  N, BXHEIGHT, TK,   PP, 
-     &                    DT, F, H2O2s,    SO2s, WASHFRAC, KIN,
-     &                    State_Met, State_Chm )
+      SUBROUTINE WASHOUT( I, J, L,  N,  BXHEIGHT, TK,   PP, 
+     &                    DT, F, H2O2s, SO2s, WASHFRAC, KIN,
+     &                    Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 !
@@ -4279,9 +4269,9 @@
       USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
 
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState !(sfarina 2/20/13)
-      USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
 
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1
@@ -4303,7 +4293,8 @@
       REAL*8,  INTENT(IN)    :: F          ! Fraction of grid box that is 
                                            !   precipitating [unitless]
 
-      TYPE(MetState),INTENT(IN)     :: State_Met !sfarina - required for TOMAS routines
+      TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input options
+      TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology State object
 
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4375,6 +4366,7 @@
 !  31 May 2013 - R. Yantosca - Now accept State_Chm, and pass it to TOMAS code
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4383,9 +4375,6 @@
 !
       REAL*8            :: L2G, DZ, SO2LOSS
 
-      REAL*8, SAVE      :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
-      REAL*8            :: DUM
-
       !=================================================================
       ! WASHOUT begins here!
       !
@@ -4393,9 +4382,6 @@
       ! or WASHFRAC_LIQ_GAS to compute the fraction of tracer lost to 
       ! washout according to Jacob et al 2000
       !=================================================================
-
-      ! Initialize
-      DUM = 1.0
 
       ! DZ is the height of the grid box in cm
       DZ = BXHEIGHT * 1d2
@@ -4855,8 +4841,8 @@
       !------------------------------
       ELSE IF ( N == IDTPOPG ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( GET_POP_HSTAR(DUM) , 
-     &                          GET_POP_DEL_Hw(DUM),
+         CALL WASHFRAC_LIQ_GAS( Input_Opt%POP_HSTAR,
+     &                          Input_Opt%POP_DEL_Hw,
      &                          PP, DT, F, DZ, TK, WASHFRAC, KIN )     
 
       !------------------------------
@@ -5380,7 +5366,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEP( State_Met, State_Chm, LS )
+      SUBROUTINE WETDEP( Input_Opt, State_Met, State_Chm, LS )
 !
 ! !USES:
 !
@@ -5390,6 +5376,7 @@
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN
@@ -5402,6 +5389,7 @@
 !
       LOGICAL,        INTENT(IN)    :: LS         ! =T for large-scale precip
                                                   ! =F for convective precip
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input options
       TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -5571,6 +5559,7 @@
 !  (23) Remove reference to SGI_MIPS (bmy, 7/8/09)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
+!  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5692,7 +5681,8 @@
             IF ( F > 0d0 ) THEN 
                CALL DO_RAINOUT_ONLY( LS,  I,      J,    L,   
      &                               IDX, ERRMSG, F,    K_RAIN, 
-     &                               DT,  STT,    DSTT, State_Met )
+     &                               DT,  STT,    DSTT, Input_opt,
+     &                               State_Met )
             ENDIF
 
             ! Save FTOP for the next lower level 
@@ -5813,7 +5803,8 @@
                ! Do rainout if we meet the above criteria
                CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
      &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
-     &                               DT,  STT,    DSTT,      State_Met )
+     &                               DT,  STT,    DSTT,      Input_Opt,
+     &                               State_Met )
             ENDIF
 
             !==============================================================
@@ -5853,8 +5844,8 @@
      &                               L,         IDX,  ERRMSG, 
      &                               QDOWN,     Q,    F_WASHOUT, 
      &                               F_RAINOUT, DT,   PDOWN,     
-     &                               STT,       DSTT, State_Met,
-     &                               State_Chm                   )
+     &                               STT,       DSTT, Input_Opt,
+     &                               State_Met, State_Chm )
             ENDIF
 
             !===========================================================
@@ -5921,8 +5912,8 @@
             IF ( F > 0d0 ) THEN
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
-     &                                 DT,  STT,    DSTT,  State_Met,
-     &                                 State_Chm                      )
+     &                                 DT,  STT,    DSTT,  Input_Opt,
+     &                                 State_Met,   State_Chm         )
             ENDIF    
          ENDIF
 
@@ -5990,7 +5981,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEP_MERRA( State_Met, State_Chm, LS )
+      SUBROUTINE WETDEP_MERRA( Input_Opt, State_Met, State_Chm, LS )
 !
 ! !USES:
 !
@@ -5999,6 +5990,7 @@
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN
@@ -6011,6 +6003,7 @@
 !
       LOGICAL,        INTENT(IN)    :: LS         ! =T for large-scale precip
                                                   ! =F for convective precip
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input options
       TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -6130,6 +6123,7 @@
 !  31-Dec-2010 - H. Amos     - Clean up code, remove obsolete code
 !  31-Dec-2010 - H. Amos     - Added comments
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
+!  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6241,7 +6235,8 @@
             IF ( F > 0d0 ) THEN 
                CALL DO_RAINOUT_ONLY( LS,  I,      J,    L,   
      &                               IDX, ERRMSG, F,    K_RAIN, 
-     &                               DT,  STT,    DSTT, State_Met )
+     &                               DT,  STT,    DSTT, Input_Opt,
+     &                               State_Met )
             ENDIF
 
             ! Save FTOP for the next lower level 
@@ -6348,7 +6343,8 @@
                ! Do rainout if we meet the above criteria
                CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
      &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
-     &                               DT,  STT,    DSTT,      State_Met )
+     &                               DT,  STT,    DSTT,      Input_Opt,
+     &                               State_Met )
             ENDIF  
 
             IF ( IS_WASHOUT ) THEN 
@@ -6361,12 +6357,12 @@
                ERRMSG = 'WASHOUT'
 
                ! Do the washout
-               CALL DO_WASHOUT_ONLY( LS,        I,   J,     
-     &                               L,         IDX, ERRMSG,   
-     &                               QDOWN,     Q,   F_WASHOUT, 
-     &                               F_RAINOUT, DT,  PDOWN,     
-     &                               STT,       DSTT, State_Met,
-     &                               State_Chm                   )
+               CALL DO_WASHOUT_ONLY( LS,        I,    J,     
+     &                               L,         IDX,  ERRMSG,   
+     &                               QDOWN,     Q,    F_WASHOUT, 
+     &                               F_RAINOUT, DT,   PDOWN,     
+     &                               STT,       DSTT, Input_Opt,
+     &                               State_Met, State_Chm )
 
             ENDIF
 
@@ -6433,8 +6429,8 @@
             IF ( F > 0d0 ) THEN
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
-     &                                 DT,  STT,    DSTT,  State_Met,
-     &                                 State_Chm                      )
+     &                                 DT,  STT,    DSTT,  Input_Opt,
+     &                                 State_Met,   State_Chm         )
 
             ENDIF    
          ENDIF
@@ -6652,7 +6648,8 @@
 !
       SUBROUTINE DO_RAINOUT_ONLY( LS,  I,      J,         L,   
      &                            IDX, ERRMSG, F_RAINOUT, K_RAIN, 
-     &                            DT,  STT,    DSTT,      State_Met )
+     &                            DT,  STT,    DSTT,      Input_Opt,
+     &                            State_Met )
 !
 ! !USES:
 !
@@ -6665,6 +6662,7 @@
       USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
       USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput          ! Input options
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
 #if defined( TOMAS )
       USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1
@@ -6687,6 +6685,7 @@
       REAL*8,           INTENT(IN)    :: K_RAIN        ! Rainout constant
       REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -6716,6 +6715,7 @@
 !
 ! !REVISION HISTORY: 
 !  16 Sep 2010 - R. Yantosca - Initial version
+!  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6757,7 +6757,7 @@
          ! Call subroutine RAINOUT to comptue the fraction
          ! of tracer lost to rainout in grid box (I,J,L) 
          CALL RAINOUT( I, J, L, N, K_RAIN, DT, F_RAINOUT, RAINFRAC,
-     &                 State_Met )
+     &                 Input_Opt, State_Met )
 
 
 #if defined( TOMAS )
@@ -6868,7 +6868,7 @@
       SUBROUTINE DO_WASHOUT_ONLY( LS,        I,         J,      L,
      &                            IDX,       ERRMSG,    QDOWN,  Q,
      &                            F_WASHOUT, F_RAINOUT, DT,     PDOWN,
-     &                            STT,       DSTT,      
+     &                            STT,       DSTT,      Input_Opt,
      &                            State_Met, State_Chm, REEVAP     )
 !
 ! !USES:
@@ -6884,7 +6884,8 @@
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
       USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput          ! Input options
+      USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chemistry State object
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
       USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
       USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
@@ -6916,6 +6917,7 @@
                                                        !  undergoing rainout
       REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
       REAL*8,           INTENT(IN)    :: PDOWN(:,:,:)  ! Precip 
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -6996,6 +6998,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7058,7 +7061,8 @@
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK,        QDOWN,        DT,   
      &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
-     &                 WASHFRAC,  KIN, State_Met, State_Chm )
+     &                 WASHFRAC,  KIN,          Input_Opt,
+     &                 State_Met, State_Chm )
 
 #if    defined( MERRA ) || defined( GEOS_FP )
          !%%% BUG FIX: Only apply this section of when running
@@ -7464,8 +7468,8 @@
 !
       SUBROUTINE DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                              IDX, ERRMSG, QDOWN, F,   
-     &                              DT,  STT,    DSTT,  State_Met,
-     &                              State_Chm                      )
+     &                              DT,  STT,    DSTT,  Input_Opt,
+     &                              State_Met,   State_Chm         )
 !
 ! !USES:
 !
@@ -7480,6 +7484,7 @@
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
       USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput          ! Input options
       USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chm State object
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
       USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
@@ -7498,6 +7503,7 @@
       REAL*8,           INTENT(IN)    :: F             ! Fraction of grid box 
                                                        !  undergoing precip
       REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -7518,6 +7524,7 @@
 !  16 Sep 2010 - R. Yantosca - Initial version
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7559,10 +7566,10 @@
          ! in grid box (I,J,L) that is lost to washout.  
          CALL WASHOUT( I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L), 
-     &                 TK ,      QDOWN,        DT,   
-     &                 F,        H2O2s(I,J,L), SO2s(I,J,L), 
-     &                 WASHFRAC, KIN,          State_Met, 
-     &                 State_Chm                            )
+     &                 TK ,       QDOWN,        DT,   
+     &                 F,         H2O2s(I,J,L), SO2s(I,J,L), 
+     &                 WASHFRAC,  KIN,          Input_Opt,
+     &                 State_Met, State_Chm )
 
          ! NOTE: for HNO3 and aerosols, there is an F factor
          ! already present in WASHFRAC.  For other soluble

@@ -23,7 +23,6 @@
       USE DAO_MOD                               ! Met field subroutines
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
       USE ERROR_MOD                             ! Error handling routines
-      USE GET_POPSINFO_MOD                      ! For POPs simulation
       USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE PBL_MIX_MOD                           ! Boundary layer quantities
       USE PRESSURE_MOD,   ONLY : GET_PEDGE      ! Pressure @ level edges
@@ -4411,11 +4410,6 @@
       LOGICAL      :: IS_POPS
       INTEGER      :: AS, N
 
-      REAL*8, SAVE :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
-      REAL*8, SAVE :: POP_K_POPP_O3A, POP_K_POPP_O3B
-      REAL*8, SAVE :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
-      REAL*8       :: DUM
-
       CHARACTER(LEN=255) :: MSG
 
       !=================================================================
@@ -4427,7 +4421,6 @@
      
       ! For GEOS-5, we need to do this only on the root CPU
       IF ( am_I_Root ) THEN
-      DUM = 1.0
 
       ! Is this a mercury simulation?
       IS_Hg      = Input_Opt%ITS_A_MERCURY_SIM
@@ -6152,7 +6145,7 @@
                ! For BENZO[a]PYRENE, log Kaw = -4.51
                ! Using the same conversion, HSTAR = 1.32d3 M/atm
                ! All log Kaws from Ma et al., J Chem Eng Data 2010, 55:819 
-               HSTAR(NUMDEP)   = GET_POP_HSTAR(DUM)
+               HSTAR(NUMDEP)   = Input_Opt%POP_HSTAR
                ! Adding Koa (octanol-ar partition coefficient) for POPs to
                ! account for accumulation in leaf cuticles
                ! Needs to be in units of mol/liter/atm as with HSTAR
@@ -6165,13 +6158,13 @@
                ! For BENZO[a]PYRENE, log Koa = 11.48
                ! use same conversion to get 1.23d10 M/atm 
                ! All log Koas from Ma et al., J Chem Eng Data 2010, 55:819 
-               KOA(NUMDEP)     = GET_POP_KOA(DUM) *0.0409
+               KOA(NUMDEP)     = Input_Opt%POP_KOA *0.0409
                F0(NUMDEP)      = 0.0d0
                ! Need to change molecular weight for different POPs
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               XMW(NUMDEP)     = Input_Opt%POP_XMW
                AIROSOL(NUMDEP) = .FALSE. 
             ENDIF
 
@@ -6190,7 +6183,7 @@
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               XMW(NUMDEP)     = Input_Opt%POP_XMW
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
 
@@ -6209,7 +6202,7 @@
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               XMW(NUMDEP)     = Input_Opt%POP_XMW
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
          ENDIF
