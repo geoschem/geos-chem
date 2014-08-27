@@ -574,7 +574,6 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      CHARACTER(LEN=3)            :: POP_TYPE
      LOGICAL                     :: CHEM_PROCESS
-     CHARACTER(LEN=255)          :: POP_EMISDIR
      REAL*8                      :: POP_XMW
      REAL*8                      :: POP_KOA
      REAL*8                      :: POP_KBC
@@ -1387,7 +1386,6 @@ CONTAINS
     !----------------------------------------
     Input_Opt%POP_TYPE               = ''
     Input_Opt%CHEM_PROCESS           = .FALSE.
-    Input_Opt%POP_EMISDIR            = ''
     Input_Opt%POP_XMW                = 0d0
     Input_Opt%POP_KOA                = 0d0
     Input_Opt%POP_KBC                = 0d0

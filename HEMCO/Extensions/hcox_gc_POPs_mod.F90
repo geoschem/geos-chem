@@ -373,41 +373,26 @@ CONTAINS
           ! Gas-phase
           EPOP_G(I,J,L)  = F_POP_G  * F_OF_PBL * T_POP
 
-          !==================================================================
-          ! Sum different POPs emissions phases (OC, BC, and gas phase)
-          ! through bottom layer to top of PBL for storage in ND53 diagnostic
-          !==================================================================
-
-          SUM_OC_EM(I,J) =  SUM(EPOP_OC(I,J,1:PBL_MAX))  
-          SUM_BC_EM(I,J) =  SUM(EPOP_BC(I,J,1:PBL_MAX))
-          SUM_G_EM(I,J)  =  SUM(EPOP_G(I,J,1:PBL_MAX))           
-       
-          SUM_OF_ALL(I,J) = SUM_OC_EM(I,J) + SUM_BC_EM(I,J) + &
-                            SUM_G_EM(I,J)
-
-          ! Check that sum thru PBL is equal to original emissions array
-          ! NOTE: Prevent div-by-zero floating point error (bmy, 4/14/14)
-          IF ( SUM_OF_ALL(I,J) > 0d0 ) THEN 
-             SUM_OF_ALL(I,J) = POP_TOT_EM(I,J) / SUM_OF_ALL(I,J)
-          ENDIF
-             
        ENDDO
 
-!----------------------------------------------------------------------------
-! Prior to 8/20/14:
-! Let HEMCO handle the diagnostics (mps, 8/20/14)
-!       !====================================================================
-!       ! ND53 diagnostic: POP emissions [kg]
-!       ! 1 = total;  2 = OC;  3 = BC;  4 = gas phase
-!       !====================================================================
-!       IF ( ND53 > 0 ) THEN
-!          AD53(I,J,1) = AD53(I,J,1) + (T_POP * DTSRCE)
-!          AD53(I,J,2) = AD53(I,J,2) + (SUM_OC_EM(I,J) * DTSRCE)
-!          AD53(I,J,3) = AD53(I,J,3) + (SUM_BC_EM(I,J) * DTSRCE)
-!          AD53(I,J,4) = AD53(I,J,4) + (SUM_G_EM(I,J)  * DTSRCE)
-!       ENDIF
-!---------------------------------------------------------------------------
-         
+       !==================================================================
+       ! Sum different POPs emissions phases (OC, BC, and gas phase)
+       ! through bottom layer to top of PBL for storage in ND53 diagnostic
+       !==================================================================
+
+       SUM_OC_EM(I,J) =  SUM(EPOP_OC(I,J,1:PBL_MAX))  
+       SUM_BC_EM(I,J) =  SUM(EPOP_BC(I,J,1:PBL_MAX))
+       SUM_G_EM(I,J)  =  SUM(EPOP_G(I,J,1:PBL_MAX))           
+       
+       SUM_OF_ALL(I,J) = SUM_OC_EM(I,J) + SUM_BC_EM(I,J) + &
+                         SUM_G_EM(I,J)
+
+       ! Check that sum thru PBL is equal to original emissions array
+       ! NOTE: Prevent div-by-zero floating point error (bmy, 4/14/14)
+       IF ( SUM_OF_ALL(I,J) > 0d0 ) THEN 
+          SUM_OF_ALL(I,J) = POP_TOT_EM(I,J) / SUM_OF_ALL(I,J)
+       ENDIF
+
     ENDDO
     ENDDO
 
@@ -485,19 +470,20 @@ CONTAINS
     ! TOTAL POPS EMISSIONS
     !----------------------
 
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !% Check HcoID here! (mps, 8/20/14) %
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    ! Update diagnostic
-    IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-       Arr2D => POP_TOT_EM(:,:)
-       CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,   &
-                          Cat=-1,     Hier=-1,       HcoID=IDTPOPG, &
-                          AutoFill=1, Array2D=Arr2D, RC=RC   )
-       Arr2D => NULL() 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-    ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/27/14:
+! Comment out for now -- Need to figure out how to track total POPs emissions
+! in HEMCO (mps/8/27/14)
+!    ! Update diagnostic
+!    IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+!       Arr2D => POP_TOT_EM(:,:)
+!       CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,   &
+!                          Cat=-1,     Hier=-1,       HcoID=IDTPOPG, &
+!                          AutoFill=1, Array2D=Arr2D, RC=RC   )
+!       Arr2D => NULL() 
+!       IF ( RC /= HCO_SUCCESS ) RETURN 
+!    ENDIF
+!------------------------------------------------------------------------------
 
     !=======================================================================
     ! Cleanup & quit

@@ -3472,31 +3472,36 @@ CONTAINS
           RETURN      
        ENDIF
 
-       !-------------------------------------------
-       ! %%%%% Total POP %%%%%
-       !-------------------------------------------
- 
-       ! HEMCO species ID
-       HcoID = GetHemcoId( 'POPG', HcoState, LOC, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Create diagnostic container
-       DiagnName = 'AD01_POPT_SOURCE'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState,                      &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
-                          WriteFreq = 'Manual',          &
-                          AutoFill  = 1,                 &
-                          cID       = N,                 & 
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+!------------------------------------------------------------------------------
+! Prior to 8/27/14:
+! Comment out for now -- Need to figure out how to track total POPs emissions
+! in HEMCO (mps/8/27/14)
+!       !-------------------------------------------
+!       ! %%%%% Total POP %%%%%
+!       !-------------------------------------------
+! 
+!       ! HEMCO species ID
+!       HcoID = GetHemcoId( 'POPG', HcoState, LOC, RC )
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!       ! Create diagnostic container
+!       DiagnName = 'AD01_POPT_SOURCE'
+!       CALL Diagn_Create( am_I_Root,                     & 
+!                          HcoState,                      &
+!                          cName     = TRIM( DiagnName ), &
+!                          ExtNr     = ExtNr,             &
+!                          Cat       = -1,                &
+!                          Hier      = -1,                &
+!                          HcoID     = HcoID,             &
+!                          SpaceDim  = 2,                 &
+!                          LevIDx    = -1,                &
+!                          OutUnit   = 'kg',              &
+!                          WriteFreq = 'Manual',          &
+!                          AutoFill  = 1,                 &
+!                          cID       = N,                 & 
+!                          RC        = RC                  ) 
+!       IF ( RC /= HCO_SUCCESS ) RETURN 
+!------------------------------------------------------------------------------
 
        !-------------------------------------------
        ! %%%%% OC-phase POP %%%%%
@@ -3517,7 +3522,7 @@ CONTAINS
                           HcoID     = HcoID,             &
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
+                          OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
                           cID       = N,                 & 
@@ -3543,7 +3548,7 @@ CONTAINS
                           HcoID     = HcoID,           &
                           SpaceDim  = 2,               &
                           LevIDx    = -1,              &
-                          OutUnit   = 'kg/m2/s',       &
+                          OutUnit   = 'kg',            &
                           WriteFreq = 'Manual',        &
                           AutoFill  = 1,               &
                           cID       = N,               & 
@@ -3570,7 +3575,7 @@ CONTAINS
                           HcoID     = HcoID,             &
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
+                          OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
                           cID       = N,                 & 

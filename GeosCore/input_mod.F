@@ -7339,6 +7339,8 @@
 !  14 Apr 2014 - R. Yantosca - Now echo all POPs parameters to log file
 !  23 Jun 2014 - R. Yantosca - Now use Input_Opt%POP_EMISDIR
 !  25 Aug 2014 - M. Sulprizio- Move call to INIT_POPs to GIGC_Init_Extra
+!  27 Aug 2014 - M. Sulprizio- Remove POP_EMISDIR, emissions are now handled
+!                              by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7353,7 +7355,6 @@
       REAL*8             :: POP_K_POPP_O3A, POP_K_POPP_O3B
       REAL*8             :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
       CHARACTER(LEN=3)   :: POP_TYPE
-      CHARACTER(LEN=255) :: POP_EMISDIR
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -7370,10 +7371,6 @@
       ! Dummy for future process logical switches
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:2' )
       READ( SUBSTRS(1:N), * ) CHEM_PROCESS
-
-      ! Name of pops emissions file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:3' )
-      READ( SUBSTRS(1:N), '(a)' ) POP_EMISDIR
 
       ! Molecular weight
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:4' )
@@ -7422,8 +7419,6 @@
          WRITE( 6, '(  a)' ) '------------'
          WRITE( 6, 120     ) 'Species of POP        : ', POP_TYPE
          WRITE( 6, 110     ) 'Chemistry on?         : ', CHEM_PROCESS
-         WRITE( 6, 120     ) '=> POP Emissions file : ',
-     &                        TRIM( Input_Opt%POP_EMISDIR )     
          WRITE( 6, 130     ) 'POP_XMW               : ', POP_XMW
          WRITE( 6, 130     ) 'POP_KOA               : ', POP_KOA
          WRITE( 6, 130     ) 'POP_KBC               : ', POP_KBC
@@ -7438,14 +7433,13 @@
       ! FORMAT statements
  110  FORMAT( A, L5  )
  120  FORMAT( A, A   )
- 130  FORMAT( A, f6.5 )
+ 130  FORMAT( A, ES10.2 )
 
       !=================================================================
       ! Copy to Input Options object
       !=================================================================
       Input_Opt%POP_TYPE       = POP_TYPE
       Input_Opt%CHEM_PROCESS   = CHEM_PROCESS
-      Input_Opt%POP_EMISDIR    = POP_EMISDIR
       Input_Opt%POP_XMW        = POP_XMW
       Input_Opt%POP_KOA        = POP_KOA
       Input_Opt%POP_KBC        = POP_KBC

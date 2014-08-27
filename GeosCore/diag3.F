@@ -3696,22 +3696,27 @@
       IF ( ND53 > 0 .and. Input_Opt%ITS_A_POPS_SIM ) THEN
 
          CATEGORY = 'PG-SRCE'
-         UNIT     = 'kg/s'
+         UNIT     = 'kg'
 
-        IF ( IDTPOPG > 0 .and. IDTPOPPOC > 0 .and. IDTPOPPBC > 0 ) THEN
-
-            !--------------------------------
-            ! Total POP emissions
-            !--------------------------------
-            DiagnName = 'AD01_POPT_SOURCE'
-            N         = 1
-            FACTOR    = 1.0d0
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC, 
-     &                      AreaScal=1 )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
-         ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/27/14:
+! Comment out for now -- Need to figure out how to track total POPs emissions
+! in HEMCO (mps/8/27/14)
+!        IF ( IDTPOPG > 0 .and. IDTPOPPOC > 0 .and. IDTPOPPBC > 0 ) THEN
+!
+!            !--------------------------------
+!            ! Total POP emissions
+!            !--------------------------------
+!            DiagnName = 'AD01_POPT_SOURCE'
+!            N         = 1
+!            FACTOR    = 1.0d0
+!            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+!     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC, 
+!     &                      AreaScal=1 )
+!            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+!
+!         ENDIF
+!------------------------------------------------------------------------------
 
          IF ( IDTPOPPOC > 0 ) THEN
 
@@ -3722,8 +3727,7 @@
             N         = 2
             FACTOR    = 1.0d0
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC, 
-     &                      AreaScal=1 )
+     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          ENDIF
@@ -3737,8 +3741,7 @@
             N         = 3
             FACTOR    = 1.0d0
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC, 
-     &                      AreaScal=1 )
+     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          ENDIF
@@ -3752,8 +3755,7 @@
             N         = 4
             FACTOR    = 1.0d0
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC, 
-     &                      AreaScal=1 )
+     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          ENDIF
