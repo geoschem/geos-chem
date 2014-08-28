@@ -5762,7 +5762,7 @@
          !%%%   (bmy, 9/6/13)                                          %%%
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          FILENAME= TRIM( Input_Opt%DATA_DIR )            //
-     &             'mercury_201203/0soilhg.preind.v9-02c.geos5.4x5'
+     &             'mercury_201203/soilhg.preind.v9-02c.geos5.4x5'
 #elif defined( MERRA ) && defined( GRID4x5 )
          FILENAME= TRIM( Input_Opt%DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.preind.bpch'
