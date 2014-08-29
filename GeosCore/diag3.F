@@ -2099,14 +2099,16 @@
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
 !  (2) ND29 now uses allocatable array AD29 instead of AIJ. (bmy, 3/16/00)
 !  (3) Added CO-sources from isoprene and monoterpenes (bnd, bmy, 1/2/01)
-!
 !******************************************************************************
-
+!
       IF ( ND29 > 0 ) THEN
          
          ! Diagnostic category and units
          CATEGORY = 'CO--SRCE'
-         UNIT     = 'molec/cm2/s'
+
+         ! Unit is molec/cm2/s, but for compatibility with older
+         ! GC versions, use the string "mol/cm2/s". (bmy, 8/29/14)
+         UNIT     = 'mol/cm2/s'  
 
          ! Converts from kg/m2/s (in HEMCO) to molec/cm2/s (for bpch)
          FACTOR   = Input_Opt%XNUMOL(IDTCO) / CM2PERM2 
@@ -2623,129 +2625,99 @@
 !  (6) Rewritten for clarity; also fixed for CH3I (bmy, 7/25/06)
 !  (7) Bug fix: given the tracer number, now search for entry in IDEMS
 !       to jive with historical baggage (bmy, 3/6/07)
+!  (8) Because HEMCO now tracks ND36, print out diagnostics for every
+!       emission species that is a defined tracer. (bmy, 8/29/14)
 !******************************************************************************
 !                     
       IF ( ND36 > 0 ) THEN
+
+         ! Diagnostic category
          CATEGORY     = 'ANTHSRCE'
-         UNIT         = 'molec/cm2/s'
 
-         ! Loop over # of tracers
-         DO M = 1, TMAX(36)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% NOTE: FACTOR is the multiplication factor that converts
+         !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
+         !%%%
+         !%%% For tracers that are carried in equivalent C atoms, 
+         !%%% FACTOR is further multiplied by the # of C atoms per 
+         !%%% molecule, which is stored in Input_Opt%TRACER_COEFF. 
+         !%%% (bmy, 8/14/14)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         ! Get variables needed for HEMCO diagnostics
+         IF ( IDTNO > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_NO'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTNO
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+
+         ELSE IF ( IDTCO > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_CO'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTCO
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             
-            ! Get the tracer # from input.geos
-            N  = TINDEX(36,M)
-
-            IF ( Input_Opt%ITS_A_CH3I_SIM ) THEN
-
-                MSG = 'CH3I diagnostics not supported for now!'
-                CALL ERROR_STOP( MSG, LOC)
-
-            ELSE 
-
-               !--------------------------------------------------------
-               ! For full-chemistry.  Note, due to historical baggage,
-               ! the order of the tracers in AD36 array corresponds to
-               ! the order as given in IDEMS.  Therefore, for the given
-               ! tracer number N, we must find the corresponding entry
-               ! in IDEMS. (bmy, 3/5/07)
-               !--------------------------------------------------------
-               UNIT     = ''
-
-               ! reset these
-               MM = 0
-               NN = 0
-
-               ! Given the tracer number N, find the proper entry in the 
-               ! IDEMS array and select that for output (bmy, 3/5/07)
-               DO NMAX = 1, NEMANTHRO
-                  IF ( N == IDEMS(NMAX) ) THEN
-                     MM = NMAX
-                     NN = N
-                     EXIT
-                  ENDIF
-               ENDDO
-
-               ! We haven't found a match, skip to next tracer
-               IF ( MM == 0 ) CYCLE
-
-               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               !%%% NOTE: FACTOR is the multiplication factor that converts
-               !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
-               !%%%
-               !%%% For tracers that are carried in equivalent C atoms, 
-               !%%% FACTOR is further multiplied by the # of C atoms per 
-               !%%% molecule, which is stored in Input_Opt%TRACER_COEFF. 
-               !%%% (bmy, 8/14/14)
-               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-               ! Get variables needed for HEMCO diagnostics
-               IF ( N == IDTNO ) THEN
-                  DiagnName = 'ANTHROPOGENIC_NO'
-                  UNIT      = 'molec/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-
-               ELSEIF ( N == IDTCO ) THEN
-                  DiagnName = 'ANTHROPOGENIC_CO'
-                  UNIT      = 'molec/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  
-               ELSEIF ( N == IDTALK4 ) THEN
-                  DiagnName = 'ANTHROPOGENIC_ALK4'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTALK4 > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_ALK4'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTALK4
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
        
-               ELSEIF ( N == IDTACET ) THEN
-                  DiagnName = 'ANTHROPOGENIC_ACET'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-                         
-               ELSEIF ( N == IDTMEK ) THEN
-                  DiagnName = 'ANTHROPOGENIC_MEK'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTACET > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_ACET'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTACET
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+                   
+         ELSE IF ( IDTMEK > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_MEK'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTMEK
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-               ELSEIF ( N == IDTALD2 ) THEN
-                  DiagnName = 'ANTHROPOGENIC_ALD2'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTALD2 > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_ALD2'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTALD2
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-               ELSEIF ( N == IDTPRPE ) THEN
-                  DiagnName = 'ANTHROPOGENIC_PRPE'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTPRPE > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_PRPE'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTPRPE
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-               ELSEIF ( N == IDTC3H8 ) THEN
-                  DiagnName = 'ANTHROPOGENIC_C3H8'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTC3H8 > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_C3H8'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTC3H8
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-               ELSEIF ( N == IDTCH2O ) THEN
-                  DiagnName = 'ANTHROPOGENIC_CH2O'
-                  UNIT      = 'molec/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+         ELSE IF ( IDTCH2O > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_CH2O'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTCH2O
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
 
-               ELSEIF ( N == IDTC2H6 ) THEN
-                  DiagnName = 'ANTHROPOGENIC_C2H6'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTC2H6 > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_C2H6'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTC2H6 
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-               ENDIF
+         ENDIF
 
-               ! kg/m2/s to molec/cm2/s 
-               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                         UNIT, NN, 1, -1, .TRUE., FACTOR, RC )
-               IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
- 
-            ENDIF
-         ENDDO
+         ! kg/m2/s to molec/cm2/s 
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT, NN, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
       ENDIF
 !
 !******************************************************************************

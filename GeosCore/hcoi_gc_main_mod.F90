@@ -209,18 +209,17 @@ CONTAINS
     ! sets the HEMCO error properties (verbose mode? log file name, 
     ! etc.) based upon the specifications in the configuration file.
     !=================================================================
-    CALL Config_ReadFile ( am_I_Root, Input_Opt%HcoConfigFile, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Config_ReadFile', LOC )
+    CALL Config_ReadFile( am_I_Root, Input_Opt%HcoConfigFile, HMRC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC )
 
     !=================================================================
     ! Open logfile 
     !=================================================================
     IF ( am_I_Root ) THEN
-       CALL HCO_LOGFILE_OPEN ( RC=HMRC ) 
-       IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Open Logfile', LOC )
-
-    ! If this is not the root CPU, always disable verbose mode.
+       CALL HCO_LOGFILE_OPEN( RC=HMRC ) 
+       IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Open Logfile', LOC )
     ELSE
+       ! If this is not the root CPU, always disable verbose mode.
        CALL HCO_VERBOSE_SET ( .FALSE. )
     ENDIF
 
@@ -228,26 +227,22 @@ CONTAINS
     ! Initialize HEMCO state object and populate it 
     !=================================================================
 
-    !-----------------------------------------------------------------
     ! Extract species to use in HEMCO 
     CALL Get_nnMatch( Input_Opt, nnMatch, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Get_nnMatch', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Get_nnMatch', LOC )
 
-    !-----------------------------------------------------------------
     ! Initialize HCO state. Use only species that are used
     ! in GEOS-Chem and are also found in the HEMCO config. file.
     CALL HcoState_Init( am_I_Root, HcoState, nnMatch, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HcoState_Init', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HcoState_Init', LOC )
 
-    !-----------------------------------------------------------------
     ! Set grid
     CALL Set_Grid( am_I_Root, State_Met, HcoState, RC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Set_Grid', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Set_Grid', LOC )
 
-    !-----------------------------------------------------------------
     ! Register species
     CALL Register_Species( am_I_Root, State_Chm, HcoState, RC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Register_Species', LOC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Register_Species', LOC )
 
     !=================================================================
     ! Set misc. parameter
@@ -270,16 +265,16 @@ CONTAINS
     ! the HEMCO configuration file is removed from buffer in this
     ! step. Also initializes the HEMCO clock
     !=================================================================
-    CALL HCO_INIT ( am_I_Root, HcoState, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCO_INIT', LOC )
+    CALL HCO_INIT( am_I_Root, HcoState, HMRC )
+    IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
 
     !=================================================================
     ! Initialize extensions.
     ! This initializes all (enabled) extensions and selects all met.
     ! fields needed by them. 
     !=================================================================
-    CALL HCOX_INIT ( am_I_Root, HcoState, ExtState, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCO_INIT', LOC )
+    CALL HCOX_INIT( am_I_Root, HcoState, ExtState, HMRC )
+    IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
 
     !-----------------------------------------------------------------
     ! Update logical switches in Input_Opt 
@@ -304,32 +299,38 @@ CONTAINS
     ! connected.
     !-----------------------------------------------------------------
     CALL ExtState_SetPointers( State_Met, State_Chm, RC )
-    IF ( RC/=GIGC_SUCCESS ) RETURN
+    IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
     ! Define diagnostics
     !-----------------------------------------------------------------
     IF ( DoDiagn ) THEN
-    CALL HCOI_GC_DIAGN_INIT ( am_I_Root, Input_Opt, HcoState, ExtState, HMRC )
-    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP('HCOI_GC_DIAGN_INIT',LOC)
+
+       ! Set up traditional GEOS-Chem NDxx diagnostics for emissions
+       CALL HCOI_GC_DIAGN_INIT                                &
+            ( am_I_Root, Input_Opt, HcoState, ExtState, HMRC )
+
+       ! Exit if any of the diagnostics could not be initialized
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'HCOI_GC_DIAGN_INIT', LOC )
+       ENDIF
     ENDIF
 
-    !-----------------------------------------------------------------
-    ! Leave 
-    !-----------------------------------------------------------------
+    !=================================================================
+    ! Cleanup and quit
+    !=================================================================
 
     ! Deallocate local variables
-    IF (ASSOCIATED(ModelSpecNames)) DEALLOCATE(ModelSpecNames)
-    IF (ASSOCIATED(ModelSpecIDs)) DEALLOCATE(ModelSpecIDs)
-    IF (ASSOCIATED(ModelSpecMW)) DEALLOCATE(ModelSpecMW)
-    IF (ASSOCIATED(ModelSpecEmMW)) DEALLOCATE(ModelSpecEmMW)
-    IF (ASSOCIATED(ModelSpecMolecRatio)) DEALLOCATE(ModelSpecMolecRatio)
-    IF (ASSOCIATED(ModelSpecK0)) DEALLOCATE(ModelSpecK0)
-    IF (ASSOCIATED(ModelSpecCR)) DEALLOCATE(ModelSpecCR)
-    IF (ASSOCIATED(ModelSpecPKA)) DEALLOCATE(ModelSpecPKA)
-
-    IF (ASSOCIATED(matchIDx    )) DEALLOCATE(matchIDx    )
-    IF (ASSOCIATED(HcoSpecNames)) DEALLOCATE(HcoSpecNames)
+    IF ( ASSOCIATED( ModelSpecNames      ) ) DEALLOCATE( ModelSpecNames      )
+    IF ( ASSOCIATED( ModelSpecIDs        ) ) DEALLOCATE( ModelSpecIDs        )
+    IF ( ASSOCIATED( ModelSpecMW         ) ) DEALLOCATE( ModelSpecMW         )
+    IF ( ASSOCIATED( ModelSpecEmMW       ) ) DEALLOCATE( ModelSpecEmMW       )
+    IF ( ASSOCIATED( ModelSpecMolecRatio ) ) DEALLOCATE( ModelSpecMolecRatio )
+    IF ( ASSOCIATED( ModelSpecK0         ) ) DEALLOCATE( ModelSpecK0         )
+    IF ( ASSOCIATED( ModelSpecCR         ) ) DEALLOCATE( ModelSpecCR         )
+    IF ( ASSOCIATED( ModelSpecPKA        ) ) DEALLOCATE( ModelSpecPKA        )
+    IF ( ASSOCIATED( matchIDx            ) ) DEALLOCATE( matchIDx            )
+    IF ( ASSOCIATED( HcoSpecNames        ) ) DEALLOCATE( HcoSpecNames        )
 
     ! Leave w/ success
     RC = GIGC_SUCCESS

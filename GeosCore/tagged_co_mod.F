@@ -18,11 +18,6 @@
       IMPLICIT NONE
       PRIVATE
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-      PRIVATE :: DEFINE_FF_CO_REGIONS
-      PRIVATE :: DEFINE_BB_CO_REGIONS 
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CHEM_TAGGED_CO
@@ -151,200 +146,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: define_ff_co_regions
-!
-! !DESCRIPTION: Subroutine DEFINE\_FF\_CO\_REGIONS defines the geographic 
-!  regions for fossil fuel emissions for the Tagged CO simulation. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DEFINE_FF_CO_REGIONS( REGION )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)   ! Fossil fuel CO regions
-!
-! !REVISION HISTORY: 
-!  21 Jul 2000 - B. Duncan - Initial version
-!  (1 ) This subroutine only has to be at the beginning of the run, 
-!        since the regions don't change with time.
-!  (2 ) Regions are hardwired for now -- change if necessary
-!  (3 ) Now use regions from bnd simulation (bmy, 6/14/01)
-!  (4 ) REGION is now of size (IIPAR,JJPAR) (bmy, 9/28/01)
-!  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
-!  (6 ) Now uses routines GET_XMID and GET_YMID from "grid_mod.f" to compute
-!        grid box lon & lat.  Remove XMID, YMID from arg list. (bmy, 2/3/03)
-!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I, J
-      REAL*8  :: X, Y
-
-      !=================================================================
-      ! DEFINE_FF_CO_REGIONS begins here!
-      !
-      ! Loop over entire globe -- multiprocessor
-      !=================================================================
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, X, Y )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Longitude & latitude [degrees]
-         X = GET_XMID( I, J, 1 )
-         Y = GET_YMID( I, J, 1 )
-         
-         ! Region #2 -- North American FF CO 
-         IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
-     &        ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
-            REGION(I,J) = 2
-            
-         ! Region #3 -- European FF CO (1st sub-box)
-         ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
-     &             ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
-            REGION(I,J) = 3
-
-         ! Region #3 -- European FF CO (2nd sub-box)
-         ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
-     &             ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
-            REGION(I,J) = 3
-
-         ! Region #4 -- Asian FF CO (1st sub-box) 
-         ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &             ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
-            REGION(I,J) = 4
-   
-            ! Region #5 -- FF CO from everywhere else
-         ELSE
-            REGION(I,J) = 5
-               
-         ENDIF
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE DEFINE_FF_CO_REGIONS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: define_bb_co_regions
-!
-! !DESCRIPTION:  Subroutine DEFINE\_BB\_CO\_REGIONS defines the geographic 
-!  regions for biomass burning emissions for the Tagged CO simulation. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DEFINE_BB_CO_REGIONS( REGION )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)   ! Biomass CO regions
-! 
-! !REVISION HISTORY: 
-!  21 Jul 2000 - B. Duncan - Initial version
-!  (1 ) This subroutine only has to be at the beginning of the run, 
-!        since the regions don't change with time.
-!  (2 ) Regions are hardwired for now -- change if necessary
-!  (3 ) Now use regions from bnd simulation (bmy, 6/14/01)
-!  (4 ) REGION is now of size (IIPAR,JJPAR) (bmy, 9/28/01)
-!  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
-!  (6 ) Now uses routines GET_XMID and GET_YMID from "grid_mod.f" to compute
-!        grid box lon & lat.  Remove XMID, YMID from arg list. (bmy, 2/3/03)
-!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I, J
-      REAL*8  :: X, Y
-
-      !=================================================================
-      ! DEFINE_BB_CO_REGIONS begins here!
-      ! Loop over entire globe
-      !=================================================================
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, X, Y )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-          ! Longitude & latitude [degrees]
-          X = GET_XMID( I, J, 1 )
-          Y = GET_YMID( I, J, 1 )
-
-          ! Region #6 -- South American BB CO 
-          IF ( ( X >= -112.5 .and. X < -32.5 )  .and.
-     &         ( Y >=  -56.0 .and. Y <  24.0 ) ) THEN
-             REGION(I,J) = 6
-
-          ! Region #7 -- African BB CO 
-          ELSE IF ( ( X >= -17.5 .and. X < 70.0 )  .and.
-     &              ( Y >= -48.0 .and. Y < 36.0 ) ) THEN
-             REGION(I,J) = 7
-
-          ! Region #8 -- SE Asian BB CO (1st sub-box) 
-          ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &              ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
-             REGION(I,J) = 8
-
-          ! Region #9 -- Oceania BB CO 
-          ELSE IF ( ( X >= 70.0 .and. X < 170.0 )  .and.
-     &              ( Y <  8.0 ) ) THEN
-             REGION(I,J) = 9
-
-          ! Region #10 -- European BB CO (1st sub-box)
-          ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and.
-     &              ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
-             REGION(I,J) = 10
-
-          ! Region #10 -- European BB CO (2nd sub-box)
-          ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and.
-     &              ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
-             REGION(I,J) = 10 
-
-          ! Region #11 -- North America BB CO  
-          ! (rest of world = North America)
-          ELSE 
-             REGION(I,J) = 11
-
-          ENDIF
-       ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE DEFINE_BB_CO_REGIONS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: chem_tagged_co
 !
 ! !DESCRIPTION: Subroutine CHEM\_TAGGED\_CO performs CO chemistry on 
@@ -447,6 +248,7 @@
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  10 Apr 2014 - R. Yantosca - Now use pointers to fields in State_Met
 !  10 Apr 2014 - R. Yantosca - Bug fix: DTSRCE should be DTCHEM
+!  27 Aug 2014 - R. Yantosca - Bug fix: pass Input_Opt to GET_GLOBAL_CH4
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -455,7 +257,8 @@
 !
       LOGICAL                :: LSPLIT
       INTEGER                :: N_TRACERS
-      INTEGER                :: I, J, L, N, MONTH
+      INTEGER                :: I,         J,          L
+      INTEGER                :: N,         MONTH,      YEAR
       REAL*8                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
       REAL*8                 :: DTCHEM,    GCO,        PCO   
       REAL*8                 :: STTCO,     KRATE,      CH4
@@ -551,9 +354,49 @@
       !       (bmy, 1/24/08)
       !=================================================================
       IF ( ITS_A_NEW_YEAR() ) THEN 
-         CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE.,             
-     &                        A3090S, A0030S, A0030N, A3090N, .TRUE. )
+
+         ! Get current year
+         YEAR = GET_YEAR()
+
+         ! Get the semi-hemispheric CH4 gradients
+         CALL GET_GLOBAL_CH4( YEAR,  .TRUE.,  A3090S,    A0030S, 
+     &                        A0030N, A3090N, am_I_Root, Input_Opt )
       ENDIF
+
+      !=================================================================
+      ! Add emissions above the PBL to the tracer array. 
+      ! For more information about emissions and PBL mixing, see:
+      ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! If we are using the non-local PBL mixing scheme, then
+         ! only add emissions above the PBL top.  All wmissions within
+         ! the PBL are handled in routine VDIFFDR in vdiff_mod.F90.
+         ! Skip if we have PBL mixing completely turned off, or if
+         ! we are using the TURBDAY full-mixing scheme.
+         IF ( Input_Opt%LNLPBL ) THEN
+            IF ( L < State_Met%PBL_TOP_L(I,J) + 1 ) CYCLE
+         ENDIF
+
+         ! Add emissions into the tracer array
+         ! Convert from [kg/m2/s] to [kg]
+         State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
+     &                              + ( State_Chm%TRAC_TEND(I,J,L,N) 
+     &                              *   State_Met%AREA_M2  (I,J,L  )
+     &                              *   DTCHEM                       )
+
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       !=================================================================
       ! Do tagged CO chemistry -- Put everything within a large 
@@ -1551,9 +1394,9 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
       SUMACETCO = 0d0 
 
-      ! Define geographic regions for both fossil fuel & biomass burning
-      CALL DEFINE_FF_CO_REGIONS( FF_REGION )         
-      CALL DEFINE_BB_CO_REGIONS( BB_REGION )
+!      ! Define geographic regions for both fossil fuel & biomass burning
+!      CALL DEFINE_FF_CO_REGIONS( FF_REGION )         
+!      CALL DEFINE_BB_CO_REGIONS( BB_REGION )
 
       END SUBROUTINE INIT_TAGGED_CO
 !EOC
