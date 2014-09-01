@@ -82,9 +82,7 @@ MODULE HCOI_GC_Main_Mod
   REAL(hp), ALLOCATABLE, TARGET   :: ZSIGMA(:,:,:)
 
   ! Pointers used during initialization (for species matching)
-  INTEGER                     :: nHcoSpec
-  CHARACTER(LEN= 31), POINTER :: HcoSpecNames(:) => NULL()
-  INTEGER                     :: nModelSpec
+  CHARACTER(LEN= 31), POINTER :: HcoSpecNames  (:) => NULL()
   CHARACTER(LEN= 31), POINTER :: ModelSpecNames(:) => NULL()
   INTEGER,            POINTER :: ModelSpecIDs  (:) => NULL()
   REAL(hp),           POINTER :: ModelSpecMW   (:) => NULL()
@@ -121,7 +119,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Init( am_I_Root, Input_Opt, State_Chm, State_Met, RC ) 
+  SUBROUTINE HCOI_GC_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
@@ -145,8 +143,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -163,7 +161,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                         :: nnMatch, HMRC
+    INTEGER                         :: nHcoSpc, HMRC
     CHARACTER(LEN=255)              :: LOC
 
     !=================================================================
@@ -203,24 +201,35 @@ CONTAINS
     !=================================================================
 
     !-----------------------------------------------------------------
-    ! Extract species to use in HEMCO 
-    CALL Get_nnMatch( Input_Opt, nnMatch, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Get_nnMatch', LOC )
+    ! Extract species to use in HEMCO. nHcoSpc denotes the number of
+    ! species that shall be used in HEMCO. The species properties are
+    ! defined in the Register_Species call below.
+    ! Typically, nHcoSpc is just the number of species defined in both 
+    ! the HEMCO configuration file and GEOS-Chem. However, additional
+    ! species can be defined, e.g. those not transported in GEOS-Chem
+    ! (e.g. SESQ) or tagged species (e.g. specialty simulations).
+    CALL Get_nHcoSpc( Input_Opt, nHcoSpc, HMRC )
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Get_nHcoSpc', LOC )
 
     !-----------------------------------------------------------------
-    ! Initialize HCO state. Use only species that are used
-    ! in GEOS-Chem and are also found in the HEMCO config. file.
-    CALL HcoState_Init( am_I_Root, HcoState, nnMatch, HMRC )
+    ! Now that number of HEMCO species are known, initialize HEMCO
+    ! state object.
+    CALL HcoState_Init( am_I_Root, HcoState, nHcoSpc, HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HcoState_Init', LOC )
 
     !-----------------------------------------------------------------
-    ! Set grid
+    ! Set grid. This has to be done before register the species.
     CALL Set_Grid( am_I_Root, State_Met, HcoState, RC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Set_Grid', LOC )
 
     !-----------------------------------------------------------------
-    ! Register species
-    CALL Register_Species( am_I_Root, State_Chm, HcoState, RC )
+    ! Register species. This will define all species properties
+    ! (names, molecular weights, etc.) of the HEMCO species.
+    ! If the HEMCO grid is the same as the GEOS-Chem grid, each HEMCO
+    ! species is connected to the corresponding Trac_Tend array of the
+    ! GEOS-Chem chemistry state object, so that HEMCO directly writes
+    ! emissions into these arrays.
+    CALL Register_Species( am_I_Root, Input_Opt, State_Chm, HcoState, RC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Register_Species', LOC )
 
     !=================================================================
@@ -232,7 +241,7 @@ CONTAINS
     HcoState%TS_CHEM = GET_TS_CHEM() * 60.0
     HcoState%TS_DYN  = GET_TS_DYN()  * 60.0
 
-    ! Set ESMF flag 
+    ! This is not an ESMF simulation
     HcoState%isESMF = .FALSE.  
 
     ! HEMCO configuration file
@@ -283,18 +292,18 @@ CONTAINS
     ! Leave 
     !-----------------------------------------------------------------
 
-    ! Deallocate local variables
-    IF (ASSOCIATED(ModelSpecNames)) DEALLOCATE(ModelSpecNames)
-    IF (ASSOCIATED(ModelSpecIDs)) DEALLOCATE(ModelSpecIDs)
-    IF (ASSOCIATED(ModelSpecMW)) DEALLOCATE(ModelSpecMW)
-    IF (ASSOCIATED(ModelSpecEmMW)) DEALLOCATE(ModelSpecEmMW)
+    ! Deallocate local variables. Those are not needed for the rest of
+    ! the simulation any more.
+    IF (ASSOCIATED(ModelSpecNames     )) DEALLOCATE(ModelSpecNames     )
+    IF (ASSOCIATED(ModelSpecIDs       )) DEALLOCATE(ModelSpecIDs       )
+    IF (ASSOCIATED(ModelSpecMW        )) DEALLOCATE(ModelSpecMW        )
+    IF (ASSOCIATED(ModelSpecEmMW      )) DEALLOCATE(ModelSpecEmMW      )
     IF (ASSOCIATED(ModelSpecMolecRatio)) DEALLOCATE(ModelSpecMolecRatio)
-    IF (ASSOCIATED(ModelSpecK0)) DEALLOCATE(ModelSpecK0)
-    IF (ASSOCIATED(ModelSpecCR)) DEALLOCATE(ModelSpecCR)
-    IF (ASSOCIATED(ModelSpecPKA)) DEALLOCATE(ModelSpecPKA)
-
-    IF (ASSOCIATED(matchIDx    )) DEALLOCATE(matchIDx    )
-    IF (ASSOCIATED(HcoSpecNames)) DEALLOCATE(HcoSpecNames)
+    IF (ASSOCIATED(ModelSpecK0        )) DEALLOCATE(ModelSpecK0        )
+    IF (ASSOCIATED(ModelSpecCR        )) DEALLOCATE(ModelSpecCR        )
+    IF (ASSOCIATED(ModelSpecPKA       )) DEALLOCATE(ModelSpecPKA       )
+    IF (ASSOCIATED(matchIDx           )) DEALLOCATE(matchIDx           )
+    IF (ASSOCIATED(HcoSpecNames       )) DEALLOCATE(HcoSpecNames       )
 
     ! Leave w/ success
     RC = GIGC_SUCCESS
@@ -654,6 +663,15 @@ CONTAINS
        ! Skip if tracer ID is not defined
        IF ( trcID <= 0 ) CYCLE
 
+       ! testing only
+       IF ( ASSOCIATED(HcoState%Spc(N)%Conc%Val) ) THEN
+          write(*,*) 'HEMCO concentrations found for GC tracer ', trcID
+          write(*,*) 'total conc: ', SUM(HcoState%Spc(N)%Conc%Val)
+       ENDIF
+
+       ! Skip if no emissions defined
+       IF ( .NOT. ASSOCIATED(HcoState%Spc(N)%Emis%Val) ) CYCLE
+
        ! If simulation grid and emission grid are equal, the 
        ! HEMCO state emission array already points to
        ! State_Chm%Trac_Tend and there is nothing to do here. 
@@ -673,7 +691,7 @@ CONTAINS
 
        !----------------------------------------------------------------------
        ! HEMCO holds total OC and BC. Those have GEOS-Chem species IDs of 
-       ! OCPI and BCPI (see Model_GetSpecies). Split here into hydrophobic
+       ! OCPI and BCPI (see Model_SetSpecies). Split here into hydrophobic
        ! and hydrophilic fractions
        !----------------------------------------------------------------------
        IF ( trcID == IDTBCPI ) THEN
@@ -1330,23 +1348,27 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Model_GetSpecies 
+! !IROUTINE: Model_SetSpecies 
 !
-! !DESCRIPTION: Subroutine Model\_GetSpecies returns 'model' species 
-! information from the HEMCO standalone input file. 
+! !DESCRIPTION: Subroutine Model\_SetSpecies defines information on the 
+! GEOS-Chem species. The names of these species will then be compared against 
+! the species names found in the HEMCO configuration file, and only matching
+! species will be used by HEMCO (with the properties defined here being copied
+! to the HEMCO state object).
+!\\
+!\\
+! Typically, the GEOS-Chem species defined here are nothing else than the
+! GEOS-Chem tracers. However, species may be manually added to that list (e.g. 
+! SESQ) or be specified entirely manually for specialty simulations.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Model_GetSpecies( Input_Opt,                          &
-                               nModelSpec,     ModelSpecNames,     &
-                               ModelSpecIDs,   ModelSpecMW,        &
-                               ModelSpecEmMW,  ModelSpecMolecRatio,&
-                               ModelSpecK0,    ModelSpecCR,        &
-                               ModelSpecPKA,   RC                   )
+  SUBROUTINE Model_SetSpecies( Input_Opt, nModelSpec, RC )
 !
 ! !USES:
 !
+    USE GIGC_State_Chm_Mod,    ONLY : Get_Indx
     USE GIGC_Input_Opt_Mod,    ONLY : OptInput
     USE HENRY_COEFFS,          ONLY : Get_Henry_Constant
 !
@@ -1357,14 +1379,6 @@ CONTAINS
 ! !OUPTUT PARAMETERS:
 !
     INTEGER,            INTENT(OUT) :: nModelSpec
-    CHARACTER(LEN= 31), POINTER     :: ModelSpecNames(:)
-    INTEGER,            POINTER     :: ModelSpecIDs  (:)
-    REAL(hp),           POINTER     :: ModelSpecMW   (:)
-    REAL(hp),           POINTER     :: ModelSpecEmMW (:)
-    REAL(hp),           POINTER     :: ModelSpecMolecRatio(:)
-    REAL(hp),           POINTER     :: ModelSpecK0   (:)
-    REAL(hp),           POINTER     :: ModelSpecCR   (:)
-    REAL(hp),           POINTER     :: ModelSpecPKA  (:)
     INTEGER,            INTENT(OUT) :: RC
 !
 ! !REVISION HISTORY:
@@ -1376,67 +1390,178 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER   :: N, ID_EMIT
-    REAL(dp)  :: K0, CR, pKa
+    INTEGER            :: N,  IDTLIMO, ID_EMIT
+    REAL(dp)           :: K0, CR,  pKa
+    CHARACTER(LEN= 31) :: ThisName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'Model_SetSpecies (hcoi_gc_main_mod.F90)'
 
     !=================================================================
-    ! Model_GetSpecies begins here
+    ! Model_SetSpecies begins here
     !=================================================================
 
-    ! # of model species
-    nModelSpec = Input_Opt%N_TRACERS
+    !-----------------------------------------------------------------
+    ! For most simulations (e.g. full-chem simulation, most of the
+    ! specialty sims), just use the GEOS-Chem species definitions.
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. &
+         Input_Opt%ITS_A_RnPbBe_SIM         ) THEN
 
-    ! Allocate
-    ALLOCATE(ModelSpecNames     (nModelSpec))
-    ALLOCATE(ModelSpecIDs       (nModelSpec))
-    ALLOCATE(ModelSpecMW        (nModelSpec))
-    ALLOCATE(ModelSpecEmMW      (nModelSpec))
-    ALLOCATE(ModelSpecMolecRatio(nModelSpec))
-    ALLOCATE(ModelSpecK0        (nModelSpec))
-    ALLOCATE(ModelSpecCR        (nModelSpec))
-    ALLOCATE(ModelSpecPKA       (nModelSpec))
-
-    ! Assign variables
-    DO N = 1, nModelSpec
-
-       ! Get species names
-       ! ==> Treat BCPI as BC and OCPI as OC. Will be split into
-       !     hydrophobic and hydrophilic fraction lateron!
-       IF ( TRIM(Input_Opt%TRACER_NAME(N)) == 'BCPI' ) THEN
-          ModelSpecNames(N) = 'BC' 
-       ELSEIF ( TRIM(Input_Opt%TRACER_NAME(N)) == 'OCPI' ) THEN
-          ModelSpecNames(N) = 'OC' 
-       ELSE 
-          ModelSpecNames(N) = Input_Opt%TRACER_NAME(N)
+       ! # of model species
+       nModelSpec = Input_Opt%N_TRACERS
+   
+       ! Check for SESQ: SESQ is not transported due to its short lifetime,
+       ! but emissions are still calculated (in MEGAN). SESQ is only used
+       ! in the SOA simulation, i.e. if LIMO is defined. Thus, add one more
+       ! species here if LIMO is a model species and calculate SESQ emissions
+       ! along with LIMO!
+       IDTLIMO = Get_Indx('LIMO', Input_Opt%ID_TRACER, Input_Opt%TRACER_NAME )
+       IF ( IDTLIMO > 0 ) THEN
+          nModelSpec = nModelSpec + 1
        ENDIF
-       
-       ! Species ID
-       ModelSpecIDs(N)   = Input_Opt%ID_TRACER(N)
-
-       ! Molecular weights
-       ModelSpecMW(N)    = Input_Opt%Tracer_MW_G(N)
-       ModelSpecEmMW(N)  = Input_Opt%Tracer_MW_G(N)
-
-       ! Emitted molecules per molecule of species
-       ID_EMIT = Input_Opt%ID_EMITTED(N)
-       IF ( ID_EMIT <= 0 ) THEN
+  
+       ! Allocate model species variables
+       CALL ModelSpec_Allocate ( nModelSpec, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+       ! Assign variables
+       DO N = 1, Input_Opt%N_TRACERS 
+   
+          ! Get species names
+          ! ==> Treat BCPI as BC and OCPI as OC. Will be split into
+          !     hydrophobic and hydrophilic fraction lateron!
+          IF ( TRIM(Input_Opt%TRACER_NAME(N)) == 'BCPI' ) THEN
+             ModelSpecNames(N) = 'BC' 
+          ELSEIF ( TRIM(Input_Opt%TRACER_NAME(N)) == 'OCPI' ) THEN
+             ModelSpecNames(N) = 'OC' 
+          ELSE 
+             ModelSpecNames(N) = Input_Opt%TRACER_NAME(N)
+          ENDIF
+          
+          ! Species ID
+          ModelSpecIDs(N)   = Input_Opt%ID_TRACER(N)
+   
+          ! Molecular weights
+          ModelSpecMW(N)    = Input_Opt%Tracer_MW_G(N)
+          ModelSpecEmMW(N)  = Input_Opt%Tracer_MW_G(N)
+   
+          ! Emitted molecules per molecule of species
+          ID_EMIT = Input_Opt%ID_EMITTED(N)
+          IF ( ID_EMIT <= 0 ) THEN
+             ModelSpecMolecRatio(N) = 1.0_hp
+          ELSE
+             ModelSpecMolecRatio(N) = Input_Opt%TRACER_COEFF(N,ID_EMIT)
+          ENDIF
+   
+          ! Henry coefficients
+          CALL GET_HENRY_CONSTANT ( TRIM(ModelSpecNames(N)), K0, CR, pKa, RC )
+          ModelSpecK0(N)  = K0
+          ModelSpecCR(N)  = CR
+          ModelSpecPKA(N) = PKA
+       ENDDO      
+   
+       ! Eventually add SESQ
+       IF ( IDTLIMO > 0 ) THEN
+          N                      = nModelSpec
+          ModelSpecIDs(N)        = -1
+          ModelSpecNames(N)      = 'SESQ'
+          ModelSpecEmMW(N)       = 150.0_hp
+          ModelSpecMW(N)         = 150.0_hp
           ModelSpecMolecRatio(N) = 1.0_hp
-       ELSE
-          ModelSpecMolecRatio(N) = Input_Opt%TRACER_COEFF(N,ID_EMIT)
+          ModelSpecK0(N)         = 0.0_hp
+          ModelSpecCR(N)         = 0.0_hp
+          ModelSpecPKA(N)        = 0.0_hp
        ENDIF
 
-       ! Henry coefficients
-       CALL GET_HENRY_CONSTANT ( TRIM(ModelSpecNames(N)), K0, CR, pKa, RC )
-       ModelSpecK0(N)  = K0
-       ModelSpecCR(N)  = CR
-       ModelSpecPKA(N) = PKA
+    !-----------------------------------------------------------------
+    ! CO2 specialty simulation 
+    !-----------------------------------------------------------------
+    ELSEIF ( Input_Opt%ITS_A_CO2_SIM ) THEN
 
-    ENDDO      
+       !--------------------------------------------------------------
+       ! For the CO2 specialty simulation, define here all tagged 
+       ! tracer. This will let HEMCO calculate emissions for each
+       ! tagged tracer individually. The emissions will be passed
+       ! to the CO2 arrays in co2_mod.F 
+       !--------------------------------------------------------------
+
+       ! There are up to 10 tracers
+       nModelSpec = 10 
+   
+       ! Allocate model species variables
+       CALL ModelSpec_Allocate ( nModelSpec, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+       ! Henry constants are the same for all tracers
+       CALL GET_HENRY_CONSTANT ( 'CO2', K0, CR, pKa, RC )
+
+       ! Assign variables
+       DO N = 1, nModelSpec
+   
+          ! Define species names. These are the names that must also be 
+          ! used in the HEMCO configuration file!
+          SELECT CASE ( N )
+
+             CASE ( 1  ) 
+                ThisName = 'CO2ff'
+             CASE ( 2  ) 
+                ThisName = 'CO2oc'
+             CASE ( 3  ) 
+                ThisName = 'CO2bal'
+             CASE ( 4  ) 
+                ThisName = 'CO2bb'
+             CASE ( 5  ) 
+                ThisName = 'CO2bf'
+             CASE ( 6  ) 
+                ThisName = 'CO2nte'
+             CASE ( 7  ) 
+                ThisName = 'CO2se'
+             CASE ( 8  ) 
+                ThisName = 'CO2av'
+             CASE ( 9  ) 
+                ThisName = 'CO2ch'
+             CASE ( 10 ) 
+                ThisName = 'CO2corr'
+
+             CASE DEFAULT
+                MSG = 'Only 10 species defined for CO2 simulation!'
+                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+                RETURN
+
+          END SELECT
+
+          ! Species name 
+          ModelSpecNames(N)      = ThisName 
+          
+          ! Species ID. Tracer 1 is total CO2, thus add one to get 
+          ! emission tracer ID.
+          ModelSpecIDs(N)        = N + 1
+   
+          ! Molecular weights and molecule ratio
+          ModelSpecMW(N)         = Input_Opt%Tracer_MW_G(N)
+          ModelSpecEmMW(N)       = Input_Opt%Tracer_MW_G(N)
+          ModelSpecMolecRatio(N) = 1.0_hp
+   
+          ! Henry coefficients
+          ModelSpecK0(N)         = K0
+          ModelSpecCR(N)         = CR
+          ModelSpecPKA(N)        = PKA
+
+       ENDDO
+
+    !-----------------------------------------------------------------
+    ! DEFAULT (RETURN W/ ERROR) 
+    !-----------------------------------------------------------------
+    ELSE
+       MSG = 'Invalid simulation type - cannot define model species' 
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
-    END SUBROUTINE Model_GetSpecies 
+    END SUBROUTINE Model_SetSpecies 
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1524,20 +1649,21 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_nnMatch 
+! !IROUTINE: Get_nHcoSpc 
 !
-! !DESCRIPTION: Subroutine Get\_nnMatch returns the number of HEMCO species
-! that are also used in GEOS-Chem.
+! !DESCRIPTION: Subroutine Get\_nHcoSpc returns the number of species that
+! shall be used by HEMCO. This number depends on the definitions of the HEMCO
+! configuration file (i.e. how many species are defined in there) and the 
+! GEOS-Chem species definitions.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_nnMatch( Input_Opt, nnMatch, RC ) 
+  SUBROUTINE Get_nHcoSpc( Input_Opt, nHcoSpec, RC ) 
 !
 ! !USES:
 !
     USE HCO_CharTools_Mod,  ONLY : HCO_CharMatch
-    USE GIGC_State_Chm_Mod, ONLY : Get_Indx
     USE HCO_Config_MOD,     ONLY : Config_GetnSpecies
     USE HCO_Config_MOD,     ONLY : Config_GetSpecNames
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1549,8 +1675,8 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(  OUT)  :: nnMatch    ! # of HEMCO species that
-                                                 ! are also GEOS-Chem species
+    INTEGER,        INTENT(  OUT)  :: nHcoSpec   ! # of species to be 
+                                                 ! used by HEMCO 
 !
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller   - Initial Version
@@ -1561,64 +1687,47 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER            :: AS, IDX
-    CHARACTER(LEN=255) :: LOC
+    INTEGER            :: nConfigSpec, nModelSpec, AS
+    CHARACTER(LEN=255) :: LOC = 'Get_nHcoSpc (hcoi_gc_main_mod.F90)'
+    CHARACTER(LEN=255) :: MSG
 
     !=================================================================
-    ! Get_nnMatch begins here
+    ! Get_nHcoSpc begins here
     !=================================================================
-
-    ! For error handling
-    LOC = 'Get_nnMatch (hcoi_gc_main_mod.F90)'
 
     ! Extract number of HEMCO species and corresponding species names 
     ! as read from the HEMCO config. file.
-    nHcoSpec = Config_GetnSpecies ( )
-    CALL Config_GetSpecNames( HcoSpecNames, nHcoSpec, RC )
+    nConfigSpec = Config_GetnSpecies ( )
+    CALL Config_GetSpecNames( HcoSpecNames, nConfigSpec, RC )
     IF( RC /= HCO_SUCCESS) RETURN 
 
-    ! Extract GC species names and properties.
-    ! Rename OCPI to OC and BCPI to BC. Will be split into hydrophilic
-    ! and hydrophobic when passing emissions to Trac_Tend.
-    CALL Model_GetSpecies( Input_Opt,                           &
-                           nModelSpec,     ModelSpecNames,      &
-                           ModelSpecIDs,   ModelSpecMW,         &
-                           ModelSpecEmMW,  ModelSpecMolecRatio, &
-                           ModelSpecK0,    ModelSpecCR,         &
-                           ModelSpecPKA,   RC                    )
+    ! Extract GC species names and properties. Those will be written
+    ! into the module arrays ModelSpec*.
+    CALL Model_SetSpecies( Input_Opt, nModelSpec, RC )
     IF ( RC /= HCO_SUCCESS) RETURN
 
-    ! See how many species are also used in GEOS-Chem
-    ALLOCATE(matchIDx(nHcoSpec),STAT=AS)
+    ! This returns the matching indeces of the HEMCO species (HcoSpecNames)
+    ! in ModelSpecNames. A value of -1 is returned if no matching species
+    ! is found.
+    ALLOCATE(matchIDx(nConfigSpec),STAT=AS)
     IF ( AS/=0 ) THEN 
        CALL HCO_ERROR ('Allocation error matchIDx', RC, THISLOC=LOC )
        RETURN
     ENDIF
     matchIDx(:) = -1
-    CALL HCO_CharMatch( HcoSpecNames,   nHcoSpec,      &
+    CALL HCO_CharMatch( HcoSpecNames,   nConfigSpec,   &
                         ModelSpecNames, nModelSpec,    &
-                        matchIDx,       nnMatch         )
-    IF ( nnMatch == 0 ) THEN
-       CALL HCO_ERROR ('No matching species!', RC, THISLOC=LOC )
+                        matchIDx,       nHcoSpec        )
+    IF ( nHcoSpec == 0 ) THEN
+       MSG = 'No matching species between HEMCO and the model!'
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
-
-!=============================================================================
-    ! KLUDGE for SESQ: SESQ is not transported due to its short lifetime,
-    ! but emissions are still calculated (in MEGAN). SESQ is only used
-    ! in the SOA simulation, i.e. if LIMO is defined. Thus, add one more
-    ! species here if LIMO is a model species and calculate SESQ emissions
-    ! along with LIMO!
-    IDX = Get_Indx('LIMO', ModelSpecIDs, ModelSpecNames)
-    IF ( IDX > 0 ) THEN
-       nnMatch = nnMatch + 1 
-    ENDIF
-!=============================================================================
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE Get_nnMatch 
+  END SUBROUTINE Get_nHcoSpc 
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1633,10 +1742,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Register_Species( am_I_Root, State_Chm, HcoState, RC )
+    SUBROUTINE Register_Species( am_I_Root, Input_Opt, State_Chm, HcoState, RC )
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
@@ -1646,6 +1756,7 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
+    TYPE(OptInput),     INTENT(IN   )  :: Input_Opt  ! Input Options object
     LOGICAL,            INTENT(IN   )  :: am_I_Root
     TYPE(ChmState),     INTENT(IN   )  :: State_Chm  ! Chem state
 !
@@ -1671,7 +1782,7 @@ CONTAINS
 
     ! Loop over all possible HEMCO species
     cnt = 0 
-    DO I = 1, nHcoSpec
+    DO I = 1, SIZE(MatchIDx)
 
        ! Skip if this HEMCO species is not used in GEOS-Chem
        IF ( MatchIDx(I) < 0 ) CYCLE
@@ -1680,58 +1791,59 @@ CONTAINS
        cnt = cnt + 1
 
        ! Set species name and GEOS-Chem tracer ID 
-       IDX = ModelSpecIDs(MatchIDx(I))
-       HcoState%Spc(cnt)%SpcName  = HcoSpecNames(I) 
-       HcoState%Spc(cnt)%ModID    = IDX
+       IDX                          = ModelSpecIDs(MatchIDx(I))
+       HcoState%Spc(cnt)%ModID      = IDX
+       HcoState%Spc(cnt)%SpcName    = HcoSpecNames(I) 
 
        ! Molecular weights of species & emitted species.
-       HcoState%Spc(cnt)%MW_g   = ModelSpecMW(IDX)
-       HcoState%Spc(cnt)%EmMW_g = ModelSpecEmMW(IDX)
+       HcoState%Spc(cnt)%MW_g       = ModelSpecMW(IDX)
+       HcoState%Spc(cnt)%EmMW_g     = ModelSpecEmMW(IDX)
 
        ! Emitted molecules per molecule of species.
        HcoState%Spc(cnt)%MolecRatio = ModelSpecMolecRatio(IDX)
 
        ! Set Henry coefficients
-       HcoState%Spc(cnt)%HenryK0  = ModelSpecK0(IDX)
-       HcoState%Spc(cnt)%HenryCR  = ModelSpecCR(IDX)
-       HcoState%Spc(cnt)%HenryPKA = ModelSpecPKA(IDX)
+       HcoState%Spc(cnt)%HenryK0    = ModelSpecK0(IDX)
+       HcoState%Spc(cnt)%HenryCR    = ModelSpecCR(IDX)
+       HcoState%Spc(cnt)%HenryPKA   = ModelSpecPKA(IDX)
 
+       !----------------------------------------------------------------------
        ! Set pointer to trac_tend
-       ! NOTE: As long as the HEMCO grid is equal to the GEOS-Chem
-       ! grid, the HEMCO emission arrays can directly point to the 
-       ! tracer tendency arrays (trac_tend) in the GEOS-Chem chemistry
-       ! state.
-       IF ( ( HcoState%NX == IIPAR ) .AND.      &
-            ( HcoState%NY == JJPAR ) .AND.      &
-            ( HcoState%NZ == LLPAR )      ) THEN 
-          HcoState%Spc(cnt)%Emis%Val => State_Chm%Trac_Tend(:,:,:,IDX)
+       !
+       ! As long as the HEMCO grid is equal to the GEOS-Chem grid, the 
+       ! HEMCO emission arrays can directly point to the tracer tendency 
+       ! arrays (trac_tend) in the GEOS-Chem chemistry state. The same 
+       ! applies to the deposition array.
+       ! 
+       ! SESQ emissions are not transported and hence don't have a Trac_Tend 
+       ! array. Point them to the BIOG_SESQ array of CARBON_MOD instead.
+       ! 
+       ! For the CO2 simulation, don't link the HEMCO emissions to Trac_Tend
+       ! because PBL mixing is not applied. Instead, we will add emissions to
+       ! the surface layer in co2_mod.F. To enable PBL mixing for the CO2
+       ! simulation, just remove the logical switch below as well as the
+       ! corresponding code in co2_mod.F.
+       !----------------------------------------------------------------------
+       IF ( .NOT. Input_Opt%ITS_A_CO2_SIM ) THEN
 
-          ! Also check for drydep array
-          HcoState%Spc(cnt)%Depv%Val => State_Chm%DepSav(:,:,IDX)
-       ENDIF
+          ! Only if HEMCO and GEOS-Chem are on the same grid...
+          IF ( ( HcoState%NX == IIPAR ) .AND.      &
+               ( HcoState%NY == JJPAR ) .AND.      &
+               ( HcoState%NZ == LLPAR )      ) THEN 
+   
+             IF ( TRIM(HcoState%Spc(cnt)%SpcName) == 'SESQ' ) THEN
+                HcoState%Spc(cnt)%Emis%Val => BIOG_SESQ 
+                HcoState%Spc(cnt)%Depv%Val => NULL()
+             ELSE
+                HcoState%Spc(cnt)%Emis%Val => State_Chm%Trac_Tend(:,:,:,IDX)
+                HcoState%Spc(cnt)%Depv%Val => State_Chm%DepSav(:,:,IDX)
+             ENDIF
 
-       ! Logfile I/O
+          ENDIF ! Same grid
+       ENDIF 
+
+       ! Write to logfile
        CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
-
-!=============================================================================
-       ! KLUDGE for SESQ
-       IF ( TRIM(HcoState%Spc(cnt)%SpcName) == 'LIMO' ) THEN 
-
-          cnt = cnt + 1
-          HcoState%Spc(cnt)%ModID      =  -1
-          HcoState%Spc(cnt)%SpcName    =  'SESQ'
-          HcoState%Spc(cnt)%Emis%Val   => BIOG_SESQ 
-          HcoState%Spc(cnt)%MW_g       =  150.0d0 
-          HcoState%Spc(cnt)%EmMW_g     =  150.0d0
-          HcoState%Spc(cnt)%MolecRatio =  1.0d0
-          HcoState%Spc(cnt)%HenryK0    =  0.0d0
-          HcoState%Spc(cnt)%HenryCR    =  0.0d0
-          HcoState%Spc(cnt)%HenryPKA   =  0.0d0
-
-          ! Logfile I/O
-          CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
-       ENDIF
-!=============================================================================
 
     ENDDO !I
     CALL HCO_MSG(SEP1='-')
@@ -1774,6 +1886,80 @@ CONTAINS
     HcoStatePtr => HcoState
 
     END SUBROUTINE GetHcoState
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ModelSpec_Allocate 
+!
+! !DESCRIPTION: Subroutine ModelSpec\_Allocate allocates the model species
+! arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
+    SUBROUTINE ModelSpec_Allocate ( N, RC )
+!
+! !INPUT/OUTPUT ARGUMENTS:
+!
+    INTEGER, INTENT(IN   ) :: N     ! Array size
+    INTEGER, INTENT(INOUT) :: RC    ! Return code 
+!
+! !REVISION HISTORY:
+!  01 Aug 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER            :: AS
+    CHARACTER(LEN=255) :: LOC = 'ModelSpec_Allocate (hcoi_gc_main_mod.F90)'
 
+    !=================================================================
+    ! ModelSpec_Allocate begins here
+    !=================================================================
+
+    ALLOCATE(ModelSpecNames     (N), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'Allocation error: ModelSpecNames', RC, THISLOC=LOC )
+    ENDIF
+
+    ALLOCATE(ModelSpecIDs       (N), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'Allocation error: ModelSpecIDs', RC, THISLOC=LOC )
+    ENDIF
+
+    ALLOCATE(ModelSpecMW        (N), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'Allocation error: ModelSpecMW', RC, THISLOC=LOC )
+    ENDIF
+
+    ALLOCATE(ModelSpecEmMW      (N), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'Allocation error: ModelSpecEmMW', RC, THISLOC=LOC )
+    ENDIF
+
+    ALLOCATE(ModelSpecMolecRatio(N), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'Allocation error: ModelSpecMolecRatio', RC, THISLOC=LOC )
+    ENDIF
+
+    ALLOCATE(ModelSpecK0        (N), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'Allocation error: ModelSpecK0', RC, THISLOC=LOC )
+    ENDIF
+
+    ALLOCATE(ModelSpecCR        (N), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'Allocation error: ModelSpecCR', RC, THISLOC=LOC )
+    ENDIF
+
+    ALLOCATE(ModelSpecPKA       (N), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'Allocation error: ModelSpecPKA', RC, THISLOC=LOC )
+    ENDIF
+
+    END SUBROUTINE ModelSpec_Allocate
+!EOC
 END MODULE HCOI_GC_MAIN_MOD
 #endif

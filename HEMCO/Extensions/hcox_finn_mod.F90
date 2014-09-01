@@ -622,12 +622,15 @@ CONTAINS
        ! For model species NO, the emission factors are taken from FINN  
        ! species NOx.  For model species MTPA, the emission factors are 
        ! taken from FINN species APINE (BPINE and CARENE will be lumped 
-       ! into it as well) 
+       ! into it as well).
+       ! Also reduce 'CO2bb' to 'CO2'.
        SELECT CASE ( TRIM(SpcName) )
           CASE ( 'NO' )
             SpcName = 'NOx'
           CASE ('MTPA' )
             SpcName = 'APINE'
+          CASE ('CO2bb' )
+            SpcName = 'CO2'
        END SELECT
 
        ! For lumped species, we have to repeat the lookup multiple times,

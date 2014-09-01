@@ -3020,8 +3020,8 @@ CONTAINS
        MolecRatio = -999.0_hp
     ENDIF
 
-    CALL FileData_FileRead ( am_I_Root, Lct%Dct%Dta, MW_g, &
-                             EmMW_g,    MolecRatio,  IsHome, RC )
+    CALL FileData_FileRead ( am_I_Root,  Lct%Dct%Dta,      MW_g,   EmMW_g, &
+                             MolecRatio, HcoState%TS_EMIS, IsHome, RC       )
     IF ( RC /= HCO_SUCCESS ) RETURN
     Lct%Dct%DtaHome = IsHome
 

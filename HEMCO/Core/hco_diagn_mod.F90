@@ -106,7 +106,7 @@ MODULE HCO_Diagn_Mod
      LOGICAL                     :: DtaIsPtr       ! Data is just a pointer?
      INTEGER                     :: LevIdx         ! Level index to be used 
      CHARACTER(LEN= 31)          :: OutUnit        ! Output unit 
-     LOGICAL                     :: PerArea        ! Is output unit per area?
+     INTEGER                     :: AreaFlag       ! 2=per area, 3=per volume, 0 otherwise 
      REAL(hp)                    :: AreaScal       ! Scale factor for area
      REAL(hp)                    :: MassScal       ! Scale factor for mass
      INTEGER                     :: TimeAvg        ! Scale flag for time unit 
@@ -343,7 +343,7 @@ CONTAINS
 
     ! Scalars
     CHARACTER(LEN=255)       :: LOC, MSG
-    INTEGER                  :: ThiscID
+    INTEGER                  :: Flag, ThiscID
     REAL(hp)                 :: Scal
     LOGICAL                  :: ForceMean, FOUND
 
@@ -486,11 +486,12 @@ CONTAINS
           ! HCO_UNIT_MassCal returns the mass scale factor from OutUnit to
           ! HEMCO unit, hence need to invert this value!
           !----------------------------------------------------------------
-          Scal = HCO_UNIT_GetMassScal(                          &
-                    unt         = OutUnit,                      &
-                    MW_IN       = HcoState%Spc(HcoID)%MW_g,     &
-                    MW_OUT      = HcoState%Spc(HcoID)%EmMW_g,   &
-                    MOLEC_RATIO = HcoState%Spc(HcoID)%MolecRatio )
+          CALL HCO_UNIT_GetMassScal(                              &
+                    unt         = OutUnit,                        &
+                    MW_IN       = HcoState%Spc(HcoID)%MW_g,       &
+                    MW_OUT      = HcoState%Spc(HcoID)%EmMW_g,     &
+                    MOLEC_RATIO = HcoState%Spc(HcoID)%MolecRatio, &
+                    Scal        = Scal                              )
           IF ( Scal <= 0.0_hp ) THEN
              MSG = 'Cannot find mass scale factor for unit '//TRIM(OutUnit)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -503,14 +504,10 @@ CONTAINS
           ! HEMCO area unit (m2) to the desired output unit. 
           ! HCO_UNIT_AreaScal returns the area scale factor from OutUnit to
           ! HEMCO unit, hence need to invert this value!
-          ! Returns a negative scale factor if no valid area unit is found 
-          ! in OutUnit. In this case, set PerArea to False so that the final 
-          ! diagnostics will be multiplied by the surface grid box area!
           !----------------------------------------------------------------
-          Scal =  HCO_UNIT_GetAreaScal( OutUnit )
-          IF ( Scal < 0.0_hp ) THEN
-             ThisDiagn%PerArea  = .FALSE.
-          ELSE
+          CALL HCO_UNIT_GetAreaScal( OutUnit, Scal, Flag )
+          ThisDiagn%AreaFlag = Flag 
+          IF ( Flag > 0 ) THEN
              ThisDiagn%AreaScal = 1.0_hp / Scal
           ENDIF
       
@@ -524,7 +521,7 @@ CONTAINS
       
           ! HCO_UNIT_GetTimeScal returns 1.0 for units of per second, 1/3600
           ! for per hour, etc. Returns -999.0 if no time unit could be found.
-          Scal = HCO_UNIT_GetTimeScal( OutUnit, 1, 2001 )
+          CALL HCO_UNIT_GetTimeScal( OutUnit, 1, 2001, Scal, Flag )
           Scal = 1.0_dp / Scal
         
           ! No time unit found: don't enable any switch
@@ -1393,7 +1390,7 @@ CONTAINS
     ! Default values for unit conversion factors 
     DgnCont%MassScal  = 1.0_dp
     DgnCont%AreaScal  = 1.0_dp
-    DgnCont%PerArea   = .TRUE.
+    DgnCont%AreaFlag  = 2
     DgnCont%Counter   = 0
     DgnCont%TimeAvg   = -1   
     DgnCont%AvgFlag   = -1
@@ -1624,7 +1621,7 @@ CONTAINS
        DO I = 1, HcoState%NX
 
           ! Multiply by area if output unit is not per area 
-          IF ( .NOT. DgnCont%PerArea ) THEN
+          IF ( DgnCont%AreaFlag == 0 ) THEN
              DgnCont%Arr3D%Val(I,J,:) = DgnCont%Arr3D%Val(I,J,:)  & 
                                       * HcoState%Grid%AREA_M2(I,J) 
           ENDIF
@@ -1641,7 +1638,7 @@ CONTAINS
        DO I = 1, HcoState%NX
 
           ! Multiply by area if output unit is not per area 
-          IF ( .NOT. DgnCont%PerArea ) THEN
+          IF ( DgnCont%AreaFlag == 0 ) THEN
              DgnCont%Arr2D%Val(I,J) = DgnCont%Arr2D%Val(I,J) &
                                     * HcoState%Grid%AREA_M2(I,J) 
           ENDIF

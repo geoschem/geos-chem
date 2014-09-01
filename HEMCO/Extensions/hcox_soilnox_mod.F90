@@ -376,11 +376,11 @@ CONTAINS
        ! in the configuration file. 
        !---------------------------------------------------------------
 
-       ! DEP_RESERVOIR. HEMCO converts this to kgNO/m2. Convert here
+       ! DEP_RESERVOIR. HEMCO converts this to kgNO/m2/s. Convert here
        ! back to ngN/m2.
        CALL EmisList_GetDataArr ( aIR, 'SOILNOX_DEPRES', TmpArr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       DEP_RESERVOIR_HSN(:,:) = TmpArr(:,:) * kgNO_to_ngN
+       DEP_RESERVOIR_HSN(:,:) = TmpArr(:,:) * kgNO_to_ngN * HcoState%TS_EMIS
        TmpArr => NULL()
 
        ! GWET_PREV [unitless]

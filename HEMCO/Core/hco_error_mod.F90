@@ -67,6 +67,9 @@ MODULE HCO_Error_Mod
   ! Error success/failure definitions
   INTEGER, PARAMETER, PUBLIC  :: HCO_SUCCESS = 0
   INTEGER, PARAMETER, PUBLIC  :: HCO_FAIL    = -999
+
+  ! Tiny value for math operations
+  REAL(hp), PARAMETER, PUBLIC :: HCO_TINY = 1.0e-32_hp
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization

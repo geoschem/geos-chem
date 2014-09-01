@@ -92,7 +92,7 @@
       !-----------------------------------------------------------------
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
-      USE HCOI_GC_MAIN_MOD      ! For interfacing with HEMCO emissions
+      USE EMISSIONS_MOD         ! For interfacing with HEMCO emissions
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -616,12 +616,12 @@
       ! calculation. Also sets some logical switches in Input_Opt
       ! (e.g. LSOILNOX).
       IF ( LEMIS ) THEN
-         CALL HCOI_GC_INIT( am_I_Root, Input_Opt,
-     &                      State_Chm, State_Met, RC )
+         CALL EMISSIONS_INIT( am_I_Root, Input_Opt,
+     &                        State_Met, State_Chm, RC )
 
          ! Stop the run if the HEMCO init sequence dies w/ an error
          IF ( RC /= GIGC_SUCCESS ) THEN
-            CALL ERROR_STOP( 'Error in HCOI_GC_INIT!', 'main.F' )
+            CALL ERROR_STOP( 'Error in EMISSIONS_INIT!', 'main.F' )
          ENDIF
       ENDIF
 
@@ -1137,12 +1137,12 @@
 
                ! HEMCO driver.  NOTE, we will have to make sure that
                ! the specialty simulations work with HEMCO (bmy, 6/25/14)
-               CALL HCOI_GC_RUN( am_I_Root, Input_Opt, 
-     &                           State_Met, State_Chm, RC )
+               CALL EMISSIONS_RUN( am_I_Root, Input_Opt, 
+     &                             State_Met, State_Chm, RC )
 
                ! Stop the run if the HEMCO run sequence dies w/ an error
                IF ( RC /= GIGC_SUCCESS ) THEN
-                  CALL ERROR_STOP( 'Error in HCOI_GC_RUN!', 'main.F' )
+                  CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
                ENDIF
             ENDIF
 
@@ -1256,8 +1256,11 @@
             IF ( LEMIS ) THEN
 !               CALL DO_EMISSIONS
 !     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-               CALL HCOI_GC_RUN ( am_I_Root, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
+               CALL EMISSIONS_RUN ( am_I_Root, Input_Opt, 
+     &                              State_Met, State_Chm, RC )
+               IF ( RC /= GIGC_SUCCESS ) THEN
+                  CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
+               ENDIF
             ENDIF
 
             IF ( ITS_A_FULLCHEM_SIM ) THEN

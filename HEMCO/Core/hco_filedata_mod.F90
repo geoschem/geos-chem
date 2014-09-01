@@ -462,8 +462,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FileData_FileRead( am_I_Root, FileDta,    MW_g,      &
-                                EmMW_g,    MolecRatio, IsFirst, RC ) 
+  SUBROUTINE FileData_FileRead( am_I_Root, FileDta,    MW_g,    &
+                                EmMW_g,    MolecRatio, TS_EMIS, &
+                                IsFirst,   RC                    ) 
 !
 ! !USES:
 !
@@ -478,6 +479,7 @@ CONTAINS
     REAL(hp),        INTENT(IN   ) :: MW_g       ! input data MW 
     REAL(hp),        INTENT(IN   ) :: EmMW_g     ! emission data MW
     REAL(hp),        INTENT(IN   ) :: MolecRatio ! molec. ratio
+    REAL(sp),        INTENT(IN   ) :: TS_EMIS    ! emission time step [s] 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -497,6 +499,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: I, N, AS
+    INTEGER            :: AreaFlag, TimeFlag, Check
     CHARACTER(LEN=255) :: MSG, LOC
     REAL(sp)           :: FileVals(24)
     REAL(sp), POINTER  :: FileArr(:,:,:,:) => NULL()
@@ -525,7 +528,7 @@ CONTAINS
 
     ! Verbose
     IF ( Verb ) THEN
-       WRITE(MSG, *) 'Read from config file:', TRIM(FileDta%ncFile)
+       WRITE(MSG, *) 'Read from config file: ', TRIM(FileDta%ncFile)
        CALL HCO_MSG(MSG)
     ENDIF
 
@@ -542,7 +545,7 @@ CONTAINS
     ENDIF
 
     ! Convert data to HEMCO units 
-    ALLOCATE( FileArr(1,1,1,24), STAT=AS )
+    ALLOCATE( FileArr(1,1,1,N), STAT=AS )
     IF ( AS /= 0 ) THEN
        MSG = 'Cannot allocate FileArr'
        CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
@@ -556,13 +559,32 @@ CONTAINS
                           MOLEC_RATIO = MolecRatio,             &
                           YYYY        = -999,                   &
                           MM          = -999,                   &
-                          IsPerArea   = IsPerArea,              &
+                          AreaFlag    = AreaFlag,               &
+                          TimeFlag    = TimeFlag,               &
                           RC          = RC                       )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! The IsPerArea flag should be on!
-    IF ( .NOT. IsPerArea ) THEN
-       MSG = 'Units are not per area: ' // TRIM(FileDta%OrigUnit)
+    ! Data must be ... 
+    ! ... concentration ...
+    IF ( AreaFlag == 3 .AND. TimeFlag == 0 ) THEN
+       FileDta%IsConc = .TRUE.
+
+    ELSEIF ( AreaFlag == 3 .AND. TimeFlag == 1 ) THEN
+       FileDta%IsConc = .TRUE.
+       FileArr = FileArr * TS_EMIS
+       MSG = 'Data converted from kg/m3/s to kg/m3: ' // &
+             TRIM(FileDta%ncFile) // ': ' // TRIM(FileDta%OrigUnit)
+       CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+
+    ! ... emissions or unitless ...
+    ELSEIF ( (AreaFlag == -1 .AND. TimeFlag == -1) .OR. &
+             (AreaFlag ==  2 .AND. TimeFlag ==  1)       ) THEN
+       FileDta%IsConc = .FALSE.
+
+    ! ... invalid otherwise:
+    ELSE
+       MSG = 'Unit must be unitless, emission or concentration ' // &
+             TRIM(FileDta%OrigUnit)
        CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF

@@ -161,7 +161,7 @@ CONTAINS
       
     ! Calculate ship NO emissions and write them into the ShipNO
     ! array [kg/m2/s]. 
-    CALL HCO_CalcEmis( am_I_Root, HcoState, RC )
+    CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Reset settings to standard 

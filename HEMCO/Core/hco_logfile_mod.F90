@@ -268,6 +268,8 @@ CONTAINS
          ENDIF
          write(MSG,*) '   -->OrigUnit        : ',TRIM(Dct%Dta%OrigUnit)
          CALL HCO_MSG(MSG)
+         write(MSG,*) '   -->Concentration?    ', Dct%Dta%IsConc
+         CALL HCO_MSG(MSG)
          write(MSG,*) '   -->Coverage        : ', Dct%Dta%Cover
          CALL HCO_MSG(MSG)
 

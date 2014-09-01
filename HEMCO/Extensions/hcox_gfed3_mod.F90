@@ -377,6 +377,7 @@ CONTAINS
     INTEGER            :: tmpNr, AS, IU_FILE, IOS
     INTEGER            :: N, M, NDUM
     CHARACTER(LEN=31)  :: tmpName
+    CHARACTER(LEN=31)  :: SpcName
     LOGICAL            :: Matched
 
     !=================================================================
@@ -473,19 +474,30 @@ CONTAINS
     ! Find matching GFED3 index for each specified species
     DO N = 1, nSpc
        IF ( HcoIDs(N) < 0 ) CYCLE
+
+       ! SpcName is the GFED3 species name to be searched. Adjust
+       ! if necessary.
+       SpcName = SpcNames(N)
+       SELECT CASE ( TRIM(SpcName) )
+          CASE ( 'CO2bb' )
+             SpcName = 'CO2'
+       END SELECT
+
+       ! Search for matching GFED3 species by name
        Matched = .FALSE.
-       DO M = 1, N_SPEC 
-          IF ( TRIM(SpcNames(N)) == TRIM(GFED3_SPEC_NAME(M)) ) THEN
+       DO M = 1, N_SPEC
+
+          IF ( TRIM(SpcName) == TRIM(GFED3_SPEC_NAME(M)) ) THEN
              GfedIDs(N) = M
              Matched    = .TRUE.
 
-             MSG = '   - Use GFED3 species ' // TRIM(SpcNames(N))
+             MSG = '   - Use GFED3 species ' // TRIM(GFED3_SPEC_NAME(M))
              CALL HCO_MSG( MSG )
              EXIT ! go to next species
           ENDIF
        ENDDO
        IF ( .NOT. Matched ) THEN
-          MSG = 'Species '// TRIM(SpcNames(N)) //' not found in GFED3'
+          MSG = 'Species '// TRIM(SpcName) //' not found in GFED3'
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ENDIF

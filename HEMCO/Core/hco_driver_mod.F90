@@ -128,7 +128,13 @@ CONTAINS
     ! 3. Calculate the emissions for current time stamp based on the
     ! content of EmisList. Emissions become written into HcoState. 
     !-----------------------------------------------------------------
-    CALL HCO_CalcEmis( am_I_Root, HcoState, RC ) 
+
+    ! Use emission data only
+    CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Use concentration data only
+    CALL HCO_CalcEmis( am_I_Root, HcoState, .TRUE., RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave w/ success

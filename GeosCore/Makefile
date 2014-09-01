@@ -426,7 +426,7 @@ cleanup.o                   : cleanup.F                                      \
                               diag51b_mod.o           diag53_mod.o           \
                               diag_oh_mod.o           diag_pl_mod.o          \
                               drydep_mod.o            dust_mod.o             \
-                              hcoi_gc_main_mod.o      global_bc_mod.o        \
+                              emissions_mod.o         global_bc_mod.o        \
                               global_ch4_mod.o        global_hno3_mod.o      \
                               global_no3_mod.o        global_nox_mod.o       \
                               global_oc_mod.o                                \
@@ -549,6 +549,9 @@ dust_mod.o                  : dust_mod.F                                     \
                               comode_mod.o            diag_mod.o             \
                               drydep_mod.o                                   \
                               tomas_mod.o             tracerid_mod.o
+
+emissions_mod.o             : emissions_mod.F90                              \
+                              co2_mod.o               hcoi_gc_main_mod.o
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
                               chemgrid_mod.o          dao_mod.o              \
@@ -724,7 +727,7 @@ main.o                      : main.F                                         \
                               tpcore_bc_mod.o         uvalbedo_mod.o         \
                               tracerid_mod.o          wetscav_mod.o          \
                               ucx_mod.o               vdiff_mod.o            \
-                              hcoi_gc_main_mod.o      cleanup.o
+                              emissions_mod.o         cleanup.o
 
 mapping_mod.o               : mapping_mod.F90                              
 
@@ -748,11 +751,6 @@ merra_cn_mod.o              : merra_cn_mod.F                                 \
                               diag_mod.o
 
 merra_i6_mod.o              : merra_i6_mod.F
-
-messy_ncregrid_base.o       : messy_ncregrid_base.F90                        \
-                              messy_ncregrid_mpi.o    hco_error_mod.o
-
-messy_ncregrid_mpi.o        : messy_ncregrid_mpi.F90
 
 modis_lai_mod.o             : modis_lai_mod.F90       mapping_mod.o
 

@@ -253,10 +253,11 @@ CONTAINS
     REAL(sp), ALLOCATABLE         :: LatEdgeI(:)
     REAL(sp)                      :: LonEdgeO(HcoState%NX+1) 
     REAL(sp)                      :: LatEdgeO(HcoState%NY+1)
-    LOGICAL                       :: verb, IsPerArea
+    LOGICAL                       :: verb
     REAL(dp)                      :: PI_180
     REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
     INTEGER                       :: UnitTolerance
+    INTEGER                       :: AreaFlag, TimeFlag 
 
     ! Use MESSy regridding routines?
     LOGICAL                       :: UseMESSy
@@ -463,14 +464,15 @@ CONTAINS
          HCO_IsIndexData(Lct%Dct%Dta%OrigUnit)       ) THEN
 
        ! Check if file unit is also unitless. This will return 0 for
-       ! unitless, 1 for HEMCO unit, 2 otherwise.
+       ! unitless, 1 for HEMCO emission unit, 2 for HEMCO conc. unit, 
+       ! -1 otherwise.
        Flag = HCO_UNIT_SCALCHECK( thisUnit )
       
        ! Return with error if: (1) thisUnit is recognized as HEMCO unit and 
        ! unit tolerance is set to zero; (2) thisUnit is neither unitless nor
        ! a HEMCO unit and unit tolerance is set to zero or one.
        ! The unit tolerance is defined in the configuration file.
-       IF ( Flag > UnitTolerance ) THEN
+       IF ( Flag /= 0 .AND. UnitTolerance == 0 ) THEN
           MSG = 'Illegal unit: ' // TRIM(thisUnit) // '. File: ' // &
                 TRIM(Lct%Dct%Dta%ncFile)
           CALL HCO_ERROR( MSG, RC )
@@ -478,7 +480,7 @@ CONTAINS
        ENDIF
 
        ! Prompt a warning if thisUnit is not recognized as unitless.
-       IF ( Flag > 0 ) THEN 
+       IF ( Flag /= 0 ) THEN 
           MSG = 'Data does not appear to be unitless: ' // &
                 TRIM(thisUnit) // '. File: '            // &
                 TRIM(Lct%Dct%Dta%ncFile)
@@ -516,6 +518,8 @@ CONTAINS
           MolecRatio = -999.0_hp
        ENDIF
 
+       ! Now convert to HEMCO units. This only attempts to convert
+       ! mass, area/volume and time to HEMCO standards (kg, m2/m3, s).
        CALL HCO_UNIT_CHANGE(                &
             Array         = ncArr,          &
             Units         = thisUnit,       &
@@ -524,17 +528,51 @@ CONTAINS
             MOLEC_RATIO   = MolecRatio,     & 
             YYYY          = ncYr,           &
             MM            = ncMt,           &
-            IsPerArea     = IsPerArea,      &
+            AreaFlag      = AreaFlag,       &
+            TimeFlag      = TimeFlag,       &
             RC            = RC               )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'Cannot convert units for ' // TRIM(Lct%Dct%cName)
           CALL HCO_ERROR( MSG , RC )
           RETURN 
        ENDIF
+
+       ! Check for valid unit combinations, i.e. emissions must be kg/m2/s, 
+       ! concentrations kg/m3. Eventually multiply by emission time step
+       ! or divide by area to obtain those values.
+      
+       ! Concentration data
+       IF ( AreaFlag == 3 .AND. TimeFlag == 0 ) THEN
+          Lct%Dct%Dta%IsConc = .TRUE.
   
-       ! Data that is not per area (e.g. kg/yr) needs to be converted
+       ! If concentration data is per second (kg/m3/s), multiply by emission 
+       ! time step to get concentration (kg/m3).
+       ELSEIF ( AreaFlag == 3 .AND. TimeFlag == 1 ) THEN
+          Lct%Dct%Dta%IsConc = .TRUE.
+
+          ncArr = ncArr * HcoState%TS_EMIS
+          MSG = 'Data converted from kg/m3/s to kg/m3: ' // &
+                TRIM(Lct%Dct%cName) // ': ' // TRIM(thisUnit)
+          CALL HCO_WARNING( MSG, RC )
+ 
+       ! Unitless data
+       ELSEIF ( AreaFlag == -1 .AND. TimeFlag == -1 ) THEN
+          ! nothing do to
+
+       ! Emission data
+       ELSEIF ( AreaFlag == 2 .AND. TimeFlag == 1 ) THEN
+          ! nothing do to
+ 
+       ! Emission data that is not per time (kg/m2): convert to kg/m2/s
+       ELSEIF ( AreaFlag == 2 .AND. TimeFlag == 0 ) THEN
+          ncArr = ncArr / HcoState%TS_EMIS
+          MSG = 'Data converted from kg/m2 to kg/m2/s: ' // &
+                TRIM(Lct%Dct%cName) // ': ' // TRIM(thisUnit)
+          CALL HCO_WARNING( MSG, RC )
+
+       ! Emission data that is not per area (i.e. kg/s) needs to be converted
        ! to per area manually.
-       IF ( .NOT. IsPerArea ) THEN
+       ELSEIF ( AreaFlag == 0 .AND. TimeFlag == 1 ) THEN
 
           ! Get lat edges: those are read from file if possible, otherwise
           ! calculated from the lat midpoints.
@@ -550,12 +588,19 @@ CONTAINS
           ! Now normalize data by area calculated from lat edges.
           CALL NORMALIZE_AREA( HcoState, ncArr,              nLon, &
                                LatEdge,  Lct%Dct%Dta%ncFile, RC     )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! All other combinations are invalid
+       ELSE
+          MSG = 'Unit must be unitless, emission or concentration: ' // &
+                TRIM(Lct%Dct%cName) // ': ' // TRIM(thisUnit)
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
        ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Get grid edges (if not yet done so)
+    ! Get grid edges 
     !-----------------------------------------------------------------
 
     ! Get longitude edges and make sure they are steadily increasing.

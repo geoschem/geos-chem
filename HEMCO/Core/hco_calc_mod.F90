@@ -104,7 +104,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CalcEmis( am_I_Root, HcoState, RC )
+  SUBROUTINE HCO_CalcEmis( am_I_Root, HcoState, UseConc, RC )
 !
 ! !USES:
 !
@@ -116,6 +116,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   )  :: am_I_Root  ! Root CPU?
+    LOGICAL,         INTENT(IN   )  :: UseConc    ! Use concentration fields? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -148,6 +149,9 @@ CONTAINS
                                        HcoState%NY, &
                                        HcoState%NZ   )
     REAL(hp), TARGET        :: TmpFlx( HcoState%NX, &
+                                       HcoState%NY, &
+                                       HcoState%NZ   )
+    INTEGER                 :: Mask  ( HcoState%NX, &
                                        HcoState%NY, &
                                        HcoState%NZ   )
 
@@ -289,6 +293,14 @@ CONTAINS
           CYCLE
        ENDIF
 
+       ! Check if this container holds data in the desired unit format,
+       ! i.e. concentration data if UseConc is enabled, emission data
+       ! otherwise.
+       IF ( UseConc /= Dct%Dta%IsConc ) THEN
+          CALL EmisList_NextCont ( Lct, FLAG )
+          CYCLE
+       ENDIF 
+
        ! Update working variables
        ThisSpc = Dct%HcoID
        ThisCat = Dct%Cat
@@ -395,7 +407,7 @@ CONTAINS
           ELSE
 
              ! For concentrations:
-             IF ( Dct%Dta%IsConc ) THEN
+             IF ( UseConc ) THEN
                 CALL HCO_ArrAssert( HcoState%Spc(ThisSpc)%Conc, &
                                     nI, nJ, nL, RC             )
                 IF ( RC /= HCO_SUCCESS ) RETURN
@@ -428,10 +440,15 @@ CONTAINS
        ! don't extent through the entire troposphere) and boxes with 
        ! defined but zero emissions.
        !--------------------------------------------------------------------
-       TmpFlx(:,:,:) = -999.0_hp
-       CALL GET_CURRENT_EMISSIONS( am_I_Root, HcoState, & 
-                                   Dct,    nI, nJ, nL, TmpFlx, RC )
+       TmpFlx(:,:,:) = 0.0_hp !-999.9_hp
+       CALL GET_CURRENT_EMISSIONS( am_I_Root,  HcoState, Dct,    & 
+                                   nI, nJ, nL, TmpFlx,   Mask, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
+
+       IF ( ANY(TmpFlx < 0.0_hp) ) THEN
+          WRITE(*,*) 'Negative emissions found for: ', TRIM(Dct%cName)
+          WRITE(*,*) 'Total emissions: ', SUM(TmpFlx)
+       ENDIF
 
        ! ------------------------------------------------------------
        ! Collect all emissions of the same category (and species) in 
@@ -448,7 +465,8 @@ CONTAINS
        IF ( ThisHir == PrevHir ) THEN
 
           ! Ignore negative emissions!
-          WHERE ( TmpFlx >= 0.0_hp )
+          WHERE ( Mask == 1 )
+!          WHERE ( TmpFlx >= 0.0_hp )
              CatFlx = CatFlx + TmpFlx
           END WHERE
 
@@ -464,7 +482,8 @@ CONTAINS
        ELSEIF ( ThisHir > PrevHir ) THEN
         
           ! Ignore negative emissions!
-          WHERE ( TmpFlx >= 0.0_hp )
+          !WHERE ( TmpFlx >= 0.0_hp )
+          WHERE ( Mask == 1 )
              CatFlx = TmpFlx
           END WHERE
 
@@ -565,8 +584,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Current_Emissions( am_I_Root, HcoState, BaseDct, &
-                                    nI, nJ, nL, OUTARR_3D, RC )
+  SUBROUTINE Get_Current_Emissions( am_I_Root, HcoState,   BaseDct,   &
+                                    nI, nJ, nL, OUTARR_3D, MASK,    RC )
 !
 ! !USES:
 !
@@ -588,6 +607,7 @@ CONTAINS
     TYPE(DataCont),  POINTER       :: BaseDct             ! base emission 
                                                           !  container
     REAL(hp),        INTENT(INOUT) :: OUTARR_3D(nI,nJ,nL) ! output array
+    INTEGER,         INTENT(INOUT) :: MASK     (nI,nJ,nL) ! mask array 
     INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REMARKS: 
@@ -614,7 +634,6 @@ CONTAINS
     TYPE(DataCont), POINTER :: ScalDct => NULL()
 
     ! Scalars
-    REAL(hp)                :: MASK(nI,nJ,1)
     REAL(hp)                :: TMPVAL
     INTEGER                 :: tIdxVec(nI), tIDx
     INTEGER                 :: IDX
@@ -652,7 +671,7 @@ CONTAINS
     ENDIF
 
     ! Initialize mask
-    MASK(:,:,:) = 0.0_hp
+    MASK(:,:,:) = 0
     DO_MASK     = .FALSE.
 
     ! Verbose 
@@ -692,8 +711,8 @@ CONTAINS
     DO J = 1, nJ
     DO I = 1, nI
  
-       ! # of levels w/ defined emissions 
-       IJFILLED = 0
+!       ! # of levels w/ defined emissions 
+!       IJFILLED = 0
 
        ! Time slice index for this lon
        tIdx = tIdxVec(I)
@@ -710,29 +729,29 @@ CONTAINS
              TMPVAL = BaseDct%Dta%V3(tIDx)%Val(I,J,L)
           ENDIF
           
-          ! Advance to next grid box if base value is negative, 
-          ! indicating that this inventory is not defined over 
-          ! this grid box.
-          IF ( TMPVAL < 0.0_hp ) CYCLE 
+!          ! Advance to next grid box if base value is negative, 
+!          ! indicating that this inventory is not defined over 
+!          ! this grid box.
+!          IF ( TMPVAL < 0.0_hp ) CYCLE 
 
           ! Pass base value to output array
           OUTARR_3D(I,J,L) = TMPVAL
 
-          ! Update IJFILLED
-          IJFILLED = IJFILLED + 1
+!          ! Update IJFILLED
+!          IJFILLED = IJFILLED + 1
 
        ENDDO !L
 
-       ! If emissions are defined for at least one level, make 
-       ! sure that emissions in all other levels are set to zero. 
-       ! This is to make sure that higher hierarchy emissions entirely
-       ! overwrite lower hierarchy emissions (emissions are only over-
-       ! written where updated emissions are zero or higher).
-       IF ( IJFILLED > 0 ) THEN
-          WHERE ( OUTARR_3D(I,J,:) < 0.0_hp ) 
-             OUTARR_3D(I,J,:) = 0.0_hp
-          ENDWHERE
-       ENDIF
+!       ! If emissions are defined for at least one level, make 
+!       ! sure that emissions in all other levels are set to zero. 
+!       ! This is to make sure that higher hierarchy emissions entirely
+!       ! overwrite lower hierarchy emissions (emissions are only over-
+!       ! written where updated emissions are zero or higher).
+!       IF ( IJFILLED > 0 ) THEN
+!          WHERE ( OUTARR_3D(I,J,:) < 0.0_hp ) 
+!             OUTARR_3D(I,J,:) = 0.0_hp
+!          ENDWHERE
+!       ENDIF
 
     ENDDO !I
     ENDDO !J
@@ -823,7 +842,7 @@ CONTAINS
              ENDIF
 
              ! Add to mask and set mask flag to TRUE
-             MASK(I,J,1) = MASK(I,J,1) + TMPVAL
+             IF ( TMPVAL > HCO_TINY ) MASK(I,J,:) = 1
              DO_MASK     = .TRUE.
 
              ! testing only
@@ -931,20 +950,27 @@ CONTAINS
     IF ( DO_MASK ) THEN
 
        ! Restrict mask values to a maximum of 1. 
-       WHERE ( MASK > 1.0_hp ) MASK = 1.0_hp
+!       WHERE ( MASK > 1.0_hp ) 
+!          MASK = 1.0_hp
+!       ELSEWHERE
+!          MASK = 0.0_hp
+!       ENDWHERE
 
        ! Apply mask. Make sure that emissions become negative
        ! outside the mask region. This is to make sure that these 
        ! grid boxes will be ignored when calculating the final  
        ! emissions. 
        DO L = 1, BaseLL
-          WHERE ( MASK(:,:,1) <= 0.0_hp )
-             OUTARR_3D(:,:,L) = -999.0_hp
-          ELSEWHERE
-             OUTARR_3D(:,:,L) = OUTARR_3D(:,:,L) * MASK(:,:,1) 
+          WHERE ( MASK(:,:,L) /= 1 )
+!             OUTARR_3D(:,:,L) = -999.0_hp
+             OUTARR_3D(:,:,L) = 0.0_hp
+!          ELSEWHERE
+!             OUTARR_3D(:,:,L) = OUTARR_3D(:,:,L) * MASK(:,:,1) 
           ENDWHERE
        ENDDO
 
+    ELSE
+       MASK(:,:,:) = 1
     ENDIF
 
     ! Cleanup and leave w/ success
@@ -972,7 +998,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Get_Current_Emissions_B( am_I_Root, HcoState, BaseDct, &
-                                      nI, nJ, nL, OUTARR_3D, RC )
+                                      nI, nJ, nL, OUTARR_3D, MASK, RC )
 !
 ! !USES:
 !
@@ -993,6 +1019,7 @@ CONTAINS
     TYPE(DataCont),  POINTER       :: BaseDct             ! base emission 
                                                           !  container
     REAL(hp),        INTENT(INOUT) :: OUTARR_3D(nI,nJ,nL) ! output array
+    INTEGER,         INTENT(INOUT) :: MASK     (nI,nJ,nL) ! mask array 
     INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY:
@@ -1009,7 +1036,6 @@ CONTAINS
 !
     ! Pointers
     TYPE(DataCont), POINTER :: ScalDct => NULL()
-    REAL(hp)                :: MASK
     REAL(hp)                :: TMPVAL
     INTEGER                 :: tIdx, IDX
     INTEGER                 :: I, J, L, N
@@ -1050,18 +1076,20 @@ CONTAINS
        CALL HCO_MSG(MSG)
     ENDIF
 
+    ! Initialize mask values
+    MASK(:,:,:) = 0
+
     ! Loop over all grid boxes
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, MASK, DO_MASK, BaseLL, tIdx, IJFILLED, L        ) & 
+!$OMP PRIVATE( I, J, BaseLL, tIdx, DO_MASK, IJFILLED, L              ) & 
 !$OMP PRIVATE( TMPVAL, N, IDX, ScalDct, ScalLL, tmpLL                ) & 
 !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, nJ
     DO I = 1, nI
 
-       ! Initialize mask
-       MASK    = 0.0_hp
-       DO_MASK = .FALSE.
+       ! By default, assume MASK is not used. 
+       DO_MASK   = .FALSE.
 
        ! -------------------------------------------------------------
        ! Set base emissions
@@ -1104,7 +1132,7 @@ CONTAINS
           ! Advance to next grid box if base value is negative, 
           ! indicating that this inventory is not defined over 
           ! this grid box.
-          IF ( TMPVAL < 0.0_hp ) CYCLE 
+!          IF ( TMPVAL < 0.0_hp ) CYCLE 
 
           ! Pass base value to output array
           OUTARR_3D(I,J,L) = TMPVAL
@@ -1119,11 +1147,11 @@ CONTAINS
        ! This is to make sure that higher hierarchy emissions entirely
        ! overwrite lower hierarchy emissions (emissions are only over-
        ! written where updated emissions are zero or higher).
-       IF ( IJFILLED > 0 ) THEN
-          WHERE ( OUTARR_3D(I,J,:) < 0.0_hp ) 
-             OUTARR_3D(I,J,:) = 0.0_hp
-          ENDWHERE
-       ENDIF
+!       IF ( IJFILLED > 0 ) THEN
+!          WHERE ( OUTARR_3D(I,J,:) < 0.0_hp ) 
+!             OUTARR_3D(I,J,:) = 0.0_hp
+!          ENDWHERE
+!       ENDIF
 
        ! -------------------------------------------------------------
        ! Apply scale factors
@@ -1199,7 +1227,8 @@ CONTAINS
              ENDIF
 
              ! Add to mask and set mask flag to TRUE
-             MASK        = MASK + TMPVAL
+             IF ( TMPVAL > HCO_TINY ) MASK(I,J,:) = 1
+!             MASK        = MASK + TMPVAL
              DO_MASK     = .TRUE.
 
              ! testing only
@@ -1277,19 +1306,22 @@ CONTAINS
        ! Masks 
        ! ----------------------------
        IF ( DO_MASK ) THEN
-   
-          ! Restrict mask values to a maximum of 1. 
-          IF ( MASK > 1.0_hp ) MASK = 1.0_hp
+!   
+!          ! Restrict mask values to a maximum of 1. 
+!          IF ( MASK > 1.0_hp ) MASK = 1.0_hp
    
           ! Apply the mask. Make sure that emissions become negative
           ! outside the mask region. This is to make sure that these 
           ! grid boxes will be ignored when calculating the final  
           ! emissions. 
-          IF ( MASK <= 0.0_hp ) THEN
-             OUTARR_3D(I,J,:) = -999.0_hp
-          ELSE
-             OUTARR_3D(I,J,:) = OUTARR_3D(I,J,:) * MASK
-          ENDIF
+          WHERE ( MASK(I,J,:) /= 1 )
+!             OUTARR_3D(I,J,:) = -999.0_hp
+             OUTARR_3D(I,J,:) = 0.0_hp
+!          ELSE
+!             OUTARR_3D(I,J,:) = OUTARR_3D(I,J,:) * MASK
+          ENDWHERE
+       ELSE
+          MASK(I,J,:) = 1
        ENDIF
        
     ENDDO !I

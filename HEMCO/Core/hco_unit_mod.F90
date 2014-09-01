@@ -73,12 +73,18 @@ MODULE HCO_Unit_Mod
   ! Accepted units for data on HEMCO standard units. No unit conversion 
   ! is applied to data with any of these units.
   ! All characters in this list should be lower case!
-  INTEGER,           PARAMETER :: NHC = 4
-  CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m2/s',    &
-                                               'kgc/m2/s',   &
-                                               'kg(c)/m2/s', &
-                                               'kg/m3'        /)
 
+  ! Emission units
+  INTEGER,           PARAMETER :: NHE = 3
+  CHARACTER(LEN=15), PARAMETER :: HE(NHE) = (/ 'kg/m2/s',   &
+                                               'kgc/m2/s',  &
+                                               'kg(c)/m2/s'  /)
+
+  ! Concentration units
+  INTEGER,           PARAMETER :: NHC = 1
+  CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m3' /)
+
+  ! Interfaces:
   ! Interfaces:
   INTERFACE HCO_UNIT_CHANGE
      MODULE PROCEDURE HCO_UNIT_CHANGE_SP
@@ -101,8 +107,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Unit_Change_SP( ARRAY,       UNITS, MW_IN, MW_OUT, &
-                                 MOLEC_RATIO, YYYY,  MM,    IsPerArea, RC )
+  SUBROUTINE HCO_Unit_Change_SP( ARRAY,       UNITS, MW_IN, MW_OUT,   &
+                                 MOLEC_RATIO, YYYY,  MM,    AreaFlag, &
+                                 TimeFlag,    RC                       )
 !
 ! !INPUT PARAMETERS:
 !
@@ -113,12 +120,10 @@ CONTAINS
     INTEGER,          INTENT(IN )     :: YYYY           ! Data year 
     INTEGER,          INTENT(IN )     :: MM             ! Data month
 !
-! !OUTPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(INOUT)   :: IsPerArea      ! Is per area? 
-!
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    INTEGER,          INTENT(INOUT)   :: AreaFlag       ! 2 if per area, 3 if per volume, 0 otherwise
+    INTEGER,          INTENT(INOUT)   :: TimeFlag       ! 1 if per time, 0 otherwise
     REAL(sp),         POINTER         :: ARRAY(:,:,:,:) ! Data
     INTEGER,          INTENT(INOUT)   :: RC
 !
@@ -136,8 +141,8 @@ CONTAINS
     ! HCO_UNIT_CHANGE_SP begins here
     !=================================================================
 
-    CALL HCO_Unit_Factor( UNITS, MW_IN, MW_OUT,    MOLEC_RATIO, &
-                          YYYY,  MM,    IsPerArea, Factor,     RC )
+    CALL HCO_Unit_Factor( UNITS, MW_IN,    MW_OUT,   MOLEC_RATIO, YYYY, &
+                          MM,    AreaFlag, TimeFlag, Factor,      RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Apply correction factor
@@ -162,8 +167,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Unit_Change_DP( ARRAY,       UNITS, MW_IN, MW_OUT, &
-                                 MOLEC_RATIO, YYYY,  MM,    IsPerArea, RC )
+  SUBROUTINE HCO_Unit_Change_DP( ARRAY,       UNITS, MW_IN, MW_OUT,   &
+                                 MOLEC_RATIO, YYYY,  MM,    AreaFlag, &
+                                 TimeFlag,    RC                       )
 !
 ! !INPUT PARAMETERS:
 !
@@ -174,12 +180,10 @@ CONTAINS
     INTEGER,          INTENT(IN )     :: YYYY           ! Data year 
     INTEGER,          INTENT(IN )     :: MM             ! Data month
 !
-! !OUTPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(INOUT)   :: IsPerArea      ! Is per area? 
-!
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    INTEGER,          INTENT(INOUT)   :: AreaFlag       ! 2 if per area, 3 if per volume, 0 otherwise
+    INTEGER,          INTENT(INOUT)   :: TimeFlag       ! 1 if per time, 0 otherwise
     REAL(dp),         POINTER         :: ARRAY(:,:,:,:) ! Data
     INTEGER,          INTENT(INOUT)   :: RC
 !
@@ -197,8 +201,8 @@ CONTAINS
     ! HCO_UNIT_CHANGE_DP begins here
     !=================================================================
 
-    CALL HCO_Unit_Factor( UNITS, MW_IN, MW_OUT,    MOLEC_RATIO, &
-                          YYYY,  MM,    IsPerArea, Factor,     RC )
+    CALL HCO_Unit_Factor( UNITS, MW_IN,    MW_OUT,   MOLEC_RATIO, YYYY, &
+                          MM,    AreaFlag, TimeFlag, Factor,      RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Apply correction factor
@@ -277,8 +281,8 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Unit_Factor( UNITS, MW_IN, MW_OUT,    MOLEC_RATIO, &
-                              YYYY,  MM,    IsPerArea, Factor,      RC )
+  SUBROUTINE HCO_Unit_Factor( UNITS, MW_IN,    MW_OUT,   MOLEC_RATIO, YYYY, &
+                              MM,    AreaFlag, TimeFlag, Factor,      RC     )
 !
 ! !USES:
 !
@@ -295,7 +299,8 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(  OUT)   :: IsPerArea      ! Is per area? 
+    INTEGER,          INTENT(  OUT)   :: AreaFlag 
+    INTEGER,          INTENT(  OUT)   :: TimeFlag 
     REAL(hp),         INTENT(  OUT)   :: Factor         ! Conversion factor
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -314,6 +319,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
+    INTEGER                       :: FLAG, CHECK
     REAL(hp)                      :: Coef1
     CHARACTER(LEN=31 )            :: unt
     CHARACTER(LEN=255)            :: MSG
@@ -327,7 +333,6 @@ CONTAINS
     RC        = 0  
     Factor    = 1.0_hp
     Coef1     = 1.0_hp
-    IsPerArea = .TRUE.
 
     ! Get input data unit and strip all blanks. 
     unt = TRIM(UNITS)
@@ -338,12 +343,32 @@ CONTAINS
     ! quantity that shall not be converted - or if it's already in 
     ! units of kg/m2/s.
     !=================================================================
-    IF ( HCO_UNIT_SCALCHECK(unt) < 2 ) RETURN
+    CHECK = HCO_UNIT_SCALCHECK(unt)
+ 
+    ! unitless data
+    IF ( CHECK == 0 ) THEN
+       AreaFlag = -1
+       TimeFlag = -1
+       RETURN    
+
+    ! emissions
+    ELSEIF ( CHECK == 1 ) THEN
+       AreaFlag = 2
+       TimeFlag = 1
+       RETURN
+
+    ! concentrations
+    ELSEIF ( CHECK == 2 ) THEN
+       AreaFlag = 3
+       TimeFlag = 0
+       RETURN
+
+    ENDIF
 
     !=================================================================
     ! Get scale factor for mass. Force to be a valid factor.
     !=================================================================
-    Coef1 = HCO_UNIT_GetMassScal ( unt, MW_IN, MW_OUT, MOLEC_RATIO )
+    CALL HCO_UNIT_GetMassScal ( unt, MW_IN, MW_OUT, MOLEC_RATIO, Coef1 )
     IF ( Coef1 < 0.0_hp ) THEN
        MSG = 'cannot do unit conversion. Mass unit: ' // TRIM(unt)
        CALL HCO_ERROR ( MSG, RC, ThisLoc = LOC )
@@ -355,19 +380,17 @@ CONTAINS
     ! Get scale factor for time. Skip if invalid factor. This makes
     ! sure that concentrations (e.g. kg/m3) are supported! 
     !=================================================================
-    Coef1 = HCO_UNIT_GetTimeScal ( unt, MM, YYYY ) 
-    IF ( Coef1 > 0.0_hp ) Factor = Factor * Coef1
+    CALL HCO_UNIT_GetTimeScal ( unt, MM, YYYY, Coef1, Flag ) 
+    IF ( Flag > 0 ) Factor   = Factor * Coef1
+    TimeFlag = Flag
 
     !=================================================================
     ! Get scale factor for area/volume. If no area conversion
     ! factor can be determined, set PerArea flag to False. 
     !=================================================================
-    Coef1 = HCO_UNIT_GetAreaScal ( unt ) 
-    IF ( Coef1 < 0.0_hp ) THEN
-       IsPerArea = .FALSE.
-    ELSE
-       Factor = Factor * Coef1
-    ENDIF
+    CALL HCO_UNIT_GetAreaScal ( unt, Coef1, Flag ) 
+    IF ( Flag > 0 ) Factor = Factor * Coef1
+    AreaFlag = Flag
 
     ! Leave
     RC = HCO_SUCCESS
@@ -388,8 +411,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_UNIT_GetMassScal( unt, MW_IN, MW_OUT, MOLEC_RATIO ) &
-           RESULT ( Scal ) 
+  SUBROUTINE HCO_UNIT_GetMassScal( unt, MW_IN, MW_OUT, MOLEC_RATIO, Scal )
 !
 ! !USES:
 !
@@ -402,9 +424,9 @@ CONTAINS
     REAL(hp),         INTENT(IN)   :: MW_OUT         ! MW g/mol
     REAL(hp),         INTENT(IN)   :: MOLEC_RATIO    ! molec. ratio
 !
-! !RETURN VALUE:
+! !OUTPUT PARAMETER:
 !
-    REAL(hp)                       :: Scal           ! Scale factor
+    REAL(hp),         INTENT(OUT)  :: Scal           ! Scale factor
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
@@ -505,7 +527,7 @@ CONTAINS
        Scal = 1e-3_hp * MOLEC_RATIO * MW_OUT / MW_IN 
     ENDIF
 
-  END FUNCTION HCO_Unit_GetMassScal
+  END SUBROUTINE HCO_Unit_GetMassScal
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -521,7 +543,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_Unit_GetTimeScal( unt, MM, YYYY ) RESULT ( Scal ) 
+  SUBROUTINE HCO_Unit_GetTimeScal( unt, MM, YYYY, Scal, Flag ) 
 !
 ! !USES:
 !
@@ -529,13 +551,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN) :: unt   ! This unit
-    INTEGER,          INTENT(IN) :: MM    ! Current month
-    INTEGER,          INTENT(IN) :: YYYY  ! Current year 
+    CHARACTER(LEN=*), INTENT(IN)  :: unt   ! This unit
+    INTEGER,          INTENT(IN)  :: MM    ! Current month
+    INTEGER,          INTENT(IN)  :: YYYY  ! Current year 
 !
-! !RETURN VALUE:
+! !OUTPUT PARAMETERS:
 !
-    REAL(hp)                     :: Scal  ! Scale factor
+    REAL(hp),         INTENT(OUT) :: Scal  ! Scale factor
+    INTEGER,          INTENT(OUT) :: Flag  ! 1=per time, 0 otherwise 
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
@@ -556,6 +579,7 @@ CONTAINS
 
     ! Init
     Scal = -999.0_hp
+    Flag = 0
 
     ! Is this a leap year?
     Year  = MAX(YYYY,1)
@@ -566,20 +590,24 @@ CONTAINS
     IF ( IsInWord(unt,'/s')   .OR. IsInWord(unt,'s-1') .OR. &
          IsInWord(unt,'s^-1') .OR. IsInWord(unt,'sec') ) THEN
        Scal = 1.0_hp
+       Flag = 1
 
     ! hour
     ELSEIF ( IsInWord(unt,'hr') .OR. IsInWord(unt,'hour') ) THEN
        Scal = 1.0_hp / 3600_hp
+       Flag = 1
 
     ! day
     ELSEIF ( IsInWord(unt,'/d')   .OR. IsInWord(unt,'d-1') .OR. &
              IsInWord(unt,'d^-1') .OR. IsInWord(unt,'day') ) THEN
        Scal = 1.0_hp / SEC_IN_DAY
+       Flag = 1
 
       ! month
     ELSEIF ( IsInWord(unt,'mt') .OR. IsInWord(unt,'month') ) THEN
        Month = MAX(MM,1)
        Scal  = 1.0_hp / MONTHDAYS(Month) / SEC_IN_DAY 
+       Flag  = 1
       
     ! year
     ELSEIF ( IsInWord(unt,'/y')   .OR. IsInWord(unt,'y-1') .OR. &
@@ -591,9 +619,10 @@ CONTAINS
        ELSE
           Scal = 1.0_hp / SEC_IN_REGYEAR 
        ENDIF
+       Flag = 1
     ENDIF
     
-  END FUNCTION HCO_UNIT_GetTimeScal
+  END SUBROUTINE HCO_UNIT_GetTimeScal
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -609,7 +638,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCO_Unit_GetAreaScal( unt ) RESULT ( Scal ) 
+  SUBROUTINE HCO_Unit_GetAreaScal( unt, Scal, Flag ) 
 !
 ! !USES:
 !
@@ -617,11 +646,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN) :: unt   ! This unit
+    CHARACTER(LEN=*), INTENT(IN)  :: unt   ! This unit
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp)                     :: Scal  ! scale factor
+    REAL(hp),         INTENT(OUT) :: Scal  ! scale factor
+    INTEGER,          INTENT(OUT) :: Flag  ! 2=per area, 3= per volume, 0 otherwise 
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
@@ -635,21 +665,25 @@ CONTAINS
 
     ! Init
     Scal = -999.0_hp
+    Flag = 0
 
     ! cm2
     IF ( IsInWord(unt,'/cm2' ) .OR. IsInWord(unt,'cm-2' ) .OR. &
          IsInWord(unt,'/cm^2') .OR. IsInWord(unt,'cm^-2')       ) THEN
        Scal = 1.0_hp / 1e-4_hp
+       Flag = 2
 
     ! km2
     ELSEIF ( IsInWord(unt,'/km2' ) .OR. IsInWord(unt,'km-2' ) .OR. & 
              IsInWord(unt,'/km^2') .OR. IsInWord(unt,'km^-2')       ) THEN 
        Scal = 1e6_hp
+       Flag = 2
 
     ! m2
     ELSEIF ( IsInWord(unt,'/m2' ) .OR. IsInWord(unt,'m-2' ) .OR. & 
              IsInWord(unt,'/m^2') .OR. IsInWord(unt,'m^-2')       ) THEN 
        Scal = 1.0_hp
+       Flag = 2
 
     !=================================================================
     ! Convert volume to m3 
@@ -659,24 +693,28 @@ CONTAINS
     ELSEIF ( IsInWord(unt,'/cm3')  .OR. IsInWord(unt,'cm-3' ) .OR. &
              IsInWord(unt,'/cm^3') .OR. IsInWord(unt,'cm^-3')       ) THEN 
        Scal = 1e-6_hp
+       Flag = 3
 
     ! dm3
     ELSEIF ( IsInWord(unt,'/dm3')  .OR. IsInWord(unt,'dm-3' ) .OR. & 
              IsInWord(unt,'/dm^3') .OR. IsInWord(unt,'dm^-3')       ) THEN 
        Scal = 1e-3_hp
+       Flag = 3
 
     ! m3
     ELSEIF ( IsInWord(unt,'/m3')  .OR. IsInWord(unt,'m-3' ) .OR. & 
              IsInWord(unt,'/m^3') .OR. IsInWord(unt,'m^-3')       ) THEN 
        Scal = 1.0_hp
+       Flag = 3
 
     ! L
     ELSEIF ( IsInWord(unt,'/l') .OR. IsInWord(unt,'l-1') .OR. & 
              IsInWord(unt,'l^-1')                              ) THEN 
        Scal = 1e-3_hp
+       Flag = 3
     ENDIF
 
-  END FUNCTION HCO_Unit_GetAreaScal
+  END SUBROUTINE HCO_Unit_GetAreaScal
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -687,7 +725,8 @@ CONTAINS
 !
 ! !DESCRIPTION: Check if the provided unit is unitless. Returns
 ! 0 if Unit is unitless, 1 if it's not unitless but in correct
-! HEMCO units (i.e. kg/m2/s), 2 otherwise. 
+! HEMCO emission units (i.e. kg/m2/s), 2 if it's in HEMCO concentration
+! units (kg/m3), -1 otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -727,8 +766,8 @@ CONTAINS
     ! lower case
     CALL TRANLC( tmpU )
 
-    ! Error (default):
-    Flag = 2
+    ! No recognized unit (default):
+    Flag = -1
 
     ! Check for unitless factors
     DO I = 1, NUL
@@ -738,10 +777,18 @@ CONTAINS
        ENDIF
     ENDDO 
 
-    ! Check for HEMCO units
+    ! Check for HEMCO emissions units
+    DO I = 1, NHE
+       IF ( TRIM(tmpU) == TRIM(HE(I)) ) THEN
+          Flag = 1
+          RETURN
+       ENDIF
+    ENDDO 
+
+    ! Check for HEMCO concentration units
     DO I = 1, NHC
        IF ( TRIM(tmpU) == TRIM(HC(I)) ) THEN
-          Flag = 1
+          Flag = 2
           RETURN
        ENDIF
     ENDDO 

@@ -93,7 +93,7 @@
       
       ! HEMCO
 #if !defined(ESMF_) 
-      USE HCOI_GC_MAIN_MOD,        ONLY : HCOI_GC_Final
+      USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
 #endif
 
       IMPLICIT NONE
@@ -248,7 +248,7 @@
       ! Cleanup HEMCO 
 #if !defined(ESMF_) 
       IF ( Input_Opt%LEMIS ) THEN
-         CALL HCOI_GC_FINAL ( am_I_Root )
+         CALL EMISSIONS_FINAL ( am_I_Root )
       ENDIF
 #endif
 
