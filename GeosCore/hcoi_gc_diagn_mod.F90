@@ -286,6 +286,8 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use Rn-Pb-Be
+!  03 Sep 2014 - R. Yantosca - Don't define diagnostic container for Pb
+!  03 Sep 2014 - R. Yantosca - Change units from kg/m2/s to kg; also in diag3.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -336,39 +338,12 @@ CONTAINS
                           HcoID     = HcoID,             &
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
+                          OutUnit   = 'kg/s',            &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
                           cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
-
-       !-------------------------------------------
-       ! %%%%% Pb210 %%%%%
-       !-------------------------------------------
-
-       ! HEMCO species ID
-       HcoID = GetHemcoId( 'Pb', HcoState, LOC, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Create diagnostic container
-       DiagnName = 'AD01_Pb_SOURCE'
-       CALL Diagn_Create( am_I_Root,                   & 
-                          HcoState,                    &
-                          cName     = TRIM(DiagnName), &
-                          ExtNr     = ExtNr,           &
-                          Cat       = -1,              &
-                          Hier      = -1,              &
-                          HcoID     = HcoID,           &
-                          SpaceDim  = 3,               &
-                          LevIDx    = -1,              &
-                          OutUnit   = 'kg/m2/s',       &
-                          WriteFreq = 'Manual',        &
-                          AutoFill  = 1,               &
-                          cID       = N,               & 
-                          RC        = RC                ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
 
        !-------------------------------------------
        ! %%%%% Be7 %%%%%
@@ -389,7 +364,7 @@ CONTAINS
                           HcoID     = HcoID,             &
                           SpaceDim  = 3,                 &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
+                          OutUnit   = 'kg/s',            &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
                           cID       = N,                 & 
