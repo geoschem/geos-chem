@@ -499,12 +499,6 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! ERROR! Pb tracer is not found
-    IF ( IDTPb <= 0 ) THEN
-       CALL HCO_ERROR( 'Cannot find 7Be tracer in list of species!', RC )
-       RETURN
-    ENDIF
-
     ! ERROR! Be7 tracer is not found
     IF ( IDTBe7 <= 0 ) THEN
        CALL HCO_ERROR( 'Cannot find 7Be tracer in list of species!', RC )
