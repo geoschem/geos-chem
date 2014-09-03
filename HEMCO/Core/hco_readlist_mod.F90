@@ -328,6 +328,7 @@ CONTAINS
 ! !USES:
 !
     USE HCOIO_DataRead_Mod, ONLY : HCOIO_DataRead
+    USE HCOIO_DataRead_Mod, ONLY : HCOIO_ReadFromConfig
     USE HCO_FileData_Mod,   ONLY : FileData_ArrIsDefined
 !
 ! !INPUT PARAMETERS:
@@ -366,33 +367,40 @@ CONTAINS
     Lct => ReadList
     DO WHILE ( ASSOCIATED ( Lct ) ) 
 
-       ! Only read (and regrid) data if the ncRead flag is on. 
-       ! ==> ncRead will be set to False for (spatially uniform) data 
-       ! that is directly specified in the configuration file.
-       IF ( Lct%Dct%Dta%ncRead ) THEN
-          ! Check if data has already been read. Multiple data
-          ! containers can have the same file data object, and we
-          ! only need to read it once. For each file data object,
-          ! we assign a 'home container'. Reading will only be
-          ! performed on this container. The DtaHome flag is
-          ! initialized to -999. Hence, the first time we read data
-          ! for a given container, check if this data file object
-          ! has not yet been read, in which case we define this 
-          ! container as the home container (flag=1). Otherwise, set
-          ! flag to 0 (not home), but make sure that the DoShare flag
-          ! of the corresponding data file object is enabled.
-          IF ( Lct%Dct%DtaHome == -999 ) THEN
-             IF ( FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
-                Lct%Dct%DtaHome     = 0
-                Lct%Dct%Dta%DoShare = .TRUE.
-             ELSE
-                Lct%Dct%DtaHome = 1
-             ENDIF
+       ! Check if data has already been read. Multiple data
+       ! containers can have the same file data object, and we
+       ! only need to read it once. For each file data object,
+       ! we assign a 'home container'. Reading will only be
+       ! performed on this container. The DtaHome flag is
+       ! initialized to -999. Hence, the first time we read data
+       ! for a given container, check if this data file object
+       ! has not yet been read, in which case we define this 
+       ! container as the home container (flag=1). Otherwise, set
+       ! flag to 0 (not home), but make sure that the DoShare flag
+       ! of the corresponding data file object is enabled.
+       IF ( Lct%Dct%DtaHome == -999 ) THEN
+          IF ( FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
+             Lct%Dct%DtaHome     = 0
+             Lct%Dct%Dta%DoShare = .TRUE.
+          ELSE
+             Lct%Dct%DtaHome = 1
           ENDIF
-          IF ( Lct%Dct%DtaHome == 1 ) THEN
+       ENDIF
+
+       ! Read if this is the home container
+       IF ( Lct%Dct%DtaHome == 1 ) THEN
+
+          ! Read from configuration file if it's not a netCDF file
+          IF ( .NOT. Lct%Dct%Dta%NcRead ) THEN
+             CALL HCOIO_ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Read from netCDF file otherwise
+          ELSE
              CALL HCOIO_DATAREAD ( am_I_Root, HcoState, Lct, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
+
        ENDIF
 
        ! Point to next container

@@ -112,6 +112,7 @@ CONTAINS
     USE HCO_ARR_MOD,      ONLY : HCO_ArrAssert
     USE HCO_EMISLIST_MOD, ONLY : EmisList_NextCont
     USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -164,8 +165,9 @@ CONTAINS
     INTEGER             :: ExtNr            ! Extension Nr to be used 
     INTEGER             :: nI, nJ, nL 
     INTEGER             :: nnSpec, FLAG
+    INTEGER, SAVE       :: NegFlag = -1
 
-    LOGICAL             :: DoDiagn
+    LOGICAL             :: Found, DoDiagn
 
     ! For error handling & verbose mode
     LOGICAL             :: verb
@@ -173,9 +175,6 @@ CONTAINS
 
     ! testing / debugging
     integer :: ix,iy
-
-    ! testing only
-    integer :: modid
 
     !=================================================================
     ! HCO_CalcEmis begins here!
@@ -191,6 +190,14 @@ CONTAINS
 
     ! verb mode? 
     verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+
+    ! Read positive values settings from HEMCO configuration file. If not found, set
+    ! to 0 (return w/ error if negative values are found).
+    IF ( NegFlag < 0 ) THEN
+       CALL GetExtOpt ( 0, 'Negative values', OptValInt=NegFlag, Found=Found, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( .NOT. Found ) NegFlag = 0
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Initialize variables 
@@ -433,21 +440,35 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Define TmpFlx. This is the array containing the emissions 
-       ! for the current container. Set initial values to -999 and 
-       ! not to 0 in order to be able to distinguish between untouched 
-       ! grid boxes (e.g. for regional emissions or invetories that
-       ! don't extent through the entire troposphere) and boxes with 
-       ! defined but zero emissions.
+       ! Get current emissions and write into TmpFlx array. The array Mask
+       ! denotes all valid grid boxes for this inventory.
        !--------------------------------------------------------------------
-       TmpFlx(:,:,:) = 0.0_hp !-999.9_hp
+       TmpFlx(:,:,:) = 0.0_hp 
        CALL GET_CURRENT_EMISSIONS( am_I_Root,  HcoState, Dct,    & 
                                    nI, nJ, nL, TmpFlx,   Mask, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       IF ( ANY(TmpFlx < 0.0_hp) ) THEN
-          WRITE(*,*) 'Negative emissions found for: ', TRIM(Dct%cName)
-          WRITE(*,*) 'Total emissions: ', SUM(TmpFlx)
+       ! Check for negative values according to the corresponding setting
+       ! in the configuration file: 2 means allow negative values, 1 means
+       ! set to zero and prompt a warning, else return with error.
+       IF ( NegFlag /= 2 ) THEN
+
+          IF ( ANY(TmpFlx < 0.0_hp) ) THEN
+
+             ! Set to zero and prompt warning
+             IF ( NegFlag == 1 ) THEN
+                WHERE ( TmpFlx < 0.0_hp ) TmpFlx = 0.0_hp
+                MSG = 'Negative emissions set to zero: '// TRIM(Dct%cName)
+                CALL HCO_WARNING( MSG, RC )
+
+             ! Return with error
+             ELSE
+                MSG = 'Negative emissions in: '// TRIM(Dct%cName) // '. ' // &
+                'To allow negatives, edit settings in the configuration file.'
+                CALL HCO_ERROR( MSG, RC )
+                RETURN
+             ENDIF
+          ENDIF
        ENDIF
 
        ! ------------------------------------------------------------
@@ -464,9 +485,8 @@ CONTAINS
        ! is the same as previous hierarchy
        IF ( ThisHir == PrevHir ) THEN
 
-          ! Ignore negative emissions!
+          ! Only over masked area
           WHERE ( Mask == 1 )
-!          WHERE ( TmpFlx >= 0.0_hp )
              CatFlx = CatFlx + TmpFlx
           END WHERE
 
@@ -480,9 +500,8 @@ CONTAINS
        ! If hierarchy is larger than those of the previously used
        ! fields, overwrite CatFlx w/ new values. 
        ELSEIF ( ThisHir > PrevHir ) THEN
-        
-          ! Ignore negative emissions!
-          !WHERE ( TmpFlx >= 0.0_hp )
+       
+          ! Only over masked area
           WHERE ( Mask == 1 )
              CatFlx = TmpFlx
           END WHERE

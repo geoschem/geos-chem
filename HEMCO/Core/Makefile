@@ -97,6 +97,7 @@ hco_calc_mod.o         : hco_calc_mod.F90        \
                          hco_arr_mod.o           \
                          hco_datacont_mod.o      \
                          hco_diagn_mod.o         \
+                         hco_extlist_mod.o       \
                          hco_emislist_mod.o      \
                          hco_error_mod.o         \
                          hco_filedata_mod.o      \

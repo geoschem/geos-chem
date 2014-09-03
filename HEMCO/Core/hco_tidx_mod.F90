@@ -968,22 +968,21 @@ CONTAINS
 !
     INTEGER               :: I, I0, I1, N
     INTEGER               :: TimeVec(8)
-    CHARACTER(LEN=255)    :: SUBSTR(255), DATERNG(255), LOC
+    CHARACTER(LEN=255)    :: SUBSTR(255), DATERNG(255), MSG
+    CHARACTER(LEN=255)    :: LOC = 'HCO_ExtractTime (hco_tidx_mod.F90)'
 
     !=================================================================
     ! HCO_ExtractTime begins here!
     !=================================================================
-
-    ! Enter
-    LOC = 'HCO_ExtractTime (HCO_CONFIG_MOD.F90)'
 
     ! Init
     TimeVec(:) = -1
 
     ! Extract strings to be translated into integers 
     CALL STRSPLIT( CharStr, HCO_SEP(), SUBSTR, N )
-    IF ( N > 4 ) THEN
-       CALL HCO_ERROR( 'Too many substrings!', RC, THISLOC=LOC )
+    IF ( N /= 4 ) THEN
+       MSG = 'Time stamp must have 4 elements: ' // TRIM(CharStr)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF   
 
@@ -1023,8 +1022,8 @@ CONTAINS
              READ( DATERNG(1), * ) TimeVec(I0)
              TimeVec(I1) = TimeVec(I0)
           ELSE
-             CALL HCO_ERROR( 'Cannot extract time stamp!', &
-                             RC, THISLOC=LOC )
+             MSG = 'Cannot extract time stamp: ' // TRIM(CharStr)
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
        ENDIF

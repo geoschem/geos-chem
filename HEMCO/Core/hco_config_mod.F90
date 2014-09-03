@@ -574,15 +574,17 @@ CONTAINS
           Dta%OrigUnit  = srcUnit
 
           ! Extract information from time stamp character and pass values 
-          ! to the corresponding container variables.
-          ! If data is not read from netCDF but directly provided (in 
-          ! place of the file name), this step can be skipped. In this
-          ! case, the parameter ncPara must be undefined.
-          IF ( TRIM(Dta%ncPara) == '-' ) THEN
-             Dta%ncRead = .FALSE. 
-          ELSE
+          ! to the corresponding container variables. If no time string is
+          ! defined, keep default values (-1 for all of them)
+          IF ( TRIM(srcTime) /= '-' ) THEN
              CALL HCO_ExtractTime( srcTime, Dta, RC ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF
+
+          ! If the parameter ncPara is not defined, attempt to read data
+          ! directly from configuration file instead of netCDF.
+          IF ( TRIM(Dta%ncPara) == '-' ) THEN
+             Dta%ncRead = .FALSE. 
           ENDIF
 
           ! Set time cycling behaviour. Possible values are: 
@@ -1237,12 +1239,12 @@ CONTAINS
           CALL HCO_MSG(MSG)
        ENDIF
 
-       ! -------------------------------------------------------------
-       ! Eventually read data from file 
-       IF ( .NOT. Lct%Dct%Dta%ncRead ) THEN
-          CALL ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF       
+!       ! -------------------------------------------------------------
+!       ! Eventually read data from file 
+!       IF ( .NOT. Lct%Dct%Dta%ncRead ) THEN
+!          CALL ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
+!          IF ( RC /= HCO_SUCCESS ) RETURN
+!       ENDIF       
 
        ! -------------------------------------------------------------
        ! Extract vector of scale factor container IDs to be applied 
@@ -1425,10 +1427,10 @@ CONTAINS
        ! be ignored in this case. More than one scalar can be 
        ! specified, in which case these are interpreted as temporal 
        ! variations (7=day of week, 12=monthly, 24=hourly). 
-       IF ( .NOT. Lct%Dct%Dta%ncRead ) THEN 
-          CALL ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF
+!       IF ( .NOT. Lct%Dct%Dta%ncRead ) THEN 
+!          CALL ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
+!          IF ( RC /= HCO_SUCCESS ) RETURN
+!       ENDIF
 
        ! Register container in ReadList. Containers will be listed 
        ! in the reading lists sorted by cID.  
@@ -2961,80 +2963,6 @@ CONTAINS
     ENDIF
 
   END FUNCTION Check_ContNames
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: ReadFromConfig 
-!
-! !DESCRIPTION: Subroutine ReadFromConfig is a wrapper routine to read
-! data directly from the configuration file (instead of reading it from
-! disk).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE ReadFromConfig ( am_I_Root, HcoState, Lct, RC ) 
-!
-! !USES:
-!
-    USE HCO_FILEDATA_Mod,      ONLY : FileData_FileRead
-!
-! !INPUT PARAMTERS:
-!
-    LOGICAL,         INTENT(IN   )    :: am_I_Root
-    TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ListCont),   POINTER         :: Lct
-    INTEGER,          INTENT(INOUT)   :: RC 
-!
-! !REVISION HISTORY:
-!  24 Jul 2014 - C. Keller: Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(hp)   :: MW_g,  EmMW_g, MolecRatio
-    INTEGER    :: HcoID, IsHome
-
-    !======================================================================
-    ! ReadFromConfig begins here
-    !======================================================================
-       
-    ! Shadow molecular weights and molec. ratio (needed for
-    ! unit conversion during file read)
-    HcoID = Lct%Dct%HcoID
-    IF ( HcoID > 0 ) THEN
-       MW_g       = HcoState%Spc(HcoID)%MW_g
-       EmMW_g     = HcoState%Spc(HcoID)%EmMW_g
-       MolecRatio = HcoState%Spc(HcoID)%MolecRatio
-    ELSE
-       MW_g       = -999.0_hp 
-       EmMW_g     = -999.0_hp 
-       MolecRatio = -999.0_hp
-    ENDIF
-
-    CALL FileData_FileRead ( am_I_Root,  Lct%Dct%Dta,      MW_g,   EmMW_g, &
-                             MolecRatio, HcoState%TS_EMIS, IsHome, RC       )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    Lct%Dct%DtaHome = IsHome
-
-    ! If this is not the home container, make sure that the share
-    ! flag of the file data object is set to true.
-    IF ( IsHome /= 1 ) THEN
-       Lct%Dct%Dta%DoShare = .TRUE.
-    ENDIF
-
-    ! Return w/ success
-    RC = HCO_SUCCESS
-
-  END SUBROUTINE ReadFromConfig 
 !EOC
 END MODULE HCO_Config_Mod
 !EOM

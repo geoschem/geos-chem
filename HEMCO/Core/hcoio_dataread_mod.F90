@@ -26,6 +26,7 @@ MODULE HCOIO_DataRead_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: HCOIO_DataRead
+  PUBLIC  :: HCOIO_ReadFromConfig
 !
 ! !REVISION HISTORY:
 !  22 Aug 2013 - C. Keller   - Initial version
@@ -763,7 +764,7 @@ CONTAINS
 ! simulation date.
 !\\
 !\\
-! Also return the time slice year and month, as these values may be
+! Also returns the time slice year and month, as these values may be
 ! used for unit conversion! 
 !\\
 !\\
@@ -826,7 +827,7 @@ CONTAINS
     ! Extract netCDF time slices (YYYYMMDDhh) 
     ! ----------------------------------------------------------------
     CALL NC_READ_TIME_YYYYMMDDhh ( ncLun, nTime,    availYMDH, &
-                                     refYear=refYear, RC=NCRC     )     
+                                   refYear=refYear, RC=NCRC     )     
     IF ( NCRC /= 0 ) THEN
        CALL HCO_ERROR( 'NC_READ_TIME_YYYYMMDDhh', RC )
        RETURN 
@@ -862,8 +863,7 @@ CONTAINS
     ! hourly slices shall be read. Will always return a valid 
     ! attribute for Yr, Mt, and Dy.
     ! ------------------------------------------------------------- 
-    CALL HCO_GetPrefTimeAttr ( Lct,    prefYr, prefMt, &
-                               prefDy, prefHr, RC       )
+    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     prefYMDh = prefYr*1000000 + prefMt*10000 + &
                prefDy*100     + max(prefHr,0)
@@ -1335,4 +1335,364 @@ CONTAINS
   END SUBROUTINE Normalize_Area
 !EOC
 #endif
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOIO_ReadFromConfig 
+!
+! !DESCRIPTION: Subroutine HCOIO\_ReadFromConfig reads data directly from 
+! the configuration file (instead of reading it from a netCDF file).
+! These data is always assumed to be spatially uniform, but it is possible
+! to specify multiple time slices by separating the individual time slice
+! values by the HEMCO separator sign ('/' by default). The time dimension
+! of these data is either determined from the srcTime attribute or estimated
+! from the number of time slices provided. For example, if no srcTime is 
+! specified and 24 time slices are provided, data is assumed to represent
+! hourly data. Similarly, data is assumed to represent weekdaily or monthly
+! data for 7 or 12 time slices, respectively.
+!\\
+!\\
+! If the srcTime attribute is defined, the time slices are determined from
+! this attribute. Only one time dimension (year, month, day, or hour) can
+! be defined for scalar fields!
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOIO_ReadFromConfig ( am_I_Root, HcoState, Lct, RC ) 
+!
+! !USES:
+!
+    USE HCO_FILEDATA_MOD,   ONLY : FileData_ArrCheck
+    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_CharSplit
+    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_WCD, HCO_SEP
+    USE HCO_UNIT_MOD,       ONLY : HCO_Unit_Change
+    USE HCO_tIdx_Mod,       ONLY : HCO_GetPrefTimeAttr
+    USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,         INTENT(IN   )    :: am_I_Root
+    TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER         :: Lct
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !REVISION HISTORY:
+!  24 Jul 2014 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL(hp)           :: MW_g,  EmMW_g, MolecRatio
+    INTEGER            :: HcoID
+    INTEGER            :: I, N, NUSE, AS
+    INTEGER            :: IDX1, IDX2
+    INTEGER            :: AreaFlag, TimeFlag, Check
+    INTEGER            :: prefYr, prefMt, prefDy, prefHr
+    INTEGER            :: cYr, cMt, cDy
+    REAL(sp)           :: FileVals(100)
+    REAL(sp), POINTER  :: FileArr(:,:,:,:) => NULL()
+    LOGICAL            :: Verb, IsPerArea
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'HCOIO_ReadFromConfig (hcoio_dataread_mod.F90)'
+
+    !======================================================================
+    ! HCOIO_ReadFromConfig begins here
+    !======================================================================
+   
+    ! verbose mode? 
+    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
+   
+    ! Shadow molecular weights and molec. ratio (needed for
+    ! unit conversion during file read)
+    HcoID = Lct%Dct%HcoID
+    IF ( HcoID > 0 ) THEN
+       MW_g       = HcoState%Spc(HcoID)%MW_g
+       EmMW_g     = HcoState%Spc(HcoID)%EmMW_g
+       MolecRatio = HcoState%Spc(HcoID)%MolecRatio
+    ELSE
+       MW_g       = -999.0_hp 
+       EmMW_g     = -999.0_hp 
+       MolecRatio = -999.0_hp
+    ENDIF
+
+    ! Verbose
+    IF ( Verb ) THEN
+       WRITE(MSG, *) 'Read from config file: ', TRIM(Lct%Dct%cName)
+       CALL HCO_MSG(MSG)
+    ENDIF
+
+    ! Read data into array
+    CALL HCO_CharSplit ( Lct%Dct%Dta%ncFile,  HCO_SEP(), &
+                         HCO_WCD(), FileVals, N, RC       ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Return w/ error if no scale factor defined
+    IF ( N == 0 ) THEN
+       MSG = 'Cannot read data: ' // TRIM(Lct%Dct%cName) // &
+             ': ' // TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
+       RETURN 
+    ENDIF
+
+    ! ---------------------------------------------------------------- 
+    ! Select time slices to be used at this time.
+    ! Use all time slices unless a time interval is provided in
+    ! attribute srcTime of the configuration file.
+    ! ---------------------------------------------------------------- 
+
+    ! Get the preferred times, i.e. the preferred year, month, day, 
+    ! or hour (as specified in the configuration file).
+    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Get current time
+    CALL HcoClock_Get( cYYYY = cYr, cMM = cMt, cDD = cDy, RC = RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    ! Currently, data read directly from the configuration file can only
+    ! represent one time dimension, i.e. it can only be yearly, monthly,
+    ! daily (or hourly data, but this is read all at the same time). 
+
+    ! Annual data 
+    IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
+       ! Error check
+       IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) .OR. & 
+            Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
+            Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
+          MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       CALL GetSliceIdx ( Lct, prefYr, cYr, Lct%Dct%Dta%ncYrs(1), IDX1, RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IDX2 = IDX1
+       NUSE = 1
+
+    ! Monthly data
+    ELSEIF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
+       ! Error check
+       IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
+            Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
+          MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       CALL GetSliceIdx ( Lct, prefMt, cMt, Lct%Dct%Dta%ncMts(1), IDX1, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IDX2 = IDX1
+       NUSE = 1
+
+    ! Daily data
+    ELSEIF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
+       ! Error check
+       IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
+          MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       CALL GetSliceIdx ( Lct, prefDy, cDy, Lct%Dct%Dta%ncDys(1), IDX1, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IDX2 = IDX1
+       NUSE = 1
+
+    ! All other cases (incl. hourly data): read all time slices).
+    ELSE
+       IDX1 = 1
+       IDX2 = N
+       NUSE = N
+    ENDIF
+
+    ! ---------------------------------------------------------------- 
+    ! Read selected time slice(s) into data array
+    ! ----------------------------------------------------------------
+    IF ( IDX2 > N ) THEN
+       WRITE(MSG,*) 'Index ', IDX2, ' is larger than number of found values: ', &
+                    TRIM(Lct%Dct%cName)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ALLOCATE( FileArr(1,1,1,NUSE), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       MSG = 'Cannot allocate FileArr'
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+ 
+    ! IDX1 becomes -1 for data that is outside of the valid range
+    ! (and no time cycling enabled). In this case, make sure that
+    ! scale factor is set to zero.
+    IF ( IDX1 < 0 ) THEN
+       FileArr(1,1,1,:) = 0.0_hp
+       MSG = 'Scale factor outside of range - set to zero: ' // &
+             TRIM(Lct%Dct%cName)
+       CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+    ELSE
+       FileArr(1,1,1,:) = FileVals(IDX1:IDX2)
+    ENDIF
+
+    ! ---------------------------------------------------------------- 
+    ! Convert data to HEMCO units 
+    ! ---------------------------------------------------------------- 
+    CALL HCO_Unit_Change( Array       = FileArr,                    &
+                          Units       = TRIM(Lct%Dct%Dta%OrigUnit), &
+                          MW_IN       = MW_g,                       &
+                          MW_OUT      = EmMW_g,                     &
+                          MOLEC_RATIO = MolecRatio,                 &
+                          YYYY        = -999,                       &
+                          MM          = -999,                       &
+                          AreaFlag    = AreaFlag,                   &
+                          TimeFlag    = TimeFlag,                   &
+                          RC          = RC                           )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Data must be ... 
+    ! ... concentration ...
+    IF ( AreaFlag == 3 .AND. TimeFlag == 0 ) THEN
+       Lct%Dct%Dta%IsConc = .TRUE.
+
+    ELSEIF ( AreaFlag == 3 .AND. TimeFlag == 1 ) THEN
+       Lct%Dct%Dta%IsConc = .TRUE.
+       FileArr = FileArr * HcoState%TS_EMIS
+       MSG = 'Data converted from kg/m3/s to kg/m3: ' // &
+             TRIM(Lct%Dct%cName) // ': ' // TRIM(Lct%Dct%Dta%OrigUnit)
+       CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+
+    ! ... emissions or unitless ...
+    ELSEIF ( (AreaFlag == -1 .AND. TimeFlag == -1) .OR. &
+             (AreaFlag ==  2 .AND. TimeFlag ==  1)       ) THEN
+       Lct%Dct%Dta%IsConc = .FALSE.
+
+    ! ... invalid otherwise:
+    ELSE
+       MSG = 'Unit must be unitless, emission or concentration: ' // &
+             TRIM(Lct%Dct%cName) // ': ' // TRIM(Lct%Dct%Dta%OrigUnit)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! Copy data into array. Assume all data is temporal
+    ! dimension!
+    CALL FileData_ArrCheck( Lct%Dct%Dta, 1, 1, NUSE, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    DO I = 1, NUSE
+       Lct%Dct%Dta%V2(I)%Val(1,1) = FileArr(1,1,1,I)
+    ENDDO
+
+    ! Data is always 1D.
+    Lct%Dct%Dta%SpaceDim = 1
+
+    ! Auto-detect delta t [in hours] between time slices.
+    ! Scale factors can be:
+    ! length 1 : constant
+    ! length 7 : weekday factors: Sun, Mon, ..., Sat
+    ! length 12: monthly factors: Jan, Feb, ..., Dec
+    ! length 24: hourly  factors: 12am, 1am, ... 11pm
+    IF ( NUSE == 1 ) THEN
+       Lct%Dct%Dta%DeltaT = 0
+    ELSEIF ( NUSE == 7 ) THEN
+       Lct%Dct%Dta%DeltaT = 24
+    ELSEIF ( NUSE == 12 ) THEN
+       Lct%Dct%Dta%DeltaT = 720 
+    ELSEIF ( NUSE == 24 ) THEN
+       Lct%Dct%Dta%DeltaT = 1 
+    ELSE
+       MSG = 'Factor must be of length 1, 7, 12, or 24!' // &
+              TRIM(Lct%Dct%cName)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
+       RETURN 
+    ENDIF
+
+    ! Cleanup
+    IF ( ASSOCIATED(FileArr) ) DEALLOCATE(FileArr)
+    FileArr => NULL()
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCOIO_ReadFromConfig 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetSliceIdx 
+!
+! !DESCRIPTION: gets the lower and upper time slice index of data directly
+! read from the HEMCO configuration file. prefDt, cDt and lowDt denote the
+! preferred, current and lowermost time attribute (year, month, or day). The
+! time slice index will be selected based upon that variable. IDX is the
+! selected time slice index. Will be set to -1 if the current simulation date
+! is outside of the specified time range and the time cycle attribute is not
+! enabled for this field.
+!\\
+!\\
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetSliceIdx ( Lct, prefDt, cDt, lowDt, IDX, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER                 :: Lct
+    INTEGER,          INTENT(IN   )           :: prefDt
+    INTEGER,          INTENT(IN   )           :: cDt
+    INTEGER,          INTENT(IN   )           :: lowDt
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: IDX
+    INTEGER,          INTENT(INOUT)           :: RC 
+!
+! !REVISION HISTORY:
+!  13 Mar 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'GetSliceIdx (HCOIO_DataRead_Mod.F90)'
+
+    !=================================================================
+    ! GetSliceIdx begins here! 
+    !=================================================================
+
+    ! Init
+    RC = HCO_SUCCESS
+
+    ! If data cycle flag is set to 2 or 3 (only within range, 
+    ! exact match), make sure that preferred year matches current
+    ! year. For data only to be used within the specified range, 
+    ! set THIGH to -1. This will force the scale factors to be
+    ! set to zero.
+    IF ( prefDt /= cDt ) THEN
+       IF ( Lct%Dct%Dta%CycleFlag == 3 ) THEN ! Exact match
+          MSG = 'Data is not on exact date: ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN 
+       ELSEIF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN ! w/in range
+          IDX = -1
+          RETURN
+       ENDIF
+    ENDIF
+     
+    IDX = prefDt - lowDt + 1
+
+  END SUBROUTINE GetSliceIdx
+!EOC
 END MODULE HCOIO_DataRead_Mod
