@@ -118,6 +118,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  07 Jul 2014 - R. Yantosca - Initial version
+!  03 Sep 2014 - R. Yantosca - Bug fix: Prevent div-by-zero errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,13 +126,13 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER           :: I,          J,          L,         N
+    INTEGER           :: I,          J,          L,          N
     INTEGER           :: HcoID
-    REAL*8            :: A_CM2,      ADD_Be,     ADD_Rn,    Rn_LAND
-    REAL*8            :: Rn_WATER,   DTSRCE,     LAT_TMP,   P_TMP
-    REAL*8            :: Be_TMP,     Rn_TMP,     LAT_S,     LAT_N
-    REAL*8            :: LAT_H,      LAT_L,      F_LAND,    F_WATER
-    REAL*8            :: F_BELOW_70, F_BELOW_60, F_ABOVE_60
+    REAL*8            :: A_CM2,      ADD_Be,     ADD_Rn,     Rn_LAND
+    REAL*8            :: Rn_WATER,   DTSRCE,     LAT_TMP,    P_TMP
+    REAL*8            :: Be_TMP,     Rn_TMP,     LAT_S,      LAT_N
+    REAL*8            :: LAT_H,      LAT_L,      F_LAND,     F_WATER
+    REAL*8            :: F_BELOW_70, F_BELOW_60, F_ABOVE_60, DENOM
 
     ! Pointers
     REAL(hp), POINTER :: Arr2D(:,:  ) => NULL()
@@ -173,52 +174,71 @@ CONTAINS
     !  global atmospheric transport models using Rn-222 and other 
     !  short-lived tracers, JGR, 1997 (102):5953-5970
     !=======================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, LAT_S, LAT_N, LAT_H, LAT_L, F_BELOW_70     )
-!!$OMP+PRIVATE( F_BELOW_60, F_ABOVE_60, A_CM2, Rn_LAND, Rn_WATER )
-!!$OMP+PRIVATE( F_LAND, F_WATER, ADD_Rn                          )
+!$OMP PARALLEL DO                                                      &
+!$OMP DEFAULT( SHARED )                                                &
+!$OMP PRIVATE( I,       J,        LAT_S,      LAT_N,      LAT_H      ) &
+!$OMP PRIVATE( LAT_L,   DENOM,    F_BELOW_70, F_BELOW_60, F_ABOVE_60 ) &
+!$OMP PRIVATE( Rn_LAND, Rn_WATER, F_LAND,     F_WATER,    ADD_Rn     )
     DO J = 1, HcoState%Ny
     DO I = 1, HcoState%Nx
 
        ! Get ABS( latitude ) at S and N edges of grid box
-       LAT_S      = ABS( HcoState%Grid%YEDGE( I, J   ) ) 
-       LAT_N      = ABS( HcoState%Grid%YEDGE( I, J+1 ) )
-       LAT_H      = MAX( LAT_S, LAT_N )
-       LAT_L      = MIN( LAT_S, LAT_N ) 
-       
-       ! Fraction of grid box w/ ABS( latitude ) less than 70 degrees
-       F_BELOW_70 = ( 70.0d0 - LAT_L ) / ( LAT_H - LAT_L )
+       LAT_S         = ABS( HcoState%Grid%YEDGE( I, J   ) ) 
+       LAT_N         = ABS( HcoState%Grid%YEDGE( I, J+1 ) )
+       LAT_H         = MAX( LAT_S, LAT_N )
+       LAT_L         = MIN( LAT_S, LAT_N ) 
 
-       ! Fraction of grid box w/ ABS( latitude ) less than 60 degrees
-       F_BELOW_60 = ( 60.0d0 - LAT_L ) / ( LAT_H - LAT_L )
+       !--------------------------------------------------------------------
+       ! NOTE: For some GEOS-Chem grids, the absolute value of the 
+       ! southern and northern latitude edges can be the same!  
+       !
+       ! For example, the GEOS 2 x 2.5 grid boxes that straddle the equator
+       ! (i.e. with J=46) have LAT_S = -1.0 and LAT_N = +1.0.  
+       !
+       ! This causes the denominator ( LAT_H - LAT-L ) to be zero, which 
+       ! causes a div-by-zero error, as caught by the G-C Unit Tester.
+       !
+       ! Add an error check to prevent this div-by-zero condition!
+       !--------------------------------------------------------------------
+
+       ! Denominator term
+       DENOM         = ( LAT_H - LAT_L )
+
+       ! Prevent div-by-zero
+       IF ( DENOM > 0.0 ) THEN 
+
+          ! If DENOM > 0, we can compute the fractions of the grid box
+          ! that lie beneath 70 degreees (F_BELOW_70) and 60 degrees 
+          ! (F_BELOW_60).  These are computed symmetrically for the 
+          ! Northern and Southern Hemispheres.
+          F_BELOW_70 = ( 70.0d0 - LAT_L ) / DENOM
+          F_BELOW_60 = ( 60.0d0 - LAT_L ) / DENOM
+
+       ELSE
+
+          ! If DENOM = 0 then that means we are along the equator.
+          ! Thus, the grid box will certainly be entirely below 70N
+          ! or 60N.  We can set F_BELOW_70 = 1 and F_BELOW_60 = 1.
+          F_BELOW_70 = 1.0d0
+          F_BELOW_60 = 1.0d0
+
+       ENDIF
 
        ! Fraction of grid box w/ ABS( latitude ) greater than 60 degrees
-       F_ABOVE_60 = 1d0 - F_BELOW_60
-
-!-----------------------------------------------------------------------------
-! Prior to 7/7/14:
-! Now compute emissions in kg/m2/s for tracking in HEMCO (bmy, 7/7/14)
-!       ! Baseline 222Rn emissions over land [kg]
-!       ! Rn_LAND [kg] = [1 atom 222Rn/cm2/s] / [atoms/kg] * [s] * [cm2]
-!       Rn_LAND    = 1d0 / XNUMOL_Rn * DTSRCE * A_CM2
-!
-!       ! Baseline 222Rn emissions over water or ice [kg]
-!       Rn_WATER   = Rn_LAND * 0.005d0
-!-----------------------------------------------------------------------------
+       F_ABOVE_60    = 1d0 - F_BELOW_60
 
        ! Baseline 222Rn emissions 
        ! Rn_LAND [kg/m2/s] = [1 atom 222Rn/cm2/s] / [atoms/kg] * [1d4 cm2/m2]
-       Rn_LAND    = ( 1d0 / XNUMOL_Rn ) * 1d4
+       Rn_LAND       = ( 1d0 / XNUMOL_Rn ) * 1d4
 
        ! Baseline 222Rn emissions over water or ice [kg]
-       Rn_WATER   = Rn_LAND * 0.005d0
+       Rn_WATER      = Rn_LAND * 0.005d0
 
        ! Fraction of grid box that is land
-       F_LAND     = ExtState%FRCLND%Arr%Val(I,J)
+       F_LAND        = ExtState%FRCLND%Arr%Val(I,J)
 
        ! Fraction of grid box that is water
-       F_WATER    = 1d0 - F_LAND
+       F_WATER       = 1d0 - F_LAND
 
        !--------------------
        ! 90S-70S or 70N-90N
@@ -282,13 +302,15 @@ CONTAINS
        ENDIF
 
        ! For boxes below freezing, reduce 222Rn emissions by 3x
-       IF ( ExtState%TSURFK%Arr%Val(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
+       IF ( ExtState%TSURFK%Arr%Val(I,J) < 273.15 ) THEN
+          ADD_Rn = ADD_Rn / 3d0
+       ENDIF
 
        ! Save 222Rn emissions into an array [kg/m2/s]
        EmissRn(I,J) = ADD_Rn
     ENDDO
     ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
     !------------------------------------------------------------------------
     ! Add 222Rn emissions to HEMCO data structure & diagnostics
@@ -319,10 +341,10 @@ CONTAINS
     !
     ! Now interpolate from 33 std levels onto GEOS-CHEM levels 
     !=======================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, LAT_TMP, P_TMP, Be_TMP, ADD_Be )
-!!$OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO                                        &
+!$OMP DEFAULT( SHARED )                                  &
+!$OMP PRIVATE( I, J, L, LAT_TMP, P_TMP, Be_TMP, ADD_Be ) &
+!$OMP SCHEDULE( DYNAMIC )
     DO L = 1, HcoState%Nz
     DO J = 1, HcoState%Ny
     DO I = 1, HcoState%Nx
@@ -334,23 +356,15 @@ CONTAINS
        ! Pressure at (I,J,L) [hPa]
        P_TMP   = ExtState%PCENTER%Arr%Val( I, J, L ) / 100.0_hp
                  
-       ! Interpolate 7Be [stars/g air/sec] to GEOS-CHEM levels
+       ! Interpolate 7Be [stars/g air/sec] to GEOS-Chem levels
        CALL SLQ( LATSOU, PRESOU, BESOU, 10, 33, LAT_TMP, P_TMP, Be_TMP )
 
        ! Be_TMP = [stars/g air/s] * [0.045 atom/star] * 
        !          [kg air] * [1e3 g/kg] = 7Be emissions [atoms/s]
        Be_TMP  = Be_TMP * 0.045d0 * ExtState%AIR%Arr%Val(I,J,L) * 1.d3 
                   
-!----------------------------------------------------------------------------
-! Prior to 7/7/14:
-! Convert Be7 emissions to [kg/m2/s] for tracking in HEMCO (bmy, 7/7/14)
-!       ! ADD_Be = [atoms/s] * [s] / [atom/kg] = 7Be emissions [kg]
-!       ADD_Be  = Be_TMP * DTSRCE / XNUMOL_Be 
-!----------------------------------------------------------------------------
-
        ! ADD_Be = [atoms/s] / [atom/kg] / [m2] = 7Be emissions [kg/m2/s]
        ADD_Be  = ( Be_TMP / XNUMOL_Be ) / HcoState%Grid%AREA_M2(I,J)
-
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% TODO: This function is only really defined for GCAP, so we may need
@@ -367,7 +381,7 @@ CONTAINS
     ENDDO
     ENDDO
     ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
     !------------------------------------------------------------------------
     ! Add 7Be emissions to HEMCO data structure & diagnostics
@@ -499,12 +513,6 @@ CONTAINS
        RETURN
     ENDIF
     
-    ! ERROR! Pb tracer is not found
-    IF ( IDTPb <= 0 ) THEN
-       CALL HCO_ERROR( 'Cannot find 7Be tracer in list of species!', RC )
-       RETURN
-    ENDIF
-
     ! ERROR! Be7 tracer is not found
     IF ( IDTBe7 <= 0 ) THEN
        CALL HCO_ERROR( 'Cannot find 7Be tracer in list of species!', RC )

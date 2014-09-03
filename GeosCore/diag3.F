@@ -235,6 +235,8 @@
 !  06 Aug 2014 - C. Keller   - Added wrapper subroutine for HEMCO diagnostics. 
 !  14 Aug 2014 - R. Yantosca - Corrected units for several diagnostic outputs
 !  26 Aug 2014 - M. Sulprizio- Now get ND53 POPs emissions from HEMCO
+!  03 Sep 2014 - R. Yantosca - Units of AD01_Rn_SOURCE and AD01_Be7_SOURCE are
+!                              now defined as kg/s in hcoi_gc_diagn_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -380,40 +382,6 @@
 !  (3)  Be7    : Loss of 7Be                    : kg/s       : SCALECHEM
 !******************************************************************************
 !
-!-----------------------------------------------------------------------------
-! Prior to 8/20/14:
-! ND01 is now tracked by HEMCO (bmy, 8/20/14)
-!
-!      IF ( ND01 > 0 ) THEN
-!         CATEGORY = 'RN--SRCE'
-!         UNIT     = 'kg/s'
-!
-!         DO M = 1, TMAX(1)
-!            N  = TINDEX(1,M)
-!            IF ( N > N_TRACERS ) CYCLE
-!            NN = N
-!               
-!            ! Pb "emission" comes from chemical decay of Rn, which happens 
-!            ! in the chemistry routine, so use SCALECHEM (bmy, 1/27/03)
-!            IF ( N == IDTPB ) THEN
-!               SCALEX = SCALECHEM
-!            ELSE
-!               SCALEX = SCALESRCE
-!            ENDIF
-!                 
-!            ! Divide by # of emission timesteps
-!            DO L = 1, LD01
-!               ARRAY(:,:,L) = AD01(:,:,L,N) / SCALEX
-!            ENDDO
-!
-!            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-!     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
-!     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-!     &                  IIPAR,     JJPAR,     LD01,     IFIRST,     
-!     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD01) )
-!         ENDDO
-!      ENDIF
-!-----------------------------------------------------------------------------
       IF ( ND01 > 0 ) THEN
 
          ! Diagnostic category
@@ -431,8 +399,7 @@
             N            = IDTRn
             FACTOR       = 1.0d0
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,     N, 1, -1, .TRUE., FACTOR, RC, 
-     &                      AreaScal=1 )
+     &                      UNIT,     N, 1, -1, .TRUE., FACTOR, RC    )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
@@ -462,8 +429,7 @@
             N            = IDTBe7
             FACTOR       = 1.0d0
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT, N, 1, LD01, .TRUE., FACTOR, RC, 
-     &                      AreaScal=1 )
+     &                      UNIT, N, 1, LD01, .TRUE., FACTOR, RC      )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF    
       ENDIF
@@ -505,13 +471,6 @@
 !******************************************************************************
 !
       IF ( ND03 > 0 ) CALL WRITE_DIAG03( am_I_Root, Input_Opt, RC )
-!-----------------------------------------------------------------------------
-! Prior to 8/26/14:
-! POPs emissions for ND53 are now tracked by HEMCO. Also move ND53 code so it
-! is in the correct numerical order. (mps, 8/26/14)
-!! ADD ND53 (eck, 10/21/10)
-!      IF ( ND53 > 0 ) CALL WRITE_DIAG53
-!-----------------------------------------------------------------------------
 !
 !******************************************************************************
 !  ND04: Diagnostics from CO2 simulation (pns, bmy, 7/26/05)
@@ -3669,26 +3628,6 @@
 
          CATEGORY = 'PG-SRCE'
          UNIT     = 'kg'
-
-!------------------------------------------------------------------------------
-! Prior to 8/27/14:
-! Comment out for now -- Need to figure out how to track total POPs emissions
-! in HEMCO (mps/8/27/14)
-!        IF ( IDTPOPG > 0 .and. IDTPOPPOC > 0 .and. IDTPOPPBC > 0 ) THEN
-!
-!            !--------------------------------
-!            ! Total POP emissions
-!            !--------------------------------
-!            DiagnName = 'AD01_POPT_SOURCE'
-!            N         = 1
-!            FACTOR    = 1.0d0
-!            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-!     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC, 
-!     &                      AreaScal=1 )
-!            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-!
-!         ENDIF
-!------------------------------------------------------------------------------
 
          IF ( IDTPOPPOC > 0 ) THEN
 
