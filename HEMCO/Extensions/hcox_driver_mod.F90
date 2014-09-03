@@ -82,6 +82,7 @@ CONTAINS
     USE HCOX_Megan_Mod,        ONLY : HCOX_Megan_Init
     USE HcoX_FINN_Mod,         ONLY : HcoX_FINN_Init
     USE HCOX_GC_RnPbBe_Mod,    ONLY : HCOX_GC_RnPbBe_Init
+    USE HCOX_GC_POPs_Mod,      ONLY : HCOX_GC_POPs_Init
 !
 ! !INPUT PARAMETERS:
 !
@@ -96,6 +97,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
 !  07 Jul 2014 - R. Yantosca - Now init GEOS-Chem Rn-Pb-Be emissions module
+!  20 Aug 2014 - M. Sulprizio- Now init GEOS-Chem POPs emissions module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,6 +199,13 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
+    ! Extension for GEOS-Chem POPs specialty simulation
+    !-----------------------------------------------------------------
+    CALL HCOX_GC_POPs_Init( amIRoot, HcoState, 'GC_POPs', &
+                                     ExtState,  RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    !-----------------------------------------------------------------
     ! Add extensions here ...
     !-----------------------------------------------------------------
 
@@ -248,6 +257,7 @@ CONTAINS
     USE HCOX_GFED3_Mod,      ONLY : HCOX_GFED3_Run 
     USE HcoX_FINN_Mod,       ONLY : HcoX_FINN_Run 
     USE HCOX_GC_RnPbBe_Mod,  ONLY : HCOX_GC_RnPbBe_Run
+    USE HCOX_GC_POPs_Mod,    ONLY : HCOX_GC_POPs_Run
 !
 ! !INPUT PARAMETERS:
 !
@@ -268,6 +278,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  15 Dec 2013 - C. Keller   - Initial version 
 !  07 Jul 2014 - R. Yantosca - Now Run GEOS-Chem Rn-Pb-Be emissions module
+!  20 Aug 2014 - M. Sulprizio- Now run GEOS-Chem POPs emissions module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -381,6 +392,14 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
+    ! Emissions for GEOS-Chem POPs specialty simulation
+    !-----------------------------------------------------------------
+    IF ( ExtState%GC_POPs ) THEN
+       CALL HCOX_GC_POPs_Run( amIRoot, ExtState, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+
+    !-----------------------------------------------------------------
     ! Add extensions here ...
     !-----------------------------------------------------------------
 
@@ -420,6 +439,7 @@ CONTAINS
     USE HCOX_GFED3_Mod,      ONLY : HCOX_GFED3_Final
     USE HcoX_FINN_Mod,       ONLY : HcoX_FINN_Final
     USE HCOX_GC_RnPbBe_Mod,  ONLY : HCOX_GC_RnPbBe_Final
+    USE HCOX_GC_POPs_Mod,    ONLY : HCOX_GC_POPs_Final
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -428,6 +448,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
 !  07 Jul 2014 - R. Yantosca - Now finalize GEOS-Chem Rn-Pb-Be emissions pkg
+!  20 Aug 2014 - M. Sulprizio- Now finalize GEOS-Chen POPs emissions module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -457,6 +478,7 @@ CONTAINS
        IF ( ExtState%SoilNOx    ) CALL HCOX_SoilNox_Final()  
        IF ( ExtState%FINN       ) CALL HcoX_FINN_Final
        IF ( ExtState%GC_RnPbBe  ) CALL HCOX_GC_RnPbBe_Final()
+       IF ( ExtState%GC_POPs    ) CALL HCOX_GC_POPs_Final()
        
        ! Deallocate ExtState object
        DEALLOCATE( ExtState )

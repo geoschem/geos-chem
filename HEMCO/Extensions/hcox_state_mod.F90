@@ -90,6 +90,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: GFED3       ! GFED3 biomass burning
      LOGICAL                   :: FINN        ! FINN biomass burning
      LOGICAL                   :: GC_RnPbBe   ! GEOS-Chem Rn-Pb-Be simulation
+     LOGICAL                   :: GC_POPs     ! GEOS-Chem POPs simulation
 
      !----------------------------------------------------------------------
      ! Data directory
@@ -126,6 +127,8 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: GC_LAI_NM   ! next month's LAI [cm2/cm2]
      INTEGER,          POINTER :: DAYS_BTW_M  ! Days between months (for LAI) 
      TYPE(ExtDat_2I),  POINTER :: CLDTOPS     ! Cloud top level index
+     INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
+     TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
      TYPE(ExtDat_3R),  POINTER :: PEDGE       ! Bottom press. edge [Pa]
      TYPE(ExtDat_3R),  POINTER :: PCENTER     ! Press. center [Pa]
      TYPE(ExtDat_3R),  POINTER :: SPHU        ! Spec. humidity [kg H2O/kg air] 
@@ -151,6 +154,15 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: WET_TOTN    ! Wet deposited N   [kg N/s] 
      REAL(dp),         POINTER :: DRYCOEFF(:) ! Baldocci drydep coeff.
      
+     !----------------------------------------------------------------------
+     ! Constants for POPs emissions module
+     !----------------------------------------------------------------------
+     REAL(dp)                  :: POP_DEL_H   ! Delta H [J/mol]
+     REAL(dp)                  :: POP_KOA     ! POP octanol-water partition coef
+     REAL(dp)                  :: POP_KBC     ! POP BC-air partition coeff.
+     TYPE(ExtDat_3R),  POINTER :: GLOB_OC     ! Global OC field [kg]
+     TYPE(ExtDat_3R),  POINTER :: GLOB_BC     ! Global BC field [kg]
+
   END TYPE Ext_State
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -163,6 +175,7 @@ MODULE HCOX_STATE_MOD
 !  27 Jun 2014 - C. Keller   - Added FINN biomass burning extension
 !  07 Jul 2014 - R. Yantosca - Modified for GEOS-Chem Rn-Pb-Be simulation
 !  28 Jul 2014 - C. Keller   - Added J-Values for NO2 and O3 to state obj. 
+!  20 Aug 2014 - M. Sulprizio- Modified for GEOS-Chem POPs emissions module
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -237,6 +250,14 @@ CONTAINS
     ExtState%GFED3      = .FALSE.
     ExtState%FINN       = .FALSE.
     ExtState%GC_RnPbBe  = .FALSE.
+    ExtState%GC_POPs    = .FALSE.
+
+    !-----------------------------------------------------------------------
+    ! Initialize constants for POPs emissions module
+    !-----------------------------------------------------------------------
+    ExtState%POP_DEL_H  = 0d0
+    ExtState%POP_KOA    = 0d0
+    ExtState%POP_KBC    = 0d0
 
     !-----------------------------------------------------------------------
     ! Initialize all met arrays.
@@ -324,6 +345,11 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%CLDTOPS, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ExtState%PBL_MAX    => NULL()
+
+    CALL ExtDat_Init ( ExtState%FRAC_OF_PBL, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Init ( ExtState%PEDGE, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -358,6 +384,12 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%WET_TOTN, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%GLOB_OC, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%GLOB_BC, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -424,6 +456,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%JNO2       )
        CALL ExtDat_Cleanup( ExtState%JO1D       )
        CALL ExtDat_Cleanup( ExtState%CLDTOPS    )
+       CALL ExtDat_Cleanup( ExtState%FRAC_OF_PBL)
        CALL ExtDat_Cleanup( ExtState%PEDGE      )
        CALL ExtDat_Cleanup( ExtState%PCENTER    )
        CALL ExtDat_Cleanup( ExtState%SPHU       )
@@ -436,9 +469,13 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%HNO3       )
        CALL ExtDat_Cleanup( ExtState%DRY_TOTN   )
        CALL ExtDat_Cleanup( ExtState%WET_TOTN   )
+       CALL ExtDat_Cleanup( ExtState%GLOB_OC    )
+       CALL ExtDat_Cleanup( ExtState%GLOB_BC    )
 
        ExtState%DAYS_BTW_M => NULL()
        ExtState%DRYCOEFF   => NULL()
+       ExtState%PBL_MAX    => NULL()
+
     ENDIF
 
   END SUBROUTINE ExtStateFinal

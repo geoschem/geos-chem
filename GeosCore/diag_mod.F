@@ -24,8 +24,8 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      ! For ND01 -- Rn, Pb, Be emissions
-      REAL*4,  ALLOCATABLE :: AD01(:,:,:,:)
+      ! For ND01 -- Pb emissions (Rn, Be now tracked thru HEMCO)
+      REAL*4,  ALLOCATABLE :: AD01(:,:,:)
 
       ! For ND02 -- Rn, Pb, Be decay
       REAL*4,  ALLOCATABLE :: AD02(:,:,:,:)
@@ -292,6 +292,7 @@
 !  08 Nov 2013 - M. Sulprizio- Removed CTO3 and LTO3. They are no longer used
 !                              because O3 is now a tracer.
 !  15 Aug 2014 - R. Yantosca - Remove diagnostics now tracked by HEMCO
+!  21 Aug 2014 - R. Yantosca - AD01 is now only a 3-D array (for Pb emissions)
 !EOP
 !------------------------------------------------------------------------------
 !BOC

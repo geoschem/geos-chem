@@ -234,6 +234,7 @@
 !  02 Aug 2014 - C. Keller   - Connect to HEMCO diagnostics
 !  06 Aug 2014 - C. Keller   - Added wrapper subroutine for HEMCO diagnostics. 
 !  14 Aug 2014 - R. Yantosca - Corrected units for several diagnostic outputs
+!  26 Aug 2014 - M. Sulprizio- Now get ND53 POPs emissions from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -415,27 +416,57 @@
 !-----------------------------------------------------------------------------
       IF ( ND01 > 0 ) THEN
 
-         !%%%%% Rn %%%%%
-         DiagnName    = 'AD01_Rn_SOURCE'
-         CATEGORY     = 'RN--SRCE'
-         UNIT         = 'kg/s'
-         N            = IDTBCPI
-         FACTOR       = 1d0
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1)
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ! Diagnostic category
+         CATEGORY  = 'RN--SRCE'
+         UNIT      = 'kg/s'
+         
+         !-----------------------------------------------------------
+         ! %%%%% Rn222 %%%%%
+         !
+         ! NOTE: This diagnostic only writes to the first level
+         ! because the Rn source is only at the surface!!!
+         !-----------------------------------------------------------
+         IF ( IDTRn > 0 ) THEN
+            DiagnName    = 'AD01_Rn_SOURCE'
+            N            = IDTRn
+            FACTOR       = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,     N, 1, -1, .TRUE., FACTOR, RC, 
+     &                      AreaScal=1 )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
-         !%%%%% Be7 %%%%%
-         DiagnName    = 'AD01_Be7_SOURCE'
-         CATEGORY     = 'RN--SRCE'
-         UNIT         = 'kg/s'
-         N            = IDTBCPI
-         FACTOR       = 1d0
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1)
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         !-----------------------------------------------------------
+         ! %%%%% Pb210 %%%%%
+         !-----------------------------------------------------------
+         IF ( IDTPb > 0 ) THEN
 
-      ENDIF    
+            ! Divide by # of chemistry timesteps
+            DO L = 1, LD01
+               ARRAY(:,:,L) = AD01(:,:,L) / SCALECHEM
+            ENDDO
+
+            ! Write to bpch file
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, IDTPb,    
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     LD01,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD01) )
+         ENDIF
+
+         !-----------------------------------------------------------
+         ! %%%%% Be7 %%%%%
+         !-----------------------------------------------------------
+         IF ( IDTBe7 > 0 ) THEN 
+            DiagnName    = 'AD01_Be7_SOURCE'
+            N            = IDTBe7
+            FACTOR       = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, LD01, .TRUE., FACTOR, RC, 
+     &                      AreaScal=1 )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF    
+      ENDIF
 !
 !******************************************************************************
 !  ND02: Rn, Pb, Be lost to radioactive decay (Category: "RN-DECAY")
@@ -474,8 +505,13 @@
 !******************************************************************************
 !
       IF ( ND03 > 0 ) CALL WRITE_DIAG03( am_I_Root, Input_Opt, RC )
-! ADD ND53 (eck, 10/21/10)
-      IF ( ND53 > 0 ) CALL WRITE_DIAG53
+!-----------------------------------------------------------------------------
+! Prior to 8/26/14:
+! POPs emissions for ND53 are now tracked by HEMCO. Also move ND53 code so it
+! is in the correct numerical order. (mps, 8/26/14)
+!! ADD ND53 (eck, 10/21/10)
+!      IF ( ND53 > 0 ) CALL WRITE_DIAG53
+!-----------------------------------------------------------------------------
 !
 !******************************************************************************
 !  ND04: Diagnostics from CO2 simulation (pns, bmy, 7/26/05)
@@ -2063,14 +2099,16 @@
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
 !  (2) ND29 now uses allocatable array AD29 instead of AIJ. (bmy, 3/16/00)
 !  (3) Added CO-sources from isoprene and monoterpenes (bnd, bmy, 1/2/01)
-!
 !******************************************************************************
-
+!
       IF ( ND29 > 0 ) THEN
          
          ! Diagnostic category and units
          CATEGORY = 'CO--SRCE'
-         UNIT     = 'molec/cm2/s'
+
+         ! Unit is molec/cm2/s, but for compatibility with older
+         ! GC versions, use the string "mol/cm2/s". (bmy, 8/29/14)
+         UNIT     = 'mol/cm2/s'  
 
          ! Converts from kg/m2/s (in HEMCO) to molec/cm2/s (for bpch)
          FACTOR   = Input_Opt%XNUMOL(IDTCO) / CM2PERM2 
@@ -2587,129 +2625,99 @@
 !  (6) Rewritten for clarity; also fixed for CH3I (bmy, 7/25/06)
 !  (7) Bug fix: given the tracer number, now search for entry in IDEMS
 !       to jive with historical baggage (bmy, 3/6/07)
+!  (8) Because HEMCO now tracks ND36, print out diagnostics for every
+!       emission species that is a defined tracer. (bmy, 8/29/14)
 !******************************************************************************
 !                     
       IF ( ND36 > 0 ) THEN
+
+         ! Diagnostic category
          CATEGORY     = 'ANTHSRCE'
-         UNIT         = 'molec/cm2/s'
 
-         ! Loop over # of tracers
-         DO M = 1, TMAX(36)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% NOTE: FACTOR is the multiplication factor that converts
+         !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
+         !%%%
+         !%%% For tracers that are carried in equivalent C atoms, 
+         !%%% FACTOR is further multiplied by the # of C atoms per 
+         !%%% molecule, which is stored in Input_Opt%TRACER_COEFF. 
+         !%%% (bmy, 8/14/14)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         ! Get variables needed for HEMCO diagnostics
+         IF ( IDTNO > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_NO'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTNO
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+
+         ELSE IF ( IDTCO > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_CO'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTCO
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             
-            ! Get the tracer # from input.geos
-            N  = TINDEX(36,M)
-
-            IF ( Input_Opt%ITS_A_CH3I_SIM ) THEN
-
-                MSG = 'CH3I diagnostics not supported for now!'
-                CALL ERROR_STOP( MSG, LOC)
-
-            ELSE 
-
-               !--------------------------------------------------------
-               ! For full-chemistry.  Note, due to historical baggage,
-               ! the order of the tracers in AD36 array corresponds to
-               ! the order as given in IDEMS.  Therefore, for the given
-               ! tracer number N, we must find the corresponding entry
-               ! in IDEMS. (bmy, 3/5/07)
-               !--------------------------------------------------------
-               UNIT     = ''
-
-               ! reset these
-               MM = 0
-               NN = 0
-
-               ! Given the tracer number N, find the proper entry in the 
-               ! IDEMS array and select that for output (bmy, 3/5/07)
-               DO NMAX = 1, NEMANTHRO
-                  IF ( N == IDEMS(NMAX) ) THEN
-                     MM = NMAX
-                     NN = N
-                     EXIT
-                  ENDIF
-               ENDDO
-
-               ! We haven't found a match, skip to next tracer
-               IF ( MM == 0 ) CYCLE
-
-               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               !%%% NOTE: FACTOR is the multiplication factor that converts
-               !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s.        
-               !%%%
-               !%%% For tracers that are carried in equivalent C atoms, 
-               !%%% FACTOR is further multiplied by the # of C atoms per 
-               !%%% molecule, which is stored in Input_Opt%TRACER_COEFF. 
-               !%%% (bmy, 8/14/14)
-               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-               ! Get variables needed for HEMCO diagnostics
-               IF ( N == IDTNO ) THEN
-                  DiagnName = 'ANTHROPOGENIC_NO'
-                  UNIT      = 'molec/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-
-               ELSEIF ( N == IDTCO ) THEN
-                  DiagnName = 'ANTHROPOGENIC_CO'
-                  UNIT      = 'molec/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  
-               ELSEIF ( N == IDTALK4 ) THEN
-                  DiagnName = 'ANTHROPOGENIC_ALK4'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTALK4 > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_ALK4'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTALK4
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
        
-               ELSEIF ( N == IDTACET ) THEN
-                  DiagnName = 'ANTHROPOGENIC_ACET'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-                         
-               ELSEIF ( N == IDTMEK ) THEN
-                  DiagnName = 'ANTHROPOGENIC_MEK'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTACET > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_ACET'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTACET
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+                   
+         ELSE IF ( IDTMEK > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_MEK'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTMEK
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-               ELSEIF ( N == IDTALD2 ) THEN
-                  DiagnName = 'ANTHROPOGENIC_ALD2'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTALD2 > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_ALD2'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTALD2
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-               ELSEIF ( N == IDTPRPE ) THEN
-                  DiagnName = 'ANTHROPOGENIC_PRPE'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTPRPE > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_PRPE'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTPRPE
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-               ELSEIF ( N == IDTC3H8 ) THEN
-                  DiagnName = 'ANTHROPOGENIC_C3H8'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTC3H8 > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_C3H8'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTC3H8
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-               ELSEIF ( N == IDTCH2O ) THEN
-                  DiagnName = 'ANTHROPOGENIC_CH2O'
-                  UNIT      = 'molec/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+         ELSE IF ( IDTCH2O > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_CH2O'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTCH2O
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
 
-               ELSEIF ( N == IDTC2H6 ) THEN
-                  DiagnName = 'ANTHROPOGENIC_C2H6'
-                  UNIT      = 'atoms C/cm2/s'
-                  FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-                  FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+         ELSE IF ( IDTC2H6 > 0 ) THEN
+            DiagnName = 'ANTHROPOGENIC_C2H6'
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTC2H6 
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-               ENDIF
+         ENDIF
 
-               ! kg/m2/s to molec/cm2/s 
-               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                         UNIT, NN, 1, -1, .TRUE., FACTOR, RC )
-               IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
- 
-            ENDIF
-         ENDDO
+         ! kg/m2/s to molec/cm2/s 
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT, NN, 1, -1, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
       ENDIF
 !
 !******************************************************************************
@@ -3638,8 +3646,96 @@
      &                    JFIRST,     LFIRST,    ARRAY(:,:,1:LD52) )
 
       ENDIF
+!
+!******************************************************************************
+!  ND53: POPs emissions (eck, 10/21/10)
+!
+!   # : Field  : Description                    : Units      : Scale factor
+!  ----------------------------------------------------------------------------
+!  (1 ) POPT   : Emissions of total POPs        : kg/s       : SCALESRCE
+!  (2 ) POPPOC : Emissions of OC-sorbed POP     : kg/s       : SCALESRCE
+!  (3 ) POPPBC : Emissions of BC-sorbed POP     : kg/s       : SCALESRCE
+!  (4 ) POPG   : Emissions of gas-phase POP     : kg/s       : SCALESRCE
+!  (5 ) POPPOC : Gross POP OC lost to gas       : kg         : 1
+!  (6 ) POPPOC : Gross POP OC formed from gas   : kg         : 1
+!  (7 ) POPPBC : Gross POP BC lost to gas       : kg         : 1
+!  (8 ) POPPBC : Gross POP BC formed from gas   : kg         : 1
+!  (9 ) POPG   : Prod of POPG from rxn with OH  : kg         : 1
+!  (10) POPPOC : Prod of POPOC from rxn with O3 : kg         : 1
+!  (11) POPPBC : Prod of POPBC from rxn with O3 : kg         : 1
+!******************************************************************************
+!
+      IF ( ND53 > 0 .and. Input_Opt%ITS_A_POPS_SIM ) THEN
 
+         CATEGORY = 'PG-SRCE'
+         UNIT     = 'kg'
 
+!------------------------------------------------------------------------------
+! Prior to 8/27/14:
+! Comment out for now -- Need to figure out how to track total POPs emissions
+! in HEMCO (mps/8/27/14)
+!        IF ( IDTPOPG > 0 .and. IDTPOPPOC > 0 .and. IDTPOPPBC > 0 ) THEN
+!
+!            !--------------------------------
+!            ! Total POP emissions
+!            !--------------------------------
+!            DiagnName = 'AD01_POPT_SOURCE'
+!            N         = 1
+!            FACTOR    = 1.0d0
+!            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+!     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC, 
+!     &                      AreaScal=1 )
+!            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+!
+!         ENDIF
+!------------------------------------------------------------------------------
+
+         IF ( IDTPOPPOC > 0 ) THEN
+
+            !--------------------------------
+            ! OC-sorbed POP emissions
+            !--------------------------------
+            DiagnName = 'AD01_POPPOC_SOURCE'
+            N         = 2
+            FACTOR    = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         ENDIF
+
+         IF ( IDTPOPPBC > 0) THEN
+
+            !--------------------------------
+            ! BC-sorbed POP emissions
+            !--------------------------------
+            DiagnName = 'AD01_POPPBC_SOURCE'
+            N         = 3
+            FACTOR    = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         ENDIF
+
+         IF ( IDTPOPG > 0 ) THEN
+
+            !--------------------------------
+            ! Gas-phase POP emissions
+            !--------------------------------
+            DiagnName = 'AD01_POPG_SOURCE'
+            N         = 4
+            FACTOR    = 1.0d0
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         ENDIF
+
+         ! Write the remaining ND53 diagnostics 
+         CALL WRITE_DIAG53
+
+      ENDIF
 !
 !******************************************************************************
 !  ND54: Time-in-the-Troposphere diagnostic
@@ -4919,13 +5015,6 @@
          ENDDO
       ENDIF
  
-      !### Debug
-      print*, '###------------------------------------'
-      print*, '### Diagnostic: ', dName
-      print*, '### UNIT      : ', bUnit
-      print*, '### FACTOR    : ', dFACTOR
-      print*, '### Sum ARRAY : ', SUM( ARRAY(:,:,1:levs) )
-
       ! Write to bpch file
       CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &            HALFPOLAR, CENTER180, bCat,     bN,

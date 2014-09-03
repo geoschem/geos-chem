@@ -74,22 +74,12 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  07 Jul 2014 - R. Yantosca - Removed routines now orphaned by HEMCO
+!  22 Aug 2014 - R. Yantosca - Removed LATSOU, PRESOU, BESOU arrays, these
+!                              are now defined in the HEMCO code.
+!  22 Aug 2014 - R. Yantosca - Remove XNUMOL_* parameters; these are obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-      ! For Lal & Peters emissions
-      REAL*8            :: LATSOU(10), PRESOU(33), BESOU(10,33)
-!
-! !DEFINED PARAMETERS:
-!
-      ! To convert kg to atoms
-      REAL*8, PARAMETER :: XNUMOL_Rn = ( 6.0225d23 / 222.0d-3 )    
-      REAL*8, PARAMETER :: XNUMOL_Pb = ( 6.0225d23 / 210.0d-3 )    
-      REAL*8, PARAMETER :: XNUMOL_Be = ( 6.0225d23 /   7.0d-3 )
-
       CONTAINS
 !EOC   
 !------------------------------------------------------------------------------
@@ -113,11 +103,15 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD01, AD02
+      USE DIAG_MOD,           ONLY : AD01
+      USE DIAG_MOD,           ONLY : AD02
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : IDTRn
+      USE TRACERID_MOD,       ONLY : IDTPb
+      USE TRACERID_MOD,       ONLY : IDTBe7    
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -157,90 +151,137 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  22 Aug 2014 - R. Yantosca - Copy emissions above the PBL to tracer array
+!  22 Aug 2014 - R. Yantosca - Cosmetic changes, for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
+      INTEGER           :: I,        J,         L
+      INTEGER           :: LSTART,   N,         N_TRACERS            
+      REAL*8            :: ADD_Pb,   Be_LOST,   DTCHEM   
+      REAL*8            :: Pb_LOST,  XNUMOL_Rn, XNUMOL_Pb
+      REAL*8            :: XNUMOL_Be
+
+      ! Static scalars
       LOGICAL, SAVE     :: FIRSTCHEM = .TRUE.
-      INTEGER           :: I, J, L, N            
-      REAL*8            :: ADD_Pb, Be_LOST ,DTCHEM, Pb_LOST 
+      REAL*8,  SAVE     :: EXP_Rn,   EXP_Pb,    EXP_Be
+
+      ! Arrays
       REAL*8            :: Rn_LOST(IIPAR,JJPAR,LLPAR)
-
-      ! Static variables
-      REAL*8, SAVE      :: EXP_Rn, EXP_Pb, EXP_Be
-
+!
+! !DEFINED PARAMETERS
+!
       ! Ratio of molecular weights of 210Pb/222Rn
       REAL*8, PARAMETER :: Pb_Rn_RATIO = 210d0 / 222d0
-
-      ! For fields from Input_Opt
-      INTEGER         :: N_TRACERS
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEMRnPbBe begins here!
       !=================================================================
 
       ! Assume success
-      RC        =  GIGC_SUCCESS
+      RC           =  GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      N_TRACERS =  Input_Opt%N_TRACERS
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT       => State_Chm%Tracers
+      N_TRACERS    = Input_Opt%N_TRACERS
 
       ! Chemistry timestep [s]
-      DTCHEM    =  GET_TS_CHEM() * 60d0
+      DTCHEM       =  GET_TS_CHEM() * 60d0
 
       ! Pre-compute exponential terms only on first timestep
       IF ( FIRSTCHEM ) THEN 
          
          ! Fraction of (222Rn, 210Pb, 7Be) left after radioactive decay
-         EXP_Rn = EXP( -DTCHEM * 2.097d-6  )
-         EXP_Pb = EXP( -DTCHEM * 9.725d-10 ) 
-         EXP_Be = EXP( -DTCHEM * 1.506d-7  )
+         EXP_Rn    = EXP( -DTCHEM * 2.097d-6  )
+         EXP_Pb    = EXP( -DTCHEM * 9.725d-10 ) 
+         EXP_Be    = EXP( -DTCHEM * 1.506d-7  )
 
          ! Reset FIRSTCHEM flag
          FIRSTCHEM = .FALSE.
       ENDIF
 
       !=================================================================
-      ! Radioactive decay of 222Rn (tracer #1)
+      ! Add emissions above the PBL to the tracer array. 
+      ! For more information about emissions and PBL mixing, see:
+      ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, N )
+      DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Rn_LOST = amount of 222Rn lost to decay [kg]
-         Rn_LOST(I,J,L) = STT(I,J,L,1) * ( 1d0 - EXP_Rn )
-
-         ! ND02 diag: 222Rn lost to decay [kg/s]
-         IF ( ND02 > 0 .and. L <= LD02 ) THEN
-            AD02(I,J,L,1) = AD02(I,J,L,1) + ( Rn_LOST(I,J,L) / DTCHEM )
+         ! If we are using the non-local PBL mixing scheme, then
+         ! only add emissions above the PBL top.  All wmissions within
+         ! the PBL are handled in routine VDIFFDR in vdiff_mod.F90.
+         ! Skip if we have PBL mixing completely turned off, or if
+         ! we are using the TURBDAY full-mixing scheme.
+         IF ( Input_Opt%LNLPBL ) THEN
+            IF ( L < State_Met%PBL_TOP_L(I,J) + 1 ) CYCLE
          ENDIF
 
-         ! Subtract Rn_LOST from STT [kg]
-         STT(I,J,L,1) = STT(I,J,L,1) - Rn_LOST(I,J,L)
+         ! Add emissions into the tracer array
+         ! Convert from [kg/m2/s] to [kg]
+         State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
+     &                              + ( State_Chm%TRAC_TEND(I,J,L,N) 
+     &                              *   State_Met%AREA_M2  (I,J,L  )
+     &                              *   DTCHEM                       )
+
+      ENDDO
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
       !=================================================================
-      ! Radioactive decay of 210Pb (tracer #2)
+      ! Radioactive decay of Rn222
       !=================================================================
-      IF ( N_TRACERS >= 2 ) THEN
+      
+      ! Tracer index
+      N = IDTRn
 
+      ! Make sure Rn222 is a defined tracer
+      IF ( N > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Rn_LOST = amount of 222Rn lost to decay [kg]
+            Rn_LOST(I,J,L)             = State_Chm%TRACERS(I,J,L,N) 
+     &                                 * ( 1d0 - EXP_Rn )
+
+            ! ND02 diag: 222Rn lost to decay [kg/s]
+            IF ( ND02 > 0 .and. L <= LD02 ) THEN
+               AD02(I,J,L,1)           = AD02(I,J,L,1) 
+     &                                 + ( Rn_LOST(I,J,L) / DTCHEM )
+            ENDIF
+
+            ! Subtract Rn_LOST from STT [kg]
+            State_Chm%TRACERS(I,J,L,N) = 
+     &      State_Chm%TRACERS(I,J,L,N) - Rn_LOST(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+
+      !=================================================================
+      ! Radioactive decay of Pb210
+      !=================================================================
+      
+      ! Tracer index
+      N = IDTPb
+
+      ! Make sure Pb210 is a defined tracer
+      IF ( N > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, ADD_Pb, Pb_LOST )
@@ -249,39 +290,39 @@
          DO I = 1, IIPAR
            
             ! ADD_Pb = Amount of 210Pb gained by decay from 222Rn [kg]
-            ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
+            ADD_Pb                     = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
             ! Correct strat-trop exchange of 210Pb in stratosphere
             IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 7/7/14:
-! Replce call to CORRECT_STE with the equivalent code below (bmy, 7/7/14)
-!               CALL CORRECT_STE( ADD_Pb )
-!-----------------------------------------------------------------------------
 #if defined( GCAP )
-               ADD_Pb = ADD_Pb / 3.5d0
+               ADD_Pb                  = ADD_Pb / 3.5d0
 #endif
             ENDIF
 
             ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN
-               AD01(I,J,L,2) = AD01(I,J,L,2) + ( ADD_Pb / DTCHEM )
+               AD01(I,J,L)             = AD01(I,J,L) + 
+     &                                   ( ADD_Pb / DTCHEM )
             ENDIF
 
             ! Add 210Pb gained by decay from 222Rn into STT [kg]
-            STT(I,J,L,2) = STT(I,J,L,2) + ADD_Pb          
+            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
+     &                                 + ADD_Pb          
 
             ! Amount of 210Pb lost to radioactive decay [kg]
             ! NOTE: we've already added in the 210Pb gained from 222Rn
-            Pb_LOST = STT(I,J,L,2) * ( 1d0 - EXP_Pb )
+            Pb_LOST                    = State_Chm%TRACERS(I,J,L,N) 
+     &                                 * ( 1d0 - EXP_Pb )
 
             ! ND02 diag: 210Pb lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,2) = AD02(I,J,L,2) + ( Pb_LOST / DTCHEM )
+               AD02(I,J,L,2)           = AD02(I,J,L,2) 
+     &                                 + ( Pb_LOST / DTCHEM )
             ENDIF
 
             ! Subtract 210Pb lost to decay from STT [kg]
-            STT(I,J,L,2) = STT(I,J,L,2) - Pb_LOST
+            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
+     &                                 - Pb_LOST
          ENDDO
          ENDDO
          ENDDO
@@ -289,10 +330,14 @@
       ENDIF
 
       !=================================================================
-      ! Radioactive decay of 7Be (tracer #3)
+      ! Radioactive decay of Be7
       !=================================================================
-      IF ( N_TRACERS >= 3 ) THEN 
 
+      ! Tracer index
+      N = IDTBe7
+
+      ! Make sure Be7 is a defined tracer
+      IF ( N > 0 ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, L, Be_LOST )
@@ -301,25 +346,23 @@
          DO I = 1, IIPAR
 
             ! Amount of 7Be lost to decay [kg]
-            Be_LOST = STT(I,J,L,3) * ( 1d0 - EXP_Be )
+            Be_LOST                    = State_Chm%TRACERS(I,J,L,N) 
+     &                                 * ( 1d0 - EXP_Be )
 
             ! ND02 diag: 7Be lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,3) = AD02(I,J,L,3) + ( Be_LOST / DTCHEM )
+               AD02(I,J,L,3)           = AD02(I,J,L,3) 
+     &                                 + ( Be_LOST / DTCHEM )
             ENDIF
 
             ! Subtract amount of 7Be lost to decay from STT [kg]
-            STT(I,J,L,3) = STT(I,J,L,3) - Be_LOST
+            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
+     &                                 - Be_LOST
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-
-#if defined( DEVEL )
-      ! Free pointer
-      NULLIFY( STT )
-#endif
 
       END SUBROUTINE CHEMRnPbBe
 !EOC

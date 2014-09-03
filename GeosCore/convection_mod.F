@@ -2514,8 +2514,8 @@
                   CALL WASHOUT( I, J, K,   IC,       BXHEIGHT(K), 
      &                          T(K),      QDOWN,    SDT,   
      &                          F_WASHOUT, H2O2s(K), SO2s(K), 
-     &                          WASHFRAC,  AER,      State_Met,
-     &                          State_Chm                         )
+     &                          WASHFRAC,  AER,      Input_Opt,
+     &                          State_Met, State_Chm            )
 
                   ! Check if the tracer is an aerosol or not
                   IF ( AER == .TRUE. ) THEN

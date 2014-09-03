@@ -848,13 +848,14 @@
                ! Chemical production is tracer #10 in HEMCO
                ID = 10
 
-               ! Production is in [kg/m3/s] (!!!), convert to [molec/cm3/s]
-               IF ( .NOT. ASSOCIATED(HcoState%Spc(ID)%Emis%Val) ) THEN
+               ! Production is in [kg/m3], convert to [molec/cm3/s]
+               IF ( .NOT. ASSOCIATED(HcoState%Spc(ID)%Conc%Val) ) THEN
                   CALL ERROR_STOP('CO2 production not defined',LOC)
                ENDIF
                E_CO2 = HcoState%Spc(ID)%Emis%Val(I,J,L) 
      &               / CM3PERM3 
      &               * XNUMOL_CO2
+     &               / DTSRCE
 
                ! ND04 diag: CO2 chem source from CO loss (3-D) [molec/cm3/s] 
                IF ( ND04 > 0 ) THEN

@@ -1216,6 +1216,8 @@
 !  28 Oct 2013 - R. Yantosca - Set Input_Opt%ITS_A_SPECIALTY_SIM = .FALSE.
 !                              when running GEOS-Chem in an ESMF environment
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  21 Aug 2014 - R. Yantosca - Bug fix: add ITS_A_RnPbBe_SIM to the test
+!                              that defines the ITS_A_SPECIALTY_SIM flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1283,7 +1285,8 @@
      &       Input_Opt%ITS_A_MERCURY_SIM   .or.
      &       Input_Opt%ITS_A_CO2_SIM       .or.
      &       Input_Opt%ITS_A_H2HD_SIM      .or.
-     &       Input_Opt%ITS_A_POPS_SIM           )
+     &       Input_Opt%ITS_A_POPS_SIM      .or.
+     &       Input_Opt%ITS_A_RnPbBe_SIM         )
 #endif
 
       ! Also pick a name corresponding to each simulation type
@@ -7313,8 +7316,6 @@
 !
 ! !USES:
 !
-      USE GET_POPSINFO_MOD,     ONLY : GET_POP_TYPE
-      USE POPS_MOD,             ONLY : INIT_POPS
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
 !
@@ -7337,6 +7338,9 @@
 !  26 Mar 2013 - R. Yantosca - Now pass Input_Opt to INIT_POPS
 !  14 Apr 2014 - R. Yantosca - Now echo all POPs parameters to log file
 !  23 Jun 2014 - R. Yantosca - Now use Input_Opt%POP_EMISDIR
+!  25 Aug 2014 - M. Sulprizio- Move call to INIT_POPs to GIGC_Init_Extra
+!  27 Aug 2014 - M. Sulprizio- Remove POP_EMISDIR, emissions are now handled
+!                              by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7351,7 +7355,6 @@
       REAL*8             :: POP_K_POPP_O3A, POP_K_POPP_O3B
       REAL*8             :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
       CHARACTER(LEN=3)   :: POP_TYPE
-      CHARACTER(LEN=255) :: POP_EMISDIR
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -7368,10 +7371,6 @@
       ! Dummy for future process logical switches
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:2' )
       READ( SUBSTRS(1:N), * ) CHEM_PROCESS
-
-      ! Name of pops emissions file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:3' )
-      READ( SUBSTRS(1:N), '(a)' ) POP_EMISDIR
 
       ! Molecular weight
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:4' )
@@ -7420,8 +7419,6 @@
          WRITE( 6, '(  a)' ) '------------'
          WRITE( 6, 120     ) 'Species of POP        : ', POP_TYPE
          WRITE( 6, 110     ) 'Chemistry on?         : ', CHEM_PROCESS
-         WRITE( 6, 120     ) '=> POP Emissions file : ',
-     &                        TRIM( Input_Opt%POP_EMISDIR )     
          WRITE( 6, 130     ) 'POP_XMW               : ', POP_XMW
          WRITE( 6, 130     ) 'POP_KOA               : ', POP_KOA
          WRITE( 6, 130     ) 'POP_KBC               : ', POP_KBC
@@ -7436,14 +7433,13 @@
       ! FORMAT statements
  110  FORMAT( A, L5  )
  120  FORMAT( A, A   )
- 130  FORMAT( A, f6.5 )
+ 130  FORMAT( A, ES10.2 )
 
       !=================================================================
       ! Copy to Input Options object
       !=================================================================
       Input_Opt%POP_TYPE       = POP_TYPE
       Input_Opt%CHEM_PROCESS   = CHEM_PROCESS
-      Input_Opt%POP_EMISDIR    = POP_EMISDIR
       Input_Opt%POP_XMW        = POP_XMW
       Input_Opt%POP_KOA        = POP_KOA
       Input_Opt%POP_KBC        = POP_KBC
@@ -7456,22 +7452,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-
-      ! If we are performing a POPS simulation ...
-      IF ( Input_Opt%ITS_A_POPS_SIM ) THEN 
-
-         ! Initially set pop type
-         POP_TYPE = GET_POP_TYPE( POP_TYPE )
-
-         ! Set emissions file to use
-!         POP_EMISSFILE = GET_EMISSFILE( TRIM( POP_EMISSFILE ) )
-
-         ! Initialize "pops_mod.f"
-         CALL INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
-     &                  POP_K_POPP_O3A, POP_K_POPP_O3B, 
-     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw, Input_Opt )
-
-      ENDIF
 
       END SUBROUTINE READ_POPS_MENU
 !EOC
@@ -8153,6 +8133,7 @@
       USE HCN_CH3CN_Mod,      ONLY : Init_HCN_CH3CN
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
+      USE POPs_Mod,           ONLY : Init_POPs
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
@@ -8193,6 +8174,7 @@
 !                              since we read C2H6 emissions from c2h6_mod.F
 !  25 Jun 2014 - R. Yantosca - Now call INIT_MODIS_LAI      
 !  25 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES (vdiff_pre_mod.F90)
+!  25 Aug 2014 - M. Sulprizio- Now call INIT_POPS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8301,6 +8283,10 @@
       ! Initialize "tagged_ox_mod.F"
       IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
          CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
+      ENDIF
+
+      IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
+         CALL INIT_POPS( am_I_Root, Input_Opt, RC )
       ENDIF
 
       END SUBROUTINE GIGC_Init_Extra

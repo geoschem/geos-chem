@@ -77,7 +77,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
-!  28 Aug 2013 - C. Keller - Initial version
+!  28 Aug 2013 - C. Keller   - Initial version
+!  27 Aug 2014 - R. Yantosca - Err msg now displays hcoio_dataread_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -224,6 +225,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
+!  27 Aug 2014 - R. Yantosca - Err msg now displays hcoio_dataread_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1297,7 +1299,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    LOC    = 'NORMALIZE_AREA (hcoi_dataread_mod.F90 )'
+    LOC    = 'NORMALIZE_AREA (hcoio_dataread_mod.F90 )'
     PI_180 = HcoState%Phys%PI / 180.0_dp
 
     ! Check array size
