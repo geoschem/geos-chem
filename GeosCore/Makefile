@@ -448,7 +448,8 @@ cleanup.o                   : cleanup.F                                      \
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
 co2_mod.o                   : co2_mod.F                                      \
-                              diag04_mod.o            tracerid_mod.o          
+                              diag04_mod.o            tracerid_mod.o         \
+                              hcoi_gc_main_mod.o
 
 comode_mod.o                : comode_mod.F
 
