@@ -153,6 +153,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  22 Aug 2014 - R. Yantosca - Copy emissions above the PBL to tracer array
 !  22 Aug 2014 - R. Yantosca - Cosmetic changes, for clarity
+!  04 Sep 2014 - R. Yantosca - Add minor changes for efficiency
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -211,30 +212,36 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
+!$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, N_TRACERS
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
 
-         ! If we are using the non-local PBL mixing scheme, then
-         ! only add emissions above the PBL top.  All wmissions within
-         ! the PBL are handled in routine VDIFFDR in vdiff_mod.F90.
-         ! Skip if we have PBL mixing completely turned off, or if
-         ! we are using the TURBDAY full-mixing scheme.
-         IF ( Input_Opt%LNLPBL ) THEN
-            IF ( L < State_Met%PBL_TOP_L(I,J) + 1 ) CYCLE
-         ENDIF
+         ! Skip Pb210, it's source is from Rn decay
+         IF ( N == IDTPb ) CYCLE
 
-         ! Add emissions into the tracer array
-         ! Convert from [kg/m2/s] to [kg]
-         State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
-     &                              + ( State_Chm%TRAC_TEND(I,J,L,N) 
-     &                              *   State_Met%AREA_M2  (I,J,L  )
-     &                              *   DTCHEM                       )
+         ! Loop over all grid boxes
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-      ENDDO
-      ENDDO
-      ENDDO
+            ! If we are using the non-local PBL mixing scheme, then
+            ! only add emissions above the PBL top.  All wmissions within
+            ! the PBL are handled in routine VDIFFDR in vdiff_mod.F90.
+            ! Skip if we have PBL mixing completely turned off, or if
+            ! we are using the TURBDAY full-mixing scheme.
+            IF ( Input_Opt%LNLPBL ) THEN
+               IF ( L < State_Met%PBL_TOP_L(I,J) + 1 ) CYCLE
+            ENDIF
+
+            ! Add emissions into the tracer array
+            ! Convert from [kg/m2/s] to [kg]
+            State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)
+     &                                 + ( State_Chm%TRAC_TEND(I,J,L,N)
+     &                                 *   State_Met%AREA_M2  (I,J,L  )
+     &                                 *   DTCHEM                      )
+
+         ENDDO
+         ENDDO
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -292,12 +299,16 @@
             ! ADD_Pb = Amount of 210Pb gained by decay from 222Rn [kg]
             ADD_Pb                     = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
-            ! Correct strat-trop exchange of 210Pb in stratosphere
-            IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
 #if defined( GCAP )
+            !%%%%% FOR GCAP SIMULATION: Divide the 210Pb source by 3.5
+            !%%%%% to correct for the strat-trop exchange.  A similar
+            !%%%%% line of code is done in the HEMCO extension where
+            !%%%%% the Be7 source is computed.  This replicates the
+            !%%%%% pre-HEMCO code. (bmy, 9/4/14)
+            IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
                ADD_Pb                  = ADD_Pb / 3.5d0
-#endif
             ENDIF
+#endif
 
             ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN

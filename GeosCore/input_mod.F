@@ -2326,6 +2326,8 @@
 !                              emissions options are now specified in HEMCO
 !  23 Jun 2014 - R. Yantosca - Remove reference to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Move call to INIT_MODIS_LAIT to GIGC_INIT_EXTRA
+!  04 Sep 2014 - R. Yantosca - Bug fix: Now use Input_Opt%OTDLOC since we have
+!                              now removed logical_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2601,7 +2603,7 @@
       ! GCAP error message 
       !--------------------------------
 
-      IF ( LOTDLOC ) THEN
+      IF ( Input_Opt%LOTDLOC ) THEN
             MSG = 'Lightning rescaling not available nor very ' //
      &            'appropriate for GCAP sim because of window ' // 
      &            'of OTD/LIS satellite observations.  Select ' //

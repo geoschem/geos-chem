@@ -53,7 +53,8 @@ MODULE HCOX_GC_RnPbBe_Mod
 !  15 Aug 2014 - C. Keller   - Targets now in hp precision. Cosmetic changes
 !  21 Aug 2014 - R. Yantosca - Add Pb as a species
 !  21 Aug 2014 - R. Yantosca - Add HEMCO species indices as module variables
-
+!  04 Sep 2014 - R. Yantosca - Remove IDTPb; Pb210 only has a chemical source
+!  04 Sep 2014 - R. Yantosca - Modified for GCAP simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -63,7 +64,6 @@ MODULE HCOX_GC_RnPbBe_Mod
   ! Emissions indices etc.
   INTEGER                       :: ExtNr  = -1       ! HEMCO Extension number
   INTEGER                       :: IDTRn  = -1       ! Tracer index # for Rn
-  INTEGER                       :: IDTPb  = -1       ! Tracer index # for Pb
   INTEGER                       :: IDTBe7 = -1       ! Tracer index # for Be7
 
   ! For tracking Rn222 and Be7 emissions
@@ -345,14 +345,15 @@ CONTAINS
        ! ADD_Be = [atoms/s] / [atom/kg] / [m2] = 7Be emissions [kg/m2/s]
        ADD_Be  = ( Be_TMP / XNUMOL_Be ) / HcoState%Grid%AREA_M2(I,J)
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% TODO: This function is only really defined for GCAP, so we may need
-!%%% to figure out how to test for ITS_IN_THE_STRATMESO here (bmy, 7/7/14)
-!%%%       ! Correct the strat-trop exchange of 7Be
-!%%%       IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
-!%%%          CALL CORRECT_STE( ADD_Be )
-!%%%       ENDIF
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#if defined( GCAP ) 
+       !%%%%% FOR GCAP SIMULATION: Divide emissions flux by 3.5 to correct
+       !%%%%% for the strat-trop exchange!  This replicates the prior code.
+       !%%%%% (bmy, 9/4/14)
+       IF ( .not. ( ExtState%PEDGE%Arr%Val(I,J,L) >          &
+                    ExtState%TROPP%Arr%Val(I,J)     ) ) THEN
+          ADD_Be = ADD_Be / 3.5d0
+       ENDIF
+#endif
 
        ! Save emissions into an array for use below
        EmissBe7(I,J,L) = ADD_Be
@@ -425,6 +426,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  07 Jul 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Now define HEMCO indices as well
+!  04 Sep 2014 - R. Yantosca - Activate ExtState%TROPP for GCAP simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -477,8 +479,6 @@ CONTAINS
        SELECT CASE( TRIM( SpcNames(N) ) )
           CASE( 'Rn', 'Rn222', '222Rn' )
              IDTRn   = HcoIDs(N)
-          CASE( 'Pb', 'Pb210', '210Pb' )
-             IDTPb   = HcoIDs(N)
           CASE( 'Be', 'Be7', '7Be' )
              IDTBe7  = HcoIDs(N)
           CASE DEFAULT
@@ -503,6 +503,9 @@ CONTAINS
     ExtState%TSURFK%DoUse  = .TRUE. 
     ExtState%AIR%DoUse     = .TRUE. 
     ExtState%PCENTER%DoUse = .TRUE.
+#if defined( GCAP ) 
+    ExtState%TROPP%DoUse   = .TRUE.
+#endif
 
     ! Activate this extension
     ExtState%Gc_RnPbBe     = .TRUE.
