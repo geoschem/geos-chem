@@ -504,6 +504,7 @@ CONTAINS
     ExtState%AIR%DoUse     = .TRUE. 
     ExtState%PCENTER%DoUse = .TRUE.
 #if defined( GCAP ) 
+    ExtState%PEDGE%DoUse   = .TRUE.
     ExtState%TROPP%DoUse   = .TRUE.
 #endif
 
