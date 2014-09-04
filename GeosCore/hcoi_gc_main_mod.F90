@@ -1471,6 +1471,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller   - Initial Version
 !  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  04 Sep 2014 - R. Yantosca - Include more specialty sims in IF statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1491,8 +1492,14 @@ CONTAINS
     ! For most simulations (e.g. full-chem simulation, most of the
     ! specialty sims), just use the GEOS-Chem species definitions.
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. &
-         Input_Opt%ITS_A_RnPbBe_SIM         ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
+         Input_Opt%ITS_AN_AEROSOL_SIM .or. &
+         Input_OPt%ITS_A_CH4_SIM      .or. &
+         Input_Opt%ITS_A_MERCURY_SIM  .or. &
+         Input_Opt%ITS_A_POPS_SIM     .or. &
+         Input_Opt%ITS_A_RnPbBe_SIM   .or. &
+         Input_Opt%ITS_A_TAGO3_SIM    .or. &
+         Input_Opt%ITS_A_TAGCO_SIM  ) THEN
 
        ! # of model species
        nModelSpec = Input_Opt%N_TRACERS
