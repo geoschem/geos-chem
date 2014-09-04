@@ -178,7 +178,8 @@ CONTAINS
 !$OMP DEFAULT( SHARED )                                                &
 !$OMP PRIVATE( I,       J,        LAT_S,      LAT_N,      LAT_H      ) &
 !$OMP PRIVATE( LAT_L,   DENOM,    F_BELOW_70, F_BELOW_60, F_ABOVE_60 ) &
-!$OMP PRIVATE( Rn_LAND, Rn_WATER, F_LAND,     F_WATER,    ADD_Rn     )
+!$OMP PRIVATE( Rn_LAND, Rn_WATER, F_LAND,     F_WATER,    ADD_Rn     ) &
+!$OMP SCHEDULE( DYNAMIC )
     DO J = 1, HcoState%Ny
     DO I = 1, HcoState%Nx
 
@@ -188,44 +189,13 @@ CONTAINS
        LAT_H         = MAX( LAT_S, LAT_N )
        LAT_L         = MIN( LAT_S, LAT_N ) 
 
-       !--------------------------------------------------------------------
-       ! NOTE: For some GEOS-Chem grids, the absolute value of the 
-       ! southern and northern latitude edges can be the same!  
-       !
-       ! For example, the GEOS 2 x 2.5 grid boxes that straddle the equator
-       ! (i.e. with J=46) have LAT_S = -1.0 and LAT_N = +1.0.  
-       !
-       ! This causes the denominator ( LAT_H - LAT-L ) to be zero, which 
-       ! causes a div-by-zero error, as caught by the G-C Unit Tester.
-       !
-       ! Add an error check to prevent this div-by-zero condition!
-       !--------------------------------------------------------------------
-
-       ! Denominator term
+       ! Grid box extent, for use in denominators below
        DENOM         = ( LAT_H - LAT_L )
-
-       ! Prevent div-by-zero
-       IF ( DENOM > 0.0 ) THEN 
-
-          ! If DENOM > 0, we can compute the fractions of the grid box
-          ! that lie beneath 70 degreees (F_BELOW_70) and 60 degrees 
-          ! (F_BELOW_60).  These are computed symmetrically for the 
-          ! Northern and Southern Hemispheres.
-          F_BELOW_70 = ( 70.0d0 - LAT_L ) / DENOM
-          F_BELOW_60 = ( 60.0d0 - LAT_L ) / DENOM
-
-       ELSE
-
-          ! If DENOM = 0 then that means we are along the equator.
-          ! Thus, the grid box will certainly be entirely below 70N
-          ! or 60N.  We can set F_BELOW_70 = 1 and F_BELOW_60 = 1.
-          F_BELOW_70 = 1.0d0
-          F_BELOW_60 = 1.0d0
-
-       ENDIF
-
-       ! Fraction of grid box w/ ABS( latitude ) greater than 60 degrees
-       F_ABOVE_60    = 1d0 - F_BELOW_60
+       
+       ! Zero for safety's sake
+       F_BELOW_70    = 0d0
+       F_BELOW_60    = 0d0
+       F_ABOVE_60    = 0d0
 
        ! Baseline 222Rn emissions 
        ! Rn_LAND [kg/m2/s] = [1 atom 222Rn/cm2/s] / [atoms/kg] * [1d4 cm2/m2]
@@ -261,6 +231,9 @@ CONTAINS
                
           ELSE
                
+             ! Compute the fraction of the grid box below 70 degrees
+             F_BELOW_70 = ( 70.0d0 - LAT_L ) / DENOM
+
              ! If the grid box straddles the 70S or 70N latitude line,
              ! then only count 222Rn emissions equatorward of 70 degrees.
              ! 222Rn emissions here are 0.005 [atoms/cm2/s].
@@ -275,18 +248,24 @@ CONTAINS
           !--------------------
           IF ( LAT_H > 60d0 ) THEN
 
-             ADD_Rn =                                                    &
-                        ! Consider 222Rn emissions equatorward of 
-                        ! 60 degrees for both land (1.0 [atoms/cm2/s]) 
-                        ! and water (0.005 [atoms/cm2/s])
-                        F_BELOW_60 *                                     &
-                        ( Rn_LAND  * F_LAND  ) +                         &
-                        ( Rn_WATER * F_WATER ) +                         &
+             ! Fraction of grid box with ABS( lat ) below 60 degrees
+             F_BELOW_60 = ( 60.0d0 - LAT_L ) / DENOM
 
-                        ! If the grid box straddles the 60 degree boundary
-                        ! then also consider the emissions poleward of 60
-                        ! degrees.  222Rn emissions here are 0.005 [at/cm2/s].
-                        F_ABOVE_60 * Rn_WATER                    
+             ! Fraction of grid box with ABS( lat ) above 60 degrees
+             F_ABOVE_60 = F_BELOW_60
+             
+             ADD_Rn =                                                &
+                      ! Consider 222Rn emissions equatorward of 
+                      ! 60 degrees for both land (1.0 [atoms/cm2/s]) 
+                      ! and water (0.005 [atoms/cm2/s])
+                      F_BELOW_60 *                                   &
+                      ( Rn_LAND  * F_LAND  ) +                       &
+                      ( Rn_WATER * F_WATER ) +                       &
+
+                      ! If the grid box straddles the 60 degree boundary
+                      ! then also consider the emissions poleward of 60
+                      ! degrees.  222Rn emissions here are 0.005 [at/cm2/s].
+                      F_ABOVE_60 * Rn_WATER                    
 
 
           !--------------------
