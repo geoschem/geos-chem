@@ -85,6 +85,7 @@
 ! !REVISION HISTORY: 
 !  19 January 2011 - C.L. Friedman - Initial Version
 !  20 Jun 2014 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC via arg list
+!  05 Sep 2014 - R. Yantosca - Add hack to read GCAP file names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -113,9 +114,24 @@
          FIRST = .FALSE.
       ENDIF
 
+#if defined( GCAP )
+
+      !%%% NOTE: For some reason the BC/OC files for GCAP are different
+      !%%% than for the other met fields.  Put in a hack to allow unit
+      !%%% testing to progress.  This will be a moot point with the
+      !%%% upcoming implementation of HEMCO. (bmy, 9/5/14)
+
+      ! Filename
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
+     &           'POPs_201209/BCPO_GCAP.bpch'
+
+#else
+
       ! Filename
       FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'POPs_201209/BCPO_FC_' //
      &           GET_RES_EXT()              // '.bpch'
+
+#endif
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )

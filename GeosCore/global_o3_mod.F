@@ -84,8 +84,8 @@
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
-! !INPUT PARAMETERS: 
-!
+! !REMARKS:
+!  This will be made obsolete with the implementation of HEMCO.
 !
 ! !REVISION HISTORY: 
 !  23 Mar 2003 - R. Yantosca - Initial version
@@ -108,7 +108,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  20 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod
-
+!  05 Sep 2014 - R. Yantosca - Add hack to read GCAP met field, for unit tests
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,6 +161,13 @@
 
 #endif
 
+#elif defined( GCAP )
+
+      !----------------------------------------------------------------
+      ! GCAP
+      !----------------------------------------------------------------
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) //  
+     &           'POPs_201209/MERGE.O3.gcap.4x5'
 
 #else
 
@@ -185,6 +192,8 @@
 #endif
 
 #endif
+
+
 
 
       ! Echo some information to the standard output
