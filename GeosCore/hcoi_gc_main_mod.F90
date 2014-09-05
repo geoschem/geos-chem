@@ -1033,9 +1033,12 @@ CONTAINS
     USE Modis_LAI_Mod,      ONLY : GC_LAI_CM
     USE Modis_LAI_Mod,      ONLY : GC_LAI_NM
 
-    ! For POPs emissions module
-    USE Global_OC_Mod,      ONLY : OC
-    USE Global_BC_Mod,      ONLY : BC
+!-----------------------------------------------------------------------------
+! Prior to 9/5/14:
+!    ! For POPs emissions module
+!    USE Global_OC_Mod,      ONLY : OC
+!    USE Global_BC_Mod,      ONLY : BC
+!-----------------------------------------------------------------------------
 !
 ! !INPUT PARAMETERS:
 !
@@ -1268,15 +1271,18 @@ CONTAINS
     ENDIF
     IF ( DoDryCoeff ) ExtState%DRYCOEFF => DRYCOEFF
 
-    !-----------------------------------------------------------------
-    ! Global OC and BC concentrations for POPs emissions
-    IF ( ExtState%GLOB_OC%DoUse ) THEN
-       ExtState%GLOB_OC%Arr%Val => OC
-    ENDIF
-
-    IF ( ExtState%GLOB_BC%DoUse ) THEN
-       ExtState%GLOB_BC%Arr%Val => BC
-    ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 9/5/14:
+!    !-----------------------------------------------------------------
+!    ! Global OC and BC concentrations for POPs emissions
+!    IF ( ExtState%GLOB_OC%DoUse ) THEN
+!       ExtState%GLOB_OC%Arr%Val => OC
+!    ENDIF
+!
+!    IF ( ExtState%GLOB_BC%DoUse ) THEN
+!       ExtState%GLOB_BC%Arr%Val => BC
+!    ENDIF
+!-----------------------------------------------------------------------------
 
   END SUBROUTINE ExtState_SetPointers
 !EOC

@@ -238,15 +238,11 @@ CONTAINS
        CALL EmisList_GetDataArr( aIR, 'TOT_POP', POP_TOT_EM, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-!------------------------------------------------------------------------------
-! Prior to 8/21/14:
-! For now get global OC and BC concentration from ExtState (mps, 8/21/14)
-!       CALL EmisList_GetDataArr( aIR, 'GLOB_OC', C_OC, RC )
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!
-!       CALL EmisList_GetDataArr( aIR, 'GLOB_BC', C_BC, RC )
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!------------------------------------------------------------------------------
+       CALL EmisList_GetDataArr( aIR, 'GLOB_OC', C_OC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       CALL EmisList_GetDataArr( aIR, 'GLOB_BC', C_BC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        FIRST = .FALSE.
 
@@ -299,8 +295,13 @@ CONTAINS
           KBC_OC_T = 1d0 / KOC_BC_T
 
           ! Get monthly mean OC and BC concentrations [kg/box]
-          C_OC1    = ExtState%GLOB_OC%Arr%Val(I,J,L)
-          C_BC1    = ExtState%GLOB_BC%Arr%Val(I,J,L)
+!------------------------------------------------------------------------------
+! Prior to 9/5/14:
+!          C_OC1    = ExtState%GLOB_OC%Arr%Val(I,J,L)
+!          C_BC1    = ExtState%GLOB_BC%Arr%Val(I,J,L)
+!------------------------------------------------------------------------------
+          C_OC1    = C_OC(I,J,L)
+          C_BC1    = C_BC(I,J,L)
            
           ! Convert C_OC and C_BC units to volume per box 
           ! [m^3 OC or BC/box]
@@ -309,12 +310,19 @@ CONTAINS
           C_OC2    = C_OC1 / DENS_OCT
           C_BC2    = C_BC1 / DENS_BC
 
-          ! Get air volume (m^3)
-          AIR_VOL   = ExtState%AIRVOL%Arr%Val(I,J,L) 
-
+!------------------------------------------------------------------------------
+! Prior to 9/5/14:
+! No need to divide C_OC2 by AIR_VOL, since units are now in kg/m3 (mps, 9/5/14)
+!          ! Get air volume (m^3)
+!          AIR_VOL   = ExtState%AIRVOL%Arr%Val(I,J,L) 
+!
+!          ! Define volume ratios:
+!          ! VR_OC_AIR = volume ratio of OC to air [unitless]    
+!          VR_OC_AIR = C_OC2 / AIR_VOL
+!------------------------------------------------------------------------------
           ! Define volume ratios:
           ! VR_OC_AIR = volume ratio of OC to air [unitless]    
-          VR_OC_AIR = C_OC2 / AIR_VOL
+          VR_OC_AIR   = C_OC2
 
           ! VR_OC_BC  = volume ratio of OC to BC [unitless]
           VR_OC_BC    = C_OC2 / C_BC2
@@ -610,13 +618,19 @@ CONTAINS
     ENDIF
 
     ! Activate met fields required by this extension
-    ExtState%AIRVOL%DoUse      = .TRUE. 
+!-----------------------------------------------------------------------------
+! Prior to 9/5/14:
+!    ExtState%AIRVOL%DoUse      = .TRUE. 
+!-----------------------------------------------------------------------------
     ExtState%FRAC_OF_PBL%DoUse = .TRUE. 
     ExtState%TK%DoUse          = .TRUE. 
 
-    ! Activate global BC and OC concentration
-    ExtState%GLOB_OC%DoUse     = .TRUE.
-    ExtState%GLOB_BC%DoUse     = .TRUE.
+!-----------------------------------------------------------------------------
+! Prior to 9/5/14:
+!    ! Activate global BC and OC concentration
+!    ExtState%GLOB_OC%DoUse     = .TRUE.
+!    ExtState%GLOB_BC%DoUse     = .TRUE.
+!-----------------------------------------------------------------------------
 
     ! Activate this extension
     ExtState%GC_POPs           = .TRUE.
