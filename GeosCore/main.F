@@ -1267,12 +1267,19 @@
             !             ***** E M I S S I O N S *****
             !===========================================================
             IF ( LEMIS ) THEN
-!               CALL DO_EMISSIONS
-!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               
+               ! Call the HEMCO emissions modules
                CALL EMISSIONS_RUN ( am_I_Root, Input_Opt, 
      &                              State_Met, State_Chm, RC )
+
+               ! Return upon error in HEMCO
                IF ( RC /= GIGC_SUCCESS ) THEN
                   CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
+               ENDIF
+
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a DO_EMISSIONS' )
                ENDIF
             ENDIF
 
