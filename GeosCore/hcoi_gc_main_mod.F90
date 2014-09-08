@@ -542,7 +542,6 @@ CONTAINS
     USE HCO_State_Mod,       ONLY : HcoState_Final
     USE HCOIO_Diagn_Mod,     ONLY : HCOIO_Diagn_WriteOut
     USE HCOX_Driver_Mod,     ONLY : HCOX_Final
-    USE HCO_Clock_Mod,       ONLY : HcoClock_Increase
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -569,23 +568,24 @@ CONTAINS
     ! Init
     LOC = 'HCOI_GC_Final (hcoi_gc_main_mod.F90)'
 
-    ! Increase HEMCO clock by one emission time step. This is just to
-    ! make sure that the 'end of interval' flag is properly set for
-    ! all variables.
-    CALL HcoClock_Increase ( am_I_Root, HcoState, HcoState%TS_EMIS, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HcoClock_Increase', LOC )
+    ! Set HcoClock to current time. This is to make sure that the 
+    ! diagnostics are properly written.
+    CALL SET_CURRENT_TIME ( am_I_Root, HcoState, HMRC )
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SET_CURRENT_TIME', LOC )
 
-    ! Write out 'standard' diagnostics
+    ! Write out 'standard' diagnostics. Refer to previous time stamp.
     CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL', LOC )
  
-    ! Also write all other diagnostics into netCDF file
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., HMRC, PREFIX=RST )
+    ! Also write all other diagnostics into restart file. Use current 
+    ! time stamp!
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., HMRC, &
+                                UsePrevTime=.FALSE., PREFIX=RST )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL', LOC )
  
     ! Cleanup diagnostics
     CALL Diagn_Cleanup()
- 
+
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
     CALL HCOX_FINAL ( ExtState ) 

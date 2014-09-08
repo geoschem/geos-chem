@@ -223,22 +223,22 @@ CONTAINS
 
 ! For now comment this out (bmy, 8/19/14)
 !    ! Total NO
-!    I = HCO_GetHcoID( 'NO', HcoState )
-!    CALL Diagn_Create ( am_I_Root, &
-!                        HcoState,  &
-!                        cName    = 'NOtotal', &
-!                        ExtNr    = -1, &
-!                        Cat      = -1, &
-!                        Hier     = -1, &
-!                        HcoID    = I, &
-!                        SpaceDim = 2, &
-!                        LevIDx   = -1, &
-!                        OutUnit  = 'kg/m2/s', &
-!                        WriteFreq = 'Hourly',  &
-!                        AutoFill  = 1, &
-!                        cID       = N, & 
-!                        RC        = RC ) 
-!    IF ( RC /= HCO_SUCCESS ) RETURN 
+    I = HCO_GetHcoID( 'NO', HcoState )
+    CALL Diagn_Create ( am_I_Root, &
+                        HcoState,  &
+                        cName    = 'NOtotal', &
+                        ExtNr    = -1, &
+                        Cat      = -1, &
+                        Hier     = -1, &
+                        HcoID    = I, &
+                        SpaceDim = 2, &
+                        LevIDx   = -1, &
+                        OutUnit  = 'kg/m2',     &
+                        WriteFreq = 'Monthly',  &
+                        AutoFill  = 1, &
+                        cID       = N, & 
+                        RC        = RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! Leave w/ success
     RC = HCO_SUCCESS 

@@ -1140,6 +1140,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  29 Jul 2014 - C. Keller - Initial version 
+!  08 Sep 2014 - C. Keller - Bug fix: now calculate UTC as fraction of day.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1155,10 +1156,10 @@ CONTAINS
     !-----------------------------------
 
     ! Get current date as Julian day.
-    UTC = ( REAL( HcoClock%ThisHour, dp )             ) + &
-          ( REAL( HcoClock%ThisMin , dp ) / 60.0_dp   ) + &
-          ( REAL( HcoClock%ThisSec , dp ) / 3600.0_dp )
-    DAY = REAL(HcoClock%ThisDay, dp) + UTC
+    UTC = ( REAL(HcoClock%ThisHour,dp) / 24.0_dp    ) + &
+          ( REAL(HcoClock%ThisMin ,dp) / 1440.0_dp  ) + &
+          ( REAL(HcoClock%ThisSec ,dp) / 86400.0_dp )
+    DAY = REAL(HcoClock%ThisDay,dp) + UTC
     JD  = JULDAY( HcoClock%ThisYear, HcoClock%ThisMonth, DAY )
 
     ! Add time step
