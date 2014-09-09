@@ -3629,11 +3629,105 @@
          CATEGORY = 'PG-SRCE'
          UNIT     = 'kg'
 
+         IF ( IDTPOPPOC > 0 .and. IDTPOPPBC > 0 .and. IDTPOPG > 0 ) THEN
+
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            ! Total POP emissions
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            !---------------------------------------------------------
+            ! (1) Get OC POP emissions from HEMCO data structure
+            !---------------------------------------------------------
+            DiagnName = 'AD01_POPPOC_SOURCE'
+            N         = 1
+            DiagnCnt  => NULL()
+
+            ! Zero the diagnostic array
+            ARRAY     = 0e0
+
+            ! Get diagnostics from HEMCO
+            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                      FLAG, RC,   cName=TRIM(DiagnName), 
+     &                      AutoFill=1, InclManual=.TRUE. )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
+
+            ! Save into ARRAY
+            IF ( FLAG == HCO_SUCCESS ) THEN
+               ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:)
+            ELSE
+               MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+               MSG = TRIM(MSG) // ' - will write zeros!'
+               CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ENDIF
+
+            !---------------------------------------------------------
+            ! (2) Get BC POP emissions from HEMCO data structure
+            !---------------------------------------------------------
+            DiagnName = 'AD01_POPPBC_SOURCE'
+            DiagnCnt  => NULL()
+
+            ! Get diagnostics from HEMCO
+            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                      FLAG, RC,   cName=TRIM(DiagnName), 
+     &                      AutoFill=1, InclManual=.TRUE. )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
+
+            ! Save into ARRAY
+            IF ( FLAG == HCO_SUCCESS ) THEN
+               ARRAY(:,:,1) = ARRAY(:,:,1) + DiagnCnt%Arr2D%Val(:,:)
+            ELSE
+               MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+               MSG = TRIM(MSG) // ' - will write zeros!'
+               CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ENDIF
+
+            !---------------------------------------------------------
+            ! (3) Get gaseous POP emissions from HEMCO data structure
+            !---------------------------------------------------------
+            DiagnName = 'AD01_POPG_SOURCE'
+            DiagnCnt  => NULL()
+
+            ! Get diagnostics from HEMCO
+            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                      FLAG, RC,   cName=TRIM(DiagnName), 
+     &                      AutoFill=1, InclManual=.TRUE. )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
+
+            ! Save into ARRAY
+            IF ( FLAG == HCO_SUCCESS ) THEN
+               ARRAY(:,:,1) = ARRAY(:,:,1) + DiagnCnt%Arr2D%Val(:,:)
+            ELSE
+               MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+               MSG = TRIM(MSG) // ' - will write zeros!'
+               CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ENDIF
+
+            ! Write combined OC POP + BC POP + Gaseous POP to disk
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+            ! Free pointer
+            DiagnCnt => NULL()
+
+         ENDIF
+
          IF ( IDTPOPPOC > 0 ) THEN
 
-            !--------------------------------
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! OC-sorbed POP emissions
-            !--------------------------------
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             DiagnName = 'AD01_POPPOC_SOURCE'
             N         = 2
             FACTOR    = 1.0d0
@@ -3645,9 +3739,9 @@
 
          IF ( IDTPOPPBC > 0) THEN
 
-            !--------------------------------
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! BC-sorbed POP emissions
-            !--------------------------------
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             DiagnName = 'AD01_POPPBC_SOURCE'
             N         = 3
             FACTOR    = 1.0d0
@@ -3659,9 +3753,9 @@
 
          IF ( IDTPOPG > 0 ) THEN
 
-            !--------------------------------
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! Gas-phase POP emissions
-            !--------------------------------
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             DiagnName = 'AD01_POPG_SOURCE'
             N         = 4
             FACTOR    = 1.0d0
