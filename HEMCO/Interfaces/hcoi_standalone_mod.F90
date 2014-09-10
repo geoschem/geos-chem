@@ -35,11 +35,10 @@
 !  regridding is supported, e.g. all emissions input file need to be either
 !  2D fields or already remapped onto the correct model levels.
 !
-! \item HEMCO\_sa\_Time: contains the time definitions. The first row must
-!  contain the emission time step (e.g. TS\_EMIS: 3600.0). The second row must
-!  contain the number of desired time steps (e.g. NSTEPS: 1), and the following
-!  rows (3-END) contain the dates and times of all time steps in format 
-!  YYYY-MM-DD HH:MM:SS (e.g. 2013-07-01 00:00:00).
+! \item HEMCO\_sa\_Time: contains the time definitions. The first two rows must
+!  contain the start and end date of the simulation, in format 
+!  Start/End: YYYY-MM-DD HH:MM:SS (e.g. 2013-07-01 00:00:00).
+!  The third row must contain the emission time step (e.g. TS\_EMIS: 3600.0). 
 ! 
 ! \end{itemize}
 !
@@ -117,6 +116,10 @@ MODULE HCOI_StandAlone_Mod
   REAL(hp),              POINTER :: ModelSpecPKA  (:) => NULL()
   INTEGER,               POINTER :: matchidx(:) => NULL()
 
+  ! Start and end time of simulation
+  INTEGER                        :: YRS(2), MTS(2), DYS(2)
+  INTEGER                        :: HRS(2), MNS(2), SCS(2)
+
   ! Grid
   REAL(hp), ALLOCATABLE, TARGET  :: XMID   (:,:,:)
   REAL(hp), ALLOCATABLE, TARGET  :: YMID   (:,:,:)
@@ -125,21 +128,15 @@ MODULE HCOI_StandAlone_Mod
   REAL(hp), ALLOCATABLE, TARGET  :: YSIN   (:,:,:)
   REAL(hp), ALLOCATABLE, TARGET  :: AREA_M2(:,:,:)
 
-  ! Simulation times
-  INTEGER                        :: NSTEPS
-  INTEGER,  ALLOCATABLE          :: YRS(:)
-  INTEGER,  ALLOCATABLE          :: MTS(:)
-  INTEGER,  ALLOCATABLE          :: DYS(:)
-  INTEGER,  ALLOCATABLE          :: HRS(:)
-  INTEGER,  ALLOCATABLE          :: MNS(:)
-  INTEGER,  ALLOCATABLE          :: SCS(:)
-
   ! DAYS_BTW_M is the days between midmonths. Used by MEGAN
   LOGICAL                        :: DAYS_BTW_M_USE = .FALSE.
   INTEGER,  TARGET               :: DAYS_BTW_M
 
   ! CLDTOPS is the cloud top level index. Used by lightning NOx
   INTEGER,  ALLOCATABLE, TARGET  :: CLDTOPS(:,:)
+
+  ! MAXIT is the maximum number of run calls allowed
+  INTEGER, PARAMETER             :: MAXIT = 100000
 !
 ! !MODULE INTERFACES:
 !
@@ -375,6 +372,8 @@ CONTAINS
     ! HEMCO routines 
     USE HCO_FluxArr_Mod,       ONLY : HCO_FluxarrReset 
     USE HCO_Clock_Mod,         ONLY : HcoClock_Set
+    USE HCO_Clock_Mod,         ONLY : HcoClock_Get
+    USE HCO_Clock_Mod,         ONLY : HcoClock_Increase
     USE HCO_Driver_Mod,        ONLY : HCO_RUN
     USE HCOX_Driver_Mod,       ONLY : HCOX_RUN
     USE HCOIO_Diagn_Mod,       ONLY : HCOIO_DIAGN_WRITEOUT
@@ -395,7 +394,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: N
+    INTEGER            :: CNT
+    INTEGER            :: YR, MT, DY, HR, MN, SC 
     CHARACTER(LEN=255) :: MSG, LOC
 
     !=================================================================
@@ -405,27 +405,52 @@ CONTAINS
     ! For error handling
     LOC = 'HCOI_SA_Run (hcoi_standalone_mod.F90)'
 
-    ! Do for every time step
-    DO N = 1, NSTEPS
+    ! Time step counter
+    CNT = 0
 
-       ! Write to output
-       WRITE(MSG,100) YRS(N), MTS(N), DYS(N), HRS(N), MNS(N), SCS(N)
+    ! Do until end of simulation
+    DO
+ 
+       ! Increase counter by one
+       CNT = CNT + 1
+
+       ! Set iteration limit to avoid infinite runs 
+       IF ( CNT > MAXIT ) THEN 
+          WRITE(*,*) 'Counter limit reached - Increase MAXIT if you don`t like that!'
+          EXIT
+       ENDIF 
+
+       !=================================================================
+       ! Set HcoClock. On first call, use specified start date. Increase
+       ! clock by one emission time step otherwise.
+       !=================================================================
+       IF ( CNT == 1 ) THEN
+          CALL HcoClock_Set ( am_I_Root, HcoState, YRS(1), MTS(1), &
+                              DYS(1),    HRS(1),   MNS(1), SCS(1), RC=RC)
+          IF ( RC /= HCO_SUCCESS) RETURN 
+       ELSE   
+          CALL HcoClock_Increase ( am_I_Root, HcoState, HcoState%TS_EMIS, RC=RC)
+          IF ( RC /= HCO_SUCCESS) RETURN 
+       ENDIF
+
+       ! Get current time
+       CALL HcoClock_Get ( cYYYY=YR, cMM=MT, cDD=DY, cH=HR, cM=MN, cS=SC, RC=RC )
+       IF ( RC /= HCO_SUCCESS) RETURN 
+
+       ! Leave loop if this is the end of the simulation
+       IF ( IsEndOfSimulation(YR,MT,DY,HR,MN,SC) ) EXIT
+
+       ! Write to logfile and standard output
+       WRITE(MSG,100) YR, MT, DY, HR, MN, SC 
 100    FORMAT( 'Calculate emissions at ', i4,'-',i2.2,'-',i2.2,' ', &
                  i2.2,':',i2.2,':',i2.2 )
-       CALL HCO_Msg(MSG)
+       CALL HCO_MSG(MSG)
 
-       !=================================================================
-       ! Set HcoClock 
-       !=================================================================
-       CALL HcoClock_Set ( am_I_Root, HcoState, YRS(N), MTS(N), &
-                           DYS(N),    HRS(N),   MNS(N), SCS(N), RC=RC)
-       IF ( RC/= HCO_SUCCESS) RETURN 
-   
        !=================================================================
        ! Output diagnostics 
        !=================================================================
        CALL HCOIO_Diagn_WriteOut ( am_I_Root, HcoState, .FALSE., RC )
-       IF ( RC/= HCO_SUCCESS) RETURN 
+       IF ( RC /= HCO_SUCCESS) RETURN 
     
        ! ================================================================
        ! Reset all emission and deposition values
@@ -477,7 +502,7 @@ CONTAINS
        CALL HCO_Diagn_AutoUpdate ( am_I_Root, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ENDDO !N
+    ENDDO 
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -519,6 +544,7 @@ CONTAINS
 !
     INTEGER            :: I, RC
     CHARACTER(LEN=255) :: LOC
+    CHARACTER(LEN= 31) :: RST='HEMCO_restart'
 
     !=================================================================
     ! HCOI_SA_FINAL begins here!
@@ -527,9 +553,14 @@ CONTAINS
     ! Init
     LOC = 'HCOI_SA_FINAL (hco_standalone_mod.F90)'
 
-    ! Write out all diagnostics
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., RC, &
-                                UsePrevTime=.FALSE. )
+    ! Write out all diagnostics: first 'regular' diagnostics, then
+    ! also restart values.
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., RC, &
+                                UsePrevTime=.TRUE. )
+    IF (RC /= HCO_SUCCESS) RETURN 
+
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE.,  RC, &
+                                UsePrevTime=.FALSE., PREFIX=RST )
     IF (RC /= HCO_SUCCESS) RETURN 
  
     ! Cleanup diagnostics
@@ -557,12 +588,6 @@ CONTAINS
     IF ( ALLOCATED( YEDGE   ) ) DEALLOCATE ( YEDGE   )
     IF ( ALLOCATED( YSIN    ) ) DEALLOCATE ( YSIN    )
     IF ( ALLOCATED( AREA_M2 ) ) DEALLOCATE ( AREA_M2 )
-    IF ( ALLOCATED( YRS     ) ) DEALLOCATE ( YRS     )
-    IF ( ALLOCATED( MTS     ) ) DEALLOCATE ( MTS     )
-    IF ( ALLOCATED( DYS     ) ) DEALLOCATE ( DYS     )
-    IF ( ALLOCATED( HRS     ) ) DEALLOCATE ( HRS     )
-    IF ( ALLOCATED( MNS     ) ) DEALLOCATE ( MNS     )
-    IF ( ALLOCATED( SCS     ) ) DEALLOCATE ( SCS     )
     IF ( ALLOCATED( CLDTOPS ) ) DEALLOCATE ( CLDTOPS )
 
     ! Cleanup HcoState object 
@@ -1166,7 +1191,7 @@ CONTAINS
                            SpaceDim  = 2,                     &
                            LevIDx    = -1,                    &
                            OutUnit   = 'kg/m2/s',             &
-                           WriteFreq = 'Hourly',              &
+                           WriteFreq = 'Monthly',             &
                            AutoFill  = 1,                     &
                            cID       = cID,                   &
                            RC        = RC                      )
@@ -1248,6 +1273,45 @@ CONTAINS
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
+ 
+    ! Read start and end of simulation
+    DO N = 1,2
+   
+       READ( IU_FILE, '(A)', IOSTAT=IOS ) DUM
+       IF ( IOS /= 0 ) THEN
+          MSG = 'Error reading time in ' // TRIM(TimeFile)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+   
+       ! Remove 'BEGIN: ' or 'END: ' at the beginning 
+       LNG = LEN(TRIM(DUM))
+       LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
+       IF ( LOW < 0 .OR. LOW == LNG ) THEN
+          MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       LOW = LOW + 1
+       DUM = ADJUSTL(DUM(LOW:LNG))
+       LNG = LEN(TRIM(DUM))
+   
+       ! Times have to be stored as:
+       ! YYYY-MM-DD HH:MM:SS
+       ! --> read year from position 1:4, month from 6:7, etc.
+       IF ( LNG /= 19 ) THEN
+          MSG = 'Provided time stamp is not `YYYY-MM-DD HH:MM:SS`! ' // TRIM(DUM)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       READ ( DUM( 1: 4), * ) YRS(N) 
+       READ ( DUM( 6: 7), * ) MTS(N) 
+       READ ( DUM( 9:10), * ) DYS(N) 
+       READ ( DUM(12:13), * ) HRS(N) 
+       READ ( DUM(15:16), * ) MNS(N) 
+       READ ( DUM(18:19), * ) SCS(N) 
+    ENDDO
 
     ! Get emission time step
     READ( IU_FILE, '(A)', IOSTAT=IOS ) DUM
@@ -1257,7 +1321,7 @@ CONTAINS
        RETURN
     ENDIF
     LNG = LEN(TRIM(DUM))
- 
+
     ! Get index after colon 
     LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
     IF ( LOW < 0 .OR. LOW == LNG ) THEN
@@ -1272,63 +1336,6 @@ CONTAINS
     HcoState%TS_CHEM = HcoState%TS_EMIS
     HcoState%TS_DYN  = HcoState%TS_EMIS
      
-    ! Get number of simulation steps
-    READ( IU_FILE, '(A)', IOSTAT=IOS ) DUM
-    IF ( IOS /= 0 ) THEN
-       MSG = 'Error 2 reading ' // TRIM(TimeFile)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-    LNG = LEN(TRIM(DUM))
-    LOW = NextCharPos ( TRIM(DUM), HCO_COL(), 1 )
-    IF ( LOW < 0 .OR. LOW == LNG ) THEN
-       MSG = 'Cannot extract index after colon: ' // TRIM(DUM)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-    LOW = LOW + 1
-    READ ( DUM(LOW:LNG), * ) NSTEPS
-
-    ! Allocate time arrays
-    ALLOCATE ( YRS(NSTEPS), MTS(NSTEPS), DYS(NSTEPS), STAT=AS )
-    IF ( AS/= 0 ) THEN
-       CALL HCO_ERROR( 'Time alloc error 1', RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-    ALLOCATE ( HRS(NSTEPS), MNS(NSTEPS), SCS(NSTEPS), STAT=AS )
-    IF ( AS/= 0 ) THEN
-       CALL HCO_ERROR( 'Time alloc error 2', RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-
-    ! Set emission times
-    DO N = 1, NSTEPS
-
-       READ( IU_FILE, '(A)', IOSTAT=IOS ) DUM
-       IF ( IOS /= 0 ) THEN
-          MSG = 'Error reading time in ' // TRIM(TimeFile)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-       LNG = LEN(TRIM(DUM))
-
-       ! Times have to be stored as:
-       ! YYYY-MM-DD HH:MM:SS
-       ! --> read year from position 1:4, month from 6:7, etc.
-       IF ( LNG < 19 ) THEN
-          MSG = 'Provided time stamp is too short! ' // TRIM(DUM)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       READ ( DUM( 1: 4), * ) YRS(N) 
-       READ ( DUM( 6: 7), * ) MTS(N) 
-       READ ( DUM( 9:10), * ) DYS(N) 
-       READ ( DUM(12:13), * ) HRS(N) 
-       READ ( DUM(15:16), * ) MNS(N) 
-       READ ( DUM(18:19), * ) SCS(N) 
-    ENDDO
-
     ! Return w/ success
     RC = HCO_SUCCESS
 
@@ -1353,11 +1360,9 @@ CONTAINS
 !       hcox\_soilnox\_mod.F90). This variable should be provided in section 
 !       soil NOx extension settings (DRYCOEFF: xx.x/xx.x/xx.x/...). It is
 !       read in hcox\_soilnox\_mod.F90.
-! \item DAYS_BTW_M: days between midmonths (used in hcox\_megan\_mod.F). 
+! \item DAYS\_BTW\_M: days between midmonths (used in hcox\_megan\_mod.F). 
 !       This variable becomes defined and updated within this module.
 ! \end{itemize}
-!\\
-!\\
 ! !INTERFACE:
 !
   SUBROUTINE ExtOpt_SetPointers ( am_I_Root, RC )
@@ -1781,5 +1786,69 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE DAYS_BTW_M_SET
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: IsEndOfSimulation 
+!
+! !DESCRIPTION: Function IsEndOfSimulation returns true if the passed date
+! is beyond the end of the simulation date.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION IsEndOfSimulation( Yr, Mt, Dy, Hr, Mn, Sc ) RESULT ( IsEnd ) 
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN   ) :: YR
+    INTEGER,          INTENT(IN   ) :: MT 
+    INTEGER,          INTENT(IN   ) :: DY
+    INTEGER,          INTENT(IN   ) :: HR
+    INTEGER,          INTENT(IN   ) :: MN
+    INTEGER,          INTENT(IN   ) :: SC
+!
+! !OUTPUT PARAMETERS
+!
+    LOGICAL                         :: IsEnd
+!
+! !REVISION HISTORY:
+!  08 Sep 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER       :: THISDATETIME
+    INTEGER, SAVE :: ENDDATETIME = -1
+
+    !=================================================================
+    ! IsEndOfSimulation begins here
+    !=================================================================
+
+    ! Init
+    IsEnd = .FALSE.
+
+    ! Calculate simulation end datetime if not yet done so
+    IF ( ENDDATETIME < 0 ) THEN
+       ENDDATETIME = YRS(2)*10000000000 + MTS(2)*100000000 + DYS(2)*1000000 &
+                   + HRS(2)*10000       + MNS(2)*100       + SCS(2)
+    ENDIF
+
+    ! Calculate current datetime
+    THISDATETIME = YR*10000000000 + MT*100000000 + DY*1000000 &
+                 + HR*10000       + MN*100       + SC
+
+    ! Check if current datetime is beyond simulation end date
+    IF ( THISDATETIME >= ENDDATETIME ) IsEnd = .TRUE.
+
+  END FUNCTION IsEndOfSimulation
 !EOC
 END MODULE HCOI_StandAlone_Mod

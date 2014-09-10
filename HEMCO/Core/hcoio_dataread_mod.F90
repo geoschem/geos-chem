@@ -1372,7 +1372,6 @@ CONTAINS
     USE HCO_CHARTOOLS_MOD,  ONLY : HCO_WCD, HCO_SEP
     USE HCO_UNIT_MOD,       ONLY : HCO_Unit_Change
     USE HCO_tIdx_Mod,       ONLY : HCO_GetPrefTimeAttr
-    USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
 !
 ! !INPUT PARAMTERS:
 !
@@ -1398,7 +1397,6 @@ CONTAINS
     INTEGER            :: IDX1, IDX2
     INTEGER            :: AreaFlag, TimeFlag, Check
     INTEGER            :: prefYr, prefMt, prefDy, prefHr
-    INTEGER            :: cYr, cMt, cDy
     REAL(sp)           :: FileVals(100)
     REAL(sp), POINTER  :: FileArr(:,:,:,:) => NULL()
     LOGICAL            :: Verb, IsPerArea
@@ -1455,10 +1453,6 @@ CONTAINS
     CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Get current time
-    CALL HcoClock_Get( cYYYY = cYr, cMM = cMt, cDD = cDy, RC = RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN 
-
     ! Currently, data read directly from the configuration file can only
     ! represent one time dimension, i.e. it can only be yearly, monthly,
     ! daily (or hourly data, but this is read all at the same time). 
@@ -1474,7 +1468,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       CALL GetSliceIdx ( Lct, prefYr, cYr, Lct%Dct%Dta%ncYrs(1), IDX1, RC ) 
+       CALL GetSliceIdx ( Lct, 1, prefYr, IDX1, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
        IDX2 = IDX1
        NUSE = 1
@@ -1489,7 +1483,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       CALL GetSliceIdx ( Lct, prefMt, cMt, Lct%Dct%Dta%ncMts(1), IDX1, RC )
+       CALL GetSliceIdx ( Lct, 2, prefMt, IDX1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IDX2 = IDX1
        NUSE = 1
@@ -1503,7 +1497,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       CALL GetSliceIdx ( Lct, prefDy, cDy, Lct%Dct%Dta%ncDys(1), IDX1, RC )
+       CALL GetSliceIdx ( Lct, 3, prefDy, IDX1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IDX2 = IDX1
        NUSE = 1
@@ -1632,27 +1626,25 @@ CONTAINS
 !
 ! !IROUTINE: GetSliceIdx 
 !
-! !DESCRIPTION: gets the lower and upper time slice index of data directly
-! read from the HEMCO configuration file. prefDt, cDt and lowDt denote the
-! preferred, current and lowermost time attribute (year, month, or day). The
-! time slice index will be selected based upon that variable. IDX is the
-! selected time slice index. Will be set to -1 if the current simulation date
-! is outside of the specified time range and the time cycle attribute is not
-! enabled for this field.
-!\\
-!\\
+! !DESCRIPTION: gets the time slice index to be used for data directly
+! read from the HEMCO configuration file. prefDt denotes the preferred
+! time attribute (year, month, or day). DtType is used to identify the 
+! time attribute type (1=year, 2=month, 3=day). The time slice index will 
+! be selected based upon those two variables. IDX is the selected time 
+! slice index. It will be set to -1 if the current simulation date
+! is outside of the specified time range and the time cycle attribute is 
+! not enabled for this field.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetSliceIdx ( Lct, prefDt, cDt, lowDt, IDX, RC ) 
+  SUBROUTINE GetSliceIdx ( Lct, DtType, prefDt, IDX, RC ) 
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(ListCont),   POINTER                 :: Lct
+    INTEGER,          INTENT(IN   )           :: DtType
     INTEGER,          INTENT(IN   )           :: prefDt
-    INTEGER,          INTENT(IN   )           :: cDt
-    INTEGER,          INTENT(IN   )           :: lowDt
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1667,6 +1659,7 @@ CONTAINS
 ! 
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: lowDt, uppDt
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'GetSliceIdx (HCOIO_DataRead_Mod.F90)'
 
@@ -1677,12 +1670,31 @@ CONTAINS
     ! Init
     RC = HCO_SUCCESS
 
-    ! If data cycle flag is set to 2 or 3 (only within range, 
-    ! exact match), make sure that preferred year matches current
-    ! year. For data only to be used within the specified range, 
-    ! set THIGH to -1. This will force the scale factors to be
-    ! set to zero.
-    IF ( prefDt /= cDt ) THEN
+    ! Get upper and lower time range
+    IF ( DtType == 1 ) THEN
+       lowDt = Lct%Dct%Dta%ncYrs(1)
+       uppDt = Lct%Dct%Dta%ncYrs(2)
+    ELSEIF ( DtType == 2 ) THEN
+       lowDt = Lct%Dct%Dta%ncMts(1)
+       uppDt = Lct%Dct%Dta%ncMts(2)
+    ELSEIF ( DtType == 3 ) THEN
+       lowDt = Lct%Dct%Dta%ncDys(1)
+       uppDt = Lct%Dct%Dta%ncDys(2)
+    ELSE
+       WRITE(MSG,*) "DtType must be one of 1, 2, 3: ", DtType
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN 
+    ENDIF
+
+    ! Check for cycle flags:
+
+    ! Data cycle set to 2 (within range) or 3 (exact date): in these 
+    ! cases, the preferred date will be equal to the current date, so 
+    ! check if the preferred date is indeed within the available range 
+    ! (lowDt, uppDt).
+    ! For data only to be used within the specified range, set index 
+    ! to -1. This will force the scale factors to be set to zero!
+    IF ( prefDt < lowDt .OR. prefDt > uppDt ) THEN
        IF ( Lct%Dct%Dta%CycleFlag == 3 ) THEN ! Exact match
           MSG = 'Data is not on exact date: ' // TRIM(Lct%Dct%cName)
           CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
@@ -1690,9 +1702,19 @@ CONTAINS
        ELSEIF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN ! w/in range
           IDX = -1
           RETURN
+       ELSE
+          ! this here should never happen, since for a cycle flag of 1,
+          ! the preferred date should always be restricted to the range
+          ! of available time stamps.
+          MSG = 'preferred date is outside of range: ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN 
        ENDIF
     ENDIF
-     
+    
+    ! If the code makes it to here, prefDt is within the available data range
+    ! and we simply get the wanted index from the current index and the lowest
+    ! available index. 
     IDX = prefDt - lowDt + 1
 
   END SUBROUTINE GetSliceIdx
