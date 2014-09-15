@@ -238,10 +238,10 @@ CONTAINS
        CALL EmisList_GetDataArr( aIR, 'TOT_POP', POP_TOT_EM, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL EmisList_GetDataArr( aIR, 'GLOB_OC', C_OC, RC )
+       CALL EmisList_GetDataArr( aIR, 'GLOBAL_OC', C_OC, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL EmisList_GetDataArr( aIR, 'GLOB_BC', C_BC, RC )
+       CALL EmisList_GetDataArr( aIR, 'GLOBAL_BC', C_BC, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FIRST = .FALSE.
@@ -303,6 +303,9 @@ CONTAINS
           C_OC1    = C_OC(I,J,L)
           C_BC1    = C_BC(I,J,L)
            
+          ! Make sure OC is not negative
+          C_OC1 = MAX( C_OC1, 0d0 )
+
           ! Convert C_OC and C_BC units to volume per box 
           ! [m^3 OC or BC/box]
           !C_OC(I,J,L)        = GET_OC(I,J,L) / DENS_OCT
@@ -310,19 +313,12 @@ CONTAINS
           C_OC2    = C_OC1 / DENS_OCT
           C_BC2    = C_BC1 / DENS_BC
 
-!------------------------------------------------------------------------------
-! Prior to 9/5/14:
-! No need to divide C_OC2 by AIR_VOL, since units are now in kg/m3 (mps, 9/5/14)
-!          ! Get air volume (m^3)
-!          AIR_VOL   = ExtState%AIRVOL%Arr%Val(I,J,L) 
-!
-!          ! Define volume ratios:
-!          ! VR_OC_AIR = volume ratio of OC to air [unitless]    
-!          VR_OC_AIR = C_OC2 / AIR_VOL
-!------------------------------------------------------------------------------
+          ! Get air volume (m^3)
+          AIR_VOL   = ExtState%AIRVOL%Arr%Val(I,J,L) 
+
           ! Define volume ratios:
           ! VR_OC_AIR = volume ratio of OC to air [unitless]    
-          VR_OC_AIR   = C_OC2
+          VR_OC_AIR   = C_OC2 / AIR_VOL
 
           ! VR_OC_BC  = volume ratio of OC to BC [unitless]
           VR_OC_BC    = C_OC2 / C_BC2
@@ -618,10 +614,7 @@ CONTAINS
     ENDIF
 
     ! Activate met fields required by this extension
-!-----------------------------------------------------------------------------
-! Prior to 9/5/14:
-!    ExtState%AIRVOL%DoUse      = .TRUE. 
-!-----------------------------------------------------------------------------
+    ExtState%AIRVOL%DoUse      = .TRUE. 
     ExtState%FRAC_OF_PBL%DoUse = .TRUE. 
     ExtState%TK%DoUse          = .TRUE. 
 

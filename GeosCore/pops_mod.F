@@ -34,16 +34,19 @@
 !  20 Sep 2010 - N.E. Selin    - Initial Version
 !  04 Jan 2011 - C.L. Friedman - Expansion on initial version
 !  21 Aug 2014 - M. Sulprizio  - Removed emissions routines now handled by HEMCO
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8,  PARAMETER   :: XNUMOL_OH = 6.022d23 / 17d-3  ! molec OH / kg OH
+      REAL*8,  PARAMETER   :: CM3PERM3  = 1.d6
+      REAL*8,  PARAMETER   :: SMALLNUM  = 1D-20
+
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-
-      ! Parameters
-      REAL*8,  PARAMETER   :: SMALLNUM = 1D-20
 
       ! Arrays
       !=================================================================
@@ -68,6 +71,12 @@
 !      REAL*8,  ALLOCATABLE :: SUM_OC_EM(:,:), SUM_BC_EM(:,:)
 !      REAL*8,  ALLOCATABLE :: SUM_G_EM(:,:), SUM_OF_ALL(:,:)
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      ! Pointers to concentration fields in HEMCO
+      REAL*8, POINTER :: C_OC(:,:,:) => NULL()
+      REAL*8, POINTER :: C_BC(:,:,:) => NULL()
+      REAL*8, POINTER :: O3(:,:,:)   => NULL()
+      REAL*8, POINTER :: OH(:,:,:)   => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -100,10 +109,13 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
-      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
-      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+!------------------------------------------------------------------------------
+! Prior to 9/10/14:
+!      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
+!      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
+!      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
+!      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+!------------------------------------------------------------------------------
 !
 ! !INPUT PARAMETERS:
 !
@@ -123,13 +135,18 @@
 !  20 September 2010 - N.E. Selin - Initial Version based on CHEMMERCURY
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
+!  10 Sep 2014 - M. Sulprizio- Remove calls to GET_GLOBAL_OH and GET_GLOBAL_O3,
+!                              these fields are now read in HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, MONTH, YEAR, N, PBL_MAX
+!------------------------------------------------------------------------------
+! Prior to 9/10/14:
+!      INTEGER :: I, J, L, MONTH, YEAR, N, PBL_MAX
+!------------------------------------------------------------------------------
 
       ! For fields from Input_Opt
       INTEGER :: N_TRACERS
@@ -150,38 +167,42 @@
       LGTMM     = Input_Opt%LGTMM
       LNLPBL    = Input_Opt%LNLPBL
 
-      ! Read monthly mean OH fields for oxidation and monthly OC and BC
-      ! fields for gas-particle partioning
-      IF ( ITS_A_NEW_MONTH() ) THEN 
-
-         ! Get the current month
-         MONTH = GET_MONTH()
-
-         ! Get the current year
-         YEAR = GET_YEAR()
-
-         ! Read monthly mean OH from disk [molecule/cm3]
-         CALL GET_GLOBAL_OH
-     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
-
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OH' )
-
-         ! Read monthly mean O3 from disk [molecule/cm3]
-         CALL GET_GLOBAL_O3
-     &        ( am_I_Root, Input_Opt,            MONTH, RC )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_O3' )
-
-         ! Read monthly OC from disk
-         ! Do this in EMISSPOPS now
-         !CALL GET_GLOBAL_OC( MONTH )
-         !IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OC' )
-
-         ! Read monthly BC from disk
-         ! Do this in EMISSPOPS now
-         !CALL GET_GLOBAL_BC( MONTH )
-         !IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_BC' ) 
-
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 9/10/13:
+! Now get global OH and O3 concentrations from HEMCO (mps, 9/10/14)
+!      ! Read monthly mean OH fields for oxidation and monthly OC and BC
+!      ! fields for gas-particle partioning
+!      IF ( ITS_A_NEW_MONTH() ) THEN 
+!
+!         ! Get the current month
+!         MONTH = GET_MONTH()
+!
+!         ! Get the current year
+!         YEAR = GET_YEAR()
+!
+!         ! Read monthly mean OH from disk [molecule/cm3]
+!         CALL GET_GLOBAL_OH
+!     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
+!
+!         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OH' )
+!
+!         ! Read monthly mean O3 from disk [molecule/cm3]
+!         CALL GET_GLOBAL_O3
+!     &        ( am_I_Root, Input_Opt,            MONTH, RC )
+!         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_O3' )
+!
+!         ! Read monthly OC from disk
+!         ! Do this in EMISSPOPS now
+!         !CALL GET_GLOBAL_OC( MONTH )
+!         !IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OC' )
+!
+!         ! Read monthly BC from disk
+!         ! Do this in EMISSPOPS now
+!         !CALL GET_GLOBAL_BC( MONTH )
+!         !IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_BC' ) 
+!
+!      ENDIF
+!------------------------------------------------------------------------------
      
       ! If it's a new 6-hr mean, then get the current average 3-D temperature
 
@@ -205,7 +226,8 @@
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
          CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
-     &                    Input_Opt, State_Met, State_Chm  )
+     &                    am_I_Root, Input_Opt, State_Met,
+     &                    State_Chm, RC )
          
       ELSE
 
@@ -214,34 +236,40 @@
          
             ! Dry deposition active for both POP-Gas and POP-Particle; 
             ! pass drydep frequency to CHEM_POPGP (NOTE: DEPSAV has units 1/s)
-            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),   
-     &                      DEPSAV(:,:,DRYPOPP_OC),
-     &                      DEPSAV(:,:,DRYPOPP_BC),
-     &                      Input_Opt, 
-     &                      State_Met,
-     &                      State_Chm               )
+            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),   
+     &                       DEPSAV(:,:,DRYPOPP_OC),
+     &                       DEPSAV(:,:,DRYPOPP_BC),
+     &                       am_I_Root, 
+     &                       Input_Opt, 
+     &                       State_Met,
+     &                       State_Chm,
+     &                       RC )
 
          ELSEIF ( DRYPOPG > 0 .and. DRYPOPP_OC > 0 .and. 
      &            DRYPOPP_BC  .le.  0 ) THEN
 
             ! Only POPG and POPP_OC dry deposition are active
-            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),
-     &                      DEPSAV(:,:,DRYPOPP_OC), 
-     &                      ZERO_DVEL,
-     &                      Input_Opt,
-     &                      State_Met,
-     &                      State_Chm               )
+            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
+     &                       DEPSAV(:,:,DRYPOPP_OC), 
+     &                       ZERO_DVEL,
+     &                       am_I_Root, 
+     &                       Input_Opt,
+     &                       State_Met,
+     &                       State_Chm,
+     &                       RC )
 
          ELSEIF ( DRYPOPG    > 0   .and. DRYPOPP_OC .le. 0 .and. 
      &            DRYPOPP_BC > 0 ) THEN
 
             ! Only POPG and POPP_BC dry deposition are active
-            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),
-     &                      ZERO_DVEL, 
-     &                      DEPSAV(:,:,DRYPOPP_BC),
-     &                      Input_Opt,
-     &                      State_Met,
-     &                      State_Chm               )
+            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
+     &                       ZERO_DVEL, 
+     &                       DEPSAV(:,:,DRYPOPP_BC),
+     &                       am_I_Root, 
+     &                       Input_Opt,
+     &                       State_Met,
+     &                       State_Chm,
+     &                       RC )
          
          ELSEIF ( DRYPOPG > 0 .and. DRYPOPP_OC .le. 0 .and. 
      &            DRYPOPP_BC  .le.  0 ) THEN
@@ -250,9 +278,11 @@
             CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
+     &                       am_I_Root, 
      &                       Input_Opt,
      &                       State_Met,
-     &                       State_Chm               )
+     &                       State_Chm,
+     &                       RC )
             
          ELSEIF ( DRYPOPG   <= 0   .and. DRYPOPP_OC > 0 .and. 
      &           DRYPOPP_BC >  0 ) THEN
@@ -261,9 +291,11 @@
             CALL CHEM_POPGP( ZERO_DVEL,
      &                       DEPSAV(:,:,DRYPOPP_OC), 
      &                       DEPSAV(:,:,DRYPOPP_BC),
+     &                       am_I_Root, 
      &                       Input_Opt,
      &                       State_Met,
-     &                       State_Chm               )
+     &                       State_Chm,
+     &                       RC )
 
          ELSEIF ( DRYPOPG    <= 0   .and. DRYPOPP_OC > 0 .and. 
      &            DRYPOPP_BC <= 0 ) THEN
@@ -272,9 +304,11 @@
             CALL CHEM_POPGP( ZERO_DVEL,
      &                       DEPSAV(:,:,DRYPOPP_OC), 
      &                       ZERO_DVEL,
+     &                       am_I_Root, 
      &                       Input_Opt,
      &                       State_Met,
-     &                       State_Chm               )
+     &                       State_Chm,
+     &                       RC )
 
          ELSEIF ( DRYPOPG    <= 0   .and. DRYPOPP_OC <= 0 .and. 
      &            DRYPOPP_BC >  0 ) THEN
@@ -283,14 +317,17 @@
             CALL CHEM_POPGP( ZERO_DVEL,
      &                       ZERO_DVEL, 
      &                       DEPSAV(:,:,DRYPOPP_BC),
+     &                       am_I_Root, 
      &                       Input_Opt,
      &                       State_Met,
-     &                       State_Chm               )
+     &                       State_Chm,
+     &                       RC )
          ELSE
 
             ! No dry deposition, pass zero deposition frequency
             CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
-     &                       Input_Opt, State_Met, State_Chm  )
+     &                       am_I_Root, Input_Opt, State_Met,
+     &                       State_Chm, RC )
 
          ENDIF
 
@@ -315,7 +352,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE CHEM_POPGP ( V_DEP_G,   V_DEP_P_OC, V_DEP_P_BC,
-     &                        Input_Opt, State_Met, State_Chm   )
+     &                        am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, RC   )
 !
 ! !USES:
 !
@@ -332,10 +370,12 @@
       USE DIAG53_MOD,         ONLY : AD53_POPP_BC_O3
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : SAFE_DIV
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE HCO_EmisList_Mod,   ONLY : EmisList_GetDataArr
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTPOPG,    IDTPOPPOC,  IDTPOPPBC
@@ -351,15 +391,17 @@
       ! Dry deposition frequency for BC-POP [/s]
       REAL*8, INTENT(IN)            :: V_DEP_P_BC(IIPAR,JJPAR)   
 
-      ! Input Options object
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt
-
-      ! Meteorology State object
-      TYPE(MetState), INTENT(IN)    :: State_Met
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  References:
@@ -372,6 +414,8 @@
 !  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  14 Apr 2014 - R. Yantosca - Now prevent div-by-zero in computations below
+!  10 Sep 2014 - M. Sulprizio- Now get global concentrations of OH, O3, OC, and
+!                              BC from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -517,6 +561,13 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
 
+      ! For getting concentrations from HEMCO 
+      LOGICAL, SAVE   :: FIRST = .TRUE.
+      LOGICAL         :: aIR
+
+      ! Grid box volume
+      REAL*8          :: BOXVL
+
       !=================================================================
       ! CHEM_POPGP begins here!
       !=================================================================
@@ -540,58 +591,112 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
+      ! am I root? 
+      aIR = am_I_Root
+
+      ! Get global concentrations of OH, O3, OC, and BC from HEMCO
+      IF ( FIRST ) THEN
+
+         CALL EmisList_GetDataArr( aIR, 'GLOBAL_OC', C_OC, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+
+         CALL EmisList_GetDataArr( aIR, 'GLOBAL_BC', C_BC, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+
+         CALL EmisList_GetDataArr( aIR, 'GLOBAL_OH', OH,   RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+
+         CALL EmisList_GetDataArr( aIR, 'GLOBAL_O3', O3,   RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+
+         FIRST = .FALSE.
+
+      ENDIF
+
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Zero concentrations in loop
-         MPOP_G = 0d0
-         MPOP_OC = 0d0
-         MPOP_BC = 0d0
-         OLD_POPG = 0d0
-         OLD_POPP_OC = 0d0
-         OLD_POPP_BC = 0d0
-         OLD_POP_T = 0d0
-         NEW_POPG = 0d0
-         NEW_POPP_OC = 0d0
-         NEW_POPP_BC = 0d0
-         POPG_BL = 0d0
-         POPP_OC_BL = 0d0
-         POPP_BC_BL = 0d0
-         POPG_FT = 0d0
-         POPP_OC_FT = 0d0
-         POPP_BC_FT = 0d0
-         DIFF_G = 0d0
-         DIFF_OC = 0d0
-         DIFF_BC = 0d0
-         NET_OX = 0d0 
-         TMP_POPG = 0d0
-         TMP_OX = 0d0      
-         GROSS_OX = 0d0
-         GROSS_OX_OH = 0d0 
-         DEP_POPG = 0d0
-         DEP_POPP_OC = 0d0
-         DEP_POPP_BC = 0d0
-         DEP_POPG_DRY = 0d0
+         MPOP_G          = 0d0
+         MPOP_OC         = 0d0
+         MPOP_BC         = 0d0
+         OLD_POPG        = 0d0
+         OLD_POPP_OC     = 0d0
+         OLD_POPP_BC     = 0d0
+         OLD_POP_T       = 0d0
+         NEW_POPG        = 0d0
+         NEW_POPP_OC     = 0d0
+         NEW_POPP_BC     = 0d0
+         POPG_BL         = 0d0
+         POPP_OC_BL      = 0d0
+         POPP_BC_BL      = 0d0
+         POPG_FT         = 0d0
+         POPP_OC_FT      = 0d0
+         POPP_BC_FT      = 0d0
+         DIFF_G          = 0d0
+         DIFF_OC         = 0d0
+         DIFF_BC         = 0d0
+         NET_OX          = 0d0 
+         TMP_POPG        = 0d0
+         TMP_OX          = 0d0      
+         GROSS_OX        = 0d0
+         GROSS_OX_OH     = 0d0 
+         DEP_POPG        = 0d0
+         DEP_POPP_OC     = 0d0
+         DEP_POPP_BC     = 0d0
+         DEP_POPG_DRY    = 0d0
          DEP_POPP_OC_DRY = 0d0
          DEP_POPP_BC_DRY = 0d0
-         DEP_DRY_FLXG = 0d0
+         DEP_DRY_FLXG    = 0d0
          DEP_DRY_FLXP_OC = 0d0
          DEP_DRY_FLXP_BC = 0d0
-         E_KOX_T = 0d0
-         K_OX = 0d0
-         K_O3 = 0d0
-         GROSS_OX_OC = 0d0
-         GROSS_OX_BC = 0d0
+         E_KOX_T         = 0d0
+         K_OX            = 0d0
+         K_O3            = 0d0
+         GROSS_OX_OC     = 0d0
+         GROSS_OX_BC     = 0d0
 
          ! Save local temperature in TK for convenience [K]
          TK = State_Met%T(I,J,L)
 
+         ! Grid box volume [cm3]
+         BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
+
+!------------------------------------------------------------------------------
+! Prior to 9/10/14:
+! Now get global OH and O3 concentrations from HEMCO (mps, 9/10/14)
+!         ! Get monthly mean OH concentrations
+!         C_OH        = GET_OH( I, J, L, State_Met )
+!
+!         ! Get monthly mean O3 concentrations
+!         C_O3        = GET_O3( I, J, L, State_Met )
+!------------------------------------------------------------------------------
          ! Get monthly mean OH concentrations
-         C_OH        = GET_OH( I, J, L, State_Met )
+         ! Convert from [kg/m3] to [molec/cm3]
+         C_OH      = OH(I,J,L) * XNUMOL_OH / CM3PERM3
+
+         ! Test for sunlight...
+         IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+
+            ! Impose a diurnal variation on OH during the day
+            C_OH   = C_OH * ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
+     &             ( 1440d0 / GET_TS_CHEM() )
+
+            ! Make sure OH is not negative
+            C_OH   = MAX( C_OH, 0d0 )
+               
+         ELSE
+
+            ! At night, OH goes to zero
+            C_OH   = 0d0
+
+         ENDIF
 
          ! Get monthly mean O3 concentrations
-         C_O3        = GET_O3( I, J, L, State_Met )
+         ! Convert from [v/v] to [molec/cm3]
+         C_O3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
+     &          State_Met%AD(I,J,L)    /  BOXVL
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
          F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
@@ -654,12 +759,21 @@
          KBC_OC_T = 1d0 / KOC_BC_T
 
          ! Get monthly mean OC and BC concentrations [kg/box] 
-         C_OC_CHEM = GET_OC(I,J,L)
-         C_BC_CHEM = GET_BC(I,J,L)
+!------------------------------------------------------------------------------
+! Prior to 9/9/14:
+! Now get global OC and BC concentrations from HEMCO (mps, 9/9/14)
+!         C_OC_CHEM = GET_OC(I,J,L)
+!         C_BC_CHEM = GET_BC(I,J,L)
+!------------------------------------------------------------------------------
+         C_OC_CHEM = C_OC(I,J,L)
+         C_BC_CHEM = C_BC(I,J,L)
+
+         ! Make sure OC is not negative
+         C_OC_CHEM = MAX( C_OC_CHEM, 0d0 )
 
          ! Convert to units of volume per box [m^3 OC or BC/box]
-         C_OC_CHEM1        = C_OC_CHEM / DENS_OCT
-         C_BC_CHEM1        = C_BC_CHEM / DENS_BC
+         C_OC_CHEM1 = C_OC_CHEM / DENS_OCT
+         C_BC_CHEM1 = C_BC_CHEM / DENS_BC
 
          ! Get AIRVOL
          AIR_VOL = State_Met%AIRVOL(I,J,L)
@@ -1833,224 +1947,230 @@
 !      
 !      END SUBROUTINE POPS_READYR
 !!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!     
+!! !IROUTINE: get_O3
+!!     
+!! !DESCRIPTION: Function GET\_O3 returns monthly mean O3 for offline sulfate
+!!  aerosol simulations. (bmy, 12/16/02)
+!!\\   
+!!\\   
+!! !INTERFACE: 
+!!
+!      FUNCTION GET_O3( I, J, L, State_Met ) RESULT( O3_MOLEC_CM3 )
+!!
+!! !USES:
+!!
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE GLOBAL_O3_MOD,      ONLY : O3
+!
+!      USE CMN_SIZE_MOD             ! Size parameters
+!!
+!! !INPUT PARAMETERS:
+!!
+!      ! Grid box indices for lon, lat, vertical level
+!      INTEGER,        INTENT(IN)  :: I, J, L
+!
+!      ! Meteorology State object
+!      TYPE(MetState), INTENT(IN)  :: State_Met
+!!
+!! !RETURN VALUE:
+!!
+!      REAL*8                      :: O3_MOLEC_CM3
+!!
+!! !REVISION HISTORY:
+!!  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
+!!  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!!  29 Nov 2012 - M. Payer   - Replaced all met field arrays with State_Met
+!!                             derived type object
+!!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      REAL*8 :: BOXVL
+!
+!      !=================================================================
+!      ! GET_O3 begins here!
+!      !=================================================================
+!
+!      ! Grid box volume [cm3]
+!      BOXVL        = State_Met%AIRVOL(I,J,L) * 1d6
+!
+!      ! Get ozone [v/v] for this gridbox & month
+!      ! and convert to [molec/cm3] (eck, 12/2/04)
+!      O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
+!     &               State_Met%AD(I,J,L)  / BOXVL
+!
+!      END FUNCTION GET_O3
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE:  get_oh
+!!
+!! !DESCRIPTION: Function GET\_OH returns monthly mean OH and imposes a diurnal
+!! variation. 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
+!!
+!! !USES:
+!!
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE GLOBAL_OH_MOD,      ONLY : OH
+!      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+!      USE CMN_SIZE_MOD             ! Size parameters
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER,        INTENT(IN)  :: I, J, L
+!      TYPE(MetState), INTENT(IN)  :: State_Met    ! Meteorology State object
+!!
+!! !RETURN VALUE:
+!!
+!      REAL*8                      :: OH_MOLEC_CM3
+!!
+!! !REMARKS:
+!! Copied GET_OH function from mercury_mod.f - CLF
+!!
+!! !REVISION HISTORY: 
+!!  03 Feb 2011 - CL Friedman - Initial Version
+!!  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!!                              derived type object
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!    
+!      !=================================================================
+!      ! GET_OH begins here!
+!      !=================================================================
+!
+!      ! Test for sunlight...
+!      IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+!
+!         ! Impose a diurnal variation on OH during the day
+!         OH_MOLEC_CM3 = OH(I,J,L)                      *           
+!     &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
+!     &                  ( 1440d0        / GET_TS_CHEM() )
+!
+!         ! Convert OH from [kg/m3] to [molec/cm3]
+!         OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
+!
+!         ! Make sure OH is not negative
+!         OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
+!               
+!      ELSE
+!
+!         ! At night, OH goes to zero
+!         OH_MOLEC_CM3 = 0d0
+!
+!      ENDIF
+!
+!      END FUNCTION GET_OH
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE:  get_oc
+!!
+!! !DESCRIPTION: Function GET\_OC returns monthly mean organic carbon 
+!! concentrations [kg/box]
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      FUNCTION GET_OC( I, J, L) RESULT( C_OC )
+!!
+!! !USES:
+!!
+!      USE GLOBAL_OC_MOD, ONLY : OC 
+!!
+!! !INPUT PARAMETERS:
+!!
+!      INTEGER, INTENT(IN) :: I, J, L 
+!!
+!! !REVISION HISTORY: 
+!!  03 February 2011 - CL Friedman - Initial Version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      REAL*8            :: C_OC
+!
+!      !=================================================================
+!      ! GET_OC begins here!
+!      !=================================================================
+!
+!      ! Get organic carbon concentration [kg/box] for this gridbox and month
+!      C_OC = OC(I,J,L)
+!
+!      ! Make sure OC is not negative
+!      C_OC = MAX( C_OC, 0d0 )
+!
+!      END FUNCTION GET_OC
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE:  get_bc
+!!
+!! !DESCRIPTION: Function GET\_BC returns monthly mean black carbon
+!!  concentrations [kg/box]
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      FUNCTION GET_BC( I, J, L) RESULT( C_BC )
+!!
+!! !USES:
+!!
+!      USE GLOBAL_BC_MOD, ONLY : BC
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER, INTENT(IN) :: I, J, L   
+!!
+!! !REVISION HISTORY: 
+!!  03 February 2011 - CL Friedman - Initial Version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      REAL*8      :: C_BC    
+!    
+!      !=================================================================
+!      ! GET_BC begins here!
+!      !=================================================================
+!
+!      ! Get black carbon concentration [kg/box] for this gridbox and month
+!      C_BC = BC(I,J,L)
+!
+!      END FUNCTION GET_BC
+!!EOC
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!     
-! !IROUTINE: get_O3
-!     
-! !DESCRIPTION: Function GET\_O3 returns monthly mean O3 for offline sulfate
-!  aerosol simulations. (bmy, 12/16/02)
-!\\   
-!\\   
-! !INTERFACE: 
-!
-      FUNCTION GET_O3( I, J, L, State_Met ) RESULT( O3_MOLEC_CM3 )
-!
-! !USES:
-!
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_O3_MOD,      ONLY : O3
-
-      USE CMN_SIZE_MOD             ! Size parameters
-!
-! !INPUT PARAMETERS:
-!
-      ! Grid box indices for lon, lat, vertical level
-      INTEGER, INTENT(IN)         :: I, J, L
-
-      ! Meteorology State object
-      TYPE(MetState), INTENT(IN)  :: State_Met
-!
-! !RETURN VALUE:
-!
-      REAL*8                      :: O3_MOLEC_CM3
-!
-! !REVISION HISTORY:
-!  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
-!  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
-!  29 Nov 2012 - M. Payer   - Replaced all met field arrays with State_Met
-!                             derived type object
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8 :: BOXVL
-      
-      !=================================================================
-      ! GET_O3 begins here!
-      !=================================================================
-
-      ! Grid box volume [cm3]
-      BOXVL        = State_Met%AIRVOL(I,J,L) * 1d6
-
-      ! Get ozone [v/v] for this gridbox & month
-      ! and convert to [molec/cm3] (eck, 12/2/04)
-      O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
-     &               State_Met%AD(I,J,L)  / BOXVL
-
-      END FUNCTION GET_O3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE:  get_oh
-!
-! !DESCRIPTION: Function GET\_OH returns monthly mean OH and imposes a diurnal
-! variation. 
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
-!
-! !USES:
-!
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : OH
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD             ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)         :: I, J, L
-
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !REMARKS:
-! Copied GET_OH function from mercury_mod.f - CLF
-!
-! !REVISION HISTORY: 
-!  03 Feb 2011 - CL Friedman - Initial Version
-!  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-       REAL*8        :: OH_MOLEC_CM3
-    
-       !=================================================================
-       ! GET_OH begins here!
-       !=================================================================
-
-       ! Test for sunlight...
-       IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
-
-         ! Impose a diurnal variation on OH during the day
-         OH_MOLEC_CM3 = OH(I,J,L)                      *           
-     &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
-     &                  ( 1440d0        / GET_TS_CHEM() )
-
-         ! Make sure OH is not negative
-         OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
-               
-       ELSE
-
-         ! At night, OH goes to zero
-         OH_MOLEC_CM3 = 0d0
-
-       ENDIF
-
-       END FUNCTION GET_OH
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE:  get_oc
-!
-! !DESCRIPTION: Function GET\_OC returns monthly mean organic carbon 
-! concentrations [kg/box]
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_OC( I, J, L) RESULT( C_OC )
-!
-! !USES:
-!
-      USE GLOBAL_OC_MOD, ONLY : OC 
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN) :: I, J, L 
-!
-! !REVISION HISTORY: 
-!  03 February 2011 - CL Friedman - Initial Version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8            :: C_OC
-
-      !=================================================================
-      ! GET_OC begins here!
-      !=================================================================
-
-      ! Get organic carbon concentration [kg/box] for this gridbox and month
-      C_OC = OC(I,J,L)
-
-      ! Make sure OC is not negative
-      C_OC = MAX( C_OC, 0d0 )
-
-      END FUNCTION GET_OC
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE:  get_bc
-!
-! !DESCRIPTION: Function GET\_BC returns monthly mean black carbon
-!  concentrations [kg/box]
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_BC( I, J, L) RESULT( C_BC )
-!
-! !USES:
-!
-      USE GLOBAL_BC_MOD, ONLY : BC
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: I, J, L   
-!
-! !REVISION HISTORY: 
-!  03 February 2011 - CL Friedman - Initial Version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8      :: C_BC    
-    
-      !=================================================================
-      ! GET_BC begins here!
-      !=================================================================
-
-      ! Get black carbon concentration [kg/box] for this gridbox and month
-      C_BC = BC(I,J,L)
-
-      END FUNCTION GET_BC
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2220,9 +2340,12 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GLOBAL_OC_MOD,      ONLY : GET_GLOBAL_OC
-      USE GLOBAL_BC_MOD,      ONLY : GET_GLOBAL_BC
-      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
+!------------------------------------------------------------------------------
+! Prior to 9/10/14:
+!      USE GLOBAL_OC_MOD,      ONLY : GET_GLOBAL_OC
+!      USE GLOBAL_BC_MOD,      ONLY : GET_GLOBAL_BC
+!      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
+!------------------------------------------------------------------------------
 !
 ! !INPUT PARAMETERS:
 !
@@ -2237,6 +2360,8 @@
 !  20 Sep 2010 - N.E. Selin  - Initial Version based on INIT_MERCURY
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt argument
 !  25 Aug 2014 - M. Sulprizio- Now accept am_I_Root and RC arguments
+!  10 Sep 2014 - M. Sulprizio- Remove calls to GET_GLOBAL_OC and GET_GLOBAL_BC,
+!                              these fields are now read in HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2244,7 +2369,10 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER       :: AS
-      INTEGER       :: MONTH, YEAR
+!------------------------------------------------------------------------------
+! Prior to 9/10/13:
+!      INTEGER       :: MONTH, YEAR
+!------------------------------------------------------------------------------
 
       ! For fields from Input_Opt
       LOGICAL       :: LDRYD, LNLPBL, LPRT
@@ -2261,18 +2389,22 @@
       LNLPBL    = Input_Opt%LNLPBL
       LPRT      = Input_Opt%LPRT
 
-      ! Get the current month
-      MONTH = GET_MONTH()
-
-      ! Get the current month
-      YEAR = GET_YEAR()
-
-      ! Read monthly OC and BC from disk
-      CALL GET_GLOBAL_OC( am_I_Root, Input_Opt, MONTH, YEAR, RC )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OC' )
-
-      CALL GET_GLOBAL_BC( am_I_Root, Input_Opt, MONTH, YEAR, RC )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: b GET_GLOBAL_BC' )
+!------------------------------------------------------------------------------
+! Prior to 9/10/13:
+! Now get global OC and BC concentrations from HEMCO (mps, 9/10/14)
+!      ! Get the current month
+!      MONTH = GET_MONTH()
+!
+!      ! Get the current month
+!      YEAR = GET_YEAR()
+!
+!      ! Read monthly OC and BC from disk
+!      CALL GET_GLOBAL_OC( am_I_Root, Input_Opt, MONTH, YEAR, RC )
+!      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OC' )
+!
+!      CALL GET_GLOBAL_BC( am_I_Root, Input_Opt, MONTH, YEAR, RC )
+!      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: b GET_GLOBAL_BC' )
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! Allocate and initialize arrays

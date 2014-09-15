@@ -142,6 +142,8 @@
 #                              and hcox_driver_mod.F90 back to HEMCO/Extensions
 #  24 Jul 2014 - R. Yantosca - Remove canopy_nox_mod.F, readfert.F, readclim.F,
 #                              and readsoil.F. HEMCO makes all these obsolete.
+#  15 Sep 2014 - M. Sulprizio- Remove global_oc_mod.F and global_bc_mod.F.
+#                              HEMCO makes these obsolete.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -426,10 +428,9 @@ cleanup.o                   : cleanup.F                                      \
                               diag51b_mod.o           diag53_mod.o           \
                               diag_oh_mod.o           diag_pl_mod.o          \
                               drydep_mod.o            dust_mod.o             \
-                              emissions_mod.o         global_bc_mod.o        \
+                              emissions_mod.o                                \
                               global_ch4_mod.o        global_hno3_mod.o      \
                               global_no3_mod.o        global_nox_mod.o       \
-                              global_oc_mod.o                                \
                               global_oh_mod.o         hcn_ch3cn_mod.o        \
                               isoropiaII_mod.o        land_mercury_mod.o     \
                               seasalt_mod.o           linoz_mod.o            \
@@ -602,8 +603,6 @@ gigc_environment_mod.o      : gigc_environment_mod.F90                       \
 			      tracer_mod.o            vdiff_pre_mod.o        \
                               get_ndep_mod.o
 
-global_bc_mod.o             : global_bc_mod.F
-
 global_br_mod.o             : global_br_mod.F                                \
                               chemgrid_mod.o          ocean_mercury_mod.o
 
@@ -620,8 +619,6 @@ global_no3_mod.o            : global_no3_mod.F
 global_nox_mod.o            : global_nox_mod.F
 
 global_o3_mod.o             : global_o3_mod.F
-
-global_oc_mod.o             : global_oc_mod.F
 
 global_oh_mod.o             : global_oh_mod.F                                \
                               dao_mod.o
@@ -645,8 +642,7 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               global_oh_mod.o         tracerid_mod.o         \
                               get_ndep_mod.o          drydep_mod.o           \
                               modis_lai_mod.o         carbon_mod.o           \
-                              fast_jx_mod.o           global_oc_mod.o        \
-                              global_bc_mod.o         hcoi_gc_diagn_mod.o
+                              fast_jx_mod.o           hcoi_gc_diagn_mod.o
 
 i6_read_mod.o               : i6_read_mod.F                                  \
                               diag_mod.o              
@@ -801,8 +797,6 @@ planeflight_mod.o           : planeflight_mod.F                              \
 pops_mod.o           	    : pops_mod.F    	                             \
 			      diag_mod.o	      diag53_mod.o           \
                               drydep_mod.o                                   \
-                              global_bc_mod.o	      global_oc_mod.o        \
-	        	      global_o3_mod.o         global_oh_mod.o        \
                               pbl_mix_mod.o	      tracerid_mod.o         \
                               vdiff_pre_mod.o
 
