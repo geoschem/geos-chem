@@ -83,6 +83,7 @@ CONTAINS
     USE HcoX_FINN_Mod,         ONLY : HcoX_FINN_Init
     USE HCOX_GC_RnPbBe_Mod,    ONLY : HCOX_GC_RnPbBe_Init
     USE HCOX_GC_POPs_Mod,      ONLY : HCOX_GC_POPs_Init
+    USE HCOX_CH4WETLAND_MOD,   ONLY : HCOX_CH4WETLAND_Init
 !
 ! !INPUT PARAMETERS:
 !
@@ -206,6 +207,13 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
+    ! CH4 wetland emissions 
+    !-----------------------------------------------------------------
+    CALL HCOX_CH4Wetland_Init( amIRoot,  HcoState, 'CH4_WETLANDS', &
+                                         ExtState,  RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    !-----------------------------------------------------------------
     ! Add extensions here ...
     !-----------------------------------------------------------------
 
@@ -245,19 +253,20 @@ CONTAINS
 ! !USES:
 !
     ! HCO extensions
-    USE HCOX_Custom_Mod,     ONLY : HCOX_Custom_Run
-    USE HCOX_SeaFlux_Mod,    ONLY : HCOX_SeaFlux_Run 
-    USE HCOX_ParaNox_Mod,    ONLY : HCOX_ParaNox_Run 
-    USE HCOX_LightNox_Mod,   ONLY : HCOX_LightNox_Run 
-    USE HCOX_SoilNox_Mod,    ONLY : HCOX_SoilNox_Run 
-    USE HCOX_DustDead_Mod,   ONLY : HCOX_DustDead_Run 
-    USE HCOX_DustGinoux_Mod, ONLY : HCOX_DustGinoux_Run 
-    USE HCOX_SeaSalt_Mod,    ONLY : HCOX_SeaSalt_Run 
-    USE HCOX_Megan_Mod,      ONLY : HCOX_Megan_Run 
-    USE HCOX_GFED3_Mod,      ONLY : HCOX_GFED3_Run 
-    USE HcoX_FINN_Mod,       ONLY : HcoX_FINN_Run 
-    USE HCOX_GC_RnPbBe_Mod,  ONLY : HCOX_GC_RnPbBe_Run
-    USE HCOX_GC_POPs_Mod,    ONLY : HCOX_GC_POPs_Run
+    USE HCOX_Custom_Mod,       ONLY : HCOX_Custom_Run
+    USE HCOX_SeaFlux_Mod,      ONLY : HCOX_SeaFlux_Run 
+    USE HCOX_ParaNox_Mod,      ONLY : HCOX_ParaNox_Run 
+    USE HCOX_LightNox_Mod,     ONLY : HCOX_LightNox_Run 
+    USE HCOX_SoilNox_Mod,      ONLY : HCOX_SoilNox_Run 
+    USE HCOX_DustDead_Mod,     ONLY : HCOX_DustDead_Run 
+    USE HCOX_DustGinoux_Mod,   ONLY : HCOX_DustGinoux_Run 
+    USE HCOX_SeaSalt_Mod,      ONLY : HCOX_SeaSalt_Run 
+    USE HCOX_Megan_Mod,        ONLY : HCOX_Megan_Run 
+    USE HCOX_GFED3_Mod,        ONLY : HCOX_GFED3_Run 
+    USE HcoX_FINN_Mod,         ONLY : HcoX_FINN_Run 
+    USE HCOX_GC_RnPbBe_Mod,    ONLY : HCOX_GC_RnPbBe_Run
+    USE HCOX_GC_POPs_Mod,      ONLY : HCOX_GC_POPs_Run
+    USE HCOX_CH4WETLAND_MOD,   ONLY : HCOX_CH4Wetland_Run
 !
 ! !INPUT PARAMETERS:
 !
@@ -400,6 +409,14 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
+    ! CH4 wetland emissions 
+    !-----------------------------------------------------------------
+    IF ( ExtState%Wetland_CH4 ) THEN
+       CALL HCOX_CH4Wetland_Run( amIRoot, ExtState, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+
+    !-----------------------------------------------------------------
     ! Add extensions here ...
     !-----------------------------------------------------------------
 
@@ -426,20 +443,21 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCOX_State_Mod,      ONLY : ExtStateFinal
-    USE HCOX_Custom_Mod,     ONLY : HCOX_Custom_Final
-    USE HCOX_SeaFlux_Mod,    ONLY : HCOX_SeaFlux_Final
-    USE HCOX_PARANOX_Mod,    ONLY : HCOX_PARANOX_Final
-    USE HCOX_LightNox_Mod,   ONLY : HCOX_LightNox_Final
-    USE HCOX_SoilNox_Mod,    ONLY : HCOX_SoilNox_Final
-    USE HCOX_DustDead_Mod,   ONLY : HCOX_DustDead_Final
-    USE HCOX_DustGinoux_Mod, ONLY : HCOX_DustGinoux_Final
-    USE HCOX_SeaSalt_Mod,    ONLY : HCOX_SeaSalt_Final
-    USE HCOX_Megan_Mod,      ONLY : HCOX_Megan_Final
-    USE HCOX_GFED3_Mod,      ONLY : HCOX_GFED3_Final
-    USE HcoX_FINN_Mod,       ONLY : HcoX_FINN_Final
-    USE HCOX_GC_RnPbBe_Mod,  ONLY : HCOX_GC_RnPbBe_Final
-    USE HCOX_GC_POPs_Mod,    ONLY : HCOX_GC_POPs_Final
+    USE HCOX_State_Mod,        ONLY : ExtStateFinal
+    USE HCOX_Custom_Mod,       ONLY : HCOX_Custom_Final
+    USE HCOX_SeaFlux_Mod,      ONLY : HCOX_SeaFlux_Final
+    USE HCOX_PARANOX_Mod,      ONLY : HCOX_PARANOX_Final
+    USE HCOX_LightNox_Mod,     ONLY : HCOX_LightNox_Final
+    USE HCOX_SoilNox_Mod,      ONLY : HCOX_SoilNox_Final
+    USE HCOX_DustDead_Mod,     ONLY : HCOX_DustDead_Final
+    USE HCOX_DustGinoux_Mod,   ONLY : HCOX_DustGinoux_Final
+    USE HCOX_SeaSalt_Mod,      ONLY : HCOX_SeaSalt_Final
+    USE HCOX_Megan_Mod,        ONLY : HCOX_Megan_Final
+    USE HCOX_GFED3_Mod,        ONLY : HCOX_GFED3_Final
+    USE HcoX_FINN_Mod,         ONLY : HcoX_FINN_Final
+    USE HCOX_GC_RnPbBe_Mod,    ONLY : HCOX_GC_RnPbBe_Final
+    USE HCOX_GC_POPs_Mod,      ONLY : HCOX_GC_POPs_Final
+    USE HCOX_CH4WETLAND_MOD,   ONLY : HCOX_CH4Wetland_Final
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -479,6 +497,7 @@ CONTAINS
        IF ( ExtState%FINN       ) CALL HcoX_FINN_Final
        IF ( ExtState%GC_RnPbBe  ) CALL HCOX_GC_RnPbBe_Final()
        IF ( ExtState%GC_POPs    ) CALL HCOX_GC_POPs_Final()
+       IF ( ExtState%Wetland_CH4) CALL HCOX_CH4Wetland_Final()
        
        ! Deallocate ExtState object
        DEALLOCATE( ExtState )

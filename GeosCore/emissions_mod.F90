@@ -110,6 +110,8 @@ CONTAINS
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
     USE CO2_MOD,            ONLY : EMISSCO2
+    USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
+    USE TRACERID_MOD,       ONLY : IDTCH4
 !
 ! !INPUT PARAMETERS:
 !
@@ -137,14 +139,26 @@ CONTAINS
 
     ! Run HEMCO
     CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
-    IF ( RC/=GIGC_SUCCESS ) RETURN 
+    IF ( RC /= GIGC_SUCCESS ) RETURN 
 
     ! For CO2 simulation, emissions are not added to Trac_Tend and hence
     ! not passed to the Tracers array during PBL mixing. Thus, need to add 
-    ! emissions explicitly to the Tracers array here.
+    ! emissions explicitly to the tracers array here.
     IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
        CALL EMISSCO2 ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-       IF ( RC/=GIGC_SUCCESS ) RETURN 
+       IF ( RC /= GIGC_SUCCESS ) RETURN 
+    ENDIF
+
+    ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
+    ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
+    ! ...) and write them into the individual emissions arrays defined in
+    ! global_ch4_mod (CH4_EMIS), from where the final emission array is
+    ! assembled and passed to STT or Trac_Tend.
+    ! This is a wrapper for backwards consistency, in particular for the
+    ! ND58 diagnostics).
+    IF ( Input_Opt%ITS_A_CH4_SIM .OR. IDTCH4 > 0 ) THEN
+       CALL EMISSCH4 ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN 
     ENDIF
 
     ! Return w/ success

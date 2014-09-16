@@ -81,6 +81,11 @@ MODULE HCO_Calc_Mod
 !
   PRIVATE :: GET_CURRENT_EMISSIONS
 !
+! !MODULE VARIABLES
+!
+  ! FLAG to control behavior of negative values
+  INTEGER             :: NegFlag = -1
+!
 ! ============================================================================
 !
 ! !REVISION HISTORY:
@@ -167,7 +172,6 @@ CONTAINS
     INTEGER             :: ExtNr            ! Extension Nr to be used 
     INTEGER             :: nI, nJ, nL 
     INTEGER             :: nnSpec, FLAG
-    INTEGER, SAVE       :: NegFlag = -1
 
     LOGICAL             :: Found, DoDiagn
 
@@ -664,6 +668,7 @@ CONTAINS
     INTEGER                 :: BaseLL, ScalLL, TmpLL
     LOGICAL                 :: ERR
     CHARACTER(LEN=255)      :: MSG, LOC
+    LOGICAL                 :: NegScalExist
  
     ! testing only
     INTEGER                 :: IX, IY
@@ -805,6 +810,10 @@ CONTAINS
        ! Get vector of time slice indeces
        tIDxVec = tIDx_GetIndxVec( ScalDct%Dta, nI ) 
 
+       ! Initialize negative scale factor flag. By default, assume that
+       ! no scale factor is negative
+       NegScalExist = .FALSE.
+
        ! Loop over all latitudes and longitudes
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
@@ -828,7 +837,7 @@ CONTAINS
              ! Mask value over this grid box
              TMPVAL = ScalDct%Dta%V2(1)%Val(I,J)
  
-             ! Mask values must not be negative 
+             ! Negative mask values are treated as zero (exclude). 
              IF ( TMPVAL <= 0.0_hp ) THEN
                 TMPVAL = 0.0_hp
              ELSE
@@ -884,8 +893,24 @@ CONTAINS
                 TMPVAL = ScalDct%Dta%V3(tidx)%Val(I,J,TmpLL)
              ENDIF
 
-             ! Advance to next grid box if scale factor is negative
-             IF ( TMPVAL < 0.0_hp ) CYCLE
+             ! For negative scale factor, proceed according to the
+             ! negative value setting specified in the configuration
+             ! file (NegFlag = 2: use this value):
+             IF ( TMPVAL < 0.0_hp .AND. NegFlag /= 2 ) THEN
+
+                ! NegFlag = 1: ignore and show warning 
+                IF ( NegFlag == 1 ) THEN
+                   NegScalExist = .TRUE. ! will prompt warning
+                   CYCLE
+
+                ! Return w/ error otherwise
+                ELSE
+                   MSG = 'Negative scale factor in: ' // TRIM(ScalDct%cName)
+                   CALL HCO_ERROR( MSG, RC )
+                   ERR = .TRUE.
+                   EXIT
+                ENDIF
+             ENDIF 
 
              ! -------------------------------------------------------
              ! Apply scale factor in accordance to field operator
@@ -939,6 +964,12 @@ CONTAINS
           ScalDct => NULL()
           RC = HCO_FAIL
           RETURN
+       ENDIF
+
+       ! eventually prompt warning for negative values
+       IF ( NegScalExist ) THEN
+          MSG = 'Negative scale factor found (ignored): ' // TRIM(ScalDct%cName)
+          CALL HCO_WARNING( MSG, RC )
        ENDIF
 
     ENDDO ! N

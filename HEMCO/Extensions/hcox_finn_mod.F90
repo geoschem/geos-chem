@@ -631,6 +631,8 @@ CONTAINS
             SpcName = 'APINE'
           CASE ('CO2bb' )
             SpcName = 'CO2'
+          CASE ('CH4_bb', 'CH4_tot' )
+            SpcName = 'CH4'
        END SELECT
 
        ! For lumped species, we have to repeat the lookup multiple times,

@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
+!      USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
       PRIVATE
@@ -31,6 +31,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: CH4_AVGTP
+      PUBLIC :: EMISSCH4
       PUBLIC :: CHEMCH4
       PUBLIC :: INIT_GLOBAL_CH4
       PUBLIC :: CLEANUP_GLOBAL_CH4
@@ -110,7 +111,7 @@
       ! AVGOH      : Array for CMS climatological OH            [molec/cm3]
       ! FMOL_CH4   : Molecular weight of CH4                    [kg/mole]
       ! XNUMOL_CH4 : Molecules CH4 / kg CH4                     [molec/kg]
-      ! CH4_EMIS   : Array for CH4 Emissions                    [molec/cm2/s]
+      ! CH4_EMIS   : Array for CH4 Emissions                    [kg/m2/s]
       !========================================================================
 
       ! Number of CH4 budget types 
@@ -320,6 +321,577 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: emissch4
+!
+! !DESCRIPTION: Subroutine EMISSCH4 places emissions of CH4 [kg] into the STT
+!  array. (jsw, bnd, bey, bmy, 1/16/01, 10/3/05)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE EMISSCH4( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+!      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR 
+!      USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
+!      USE TIME_MOD,           ONLY : GET_TS_EMIS,     ITS_A_NEW_DAY
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+!      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IT_IS_NAN
+!      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (ccc, 08/31/09)
+      USE DIAG_MOD,           ONLY : AD58
+
+      ! HEMCO update
+      USE HCO_DIAGN_MOD
+      USE HCO_ERROR_MOD
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REMARKS:
+!  WARNING: Soil absorption has to be the 11th field in CH4_EMIS
+! 
+! !REVISION HISTORY:
+!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
+!        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
+!        by Bob Yantosca. (bmy, 1/16/01)
+!  (2 ) EMISSCH4 is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
+!        (bmy, 1/16/01)
+!  (3 ) GLOBASEAEMIS, GLOBSEAEMIS are diagnostics by jsw.
+!  (4 ) Do not multiply CO emissions by 1.28 anymore (jsw, bmy, 2/12/01)
+!  (5 ) Renamed input files to CH4_monthly.geos.{RES} and 
+!        CH4_aseasonal.geos.{RES}. (bmy, 2/12/01)
+!  (6 ) Add reference to "CMN_SETUP" for the DATA_DIR variable (bmy, 2/13/01)
+!  (7 ) Removed references to "biofuel_mod.f" and "biomass_mod.f"; these
+!        weren't necessary (bmy, 3/20/01)
+!  (8 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Now use IU_FILE
+!        instead of IUNIT as the file unit #. (bmy, 6/27/02)
+!  (9 ) Now reference BXHEIGHT and SUNCOS from "dao_mod.f".  Remove reference 
+!        to header file "comtrid.h" -- it's not used.  Make FIRSTEMISS a local
+!        SAVEd variable.  Also use MONTH from "CMN" instead of the variable
+!        LMN. (bmy, 11/15/02)
+!  (10) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid_mod.f".
+!        Now use function GET_MONTH and GET_TS_EMIS from "time_mod.f". 
+!        Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
+!        I0 and J0 are now local variables. (bmy, 3/27/03)
+!  (11) Now reference STT from "tracer_mod.f".  Now reference DATA_DIR from
+!        "directory_mod.f". (bmy, 7/20/04)
+!  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (13) Add non-local PBL capability (ccc, 8/31/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  11 Apr 2014 - R. Yantosca - Remove call to INIT_GLOBAL_CH4
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I, I0, IREF, J, J0, JREF, N
+      REAL*8              :: DTSRCE,       AREA_M2
+      REAL*8,DIMENSION(7) :: DBGANTHRO
+      REAL*8,DIMENSION(3) :: DBGBIO
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+
+      ! For fields from Input_Opt
+      LOGICAL             :: ITS_A_CH4_SIM
+      LOGICAL             :: ITS_A_FULLCHEM_SIM
+      INTEGER             :: N_TRACERS
+      INTEGER             :: ID_TRACER(Input_Opt%N_TRACERS)
+
+      INTEGER                   :: FLAG, ERR
+      CHARACTER(LEN= 63)        :: DiagnName
+      TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
+      TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
+
+      CHARACTER(LEN=255)        :: MSG
+      CHARACTER(LEN=255)        :: LOC = 'EMISSCH4 (global_ch4_mod.F)'
+
+      !=================================================================
+      ! EMISSCH4 begins here!
+      !=================================================================
+
+      ! Assume success
+      RC                  = GIGC_SUCCESS
+
+      ! Get nested-grid offsets
+      I0                  = GET_XOFFSET()
+      J0                  = GET_YOFFSET()
+
+      ! Copy values from Input_Opt
+      N_TRACERS           = Input_Opt%N_TRACERS
+      ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
+      ITS_A_CH4_SIM       = Input_Opt%ITS_A_CH4_SIM
+      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
+
+      ! Import emissions from HEMCO (through HEMCO state)
+      CALL GetHcoState( HcoState )
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         CALL ERROR_STOP ( 'HcoState not defined!', LOC )
+      ENDIF
+
+      ! Emission timestep
+      DTSRCE = HcoState%TS_EMIS
+
+      IF ( ITS_A_CH4_SIM ) THEN
+         print*,'BEGIN SUBROUTINE: EMISSCH4' 
+      ENDIF
+
+      ! =================================================================
+      ! --> All emission calculations are now done through HEMCO
+      !
+      ! HEMCO automatically adds emissions to the trac_tend arrays
+      ! of Chm_State. Those emissions are mixed into the atmosphere
+      ! through the non local PBL scheme. If the non-local PBL scheme is
+      ! turned off, we have to pass the emissions to STT here.
+      ! For a multi-tracer run of the CH4 offline simulation, no emissions
+      ! are calculated for total CH4 (CH4_tot), and we have to add the 
+      ! emissions from all sources into this array.
+      ! For a single-tracer run of the CH4 offline simulation, there is
+      ! only one emissions species (CH4 or CH4_tot).
+      !                                              (ckeller, 9/12/2013)
+      ! =================================================================
+      CH4_EMIS(:,:,:) = 0d0
+
+      ! =================================================================
+      ! Pass emissions from HEMCO state to CH4_EMIS via HEMCO
+      ! diagnostics. Keep units in kg/m2/s.
+      ! 
+      ! NOTE: the ND60 diagnostics (wetland fraction) is currently not
+      ! written. To support this diagnostics, create a manual diagnostics
+      ! in the wetland extension (HEMCO/Extensions/hcox_ch4wetland_mod.F90),
+      ! activate it in hcoi\_gc\_diagn\_mod.F90 and import it here.
+      !                                              (ckeller, 9/12/2013)
+      ! =================================================================
+
+      ! Gas and oil
+      DiagnName = 'CH4_GAS'
+      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
+     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
+     &                AutoFill=1, InclManual=.TRUE. )
+      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_GAS',LOC)
+      IF ( FLAG /= HCO_SUCCESS ) THEN
+         CALL HCO_WARNING('NO CH4_GAS emissions',ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,2) = DgnCont%Arr2D%Val(:,:)
+      ENDIF
+      DgnCont => NULL()
+
+      ! Coal 
+      DiagnName = 'CH4_COAL'
+      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
+     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
+     &                AutoFill=1, InclManual=.TRUE. )
+      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_COAL',LOC)
+      IF ( FLAG /= HCO_SUCCESS ) THEN
+         CALL HCO_WARNING('NO CH4_COAL emissions',ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,3) = DgnCont%Arr2D%Val(:,:)
+      ENDIF
+      DgnCont => NULL()
+
+      ! Livestock
+      DiagnName = 'CH4_LIVESTOCK'
+      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
+     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
+     &                AutoFill=1, InclManual=.TRUE. )
+      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_LIVESTOCK',LOC)
+      IF ( FLAG /= HCO_SUCCESS ) THEN
+         CALL HCO_WARNING('NO CH4_LIVESTOCK emissions',ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,4) = DgnCont%Arr2D%Val(:,:)
+      ENDIF
+      DgnCont => NULL()
+
+      ! Waste 
+      DiagnName = 'CH4_WASTE'
+      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
+     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
+     &                AutoFill=1, InclManual=.TRUE. )
+      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_WASTE',LOC)
+      IF ( FLAG /= HCO_SUCCESS ) THEN
+         CALL HCO_WARNING('NO CH4_WASTE emissions',ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,5) = DgnCont%Arr2D%Val(:,:)
+      ENDIF
+      DgnCont => NULL()
+
+      ! Biofuel 
+      DiagnName = 'CH4_BIOFUEL'
+      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
+     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
+     &                AutoFill=1, InclManual=.TRUE. )
+      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_BIOFUEL',LOC)
+      IF ( FLAG /= HCO_SUCCESS ) THEN
+         CALL HCO_WARNING('NO CH4_BIOFUEL emissions',ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,6) = DgnCont%Arr2D%Val(:,:)
+      ENDIF
+      DgnCont => NULL()
+
+      ! Rice 
+      DiagnName = 'CH4_RICE'
+      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
+     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
+     &                AutoFill=0, InclManual=.TRUE. )
+      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_RICE',LOC)
+      IF ( FLAG /= HCO_SUCCESS ) THEN
+         CALL HCO_WARNING('NO CH4_RICE emissions',ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,7) = DgnCont%Arr2D%Val(:,:)
+      ENDIF
+      DgnCont => NULL()
+
+      ! Other anthropogenic 
+      DiagnName = 'CH4_ANTHROTHER'
+      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
+     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
+     &                AutoFill=1, InclManual=.TRUE. )
+      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_ANTHROTHER',LOC)
+      IF ( FLAG /= HCO_SUCCESS ) THEN
+         CALL HCO_WARNING('NO CH4_ANTHROTHER emissions',ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,8) = DgnCont%Arr2D%Val(:,:)
+      ENDIF
+      DgnCont => NULL()
+
+      ! Biomass burning 
+      DiagnName = 'CH4_BIOMASS'
+      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
+     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
+     &                AutoFill=1, InclManual=.TRUE. )
+      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_BIOMASS',LOC)
+      IF ( FLAG /= HCO_SUCCESS ) THEN
+         CALL HCO_WARNING('NO CH4_BIOMASS emissions',ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,9) = DgnCont%Arr2D%Val(:,:)
+      ENDIF
+      DgnCont => NULL()
+
+      ! Wetland 
+      DiagnName = 'CH4_WETLAND'
+      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
+     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
+     &                AutoFill=0, InclManual=.TRUE. )
+      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_WETLAND',LOC)
+      IF ( FLAG /= HCO_SUCCESS ) THEN
+         CALL HCO_WARNING('NO CH4_WETLAND emissions',ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,10) = DgnCont%Arr2D%Val(:,:)
+      ENDIF
+      DgnCont => NULL()
+
+      ! Soil absorption (those are negative!) 
+      DiagnName = 'CH4_SOILABSORB'
+      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
+     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
+     &                AutoFill=1, InclManual=.TRUE. )
+      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_SOILABSORB',LOC)
+      IF ( FLAG /= HCO_SUCCESS ) THEN
+         CALL HCO_WARNING('NO CH4_SOILABSORB emissions',ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,11) = DgnCont%Arr2D%Val(:,:) * -1.0
+      ENDIF
+      DgnCont => NULL()
+
+      ! Other natural 
+      DiagnName = 'CH4_OTHERNATUR'
+      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
+     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
+     &                AutoFill=1, InclManual=.TRUE. )
+      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_OTHERNATUR',LOC)
+      IF ( FLAG /= HCO_SUCCESS ) THEN
+         CALL HCO_WARNING('NO CH4_OTHERNATUR emissions',ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,12) = DgnCont%Arr2D%Val(:,:)
+      ENDIF
+      DgnCont => NULL()
+
+
+      ! =================================================================
+      ! Total emission: sum of all emissions - (2*soil absorption)
+      ! We have to substract soil absorption twice because it is added 
+      ! to other emissions in the SUM function. (ccc, 7/23/09)
+      ! =================================================================
+      CH4_EMIS(:,:,1) = SUM(CH4_EMIS, 3) - (2 * CH4_EMIS(:,:,11))
+
+      ! testing only
+      write(*,*) 'CH4_EMIS (kg/m2/s):'
+      write(*,*) '1 : ', SUM(CH4_EMIS(:,:,1))
+      write(*,*) '2 : ', SUM(CH4_EMIS(:,:,2))
+      write(*,*) '3 : ', SUM(CH4_EMIS(:,:,3))
+      write(*,*) '4 : ', SUM(CH4_EMIS(:,:,4))
+      write(*,*) '5 : ', SUM(CH4_EMIS(:,:,5))
+      write(*,*) '6 : ', SUM(CH4_EMIS(:,:,6))
+      write(*,*) '7 : ', SUM(CH4_EMIS(:,:,7))
+      write(*,*) '8 : ', SUM(CH4_EMIS(:,:,8))
+      write(*,*) '9 : ', SUM(CH4_EMIS(:,:,9))
+      write(*,*) '10: ', SUM(CH4_EMIS(:,:,10))
+      write(*,*) '11: ', SUM(CH4_EMIS(:,:,11))
+      write(*,*) '12: ', SUM(CH4_EMIS(:,:,12))
+!      write(*,*) 'rice 55,29: ',ch4_emis(55,29,7)
+!      write(*,*) 'wetl 55,29: ',ch4_emis(55,29,10)
+
+      ! =================================================================
+      ! Modify the STT with emissions rates.               (kjw, 5/29/09)
+      ! There are 12 tracers in the multi-tracer run.
+      ! One tracer for total CH4 and one for each emission category.
+      !
+      !  1. Total CH4
+      !  2. Gas and Oil 
+      !  3. Coal
+      !  4. Livestock
+      !  5. Waste
+      !  6. Biofuel
+      !  7. Rice
+      !  8. Other Anthropogenic
+      !  9. Biomass Burning
+      !  10. Wetlands
+      !  11. Soil Absorption
+      !  12. Other Natural
+      ! =================================================================
+ 
+      ! Only added to SST for offline CH4 simulations.
+      IF ( ITS_A_CH4_SIM ) THEN
+       WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to STT array.'
+      ENDIF
+
+      ! J0 and I0 are global variables, both set = 0.
+      DO J = 1, JJPAR
+         JREF = J + J0     
+
+      DO I = 1, IIPAR
+         IREF = I + I0
+
+         ! Grid box surface area [m2]
+         AREA_M2 = HcoState%Grid%AREA_M2(I,J)
+
+         ! Offline CH4 only
+         ! Convert kg/m2/s to kg.
+         IF ( ITS_A_CH4_SIM ) THEN
+
+            ! Pass directly to tracers array (surface level) if
+            ! non-local scheme is not used.
+            IF ( .NOT. Input_Opt%LNLPBL ) THEN
+               DO N = 1, N_TRACERS
+                  State_Chm%Tracers(IREF,JREF,1,N)
+     &            = State_Chm%Tracers(IREF,JREF,1,N)
+     &            + CH4_EMIS(IREF,JREF,ID_TRACER(N))
+     &            * DTSRCE * AREA_M2
+               ENDDO
+
+            ! Save into TRAC_TEND because this is now used by the
+            ! non-local PBL scheme. Trac_Tend is in kg/m2/s.
+            ! (ckeller, 9/13/2014)
+            ELSE
+               DO N = 1, N_TRACERS
+               State_Chm%Trac_Tend(IREF,JREF,1,N)
+     &            = CH4_EMIS(IREF,JREF,ID_TRACER(N))
+               ENDDO
+            ENDIF
+
+         ENDIF
+
+         ! Update diagnostics
+         IF ( ND58 > 0 ) THEN
+
+            ! All emission sources excluding soil absorption
+            AD58(IREF,JREF,1) = AD58(IREF,JREF,1) + 
+     &         ( CH4_EMIS(IREF,JREF,1) + CH4_EMIS(IREF,JREF,11) )
+     &           * DTSRCE * AREA_M2 
+
+            DO N = 2, PD58
+               AD58(IREF,JREF,N) = AD58(IREF,JREF,N) + 
+     &            CH4_EMIS(IREF,JREF,N) * DTSRCE * AREA_M2
+            ENDDO
+         ENDIF
+
+      ENDDO
+      ENDDO
+
+      IF ( ITS_A_CH4_SIM ) THEN
+
+#if defined( USE_CH4_BUDGET_DIAG )
+         !===============================================================
+         ! Sum up CH4 budgets
+         !
+         ! TCH4      - # molecules emitted from different sources
+         !===============================================================
+
+         DO J = 1,JJPAR
+            JREF = J + J0
+
+         DO I = 1,IIPAR
+            IREF = I + I0
+
+            ! Grid box surface area [m2]
+            AREA_M2 = HcoState%Grid%AREA_M2(I,J)
+
+            ! Gas, oil, mine
+            TCH4(I,J,1,5) = TCH4(I,J,1,5) +
+     &           ( ( CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) ) * 
+     &              * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+               
+            ! agriculture (rice, animals, waste)
+            TCH4(I,J,1,6) = TCH4(I,J,1,6) +
+     &           ( ( CH4_EMIS(I,J,4) + CH4_EMIS(I,J,7) + 
+     &               CH4_EMIS(I,J,5) ) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+            
+            ! Biomass burning (and biofuel?)
+            TCH4(I,J,1,7) = TCH4(I,J,1,7)+
+     &           ( ( CH4_EMIS(I,J,9) + CH4_EMIS(I,J,6) ) *
+     &               * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+
+            ! Termites
+            TCH4(I,J,1,8) = TCH4(I,J,1,8)+
+     &           ( CH4_EMIS(I,J,12) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+
+            ! Wetlands
+            TCH4(I,J,1,9) = TCH4(I,J,1,9)+
+     &           ( CH4_EMIS(I,J,10) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+
+            ! Soil Absorption
+            TCH4(I,J,1,10) = TCH4(I,J,1,10)+
+     &           ( CH4_EMIS(I,J,11) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+
+
+            TCH4(I,J,1,4) = TCH4(I,J,1,4) + 
+     &          ( CH4_EMIS(I,J,1)  + ( 2 * CH4_EMIS(IREF,JREF,11) ))
+     &          * XNUMOL_CH4 * AREA_M2 * DTSRCE
+
+         ENDDO
+         ENDDO
+#endif
+
+      ELSEIF ( ITS_A_FULLCHEM_SIM ) THEN
+
+         !===============================================================
+         ! Sum up CH4 emissions
+         !
+         ! SUMANTHRO - Total anthropogenic emissions [molec/cm2/s]
+         ! SUMBIOG   - Total biogenic      emissions [molec/cm2/s]
+         !===============================================================
+
+         ! Debug counters
+         DBGANTHRO = 0d0
+         DBGBIO    = 0d0
+
+         DO J = 1,JJPAR
+            JREF = J + J0
+
+         DO I = 1,IIPAR
+            IREF = I + I0
+
+            ! Grid box surface area [m2]
+            AREA_M2 = HcoState%Grid%AREA_M2(I,J) 
+
+            ! Total anthropogenic emissions
+            ! Gas & oil, mining, livestock, waste, biofuel, rice, other
+            SUMANTHRO(I,J) = CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) +
+     &                     + CH4_EMIS(I,J,4) + CH4_EMIS(I,J,5) +
+     &                     + CH4_EMIS(I,J,6) + CH4_EMIS(I,J,7) +
+     &                     + CH4_EMIS(I,J,8)
+
+            ! kg/s
+            DO N=1,7
+                DBGANTHRO(N) = DBGANTHRO(N) + 
+     &                         (CH4_EMIS(I,J,N+1)*AREA_M2)
+            ENDDO
+
+            ! Total biogenic emissions
+            ! Wetlands, other natural, (-)soil absorption
+            SUMBIOG(I,J) = CH4_EMIS(I,J,10) + CH4_EMIS(I,J,12)
+     &                   - CH4_EMIS(I,J,11)
+
+            ! kg/s
+            DO N=1,3
+                DBGBIO(N) = DBGBIO(N) + 
+     &                      (CH4_EMIS(I,J,N+9)*AREA_M2)
+            ENDDO
+
+         ENDDO
+         ENDDO
+
+         ! Convert from kg/s to kg/yr
+         DBGBIO(2)    = DBGBIO(2)*-1d0 ! Soil absorption
+         DBGANTHRO(:) = DBGANTHRO(:)*(3600.d-9*24d0*365.25d0)
+         DBGBIO(:)    = DBGBIO(:)*(3600.d-9*24d0*365.25d0)
+
+         ! SDE - Output projected annual emissions based on last output
+         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 anthrop. emissions rate:',
+     &            SUM(DBGANTHRO), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Gas & oil             :',
+     &            DBGANTHRO(1), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Mining                :',
+     &            DBGANTHRO(2), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Livestock             :',
+     &            DBGANTHRO(3), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Waste                 :',
+     &            DBGANTHRO(4), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Biofuel               :',
+     &            DBGANTHRO(5), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Rice                  :',
+     &            DBGANTHRO(6), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Other                 :',
+     &            DBGANTHRO(7), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 biogen. emissions rate: ',
+     &            SUM(DBGBIO), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Wetlands              :',
+     &            DBGBIO(1), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Other natural         :',
+     &            DBGBIO(3), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Soil absorption       :',
+     &            DBGBIO(2), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 total emissions rate:   ',
+     &            (SUM(DBGBIO)+SUM(DBGANTHRO)), 'Tg/yr'
+         
+      ENDIF
+
+      IF ( ITS_A_CH4_SIM ) THEN
+         print*,'END SUBROUTINE: EMISSCH4'
+      ENDIF
+
+      END SUBROUTINE EMISSCH4
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: chemch4
 !
 ! !DESCRIPTION: Subroutine CHEMCH4 computes the chemical loss of CH4
@@ -459,6 +1031,9 @@
       ! CHEMCH4 begins here!
       !=================================================================
       WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
+
+      ! testing only
+      write(*,*)'Total tracer before chemistry: ',SUM(State_Chm%Tracers)
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -691,6 +1266,9 @@
 
       print*,'END CHEMCH4'
       call flush(6)
+
+      ! testing only
+      write(*,*)'Total tracer after chemistry: ',SUM(State_Chm%Tracers)
 
       ! Set FIRSTCHEM to FALSE
       FIRSTCHEM = .FALSE.
@@ -1237,12 +1815,14 @@
             ! Calculate CH4 emissions [molec / box / s]
             !   Only for surface level
             ! Grid box surface area [cm2]
+            ! HEMCO update: CH4_EMIS now in kg/m2/s (ckeller, 9/12/2014)
             IF ( L .GT. 1 ) THEN 
                CH4EMIS = 0d0
             ELSE
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
+               AREA_CM2 = GET_AREA_CM2( I, J, L ) / 10000.0d0         ! now in m2!!
                CH4EMIS  = SUM(CH4_EMIS(I,J,2:10)) + CH4_EMIS(I,J,12)
-               CH4EMIS  = CH4EMIS * AREA_CM2 ! [molec/cm2/s] --> [molec/box/s]
+               CH4EMIS  = CH4EMIS * AREA_CM2                          ! [kg/m2/s]  --> [kg/box/s]
+               CH4EMIS  = CH4EMIS * XNUMOL_CH4                        ! [kg/box/s] --> [molec/box/s]
             ENDIF
 
          ELSE

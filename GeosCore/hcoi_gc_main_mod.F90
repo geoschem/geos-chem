@@ -1187,12 +1187,30 @@ CONTAINS
        ExtState%CLDTOPS%Arr%Val => State_Met%CLDTOPS
     ENDIF
     IF ( ExtState%SNOWHGT%DoUse ) THEN
-
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
        ExtState%SNOWHGT%Arr%Val => State_Met%SNOMAS
 #else
        ExtState%SNOWHGT%Arr%Val => State_Met%SNOW
 #endif
+    ENDIF
+    IF ( ExtState%SNODP%DoUse ) THEN
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+       ExtState%SNODP%Arr%Val => State_Met%SNODP
+#else
+       ExtState%SNODP%Arr%Val => State_Met%SNOW
+#endif
+    ENDIF
+    IF ( ExtState%FRLAND%DoUse ) THEN
+       ExtState%FRLAND%Arr%Val => State_Met%FRLAND
+    ENDIF
+    IF ( ExtState%FROCEAN%DoUse ) THEN
+       ExtState%FROCEAN%Arr%Val => State_Met%FROCEAN
+    ENDIF
+    IF ( ExtState%FRLAKE%DoUse ) THEN
+       ExtState%FRLAKE%Arr%Val => State_Met%FRLAKE
+    ENDIF
+    IF ( ExtState%FRLANDIC%DoUse ) THEN
+       ExtState%FRLANDIC%Arr%Val => State_Met%FRLANDIC
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -1493,7 +1511,8 @@ CONTAINS
     ! specialty sims), just use the GEOS-Chem species definitions.
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. &
-         Input_Opt%ITS_A_RnPbBe_SIM         ) THEN
+         Input_Opt%ITS_A_RnPbBe_SIM   .OR. &
+         Input_Opt%ITS_A_CH4_SIM            ) THEN
 
        ! # of model species
        nModelSpec = Input_Opt%N_TRACERS

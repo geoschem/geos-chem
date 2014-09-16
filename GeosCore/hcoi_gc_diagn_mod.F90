@@ -217,6 +217,9 @@ CONTAINS
     CALL Diagn_POPs    ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL Diagn_CH4     ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     !=======================================================================
     ! Define automatic diagnostics (AutoFill)
     !=======================================================================
@@ -3666,6 +3669,470 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Diagn_POPs
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Diagn_CH4
+!
+! !DESCRIPTION: Subroutine Diagn\_CH4 initializes diagnostics for the
+!  CH4 simulation (ND58).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_CH4( am_I_Root, Input_Opt, HcoState, ExtState, RC ) 
+!
+! !USES:
+!
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_State_Mod,      ONLY : HCO_State
+    USE HCO_State_Mod,      ONLY : HCO_GetHcoID
+    USE HCOX_State_Mod,     ONLY : Ext_State
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE TRACERID_MOD,       ONLY : IDTCH4
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
+    TYPE(EXT_State),  POINTER        :: ExtState   ! Extensions state object 
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REMARKS:
+!  Split off code from HCOI_GC_Diagn_Init into smaller routines in order to
+!  make the code more manageable.
+!\\
+!\\
+!  CH4 diagnostics need to be defined even if ND58 is turned off because
+!  the diagnostics are also being used to write CH4 emissions from the 
+!  individual sources (gas, coal, etc.) into STT (in global\_ch4\_mod.F).
+!  The categories defined here need to match the ones specified in the 
+!  HEMCO configuration file.
+!
+! !REVISION HISTORY: 
+!  13 Sep 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: ExtNr, IDCH4, Cat, HcoID, N
+    CHARACTER(LEN=31)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGN_CH4 (hcoi_gc_diagn_mod.F90)'
+
+    !=======================================================================
+    ! Define ND58 diagnostics (CH4 emissions)
+    !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    ! Exit if the CH4 simulation is not selected
+    IF ( .NOT. Input_Opt%ITS_A_CH4_SIM .AND. IDTCH4 < 0 ) RETURN
+
+    ! Get default HEMCO species ID for CH4 
+    IDCH4 = HCO_GetHcoID( 'CH4', HcoState )
+
+    ! Extension number is zero (HEMCO core) until defined otherwise
+    ExtNr = 0
+
+    !-----------------------------------------------------------------
+    ! %%%%% CH4 from gas and oil (Category 1 or species CH4_ga)  %%%%%
+    !-----------------------------------------------------------------
+
+    ! Check if there is a specific HEMCO species defined for this 
+    ! category, in which case we use the total of this species.
+    ! Otherwise, use CH4 category 1 emissions.
+    HcoID = HCO_GetHcoID( 'CH4_ga', HcoState )
+    IF ( HcoID > 0 ) THEN
+       Cat   = -1
+    ELSE
+       HcoID = IDCH4
+       Cat   = 1
+    ENDIF
+    IF ( HcoID < 0 ) THEN 
+       MSG = 'Cannot find HEMCO species CH4 or CH4_ga!'
+       CALL HCO_Error( MSG, RC, THISLOC=Loc )
+       RETURN
+    ENDIF 
+
+    ! Create diagnostic container
+    DiagnName = 'CH4_GAS'
+    CALL Diagn_Create( am_I_Root,                     & 
+                       HcoState,                      &
+                       cName     = TRIM( DiagnName ), &
+                       ExtNr     = ExtNr,             &
+                       Cat       = Cat,               &
+                       Hier      = -1,                &
+                       HcoID     = HcoID,             &
+                       SpaceDim  = 2,                 &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg/m2/s',         &
+                       WriteFreq = 'Manual',          &
+                       AutoFill  = 1,                 &
+                       cID       = N,                 & 
+                       RC        = RC                  ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    !----------------------------------------------------------
+    ! %%%%% CH4 from coal (Category 2 or species CH4_co)  %%%%%
+    !----------------------------------------------------------
+
+    HcoID = HCO_GetHcoID( 'CH4_co', HcoState )
+    IF ( HcoID > 0 ) THEN
+       Cat   = -1
+    ELSE
+       HcoID = IDCH4
+       Cat   = 2
+    ENDIF
+    IF ( HcoID < 0 ) THEN 
+       MSG = 'Cannot find HEMCO species CH4 or CH4_co!'
+       CALL HCO_Error( MSG, RC, THISLOC=Loc )
+       RETURN
+    ENDIF 
+
+    ! Create diagnostic container
+    DiagnName = 'CH4_COAL'
+    CALL Diagn_Create( am_I_Root,                     & 
+                       HcoState,                      &
+                       cName     = TRIM( DiagnName ), &
+                       ExtNr     = ExtNr,             &
+                       Cat       = Cat,               &
+                       Hier      = -1,                &
+                       HcoID     = HcoID,             &
+                       SpaceDim  = 2,                 &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg/m2/s',         &
+                       WriteFreq = 'Manual',          &
+                       AutoFill  = 1,                 &
+                       cID       = N,                 & 
+                       RC        = RC                  ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    !---------------------------------------------------------------
+    ! %%%%% CH4 from livestock (Category 3 or species CH4_ef)  %%%%%
+    !---------------------------------------------------------------
+
+    HcoID = HCO_GetHcoID( 'CH4_ef', HcoState )
+    IF ( HcoID > 0 ) THEN
+       Cat   = -1
+    ELSE
+       HcoID = IDCH4
+       Cat   = 3
+    ENDIF
+    IF ( HcoID < 0 ) THEN 
+       MSG = 'Cannot find HEMCO species CH4 or CH4_ef!'
+       CALL HCO_Error( MSG, RC, THISLOC=Loc )
+       RETURN
+    ENDIF 
+
+    ! Create diagnostic container
+    DiagnName = 'CH4_LIVESTOCK'
+    CALL Diagn_Create( am_I_Root,                     & 
+                       HcoState,                      &
+                       cName     = TRIM( DiagnName ), &
+                       ExtNr     = ExtNr,             &
+                       Cat       = Cat,               &
+                       Hier      = -1,                &
+                       HcoID     = HcoID,             &
+                       SpaceDim  = 2,                 &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg/m2/s',         &
+                       WriteFreq = 'Manual',          &
+                       AutoFill  = 1,                 &
+                       cID       = N,                 & 
+                       RC        = RC                  ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+    
+    !---------------------------------------------------------------
+    ! %%%%% CH4 from waste (Category 4 or species CH4_wa)  %%%%%
+    !---------------------------------------------------------------
+
+    HcoID = HCO_GetHcoID( 'CH4_wa', HcoState )
+    IF ( HcoID > 0 ) THEN
+       Cat   = -1
+    ELSE
+       HcoID = IDCH4
+       Cat   = 4
+    ENDIF
+    IF ( HcoID < 0 ) THEN 
+       MSG = 'Cannot find HEMCO species CH4 or CH4_wa!'
+       CALL HCO_Error( MSG, RC, THISLOC=Loc )
+       RETURN
+    ENDIF 
+
+    ! Create diagnostic container
+    DiagnName = 'CH4_WASTE'
+    CALL Diagn_Create( am_I_Root,                     & 
+                       HcoState,                      &
+                       cName     = TRIM( DiagnName ), &
+                       ExtNr     = ExtNr,             &
+                       Cat       = Cat,               &
+                       Hier      = -1,                &
+                       HcoID     = HcoID,             &
+                       SpaceDim  = 2,                 &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg/m2/s',         &
+                       WriteFreq = 'Manual',          &
+                       AutoFill  = 1,                 &
+                       cID       = N,                 & 
+                       RC        = RC                  ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+    
+    !---------------------------------------------------------------
+    ! %%%%% CH4 from biofuel (Category 5 or species CH4_bf)  %%%%%
+    !---------------------------------------------------------------
+
+    HcoID = HCO_GetHcoID( 'CH4_bf', HcoState )
+    IF ( HcoID > 0 ) THEN
+       Cat   = -1
+    ELSE
+       HcoID = IDCH4
+       Cat   = 5
+    ENDIF
+    IF ( HcoID < 0 ) THEN 
+       MSG = 'Cannot find HEMCO species CH4 or CH4_bf!'
+       CALL HCO_Error( MSG, RC, THISLOC=Loc )
+       RETURN
+    ENDIF 
+
+    ! Create diagnostic container
+    DiagnName = 'CH4_BIOFUEL'
+    CALL Diagn_Create( am_I_Root,                     & 
+                       HcoState,                      &
+                       cName     = TRIM( DiagnName ), &
+                       ExtNr     = ExtNr,             &
+                       Cat       = Cat,               &
+                       Hier      = -1,                &
+                       HcoID     = HcoID,             &
+                       SpaceDim  = 2,                 &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg/m2/s',         &
+                       WriteFreq = 'Manual',          &
+                       AutoFill  = 1,                 &
+                       cID       = N,                 & 
+                       RC        = RC                  ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    !-------------------------------------------------------------------------
+    ! %%%%% CH4 from other anth. sources (Category 6 or species CH4_oa)  %%%%%
+    !-------------------------------------------------------------------------
+
+    HcoID = HCO_GetHcoID( 'CH4_oa', HcoState )
+    IF ( HcoID > 0 ) THEN
+       Cat   = -1
+    ELSE
+       HcoID = IDCH4
+       Cat   = 6
+    ENDIF
+    IF ( HcoID < 0 ) THEN 
+       MSG = 'Cannot find HEMCO species CH4 or CH4_oa!'
+       CALL HCO_Error( MSG, RC, THISLOC=Loc )
+       RETURN
+    ENDIF 
+
+    ! Create diagnostic container
+    DiagnName = 'CH4_ANTHROTHER'
+    CALL Diagn_Create( am_I_Root,                     & 
+                       HcoState,                      &
+                       cName     = TRIM( DiagnName ), &
+                       ExtNr     = ExtNr,             &
+                       Cat       = Cat,               &
+                       Hier      = -1,                &
+                       HcoID     = HcoID,             &
+                       SpaceDim  = 2,                 &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg/m2/s',         &
+                       WriteFreq = 'Manual',          &
+                       AutoFill  = 1,                 &
+                       cID       = N,                 & 
+                       RC        = RC                  ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    !-------------------------------------------------------------------------
+    ! %%%%% CH4 from soil absorption (Category 7 or species CH4_sa)  %%%%%
+    !-------------------------------------------------------------------------
+
+    HcoID = HCO_GetHcoID( 'CH4_sa', HcoState )
+    IF ( HcoID > 0 ) THEN
+       Cat   = -1
+    ELSE
+       HcoID = IDCH4
+       Cat   = 7
+    ENDIF
+    IF ( HcoID < 0 ) THEN 
+       MSG = 'Cannot find HEMCO species CH4 or CH4_sa!'
+       CALL HCO_Error( MSG, RC, THISLOC=Loc )
+       RETURN
+    ENDIF 
+
+    ! Create diagnostic container
+    DiagnName = 'CH4_SOILABSORB'
+    CALL Diagn_Create( am_I_Root,                     & 
+                       HcoState,                      &
+                       cName     = TRIM( DiagnName ), &
+                       ExtNr     = ExtNr,             &
+                       Cat       = Cat,               &
+                       Hier      = -1,                &
+                       HcoID     = HcoID,             &
+                       SpaceDim  = 2,                 &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg/m2/s',         &
+                       WriteFreq = 'Manual',          &
+                       AutoFill  = 1,                 &
+                       cID       = N,                 & 
+                       RC        = RC                  ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    !---------------------------------------------------------------------------
+    ! %%%%% CH4 from other natural sources (Category 8 or species CH4_on)  %%%%%
+    !---------------------------------------------------------------------------
+
+    HcoID = HCO_GetHcoID( 'CH4_on', HcoState )
+    IF ( HcoID > 0 ) THEN
+       Cat   = -1
+    ELSE
+       HcoID = IDCH4
+       Cat   = 8
+    ENDIF
+    IF ( HcoID < 0 ) THEN 
+       MSG = 'Cannot find HEMCO species CH4 or CH4_on!'
+       CALL HCO_Error( MSG, RC, THISLOC=Loc )
+       RETURN
+    ENDIF 
+
+    ! Create diagnostic container
+    DiagnName = 'CH4_OTHERNATUR'
+    CALL Diagn_Create( am_I_Root,                     & 
+                       HcoState,                      &
+                       cName     = TRIM( DiagnName ), &
+                       ExtNr     = ExtNr,             &
+                       Cat       = Cat,               &
+                       Hier      = -1,                &
+                       HcoID     = HcoID,             &
+                       SpaceDim  = 2,                 &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg/m2/s',         &
+                       WriteFreq = 'Manual',          &
+                       AutoFill  = 1,                 &
+                       cID       = N,                 & 
+                       RC        = RC                  ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    !--------------------------------------------------------------------------
+    ! %%%%% CH4 from biomass burning (automatically filled in extension)  %%%%%
+    !--------------------------------------------------------------------------
+
+    ! HEMCO extension # for wetland ch4 
+    ExtNr = GetExtNr( 'GFED3' )
+    IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
+    IF ( ExtNr <= 0 ) THEN
+       CALL HCO_Warning ( 'Biomass burning emissions not turned on!!', RC, THISLOC=LOC )
+    ENDIF
+    IF ( ExtNr > 0 ) THEN
+       IF ( IDCH4 < 0 ) THEN
+          HcoID = HCO_GetHcoID( 'CH4_tot', HcoState )
+       ELSE
+          HcoID = IDCH4
+       ENDIF
+       IF ( HcoID < 0 ) THEN 
+          MSG = 'Cannot find HEMCO species CH4 or CH4_tot!'
+          CALL HCO_Error( MSG, RC, THISLOC=Loc )
+          RETURN
+       ENDIF 
+   
+       ! Create diagnostic container
+       DiagnName = 'CH4_BIOMASS'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState,                      &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+                          WriteFreq = 'Manual',          &
+                          AutoFill  = 1,                 & 
+                          cID       = N,                 & 
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF     
+   
+    !----------------------------------------------------------------------
+    ! %%%%% CH4 from rice (manual diagnostics in wetlands extension)  %%%%%
+    !----------------------------------------------------------------------
+
+    ! HEMCO extension # for wetland ch4 
+    ExtNr = GetExtNr( 'CH4_WETLANDS' )
+    IF ( ExtNr <= 0 ) THEN
+       CALL HCO_Warning ( 'Wetland emissions not turned on!!', RC, THISLOC=LOC )
+    ENDIF
+    IF ( ExtNr > 0 ) THEN
+       IF ( IDCH4 < 0 ) THEN
+          HcoID = HCO_GetHcoID( 'CH4_tot', HcoState )
+       ELSE
+          HcoID = IDCH4
+       ENDIF
+       IF ( HcoID < 0 ) THEN 
+          MSG = 'Cannot find HEMCO species CH4 or CH4_tot!'
+          CALL HCO_Error( MSG, RC, THISLOC=Loc )
+          RETURN
+       ENDIF 
+   
+       ! Create diagnostic container
+       DiagnName = 'CH4_RICE'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState,                      &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+                          WriteFreq = 'Manual',          &
+                          AutoFill  = 0,                 &  ! Manually filled !!
+                          cID       = N,                 & 
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF     
+   
+    !--------------------------------------------------------------------------
+    ! %%%%% CH4 from wetlands (manual diagnostics in wetlands extension)  %%%%%
+    !--------------------------------------------------------------------------
+
+    IF ( ExtNr > 0 ) THEN
+       DiagnName = 'CH4_WETLAND'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState,                      &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+                          WriteFreq = 'Manual',          &
+                          AutoFill  = 0,                 &  ! Manually filled !!
+                          cID       = N,                 & 
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF     
+
+  END SUBROUTINE Diagn_CH4
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

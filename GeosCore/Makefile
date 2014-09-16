@@ -448,7 +448,8 @@ cleanup.o                   : cleanup.F                                      \
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
 co2_mod.o                   : co2_mod.F                                      \
-                              diag04_mod.o            tracerid_mod.o          
+                              diag04_mod.o            tracerid_mod.o         \
+                              hcoi_gc_main_mod.o
 
 comode_mod.o                : comode_mod.F
 
@@ -551,7 +552,8 @@ dust_mod.o                  : dust_mod.F                                     \
                               tomas_mod.o             tracerid_mod.o
 
 emissions_mod.o             : emissions_mod.F90                              \
-                              co2_mod.o               hcoi_gc_main_mod.o
+                              co2_mod.o               global_ch4_mod.o       \
+                              hcoi_gc_main_mod.o      tracerid_mod.o
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
                               chemgrid_mod.o          dao_mod.o              \
@@ -609,7 +611,8 @@ global_br_mod.o             : global_br_mod.F                                \
 global_ch4_mod.o            : global_ch4_mod.F                               \
                               diag_mod.o                                     \
                               diag_oh_mod.o           global_oh_mod.o        \
-                              tracer_mod.o            vdiff_pre_mod.o
+                              tracer_mod.o            vdiff_pre_mod.o        \
+                              hcoi_gc_main_mod.o
 
 global_hno3_mod.o           : global_hno3_mod.F                              \
                               tracer_mod.o
