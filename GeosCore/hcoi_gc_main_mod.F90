@@ -100,7 +100,7 @@ MODULE HCOI_GC_Main_Mod
   REAL(hp),             POINTER :: ModelSpecK0        (:) => NULL()
   REAL(hp),             POINTER :: ModelSpecCR        (:) => NULL()
   REAL(hp),             POINTER :: ModelSpecPKA       (:) => NULL()
-  INTEGER,              POINTER :: matchidx           (:) => NULL()
+  INTEGER,              POINTER :: MatchIDx           (:) => NULL()
 
   !--------------------------
   ! %%% Arrays %%%
@@ -129,6 +129,10 @@ MODULE HCOI_GC_Main_Mod
   ! Hydrophilic and hydrophobic fraction of organic carbon
   REAL(dp),           PARAMETER :: OC2OCPI = 0.5_dp  ! hydrophilic
   REAL(dp),           PARAMETER :: OC2OCPO = 0.5_dp  ! hydrophobic
+
+  ! Logical switch that determines if species arrays in HEMCO state
+  ! can be pointing to corresponding arrays in State_Chm.
+  LOGICAL                       :: UsePtrs2GC = .TRUE.
 
   ! Temporary toggle for diagnostics
   LOGICAL,            PARAMETER :: DoDiagn = .TRUE.
@@ -167,7 +171,6 @@ CONTAINS
     USE HCOX_Driver_Mod,    ONLY : HCOX_INIT
     USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_DIAGN_INIT
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
-    USE HCO_State_Mod,      ONLY : HCO_GetHcoID 
 !
 ! !INPUT PARAMETERS:
 !
@@ -452,7 +455,7 @@ CONTAINS
     ! Set Extension number ExtNr to 0, indicating that the core
     ! module shall be executed. 
     HcoState%Options%SpcMin = 1 
-    HcoState%Options%SpcMax = Input_Opt%N_Tracers 
+    HcoState%Options%SpcMax = -1
     HcoState%Options%CatMin = 1 
     HcoState%Options%CatMax = -1 
     HcoState%Options%ExtNr  = 0
@@ -542,7 +545,6 @@ CONTAINS
     USE HCO_State_Mod,       ONLY : HcoState_Final
     USE HCOIO_Diagn_Mod,     ONLY : HCOIO_Diagn_WriteOut
     USE HCOX_Driver_Mod,     ONLY : HCOX_Final
-    USE HCO_Clock_Mod,       ONLY : HcoClock_Increase
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -569,23 +571,24 @@ CONTAINS
     ! Init
     LOC = 'HCOI_GC_Final (hcoi_gc_main_mod.F90)'
 
-    ! Increase HEMCO clock by one emission time step. This is just to
-    ! make sure that the 'end of interval' flag is properly set for
-    ! all variables.
-    CALL HcoClock_Increase ( am_I_Root, HcoState, HcoState%TS_EMIS, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HcoClock_Increase', LOC )
+    ! Set HcoClock to current time. This is to make sure that the 
+    ! diagnostics are properly written.
+    CALL SET_CURRENT_TIME ( am_I_Root, HcoState, HMRC )
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SET_CURRENT_TIME', LOC )
 
-    ! Write out 'standard' diagnostics
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL', LOC )
+    ! Write out 'standard' diagnostics. Use previous time.
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC, &
+                                UsePrevTime=.TRUE. )
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL A', LOC )
  
-    ! Also write all other diagnostics into netCDF file
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., HMRC, PREFIX=RST )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL', LOC )
+    ! Also write all other diagnostics into restart file. Use current time.
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., HMRC, &
+                                UsePrevTime=.FALSE., PREFIX=RST ) 
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL B', LOC )
  
     ! Cleanup diagnostics
     CALL Diagn_Cleanup()
- 
+
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
     CALL HCOX_FINAL ( ExtState ) 
@@ -597,9 +600,7 @@ CONTAINS
     ! Note: Only need to do this if HEMCO grid is equal to GC 
     ! simulation grid. Otherwise, nothing to do here (arrays
     ! will be explicitly deallocated in HCO\_FINAL call below).
-    IF ( ( HcoState%NX == IIPAR ) .AND.      &
-         ( HcoState%NY == JJPAR ) .AND.      &
-         ( HcoState%NZ == LLPAR )      ) THEN 
+    IF ( UsePtrs2GC ) THEN 
        DO I = 1, HcoState%nSpc
           HcoState%Spc(I)%Emis%Val => NULL()
           HcoState%Spc(I)%Depv%Val => NULL()
@@ -1189,12 +1190,30 @@ CONTAINS
        ExtState%CLDTOPS%Arr%Val => State_Met%CLDTOPS
     ENDIF
     IF ( ExtState%SNOWHGT%DoUse ) THEN
-
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
        ExtState%SNOWHGT%Arr%Val => State_Met%SNOMAS
 #else
        ExtState%SNOWHGT%Arr%Val => State_Met%SNOW
 #endif
+    ENDIF
+    IF ( ExtState%SNODP%DoUse ) THEN
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+       ExtState%SNODP%Arr%Val => State_Met%SNODP
+#else
+       ExtState%SNODP%Arr%Val => State_Met%SNOW
+#endif
+    ENDIF
+    IF ( ExtState%FRLAND%DoUse ) THEN
+       ExtState%FRLAND%Arr%Val => State_Met%FRLAND
+    ENDIF
+    IF ( ExtState%FROCEAN%DoUse ) THEN
+       ExtState%FROCEAN%Arr%Val => State_Met%FROCEAN
+    ENDIF
+    IF ( ExtState%FRLAKE%DoUse ) THEN
+       ExtState%FRLAKE%Arr%Val => State_Met%FRLAKE
+    ENDIF
+    IF ( ExtState%FRLANDIC%DoUse ) THEN
+       ExtState%FRLANDIC%Arr%Val => State_Met%FRLANDIC
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -1647,6 +1666,9 @@ CONTAINS
           ModelSpecCR(N)         = CR
           ModelSpecPKA(N)        = PKA
 
+          ! For CO2 sim, never set pointers to Trac_Tend arrays
+          UsePtrs2GC = .FALSE.
+
        ENDDO
 
     !-----------------------------------------------------------------
@@ -1809,15 +1831,15 @@ CONTAINS
     ! This returns the matching indeces of the HEMCO species (HcoSpecNames)
     ! in ModelSpecNames. A value of -1 is returned if no matching species
     ! is found.
-    ALLOCATE(matchIDx(nConfigSpec),STAT=AS)
+    ALLOCATE(MatchIDx(nConfigSpec),STAT=AS)
     IF ( AS/=0 ) THEN 
        CALL HCO_ERROR ('Allocation error matchIDx', RC, THISLOC=LOC )
        RETURN
     ENDIF
-    matchIDx(:) = -1
+    MatchIDx(:) = -1
     CALL HCO_CharMatch( HcoSpecNames,   nConfigSpec,   &
                         ModelSpecNames, nModelSpec,    &
-                        matchIDx,       nHcoSpec        )
+                        MatchIDx,       nHcoSpec        )
     IF ( nHcoSpec == 0 ) THEN
        MSG = 'No matching species between HEMCO and the model!'
        CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
@@ -1891,8 +1913,8 @@ CONTAINS
        cnt = cnt + 1
 
        ! Set species name and GEOS-Chem tracer ID 
-       IDX                          = ModelSpecIDs(MatchIDx(I))
-       HcoState%Spc(cnt)%ModID      = IDX
+       IDX                          = MatchIDx(I)
+       HcoState%Spc(cnt)%ModID      = ModelSpecIDs(IDX)
        HcoState%Spc(cnt)%SpcName    = HcoSpecNames(I) 
 
        ! Molecular weights of species & emitted species.
@@ -1924,7 +1946,7 @@ CONTAINS
        ! simulation, just remove the logical switch below as well as the
        ! corresponding code in co2_mod.F.
        !----------------------------------------------------------------------
-       IF ( .NOT. Input_Opt%ITS_A_CO2_SIM ) THEN
+       IF ( UsePtrs2GC ) THEN
 
           ! Only if HEMCO and GEOS-Chem are on the same grid...
           IF ( ( HcoState%NX == IIPAR ) .AND.      &
@@ -1939,6 +1961,8 @@ CONTAINS
                 HcoState%Spc(cnt)%Depv%Val => State_Chm%DepSav(:,:,IDX)
              ENDIF
 
+          ELSE
+             UsePtrs2GC = .FALSE.
           ENDIF ! Same grid
        ENDIF 
 

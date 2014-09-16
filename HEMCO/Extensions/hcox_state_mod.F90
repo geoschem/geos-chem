@@ -91,6 +91,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: FINN        ! FINN biomass burning
      LOGICAL                   :: GC_RnPbBe   ! GEOS-Chem Rn-Pb-Be simulation
      LOGICAL                   :: GC_POPs     ! GEOS-Chem POPs simulation
+     LOGICAL                   :: Wetland_CH4 ! Methane emissions from wetlands
 
      !----------------------------------------------------------------------
      ! Data directory
@@ -108,6 +109,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: TSKIN       ! Surface skin temperature [K]
      TYPE(ExtDat_2R),  POINTER :: GWETTOP     ! Top soil moisture [-]
      TYPE(ExtDat_2R),  POINTER :: SNOWHGT     ! Snow height [mm H2O] 
+     TYPE(ExtDat_2R),  POINTER :: SNODP       ! Snow depth [m ] 
      TYPE(ExtDat_2R),  POINTER :: USTAR       ! Friction velocity [m/s] 
      TYPE(ExtDat_2R),  POINTER :: Z0          ! Sfc roughness height [m]
      TYPE(ExtDat_2R),  POINTER :: TROPP       ! Tropopause pressure [hPa] 
@@ -117,7 +119,11 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: PARDR       ! direct photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: PARDF       ! diffuse photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: RADSWG      ! surface radiation [W/m2]
-     TYPE(ExtDat_2R),  POINTER :: FRCLND      ! land fraction [-] 
+     TYPE(ExtDat_2R),  POINTER :: FRCLND      ! Olson land fraction [-] 
+     TYPE(ExtDat_2R),  POINTER :: FRLAND      ! land fraction [-] 
+     TYPE(ExtDat_2R),  POINTER :: FROCEAN     ! ocean fraction [-] 
+     TYPE(ExtDat_2R),  POINTER :: FRLAKE      ! lake fraction [-] 
+     TYPE(ExtDat_2R),  POINTER :: FRLANDIC    ! land ice fraction [-] 
      TYPE(ExtDat_2R),  POINTER :: CLDFRC      ! cloud fraction [-]
      TYPE(ExtDat_2R),  POINTER :: JNO2        ! J-Value for NO2 [1/s] 
      TYPE(ExtDat_2R),  POINTER :: JO1D        ! J-Value for O3  [1/s]
@@ -292,6 +298,9 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%SNOWHGT, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%SNODP, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Init ( ExtState%USTAR, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -320,6 +329,18 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%FRCLND, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%FRLAND, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%FROCEAN, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%FRLAKE, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%FRLANDIC, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%CLDFRC, RC ) 
@@ -444,6 +465,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%TSKIN      )
        CALL ExtDat_Cleanup( ExtState%GWETTOP    )
        CALL ExtDat_Cleanup( ExtState%SNOWHGT    )
+       CALL ExtDat_Cleanup( ExtState%SNODP      )
        CALL ExtDat_Cleanup( ExtState%USTAR      )
        CALL ExtDat_Cleanup( ExtState%Z0         )
        CALL ExtDat_Cleanup( ExtState%TROPP      )
@@ -454,6 +476,10 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%PARDF      )
        CALL ExtDat_Cleanup( ExtState%RADSWG     )
        CALL ExtDat_Cleanup( ExtState%FRCLND     )
+       CALL ExtDat_Cleanup( ExtState%FRLAND     )
+       CALL ExtDat_Cleanup( ExtState%FROCEAN    )
+       CALL ExtDat_Cleanup( ExtState%FRLAKE     )
+       CALL ExtDat_Cleanup( ExtState%FRLANDIC   )
        CALL ExtDat_Cleanup( ExtState%CLDFRC     )
        CALL ExtDat_Cleanup( ExtState%GC_LAI     )
        CALL ExtDat_Cleanup( ExtState%GC_LAI_PM  )

@@ -1228,7 +1228,8 @@
  
       ! Check to see if cspec restart file exists
       IT_EXISTS = FILE_EXISTS( FILENAME )
-      IF ( .not. IT_EXISTS ) THEN 
+      IF ( .not. IT_EXISTS ) THEN
+         NULLIFY( CSPEC_FULL )
          RETURN
       ENDIF 
 

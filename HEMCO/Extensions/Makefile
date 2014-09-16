@@ -100,10 +100,14 @@ drydep_toolbox_mod.o  : drydep_toolbox_mod.F90
 
 EF_MGN20_mod.o        : EF_MGN20_mod.F
 
+hcox_ch4wetland_mod.o : hcox_ch4wetland_mod.F90   \
+                        hcox_state_mod.o
+                
 hcox_custom_mod.o     : hcox_custom_mod.F90       \
                         hcox_state_mod.o
 
 hcox_driver_mod.o     : hcox_driver_mod.F90       \
+                        hcox_ch4wetland_mod.o     \
                         hcox_custom_mod.o         \
                         hcox_dustdead_mod.o       \
                         hcox_dustginoux_mod.o     \
@@ -127,7 +131,7 @@ hcox_dustginoux_mod.o : hcox_dustginoux_mod.F90   \
                         hcox_state_mod.o
 
 hcox_gc_POPs_mod.o    : hcox_gc_POPs_mod.F90      \
-                        hcox_state_mod.o          \
+                        hcox_state_mod.o
 
 hcox_gc_RnPbBe_mod.o  : hcox_gc_RnPbBe_mod.F90    \
                         hcox_gc_RnPbBe_include.H  \

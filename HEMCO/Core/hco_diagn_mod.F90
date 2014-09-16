@@ -1102,6 +1102,7 @@ CONTAINS
           ENDIF
        ENDIF
        CF = .TRUE.
+
     ENDIF
    
     ! If container id is given, search for diagnostics with 

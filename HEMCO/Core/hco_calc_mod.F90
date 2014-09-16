@@ -32,9 +32,11 @@
 !\\
 !\\
 ! In addition to emissions and surface deposition rates, HEMCO also
-! supports concentrations (v/v). Data is automatically written into
+! supports concentrations (kg/m3). Data is automatically written into
 ! the concentration array HcoState%Spc(HcoID)%Conc if the source data
 ! is marked as being concentration data (i.e. if Dta%IsConc is .TRUE.).
+! The latter is automatically determined by HEMCO based upon the data
+! units.
 !\\
 !\\
 ! All emission calculation settings are passed through the HcoState 
@@ -78,6 +80,11 @@ MODULE HCO_Calc_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: GET_CURRENT_EMISSIONS
+!
+! !MODULE VARIABLES
+!
+  ! FLAG to control behavior of negative values
+  INTEGER             :: NegFlag = -1
 !
 ! ============================================================================
 !
@@ -165,7 +172,6 @@ CONTAINS
     INTEGER             :: ExtNr            ! Extension Nr to be used 
     INTEGER             :: nI, nJ, nL 
     INTEGER             :: nnSpec, FLAG
-    INTEGER, SAVE       :: NegFlag = -1
 
     LOGICAL             :: Found, DoDiagn
 
@@ -643,6 +649,8 @@ CONTAINS
 !                               separately so that multiple masks can be 
 !                               added.
 !  06 Jun 2014 - R. Yantosca -  Cosmetic changes in ProTeX headers
+!  07 Sep 2014 - C. Keller   -  Mask update. Now set mask to zero as soon as 
+!                               on of the applied masks is zero.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -658,9 +666,9 @@ CONTAINS
     INTEGER                 :: IDX
     INTEGER                 :: I, J, L, N
     INTEGER                 :: BaseLL, ScalLL, TmpLL
-    INTEGER                 :: IJFILLED
-    LOGICAL                 :: DO_MASK, ERR
+    LOGICAL                 :: ERR
     CHARACTER(LEN=255)      :: MSG, LOC
+    LOGICAL                 :: NegScalExist
  
     ! testing only
     INTEGER                 :: IX, IY
@@ -689,9 +697,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Initialize mask
-    MASK(:,:,:) = 0
-    DO_MASK     = .FALSE.
+    ! Initialize mask. By default, assume that we use all grid boxes.
+    MASK(:,:,:) = 1
 
     ! Verbose 
     IF ( verb ) THEN
@@ -725,13 +732,10 @@ CONTAINS
     ! Loop over all latitudes and longitudes
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, L, tIdx, IJFILLED, TMPVAL                       ) & 
+!$OMP PRIVATE( I, J, L, tIdx, TMPVAL                                 ) & 
 !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, nJ
     DO I = 1, nI
- 
-!       ! # of levels w/ defined emissions 
-!       IJFILLED = 0
 
        ! Time slice index for this lon
        tIdx = tIdxVec(I)
@@ -748,29 +752,10 @@ CONTAINS
              TMPVAL = BaseDct%Dta%V3(tIDx)%Val(I,J,L)
           ENDIF
           
-!          ! Advance to next grid box if base value is negative, 
-!          ! indicating that this inventory is not defined over 
-!          ! this grid box.
-!          IF ( TMPVAL < 0.0_hp ) CYCLE 
-
           ! Pass base value to output array
           OUTARR_3D(I,J,L) = TMPVAL
 
-!          ! Update IJFILLED
-!          IJFILLED = IJFILLED + 1
-
        ENDDO !L
-
-!       ! If emissions are defined for at least one level, make 
-!       ! sure that emissions in all other levels are set to zero. 
-!       ! This is to make sure that higher hierarchy emissions entirely
-!       ! overwrite lower hierarchy emissions (emissions are only over-
-!       ! written where updated emissions are zero or higher).
-!       IF ( IJFILLED > 0 ) THEN
-!          WHERE ( OUTARR_3D(I,J,:) < 0.0_hp ) 
-!             OUTARR_3D(I,J,:) = 0.0_hp
-!          ENDWHERE
-!       ENDIF
 
     ENDDO !I
     ENDDO !J
@@ -825,6 +810,10 @@ CONTAINS
        ! Get vector of time slice indeces
        tIDxVec = tIDx_GetIndxVec( ScalDct%Dta, nI ) 
 
+       ! Initialize negative scale factor flag. By default, assume that
+       ! no scale factor is negative
+       NegScalExist = .FALSE.
+
        ! Loop over all latitudes and longitudes
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
@@ -848,7 +837,7 @@ CONTAINS
              ! Mask value over this grid box
              TMPVAL = ScalDct%Dta%V2(1)%Val(I,J)
  
-             ! Mask values must not be negative 
+             ! Negative mask values are treated as zero (exclude). 
              IF ( TMPVAL <= 0.0_hp ) THEN
                 TMPVAL = 0.0_hp
              ELSE
@@ -860,9 +849,9 @@ CONTAINS
                 TMPVAL = 1.0_hp - TMPVAL 
              ENDIF
 
-             ! Add to mask and set mask flag to TRUE
-             IF ( TMPVAL > HCO_TINY ) MASK(I,J,:) = 1
-             DO_MASK     = .TRUE.
+             ! Set mask to zero over this grid box if this mask value is
+             ! tiny. 
+             IF ( TMPVAL < HCO_TINY ) MASK(I,J,:) = 0
 
              ! testing only
              IF ( verb .AND. I==1 .AND. J==1 ) THEN
@@ -904,8 +893,24 @@ CONTAINS
                 TMPVAL = ScalDct%Dta%V3(tidx)%Val(I,J,TmpLL)
              ENDIF
 
-             ! Advance to next grid box if scale factor is negative
-             IF ( TMPVAL < 0.0_hp ) CYCLE
+             ! For negative scale factor, proceed according to the
+             ! negative value setting specified in the configuration
+             ! file (NegFlag = 2: use this value):
+             IF ( TMPVAL < 0.0_hp .AND. NegFlag /= 2 ) THEN
+
+                ! NegFlag = 1: ignore and show warning 
+                IF ( NegFlag == 1 ) THEN
+                   NegScalExist = .TRUE. ! will prompt warning
+                   CYCLE
+
+                ! Return w/ error otherwise
+                ELSE
+                   MSG = 'Negative scale factor in: ' // TRIM(ScalDct%cName)
+                   CALL HCO_ERROR( MSG, RC )
+                   ERR = .TRUE.
+                   EXIT
+                ENDIF
+             ENDIF 
 
              ! -------------------------------------------------------
              ! Apply scale factor in accordance to field operator
@@ -961,36 +966,27 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! eventually prompt warning for negative values
+       IF ( NegScalExist ) THEN
+          MSG = 'Negative scale factor found (ignored): ' // TRIM(ScalDct%cName)
+          CALL HCO_WARNING( MSG, RC )
+       ENDIF
+
     ENDDO ! N
 
     ! ----------------------------
     ! Masks 
     ! ----------------------------
-    IF ( DO_MASK ) THEN
 
-       ! Restrict mask values to a maximum of 1. 
-!       WHERE ( MASK > 1.0_hp ) 
-!          MASK = 1.0_hp
-!       ELSEWHERE
-!          MASK = 0.0_hp
-!       ENDWHERE
-
-       ! Apply mask. Make sure that emissions become negative
-       ! outside the mask region. This is to make sure that these 
-       ! grid boxes will be ignored when calculating the final  
-       ! emissions. 
-       DO L = 1, BaseLL
-          WHERE ( MASK(:,:,L) /= 1 )
-!             OUTARR_3D(:,:,L) = -999.0_hp
-             OUTARR_3D(:,:,L) = 0.0_hp
-!          ELSEWHERE
-!             OUTARR_3D(:,:,L) = OUTARR_3D(:,:,L) * MASK(:,:,1) 
-          ENDWHERE
-       ENDDO
-
-    ELSE
-       MASK(:,:,:) = 1
-    ENDIF
+    ! Apply mask. Make sure that emissions become negative
+    ! outside the mask region. This is to make sure that these 
+    ! grid boxes will be ignored when calculating the final  
+    ! emissions. 
+    DO L = 1, BaseLL
+       WHERE ( MASK(:,:,L) == 0 )
+          OUTARR_3D(:,:,L) = 0.0_hp
+       ENDWHERE
+    ENDDO
 
     ! Cleanup and leave w/ success
     ScalDct => NULL()
@@ -1047,6 +1043,8 @@ CONTAINS
 !                              separately so that multiple masks can be 
 !                              added.
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX header
+!  07 Sep 2014 - C. Keller   - Mask update. Now set mask to zero as soon as 
+!                              on of the applied masks is zero.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1060,7 +1058,7 @@ CONTAINS
     INTEGER                 :: I, J, L, N
     INTEGER                 :: BaseLL, ScalLL, TmpLL
     INTEGER                 :: IJFILLED
-    LOGICAL                 :: DO_MASK, ERR
+    LOGICAL                 :: ERR
     CHARACTER(LEN=255)      :: MSG, LOC
  
     ! testing only
@@ -1096,19 +1094,16 @@ CONTAINS
     ENDIF
 
     ! Initialize mask values
-    MASK(:,:,:) = 0
+    MASK(:,:,:) = 1
 
     ! Loop over all grid boxes
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I, J, BaseLL, tIdx, DO_MASK, IJFILLED, L              ) & 
+!$OMP PRIVATE( I, J, BaseLL, tIdx, IJFILLED, L                       ) & 
 !$OMP PRIVATE( TMPVAL, N, IDX, ScalDct, ScalLL, tmpLL                ) & 
 !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, nJ
     DO I = 1, nI
-
-       ! By default, assume MASK is not used. 
-       DO_MASK   = .FALSE.
 
        ! -------------------------------------------------------------
        ! Set base emissions
@@ -1246,9 +1241,7 @@ CONTAINS
              ENDIF
 
              ! Add to mask and set mask flag to TRUE
-             IF ( TMPVAL > HCO_TINY ) MASK(I,J,:) = 1
-!             MASK        = MASK + TMPVAL
-             DO_MASK     = .TRUE.
+             IF ( TMPVAL < HCO_TINY ) MASK(I,J,:) = 0
 
              ! testing only
              if ( verb .and. i == ix .and. j == iy ) then
@@ -1324,24 +1317,14 @@ CONTAINS
        ! ----------------------------
        ! Masks 
        ! ----------------------------
-       IF ( DO_MASK ) THEN
-!   
-!          ! Restrict mask values to a maximum of 1. 
-!          IF ( MASK > 1.0_hp ) MASK = 1.0_hp
    
-          ! Apply the mask. Make sure that emissions become negative
-          ! outside the mask region. This is to make sure that these 
-          ! grid boxes will be ignored when calculating the final  
-          ! emissions. 
-          WHERE ( MASK(I,J,:) /= 1 )
-!             OUTARR_3D(I,J,:) = -999.0_hp
-             OUTARR_3D(I,J,:) = 0.0_hp
-!          ELSE
-!             OUTARR_3D(I,J,:) = OUTARR_3D(I,J,:) * MASK
-          ENDWHERE
-       ELSE
-          MASK(I,J,:) = 1
-       ENDIF
+       ! Apply the mask. Make sure that emissions become negative
+       ! outside the mask region. This is to make sure that these 
+       ! grid boxes will be ignored when calculating the final  
+       ! emissions. 
+       WHERE ( MASK(I,J,:) == 0 )
+          OUTARR_3D(I,J,:) = 0.0_hp
+       ENDWHERE
        
     ENDDO !I
     ENDDO !J

@@ -182,6 +182,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
 !
 ! !INPUT PARAMETERS:
 !
@@ -268,11 +269,22 @@
 !      REAL*8, EXTERNAL       :: BOXVL    ! dbj
 
       ! HEMCO update
-      INTEGER                  :: ID
       TYPE(HCO_STATE), POINTER :: HcoState => NULL()
       REAL*8                   :: BOXVL
       REAL*8, PARAMETER        :: CM2PERM2 = 1.d4
       REAL*8, PARAMETER        :: CM3PERM3 = 1.d6
+
+      ! tracer indices in HEMCO
+      INTEGER, SAVE            :: IDff   = -1
+      INTEGER, SAVE            :: IDoc   = -1
+      INTEGER, SAVE            :: IDbal  = -1
+      INTEGER, SAVE            :: IDbb   = -1
+      INTEGER, SAVE            :: IDbf   = -1
+      INTEGER, SAVE            :: IDnte  = -1
+      INTEGER, SAVE            :: IDse   = -1
+      INTEGER, SAVE            :: IDav   = -1
+      INTEGER, SAVE            :: IDch   = -1
+      INTEGER, SAVE            :: IDcorr = -1
 
       CHARACTER(LEN=255)       :: LOC = 'EMISSCO2 (co2_mod.F)'
 
@@ -310,6 +322,15 @@
 !      L8DAYBB     = Input_Opt%L8DAYBB
       N_TRACERS   = Input_Opt%N_TRACERS
   
+      ! Import emissions from HEMCO (through HEMCO state)
+      CALL GetHcoState( HcoState )
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
+      ENDIF
+
+      ! Emission timestep
+      DTSRCE = HcoState%TS_EMIS
+
       !=================================================================
       ! First-time initialization
       !=================================================================
@@ -329,6 +350,26 @@
             CALL DEF_FOSSIL_CO2_REGIONS_F( FOSSIL_REGION )
          ENDIF
 
+         ! Get all tracer IDs
+         IDff   = HCO_GetHcoID( 'CO2ff',   HcoState )
+         IDoc   = HCO_GetHcoID( 'CO2oc',   HcoState )
+         IDbal  = HCO_GetHcoID( 'CO2bal',  HcoState )
+         IDbb   = HCO_GetHcoID( 'CO2bb',   HcoState )
+         IDbf   = HCO_GetHcoID( 'CO2bf',   HcoState )
+         IDnte  = HCO_GetHcoID( 'CO2nte',  HcoState )
+         IDse   = HCO_GetHcoID( 'CO2se',   HcoState )
+         IDav   = HCO_GetHcoID( 'CO2av',   HcoState )
+         IDch   = HCO_GetHcoID( 'CO2ch',   HcoState )
+         IDcorr = HCO_GetHcoID( 'CO2corr', HcoState )
+
+         ! Error check: For now, the emission grid must be
+         ! on the simulation grid.
+         IF ( HcoState%NX /= IIPAR .OR. 
+     &        Hcostate%NY /= JJPAR .OR.
+     &        Hcostate%NZ /= LLPAR     ) THEN
+            CALL ERROR_STOP( 'HEMCO grid not same as sim. grid!', LOC )
+         ENDIF 
+
          ! Set first-time flag to false
          FIRST = .FALSE.
       ENDIF
@@ -341,24 +382,19 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-      ! Import emissions from HEMCO (through HEMCO state)
-      CALL GetHcoState( HcoState )
-      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-         CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
-      ENDIF
+      ! testing only
+      write(*,*) 'Before EMISSCO2: '
+      write(*,*) 'AD01 01: ', SUM(AD04(:,:,1))
+      write(*,*) 'AD01 02: ', SUM(AD04(:,:,2))
+      write(*,*) 'AD01 03: ', SUM(AD04(:,:,3))
+      write(*,*) 'AD01 04: ', SUM(AD04(:,:,4))
+      write(*,*) 'AD01 05: ', SUM(AD04(:,:,5))
+      write(*,*) 'AD01 06: ', SUM(AD04(:,:,6))
+      write(*,*) 'AD01 07: ', SUM(AD04(:,:,7))
+      write(*,*) 'AD01 08: ', SUM(AD04(:,:,8))
+      write(*,*) 'AD01 09: ', SUM(AD04(:,:,9))
+      write(*,*) 'AD01 10: ', SUM(AD04(:,:,10))
 
-      ! Error check: For now, the emission grid must be
-      ! on the simulation grid.
-      IF ( HcoState%NX /= IIPAR .OR. 
-     &     Hcostate%NY /= JJPAR .OR.
-     &     Hcostate%NZ /= LLPAR     ) THEN
-         CALL ERROR_STOP( 'HEMCO grid not equal simulation grid!', LOC )
-      ENDIF 
-
-      ! Emission timestep
-!      DTSRCE = 60d0 * GET_TS_CHEM() !Line from the orginal code
-!      DTSRCE = 60d0 * GET_TS_EMIS()
-      DTSRCE = HcoState%TS_EMIS
 
 !==============================================================================
 ! Now do all the emission reading and processing through HEMCO.
@@ -459,23 +495,19 @@
          ! Grid box surface area [cm2]
          A_CM2 = HcoState%Grid%AREA_M2( I, J ) * CM2PERM2
 
-         ! Grid box volume in cm3
-         BOXVL = State_Met%AIRVOL(I,J,L) * CM3PERM3
-
          !-------------------------------------------
          ! #1: Total CO2
          ! #2: CO2 from fossil fuel emissions 
          !-------------------------------------------
          IF ( LGENFF .or. LANNFF .or. LMONFF ) THEN
 
-            ! Fossil fuel CO2 is tracer # 2 in HEMCO
-            ID = 2
+            IF ( IDff < 1 ) CALL ERROR_STOP('CO2ff not defined',LOC)
 
             ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            IF ( .NOT. ASSOCIATED(HcoState%Spc(ID)%Emis%Val) ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(IDff)%Emis%Val) ) THEN
                CALL ERROR_STOP('Fossil fuel emissions not defined',LOC)
             ENDIF
-            E_CO2 = HcoState%Spc(ID)%Emis%Val(I,J,1) 
+            E_CO2 = HcoState%Spc(IDff)%Emis%Val(I,J,1) 
      &            / CM2PERM2 
      &            * XNUMOL_CO2
 
@@ -526,14 +558,13 @@
             ! Ocean CO2 emissions in [molec/cm2/s]
 !            E_CO2          = EMOCCO2(I,J)
 
-            ! Ocean exchange is tracer #3 in HEMCO
-            ID = 3
+            IF ( IDoc < 1 ) CALL ERROR_STOP('CO2oc not defined',LOC)
 
             ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            IF ( .NOT. ASSOCIATED(HcoState%Spc(ID)%Emis%Val) ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(IDoc)%Emis%Val) ) THEN
                CALL ERROR_STOP('Oceanic emissions not defined',LOC)
             ENDIF
-            E_CO2 = HcoState%Spc(ID)%Emis%Val(I,J,1) 
+            E_CO2 = HcoState%Spc(IDoc)%Emis%Val(I,J,1) 
      &            / CM2PERM2 
      &            * XNUMOL_CO2
 
@@ -568,14 +599,13 @@
 !            ! Balanced biosphere CO2 [molec/cm2/s]
 !            E_CO2         = EMBIOCO2(I,J)
 
-            ! Balanced biosphere is tracer #4 in HEMCO
-            ID = 4
+            IF ( IDbal < 1 ) CALL ERROR_STOP('CO2bal not defined',LOC)
 
             ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            IF ( .NOT. ASSOCIATED(HcoState%Spc(ID)%Emis%Val) ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(IDbal)%Emis%Val) ) THEN
                CALL ERROR_STOP('Balanced biosphere not defined',LOC)
             ENDIF
-            E_CO2 = HcoState%Spc(ID)%Emis%Val(I,J,1) 
+            E_CO2 = HcoState%Spc(IDbal)%Emis%Val(I,J,1) 
      &            / CM2PERM2 
      &            * XNUMOL_CO2
 
@@ -606,93 +636,80 @@
          ! #5: CO2 from biomass burning emissions
          !-------------------------------------------
 
-         ! Biomass burning is tracer #5 in HEMCO
-         ID = 5
+         IF ( IDbb > 0 ) THEN
 
-         ! Emission array will only be defined if biomass burning
-         ! is enabled in HEMCO configuration file.
-         IF ( ASSOCIATED(HcoState%Spc(ID)%Emis%Val) ) THEN
+            ! Emission array will only be defined if biomass burning
+            ! is enabled in HEMCO configuration file.
+            IF ( ASSOCIATED(HcoState%Spc(IDbb)%Emis%Val) ) THEN
 
-!         IF ( LSEASBB .OR. LGFED2BB .OR. L8DAYBB .OR.
-!     &        LGFED3BB) THEN 
-
-            ! Biomass burning emissions [molec/cm2/s]
-            !E_CO2          = BIOMASS(I,J,IDBCO2)
-            !E_CO2          = EMBIOBRNCO2(I,J) 
-            !This was from older versions, see note above
-
-            ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            E_CO2 = HcoState%Spc(ID)%Emis%Val(I,J,1) 
-     &            / CM2PERM2 
-     &            * XNUMOL_CO2
-
-            ! ND04 diag: Biomass burning CO2 [molec/cm2/s]
-            IF ( ND04 > 0 ) THEN
-               AD04(I,J,4) = AD04(I,J,4) + E_CO2
-            ENDIF
-
-            ! Convert from [molec/cm2/s] to [kg]
-            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
-
-            ! Add to Tracer #1: Total CO2 [kg CO2]
-            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
-            
-            ! Add to Tracer #5: Biomass burning CO2 [kg CO2]
-            IF ( N_TRACERS > 4 ) THEN
-               STT(I,J,1,5)   = STT(I,J,1,5) + E_CO2
-
-               ! Split Bioburn CO2 into geographic regions
-               IF ( LBIOSPHTAG ) THEN
-                  N            = BIOSPH_REGION(I,J)
-                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
+               ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
+               E_CO2 = HcoState%Spc(IDbb)%Emis%Val(I,J,1) 
+     &               / CM2PERM2 
+     &               * XNUMOL_CO2
+   
+               ! ND04 diag: Biomass burning CO2 [molec/cm2/s]
+               IF ( ND04 > 0 ) THEN
+                  AD04(I,J,4) = AD04(I,J,4) + E_CO2
                ENDIF
-            ENDIF	
+   
+               ! Convert from [molec/cm2/s] to [kg]
+               E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
+   
+               ! Add to Tracer #1: Total CO2 [kg CO2]
+               STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
+               
+               ! Add to Tracer #5: Biomass burning CO2 [kg CO2]
+               IF ( N_TRACERS > 4 ) THEN
+                  STT(I,J,1,5)   = STT(I,J,1,5) + E_CO2
+   
+                  ! Split Bioburn CO2 into geographic regions
+                  IF ( LBIOSPHTAG ) THEN
+                     N            = BIOSPH_REGION(I,J)
+                     STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
+                  ENDIF
+               ENDIF
+            ENDIF
          ENDIF
 
          !-------------------------------------------
          ! #6: CO2 from biofuel emissions
          !-------------------------------------------
 
-         ! Biofuel is tracer #6 in HEMCO
-         ID = 6
+         IF ( IDbf > 0 ) THEN
 
-         ! Emission array will only be defined if biofuel emissions
-         ! are specified in HEMCO configuration file. 
-         IF ( ASSOCIATED(HcoState%Spc(ID)%Emis%Val) ) THEN
-
-!         IF ( LBIOFUEL ) THEN
-!
-!           ! Biofuel CO2 emissions [molec/cm2/s]
-!            E_CO2          = EMBIOFUELCO2(I,J)
-
-            ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            E_CO2 = HcoState%Spc(ID)%Emis%Val(I,J,1) 
-     &            / CM2PERM2 
-     &            * XNUMOL_CO2
-
-            ! ND04 diag: Biofuel CO2 [molec/cm2/s] 
-            IF ( ND04 > 0 ) THEN
-               AD04(I,J,5) = AD04(I,J,5) + E_CO2
-            ENDIF
-
-            ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
-            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-
-            ! Add to Tracer #1: Total CO2 [kg CO2]
-            STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
-
-            ! Add to Tracer #6: Biofuel CO2 [kg CO2]
-            IF (N_TRACERS > 5) THEN
-               STT(I,J,1,6)   = STT(I,J,1,6) + E_CO2
-
-               ! Split BF CO2 into geographic regions
-               IF ( LBIOSPHTAG ) THEN
-                  N            = BIOSPH_REGION(I,J)
-                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
+            ! Emission array will only be defined if biofuel emissions
+            ! are specified in HEMCO configuration file. 
+            IF ( ASSOCIATED(HcoState%Spc(IDbf)%Emis%Val) ) THEN
+   
+               ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
+               E_CO2 = HcoState%Spc(IDbf)%Emis%Val(I,J,1) 
+     &               / CM2PERM2 
+     &               * XNUMOL_CO2
+   
+               ! ND04 diag: Biofuel CO2 [molec/cm2/s] 
+               IF ( ND04 > 0 ) THEN
+                  AD04(I,J,5) = AD04(I,J,5) + E_CO2
+               ENDIF
+   
+               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
+               E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+   
+               ! Add to Tracer #1: Total CO2 [kg CO2]
+               STT(I,J,1,1)   = STT(I,J,1,1) + E_CO2
+   
+               ! Add to Tracer #6: Biofuel CO2 [kg CO2]
+               IF (N_TRACERS > 5) THEN
+                  STT(I,J,1,6)   = STT(I,J,1,6) + E_CO2
+   
+                  ! Split BF CO2 into geographic regions
+                  IF ( LBIOSPHTAG ) THEN
+                     N            = BIOSPH_REGION(I,J)
+                     STT(I,J,1,N) = STT(I,J,1,N) + E_CO2
+                  ENDIF
                ENDIF
             ENDIF
          ENDIF
-
+   
          !-------------------------------------------
          ! #7: CO2 from net terrestrial exchange
          !-------------------------------------------
@@ -701,14 +718,14 @@
 !            ! CO2 from net terrestrial exchange [molec/cm2/s]
 !            E_CO2          = EMBIONETCO2(I,J)
 
-            ! Net exchange is tracer #7 in HEMCO
-            ID = 7
+            ! Get this tracer ID
+            IF ( IDnte < 1 ) CALL ERROR_STOP('CO2nte not defined',LOC)
 
             ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            IF ( .NOT. ASSOCIATED(HcoState%Spc(ID)%Emis%Val) ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(IDnte)%Emis%Val) ) THEN
                CALL ERROR_STOP('Net terr. exchange not defined',LOC)
             ENDIF
-            E_CO2 = HcoState%Spc(ID)%Emis%Val(I,J,1) 
+            E_CO2 = HcoState%Spc(IDnte)%Emis%Val(I,J,1) 
      &            / CM2PERM2 
      &            * XNUMOL_CO2
 
@@ -743,14 +760,14 @@
 !            ! Ship CO2 emissions [molec/cm2/s]
 !            E_CO2          = EMSHIPCO2(I,J)
 
-            ! Ship emissions is tracer #8 in HEMCO
-            ID = 8
+            ! Get this tracer ID
+            IF ( IDse < 1 ) CALL ERROR_STOP('CO2se not defined',LOC)
 
             ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            IF ( .NOT. ASSOCIATED(HcoState%Spc(ID)%Emis%Val) ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(IDse)%Emis%Val) ) THEN
                CALL ERROR_STOP('Ship emissions not defined',LOC)
             ENDIF
-            E_CO2 = HcoState%Spc(ID)%Emis%Val(I,J,1) 
+            E_CO2 = HcoState%Spc(IDse)%Emis%Val(I,J,1) 
      &            / CM2PERM2 
      &            * XNUMOL_CO2
 
@@ -789,19 +806,22 @@
          ! #9: CO2 from aircraft emissions
          !-------------------------------------------
          IF ( LPLANE ) THEN
+
+            ! Get this tracer ID
+            IF ( IDav < 1 ) CALL ERROR_STOP('CO2av not defined',LOC)
+
+            ! Check if emissions are defined
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(IDav)%Emis%Val) ) THEN
+               CALL ERROR_STOP('Aircraft emissions not defined',LOC)
+            ENDIF
+
             DO L = 1, LLPAR
 
 !               ! Aircraft CO2 emissions (3-D) [molec/cm3/s]
 !               E_CO2          = EMPLANECO2(I,J,L)
 
-               ! Aircraft emissions is tracer #9 in HEMCO
-               ID = 9
-
                ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-               IF ( .NOT. ASSOCIATED(HcoState%Spc(ID)%Emis%Val) ) THEN
-                  CALL ERROR_STOP('Aircraft emissions not defined',LOC)
-               ENDIF
-               E_CO2 = HcoState%Spc(ID)%Emis%Val(I,J,L) 
+               E_CO2 = HcoState%Spc(IDav)%Emis%Val(I,J,L) 
      &               / CM2PERM2 
      &               * XNUMOL_CO2
 
@@ -809,6 +829,9 @@
                IF ( ND04 > 0 ) THEN
                   AD04_plane(I,J,L) = AD04_plane(I,J,L) + E_CO2
                ENDIF
+
+               ! Grid box volume in cm3
+               BOXVL = State_Met%AIRVOL(I,J,L) * CM3PERM3
 
                ! Convert E_CO2 from [molec CO2/cm3/s] to [kg]
                E_CO2 = E_CO2 * BOXVL * DTSRCE / XNUMOL_CO2
@@ -841,18 +864,21 @@
          ! #10 CO2 production from CO oxidation
          !-------------------------------------------
          IF ( LCHEMCO2 ) THEN
+
+            ! Get this tracer ID
+            IF ( IDch < 1 ) CALL ERROR_STOP('CO2ch not defined',LOC)
+
+            ! Check if emissions are defined
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(IDch)%Conc%Val) ) THEN
+               CALL ERROR_STOP('CO2 production not defined',LOC)
+            ENDIF
+
             DO L = 1, LLPAR
          
 !               E_CO2 = CHEMSRC(I,J,L)
 
-               ! Chemical production is tracer #10 in HEMCO
-               ID = 10
-
                ! Production is in [kg/m3], convert to [molec/cm3/s]
-               IF ( .NOT. ASSOCIATED(HcoState%Spc(ID)%Conc%Val) ) THEN
-                  CALL ERROR_STOP('CO2 production not defined',LOC)
-               ENDIF
-               E_CO2 = HcoState%Spc(ID)%Emis%Val(I,J,L) 
+               E_CO2 = HcoState%Spc(IDch)%Emis%Val(I,J,L) 
      &               / CM3PERM3 
      &               * XNUMOL_CO2
      &               / DTSRCE
@@ -861,6 +887,9 @@
                IF ( ND04 > 0 ) THEN
                   AD04_chem(I,J,L) = AD04_chem(I,J,L) + E_CO2
                ENDIF
+
+               ! Grid box volume in cm3
+               BOXVL = State_Met%AIRVOL(I,J,L) * CM3PERM3
 
                !  Convert from [molec/cm3/s] to [kg]
                E_CO2  = E_CO2 * BOXVL * DTSRCE / XNUMOL_CO2
@@ -883,14 +912,14 @@
             
 !            E_CO2 = EMIS_SUB(I,J) ! EMIS_SUB is positive, but is subtracted
 
-            ! CO2 surface correction is tracer #11 in HEMCO
-            ID = 11
+            ! Get this tracer ID
+            IF ( IDcorr < 1 ) CALL ERROR_STOP('CO2corr not defined',LOC)
 
             ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            IF ( .NOT. ASSOCIATED(HcoState%Spc(ID)%Emis%Val) ) THEN
+            IF ( .NOT. ASSOCIATED(HcoState%Spc(IDcorr)%Emis%Val) ) THEN
                CALL ERROR_STOP('Surface correction not defined',LOC)
             ENDIF
-            E_CO2 = HcoState%Spc(ID)%Emis%Val(I,J,L) 
+            E_CO2 = HcoState%Spc(IDcorr)%Emis%Val(I,J,L) 
      &            / CM2PERM2 
      &            * XNUMOL_CO2
 
@@ -924,6 +953,19 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! testing only
+      write(*,*) 'After EMISSCO2: '
+      write(*,*) 'AD01 01: ', SUM(AD04(:,:,1))
+      write(*,*) 'AD01 02: ', SUM(AD04(:,:,2))
+      write(*,*) 'AD01 03: ', SUM(AD04(:,:,3))
+      write(*,*) 'AD01 04: ', SUM(AD04(:,:,4))
+      write(*,*) 'AD01 05: ', SUM(AD04(:,:,5))
+      write(*,*) 'AD01 06: ', SUM(AD04(:,:,6))
+      write(*,*) 'AD01 07: ', SUM(AD04(:,:,7))
+      write(*,*) 'AD01 08: ', SUM(AD04(:,:,8))
+      write(*,*) 'AD01 09: ', SUM(AD04(:,:,9))
+      write(*,*) 'AD01 10: ', SUM(AD04(:,:,10))
 
       ! Free pointer
       NULLIFY( STT )

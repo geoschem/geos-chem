@@ -402,7 +402,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Use daily scale factors?
-    tmpName = TRIM(ExtName) // "_monthly"
+    tmpName = TRIM(ExtName) // "_daily"
     tmpNr   = GetExtNr( TRIM(tmpName) )
     IF ( tmpNr > 0 ) THEN
        DoDay = .TRUE.
@@ -481,6 +481,8 @@ CONTAINS
        SELECT CASE ( TRIM(SpcName) )
           CASE ( 'CO2bb' )
              SpcName = 'CO2'
+          CASE ( 'CH4_bb', 'CH4_tot' )
+             SpcName = 'CH4'
        END SELECT
 
        ! Search for matching GFED3 species by name
