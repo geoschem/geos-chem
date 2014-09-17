@@ -41,11 +41,6 @@
       USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
       USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
-!-----------------------------------------------------------------------------
-! Prior to 9/10/14:
-!      USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC
-!      USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
-!-----------------------------------------------------------------------------
       USE GRID_MOD,                ONLY : CLEANUP_GRID
 !-----------------------------------------------------------------------------
 ! The H2/HD simulation is now obsolete.  You can reactivate this if you want.
@@ -283,12 +278,6 @@
       CALL CLEANUP_GLOBAL_NOX()
       CALL CLEANUP_GLOBAL_NO3()
       CALL CLEANUP_GLOBAL_OH()
-!-----------------------------------------------------------------------------
-! Prior to 9/10/14:
-! Concentrations of OC and BC are now read via HEMCO (mps, 9/10/14)
-!      CALL CLEANUP_GLOBAL_OC()
-!      CALL CLEANUP_GLOBAL_BC()
-!-----------------------------------------------------------------------------
       CALL CLEANUP_GRID()
 !-----------------------------------------------------------------------------
 ! This simulation is obsolete.  You can restore it if you wish (bmy, 6/23/14)

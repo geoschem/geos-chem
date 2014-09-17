@@ -295,11 +295,6 @@ CONTAINS
           KBC_OC_T = 1d0 / KOC_BC_T
 
           ! Get monthly mean OC and BC concentrations [kg/box]
-!------------------------------------------------------------------------------
-! Prior to 9/5/14:
-!          C_OC1    = ExtState%GLOB_OC%Arr%Val(I,J,L)
-!          C_BC1    = ExtState%GLOB_BC%Arr%Val(I,J,L)
-!------------------------------------------------------------------------------
           C_OC1    = C_OC(I,J,L)
           C_BC1    = C_BC(I,J,L)
            
@@ -470,25 +465,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !----------------------
-    ! TOTAL POPS EMISSIONS
-    !----------------------
-
-!------------------------------------------------------------------------------
-! Prior to 8/27/14:
-! Comment out for now -- Need to figure out how to track total POPs emissions
-! in HEMCO (mps/8/27/14)
-!    ! Update diagnostic
-!    IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-!       Arr2D => POP_TOT_EM(:,:)
-!       CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,   &
-!                          Cat=-1,     Hier=-1,       HcoID=IDTPOPG, &
-!                          AutoFill=1, Array2D=Arr2D, RC=RC   )
-!       Arr2D => NULL() 
-!       IF ( RC /= HCO_SUCCESS ) RETURN 
-!    ENDIF
-!------------------------------------------------------------------------------
-
     !=======================================================================
     ! Cleanup & quit
     !=======================================================================
@@ -617,13 +593,6 @@ CONTAINS
     ExtState%AIRVOL%DoUse      = .TRUE. 
     ExtState%FRAC_OF_PBL%DoUse = .TRUE. 
     ExtState%TK%DoUse          = .TRUE. 
-
-!-----------------------------------------------------------------------------
-! Prior to 9/5/14:
-!    ! Activate global BC and OC concentration
-!    ExtState%GLOB_OC%DoUse     = .TRUE.
-!    ExtState%GLOB_BC%DoUse     = .TRUE.
-!-----------------------------------------------------------------------------
 
     ! Activate this extension
     ExtState%GC_POPs           = .TRUE.
