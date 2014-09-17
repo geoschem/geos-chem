@@ -99,7 +99,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EMISLIST_MOD, ONLY : EmisList_GetDataArr 
+    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr 
     USE HCO_FLUXARR_MOD,  ONLY : HCO_EmisAdd
 !
 ! !INPUT PARAMETERS:
@@ -154,13 +154,13 @@ CONTAINS
     IF ( FIRST ) THEN
     
        IF ( DoWetland ) THEN
-          CALL EmisList_GetDataArr( am_I_Root, 'CH4_WETFRAC',  WETFRAC,  RC )
+          CALL HCO_GetPtr( am_I_Root, 'CH4_WETFRAC',  WETFRAC,  RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL EmisList_GetDataArr( am_I_Root, 'CH4_LITTER_C', LITTER_C, RC )
+          CALL HCO_GetPtr( am_I_Root, 'CH4_LITTER_C', LITTER_C, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL EmisList_GetDataArr( am_I_Root, 'CH4_SOIL_C',   SOIL_C,   RC )
+          CALL HCO_GetPtr( am_I_Root, 'CH4_SOIL_C',   SOIL_C,   RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL EmisList_GetDataArr( am_I_Root, 'CH4_MEAN_T',   MEAN_T,   RC )
+          CALL HCO_GetPtr( am_I_Root, 'CH4_MEAN_T',   MEAN_T,   RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. DoDiagn ) THEN
              CALL DiagnCont_Find ( -1,-1,-1,-1,-1, TRIM(DiagnWtl), 0, DoDiagn, TmpCnt )
@@ -170,11 +170,11 @@ CONTAINS
  
        ! Fields required by rice emissions
        IF ( DoRice ) THEN
-          CALL EmisList_GetDataArr( am_I_Root, 'CH4_RICE',    RICE,         RC )
+          CALL HCO_GetPtr( am_I_Root, 'CH4_RICE',    RICE,         RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL EmisList_GetDataArr( am_I_Root, 'CH4_GWET_YR', GWET_ANNUAL,  RC )
+          CALL HCO_GetPtr( am_I_Root, 'CH4_GWET_YR', GWET_ANNUAL,  RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL EmisList_GetDataArr( am_I_Root, 'CH4_GWET_MT', GWET_MONTHLY, RC )
+          CALL HCO_GetPtr( am_I_Root, 'CH4_GWET_MT', GWET_MONTHLY, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. DoDiagn ) THEN
              CALL DiagnCont_Find ( -1,-1,-1,-1,-1, TRIM(DiagnRce), 0, DoDiagn, TmpCnt )

@@ -157,7 +157,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EmisList_Mod, ONLY : EmisList_GetDataArr
+    USE HCO_EmisList_Mod, ONLY : HCO_GetPtr
     USE HCO_FluxArr_MOD,  ONLY : HCO_EmisAdd
 !
 ! !INPUT PARAMETERS:
@@ -202,29 +202,29 @@ CONTAINS
     ! Get pointers to data arrays 
     !-----------------------------------------------------------------
     IF ( FIRST ) THEN
-       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_WDL', GFED3_WDL, RC )
+       CALL HCO_GetPtr ( am_I_Root, 'GFED3_WDL', GFED3_WDL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_SAV', GFED3_SAV, RC )
+       CALL HCO_GetPtr ( am_I_Root, 'GFED3_SAV', GFED3_SAV, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_PET', GFED3_PET, RC )
+       CALL HCO_GetPtr ( am_I_Root, 'GFED3_PET', GFED3_PET, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FOR', GFED3_FOR, RC )
+       CALL HCO_GetPtr ( am_I_Root, 'GFED3_FOR', GFED3_FOR, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_AGW', GFED3_AGW, RC )
+       CALL HCO_GetPtr ( am_I_Root, 'GFED3_AGW', GFED3_AGW, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_DEF', GFED3_DEF, RC )
+       CALL HCO_GetPtr ( am_I_Root, 'GFED3_DEF', GFED3_DEF, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( am_I_Root, 'HUMTROP', HUMTROP, RC )
+       CALL HCO_GetPtr ( am_I_Root, 'HUMTROP', HUMTROP, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Also point to scale factors if needed
        IF ( DoDay ) THEN
-          CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FRAC_DAY', &
+          CALL HCO_GetPtr ( am_I_Root, 'GFED3_FRAC_DAY', &
                                      DAYSCAL,   RC               )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
        IF ( Do3Hr ) THEN
-          CALL EmisList_GetDataArr ( am_I_Root, 'GFED3_FRAC_3HOUR', &
+          CALL HCO_GetPtr ( am_I_Root, 'GFED3_FRAC_3HOUR', &
                                      HRSCAL,    RC                 )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF

@@ -1367,10 +1367,6 @@ CONTAINS
 !
   SUBROUTINE ExtOpt_SetPointers ( am_I_Root, RC )
 !
-! !USES:
-!
-    USE HCO_EMISLIST_MOD,  ONLY : EmisList_GetDataArr
-!
 ! !INPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
@@ -1570,7 +1566,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EMISLIST_MOD,  ONLY : EmisList_GetDataArr
+    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
     USE HCOX_State_Mod,    ONLY : ExtDat_2R
 !
 ! !INPUT PARAMETERS:
@@ -1598,7 +1594,7 @@ CONTAINS
     !=================================================================
 
     IF ( ExtDat%DoUse ) THEN
-       CALL EmisList_GetDataArr( am_I_Root, TRIM(FldName), Ptr2D, RC )
+       CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC )
        IF ( RC /= 0 ) RETURN
        ExtDat%Arr%Val => Ptr2D
        Ptr2D => NULL()
@@ -1626,7 +1622,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EMISLIST_MOD,  ONLY : EmisList_GetDataArr
+    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
     USE HCOX_State_Mod,    ONLY : ExtDat_3R
 !
 ! !INPUT PARAMETERS:
@@ -1654,7 +1650,7 @@ CONTAINS
     !=================================================================
 
     IF ( ExtDat%DoUse ) THEN
-       CALL EmisList_GetDataArr( am_I_Root, TRIM(FldName), Ptr3D, RC )
+       CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr3D, RC )
        IF ( RC /= 0 ) RETURN
        ExtDat%Arr%Val => Ptr3D
        Ptr3D => NULL()
@@ -1682,7 +1678,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EMISLIST_MOD,   ONLY : EmisList_GetDataArr 
+    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
 !
 ! !INPUT PARAMETERS:
 !
@@ -1713,7 +1709,7 @@ CONTAINS
 
     ! Eventually update variable CLDTOPS
     IF ( ExtState%CLDTOPS%DoUse ) THEN
-       CALL EmisList_GetDataArr( am_I_Root, 'CLDTOPS', Ptr2D, RC )
+       CALL HCO_GetPtr( am_I_Root, 'CLDTOPS', Ptr2D, RC )
        IF ( RC /= 0 ) RETURN
        CLDTOPS = NINT(Ptr2D)
     ENDIF

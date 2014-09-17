@@ -253,7 +253,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_FLuxArr_Mod,    ONLY : HCO_EmisAdd
-    USE HCO_EmisList_Mod,   ONLY : EmisList_GetDataArr
+    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
@@ -316,59 +316,59 @@ CONTAINS
     !-----------------------------------------------------------------
 
     IF ( FIRST ) THEN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK1',  LANDTYPE(1)%VAL,  RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK1',  LANDTYPE(1)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK2',  LANDTYPE(2)%VAL,  RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK2',  LANDTYPE(2)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK3',  LANDTYPE(3)%VAL,  RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK3',  LANDTYPE(3)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK4',  LANDTYPE(4)%VAL,  RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK4',  LANDTYPE(4)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK5',  LANDTYPE(5)%VAL,  RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK5',  LANDTYPE(5)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK6',  LANDTYPE(6)%VAL,  RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK6',  LANDTYPE(6)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK7',  LANDTYPE(7)%VAL,  RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK7',  LANDTYPE(7)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK8',  LANDTYPE(8)%VAL,  RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK8',  LANDTYPE(8)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK9',  LANDTYPE(9)%VAL,  RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK9',  LANDTYPE(9)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK10', LANDTYPE(10)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK10', LANDTYPE(10)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK11', LANDTYPE(11)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK11', LANDTYPE(11)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK12', LANDTYPE(12)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK12', LANDTYPE(12)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK13', LANDTYPE(13)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK13', LANDTYPE(13)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK14', LANDTYPE(14)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK14', LANDTYPE(14)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK15', LANDTYPE(15)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK15', LANDTYPE(15)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK16', LANDTYPE(16)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK16', LANDTYPE(16)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK17', LANDTYPE(17)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK17', LANDTYPE(17)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK18', LANDTYPE(18)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK18', LANDTYPE(18)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK19', LANDTYPE(19)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK19', LANDTYPE(19)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK20', LANDTYPE(20)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK20', LANDTYPE(20)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK21', LANDTYPE(21)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK21', LANDTYPE(21)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK22', LANDTYPE(22)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK22', LANDTYPE(22)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK23', LANDTYPE(23)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK23', LANDTYPE(23)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_LANDK24', LANDTYPE(24)%VAL, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_LANDK24', LANDTYPE(24)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_FERT',    SOILFERT,         RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_FERT',    SOILFERT,         RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_ARID',    CLIMARID,         RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_ARID',    CLIMARID,         RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_NONARID', CLIMNARID,        RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_NONARID', CLIMNARID,        RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     
        !---------------------------------------------------------------
@@ -378,25 +378,25 @@ CONTAINS
 
        ! DEP_RESERVOIR. HEMCO converts this to kgNO/m2/s. Convert here
        ! back to ngN/m2.
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_DEPRES', TmpArr, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_DEPRES', TmpArr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        DEP_RESERVOIR_HSN(:,:) = TmpArr(:,:) * kgNO_to_ngN * HcoState%TS_EMIS
        TmpArr => NULL()
 
        ! GWET_PREV [unitless]
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_GWET', TmpArr, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_GWET', TmpArr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        GWET_PREV_HSN(:,:) = TmpArr(:,:)
        TmpArr => NULL()
           
        ! PFACTOR [unitless]
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_PFACT', TmpArr, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_PFACT', TmpArr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        PFACTOR_HSN(:,:) = TmpArr(:,:)
        TmpArr => NULL()
           
        ! DRYPERIOD [unitless]
-       CALL EmisList_GetDataArr ( aIR, 'SOILNOX_DRYPER', TmpArr, RC )
+       CALL HCO_GetPtr ( aIR, 'SOILNOX_DRYPER', TmpArr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        DRYPERIOD_HSN(:,:) = TmpArr(:,:)
        TmpArr => NULL()

@@ -244,7 +244,7 @@
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_First 
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_NewHour 
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_NewDay
-      USE HCO_EMISLIST_MOD,    ONLY : EmisList_GetDataArr
+      USE HCO_EMISLIST_MOD,    ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS: 
 !
@@ -374,49 +374,49 @@
 
       ! Isoprene and acetone are always calculated
       IF ( FIRST ) THEN
-         CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_ISOP', 
+         CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_ISOP', 
      &                             AEF_ISOP,   RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_ACET', 
+         CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_ACET', 
      &                             AEF_ACET,   RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
          ! Arrays used if monoterpene switch is turned on
             IF ( ExtNrMono > 0 ) THEN
-            CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_MONOT', 
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MONOT', 
      &                                AEF_MONOT,   RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_MBO', 
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MBO', 
      &                                AEF_MBO,   RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
       
-            CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_APINE', 
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_APINE', 
      &                                AEF_APINE,   RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_BPINE', 
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_BPINE', 
      &                                AEF_BPINE,   RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_LIMON', 
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_LIMON', 
      &                                AEF_LIMON,   RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_SABIN', 
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_SABIN', 
      &                                AEF_SABIN,   RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_MYRCN', 
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MYRCN', 
      &                                AEF_MYRCN,   RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_CAREN', 
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_CAREN', 
      &                                AEF_CAREN,   RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_AEF_OCIMN', 
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_OCIMN', 
      &                                AEF_OCIMN,   RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
          ENDIF
    
          ! Only used for SOA simulation:
          IF ( ExtNrSoa>0 ) THEN
-            CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_ORVC', 
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_ORVC', 
      &                                GEIA_ORVC, RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
          ENDIF
@@ -3174,7 +3174,7 @@
 !
 ! !USES:
 !
-      USE HCO_EMISLIST_MOD,    ONLY : EmisList_GetDataArr
+      USE HCO_EMISLIST_MOD,    ONLY : HCO_GetPtr
       USE EF_MGN20_MOD      ! EF_MGN20.EXT from MEGAN CDP, EFs
 !
 ! !INPUT PARAMETERS:
@@ -3233,19 +3233,19 @@
       SUMOMTP = 0.d0
 
       ! Get pointers to data
-      CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_PFT_BT', PFT_BT, RC )
+      CALL HCO_GetPtr( am_I_Root, 'MEGAN_PFT_BT', PFT_BT, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_PFT_NT', PFT_NT, RC )
+      CALL HCO_GetPtr( am_I_Root, 'MEGAN_PFT_NT', PFT_NT, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_PFT_SH', PFT_SH, RC )
+      CALL HCO_GetPtr( am_I_Root, 'MEGAN_PFT_SH', PFT_SH, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_PFT_GR', PFT_GR, RC )
+      CALL HCO_GetPtr( am_I_Root, 'MEGAN_PFT_GR', PFT_GR, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL EmisList_GetDataArr( am_I_Root, 'MEGAN_PFT_CR', PFT_CR, RC )
+      CALL HCO_GetPtr( am_I_Root, 'MEGAN_PFT_CR', PFT_CR, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Calculation:

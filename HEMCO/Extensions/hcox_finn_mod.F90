@@ -160,7 +160,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EmisList_mod,  ONLY : EmisList_GetDataArr
+    USE HCO_EmisList_mod,  ONLY : HCO_GetPtr
     USE HCO_FluxArr_mod,   ONLY : HCO_EmisAdd
     USE HCO_State_mod,     ONLY : HCO_GetHcoID
     USE HCO_Clock_mod,     ONLY : HcoClock_Get
@@ -226,27 +226,27 @@ CONTAINS
        ENDIF
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP1'
-       CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP1, RC )
+       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP2'
-       CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP2, RC )
+       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP2, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP3'
-       CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP3, RC )
+       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP3, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP4'
-       CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP4, RC )
+       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP4, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP5'
-       CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP5, RC )
+       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP5, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP9'
-       CALL EmisList_GetDataArr( am_I_Root, TRIM(FLDNME), VEGTYP9, RC )
+       CALL HCO_GetPtr( am_I_Root, TRIM(FLDNME), VEGTYP9, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FIRST = .FALSE.

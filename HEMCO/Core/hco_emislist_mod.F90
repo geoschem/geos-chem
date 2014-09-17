@@ -27,9 +27,9 @@ MODULE HCO_EMISLIST_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC  :: HCO_GetPtr
   PUBLIC  :: EmisList_Cleanup
   PUBLIC  :: EmisList_Update
-  PUBLIC  :: EmisList_GetDataArr
   PUBLIC  :: EmisList_NextCont
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -54,10 +54,10 @@ MODULE HCO_EMISLIST_MOD
   ! # of containers in EmisList
   INTEGER                    :: nnEmisCont =  0       
 
-  INTERFACE EmisList_GetDataArr 
-     MODULE PROCEDURE EmisList_GetDataArr_2D
-     MODULE PROCEDURE EmisList_GetDataArr_3D
-  END INTERFACE EmisList_GetDataArr
+  INTERFACE HCO_GetPtr 
+     MODULE PROCEDURE HCO_GetPtr_2D
+     MODULE PROCEDURE HCO_GetPtr_3D
+  END INTERFACE HCO_GetPtr
 
 CONTAINS
 !EOC
@@ -694,15 +694,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EmisList_GetDataArr_3D 
+! !IROUTINE: HCO_GetPtr_3D 
 !
-! !DESCRIPTION: Subroutine EMISLIST\_GetDataArr\_3D returns the 3D data 
-! array Arr3D of EmisList that is associated with data container DctName. 
+! !DESCRIPTION: Subroutine HCO\_GetPtr\_3D returns the 3D data pointer
+! Ptr3D of EmisList that is associated with data container DctName. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EmisList_GetDataArr_3D( am_I_Root, DctName, Arr3D, RC, TIDX )
+  SUBROUTINE HCO_GetPtr_3D( am_I_Root, DctName, Ptr3D, RC, TIDX )
 !
 ! !USES:
 !
@@ -716,7 +716,7 @@ CONTAINS
 !                                                            ! (default=1)
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),         POINTER              :: Arr3D(:,:,:)   ! output array
+    REAL(hp),         POINTER              :: Ptr3D(:,:,:)   ! output array
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -739,11 +739,11 @@ CONTAINS
     TYPE(ListCont), POINTER    :: Lct => NULL()
 
     !=================================================================
-    ! EmisList_GetDataArr_3D BEGINS HERE
+    ! HCO_GetPtr_3D BEGINS HERE
     !=================================================================
 
     ! Enter
-    LOC = 'EmisList_GetDataArr_3D (hco_emislist_mod.F90)'
+    LOC = 'HCO_GetPtr_3D (hco_emislist_mod.F90)'
 
     ! Define time index to use
     IF ( PRESENT(TIDX) ) THEN
@@ -777,7 +777,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( Lct%Dct%Dta%V3 ) ) THEN
-       Arr3D => Lct%Dct%Dta%V3(T)%Val
+       Ptr3D => Lct%Dct%Dta%V3(T)%Val
     ELSE
        MSG = 'Container data not filled: ' // TRIM(DctName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -787,22 +787,22 @@ CONTAINS
     ! Leave w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE EmisList_GetDataArr_3D
+  END SUBROUTINE HCO_GetPtr_3D
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EmisList_GetDataArr_2D 
+! !IROUTINE: HCO_GetPtr_2D 
 !
-! !DESCRIPTION: Subroutine EmisList\_GetDataArr\_2D returns the 2D data 
-! array Arr2D of EmisList that is associated with data container DctName. 
+! !DESCRIPTION: Subroutine HCO\_GetPtr\_2D returns the 2D data pointer 
+! Ptr2D of EmisList that is associated with data container DctName. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EmisList_GetDataArr_2D( am_I_Root, DctName, Arr2D, RC, TIDX )
+  SUBROUTINE HCO_GetPtr_2D( am_I_Root, DctName, Ptr2D, RC, TIDX )
 !
 ! !USES:
 !
@@ -816,7 +816,7 @@ CONTAINS
 !                                                         ! (default=1)
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),         POINTER              :: Arr2D(:,:)  ! output array
+    REAL(hp),         POINTER              :: Ptr2D(:,:)  ! output array
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -839,11 +839,11 @@ CONTAINS
     TYPE(ListCont), POINTER    :: Lct => NULL()
 
     !=================================================================
-    ! EmisList_GetDataArr_2D BEGINS HERE
+    ! HCO_GetPtr_2D BEGINS HERE
     !=================================================================
 
     ! Enter
-    LOC = 'EmisList_GetDataArr_2D (hco_emislist_mod.F90)'
+    LOC = 'HCO_GetPtr_2D (hco_emislist_mod.F90)'
 
     ! Define time index to use
     IF ( PRESENT(TIDX) )THEN
@@ -878,7 +878,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( Lct%Dct%Dta%V2 ) ) THEN
-       Arr2D => Lct%Dct%Dta%V2(T)%Val
+       Ptr2D => Lct%Dct%Dta%V2(T)%Val
     ELSE
        MSG = 'Container data not filled: ' // TRIM(DctName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -888,7 +888,7 @@ CONTAINS
     ! Leave w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE EmisList_GetDataArr_2D
+  END SUBROUTINE HCO_GetPtr_2D
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

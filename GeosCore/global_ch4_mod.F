@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-!      USE inquireMod, ONLY : findFreeLUN
+      USE HCO_ERROR_MOD   ! For real precisions (hp)
 
       IMPLICIT NONE
       PRIVATE
@@ -88,7 +88,12 @@
 !  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
 !                              code out with #ifdef blocks so it can be used)
 !  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
-!EOP
+!  09 Sep 2014 - C. Keller   - Implemented HEMCO for emissions. 
+!  16 Sep 2014 - C. Keller   - Now also get chemical fields (OH and CH4 prod)
+!                              through HEMCO. Removed READ_COPROD and 
+!                              READ_CH4LOSS (now obsolete)
+!  16 Sep 2014 - C. Keller   - Removed all references to Clarisa's OH clima-
+!                              tology (not used anywhere)
 !------------------------------------------------------------------------------
 !BOC
 !     
@@ -98,17 +103,12 @@
       ! Module Variables:
       ! N_CH4      : Number of budget items in TCH4
       ! BAIRDENS   : Array for air density                      [molec/cm3]
-      ! BOH        : Array for OH values                        [molec/cm3]
+      ! BOH        : Array for OH values                        [kg/m3]
       ! COPROD     : Array for zonal mean P(CO)                 [v/v/s]
       ! CH4LOSS    : Array for monthly average CH4 loss freq    [1/s]
       ! PAVG       : Array for 24-h avg surface pressure        [mb]
       ! TAVG       : Array for 24-h avg temperature             [K]
       ! TCH4       : Array for CH4 budget (N_CH4 items)         [molec/box]
-      ! NCMSALTS   : # of altitudes for CMS climatological OH
-      ! NCMSLATS   : # of latitudes for CMS climatological OH
-      ! CMSALTS    : Altitude values for CMS climatological OH
-      ! CMSLATS    : Latitude values for CMS climatological OH
-      ! AVGOH      : Array for CMS climatological OH            [molec/cm3]
       ! FMOL_CH4   : Molecular weight of CH4                    [kg/mole]
       ! XNUMOL_CH4 : Molecules CH4 / kg CH4                     [molec/kg]
       ! CH4_EMIS   : Array for CH4 Emissions                    [kg/m2/s]
@@ -116,38 +116,27 @@
 
       ! Number of CH4 budget types 
       INTEGER, PARAMETER   :: N_CH4    = 12
-      ! For Clarisa's Climatological OH
-      INTEGER, PARAMETER   :: NSEAS    = 4
-      INTEGER, PARAMETER   :: NCMSALTS = 7
-      INTEGER, PARAMETER   :: NCMSLATS = 24
-      REAL*8,  PARAMETER   :: FMOL_CH4 = 16d-3
+
+      REAL*8, PARAMETER    :: XNUMOL_OH  = 6.0221d23 / 17d-3  ! molec OH / kg OH
+      REAL*8, PARAMETER    :: CM3PERM3   = 1.d6
 !
 ! !LOCAL VARIABLES:
 !
       ! Various arrays      
       REAL*8,  ALLOCATABLE :: BAIRDENS(:,:,:)
-      REAL*8,  ALLOCATABLE :: BOH(:,:,:,:)
-      REAL*8,  ALLOCATABLE :: COPROD(:,:,:)
-      REAL*8,  ALLOCATABLE :: CH4LOSS(:,:,:,:)
       REAL*8,  ALLOCATABLE :: PAVG(:,:,:)
       REAL*8,  ALLOCATABLE :: TAVG(:,:,:)
       REAL*8,  ALLOCATABLE :: CH4_EMIS(:,:,:)
-      REAL*8,  ALLOCATABLE :: AVGOH(:,:,:)
+
+      ! HEMCO pointers
+      REAL(hp), POINTER    :: BOH    (:,:,:) => NULL() ! Get from HEMCO
+      REAL(hp), POINTER    :: CH4LOSS(:,:,:) => NULL() ! Get from HEMCO
+
       ! Online CH4 only
       REAL*8,  ALLOCATABLE :: SUMANTHRO(:,:)
       REAL*8,  ALLOCATABLE :: SUMBIOG(:,:)
 
-      ! For Clarisa's Climatological OH      
-      REAL*8               :: CMSALTS(NCMSALTS) =
-     &    (/ 1000d0, 900d0, 800d0, 700d0, 500d0, 300d0, 200d0 /)
-
-      REAL*8               :: CMSLATS(NCMSLATS) =
-     &    (/ 90d0,  84d0,  76d0,  68d0,  60d0,  52d0,  44d0,  36d0, 
-     &       28d0,  20d0,  12d0,   4d0,  -4d0, -12d0, -20d0, -28d0,
-     &      -36d0, -44d0, -52d0, -60d0, -68d0, -76d0, -84d0, -90d0 /)
-
       REAL*8               :: TROPOCH4
-      REAL*8               :: STRATOCH4
 
       CONTAINS
 !EOC
@@ -202,6 +191,7 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  17 Sep 2014 - C. Keller   - Removed legacy code (unused variables).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,9 +199,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER               :: NTDT, NMIN
-      INTEGER               :: I, J, L, NTIMES, MNDT, K, M, N
+      INTEGER               :: I, J, L, NTIMES, MNDT
       INTEGER               :: NNEW, NNCOUNT 
-      REAL*8                :: Ptemp(IIPAR,JJPAR,LLPAR)
       
       !=================================================================
       ! CH4_AVGTP begins here!
@@ -230,7 +219,7 @@
       IF ( NMIN == 0 ) THEN
 
          ! Initialize NNEW
-	 NNEW = 0
+         NNEW = 0
 
          ! No longer true (kjw, 11/17/11).
          !! Error check --  NCHEM has to be 1440 min
@@ -277,8 +266,8 @@
       IF ( NNEW == 0 ) THEN 
          Pavg(:,:,:) = 0d0
          Tavg(:,:,:) = 0d0
-	 NNEW        = 1
-	 NNCOUNT     = 0
+         NNEW        = 1
+         NNCOUNT     = 0
       ENDIF
 
       !=================================================================
@@ -286,7 +275,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PTEMP )
+!$OMP+PRIVATE( I, J, L )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -305,7 +294,7 @@
       ! Keep track to see if at end of NCHEM time step.
       ! If so, divide PAVG & TAVG by the number of times archived.
       !=================================================================
-	
+
       NNCOUNT = NNCOUNT + 1
 
       IF ( NNCOUNT == NTIMES ) THEN
@@ -336,22 +325,16 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-!      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR 
-!      USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
-!      USE TIME_MOD,           ONLY : GET_TS_EMIS,     ITS_A_NEW_DAY
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
       USE ERROR_MOD,          ONLY : ERROR_STOP
-!      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IT_IS_NAN
-!      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (ccc, 08/31/09)
       USE DIAG_MOD,           ONLY : AD58
 
       ! HEMCO update
       USE HCO_DIAGN_MOD
-      USE HCO_ERROR_MOD
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
 !
@@ -403,6 +386,7 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  11 Apr 2014 - R. Yantosca - Remove call to INIT_GLOBAL_CH4
+!  09 Sep 2014 - C. Keller   - Implemented HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -413,7 +397,6 @@
       REAL*8              :: DTSRCE,       AREA_M2
       REAL*8,DIMENSION(7) :: DBGANTHRO
       REAL*8,DIMENSION(3) :: DBGBIO
-      LOGICAL, SAVE       :: FIRST = .TRUE.
 
       ! For fields from Input_Opt
       LOGICAL             :: ITS_A_CH4_SIM
@@ -905,24 +888,19 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,          ONLY : GET_TAU0, READ_BPCH2, GET_MODELNAME
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD43
-      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH, OH
       USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
-      USE TIME_MOD,           ONLY : GET_NYMDb, GET_NYMDe
-      USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+
+      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS:
 !
@@ -986,6 +964,7 @@
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !  23 Jul 2014 - R. Yantosca - Reference ITS_IN_THE_CHEMGRID (chemgrid_mod.F)
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  17 Sep 2014 - C. Keller   - Now use HEMCO to get CH4 loss and OH conc. field.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -999,16 +978,8 @@
 !
       LOGICAL                :: FIRSTCHEM = .TRUE.
       INTEGER                :: I, J, L, K, M, N
-      INTEGER                :: IJ, JJ, NPART, III, JJJ
-      INTEGER                :: NOHDO
-      INTEGER, SAVE          :: NTALDT
+      INTEGER                :: NPART
 
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=4)       :: CYEAR
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,LLPAR)
-      INTEGER                :: TROPP
-      REAL*8                 :: XTAU            	      
-      INTEGER                :: LMN
       REAL*8                 :: PREVCH4(IIPAR, JJPAR, LLPAR)
       REAL*8                 :: BOXVL  
 
@@ -1018,7 +989,6 @@
      &                                          30, 31, 30, 31 /)
 
       ! For fields from Input_Opt
-      INTEGER                :: N_TRACERS
       LOGICAL                :: LSPLIT
       LOGICAL                :: LCH4BUD
 
@@ -1026,6 +996,9 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER        :: STT(:,:,:,:)
+
+      ! For error messages
+      CHARACTER(LEN=255)    :: LOC = 'CHEMCH4 (global_ch4_mod.F)'
 
       !=================================================================
       ! CHEMCH4 begins here!
@@ -1039,7 +1012,7 @@
       RC        = GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      N_TRACERS = Input_Opt%N_TRACERS
+!      N_TRACERS = Input_Opt%N_TRACERS
       LSPLIT    = Input_Opt%LSPLIT
       LCH4BUD   = Input_Opt%LCH4BUD
 
@@ -1062,27 +1035,17 @@
       ENDDO
       ENDDO
 
-      !=================================================================
-      ! (1) If the first time step ...
-      !        Read monthly average ch4 loss frequencies for strat chem
-      !     Read CH4LOSS at beginning of each month
-      !        kjw, 2/3/2014
-      !=================================================================
+      !================================================================
+      ! (1) Get CH4 loss rates from HEMCO. the target is automatically 
+      ! updated by HEMCO (ckeller, 9/16/2014)
+      !================================================================
       IF ( FIRSTCHEM ) THEN
 
-         ! Counter for total number of timesteps per month for CO budget.
-         NTALDT = 1
-
-         ! Now read CH4 loss frequencies instead of CO production
-         ! (kjw, 11/19/11)
-         ! Zero CO Production array
-         !COPROD(:,:,:) = 0d0
-         !print*,'READ_COPROD'
-         ! Read zonally-averaged CO production [v/v/s]
-         !CALL READ_COPROD
-         !print*,'READ_COPROD DONE'
-         CH4LOSS(:,:,:,:) = 0d0
-         CALL READ_CH4LOSS( am_I_Root, Input_Opt, RC )
+         ! Import CH4 loss frequencies from HEMCO. The target will be 
+         ! automatically updated by HEMCO (ckeller, 9/15/2014)
+         CALL HCO_GetPtr( am_I_Root, 'CH4_LOSS', CH4LOSS, RC )
+         IF ( RC /= HCO_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to CH4_LOSS', LOC )
 
 #if defined( USE_CH4_BUDGET_DIAG )
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -1097,68 +1060,20 @@
 #endif
       ENDIF
 
-      ! Initialize current month
-      LMN = GET_MONTH()
-
-      ! Increment counter of timesteps
-      NTALDT = NTALDT + 1
-
-
       !================================================================
-      ! (2) get parameterized OH fields or monthly mean fields.
-      !
-      ! Variables of note:
-      ! ---------------------------------------------------------------
-      ! (1) BOH = storage array for OH fields.
-      !
-      ! (2) NOHDO = switch
-      !       ONLY CASE 1 available as of 7/20/10 (kjw)
-      !       = 1 : Get GEOS-Chem OH (v5-07-08) (kjw, 5/28/08)
-      !
+      ! (2) Get OH field from HEMCO. the target is automatically 
+      ! updated by HEMCO (ckeller, 9/16/2014)
       !================================================================
-
-
-      ! Change value of NOHDO as listed above
-      NOHDO = 1
-
-      SELECT CASE ( NOHDO )
-
-         ! NOHDO = 1: GEOS-Chem OH v5-07-08
-         CASE ( 1 )
-
-            ! If first of month, read monthly mean OH
-            IF ( FIRSTCHEM ) THEN
-
-               ! 3D OH Field
-               BOH(:,:,:,:) = 0d0               
-
-               ! Loop over each month, reading OH
-               DO M=1,12
-
-                  ! Get current month
-                  !LMN = GET_MONTH()
-
-                  CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, 
-     &                                State_Met, M,       RC )
-
-                  ! Assign to module variable BOH
-                  BOH(:,:,:,M) = OH(:,:,:)
-
-               ENDDO
-
-            ENDIF
-
-         ! Default.  GEOS_CHEM_STOP
-         CASE DEFAULT
-
-            WRITE( 6, '(a)' ) 'Invalid selection for NOHDO!'
-            WRITE( 6, '(a)' ) 'Halting execution in CHEMCH4!'
-            CALL GEOS_CHEM_STOP
-            
-      END SELECT
+      IF ( FIRSTCHEM ) THEN
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', BOH, RC )
+         IF ( RC /= HCO_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+      ENDIF
 
       !=================================================================
       ! (3.1) ND43 diagnostics...save [OH] in molecules/cm3
+      ! BOH is in kg/m3 (from HEMCO), convert to molecules/cm3 
+      ! (ckeller, 9/16/2014)
       !=================================================================
 
       IF ( ND43 > 0 ) THEN
@@ -1166,7 +1081,9 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
+!               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
+               AD43(I,J,L,1) = AD43(I,J,L,1) + 
+     &                       ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
             ENDIF
          ENDDO
          ENDDO
@@ -1257,7 +1174,6 @@
          !   kjw, 2/3/2014
          CALL CH4_BUDGET( State_Chm )
 
-	 NTALDT  = 0
          print*,'END CH4_BUDGET'
          call flush(6)
      
@@ -1274,268 +1190,6 @@
       FIRSTCHEM = .FALSE.
 
       END SUBROUTINE CHEMCH4
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_coprod
-!
-! !DESCRIPTION: Subroutine READ\_COPROD reads production and destruction rates
-!  for CO in the stratosphere. CO destruction rate is assumed equal to CH4
-!  production rate for the GEOS-Chem CH4 simulation. (bnd, bmy, 1/17/01,
-!  10/3/05)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_COPROD( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT,    GET_MODELNAME
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRANSFER_MOD,       ONLY : TRANSFER_ZONAL      
-
-      IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REMARKS:
-!  We will eventually remove this routine when netCDF input is implemented.
-!
-! !REVISION HISTORY:
-!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
-!        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
-!        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) READ_COPROD is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) ARRAY needs to be dimensioned (1,JJPAR,LGLOB) (bmy, 9/26/01)
-!  (4 ) Remove obsolete code from 9/01 (bmy, 10/24/01)
-!  (5 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (6 ) Now reads data for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (8 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
-!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER                :: I, J, L, M
-      REAL*4                 :: ARRAY(1,JJPAR,LGLOB)
-      REAL*4                 :: DUMMY_IN(JJPAR,LGLOB)
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=255)     :: FILENAME
-      REAL*8                 :: DUMMY_OUT(JJPAR,LGLOB)
-
-      !=================================================================
-      ! READ_COPROD begins here!
-      ! 
-      ! Read P(CO) for all 12 months
-      !=================================================================
-
-      ! Assume success
-      RC  =  GIGC_SUCCESS
-
-      DO M = 1, 12 
-
-         ! TAU value at the start of month M -- Use "generic" year 1985
-         XTAU = GET_TAU0( M, 1, 1985 )
-
-         ! Construct filename
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'pco_lco_200203/' //
-     &              'COprod.GEOS5.05x0666_NA.trim'
-#else
-         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'pco_lco_200203/' //
-     &              'COprod.'                  // GET_NAME_EXT()    //
-     &              '.'                        // GET_RES_EXT()
-#endif
-
-         ! Only write output if this is the root CPU
-         IF ( am_I_Root ) THEN
-            WRITE( 6, 93 ) TRIM ( FILENAME )
- 93         FORMAT( '     - READ_COPROD: Reading COprod: ', a )
-            CALL FLUSH( 6 )
-         ENDIF
-
-         ! Read P(CO) in units of [v/v/s].  drevet.
-         CALL READ_BPCH2( FILENAME, 'PORL-L=$', 9,     
-     &                    XTAU,      1,         JJPAR,     
-     &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
-
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
-!%%% since the SCHEM data are saved at the reduced resolution.  This will
-!%%% be fixed in a subsequent version. (ltm, bmy, 6/2/10)
-!%%%-----------------------------------------------------------------------
-!%%% Original code here:
-!%%%         ! use 2D arrays for TRANSFER ZONAL
-!%%%         DUMMY_IN(:,:) = ARRAY(1,:,:)
-!%%%
-!%%%         ! Copy REAL*4 to REAL*8 data, and resize from (JJPAR,LGLOB) 
-!%%%         ! to (JJPAR,LLPAR) -- vertically regrid if necessary
-!%%%         CALL TRANSFER_ZONAL( DUMMY_IN, DUMMY_OUT )
-!%%%
-!%%%         COPROD(:,:,M) = DUMMY_OUT(:,:)
-!%%%-----------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-         ! Cast from REAL*4 to REAL*8
-         COPROD(:,:,M) = ARRAY(1,:,:)
-#else
-         ! use 2D arrays for TRANSFER ZONAL
-         DUMMY_IN(:,:) = ARRAY(1,:,:)
-
-         ! Copy REAL*4 to REAL*8 data, and resize from (JJPAR,LGLOB) 
-         ! to (JJPAR,LLPAR) -- vertically regrid if necessary
-         CALL TRANSFER_ZONAL( DUMMY_IN, DUMMY_OUT )
-
-         COPROD(:,:,M) = DUMMY_OUT(:,:)
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ENDDO
-
-      END SUBROUTINE READ_COPROD
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_ch4loss
-!
-! !DESCRIPTION: Subroutine READ\_CH4LOSS reads CH4 loss frequencies in the
-!  stratosphere. These values constitute a linearized stratospheric CH4
-!  chemistry scheme. Loss frequencies from 4x5 degree output from the GMI 
-!  model. Thanks to Lee Murray for the ch4 loss frequencies. (kjw, 11/19/2011)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_CH4LOSS( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT,    GET_MODELNAME
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-      USE TIME_MOD,           ONLY : GET_MONTH
-
-      IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REMARKS:
-!  We will eventually remove this routine when netCDF input is implemented.
-!
-! !REVISION HISTORY:
-!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
-!        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
-!        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) READ_CH4LOSS is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) ARRAY needs to be dimensioned (1,JJPAR,LGLOB) (bmy, 9/26/01)
-!  (4 ) Remove obsolete code from 9/01 (bmy, 10/24/01)
-!  (5 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (6 ) Now reads data for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (8 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  12 Feb 2014 - K. Wecht    - Add modifications for 0.25 x 0.3125 NA grid
-!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER                :: I, J, L, M
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=255)     :: FILENAME
-
-
-      !=================================================================
-      ! READ_CH4LOSS begins here!
-      ! 
-      ! Read P(CO) for all 12 months
-      !=================================================================
-
-      ! Assume success
-      RC       =  GIGC_SUCCESS
-
-      ! Construct filename
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'CH4_201203/' //
-     &           'gmi.ch4loss.geos5_47L.'   // GET_RES_EXT() //
-     &           '_NA.bpch'
-#elif defined( NESTED_NA ) && defined( GRID025x03125 ) 
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'CH4_201402/' //
-     &           'gmi.ch4loss.geos5_47L.'                    //
-     &           GET_RES_EXT()              //  '_NA.bpch'
-#else
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'CH4_201203/' //
-     &           'gmi.ch4loss.geos5_47L.'   // GET_RES_EXT() // 
-     &           '.bpch'
-#endif
-
-      ! Only print info if we are on the root CPU
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 93 ) TRIM ( FILENAME )
- 93      FORMAT( '     - READ_CH4LOSS: Reading Ch4loss: ', a )
-         CALL FLUSH( 6 )
-      ENDIF
-
-      ! Read data for each month
-      DO M = 1, 12 
-
-      !M = GET_MONTH()
-
-         ! TAU value at the start of month M -- Use "generic" year 1985
-         XTAU = GET_TAU0( M, 1, 1985 )
-
-         ! Read Loss frequencies in units of [1/s].  drevet.
-         CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 1,     
-     &                    XTAU,      IIPAR,     JJPAR,     
-     &                    LLPAR,     ARRAY,     QUIET=.TRUE. )
-
-         ! Place array into CH4LOSS module variable
-         CH4LOSS(:,:,:,M) = ARRAY(:,:,:)
-
-      ENDDO
-
-      END SUBROUTINE READ_CH4LOSS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1599,10 +1253,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL             :: FIRST_DECAY=.TRUE.
-      INTEGER             :: I, J, L, M, N, MM, LMN
+      INTEGER             :: I, J, L
       REAL*8              :: DT, GCH4, STT2GCH4, KRATE
       REAL*8              :: BOXVL
+      REAL*8              :: C_OH
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -1615,9 +1269,6 @@
 
       ! Chemistry timestep in seconds
       DT = GET_TS_CHEM() * 60d0
-
-      ! Current month
-      LMN = GET_MONTH()
 
       !=================================================================
       ! Compute decay of CH4 by OH in the troposphere
@@ -1635,7 +1286,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( L, J, I, KRATE, STT2GCH4, GCH4, BOXVL  )
+!$OMP+PRIVATE( L, J, I, KRATE, STT2GCH4, GCH4, BOXVL, C_OH )
 !$OMP+REDUCTION( +:TROPOCH4 )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1654,7 +1305,11 @@
 
             ! CH4 in [molec/cm3]
             GCH4 = STT(I,J,L,1) * STT2GCH4
-	
+
+            ! OH in [molec/cm3]. BOH is imported from HEMCO in units of
+            ! kg/m3, convert here to molec/cm3 (ckeller, 9/16/2014)
+            C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3
+
 #if defined( USE_CH4_BUDGET_DIAG )
             ! Grid box volume [cm3]
             BOXVL         = State_Met%AIRVOL(I,J,L) * 1d6
@@ -1662,25 +1317,24 @@
             ! Sum loss in TCH4(3) (molecules/box)
             TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
      &                      ( GCH4  * BOXVL          *
-     &                        KRATE * BOH(I,J,L,LMN) * DT )
+     &                        KRATE * C_OH * DT )
 #endif
 
-            TROPOCH4=TROPOCH4 + GCH4 * KRATE * BOH(I,J,L,LMN) * DT / 
-     &               STT2GCH4
+            TROPOCH4=TROPOCH4 + GCH4 * KRATE * C_OH * DT / STT2GCH4
 
             ! Modify AD19 Diagnostic
             ! How much CH4 (kg) is lost by reaction with OH
-	    IF ( ND19 > 0 ) THEN  ! --> [kg/box]
+            IF ( ND19 > 0 ) THEN  ! --> [kg/box]
                IF ( L <= LD19 ) THEN
 !	    	AD19(I,J,12) = AD19(I,J,12) + 
                   AD19(I,J,L) = AD19(I,J,L) + 
-     &                 ( GCH4 * KRATE * BOH(I,J,L,LMN) * DT ) / STT2GCH4
+     &                 ( GCH4 * KRATE * C_OH * DT ) / STT2GCH4
                ENDIF
-	    ENDIF
+            ENDIF
 
             ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt) 
-            GCH4 = GCH4 * ( 1d0 - KRATE * BOH(I,J,L,LMN) * DT )
-		
+            GCH4 = GCH4 * ( 1d0 - KRATE * C_OH * DT )
+
             ! Convert back from [molec/cm3] --> [kg/box]
             STT(I,J,L,1) = GCH4 / STT2GCH4
 
@@ -1751,12 +1405,13 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: I, J, L, LMN
+      INTEGER              :: I, J, L
       REAL*8               :: MASST,   AREA_CM2
       REAL*8               :: KCLO,    LOSS,       OHMASS  
       REAL*8               :: KCH4,    CH4LOSE,    CH4MASS
       REAL*8               :: CH4EMIS, CH4TROPMASS
       REAL*8               :: BOXVL
+      REAL*8               :: C_OH 
 
       ! Pointers
       REAL*8, POINTER      :: STT(:,:,:,:)
@@ -1767,9 +1422,6 @@
       ! (1) Pass OH mass, total air mass, and  to "diag_oh_mod.f"
       ! (2) ND59: Diagnostic for CH3CCl3 calculation
       !=================================================================
-
-      ! Current month
-      LMN = GET_MONTH()
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       STT => State_Chm%Tracers
@@ -1785,8 +1437,12 @@
             ! Grid box volume [cm3]
             BOXVL  = State_Met%AIRVOL(I,J,L) * 1d6
 
+            ! OH concentration in molec/cm3. BOH is imported
+            ! from HEMCO in kg/m3 (ckeller, 9/16/2014)
+            C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3
+
             ! Calculate OH mass [molec / box]
-            OHMASS = BOH(I,J,L,LMN)  * BAIRDENS(I,J,L) * BOXVL
+            OHMASS = C_OH * BAIRDENS(I,J,L) * BOXVL
 
             ! Calculate total air mass [molec / box]
             MASST  = BAIRDENS(I,J,L) * BOXVL
@@ -1796,7 +1452,7 @@
             KCLO   = 1.64d-12 * EXP( -1520.d0 / State_Met%T(I,J,L) )
 
             ! Calculate Loss term [molec / box / s]
-            LOSS   = KCLO            * BOH(I,J,L,LMN)  *
+            LOSS   = KCLO            * C_OH  *
      &               BAIRDENS(I,J,L) * BOXVL
 
 
@@ -1809,7 +1465,7 @@
             CH4MASS     = STT(I,J,L,1) * XNUMOL_CH4 
 
             ! Calculate loss term  [molec /box / s]
-            CH4LOSE = KCH4            * BOH(I,J,L,LMN)  *
+            CH4LOSE = KCH4            * C_OH  *
      &                BAIRDENS(I,J,L) * BOXVL
 
             ! Calculate CH4 emissions [molec / box / s]
@@ -1881,7 +1537,6 @@
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD,         ONLY : CHECK_STT
       USE TRACERID_MOD,       ONLY : IDTCH4
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -1929,11 +1584,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L, LMN, BASELEV
+      INTEGER             :: I, J, L, BASELEV
       REAL*8              :: DT, GCH4, STT2GCH4, LRATE
-      CHARACTER*20        :: STT_TEST
-      CHARACTER*20        :: STT2GCH4_CHAR
-      LOGICAL,SAVE        :: FIRSTCHEM=.TRUE.
       REAL*8              :: BOXVL
 
       ! Local variables for quantities from Input_Opt
@@ -1944,6 +1596,8 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER     :: STT(:,:,:,:)
+
+!      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
 
       !=================================================================
       ! CH4_STRAT begins here!
@@ -1961,9 +1615,6 @@
 
          ! Chemistry timestep [s]
          DT  = GET_TS_CHEM() * 60d0
-
-         ! Current month
-         LMN = GET_MONTH()
 
          IF ( ITS_A_FULLCHEM_SIM ) THEN
             
@@ -1988,15 +1639,19 @@
 
             !=============================================================
             ! (1) If the first time step...
+            ! COPROD doesn't seem to be used anymore at all. Comment out
+            ! for now, may be completely removed later. If necessary, we
+            ! can also read the COPROD array through HEMCO (as CH4LOSS). 
+            ! (ckeller, 9/15/2014)
             !=============================================================
-            IF ( FIRSTCHEM ) THEN
-               ! Zero CO production array
-               COPROD(:,:,:) = 0d0
-               !print*,'READ_COPROD'
-               ! Read zonally-averaged CO production [v/v/s]
-               CALL READ_COPROD( am_I_Root, Input_Opt, RC )
-               !print*,'READ_COPROD DONE'
-            ENDIF
+!            IF ( FIRSTCHEM ) THEN
+!               ! Zero CO production array
+!               COPROD(:,:,:) = 0d0
+!               !print*,'READ_COPROD'
+!               ! Read zonally-averaged CO production [v/v/s]
+!               CALL READ_COPROD( am_I_Root, Input_Opt, RC )
+!               !print*,'READ_COPROD DONE'
+!            ENDIF
          ENDIF
 
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -2021,7 +1676,8 @@
                GCH4 = STT(I,J,L,1) * STT2GCH4
 
                ! Loss rate [molec/cm3/s]
-               LRATE = GCH4 * CH4LOSS( I,J,L,LMN )
+!               LRATE = GCH4 * CH4LOSS( I,J,L,LMN )
+               LRATE = GCH4 * CH4LOSS( I,J,L )
 
                ! Update Methane concentration in this grid box [molec/cm3]
                GCH4 = GCH4 - ( LRATE * DT )
@@ -2057,7 +1713,7 @@
 
       ENDIF ! LUCX (SDE 03/25/13)
 
-      FIRSTCHEM = .FALSE.
+!      FIRSTCHEM = .FALSE.
 
       ! Check STT for negatives and NaN
       CALL CHECK_STT( State_Chm, 'IN global_ch4_mod.F: CH4_STRAT' )
@@ -2141,28 +1797,27 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, K, L, M, NERROR, UD, LMN
+      INTEGER             :: I, J, K, L, M, NERROR, UD
 
       REAL*8              :: STTCONV, TGS, SCALEDYN
       REAL*8              :: NTP, NTQ, NTP2, NTQ2 
       REAL*8              :: SOURCES, SINKS
 
       CHARACTER(LEN=17)   :: MERGE
-      CHARACTER(LEN=13)   :: MERGE2
 
       ! For binary punch file, v. 2.0
-      REAL*4              :: ARRAY(IIPAR, JJPAR, LLPAR)
-      REAL*4              :: LONRES, LATRES
-
-      INTEGER             :: IFIRST, JFIRST, LFIRST
-      INTEGER, PARAMETER  :: HALFPOLAR = 1
-      INTEGER, PARAMETER  :: CENTER180 = 1
-
-      CHARACTER (LEN=20)  :: MODELNAME 
-      CHARACTER (LEN=40)  :: UNIT
-      CHARACTER (LEN=40)  :: RESERVED = ''
-      CHARACTER (LEN=40)  :: CATEGORY 
-      CHARACTER (LEN=80)  :: LABEL
+!      REAL*4              :: ARRAY(IIPAR, JJPAR, LLPAR)
+!      REAL*4              :: LONRES, LATRES
+!
+!      INTEGER             :: IFIRST, JFIRST, LFIRST
+!      INTEGER, PARAMETER  :: HALFPOLAR = 1
+!      INTEGER, PARAMETER  :: CENTER180 = 1
+!
+!      CHARACTER (LEN=20)  :: MODELNAME 
+!      CHARACTER (LEN=40)  :: UNIT
+!      CHARACTER (LEN=40)  :: RESERVED = ''
+!      CHARACTER (LEN=40)  :: CATEGORY 
+!      CHARACTER (LEN=80)  :: LABEL
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -2174,26 +1829,23 @@
       !
       ! Initialize quantities 
       !=================================================================
-      IFIRST    = GET_XOFFSET() + 1
-      JFIRST    = GET_YOFFSET() + 1
-      LFIRST    = 1
-      LONRES    = DISIZE
-      LATRES    = DJSIZE
+!      IFIRST    = GET_XOFFSET() + 1
+!      JFIRST    = GET_YOFFSET() + 1
+!      LFIRST    = 1
+!      LONRES    = DISIZE
+!      LATRES    = DJSIZE
+!
+!      ! Make up a category name for GAMAP (use 8 characters)
+!      CATEGORY  = 'CH4BUDT'
 
-      ! Current month
-      LMN       = GET_MONTH()
+!      ! Get the proper model name for the binary punch file
+!      MODELNAME = GET_MODELNAME()
 
-      ! Make up a category name for GAMAP (use 8 characters)
-      CATEGORY  = 'CH4BUDT'
+!      ! Descriptor string
+!      LABEL    = 'GEOS-CHEM -- CH4 Budget output (jsw, bmy, 1/16/01)'
 
-      ! Get the proper model name for the binary punch file
-      MODELNAME = GET_MODELNAME()
-
-      ! Descriptor string
-      LABEL    = 'GEOS-CHEM -- CH4 Budget output (jsw, bmy, 1/16/01)'
-
-      ! Unit of quantity being saved
-      UNIT      = 'Tg'  !(NOTE: check w/ bnd to get the right units!!!)
+!      ! Unit of quantity being saved
+!      UNIT      = 'Tg'  !(NOTE: check w/ bnd to get the right units!!!)
 
       ! Scale factor for dynamic time steps
       SCALEDYN  = FLOAT( GET_CT_DYN() ) + 1D-20
@@ -3001,25 +2653,26 @@
       ! Assume Success
       RC = GIGC_SUCCESS
 
-      ALLOCATE( AVGOH( NSEAS, NCMSLATS, NCMSALTS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGOH' )
-      AVGOH = 0d0
+!      ALLOCATE( AVGOH( NSEAS, NCMSLATS, NCMSALTS ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGOH' )
+!      AVGOH = 0d0
 
       ALLOCATE( BAIRDENS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BAIRDENS' )
       BAIRDENS = 0d0
 
-      ALLOCATE( BOH( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BOH' )
-      BOH = 0d0
+!      ALLOCATE( BOH( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BOH' )
+!      BOH = 0d0
 
-      ALLOCATE( COPROD( JJPAR, LLPAR, 12 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COPROD' )
-      COPROD = 0d0
+!      ALLOCATE( COPROD( JJPAR, LLPAR, 12 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COPROD' )
+!      COPROD = 0d0
 
-      ALLOCATE( CH4LOSS( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4LOSS' )
-      CH4LOSS = 0d0
+!      ALLOCATE( CH4LOSS( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
+!      ALLOCATE( CH4LOSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4LOSS' )
+!      CH4LOSS = 0d0
 
       ALLOCATE( PAVG( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PAVG' )
@@ -3081,9 +2734,11 @@
       !=================================================================
 
       IF ( ALLOCATED( BAIRDENS  ) ) DEALLOCATE( BAIRDENS  )
-      IF ( ALLOCATED( BOH       ) ) DEALLOCATE( BOH       )
-      IF ( ALLOCATED( COPROD    ) ) DEALLOCATE( COPROD    )
-      IF ( ALLOCATED( CH4LOSS   ) ) DEALLOCATE( CH4LOSS   )
+!      IF ( ALLOCATED( BOH       ) ) DEALLOCATE( BOH       )
+!      IF ( ALLOCATED( COPROD    ) ) DEALLOCATE( COPROD    )
+!      IF ( ALLOCATED( CH4LOSS   ) ) DEALLOCATE( CH4LOSS   )
+      IF ( ASSOCIATED( BOH      ) ) BOH     => NULL()
+      IF ( ASSOCIATED( CH4LOSS  ) ) CH4LOSS => NULL()
 #if defined( USE_CH4_BUDGET_DIAG )
       IF ( ALLOCATED( TCH4      ) ) DEALLOCATE( TCH4      )
 #endif

@@ -124,7 +124,7 @@
 !
 ! !USES:
 !
-      USE HCO_EMISLIST_MOD,  ONLY : EmisList_GetDataArr
+      USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
 !
 ! !ARGUMENTS:
@@ -204,11 +204,11 @@
       ! Point to DUST source functions 
       !=================================================================
       IF ( FIRST ) THEN
-         CALL EmisList_GetDataArr ( am_I_Root, 'GINOUX_SAND', SRCE_SAND, RC )
+         CALL HCO_GetPtr ( am_I_Root, 'GINOUX_SAND', SRCE_SAND, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
-         CALL EmisList_GetDataArr ( am_I_Root, 'GINOUX_SILT', SRCE_SILT, RC )
+         CALL HCO_GetPtr ( am_I_Root, 'GINOUX_SILT', SRCE_SILT, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
-         CALL EmisList_GetDataArr ( am_I_Root, 'GINOUX_CLAY', SRCE_CLAY, RC )
+         CALL HCO_GetPtr ( am_I_Root, 'GINOUX_CLAY', SRCE_CLAY, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
          FIRST = .FALSE.
       ENDIF

@@ -107,7 +107,7 @@ CONTAINS
 ! !USES:
 !
     ! HEMCO modules
-    USE HCO_EmisList_Mod,  ONLY : EmisList_GetDataArr
+    USE HCO_EmisList_Mod,  ONLY : HCO_GetPtr
     USE HCO_FluxArr_Mod,   ONLY : HCO_EmisAdd
 !
 ! !INPUT PARAMETERS:
@@ -235,13 +235,13 @@ CONTAINS
     !=======================================================================
     IF ( FIRST ) THEN
 
-       CALL EmisList_GetDataArr( aIR, 'TOT_POP', POP_TOT_EM, RC )
+       CALL HCO_GetPtr( aIR, 'TOT_POP', POP_TOT_EM, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL EmisList_GetDataArr( aIR, 'GLOBAL_OC', C_OC, RC )
+       CALL HCO_GetPtr( aIR, 'GLOBAL_OC', C_OC, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL EmisList_GetDataArr( aIR, 'GLOBAL_BC', C_BC, RC )
+       CALL HCO_GetPtr( aIR, 'GLOBAL_BC', C_BC, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FIRST = .FALSE.

@@ -375,7 +375,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE HCO_EmisList_Mod,   ONLY : EmisList_GetDataArr
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTPOPG,    IDTPOPPOC,  IDTPOPPBC
@@ -416,6 +416,7 @@
 !  14 Apr 2014 - R. Yantosca - Now prevent div-by-zero in computations below
 !  10 Sep 2014 - M. Sulprizio- Now get global concentrations of OH, O3, OC, and
 !                              BC from HEMCO
+!  17 Sep 2014 - C. Keller   - Renamed EmisList_GetDataArr to HCO_GetPtr
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -597,16 +598,16 @@
       ! Get global concentrations of OH, O3, OC, and BC from HEMCO
       IF ( FIRST ) THEN
 
-         CALL EmisList_GetDataArr( aIR, 'GLOBAL_OC', C_OC, RC )
+         CALL HCO_GetPtr( aIR, 'GLOBAL_OC', C_OC, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
 
-         CALL EmisList_GetDataArr( aIR, 'GLOBAL_BC', C_BC, RC )
+         CALL HCO_GetPtr( aIR, 'GLOBAL_BC', C_BC, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
 
-         CALL EmisList_GetDataArr( aIR, 'GLOBAL_OH', OH,   RC )
+         CALL HCO_GetPtr( aIR, 'GLOBAL_OH', OH,   RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
 
-         CALL EmisList_GetDataArr( aIR, 'GLOBAL_O3', O3,   RC )
+         CALL HCO_GetPtr( aIR, 'GLOBAL_O3', O3,   RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
 
          FIRST = .FALSE.

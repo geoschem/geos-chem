@@ -123,7 +123,7 @@ CONTAINS
 !
     USE HCO_FLUXARR_MOD,  ONLY : HCO_EmisAdd
     USE HCO_FLUXARR_MOD,  ONLY : HCO_DepvAdd
-    USE HCO_EMISLIST_MOD, ONLY : EmisList_GetDataArr 
+    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr 
 !
 ! !INPUT PARAMETERS:
 !
@@ -195,7 +195,7 @@ CONTAINS
 
        ! Get seawater concentration of given compound (from HEMCO core).
        ContName = TRIM(OcSpecs(OcID)%OcDataName)
-       CALL EmisList_GetDataArr ( am_I_Root, ContName, SeaConc, RC )
+       CALL HCO_GetPtr ( am_I_Root, ContName, SeaConc, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Calculate oceanic source (kg/m2/s) as well as the deposition 

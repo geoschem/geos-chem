@@ -288,7 +288,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EmisList_Mod, ONLY : EmisList_GetDataArr      
+    USE HCO_EmisList_Mod, ONLY : HCO_GetPtr      
     USE HCO_GeoTools_Mod, ONLY : HCO_LANDTYPE
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
 !
@@ -385,7 +385,7 @@ CONTAINS
 
        ! Eventually get OTD-LIS local redistribution factors from HEMCO.
        IF ( LOTDLOC ) THEN
-          CALL EmisList_GetDataArr( am_I_Root, 'LIGHTNOX_OTDLIS', OTDLIS, RC )
+          CALL HCO_GetPtr( am_I_Root, 'LIGHTNOX_OTDLIS', OTDLIS, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
        FIRST = .FALSE.

@@ -181,7 +181,7 @@
 !
 ! !USES:
 !
-      USE HCO_EMISLIST_MOD,  ONLY : EmisList_GetDataArr
+      USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
 !
@@ -297,28 +297,28 @@
       ! SFC_TYP        ; surface type:                 HcoState%NX HcoState%NY
       !=================================================================
       IF ( FIRST ) THEN
-         CALL EmisList_GetDataArr( aIR, 'DEAD_EF_GEO', ERD_FCT_GEO, RC )
+         CALL HCO_GetPtr( aIR, 'DEAD_EF_GEO', ERD_FCT_GEO, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL EmisList_GetDataArr( aIR, 'DEAD_LF_DRY', LND_FRC_DRY, RC )
+         CALL HCO_GetPtr( aIR, 'DEAD_LF_DRY', LND_FRC_DRY, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL EmisList_GetDataArr(aIR,'DEAD_MF_CACO3', MSS_FRC_CACO3,RC)
+         CALL HCO_GetPtr(aIR,'DEAD_MF_CACO3', MSS_FRC_CACO3,RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL EmisList_GetDataArr( aIR, 'DEAD_MF_CLY', MSS_FRC_CLY, RC )
+         CALL HCO_GetPtr( aIR, 'DEAD_MF_CLY', MSS_FRC_CLY, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL EmisList_GetDataArr( aIR, 'DEAD_MF_SND', MSS_FRC_SND, RC )
+         CALL HCO_GetPtr( aIR, 'DEAD_MF_SND', MSS_FRC_SND, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL EmisList_GetDataArr ( aIR, 'DEAD_SFC_TYP', SFC_TYP, RC )
+         CALL HCO_GetPtr ( aIR, 'DEAD_SFC_TYP', SFC_TYP, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
    
-         CALL EmisList_GetDataArr ( aIR, 'DEAD_GOC_SRC', SRCE_FUNC, RC )
+         CALL HCO_GetPtr ( aIR, 'DEAD_GOC_SRC', SRCE_FUNC, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN 
    
-         CALL EmisList_GetDataArr ( aIR, 'DEAD_VAI', VAI_DST, RC )
+         CALL HCO_GetPtr ( aIR, 'DEAD_VAI', VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
          FIRST = .FALSE.

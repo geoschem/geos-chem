@@ -55,12 +55,16 @@ MODULE HCO_Unit_Mod
   REAL(hp),  PARAMETER :: SEC_IN_REGYEAR  = SEC_IN_DAY * 365_hp
  
   ! Accepted units for unitless data. No unit conversion is applied to 
-  ! data with any of these units. 
+  ! data with any of these units. The first entry represents the 
+  ! character that denotes unitless data in the HEMCO configuration 
+  ! file. The second entry represents the character that denotes 
+  ! index data. Different regridding algorithms are applied to
+  ! index data compared to unitless data.
+  ! All units listed below will not be converted by HEMCO. You can
+  ! add more units if you don't want HEMCO to attempt to convert data
+  ! in these units.
   ! All characters in this list should be lower case!
-  ! The first entry represents the character that denotes unitless data
-  ! in the HEMCO configuration file. The second entry represents the 
-  ! character that denotes index data.
-  INTEGER,           PARAMETER :: NUL = 8
+  INTEGER,           PARAMETER :: NUL = 10
   CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',        &
                                                'count',    &
                                                'unitless', &
@@ -68,6 +72,8 @@ MODULE HCO_Unit_Mod
                                                'factor',   &
                                                'scale',    &
                                                'hours',    &
+                                               'v/v',      &
+                                               's-1',      &
                                                'm2/m2'      /)
 
   ! Accepted units for data on HEMCO standard units. No unit conversion 
