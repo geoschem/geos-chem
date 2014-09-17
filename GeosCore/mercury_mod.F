@@ -3242,7 +3242,6 @@
      &                    'mercury_201205/' //
      &                    'GEIA_Streets_'     // TRIM( SCENARIO )  //
      &                    '_Hg0_CAN.geos.1x1.YYYY'
-               !--------------------------------------------------------
             
                ! Add year to the filename
                CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4164,7 +4163,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_can, IS_MASS=1,
+     &                             INGRID,     EHg2_can, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4200,7 +4199,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_usa, IS_MASS=1,
+     &                             INGRID,     EHg2_usa, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4236,7 +4235,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_cam, IS_MASS=1,
+     &                             INGRID,     EHg2_cam, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4272,7 +4271,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_sam, IS_MASS=1,
+     &                             INGRID,     EHg2_sam, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4308,7 +4307,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_waf, IS_MASS=1,
+     &                             INGRID,     EHg2_waf, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4344,7 +4343,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_eaf, IS_MASS=1,
+     &                             INGRID,     EHg2_eaf, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4380,7 +4379,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_saf, IS_MASS=1,
+     &                             INGRID,     EHg2_saf, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4416,7 +4415,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_naf, IS_MASS=1,
+     &                             INGRID,     EHg2_naf, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4452,7 +4451,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_eur, IS_MASS=1,
+     &                             INGRID,     EHg2_eur, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4488,7 +4487,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_eeu, IS_MASS=1,
+     &                             INGRID,     EHg2_eeu, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4524,7 +4523,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_mde, IS_MASS=1,
+     &                             INGRID,     EHg2_mde, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4560,7 +4559,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_sov, IS_MASS=1,
+     &                             INGRID,     EHg2_sov, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4596,7 +4595,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_sas, IS_MASS=1,
+     &                             INGRID,     EHg2_sas, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4632,7 +4631,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_eas, IS_MASS=1,
+     &                             INGRID,     EHg2_eas, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4668,7 +4667,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_sea, IS_MASS=1,
+     &                             INGRID,     EHg2_sea, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4704,7 +4703,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_jpn, IS_MASS=1,
+     &                             INGRID,     EHg2_jpn, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4740,7 +4739,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_oce, IS_MASS=1,
+     &                             INGRID,     EHg2_oce, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
@@ -4986,7 +4985,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_can, IS_MASS=1,
+     &                             INGRID,     EHgP_can, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5022,7 +5021,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_usa, IS_MASS=1,
+     &                             INGRID,     EHgP_usa, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5058,7 +5057,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_cam, IS_MASS=1,
+     &                             INGRID,     EHgP_cam, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5094,7 +5093,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_sam, IS_MASS=1,
+     &                             INGRID,     EHgP_sam, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5130,7 +5129,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_waf, IS_MASS=1,
+     &                             INGRID,     EHgP_waf, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5166,7 +5165,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_eaf, IS_MASS=1,
+     &                             INGRID,     EHgP_eaf, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5202,7 +5201,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_saf, IS_MASS=1,
+     &                             INGRID,     EHgP_saf, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5238,7 +5237,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_naf, IS_MASS=1,
+     &                             INGRID,     EHgP_naf, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5274,7 +5273,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_eur, IS_MASS=1,
+     &                             INGRID,     EHgP_eur, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5310,7 +5309,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_eeu, IS_MASS=1,
+     &                             INGRID,     EHgP_eeu, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5346,7 +5345,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_mde, IS_MASS=1,
+     &                             INGRID,     EHgP_mde, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5382,7 +5381,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_sov, IS_MASS=1,
+     &                             INGRID,     EHgP_sov, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5418,7 +5417,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_sas, IS_MASS=1,
+     &                             INGRID,     EHgP_sas, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5454,7 +5453,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_eas, IS_MASS=1,
+     &                             INGRID,     EHgP_eas, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5490,7 +5489,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_sea, IS_MASS=1,
+     &                             INGRID,     EHgP_sea, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5526,7 +5525,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_jpn, IS_MASS=1,
+     &                             INGRID,     EHgP_jpn, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
@@ -5562,7 +5561,7 @@
                ! Regrid from GENERIC 1x1 to the current grid
                INGRID  => GEN_1x1(:,:)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-     &                             INGRID,     EHg0_oce, IS_MASS=1,
+     &                             INGRID,     EHgP_oce, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
