@@ -868,7 +868,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               vdiff_pre_mod.o         wetscav_mod.o
 
 tagged_co_mod.o             : tagged_co_mod.F                                \
-                               tracer_mod.o           global_oh_mod.o        \
+                              tracer_mod.o            global_oh_mod.o        \
                               chemgrid_mod.o          diag_mod.o             \
                               diag_pl_mod.o           global_nox_mod.o       \
                               pbl_mix_mod.o           tracerid_mod.o
@@ -876,7 +876,8 @@ tagged_co_mod.o             : tagged_co_mod.F                                \
 tagged_ox_mod.o             : tagged_ox_mod.F                                \
                               chemgrid_mod.o          diag_mod.o             \
                               diag_pl_mod.o           drydep_mod.o           \
-                              pbl_mix_mod.o           tracerid_mod.o
+                              pbl_mix_mod.o           tracerid_mod.o         \
+                              hcoi_gc_main_mod.o
 
 tcorr.o                     : tcorr.F
 

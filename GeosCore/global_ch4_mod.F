@@ -1042,7 +1042,7 @@
       IF ( FIRSTCHEM ) THEN
 
          ! Import CH4 loss frequencies from HEMCO. The target will be 
-         ! automatically updated by HEMCO (ckeller, 9/15/2014)
+         ! updated automatically by HEMCO (ckeller, 9/16/2014)
          CALL HCO_GetPtr( am_I_Root, 'CH4_LOSS', CH4LOSS, RC )
          IF ( RC /= HCO_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to CH4_LOSS', LOC )
@@ -1061,8 +1061,8 @@
       ENDIF
 
       !================================================================
-      ! (2) Get OH field from HEMCO. the target is automatically 
-      ! updated by HEMCO (ckeller, 9/16/2014)
+      ! (2) Get OH field from HEMCO. The target will be updated 
+      ! automatically by HEMCO (ckeller, 9/16/2014)
       !================================================================
       IF ( FIRSTCHEM ) THEN
          CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', BOH, RC )

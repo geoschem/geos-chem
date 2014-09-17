@@ -436,6 +436,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
+!  17 Sep 2014 - C. Keller - Now accept '1' as mass unit (e.g. 1/m3/s)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -447,15 +448,29 @@ CONTAINS
 
     ! Init
     Scal = -999.0_hp
-
-    ! Error checks: all passed variables must be defined!
-    IF ( MW_IN <= 0.0_hp .OR.  &
-         MW_OUT <= 0.0_hp .OR. &
-         MOLEC_RATIO <= 0.0_hp  ) THEN
-       MSG = 'Cannot determine unit conversion factor for mass - ' // &
-             'not all parameter are defined!'
-       CALL HCO_MSG(MSG)
+ 
+    ! Mass unit of '1': keep as is. Note: this has to be the first
+    ! entry of the unit string (e.g. 1/m2/s or 1 cm^-3). Don't
+    ! accept any other ones (e.g. kg m^-2 s^-1)!
+    IF ( unt(1:1) == '1' ) THEN
+       Scal = 1.0_hp
        RETURN
+    ENDIF
+
+    ! Error checks: all passed variables must be defined! If this is not
+    ! the case, only accept kg as valid unit!
+    IF ( MW_IN       <= 0.0_hp .OR. &
+         MW_OUT      <= 0.0_hp .OR. &
+         MOLEC_RATIO <= 0.0_hp       ) THEN
+       IF ( IsInWord(unt,'kg') ) THEN
+          Scal = 1.0_hp
+          RETURN
+       ELSE 
+          MSG = 'Cannot determine unit conversion factor for mass - ' // &
+                'not all species parameter are defined!'
+          CALL HCO_MSG(MSG)
+          RETURN
+       ENDIF
     ENDIF
 
     ! Molecules / atoms of carbon: convert to kg carbon
