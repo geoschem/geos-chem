@@ -112,6 +112,11 @@ CONTAINS
     USE CO2_MOD,            ONLY : EMISSCO2
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE TRACERID_MOD,       ONLY : IDTCH4
+
+    ! For UCX, use Seb's routines for now
+#if defined( UCX )
+    USE UCX_MOD,            ONLY : EMISS_BASIC
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -160,6 +165,13 @@ CONTAINS
        CALL EMISSCH4 ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN 
     ENDIF
+
+    ! For UCX, use Seb's routines for stratospheric species for now.
+#if defined( UCX )
+    IF ( Input_Opt%LBASICEMIS ) THEN
+       CALL EMIS_BASIC ( am_I_Root, Input_Opt, State_Met, State_Chm )
+    ENDIF
+#endif
 
     ! Return w/ success
     RC = GIGC_SUCCESS
