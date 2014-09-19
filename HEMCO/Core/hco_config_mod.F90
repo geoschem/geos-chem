@@ -2794,8 +2794,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(SpecNameCont), POINTER  :: TmpSpecNameCont => NULL() 
-    INTEGER                      :: AS
+    TYPE(SpecNameCont), POINTER   :: TmpSpecNameCont => NULL() 
+    INTEGER                       :: AS
+    CHARACTER(LEN=255), PARAMETER :: &
+       LOC = 'Config_GetSpecAttr (hco_config_mod.F90)'
 
     !======================================================================
     ! Config_GetSpecAttr begins here
@@ -2805,17 +2807,17 @@ CONTAINS
     IF ( PRESENT(SpecNames) ) THEN
        IF ( .NOT. ASSOCIATED(SpecNames) ) THEN
           IF ( N <= 0 ) THEN
-             CALL HCO_ERROR ( 'Cannot allocate SpecNames', RC )
+             CALL HCO_ERROR ( 'Cannot allocate SpecNames', RC, THISLOC=LOC )
              RETURN
           ENDIF
           ALLOCATE(SpecNames(N), STAT=AS )
           IF ( AS/= 0 ) THEN
-             CALL HCO_ERROR ( 'SpecNames allocation error', RC )
+             CALL HCO_ERROR ( 'SpecNames allocation error', RC, THISLOC=LOC )
              RETURN
           ENDIF
           SpecNames(:) = ''
        ELSEIF ( SIZE(SpecNames) /= N ) THEN
-          CALL HCO_ERROR ( 'SpecNames size error', RC )
+          CALL HCO_ERROR ( 'SpecNames size error', RC, THISLOC=LOC )
           RETURN
        ENDIF
     ENDIF

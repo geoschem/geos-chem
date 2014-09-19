@@ -217,10 +217,12 @@ CONTAINS
 
     ! Initialize vector w/ species information
     HcoState%nSpc = nSpecies
-    ALLOCATE ( HcoState%Spc (nSpecies ), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR( 'Species', RC )
-       RETURN
+    IF ( nSpecies > 0 ) THEN
+       ALLOCATE ( HcoState%Spc (nSpecies ), STAT=AS )
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR( 'Species', RC )
+          RETURN
+       ENDIF
     ENDIF
 
     ! Initalize species information. The effective values for species

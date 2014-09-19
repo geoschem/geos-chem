@@ -3712,7 +3712,7 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if the CH4 simulation is not selected
-    IF ( .NOT. Input_Opt%ITS_A_CH4_SIM .AND. IDTCH4 < 0 ) RETURN
+    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. IDTCH4 > 0 ) ) RETURN
 
     ! Get default HEMCO species ID for CH4 
     IDCH4 = HCO_GetHcoID( 'CH4', HcoState )

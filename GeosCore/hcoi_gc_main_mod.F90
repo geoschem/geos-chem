@@ -1797,33 +1797,41 @@ CONTAINS
     ! Get_nHcoSpc begins here
     !=================================================================
 
-    ! Extract number of HEMCO species and corresponding species names 
-    ! as read from the HEMCO config. file.
+    ! Extract number of species found in the HEMCO config. file.
     nConfigSpec = Config_GetnSpecies ( )
-    CALL Config_GetSpecNames( HcoSpecNames, nConfigSpec, RC )
-    IF( RC /= HCO_SUCCESS) RETURN 
 
-    ! Extract GC species names and properties. Those will be written
-    ! into the module arrays ModelSpec*.
-    CALL Model_SetSpecies( Input_Opt, nModelSpec, RC )
-    IF ( RC /= HCO_SUCCESS) RETURN
+    ! If at least one species is set in the configuration file, try
+    ! to match those species against the GEOS-Chem species.
+    IF ( nConfigSpec == 0 ) THEN
+       nHcoSpec = 0
+    ELSE
 
-    ! This returns the matching indeces of the HEMCO species (HcoSpecNames)
-    ! in ModelSpecNames. A value of -1 is returned if no matching species
-    ! is found.
-    ALLOCATE(MatchIDx(nConfigSpec),STAT=AS)
-    IF ( AS/=0 ) THEN 
-       CALL HCO_ERROR ('Allocation error matchIDx', RC, THISLOC=LOC )
-       RETURN
+       ! Get list of all species names found in the HEMCO config file.
+       CALL Config_GetSpecNames( HcoSpecNames, nConfigSpec, RC )
+       IF( RC /= HCO_SUCCESS) RETURN 
+
+       ! Extract GC species names and properties. Those will be written
+       ! into the module arrays ModelSpec*.
+       CALL Model_SetSpecies( Input_Opt, nModelSpec, RC )
+       IF ( RC /= HCO_SUCCESS) RETURN
+   
+       ! This returns the matching indeces of the HEMCO species (HcoSpecNames)
+       ! in ModelSpecNames. A value of -1 is returned if no matching species
+       ! is found.
+       ALLOCATE(MatchIDx(nConfigSpec),STAT=AS)
+       IF ( AS/=0 ) THEN 
+          CALL HCO_ERROR ('Allocation error matchIDx', RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       MatchIDx(:) = -1
+       CALL HCO_CharMatch( HcoSpecNames,   nConfigSpec,   &
+                           ModelSpecNames, nModelSpec,    &
+                           MatchIDx,       nHcoSpec        )
     ENDIF
-    MatchIDx(:) = -1
-    CALL HCO_CharMatch( HcoSpecNames,   nConfigSpec,   &
-                        ModelSpecNames, nModelSpec,    &
-                        MatchIDx,       nHcoSpec        )
+
     IF ( nHcoSpec == 0 ) THEN
        MSG = 'No matching species between HEMCO and the model!'
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
+       CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
     ENDIF
 
     ! Return w/ success
@@ -1882,75 +1890,80 @@ CONTAINS
     ! REGISTER_SPECIES begins here
     !=================================================================
 
-    ! Loop over all possible HEMCO species
-    cnt = 0 
-    DO I = 1, SIZE(MatchIDx)
+    ! Only if # of HEMCO species is not zero
+    IF ( HcoState%nSpc > 0 ) THEN
 
-       ! Skip if this HEMCO species is not used in GEOS-Chem
-       IF ( MatchIDx(I) < 0 ) CYCLE
-
-       ! increase counter: this is the index in HcoState%Spc!
-       cnt = cnt + 1
-
-       ! Set species name and GEOS-Chem tracer ID 
-       IDX                          = MatchIDx(I)
-       HcoState%Spc(cnt)%ModID      = ModelSpecIDs(IDX)
-       HcoState%Spc(cnt)%SpcName    = HcoSpecNames(I) 
-
-       ! Molecular weights of species & emitted species.
-       HcoState%Spc(cnt)%MW_g       = ModelSpecMW(IDX)
-       HcoState%Spc(cnt)%EmMW_g     = ModelSpecEmMW(IDX)
-
-       ! Emitted molecules per molecule of species.
-       HcoState%Spc(cnt)%MolecRatio = ModelSpecMolecRatio(IDX)
-
-       ! Set Henry coefficients
-       HcoState%Spc(cnt)%HenryK0    = ModelSpecK0(IDX)
-       HcoState%Spc(cnt)%HenryCR    = ModelSpecCR(IDX)
-       HcoState%Spc(cnt)%HenryPKA   = ModelSpecPKA(IDX)
-
-       !----------------------------------------------------------------------
-       ! Set pointer to trac_tend
-       !
-       ! As long as the HEMCO grid is equal to the GEOS-Chem grid, the 
-       ! HEMCO emission arrays can directly point to the tracer tendency 
-       ! arrays (trac_tend) in the GEOS-Chem chemistry state. The same 
-       ! applies to the deposition array.
-       ! 
-       ! SESQ emissions are not transported and hence don't have a Trac_Tend 
-       ! array. Point them to the BIOG_SESQ array of CARBON_MOD instead.
-       ! 
-       ! For the CO2 simulation, don't link the HEMCO emissions to Trac_Tend
-       ! because PBL mixing is not applied. Instead, we will add emissions to
-       ! the surface layer in co2_mod.F. To enable PBL mixing for the CO2
-       ! simulation, just remove the logical switch below as well as the
-       ! corresponding code in co2_mod.F.
-       !----------------------------------------------------------------------
-       IF ( UsePtrs2GC ) THEN
-
-          ! Only if HEMCO and GEOS-Chem are on the same grid...
-          IF ( ( HcoState%NX == IIPAR ) .AND.      &
-               ( HcoState%NY == JJPAR ) .AND.      &
-               ( HcoState%NZ == LLPAR )      ) THEN 
+       ! Loop over all possible HEMCO species
+       cnt = 0 
+       DO I = 1, SIZE(MatchIDx)
    
-             IF ( TRIM(HcoState%Spc(cnt)%SpcName) == 'SESQ' ) THEN
-                HcoState%Spc(cnt)%Emis%Val => BIOG_SESQ 
-                HcoState%Spc(cnt)%Depv%Val => NULL()
+          ! Skip if this HEMCO species is not used in GEOS-Chem
+          IF ( MatchIDx(I) < 0 ) CYCLE
+   
+          ! increase counter: this is the index in HcoState%Spc!
+          cnt = cnt + 1
+   
+          ! Set species name and GEOS-Chem tracer ID 
+          IDX                          = MatchIDx(I)
+          HcoState%Spc(cnt)%ModID      = ModelSpecIDs(IDX)
+          HcoState%Spc(cnt)%SpcName    = HcoSpecNames(I) 
+   
+          ! Molecular weights of species & emitted species.
+          HcoState%Spc(cnt)%MW_g       = ModelSpecMW(IDX)
+          HcoState%Spc(cnt)%EmMW_g     = ModelSpecEmMW(IDX)
+   
+          ! Emitted molecules per molecule of species.
+          HcoState%Spc(cnt)%MolecRatio = ModelSpecMolecRatio(IDX)
+   
+          ! Set Henry coefficients
+          HcoState%Spc(cnt)%HenryK0    = ModelSpecK0(IDX)
+          HcoState%Spc(cnt)%HenryCR    = ModelSpecCR(IDX)
+          HcoState%Spc(cnt)%HenryPKA   = ModelSpecPKA(IDX)
+   
+          !----------------------------------------------------------------------
+          ! Set pointer to trac_tend
+          !
+          ! As long as the HEMCO grid is equal to the GEOS-Chem grid, the 
+          ! HEMCO emission arrays can directly point to the tracer tendency 
+          ! arrays (trac_tend) in the GEOS-Chem chemistry state. The same 
+          ! applies to the deposition array.
+          ! 
+          ! SESQ emissions are not transported and hence don't have a Trac_Tend 
+          ! array. Point them to the BIOG_SESQ array of CARBON_MOD instead.
+          ! 
+          ! For the CO2 simulation, don't link the HEMCO emissions to Trac_Tend
+          ! because PBL mixing is not applied. Instead, we will add emissions to
+          ! the surface layer in co2_mod.F. To enable PBL mixing for the CO2
+          ! simulation, just remove the logical switch below as well as the
+          ! corresponding code in co2_mod.F.
+          !----------------------------------------------------------------------
+          IF ( UsePtrs2GC ) THEN
+   
+             ! Only if HEMCO and GEOS-Chem are on the same grid...
+             IF ( ( HcoState%NX == IIPAR ) .AND.      &
+                  ( HcoState%NY == JJPAR ) .AND.      &
+                  ( HcoState%NZ == LLPAR )      ) THEN 
+      
+                IF ( TRIM(HcoState%Spc(cnt)%SpcName) == 'SESQ' ) THEN
+                   HcoState%Spc(cnt)%Emis%Val => BIOG_SESQ 
+                   HcoState%Spc(cnt)%Depv%Val => NULL()
+                ELSE
+                   HcoState%Spc(cnt)%Emis%Val => State_Chm%Trac_Tend(:,:,:,IDX)
+                   HcoState%Spc(cnt)%Depv%Val => State_Chm%DepSav(:,:,IDX)
+                ENDIF
+   
              ELSE
-                HcoState%Spc(cnt)%Emis%Val => State_Chm%Trac_Tend(:,:,:,IDX)
-                HcoState%Spc(cnt)%Depv%Val => State_Chm%DepSav(:,:,IDX)
-             ENDIF
+                UsePtrs2GC = .FALSE.
+             ENDIF ! Same grid
+          ENDIF 
+   
+          ! Write to logfile
+          CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
+   
+       ENDDO !I
+       CALL HCO_MSG(SEP1='-')
 
-          ELSE
-             UsePtrs2GC = .FALSE.
-          ENDIF ! Same grid
-       ENDIF 
-
-       ! Write to logfile
-       CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
-
-    ENDDO !I
-    CALL HCO_MSG(SEP1='-')
+    ENDIF 
 
     ! Return w/ success
     RC = HCO_SUCCESS

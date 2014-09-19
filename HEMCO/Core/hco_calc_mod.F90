@@ -666,7 +666,7 @@ CONTAINS
     INTEGER                 :: IDX
     INTEGER                 :: I, J, L, N
     INTEGER                 :: BaseLL, ScalLL, TmpLL
-    LOGICAL                 :: ERR
+    INTEGER                 :: ERROR
     CHARACTER(LEN=255)      :: MSG, LOC
     LOGICAL                 :: NegScalExist
  
@@ -681,7 +681,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER('GET_CURRENT_EMISSIONS', RC )
     IF(RC /= HCO_SUCCESS) RETURN
-    ERR = .FALSE.
 
     ! Verbose mode 
     verb = HCO_VERBOSE_CHECK() .AND. am_I_Root 
@@ -810,9 +809,9 @@ CONTAINS
        ! Get vector of time slice indeces
        tIDxVec = tIDx_GetIndxVec( ScalDct%Dta, nI ) 
 
-       ! Initialize negative scale factor flag. By default, assume that
-       ! no scale factor is negative
-       NegScalExist = .FALSE.
+       ! Initialize error flag. Will be set to 1 or 2 if error occurs,
+       ! and to -1 if negative scale factor is ignored. 
+       ERROR = 0
 
        ! Loop over all latitudes and longitudes
 !$OMP PARALLEL DO                                                      &
@@ -900,14 +899,12 @@ CONTAINS
 
                 ! NegFlag = 1: ignore and show warning 
                 IF ( NegFlag == 1 ) THEN
-                   NegScalExist = .TRUE. ! will prompt warning
+                   ERROR = -1 ! Will prompt warning 
                    CYCLE
 
                 ! Return w/ error otherwise
                 ELSE
-                   MSG = 'Negative scale factor in: ' // TRIM(ScalDct%cName)
-                   CALL HCO_ERROR( MSG, RC )
-                   ERR = .TRUE.
+                   ERROR = 1 ! Will cause error
                    EXIT
                 ENDIF
              ENDIF 
@@ -933,9 +930,7 @@ CONTAINS
 
              ! Return w/ error otherwise (Oper 3 is only allowed for masks!)
              ELSE
-                MSG = 'Illegal data operator: ' // TRIM(ScalDct%cName)
-                CALL HCO_ERROR( MSG, RC )
-                ERR = .TRUE.
+                ERROR = 2 ! Will cause error
                 EXIT
              ENDIF
           ENDDO !LL
@@ -960,14 +955,21 @@ CONTAINS
 !$OMP END PARALLEL DO
 
        ! error check
-       IF ( ERR ) THEN
+       IF ( ERROR > 0 ) THEN
+          IF ( ERROR == 1 ) THEN
+             MSG = 'Negative scale factor found (aborted): ' // TRIM(ScalDct%cName)
+          ELSEIF ( ERROR == 2 ) THEN
+             MSG = 'Illegal mathematical operator for scale factor: ' // TRIM(ScalDct%cName)
+          ELSE
+             MSG = 'Error when applying scale factor: ' // TRIM(ScalDct%cName)
+          ENDIF
           ScalDct => NULL()
-          RC = HCO_FAIL
+          CALL HCO_ERROR( MSG, RC )
           RETURN
        ENDIF
 
        ! eventually prompt warning for negative values
-       IF ( NegScalExist ) THEN
+       IF ( ERROR == -1 ) THEN
           MSG = 'Negative scale factor found (ignored): ' // TRIM(ScalDct%cName)
           CALL HCO_WARNING( MSG, RC )
        ENDIF
