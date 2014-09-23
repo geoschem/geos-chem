@@ -1,3 +1,23 @@
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: hcoi_gc_diagn_include.H
+!
+! !DESCRIPTION: Contains emissions category definitions as used within the
+!  HEMCO_Config.rc file.
+!\\
+!\\
+! !REMARKS:
+!  These categories hould correspond with the HEMCO_Config.rc file.  If you
+!  change the category listings in HEMCO_Config.rc, then update this file
+!  accordingly.
+! 
+! !REVISION HISTORY: 
+!  01 Oct 1995 - R. Yantosca - Initial version
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !
 ! !DEFINED PARAMETERS:
 !
@@ -9,3 +29,6 @@
   INTEGER, PARAMETER :: CATEGORY_SHIP     = 10
   INTEGER, PARAMETER :: CATEGORY_AIRCRAFT = 20
   INTEGER, PARAMETER :: CATEGORY_VOLCANO  = 50
+!EOP
+!------------------------------------------------------------------------------
+!BOC
