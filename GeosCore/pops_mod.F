@@ -15,6 +15,8 @@
 ! 
 ! !USES:
 !
+      USE HCO_ERROR_MOD   ! For real precisions (hp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -60,11 +62,11 @@
       REAL*8,  ALLOCATABLE :: ZERO_DVEL(:,:)
       REAL*8,  ALLOCATABLE :: COSZM(:,:)
 
-      ! Pointers to concentration fields in HEMCO
-      REAL*8, POINTER :: C_OC(:,:,:) => NULL()
-      REAL*8, POINTER :: C_BC(:,:,:) => NULL()
-      REAL*8, POINTER :: O3(:,:,:)   => NULL()
-      REAL*8, POINTER :: OH(:,:,:)   => NULL()
+      ! HEMCO pointers
+      REAL(hp), POINTER    :: C_OC(:,:,:) => NULL()
+      REAL(hp), POINTER    :: C_BC(:,:,:) => NULL()
+      REAL(hp), POINTER    :: O3(:,:,:)   => NULL()
+      REAL(hp), POINTER    :: OH(:,:,:)   => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -93,10 +95,12 @@
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE DRYDEP_MOD,         ONLY : DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS:
 !
@@ -118,6 +122,8 @@
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  10 Sep 2014 - M. Sulprizio- Remove calls to GET_GLOBAL_OH and GET_GLOBAL_O3,
 !                              these fields are now read in HEMCO
+!  10 Sep 2014 - M. Sulprizio- Now get global concentrations of OH, O3, OC, and
+!                              BC from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -129,6 +135,11 @@
       LOGICAL :: LGTMM
       LOGICAL :: LNLPBL
       LOGICAL :: LPRT  
+
+      ! For getting concentrations from HEMCO 
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      LOGICAL            :: aIR
+      CHARACTER(LEN=255) :: LOC = 'CHEMPOPS (pops_mod.F)'
 
       !=================================================================
       ! CHEMPOPS begins here!
@@ -149,6 +160,32 @@
       ! Perform chemistry on POPs tracers
       !=================================================================
       
+      ! am I root? 
+      aIR = am_I_Root
+
+      ! Get global concentrations of OH, O3, OC, and BC from HEMCO
+      IF ( FIRST ) THEN
+
+         CALL HCO_GetPtr( aIR, 'GLOBAL_OC', C_OC, RC )
+         IF ( RC /= GIGC_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OC', LOC )
+
+         CALL HCO_GetPtr( aIR, 'GLOBAL_BC', C_BC, RC )
+         IF ( RC /= GIGC_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_BC', LOC )
+
+         CALL HCO_GetPtr( aIR, 'GLOBAL_OH', OH,   RC )
+         IF ( RC /= GIGC_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+
+         CALL HCO_GetPtr( aIR, 'GLOBAL_O3', O3,   RC )
+         IF ( RC /= GIGC_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
+
+         FIRST = .FALSE.
+
+      ENDIF
+
       ! Compute diurnal scaling for OH
       CALL OHNO3TIME
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMPOPS: a OHNO3TIME' )
@@ -314,7 +351,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTPOPG,    IDTPOPPOC,  IDTPOPPBC
@@ -353,8 +389,6 @@
 !  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  14 Apr 2014 - R. Yantosca - Now prevent div-by-zero in computations below
-!  10 Sep 2014 - M. Sulprizio- Now get global concentrations of OH, O3, OC, and
-!                              BC from HEMCO
 !  17 Sep 2014 - C. Keller   - Renamed EmisList_GetDataArr to HCO_GetPtr
 !EOP
 !------------------------------------------------------------------------------
@@ -501,16 +535,15 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
 
-      ! For getting concentrations from HEMCO 
-      LOGICAL, SAVE   :: FIRST = .TRUE.
-      LOGICAL         :: aIR
-
       ! Grid box volume
       REAL*8          :: BOXVL
 
       !=================================================================
       ! CHEM_POPGP begins here!
       !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
 
       ! Copy values from Input_Opt
       DEL_H     = Input_Opt%POP_DEL_H
@@ -530,28 +563,6 @@
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
-
-      ! am I root? 
-      aIR = am_I_Root
-
-      ! Get global concentrations of OH, O3, OC, and BC from HEMCO
-      IF ( FIRST ) THEN
-
-         CALL HCO_GetPtr( aIR, 'GLOBAL_OC', C_OC, RC )
-         IF ( RC /= GIGC_SUCCESS ) RETURN
-
-         CALL HCO_GetPtr( aIR, 'GLOBAL_BC', C_BC, RC )
-         IF ( RC /= GIGC_SUCCESS ) RETURN
-
-         CALL HCO_GetPtr( aIR, 'GLOBAL_OH', OH,   RC )
-         IF ( RC /= GIGC_SUCCESS ) RETURN
-
-         CALL HCO_GetPtr( aIR, 'GLOBAL_O3', O3,   RC )
-         IF ( RC /= GIGC_SUCCESS ) RETURN
-
-         FIRST = .FALSE.
-
-      ENDIF
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -604,28 +615,10 @@
          BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
 
          ! Get monthly mean OH concentrations
-         ! Convert from [kg/m3] to [molec/cm3]
-         C_OH      = OH(I,J,L) * XNUMOL_OH / CM3PERM3
-
-         ! Test for sunlight...
-         IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
-
-            ! Impose a diurnal variation on OH during the day
-            C_OH   = C_OH * ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
-     &             ( 1440d0 / GET_TS_CHEM() )
-
-            ! Make sure OH is not negative
-            C_OH   = MAX( C_OH, 0d0 )
-               
-         ELSE
-
-            ! At night, OH goes to zero
-            C_OH   = 0d0
-
-         ENDIF
+         C_OH        = GET_OH( I, J, L, State_Met )
 
          ! Get monthly mean O3 concentrations
-         ! Convert from [v/v] to [molec/cm3]
+         ! O3 is in v/v (from HEMCO), convert to molec/cm3 (mps, 9/10/14)
          C_O3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
      &          State_Met%AD(I,J,L)    /  BOXVL
 
@@ -1294,6 +1287,77 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE:  get_oh
+!
+! !DESCRIPTION: Function GET\_OH returns monthly mean OH and imposes a diurnal
+! variation. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)         :: I, J, L
+
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !REMARKS:
+! Copied GET_OH function from mercury_mod.f - CLF
+!
+! !REVISION HISTORY: 
+!  03 Feb 2011 - CL Friedman - Initial Version
+!  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  23 Sep 2014 - M. Sulprizio- Now get OH for offline aerosol sim from HEMCO
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+       REAL*8        :: OH_MOLEC_CM3
+    
+       !=================================================================
+       ! GET_OH begins here!
+       !=================================================================
+
+       ! Test for sunlight...
+       IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+
+         ! Impose a diurnal variation on OH during the day
+         OH_MOLEC_CM3 = OH(I,J,L)                      *           
+     &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
+     &                  ( 1440d0        / GET_TS_CHEM() )
+
+         ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/23/14)
+         OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
+
+         ! Make sure OH is not negative
+         OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
+               
+       ELSE
+
+         ! At night, OH goes to zero
+         OH_MOLEC_CM3 = 0d0
+
+       ENDIF
+
+       END FUNCTION GET_OH
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE:  ohno3time
 !
 ! !DESCRIPTION: Subroutine OHNO3TIME computes the sum of cosine of the solar
@@ -1546,6 +1610,12 @@
       IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
       IF ( ALLOCATED( TTDAY      ) ) DEALLOCATE( TTDAY      )
       IF ( ALLOCATED( ZERO_DVEL  ) ) DEALLOCATE( ZERO_DVEL  )
+
+      ! Free pointers
+      IF ( ASSOCIATED( C_OC      ) ) C_OC => NULL()
+      IF ( ASSOCIATED( C_BC      ) ) C_BC => NULL()
+      IF ( ASSOCIATED( O3        ) ) O3   => NULL()
+      IF ( ASSOCIATED( OH        ) ) OH   => NULL()
 
       END SUBROUTINE CLEANUP_POPS
 !EOC
