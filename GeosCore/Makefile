@@ -144,6 +144,8 @@
 #                              and readsoil.F. HEMCO makes all these obsolete.
 #  15 Sep 2014 - M. Sulprizio- Remove global_oc_mod.F and global_bc_mod.F.
 #                              HEMCO makes these obsolete.
+#  23 Sep 2014 - M. Sulprizio- Removed global_hno3_mod.F and global_no3_mod.F.
+#                              HEMCO makes these obsolete.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -384,10 +386,7 @@ carbon_mod.o                : carbon_mod.F                                   \
                               chemgrid_mod.o                                 \
                               comode_mod.o            dao_mod.o              \
                               diag_mod.o              drydep_mod.o           \
-                              future_emissions_mod.o                         \
-                                                      global_no3_mod.o       \
-                              global_o3_mod.o         global_oh_mod.o        \
-                              pbl_mix_mod.o                                  \
+                              future_emissions_mod.o  pbl_mix_mod.o          \
                               tomas_mod.o             tracer_mod.o           \
                               tracerid_mod.o          vdiff_pre_mod.o
 
@@ -429,8 +428,7 @@ cleanup.o                   : cleanup.F                                      \
                               diag_oh_mod.o           diag_pl_mod.o          \
                               drydep_mod.o            dust_mod.o             \
                               emissions_mod.o                                \
-                              global_ch4_mod.o        global_hno3_mod.o      \
-                              global_no3_mod.o        global_nox_mod.o       \
+                              global_ch4_mod.o        global_nox_mod.o       \
                               global_oh_mod.o         hcn_ch3cn_mod.o        \
                               isoropiaII_mod.o        land_mercury_mod.o     \
                               seasalt_mod.o           linoz_mod.o            \
@@ -614,11 +612,6 @@ global_ch4_mod.o            : global_ch4_mod.F                               \
                               tracer_mod.o            vdiff_pre_mod.o        \
                               hcoi_gc_main_mod.o
 
-global_hno3_mod.o           : global_hno3_mod.F                              \
-                              tracer_mod.o
-
-global_no3_mod.o            : global_no3_mod.F
-
 global_nox_mod.o            : global_nox_mod.F
 
 global_o3_mod.o             : global_o3_mod.F
@@ -682,8 +675,7 @@ input_mod.o                 : input_mod.F                                    \
                               c2h6_mod.o              hcn_ch3cn_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
-                              chemgrid_mod.o          global_hno3_mod.o      \
-                              tracerid_mod.o
+                              chemgrid_mod.o          tracerid_mod.o
 
 jsparse.o                   : jsparse.F               comode_mod.o
 
@@ -818,7 +810,7 @@ RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               tracerid_mod.o
 
 rpmares_mod.o               : rpmares_mod.F                                  \
-                              chemgrid_mod.o          global_hno3_mod.o      \
+                              chemgrid_mod.o                                 \
                               tracer_mod.o            tracerid_mod.o
 
 ruralbox.o                  : ruralbox.F                                     \
@@ -857,10 +849,9 @@ strat_chem_mod.o            : strat_chem_mod.F90                             \
 subfun.o                    : subfun.F
 
 sulfate_mod.o               : sulfate_mod.F                                  \
-                              global_no3_mod.o        global_hno3_mod.o      \
                               chemgrid_mod.o          comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
-                              drydep_mod.o            global_oh_mod.o        \
+                              drydep_mod.o                                   \
                               future_emissions_mod.o  get_ndep_mod.o         \
                               pbl_mix_mod.o           seasalt_mod.o          \
                               wetscav_mod.o           tomas_mod.o            \

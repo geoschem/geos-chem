@@ -17,6 +17,8 @@
 ! !USES:
 !
 !
+      USE HCO_ERROR_MOD       ! For real precisions (hp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -185,6 +187,8 @@
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  20 Jun 2014 - R. Yantosca - Removed obsolete code; we now use HEMCO
+!  23 Sep 2014 - M. Sulprizio- Get OH, NO3, and O3 fields for offline aerosol
+!                              simulation from HEMCO 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -192,6 +196,10 @@
 ! !DEFINED PARAMETERS:
 !
 !
+      ! Molecules OH  per kg OH [molec/kg]
+      REAL*8,  PARAMETER  :: XNUMOL_OH  = 6.022d23 / 17d-3
+      REAL*8,  PARAMETER  :: CM3PERM3   = 1.d6
+
       ! OM/OC for POA (hotp 7/26/10)
       REAL*8,  PARAMETER  :: OCFPOA     = 1.4d0
       ! OM/OC=2.1 for OPOA, OCPI, OCPO (hotp 7/26/10)
@@ -338,6 +346,11 @@
       INTEGER             :: NDAYS(12) = (/ 31, 28, 31, 30, 31, 30, 
      &                                      31, 31, 30, 31, 30, 31 /)
 
+      ! HEMCO pointers
+      REAL(hp), POINTER    :: O3(:,:,:)  => NULL()
+      REAL(hp), POINTER    :: OH(:,:,:)  => NULL()
+      REAL(hp), POINTER    :: NO3(:,:,:) => NULL()
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -370,10 +383,15 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
-      USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
-      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
-      USE TIME_MOD,           ONLY : GET_MONTH
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! Now get O3 from HEMCO (mps, 9/23/14)
+!      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
+!      USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
+!      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
+!      USE TIME_MOD,           ONLY : GET_MONTH
+!------------------------------------------------------------------------------
+      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : IDTBCPI,  IDTBCPO
       USE TRACERID_MOD,       ONLY : IDTOCPI,  IDTOCPO
@@ -440,6 +458,8 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
+!  23 Sep 2014 - M. Sulprizio- Get OH, NO3, and O3 fields for offline aerosol
+!                              simulation from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -453,7 +473,10 @@
       LOGICAL       :: LEMIS
       LOGICAL       :: LPRT
       INTEGER       :: N
-      INTEGER       :: THISMONTH
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+!      INTEGER       :: THISMONTH
+!------------------------------------------------------------------------------
       CHARACTER(LEN=14) :: DEPNAME(Input_Opt%MAX_DEP)
 
       ! Pointers
@@ -461,12 +484,19 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
 
+      ! For getting fields from HEMCO 
+      LOGICAL            :: aIR
+      CHARACTER(LEN=255) :: LOC = 'CHEMCARBON (carbon_mod.F)'
+
       !=================================================================
       ! CHEMCARBON begins here!
       !=================================================================
 
       ! Assume success
       RC                   = GIGC_SUCCESS
+
+      ! am I root? 
+      aIR                  = am_I_Root
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LSOA                 = Input_Opt%LSOA
@@ -513,7 +543,22 @@
                STT(:,:,:,IDTASOG2) = 0d0
                STT(:,:,:,IDTASOG3) = 0d0
             ENDIF
-         
+
+            IF ( LSOA ) THEN
+               ! Get offline oxidant fields from HEMCO (mps, 9/23/14)
+               CALL HCO_GetPtr( aIR, 'GLOBAL_OH',  OH,  RC )
+               IF ( RC /= GIGC_SUCCESS )
+     &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_OH',  LOC)
+
+               CALL HCO_GetPtr( aIR, 'GLOBAL_NO3', NO3, RC )
+               IF ( RC /= GIGC_SUCCESS )
+     &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_NO3', LOC)
+
+               CALL HCO_GetPtr( aIR, 'O3',         O3,  RC )
+               IF ( RC /= GIGC_SUCCESS )
+     &         CALL ERROR_STOP( 'Cannot get pointer to O3',         LOC)
+            ENDIF
+
          ENDIF
 
          ! Determine number of semivolatile parent HC (hotp 8/24/09)
@@ -648,20 +693,26 @@
       !=================================================================
       IF ( LSOA ) THEN
 
-         ! Read offline OH, NO3, O3 fields from disk
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! Now get OH, NO3, and O3 from HEMCO (mps, 9/18/14)
+!         ! Read offline OH, NO3, O3 fields from disk
+!         IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+!
+!            ! Current month
+!            THISMONTH = GET_MONTH()
+!
+!            IF ( ITS_A_NEW_MONTH() ) THEN
+!               CALL GET_GLOBAL_OH
+!     &              ( am_I_Root, Input_Opt, State_Met, THISMONTH, RC )
+!               CALL GET_GLOBAL_NO3
+!     &              ( am_I_Root, Input_Opt,            THISMONTH, RC )
+!               CALL GET_GLOBAL_O3
+!     &              ( am_I_Root, Input_Opt,            THISMONTH, RC )
+!            ENDIF
+!------------------------------------------------------------------------------
+
          IF ( IT_IS_AN_AEROSOL_SIM ) THEN
-
-            ! Current month
-            THISMONTH = GET_MONTH()
-
-            IF ( ITS_A_NEW_MONTH() ) THEN
-               CALL GET_GLOBAL_OH
-     &              ( am_I_Root, Input_Opt, State_Met, THISMONTH, RC )
-               CALL GET_GLOBAL_NO3
-     &              ( am_I_Root, Input_Opt,            THISMONTH, RC )
-               CALL GET_GLOBAL_O3
-     &              ( am_I_Root, Input_Opt,            THISMONTH, RC )
-            ENDIF
 
             ! Compute time scaling arrays for offline OH, NO3
             ! but only if it hasn't been done in EMISSCARBON
@@ -6304,7 +6355,11 @@ ccc
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : OH
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! Now get OH from HEMCO (mps, 9/18/14)
+!      USE GLOBAL_OH_MOD,      ONLY : OH
+!------------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDOH
 !
@@ -6328,6 +6383,7 @@ ccc
 !  28 Nov 2012 - R. Yantosca - Add State_Met to the argument list
 !   4 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  23 Sep 2014 - M. Sulprizio- Now get OH for offline aerosol sim from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6372,6 +6428,9 @@ ccc
             OH_MOLEC_CM3 = OH(I,J,L)                                *           
      &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   *
      &                     ( 1440d0                / GET_TS_CHEM() )
+
+            ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/18/14)
+            OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
 
             ! Make sure OH is not negative
             OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
@@ -6420,7 +6479,11 @@ ccc
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_NO3_MOD,     ONLY : NO3
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! Now get NO3 from HEMCO (mps, 9/18/14)
+!      USE GLOBAL_NO3_MOD,     ONLY : NO3
+!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDNO3
 !
 ! !INPUT PARAMETERS: 
@@ -6447,6 +6510,7 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_MOD
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  23 Sep 2014 - M. Sulprizio- Now get NO3 for offline aerosol sims from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6565,7 +6629,11 @@ ccc
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_O3_MOD,      ONLY : O3
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! Now get O3 from HEMCO (mps, 9/18/14)
+!      USE GLOBAL_O3_MOD,      ONLY : O3
+!------------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
@@ -6592,6 +6660,7 @@ ccc
 !  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  18 Sep 2014 - M. Sulprizio- Now get O3 for offline aerosol sim from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
