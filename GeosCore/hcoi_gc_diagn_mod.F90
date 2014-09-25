@@ -228,26 +228,46 @@ CONTAINS
     ! Define automatic diagnostics (AutoFill)
     !=======================================================================
 
-! For now comment this out (bmy, 8/19/14)
-!    ! Total NO
-!    I = HCO_GetHcoID( 'NO', HcoState )
-!    IF ( I > 0 ) THEN
-!       CALL Diagn_Create ( am_I_Root, &
-!                           HcoState,  &
-!                           cName    = 'NOtotal', &
-!                           ExtNr    = -1, &
-!                           Cat      = -1, &
-!                           Hier     = -1, &
-!                           HcoID    = I, &
-!                           SpaceDim = 2, &
-!                           LevIDx   = -1, &
-!                           OutUnit  = 'kg/m2',     &
-!                           WriteFreq = 'Monthly',  &
-!                           AutoFill  = 1, &
-!                           cID       = N, & 
-!                           RC        = RC ) 
-!       IF ( RC /= HCO_SUCCESS ) RETURN 
-!    ENDIF
+    ! This is for testing only. Only activate if needed.
+    IF ( .FALSE. ) THEN
+
+    ! Total NO
+    I = HCO_GetHcoID( 'NO', HcoState )
+    IF ( I > 0 ) THEN
+       CALL Diagn_Create ( am_I_Root, &
+                           HcoState,  &
+                           cName    = 'NOtotal_monthly', &
+                           ExtNr    = -1, &
+                           Cat      = -1, &
+                           Hier     = -1, &
+                           HcoID    = I, &
+                           SpaceDim = 2, &
+                           LevIDx   = -1, &
+                           OutUnit  = 'kg/m2/s',   &
+                           WriteFreq = 'Monthly',  &
+                           AutoFill  = 1, &
+                           cID       = N, & 
+                           RC        = RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       CALL Diagn_Create ( am_I_Root, &
+                           HcoState,  &
+                           cName    = 'NOtotal_daily', &
+                           ExtNr    = -1, &
+                           Cat      = -1, &
+                           Hier     = -1, &
+                           HcoID    = I, &
+                           SpaceDim = 2, &
+                           LevIDx   = -1, &
+                           OutUnit  = 'kg/m2/s',   &
+                           WriteFreq = 'Daily',  &
+                           AutoFill  = 1, &
+                           cID       = N, & 
+                           RC        = RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+ 
+    ENDIF
+    ENDIF ! testing toggle
 
     ! Leave w/ success
     RC = HCO_SUCCESS 
