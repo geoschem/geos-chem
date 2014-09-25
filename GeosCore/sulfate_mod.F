@@ -20,6 +20,8 @@
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
       USE inquireMod,    ONLY : findFreeLUN
 
+      USE HCO_ERROR_MOD       ! For real precisions (hp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -138,7 +140,9 @@
 !  13 Mar 2013 - R. Yantosca   - Bug fix: make sure we pass values to the
 !                                SOIL_DRYDEP routine even when ND44 is off
 !  30 May 2013 - S. Farina     - Merged TOMAS code into sulfate_mod.F
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  20 Aug 2013 - R. Yantosca   - Removed "define.h", this is now obsolete
+!  18 Sep 2014 - M. Sulprizio  - Get oxidant fields for offline aerosol
+!                                simulation from HEMCO 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -153,11 +157,13 @@
       ! XNUMOL_NO3 : Molecules NO3 per kg NO3         [molec/kg]
       ! TCVV_S     : Ratio: Molwt air / Molwt S       [unitless]
       !=======================================================================
-      REAL*8,  PARAMETER   :: XNUMOL_OH  = 6.022d23 / 17d-3
-      REAL*8,  PARAMETER   :: XNUMOL_O3  = 6.022d23 / 48d-3
-      REAL*8,  PARAMETER   :: XNUMOL_NO3 = 6.022d23 / 62d-3
-      REAL*8,  PARAMETER   :: TCVV_S     = 28.97d0  / 32d0 
-      REAL*8,  PARAMETER   :: SMALLNUM   = 1d-20
+      REAL*8,  PARAMETER   :: XNUMOL_OH   = 6.022d23 / 17d-3
+      REAL*8,  PARAMETER   :: XNUMOL_O3   = 6.022d23 / 48d-3
+      REAL*8,  PARAMETER   :: XNUMOL_NO3  = 6.022d23 / 62d-3
+      REAL*8,  PARAMETER   :: XNUMOL_H2O2 = 6.022d23 / 34d-3
+      REAL*8,  PARAMETER   :: TCVV_S      = 28.97d0  / 32d0 
+      REAL*8,  PARAMETER   :: SMALLNUM    = 1d-20
+      REAL*8,  PARAMETER   :: CM3PERM3    = 1.d6
 
 #if defined( TOMAS )
       !---------------------------------------------------------------
@@ -232,11 +238,15 @@
       REAL*8,  ALLOCATABLE :: ESO2_nv(:,:,:)
       REAL*8,  ALLOCATABLE :: ESO2_sh(:,:) 
       REAL*8,  ALLOCATABLE :: ESO4_an(:,:,:) 
-      REAL*8,  ALLOCATABLE :: JH2O2(:,:,:)
 ! not used for now - comment it (phs, 6/29/09)      
 !      REAL*8,  ALLOCATABLE :: LSO2_AQ(:,:,:)
-      REAL*8,  ALLOCATABLE :: O3m(:,:,:)
-      REAL*8,  ALLOCATABLE :: PH2O2m(:,:,:)
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! These fields are now handled by HEMCO (mps, 9/18/14)
+!      REAL*8,  ALLOCATABLE :: JH2O2(:,:,:)
+!      REAL*8,  ALLOCATABLE :: O3m(:,:,:)
+!      REAL*8,  ALLOCATABLE :: PH2O2m(:,:,:)
+!------------------------------------------------------------------------------
       REAL*8,  ALLOCATABLE :: PMSA_DMS(:,:,:)
       REAL*8,  ALLOCATABLE :: PSO2_DMS(:,:,:)
       REAL*8,  ALLOCATABLE :: PSO4_SO2(:,:,:)
@@ -295,6 +305,17 @@
       INTEGER              :: DRYNH4,  DRYNIT,   DRYSO4s, DRYNITs
       INTEGER              :: DRYH2O2, DRYSO4aq, DRYAS,   DRYAHS
       INTEGER              :: DRYLET,  DRYNH4aq
+
+      ! HEMCO pointers
+      REAL(hp), POINTER    :: O3m(:,:,:)    => NULL()
+      REAL(hp), POINTER    :: PH2O2m(:,:,:) => NULL()
+      REAL(hp), POINTER    :: JH2O2(:,:,:)  => NULL()
+      REAL(hp), POINTER    :: OH(:,:,:)     => NULL()
+      REAL(hp), POINTER    :: NO3(:,:,:)    => NULL()
+      REAL(hp), POINTER    :: HNO3(:,:,:)   => NULL()
+
+      ! Emission timestep (imported from HEMCO)
+      REAL*8               :: TS_EMIS
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -484,12 +505,20 @@
       USE DAO_MOD,            ONLY : CONVERT_UNITS
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
-      USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! Now get OH and NO3 from HEMCO (mps, 9/18/14)
+!      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
+!      USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
+!------------------------------------------------------------------------------
+      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
@@ -552,6 +581,8 @@
 !  31 May 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, State_Chm
 !                              and RC to TOMAS routine CHEM_SO4_AQ
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
+!  18 Sep 2014 - M. Sulprizio- Get oxidant fields for offline aerosol
+!                              simulation from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -580,12 +611,22 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER   :: STT(:,:,:,:)
 
+      ! For getting fields from HEMCO 
+      LOGICAL            :: aIR
+      CHARACTER(LEN=255) :: LOC = 'CHEMSULFATE (sulfate_mod.F)'
+
+      ! To get emission timestep
+      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+
       !=================================================================
       ! CHEMSULFATE begins here!
       !=================================================================
 
       ! Assume success
       RC                   = GIGC_SUCCESS
+
+      ! am I root? 
+      aIR                  = am_I_Root
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LCRYST               = Input_Opt%LCRYST
@@ -608,12 +649,52 @@
       ! If it's an offline simulation ...
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
-         ! Then read monthly data files ...
-         IF ( ITS_A_NEW_MONTH() ) THEN 
-            CALL GET_GLOBAL_OH
-     &           ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
-            CALL GET_GLOBAL_NO3
-     &           ( am_I_Root, Input_Opt,            MONTH, RC )
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! Now get global OH and NO3 fields from HEMCO (mps, 9/18/14)
+!         ! Then read monthly data files ...
+!         IF ( ITS_A_NEW_MONTH() ) THEN 
+!            CALL GET_GLOBAL_OH
+!     &           ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
+!            CALL GET_GLOBAL_NO3
+!     &           ( am_I_Root, Input_Opt,            MONTH, RC )
+!         ENDIF
+!------------------------------------------------------------------------------
+
+         ! Get offline oxidant fields from HEMCO (mps, 9/18/14)
+         IF ( FIRSTCHEM ) THEN
+
+            CALL HCO_GetPtr( aIR, 'O3',    O3m,    RC )
+            IF ( RC /= GIGC_SUCCESS )
+     &      CALL ERROR_STOP( 'Cannot get pointer to O3',    LOC )
+
+            CALL HCO_GetPtr( aIR, 'PH2O2', PH2O2m, RC )
+            IF ( RC /= GIGC_SUCCESS )
+     &      CALL ERROR_STOP( 'Cannot get pointer to PH2O2', LOC )
+
+            CALL HCO_GetPtr( aIR, 'JH2O2', JH2O2,  RC )
+            IF ( RC /= GIGC_SUCCESS )
+     &      CALL ERROR_STOP( 'Cannot get pointer to JH2O2', LOC )
+
+            CALL HCO_GetPtr( aIR, 'GLOBAL_OH',  OH,    RC )
+            IF ( RC /= GIGC_SUCCESS )
+     &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_OH',   LOC )
+
+            CALL HCO_GetPtr( aIR, 'GLOBAL_NO3', NO3,   RC )
+            IF ( RC /= GIGC_SUCCESS )
+     &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_NO3',  LOC )
+
+            CALL HCO_GetPtr( aIR, 'GLOBAL_HNO3', HNO3, RC )
+            IF ( RC /= GIGC_SUCCESS )
+     &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', LOC )
+
+            ! Get emissions timestep (seconds)
+            CALL GetHcoState ( HcoState )
+            IF ( .NOT. ASSOCIATED(HcoState) ) 
+     &           CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
+            TS_EMIS = HcoState%TS_EMIS
+            HcoState => NULL()
+
          ENDIF
 
          ! And compute time scaling arrays for offline OH, NO3
@@ -1486,6 +1567,7 @@
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  18 Sep 2014 - M. Sulprizio- Now get J(H2O2) and PH2O2m from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1548,36 +1630,40 @@
       !=================================================================
       ! For offline run: read J(H2O2) from disk below
       !=================================================================
-      IF ( ITS_A_NEW_MONTH() ) THEN
-
-         ! File name to read data 
-         FILENAME = TRIM( Input_Opt%DATA_DIR )             // 
-     &              'sulfate_sim_200508/offline/JH2O2.'    // 
-     &              GET_NAME_EXT() // '.' // GET_RES_EXT()
-           
-         ! Print filename
-         IF ( am_I_Root ) THEN
-            WRITE( 6, 100 ) TRIM( FILENAME )
-         ENDIF
- 100     FORMAT( '     - CHEM_H2O2: Reading ', a )
-
-         ! Get TAU0 value for this month in "generic" year 1985
-         XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
-
-         ! Read J(H2O2) [s-1]  from disk (only up to tropopause)
-         ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-         ! tropopause. This is backward compatibility with 
-         ! offline data set.
-         CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      
-     &     XTAU,        IIPAR,                    JJPAR,      
-     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
-
-         ! Cast to REAL*8 and resize if necessary
-         CALL TRANSFER_3D_TROP( ARRAY, JH2O2 )
-            
-         ! Reset LASTMONTH
-         !LASTMONTH = GET_MONTH()
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! Now get J(H2O2) from HEMCO (mps, 9/18/14)
+!      IF ( ITS_A_NEW_MONTH() ) THEN
+!
+!         ! File name to read data 
+!         FILENAME = TRIM( Input_Opt%DATA_DIR )             // 
+!     &              'sulfate_sim_200508/offline/JH2O2.'    // 
+!     &              GET_NAME_EXT() // '.' // GET_RES_EXT()
+!           
+!         ! Print filename
+!         IF ( am_I_Root ) THEN
+!            WRITE( 6, 100 ) TRIM( FILENAME )
+!         ENDIF
+! 100     FORMAT( '     - CHEM_H2O2: Reading ', a )
+!
+!         ! Get TAU0 value for this month in "generic" year 1985
+!         XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
+!
+!         ! Read J(H2O2) [s-1]  from disk (only up to tropopause)
+!         ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+!         ! tropopause. This is backward compatibility with 
+!         ! offline data set.
+!         CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      
+!     &     XTAU,        IIPAR,                    JJPAR,      
+!     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
+!
+!         ! Cast to REAL*8 and resize if necessary
+!         CALL TRANSFER_3D_TROP( ARRAY, JH2O2 )
+!            
+!         ! Reset LASTMONTH
+!         !LASTMONTH = GET_MONTH()
+!      ENDIF
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! Loop over tropopsheric grid boxes and do chemistry
@@ -1632,7 +1718,14 @@
          ALPHA = 1.D0 + ( KOH + PHOTJ + FREQ ) * DT 
 
          ! Delta H2O2 [v/v]
-         DH2O2 = PH2O2m(I,J,L) * DT / ( ALPHA * M )
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! Now get PH2O2m [kg/m3] from HEMCO (mps, 9/18/14)
+!         DH2O2 = PH2O2m(I,J,L) * DT / ( ALPHA * M )
+!------------------------------------------------------------------------------
+         ! PH2O2m is in kg/m3 (from HEMCO), convert to molec/cm3/s (mps,9/18/14)
+         DH2O2 = ( PH2O2m(I,J,L) / TS_EMIS * XNUMOL_H2O2 / CM3PERM3 )
+     &           * DT / ( ALPHA * M )
          
          ! Final H2O2 [v/v]
          H2O2  = ( H2O20 / ALPHA + DH2O2 )
@@ -1715,8 +1808,12 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
-      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_VV
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! Now get HNO3 from HEMCO (mps, 9/18/14)
+!      USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
+!      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_VV
+!------------------------------------------------------------------------------
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
@@ -1819,6 +1916,7 @@
 !  28 Jan 2014 - R. Yantosca - Bug fix for TOMAS. Set ALKdst=0 since TOMAS
 !                              carries its own dust tracers instead of DST1-4.
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to GET_ALK
+!  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1884,13 +1982,17 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-      ! Read HNO3 for offline simulation
-      IF ( IS_OFFLINE ) THEN
-         IF ( ITS_A_NEW_MONTH() ) THEN
-            CALL GET_GLOBAL_HNO3
-     &           ( am_I_Root, Input_Opt, GET_MONTH(), RC )
-         ENDIF
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! Now get HNO3 from HEMCO (mps 9/18/14)
+!      ! Read HNO3 for offline simulation
+!      IF ( IS_OFFLINE ) THEN
+!         IF ( ITS_A_NEW_MONTH() ) THEN
+!            CALL GET_GLOBAL_HNO3
+!     &           ( am_I_Root, Input_Opt, GET_MONTH(), RC )
+!         ENDIF
+!      ENDIF
+!------------------------------------------------------------------------------
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM   = GET_TS_CHEM() * 60d0
@@ -2179,7 +2281,12 @@
 	       GNO3 = STT(I,J,L,IDTHNO3) !For Fahey & Pandis decision algorithm
             ELSE IF ( IS_OFFLINE ) THEN
                TANIT = STT(I,J,L,IDTNIT) !aerosol nitrate [v/v]
-	       GNO3  = GET_HNO3_VV(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! Now get HNO3 from HEMCO (mps, 9/18/14)
+!	       GNO3  = GET_HNO3_VV(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
+!------------------------------------------------------------------------------
+	       GNO3  = HNO3(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
    	       ANIT  = TANIT * 0.7d0 ! aerosol nitrate in the cloud drops [v/v]
 	       TNO3  = GNO3 + ANIT   ! total nitrate for cloud pH calculations
 	    ENDIF
@@ -2587,7 +2694,10 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+!      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
+!------------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_MONTH 
@@ -2652,6 +2762,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2728,16 +2839,25 @@
 
       ELSE
          
-         ! Get HNO3 in ug/m3, then multiply by volume in m3
-         ! and 1e-6 kg/ug to get HNO3 in kg
-         HNO3_kg = GET_HNO3_UGM3( I, J, L, State_Met ) *
-     &             AIRVOL(I,J,L) * 1e-6
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! Now get HNO3 from HEMCO (mps, 9/18/14)
+!         ! Get HNO3 in ug/m3, then multiply by volume in m3
+!         ! and 1e-6 kg/ug to get HNO3 in kg
+!         HNO3_kg = GET_HNO3_UGM3( I, J, L, State_Met ) *
+!     &             AIRVOL(I,J,L) * 1e-6
+!
+!	 ! Convert HNO3 [kg] first to [v/v] 
+!         HNO3_vv = HNO3_kg * ( 28.97d0 / 63d0 ) / AD(I,J,L)
+! 
+!         ! Then convert HNO3 [kg] to [equivalents]
+!         HNO3_eq = HNO3_kg / 63d-3
+!------------------------------------------------------------------------------
+         ! HNO3 is in v/v (from HEMCO)
+         HNO3_vv = HNO3(I,J,L)
 
-	 ! Convert HNO3 [kg] first to [v/v] 
-         HNO3_vv = HNO3_kg * ( 28.97d0 / 63d0 ) / AD(I,J,L)
- 
-         ! Then convert HNO3 [kg] to [equivalents]
-         HNO3_eq = HNO3_kg / 63d-3
+         ! Convert HNO3 [v/v] to [equivalents]
+         HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97d0 / 63d0 ) / 63.d-3
 
       ENDIF
 
@@ -5920,7 +6040,11 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : OH
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! Now get OH from HEMCO (mps, 9/18/14)
+!      USE GLOBAL_OH_MOD,      ONLY : OH
+!------------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDOH
 !
@@ -5941,6 +6065,7 @@
 !  28 Nov 2012 - R. Yantosca - Add State_Met to argument list
 !  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
 !                              Input_Opt%ITS_AN_AEROSOL_SIM
+!  18 Sep 2014 - M. Sulprizio- Now get OH for offline aerosol sim from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5987,6 +6112,9 @@
             OH_MOLEC_CM3 = OH(I,J,L)                              *           
      &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
      &                     ( 1440d0                / GET_TS_CHEM() )
+
+            ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/18/14)
+            OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
 
             ! Make sure OH is not negative
             OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
@@ -6086,7 +6214,11 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_NO3_MOD,     ONLY : NO3
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! Now get NO3 from HEMCO (mps, 9/18/14)
+!      USE GLOBAL_NO3_MOD,     ONLY : NO3
+!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDNO3
 !
 ! !INPUT PARAMETERS: 
@@ -6109,6 +6241,7 @@
 !  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
 !                              Input_Opt%ITS_AN_AEROSOL_SIM
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  18 Sep 2014 - M. Sulprizio- Now get NO3 for offline aerosol sims from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7899,17 +8032,21 @@
       !=================================================================
       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-         ALLOCATE( PH2O2m( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH2O2m' )
-         PH2O2m = 0d0
-
-         ALLOCATE( O3m( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'O3m' )
-         O3m = 0d0
-
-         ALLOCATE( JH2O2( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JH2O' )
-         JH2O2 = 0d0
+!------------------------------------------------------------------------------
+! Prior to 9/18/14:
+! These fields are now handled by HEMCO (mps, 9/18/14)
+!         ALLOCATE( PH2O2m( IIPAR, JJPAR, LLCHEM ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH2O2m' )
+!         PH2O2m = 0d0
+!
+!         ALLOCATE( O3m( IIPAR, JJPAR, LLCHEM ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'O3m' )
+!         O3m = 0d0
+!
+!         ALLOCATE( JH2O2( IIPAR, JJPAR, LLCHEM ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JH2O' )
+!         JH2O2 = 0d0
+!------------------------------------------------------------------------------
 
          ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
@@ -8035,9 +8172,13 @@
       IF ( ALLOCATED( ESO2_bf    ) ) DEALLOCATE( ESO2_bf    )
       IF ( ALLOCATED( ESO2_sh    ) ) DEALLOCATE( ESO2_sh    )
       IF ( ALLOCATED( ESO4_an    ) ) DEALLOCATE( ESO4_an    )
-      IF ( ALLOCATED( JH2O2      ) ) DEALLOCATE( JH2O2      )
-      IF ( ALLOCATED( O3m        ) ) DEALLOCATE( O3m        )
-      IF ( ALLOCATED( PH2O2m     ) ) DEALLOCATE( PH2O2m     )
+!------------------------------------------------------------------------------
+! Prior to 9/18/14
+! These fields are now handled by HEMCO (mps, 9/18/14)
+!      IF ( ALLOCATED( JH2O2      ) ) DEALLOCATE( JH2O2      )
+!      IF ( ALLOCATED( O3m        ) ) DEALLOCATE( O3m        )
+!      IF ( ALLOCATED( PH2O2m     ) ) DEALLOCATE( PH2O2m     )
+!------------------------------------------------------------------------------
       IF ( ALLOCATED( PMSA_DMS   ) ) DEALLOCATE( PMSA_DMS   )
       IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
       IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )
@@ -8066,6 +8207,14 @@
 !      IF ( ALLOCATED( VNV_II    ) ) DEALLOCATE( VNV_II    )
 !      IF ( ALLOCATED( VNV_JJ    ) ) DEALLOCATE( VNV_JJ    )
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      ! Free pointers
+      IF ( ASSOCIATED( O3m       ) ) O3m    => NULL()
+      IF ( ASSOCIATED( PH2O2m    ) ) PH2O2m => NULL()
+      IF ( ASSOCIATED( JH2O2     ) ) JH2O2  => NULL()
+      IF ( ASSOCIATED( OH        ) ) OH     => NULL()
+      IF ( ASSOCIATED( NO3       ) ) NO3    => NULL()
+      IF ( ASSOCIATED( HNO3      ) ) HNO3   => NULL()
 
       END SUBROUTINE CLEANUP_SULFATE
 !EOC

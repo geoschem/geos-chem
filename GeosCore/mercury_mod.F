@@ -3254,7 +3254,6 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
          EHg2_an =  Ptr2D(:,:) * HcoState%Grid%AREA_M2(:,:)
          Ptr2D   => NULL()
-
       ENDIF
  
       ! Natural emissions

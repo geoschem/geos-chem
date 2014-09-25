@@ -138,6 +138,7 @@
 !  08 Nov 2013 - M. Sulprizio- Removed CTO3. It is no longer used because O3
 !                              is now a tracer.
 !  15 Aug 2014 - R. Yantosca - Remove diagnostics now tracked by HEMCO
+!  17 Sep 2014 - M. Sulprizio- Now initialize AD61 for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -296,6 +297,9 @@
             AD60_ERROR = 0e0
             AD60_SOA   = 0e0
          ENDIF
+
+         ! For ND61 - 3-D process rate diagnostic
+         IF ( ND61 > 0 ) AD61 = 0e0
 #endif
 
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)

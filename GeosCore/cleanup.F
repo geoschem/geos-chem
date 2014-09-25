@@ -37,15 +37,14 @@
       USE ERROR_MOD,               ONLY : DEBUG_MSG
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
-      USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
-      USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! HEMCO has made these routines obsolete (mps, 9/23/14)
+!      USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
+!      USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
+!------------------------------------------------------------------------------
       USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
-!-----------------------------------------------------------------------------
-! Prior to 9/10/14:
-!      USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC
-!      USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
-!-----------------------------------------------------------------------------
       USE GRID_MOD,                ONLY : CLEANUP_GRID
 !-----------------------------------------------------------------------------
 ! The H2/HD simulation is now obsolete.  You can reactivate this if you want.
@@ -239,6 +238,8 @@
 !  15 Aug 2014 - R. Yantosca - Remove reference to biomass_mod.F
 !  10 Sep 2014 - M. Sulprizio- Remove references to global_oc_mod.F and
 !                              global_bc_mod.F
+!  23 Sep 2014 - M. Sulprizio- Remove references to global_hno3_mod.F and
+!                              global_no3_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,17 +279,14 @@
       CALL CLEANUP_DRYDEP()
       CALL CLEANUP_DUST()
       CALL CLEANUP_GLOBAL_CH4()
-      CALL CLEANUP_GLOBAL_HNO3()
-      CALL CLEANUP_GLOBAL_NO3()
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! HEMCO has made these routines obsolete (mps, 9/23/14)
+!      CALL CLEANUP_GLOBAL_HNO3()
+!      CALL CLEANUP_GLOBAL_NO3()
+!------------------------------------------------------------------------------
       CALL CLEANUP_GLOBAL_NOX()
-      CALL CLEANUP_GLOBAL_NO3()
       CALL CLEANUP_GLOBAL_OH()
-!-----------------------------------------------------------------------------
-! Prior to 9/10/14:
-! Concentrations of OC and BC are now read via HEMCO (mps, 9/10/14)
-!      CALL CLEANUP_GLOBAL_OC()
-!      CALL CLEANUP_GLOBAL_BC()
-!-----------------------------------------------------------------------------
       CALL CLEANUP_GRID()
 !-----------------------------------------------------------------------------
 ! This simulation is obsolete.  You can restore it if you wish (bmy, 6/23/14)

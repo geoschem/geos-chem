@@ -347,7 +347,9 @@ CONTAINS
     TYPE(HCO_State), POINTER  :: HcoState    ! HEMCO State object
 !
 ! !REVISION HISTORY: 
-!  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90 
+!  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90 
+!  24 Sep 2014 - R. Yantosca - Add an extra safety check when deallocating
+!                              the pointer field HcoState%Spc
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -364,13 +366,13 @@ CONTAINS
     CALL HCO_ArrCleanup ( HcoState%Buffer3D )
 
     ! Deallocate all species arrays 
-    IF ( ASSOCIATED ( HcoState%Spc ) ) THEN
+    IF ( ASSOCIATED ( HcoState%Spc ) .and. HcoState%nSpc > 0 ) THEN
        DO I = 1, HcoState%nSpc
           CALL HCO_ArrCleanup( HcoState%Spc(I)%Emis )
           CALL HCO_ArrCleanup( HcoState%Spc(I)%Conc )
           CALL HCO_ArrCleanup( HcoState%Spc(I)%Depv )
        ENDDO
-       DEALLOCATE ( HcoState%Spc )
+       DEALLOCATE( HcoState%Spc )
     ENDIF
 
     ! Deallocate grid information
