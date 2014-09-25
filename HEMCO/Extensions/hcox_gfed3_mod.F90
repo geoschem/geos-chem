@@ -69,6 +69,7 @@ MODULE HCOX_GFED3_MOD
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  08 Aug 2014 - R. Yantosca - Now avoid ASCII file reads for ESMF
+!  23 Sep 2014 - C. Keller   - Increase N_SPEC to 26 (+Hg0)
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -81,7 +82,7 @@ MODULE HCOX_GFED3_MOD
   ! N_SPEC  : Max. number of species
   !=================================================================
   INTEGER,           PARAMETER :: N_EMFAC = 6
-  INTEGER,           PARAMETER :: N_SPEC  = 25
+  INTEGER,           PARAMETER :: N_SPEC  = 26
 !
 ! !PRIVATE TYPES:
 !

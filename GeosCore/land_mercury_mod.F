@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE HCO_ERROR_MOD   ! For real precisions (hp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -235,8 +237,15 @@
       USE CMN_DIAG_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
+!      USE GRID_MOD,           ONLY : GET_AREA_CM2
+!      USE TIME_MOD,           ONLY : GET_TS_EMIS
+
+      ! HEMCO update
+      USE HCO_ERROR_MOD
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoDiagn
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE ERROR_MOD,          ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS:
 !
@@ -264,17 +273,18 @@
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  15 Aug 2014 - R. Yantosca - Removed reference to IDBCO; now obsolete
+!  23 Sep 2014 - C. Keller   - Now use HEMCO diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 ! 
 ! !LOCAL VARIABLES:
 !     
-      REAL*8                 :: DTSRCE, E_CO, AREA_CM2
+!      REAL*8                 :: DTSRCE, E_CO, AREA_CM2
       INTEGER                :: I, J
 
-      ! Hg molar mass, kg Hg/ mole Hg
-      REAL*8,  PARAMETER   :: FMOL_HG     = 200.59d-3
+!      ! Hg molar mass, kg Hg/ mole Hg
+!      REAL*8,  PARAMETER   :: FMOL_HG     = 200.59d-3
 
       ! Hg/CO molar ratio in BB emissions, mol/mol
       ! emission factor 1.5e-7 molHg/molCO (Slemr et al poster EGU 2006)
@@ -283,39 +293,67 @@
       !REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 2.1D-7
       ! Literature range is 70-240e-9. ARCTAS gives 80-130e-9 
       ! Choose 100e-9 (Holmes et al. 2010 )
-      REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 1d-7
+      ! REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 1d-7
+      !
+      ! UPDATE: In HEMCO, Hg is now an additional biomass burning tracer
+      ! and the emissions factors are explicitly set in the GFED3 / FINN
+      ! scale factor tables (ckeller, 09/23/2014).
+
+      ! HEMCO update
+      CHARACTER(LEN= 63)       :: DgnName
+      REAL(hp), POINTER        :: Ptr2D(:,:) => NULL()  
+      TYPE(HCO_STATE), POINTER :: HcoState   => NULL()
+
+      CHARACTER(LEN=255)       :: MSG
+      CHARACTER(LEN=255)       :: LOC ='BIOMASSHG (land_mercury_mod.F)'
  
       !=================================================================
       ! BIOMASSHG begins here!
       !=================================================================
 
       ! DTSRCE is the number of seconds per emission timestep
-      DTSRCE = GET_TS_EMIS() * 60d0
+!      DTSRCE = GET_TS_EMIS() * 60d0
 
       ! Do biomass Hg emissions if biomass burning is on and it is a 
       ! present-day simulation (i.e. not preindustrial)
 !      IF ( LBIOMASS .AND. ( .NOT. LPREINDHG ) ) THEN
       IF ( .NOT. Input_Opt%LPREINDHG ) THEN
+       
+         CALL GetHcoState ( HcoState )
+         IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+            CALL ERROR_STOP ( 'HcoState not associated!', LOC )
+         ENDIF
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( E_CO, I, J, AREA_CM2 )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
- 
-            ! Grid box surface area, cm2
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+         ! Get diagnostics from HEMCO. The HG0 biomass diagnostics
+         ! is defined in hcoi_gc_diagn_mod.F90 and becomes updated
+         ! by HEMCO automatically. Output unit is as specified when
+         ! defining diagnostics (kg/m2/s).
+         DgnName = 'BIOMASS_HG0'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
+         EHg0_bb = Ptr2D(:,:) * HcoState%Grid%AREA_M2(:,:)
 
-!%%%% NOTE: NEED TO REPLACE THIS WITH HEMCO
-!            ! Convert molec CO /cm3 /s -> mol CO /gridbox /s 
-!            E_CO = ( BIOMASS(I,J,IDBCO) / 6.022D23 ) * AREA_CM2
-
-            ! Convert mol CO /gridbox /s to kg Hg /gridbox /s
-            EHg0_bb(I,J) = E_CO * BBRatio_Hg_CO * FMOL_HG 
-         
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+! 
+!!            ! Grid box surface area, cm2
+!!            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+!
+!!            ! Convert molec CO /cm3 /s -> mol CO /gridbox /s 
+!!            E_CO = ( BIOMASS(I,J,IDBCO) / 6.022D23 ) * AREA_CM2
+!
+!            ! Convert mol CO /gridbox /s to kg Hg /gridbox /s
+!!            EHg0_bb(I,J) = E_CO * BBRatio_Hg_CO * FMOL_HG 
+!
+!            ! kg/m2/s to kg/gridbox/s
+!            EHg0_bb(I,J) = Ptr2D(I,J) * HcoState%Grid%AREA_M2(I,J)
+!        
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
 
       ELSE
 
@@ -323,6 +361,10 @@
          EHg0_bb = 0D0
 
       ENDIF
+
+      ! Free pointer
+      Ptr2D    => NULL()
+      HcoState => NULL()
 
       END SUBROUTINE BIOMASSHG
 !EOC

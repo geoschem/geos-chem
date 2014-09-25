@@ -691,7 +691,8 @@ ksparse.o                   : ksparse.F
 
 land_mercury_mod.o          : land_mercury_mod.F                             \
                               dao_mod.o               tracerid_mod.o         \
-                              depo_mercury_mod.o      modis_lai_mod.o
+                              depo_mercury_mod.o      modis_lai_mod.o        \
+                              hcoi_gc_main_mod.o
 
 linoz_mod.o                 : linoz_mod.F                                    \
                               chemgrid_mod.o          tracerid_mod.o
@@ -738,7 +739,7 @@ mercury_mod.o               : mercury_mod.F                                  \
                               global_oh_mod.o         land_mercury_mod.o     \
                               ocean_mercury_mod.o     tracerid_mod.o         \
                               pbl_mix_mod.o           RnPbBe_mod.o           \
-                              vdiff_pre_mod.o
+                              vdiff_pre_mod.o         hcoi_gc_main_mod.o
 
 merra_a1_mod.o              : merra_a1_mod.F                                 \
                               diag_mod.o

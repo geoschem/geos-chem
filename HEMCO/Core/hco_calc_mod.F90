@@ -753,7 +753,6 @@ CONTAINS
           
           ! Pass base value to output array
           OUTARR_3D(I,J,L) = TMPVAL
-
        ENDDO !L
 
     ENDDO !I

@@ -113,6 +113,9 @@ CONTAINS
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE TRACERID_MOD,       ONLY : IDTCH4
 
+    ! Use old mercury code for now (ckeller, 09/23/2014)
+    USE MERCURY_MOD,        ONLY : EMISSMERCURY
+
     ! For UCX, use Seb's routines for now
 #if defined( UCX )
     USE UCX_MOD,            ONLY : EMISS_BASIC
@@ -172,6 +175,11 @@ CONTAINS
        CALL EMIS_BASIC ( am_I_Root, Input_Opt, State_Met, State_Chm )
     ENDIF
 #endif
+
+    ! For mercury, use old emissions code for now
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+       CALL EMISSMERCURY ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    ENDIF
 
     ! Return w/ success
     RC = GIGC_SUCCESS
