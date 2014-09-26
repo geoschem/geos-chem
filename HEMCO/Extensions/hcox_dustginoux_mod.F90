@@ -86,24 +86,27 @@
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS:
+!
+      INTEGER, PARAMETER   :: NBINS = 4         ! # of dust bins 
+!
 ! !MODULE VARIABLES:
 !
       ! Parameters related to dust bins
-      INTEGER                   :: ExtNr = -1
-      INTEGER, PARAMETER        :: NBINS = 4     ! # of dust bins 
-      INTEGER, ALLOCATABLE      :: HcoIDs  (:)   ! HEMCO species IDs
-      INTEGER, ALLOCATABLE      :: IPOINT  (:)   ! 1=sand, 2=silt, 3=clay 
-      REAL,    ALLOCATABLE      :: FRAC_S  (:)   !  
-      REAL,    ALLOCATABLE      :: DUSTDEN (:)   ! dust density     [kg/m3] 
-      REAL,    ALLOCATABLE      :: DUSTREFF(:)   ! effective radius [um] 
+      INTEGER              :: ExtNr = -1
+      INTEGER, ALLOCATABLE :: HcoIDs  (:)       ! HEMCO species IDs
+      INTEGER, ALLOCATABLE :: IPOINT  (:)       ! 1=sand, 2=silt, 3=clay 
+      REAL,    ALLOCATABLE :: FRAC_S  (:)       !  
+      REAL,    ALLOCATABLE :: DUSTDEN (:)       ! dust density     [kg/m3] 
+      REAL,    ALLOCATABLE :: DUSTREFF(:)       ! effective radius [um] 
 
       ! Source functions (get from HEMCO core) 
-      REAL(hp), POINTER      :: SRCE_SAND(:,:) => NULL()
-      REAL(hp), POINTER      :: SRCE_SILT(:,:) => NULL()
-      REAL(hp), POINTER      :: SRCE_CLAY(:,:) => NULL()
+      REAL(hp), POINTER    :: SRCE_SAND(:,:) => NULL()
+      REAL(hp), POINTER    :: SRCE_SILT(:,:) => NULL()
+      REAL(hp), POINTER    :: SRCE_CLAY(:,:) => NULL()
 
       ! Transfer coeff
-      REAL*8                    :: CH_DUST 
+      REAL*8               :: CH_DUST 
 
       CONTAINS
 !EOC
@@ -186,6 +189,11 @@
       ! For diagnostics
       REAL(hp), POINTER      :: Arr2D(:,:) => NULL()
 
+#if defined( TOMAS )
+      ! Quantities for the TOMAS microphysics simulation
+      REAL*8                 :: Mp, Rp
+#endif
+
       !=================================================================
       ! HCOX_DUSTGINOUX_RUN begins here!
       !=================================================================
@@ -199,6 +207,9 @@
 
       ! Set gravity at earth surface (cm/s^2)
       G = HcoState%Phys%g0 * 1.0d2 
+
+      ! Emission timestep [s]
+      DTSRCE = GET_TS_EMIS() * 60d0
 
       !=================================================================
       ! Point to DUST source functions 
@@ -255,7 +266,7 @@
 
          ! [m/s] 
          U_TS0  = 129.d-5 * SQRT( ALPHA ) * SQRT( BETA ) / SQRT( GAMMA )
-         M      = IPOINT(N)
+         M = IPOINT(N)
 
          ! Loop over grid boxes 
          DO J = 1, HcoState%NY 
@@ -440,6 +451,165 @@
       ALLOCATE ( DUSTDEN (NBINS) ) 
       ALLOCATE ( DUSTREFF(NBINS) ) 
 
+#if defined( TOMAS )
+      !=================================================================
+      ! Setup for TOMAS simulations 
+      !
+      !from ginoux:
+      !The U.S. Department of Agriculture (USDA) defines 
+      !particles with a radius between 1 um and 25 um as silt, 
+      !and below 1 um as clay [Hillel, 1982]. Mineralogical silt 
+      !particles are mainly composed of quartz, but they are 
+      !often coated with strongly adherent clay such that their 
+      !physicochemical properties are similar to clay [Hillel, 
+      !1982].
+      !
+      !SRCE_FUNC Source function                              
+      !for 1: Sand, 2: Silt, 3: Clay
+      !=================================================================
+
+      ! Give values for IPOINT array (win, 3/11/08)
+      IF ( NBINS == ExtState%IBINS ) THEN
+         DO N = 1, ExtState%IBINS
+            Mp = 1.4*ExtState%Xk(N)
+            Rp= ( ( Mp /2500. ) * (3./(4.*HcoState%HcoPhys%PI)))**(0.333)
+            IF ( Rp < 1.d-6 ) THEN
+               IPOINT(N) = 3
+            ELSE
+               IPOINT(N) = 2
+            END IF
+         END DO
+      ELSE
+         PRINT *,' SRC_DUST_GINOUX: ',NDSTBIN,' bins not supported'
+         PRINT *,' SRC_DUST_GINOUX: in this executable.'
+         CALL ERROR_STOP('Need to change hard-wired array IPOINT',
+     &                   'SRC_DUST_GINOUX: dust_mod.f' )
+      ENDIF
+
+      !-------------------------------
+      ! Set up dust density
+      !-------------------------------
+      IF ( NDSTBIN == 4 ) THEN
+         Input_Opt%DUSTDEN(1:4) = (/ 2500.d0, 2650.d0, 
+     &                               2650.d0, 2650.d0 /)
+
+      ELSE IF ( NDSTBIN == IBINS ) THEN
+
+         DO I = 1, IBINS
+            IF ( ExtState%Xk(I) < 4.0D-15 ) THEN
+               Input_Opt%DUSTDEN(I)  = 2500.d0
+            ELSE
+               Input_Opt%DUSTDEN(I)  = 2650.d0
+            ENDIF
+         ENDDO
+
+      ENDIF
+
+      !--------------------------------
+      ! Set up dust effective radius
+      !--------------------------------
+      IF ( NDSTBIN == 4 ) THEN
+         DUSTREFF(1) = 0.73d-6
+         DUSTREFF(2) =  1.4d-6
+         DUSTREFF(3) =  2.4d-6
+         DUSTREFF(4) =  4.5d-6
+
+      ELSE IF ( NDSTBIN == IBINS ) THEN
+
+         ! TOMAS dust Reff (win, 7/17/09)
+         DO I = 1, IBINS
+            DUSTREFF(I) = 
+     &           0.5d0 * ( SQRT(Xk(I) * Xk(I+1)) /
+     &           DUSTDEN(I) * 6.d0/PI  )**( 0.333d0 )
+         ENDDO 
+        
+      ENDIF
+
+      !----------------------------------
+      ! Set up FRAC_S (only for Ginoux)
+      !----------------------------------
+
+      !--------------------------------
+      ! Set up dust effective radius
+      !--------------------------------
+      IF ( NDSTBIN == 4 ) THEN
+
+         ! 4 dust bins
+         FRAC_S(1) = 0.095d0
+         FRAC_S(2) =   0.3d0
+         FRAC_S(3) =   0.3d0
+         FRAC_S(4) =   0.3d0
+
+      ELSE IF ( NDSTBIN == ExtState%IBINS ) THEN
+
+         DO I = 1, IBINS
+            FRAC_S( I )  = 0.00d-00  !scf initialize
+                                     !first few bins in TOMAS15/40 frac_s = 0.0d0
+         ENDDO
+
+# if  defined( TOMAS12 ) || defined( TOMAS15 )
+
+         !---------------------------------------------------
+         ! TOMAS simulations with 12 or 15 size bins
+         !---------------------------------------------------
+         FRAC_S( ExtState%ACTMODEBINS + 1  )  = 7.33E-10
+         FRAC_S( ExtState%ACTMODEBINS + 2  )  = 2.032E-08
+         FRAC_S( ExtState%ACTMODEBINS + 3  )  = 3.849E-07
+         FRAC_S( ExtState%ACTMODEBINS + 4  )  = 5.01E-06
+         FRAC_S( ExtState%ACTMODEBINS + 5  )  = 4.45E-05
+         FRAC_S( ExtState%ACTMODEBINS + 6  )  = 2.714E-04
+         FRAC_S( ExtState%ACTMODEBINS + 7  )  = 1.133E-03
+         FRAC_S( ExtState%ACTMODEBINS + 8  )  = 3.27E-03
+         FRAC_S( ExtState%ACTMODEBINS + 9  )  = 6.81E-03
+         FRAC_S( ExtState%ACTMODEBINS + 10 )  = 1.276E-02
+         FRAC_S( ExtState%ACTMODEBINS + 11 )  = 2.155E-01
+         FRAC_S( ExtState%ACTMODEBINS + 12 )  = 6.085E-01
+
+# else
+
+         !---------------------------------------------------
+         ! TOMAS simulations with 30 or 40 size bins
+         !---------------------------------------------------        
+         FRAC_S( ExtState%ACTMODEBINS +  1 )  = 1.05d-10
+         FRAC_S( ExtState%ACTMODEBINS +  2 )  = 6.28d-10
+         FRAC_S( ExtState%ACTMODEBINS +  3 )  = 3.42d-09
+         FRAC_S( ExtState%ACTMODEBINS +  4 )  = 1.69d-08
+         FRAC_S( ExtState%ACTMODEBINS +  5 )  = 7.59d-08
+         FRAC_S( ExtState%ACTMODEBINS +  6 )  = 3.09d-07
+         FRAC_S( ExtState%ACTMODEBINS +  7 )  = 1.15d-06
+         FRAC_S( ExtState%ACTMODEBINS +  8 )  = 3.86d-06
+         FRAC_S( ExtState%ACTMODEBINS +  9 )  = 1.18d-05
+         FRAC_S( ExtState%ACTMODEBINS + 10 )  = 3.27d-05
+         FRAC_S( ExtState%ACTMODEBINS + 11 )  = 8.24d-05
+         FRAC_S( ExtState%ACTMODEBINS + 12 )  = 1.89d-04
+         FRAC_S( ExtState%ACTMODEBINS + 13 )  = 3.92d-04
+         FRAC_S( ExtState%ACTMODEBINS + 14 )  = 7.41d-04
+         FRAC_S( ExtState%ACTMODEBINS + 15 )  = 1.27d-03
+         FRAC_S( ExtState%ACTMODEBINS + 16 )  = 2.00d-03
+         FRAC_S( ExtState%ACTMODEBINS + 17 )  = 2.89d-03
+         FRAC_S( ExtState%ACTMODEBINS + 18 )  = 3.92d-03
+         FRAC_S( ExtState%ACTMODEBINS + 19 )  = 5.26d-03
+         FRAC_S( ExtState%ACTMODEBINS + 20 )  = 7.50d-03
+         FRAC_S( ExtState%ACTMODEBINS + 21 )  = 1.20d-02
+         FRAC_S( ExtState%ACTMODEBINS + 22 )  = 2.08d-02
+         FRAC_S( ExtState%ACTMODEBINS + 23 )  = 3.62d-02
+         FRAC_S( ExtState%ACTMODEBINS + 24 )  = 5.91d-02
+         FRAC_S( ExtState%ACTMODEBINS + 25 )  = 8.74d-02
+         FRAC_S( ExtState%ACTMODEBINS + 26 )  = 1.15d-01
+         FRAC_S( ExtState%ACTMODEBINS + 27 )  = 1.34d-01
+         FRAC_S( ExtState%ACTMODEBINS + 28 )  = 1.37d-01
+         FRAC_S( ExtState%ACTMODEBINS + 29 )  = 1.24d-01
+         FRAC_S( ExtState%ACTMODEBINS + 30 )  = 9.85d-02
+
+# endif
+
+      ENDIF
+
+#else
+      !=================================================================
+      ! Setup for simulations without TOMAS
+      !=================================================================
+
       ! Fill bin-specific information
       IPOINT(1:NBINS)   = (/ 3, 2, 2, 2 /)
       FRAC_S(1:NBINS)   = (/ 0.095d0, 0.3d0, 0.3d0,   0.3d0   /)
@@ -453,6 +623,14 @@
 
       ! Activate this module
       ExtState%DustGinoux = .TRUE.
+
+#if   defined( TOMAS )
+
+
+      ! Get the # of activation mode bins
+      ActModeBins = HCOX_DustGinoux_GetActModeBins()
+
+#endif
 
       ! Leave w/ success
       IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
@@ -513,16 +691,19 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION HCOX_DustGinoux_GetChDust RESULT ( CH_DUST )
+      FUNCTION HCOX_DustGinoux_GetChDust() RESULT( CH_DUST )
 !
-! !ARGUMENTS:
+! !RETURN VALUE:
 !
       REAL*8 :: CH_DUST
 !
-! !REVISION HISTORY:
-!  11 Dec 2013 - C. Keller - Initial version 
+! !REMARKS:
+!  The logic in the #ifdefs may need to be cleaned up later on.  We have 
+!  just replicated the existing code in pre-HEMCO versions of dust_mod.F.
 !
-! !NOTES: 
+! !REVISION HISTORY:
+!  11 Dec 2013 - C. Keller   - Initial version 
+!  25 Sep 2014 - R. Yantosca - Updated for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -530,23 +711,45 @@
 ! !LOCAL VARIABLES:
 !
       ! Transfer coeff for type natural source  (kg*s2/m5)
-!Prior 4/27/08
-!      REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10
-!Emission reduction factor for China-nested grid domain (win, 4/27/08)
-#if   defined( GRID4x5  )
+      ! Emission reduction factor for China-nested grid domain (win, 4/27/08)
+
+#if defined( GRID4x5 )
+
+      !---------------------------------------------------------------------
+      ! All 4x5 simulations (including TOMAS)
+      !---------------------------------------------------------------------
       CH_DUST  = 9.375d-10
 
-#elif defined( GRID1x1  ) && defined( NESTED_CH )
-      CH_DUST  = 9.375d-10 * 0.5d0
+#elif defined( GRID1x1 ) && defined( NESTED_CH )
+
+      !---------------------------------------------------------------------
       ! Note: monthly emission over the China nested-grid domain is about
       !       2 times higher compared to the same domain in 4x5 resolution
       !       Thus applying 1/2  factor to correct the emission.
+      !
+      !%%% NOTE: MAY NEED TO UPDATE THIS STATEMENT FOR HIGHER RESOLUTION
+      !%%% NESTED GRIDS.  THIS WAS ORIGINALLY DONE FOR THE GEOS-3 1x1
+      !%%% NESTED GRID.  LOOK INTO THIS LATER.  (bmy, 9/25/14)
+      !---------------------------------------------------------------------
+      CH_DUST  = 9.375d-10 * 0.5d0
+
 #else
 
+      !---------------------------------------------------------------------
+      ! All other resolutions
+      !---------------------------------------------------------------------
+
+      ! Start w/ same value as for 4x5
       CH_DUST  = 9.375d-10
+
+#if defined( TOMAS )
+      ! KLUDGE: For TOMAS simulations at grids higher than 4x5 (e.g. 2x25),
+      ! then multiplyCH_DUST by 0.75.  (Sal Farina)
+      CH_DUST  = CH_DUST * 0.75d0
+#endif
+
 #endif
       
       END FUNCTION HCOX_DustGinoux_GetChDust
 !EOC
       END MODULE HCOX_DustGinoux_Mod
-!EOM

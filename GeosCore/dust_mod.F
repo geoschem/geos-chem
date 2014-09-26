@@ -404,6 +404,205 @@
 
       END SUBROUTINE SETTLEDUST
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emissdust
+!
+! !DESCRIPTION: Subroutine EMISSDUST is the driver routine for the dust 
+!  emission module.  You may call either the GINOUX or the DEAD dust source 
+!  function. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE EMISSDUST( am_I_Root, Input_Opt, 
+     &                      State_Met, State_Chm, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD             ! ND59
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : IDTDST1
+      USE TRACERID_MOD,       ONLY : IDTDST2
+      USE TRACERID_MOD,       ONLY : IDTDST3
+      USE TRACERID_MOD,       ONLY : IDTDST4
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TRACERID_MOD,       ONLY : IDTDUST1, IDTNK1      !(win, 7/17/09)
+      USE TOMAS_MOD,          ONLY : IBINS, XK             !(win, 7/17/09)
+      USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  30 Mar 2004 - T. D. Fairlie - Initial version
+!  (1 ) Now reference LDEAD, LDUST, LPRT from "logical_mod.f".  Now reference!
+!        STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Add if condition for selecting between emitting 4-bin or 30-bin 
+!       dust.  Add emission diagnostic calculation for 30bin dust(win, 7/17/09)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  26 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, State_Met as args
+!  26 Feb 2013 - R. Yantosca - Now pass Input_Opt to SRC_DUST_GINOUX
+!  26 Feb 2013 - R. Yantosca - Changed INPUT_OPT to INTENT(IN), since we are
+!                              now no longer calling INIT_DUST from here,
+!                              it is now called in the init stage
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! SAVEd scalars
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      
+      ! Non-SAVEd scalars
+      INTEGER       :: N_TRACERS
+      LOGICAL       :: LDEAD
+      LOGICAL       :: LDUST
+      LOGICAL       :: LPRT
+      INTEGER       :: I, J, K                            !(win, 7/17/09)
+      REAL*8        :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:) => NULL()
+
+      !=================================================================
+      ! EMISSDUST begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      N_TRACERS = Input_Opt%N_TRACERS
+      LDEAD     = Input_Opt%LDEAD
+      LDUST     = Input_Opt%LDUST
+      LPRT      = Input_Opt%LPRT
+
+      ! Execute on first-call only
+      IF ( FIRST ) THEN
+
+         ! Return if dust ID flags are not defined
+         IF ( IDTDUST1 == 0 ) THEN
+            IF ( LDUST ) THEN 
+               CALL ERROR_STOP( 
+     &              'LDUST=T but dust tracers are undefined!',
+     &              'EMISSDUST ("dust_mod.f")' )
+            ENDIF
+         ENDIF
+ 
+         ! Reset first-time flag
+         FIRST = .FALSE.
+      ENDIF
+
+      !=================================================================
+      ! Call appropriate emissions routine
+      !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
+      !=================================================================
+      ! For TOMAS microphysics
+      !=================================================================
+      IF ( IDTNK1 > 0 .and. IDTDUST1 > 0 ) THEN
+
+         MINIT(:,:,1,1:IBINS) = STT(:,:,1,IDTDUST1:IDTDUST1-1+IBINS)
+
+         IF ( LDEAD ) THEN
+            ! still didn't figure out why run would crash w/ this option (win, 7/17/09)
+            print *,'Currently the TOMAS code does not work with ',
+     &           'dust DEAD emission yet!  Switch to GINOUX for now'
+            stop
+
+!            ! Use Zender's DEAD dust source function
+!            CALL SRC_DUST_DEAD( STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
+!     &                          State_Met )
+!            !### Debug
+!            IF ( LPRT ) 
+!     &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
+         ELSE 
+!            ! Use Paul Ginoux's dust source function
+!            CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
+     &                            State_Met, Input_Opt )
+            !### Debug
+            IF ( LPRT ) 
+     &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
+         ENDIF
+
+         IF ( ND59 > 0 ) THEN 
+            DO K = 1, IBINS
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               MEMIS = STT(I,J,1,IDTDUST1-1+K) - MINIT(I,J,1,K)
+               IF ( MEMIS == 0.d0 ) GOTO 10
+
+               AD59_DUST(I,J,1,K) = AD59_DUST(I,J,1,K) + MEMIS ! kg ????
+               STT(I,J,1,IDTNK1-1+K) = STT(I,J,1,IDTNK1-1+K) +
+     &                                 MEMIS / (sqrt(Xk(K)*Xk(K+1)))
+
+               AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
+     &                              MEMIS / (sqrt(Xk(K)*Xk(K+1)))
+ 10            CONTINUE
+            ENDDO
+            ENDDO
+            ENDDO
+         ENDIF
+      ENDIF
+!#else
+!      !=================================================================
+!      ! For standard GEOS-Chem simulations w/o TOMAS:
+!      !=================================================================
+!      IF ( LDEAD ) THEN
+!
+!         ! Use Zender's DEAD dust source function
+!         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4), State_Met )
+!
+!         !### Debug
+!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
+!         
+!      ELSE
+!
+!         ! Use Paul Ginoux's dust source function
+!         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4 ), 
+!     &                         State_Met,
+!     &                         Input_Opt )
+!
+!         !### Debug
+!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
+!
+!      ENDIF    
+!#endif
+
+      ! Free pointers
+      STT => NULL()
+
+      END SUBROUTINE EMISSDUST
+!EOC
 #endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

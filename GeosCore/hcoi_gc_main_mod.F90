@@ -163,6 +163,12 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE ERROR_MOD,          ONLY : ERROR_STOP
+#if defined( TOMAS ) 
+    USE TOMAS_MOD,          ONLY : IBINS
+    USE TOMAS_MOD,          ONLY : Nk
+    USE TOMAS_MOD,          ONLY : Mk
+    USE TOMAS_MOD,          ONLY : Xk
+#endif
 
     ! HEMCO routines 
     USE HCO_Config_Mod,     ONLY : Config_ReadFile
@@ -308,6 +314,23 @@ CONTAINS
        ExtState%POP_KOA   = Input_Opt%POP_KOA
        ExtState%POP_KBC   = Input_Opt%POP_KBC
     ENDIF
+
+#if defined( TOMAS )
+    !-----------------------------------------------------------------
+    ! Set constants for TOMAS simulations
+    !-----------------------------------------------------------------
+    ExtState%IBINS       =  IBINS
+    ExtState%Xk          => Xk
+
+# if defined( TOMAS40 )
+    ExtState%ACTMODEBINS =  10
+# elif defined( TOMAS15 )
+    ExtState%ACTMODEBINS =  3
+# else 
+    ExtState%ACTMODEBINS =  0
+# endif
+
+#endif
 
     !-----------------------------------------------------------------
     ! Set pointers to met fields.

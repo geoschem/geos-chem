@@ -119,6 +119,7 @@
 !  (1 ) Add BINACT1 and FRACTION1 for compositionally-resolved scavenging after
 !        OC and EC are included in the simulation (win, 9/10/07)
 !  23 Apr 2013 - R. Yantosca - Now use findFreeLUN to get file LUN's
+!  25 Sep 2014 - R. Yantosca - Add TARGET attribute to Xk for HEMCO
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -156,7 +157,7 @@
 
 
       ! Arrays
-      REAL*8,            SAVE        :: Xk(IBINS+1)
+      REAL*8,   TARGET,  SAVE        :: Xk(IBINS+1)
       REAL*4,   save,    ALLOCATABLE :: MOLWT(:)
       INTEGER,           SAVE        :: BINACT1(101,101,101)
       REAL*8,            SAVE        :: FRACTION1(101,101,101)

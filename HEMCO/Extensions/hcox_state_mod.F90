@@ -167,6 +167,13 @@ MODULE HCOX_STATE_MOD
      REAL(dp)                  :: POP_KOA     ! POP octanol-water partition coef
      REAL(dp)                  :: POP_KBC     ! POP BC-air partition coeff.
 
+     !----------------------------------------------------------------------
+     ! Quantities for TOMAS microphysics
+     !----------------------------------------------------------------------
+     INTEGER                   :: IBINS       ! # of size-resolved bins
+     INTEGER                   :: ACTMODEBINS ! # of active mode bins
+     REAL(dp),         POINTER :: Xk(:)       ! Size bin boundary 
+                                              !  in dry mass per particle
   END TYPE Ext_State
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -180,6 +187,7 @@ MODULE HCOX_STATE_MOD
 !  07 Jul 2014 - R. Yantosca - Modified for GEOS-Chem Rn-Pb-Be simulation
 !  28 Jul 2014 - C. Keller   - Added J-Values for NO2 and O3 to state obj. 
 !  20 Aug 2014 - M. Sulprizio- Modified for GEOS-Chem POPs emissions module
+!  25 Sep 2014 - R. Yantosca - Now define TOMAS quantities
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -226,6 +234,7 @@ CONTAINS
 !  15 Dec 2013 - C. Keller - Initial version
 !  23 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  23 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  25 Sep 2014 - R. Yantosca - Now initialize quantities for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -242,26 +251,33 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set all switches to FALSE
     !-----------------------------------------------------------------------
-    ExtState%Custom     = .FALSE.
-    ExtState%DustDead   = .FALSE.
-    ExtState%DustGinoux = .FALSE.
-    ExtState%LightNOx   = .FALSE.
-    ExtState%ParaNOx    = .FALSE.
-    ExtState%SoilNOx    = .FALSE.
-    ExtState%Megan      = .FALSE.
-    ExtState%SeaFlux    = .FALSE.
-    ExtState%SeaSalt    = .FALSE.
-    ExtState%GFED3      = .FALSE.
-    ExtState%FINN       = .FALSE.
-    ExtState%GC_RnPbBe  = .FALSE.
-    ExtState%GC_POPs    = .FALSE.
+    ExtState%Custom      = .FALSE.
+    ExtState%DustDead    = .FALSE.
+    ExtState%DustGinoux  = .FALSE.
+    ExtState%LightNOx    = .FALSE.
+    ExtState%ParaNOx     = .FALSE.
+    ExtState%SoilNOx     = .FALSE.
+    ExtState%Megan       = .FALSE.
+    ExtState%SeaFlux     = .FALSE.
+    ExtState%SeaSalt     = .FALSE.
+    ExtState%GFED3       = .FALSE.
+    ExtState%FINN        = .FALSE.
+    ExtState%GC_RnPbBe   = .FALSE.
+    ExtState%GC_POPs     = .FALSE.
 
     !-----------------------------------------------------------------------
     ! Initialize constants for POPs emissions module
     !-----------------------------------------------------------------------
-    ExtState%POP_DEL_H  = 0d0
-    ExtState%POP_KOA    = 0d0
-    ExtState%POP_KBC    = 0d0
+    ExtState%POP_DEL_H   = 0d0
+    ExtState%POP_KOA     = 0d0
+    ExtState%POP_KBC     = 0d0
+
+    !----------------------------------------------------------------------
+    ! Quantities for TOMAS microphysics
+    !----------------------------------------------------------------------
+    ExtState%IBINS       =  0
+    ExtState%ACTMODEBINS =  0
+    ExtState%Xk(:)       => NULL()
 
     !-----------------------------------------------------------------------
     ! Initialize all met arrays.
