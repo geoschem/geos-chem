@@ -334,8 +334,7 @@
       USE DIAG_MOD,           ONLY : AD58
 
       ! HEMCO update
-      USE HCO_DIAGN_MOD
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
 !
 ! !INPUT PARAMETERS:
@@ -405,9 +404,9 @@
       INTEGER             :: ID_TRACER(Input_Opt%N_TRACERS)
 
       INTEGER                   :: FLAG, ERR
-      CHARACTER(LEN= 63)        :: DiagnName
-      TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
-      TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
+      CHARACTER(LEN= 63)        :: DgnName
+      TYPE(HCO_STATE), POINTER  :: HcoState   => NULL()
+      REAL(hp), POINTER         :: Ptr2D(:,:) => NULL()
 
       CHARACTER(LEN=255)        :: MSG
       CHARACTER(LEN=255)        :: LOC = 'EMISSCH4 (global_ch4_mod.F)'
@@ -470,147 +469,125 @@
       ! =================================================================
 
       ! Gas and oil
-      DiagnName = 'CH4_GAS'
-      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
-     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
-     &                AutoFill=1, InclManual=.TRUE. )
-      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_GAS',LOC)
-      IF ( FLAG /= HCO_SUCCESS ) THEN
-         CALL HCO_WARNING('NO CH4_GAS emissions',ERR,THISLOC=LOC)
+      DgnName = 'CH4_GAS'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,2) = DgnCont%Arr2D%Val(:,:)
+         CH4_EMIS(:,:,2) =  Ptr2D(:,:)
       ENDIF
-      DgnCont => NULL()
+      Ptr2D => NULL()
 
       ! Coal 
-      DiagnName = 'CH4_COAL'
-      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
-     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
-     &                AutoFill=1, InclManual=.TRUE. )
-      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_COAL',LOC)
-      IF ( FLAG /= HCO_SUCCESS ) THEN
-         CALL HCO_WARNING('NO CH4_COAL emissions',ERR,THISLOC=LOC)
+      DgnName = 'CH4_COAL'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,3) = DgnCont%Arr2D%Val(:,:)
+         CH4_EMIS(:,:,3) =  Ptr2D(:,:)
       ENDIF
-      DgnCont => NULL()
+      Ptr2D => NULL()
 
       ! Livestock
-      DiagnName = 'CH4_LIVESTOCK'
-      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
-     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
-     &                AutoFill=1, InclManual=.TRUE. )
-      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_LIVESTOCK',LOC)
-      IF ( FLAG /= HCO_SUCCESS ) THEN
-         CALL HCO_WARNING('NO CH4_LIVESTOCK emissions',ERR,THISLOC=LOC)
+      DgnName = 'CH4_LIVESTOCK'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,4) = DgnCont%Arr2D%Val(:,:)
+         CH4_EMIS(:,:,4) =  Ptr2D(:,:)
       ENDIF
-      DgnCont => NULL()
+      Ptr2D => NULL()
 
       ! Waste 
-      DiagnName = 'CH4_WASTE'
-      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
-     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
-     &                AutoFill=1, InclManual=.TRUE. )
-      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_WASTE',LOC)
-      IF ( FLAG /= HCO_SUCCESS ) THEN
-         CALL HCO_WARNING('NO CH4_WASTE emissions',ERR,THISLOC=LOC)
+      DgnName = 'CH4_WASTE'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,5) = DgnCont%Arr2D%Val(:,:)
+         CH4_EMIS(:,:,5) =  Ptr2D(:,:)
       ENDIF
-      DgnCont => NULL()
+      Ptr2D => NULL()
 
       ! Biofuel 
-      DiagnName = 'CH4_BIOFUEL'
-      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
-     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
-     &                AutoFill=1, InclManual=.TRUE. )
-      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_BIOFUEL',LOC)
-      IF ( FLAG /= HCO_SUCCESS ) THEN
-         CALL HCO_WARNING('NO CH4_BIOFUEL emissions',ERR,THISLOC=LOC)
+      DgnName = 'CH4_BIOFUEL'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,6) = DgnCont%Arr2D%Val(:,:)
+         CH4_EMIS(:,:,6) =  Ptr2D(:,:)
       ENDIF
-      DgnCont => NULL()
+      Ptr2D => NULL()
 
       ! Rice 
-      DiagnName = 'CH4_RICE'
-      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
-     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
-     &                AutoFill=0, InclManual=.TRUE. )
-      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_RICE',LOC)
-      IF ( FLAG /= HCO_SUCCESS ) THEN
-         CALL HCO_WARNING('NO CH4_RICE emissions',ERR,THISLOC=LOC)
+      DgnName = 'CH4_RICE'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,7) = DgnCont%Arr2D%Val(:,:)
+         CH4_EMIS(:,:,7) =  Ptr2D(:,:)
       ENDIF
-      DgnCont => NULL()
+      Ptr2D => NULL()
 
       ! Other anthropogenic 
-      DiagnName = 'CH4_ANTHROTHER'
-      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
-     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
-     &                AutoFill=1, InclManual=.TRUE. )
-      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_ANTHROTHER',LOC)
-      IF ( FLAG /= HCO_SUCCESS ) THEN
-         CALL HCO_WARNING('NO CH4_ANTHROTHER emissions',ERR,THISLOC=LOC)
+      DgnName = 'CH4_ANTHROTHER'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,8) = DgnCont%Arr2D%Val(:,:)
+         CH4_EMIS(:,:,8) =  Ptr2D(:,:)
       ENDIF
-      DgnCont => NULL()
+      Ptr2D => NULL()
 
       ! Biomass burning 
-      DiagnName = 'CH4_BIOMASS'
-      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
-     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
-     &                AutoFill=1, InclManual=.TRUE. )
-      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_BIOMASS',LOC)
-      IF ( FLAG /= HCO_SUCCESS ) THEN
-         CALL HCO_WARNING('NO CH4_BIOMASS emissions',ERR,THISLOC=LOC)
+      DgnName = 'CH4_BIOMASS'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,9) = DgnCont%Arr2D%Val(:,:)
+         CH4_EMIS(:,:,9) =  Ptr2D(:,:)
       ENDIF
-      DgnCont => NULL()
+      Ptr2D => NULL()
 
       ! Wetland 
-      DiagnName = 'CH4_WETLAND'
-      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
-     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
-     &                AutoFill=0, InclManual=.TRUE. )
-      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_WETLAND',LOC)
-      IF ( FLAG /= HCO_SUCCESS ) THEN
-         CALL HCO_WARNING('NO CH4_WETLAND emissions',ERR,THISLOC=LOC)
+      DgnName = 'CH4_WETLAND'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,10) = DgnCont%Arr2D%Val(:,:)
+         CH4_EMIS(:,:,10) =  Ptr2D(:,:)
       ENDIF
-      DgnCont => NULL()
+      Ptr2D => NULL()
 
       ! Soil absorption (those are negative!) 
-      DiagnName = 'CH4_SOILABSORB'
-      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
-     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
-     &                AutoFill=1, InclManual=.TRUE. )
-      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_SOILABSORB',LOC)
-      IF ( FLAG /= HCO_SUCCESS ) THEN
-         CALL HCO_WARNING('NO CH4_SOILABSORB emissions',ERR,THISLOC=LOC)
+      DgnName = 'CH4_SOILABSORB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,11) = DgnCont%Arr2D%Val(:,:) * -1.0
+         CH4_EMIS(:,:,11) =  Ptr2D(:,:) * -1.0_hp
       ENDIF
-      DgnCont => NULL()
+      Ptr2D => NULL()
 
       ! Other natural 
-      DiagnName = 'CH4_OTHERNATUR'
-      CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DgnCont,
-     &                FLAG,       ERR,      cName=TRIM(DiagnName),  
-     &                AutoFill=1, InclManual=.TRUE. )
-      IF ( ERR  /= HCO_SUCCESS ) CALL ERROR_STOP('CH4_OTHERNATUR',LOC)
-      IF ( FLAG /= HCO_SUCCESS ) THEN
-         CALL HCO_WARNING('NO CH4_OTHERNATUR emissions',ERR,THISLOC=LOC)
+      DgnName = 'CH4_OTHERNATUR'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         CH4_EMIS(:,:,12) = DgnCont%Arr2D%Val(:,:)
+         CH4_EMIS(:,:,12) =  Ptr2D(:,:)
       ENDIF
-      DgnCont => NULL()
+      Ptr2D => NULL()
 
 
       ! =================================================================
