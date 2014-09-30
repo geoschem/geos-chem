@@ -451,7 +451,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: ExtNr, HcoID, I, N
-    CHARACTER(LEN=1)   :: ISTR
+    CHARACTER(LEN=1)   :: ISTR1
+    CHARACTER(LEN=2)   :: ISTR2
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
@@ -483,22 +484,23 @@ CONTAINS
        ENDIF
 
        ! Do for each dust bin
-       DO I = 1, NDSTBIN
+       DO I = 1, Input_Opt%N_DUST_BINS
 
 #if defined( TOMAS )
 
           ! Get species name (i.e. DUST1 .. DUST40) for TOMAS simulatiosn
           IF ( I < 10 )  THEN
-             WRITE( ISTR,'(i1.1)' ) I
+             WRITE( ISTR1,'(i1)' ) I
+             SpcName = 'DUST'   // ISTR1
           ELSE
-             WRITE( ISTR,'(i2.2)' ) I
+             WRITE( ISTR2,'(i2)' ) I
+             SpcName = 'DUST'   // ISTR2
           ENDIF
-          SpcName   = 'DUST'   // TRIM( ISTR    )
 #else
 
           ! Get species name (i.e. DST1 .. DST4 for non TOMAS simualtions
-          WRITE( ISTR,'(i1.1)' ) I
-          SpcName   = 'DST'   // TRIM( ISTR    )
+          WRITE( ISTR1,'(i1)' ) I
+          SpcName   = 'DST'   // ISTR1
 
 #endif
 

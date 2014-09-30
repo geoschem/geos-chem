@@ -274,6 +274,10 @@
       INTEGER            :: N_TRACERS
 
 #if   defined( TOMAS )
+      ! For ND06 diagnostics
+      CHARACTER(LEN=1)   :: ISTR1
+      CHARACTER(LEN=2)   :: ISTR2
+
       ! For ND60 TOMAS diagnostic, avoids an array temporary (bmy, 1/28/14)
       REAL*4             :: ARR2D(JJPAR,LLPAR)
 #endif
@@ -541,9 +545,31 @@
          FACTOR   = 1.0d0
 
          ! Loop over # of dust bins
-         DO N = 1, NDSTBIN 
+         DO N = 1, Input_Opt%N_DUST_BINS
 
-            ! At present we have 4 dust bins
+#if defined( TOMAS )
+
+            !----------------------------------------------------
+            ! TOMAS simulations: many dust tracers
+            !----------------------------------------------------
+
+            ! Tracer number
+            NN = IDTDUST1 + ( N - 1 )
+
+            ! Get TOMAS dust string
+            IF ( N < 10 )  THEN
+               WRITE( ISTR1,'(i1)' ) N
+               DiagnName = 'AD06_DUST' // ISTR1
+            ELSE
+               WRITE( ISTR2,'(i2)' ) N
+               DiagnName = 'AD06_DUST' // ISTR2
+            ENDIF
+
+#else
+
+            !----------------------------------------------------
+            ! Non-TOMAS simulations: 4 dust tracers
+            !----------------------------------------------------
             SELECT CASE ( N )
                CASE ( 1 )
                   NN         = IDTDST1 
@@ -558,6 +584,7 @@
                   NN         = IDTDST4
                   DiagnName  = 'AD06_DST4'
             END SELECT
+#endif
 
             ! Write HEMCO diagnostics to bpch file
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
