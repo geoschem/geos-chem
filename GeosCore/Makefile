@@ -151,6 +151,7 @@ NCDF    := $(ROOTDIR)/NcdfUtil
 GTMM    := $(ROOTDIR)/GTMM
 UTIL    := $(ROOTDIR)/GeosUtil
 GIGC    := $(ROOTDIR)/GIGC
+DYCORE  := $(GIGC)/FVdycoreCubed_GridComp
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
@@ -223,6 +224,7 @@ libnc:                                             # Build code in NcdfUtil/
 	@$(MAKE) -C $(NCDF) libnc
 
 libgigc:
+	@$(MAKE) -C $(DYCORE) install
 	@$(MAKE) -C $(GIGC) lib
 
 baselibs:
@@ -262,8 +264,8 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) -C $(HDR) clean
 	@$(MAKE) docclean
-ifeq ($(HPC),yes)
-	@$(MAKE) -C $(GIGC) clean
+ifneq ($(wildcard "$(ROOTDIR)/GIGC/GIGC.mk"),"")
+	@$(MAKE) -C $(GIGC) clean 
 endif
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
@@ -689,6 +691,8 @@ gc_biomass_mod.o            : gc_biomass_mod.F                               \
                               future_emissions_mod.o  logical_mod.o          \
                               tracerid_mod.o          tracer_mod.o    
 
+gc_type_mod.o               : gc_type_mod.F
+
 gcap_convect_mod.o          : gcap_convect_mod.F                             \
                               diag_mod.o
 
@@ -745,6 +749,50 @@ global_oc_mod.o             : global_oc_mod.F
 
 global_oh_mod.o             : global_oh_mod.F                                \
                               dao_mod.o
+
+hco_calc_mod.o		: hco_calc_mod.F90 hco_error_mod.o \
+			  hco_emisll_mod.o
+
+hco_cleanup.o		: hco_cleanup.F90       hco_type_mod.o \
+		          hco_emisll_mod.o      hco_time_mod.o \
+			  hco_readlist_mod.o    hco_exts_mod.o \
+			  hco_main_mod.o
+
+hco_config_mod.o	: hco_config_mod.F90 hco_error_mod.o \
+			  hco_emisll_mod.o   hco_type_mod.o \
+			  hco_exts_mod.o hco_readlist_mod.o
+
+hco_emisll_mod.o	: hco_emisll_mod.F90 hco_error_mod.o \
+			  hco_time_mod.o
+
+hco_error_mod.o		: hco_error_mod.F90
+
+hco_exts_mod.o		: hco_exts_mod.F90
+
+hco_grid_mod.o		: hco_grid_mod.F90 hco_type_mod.o
+
+hco_main_mod.o		: hco_main_mod.F90 hco_error_mod.o \
+			  hco_emisll_mod.o hco_time_mod.o \
+			  hco_type_mod.o   hco_calc_mod.o \
+			  hco_config_mod.o hco_grid_mod.o
+
+hco_readlist_mod.o	: hco_readlist_mod.F90 hcoi_dataread_mod.o \
+			  hco_emisll_mod.o hco_error_mod.o  \
+			  hco_type_mod.o
+
+hco_time_mod.o		: hco_time_mod.F90 hco_error_mod.o \
+			  hco_type_mod.o
+
+hco_type_mod.o		: hco_type_mod.F90 hco_error_mod.o
+
+hcoi_dataread_mod.o	: hcoi_dataread_mod.F90 hco_error_mod.o \
+			  hco_time_mod.o        hco_type_mod.o \
+			  unitconv_mod.o
+
+hcoi_esmf_mod.o		: hcoi_esmf_mod.F90 hco_error_mod.o \
+			  hco_config_mod.o hco_main_mod.o
+
+henry_mod.o		: henry_mod.F
 
 h2_hd_mod.o                 : h2_hd_mod.F                                    \
                               biofuel_mod.o           biomass_mod.o          \
@@ -1103,6 +1151,8 @@ transport_mod.o             : transport_mod.F                                \
                               tpcore_geosfp_window_mod.o                     \
                               pjc_pfix_geos5_window_mod.o                    \
                               pjc_pfix_geosfp_window_mod.o
+
+unitconv_mod.o		    : unitconv_mod.F90
 
 update.o                    : update.F
 

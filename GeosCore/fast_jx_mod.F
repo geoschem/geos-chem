@@ -1720,7 +1720,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       call SET_AER(am_I_Root)
 
       ! Read in T & O3 climatology used to fill e.g. upper layers or if O3 not calc.
-      call RD_PROF_NC( am_I_Root )
+!      if ( am_I_Root ) then
+!         call RD_PROF_NC( am_I_Root )
+!      endif
 
       NJXX = NJX
       do J = 1,NJX

@@ -44,6 +44,8 @@ MODULE Grid_Mod
   PUBLIC  :: Its_A_Nested_Grid
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
+! Make some arrays public - MSL: 7/31/14 (update from GEOS5/GEOS-Chem coupled system)
+  PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
 
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
@@ -79,16 +81,16 @@ MODULE Grid_Mod
   INTEGER              :: J0
 
   ! Arrays
-  REAL*8,  ALLOCATABLE :: XMID     (:,:,:)
-  REAL*8,  ALLOCATABLE :: XEDGE    (:,:,:)
-  REAL*8,  ALLOCATABLE :: YMID     (:,:,:)
-  REAL*8,  ALLOCATABLE :: YEDGE    (:,:,:)
-  REAL*8,  ALLOCATABLE :: YSIN     (:,:,:)
-  REAL*8,  ALLOCATABLE :: YMID_R   (:,:,:)
-  REAL*8,  ALLOCATABLE :: YEDGE_R  (:,:,:)
-  REAL*8,  ALLOCATABLE :: YMID_R_W (:,:,:)
-  REAL*8,  ALLOCATABLE :: YEDGE_R_W(:,:,:)
-  REAL*8,  ALLOCATABLE :: AREA_M2  (:,:,:)
+  REAL*8,  ALLOCATABLE, TARGET :: XMID     (:,:,:)
+  REAL*8,  ALLOCATABLE, TARGET :: XEDGE    (:,:,:)
+  REAL*8,  ALLOCATABLE, TARGET :: YMID     (:,:,:)
+  REAL*8,  ALLOCATABLE, TARGET :: YEDGE    (:,:,:)
+  REAL*8,  ALLOCATABLE, TARGET :: YSIN     (:,:,:)
+  REAL*8,  ALLOCATABLE, TARGET :: YMID_R   (:,:,:)
+  REAL*8,  ALLOCATABLE, TARGET :: YEDGE_R  (:,:,:)
+  REAL*8,  ALLOCATABLE, TARGET :: YMID_R_W (:,:,:)
+  REAL*8,  ALLOCATABLE, TARGET :: YEDGE_R_W(:,:,:)
+  REAL*8,  ALLOCATABLE, TARGET :: AREA_M2  (:,:,:)
 
 CONTAINS
 !EOC
@@ -1130,6 +1132,7 @@ CONTAINS
     !=================================================================
     ! Longitude search
     !=================================================================
+    
     DO J = 1,  1
     DO I = I1, I2
 
@@ -1146,11 +1149,13 @@ CONTAINS
 
     ! Error check lower-left longitude
     IF ( INDICES(1) == 0 ) THEN
+       write(*,*) 'OFFENDING COORDS<> ', COORDS
        CALL ERROR_STOP( 'Invalid lower-left lon index!',  LOCATION )
     ENDIF
     
     ! Error check upper-right longitude
     IF ( INDICES(3) == 0 ) THEN
+       write(*,*) 'OFFENDING COORDS<> ', COORDS
        CALL ERROR_STOP( 'Invalid upper-right lon index!', LOCATION )
     ENDIF
       

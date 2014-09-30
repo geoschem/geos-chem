@@ -110,6 +110,6 @@ help:
 ###############################################################################
 
 isoropiaIIcode.o:  isoropiaIIcode.F  isrpia.inc
-	$(F90) $(R8) -c $<
+	$(F90ISO) $(R8) -c $<
 #EOC
 
