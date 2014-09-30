@@ -569,7 +569,11 @@ CONTAINS
        ! calculation (containers may be dropped lateron because the
        ! emission category / hierarchy is too low, species is not 
        ! used, etc.). The DoShare and DtaHome flags will be set the
-       ! first time that data is read.
+       ! first time that data is read (in hco_readlist_mod.F90).
+       ! Here, we only set the DtaHome flag to -1000 instead of the
+       ! default value of -999 to be able to identify data objects 
+       ! used by multiple containers (at the moment, this is only
+       ! important for an ESMF environment).
        ! -------------------------------------------------------------
        IF ( TRIM(srcFile) == '-' ) THEN
           IF ( .NOT. ASSOCIATED(Dta) ) THEN
@@ -577,12 +581,20 @@ CONTAINS
              CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
+          Lct%Dct%DtaHome = Lct%Dct%DtaHome - 1
        ELSE
           Dta => NULL()
           CALL FileData_Init ( Dta )
 
-          ! Set source file name, file variable, and original data unit 
+          ! Set source file name, file variable, and original data unit.
+          ! In an ESMF environment, the source data will be imported 
+          ! through ExtData by name, hence need to set ncFile equal to
+          ! container name!
+#if defined(ESMF_)
+          Dta%ncFile    = cName
+#else 
           Dta%ncFile    = srcFile
+#endif
           Dta%ncPara    = srcVar
           Dta%OrigUnit  = srcUnit
 

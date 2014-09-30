@@ -51,7 +51,7 @@ MODULE HCO_ExtList_Mod
   ! an extension (as defined in the HEMCO configuration file)
   TYPE Ext 
      CHARACTER(LEN=255)       :: ExtName  ! Name
-     CHARACTER(LEN=255)       :: Spcs     ! Species
+     CHARACTER(LEN=2047)      :: Spcs     ! Species
      CHARACTER(LEN=2047)      :: Opts     ! Options
      INTEGER                  :: ExtNr    ! Ext. number
      TYPE(Ext), POINTER       :: NextExt  ! next list item
