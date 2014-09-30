@@ -63,7 +63,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Init( amIRoot, HcoState, ExtState, RC, NoExtStateInit )
+  SUBROUTINE HCOX_Init( amIRoot, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -87,7 +87,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: amIRoot        ! Are we on root CPU?
-    LOGICAL,          OPTIONAL       :: NoExtStateInit ! Don't ExtStateInit
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -108,7 +107,6 @@ CONTAINS
 !  12 Sep 2013 - C. Keller   - Initial version 
 !  07 Jul 2014 - R. Yantosca - Now init GEOS-Chem Rn-Pb-Be emissions module
 !  20 Aug 2014 - M. Sulprizio- Now init GEOS-Chem POPs emissions module
-!  29 Sep 2014 - R. Yantosca - Added optional NoExtStateInit flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -116,7 +114,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255) :: MSG
-    LOGICAL            :: doExtStateInit
 
     !=================================================================
     ! HCOX_INIT begins here!
@@ -126,23 +123,11 @@ CONTAINS
     CALL HCO_ENTER ('HCOX_INIT (hcox_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! By default we will initialize the ExtState object, 
-    ! unless we have specified NoExtStateInit = .FALSE.
-    IF ( PRESENT( NoExtStateInit ) ) THEN
-       doExtStateInit = ( .not. NoExtStateInit )
-    ELSE
-       doExtStateInit = .TRUE.
-    ENDIF
-
     !=================================================================
     ! Initialize extensions 
     !=================================================================
-
-    ! Initialize the ExtState object (if necessary)
-    IF ( doExtStateInit ) THEN
-       CALL ExtStateInit( ExtState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
+    CALL ExtStateInit( ExtState, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
     ! Custom 
