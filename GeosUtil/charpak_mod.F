@@ -295,6 +295,7 @@ c     PURPOSE: Write all of the characters in str1 into variable
 !  (4 ) N_SUBSTRS (INTEGER      ) : Number of substrings returned (optional)
 !
 !  NOTES:
+!  30 Sep 2014 - R. Yantosca - WORD now has 2047 chars for extra-long strings
 !******************************************************************************
 !
       ! Arguments
@@ -305,7 +306,7 @@ c     PURPOSE: Write all of the characters in str1 into variable
 
       ! Local variables
       INTEGER                                 :: I, IFLAG, COL
-      CHARACTER (LEN=255)                     :: WORD
+      CHARACTER(LEN=2047)                     :: WORD
 
       !=================================================================
       ! STRSPLIT begins here!

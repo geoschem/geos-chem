@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -114,7 +114,7 @@ MODULE HCO_Config_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -148,8 +148,10 @@ CONTAINS
     INTEGER,            INTENT(INOUT) :: RC          ! Success?
 !
 ! !REVISION HISTORY:
-!  17 Sep 2012 - C. Keller: Initialization
-!  03 Jan 2014 - C. Keller: Now use Config_ReadCont calls.
+!  17 Sep 2012 - C. Keller   - Initialization
+!  03 Jan 2014 - C. Keller   - Now use Config_ReadCont calls.
+!  30 Sep 2014 - R. Yantosca - Now declare LINE w/ 2047 characters.  This lets
+!                              us handle extra-long species lists
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -157,8 +159,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: IU_HCO, IOS
-    LOGICAL              :: AIR, EOF
-    CHARACTER(LEN=255)   :: LINE, MSG, LOC
+    LOGICAL              :: AIR,    EOF
+    CHARACTER(LEN=255)   :: MSG,    LOC
+    CHARACTER(LEN=2047)  :: LINE
 
     !======================================================================
     ! Config_ReadFile begins here
@@ -269,7 +272,7 @@ CONTAINS
   END SUBROUTINE Config_ReadFile
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -356,7 +359,7 @@ CONTAINS
   END SUBROUTINE SetReadList 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -679,7 +682,7 @@ CONTAINS
   END SUBROUTINE Config_ReadCont
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -709,7 +712,9 @@ CONTAINS
     INTEGER, INTENT(INOUT) :: RC          ! Success/failure
 !
 ! !REVISION HISTORY:
-!  17 Sep 2013 - C. Keller: Initialization (update)
+!  17 Sep 2013 - C. Keller   - Initialization (update)
+!  30 Sep 2014 - R. Yantosca - Declare SUBSTR and SPECS w/ 2047 characters,
+!                              which lets us handle extra-long species lists
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -718,9 +723,10 @@ CONTAINS
 !
     INTEGER               :: I, N, Idx, ExtNr
     LOGICAL               :: Enabled
-    CHARACTER(LEN=255)    :: LINE, LOC 
-    CHARACTER(LEN=255)    :: SUBSTR(255), SPECS(255) 
+    CHARACTER(LEN=255)    :: LOC
     CHARACTER(LEN=1023)   :: OPTS
+    CHARACTER(LEN=2047)   :: LINE
+    CHARACTER(LEN=2047)   :: SUBSTR(255), SPECS(255)
 
     !======================================================================
     ! ExtSwitch2Buffer begins here
@@ -758,7 +764,7 @@ CONTAINS
 
        ! Split character string
        CALL STRREPL ( LINE, HCO_TAB(), HCO_TAB() )
-       CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N ) 
+       CALL STRSPLIT( LINE, HCO_SPC(), SUBSTR, N )    
 
        ! Jump to next line if this line is empty
        IF ( N <= 1 ) CYCLE
@@ -806,7 +812,7 @@ CONTAINS
   END SUBROUTINE ExtSwitch2Buffer
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -927,7 +933,7 @@ CONTAINS
   END SUBROUTINE ReadSettings
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -959,7 +965,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: IOS
-    CHARACTER(LEN=255) :: LINE, MSG
+!    CHARACTER(LEN=255) :: LINE, MSG
+    CHARACTER(LEN=255)  :: MSG
+    CHARACTER(LEN=2047) :: LINE
 
     !=================================================================
     ! Config_ReadLine begins here!
@@ -989,7 +997,7 @@ CONTAINS
   END FUNCTION Config_ReadLine
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1153,7 +1161,7 @@ CONTAINS
   END SUBROUTINE RegisterPrepare
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1351,7 +1359,7 @@ CONTAINS
   END SUBROUTINE Register_Base
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1483,7 +1491,7 @@ CONTAINS
   END SUBROUTINE Register_Scal
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1813,7 +1821,7 @@ CONTAINS
   END SUBROUTINE Get_targetID
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1872,7 +1880,7 @@ CONTAINS
   END FUNCTION Calc_Coverage
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2141,7 +2149,7 @@ CONTAINS
   END SUBROUTINE ReadAndSplit_Line
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2244,7 +2252,7 @@ CONTAINS
   END SUBROUTINE ListCont_Remove
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2281,7 +2289,7 @@ CONTAINS
   END SUBROUTINE Config_Cleanup
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2363,7 +2371,7 @@ CONTAINS
   END SUBROUTINE Get_cID
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2402,7 +2410,7 @@ CONTAINS
   END SUBROUTINE GetNextCont
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2458,7 +2466,7 @@ CONTAINS
   END SUBROUTINE ConfigList_AddCont
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2534,7 +2542,7 @@ CONTAINS
   END SUBROUTINE ScalID_Register
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2584,7 +2592,7 @@ CONTAINS
   END SUBROUTINE ScalID_Cleanup
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2658,7 +2666,7 @@ CONTAINS
   END SUBROUTINE SpecName_Register
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2707,7 +2715,7 @@ CONTAINS
   END SUBROUTINE SpecName_Cleanup
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2744,7 +2752,7 @@ CONTAINS
   END FUNCTION Config_GetnSpecies
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2781,7 +2789,7 @@ CONTAINS
   END SUBROUTINE Config_GetSpecNames
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2869,7 +2877,7 @@ CONTAINS
   END SUBROUTINE Config_GetSpecAttr
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2940,7 +2948,7 @@ CONTAINS
   END FUNCTION Config_ScalIDinUse
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3008,4 +3016,3 @@ CONTAINS
   END FUNCTION Check_ContNames
 !EOC
 END MODULE HCO_Config_Mod
-!EOM

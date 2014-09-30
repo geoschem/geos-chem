@@ -537,7 +537,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, &
-                                  SpcNames, nSpc,  RC       ) 
+                              SpcNames, nSpc,  RC       ) 
 !
 ! !USES:
 !
@@ -568,11 +568,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL ARGUMENTS:
+! !LOCAL VARIABLES:
 !
-    INTEGER                   :: I, AS
-    CHARACTER(LEN=255)        :: MSG, LOC
-    CHARACTER(LEN=2047)       :: SpcStr, SUBSTR(255)
+    INTEGER             :: I,      AS
+    CHARACTER(LEN=255)  :: MSG,    LOC
+    CHARACTER(LEN=2047) :: SpcStr, SUBSTR(255)
 
     !======================================================================
     ! HCO_GetExtHcoID begins here

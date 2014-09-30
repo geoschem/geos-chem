@@ -41,6 +41,8 @@ MODULE HCO_ExtList_Mod
 !  02 Oct 2013 - C. Keller   - Initial version
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  30 Sep 2014 - R. Yantosca - ThisExt%Spcs now has 2047 chars for extensions
+!                              having many individual species
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -477,7 +479,6 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
