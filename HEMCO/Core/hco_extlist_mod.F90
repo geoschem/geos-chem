@@ -463,17 +463,17 @@ CONTAINS
 !
   SUBROUTINE GetExtSpcStr( ExtNr, SpcStr, RC ) 
 !
-! !INPUT ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-    INTEGER,                       INTENT(IN   )    :: ExtNr  ! Extension Nr. 
+    INTEGER,          INTENT(IN   ) :: ExtNr    ! Extension Nr. 
 !
-! !OUTPUT ARGUMENTS:
+! !OUTPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),              INTENT(  OUT)    :: SpcStr ! Species string
+    CHARACTER(LEN=*), INTENT(  OUT) :: SpcStr   ! Species string
 !
-! !INPUT/OUTPUT ARGUMENTS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,                       INTENT(INOUT)    :: RC 
+    INTEGER,          INTENT(INOUT) :: RC       ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
@@ -492,7 +492,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    LOC = 'GetExtSpcStr (HCO_EXTLIST_MOD.F90)'
+    LOC = 'GetExtSpcStr (hco_extlist_mod.F90)'
     RC  = HCO_SUCCESS
 
     ! Find extension of interest 

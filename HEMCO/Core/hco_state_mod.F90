@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -160,7 +160,7 @@ MODULE HCO_State_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -329,7 +329,7 @@ CONTAINS
   END SUBROUTINE HcoState_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -399,7 +399,7 @@ CONTAINS
   END SUBROUTINE HcoState_Final
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -463,7 +463,7 @@ CONTAINS
   END FUNCTION HCO_GetModSpcID
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -523,7 +523,7 @@ CONTAINS
   END FUNCTION HCO_GetHcoID
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -545,20 +545,20 @@ CONTAINS
     USE HCO_EXTLIST_MOD,     ONLY : GetExtSpcStr
     USE HCO_CHARTOOLS_MOD,   ONLY : HCO_SEP
 !
-! !INPUT ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-    TYPE(HCO_State),               POINTER          :: HcoState 
-    INTEGER,                       INTENT(IN   )    :: ExtNr       ! Extension Nr. 
+    TYPE(HCO_State),               POINTER       :: HcoState 
+    INTEGER,                       INTENT(IN   ) :: ExtNr       ! Extension # 
 !
-! !OUTPUT ARGUMENTS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,          ALLOCATABLE, INTENT(  OUT)    :: HcoIDs(:)   ! Species IDs
+    INTEGER,          ALLOCATABLE, INTENT(  OUT) :: HcoIDs(:)   ! Species IDs
 !
-! !INPUT/OUTPUT ARGUMENTS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), ALLOCATABLE, INTENT(INOUT)    :: SpcNames(:) ! Species names
-    INTEGER,                       INTENT(INOUT)    :: nSpc        ! # of species
-    INTEGER,                       INTENT(INOUT)    :: RC 
+    CHARACTER(LEN=*), ALLOCATABLE, INTENT(INOUT) :: SpcNames(:) ! Species names
+    INTEGER,                       INTENT(INOUT) :: nSpc        ! # of species
+    INTEGER,                       INTENT(INOUT) :: RC          ! Success/fail
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
@@ -578,10 +578,10 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    LOC = 'HCO_GetExtHcoID (HCO_STATE_MOD.F90)'
+    LOC = 'HCO_GetExtHcoID (hco_state_mod.F90)'
 
     ! Get all species names belonging to extension Nr. ExtNr
-    CALL GetExtSpcStr ( ExtNr, SpcStr, RC )
+    CALL GetExtSpcStr( ExtNr, SpcStr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Split character
