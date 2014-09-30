@@ -548,7 +548,7 @@
          ELSE 
 !            ! Use Paul Ginoux's dust source function
 !            CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
-     &                            State_Met, Input_Opt )
+!     &                            State_Met, Input_Opt )
             !### Debug
             IF ( LPRT ) 
      &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
@@ -1614,15 +1614,19 @@
       INTEGER            :: I
       INTEGER            :: BIN
       REAL*8,  PARAMETER :: PI = 3.14159265d0  !(win, 7/17/09)
-      INTEGER            :: ACTMODEBINS        !(scf, 2/27/13)
-
-# if   defined( TOMAS40 )
-      ACTMODEBINS = 10  !10 activation mode size bins
-# elif defined( TOMAS15 )
-      ACTMODEBINS = 3   !3  activation mode size bins
-# else
-      ACTMODEBINS = 0   !no bins < 10nm
-# endif
+!------------------------------------------------------------------------------
+! Prior to 9/29/14:
+! This is now defined in hcox_dustginoux_mod.F90
+!      INTEGER            :: ACTMODEBINS        !(scf, 2/27/13)
+!
+!# if   defined( TOMAS40 )
+!      ACTMODEBINS = 10  !10 activation mode size bins
+!# elif defined( TOMAS15 )
+!      ACTMODEBINS = 3   !3  activation mode size bins
+!# else
+!      ACTMODEBINS = 0   !no bins < 10nm
+!# endif
+!------------------------------------------------------------------------------
 
 #endif
 
@@ -1685,77 +1689,81 @@
       !----------------------------------
       IF ( .not. LDEAD ) THEN
 
-         ! Allocate the FRAC_S array
-         ALLOCATE( FRAC_S( NDSTBIN ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_S' )
-         
-         IF ( NDSTBIN == 4 ) THEN
-
-            ! 4 dust bins
-            FRAC_S(1) = 0.095d0
-            FRAC_S(2) =   0.3d0
-            FRAC_S(3) =   0.3d0
-            FRAC_S(4) =   0.3d0
-
-         ELSE IF ( NDSTBIN == IBINS ) THEN
-
-            DO I = 1, IBINS
-               FRAC_S( I )  = 0.00d-00 !scf initialize
-                                       !first few bins in TOMAS15/40 frac_s = 0.0d0
-            ENDDO
-
-# if  defined( TOMAS12 ) || defined( TOMAS15 )
-
-            FRAC_S(ACTMODEBINS + 1  )  = 7.33E-10
-            FRAC_S(ACTMODEBINS + 2  )  = 2.032E-08
-            FRAC_S(ACTMODEBINS + 3  )  = 3.849E-07
-            FRAC_S(ACTMODEBINS + 4  )  = 5.01E-06
-            FRAC_S(ACTMODEBINS + 5  )  = 4.45E-05
-            FRAC_S(ACTMODEBINS + 6  )  = 2.714E-04
-            FRAC_S(ACTMODEBINS + 7  )  = 1.133E-03
-            FRAC_S(ACTMODEBINS + 8  )  = 3.27E-03
-            FRAC_S(ACTMODEBINS + 9  )  = 6.81E-03
-            FRAC_S(ACTMODEBINS + 10 )  = 1.276E-02
-            FRAC_S(ACTMODEBINS + 11 )  = 2.155E-01
-            FRAC_S(ACTMODEBINS + 12 )  = 6.085E-01
-
-# else
-! else TOMAS30 or 40
-
-            FRAC_S( ACTMODEBINS +  1 )  = 1.05d-10
-            FRAC_S( ACTMODEBINS +  2 )  = 6.28d-10
-            FRAC_S( ACTMODEBINS +  3 )  = 3.42d-09
-            FRAC_S( ACTMODEBINS +  4 )  = 1.69d-08
-            FRAC_S( ACTMODEBINS +  5 )  = 7.59d-08
-            FRAC_S( ACTMODEBINS +  6 )  = 3.09d-07
-            FRAC_S( ACTMODEBINS +  7 )  = 1.15d-06
-            FRAC_S( ACTMODEBINS +  8 )  = 3.86d-06
-            FRAC_S( ACTMODEBINS +  9 )  = 1.18d-05
-            FRAC_S( ACTMODEBINS + 10 )  = 3.27d-05
-            FRAC_S( ACTMODEBINS + 11 )  = 8.24d-05
-            FRAC_S( ACTMODEBINS + 12 )  = 1.89d-04
-            FRAC_S( ACTMODEBINS + 13 )  = 3.92d-04
-            FRAC_S( ACTMODEBINS + 14 )  = 7.41d-04
-            FRAC_S( ACTMODEBINS + 15 )  = 1.27d-03
-            FRAC_S( ACTMODEBINS + 16 )  = 2.00d-03
-            FRAC_S( ACTMODEBINS + 17 )  = 2.89d-03
-            FRAC_S( ACTMODEBINS + 18 )  = 3.92d-03
-            FRAC_S( ACTMODEBINS + 19 )  = 5.26d-03
-            FRAC_S( ACTMODEBINS + 20 )  = 7.50d-03
-            FRAC_S( ACTMODEBINS + 21 )  = 1.20d-02
-            FRAC_S( ACTMODEBINS + 22 )  = 2.08d-02
-            FRAC_S( ACTMODEBINS + 23 )  = 3.62d-02
-            FRAC_S( ACTMODEBINS + 24 )  = 5.91d-02
-            FRAC_S( ACTMODEBINS + 25 )  = 8.74d-02
-            FRAC_S( ACTMODEBINS + 26 )  = 1.15d-01
-            FRAC_S( ACTMODEBINS + 27 )  = 1.34d-01
-            FRAC_S( ACTMODEBINS + 28 )  = 1.37d-01
-            FRAC_S( ACTMODEBINS + 29 )  = 1.24d-01
-            FRAC_S( ACTMODEBINS + 30 )  = 9.85d-02
-
-# endif
-
-         ENDIF
+!------------------------------------------------------------------------------
+! This is now defined in hcox_dustginoux_mod.F90
+!
+!         ! Allocate the FRAC_S array
+!         ALLOCATE( FRAC_S( NDSTBIN ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_S' )
+!         
+!         IF ( NDSTBIN == 4 ) THEN
+!
+!            ! 4 dust bins
+!            FRAC_S(1) = 0.095d0
+!            FRAC_S(2) =   0.3d0
+!            FRAC_S(3) =   0.3d0
+!            FRAC_S(4) =   0.3d0
+!
+!         ELSE IF ( NDSTBIN == IBINS ) THEN
+!
+!            DO I = 1, IBINS
+!               FRAC_S( I )  = 0.00d-00 !scf initialize
+!                                       !first few bins in TOMAS15/40 frac_s = 0.0d0
+!            ENDDO
+!
+!# if  defined( TOMAS12 ) || defined( TOMAS15 )
+!
+!            FRAC_S(ACTMODEBINS + 1  )  = 7.33E-10
+!            FRAC_S(ACTMODEBINS + 2  )  = 2.032E-08
+!            FRAC_S(ACTMODEBINS + 3  )  = 3.849E-07
+!            FRAC_S(ACTMODEBINS + 4  )  = 5.01E-06
+!            FRAC_S(ACTMODEBINS + 5  )  = 4.45E-05
+!            FRAC_S(ACTMODEBINS + 6  )  = 2.714E-04
+!            FRAC_S(ACTMODEBINS + 7  )  = 1.133E-03
+!            FRAC_S(ACTMODEBINS + 8  )  = 3.27E-03
+!            FRAC_S(ACTMODEBINS + 9  )  = 6.81E-03
+!            FRAC_S(ACTMODEBINS + 10 )  = 1.276E-02
+!            FRAC_S(ACTMODEBINS + 11 )  = 2.155E-01
+!            FRAC_S(ACTMODEBINS + 12 )  = 6.085E-01
+!
+!# else
+!! else TOMAS30 or 40
+!
+!            FRAC_S( ACTMODEBINS +  1 )  = 1.05d-10
+!            FRAC_S( ACTMODEBINS +  2 )  = 6.28d-10
+!            FRAC_S( ACTMODEBINS +  3 )  = 3.42d-09
+!            FRAC_S( ACTMODEBINS +  4 )  = 1.69d-08
+!            FRAC_S( ACTMODEBINS +  5 )  = 7.59d-08
+!            FRAC_S( ACTMODEBINS +  6 )  = 3.09d-07
+!            FRAC_S( ACTMODEBINS +  7 )  = 1.15d-06
+!            FRAC_S( ACTMODEBINS +  8 )  = 3.86d-06
+!            FRAC_S( ACTMODEBINS +  9 )  = 1.18d-05
+!            FRAC_S( ACTMODEBINS + 10 )  = 3.27d-05
+!            FRAC_S( ACTMODEBINS + 11 )  = 8.24d-05
+!            FRAC_S( ACTMODEBINS + 12 )  = 1.89d-04
+!            FRAC_S( ACTMODEBINS + 13 )  = 3.92d-04
+!            FRAC_S( ACTMODEBINS + 14 )  = 7.41d-04
+!            FRAC_S( ACTMODEBINS + 15 )  = 1.27d-03
+!            FRAC_S( ACTMODEBINS + 16 )  = 2.00d-03
+!            FRAC_S( ACTMODEBINS + 17 )  = 2.89d-03
+!            FRAC_S( ACTMODEBINS + 18 )  = 3.92d-03
+!            FRAC_S( ACTMODEBINS + 19 )  = 5.26d-03
+!            FRAC_S( ACTMODEBINS + 20 )  = 7.50d-03
+!            FRAC_S( ACTMODEBINS + 21 )  = 1.20d-02
+!            FRAC_S( ACTMODEBINS + 22 )  = 2.08d-02
+!            FRAC_S( ACTMODEBINS + 23 )  = 3.62d-02
+!            FRAC_S( ACTMODEBINS + 24 )  = 5.91d-02
+!            FRAC_S( ACTMODEBINS + 25 )  = 8.74d-02
+!            FRAC_S( ACTMODEBINS + 26 )  = 1.15d-01
+!            FRAC_S( ACTMODEBINS + 27 )  = 1.34d-01
+!            FRAC_S( ACTMODEBINS + 28 )  = 1.37d-01
+!            FRAC_S( ACTMODEBINS + 29 )  = 1.24d-01
+!            FRAC_S( ACTMODEBINS + 30 )  = 9.85d-02
+!
+!# endif
+!
+!         ENDIF
+!------------------------------------------------------------------------------
 
          ! Match dry depositing tracer in drydep list with NK1-NK30
          DO BIN = 1, IBINS
@@ -1784,12 +1792,16 @@
       Input_Opt%DUSTDEN(1:NDSTBIN) = (/ 2500.d0, 2650.d0, 
      &                                  2650.d0, 2650.d0 /)
 
-      ! These only have to be allocated for the Ginoux source function
-      IF ( .not. LDEAD ) THEN
-         ALLOCATE( FRAC_S( NDSTBIN ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_S' )
-         FRAC_S(1:NDSTBIN)   = (/ 0.095d0, 0.3d0, 0.3d0, 0.3d0 /)
-      ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 9/29/14:
+! This is now defined in hcox_dustginoux_mod.F90 (bmy, 9/29/14)
+!      ! These only have to be allocated for the Ginoux source function
+!      IF ( .not. LDEAD ) THEN
+!         ALLOCATE( FRAC_S( NDSTBIN ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_S' )
+!         FRAC_S(1:NDSTBIN)   = (/ 0.095d0, 0.3d0, 0.3d0, 0.3d0 /)
+!      ENDIF
+!-----------------------------------------------------------------------------
 
       ! Find drydep species in DEPSAV
       IF( Input_Opt%LDRYD ) THEN

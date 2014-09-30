@@ -165,18 +165,19 @@ CONTAINS
     USE ERROR_MOD,          ONLY : ERROR_STOP
 #if defined( TOMAS ) 
     USE TOMAS_MOD,          ONLY : IBINS
-    USE TOMAS_MOD,          ONLY : Nk
-    USE TOMAS_MOD,          ONLY : Mk
     USE TOMAS_MOD,          ONLY : Xk
 #endif
 
     ! HEMCO routines 
     USE HCO_Config_Mod,     ONLY : Config_ReadFile
     USE HCO_State_Mod,      ONLY : HcoState_Init
-    USE HCO_Driver_Mod,     ONLY : HCO_INIT
-    USE HCOX_Driver_Mod,    ONLY : HCOX_INIT
-    USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_DIAGN_INIT
+    USE HCO_Driver_Mod,     ONLY : HCO_Init
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
+    USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_DIagn_Init
+    USE HCOX_Driver_Mod,    ONLY : HCOX_Init
+    USE HCOX_State_Mod,     ONLY : ExtStateInit
+
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -290,47 +291,57 @@ CONTAINS
     ! the HEMCO configuration file is removed from buffer in this
     ! step. Also initializes the HEMCO clock
     !=================================================================
-    CALL HCO_INIT( am_I_Root, HcoState, HMRC )
+    CALL HCO_Init( am_I_Root, HcoState, HMRC )
     IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
 
     !=================================================================
-    ! Initialize extensions.
-    ! This initializes all (enabled) extensions and selects all met.
-    ! fields needed by them. 
+    ! Initialize the ExtState object
+    !
+    ! NOTE: This used to be done in routine HCOX_INIT.  Moved this
+    ! call here so that we pass some additional quantities to HEMCO
+    ! via scalar or logical fields of ExtState. (bmy, 9/29/14)
     !=================================================================
-    CALL HCOX_INIT( am_I_Root, HcoState, ExtState, HMRC )
+
+    ! Initialize extension object
+    CALL ExtStateInit( ExtState, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Define fields of ExtState to be passed to HEMCO
+    ExtState%N_DUST_BINS    =  Input_Opt%N_DUST_BINS   ! # of dust bins
+
+#if defined( TOMAS )
+    ExtState%IBINS          =  IBINS                   ! # of TOMAS size bins
+    ExtState%Xk             => Xk                      ! Size bin edges
+
+# if defined( TOMAS40 )
+    ExtState%ACTMODEBINS    =  10                      ! # of activation
+# elif defined( TOMAS15 )                              ! mode bins for TOMAS
+    ExtState%ACTMODEBINS    =  3
+# else 
+    ExtState%ACTMODEBINS    =  0
+# endif
+#endif
+
+    !=================================================================
+    ! Initialize all HEMCO extensions.  
+    ! Also selects the required met fields used by each extension.
+    !=================================================================
+    CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC, NoExtStateInit=.TRUE. )
     IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
 
     !-----------------------------------------------------------------
     ! Update logical switches in Input_Opt 
     !-----------------------------------------------------------------
-    Input_Opt%LSOILNOX = ExtState%SoilNOx
+    Input_Opt%LSOILNOX      = ExtState%SoilNOx
 
     !-----------------------------------------------------------------
     ! Set constants for POPs simulation
     !-----------------------------------------------------------------
     IF ( ExtState%GC_POPs ) THEN
-       ExtState%POP_DEL_H = Input_Opt%POP_DEL_H
-       ExtState%POP_KOA   = Input_Opt%POP_KOA
-       ExtState%POP_KBC   = Input_Opt%POP_KBC
+       ExtState%POP_DEL_H   = Input_Opt%POP_DEL_H
+       ExtState%POP_KOA     = Input_Opt%POP_KOA
+       ExtState%POP_KBC     = Input_Opt%POP_KBC
     ENDIF
-
-#if defined( TOMAS )
-    !-----------------------------------------------------------------
-    ! Set constants for TOMAS simulations
-    !-----------------------------------------------------------------
-    ExtState%IBINS       =  IBINS
-    ExtState%Xk          => Xk
-
-# if defined( TOMAS40 )
-    ExtState%ACTMODEBINS =  10
-# elif defined( TOMAS15 )
-    ExtState%ACTMODEBINS =  3
-# else 
-    ExtState%ACTMODEBINS =  0
-# endif
-
-#endif
 
     !-----------------------------------------------------------------
     ! Set pointers to met fields.

@@ -589,6 +589,7 @@ MODULE GIGC_Input_Opt_Mod
      ! set in the init stage based on info 
      ! from file "input.geos". (mlong, 1/5/13)
      !----------------------------------------
+     INTEGER                     :: N_DUST_BINS
      INTEGER                     :: NUMDEP
      INTEGER,            POINTER :: NDVZIND(:)
      INTEGER,            POINTER :: IDDEP(:)
@@ -651,6 +652,7 @@ MODULE GIGC_Input_Opt_Mod
 !  16 Apr 2014 - M. Sulprizio- Add field for PSC restart file
 !  23 Jun 2014 - R. Yantosca - Add POP_EMISDIR field for POPs simlulation
 !  25 Jun 2014 - R. Yantosca - Now add Input_Opt%SIM_TYPE field
+!  29 Sep 2014 - R. Yantosca - Now add Input_Opt%N_DUST_BINS field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1406,6 +1408,7 @@ CONTAINS
     ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ), STAT=RC ) ! Dust_mod
     ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ), STAT=RC ) ! Dust_mod
 
+    Input_Opt%N_DUST_BINS            = NDSTBIN
     Input_Opt%NUMDEP                 = 0
     Input_Opt%NDVZIND                = 0
     Input_Opt%IDDEP                  = 0

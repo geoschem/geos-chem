@@ -1,4 +1,3 @@
-!EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -64,7 +63,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Init( amIRoot, HcoState, ExtState, RC )
+  SUBROUTINE HCOX_Init( amIRoot, HcoState, ExtState, RC, NoExtStateInit )
 !
 ! !USES:
 !
@@ -87,18 +86,29 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: amIRoot    ! root CPU?
+    LOGICAL,          INTENT(IN   )  :: amIRoot        ! Are we on root CPU?
+    LOGICAL,          OPTIONAL       :: NoExtStateInit ! Don't ExtStateInit
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
-    TYPE(Ext_State),  POINTER        :: ExtState   ! HEMCO extension object 
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(HCO_State),  POINTER        :: HcoState       ! HEMCO state object 
+    TYPE(Ext_State),  POINTER        :: ExtState       ! HEMCO extension object 
+    INTEGER,          INTENT(INOUT)  :: RC             ! Failure or success
+!
+! !REMARKS:
+!  By default we will call routine ExtStateInit, which initializes the
+!  ExtState object.  In some instances, we may want to call ExtStateInit
+!  from a higher-level routine.  For example, this allows us to pass
+!  via ExtState additional scalar quantities from the driving model to
+!  HEMCO.  To do this, you will need to (1) call ExtStateInit separately,
+!  and (2) set the optional argument NoExtStateInit=.FALSE. flag in the 
+!  call to HCOX_INIT.
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
 !  07 Jul 2014 - R. Yantosca - Now init GEOS-Chem Rn-Pb-Be emissions module
 !  20 Aug 2014 - M. Sulprizio- Now init GEOS-Chem POPs emissions module
+!  29 Sep 2014 - R. Yantosca - Added optional NoExtStateInit flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -106,6 +116,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255) :: MSG
+    LOGICAL            :: doExtStateInit
 
     !=================================================================
     ! HCOX_INIT begins here!
@@ -115,13 +126,23 @@ CONTAINS
     CALL HCO_ENTER ('HCOX_INIT (hcox_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! By default we will initialize the ExtState object, 
+    ! unless we have specified NoExtStateInit = .FALSE.
+    IF ( PRESENT( NoExtStateInit ) ) THEN
+       doExtStateInit = ( .not. NoExtStateInit )
+    ELSE
+       doExtStateInit = .TRUE.
+    ENDIF
+
     !=================================================================
     ! Initialize extensions 
     !=================================================================
 
-    ! Initialize extension object
-    CALL ExtStateInit ( ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Initialize the ExtState object (if necessary)
+    IF ( doExtStateInit ) THEN
+       CALL ExtStateInit( ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Custom 
