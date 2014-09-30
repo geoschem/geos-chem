@@ -46,8 +46,11 @@ CONTAINS
 ! !IROUTINE: HCOIO_DataRead (ESMF/MAPL version)
 !
 ! !DESCRIPTION: Interface routine between ESMF and HEMCO to obtain
-! the data array for a given HEMCO data container. 
-!
+! the data array for a given HEMCO data container. The data is obtained
+! through the ExtData interface. The HEMCO source file attribute is taken
+! to identify the ExtData pointer name.
+!\\
+!\\
 ! NOTE/TODO: For now, all arrays are copied into the HEMCO data array. 
 ! We may directly point to the ESMF arrays in future. In this case, we
 ! may have to force the target ID to be equal to the container ID (the
@@ -110,13 +113,13 @@ CONTAINS
     !-----------------------------------------------------------------
     IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
 
-         ! Get data
+       ! Get data
        CALL MAPL_GetPointer( IMPORT, Ptr3D, &
-                             TRIM(Lct%Dct%cName), RC=STAT )
+                             TRIM(Lct%Dct%Dta%ncFile), RC=STAT )
 
        ! Check for MAPL error
        IF( MAPL_VRFY(STAT,LOC,1) ) THEN
-          MSG = 'Cannot get xyz pointer: ' // TRIM(Lct%Dct%cName)
+          MSG = 'Cannot get xyz pointer: ' // TRIM(Lct%Dct%Dta%ncFile)
           CALL HCO_ERROR ( MSG, RC ) 
           RETURN
        ENDIF
@@ -141,12 +144,12 @@ CONTAINS
 
        ! Get data
        CALL MAPL_GetPointer( IMPORT, Ptr2D, &
-                             TRIM(Lct%Dct%cName), RC=STAT )
+                             TRIM(Lct%Dct%Dta%ncFile), RC=STAT )
 
 
        ! Check for MAPL error 
        IF( MAPL_VRFY(STAT,LOC,2) ) THEN
-          MSG = 'Cannot get xy pointer: ' // TRIM(Lct%Dct%cName)
+          MSG = 'Cannot get xy pointer: ' // TRIM(Lct%Dct%Dta%ncFile)
           CALL HCO_ERROR ( MSG, RC ) 
           RETURN
        ENDIF

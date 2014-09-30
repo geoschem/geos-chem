@@ -562,7 +562,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
-!
+!  29 Sep 2014 - C. Keller: Now allows species lists up to 2047 instead of 255
+!                           characters.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -571,7 +572,7 @@ CONTAINS
 !
     INTEGER                   :: I, AS
     CHARACTER(LEN=255)        :: MSG, LOC
-    CHARACTER(LEN=255)        :: SpcStr, SUBSTR(255)
+    CHARACTER(LEN=2047)       :: SpcStr, SUBSTR(255)
 
     !======================================================================
     ! HCO_GetExtHcoID begins here
@@ -584,7 +585,7 @@ CONTAINS
     CALL GetExtSpcStr( ExtNr, SpcStr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Split character
+    ! Split character into species string. 
     CALL STRSPLIT( SpcStr, HCO_SEP(), SUBSTR, nSpc )
 
     ! Find extension of interest 

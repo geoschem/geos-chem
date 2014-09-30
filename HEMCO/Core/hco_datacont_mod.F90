@@ -70,9 +70,9 @@
 !       HCO\_FILEDATA\_MOD for more information.
 ! \item DtaHome: a data container only holds a pointer to a file data
 !       object, i.e. it is possible that multiple containers share the
-!       same file data object. DtaFlag is used to determine whether this
-!       is the home container of this file data object. For internal use
-!       only. 
+!       same file data object. the DtaHome flag is used to determine 
+!       whether this is the home container of this file data object. For 
+!       internal use only. 
 ! \end{itemize}
 !
 ! !INTERFACE: 
@@ -213,7 +213,7 @@ CONTAINS
 
     ! Set default values
     Dct%DtaHome      = -999 
-    Dct%DctType     = -999
+    Dct%DctType      = -999
     Dct%ExtNr        = 0
     Dct%cName        = ''
     Dct%spcName      = ''

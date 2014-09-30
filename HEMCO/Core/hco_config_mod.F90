@@ -8,7 +8,14 @@
 ! !DESCRIPTION: Module HCO\_Config\_Mod contains routines related 
 ! to the HEMCO configuration file. It reads the content of the 
 ! configuration file, checks which entires therein are actually used 
-! for this simulation run, and stores these information.
+! for this simulation run, and stores these information. This occurs
+! in two calls: Config\_ReadFile and SetReadList. Config\_ReadFile
+! writes the entire content of the configuration file into buffer
+! except for the input data associated with an disabled extension. 
+! SetReadList does many more logical checks and adds all data used
+! by HEMCO to ReadList. Scale factors not used by any of the base 
+! emissions and base emission fields that won't be used are skipped
+! in this step.
 !\\
 !\\ 
 ! All data fields are saved in individual data containers, which are 
@@ -96,6 +103,9 @@ MODULE HCO_Config_Mod
 
   ! Configuration file read or not? 
   LOGICAL              :: ConfigFileRead = .FALSE. 
+
+  ! SetReadList called or not?
+  LOGICAL              :: SetReadListCalled = .FALSE.
 
   !----------------------------------------------------------------
   ! MODULE ROUTINES follow below
@@ -337,6 +347,9 @@ CONTAINS
     CALL ScalID_Cleanup
     CALL SpecName_Cleanup
 
+    ! SetReadList has now been called
+    SetReadListCalled = .TRUE.
+
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
@@ -556,7 +569,11 @@ CONTAINS
        ! calculation (containers may be dropped lateron because the
        ! emission category / hierarchy is too low, species is not 
        ! used, etc.). The DoShare and DtaHome flags will be set the
-       ! first time that data is read.
+       ! first time that data is read (in hco_readlist_mod.F90).
+       ! Here, we only set the DtaHome flag to -1000 instead of the
+       ! default value of -999 to be able to identify data objects 
+       ! used by multiple containers (at the moment, this is only
+       ! important for an ESMF environment).
        ! -------------------------------------------------------------
        IF ( TRIM(srcFile) == '-' ) THEN
           IF ( .NOT. ASSOCIATED(Dta) ) THEN
@@ -564,12 +581,20 @@ CONTAINS
              CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
+          Lct%Dct%DtaHome = Lct%Dct%DtaHome - 1
        ELSE
           Dta => NULL()
           CALL FileData_Init ( Dta )
 
-          ! Set source file name, file variable, and original data unit 
+          ! Set source file name, file variable, and original data unit.
+          ! In an ESMF environment, the source data will be imported 
+          ! through ExtData by name, hence need to set ncFile equal to
+          ! container name!
+#if defined(ESMF_)
+          Dta%ncFile    = cName
+#else 
           Dta%ncFile    = srcFile
+#endif
           Dta%ncPara    = srcVar
           Dta%OrigUnit  = srcUnit
 
@@ -2878,10 +2903,26 @@ CONTAINS
     ! Pointers
     TYPE(ScalIDCont), POINTER  :: TmpScalIDCont => NULL() 
 
+    ! For error handling
+    INTEGER            :: RC
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'Config_ScalIDinUse (hco_config_mod.F90)'
+
     !======================================================================
     ! Config_ScalIDinUse begins here
     !======================================================================
-   
+
+    ! This routine should only be called after SetReadList! If not, assume
+    ! that all scale factors are actually used!
+    IF ( .NOT. SetReadListCalled ) THEN
+       MSG = 'You are calling Config_ScalIDinUse before SetReadList - ' // &
+             'this may lead to unexpected behavior!!'
+       CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+       inUse = .TRUE.
+       RETURN
+    ENDIF
+  
+    ! Init 
     inUse = .FALSE.
 
     TmpScalIDCont => ScalIDList

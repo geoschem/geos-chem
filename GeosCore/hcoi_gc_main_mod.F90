@@ -47,6 +47,7 @@ MODULE HCOI_GC_Main_Mod
   PUBLIC  :: HCOI_GC_Run
   PUBLIC  :: HCOI_GC_Final
   PUBLIC  :: GetHcoState
+  PUBLIC  :: GetHcoDiagn
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -1552,7 +1553,7 @@ CONTAINS
        IF ( IDTLIMO > 0 ) THEN
           nModelSpec = nModelSpec + 1
        ENDIF
-  
+ 
        ! Allocate model species variables
        CALL ModelSpec_Allocate ( nModelSpec, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2037,6 +2038,129 @@ CONTAINS
     HcoStatePtr => HcoState
 
   END SUBROUTINE GetHcoState
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetHcoDiagn 
+!
+! !DESCRIPTION: Subroutine GetHcoDiagn is a convenience wrapper routine to 
+! get a HEMCO diagnostics from somewhere within GEOS-Chem.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetHcoDiagn ( am_I_Root, DiagnName, Force, RC, Ptr2D, Ptr3D )
+!
+! !USES:
+!
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE HCO_DIAGN_MOD
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )      :: am_I_Root  ! Are we on the root CPU?
+    CHARACTER(LEN=*), INTENT(IN   )      :: DiagnName  ! Name of diagnostics
+    LOGICAL,          INTENT(IN   )      :: Force      ! Force error if diagn. not found?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)      :: RC         ! Error return code
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(hp),         POINTER, OPTIONAL  :: Ptr2D(:,:)   ! Pointer to 2D data
+    REAL(hp),         POINTER, OPTIONAL  :: Ptr3D(:,:,:) ! Pointer to 3D data
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  24 Sep 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                   :: FLAG, ERR, LevIDx
+    TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
+
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'GetHcoDiagn (hcoi_gc_diagn_mod.F90)'
+
+    !=======================================================================
+    ! GetHcoDiagn begins here 
+    !=======================================================================
+
+    ! Check HEMCO state object
+    IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+       CALL ERROR_STOP ( 'HcoState not defined', LOC )
+    ENDIF
+
+    ! Get diagnostics by name. Search all diagnostics, i.e. both AutoFill
+    ! and manually filled diagnostics. Also include those with a manual
+    ! output interval.
+    CALL Diagn_Get( am_I_Root,   HcoState, .FALSE., DgnCont,       &
+                    FLAG,        ERR,      cName=TRIM(DiagnName),  &
+                    AutoFill=-1, InclManual=.TRUE. )     
+
+    ! Error checks
+    IF ( ERR /= HCO_SUCCESS ) THEN
+       MSG = 'Error in getting diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP ( MSG, LOC )
+    ENDIF
+    IF ( (FLAG /= HCO_SUCCESS) .AND. Force ) THEN
+       MSG = 'Cannot get diagnostics for this time stamp: ' // TRIM(DiagnName)
+       CALL ERROR_STOP ( MSG, LOC )
+    ENDIF
+
+    ! Pass data to output pointer (only if diagnostics defined):
+    IF ( FLAG == HCO_SUCCESS ) THEN
+
+       ! 2D pointer
+       IF ( PRESENT(Ptr2D) ) THEN
+
+          ! Pass 2D data
+          IF ( ASSOCIATED(DgnCont%Arr2D%Val) ) THEN
+             Ptr2D => DgnCont%Arr2D%Val
+
+          ! Pass 3D data. Get level index from diagnostics (if set)
+          ELSEIF ( ASSOCIATED(DgnCont%Arr3D%Val) ) THEN
+             LevIDx = DgnCont%LevIdx
+             IF ( LevIdx < 1 ) LevIdx = 1
+             Ptr2D => DgnCont%Arr3D%Val(:,:,LevIDx)
+
+          ! Error if no 2D or 3D data available
+          ELSE
+             MSG = 'no data defined: ' // TRIM(DiagnName)
+             CALL ERROR_STOP ( MSG, LOC )
+          ENDIF 
+   
+       ! 3D pointer: must point to 3D data
+       ELSEIF ( PRESENT(Ptr3D) ) THEN
+          IF ( ASSOCIATED(DgnCont%Arr3D%Val) ) THEN
+             Ptr3D => DgnCont%Arr3D%Val
+          ELSE
+             MSG = 'no 3D data defined: ' // TRIM(DiagnName)
+             CALL ERROR_STOP ( MSG, LOC )
+          ENDIF 
+  
+       ! Error otherwise 
+       ELSE
+          MSG = 'Please define output data pointer: ' // TRIM(DiagnName)
+          CALL ERROR_STOP ( MSG, LOC )
+       ENDIF
+    ENDIF
+
+    ! Free pointer
+    DgnCont  => NULL()
+
+    ! Leave with success 
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GetHcoDiagn 
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
