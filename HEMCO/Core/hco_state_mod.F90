@@ -43,34 +43,39 @@ MODULE HCO_State_Mod
   !=========================================================================
   TYPE, PUBLIC :: HCO_State
 
-     ! Species information
-     INTEGER                   :: nSpc        ! # of species
-     TYPE(HcoSpc),     POINTER :: Spc(:)      ! list of species
+     !%%%%% Species information %%%%%
+     INTEGER                     :: nSpc       ! # of species
+     TYPE(HcoSpc),       POINTER :: Spc(:)     ! list of species
 
-     ! Emission grid information 
-     INTEGER                   :: NX          ! # of x-pts (lons) on this CPU
-     INTEGER                   :: NY          ! # of y-pts (lats) on this CPU
-     INTEGER                   :: NZ          ! # of z-pts (levs) on this CPU
-     TYPE(HcoGrid),    POINTER :: Grid        ! HEMCO grid information
+     !%%%%% Emission grid information %%%%%
+     INTEGER                     :: NX         ! # of x-pts (lons) on this CPU
+     INTEGER                     :: NY         ! # of y-pts (lats) on this CPU
+     INTEGER                     :: NZ         ! # of z-pts (levs) on this CPU
+     TYPE(HcoGrid),      POINTER :: Grid       ! HEMCO grid information
+                         
+     ! Data array        
+     TYPE(Arr3D_HP),     POINTER :: Buffer3D   ! Placeholder to store temporary
+                                               ! 3D array.  Emissions will be
+                                               ! written into this array if
+                                               ! option FillBuffer = .TRUE.
 
-     ! Data array 
-     TYPE(Arr3D_HP),   POINTER :: Buffer3D    ! Placeholder to store temporary
-                                              ! 3D array.  Emissions will be
-                                              ! written into this array if
-                                              ! option FillBuffer = .TRUE.
-     ! Constants and timesteps
-     TYPE(HcoPhys),    POINTER :: Phys        ! Physical constants
-     REAL(sp)                  :: TS_EMIS     ! Emission timestep [s]
-     REAL(sp)                  :: TS_CHEM     ! Chemical timestep [s]
-     REAL(sp)                  :: TS_DYN      ! Dynamic  timestep [s]
+     !%%%%% Constants and timesteps %%%%%
+     TYPE(HcoPhys),      POINTER :: Phys       ! Physical constants
+     REAL(sp)                    :: TS_EMIS    ! Emission timestep [s]
+     REAL(sp)                    :: TS_CHEM    ! Chemical timestep [s]
+     REAL(sp)                    :: TS_DYN     ! Dynamic  timestep [s]
 
-     ! Run time options
-     CHARACTER(LEN=255)        :: ConfigFile  ! Full path to HEMCO Config file
-     LOGICAL                   :: isESMF      ! Are we using ESMF?
-     TYPE(HcoOpt),     POINTER :: Options     ! HEMCO run options
+     !%%%%% Aerosol quantities %%%%%
+     INTEGER                     :: nDust      ! # of dust species
+     TYPE(HcoMicroPhys), POINTER :: MicroPhys  ! Microphysics settings
+
+     !%%%%%  Run time options %%%%%
+     CHARACTER(LEN=255)          :: ConfigFile ! Full path to HEMCO Config file
+     LOGICAL                     :: isESMF     ! Are we using ESMF?
+     TYPE(HcoOpt),       POINTER :: Options    ! HEMCO run options
 #if defined(ESMF_)
-     TYPE(ESMF_State), POINTER :: IMPORT      ! ESMF Import State (only needed
-                                              ! if option isESMF = .TRUE.)
+     TYPE(ESMF_State),   POINTER :: IMPORT     ! ESMF Import State (only needed
+                                               ! if option isESMF = .TRUE.)
 #endif
   END TYPE HCO_State
 !
@@ -149,11 +154,22 @@ MODULE HCO_State_Mod
      REAL(dp) :: Rd      ! Gas Constant (R) in dry air (J/K/kg)
      REAL(dp) :: Rdg0    ! Rd/g0
   END TYPE HcoPhys 
+
+  !=========================================================================
+  ! HcoMicroPhys: Derived type for aerosol microphysics settings
+  !=========================================================================
+  TYPE :: HcoMicroPhys
+     INTEGER           :: nBins              ! # of size-resolved bins
+     INTEGER           :: nActiveModebins    ! # of active mode bins
+     REAL(dp), POINTER :: BinBound(:)        ! Size bin boundaries
+                                             !  in dry mass/particle
+  END TYPE HcoMicroPhys
 !                                                                             
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Initial version, adapted from 
 !                              gigc_state_chm_mod.F90
 !  07 Jul 2014 - R. Yantosca - Cosmetic changes
+!  30 Sep 2014 - R. Yantosca - Add HcoMicroPhys derived type to HcoState
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -312,6 +328,17 @@ CONTAINS
     CALL HCO_ArrInit( HcoState%Buffer3D, 0, 0, 0, RC )
     IF ( RC /= 0 ) RETURN
 
+    ! Aerosol options
+    HcoState%nDust = 0
+    ALLOCATE ( HcoState%MicroPhys, STAT = AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR( 'HEMCO aerosol microphysics options', RC )
+       RETURN
+    ENDIF
+    HcoState%MicroPhys%nBins           = 0
+    HcoState%MicroPhys%nActiveModeBins = 0
+    NULLIFY( HcoState%MicroPhys%BinBound )
+
     ! Default HEMCO options
     ! ==> execute HEMCO core; use all species and categories
     ALLOCATE( HcoState%Options )
@@ -388,6 +415,16 @@ CONTAINS
      DEALLOCATE(HcoState%Grid)
     ENDIF
 
+    ! Deallocate microphysics information
+    IF ( ASSOCIATED( HcoState%MicroPhys ) ) THEN
+       IF ( HcoState%MicroPhys%nBins > 0 ) THEN
+          IF ( ASSOCIATED( HcoState%MicroPhys%BinBound ) ) THEN 
+             NULLIFY( HcoState%MicroPhys%BinBound )
+          ENDIF
+          DEALLOCATE( HcoState%MicroPhys ) 
+       ENDIF
+    ENDIf
+    
     ! Cleanup various types
     IF ( ASSOCIATED ( HcoState%Options ) ) DEALLOCATE ( HcoState%Options )
     IF ( ASSOCIATED ( HcoState%Phys    ) ) DEALLOCATE ( HcoState%Phys    )

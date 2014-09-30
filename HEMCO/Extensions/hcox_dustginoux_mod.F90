@@ -401,7 +401,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  11 Dec 2013 - C. Keller   - Now a HEMCO extension
 !  26 Sep 2014 - R. Yantosca - Updated for TOMAS 
-!  29 Sep 2014 - R. Yantosca - Now initialize NBINS from ExtState%N_DUST_BINS
+!  29 Sep 2014 - R. Yantosca - Now initialize NBINS from HcoState%N_DUST_BINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -409,8 +409,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    CHARACTER(LEN=255)             :: MSG
     INTEGER                        :: N, nSpc
+    CHARACTER(LEN=255)             :: MSG
     LOGICAL                        :: verb
     REAL(dp)                       :: Mp, Rp
 
@@ -429,17 +429,17 @@ CONTAINS
     CALL HCO_ENTER('HCOX_DustGinoux_Init (hcox_dustginoux_mod.F90)',RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Get the expected number of dust bins
-    NBINS = ExtState%N_DUST_BINS
+    ! Get the expected number of dust species
+    NBINS = HcoState%nDust
 
-    ! Get the number of species defined in this extension
+    ! Get the actual number of dust species defined for DustGinoux extension
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Make sure the # of dust species is as expeced
+    ! Make sure the # of dust species is as expected
     IF ( nSpc /= NBINS ) THEN
        WRITE( MSG, 100 ) NBINS, nSpc
- 100   FORMAT( 'Expected ', i3, ' GINOUX dust species but only found ', i3, &
+ 100   FORMAT( 'Expected ', i3, ' DustGinoux species but only found ', i3, &
                ' in the HEMCO configuration file!  Exiting...' )
        CALL HCO_ERROR ( MSG, RC )
        RETURN
@@ -508,17 +508,17 @@ CONTAINS
     ! SRCE_FUNC Source function                              
     ! for 1: Sand, 2: Silt, 3: Clay
     !=======================================================================
-    IF ( NBINS == ExtState%IBINS ) THEN
+    IF ( NBINS == HcoState%MicroPhys%nBins ) THEN
 
        !--------------------------------------------------------------------
        ! Define the IPOINT array based on particle size
        !--------------------------------------------------------------------
 
        ! Loop over # of TOMAS bins
-       DO N = 1, ExtState%IBINS
+       DO N = 1, HcoState%MicroPhys%nBins
 
           ! Compute particle mass and radius
-          Mp = 1.4 * ExtState%Xk(N)
+          Mp = 1.4 * HcoState%MicroPhys%BinBound(N)
           Rp = ( ( Mp /2500. ) * (3./(4.*HcoState%Phys%PI)))**(0.333)
 
           ! Pick the source function based on particle size
@@ -532,8 +532,8 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Set up dust density (DUSTDEN) array
        !--------------------------------------------------------------------
-       DO N = 1, ExtState%IBINS
-          IF ( ExtState%Xk(N) < 4.0D-15 ) THEN
+       DO N = 1, HcoState%MicroPhys%nBins
+          IF ( HcoState%MicroPhys%BinBound(N) < 4.0D-15 ) THEN
              DUSTDEN(N)  = 2500.d0
           ELSE
              DUSTDEN(N)  = 2650.d0
@@ -543,9 +543,10 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Set up dust density (DUSTDEN) array
        !--------------------------------------------------------------------
-       DO N = 1, ExtState%IBINS
+       DO N = 1, HcoState%MicroPhys%nBins
           DUSTREFF(N) = 0.5d0                                              &
-                      * ( SQRT( ExtState%Xk(N) * ExtState%Xk(N+1) )        &
+                      * ( SQRT( HcoState%MicroPhys%BinBound(N) *      &
+                                HcoState%MicroPhys%BinBound(N+1) )    &
                       /   DUSTDEN(N) * 6.d0/HcoState%Phys%PI )**( 0.333d0 )
        ENDDO
         
@@ -554,61 +555,61 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Initialize
-       FRAC_S( 1:ExtState%IBINS )           = 0d0
+       FRAC_S( 1:HcoState%MicroPhys%nBins )           = 0d0
 
 # if  defined( TOMAS12 ) || defined( TOMAS15 )
 
        !---------------------------------------------------
        ! TOMAS simulations with 12 or 15 size bins
        !---------------------------------------------------
-       FRAC_S( ExtState%ACTMODEBINS + 1  )  = 7.33E-10
-       FRAC_S( ExtState%ACTMODEBINS + 2  )  = 2.032E-08
-       FRAC_S( ExtState%ACTMODEBINS + 3  )  = 3.849E-07
-       FRAC_S( ExtState%ACTMODEBINS + 4  )  = 5.01E-06
-       FRAC_S( ExtState%ACTMODEBINS + 5  )  = 4.45E-05
-       FRAC_S( ExtState%ACTMODEBINS + 6  )  = 2.714E-04
-       FRAC_S( ExtState%ACTMODEBINS + 7  )  = 1.133E-03
-       FRAC_S( ExtState%ACTMODEBINS + 8  )  = 3.27E-03
-       FRAC_S( ExtState%ACTMODEBINS + 9  )  = 6.81E-03
-       FRAC_S( ExtState%ACTMODEBINS + 10 )  = 1.276E-02
-       FRAC_S( ExtState%ACTMODEBINS + 11 )  = 2.155E-01
-       FRAC_S( ExtState%ACTMODEBINS + 12 )  = 6.085E-01
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 1  )  = 7.33E-10
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 2  )  = 2.032E-08
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 3  )  = 3.849E-07
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 4  )  = 5.01E-06
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 5  )  = 4.45E-05
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 6  )  = 2.714E-04
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 7  )  = 1.133E-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 8  )  = 3.27E-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 9  )  = 6.81E-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 10 )  = 1.276E-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 11 )  = 2.155E-01
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 12 )  = 6.085E-01
 
 # else
 
        !---------------------------------------------------
        ! TOMAS simulations with 30 or 40 size bins
        !---------------------------------------------------        
-       FRAC_S( ExtState%ACTMODEBINS +  1 )  = 1.05d-10
-       FRAC_S( ExtState%ACTMODEBINS +  2 )  = 6.28d-10
-       FRAC_S( ExtState%ACTMODEBINS +  3 )  = 3.42d-09
-       FRAC_S( ExtState%ACTMODEBINS +  4 )  = 1.69d-08
-       FRAC_S( ExtState%ACTMODEBINS +  5 )  = 7.59d-08
-       FRAC_S( ExtState%ACTMODEBINS +  6 )  = 3.09d-07
-       FRAC_S( ExtState%ACTMODEBINS +  7 )  = 1.15d-06
-       FRAC_S( ExtState%ACTMODEBINS +  8 )  = 3.86d-06
-       FRAC_S( ExtState%ACTMODEBINS +  9 )  = 1.18d-05
-       FRAC_S( ExtState%ACTMODEBINS + 10 )  = 3.27d-05
-       FRAC_S( ExtState%ACTMODEBINS + 11 )  = 8.24d-05
-       FRAC_S( ExtState%ACTMODEBINS + 12 )  = 1.89d-04
-       FRAC_S( ExtState%ACTMODEBINS + 13 )  = 3.92d-04
-       FRAC_S( ExtState%ACTMODEBINS + 14 )  = 7.41d-04
-       FRAC_S( ExtState%ACTMODEBINS + 15 )  = 1.27d-03
-       FRAC_S( ExtState%ACTMODEBINS + 16 )  = 2.00d-03
-       FRAC_S( ExtState%ACTMODEBINS + 17 )  = 2.89d-03
-       FRAC_S( ExtState%ACTMODEBINS + 18 )  = 3.92d-03
-       FRAC_S( ExtState%ACTMODEBINS + 19 )  = 5.26d-03
-       FRAC_S( ExtState%ACTMODEBINS + 20 )  = 7.50d-03
-       FRAC_S( ExtState%ACTMODEBINS + 21 )  = 1.20d-02
-       FRAC_S( ExtState%ACTMODEBINS + 22 )  = 2.08d-02
-       FRAC_S( ExtState%ACTMODEBINS + 23 )  = 3.62d-02
-       FRAC_S( ExtState%ACTMODEBINS + 24 )  = 5.91d-02
-       FRAC_S( ExtState%ACTMODEBINS + 25 )  = 8.74d-02
-       FRAC_S( ExtState%ACTMODEBINS + 26 )  = 1.15d-01
-       FRAC_S( ExtState%ACTMODEBINS + 27 )  = 1.34d-01
-       FRAC_S( ExtState%ACTMODEBINS + 28 )  = 1.37d-01
-       FRAC_S( ExtState%ACTMODEBINS + 29 )  = 1.24d-01
-       FRAC_S( ExtState%ACTMODEBINS + 30 )  = 9.85d-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  1 )  = 1.05d-10
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  2 )  = 6.28d-10
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  3 )  = 3.42d-09
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  4 )  = 1.69d-08
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  5 )  = 7.59d-08
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  6 )  = 3.09d-07
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  7 )  = 1.15d-06
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  8 )  = 3.86d-06
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  9 )  = 1.18d-05
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 10 )  = 3.27d-05
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 11 )  = 8.24d-05
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 12 )  = 1.89d-04
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 13 )  = 3.92d-04
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 14 )  = 7.41d-04
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 15 )  = 1.27d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 16 )  = 2.00d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 17 )  = 2.89d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 18 )  = 3.92d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 19 )  = 5.26d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 20 )  = 7.50d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 21 )  = 1.20d-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 22 )  = 2.08d-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 23 )  = 3.62d-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 24 )  = 5.91d-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 25 )  = 8.74d-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 26 )  = 1.15d-01
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 27 )  = 1.34d-01
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 28 )  = 1.37d-01
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 29 )  = 1.24d-01
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 30 )  = 9.85d-02
 
 # endif
 

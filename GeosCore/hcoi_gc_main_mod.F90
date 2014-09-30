@@ -195,6 +195,8 @@ CONTAINS
 !  12 Sep 2013 - C. Keller    - Initial version 
 !  07 Jul 2014 - C. Keller    - Now match species and set species properties
 !                               via module variables.
+!  30 Sep 2014 - R. Yantosca  - Now pass fields for aerosol and microphysics
+!                               options to extensions via HcoState
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,31 +297,24 @@ CONTAINS
     CALL HCO_Init( am_I_Root, HcoState, HMRC )
     IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
 
-    !=================================================================
-    ! Initialize the ExtState object
-    !
-    ! NOTE: This used to be done in routine HCOX_INIT.  Moved this
-    ! call here so that we pass some additional quantities to HEMCO
-    ! via scalar or logical fields of ExtState. (bmy, 9/29/14)
-    !=================================================================
-
-    ! Initialize extension object
-    CALL ExtStateInit( ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Define fields of ExtState to be passed to HEMCO
-    ExtState%N_DUST_BINS    =  Input_Opt%N_DUST_BINS   ! # of dust bins
+    ! Save # of defined dust species in HcoState
+    HcoState%nDust                     =  Input_Opt%N_DUST_BINS
 
 #if defined( TOMAS )
-    ExtState%IBINS          =  IBINS                   ! # of TOMAS size bins
-    ExtState%Xk             => Xk                      ! Size bin edges
 
+    ! Save # of TOMAS size bins in HcoState
+    HcoState%MicroPhys%nBins           =  IBINS
+
+    ! Point to TOMAS bin boundaries array (Xk) in HcoState
+    HcoState%MicroPhys%BinBound        => Xk
+
+    ! Save # of TOMAS active mode bins in HcoState
 # if defined( TOMAS40 )
-    ExtState%ACTMODEBINS    =  10                      ! # of activation
-# elif defined( TOMAS15 )                              ! mode bins for TOMAS
-    ExtState%ACTMODEBINS    =  3
+    HcoState%MicroPhys%nActiveModeBins =  10
+# elif defined( TOMAS15 )
+    HcoState%MicroPhys%nActiveModeBins =  3
 # else 
-    ExtState%ACTMODEBINS    =  0
+    HcoState%MicroPhys%nActiveModeBins =  0
 # endif
 #endif
 
@@ -327,13 +322,27 @@ CONTAINS
     ! Initialize all HEMCO extensions.  
     ! Also selects the required met fields used by each extension.
     !=================================================================
-    CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC, NoExtStateInit=.TRUE. )
+    CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC )
     IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
 
     !-----------------------------------------------------------------
     ! Update logical switches in Input_Opt 
     !-----------------------------------------------------------------
+
+    ! Soil NOx
     Input_Opt%LSOILNOX      = ExtState%SoilNOx
+
+    ! Ginoux dust emissions
+    IF ( ExtState%DustGinoux ) THEN
+       Input_Opt%LDUST      = .TRUE.
+       Input_Opt%LDEAD      = .FALSE.
+    ENDIF
+
+    ! DEAD dust emissions
+    IF ( ExtState%DustDead ) THEN
+       Input_Opt%LDUST      = .TRUE.
+       Input_Opt%LDEAD      = .TRUE.
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Set constants for POPs simulation

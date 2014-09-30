@@ -167,18 +167,6 @@ MODULE HCOX_STATE_MOD
      REAL(dp)                  :: POP_KOA     ! POP octanol-water partition coef
      REAL(dp)                  :: POP_KBC     ! POP BC-air partition coeff.
 
-     !----------------------------------------------------------------------
-     ! Quantities for GINOUX and DEAD dust emissions
-     !----------------------------------------------------------------------
-     INTEGER                   :: N_DUST_BINS ! # of dust tracers
-
-     !----------------------------------------------------------------------
-     ! Quantities for TOMAS microphysics
-     !----------------------------------------------------------------------
-     INTEGER                   :: IBINS       ! # of size-resolved bins
-     INTEGER                   :: ACTMODEBINS ! # of active mode bins
-     REAL(dp),         POINTER :: Xk(:)       ! Size bin boundary 
-                                              !  in dry mass per particle
   END TYPE Ext_State
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -192,8 +180,6 @@ MODULE HCOX_STATE_MOD
 !  07 Jul 2014 - R. Yantosca - Modified for GEOS-Chem Rn-Pb-Be simulation
 !  28 Jul 2014 - C. Keller   - Added J-Values for NO2 and O3 to state obj. 
 !  20 Aug 2014 - M. Sulprizio- Modified for GEOS-Chem POPs emissions module
-!  25 Sep 2014 - R. Yantosca - Now define TOMAS quantities
-!  29 Sep 2014 - R. Yantosca - Add N_DUST_BINS for Ginoux/DEAD dust emissions
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -240,7 +226,6 @@ CONTAINS
 !  15 Dec 2013 - C. Keller - Initial version
 !  23 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  23 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  25 Sep 2014 - R. Yantosca - Now initialize quantities for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -277,18 +262,6 @@ CONTAINS
     ExtState%POP_DEL_H   = 0d0
     ExtState%POP_KOA     = 0d0
     ExtState%POP_KBC     = 0d0
-
-    !----------------------------------------------------------------------
-    ! Quantities for GINOUX and DEAD dust emissions
-    !----------------------------------------------------------------------
-    ExtState%N_DUST_BINS = 0
-
-    !----------------------------------------------------------------------
-    ! Quantities for TOMAS microphysics
-    !----------------------------------------------------------------------
-    ExtState%IBINS       =  0
-    ExtState%ACTMODEBINS =  0
-    ExtState%Xk          => NULL()
 
     !-----------------------------------------------------------------------
     ! Initialize all met arrays.
