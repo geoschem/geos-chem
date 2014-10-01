@@ -164,14 +164,21 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE ERROR_MOD,          ONLY : ERROR_STOP
+#if defined( TOMAS ) 
+    USE TOMAS_MOD,          ONLY : IBINS
+    USE TOMAS_MOD,          ONLY : Xk
+#endif
 
     ! HEMCO routines 
     USE HCO_Config_Mod,     ONLY : Config_ReadFile
     USE HCO_State_Mod,      ONLY : HcoState_Init
-    USE HCO_Driver_Mod,     ONLY : HCO_INIT
-    USE HCOX_Driver_Mod,    ONLY : HCOX_INIT
-    USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_DIAGN_INIT
+    USE HCO_Driver_Mod,     ONLY : HCO_Init
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
+    USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_DIagn_Init
+    USE HCOX_Driver_Mod,    ONLY : HCOX_Init
+    USE HCOX_State_Mod,     ONLY : ExtStateInit
+
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -188,6 +195,8 @@ CONTAINS
 !  12 Sep 2013 - C. Keller    - Initial version 
 !  07 Jul 2014 - C. Keller    - Now match species and set species properties
 !                               via module variables.
+!  30 Sep 2014 - R. Yantosca  - Now pass fields for aerosol and microphysics
+!                               options to extensions via HcoState
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -285,29 +294,63 @@ CONTAINS
     ! the HEMCO configuration file is removed from buffer in this
     ! step. Also initializes the HEMCO clock
     !=================================================================
-    CALL HCO_INIT( am_I_Root, HcoState, HMRC )
+    CALL HCO_Init( am_I_Root, HcoState, HMRC )
     IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
 
+    ! Save # of defined dust species in HcoState
+    HcoState%nDust                     =  Input_Opt%N_DUST_BINS
+
+#if defined( TOMAS )
+
+    ! Save # of TOMAS size bins in HcoState
+    HcoState%MicroPhys%nBins           =  IBINS
+
+    ! Point to TOMAS bin boundaries array (Xk) in HcoState
+    HcoState%MicroPhys%BinBound        => Xk
+
+    ! Save # of TOMAS active mode bins in HcoState
+# if defined( TOMAS40 )
+    HcoState%MicroPhys%nActiveModeBins =  10
+# elif defined( TOMAS15 )
+    HcoState%MicroPhys%nActiveModeBins =  3
+# else 
+    HcoState%MicroPhys%nActiveModeBins =  0
+# endif
+#endif
+
     !=================================================================
-    ! Initialize extensions.
-    ! This initializes all (enabled) extensions and selects all met.
-    ! fields needed by them. 
+    ! Initialize all HEMCO extensions.  
+    ! Also selects the required met fields used by each extension.
     !=================================================================
-    CALL HCOX_INIT( am_I_Root, HcoState, ExtState, HMRC )
+    CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC )
     IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
 
     !-----------------------------------------------------------------
     ! Update logical switches in Input_Opt 
     !-----------------------------------------------------------------
-    Input_Opt%LSOILNOX = ExtState%SoilNOx
+
+    ! Soil NOx
+    Input_Opt%LSOILNOX      = ExtState%SoilNOx
+
+    ! Ginoux dust emissions
+    IF ( ExtState%DustGinoux ) THEN
+       Input_Opt%LDUST      = .TRUE.
+       Input_Opt%LDEAD      = .FALSE.
+    ENDIF
+
+    ! DEAD dust emissions
+    IF ( ExtState%DustDead ) THEN
+       Input_Opt%LDUST      = .TRUE.
+       Input_Opt%LDEAD      = .TRUE.
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Set constants for POPs simulation
     !-----------------------------------------------------------------
     IF ( ExtState%GC_POPs ) THEN
-       ExtState%POP_DEL_H = Input_Opt%POP_DEL_H
-       ExtState%POP_KOA   = Input_Opt%POP_KOA
-       ExtState%POP_KBC   = Input_Opt%POP_KBC
+       ExtState%POP_DEL_H   = Input_Opt%POP_DEL_H
+       ExtState%POP_KOA     = Input_Opt%POP_KOA
+       ExtState%POP_KBC     = Input_Opt%POP_KBC
     ENDIF
 
     !-----------------------------------------------------------------

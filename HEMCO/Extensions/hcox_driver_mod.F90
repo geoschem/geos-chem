@@ -1,4 +1,3 @@
-!EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -87,13 +86,22 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: amIRoot    ! root CPU?
+    LOGICAL,          INTENT(IN   )  :: amIRoot        ! Are we on root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
-    TYPE(Ext_State),  POINTER        :: ExtState   ! HEMCO extension object 
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(HCO_State),  POINTER        :: HcoState       ! HEMCO state object 
+    TYPE(Ext_State),  POINTER        :: ExtState       ! HEMCO extension object 
+    INTEGER,          INTENT(INOUT)  :: RC             ! Failure or success
+!
+! !REMARKS:
+!  By default we will call routine ExtStateInit, which initializes the
+!  ExtState object.  In some instances, we may want to call ExtStateInit
+!  from a higher-level routine.  For example, this allows us to pass
+!  via ExtState additional scalar quantities from the driving model to
+!  HEMCO.  To do this, you will need to (1) call ExtStateInit separately,
+!  and (2) set the optional argument NoExtStateInit=.FALSE. flag in the 
+!  call to HCOX_INIT.
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
@@ -118,9 +126,7 @@ CONTAINS
     !=================================================================
     ! Initialize extensions 
     !=================================================================
-
-    ! Initialize extension object
-    CALL ExtStateInit ( ExtState, RC )
+    CALL ExtStateInit( ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------

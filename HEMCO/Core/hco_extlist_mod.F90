@@ -41,6 +41,8 @@ MODULE HCO_ExtList_Mod
 !  02 Oct 2013 - C. Keller   - Initial version
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  30 Sep 2014 - R. Yantosca - ThisExt%Spcs now has 2047 chars for extensions
+!                              having many individual species
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -463,21 +465,20 @@ CONTAINS
 !
   SUBROUTINE GetExtSpcStr( ExtNr, SpcStr, RC ) 
 !
-! !INPUT ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-    INTEGER,                       INTENT(IN   )    :: ExtNr  ! Extension Nr. 
+    INTEGER,          INTENT(IN   ) :: ExtNr    ! Extension Nr. 
 !
-! !OUTPUT ARGUMENTS:
+! !OUTPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),              INTENT(  OUT)    :: SpcStr ! Species string
+    CHARACTER(LEN=*), INTENT(  OUT) :: SpcStr   ! Species string
 !
-! !INPUT/OUTPUT ARGUMENTS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,                       INTENT(INOUT)    :: RC 
+    INTEGER,          INTENT(INOUT) :: RC       ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -492,7 +493,7 @@ CONTAINS
     !======================================================================
 
     ! Enter
-    LOC = 'GetExtSpcStr (HCO_EXTLIST_MOD.F90)'
+    LOC = 'GetExtSpcStr (hco_extlist_mod.F90)'
     RC  = HCO_SUCCESS
 
     ! Find extension of interest 

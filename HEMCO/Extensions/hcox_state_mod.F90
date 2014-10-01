@@ -242,26 +242,26 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set all switches to FALSE
     !-----------------------------------------------------------------------
-    ExtState%Custom     = .FALSE.
-    ExtState%DustDead   = .FALSE.
-    ExtState%DustGinoux = .FALSE.
-    ExtState%LightNOx   = .FALSE.
-    ExtState%ParaNOx    = .FALSE.
-    ExtState%SoilNOx    = .FALSE.
-    ExtState%Megan      = .FALSE.
-    ExtState%SeaFlux    = .FALSE.
-    ExtState%SeaSalt    = .FALSE.
-    ExtState%GFED3      = .FALSE.
-    ExtState%FINN       = .FALSE.
-    ExtState%GC_RnPbBe  = .FALSE.
-    ExtState%GC_POPs    = .FALSE.
+    ExtState%Custom      = .FALSE.
+    ExtState%DustDead    = .FALSE.
+    ExtState%DustGinoux  = .FALSE.
+    ExtState%LightNOx    = .FALSE.
+    ExtState%ParaNOx     = .FALSE.
+    ExtState%SoilNOx     = .FALSE.
+    ExtState%Megan       = .FALSE.
+    ExtState%SeaFlux     = .FALSE.
+    ExtState%SeaSalt     = .FALSE.
+    ExtState%GFED3       = .FALSE.
+    ExtState%FINN        = .FALSE.
+    ExtState%GC_RnPbBe   = .FALSE.
+    ExtState%GC_POPs     = .FALSE.
 
     !-----------------------------------------------------------------------
     ! Initialize constants for POPs emissions module
     !-----------------------------------------------------------------------
-    ExtState%POP_DEL_H  = 0d0
-    ExtState%POP_KOA    = 0d0
-    ExtState%POP_KBC    = 0d0
+    ExtState%POP_DEL_H   = 0d0
+    ExtState%POP_KOA     = 0d0
+    ExtState%POP_KBC     = 0d0
 
     !-----------------------------------------------------------------------
     ! Initialize all met arrays.

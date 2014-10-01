@@ -51,24 +51,24 @@
 !
 ! !INTERFACE:
 !
-      MODULE HCOX_DUSTGINOUX_MOD 
+MODULE HCOX_DustGinoux_Mod
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD
-      USE HCO_DIAGN_MOD
-      USE HCOX_State_MOD,    ONLY : Ext_State
-      USE HCO_STATE_MOD,     ONLY : HCO_State 
+  USE HCO_Error_Mod
+  USE HCO_Diagn_Mod
+  USE HCO_State_Mod,  ONLY : HCO_State 
+  USE HCOX_State_Mod, ONLY : Ext_State
 
-      IMPLICIT NONE
-      PRIVATE
+  IMPLICIT NONE
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: HcoX_DustGinoux_Run
-      PUBLIC :: HcoX_DustGinoux_Init
-      PUBLIC :: HcoX_DustGinoux_Final
-      PUBLIC :: HcoX_DustGinoux_GETCHDUST
+  PUBLIC :: HcoX_DustGinoux_Run
+  PUBLIC :: HcoX_DustGinoux_Init
+  PUBLIC :: HcoX_DustGinoux_Final
+  PUBLIC :: HcoX_DustGinoux_GetChDust
 !
 ! !REVISION HISTORY:
 !  (1 ) Added parallel DO loop in GET_ORO (bmy, 4/14/04)
@@ -80,32 +80,33 @@
 !  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
-!  11 Dec 2013 - C. Keller - Now a HEMCO extension
-!
+!  11 Dec 2013 - C. Keller   - Now a HEMCO extension
+!  29 Sep 2014 - R. Yantosca - Now make NBINS a variable and not a parameter
+!  29 Sep 2014 - R. Yantosca - Now use F90 free-format indentation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !MODULE VARIABLES:
+! !PRIVATE TYPES:
 !
-      ! Parameters related to dust bins
-      INTEGER                   :: ExtNr = -1
-      INTEGER, PARAMETER        :: NBINS = 4     ! # of dust bins 
-      INTEGER, ALLOCATABLE      :: HcoIDs  (:)   ! HEMCO species IDs
-      INTEGER, ALLOCATABLE      :: IPOINT  (:)   ! 1=sand, 2=silt, 3=clay 
-      REAL,    ALLOCATABLE      :: FRAC_S  (:)   !  
-      REAL,    ALLOCATABLE      :: DUSTDEN (:)   ! dust density     [kg/m3] 
-      REAL,    ALLOCATABLE      :: DUSTREFF(:)   ! effective radius [um] 
+  ! Quantities related to dust bins
+  INTEGER              :: NBINS
+  INTEGER              :: ExtNr = -1
+  INTEGER, ALLOCATABLE :: HcoIDs  (:)       ! HEMCO species IDs
+  INTEGER, ALLOCATABLE :: IPOINT  (:)       ! 1=sand, 2=silt, 3=clay 
+  REAL,    ALLOCATABLE :: FRAC_S  (:)       !  
+  REAL,    ALLOCATABLE :: DUSTDEN (:)       ! dust density     [kg/m3] 
+  REAL,    ALLOCATABLE :: DUSTREFF(:)       ! effective radius [um] 
 
-      ! Source functions (get from HEMCO core) 
-      REAL(hp), POINTER      :: SRCE_SAND(:,:) => NULL()
-      REAL(hp), POINTER      :: SRCE_SILT(:,:) => NULL()
-      REAL(hp), POINTER      :: SRCE_CLAY(:,:) => NULL()
+  ! Source functions (get from HEMCO core) 
+  REAL(hp), POINTER    :: SRCE_SAND(:,:) => NULL()
+  REAL(hp), POINTER    :: SRCE_SILT(:,:) => NULL()
+  REAL(hp), POINTER    :: SRCE_CLAY(:,:) => NULL()
 
-      ! Transfer coeff
-      REAL*8                    :: CH_DUST 
+  ! Transfer coefficient (grid-dependent)
+  REAL*8               :: CH_DUST 
 
-      CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -120,19 +121,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustGinoux_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HcoX_DustGinoux_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
-      USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
-      USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
+    USE HCO_EmisList_Mod, ONLY : HCO_GetPtr
+    USE HCO_FluxArr_Mod,  ONLY : HCO_EmisAdd 
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      LOGICAL,         INTENT(IN   )  :: am_I_Root
-      TYPE(Ext_State), POINTER        :: ExtState    ! Module options
-      TYPE(HCO_State), POINTER        :: HcoState   ! Hemco state 
-      INTEGER,         INTENT(INOUT)  :: RC 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(Ext_State), POINTER        :: ExtState    ! Options for this ext
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State), POINTER        :: HcoState    ! HEMCO state object
+    INTEGER,         INTENT(INOUT)  :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !    SRCE_FUNK Source function                               (-)
@@ -162,192 +166,206 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Feb 2013 - R. Yantosca - Now accept Input_Opt via the arg list
-!  11 Dec 2013 - C. Keller - Now a HEMCO extension
-!
+!  11 Dec 2013 - C. Keller   - Now a HEMCO extension
+!  29 Sep 2014 - R. Yantosca - Bug fix: SRCE_CLAY should have been picked when
+!                              M=3 but was picked when M=2.  Now corrected.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETER:
+!
+    REAL*8, PARAMETER :: RHOA     = 1.25d-3
+
+!
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, N, M, tmpID
-      LOGICAL                :: ERR
-      LOGICAL, SAVE          :: FIRST = .TRUE. 
-      REAL*8                 :: W10M,   DEN,    DIAM,   U_TS0, U_TS
-      REAL*8                 :: SRCE_P, REYNOL, ALPHA,  BETA
-      REAL*8                 :: GAMMA,  CW,     DTSRCE, A_M2,  G
-      REAL                   :: DSRC
+    ! SAVED scalars
+    LOGICAL, SAVE     :: FIRST = .TRUE. 
 
-      REAL*8, PARAMETER      :: RHOA     = 1.25d-3
+    ! Scalars
+    INTEGER           :: I, J, N, M, tmpID
+    LOGICAL           :: ERR
+    REAL*8            :: W10M,   DEN,    DIAM,   U_TS0, U_TS
+    REAL*8            :: SRCE_P, REYNOL, ALPHA,  BETA
+    REAL*8            :: GAMMA,  CW,     DTSRCE, A_M2,  G
+    REAL              :: DSRC
 
-      ! Flux array
-      REAL(hp), TARGET       :: FLUX(HcoState%NX,HcoState%NY,NBINS)
+    ! Arrays
+    REAL(hp), TARGET  :: FLUX(HcoState%NX,HcoState%NY,NBINS)
 
-      ! For diagnostics
-      REAL(hp), POINTER      :: Arr2D(:,:) => NULL()
+    ! Pointers
+    REAL(hp), POINTER :: Arr2D(:,:) => NULL()
 
-      !=================================================================
-      ! HCOX_DUSTGINOUX_RUN begins here!
-      !=================================================================
+    !=======================================================================
+    ! HCOX_DUSTGINOUX_RUN begins here!
+    !=======================================================================
 
-      ! Return if extension disabled 
-      IF ( .NOT. ExtState%DustGinoux ) RETURN
+    ! Return if extension is disabled 
+    IF ( .NOT. ExtState%DustGinoux ) RETURN
 
-      ! Enter
-      CALL HCO_ENTER('HCOX_DustGinoux_Run (hcox_dustginoux_mod.F90)',RC)
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Enter
+    CALL HCO_ENTER('HCOX_DustGinoux_Run (hcox_dustginoux_mod.F90)',RC)
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Set gravity at earth surface (cm/s^2)
-      G = HcoState%Phys%g0 * 1.0d2 
+    ! Set gravity at earth surface (cm/s^2)
+    G       = HcoState%Phys%g0 * 1.0d2 
 
-      !=================================================================
-      ! Point to DUST source functions 
-      !=================================================================
-      IF ( FIRST ) THEN
-         CALL HCO_GetPtr ( am_I_Root, 'GINOUX_SAND', SRCE_SAND, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-         CALL HCO_GetPtr ( am_I_Root, 'GINOUX_SILT', SRCE_SILT, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-         CALL HCO_GetPtr ( am_I_Root, 'GINOUX_CLAY', SRCE_CLAY, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-         FIRST = .FALSE.
-      ENDIF
+    ! Emission timestep [s]
+    DTSRCE  = HcoState%TS_EMIS
 
-      ! Error check
-      ERR = .FALSE.
+    ! Error check
+    ERR     = .FALSE.
 
-      ! Init
-      FLUX = 0.0_hp
+    ! Init
+    FLUX    = 0.0_hp
 
-!$OMP PARALLEL DO                                            &
-!$OMP DEFAULT( SHARED )                                      &
-!$OMP PRIVATE( I,      J,     M,    N,      DEN,   DIAM    ) &
-!$OMP PRIVATE( REYNOL, ALPHA, BETA, GAMMA,  U_TS0, A_M2    ) &
-!$OMP PRIVATE( CW,     U_TS,  W10M, SRCE_P, tmpID, RC      ) &
+    !=================================================================
+    ! Point to DUST source functions 
+    !=================================================================
+    IF ( FIRST ) THEN
+
+       ! Sand
+       CALL HCO_GetPtr ( am_I_Root, 'GINOUX_SAND', SRCE_SAND, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Silt
+       CALL HCO_GetPtr ( am_I_Root, 'GINOUX_SILT', SRCE_SILT, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Clay
+       CALL HCO_GetPtr ( am_I_Root, 'GINOUX_CLAY', SRCE_CLAY, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Reset first-time pointer
+       FIRST = .FALSE.
+    ENDIF
+
+    !=================================================================
+    ! Compute dust emisisons
+    !=================================================================
+!$OMP PARALLEL DO                                           &
+!$OMP DEFAULT( SHARED )                                     &
+!$OMP PRIVATE( I,      J,     M,      N,      DEN,   DIAM ) &
+!$OMP PRIVATE( REYNOL, ALPHA, BETA,   GAMMA,  U_TS0, U_TS ) &
+!$OMP PRIVATE( CW,     W10M,  SRCE_P, RC                  ) &
 !$OMP SCHEDULE( DYNAMIC )
-      ! Loop over size bins
-      DO N = 1, NBINS
+    DO N = 1, NBINS
 
-         !==============================================================
-         ! Threshold velocity as a function of the dust density and the 
-         ! diameter from Bagnold (1941), valid for particles larger 
-         ! than 10 um.
-         ! 
-         ! u_ts0 = 6.5*sqrt(dustden(n)*g0*2.*dustreff(n))
-         !
-         ! Threshold velocity from Marticorena and Bergametti
-         ! Convert units to fit dimensional parameters
-         !==============================================================
-         DEN    = DUSTDEN(N) * 1.d-3            ! [g/cm3]
-         DIAM   = 2d0 * DUSTREFF(N) * 1.d2      ! [cm in diameter]
-         REYNOL = 1331.d0 * DIAM**(1.56d0) + 0.38d0    ! [Reynolds number]
-         ALPHA  = DEN * G * DIAM / RHOA
-         BETA   = 1d0 + ( 6.d-3 / ( DEN * G * DIAM**(2.5d0) ) )
-         GAMMA  = ( 1.928d0 * REYNOL**(0.092d0) ) - 1.d0
+       !====================================================================
+       ! Threshold velocity as a function of the dust density and the 
+       ! diameter from Bagnold (1941), valid for particles larger 
+       ! than 10 um.
+       ! 
+       ! u_ts0 = 6.5*sqrt(dustden(n)*g0*2.*dustreff(n))
+       !
+       ! Threshold velocity from Marticorena and Bergametti
+       ! Convert units to fit dimensional parameters
+       !====================================================================
+       DEN    = DUSTDEN(N) * 1.d-3                   ! [g/cm3]
+       DIAM   = 2d0 * DUSTREFF(N) * 1.d2             ! [cm in diameter]
+       REYNOL = 1331.d0 * DIAM**(1.56d0) + 0.38d0    ! [Reynolds number]
+       ALPHA  = DEN * G * DIAM / RHOA
+       BETA   = 1d0 + ( 6.d-3 / ( DEN * G * DIAM**(2.5d0) ) )
+       GAMMA  = ( 1.928d0 * REYNOL**(0.092d0) ) - 1.d0
 
-         !==============================================================
-         ! I think the 129.d-5 is to put U_TS in m/sec instead of cm/sec
-         ! This is a threshold friction velocity!       from M&B
-         ! i.e. Ginoux uses the Gillette and Passi formulation
-         ! but has substituted Bagnold's Ut with M&B's U*t.
-         ! This appears to be a problem.  (tdf, 4/2/04)
-         !==============================================================
+       !====================================================================
+       ! I think the 129.d-5 is to put U_TS in m/sec instead of cm/sec
+       ! This is a threshold friction velocity!       from M&B
+       ! i.e. Ginoux uses the Gillette and Passi formulation
+       ! but has substituted Bagnold's Ut with M&B's U*t.
+       ! This appears to be a problem.  (tdf, 4/2/04)
+       !====================================================================
 
-         ! [m/s] 
-         U_TS0  = 129.d-5 * SQRT( ALPHA ) * SQRT( BETA ) / SQRT( GAMMA )
-         M      = IPOINT(N)
+       ! [m/s] 
+       U_TS0  = 129.d-5 * SQRT( ALPHA ) * SQRT( BETA ) / SQRT( GAMMA )
 
-         ! Loop over grid boxes 
-         DO J = 1, HcoState%NY 
-            DO I = 1, HcoState%NX
+       ! Index used to select the source function (1=sand, 2=silt, 3=clay)
+       M = IPOINT(N)
 
-!               ! Get grid box surface area [m2]
-!               A_M2 = HcoState%Grid%AREA_M2( I, J )
+       ! Loop over grid boxes 
+       DO J = 1, HcoState%NY 
+       DO I = 1, HcoState%NX
 
-               ! Fraction of emerged surfaces 
-               ! (subtract lakes, coastal ocean,...)
-               CW = 1.d0
+          ! Fraction of emerged surfaces 
+          ! (subtract lakes, coastal ocean,...)
+          CW = 1.d0
 
-               ! Case of surface dry enough to erode
-               IF ( ExtState%GWETTOP%Arr%Val(I,J) < 0.2d0 ) THEN
+          ! Case of surface dry enough to erode
+          IF ( ExtState%GWETTOP%Arr%Val(I,J) < 0.2d0 ) THEN
 
-                  U_TS = U_TS0 *( 1.2d0 + 0.2d0 * &
-                         LOG10( MAX(1.d-3,ExtState%GWETTOP%Arr%Val(I,J))))
-                  U_TS = MAX( 0.d0, U_TS )
+             U_TS = U_TS0 *( 1.2d0 + 0.2d0 * &
+                    LOG10( MAX(1.d-3,ExtState%GWETTOP%Arr%Val(I,J))))
+             U_TS = MAX( 0.d0, U_TS )
 
-               ELSE
+          ELSE
 
-                  ! Case of wet surface, no erosion
-                  U_TS = 100.d0
+             ! Case of wet surface, no erosion
+             U_TS = 100.d0
 
-               ENDIF
+          ENDIF
 
-               ! 10m wind speed [m/s]
-               W10M = ExtState%U10M%Arr%Val(I,J)**2 + &
-                      ExtState%V10M%Arr%Val(I,J)**2
+          ! 10m wind speed [m/s]
+          W10M = ExtState%U10M%Arr%Val(I,J)**2 &
+               + ExtState%V10M%Arr%Val(I,J)**2
 
-               ! Get source function
-               IF ( M == 1 ) THEN
-                  SRCE_P = SRCE_SAND(I,J)
-               ELSEIF ( M == 2 ) THEN
-                  SRCE_P = SRCE_SILT(I,J)
-               ELSEIF ( M == 2 ) THEN
-                  SRCE_P = SRCE_CLAY(I,J)
-               ENDIF
+          ! Get source function
+          SELECT CASE( M )
+             CASE( 1 ) 
+                SRCE_P = SRCE_SAND(I,J)
+             CASE( 2 )
+                SRCE_P = SRCE_SILT(I,J)
+             CASE( 3 )
+                SRCE_P = SRCE_CLAY(I,J)
+          END SELECT
 
-               ! Units are m2
-               SRCE_P = FRAC_S(N) * SRCE_P !* A_M2
+          ! Units are m2
+          SRCE_P = FRAC_S(N) * SRCE_P !* A_M2
 
-               ! Dust source increment [kg/m2/s]
-               FLUX(I,J,N) = CW           * CH_DUST * SRCE_P * W10M &
-                           * ( SQRT(W10M) - U_TS )
+          ! Dust source increment [kg/m2/s]
+          FLUX(I,J,N) = CW           * CH_DUST * SRCE_P * W10M &
+                      * ( SQRT(W10M) - U_TS )
 
-               ! Not less than zero
-               IF ( FLUX(I,J,N) < 0.d0 ) FLUX(I,J,N) = 0.d0
+          ! Not less than zero
+          IF ( FLUX(I,J,N) < 0.d0 ) FLUX(I,J,N) = 0.d0
 
-               !========================================================
-               ! ND06 diagnostics: dust emissions [kg/timestep]
-               !========================================================
-!               IF ( ND06 > 0 ) THEN
-!                  AD06(I,J,N) = AD06(I,J,N) + ( DSRC * A_M2 )
-!               ENDIF
-            ENDDO
-         ENDDO
-      ENDDO
+       ENDDO
+       ENDDO
+    ENDDO
 !$OMP END PARALLEL DO
 
-      ! Error check
-      IF ( ERR ) THEN
-         RC = HCO_FAIL
-         RETURN 
-      ENDIF
+    ! Error check
+    IF ( ERR ) THEN
+       RC = HCO_FAIL
+       RETURN 
+    ENDIF
 
-      !=================================================================
-      ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
-      !=================================================================
-      DO N = 1, NBINS
-         IF ( HcoIDs(N) > 0 ) THEN
+    !=======================================================================
+    ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
+    !=======================================================================
+    DO N = 1, NBINS
+       IF ( HcoIDs(N) > 0 ) THEN
 
-            ! Add flux to emission array
-            CALL HCO_EmisAdd( HcoState, FLUX(:,:,N), HcoIDs(N), RC)
-            IF ( RC /= HCO_SUCCESS ) RETURN 
+          ! Add flux to emission array
+          CALL HCO_EmisAdd( HcoState, FLUX(:,:,N), HcoIDs(N), RC)
+          IF ( RC /= HCO_SUCCESS ) RETURN 
 
-            ! Eventually update diagnostics
-            IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-               Arr2D => FLUX(:,:,N)
-               CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
-                                  Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
-                                  AutoFill=1, Array2D=Arr2D, RC=RC   )
-               IF ( RC /= HCO_SUCCESS ) RETURN 
-               Arr2D => NULL() 
-            ENDIF
-         ENDIF
-      ENDDO !N
+          ! Eventually update diagnostics
+          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+             Arr2D => FLUX(:,:,N)
+             CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+                                Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
+                                AutoFill=1, Array2D=Arr2D, RC=RC   )
+             IF ( RC /= HCO_SUCCESS ) RETURN 
+             Arr2D => NULL() 
+          ENDIF
+       ENDIF
+    ENDDO
 
-      ! Leave w/ success
-      CALL HCO_LEAVE ( RC )
+    ! Leave w/ success
+    CALL HCO_LEAVE ( RC )
 
-      END SUBROUTINE HcoX_DustGinoux_Run
+  END SUBROUTINE HcoX_DustGinoux_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -362,103 +380,265 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustGinoux_Init( am_I_Root, HcoState, ExtName, &
-                                       ExtState,    RC                )
+  SUBROUTINE HcoX_DustGinoux_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
-      USE HCO_ExtList_Mod,     ONLY : GetExtNr
-      USE HCO_STATE_MOD,       ONLY : HCO_GetExtHcoID
+    USE HCO_ExtList_Mod, ONLY : GetExtNr
+    USE HCO_State_Mod,   ONLY : HCO_GetExtHcoID
 !
-! !ARGUMENTS:
+! !INPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN   )  :: am_I_Root
-      TYPE(HCO_State),  POINTER        :: HcoState   ! Hemco state 
-      CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
-      TYPE(Ext_State),  POINTER        :: ExtState     ! Module options
-      INTEGER,          INTENT(INOUT)  :: RC 
-
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO State object
+    CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
+    TYPE(Ext_State),  POINTER        :: ExtState   ! Extension options
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC         ! Success or failure?
+!
 ! !REVISION HISTORY:
-!  11 Dec 2013 - C. Keller - Now a HEMCO extension
-!
-! !NOTES: 
+!  11 Dec 2013 - C. Keller   - Now a HEMCO extension
+!  26 Sep 2014 - R. Yantosca - Updated for TOMAS 
+!  29 Sep 2014 - R. Yantosca - Now initialize NBINS from HcoState%N_DUST_BINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      CHARACTER(LEN=255)             :: MSG
-      INTEGER                        :: N, nSpc
-      CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
-      LOGICAL                        :: verb
+    ! Scalars
+    INTEGER                        :: N, nSpc
+    CHARACTER(LEN=255)             :: MSG
+    LOGICAL                        :: verb
+    REAL(dp)                       :: Mp, Rp
 
-      !=================================================================
-      ! HCOX_DUSTGINOUX_INIT begins here!
-      !=================================================================
+    ! Arrays
+    CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
 
-      ! Extension Nr.
-      ExtNr = GetExtNr( TRIM(ExtName) )
-      IF ( ExtNr <= 0 ) RETURN
+    !=======================================================================
+    ! HCOX_DUSTGINOUX_INIT begins here!
+    !=======================================================================
 
-      ! Enter
-      CALL HCO_ENTER('HCOX_DustGinoux_Init (hcox_dustginoux_mod.F90)',RC)
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Extension Nr.
+    ExtNr = GetExtNr( TRIM(ExtName) )
+    IF ( ExtNr <= 0 ) RETURN
 
-      CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC)
-      IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Enter
+    CALL HCO_ENTER('HCOX_DustGinoux_Init (hcox_dustginoux_mod.F90)',RC)
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Sanity check
-      IF ( nSpc /= NBINS ) THEN
-         MSG = 'Ginoux dust model does not have four species!'
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF
+    ! Get the expected number of dust species
+    NBINS = HcoState%nDust
 
-      ! Get global mass flux tuning factor
-      CH_DUST = HcoX_DustGinoux_GetCHDust()
+    ! Get the actual number of dust species defined for DustGinoux extension
+    CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Verbose mode
-      IF ( verb ) THEN
-         MSG = 'Use Ginoux dust emissions (extension module)'
-         CALL HCO_MSG( MSG )
+    ! Make sure the # of dust species is as expected
+    IF ( nSpc /= NBINS ) THEN
+       WRITE( MSG, 100 ) NBINS, nSpc
+ 100   FORMAT( 'Expected ', i3, ' DustGinoux species but only found ', i3, &
+               ' in the HEMCO configuration file!  Exiting...' )
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
 
-         MSG = 'Use the following species (Name: HcoID):'
-         CALL HCO_MSG(MSG)
-         DO N = 1, nSpc
-            WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
-            CALL HCO_MSG(MSG)
-         ENDDO
+    ! Get global mass flux tuning factor
+    CH_DUST = HcoX_DustGinoux_GetCHDust()
 
-         WRITE(MSG,*) 'Global mass flux tuning factor: ', CH_DUST
-            CALL HCO_MSG(MSG,SEP2='-')
-      ENDIF
+    ! Verbose mode
+    IF ( verb ) THEN
+       MSG = 'Use Ginoux dust emissions (extension module)'
+       CALL HCO_MSG( MSG )
 
-      ! Allocate vectors holding bin-specific informations 
-      ALLOCATE ( IPOINT  (NBINS) ) 
-      ALLOCATE ( FRAC_S  (NBINS) ) 
-      ALLOCATE ( DUSTDEN (NBINS) ) 
-      ALLOCATE ( DUSTREFF(NBINS) ) 
+       MSG = 'Use the following species (Name: HcoID):'
+       CALL HCO_MSG(MSG)
+       DO N = 1, nSpc
+          WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
+          CALL HCO_MSG(MSG)
+       ENDDO
 
-      ! Fill bin-specific information
-      IPOINT(1:NBINS)   = (/ 3, 2, 2, 2 /)
-      FRAC_S(1:NBINS)   = (/ 0.095d0, 0.3d0, 0.3d0,   0.3d0   /)
-      DUSTDEN(1:NBINS)  = (/ 2500.d0, 2650.d0, 2650.d0, 2650.d0 /)
-      DUSTREFF(1:NBINS) = (/ 0.73d-6, 1.4d-6, 2.4d-6,  4.5d-6  /)
+       WRITE(MSG,*) 'Global mass flux tuning factor: ', CH_DUST
+       CALL HCO_MSG(MSG,SEP2='-')
+    ENDIF
 
-      ! Activate met. fields required by this module
-      ExtState%U10M%DoUse    = .TRUE.
-      ExtState%V10M%DoUse    = .TRUE.
-      ExtState%GWETTOP%DoUse = .TRUE.
+    ! Allocate vectors holding bin-specific informations 
+    ALLOCATE ( IPOINT  (NBINS) ) 
+    ALLOCATE ( FRAC_S  (NBINS) ) 
+    ALLOCATE ( DUSTDEN (NBINS) ) 
+    ALLOCATE ( DUSTREFF(NBINS) ) 
 
-      ! Activate this module
-      ExtState%DustGinoux = .TRUE.
+    !=======================================================================
+    ! Setup for simulations that use 4 dust bins (w/ or w/o TOMAS)
+    !=======================================================================
 
-      ! Leave w/ success
-      IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
-      CALL HCO_LEAVE ( RC ) 
+    ! Fill bin-specific information
+    IF ( NBINS == 4 ) THEN
 
-      END SUBROUTINE HcoX_DustGinoux_Init
+       IPOINT  (1:NBINS) = (/ 3,       2,       2,       2       /)
+       FRAC_S  (1:NBINS) = (/ 0.095d0, 0.3d0,   0.3d0,   0.3d0   /)
+       DUSTDEN (1:NBINS) = (/ 2500.d0, 2650.d0, 2650.d0, 2650.d0 /)
+       DUSTREFF(1:NBINS) = (/ 0.73d-6, 1.4d-6,  2.4d-6,  4.5d-6  /)
+
+    ELSE
+
+#if !defined( TOMAS )
+       MSG = 'Cannot have > 4 GINOUX dust bins unless you are using TOMAS!'
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+#endif
+
+    ENDIF
+
+#if defined( TOMAS )
+
+    !=======================================================================
+    ! Setup for TOMAS simulations using more than 4 dust bins
+    !
+    ! from Ginoux:
+    ! The U.S. Department of Agriculture (USDA) defines particles 
+    ! with a radius between 1 um and 25 um as silt, and below 1 um 
+    ! as clay [Hillel, 1982]. Mineralogical silt particles are mainly
+    ! composed of quartz, but they are often coated with strongly 
+    ! adherent clay such that their physicochemical properties are 
+    ! similar to clay [Hillel, 1982].
+    ! 
+    ! SRCE_FUNC Source function                              
+    ! for 1: Sand, 2: Silt, 3: Clay
+    !=======================================================================
+    IF ( NBINS == HcoState%MicroPhys%nBins ) THEN
+
+       !--------------------------------------------------------------------
+       ! Define the IPOINT array based on particle size
+       !--------------------------------------------------------------------
+
+       ! Loop over # of TOMAS bins
+       DO N = 1, HcoState%MicroPhys%nBins
+
+          ! Compute particle mass and radius
+          Mp = 1.4 * HcoState%MicroPhys%BinBound(N)
+          Rp = ( ( Mp /2500. ) * (3./(4.*HcoState%Phys%PI)))**(0.333)
+
+          ! Pick the source function based on particle size
+          IF ( Rp < 1.d-6 ) THEN
+             IPOINT(N) = 3
+          ELSE
+             IPOINT(N) = 2
+          END IF
+       END DO
+
+       !--------------------------------------------------------------------
+       ! Set up dust density (DUSTDEN) array
+       !--------------------------------------------------------------------
+       DO N = 1, HcoState%MicroPhys%nBins
+          IF ( HcoState%MicroPhys%BinBound(N) < 4.0D-15 ) THEN
+             DUSTDEN(N)  = 2500.d0
+          ELSE
+             DUSTDEN(N)  = 2650.d0
+          ENDIF
+       ENDDO
+
+       !--------------------------------------------------------------------
+       ! Set up dust density (DUSTDEN) array
+       !--------------------------------------------------------------------
+       DO N = 1, HcoState%MicroPhys%nBins
+          DUSTREFF(N) = 0.5d0                                              &
+                      * ( SQRT( HcoState%MicroPhys%BinBound(N) *      &
+                                HcoState%MicroPhys%BinBound(N+1) )    &
+                      /   DUSTDEN(N) * 6.d0/HcoState%Phys%PI )**( 0.333d0 )
+       ENDDO
+        
+       !--------------------------------------------------------------------
+       ! Set up the FRAC_S array
+       !--------------------------------------------------------------------
+
+       ! Initialize
+       FRAC_S( 1:HcoState%MicroPhys%nBins )           = 0d0
+
+# if  defined( TOMAS12 ) || defined( TOMAS15 )
+
+       !---------------------------------------------------
+       ! TOMAS simulations with 12 or 15 size bins
+       !---------------------------------------------------
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 1  )  = 7.33E-10
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 2  )  = 2.032E-08
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 3  )  = 3.849E-07
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 4  )  = 5.01E-06
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 5  )  = 4.45E-05
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 6  )  = 2.714E-04
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 7  )  = 1.133E-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 8  )  = 3.27E-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 9  )  = 6.81E-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 10 )  = 1.276E-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 11 )  = 2.155E-01
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 12 )  = 6.085E-01
+
+# else
+
+       !---------------------------------------------------
+       ! TOMAS simulations with 30 or 40 size bins
+       !---------------------------------------------------        
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  1 )  = 1.05d-10
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  2 )  = 6.28d-10
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  3 )  = 3.42d-09
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  4 )  = 1.69d-08
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  5 )  = 7.59d-08
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  6 )  = 3.09d-07
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  7 )  = 1.15d-06
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  8 )  = 3.86d-06
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  9 )  = 1.18d-05
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 10 )  = 3.27d-05
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 11 )  = 8.24d-05
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 12 )  = 1.89d-04
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 13 )  = 3.92d-04
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 14 )  = 7.41d-04
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 15 )  = 1.27d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 16 )  = 2.00d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 17 )  = 2.89d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 18 )  = 3.92d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 19 )  = 5.26d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 20 )  = 7.50d-03
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 21 )  = 1.20d-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 22 )  = 2.08d-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 23 )  = 3.62d-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 24 )  = 5.91d-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 25 )  = 8.74d-02
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 26 )  = 1.15d-01
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 27 )  = 1.34d-01
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 28 )  = 1.37d-01
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 29 )  = 1.24d-01
+       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 30 )  = 9.85d-02
+
+# endif
+
+    ELSE
+         
+       ! Stop w/ error message
+       CALL HCO_ERROR( 'Wrong number of TOMAS dust bins!', RC )
+
+    ENDIF
+
+#endif
+
+    !=====================================================================
+    ! Activate fields in ExtState used by Ginoux dust
+    !=====================================================================
+
+    ! Activate met. fields required by this module
+    ExtState%U10M%DoUse    = .TRUE.
+    ExtState%V10M%DoUse    = .TRUE.
+    ExtState%GWETTOP%DoUse = .TRUE.
+
+    ! Activate this module
+    ExtState%DustGinoux    = .TRUE.
+
+    ! Leave w/ success
+    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
+    CALL HCO_LEAVE ( RC ) 
+
+  END SUBROUTINE HcoX_DustGinoux_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -473,32 +653,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HcoX_DustGinoux_Final()
+  SUBROUTINE HcoX_DustGinoux_Final()
 !
 ! !REVISION HISTORY:
 !  11 Dec 2013 - C. Keller - Now a HEMCO extension
-!
-! !NOTES: 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-      !=================================================================
-      ! HCOX_DUSTGINOUX_FINAL begins here!
-      !=================================================================
+    !=======================================================================
+    ! HCOX_DUSTGINOUX_FINAL begins here!
+    !=======================================================================
  
-      ! Free pointer
-      SRCE_SAND => NULL()
-      SRCE_SILT => NULL()
-      SRCE_CLAY => NULL()
+    ! Free pointer
+    SRCE_SAND => NULL()
+    SRCE_SILT => NULL()
+    SRCE_CLAY => NULL()
 
-      ! Cleanup option object
-      IF ( ALLOCATED(IPOINT  ) ) DEALLOCATE(IPOINT   )
-      IF ( ALLOCATED(FRAC_S  ) ) DEALLOCATE(FRAC_S   )
-      IF ( ALLOCATED(DUSTDEN ) ) DEALLOCATE(DUSTDEN  )
-      IF ( ALLOCATED(DUSTREFF) ) DEALLOCATE(DUSTREFF )
+    ! Cleanup option object
+    IF ( ALLOCATED( IPOINT   ) ) DEALLOCATE( IPOINT   )
+    IF ( ALLOCATED( FRAC_S   ) ) DEALLOCATE( FRAC_S   )
+    IF ( ALLOCATED( DUSTDEN  ) ) DEALLOCATE( DUSTDEN  )
+    IF ( ALLOCATED( DUSTREFF ) ) DEALLOCATE( DUSTREFF )
 
-      END SUBROUTINE HcoX_DustGinoux_Final
+  END SUBROUTINE HcoX_DustGinoux_Final
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -513,40 +691,65 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION HCOX_DustGinoux_GetChDust RESULT ( CH_DUST )
+  FUNCTION HCOX_DustGinoux_GetChDust() RESULT( CH_DUST )
 !
-! !ARGUMENTS:
+! !RETURN VALUE:
 !
-      REAL*8 :: CH_DUST
+    REAL*8 :: CH_DUST
+!
+! !REMARKS:
+!  The logic in the #ifdefs may need to be cleaned up later on.  We have 
+!  just replicated the existing code in pre-HEMCO versions of dust_mod.F.
 !
 ! !REVISION HISTORY:
-!  11 Dec 2013 - C. Keller - Initial version 
-!
-! !NOTES: 
+!  11 Dec 2013 - C. Keller   - Initial version 
+!  25 Sep 2014 - R. Yantosca - Updated for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Transfer coeff for type natural source  (kg*s2/m5)
-!Prior 4/27/08
-!      REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10
-!Emission reduction factor for China-nested grid domain (win, 4/27/08)
-#if   defined( GRID4x5  )
-      CH_DUST  = 9.375d-10
+    ! Transfer coeff for type natural source  (kg*s2/m5)
+    ! Emission reduction factor for China-nested grid domain (win, 4/27/08)
 
-#elif defined( GRID1x1  ) && defined( NESTED_CH )
-      CH_DUST  = 9.375d-10 * 0.5d0
-      ! Note: monthly emission over the China nested-grid domain is about
-      !       2 times higher compared to the same domain in 4x5 resolution
-      !       Thus applying 1/2  factor to correct the emission.
+#if defined( GRID4x5 )
+
+    !-----------------------------------------------------------------------
+    ! All 4x5 simulations (including TOMAS)
+    !-----------------------------------------------------------------------
+    CH_DUST  = 9.375d-10
+
+#elif defined( GRID1x1 ) && defined( NESTED_CH )
+
+    !-----------------------------------------------------------------------
+    ! Note: monthly emission over the China nested-grid domain is about
+    !       2 times higher compared to the same domain in 4x5 resolution
+    !       Thus applying 1/2  factor to correct the emission.
+    !
+    !%%% NOTE: MAY NEED TO UPDATE THIS STATEMENT FOR HIGHER RESOLUTION
+    !%%% NESTED GRIDS.  THIS WAS ORIGINALLY DONE FOR THE GEOS-3 1x1
+    !%%% NESTED GRID.  LOOK INTO THIS LATER.  (bmy, 9/25/14)
+    !-----------------------------------------------------------------------
+    CH_DUST  = 9.375d-10 * 0.5d0
+
 #else
 
-      CH_DUST  = 9.375d-10
+    !-----------------------------------------------------------------------
+    ! All other resolutions
+    !-----------------------------------------------------------------------
+
+    ! Start w/ same value as for 4x5
+    CH_DUST  = 9.375d-10
+
+#if defined( TOMAS )
+    ! KLUDGE: For TOMAS simulations at grids higher than 4x5 (e.g. 2x25),
+    ! then multiplyCH_DUST by 0.75.  (Sal Farina)
+    CH_DUST  = CH_DUST * 0.75d0
+#endif
+
 #endif
       
-      END FUNCTION HCOX_DustGinoux_GetChDust
+  END FUNCTION HCOX_DustGinoux_GetChDust
 !EOC
-      END MODULE HCOX_DustGinoux_Mod
-!EOM
+END MODULE HCOX_DustGinoux_Mod

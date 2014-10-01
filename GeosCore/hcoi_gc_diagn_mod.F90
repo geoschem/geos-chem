@@ -443,6 +443,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use dust
+!  30 Sep 2014 - R. Yantosca - Update for TOMAS dust species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -450,7 +451,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: ExtNr, HcoID, I, N
-    CHARACTER(LEN=1)   :: ISTR
+    CHARACTER(LEN=1)   :: ISTR1
+    CHARACTER(LEN=2)   :: ISTR2
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
@@ -482,12 +484,26 @@ CONTAINS
        ENDIF
 
        ! Do for each dust bin
-       DO I = 1, NDSTBIN
+       DO I = 1, Input_Opt%N_DUST_BINS
 
-          ! Get species name (e.g. DST1) and define diagnostics name
-          ! (e.g. AD06_DST1).
-          WRITE( ISTR,'(i1.1)' ) I
-          SpcName   = 'DST'   // TRIM( ISTR    )
+#if defined( TOMAS )
+
+          ! Get species name (i.e. DUST1 .. DUST40) for TOMAS simulatiosn
+          IF ( I < 10 )  THEN
+             WRITE( ISTR1,'(i1)' ) I
+             SpcName = 'DUST'   // ISTR1
+          ELSE
+             WRITE( ISTR2,'(i2)' ) I
+             SpcName = 'DUST'   // ISTR2
+          ENDIF
+#else
+
+          ! Get species name (i.e. DST1 .. DST4 for non TOMAS simualtions
+          WRITE( ISTR1,'(i1)' ) I
+          SpcName   = 'DST'   // ISTR1
+
+#endif
+
           DiagnName = 'AD06_' // TRIM( SpcName )         
 
           ! HEMCO species ID 
