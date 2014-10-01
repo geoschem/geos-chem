@@ -184,8 +184,8 @@ CONTAINS
     DO I = 1, HcoState%Nx
 
        ! Get ABS( latitude ) at S and N edges of grid box
-       LAT_S         = ABS( HcoState%Grid%YEDGE( I, J   ) ) 
-       LAT_N         = ABS( HcoState%Grid%YEDGE( I, J+1 ) )
+       LAT_S         = ABS( HcoState%Grid%YEDGE%Val( I, J   ) ) 
+       LAT_N         = ABS( HcoState%Grid%YEDGE%Val( I, J+1 ) )
        LAT_H         = MAX( LAT_S, LAT_N )
        LAT_L         = MIN( LAT_S, LAT_N ) 
 
@@ -330,7 +330,7 @@ CONTAINS
 
        ! Get absolute value of latitude, since we will assume that 
        ! the 7Be distribution is symmetric about the equator
-       LAT_TMP = ABS( HcoState%Grid%YMID( I, J ) )
+       LAT_TMP = ABS( HcoState%Grid%YMID%Val( I, J ) )
 
        ! Pressure at (I,J,L) [hPa]
        P_TMP   = ExtState%PCENTER%Arr%Val( I, J, L ) / 100.0_hp
@@ -343,7 +343,7 @@ CONTAINS
        Be_TMP  = Be_TMP * 0.045d0 * ExtState%AIR%Arr%Val(I,J,L) * 1.d3 
                   
        ! ADD_Be = [atoms/s] / [atom/kg] / [m2] = 7Be emissions [kg/m2/s]
-       ADD_Be  = ( Be_TMP / XNUMOL_Be ) / HcoState%Grid%AREA_M2(I,J)
+       ADD_Be  = ( Be_TMP / XNUMOL_Be ) / HcoState%Grid%AREA_M2%Val(I,J)
 
 #if defined( GCAP ) 
        !%%%%% FOR GCAP SIMULATION: Divide emissions flux by 3.5 to correct

@@ -248,8 +248,8 @@ CONTAINS
     IF ( ASSOCIATED( FileDta ) ) THEN
 
        ! Deallocate data arrays
-       CALL HCO_ArrCleanup( FileDta%V3 )
-       CALL HCO_ArrCleanup( FileDta%V2 )
+       CALL HCO_ArrCleanup( FileDta%V3, DeepClean )
+       CALL HCO_ArrCleanup( FileDta%V2, DeepClean )
        FileDta%nt = 0
 
        IF ( DeepClean ) THEN
@@ -306,7 +306,7 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Compare dimensions if array already allocated 
-    IF ( Associated(FileDta%V2) ) THEN 
+    IF ( ASSOCIATED(FileDta%V2) ) THEN 
        IF ( (               FileDta%nt  /= nt ) .OR. &
             ( SIZE(FileDta%V2(1)%Val,1) /= nx ) .OR. &
             ( SIZE(FileDta%V2(1)%Val,2) /= ny )       ) THEN
@@ -317,7 +317,7 @@ CONTAINS
     ENDIF
 
     ! If not associated yet:
-    ! Allocate vector
+    ! Initialize vector and corresponding arrays.
     CALL HCO_ArrInit ( FileDta%V2, nt, nx, ny, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -388,7 +388,7 @@ CONTAINS
     ENDIF
 
     ! If not allocated:
-    ! Allocate vector
+    ! Initialize vector and corresponding arrays.
     CALL HCO_ArrInit( FileDta%V3, nt, nx, ny, nz, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

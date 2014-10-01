@@ -5066,12 +5066,12 @@
       IF ( ASCL == 1 ) THEN
          DO II=1,levs
             ARRAY(:,:,II) = 
-     &           ARRAY(:,:,II) * HcoState%Grid%AREA_M2(:,:)
+     &           ARRAY(:,:,II) * HcoState%Grid%AREA_M2%Val(:,:)
          ENDDO
       ELSEIF ( ASCL == -1 ) THEN
          DO II=1,levs
             ARRAY(:,:,II) = 
-     &           ARRAY(:,:,II) / HcoState%Grid%AREA_M2(:,:)
+     &           ARRAY(:,:,II) / HcoState%Grid%AREA_M2%Val(:,:)
          ENDDO
       ENDIF
  

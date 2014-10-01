@@ -1628,7 +1628,7 @@ CONTAINS
           ! Multiply by area if output unit is not per area 
           IF ( DgnCont%AreaFlag == 0 ) THEN
              DgnCont%Arr3D%Val(I,J,:) = DgnCont%Arr3D%Val(I,J,:)  & 
-                                      * HcoState%Grid%AREA_M2(I,J) 
+                                      * HcoState%Grid%AREA_M2%Val(I,J) 
           ENDIF
 
           ! Apply scale factors
@@ -1645,7 +1645,7 @@ CONTAINS
           ! Multiply by area if output unit is not per area 
           IF ( DgnCont%AreaFlag == 0 ) THEN
              DgnCont%Arr2D%Val(I,J) = DgnCont%Arr2D%Val(I,J) &
-                                    * HcoState%Grid%AREA_M2(I,J) 
+                                    * HcoState%Grid%AREA_M2%Val(I,J) 
           ENDIF
 
           ! Apply scale factors

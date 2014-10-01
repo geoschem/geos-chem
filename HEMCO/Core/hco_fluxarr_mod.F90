@@ -7,7 +7,7 @@
 !
 ! !DESCRIPTION: Module HCO\_FluxArr\_Mod contains routines to handle 
 ! the HEMCO flux arrays. These are the emissions and deposition arrays
-! listed in the HEMCO state object. 
+! listed in the HEMCO state object.
 !\\
 !\\
 ! !INTERFACE: 

@@ -646,7 +646,7 @@
          IREF = I + I0
 
          ! Grid box surface area [m2]
-         AREA_M2 = HcoState%Grid%AREA_M2(I,J)
+         AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
          ! Offline CH4 only
          ! Convert kg/m2/s to kg.
@@ -707,7 +707,7 @@
             IREF = I + I0
 
             ! Grid box surface area [m2]
-            AREA_M2 = HcoState%Grid%AREA_M2(I,J)
+            AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
             ! Gas, oil, mine
             TCH4(I,J,1,5) = TCH4(I,J,1,5) +
@@ -765,7 +765,7 @@
             IREF = I + I0
 
             ! Grid box surface area [m2]
-            AREA_M2 = HcoState%Grid%AREA_M2(I,J) 
+            AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J) 
 
             ! Total anthropogenic emissions
             ! Gas & oil, mining, livestock, waste, biofuel, rice, other

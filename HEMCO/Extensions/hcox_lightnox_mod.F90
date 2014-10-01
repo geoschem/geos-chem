@@ -432,12 +432,12 @@ CONTAINS
     DO I = 1, HcoState%NX
 
        ! Grid box surface areas in [m2] and [km2]
-       A_M2     = HcoState%Grid%AREA_M2( I, J )
+       A_M2     = HcoState%Grid%AREA_M2%Val( I, J )
        A_KM2    = A_M2 / 1d6
 
        ! Grid box latitude and longitude [degrees]
-       YMID     = HcoState%Grid%YMID( I, J )
-       XMID     = HcoState%Grid%XMID( I, J )
+       YMID     = HcoState%Grid%YMID%Val( I, J )
+       XMID     = HcoState%Grid%XMID%Val( I, J )
 
        ! Get surface type. Note that these types are different than 
        ! the types used elsewhere else: 0 = land, 1=water, 2=ice!
@@ -560,7 +560,7 @@ CONTAINS
           HCHARGE = DZ - ZUP
        ELSE
           LCHARGE = LCHARGE - 1
-          HCHARGE = (HcoState%Grid%BXHEIGHT_M(I,J,LCHARGE)-ZUP) + DZ
+          HCHARGE = (HcoState%Grid%BXHEIGHT_M%Val(I,J,LCHARGE)-ZUP) + DZ
        ENDIF
  
        !===========================================================
@@ -609,13 +609,13 @@ CONTAINS
 
        ! H0 is the convective cloud top height [m].  This is the
        ! distance from the surface to the top edge of box (I,J,LTOP).
-       H0   = SUM(HcoState%Grid%BXHEIGHT_M(I,J,1:LTOP))
+       H0   = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LTOP))
 
        ! Z_CG is the cloud-ground path (ground --> HCHARGE) [m]
-       Z_CG = SUM(HcoState%Grid%BXHEIGHT_M(I,J,1:LCHARGE-1)) + HCHARGE
+       Z_CG = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LCHARGE-1)) + HCHARGE
 
        ! Z_IC is the intra-cloud path (HCHARGE --> cloud top) [m]
-       Z_IC = SUM(HcoState%Grid%BXHEIGHT_M(I,J,LCHARGE:LTOP)) - HCHARGE
+       Z_IC = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,LCHARGE:LTOP)) - HCHARGE
 
        !===========================================================
        ! (3) COMPUTE COLD CLOUD THICKNESS
@@ -697,12 +697,12 @@ CONTAINS
           HBOTTOM = DZ - ZUP
        ELSE
           LBOTTOM = LBOTTOM - 1
-          HBOTTOM = (HcoState%Grid%BXHEIGHT_M(I,J,LBOTTOM) - ZUP) + DZ
+          HBOTTOM = (HcoState%Grid%BXHEIGHT_M%Val(I,J,LBOTTOM) - ZUP) + DZ
        ENDIF
   
        ! Cold cloud thickness is difference of cloud top 
        ! height (H0) and the height to the bottom.
-       CC = H0 - SUM(HcoState%Grid%BXHEIGHT_M(I,J,1:LBOTTOM-1) ) - &
+       CC = H0 - SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LBOTTOM-1) ) - &
                      HBOTTOM 
 
        !===========================================================
@@ -946,9 +946,9 @@ CONTAINS
                 ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
                 ! [molec/6h/box] * [6h/21600s] * [area/AREA_M2 m2] /
                 ! [MW/(g/mol)] / [Avgrd/(molec/mol)] * [1kg/1000g] = [kg/m2/s]
-                SLBASE(I,J,L) = SLBASE(I,J,L)                         &
-                              / (21600.d0*HcoState%Grid%AREA_M2(I,J)) &
-                              * HcoState%Spc(IDTNO)%EmMW_g            &
+                SLBASE(I,J,L) = SLBASE(I,J,L)                                 &
+                              / (21600.d0*HcoState%Grid%AREA_M2%Val(I,J)) &
+                              * HcoState%Spc(IDTNO)%EmMW_g                    &
                               / HcoState%Phys%Avgdr / 1000.0d0
              ENDIF
           ENDDO
@@ -1084,7 +1084,7 @@ CONTAINS
     !%%% existing GEOS-Chem with a pure cartesian grid, but may be an
     !%%% issue when interfaced with a GCM with a non-regular grid
     !%%% (bmy, 3/1/12)
-    YMID     = HcoState%Grid%YMID( I, J )
+    YMID     = HcoState%Grid%YMID%Val( I, J )
 
     !=================================================================
     ! Test whether location (I,J) is continental, marine, or snow/ice
@@ -1169,7 +1169,7 @@ CONTAINS
     ! Compute the height [km] at the top of each vertical level.
     ! Look up the cumulative fraction of NOx for each vertical level
     DO L = 1, LTOP
-       ZHEIGHT = ZHEIGHT + HcoState%Grid%BXHEIGHT_M(I,J,L)
+       ZHEIGHT = ZHEIGHT + HcoState%Grid%BXHEIGHT_M%Val(I,J,L)
        FRAC(L) = PROFILE( NINT( ( ZHEIGHT/H0 )*3200. ), MTYPE ) *0.01
     ENDDO
 

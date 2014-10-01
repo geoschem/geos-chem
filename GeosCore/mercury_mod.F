@@ -3233,14 +3233,14 @@
          DgnName = 'HG0_ANTHRO'
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
-         EHg0_an =  Ptr2D(:,:) * HcoState%Grid%AREA_M2(:,:)
+         EHg0_an =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
          Ptr2D   => NULL()
 
          ! Artisanal emissions
          DgnName = 'HG0_ARTISANAL'
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
-         EHg0_am =  Ptr2D(:,:) * HcoState%Grid%AREA_M2(:,:)
+         EHg0_am =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
          Ptr2D   => NULL()
 
          ! ---------------------------------------------
@@ -3252,7 +3252,7 @@
          DgnName = 'HG2_ANTHRO'
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
-         EHg2_an =  Ptr2D(:,:) * HcoState%Grid%AREA_M2(:,:)
+         EHg2_an =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
          Ptr2D   => NULL()
       ENDIF
  
@@ -3260,7 +3260,7 @@
       DgnName = 'HG0_NATURAL'
       CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
-      EHg0_geo =  Ptr2D(:,:) * HcoState%Grid%AREA_M2(:,:)
+      EHg0_geo =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
       Ptr2D    => NULL()
 
       ! Soil distribution 

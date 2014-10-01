@@ -1553,7 +1553,7 @@ CONTAINS
     ! need to get average
 
     NTS     = HcoState%TS_EMIS / HcoState%TS_DYN 
-    AREA_M2 = HcoState%Grid%AREA_M2(I,J) 
+    AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J) 
 
     ! Total N wet dep
     WETN = ExtState%WET_TOTN%Arr%Val(I,J) / AREA_M2 / NTS

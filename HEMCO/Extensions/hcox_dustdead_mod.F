@@ -380,7 +380,7 @@
             VLON(I)        = ExtState%V10M%Arr%Val(I,J)
  
             ! Half box height at surface [m]
-            BHT2(I)        = HcoState%Grid%BXHEIGHT_M(I,J,1) / 2.d0
+            BHT2(I)        = HcoState%Grid%BXHEIGHT_M%Val(I,J,1) / 2.d0
 
             ! Specific humidity at midpoint of surface layer [kg H2O/kg air]
             Q_H2O(I)       = ExtState%SPHU%Arr%Val(I,J,1) / 1000.d0
@@ -400,7 +400,7 @@
          !==============================================================
 
          ! Latitude in RADIANS
-         YMID_R = HcoState%Grid%YMID(1,J) * HcoState%Phys%PI / 180.d0
+         YMID_R = HcoState%Grid%YMID%Val(1,J) * HcoState%Phys%PI /180.d0
 
          ! Call DEAD dust mobilization
          CALL DST_MBL( aIR,    HcoState, ExtState,     DOY,    
@@ -420,7 +420,7 @@
 
             ! Loop over dust tracers
             ! Write into flux array: kg/box --> kg/m2/s
-            AREA_M2 = HcoState%Grid%AREA_M2( I, J )
+            AREA_M2 = HcoState%Grid%AREA_M2%Val( I, J )
             DO N = 1, NBINS
                IF ( HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
@@ -1445,8 +1445,8 @@
                !========================================================
 
                ! [kg/sec]
-               Q_DST_TND_MBL(I,M) =
-     &           FLX_MSS_VRT_DST(I,M)*HcoState%Grid%AREA_M2(I,LAT_IDX)
+               Q_DST_TND_MBL(I,M) = FLX_MSS_VRT_DST(I,M)
+     &            *HcoState%Grid%AREA_M2%Val(I,LAT_IDX)
 
                ! Introduce DSRC: dust mixing ratio increment   12/9/2K3
                ! [kg]

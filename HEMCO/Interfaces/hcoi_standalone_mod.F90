@@ -573,14 +573,6 @@ CONTAINS
     ! Cleanup HCO core
     CALL HCO_FINAL()
 
-    ! Remove pointer references to grid arrays first.
-    HcoState%Grid%XMID       => NULL() 
-    HcoState%Grid%YMID       => NULL() 
-    HcoState%Grid%XEDGE      => NULL()
-    HcoState%Grid%YEDGE      => NULL()
-    HcoState%Grid%YSIN       => NULL()
-    HcoState%Grid%AREA_M2    => NULL()
-
     ! Deallocate module arrays/pointers
     IF ( ALLOCATED( XMID    ) ) DEALLOCATE ( XMID    )
     IF ( ALLOCATED( YMID    ) ) DEALLOCATE ( YMID    )
@@ -1016,12 +1008,12 @@ CONTAINS
                             RC        = RC          )
 
     ! Set pointers to grid variables
-    HcoState%Grid%XMID       => XMID   (:,:,1)
-    HcoState%Grid%YMID       => YMID   (:,:,1)
-    HcoState%Grid%XEDGE      => XEDGE  (:,:,1)
-    HcoState%Grid%YEDGE      => YEDGE  (:,:,1)
-    HcoState%Grid%YSIN       => YSIN   (:,:,1)
-    HcoState%Grid%AREA_M2    => AREA_M2(:,:,1)
+    HcoState%Grid%XMID%Val       => XMID   (:,:,1)
+    HcoState%Grid%YMID%Val       => YMID   (:,:,1)
+    HcoState%Grid%XEDGE%Val      => XEDGE  (:,:,1)
+    HcoState%Grid%YEDGE%Val      => YEDGE  (:,:,1)
+    HcoState%Grid%YSIN%Val       => YSIN   (:,:,1)
+    HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
 
     ! Cleanup
     DEALLOCATE( YMID_R, YEDGE_R, YMID_R_W, YEDGE_R_W )

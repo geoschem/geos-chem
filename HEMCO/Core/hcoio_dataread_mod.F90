@@ -63,9 +63,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_FileData_mod, ONLY : FileData_ArrCheck
-    USE ESMF_mod
+    USE ESMF
     USE MAPL_mod
+    USE HCO_ARR_MOD, ONLY : HCO_ArrInit
 
 # include "MAPL_Generic.h"
 !
@@ -130,12 +130,16 @@ CONTAINS
        LL = SIZE(Ptr3D,3)
        TT = 1 
 
-       ! Allocate HEMCO array if not yet defined
-       CALL FileData_ArrCheck( Lct%Dct%Dta, II, JJ, LL, TT, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Define HEMCO array pointer if not yet defined
+       IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V3) ) THEN
+!          Lct%Dct%Dta%V3 => NULL()
+          CALL HCO_ArrInit( Lct%Dct%Dta%V3, TT, 0, 0, 0, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
 
-       ! Copy data and cast to real*8
-       Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,:)
+       ! Pointer to data. HEMCO expected data to have surface level at
+       ! index 1 ('up'), so revert ESMF levels (which are 'down').
+       Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
 
     !-----------------------------------------------------------------
     ! Read 2D data from ESMF 
@@ -160,12 +164,15 @@ CONTAINS
        LL = 1 
        TT = 1 
 
-       ! Allocate HEMCO array if not yet defined
-       CALL FileData_ArrCheck( Lct%Dct%Dta, II, JJ, TT, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Define HEMCO array pointer if not yet defined
+       IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V2) ) THEN
+!          Lct%Dct%Dta%V2 => NULL()
+          CALL HCO_ArrInit( Lct%Dct%Dta%V2, TT, 0, 0, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
 
-       ! Copy to HEMCO container
-       Lct%Dct%Dta%V2(1)%Val(:,:) = Ptr2D(:,:)
+       ! Pointer to data
+       Lct%Dct%Dta%V2(1)%Val => Ptr2D
 
     ENDIF
  
@@ -693,8 +700,8 @@ CONTAINS
        LatEdgeI(:) = SIN( LatEdge * PI_180 )
       
        ! Get output grid edges from HEMCO state
-       LonEdgeO(:) = HcoState%Grid%XEDGE(:,1)
-       LatEdgeO(:) = HcoState%Grid%YSIN (1,:) 
+       LonEdgeO(:) = HcoState%Grid%XEDGE%Val(:,1)
+       LatEdgeO(:) = HcoState%Grid%YSIN%Val(1,:) 
      
        ! Reset nlev and ntime to effective array sizes
        nlev  = size(ncArr,3)

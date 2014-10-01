@@ -335,7 +335,7 @@ CONTAINS
        ! Write out total (daily or monthly) emissions to log-file
        IF ( UseDay ) THEN
           IF ( HcoClock_NewDay() ) THEN
-             TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%Area_M2(:,:))
+             TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%AREA_M2%Val(:,:))
              TOTAL = TOTAL * 86400.0_hp * 1e-9_hp
              WRITE(MSG, 120) HcoState%Spc(HcoID)%SpcName, TOTAL
              CALL HCO_MSG(MSG)
@@ -343,7 +343,7 @@ CONTAINS
           ENDIF
        ELSE
           IF ( HcoClock_NewMonth() ) THEN
-             TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%Area_M2(:,:))
+             TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%AREA_M2%Val(:,:))
              TOTAL = TOTAL * NDAYS * 86400.0_hp * 1e-9_hp
              WRITE(MSG, 130) HcoState%Spc(HcoID)%SpcName, TOTAL
              CALL HCO_MSG(MSG)

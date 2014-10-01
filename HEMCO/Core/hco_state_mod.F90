@@ -24,7 +24,7 @@ MODULE HCO_State_Mod
   USE HCO_Arr_Mod
 
 #if defined(ESMF_)
-  USE ESMF_Mod
+  USE ESMF
 #endif
 
   IMPLICIT NONE
@@ -131,15 +131,14 @@ MODULE HCO_State_Mod
   ! ** Only used by some extensions
   !=========================================================================
   TYPE :: HcoGrid
-     REAL(hp), POINTER :: XMID       (:,:)   ! mid-points in x-direction (lon)
-     REAL(hp), POINTER :: YMID       (:,:)   ! mid-points in y-direction (lat)
-     REAL(hp), POINTER :: ZSIGMA     (:,:,:) ! hybrid sigma coordinates
-     REAL(hp), POINTER :: XEDGE      (:,:)   ! grid edges in x-direction (lon)*
-     REAL(hp), POINTER :: YEDGE      (:,:)   ! grid edges in y-direction (lat)*
-     REAL(hp), POINTER :: YSIN       (:,:)   ! sin of grid edges in 
-                                             !  y-direction (lat)*
-     REAL(hp), POINTER :: AREA_M2    (:,:)   ! grid box areas (m2)
-     REAL(hp), POINTER :: BXHEIGHT_M (:,:,:) ! grid box heights (m)**
+     TYPE(Arr2D_Hp), POINTER :: XMID       ! mid-points in x-direction (lon)
+     TYPE(Arr2D_Hp), POINTER :: YMID       ! mid-points in y-direction (lat)
+     TYPE(Arr3D_Hp), POINTER :: ZSIGMA     ! hybrid sigma coordinates
+     TYPE(Arr2D_Hp), POINTER :: XEDGE      ! grid edges in x-direction (lon)*
+     TYPE(Arr2D_Hp), POINTER :: YEDGE      ! grid edges in y-direction (lat)*
+     TYPE(Arr2D_Hp), POINTER :: YSIN       ! sin of y-direction grid edges*
+     TYPE(Arr2D_Hp), POINTER :: AREA_M2    ! grid box areas (m2)
+     TYPE(Arr3D_Hp), POINTER :: BXHEIGHT_M ! grid box heights (m)** 
   END TYPE HcoGrid
 
   !=========================================================================
@@ -162,7 +161,6 @@ MODULE HCO_State_Mod
      INTEGER           :: nBins              ! # of size-resolved bins
      INTEGER           :: nActiveModebins    ! # of active mode bins
      REAL(dp), POINTER :: BinBound(:)        ! Size bin boundaries
-                                             !  in dry mass/particle
   END TYPE HcoMicroPhys
 !                                                                             
 ! !REVISION HISTORY:
@@ -259,15 +257,15 @@ CONTAINS
        ! will just create a pointer to the data array (XX%Val). 
        ! Will specify the arrays in HEMCO-model interface routine 
        ! or when writing to them for the first time.
-       HcoState%Spc(I)%Emis => NULL()
+!       HcoState%Spc(I)%Emis => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Emis, 0, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       HcoState%Spc(I)%Conc => NULL()
+!       HcoState%Spc(I)%Conc => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Conc, 0, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       HcoState%Spc(I)%Depv => NULL()
+!       HcoState%Spc(I)%Depv => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Depv, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDDO !I
@@ -286,15 +284,23 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Nullify grid arrays. 
-    NULLIFY ( HcoState%Grid%XMID       )
-    NULLIFY ( HcoState%Grid%YMID       )
-    NULLIFY ( HcoState%Grid%ZSIGMA     )
-    NULLIFY ( HcoState%Grid%XEDGE      )
-    NULLIFY ( HcoState%Grid%YEDGE      )
-    NULLIFY ( HcoState%Grid%YSIN       )
-    NULLIFY ( HcoState%Grid%AREA_M2    )
-    NULLIFY ( HcoState%Grid%BXHEIGHT_M )
+    ! Initialize grid arrays.
+    CALL HCO_ArrInit ( HcoState%Grid%XMID,       0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%YMID,       0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%ZSIGMA,     0, 0, 0, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%XEDGE,      0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%YEDGE,      0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%YSIN,       0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%AREA_M2,    0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%BXHEIGHT_M, 0, 0, 0, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=====================================================================
     ! Set misc. parameter
@@ -404,15 +410,15 @@ CONTAINS
 
     ! Deallocate grid information
     IF ( ASSOCIATED ( HcoState%Grid) ) THEN
-     IF ( ASSOCIATED ( HcoState%Grid%XMID      ) ) DEALLOCATE ( HcoState%Grid%XMID      ) 
-     IF ( ASSOCIATED ( HcoState%Grid%YMID      ) ) DEALLOCATE ( HcoState%Grid%YMID      )
-     IF ( ASSOCIATED ( HcoState%Grid%ZSIGMA    ) ) DEALLOCATE ( HcoState%Grid%ZSIGMA    )
-     IF ( ASSOCIATED ( HcoState%Grid%XEDGE     ) ) DEALLOCATE ( HcoState%Grid%XEDGE     )
-     IF ( ASSOCIATED ( HcoState%Grid%YEDGE     ) ) DEALLOCATE ( HcoState%Grid%YEDGE     )
-     IF ( ASSOCIATED ( HcoState%Grid%YSIN      ) ) DEALLOCATE ( HcoState%Grid%YSIN      )
-     IF ( ASSOCIATED ( HcoState%Grid%AREA_M2   ) ) DEALLOCATE ( HcoState%Grid%AREA_M2   )
-     IF ( ASSOCIATED ( HcoState%Grid%BXHEIGHT_M) ) DEALLOCATE ( HcoState%Grid%BXHEIGHT_M)
-     DEALLOCATE(HcoState%Grid)
+       CALL HCO_ArrCleanup( HcoState%Grid%XMID       )
+       CALL HCO_ArrCleanup( HcoState%Grid%YMID       )
+       CALL HCO_ArrCleanup( HcoState%Grid%ZSIGMA     )
+       CALL HCO_ArrCleanup( HcoState%Grid%XEDGE      )
+       CALL HCO_ArrCleanup( HcoState%Grid%YEDGE      )
+       CALL HCO_ArrCleanup( HcoState%Grid%YSIN       )
+       CALL HCO_ArrCleanup( HcoState%Grid%AREA_M2    )
+       CALL HCO_ArrCleanup( HcoState%Grid%BXHEIGHT_M )
+       DEALLOCATE(HcoState%Grid)
     ENDIF
 
     ! Deallocate microphysics information

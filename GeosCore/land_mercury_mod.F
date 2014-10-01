@@ -331,7 +331,7 @@
          DgnName = 'BIOMASS_HG0'
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
-         EHg0_bb = Ptr2D(:,:) * HcoState%Grid%AREA_M2(:,:)
+         EHg0_bb = Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
 
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( SHARED )
@@ -349,7 +349,7 @@
 !!            EHg0_bb(I,J) = E_CO * BBRatio_Hg_CO * FMOL_HG 
 !
 !            ! kg/m2/s to kg/gridbox/s
-!            EHg0_bb(I,J) = Ptr2D(I,J) * HcoState%Grid%AREA_M2(I,J)
+!            EHg0_bb(I,J) = Ptr2D(I,J) * HcoState%Grid%AREA_M2%Val(I,J)
 !        
 !         ENDDO
 !         ENDDO

@@ -7,8 +7,10 @@
 !
 ! !DESCRIPTION: Module HCO\_Error\_Mod contains routines and variables 
 ! for error handling in HEMCO. It also contains definitions of some 
-! globally used parameter, such as the single/double precision 
-! definitions.
+! globally used parameter, such as the single/double precision as well
+! as the HEMCO precision definitions. The HEMCO precision is used for 
+! almost all HEMCO internal data arrays and can be changed below if 
+! required.
 !\\
 !\\
 ! The error settings are specified in the HEMCO configuration file and
@@ -59,8 +61,12 @@ MODULE HCO_Error_Mod
 !
   ! Double and single precision definitions
   INTEGER, PARAMETER, PUBLIC  :: dp = kind(0.d0)     ! double precision
-  INTEGER, PARAMETER, PUBLIC  :: sp = 4              ! single precision
-  INTEGER, PARAMETER, PUBLIC  :: hp = 8              ! HEMCO precision 
+  INTEGER, PARAMETER, PUBLIC  :: sp = kind(0.0)      ! single precision
+#if defined(ESMF_)
+  INTEGER, PARAMETER, PUBLIC  :: hp = kind(0.0)      ! HEMCO precision
+#else
+  INTEGER, PARAMETER, PUBLIC  :: hp = kind(0.d0)     ! HEMCO precision
+#endif
   INTEGER, PARAMETER, PUBLIC  :: i4 = 4              ! FourByteInt 
   INTEGER, PARAMETER, PUBLIC  :: i8 = 8              ! EightByteInt
 

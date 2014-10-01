@@ -663,7 +663,7 @@ CONTAINS
     ! ================================================================
 
     IF ( ASSOCIATED( ExtDat) ) THEN 
-       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.FALSE. ) 
+       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. ) 
        DEALLOCATE ( ExtDat )
     ENDIF
 
@@ -699,7 +699,7 @@ CONTAINS
     ! ================================================================
 
     IF ( ASSOCIATED( ExtDat) ) THEN 
-       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.FALSE. ) 
+       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. ) 
        DEALLOCATE ( ExtDat )
     ENDIF
 
@@ -735,7 +735,7 @@ CONTAINS
     ! ================================================================
 
     IF ( ASSOCIATED( ExtDat) ) THEN 
-       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.FALSE. ) 
+       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. ) 
        DEALLOCATE ( ExtDat )
     ENDIF
 

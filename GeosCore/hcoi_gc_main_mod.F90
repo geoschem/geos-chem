@@ -639,28 +639,6 @@ CONTAINS
 
     ! Cleanup HCO core
     CALL HCO_FINAL()
-  
-    ! Remove emission array pointers.
-    ! Note: Only need to do this if HEMCO grid is equal to GC 
-    ! simulation grid. Otherwise, nothing to do here (arrays
-    ! will be explicitly deallocated in HCO\_FINAL call below).
-    IF ( UsePtrs2GC ) THEN 
-       DO I = 1, HcoState%nSpc
-          HcoState%Spc(I)%Emis%Val => NULL()
-          HcoState%Spc(I)%Depv%Val => NULL()
-       ENDDO
-    ENDIF
-
-    ! Make sure HcoState variables pointing to shared data are 
-    ! nullified (otherwise, the target arrays become deallocated)
-    HcoState%Grid%XMID       => NULL()
-    HcoState%Grid%YMID       => NULL()
-    HcoState%Grid%ZSIGMA     => NULL()
-    HcoState%Grid%XEDGE      => NULL()
-    HcoState%Grid%YEDGE      => NULL()
-    HcoState%Grid%YSIN       => NULL()
-    HcoState%Grid%AREA_M2    => NULL()
-    HcoState%Grid%BXHEIGHT_M => NULL()
 
     ! Cleanup HcoState object 
     CALL HcoState_Final ( HcoState ) 
@@ -891,8 +869,8 @@ CONTAINS
     NY = HcoState%NY
 
     ! Get grid edges on input grid
-    XEDGE_IN(:) = HcoState%Grid%XEDGE(:,1)
-    YSIN_IN (:) = HcoState%Grid%YSIN (1,:)
+    XEDGE_IN(:) = HcoState%Grid%XEDGE%Val(:,1)
+    YSIN_IN (:) = HcoState%Grid%YSIN%Val (1,:)
 
     ! Get grid edges on output grid
     XEDGE_OUT(:) = XEDGE(:,1,1)
@@ -1077,6 +1055,10 @@ CONTAINS
     USE Modis_LAI_Mod,      ONLY : GC_LAI_PM 
     USE Modis_LAI_Mod,      ONLY : GC_LAI_CM
     USE Modis_LAI_Mod,      ONLY : GC_LAI_NM
+
+    ! testing only
+    USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -1776,14 +1758,14 @@ CONTAINS
     HcoState%NZ = LLPAR
 
     ! Set pointers to grid variables
-    HcoState%Grid%XMID       => XMID   (:,:,1)
-    HcoState%Grid%YMID       => YMID   (:,:,1)
-    HcoState%Grid%ZSIGMA     => ZSIGMA (:,:,:)
-    HcoState%Grid%XEDGE      => XEDGE  (:,:,1)
-    HcoState%Grid%YEDGE      => YEDGE  (:,:,1)
-    HcoState%Grid%YSIN       => YSIN   (:,:,1)
-    HcoState%Grid%AREA_M2    => AREA_M2(:,:,1)
-    HcoState%Grid%BXHEIGHT_M => State_Met%BXHEIGHT
+    HcoState%Grid%XMID%Val       => XMID   (:,:,1)
+    HcoState%Grid%YMID%Val       => YMID   (:,:,1)
+    HcoState%Grid%ZSIGMA%Val     => ZSIGMA (:,:,:)
+    HcoState%Grid%XEDGE%Val      => XEDGE  (:,:,1)
+    HcoState%Grid%YEDGE%Val      => YEDGE  (:,:,1)
+    HcoState%Grid%YSIN%Val       => YSIN   (:,:,1)
+    HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
+    HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT
 
     ! Return w/ success
     RC = HCO_SUCCESS

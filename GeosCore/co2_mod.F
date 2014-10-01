@@ -493,7 +493,7 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [cm2]
-         A_CM2 = HcoState%Grid%AREA_M2( I, J ) * CM2PERM2
+         A_CM2 = HcoState%Grid%AREA_M2%Val( I, J ) * CM2PERM2
 
          !-------------------------------------------
          ! #1: Total CO2

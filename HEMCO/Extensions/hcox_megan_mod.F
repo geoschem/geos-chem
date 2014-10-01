@@ -768,8 +768,8 @@
             TMP = 0D0
       
             ! Lon and lat of grid box (I,J) in degrees
-            X = HcoState%Grid%XMID( I, J )
-            Y = HcoState%Grid%YMID( I, J )
+            X = HcoState%Grid%XMID%Val( I, J )
+            Y = HcoState%Grid%YMID%Val( I, J )
       
             ! Methyl butenol is emitted only in North America, where
             ! ( -167.5 <= lon <= -52.5 ) and ( 16.0 <= lat <= 72.0 ) 
@@ -2255,7 +2255,7 @@
       ! TODO: Evaluate RC?
       CALL HcoClock_Get ( cDOY = DOY, RC=RC )
       CALL HcoClock_GetLocal ( I, cH = LocalHour, RC=RC )
-      LAT = HcoState%Grid%YMID( I, J )
+      LAT = HcoState%Grid%YMID%Val( I, J )
 
       ! Get solar elevation angle
       SINbeta      =  SOLAR_ANGLE( HcoState, DOY , LocalHour, LAT )
@@ -3303,20 +3303,20 @@
             ! Eventually write out total sum (TgC/yr)
             IF ( SPECIES == IDMGFARN ) THEN
                SUMFARN = SUMFARN +
-     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 *
-     &                   24d0 * 3600d0 * HcoState%Grid%AREA_M2(I,J) )
+     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 * 24d0 *
+     &                   3600d0 * HcoState%Grid%AREA_M2%Val(I,J) )
             ELSEIF( SPECIES == IDMGBCAR ) THEN
                SUMBCAR = SUMBCAR +
-     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 *
-     &                   24d0 * 3600d0 * HcoState%Grid%AREA_M2(I,J) )
+     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 * 24d0 *
+     &                   3600d0 * HcoState%Grid%AREA_M2%Val(I,J) )
             ELSEIF( SPECIES == IDMGOSQT ) THEN
                SUMOSQT = SUMOSQT +
-     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 *
-     &                   24d0 * 3600d0 * HcoState%Grid%AREA_M2(I,J) )
+     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 * 24d0 *
+     &                   3600d0 * HcoState%Grid%AREA_M2%Val(I,J) )
             ELSEIF( SPECIES == IDMGOMTP ) THEN
                SUMOMTP = SUMOMTP +
-     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 *
-     &                   24d0 * 3600d0 * HcoState%Grid%AREA_M2(I,J) )
+     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 * 24d0 *
+     &                   3600d0 * HcoState%Grid%AREA_M2%Val(I,J) )
             ENDIF
          ENDDO
          ENDDO

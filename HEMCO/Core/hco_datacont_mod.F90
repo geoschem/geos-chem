@@ -298,7 +298,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-  END SUBROUTINE DataCont_CleanUp
+  END SUBROUTINE DataCont_Cleanup
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

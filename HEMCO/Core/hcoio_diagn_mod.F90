@@ -235,14 +235,14 @@ CONTAINS
     ! Add longitude 
     CALL NC_VAR_DEF ( fId, lonId, -1, -1, -1, &
                       'lon', 'Longitude', 'degrees_east', Prc, VarCt )
-    Arr1D => HcoState%Grid%xmid(:,1)
+    Arr1D => HcoState%Grid%XMID%Val(:,1)
     CALL NC_VAR_WRITE ( fId, 'lon', Arr1D=Arr1D )
     Arr1D => NULL()
     
     ! Add latitude
     CALL NC_VAR_DEF ( fId, -1, latId, -1, -1, &
                       'lat', 'Latitude', 'degrees_north', Prc, VarCt )
-    Arr1D => HcoState%Grid%ymid(1,:)
+    Arr1D => HcoState%Grid%YMID%Val(1,:)
     CALL NC_VAR_WRITE ( fId, 'lat', Arr1D=Arr1D )
     Arr1D => NULL()
 

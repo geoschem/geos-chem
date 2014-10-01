@@ -1071,10 +1071,10 @@ CONTAINS
     ! NOTE: Use midpoints here because only those become defined in
     ! the ESMF environment (xedge and yedge are not used anywhere
     ! else in ESMF!). 
-    cpux1 = FLOOR(MINVAL(HcoState%Grid%XMID))
-    cpux2 = FLOOR(MAXVAL(HcoState%Grid%XMID))
-    cpuy1 = CEILING(MINVAL(HcoState%Grid%YMID))
-    cpuy2 = CEILING(MAXVAL(HcoState%Grid%YMID))
+    cpux1 = FLOOR(MINVAL(HcoState%Grid%XMID%Val))
+    cpux2 = FLOOR(MAXVAL(HcoState%Grid%XMID%Val))
+    cpuy1 = CEILING(MINVAL(HcoState%Grid%YMID%Val))
+    cpuy2 = CEILING(MAXVAL(HcoState%Grid%YMID%Val))
 
     ! verbose
     IF ( verb ) THEN

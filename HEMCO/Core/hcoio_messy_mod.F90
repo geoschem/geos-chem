@@ -176,13 +176,13 @@ MODULE HCOIO_MESSY_MOD
 
           ! Check for same boundaries. Otherwise (re-) falsify SameGrid
           ! Lon ...
-          IF ( MINVAL(LonEdge) /= MINVAL(HcoState%Grid%XEDGE) .OR. &
-               MAXVAL(LonEdge) /= MAXVAL(HcoState%Grid%XEDGE) ) THEN
+          IF ( MINVAL(LonEdge) /= MINVAL(HcoState%Grid%XEDGE%Val) .OR. &
+               MAXVAL(LonEdge) /= MAXVAL(HcoState%Grid%XEDGE%Val) ) THEN
              SameGrid = .FALSE.
           ENDIF
           ! ... Lat ...
-          IF ( MINVAL(LatEdge) /= MINVAL(HcoState%Grid%YEDGE) .OR. &
-               MAXVAL(LatEdge) /= MAXVAL(HcoState%Grid%YEDGE) ) THEN
+          IF ( MINVAL(LatEdge) /= MINVAL(HcoState%Grid%YEDGE%Val) .OR. &
+               MAXVAL(LatEdge) /= MAXVAL(HcoState%Grid%YEDGE%Val) ) THEN
              SameGrid = .FALSE.
           ENDIF
           ! ... Lev
@@ -242,10 +242,10 @@ MODULE HCOIO_MESSY_MOD
     ! This creates a MESSy axis object for the target (=HEMCO) grid.
     !-----------------------------------------------------------------
 
-    lon => HcoState%Grid%XEDGE(:,1)
-    lat => HcoState%Grid%YEDGE(1,:)
+    lon => HcoState%Grid%XEDGE%Val(:,1)
+    lat => HcoState%Grid%YEDGE%Val(1,:)
     ! vertical regridding not supported for now!
-!    IF ( ASSOCIATED(LevEdge) ) lev => HcoState%Grid%ZSIGMA(:,:,:)
+!    IF ( ASSOCIATED(LevEdge) ) lev => HcoState%Grid%ZSIGMA%Val(:,:,:)
 
     CALL AXIS_CREATE( am_I_Root, HcoState, lon, lat, lev, axis_dst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN

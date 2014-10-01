@@ -977,7 +977,7 @@ CONTAINS
     DO I = 1, HcoState%NX
 
        ! local decimal time 
-       DECloc = UTC + ( HcoState%Grid%XMID( I, 1 ) / 15_sp )
+       DECloc = UTC + ( HcoState%Grid%XMID%Val(I,1) / 15_sp )
 
        ! Extract local dates
          

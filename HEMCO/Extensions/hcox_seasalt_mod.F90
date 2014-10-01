@@ -211,7 +211,7 @@ CONTAINS
     DO I = 1, HcoState%NX
 
        ! Grid box surface area on simulation grid [m2]
-       A_M2 = HcoState%Grid%AREA_M2( I, J )
+       A_M2 = HcoState%Grid%AREA_M2%Val( I, J )
 
        ! Advance to next grid box if it's not over water
        IF ( HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J), &
@@ -880,7 +880,7 @@ CONTAINS
 
 
     ! Apply seasonality to latitudes south of 30S
-    IF ( HcoState%Grid%YMID(1,ilat) < -30.0 ) THEN
+    IF ( HcoState%Grid%YMID%Val(1,ilat) < -30.0 ) THEN
        ! Divide by mean value 0.4 = (dfmax+dfmin)/2 to keep
        ! seasonal dependence along with size dependence
        seasonal = ( dfmax + (dfmin - dfmax) / 2.d0 *                  &
