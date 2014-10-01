@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -82,7 +82,7 @@ MODULE HCOX_SeaSalt_Mod
 CONTAINS
 !EOC
 !-------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -94,7 +94,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SeaSalt_Run ( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_SeaSalt_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -417,8 +417,8 @@ CONTAINS
 
   END SUBROUTINE HCOX_SeaSalt_Run
 !EOC
-!-------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -686,7 +686,11 @@ CONTAINS
 #if defined( GEOS_4 )
     WindScale = 0.72d0
 #endif
- 
+
+    !=======================================================================
+    ! Activate this module and the fields of ExtState that it uses
+    !=======================================================================
+
     ! Activate met fields used by this module
     ExtState%WLI%DoUse   = .TRUE.
     ExtState%ALBD%DoUse  = .TRUE.
@@ -704,8 +708,8 @@ CONTAINS
  
   END SUBROUTINE HCOX_SeaSalt_Init
 !EOC
-!-------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -737,8 +741,8 @@ CONTAINS
 
   END SUBROUTINE HCOX_SeaSalt_Final
 !EOC
-!-------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
