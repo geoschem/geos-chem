@@ -92,6 +92,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: GC_RnPbBe   ! GEOS-Chem Rn-Pb-Be simulation
      LOGICAL                   :: GC_POPs     ! GEOS-Chem POPs simulation
      LOGICAL                   :: Wetland_CH4 ! Methane emissions from wetlands
+     LOGICAL                   :: TOMAS_SeaSalt  ! TOMAS sectional sea salt
 
      !----------------------------------------------------------------------
      ! Data directory
@@ -180,6 +181,7 @@ MODULE HCOX_STATE_MOD
 !  07 Jul 2014 - R. Yantosca - Modified for GEOS-Chem Rn-Pb-Be simulation
 !  28 Jul 2014 - C. Keller   - Added J-Values for NO2 and O3 to state obj. 
 !  20 Aug 2014 - M. Sulprizio- Modified for GEOS-Chem POPs emissions module
+!  01 Oct 2014 - R. Yantosca - Modified for TOMAS sea salt emissions module
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
