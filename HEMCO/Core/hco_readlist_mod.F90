@@ -378,7 +378,7 @@ CONTAINS
        ! container as the home container (flag=1). Otherwise, set
        ! flag to 0 (not home), but make sure that the DoShare flag
        ! of the corresponding data file object is enabled.
-       IF ( Lct%Dct%DtaHome == -999 ) THEN
+       IF ( Lct%Dct%DtaHome < 0 ) THEN
           IF ( FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
              Lct%Dct%DtaHome     = 0
              Lct%Dct%Dta%DoShare = .TRUE.

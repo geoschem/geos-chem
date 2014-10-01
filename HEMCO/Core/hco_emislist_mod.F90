@@ -530,7 +530,9 @@ CONTAINS
     ! from the original container.
     ! Note: arrays can only be added to each other if they are for the
     ! same species, have same dimensions, update frequencies, scale 
-    ! factors, categories, hierarchies, data types, etc. 
+    ! factors, categories, hierarchies, data types, etc.
+    ! Note2: in an ESMF environment, this option is disabled (targetID
+    ! is always equal to cID). 
     IF ( Lct%Dct%targetID /= Lct%Dct%cID ) THEN
 
        ! TargetLct points to the container holding the target array 
@@ -631,7 +633,7 @@ CONTAINS
        ! target array. Don't do this if this is not the home 
        ! data container for the linked file data object Dta!
        ! Dta may be used by multiple containers, and only the
-       ! home container should modify it's content!
+       ! home container should modify its content!
        IF ( Lct%Dct%DtaHome /= 1 ) THEN
          
           ! Verbose mode

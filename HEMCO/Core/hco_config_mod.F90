@@ -569,7 +569,11 @@ CONTAINS
        ! calculation (containers may be dropped lateron because the
        ! emission category / hierarchy is too low, species is not 
        ! used, etc.). The DoShare and DtaHome flags will be set the
-       ! first time that data is read.
+       ! first time that data is read (in hco_readlist_mod.F90).
+       ! Here, we only set the DtaHome flag to -1000 instead of the
+       ! default value of -999 to be able to identify data objects 
+       ! used by multiple containers (at the moment, this is only
+       ! important for an ESMF environment).
        ! -------------------------------------------------------------
        IF ( TRIM(srcFile) == '-' ) THEN
           IF ( .NOT. ASSOCIATED(Dta) ) THEN
@@ -577,11 +581,12 @@ CONTAINS
              CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
+          Lct%Dct%DtaHome = Lct%Dct%DtaHome - 1
        ELSE
           Dta => NULL()
           CALL FileData_Init ( Dta )
 
-          ! Set source file name, file variable, and original data unit 
+          ! Set source file name, file variable, and original data unit.
           Dta%ncFile    = srcFile
           Dta%ncPara    = srcVar
           Dta%OrigUnit  = srcUnit
@@ -597,8 +602,17 @@ CONTAINS
           ! If the parameter ncPara is not defined, attempt to read data
           ! directly from configuration file instead of netCDF.
           IF ( TRIM(Dta%ncPara) == '-' ) THEN
-             Dta%ncRead = .FALSE. 
+             Dta%ncRead = .FALSE.
           ENDIF
+
+          ! In an ESMF environment, the source data will be imported 
+          ! through ExtData by name, hence need to set ncFile equal to
+          ! container name!
+#if defined(ESMF_)
+          IF ( Dta%ncRead ) THEN
+             Dta%ncFile = cName
+          ENDIF
+#endif
 
           ! Set time cycling behaviour. Possible values are: 
           ! - "C": cycling (CycleFlag = 1) --> Default
@@ -1289,6 +1303,8 @@ CONTAINS
        ! Requirement is that these base emissions have same species
        ! ID, emission category and hierarchy, ext. number, scale 
        ! factors, and update frequency.
+       ! Note: this option is disabled in an ESMF environment and
+       ! the targetID will always be set to cID.
        CALL Get_targetID( am_I_Root, HcoState, Lct, targetID, RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1734,7 +1750,8 @@ CONTAINS
        ! (EmisList). Since containers are sorted in ReadList with 
        ! increasing cID, pick the lowest cID to make sure that all 
        ! fields are properly added.
-       IF ( tmpLct%Dct%Hier == Hier ) THEN 
+       ! Note: this option is currently disabled for ESMF applications.
+       IF ( tmpLct%Dct%Hier == Hier .AND. .NOT. HcoState%isESMF ) THEN 
 
           ! temporary flag
           sameCont = .TRUE.

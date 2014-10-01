@@ -44,7 +44,7 @@ MODULE GIGC_State_Chm_Mod
      INTEGER,           POINTER :: Trac_Id    (:      )  ! Tracer ID #'s
      CHARACTER(LEN=14), POINTER :: Trac_Name  (:      )  ! Tracer names
      REAL*8,            POINTER :: Tracers    (:,:,:,:)  ! Tracer conc [kg]
-     REAL*8,            POINTER :: Trac_Tend  (:,:,:,:)  ! Tracer tendency
+     REAL*8,            POINTER :: Trac_Tend  (:,:,:,:)  ! Tracer tendency [kg/m2/s]
 
      ! Chemical species
      INTEGER,           POINTER :: Spec_Id    (:      )  ! Species ID # 
