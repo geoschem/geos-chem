@@ -34,6 +34,7 @@ MODULE HCO_CharTools_Mod
   PUBLIC :: HCO_COL
   PUBLIC :: HCO_CMT
   PUBLIC :: HCO_TAB
+  PUBLIC :: HCO_ROOT
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller   - Initialization
@@ -64,6 +65,9 @@ MODULE HCO_CharTools_Mod
   CHARACTER(LEN=1), PARAMETER :: DEF_COLON     = ':'
   CHARACTER(LEN=1), PARAMETER :: DEF_SEPARATOR = '/'
   CHARACTER(LEN=1), PARAMETER :: DEF_WILDCARD  = '*'
+
+  ! Default root directory
+  CHARACTER(LEN=1023), PARAMETER :: DEF_ROOT = '/path/do/dir'
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -668,6 +672,56 @@ CONTAINS
     COLON = COL
 
   END FUNCTION HCO_COL
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_ROOT
+!
+! !DESCRIPTION: Function HCO\_ROOT returns the HEMCO root directory as 
+! specified in the HEMCO configuration file settings.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HCO_ROOT() RESULT( ROOTOUT )
+!
+! !USES:
+!
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+!
+! !ARGUMENTS:
+!
+    CHARACTER(LEN=2047) :: ROOTOUT
+!
+! !REVISION HISTORY:
+!  23 Sep 2013 - C. Keller - Initialization
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    LOGICAL,            SAVE    :: FIRST = .TRUE.
+    CHARACTER(LEN=1023), SAVE   :: ROOT 
+    LOGICAL                     :: FOUND
+    INTEGER                     :: myRC
+
+    !======================================================================
+    ! HCO_ROOT begins here 
+    !======================================================================
+
+    ! On first call, check if Colon character has been set in settings.
+    ! Use default value otherwise.
+    IF ( FIRST ) THEN 
+       CALL GetExtOpt( 0, 'ROOT', OptValChar=ROOT, Found=FOUND, RC=myRC )
+       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) ROOT = DEF_ROOT
+       FIRST = .FALSE.
+    ENDIF
+
+    ! Return 
+    ROOTOUT = ROOT
+
+  END FUNCTION HCO_ROOT
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

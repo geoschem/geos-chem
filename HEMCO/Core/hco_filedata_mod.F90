@@ -85,6 +85,7 @@ MODULE HCO_FileData_Mod
   PUBLIC  :: FileData_Cleanup 
   PUBLIC  :: FileData_ArrCheck
   PUBLIC  :: FileData_ArrIsDefined
+  PUBLIC  :: FileData_ArrInit
   PUBLIC  :: FileData_FileRead
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -144,6 +145,11 @@ MODULE HCO_FileData_Mod
      MODULE PROCEDURE FileData_ArrCheck2D
      MODULE PROCEDURE FileData_ArrCheck3D
   END INTERFACE FileData_ArrCheck
+
+  INTERFACE FileData_ArrInit
+     MODULE PROCEDURE FileData_ArrInit2D
+     MODULE PROCEDURE FileData_ArrInit3D
+  END INTERFACE FileData_ArrInit
 
 CONTAINS
 !EOC
@@ -318,11 +324,8 @@ CONTAINS
 
     ! If not associated yet:
     ! Initialize vector and corresponding arrays.
-    CALL HCO_ArrInit ( FileDta%V2, nt, nx, ny, RC )
+    CALL FileData_ArrInit ( FileDta, nt, nx, ny, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Update nt
-    FileDta%nt = nt
 
   END SUBROUTINE FileData_ArrCheck2D
 !EOC
@@ -387,13 +390,10 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! If not allocated:
+    ! If not associated yet:
     ! Initialize vector and corresponding arrays.
-    CALL HCO_ArrInit( FileDta%V3, nt, nx, ny, nz, RC )
+    CALL FileData_ArrInit( FileDta, nt, nx, ny, nz, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Update nt
-    FileDta%nt = nt
 
   END SUBROUTINE FileData_ArrCheck3D
 !EOC
@@ -447,6 +447,125 @@ CONTAINS
     ENDIF
 
   END FUNCTION FileData_ArrIsDefined
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FileData_ArrInit2D
+!
+! !DESCRIPTION: Subroutine FileData\_ArrInit2D is a wrapper routine 
+! to initialize 2D data arrays of a file data object. To ensure proper 
+! functioning of the file data object and related routines, this routine 
+! should always be used to initialize file data arrays (and NOT HCO\_ArrInit 
+! directly!).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FileData_ArrInit2D( FileDta, nt, nx, ny, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(FileData), POINTER       :: FileDta  ! Container
+    INTEGER,        INTENT(IN)    :: nt        ! Time dim => vector length
+    INTEGER,        INTENT(IN)    :: nx        ! x-dim
+    INTEGER,        INTENT(IN)    :: ny        ! y-dim
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  01 Oct 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! ================================================================
+    ! FileData_ArrInit2D begins here
+    ! ================================================================
+
+    ! Assume success until otherwise 
+    RC = HCO_SUCCESS
+
+    ! Initialize vector and corresponding arrays.
+    CALL HCO_ArrInit( FileDta%V2, nt, nx, ny, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Update nt
+    FileDta%nt = nt
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE FileData_ArrInit2D
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FileData_ArrInit3D
+!
+! !DESCRIPTION: Subroutine FileData\_ArrInit3D is a wrapper routine 
+! to initialize 3D data arrays of a file data object. To ensure proper 
+! functioning of the file data object and related routines, this routine 
+! should always be used to initialize file data arrays (and NOT HCO\_ArrInit 
+! directly!).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FileData_ArrInit3D( FileDta, nt, nx, ny, nz, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(FileData), POINTER       :: FileDta  ! Container
+    INTEGER,        INTENT(IN)    :: nt        ! Time dim => vector length
+    INTEGER,        INTENT(IN)    :: nx        ! x-dim
+    INTEGER,        INTENT(IN)    :: ny        ! y-dim
+    INTEGER,        INTENT(IN)    :: nz        ! z-dim
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! ================================================================
+    ! FileData_ArrInit3D begins here
+    ! ================================================================
+
+    ! Assume success until otherwise 
+    RC = HCO_SUCCESS
+
+    ! Initialize vector and corresponding arrays.
+    CALL HCO_ArrInit( FileDta%V3, nt, nx, ny, nz, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Update nt
+    FileDta%nt = nt
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE FileData_ArrInit3D
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
