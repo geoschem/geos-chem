@@ -23,6 +23,7 @@
 #  08 Aug 2014 - R. Yantosca - Now reference include files w/ hardwired
 #                              emissions data. This facilitates I/O for ESMF.
 #  20 Aug 2014 - M. Sulprizio- Add hcox_gc_POPs_mod.F90
+#  01 Oct 2014 - R. Yantosca - Add hcox_tomas_seasalt_mod.F90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -96,85 +97,89 @@ debug:
 ###                                                                         ###
 ###############################################################################
 
-drydep_toolbox_mod.o  : drydep_toolbox_mod.F90
+drydep_toolbox_mod.o        : drydep_toolbox_mod.F90
 
-EF_MGN20_mod.o        : EF_MGN20_mod.F
+EF_MGN20_mod.o              : EF_MGN20_mod.F
 
-hcox_ch4wetland_mod.o : hcox_ch4wetland_mod.F90   \
-                        hcox_state_mod.o
-                
-hcox_custom_mod.o     : hcox_custom_mod.F90       \
-                        hcox_state_mod.o
+hcox_ch4wetland_mod.o       : hcox_ch4wetland_mod.F90         \
+                              hcox_state_mod.o		      
 
-hcox_driver_mod.o     : hcox_driver_mod.F90       \
-                        hcox_ch4wetland_mod.o     \
-                        hcox_custom_mod.o         \
-                        hcox_dustdead_mod.o       \
-                        hcox_dustginoux_mod.o     \
-                        hcox_finn_mod.o           \
-                        hcox_gc_POPs_mod.o        \
-                        hcox_gc_RnPbBe_mod.o      \
-                        hcox_gfed3_mod.o          \
-                        hcox_paranox_mod.o        \
-                        hcox_lightnox_mod.o       \
-                        hcox_megan_mod.o          \
-                        hcox_paranox_mod.o        \
-                        hcox_seaflux_mod.o        \
-                        hcox_seasalt_mod.o        \
-                        hcox_soilnox_mod.o        \
-                        hcox_state_mod.o
+hcox_custom_mod.o           : hcox_custom_mod.F90             \
+                              hcox_state_mod.o		      
 
-hcox_dustdead_mod.o   : hcox_dustdead_mod.F       \
-                        hcox_state_mod.o
+hcox_driver_mod.o           : hcox_driver_mod.F90             \
+                              hcox_ch4wetland_mod.o           \
+                              hcox_custom_mod.o               \
+                              hcox_dustdead_mod.o             \
+                              hcox_dustginoux_mod.o           \
+                              hcox_finn_mod.o                 \
+                              hcox_gc_POPs_mod.o              \
+                              hcox_gc_RnPbBe_mod.o            \
+                              hcox_gfed3_mod.o                \
+                              hcox_paranox_mod.o              \
+                              hcox_lightnox_mod.o             \
+                              hcox_megan_mod.o                \
+                              hcox_paranox_mod.o              \
+                              hcox_seaflux_mod.o              \
+                              hcox_seasalt_mod.o              \
+                              hcox_soilnox_mod.o              \
+                              hcox_state_mod.o		      \
+                              hcox_tomas_seasalt_mod.o       
 
-hcox_dustginoux_mod.o : hcox_dustginoux_mod.F90   \
-                        hcox_state_mod.o
+hcox_dustdead_mod.o         : hcox_dustdead_mod.F             \
+                              hcox_state_mod.o		      
 
-hcox_gc_POPs_mod.o    : hcox_gc_POPs_mod.F90      \
-                        hcox_state_mod.o
+hcox_dustginoux_mod.o       : hcox_dustginoux_mod.F90         \
+                              hcox_state_mod.o		      
 
-hcox_gc_RnPbBe_mod.o  : hcox_gc_RnPbBe_mod.F90    \
-                        hcox_gc_RnPbBe_include.H  \
-                        hcox_state_mod.o          
+hcox_gc_POPs_mod.o          : hcox_gc_POPs_mod.F90            \
+                              hcox_state_mod.o		      
 
-hcox_gfed3_mod.o      : hcox_gfed3_mod.F90        \
-                        hcox_gfed3_include.H      \
-                        hcox_state_mod.o
+hcox_gc_RnPbBe_mod.o        : hcox_gc_RnPbBe_mod.F90          \
+                              hcox_gc_RnPbBe_include.H        \
+                              hcox_state_mod.o                
 
-hcox_finn_mod.o       : hcox_finn_mod.F90         \
-                        hcox_finn_include.H       \
-                        hcox_state_mod.o
+hcox_gfed3_mod.o            : hcox_gfed3_mod.F90              \
+                              hcox_gfed3_include.H            \
+                              hcox_state_mod.o		      
 
-hcox_lightnox_mod.o   : hcox_lightnox_mod.F90     \
-                        hcox_state_mod.o          \
-                        lightning_cdf_mod.o
+hcox_finn_mod.o             : hcox_finn_mod.F90               \
+                              hcox_finn_include.H             \
+                              hcox_state_mod.o		      
 
-hcox_megan_mod.o      : hcox_megan_mod.F          \
-                        hcox_state_mod.o          \
-                        EF_MGN20_mod.o
+hcox_lightnox_mod.o         : hcox_lightnox_mod.F90           \
+                              hcox_state_mod.o                \
+                              lightning_cdf_mod.o	      
 
-hcox_paranox_mod.o    : hcox_paranox_mod.F90      \
-                        hcox_state_mod.o          \
-                        paranox_util_mod.o
+hcox_megan_mod.o            : hcox_megan_mod.F                \
+                              hcox_state_mod.o                \
+                              EF_MGN20_mod.o		      
 
-hcox_seaflux_mod.o    : hcox_seaflux_mod.F90      \
-                        hcox_state_mod.o          \
-                        ocean_toolbox_mod.o
+hcox_paranox_mod.o          : hcox_paranox_mod.F90            \
+                              hcox_state_mod.o                \
+                              paranox_util_mod.o	      
 
-hcox_seasalt_mod.o    : hcox_seasalt_mod.F90      \
-                        hcox_state_mod.o
+hcox_seaflux_mod.o          : hcox_seaflux_mod.F90            \
+                              hcox_state_mod.o                \
+                              ocean_toolbox_mod.o	      
 
-hcox_soilnox_mod.o    : hcox_soilnox_mod.F90      \
-                        hcox_state_mod.o          \
-                        drydep_toolbox_mod.o
+hcox_seasalt_mod.o          : hcox_seasalt_mod.F90            \
+                              hcox_state_mod.o		      
 
-hcox_state_mod.o      : hcox_state_mod.F90
+hcox_soilnox_mod.o          : hcox_soilnox_mod.F90            \
+                              hcox_state_mod.o                \
+                              drydep_toolbox_mod.o
 
-lightning_cdf_mod.o   : lightning_cdf_mod.F90     \
-                        lightning_cdf_include.H
+hcox_state_mod.o            : hcox_state_mod.F90
 
-ocean_toolbox_mod.o   : ocean_toolbox_mod.F90
+hcox_tomas_seasalt_mod.o    : hcox_tomas_seasalt_mod.F90      \
+                              hcox_state_mod.o
 
-paranox_util_mod.o    : paranox_util_mod.F
+lightning_cdf_mod.o         : lightning_cdf_mod.F90           \
+                              lightning_cdf_include.H
+
+ocean_toolbox_mod.o         : ocean_toolbox_mod.F90
+
+paranox_util_mod.o          : paranox_util_mod.F
 
 #EOC

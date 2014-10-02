@@ -307,9 +307,6 @@ CONTAINS
     CALL SrcFile_Parse ( am_I_Root, Lct, srcFile, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    Write(*,*) 'Orig ncFile ', TRIM(Lct%Dct%Dta%ncFile)
-    Write(*,*) 'Parsed file ', TRIM(srcFile)
-
     ! Verbose mode
     IF ( verb ) THEN
        Write(MSG,*) '- Reading file ', TRIM(srcFile)
