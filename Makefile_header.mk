@@ -545,16 +545,24 @@ REGEXP         :="netCDF 4.1.1"
 
 ifeq ($(shell [[ "$(NCV)" == $(REGEXP) ]] && echo true),true)
 
+  #-------------------------------------------------------------------------
   # netCDF 4.1.1: Use "nc-config --flibs"
+  #-------------------------------------------------------------------------
   NCL          := $(shell $(GC_BIN)/nc-config --libs)
-  NCL          := $(filter -l%,$(NCL))
 
 else
 
+  #-------------------------------------------------------------------------
   # netCDF 4.2 etc. use "nf-config --flibs" and "nc-config --libs"
+  #-------------------------------------------------------------------------
   NCL          := $(shell $(GC_BIN)/nf-config --flibs)
   NCL          += $(shell $(GC_BIN)/nc-config --libs)
+
+  # NOTE: To make this more portable, we'll strip off the directory path
+  # returned by nc-config and nf-config, and then just use the GC_LIB
+  # path as set in the user's configuration. (bmy, 10/3/14)
   NCL          := $(filter -l%,$(NCL))
+  NCL          :=-L$(GC_LIB) $(NCL)
 
 endif
 
@@ -563,12 +571,9 @@ endif
 # Then you can add/modify the linking sequence here.  (This sequence
 # is a guess, but is probably good enough for other netCDF builds.)
 ifeq ($(NCL),) 
-NCL            :=-lnetcdf -lhdf5_hl -lhdf5 -lz
+NCL            :=-L$(GC_LIB) -lnetcdf -lhdf5_hl -lhdf5 -lz
 endif
 #------------------------------------------------------------------------------
-
-# Prepend the library directory path to the linking sequence
-NCL            :=-L$(GC_LIB) $(NCL)
 
 # Command to link to local library files
 ifeq ($(GTMM_NEEDED),1)
