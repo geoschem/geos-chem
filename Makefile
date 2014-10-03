@@ -113,6 +113,9 @@ tauclean:
 help:
 	@$(MAKE) -C $(GEOSDIR) help
 
+headerinfo:
+	@$(MAKE) -C $(GEOSDIR) headerinfo
+
 ###############################################################################
 ###                                                                         ###
 ###  Targets for Hg simulation w/ Global Terrestrial Mercury Model (GTMM)   ###
