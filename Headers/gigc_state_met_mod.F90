@@ -335,6 +335,7 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PARDF    = 0d0
 
+    write(*,*) '### Alloc:', IM, JM
     ALLOCATE( State_Met%PBLH      ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PBLH     = 0d0

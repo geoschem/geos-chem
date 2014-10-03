@@ -141,7 +141,7 @@ CONTAINS
        RETURN
     ENDIF
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( ESMF_ )
     !-----------------------------------------------------------------------
     !        %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
     !
