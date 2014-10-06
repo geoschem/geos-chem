@@ -326,6 +326,7 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
+!  06 Oct 2014 - C. Keller   - Now calculate pressure centers from edges.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -519,8 +520,11 @@ CONTAINS
            
        ! Pressure [Pa] at the centers of grid
        ! boxes (I,J,LCHARGE-1) and (I,J,LCHARGE)
-       P1   = ExtState%PCENTER%Arr%Val( I, J, LCHARGE-1 )
-       P2   = ExtState%PCENTER%Arr%Val( I, J, LCHARGE   )
+       ! Now calculate from grid edges (ckeller, 10/06/2014)
+       P1 = ( HcoState%Grid%PEDGE%Val(I,J,LCHARGE-1) &
+            + HcoState%Grid%PEDGE%Val(I,J,LCHARGE  ) ) / 2.0_hp
+       P2 = ( HcoState%Grid%PEDGE%Val(I,J,LCHARGE  ) &
+            + HcoState%Grid%PEDGE%Val(I,J,LCHARGE+1) ) / 2.0_hp
 
        ! Temperatures [K] at the centers of grid
        ! boxes (I,J,LCHARGE-1) and (I,J,LCHARGE)
@@ -656,8 +660,11 @@ CONTAINS
 
        ! Pressure [Pa] at the centers of grid
        ! boxes (I,J,LBOTTOM-1) and (I,J,LBOTTOM)
-       P1   = ExtState%PCENTER%Arr%Val( I, J, LBOTTOM-1 )
-       P2   = ExtState%PCENTER%Arr%Val( I, J, LBOTTOM   )
+       ! Now calculate from grid edges (ckeller, 10/06/2014)
+       P1 = ( HcoState%Grid%PEDGE%Val(I,J,LBOTTOM-1) &
+            + HcoState%Grid%PEDGE%Val(I,J,LBOTTOM  ) ) / 2.0_hp
+       P2 = ( HcoState%Grid%PEDGE%Val(I,J,LBOTTOM  ) &
+            + HcoState%Grid%PEDGE%Val(I,J,LBOTTOM+1) ) / 2.0_hp
 
        ! Temperature [K] at the centers of grid
        ! boxes (I,J,LBOTTOM-1) and (I,J,LBOTTOM)
@@ -1804,7 +1811,6 @@ CONTAINS
     !=======================================================================
 
     ! Activate met. fields required by this module
-    ExtState%PCENTER%DoUse = .TRUE.
     ExtState%TK%DoUse      = .TRUE.
     ExtState%TROPP%DoUse   = .TRUE.
     ExtState%CLDTOPS%DoUse = .TRUE.

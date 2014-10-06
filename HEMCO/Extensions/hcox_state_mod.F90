@@ -137,7 +137,6 @@ MODULE HCOX_STATE_MOD
      INTEGER,          POINTER :: DAYS_BTW_M  ! Days between months (for LAI) 
      TYPE(ExtDat_2I),  POINTER :: CLDTOPS     ! Cloud top level index
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
-     TYPE(ExtDat_3R),  POINTER :: PCENTER     ! Pressure centers [Pa] 
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
      TYPE(ExtDat_3R),  POINTER :: SPHU        ! Spec. humidity [kg H2O/kg air] 
      TYPE(ExtDat_3R),  POINTER :: TK          ! Air temperature [K]
@@ -371,9 +370,6 @@ CONTAINS
 
     ExtState%PBL_MAX    => NULL()
 
-    CALL ExtDat_Init ( ExtState%PCENTER, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Init ( ExtState%FRAC_OF_PBL, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -476,7 +472,6 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%JNO2       )
        CALL ExtDat_Cleanup( ExtState%JO1D       )
        CALL ExtDat_Cleanup( ExtState%CLDTOPS    )
-       CALL ExtDat_Cleanup( ExtState%PCENTER    )
        CALL ExtDat_Cleanup( ExtState%FRAC_OF_PBL)
        CALL ExtDat_Cleanup( ExtState%SPHU       )
        CALL ExtDat_Cleanup( ExtState%TK         )

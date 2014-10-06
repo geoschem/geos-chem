@@ -73,6 +73,7 @@ MODULE HCOI_GC_Main_Mod
 !  01 Aug 2014 - C. Keller   - Now use only OC and BC within HEMCO. 
 !  20 Aug 2014 - M. Sulprizio- Modify for POPs simulation
 !  21 Aug 2014 - R. Yantosca - Added routine EmissRnPbBe; cosmetic changes
+!  06 Oct 2014 - C. Keller   - Removed PCENTER. Now calculate from pressure edges
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,7 +111,6 @@ MODULE HCOI_GC_Main_Mod
   ! Internal met fields (will be used by some extensions)
   INTEGER,               TARGET :: HCO_PBL_MAX            ! level
   REAL(hp), ALLOCATABLE, TARGET :: HCO_FRAC_OF_PBL(:,:,:) ! unitless
-  REAL(hp), ALLOCATABLE, TARGET :: HCO_PCENTER(:,:,:)     ! Pa
   REAL(hp), ALLOCATABLE, TARGET :: HCO_PEDGE  (:,:,:)     ! Pa
   REAL(hp), ALLOCATABLE, TARGET :: HCO_SZAFACT(:,:)       ! -
 
@@ -649,7 +649,6 @@ CONTAINS
     IF ( ALLOCATED  ( ZSIGMA          ) ) DEALLOCATE ( ZSIGMA          )
     IF ( ALLOCATED  ( HCO_FRAC_OF_PBL ) ) DEALLOCATE ( HCO_FRAC_OF_PBL )
     IF ( ALLOCATED  ( HCO_PEDGE       ) ) DEALLOCATE ( HCO_PEDGE       )
-    IF ( ALLOCATED  ( HCO_PCENTER     ) ) DEALLOCATE ( HCO_PCENTER     )
     IF ( ALLOCATED  ( HCO_SZAFACT     ) ) DEALLOCATE ( HCO_SZAFACT     )
     IF ( ALLOCATED  ( JNO2            ) ) DEALLOCATE ( JNO2            )
     IF ( ALLOCATED  ( JO1D            ) ) DEALLOCATE ( JO1D            )
@@ -1095,20 +1094,13 @@ CONTAINS
     LOC = 'ExtState_SetPointers (hcoi_gc_main_mod.F90)'
 
     ! ----------------------------------------------------------------
-    ! HCO_PEDGE, HCO_PCENTER and HCO_SZAFACT aren't defined as 3D 
+    ! HCO_SZAFACT aren't defined as 3D 
     ! arrays in Met_State. Hence need to construct here so that we 
     ! can point to them.
     !
     ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
     ! simulation (mps, 8/20/14)
     ! ----------------------------------------------------------------
-
-    IF ( ExtState%PCENTER%DoUse ) THEN 
-       ALLOCATE(HCO_PCENTER(IIPAR,JJPAR,LLPAR),STAT=AS)
-       IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_PCENTER', LOC )
-       HCO_PCENTER = 0d0
-       ExtState%PCENTER%Arr%Val => HCO_PCENTER
-    ENDIF
 
     IF ( ExtState%SZAFACT%DoUse ) THEN 
        ALLOCATE(HCO_SZAFACT(IIPAR,JJPAR      ),STAT=AS)
@@ -1331,7 +1323,7 @@ CONTAINS
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
 
-    USE PRESSURE_MOD,          ONLY : GET_PEDGE, GET_PCENTER
+    USE PRESSURE_MOD,          ONLY : GET_PEDGE
     USE GLOBAL_OH_MOD,         ONLY : GET_SZAFACT
     USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
 
@@ -1385,11 +1377,6 @@ CONTAINS
        ! pressure edges [Pa]. Always calculate as needed for HEMCO grid.
        HCO_PEDGE(I,J,L) = GET_PEDGE( I,J,L) * 100.0_hp
        IF ( L==LLPAR ) HCO_PEDGE(I,J,L+1) = GET_PEDGE(I,J,L+1) * 100.0_hp
-
-       ! pressure centers [Pa]
-       IF ( ExtState%PCENTER%DoUse ) THEN
-          HCO_PCENTER(I,J,L) = GET_PCENTER(I,J,L) * 100.0_hp
-       ENDIF
 
        ! current SZA divided by total daily SZA (2D field only)
        IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN

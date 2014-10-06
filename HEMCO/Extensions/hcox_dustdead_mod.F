@@ -214,6 +214,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Nov 2013 - C. Keller - Now a HEMCO extension
+!  06 Oct 2014 - C. Keller - Now calculate pressure center from edges.
 !
 ! !NOTES: 
 !EOP
@@ -366,7 +367,7 @@
             PTHICK(I)      = ( P1 - P2 ) 
 
             ! Pressure at midpt of surface layer [Pa]
-            PMID(I)        = ExtState%PCENTER%Arr%Val(I,J,1)
+            PMID(I)        = ( P1 + P2 ) / 2.0_hp
 
             ! Temperature [K] at midpoint of surface layer 
             TLON(I)        = ExtState%TK%Arr%Val(I,J,1)
@@ -743,7 +744,6 @@
       CALL PLN_TYP_GET( PLN_TYP, PLN_FRC, TAI )
 
       ! Activate met fields used by this extension
-      ExtState%PCENTER%DoUse = .TRUE.
       ExtState%SPHU%DoUse    = .TRUE.
       ExtState%TK%DoUse      = .TRUE.
       ExtState%U10M%DoUse    = .TRUE.

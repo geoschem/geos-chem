@@ -119,6 +119,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  07 Jul 2014 - R. Yantosca - Initial version
 !  03 Sep 2014 - R. Yantosca - Bug fix: Prevent div-by-zero errors
+!  06 Oct 2014 - C. Keller   - Now calculate pressure centers from edges.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -333,7 +334,9 @@ CONTAINS
        LAT_TMP = ABS( HcoState%Grid%YMID%Val( I, J ) )
 
        ! Pressure at (I,J,L) [hPa]
-       P_TMP   = ExtState%PCENTER%Arr%Val( I, J, L ) / 100.0_hp
+       ! Now calculate from edge points (ckeller, 10/06/1014)
+       P_TMP = ( HcoState%Grid%PEDGE%Val(I,J,L) + &
+                 HcoState%Grid%PEDGE%Val(I,J,L+1) ) / 200.0_hp 
                  
        ! Interpolate 7Be [stars/g air/sec] to GEOS-Chem levels
        CALL SLQ( LATSOU, PRESOU, BESOU, 10, 33, LAT_TMP, P_TMP, Be_TMP )
@@ -502,7 +505,6 @@ CONTAINS
     ExtState%FRCLND%DoUse  = .TRUE. 
     ExtState%TSURFK%DoUse  = .TRUE. 
     ExtState%AIR%DoUse     = .TRUE. 
-    ExtState%PCENTER%DoUse = .TRUE.
 #if defined( GCAP ) 
     ExtState%TROPP%DoUse   = .TRUE.
 #endif
