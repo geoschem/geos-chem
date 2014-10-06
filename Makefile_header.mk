@@ -144,6 +144,8 @@
 #  09 Jul 2014 - R. Yantosca - Now don't require MET or GRID if target is
 #                              srcdoc, utildoc, gtmmdoc, makedoc, or hemcodoc
 #  21 Jul 2014 - R. Yantosca - Update build sequence
+#  03 Oct 2014 - R. Yantosca - Now turn on NO_REDUCED=y for hpc target
+#  03 Oct 2014 - R. Yantosca - Now compatible with netCDF 4.1.1 or 4.2+
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -190,9 +192,16 @@ ifndef OMP
 OMP            :=yes
 endif
 
-# %%%%% Disable OpenMP for HPC; we use MPI parallelizaiton instead %%%%%
+# %%%%% Set the HPC variable if we are building for use w/ ESMF/MPI %%%%
 ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
-OMP            :=no
+  HPC :=yes
+  export HPC
+endif
+
+# %%%%% For HPC, we disable OpenMP and turn on the full vertical grid %%%
+ifeq ($(HPC),yes)
+  OMP          :=no
+  NO_REDUCED   :=yes
 endif
 
 # %%%%% Set default compiler %%%%%
@@ -530,23 +539,41 @@ endif
 # Library include path
 NCI            := -I$(GC_INCLUDE)
 
-# Library link path: first try to get the list of proper linking flags
-# for this build of netCDF with nf-config and nc-config. 
-NCL            := $(shell $(GC_BIN)/nf-config --flibs)
-NCL            += $(shell $(GC_BIN)/nc-config --libs)
-NCL            := $(filter -l%,$(NCL))
+# Find the correct nc-config commands based on the netCDF version
+NCV            := $(shell $(GC_BIN)/nc-config --version)
+REGEXP         :="netCDF 4.1.1"
+
+ifeq ($(shell [[ "$(NCV)" == $(REGEXP) ]] && echo true),true)
+
+  #-------------------------------------------------------------------------
+  # netCDF 4.1.1: Use "nc-config --flibs"
+  #-------------------------------------------------------------------------
+  NCL          := $(shell $(GC_BIN)/nc-config --libs)
+
+else
+
+  #-------------------------------------------------------------------------
+  # netCDF 4.2 etc. use "nf-config --flibs" and "nc-config --libs"
+  #-------------------------------------------------------------------------
+  NCL          := $(shell $(GC_BIN)/nf-config --flibs)
+  NCL          += $(shell $(GC_BIN)/nc-config --libs)
+
+  # NOTE: To make this more portable, we'll strip off the directory path
+  # returned by nc-config and nf-config, and then just use the GC_LIB
+  # path as set in the user's configuration. (bmy, 10/3/14)
+  NCL          := $(filter -l%,$(NCL))
+  NCL          :=-L$(GC_LIB) $(NCL)
+
+endif
 
 #------------------------------------------------------------------------------
 # NOTE TO GEOS-CHEM USERS: If you do not have netCDF-4.2 installed
 # Then you can add/modify the linking sequence here.  (This sequence
 # is a guess, but is probably good enough for other netCDF builds.)
 ifeq ($(NCL),) 
-NCL            :=-lnetcdf -lhdf5_hl -lhdf5 -lz
+NCL            :=-L$(GC_LIB) -lnetcdf -lhdf5_hl -lhdf5 -lz
 endif
 #------------------------------------------------------------------------------
-
-# Prepend the library directory path to the linking sequence
-NCL            :=-L$(GC_LIB) $(NCL)
 
 # Command to link to local library files
 ifeq ($(GTMM_NEEDED),1)

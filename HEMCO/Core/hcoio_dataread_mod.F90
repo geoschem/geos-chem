@@ -315,7 +315,7 @@ CONTAINS
     ! Parse source file name. This will replace all tokens ($ROOT, 
     ! ($YYYY), etc., with valid values.
     ! ----------------------------------------------------------------
-    CALL SrcFile_Parse ( am_I_Root, Lct, srcFile, RC )
+    CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
@@ -1835,7 +1835,7 @@ CONTAINS
 !\end{itemize}
 ! !INTERFACE:
 !
-  SUBROUTINE SrcFile_Parse ( am_I_Root, Lct, srcFile, RC )
+  SUBROUTINE SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, RC )
 !
 ! !USES:
 !
@@ -1843,16 +1843,17 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root  ! Root CPU?
-    TYPE(ListCont),   POINTER                 :: Lct        ! HEMCO list container
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
+    TYPE(ListCont),   POINTER        :: Lct        ! HEMCO list container
 !
 ! !OUTPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(  OUT)           :: srcFile    ! output string
+    CHARACTER(LEN=*), INTENT(  OUT)  :: srcFile    ! output string
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)           :: RC         ! return code
+    INTEGER,          INTENT(INOUT)  :: RC         ! return code
 !
 ! !REVISION HISTORY:
 !  01 Oct 2014 - C. Keller - Initial version
@@ -1865,7 +1866,7 @@ CONTAINS
     CHARACTER(LEN=255)  :: MSG
     CHARACTER(LEN=255)  :: LOC = 'SrcFile_Parse (HCOIO_DataRead_Mod.F90)'
     CHARACTER(LEN=2047) :: TMPSTR, BEFORE, AFTER
-    INTEGER             :: LN, IDX
+    INTEGER             :: LN, IDX, OFF
     INTEGER             :: prefYr, prefMt, prefDy, prefHr
     CHARACTER(LEN=4)    :: YYYY
     CHARACTER(LEN=2)    :: MM, DD, HH
@@ -1891,7 +1892,8 @@ CONTAINS
        ELSE
           BEFORE = ''
        ENDIF
-       AFTER = srcFile((IDX+5):LN)
+       OFF   = 5
+       AFTER = srcFile((IDX+OFF):LN)
 
        ! Updated string
        srcFile = TRIM(BEFORE) // TRIM(HCO_ROOT()) // TRIM(AFTER)
@@ -1908,7 +1910,8 @@ CONTAINS
        ELSE
           BEFORE = ''
        ENDIF
-       AFTER = srcFile((IDX+5):LN)
+       OFF   = 5
+       AFTER = srcFile((IDX+OFF):LN)
 
        WRITE(YYYY,'(i4.4)') prefYr
 
@@ -1927,7 +1930,8 @@ CONTAINS
        ELSE
           BEFORE = ''
        ENDIF
-       AFTER = srcFile((IDX+3):LN)
+       OFF   = 3
+       AFTER = srcFile((IDX+OFF):LN)
 
        WRITE(MM,'(i2.2)') prefMt
 
@@ -1946,7 +1950,8 @@ CONTAINS
        ELSE
           BEFORE = ''
        ENDIF
-       AFTER = srcFile((IDX+3):LN)
+       OFF   = 3
+       AFTER = srcFile((IDX+OFF):LN)
 
        WRITE(DD,'(i2.2)') prefDy
 
@@ -1965,12 +1970,49 @@ CONTAINS
        ELSE
           BEFORE = ''
        ENDIF
-       AFTER = srcFile((IDX+3):LN)
+       OFF   = 3
+       AFTER = srcFile((IDX+OFF):LN)
 
        WRITE(HH,'(i2.2)') prefHr
 
        ! Updated string
        srcFile = TRIM(BEFORE) // TRIM(HH) // TRIM(AFTER)
+    ENDDO
+
+    ! Check for met. model token 
+    !-------------------------------------------------------------------
+    DO
+       IDX = INDEX( srcFile, '$MET' )
+       IF ( IDX <= 0 ) EXIT 
+       LN = LEN(srcFile)
+       IF ( IDX > 1 ) THEN
+          BEFORE = srcFile(1:(IDX-1))
+       ELSE
+          BEFORE = ''
+       ENDIF
+       OFF   = 4
+       AFTER = srcFile((IDX+OFF):LN)
+
+       ! Updated string
+       srcFile = TRIM(BEFORE) // TRIM(HcoState%TOKEN_MET) // TRIM(AFTER)
+    ENDDO
+
+    ! Check for met. resolution token 
+    !-------------------------------------------------------------------
+    DO
+       IDX = INDEX( srcFile, '$RES' )
+       IF ( IDX <= 0 ) EXIT 
+       LN = LEN(srcFile)
+       IF ( IDX > 1 ) THEN
+          BEFORE = srcFile(1:(IDX-1))
+       ELSE
+          BEFORE = ''
+       ENDIF
+       OFF   = 4
+       AFTER = srcFile((IDX+OFF):LN)
+
+       ! Updated string
+       srcFile = TRIM(BEFORE) // TRIM(HcoState%TOKEN_RES) // TRIM(AFTER)
     ENDDO
 
     ! Return w/ success

@@ -173,7 +173,7 @@ CONTAINS
     ! For UCX, use Seb's routines for stratospheric species for now.
 #if defined( UCX )
     IF ( Input_Opt%LBASICEMIS ) THEN
-       CALL EMIS_BASIC( am_I_Root, Input_Opt, State_Met, State_Chm )
+       CALL EMISS_BASIC( am_I_Root, Input_Opt, State_Met, State_Chm )
     ENDIF
 #endif
 

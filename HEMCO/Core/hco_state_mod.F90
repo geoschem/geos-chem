@@ -52,7 +52,11 @@ MODULE HCO_State_Mod
      INTEGER                     :: NY         ! # of y-pts (lats) on this CPU
      INTEGER                     :: NZ         ! # of z-pts (levs) on this CPU
      TYPE(HcoGrid),      POINTER :: Grid       ! HEMCO grid information
-                         
+  
+     ! Met field tokens (set based on compiler flags) 
+     CHARACTER(LEN=15)           :: TOKEN_MET  ! met. data type 
+     CHARACTER(LEN=15)           :: TOKEN_RES  ! met. data resolution
+                       
      ! Data array        
      TYPE(Arr3D_HP),     POINTER :: Buffer3D   ! Placeholder to store temporary
                                                ! 3D array.  Emissions will be
@@ -357,6 +361,38 @@ CONTAINS
     HcoState%Options%CatMax        = -1
     HcoState%Options%AutoFillDiagn = .TRUE.
     HcoState%Options%FillBuffer    = .FALSE.
+
+    !=====================================================================
+    ! Set tokens for meteorological model and resolution. These are only 
+    ! needed for file name token replacements ($RES => TOKEN_RES; 
+    ! $MET => TOKEN_MET). The ROOT token is handled in hco_charpak_mod.F90
+    !=====================================================================
+
+#if defined( GEOS_FP )
+    HcoState%TOKEN_MET = 'geosfp'
+#elif defined( GEOS_5 )
+    HcoState%TOKEN_MET = 'geos5'
+#elif defined( GEOS_4 )
+    HcoState%TOKEN_MET = 'geos4'
+#elif defined( MERRA )
+    HcoState%TOKEN_MET = 'merra'
+#elif defined( GCAP )
+    HcoState%TOKEN_MET = 'gcap'
+#else
+    HcoState%TOKEN_MET = 'unknown_model'
+#endif 
+
+#if defined( GRID4x5 )
+    HcoState%TOKEN_RES = '4x5'
+#elif defined( GRID2x25 )
+    HcoState%TOKEN_RES = '2x25'
+#elif defined( GRID1x125 )
+    HcoState%TOKEN_RES = '1x125'
+#elif defined( GRID05x0666 )
+    HcoState%TOKEN_RES = '05x0666'
+#else
+    HcoState%TOKEN_RES = 'unknown_res'
+#endif
 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
