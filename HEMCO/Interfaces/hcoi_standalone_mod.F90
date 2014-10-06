@@ -1375,7 +1375,8 @@ CONTAINS
     INTEGER, INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  28 Jul 2014 - C. Keller - Initial Version
+!  28 Jul 2014 - C. Keller   - Initial Version
+!  06 Oct 2014 - M. Sulprizio- Remove PCENTER. Now calculate from pressure edges
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1490,9 +1491,6 @@ CONTAINS
     !-----------------------------------------------------------------
     ! 3D fields 
     !-----------------------------------------------------------------
-
-    CALL SetExtPtr ( am_I_Root, ExtState%PCENTER, 'PCENTER', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL SetExtPtr ( am_I_Root, ExtState%SPHU, 'SPHU', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
