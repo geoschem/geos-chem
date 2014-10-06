@@ -113,6 +113,10 @@ tauclean:
 help:
 	@$(MAKE) -C $(GEOSDIR) help
 
+#### BMY ADDED THIS TO GET THE DEBUG PRINTOUT IN Makefile_Header.mk
+headerinfo:
+	@$(MAKE) -C $(GEOSDIR) headerinfo
+
 ###############################################################################
 ###                                                                         ###
 ###  Targets for Hg simulation w/ Global Terrestrial Mercury Model (GTMM)   ###
