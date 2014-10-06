@@ -292,6 +292,8 @@ CONTAINS
 !  16 Apr 2013 - C. Keller - Initial version
 !  15 Aug 2014 - C. Keller - Now restrict calculations to temperatures above
 !                            10 deg C.
+!  03 Oct 2-14 - C. Keller - Added surface temperature limit of 45 degrees C
+!                            to avoid negative Schmidt numbers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -305,12 +307,17 @@ CONTAINS
     REAL*8              :: K0, CR, PKA
     REAL*8              :: KH, HEFF
     REAL*8              :: TK, TC
+    LOGICAL             :: WARN
 
     ! For now, hardcode salinity
     REAL(dp), PARAMETER :: S = 35.0_dp
                   
     ! Set seawater PH to constant value of 8
     REAL(dp), PARAMETER :: PH = 8.0_dp
+
+    ! Maximum allowed temperature (to avoid neg. Schmidt number)
+    ! Set to 45 C (= 318.15 K)
+    REAL(dp), PARAMETER :: TMAX = 318.15_dp
  
     ! Error handling   
     CHARACTER(LEN=255)  :: MSG
@@ -326,6 +333,7 @@ CONTAINS
     ! Init
     SOURCE(:,:) = 0d0
     SINK  (:,:) = 0d0
+    WARN        = .FALSE.
 
     ! Extract Henry coefficients
     K0  = HcoState%Spc(HcoID)%HenryK0
@@ -362,8 +370,19 @@ CONTAINS
           ! Get grid box and species specific quantities
           !-----------------------------------------------------------
  
-          ! surface air temp in K and C
-          TK = ExtState%TSURFK%Arr%Val(I,J) 
+          ! surface air temp in K
+          TK = ExtState%TSURFK%Arr%Val(I,J)
+
+          ! Error check: the Schmidt number may become negative for
+          ! very high temperatures - hence cap temperature at specified
+          ! limit
+          IF ( TK > TMAX ) THEN
+             WRITE(MSG,*) 'Temperature limited to ', TMAX, 'K'
+             WARN = .TRUE. 
+             TK   = TMAX
+          ENDIF
+ 
+          ! Temperature in C
           TC = TK - 273.15d0
 
           ! Assume no air-sea exchange for temperatures below -10 deg C.
@@ -374,7 +393,7 @@ CONTAINS
           IF ( TC < -10.0d0 ) CYCLE
  
           ! surface pressure [Pa]
-          P = ExtState%PEDGE%Arr%Val(I,J,L)
+          P = HcoState%Grid%PEDGE%Val(I,J,L)
 
           ! molecular weight [g/mol]
           MW = HcoState%Spc(HcoID)%MW_g
@@ -397,14 +416,14 @@ CONTAINS
           ! Exit here if error. Use error flags from henry_mod.F!
           IF ( RC /= 0 ) THEN
              RC  = HCO_FAIL
-             MSG = 'Cannot calculate KH'
+             WRITE(MSG,*) 'Cannot calculate KH: ', K0, CR, TK 
              EXIT
           ENDIF
           CALL CALC_HEFF ( PKA, PH, KH, HEFF, RC )  ! liquid over gas 
           ! Exit here if error. Use error flags from henry_mod.F!
           IF ( RC /= 0 ) THEN
              RC  = HCO_FAIL
-             MSG = 'Cannot calculate HEFF'
+             WRITE(MSG,*) 'Cannot calculate HEFF: ', PKA, PH, KH
              EXIT
           ENDIF
 
@@ -424,7 +443,12 @@ CONTAINS
           ! is denoted Ka in Johnson, 2010!
           ! Use effective Henry constant here to account for
           ! hydrolysis!
-          CALL CALC_KG( TC, P, V, S, HEFF, VB, MW, SCW, KG )
+          CALL CALC_KG( TC, P, V, S, HEFF, VB, MW, SCW, KG, RC )
+          IF ( RC /= 0 ) THEN
+             RC = HCO_FAIL
+             WRITE(MSG,*) 'Cannot calculate KG: ', TC, P, V, S, HEFF
+             EXIT
+          ENDIF
 
           !-----------------------------------------------------------
           ! Calculate flux from the ocean (kg m-2 s-1):
@@ -457,6 +481,11 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL HCO_ERROR ( MSG, RC )
        RETURN
+    ENDIF
+
+    ! Warning?
+    IF ( WARN ) THEN
+       CALL HCO_WARNING ( MSG, RC )
     ENDIF
 
     ! Leave w/ success
@@ -689,7 +718,6 @@ CONTAINS
     ! Set met fields
     ExtState%U10M%DoUse   = .TRUE.
     ExtState%V10M%DoUse   = .TRUE.
-    ExtState%PEDGE%DoUse  = .TRUE.
     ExtState%TSURFK%DoUse = .TRUE.
     ExtState%ALBD%DoUse   = .TRUE.
     ExtState%FRCLND%DoUse = .TRUE.

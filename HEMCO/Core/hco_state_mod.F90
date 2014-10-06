@@ -124,7 +124,9 @@ MODULE HCO_State_Mod
   END TYPE HcoOpt
 
   !=========================================================================
-  ! HcoGrid: Derived type for HEMCO grid
+  ! HcoGrid: Derived type for HEMCO grid. The grid edges are used for data
+  ! interpolation. The pressure midpoints are not needed by HEMCO core but
+  ! can be specified for the extensions through ExtList.
   !
   ! NOTES:
   ! *  Not used in ESMF environment
@@ -133,9 +135,9 @@ MODULE HCO_State_Mod
   TYPE :: HcoGrid
      TYPE(Arr2D_Hp), POINTER :: XMID       ! mid-points in x-direction (lon)
      TYPE(Arr2D_Hp), POINTER :: YMID       ! mid-points in y-direction (lat)
-     TYPE(Arr3D_Hp), POINTER :: ZSIGMA     ! hybrid sigma coordinates
      TYPE(Arr2D_Hp), POINTER :: XEDGE      ! grid edges in x-direction (lon)*
      TYPE(Arr2D_Hp), POINTER :: YEDGE      ! grid edges in y-direction (lat)*
+     TYPE(Arr3D_Hp), POINTER :: PEDGE      ! pressure edges (Pa) 
      TYPE(Arr2D_Hp), POINTER :: YSIN       ! sin of y-direction grid edges*
      TYPE(Arr2D_Hp), POINTER :: AREA_M2    ! grid box areas (m2)
      TYPE(Arr3D_Hp), POINTER :: BXHEIGHT_M ! grid box heights (m)** 
@@ -289,11 +291,11 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%YMID,       0, 0,    RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL HCO_ArrInit ( HcoState%Grid%ZSIGMA,     0, 0, 0, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%XEDGE,      0, 0,    RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%YEDGE,      0, 0,    RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL HCO_ArrInit ( HcoState%Grid%PEDGE,      0, 0, 0, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     CALL HCO_ArrInit ( HcoState%Grid%YSIN,       0, 0,    RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -412,9 +414,9 @@ CONTAINS
     IF ( ASSOCIATED ( HcoState%Grid) ) THEN
        CALL HCO_ArrCleanup( HcoState%Grid%XMID       )
        CALL HCO_ArrCleanup( HcoState%Grid%YMID       )
-       CALL HCO_ArrCleanup( HcoState%Grid%ZSIGMA     )
        CALL HCO_ArrCleanup( HcoState%Grid%XEDGE      )
        CALL HCO_ArrCleanup( HcoState%Grid%YEDGE      )
+       CALL HCO_ArrCleanup( HcoState%Grid%PEDGE      )
        CALL HCO_ArrCleanup( HcoState%Grid%YSIN       )
        CALL HCO_ArrCleanup( HcoState%Grid%AREA_M2    )
        CALL HCO_ArrCleanup( HcoState%Grid%BXHEIGHT_M )

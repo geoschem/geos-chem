@@ -449,6 +449,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
 !  22 Aug 2014 - R. Yantosca - Now pass State_Met to MAP_HCO2GC
+!  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -508,6 +509,16 @@ CONTAINS
     HcoState%Options%FillBuffer = .FALSE. 
 
     !=======================================================================
+    ! Eventually update variables in ExtState and calculate PEDGE that is
+    ! used as part of the HEMCO grid definition. 
+    !=======================================================================
+    CALL ExtState_UpdtPointers ( State_Met, State_Chm, HMRC )
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP('ExtState_UpdtPointers', LOC )
+       RETURN 
+    ENDIF
+
+    !=======================================================================
     ! Run HCO core module
     ! Emissions will be written into the corresponding flux arrays 
     ! in HcoState. 
@@ -515,15 +526,6 @@ CONTAINS
     CALL HCO_RUN ( am_I_Root, HcoState, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('HCO_RUN', LOC )
-       RETURN 
-    ENDIF
-
-    !=======================================================================
-    ! Eventually update variables in ExtState 
-    !=======================================================================
-    CALL ExtState_UpdtPointers ( State_Met, State_Chm, HMRC )
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP('ExtState_UpdtPointers', LOC )
        RETURN 
     ENDIF
 
@@ -1072,6 +1074,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller   - Initial Version
 !  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
+!  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1099,12 +1102,6 @@ CONTAINS
     ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
     ! simulation (mps, 8/20/14)
     ! ----------------------------------------------------------------
-    IF ( ExtState%PEDGE%DoUse ) THEN 
-       ALLOCATE(HCO_PEDGE  (IIPAR,JJPAR,LLPAR+1),STAT=AS)
-       IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_PEDGE', LOC )
-       HCO_PEDGE = 0d0
-       ExtState%PEDGE%Arr%Val   => HCO_PEDGE
-    ENDIF
 
     IF ( ExtState%PCENTER%DoUse ) THEN 
        ALLOCATE(HCO_PCENTER(IIPAR,JJPAR,LLPAR),STAT=AS)
@@ -1354,6 +1351,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller   - Initial Version
 !  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
+!  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1376,88 +1374,80 @@ CONTAINS
     ! Init
     RC = GIGC_SUCCESS
 
-    ! If necessary, calculate internal met fields
-    IF ( ExtState%PEDGE%DoUse   .OR. ExtState%PCENTER%DoUse .OR. &
-         ExtState%SZAFACT%DoUse .OR. ExtState%JNO2%DoUse    .OR. &
-         ExtState%JO1D%DoUse    .OR. ExtState%FRAC_OF_PBL%DoUse ) THEN
-
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J, L, K, NK, KMAX, SPECNAME )
-       ! Loop over all grid boxes
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+    ! Loop over all grid boxes
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
 
-          ! pressure edges [Pa]
-          IF ( ExtState%PEDGE%DoUse ) THEN
-             HCO_PEDGE(I,J,L) = GET_PEDGE( I,J,L) * 100.0_hp
-             IF ( L==LLPAR ) HCO_PEDGE(I,J,L+1) = GET_PEDGE(I,J,L+1) * 100.0_hp
-          ENDIF
+       ! pressure edges [Pa]. Always calculate as needed for HEMCO grid.
+       HCO_PEDGE(I,J,L) = GET_PEDGE( I,J,L) * 100.0_hp
+       IF ( L==LLPAR ) HCO_PEDGE(I,J,L+1) = GET_PEDGE(I,J,L+1) * 100.0_hp
 
-          ! pressure centers [Pa]
-          IF ( ExtState%PCENTER%DoUse ) THEN
-             HCO_PCENTER(I,J,L) = GET_PCENTER(I,J,L) * 100.0_hp
-          ENDIF
+       ! pressure centers [Pa]
+       IF ( ExtState%PCENTER%DoUse ) THEN
+          HCO_PCENTER(I,J,L) = GET_PCENTER(I,J,L) * 100.0_hp
+       ENDIF
 
-          ! current SZA divided by total daily SZA (2D field only)
-          IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
-             HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
-          ENDIF
+       ! current SZA divided by total daily SZA (2D field only)
+       IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
+          HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
+       ENDIF
 
-          ! Fraction of PBL for each box [unitless]
-          IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
-             HCO_FRAC_OF_PBL(I,J,L) = GET_FRAC_OF_PBL(I,J,L)
-          ENDIF
+       ! Fraction of PBL for each box [unitless]
+       IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
+          HCO_FRAC_OF_PBL(I,J,L) = GET_FRAC_OF_PBL(I,J,L)
+       ENDIF
 
-          ! Maximum extent of the PBL [model level]
-          HCO_PBL_MAX = GET_PBL_MAX_L()
+       ! Maximum extent of the PBL [model level]
+       HCO_PBL_MAX = GET_PBL_MAX_L()
 
-          ! J-values for NO2 and O3 (2D field only)
-          ! This code was moved from hcox_paranox_mod.F90 to break
-          ! dependencies to GC specific code (ckeller, 07/28/14).
-          IF ( L==1 .AND.                                    &
-               (ExtState%JNO2%DoUse .OR. ExtState%JO1D%DoUse) ) THEN
+       ! J-values for NO2 and O3 (2D field only)
+       ! This code was moved from hcox_paranox_mod.F90 to break
+       ! dependencies to GC specific code (ckeller, 07/28/14).
+       IF ( L==1 .AND.                                    &
+            (ExtState%JNO2%DoUse .OR. ExtState%JO1D%DoUse) ) THEN
 
-             ! Check if sun is up
-             IF ( State_Met%SUNCOSmid(I,J) == 0d0 ) THEN
-                IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_hp
-                IF ( ExtState%JO1D%DoUse ) JO1D = 0.0_hp
-             ELSE
-                ! Loop over photolysis reactions to find NO2, O3
-                KMAX = JPHOTRAT(NCS)
-                DO K = 1, KMAX 
-                   ! Reaction number
-                   NK = NRATES(NCS) + K
+          ! Check if sun is up
+          IF ( State_Met%SUNCOSmid(I,J) == 0d0 ) THEN
+             IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_hp
+             IF ( ExtState%JO1D%DoUse ) JO1D = 0.0_hp
+          ELSE
+             ! Loop over photolysis reactions to find NO2, O3
+             KMAX = JPHOTRAT(NCS)
+             DO K = 1, KMAX 
+                ! Reaction number
+                NK = NRATES(NCS) + K
 
-                   ! Nae of species being photolyzed
-                   SPECNAME = NAMEGAS(IRM(1,NK,NCS))
+                ! Nae of species being photolyzed
+                SPECNAME = NAMEGAS(IRM(1,NK,NCS))
 
-                   ! Check if this is NO2 or O3, store values, 1/s
-                   SELECT CASE ( TRIM( SPECNAME ) )
-                      CASE ( 'NO2' )
-                         IF ( ExtState%JNO2%DoUse ) &
-                            JNO2(I,J) = FJXFUNC(I,J,1,K,1,SPECNAME)
-                      CASE ( 'O3'  )
-                         IF ( ExtState%JO1D%DoUse ) &
+                ! Check if this is NO2 or O3, store values, 1/s
+                SELECT CASE ( TRIM( SPECNAME ) )
+                   CASE ( 'NO2' )
+                      IF ( ExtState%JNO2%DoUse ) &
+                         JNO2(I,J) = FJXFUNC(I,J,1,K,1,SPECNAME)
+                   CASE ( 'O3'  )
+                      IF ( ExtState%JO1D%DoUse ) &
 #if defined( UCX )
-                         ! IMPORTANT: Need branck *2* for O1D
-                         ! Branch 1 is O3P!
-                         JO1D(I,J) = FJXFUNC(I,J,1,L,2,SPECNAME)
+                      ! IMPORTANT: Need branck *2* for O1D
+                      ! Branch 1 is O3P!
+                      JO1D(I,J) = FJXFUNC(I,J,1,L,2,SPECNAME)
 #else
-                         JO1D(I,J) = FJXFUNC(I,J,1,L,1,SPECNAME)
+                      JO1D(I,J) = FJXFUNC(I,J,1,L,1,SPECNAME)
 #endif
-                      CASE DEFAULT
-                   END SELECT
-                ENDDO !K
-             ENDIF
-
+                   CASE DEFAULT
+                END SELECT
+             ENDDO !K
           ENDIF
-       ENDDO
-       ENDDO
-       ENDDO
+
+       ENDIF
+    ENDDO
+    ENDDO
+    ENDDO
 !$OMP END PARALLEL DO
-    ENDIF
 
   END SUBROUTINE ExtState_UpdtPointers
 !EOC
@@ -1733,7 +1723,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER :: I
+    INTEGER :: AS
 
     !=================================================================
     ! SET_GRID begins here
@@ -1746,12 +1736,6 @@ CONTAINS
     ! them between HEMCO and GEOS-Chem (this is also true for the 
     ! met-fields used by the extensions)! 
 
-    ! ZSIGMA (temporary, for testing)
-    ALLOCATE(ZSIGMA(1,1,LLPAR+1))
-    DO I = 1,LLPAR+1
-       ZSIGMA(:,:,I) = I
-    ENDDO
-
     ! Grid dimensions
     HcoState%NX = IIPAR
     HcoState%NY = JJPAR
@@ -1760,12 +1744,20 @@ CONTAINS
     ! Set pointers to grid variables
     HcoState%Grid%XMID%Val       => XMID   (:,:,1)
     HcoState%Grid%YMID%Val       => YMID   (:,:,1)
-    HcoState%Grid%ZSIGMA%Val     => ZSIGMA (:,:,:)
     HcoState%Grid%XEDGE%Val      => XEDGE  (:,:,1)
     HcoState%Grid%YEDGE%Val      => YEDGE  (:,:,1)
     HcoState%Grid%YSIN%Val       => YSIN   (:,:,1)
     HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
     HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT
+
+    ! Allocate PEDGE
+    ALLOCATE(HCO_PEDGE(IIPAR,JJPAR,LLPAR+1),STAT=AS)
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR ( 'HCO_PEDGE', RC, THISLOC='Set_Grid (hcoi_gc_main_mod.F90)')
+       RETURN
+    ENDIF
+    HCO_PEDGE = 0d0
+    HcoState%Grid%PEDGE%Val => HCO_PEDGE
 
     ! Return w/ success
     RC = HCO_SUCCESS

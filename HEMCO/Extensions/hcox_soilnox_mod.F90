@@ -136,7 +136,7 @@ MODULE HCOX_SoilNOx_Mod
 
   ! MODIS landtype
   TYPE MODL
-     REAL(hp), POINTER          :: VAL              (:,:,:)
+     REAL(hp), POINTER          :: VAL              (:,:)
   ENDTYPE MODL
   TYPE(MODL), POINTER           :: LANDTYPE         (:    ) => NULL()
 
@@ -451,7 +451,7 @@ CONTAINS
 
        ! Do not calculate soil NOx emissions if there is no soil in
        ! the gridbox
-       IF ( LANDTYPE(1)%VAL(I,J,1) == 1.0_hp ) CYCLE
+       IF ( LANDTYPE(1)%VAL(I,J) == 1.0_hp ) CYCLE
 
        ! Get Deposited Fertilizer DEP_FERT [kg NO/m2]
        CALL GET_DEP_N( I, J, ExtState, HcoState, DEP_FERT )
@@ -1013,14 +1013,14 @@ CONTAINS
        SOILNOX   = (SOILNOX                            &
                  + ( A_BIOM + A_FERT )                 &
                  * ( TEMP_TERM * WET_TERM * PULSE )    &
-                 * LANDTYPE(K)%VAL(I,J,1)              &
+                 * LANDTYPE(K)%VAL(I,J)                &
                  * ( 1.d0 - CRF_TERM  )                 )
 
        ! FERTDIAG, only used for the fertilizer diagnostic
        FERTDIAG  = (FERTDIAG                           &
                  + ( A_FERT )                          &
                  * ( TEMP_TERM * WET_TERM * PULSE )    &
-                 * LANDTYPE(K)%VAL(I,J,1)              &
+                 * LANDTYPE(K)%VAL(I,J)                &
                  * ( 1.d0 - CRF_TERM  )                 )
 
     ENDDO
@@ -1147,7 +1147,7 @@ CONTAINS
        DO K = 1, NBIOM_HSN
 
           ! Skip if not present
-          IF ( LANDTYPE(K)%VAL(I,J,1) == 0.0_hp ) CYCLE
+          IF ( LANDTYPE(K)%VAL(I,J) == 0.0_hp ) CYCLE
 
           ! Set second loop variable to K to allow snow/ice correction    
           KK = K

@@ -198,7 +198,15 @@ CONTAINS
 !
 ! !DESCRIPTION: Reads a netCDF file and returns the regridded array in proper
 ! units. This routine uses the HEMCO generic data reading and regridding
-! routines. 
+! routines.
+!\\
+!\\
+! For 3D data, vertical regridding is perfored if (and only if) the number of
+! vertical levels of the input file does not correspond to the number of
+! levels on the simulation grid. Vertical regridding is performed on the sigma
+! interface levels. In order to calculate these levels correctly, the netCDF
+! vertical coordinate description must adhere to the CF - conventions. See
+! routine NC\_Get\_Sigma\_Levels in Ncdf\_Mod for more details.
 !\\
 !\\
 ! !INTERFACE:
@@ -212,6 +220,7 @@ CONTAINS
     USE Ncdf_Mod,           ONLY : NC_Read_Var
     USE Ncdf_Mod,           ONLY : NC_Read_Arr
     USE Ncdf_Mod,           ONLY : NC_Get_Grid_Edges
+    USE Ncdf_Mod,           ONLY : NC_Get_Sigma_Levels
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_Change
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
     USE HCO_Unit_Mod,       ONLY : HCO_IsUnitless
@@ -237,28 +246,30 @@ CONTAINS
 !  13 Mar 2013 - C. Keller   - Initial version
 !  27 Aug 2014 - R. Yantosca - Err msg now displays hcoio_dataread_mod.F90
 !  01 Oct 2014 - C. Keller   - Added file name parser
+!  03 Oct 2014 - C. Keller   - Added vertical regridding capability
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 ! 
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)            :: thisUnit
+    CHARACTER(LEN=255)            :: thisUnit, LevUnit, LevName
     CHARACTER(LEN=255)            :: MSG 
     CHARACTER(LEN=1023)           :: srcFile
     INTEGER                       :: L, T
     INTEGER                       :: NX, NY
     INTEGER                       :: NCRC, Flag, AS
     INTEGER                       :: ncLun
-    INTEGER                       :: nLon,   nLat,  nLev, nTime
-    INTEGER                       :: lev1,   lev2 
+    INTEGER                       :: nlon,   nlat,  nlev, nTime
+    INTEGER                       :: lev1,   lev2,  dir 
     INTEGER                       :: tidx1,  tidx2, ncYr, ncMt
     INTEGER                       :: HcoID
-    INTEGER                       :: nLatEdge, nLonEdge
+    INTEGER                       :: nlatEdge, nlonEdge
     REAL(sp), POINTER             :: ncArr(:,:,:,:)   => NULL()
     REAL(sp), POINTER             :: ORIG_2D(:,:)     => NULL()
     REAL(hp), POINTER             :: REGR_2D(:,:)     => NULL()
-    REAL(hp), POINTER             :: LevEdge(:,:,:)   => NULL()
+    REAL(hp), POINTER             :: SigEdge(:,:,:)   => NULL()
+    REAL(hp), POINTER             :: SigLev (:,:,:)   => NULL()
     REAL(hp), POINTER             :: LonMid   (:)     => NULL()
     REAL(hp), POINTER             :: LatMid   (:)     => NULL()
     REAL(hp), POINTER             :: LevMid   (:)     => NULL()
@@ -366,8 +377,8 @@ CONTAINS
     ! ----------------------------------------------------------------
 
     ! Extract longitude midpoints
-    CALL NC_READ_VAR ( ncLun, 'lon', nLon, thisUnit, LonMid, NCRC )
-    IF ( NCRC /= 0 .OR. nLon == 0 ) THEN
+    CALL NC_READ_VAR ( ncLun, 'lon', nlon, thisUnit, LonMid, NCRC )
+    IF ( NCRC /= 0 .OR. nlon == 0 ) THEN
        CALL HCO_ERROR( 'NC_READ_LON', RC )
        RETURN 
     ENDIF
@@ -378,12 +389,12 @@ CONTAINS
        RETURN
     ENDIF
     ! Make sure longitude is steadily increasing.
-    CALL HCO_ValidateLon( nLon, LonMid, RC )
+    CALL HCO_ValidateLon( nlon, LonMid, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     
     ! Extract latitude midpoints
-    CALL NC_READ_VAR ( ncLun, 'lat', nLat, thisUnit, LatMid, NCRC )
-    IF ( NCRC /= 0 .OR. nLat == 0 ) THEN
+    CALL NC_READ_VAR ( ncLun, 'lat', nlat, thisUnit, LatMid, NCRC )
+    IF ( NCRC /= 0 .OR. nlat == 0 ) THEN
        CALL HCO_ERROR( 'NC_READ_LAT', RC )
        RETURN 
     ENDIF
@@ -394,13 +405,15 @@ CONTAINS
     ENDIF
 
     ! Try to extract level midpoints
-    CALL NC_READ_VAR ( ncLun, 'lev', nLev, thisUnit, LevMid, NCRC )
+    LevName = 'lev'
+    CALL NC_READ_VAR ( ncLun, LevName, nlev, LevUnit, LevMid, NCRC )
     IF ( NCRC /= 0 ) THEN
        CALL HCO_ERROR( 'NC_READ_LEV', RC )
        RETURN 
     ENDIF
-    IF ( nLev == 0 ) THEN
-       CALL NC_READ_VAR ( ncLun, 'height', nLev, thisUnit, LevMid, NCRC )
+    IF ( nlev == 0 ) THEN
+       LevName = 'height'
+       CALL NC_READ_VAR ( ncLun, LevName, nlev, LevUnit, LevMid, NCRC )
        IF ( NCRC /= 0 ) THEN
           CALL HCO_ERROR( 'NC_READ_LEV', RC )
           RETURN 
@@ -412,18 +425,18 @@ CONTAINS
     ! levels (only horizontal regridding supported so far!)
     ! Also check if dimensionality agrees with settings in input
     ! file!
-    IF ( nLev > HcoState%NZ ) THEN
-       MSG = 'Too many vert. levels in ' // TRIM(srcFile)
-       CALL HCO_ERROR ( MSG, RC )
-       RETURN 
-    ENDIF
+!    IF ( nlev > HcoState%NZ ) THEN
+!       MSG = 'Too many vert. levels in ' // TRIM(srcFile)
+!       CALL HCO_ERROR ( MSG, RC )
+!       RETURN 
+!    ENDIF
 
     ! Set level indeces to be read
     ! NOTE: for now, always read all levels. Edit here to read
     ! only particular levels.
     ! Also do sanity check whether or not vertical dimension does 
     ! agree with space dimension specified in configuration file.
-    IF ( nLev > 0 ) THEN
+    IF ( nlev > 0 ) THEN
        lev1 = 1
        lev2 = nlev
        IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
@@ -597,8 +610,8 @@ CONTAINS
           ! Get lat edges: those are read from file if possible, otherwise
           ! calculated from the lat midpoints.
           ! ==> Sine of lat is needed. Do conversion right here.
-          CALL NC_GET_GRID_EDGES ( ncLun, 2, LatMid,   nLat, &
-                                   LatEdge,  nLatEdge, NCRC   )
+          CALL NC_GET_GRID_EDGES ( ncLun, 2, LatMid,   nlat, &
+                                   LatEdge,  nlatEdge, NCRC   )
           IF ( NCRC /= 0 ) THEN
              MSG = 'Cannot read lat edge of ' // TRIM(srcFile)
              CALL HCO_ERROR( MSG, RC )
@@ -606,7 +619,7 @@ CONTAINS
           ENDIF 
 
           ! Now normalize data by area calculated from lat edges.
-          CALL NORMALIZE_AREA( HcoState, ncArr,   nLon, &
+          CALL NORMALIZE_AREA( HcoState, ncArr,   nlon, &
                                LatEdge,  srcFile, RC     )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -620,25 +633,25 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Get grid edges 
+    ! Get horizontal grid edges 
     !-----------------------------------------------------------------
 
     ! Get longitude edges and make sure they are steadily increasing.
-    CALL NC_GET_GRID_EDGES ( ncLun, 1, LonMid,   nLon, &
-                             LonEdge,  nLonEdge, NCRC   )
+    CALL NC_GET_GRID_EDGES ( ncLun, 1, LonMid,   nlon, &
+                             LonEdge,  nlonEdge, NCRC   )
     IF ( NCRC /= 0 ) THEN
        MSG = 'Cannot read lon edge of ' // TRIM(srcFile)
        CALL HCO_ERROR( MSG, RC )
        RETURN
     ENDIF 
-    CALL HCO_ValidateLon( nLonEdge, LonEdge, RC )
+    CALL HCO_ValidateLon( nlonEdge, LonEdge, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get latitude edges (only if they have not been read yet
     ! for unit conversion)
     IF ( .NOT. ASSOCIATED( LatEdge ) ) THEN
-       CALL NC_GET_GRID_EDGES ( ncLun, 2, LatMid,   nLat, &
-                                LatEdge,  nLatEdge, NCRC   )
+       CALL NC_GET_GRID_EDGES ( ncLun, 2, LatMid,   nlat, &
+                                LatEdge,  nlatEdge, NCRC   )
        IF ( NCRC /= 0 ) THEN
           MSG = 'Cannot read lat edge of ' // TRIM(srcFile)
           CALL HCO_ERROR( MSG, RC )
@@ -647,18 +660,21 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Regrid onto emissions grid 
-    !-----------------------------------------------------------------
-
     ! Determine regridding algorithm to be applied: use NCREGRID from
     ! MESSy only for index-based values (e.g. land types) or if we need 
     ! to regrid vertical levels. For all other fields, use the much
     ! faster map_a2a.
+    ! Assume that no vertical regridding is required if the number of
+    ! levels of the input file matches the number of levels on the 
+    ! simulation grid. This also assumes that the input data is point-
+    ! ing 'upwards', i.e. the first level is the surface level! 
+    !-----------------------------------------------------------------
+
     UseMESSy = .FALSE.
     IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) ) THEN
        UseMESSy = .TRUE.
     ENDIF
-    IF ( nLev > 1 .AND. nLev < HcoState%NZ ) THEN 
+    IF ( nlev > 1 .AND. nlev /= HcoState%NZ ) THEN 
        UseMESSy = .TRUE.
     ENDIF
 
@@ -671,20 +687,73 @@ CONTAINS
           CALL HCO_MSG(MSG)
        ENDIF
 
-       ! Get vertical coordinate: this has to be a 3D array!
-       ! Use silly levels for now (testing only).
-       IF ( nLev > 0 ) THEN
-          ALLOCATE( LevEdge(1,1,nLev+1) )
-          DO L = 1,nLev+1
-             LevEdge(1,1,L) = L
-          ENDDO 
+       ! If we do MESSy regridding, we can only do one time step 
+       ! at a time at the moment!
+       IF ( tidx1 /= tidx2 ) THEN
+          MSG = 'Cannot do MESSy regridding for more than one time step; ' &
+                // TRIM(srcFile)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
        ENDIF
 
+       !--------------------------------------------------------------
+       ! Eventually get sigma levels
+       ! Vertical regridding is performed on sigma interface levels:
+       ! sigma(i,j,l) = p(i,j,l) / ps(i,j)
+       ! NC_Get_Sigma_Levels attempts to create the sigma levels from
+       ! the content of the netCDF file. 
+       ! For now, it is assumed that all input data is on vertical 
+       ! mid-point levels, and the interface values are calculated 
+       ! by linear interpolation of the mid-point values in a second
+       ! step.
+       !--------------------------------------------------------------
+       IF ( nlev > 1 ) THEN
+
+          ! Get sigma levels
+          CALL NC_Get_Sigma_Levels ( fID     = ncLun,   &
+                                     ncFile  = srcFile, &
+                                     levName = LevName, &
+                                     lon1    = 1,       &
+                                     lon2    = nlon,    &
+                                     lat1    = 1,       &
+                                     lat2    = nlat,    &
+                                     lev1    = 1,       &
+                                     lev2    = nlev,    &
+                                     time    = tidx1,   &
+                                     SigLev  = SigLev,  &
+                                     Dir     = dir,     &
+                                     RC      = NCRC      )
+          IF ( NCRC /= 0 ) THEN
+             CALL HCO_ERROR( 'Cannot read sigma levels of '//TRIM(srcFile), RC )
+             RETURN
+          ENDIF
+
+          ! Interpolate onto edges
+          CALL SigmaMidToEdges ( am_I_Root, SigLev, SigEdge, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+         
+          ! Sigma levels are not needed anymore
+          IF ( ASSOCIATED(SigLev) ) DEALLOCATE(SigLev)
+
+          !-----------------------------------------------------------
+          ! Flip vertical axis if positive axis is 'down', i.e. level
+          ! index 1 is the top of the atmosphere
+          !-----------------------------------------------------------
+          IF ( dir == -1 ) THEN
+             SigEdge(:,:,:  ) = SigEdge(:,:,nlev+1:1:-1  )
+             NcArr  (:,:,:,:) = NcArr  (:,:,nlev  :1:-1,:)
+          ENDIF
+
+       ENDIF ! nlev>1
+
+       ! Now do the regridding
        CALL HCO_MESSY_REGRID ( am_I_Root, HcoState, NcArr,   &
-                               LonEdge,   LatEdge,  LevEdge, &
+                               LonEdge,   LatEdge,  SigEdge, &
                                Lct,       RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       IF ( ASSOCIATED(LevEdge) ) DEALLOCATE(LevEdge)
+
+       ! Cleanup
+       IF ( ASSOCIATED(SigEdge) ) DEALLOCATE(SigEdge)
 
     !-----------------------------------------------------------------
     ! Use map_a2a regridding
@@ -698,7 +767,7 @@ CONTAINS
        ! Write input grid edges to shadow variables so that map_a2a accepts them
        ! as argument.
        ! Also, for map_a2a, latitudes have to be sines...
-       ALLOCATE(LonEdgeI(nLonEdge), LatEdgeI(nLatEdge), STAT=AS )
+       ALLOCATE(LonEdgeI(nlonEdge), LatEdgeI(nlatEdge), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR( 'alloc error LonEdgeI', RC )
           RETURN
@@ -713,7 +782,7 @@ CONTAINS
        ! Reset nlev and ntime to effective array sizes
        nlev  = size(ncArr,3)
        ntime = size(ncArr,4)
-   
+  
        ! Allocate output array if not yet defined
        IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
           CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, ntime, RC ) 
@@ -736,7 +805,7 @@ CONTAINS
           ENDIF
    
           ! Do the regridding
-          CALL MAP_A2A( NLON,  NLAT, LonEdgeI, LatEdgeI, ORIG_2D, &
+          CALL MAP_A2A( nlon,  NLAT, LonEdgeI, LatEdgeI, ORIG_2D, &
                         NX,    NY,   LonEdgeO, LatEdgeO, REGR_2D, 0, 0 )
    
           ORIG_2D => NULL()
@@ -748,7 +817,7 @@ CONTAINS
        DEALLOCATE(LonEdgeI, LatEdgeI)
 
     ENDIF
- 
+
     ! ----------------------------------------------------------------
     ! Close netCDF
     ! ----------------------------------------------------------------
@@ -1284,12 +1353,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Normalize_Area( HcoState, Array, nLon, LatEdge, FN, RC )
+  SUBROUTINE Normalize_Area( HcoState, Array, nlon, LatEdge, FN, RC )
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(HCO_State),  POINTER         :: HcoState           ! HEMCO state object
-    INTEGER,          INTENT(IN   )   :: NLON               ! # of lon midpoints
+    INTEGER,          INTENT(IN   )   :: nlon               ! # of lon midpoints
     REAL(hp),         POINTER         :: LatEdge(:)         ! lat edges 
     CHARACTER(LEN=*), INTENT(IN   )   :: FN                 ! filename
 !
@@ -1322,7 +1391,7 @@ CONTAINS
     ! Check array size
     NLAT = SIZE(LatEdge,1) - 1
     
-    IF ( SIZE(Array,1) /= NLON ) THEN
+    IF ( SIZE(Array,1) /= nlon ) THEN
        MSG = 'Array size does not agree with nlon: ' // TRIM(FN)
        CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
        RETURN
@@ -1336,9 +1405,9 @@ CONTAINS
     ! Loop over all latitudes
     DO J = 1, NLAT
        ! get grid box area in m2 for grid box with lower and upper latitude llat/ulat:
-       ! Area = 2 * PI * Re^2 * DLAT / NLON, where DLAT = abs( sin(ulat) - sin(llat) ) 
+       ! Area = 2 * PI * Re^2 * DLAT / nlon, where DLAT = abs( sin(ulat) - sin(llat) ) 
        DLAT = ABS( SIN(LatEdge(J+1)*PI_180) - SIN(LatEdge(J)*PI_180) )
-       AREA = ( 2_hp * HcoState%Phys%PI * DLAT * HcoState%Phys%Re**2 ) / REAL(NLON,hp)
+       AREA = ( 2_hp * HcoState%Phys%PI * DLAT * HcoState%Phys%Re**2 ) / REAL(nlon,hp)
 
        ! convert array data to m-2
        ARRAY(:,J,:,:) = ARRAY(:,J,:,:) / AREA 
@@ -1908,5 +1977,73 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE SrcFile_Parse
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SigmaMidToEdges
+!
+! !DESCRIPTION: Helper routine to interpolate sigma mid point values to edges.
+! A simple linear interpolation is performed.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE SigmaMidToEdges ( am_I_Root, SigMid, SigEdge, RC )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root       ! Root CPU?
+    REAL(hp),         POINTER                 :: SigMid(:,:,:)   ! sigma levels
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(hp),         POINTER                 :: SigEdge(:,:,:)  ! sigma edges
+    INTEGER,          INTENT(  OUT)           :: RC              ! return code
+!
+! !REVISION HISTORY:
+!  03 Oct 2013 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: L, AS
+    INTEGER            :: nx, ny, nz
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'SigmaMidToEdges (HCOIO_DataRead_Mod.F90)'
+
+    !=================================================================
+    ! SigmaMidToEdges begins here! 
+    !=================================================================
+
+    ! Allocate space as required
+    nx = SIZE(SigMid,1)
+    ny = SIZE(SigMid,2)
+    nz = SIZE(SigMid,3)
+    IF ( ASSOCIATED(SigEdge) ) DEALLOCATE(SigEdge)
+    ALLOCATE(SigEdge(nx,ny,nz+1),STAT=AS)
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( 'Allocate SigEdge', RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    SigEdge = 0.0_hp
+
+    ! Calculate sigma edges by linear interpolation (symmetric mid-points)
+    DO L = 1, nz-1
+       SigEdge(:,:,L+1) = ( SigMid(:,:,L) + SigMid(:,:,L+1) ) / 2.0_hp
+    ENDDO
+
+    ! Get outermost values:
+    SigEdge(:,:,1   ) = SigMid(:,:,1 ) - ( SigEdge(:,:,2) - SigMid(:,:,1)   )
+    SigEdge(:,:,nz+1) = SigMid(:,:,nz) + ( SigMid(:,:,nz) - SigEdge(:,:,nz) )
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE SigmaMidToEdges
 !EOC
 END MODULE HCOIO_DataRead_Mod

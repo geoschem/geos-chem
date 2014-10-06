@@ -327,7 +327,7 @@ CONTAINS
     IF(RC /= HCO_SUCCESS) RETURN 
 
     !-----------------------------------------------------------------
-    ! Set pointers to met fields.
+    ! Set pointers to met fields. Also get pointer for pressure edges
     !-----------------------------------------------------------------
     CALL ExtOpt_SetPointers( am_I_Root, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1015,6 +1015,9 @@ CONTAINS
     HcoState%Grid%YSIN%Val       => YSIN   (:,:,1)
     HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
 
+    ! The pressure edges are obtained from an external file in ExtOpt_SetPointers.
+    HcoState%Grid%PEDGE%Val      => NULL()
+
     ! Cleanup
     DEALLOCATE( YMID_R, YEDGE_R, YMID_R_W, YEDGE_R_W )
 
@@ -1359,6 +1362,10 @@ CONTAINS
 !
   SUBROUTINE ExtOpt_SetPointers ( am_I_Root, RC )
 !
+! !USES:
+!
+    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
+!
 ! !INPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
@@ -1376,6 +1383,8 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     INTEGER                       :: AS
+    LOGICAL                       :: FOUND
+    REAL(hp), POINTER             :: Ptr3D(:,:,:) => NULL()
     CHARACTER(LEN=255), PARAMETER :: LOC = 'READ_TIME (hcoi_standalone_mod.F90)'
 
     !=================================================================
@@ -1385,6 +1394,17 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------
+    ! Try to get pressure edges from external file.
+    !-----------------------------------------------------------------
+
+    CALL HCO_GetPtr( am_I_Root, 'PEDGE', Ptr3D, RC, FOUND=FOUND )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( FOUND ) THEN
+       HcoState%Grid%PEDGE%Val => Ptr3D
+       Ptr3D => NULL()
+    ENDIF
 
     ! Set pointers for all used ext. state object.
 
@@ -1470,9 +1490,6 @@ CONTAINS
     !-----------------------------------------------------------------
     ! 3D fields 
     !-----------------------------------------------------------------
-
-    CALL SetExtPtr ( am_I_Root, ExtState%PEDGE, 'PEDGE', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL SetExtPtr ( am_I_Root, ExtState%PCENTER, 'PCENTER', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN

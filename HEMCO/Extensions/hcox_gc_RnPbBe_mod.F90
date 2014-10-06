@@ -349,7 +349,7 @@ CONTAINS
        !%%%%% FOR GCAP SIMULATION: Divide emissions flux by 3.5 to correct
        !%%%%% for the strat-trop exchange!  This replicates the prior code.
        !%%%%% (bmy, 9/4/14)
-       IF ( .not. ( ExtState%PEDGE%Arr%Val(I,J,L) >          &
+       IF ( .not. ( HcoState%Grid%PEDGE%Val(I,J,L) >          &
                     ExtState%TROPP%Arr%Val(I,J)     ) ) THEN
           ADD_Be = ADD_Be / 3.5d0
        ENDIF
@@ -504,7 +504,6 @@ CONTAINS
     ExtState%AIR%DoUse     = .TRUE. 
     ExtState%PCENTER%DoUse = .TRUE.
 #if defined( GCAP ) 
-    ExtState%PEDGE%DoUse   = .TRUE.
     ExtState%TROPP%DoUse   = .TRUE.
 #endif
 

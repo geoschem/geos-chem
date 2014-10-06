@@ -359,8 +359,8 @@
          DO I = 1, HcoState%NX
  
             ! Pressure [Pa] at bottom and top edge of level 1
-            P1             = ExtState%PEDGE%Arr%Val(I,J,1) 
-            P2             = ExtState%PEDGE%Arr%Val(I,J,2) 
+            P1             = HcoState%Grid%PEDGE%Val(I,J,1) 
+            P2             = HcoState%Grid%PEDGE%Val(I,J,2) 
 
             ! Pressure thickness of 1st layer [Pa]
             PTHICK(I)      = ( P1 - P2 ) 
@@ -743,7 +743,6 @@
       CALL PLN_TYP_GET( PLN_TYP, PLN_FRC, TAI )
 
       ! Activate met fields used by this extension
-      ExtState%PEDGE%DoUse   = .TRUE.
       ExtState%PCENTER%DoUse = .TRUE.
       ExtState%SPHU%DoUse    = .TRUE.
       ExtState%TK%DoUse      = .TRUE.

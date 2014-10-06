@@ -85,7 +85,7 @@ MODULE HCOIO_MESSY_MOD
     REAL(sp),         POINTER        :: ncArr(:,:,:,:)  ! Input array(x,y,z,t)
     REAL(hp),         POINTER        :: LonEdge(:)      ! lon edges
     REAL(hp),         POINTER        :: LatEdge(:)      ! lat edges
-    REAL(hp),         POINTER        :: LevEdge(:,:,:)  ! sigma pressure edges
+    REAL(hp),         POINTER        :: LevEdge(:,:,:)  ! sigma level edges
     TYPE(ListCont),   POINTER        :: Lct             ! Target list container
     INTEGER,          INTENT(INOUT)  :: RC              ! Return code
 !
@@ -107,14 +107,11 @@ MODULE HCOIO_MESSY_MOD
     REAL(dp),     POINTER   :: dovl   (:)     => NULL()
     REAL(hp),     POINTER   :: lon    (:)     => NULL()
     REAL(hp),     POINTER   :: lat    (:)     => NULL()
-    REAL(hp),     POINTER   :: lev    (:,:,:) => NULL()
+    REAL(hp),     POINTER   :: sigma  (:,:,:) => NULL()
     INTEGER                 :: NLEV, NTIME
-    INTEGER                 :: I, L, status
+    INTEGER                 :: I, L, AS
     CHARACTER(LEN=255)      :: MSG, LOC
     LOGICAL                 :: SameGrid
-
-    ! testing only (avoid vertical regridding)
-    real(sp), pointer :: tmparr(:,:,:,:) => NULL()
 
     !=================================================================
     ! HCO_MESSY_REGRID begins here
@@ -224,36 +221,48 @@ MODULE HCOIO_MESSY_MOD
     ! Source grid description.
     ! This creates a MESSy axis object for the source grid.
     !-----------------------------------------------------------------
-    lon => LonEdge
-    lat => LatEdge
-    ! vertical regridding not supported for now!
-!    lev => LevEdge
+    lon   => LonEdge
+    lat   => LatEdge
+    sigma => LevEdge
 
-    CALL AXIS_CREATE( am_I_Root, HcoState, lon, lat, lev, axis_src, RC )
+    CALL AXIS_CREATE( am_I_Root, HcoState, lon, lat, sigma, axis_src, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Free pointer
-    lon => NULL()
-    lat => NULL()
-    lev => NULL()
+    lon   => NULL()
+    lat   => NULL()
+    sigma => NULL()
 
     !-----------------------------------------------------------------
     ! Destination grid description.
     ! This creates a MESSy axis object for the target (=HEMCO) grid.
     !-----------------------------------------------------------------
 
+    ! Get horizontal grid directly from HEMCO state
     lon => HcoState%Grid%XEDGE%Val(:,1)
     lat => HcoState%Grid%YEDGE%Val(1,:)
-    ! vertical regridding not supported for now!
-!    IF ( ASSOCIATED(LevEdge) ) lev => HcoState%Grid%ZSIGMA%Val(:,:,:)
 
-    CALL AXIS_CREATE( am_I_Root, HcoState, lon, lat, lev, axis_dst, RC )
+    ! Calculate sigma level for each grid point. This is the pressure
+    ! at location i,j,l normalized by surface pressure @ i,j:
+    ! sigma(i,j,l) = p(i,j,l) / ps(i,j)
+    IF ( ASSOCIATED(LevEdge) ) THEN
+       ALLOCATE(sigma(HcoState%NX,HcoState%NY,HcoState%NZ+1),STAT=AS)
+       IF ( AS/= 0 ) THEN
+          CALL HCO_ERROR( 'Allocation of sigma', RC )
+          RETURN
+       ENDIF
+       DO l = 1, HcoState%NZ
+          sigma(:,:,l) = HcoState%Grid%PEDGE%Val(:,:,l) / HcoState%Grid%PEDGE%Val(:,:,1)
+       ENDDO
+    ENDIF
+
+    CALL AXIS_CREATE( am_I_Root, HcoState, lon, lat, sigma, axis_dst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Free pointer
     lon => NULL()
     lat => NULL()
-    lev => NULL()
+    IF ( ASSOCIATED(sigma) ) DEALLOCATE(sigma)
 
     !-----------------------------------------------------------------
     ! Set all other regridding parameter
@@ -261,8 +270,10 @@ MODULE HCOIO_MESSY_MOD
 
     ! rg_type denotes the regridding type for each array (i.e. time 
     ! slice). Set to 'intensive quantity' for all concentrations (incl.
-    ! unitless) data. Set this to 'index distribution' for data marked
-    ! as index data in the configuration file.
+    ! unitless) data. Set to 'index distribution' for data marked as
+    ! index data in the configuration file. This will remap discrete
+    ! values without interpolation, i.e. each grid box on the new
+    ! grid holds the value with most overlap in the original grid.
     ALLOCATE(rg_type(NTIME))
     IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) ) THEN
        rg_type(:) = RG_IDX
@@ -270,22 +281,11 @@ MODULE HCOIO_MESSY_MOD
        rg_type(:) = RG_INT 
     ENDIF
 
-    ! temporary level loop to avoid vertical regridding...
-    ! TODO: remove
-    if ( associated(levedge) ) then
-       nlev = size(levedge,3) - 1
-    else
-       nlev = 1
-    endif
-    do l = 1,nlev
-       tmpArr => ncArr(:,:,l:l,:)
-
     !-----------------------------------------------------------------
     ! Map input array onto MESSy array. Different time slices are
     ! stored as individual vector elements of narr_src.
     !-----------------------------------------------------------------
-!    CALL HCO2MESSY( am_I_Root, NcArr, narr_src, axis_src, RC )
-    CALL HCO2MESSY( am_I_Root, tmpArr, narr_src, axis_src, RC )
+    CALL HCO2MESSY( am_I_Root, NcArr, narr_src, axis_src, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -298,15 +298,14 @@ MODULE HCOIO_MESSY_MOD
     ! Map the destination array narr_dst onto the data vector in the 
     ! HEMCO list container.
     !-----------------------------------------------------------------
-    ! TODO: remove level index l
-    CALL MESSY2HCO( am_I_Root, HcoState, narr_dst, Lct, l, RC )
+    CALL MESSY2HCO( am_I_Root, HcoState, narr_dst, Lct, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN      
       
     !-----------------------------------------------------------------
     ! Cleanup
     !-----------------------------------------------------------------
-    DEALLOCATE( sovl, dovl, rcnt, STAT=status)
-    IF(status/=0) THEN
+    DEALLOCATE( sovl, dovl, rcnt, STAT=AS)
+    IF(AS/=0) THEN
        CALL HCO_ERROR('DEALLOCATION ERROR 1', RC )
        RETURN
     ENDIF
@@ -315,8 +314,8 @@ MODULE HCOIO_MESSY_MOD
     DO I=1, SIZE(narr_dst)
        CALL INIT_NARRAY(narr_dst(I))
     ENDDO
-    DEALLOCATE(narr_dst, STAT=status)
-    IF(status/=0) THEN
+    DEALLOCATE(narr_dst, STAT=AS)
+    IF(AS/=0) THEN
        CALL HCO_ERROR('DEALLOCATION ERROR 3', RC )
        RETURN
     ENDIF
@@ -325,15 +324,12 @@ MODULE HCOIO_MESSY_MOD
     DO I=1, SIZE(narr_src)
        CALL INIT_NARRAY(narr_src(I))
     ENDDO    
-    DEALLOCATE(narr_src, STAT=status)
-    IF(status/=0) THEN
+    DEALLOCATE(narr_src, STAT=AS)
+    IF(AS/=0) THEN
        CALL HCO_ERROR('DEALLOCATION ERROR 2', RC )
        RETURN
     ENDIF
     NULLIFY(narr_src)
-
-    ! end temporary loop
-    enddo
     
     DEALLOCATE( rg_type )
     rg_type => NULL()
@@ -354,7 +350,8 @@ MODULE HCOIO_MESSY_MOD
 ! !IROUTINE: AXIS_CREATE
 !
 ! !DESCRIPTION: Subroutine AXIS\_CREATE creates a MESSy axis type 
-! from the grid defined by mid points Lon, Lat, Lev.
+! from the grid defined by mid points Lon, Lat, Lev. Lev must be in
+! (unitless) sigma coordinates: sigma(i,j,l) = p(i,j,l) / p_surface(i,j)
 !\\
 !\\
 ! !INTERFACE:
@@ -518,7 +515,7 @@ MODULE HCOIO_MESSY_MOD
  
     ! ----------------------------------------------------------------
     ! Assign vertical levels (if defined): this is the 3rd dimension.
-    ! The vertical axis is always in hybrid sigma coordinates.
+    ! The vertical axis is assumed to be in sigma coordinates.
     ! ----------------------------------------------------------------
     IF ( ASSOCIATED(lev) ) THEN
 
@@ -537,11 +534,11 @@ MODULE HCOIO_MESSY_MOD
 
        ! Sanity check: if XLEV and YLEV are > 1, they must correspond
        ! to the lon/lat axis defined above
-       IF ( XLEV > 1 .AND. XLEV /= XLON ) THEN
+       IF ( XLEV > 1 .AND. XLEV /= (XLON-1) ) THEN
           CALL HCO_ERROR ( 'level lon has wrong dimension', RC )
           RETURN
        ENDIF
-       IF ( YLEV > 1 .AND. YLEV /= YLAT ) THEN
+       IF ( YLEV > 1 .AND. YLEV /= (YLAT-1) ) THEN
           CALL HCO_ERROR ( 'level lat has wrong dimension', RC )
           RETURN
        ENDIF
@@ -553,13 +550,13 @@ MODULE HCOIO_MESSY_MOD
 
        ax(N)%ndp = ndp 
        ALLOCATE(ax(N)%dep(ax(N)%ndp), STAT=status)
-       IF ( status/= 0 ) THEN
+       IF ( status /= 0 ) THEN
           CALL HCO_ERROR ( 'Cannot allocate lev dependencies', RC )
           RETURN
        ENDIF
     
-       ! The variable dat%n holds the number of axis level depends upon, 
-       ! and dat%dim are the corresponding axis dimensions (lengths).
+       ! The variable dat%n holds the number of axis that level depends 
+       ! upon, and dat%dim are the corresponding axis dimensions (lengths).
        ax(N)%dat%n = ndp
        ALLOCATE(ax(N)%dat%dim(ax(N)%dat%n), STAT=status)
        IF ( status/= 0 ) THEN
@@ -577,15 +574,15 @@ MODULE HCOIO_MESSY_MOD
        IF ( YLEV > 1 ) THEN
           cnt                = cnt + 1
           ax(N)%dep(cnt)     = ndep_lat
-          ax(N)%dat%dim(cnt) = YLAT
-          nlev               = nlev * YLAT
+          ax(N)%dat%dim(cnt) = YLEV
+          nlev               = nlev * YLEV
        ENDIF
        ! - Next dimension is longitude
        IF ( XLEV > 1 ) THEN
           cnt                = cnt + 1
           ax(N)%dep(cnt)     = ndep_lon
-          ax(N)%dat%dim(cnt) = XLON
-          nlev               = nlev * XLON
+          ax(N)%dat%dim(cnt) = XLEV
+          nlev               = nlev * XLEV
        ENDIF
 
        ALLOCATE(ax(N)%dat%vd(nlev),STAT=status)
@@ -803,7 +800,7 @@ MODULE HCOIO_MESSY_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MESSY2HCO( am_I_Root, HcoState, narr, Lct, lev, RC )
+  SUBROUTINE MESSY2HCO( am_I_Root, HcoState, narr, Lct, RC )
 !
 ! !USES:
 !
@@ -814,7 +811,6 @@ MODULE HCOIO_MESSY_MOD
     TYPE(HCO_State),  POINTER        :: HcoState
     TYPE(narray),     POINTER        :: narr(:)
     TYPE(ListCont),   POINTER        :: Lct 
-    INTEGER,          INTENT(IN   )  :: lev ! temporary level index
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
@@ -848,9 +844,7 @@ MODULE HCOIO_MESSY_MOD
     UPP = 1
 
     ! Loop over all higher dimensions
-    ! TODO: re-establish loop over vertical dimension
-    DO L = 1, 1
-!    DO L = 1, NZ  ! NZ is 1 for 2D arrays
+    DO L = 1, NZ  ! NZ is 1 for 2D arrays
     DO J = 1, NY
     
        ! Upper index of slice to be filled
@@ -863,7 +857,7 @@ MODULE HCOIO_MESSY_MOD
              Lct%Dct%Dta%V2(T)%Val(:,J) = narr(T)%vd(LOW:UPP)
           ! 3D
           ELSE   
-             Lct%Dct%Dta%V3(T)%Val(:,J,LEV) = narr(T)%vd(LOW:UPP)
+             Lct%Dct%Dta%V3(T)%Val(:,J,L) = narr(T)%vd(LOW:UPP)
           ENDIF
        ENDDO !NT
        

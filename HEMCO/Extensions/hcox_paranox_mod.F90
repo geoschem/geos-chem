@@ -602,7 +602,6 @@ CONTAINS
 !  06 Aug 2013 - C. Keller   - Initial Version
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTex Headers
 !  06 Jun 2014 - R. Yantosca - Now indented using F90 free-format
-!  22 Jul 2014 - R. Yantosca - Activate ExtState%PEDGE for use in EVOLVE_PLUME
 !  13 Aug 2014 - R. Yantosca - Now read the PARANOX look-up tables here
 !  14 Aug 2014 - R. Yantosca - Minor fix, read the PARANOX look-up tables
 !                              after displaying text about PARANOX extension
@@ -733,7 +732,6 @@ CONTAINS
    ExtState%SUNCOSmid5%DoUse = .TRUE.
    ExtState%TSURFK%DoUse     = .TRUE.
    ExtState%AIRVOL%DoUse     = .TRUE.
-   ExtState%PEDGE%DoUse      = .TRUE.
    IF ( IDTHNO3 > 0 ) THEN
       ExtState%HNO3%DoUse    = .TRUE.
    ENDIF

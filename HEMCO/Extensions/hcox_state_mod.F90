@@ -77,21 +77,23 @@ MODULE HCOX_STATE_MOD
  
      !----------------------------------------------------------------------
      ! Extension switches (enabled?)
+     ! NOTE: When adding a new extension, don't forget to initialize this
+     ! switch in subroutine ExtStateInit below!
      !----------------------------------------------------------------------
-     LOGICAL                   :: Custom      ! Customizable ext.
-     LOGICAL                   :: DustDead    ! DEAD dust model
-     LOGICAL                   :: DustGinoux  ! Ginoux dust emissions
-     LOGICAL                   :: LightNOx    ! Lightning NOx
-     LOGICAL                   :: ParaNOx     ! PARANOX ship emissions
-     LOGICAL                   :: SoilNOx     ! Soil NOx emissions
-     LOGICAL                   :: Megan       ! MEGAN biogenic emissions
-     LOGICAL                   :: SeaFlux     ! air-sea exchange
-     LOGICAL                   :: SeaSalt     ! Seasalt emissions
-     LOGICAL                   :: GFED3       ! GFED3 biomass burning
-     LOGICAL                   :: FINN        ! FINN biomass burning
-     LOGICAL                   :: GC_RnPbBe   ! GEOS-Chem Rn-Pb-Be simulation
-     LOGICAL                   :: GC_POPs     ! GEOS-Chem POPs simulation
-     LOGICAL                   :: Wetland_CH4 ! Methane emissions from wetlands
+     LOGICAL                   :: Custom         ! Customizable ext.
+     LOGICAL                   :: DustDead       ! DEAD dust model
+     LOGICAL                   :: DustGinoux     ! Ginoux dust emissions
+     LOGICAL                   :: LightNOx       ! Lightning NOx
+     LOGICAL                   :: ParaNOx        ! PARANOX ship emissions
+     LOGICAL                   :: SoilNOx        ! Soil NOx emissions
+     LOGICAL                   :: Megan          ! MEGAN biogenic emissions
+     LOGICAL                   :: SeaFlux        ! air-sea exchange
+     LOGICAL                   :: SeaSalt        ! Seasalt emissions
+     LOGICAL                   :: GFED3          ! GFED3 biomass burning
+     LOGICAL                   :: FINN           ! FINN biomass burning
+     LOGICAL                   :: GC_RnPbBe      ! GEOS-Chem Rn-Pb-Be simulation
+     LOGICAL                   :: GC_POPs        ! GEOS-Chem POPs simulation
+     LOGICAL                   :: Wetland_CH4    ! Methane emissions from wetlands
      LOGICAL                   :: TOMAS_SeaSalt  ! TOMAS sectional sea salt
 
      !----------------------------------------------------------------------
@@ -135,9 +137,8 @@ MODULE HCOX_STATE_MOD
      INTEGER,          POINTER :: DAYS_BTW_M  ! Days between months (for LAI) 
      TYPE(ExtDat_2I),  POINTER :: CLDTOPS     ! Cloud top level index
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
+     TYPE(ExtDat_3R),  POINTER :: PCENTER     ! Pressure centers [Pa] 
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
-     TYPE(ExtDat_3R),  POINTER :: PEDGE       ! Bottom press. edge [Pa]
-     TYPE(ExtDat_3R),  POINTER :: PCENTER     ! Press. center [Pa]
      TYPE(ExtDat_3R),  POINTER :: SPHU        ! Spec. humidity [kg H2O/kg air] 
      TYPE(ExtDat_3R),  POINTER :: TK          ! Air temperature [K]
      TYPE(ExtDat_3R),  POINTER :: AIR         ! Air mass [kg]
@@ -244,19 +245,21 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set all switches to FALSE
     !-----------------------------------------------------------------------
-    ExtState%Custom      = .FALSE.
-    ExtState%DustDead    = .FALSE.
-    ExtState%DustGinoux  = .FALSE.
-    ExtState%LightNOx    = .FALSE.
-    ExtState%ParaNOx     = .FALSE.
-    ExtState%SoilNOx     = .FALSE.
-    ExtState%Megan       = .FALSE.
-    ExtState%SeaFlux     = .FALSE.
-    ExtState%SeaSalt     = .FALSE.
-    ExtState%GFED3       = .FALSE.
-    ExtState%FINN        = .FALSE.
-    ExtState%GC_RnPbBe   = .FALSE.
-    ExtState%GC_POPs     = .FALSE.
+    ExtState%Custom        = .FALSE.
+    ExtState%DustDead      = .FALSE.
+    ExtState%DustGinoux    = .FALSE.
+    ExtState%LightNOx      = .FALSE.
+    ExtState%ParaNOx       = .FALSE.
+    ExtState%SoilNOx       = .FALSE.
+    ExtState%Megan         = .FALSE.
+    ExtState%SeaFlux       = .FALSE.
+    ExtState%SeaSalt       = .FALSE.
+    ExtState%GFED3         = .FALSE.
+    ExtState%FINN          = .FALSE.
+    ExtState%GC_RnPbBe     = .FALSE.
+    ExtState%GC_POPs       = .FALSE.
+    ExtState%Wetland_CH4   = .FALSE.
+    ExtState%TOMAS_SeaSalt = .FALSE.
 
     !-----------------------------------------------------------------------
     ! Initialize constants for POPs emissions module
@@ -368,13 +371,10 @@ CONTAINS
 
     ExtState%PBL_MAX    => NULL()
 
-    CALL ExtDat_Init ( ExtState%FRAC_OF_PBL, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    CALL ExtDat_Init ( ExtState%PEDGE, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Init ( ExtState%PCENTER, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%FRAC_OF_PBL, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%SPHU, RC ) 
@@ -476,9 +476,8 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%JNO2       )
        CALL ExtDat_Cleanup( ExtState%JO1D       )
        CALL ExtDat_Cleanup( ExtState%CLDTOPS    )
-       CALL ExtDat_Cleanup( ExtState%FRAC_OF_PBL)
-       CALL ExtDat_Cleanup( ExtState%PEDGE      )
        CALL ExtDat_Cleanup( ExtState%PCENTER    )
+       CALL ExtDat_Cleanup( ExtState%FRAC_OF_PBL)
        CALL ExtDat_Cleanup( ExtState%SPHU       )
        CALL ExtDat_Cleanup( ExtState%TK         )
        CALL ExtDat_Cleanup( ExtState%AIR        )

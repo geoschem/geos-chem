@@ -538,7 +538,7 @@ CONTAINS
 
        ! Pressure [Pa] at the bottom edge of box (I,J,LCHARGE),
        ! or, equivalently, the top edge of box (I,J,LCHARGE-1).
-       P3   = ExtState%PEDGE%Arr%Val( I, J, LCHARGE )
+       P3   = HcoState%Grid%PEDGE%Val( I, J, LCHARGE )
 
        ! Height [m] from the center of grid box (I,J,LCHARGE-1) 
        ! to the top edge of grid box (I,J,LCHARGE-1)
@@ -675,7 +675,7 @@ CONTAINS
 
        ! Pressure [Pa] at the bottom edge of box (I,J,LBOTTOM),
        ! or, equivalently, the top edge of box (I,J,BOTTOM-1).
-       P3   = ExtState%PEDGE%Arr%Val( I, J, LBOTTOM )
+       P3   = HcoState%Grid%PEDGE%Val( I, J, LBOTTOM )
 
        ! Height [m] from the center of grid box (I,J,LBOTTOM-1) 
        ! to the top edge of grid box (I,J,LBOTTOM-1)
@@ -938,7 +938,7 @@ CONTAINS
              SLBASE(I,J,L) = SLBASE(I,J,L) + VERTPROF(L) 
 
              ! No lightnox emissions in the stratosphere (cdh, 4/25/2013)
-             IF ( ExtState%PEDGE%Arr%Val(I,J,L) < TROPP ) THEN 
+             IF ( HcoState%Grid%PEDGE%Val(I,J,L) < TROPP ) THEN 
                 SLBASE(I,J,L) = 0.0_hp
 
              ELSE
@@ -1804,7 +1804,6 @@ CONTAINS
     !=======================================================================
 
     ! Activate met. fields required by this module
-    ExtState%PEDGE%DoUse   = .TRUE.
     ExtState%PCENTER%DoUse = .TRUE.
     ExtState%TK%DoUse      = .TRUE.
     ExtState%TROPP%DoUse   = .TRUE.

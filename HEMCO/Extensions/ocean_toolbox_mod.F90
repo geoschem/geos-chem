@@ -59,8 +59,14 @@ MODULE Ocean_ToolBox_Mod
   PRIVATE :: D_Air
   PRIVATE :: Schmidt_G
 !
+! ! PARAMETER
+!
+  INTEGER, PARAMETER :: OC_SUCCESS = 0
+  INTEGER, PARAMETER :: OC_FAIL    = -999
+!
 ! !REVISION HISTORY:
 !  11 Apr 2013 - C. Keller: Adapted from F. Paulot
+!  03 Oct 2-14 - C. Keller: Added error trap for negative Schmidt numbers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -95,7 +101,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Calc_Kg( T, P, V, SALT, H, VB, MW, SCW, KG, RA_OVER_RL, VERBOSE )
+  SUBROUTINE Calc_Kg( T, P, V, SALT, H, VB, MW, SCW, KG, RC, RA_OVER_RL, VERBOSE )
 !
 ! !INPUT PARAMETERS:
 !
@@ -113,6 +119,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     REAL*8,  INTENT(  OUT)  :: KG   ! Exchange velocity       [ms-1] 
+    INTEGER, INTENT(  OUT)  :: RC   ! Error code
     REAL*8,  INTENT(  OUT), OPTIONAL  :: RA_OVER_RL ! Ra/Rl   [-]
 !
 ! !REVISION HISTORY:
@@ -129,12 +136,15 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL :: VERB
-    REAL*8  :: RA,RL,TMP
+    REAL*8  :: RA, RL, TMP, KL, KA
     REAL*8, PARAMETER :: TMAX = -40.0d0
 
     !=================================================================
     ! CALC_KG begins here!
     !=================================================================
+
+    ! Fail by default
+    RC = OC_FAIL
 
     ! Set verbose flag
     IF ( PRESENT ( VERBOSE ) ) THEN
@@ -154,16 +164,23 @@ CONTAINS
     ENDIF
 
     ! Calculate air resistence RA
-    RA = 1d0 / CALC_KA(TMP,P,V,MW,VB,VERB)
+    KA = CALC_KA(TMP,P,V,MW,VB,VERB)
+    IF ( KA < 0.0d0 ) RETURN
+    RA = 1d0 / KA
 
     ! Calculate water resistence RL
-    RL = H / CALC_KL(TMP,V,SALT,VB,SCW,VERB)
+    KL = CALC_KL(TMP,V,SALT,VB,SCW,VERB)
+    IF ( KL < 0.0d0 ) RETURN
+    RL = H / KL
 
     ! Calculate transfer velocity Kg
     KG = 1d0 / (RA + RL)
 
     ! Ratio of RA / RL
     IF ( PRESENT(RA_OVER_RL) ) RA_OVER_RL = RA / RL
+
+    ! Return w/ success
+    RC = OC_SUCCESS
 
   END SUBROUTINE Calc_Kg
 !EOC
@@ -276,6 +293,14 @@ CONTAINS
 
     ! Schmidt number for CO2
     ScCO2 = 644.7d0 + T * ( -6.16d0 + T * ( 0.11d0 ) )
+
+    ! Error trap: Schmidt numbers MUST be positive
+    IF ( SC < 0.0d0 .OR. ScCO2 < 0.0d0 ) THEN
+       WRITE(*,*) 'Negative Schmidt number!'
+       WRITE(*,*) 'SC, ScCO2, T, S, VB: ', SC, ScCO2, T, S, VB
+       K = -999.0d0
+       RETURN
+    ENDIF
 
     ! KL in cm/h according to Nightingale, 2000
     K = V * ( 0.24d0 * V + 0.061d0) / SQRT( SC / ScCO2 )

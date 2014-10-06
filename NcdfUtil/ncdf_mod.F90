@@ -42,8 +42,8 @@ MODULE NCDF_MOD
   PUBLIC  :: NC_READ_VAR
   PUBLIC  :: NC_READ_ARR
   PUBLIC  :: NC_GET_REFDATETIME
-  PUBLIC  :: NC_READ
   PUBLIC  :: NC_GET_GRID_EDGES
+  PUBLIC  :: NC_GET_SIGMA_LEVELS
   PUBLIC  :: NC_WRITE
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -58,8 +58,12 @@ MODULE NCDF_MOD
   PRIVATE :: NC_VAR_WRITE_R8
   PRIVATE :: NC_READ_VAR_SP
   PRIVATE :: NC_READ_VAR_DP
-  PUBLIC  :: NC_GET_GRID_EDGES_SP
-  PUBLIC  :: NC_GET_GRID_EDGES_DP
+  PRIVATE :: NC_GET_GRID_EDGES_SP
+  PRIVATE :: NC_GET_GRID_EDGES_DP
+  PRIVATE :: NC_GET_SIGMA_LEVELS_SP
+  PRIVATE :: NC_GET_SIGMA_LEVELS_DP
+  PRIVATE :: NC_GET_SIGMA_LEVELS_C
+  PRIVATE :: NC_GET_SIG_FROM_HYBRID
   PRIVATE :: NC_READ_VAR_CORE
 !
 ! !REVISION HISTORY:
@@ -87,6 +91,11 @@ MODULE NCDF_MOD
      MODULE PROCEDURE NC_GET_GRID_EDGES_SP
      MODULE PROCEDURE NC_GET_GRID_EDGES_DP
   END INTERFACE NC_GET_GRID_EDGES
+
+  INTERFACE NC_GET_SIGMA_LEVELS
+     MODULE PROCEDURE NC_GET_SIGMA_LEVELS_SP
+     MODULE PROCEDURE NC_GET_SIGMA_LEVELS_DP
+  END INTERFACE NC_GET_SIGMA_LEVELS
 
   INTERFACE NC_VAR_WRITE
      MODULE PROCEDURE NC_VAR_WRITE_INT
@@ -408,7 +417,7 @@ CONTAINS
     ! Check if variable exists 
     hasVar = Ncdoes_Dim_Exist ( fID, TRIM(v_name) ) 
 
-    ! Return here if no lon variable defined 
+    ! Return here if variable not defined 
     IF ( .NOT. hasVar ) RETURN 
       
     ! Get dimension length
@@ -443,9 +452,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: nc_read_arr
-!
-! !DESCRIPTION: Routine to read data from a netCDF file. 
+! !IROUTINE: Routine NC\_READ\_ARR reads variable ncVar into a 4-D array 
+! (lon,lat,lev,time). Domain boundaries can be provided by input arguments
+! lon1,lon2, lat1,lat2, lev1,lev2, and time1,time2. The level and time bounds
+! are optional and can be set to zero (lev1=0 and/or time1=0) for data with
+! undefined level/time coordinates.
+!\\
+!\\
+! If the passed variable contains attribute names `offset` and/or 
+! `scale_factor`, those operations will be applied to the data array
+! before returning it.
 !\\
 !\\
 ! !INTERFACE:
@@ -914,505 +930,6 @@ CONTAINS
     RC = 0 
 
   END SUBROUTINE NC_GET_REFDATETIME
-!EOC
-!------------------------------------------------------------------------------
-!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
-!                      and NASA/GSFC, SIVO, Code 610.3                        !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: nc_read
-!
-! !DESCRIPTION: Routine to read emission netCDF data. 
-!  The netCDF file must have the variables "lon" and "lat" and,
-!  optionally, the variables "lev" and "time" or "date" (in this order).  
-!  The (optional) input arguments YEAR, MONTH, DAY and HOUR determine 
-!  the time stamp to be read. If not specified, the whole data array
-!  (i.e. all time stamps) is read. \\
-!  It is possible to only specify some of the time variables. If the year
-!  is provided, the other time variables are set to the respective input
-!  argument, if provided, and to the begin of the year (Jan 01, 00:00)
-!  otherwise.
-!  If only the month is provided, the netCDF emission array is assumed to 
-!  contain monthly data, and the respective array is used (an error is 
-!  returned if the array is not of dimension 12). The same applies for 
-!  the time variable HOUR.\\
-!  Note that the longitude unit must be "degrees_east", and the 
-!  latitude unit must be "degrees_north", otherwise the routine stops 
-!  with an error.\\
-!  The time format is assumed to be in relative time, i.e. time since a
-!  reference date. Currently supported time formats are "days since 
-!  YYYY-MM-DD" and "hours since YYYY-MM-DD HH:MN:SS" (with MN and SS 
-!  being 00). The reference time doesn't have to be the Geos-Chem
-!  reference time (which is, 01/01/1985 00:00:00). However, the
-!  calendar is always assumed to be standard, i.e. gregorian calendar 
-!  with leapyears being considered. We may want to change that in 
-!  future so that other calendars are also supported...
-!  The (optional) output argument TIME is always given as hours since 
-!  G-C reference time.
-!\\
-!
-! !NOTES: 
-!  - For lon, lat and lev, always the whole array is read. 
-!    Eventually change in future so that we can also read subarrays. 
-!  - Currently, only standard calendar format is supported, i.e. 
-!    gregorian calendar (which includes leapyears). Eventually add 
-!    support for other calendars in future!
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE NC_READ( FILENAME, PARA,  ARRAY, YEAR, MONTH, &
-                      DAY,      HOUR,  UNITS, NLON, NLAT,  & 
-                      NLEV,     NTIME, LON,   LAT,  LEV,   &
-                      TIME,     RC )
-!
-! !USES:
-!
-    USE CHARPAK_MOD, ONLY : TRANLC
-
-    IMPLICIT NONE
-#   include "netcdf.inc"
-!
-! !INPUT PARAMETERS:
-!
-    ! Required input
-    CHARACTER(LEN=*), INTENT(IN)            :: FILENAME ! File path 
-    CHARACTER(LEN=*), INTENT(IN)            :: PARA     ! Paramater
-
-    ! Optional input
-    INTEGER,          INTENT(IN), OPTIONAL  :: YEAR    ! Year to read
-    INTEGER,          INTENT(IN), OPTIONAL  :: MONTH   ! Month to read
-    INTEGER,          INTENT(IN), OPTIONAL  :: DAY     ! Day to read
-    INTEGER,          INTENT(IN), OPTIONAL  :: HOUR    ! Hour to read
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Required output: Array to write data
-    REAL*4,           POINTER               :: ARRAY(:,:,:,:)
-
-    ! Optional output
-    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: UNITS     ! Unit
-    INTEGER,          INTENT(OUT), OPTIONAL :: NLON      ! lon ext.
-    INTEGER,          INTENT(OUT), OPTIONAL :: NLAT      ! lat ext.
-    INTEGER,          INTENT(OUT), OPTIONAL :: NTIME     ! time ext.
-    INTEGER,          INTENT(OUT), OPTIONAL :: NLEV      ! vert. ext.
-    REAL*4,           POINTER,     OPTIONAL :: LON(:)    ! Grid lons
-    REAL*4,           POINTER,     OPTIONAL :: LAT(:)    ! Grid lats
-    REAL*4,           POINTER,     OPTIONAL :: LEV(:)    ! Grid levs
-    INTEGER,          POINTER,     OPTIONAL :: TIME(:)   ! Grid time
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    ! Error handling
-    INTEGER,          INTENT(INOUT)         :: RC
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  27 Jul 2012 - C. Keller - Initial version
-!  18 Jan 2012 - C. Keller - Now reads 4D, 3D, and 2D arrays, with
-!                            optional dimensions level and time.
-!  18 Apr 2012 - C. Keller - Now also read offset and scale factor
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    !=================================================================
-    ! Variable declarations
-    !=================================================================
-
-    ! Data arrays
-    REAL*4,  ALLOCATABLE   :: longitude(:)
-    REAL*4,  ALLOCATABLE   :: latitude(:)
-    REAL*4,  ALLOCATABLE   :: levels(:)
-    INTEGER, ALLOCATABLE   :: timevec(:)
-    INTEGER                :: fId       ! netCDF file ID
-    CHARACTER(LEN=255)     :: v_name    ! netCDF variable name 
-    CHARACTER(LEN=255)     :: a_name    ! netCDF attribute name
-    CHARACTER(LEN=255)     :: a_val     ! netCDF attribute value
-    REAL*8                 :: corr      ! netCDF attribute value 
-
-    ! Arrays for netCDF start and count values
-    INTEGER                :: st1d(1), ct1d(1)   ! For 1D arrays    
-    INTEGER                :: st2d(2), ct2d(2)   ! For 2D arrays 
-    INTEGER                :: st3d(3), ct3d(3)   ! For 3D arrays 
-    INTEGER                :: st4d(4), ct4d(4)   ! For 4D arrays 
-
-    ! Grid dimensions
-    INTEGER                :: XDIM, YDIM, ZDIM, TDIM
-
-    ! For time index
-    CHARACTER(LEN=255)     :: TIMEUNIT, CALENDAR
-    INTEGER                :: USEYEAR, USEMONTH, USEDAY, USEHOUR
-    INTEGER                :: TIDX, TDIMREAD
-    INTEGER                :: TTYPE
-    REAL*8                 :: TOFFSET
-
-    ! Temporary 3D array
-    REAL*4, ALLOCATABLE    :: TMPARR_3D(:,:,:)
-    REAL*4, ALLOCATABLE    :: TMPARR_2D(:,:)
-
-    ! For error handling
-    CHARACTER(LEN=255)     :: LOC, MSG
-    CHARACTER(LEN=4)       :: YYYY
-    CHARACTER(LEN=2)       :: MM, DD, HH
-    LOGICAL                :: ReadAtt, ReadTime, ReadLev
-
-    !=================================================================
-    ! NC_READ begins here
-    !=================================================================
-
-    !-----------------------------------------------------------------
-    ! Initialize
-    !-----------------------------------------------------------------
-
-    ! For error handling
-    LOC = 'NC_READ ("ncdf_mod.F")'
-
-    ! Eventually deallocate output array
-    IF ( ASSOCIATED ( ARRAY ) ) DEALLOCATE ( ARRAY )
-
-    ! Default time stamps to read
-    USEYEAR  = -1
-    USEMONTH = -1
-    USEDAY   = -1
-    USEHOUR  = -1
-
-    ! Check if time stamps are provided
-    IF ( PRESENT(YEAR) ) THEN
-       USEYEAR = YEAR
-    ENDIF
-    IF ( PRESENT(MONTH) ) THEN
-       USEMONTH = MONTH
-    ENDIF
-    IF ( PRESENT(DAY) ) THEN
-       USEDAY = DAY
-    ENDIF
-    IF ( PRESENT(HOUR) ) THEN
-       USEHOUR = HOUR
-    ENDIF
-
-    !=================================================================
-    ! Read netCDF
-    !=================================================================
-
-    ! Open netCDF file
-    CALL Ncop_Rd( fId, TRIM(FILENAME) )
-
-    !----------------------------------------
-    ! VARIABLE: lon
-    !----------------------------------------
-
-    ! Variable name
-    v_name = "lon"
-    a_name = "units"
-
-    ! Read lon units attribute. Longitudes must be in degrees_east!
-    CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name),a_val)
-    IF ( INDEX ( TRIM(a_val), 'degrees_east' ) == 0 ) THEN
-       PRINT *, 'Wrong longitude unit in file ' // TRIM(FILENAME)
-       PRINT *, 'units: ' // TRIM(a_val)
-       RC = -999; RETURN
-    ENDIF
-
-    ! Get longitudinal dimension and allocate longitude vector
-    CALL Ncget_Dimlen ( fId, TRIM(v_name), XDIM )
-
-    ! Read lon from file
-    ALLOCATE ( longitude(XDIM) )
-    st1d   = (/ 1    /)
-    ct1d   = (/ XDIM /)
-    CALL NcRd( longitude, fId, TRIM(v_name), st1d, ct1d )
-
-    !----------------------------------------
-    ! VARIABLE: lat
-    !----------------------------------------
-
-    ! Variable name
-    v_name = "lat"
-    a_name = "units"
-
-    ! Read lat units attribute. Latitudes must be in degrees_north!
-    CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name),a_val)
-    IF ( INDEX ( TRIM(a_val), 'degrees_north' ) == 0 ) THEN
-       PRINT *, 'Wrong latitude unit in file ' // TRIM(FILENAME)
-       PRINT *, 'units: ' // TRIM(a_val)
-       RC = -999; RETURN
-    ENDIF
-
-    ! Get latitudinal dimension and allocate latitude vector
-    CALL Ncget_Dimlen ( fId, TRIM(v_name), YDIM )
-
-    ! Read lat from file
-    ALLOCATE ( latitude(YDIM) )
-    st1d   = (/ 1    /)
-    ct1d   = (/ YDIM /)
-    CALL NcRd( latitude, fId, TRIM(v_name), st1d, ct1d )
-
-    !----------------------------------------
-    ! VARIABLE: lev
-    !----------------------------------------
-
-    ! Variable name
-    v_name = "lev"
-
-    ! Check if dimension exist
-    ReadLev = Ncdoes_Dim_Exist ( fId, TRIM(v_name) ) 
-
-    ! If 'lev' not found, check for 'height'
-    IF ( .NOT. ReadLev ) THEN
-       v_name = "height"
-       ReadLev = Ncdoes_Dim_Exist ( fId, TRIM(v_name) ) 
-    ENDIF
-
-    ! Get level dimension and allocate level vector.
-    IF ( ReadLev ) THEN
-       CALL Ncget_Dimlen ( fId, TRIM(v_name), ZDIM )
-
-       ! Read lev from file
-       ALLOCATE ( levels(ZDIM) )
-       st1d   = (/ 1    /)
-       ct1d   = (/ ZDIM /)
-       CALL NcRd( levels, fId, TRIM(v_name), st1d, ct1d )
-
-       ! Set number of levels to one if ncdf has no level variable
-    ELSE
-       ZDIM = 1
-    ENDIF
-
-    !----------------------------------------
-    ! VARIABLE: time
-    !----------------------------------------
-
-    ! Variable name
-    v_name = "time"
-    a_name = "units"
-
-    ! Check if dimension "time" exist
-    ReadTime = Ncdoes_Dim_Exist ( fId, TRIM(v_name) ) 
-
-    ! If time dim not found, also check for dimension "date"
-    IF ( .NOT. ReadTime ) THEN
-       v_name   = "date"
-       ReadTime = Ncdoes_Dim_Exist ( fId, TRIM(v_name) ) 
-    ENDIF
-
-    ! Do the following only if time variable was found in netCDF:
-    IF ( ReadTime ) THEN
-
-       ! Get dimension length
-       CALL Ncget_Dimlen ( fId, TRIM(v_name), TDIM )
-
-       ! Read time vector from file. 
-       ALLOCATE ( timevec(TDIM) )
-       st1d = (/ 1    /)
-       ct1d = (/ TDIM /)
-       CALL NcRd( timevec, fId, TRIM(v_name), st1d, ct1d )
-
-!      ! Read calendar attribute
-!      CALL NcGet_Var_Attributes( fId, v_name, 'calendar', 
-!                                    CALENDAR )
-!    
-!      ! Currently, only the standard calendar (i.e. gregorian) is
-!      ! supported:
-!      CALL TRANLC ( CALENDAR ) ! lower case
-!      IF ( ( TRIM(CALENDAR) /= 'gregorian' ) .AND. 
-!  &        ( TRIM(CALENDAR) /= 'standard'  )      ) THEN
-!         PRINT *, 'Wrong time calendar in ' // TRIM(FILENAME)
-!         RC = -999; RETURN
-!      ENDIF
-
-       ! Read time/date units attribute
-       CALL NcGet_Var_Attributes( fId,          TRIM(v_name), & 
-                                  TRIM(a_name), TIMEUNIT )
-
-       ! Check time unit and determine offset of ncdf reference time 
-       ! compared to the Geos-Chem reference time.
-       ! Time unit must be 'hours since ...' or 'days since ...'
-       CALL TIMEUNIT_CHECK( TRIM(TIMEUNIT), TTYPE, TOFFSET, &
-            FILENAME, RC )
-       IF ( RC /= 0 ) RETURN
-
-       ! Get time index where to start reading and number of time 
-       ! indices to be read. Also, convert timevec to 'hours since
-       ! G-C reference time'.
-       CALL GET_TIDX ( TDIM,    timevec,  TTYPE,  TOFFSET, &
-                       USEYEAR, USEMONTH, USEDAY, USEHOUR, &
-                       TIDX,    TDIMREAD, RC )
-       IF ( RC /= 0 ) RETURN
-
-      ! If time is not defined, set number of time steps to be read
-      ! (TDIMREAD) and starting point (TIDX) to 1.
-    ELSE
-       TIDX     = 1
-       TDIMREAD = 1
-    ENDIF
-
-    !----------------------------------------
-    ! Read array
-    !----------------------------------------
-
-    ! Variable name
-    v_name = TRIM(PARA)
-   
-    ! Allocate the array
-    ALLOCATE ( ARRAY( XDIM, YDIM, ZDIM, TDIMREAD ) )
-   
-    ! Read the field from file
-   
-    ! To read a 4D array:
-    IF ( ReadTime .AND. ReadLev ) THEN
-       st4d = (/ 1,    1,    1,    TIDX     /)
-       ct4d = (/ XDIM, YDIM, ZDIM, TDIMREAD /)
-       CALL NcRd( ARRAY, fId, TRIM(v_name), st4d, ct4d )
-   
-    ! To read a 3D array:
-    ! Level defined but not time:
-    ELSEIF ( ReadLev ) THEN
-       ALLOCATE ( TMPARR_3D( XDIM, YDIM, ZDIM ) )
-       st3d = (/ 1,    1,    1    /)
-       ct3d = (/ XDIM, YDIM, ZDIM /)
-       CALL NcRd( TMPARR_3D, fId, TRIM(v_name), st3d, ct3d )
-       ARRAY(:,:,:,1) = TMPARR_3D(:,:,:)
-
-    ! Time defined but not level:
-    ELSEIF ( ReadTime ) THEN
-       ALLOCATE ( TMPARR_3D( XDIM, YDIM, TDIMREAD) )
-       st3d   = (/ 1,    1,    TIDX     /)
-       ct3d   = (/ XDIM, YDIM, TDIMREAD /)
-       CALL NcRd( TMPARR_3D, fId, TRIM(v_name), st3d, ct3d )
-       ARRAY(:,:,1,:) = TMPARR_3D(:,:,:)
-
-    ! Otherwise, we read a 2D array (lon and lat only):
-    ELSE
-       ALLOCATE ( TMPARR_2D( XDIM, YDIM ) )
-       st2d   = (/ 1,    1    /)
-       ct2d   = (/ XDIM, YDIM /)
-       CALL NcRd( TMPARR_2D, fId, TRIM(v_name), st2d, ct2d )
-       ARRAY(:,:,1,1) = TMPARR_2D(:,:)
-
-    ENDIF
-
-    ! ----------------------------
-    ! Read optional arguments
-    ! ----------------------------
-
-    ! Read units
-    IF ( PRESENT(UNITS)  )THEN
-       v_name = TRIM(PARA)
-       a_name = "units"
-       CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),a_val)
-       UNITS = TRIM(a_val)
-    ENDIF
-
-    ! ------------------------------------------
-    ! Eventually apply scale / offset factors
-    ! ------------------------------------------
-
-    ! Check for scale factor
-    v_name  = TRIM(PARA)
-    a_name  = "scale_factor"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) ) 
-
-    IF ( ReadAtt ) THEN
-       CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),corr)
-       ARRAY(:,:,:,:) = ARRAY(:,:,:,:) * corr
-    ENDIF
-
-    ! Check for offset factor
-    v_name  = TRIM(PARA)
-    a_name  = "add_offset"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) ) 
-
-    IF ( ReadAtt ) THEN
-       CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),corr)
-       ARRAY(:,:,:,:) = ARRAY(:,:,:,:) + corr
-    ENDIF
-
-    !=================================================================
-    ! Prepare (optional) output
-    !=================================================================
-
-    ! (Output) array dimensions.
-    IF ( PRESENT(NLON ) ) NLON  = XDIM
-    IF ( PRESENT(NLAT ) ) NLAT  = YDIM
-    IF ( PRESENT(NLEV ) ) NLEV  = ZDIM
-    IF ( PRESENT(NTIME) ) NTIME = TDIMREAD
-
-    ! Dimension values
-
-    ! Longitude values
-    IF ( PRESENT(LON ) ) THEN
-       ALLOCATE( LON( XDIM ) )
-       LON = longitude
-    ENDIF
-
-    ! Latitude values
-    IF ( PRESENT(LAT) ) THEN
-       ALLOCATE( LAT( YDIM ) )
-       LAT = latitude
-    ENDIF
-
-    ! Horizontal level values
-    IF ( PRESENT(LEV) ) THEN
-
-       ! If defined
-       IF ( ReadLev ) THEN
-          ALLOCATE( LEV( ZDIM ) )
-          LEV = levels
-
-       ! Default       
-       ELSE
-          ALLOCATE( LEV(1) )
-          LEV = -999d0
-       ENDIF
-    ENDIF
-
-    ! Time values
-    IF ( PRESENT(TIME) ) THEN
-
-       ! If defined
-       IF ( ReadTime ) THEN
-          ALLOCATE( TIME( TDIMREAD ) )
-
-          ! Get the specific time stamp that has been used:
-          IF ( TDIMREAD == 1 ) THEN
-             TIME = timevec( TIDX )
-
-          ! Get entire time vector
-          ELSE
-             TIME  = timevec
-          ENDIF
-
-       ! Default
-       ELSE
-          ALLOCATE( TIME(1) )
-          TIME = -999
-       ENDIF
-    ENDIF
-      
-    !=================================================================
-    ! Cleanup and quit
-    !=================================================================
-
-    ! Deallocate internal variables
-    IF ( ALLOCATED ( longitude ) ) DEALLOCATE ( longitude )
-    IF ( ALLOCATED ( latitude  ) ) DEALLOCATE ( latitude  )
-    IF ( ALLOCATED ( levels    ) ) DEALLOCATE ( levels    )
-    IF ( ALLOCATED ( timevec   ) ) DEALLOCATE ( timevec   )
-    IF ( ALLOCATED ( TMPARR_3D ) ) DEALLOCATE ( TMPARR_3D )
-    IF ( ALLOCATED ( TMPARR_2D ) ) DEALLOCATE ( TMPARR_2D )
-
-    ! Close netCDF file
-    CALL NcCl( fId )
-
-    ! Return w/ success
-    RC = 0 
-
-  END SUBROUTINE NC_READ
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
@@ -2015,6 +1532,595 @@ CONTAINS
     RC = 0 
 
   END SUBROUTINE NC_GET_GRID_EDGES_DP 
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nc_get_sigma_levels_sp
+!
+! !DESCRIPTION: Wrapper routine to get the sigma levels in single precision. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_GET_SIGMA_LEVELS_SP( fID,  ncFile, levName, lon1, lon2, lat1, &
+                                     lat2, lev1,   lev2,    time, SigLev, dir, RC )
+!
+! !USES:
+!
+    IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN   ) :: fID             ! Ncdf File ID 
+    CHARACTER(LEN=*), INTENT(IN   ) :: ncFile          ! ncFile 
+    CHARACTER(LEN=*), INTENT(IN   ) :: levName         ! variable name
+    INTEGER,          INTENT(IN   ) :: lon1            ! lon lower bound
+    INTEGER,          INTENT(IN   ) :: lon2            ! lon upper bound
+    INTEGER,          INTENT(IN   ) :: lat1            ! lat lower bound
+    INTEGER,          INTENT(IN   ) :: lat2            ! lat upper bound
+    INTEGER,          INTENT(IN   ) :: lev1            ! lev lower bound
+    INTEGER,          INTENT(IN   ) :: lev2            ! lev upper bound
+    INTEGER,          INTENT(IN   ) :: time            ! time index
+!
+! !INPUT/OUTPUT PARAMETERS:
+!   
+    REAL*4,           POINTER       :: SigLev(:,:,:)   ! sigma levels
+    INTEGER,          INTENT(INOUT) :: dir             ! axis direction (1=up;-1=down) 
+    INTEGER,          INTENT(INOUT) :: RC              ! Return code
+! 
+! !REVISION HISTORY:
+!  03 Oct 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+  CALL NC_GET_SIGMA_LEVELS_C( fID,  ncFile, levName, lon1, lon2, lat1, &
+                              lat2, lev1,   lev2,    time, dir,  RC,   & 
+                              SigLev4=SigLev )
+
+  END SUBROUTINE NC_GET_SIGMA_LEVELS_SP
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nc_get_sigma_levels_dp
+!
+! !DESCRIPTION: Wrapper routine to get the sigma levels in double precision. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_GET_SIGMA_LEVELS_DP( fID,  ncFile, levName, lon1, lon2, lat1, &
+                                     lat2, lev1,   lev2,    time, SigLev, dir, RC )
+!
+! !USES:
+!
+    IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN   ) :: fID             ! Ncdf File ID 
+    CHARACTER(LEN=*), INTENT(IN   ) :: ncFile          ! ncFile 
+    CHARACTER(LEN=*), INTENT(IN   ) :: levName         ! variable name
+    INTEGER,          INTENT(IN   ) :: lon1            ! lon lower bound
+    INTEGER,          INTENT(IN   ) :: lon2            ! lon upper bound
+    INTEGER,          INTENT(IN   ) :: lat1            ! lat lower bound
+    INTEGER,          INTENT(IN   ) :: lat2            ! lat upper bound
+    INTEGER,          INTENT(IN   ) :: lev1            ! lev lower bound
+    INTEGER,          INTENT(IN   ) :: lev2            ! lev upper bound
+    INTEGER,          INTENT(IN   ) :: time            ! time index
+!
+! !INPUT/OUTPUT PARAMETERS:
+!   
+    REAL*8,           POINTER       :: SigLev(:,:,:)   ! sigma levels
+    INTEGER,          INTENT(INOUT) :: dir             ! axis direction (1=up;-1=down) 
+    INTEGER,          INTENT(INOUT) :: RC              ! Return code
+! 
+! !REVISION HISTORY:
+!  03 Oct 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+  CALL NC_GET_SIGMA_LEVELS_C( fID,  ncFile, levName, lon1, lon2, lat1, &
+                              lat2, lev1,   lev2,    time, dir,  RC,   & 
+                              SigLev8=SigLev )
+
+  END SUBROUTINE NC_GET_SIGMA_LEVELS_DP
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nc_get_sigma_levels
+!
+! !DESCRIPTION: Routine to get the sigma levels from the netCDF file
+! within the given grid bounds and for the given time index. This routine
+! attempts to construct the 3D sigma values from provided variable levName.
+! The vertical coordinate system is determined based upon the variable 
+! attribute "standard_name".
+!\\
+!\\
+! For now, only hybrid sigma coordinate systems are supported, and the 
+! standard_name attribute must follow CF conventions and be set to
+! "atmosphere_hybrid_sigma_pressure_coordinate".
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_GET_SIGMA_LEVELS_C( fID,  ncFile, levName, lon1, lon2, lat1, &
+                                    lat2, lev1,   lev2,    time, dir,  RC,   & 
+                                    SigLev4, SigLev8 )
+!
+! !USES:
+!
+    IMPLICIT NONE
+
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN   ) :: fID             ! Ncdf File ID 
+    CHARACTER(LEN=*), INTENT(IN   ) :: ncFile          ! ncFile 
+    CHARACTER(LEN=*), INTENT(IN   ) :: levName         ! variable name
+    INTEGER,          INTENT(IN   ) :: lon1            ! lon lower bound
+    INTEGER,          INTENT(IN   ) :: lon2            ! lon upper bound
+    INTEGER,          INTENT(IN   ) :: lat1            ! lat lower bound
+    INTEGER,          INTENT(IN   ) :: lat2            ! lat upper bound
+    INTEGER,          INTENT(IN   ) :: lev1            ! lev lower bound
+    INTEGER,          INTENT(IN   ) :: lev2            ! lev upper bound
+    INTEGER,          INTENT(IN   ) :: time            ! time index
+!
+! !INPUT/OUTPUT PARAMETERS:
+!   
+    INTEGER,          INTENT(  OUT) :: dir             ! axis direction (1=up;-1=down) 
+    INTEGER,          INTENT(INOUT) :: RC              ! Return code
+    REAL*4, OPTIONAL, POINTER       :: SigLev4(:,:,:)  ! sigma levels w/in 
+    REAL*8, OPTIONAL, POINTER       :: SigLev8(:,:,:)  ! specified boundaries
+!
+! !REVISION HISTORY:
+!  03 Oct 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255)   :: stdname
+    CHARACTER(LEN=255)   :: a_name    ! netCDF attribute name
+    LOGICAL              :: ok
+
+    !======================================================================
+    ! NC_GET_SIGMA_LEVELS begins here
+    !======================================================================
+
+    !------------------------------------------------------------------------
+    ! Get level standard name. This attribute will be used to identify
+    ! the coordinate system 
+    !------------------------------------------------------------------------
+    ok = Ncdoes_Var_Exist( fID, TRIM(levName) ) 
+    IF ( .NOT. ok ) THEN
+       WRITE(*,*) 'Cannot find variable ', TRIM(levName), ' in ', TRIM(ncFile), '!'
+       RC = -999
+       RETURN 
+    ENDIF
+
+    ! Get standard name
+    a_name = "standard_name"
+    IF ( .NOT. NcDoes_Attr_Exist ( fID, TRIM(levName), TRIM(a_Name) ) ) THEN
+       WRITE(*,*) 'Cannot find attribute ', TRIM(a_name), ' in variable ', &
+                  TRIM(levName), ' - File: ', TRIM(ncFile), '!'
+       RC = -999
+       RETURN 
+    ENDIF
+    CALL NcGet_Var_Attributes( fID, TRIM(levName), TRIM(a_name), stdname )
+
+    !------------------------------------------------------------------------
+    ! Call functions to calculate sigma levels depending on the coordinate
+    ! system.
+    !------------------------------------------------------------------------
+
+    IF ( TRIM(stdname) == 'atmosphere_hybrid_sigma_pressure_coordinate' ) THEN
+      
+       IF ( PRESENT(SigLev4) ) THEN 
+          CALL NC_GET_SIG_FROM_HYBRID ( fID,  levName, lon1, lon2, lat1, lat2, &
+                                        lev1, lev2,    time, dir, RC, SigLev4=SigLev4 )
+       ELSEIF ( PRESENT(SigLev8) ) THEN
+          CALL NC_GET_SIG_FROM_HYBRID ( fID,  levName, lon1, lon2, lat1, lat2, &
+                                        lev1, lev2,    time, dir, RC, SigLev8=SigLev8 )
+       ELSE
+          WRITE(*,*) 'SigLev array is missing!'
+          RC = -999
+          RETURN
+       ENDIF
+       IF ( RC /= 0 ) RETURN
+
+    ! NOTE: for now, only hybrid sigma coordinates are supported! 
+    ELSE
+       WRITE(*,*) 'Invalid level standard name: ', TRIM(stdname), ' in ', TRIM(ncFile)
+       RC = -999
+       RETURN
+    ENDIF
+
+    ! Return w/ success
+    RC = 0 
+
+  END SUBROUTINE NC_GET_SIGMA_LEVELS_C
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nc_get_sig_from_hybrid
+!
+! !DESCRIPTION: Calculates the sigma level field for a hybrid sigma coordinate
+! system:
+!
+! sigma(i,j,l,t) = ( a(l) * p0 + b(l) * ps(i,j,t) ) / ps(i,j,t)
+!
+! or (p0=1):
+!
+! sigma(i,j,l,t) = ( ap(l) + b(l) * ps(i,j,t) ) / ps(i,j,t)
+!
+! where sigma are the sigma levels, ap and bp are the hybrid sigma coordinates,
+! p0 is the constant reference pressure, and ps is the surface pressure. The
+! variable names of ap, p0, bp, and ps are taken from level attribute 
+! `formula_terms`.
+!\\
+!\\
+! The direction of the vertical coordinate system is determined from attribute
+! `positive` (up or down) or - if not found - from the b values, whereby it is
+! assumed that the higher b value is found at the surface. The return argument
+! dir is set to 1 for upward coordinates (level 1 is surface level) and -1 for
+! downward coordinates (level 1 is top of atmosphere).
+!\\
+!\\
+! Example of valid netCDF meta-data: The attributes `standard_name` and
+! `formula_terms` are required, as is the 3D surface pressure field.\\
+! \\
+! double lev(lev) ;\\
+!	lev:standard_name = "atmosphere_hybrid_sigma_pressure_coordinate" ;\\
+!	lev:units = "level" ;\\
+!	lev:positive = "down" ;\\
+!	lev:formula_terms = "ap: hyam b: hybm ps: PS" ;\\
+!double hyam(nhym) ;\\
+!	hyam:long_name = "hybrid A coefficient at layer midpoints" ;\\
+!	hyam:units = "hPa" ;\\
+!double hybm(nhym) ;\\
+!	hybm:long_name = "hybrid B coefficient at layer midpoints" ;\\
+!	hybm:units = "1" ;\\
+!double time(time) ;\\
+!	time:standard_name = "time" ;\\
+!	time:units = "days since 2000-01-01 00:00:00" ;\\
+!	time:calendar = "standard" ;\\
+!double PS(time, lat, lon) ;\\
+!	PS:long_name = "surface pressure" ;\\
+!	PS:units = "hPa" ;\\
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_GET_SIG_FROM_HYBRID ( fID,  levName, lon1, lon2, lat1, lat2, &
+                                      lev1, lev2,    time, dir,  RC,   sigLev4, sigLev8 )
+!
+! !USES:
+!
+    IMPLICIT NONE
+
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN   ) :: fID             ! Ncdf File ID 
+    CHARACTER(LEN=*), INTENT(IN   ) :: levName         ! variable name
+    INTEGER,          INTENT(IN   ) :: lon1            ! lon lower bound
+    INTEGER,          INTENT(IN   ) :: lon2            ! lon upper bound
+    INTEGER,          INTENT(IN   ) :: lat1            ! lat lower bound
+    INTEGER,          INTENT(IN   ) :: lat2            ! lat upper bound
+    INTEGER,          INTENT(IN   ) :: lev1            ! lev lower bound
+    INTEGER,          INTENT(IN   ) :: lev2            ! lev upper bound
+    INTEGER,          INTENT(IN   ) :: time            ! time index
+!
+! !INPUT/OUTPUT PARAMETERS:
+!   
+    REAL*4, OPTIONAL, POINTER       :: SigLev4(:,:,:)  ! sigma levels w/in 
+    REAL*8, OPTIONAL, POINTER       :: SigLev8(:,:,:)  ! specified boundaries
+    INTEGER,          INTENT(  OUT) :: dir             ! axis direction (1=up;-1=down) 
+    INTEGER,          INTENT(INOUT) :: RC              ! Return code
+!
+! !REVISION HISTORY:
+!  03 Oct 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: I, J, l1, l2, AS
+    INTEGER              :: nlev, nlat, nlon
+    INTEGER              :: nlevs
+    INTEGER              :: st1d(1), ct1d(1) 
+    LOGICAL              :: ok
+    REAL*4, POINTER      :: a(:)        => NULL()
+    REAL*4, POINTER      :: b(:)        => NULL()
+    REAL*4, POINTER      :: ps(:,:,:,:) => NULL()
+    REAL*8               :: p0
+    CHARACTER(LEN=255)   :: formula, ThisUnit
+    CHARACTER(LEN=255)   :: aname, bname, psname, p0name
+    CHARACTER(LEN=255)   :: a_name    ! netCDF attribute name
+
+    !======================================================================
+    ! NC_GET_SIG_FROM_HYBRID begins here
+    !======================================================================
+
+    ! Init
+    p0 = -999.d0
+
+    ! Get desired grid dimensions.
+    nlon = lon2 - lon1 + 1
+    nlat = lat2 - lat1 + 1
+    nlev = lev2 - lev1 + 1
+ 
+    ! Get dimension length
+    CALL Ncget_Dimlen ( fID, TRIM(LevName), nlevs )
+
+    ! Sanity check
+    IF ( nlevs < nlev ) THEN
+       WRITE(*,*) TRIM(LevName), ' is only of length ', nlevs, ' - required is: ', nlev
+       RC = -999
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Get formula and parse variable names (ap, bp, p0, ps)
+    !------------------------------------------------------------------------
+    
+    ! Get formula 
+    a_name = "formula_terms"
+    IF ( .NOT. NcDoes_Attr_Exist ( fID, TRIM(levName), TRIM(a_name) ) ) THEN
+       WRITE(*,*) 'Cannot find attribute ', TRIM(a_name), ' in variable ', &
+                  TRIM(levName)
+       RC = -999
+       RETURN 
+    ENDIF
+    CALL NcGet_Var_Attributes( fID, TRIM(levName), TRIM(a_name), formula )
+
+    ! Get variable names
+    !-------------------
+    I = INDEX( formula, 'a:' )
+    IF ( I > 0 ) THEN
+       CALL GetVarFromFormula( formula, 'a:',  aname, RC )
+       IF ( RC /= 0 ) RETURN
+       CALL GetVarFromFormula( formula, 'p0:', p0name, RC ) 
+       IF ( RC /= 0 ) RETURN
+    ELSE
+       CALL GetVarFromFormula( formula, 'ap:', aname, RC ) 
+       IF ( RC /= 0 ) RETURN
+       p0 = 1.0d0
+    ENDIF
+    IF ( RC /= 0 ) RETURN
+
+    CALL GetVarFromFormula( formula, 'b:', bname, RC )
+    IF ( RC /= 0 ) RETURN
+
+    CALL GetVarFromFormula( formula, 'ps:', psname, RC )
+    IF ( RC /= 0 ) RETURN
+
+    !------------------------------------------------------------------------
+    ! Read variables from file.
+    !------------------------------------------------------------------------
+
+    ALLOCATE ( a(nlevs), b(nlevs) )
+    st1d = (/ 1     /)
+    ct1d = (/ nlevs /)
+
+    ! read a
+    !-------
+    IF ( .NOT. Ncdoes_Var_Exist( fID, TRIM(aname) ) ) THEN
+       WRITE(*,*) 'Cannot find variable ', TRIM(aname), '!'
+       RC = -999
+       RETURN 
+    ENDIF
+    CALL NcRd( a, fID, TRIM(aname), st1d, ct1d )
+
+    ! eventually read p0
+    !-------------------
+    IF ( p0 < 0.0d0 ) THEN
+       IF ( .NOT. Ncdoes_Var_Exist( fID, TRIM(p0name) ) ) THEN
+          WRITE(*,*) 'Cannot find variable ', TRIM(p0name), '!'
+          RC = -999
+          RETURN 
+       ENDIF
+    CALL NcRd( p0, fID, TRIM(p0name) )
+    ENDIF
+
+    ! read b
+    !-------
+    IF ( .NOT. Ncdoes_Var_Exist( fID, TRIM(bname) ) ) THEN
+       WRITE(*,*) 'Cannot find variable ', TRIM(bname), '!'
+       RC = -999
+       RETURN 
+    ENDIF
+    CALL NcRd( b, fID, TRIM(bname), st1d, ct1d )
+
+    ! Read ps 
+    !--------
+    CALL NC_READ_ARR( fID, TRIM(psname), lon1, lon2, lat1, &
+                      lat2, 0, 0, time,  time, ps,   thisUnit, RC )
+    IF ( RC /= 0 ) RETURN
+
+    !------------------------------------------------------------------------
+    ! Determine positive axis ('up' or 'down')
+    ! Try to read it from the netCDF meta data (attribute `positive`). If not
+    ! found, determine it from b values (b value at surface higher than at 
+    ! top of atmosphere). 
+    !------------------------------------------------------------------------
+    a_name = "positive"
+    IF ( NcDoes_Attr_Exist ( fID, TRIM(levName), TRIM(a_name) ) ) THEN
+       CALL NcGet_Var_Attributes( fID, TRIM(levName), TRIM(a_name), formula )
+       IF ( TRIM(formula) == 'up' ) THEN
+          dir = 1
+       ELSEIF ( TRIM(formula) == 'down' ) THEN
+          dir = -1
+       ELSE
+          WRITE(*,*) 'level attribute `positive` must be `up` ', &
+                     'or `down`, instead: ', TRIM(formula)
+          RC = -999
+          RETURN
+       ENDIF
+
+    ! determine direction from b values.
+    ELSE
+    
+       IF ( b(1) > b(nlevs) ) THEN
+          dir = 1
+       ELSE
+          dir = -1
+       ENDIF
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Determine vertical indeces to be used. It is possible to calculate
+    ! the pressure only for a given number of layers (as specified by input
+    ! arguments lev1 and lev2). Assume those are always from bottom to top,
+    ! i.e. counting `upwards`. 
+    !------------------------------------------------------------------------
+
+    IF ( dir == -1 ) THEN
+       l1 = nlevs - lev2 + 1
+       l2 = nlevs - lev1 + 1
+    ELSE
+       l1 = lev1 
+       l2 = lev2
+    ENDIF 
+
+    !------------------------------------------------------------------------
+    ! Calculate sigma values at grid edges
+    !------------------------------------------------------------------------
+
+    IF ( PRESENT(SigLev4) ) THEN
+       IF ( ASSOCIATED(SigLev4) ) DEALLOCATE(SigLev4)
+       ALLOCATE(SigLev4(nlon,nlat,nlev),STAT=AS)
+    ELSEIF ( PRESENT(SigLev8) ) THEN
+       IF ( ASSOCIATED(SigLev8) ) DEALLOCATE(SigLev8)
+       ALLOCATE(SigLev8(nlon,nlat,nlev),STAT=AS)
+    ELSE
+       WRITE(*,*) 'SigLev must be provided!'
+       RC = -999
+       RETURN
+    ENDIF
+    IF ( AS /= 0 ) THEN
+       WRITE(*,*) 'Cannot allocate SigLev!'
+       RC = -999
+       RETURN
+    ENDIF
+
+    DO J=1,nlat
+    DO I=1,nlon
+       IF ( PRESENT(SigLev4) ) THEN
+          SigLev4(i,j,:) = ( ( a(l1:l2) * p0 ) + ( b(l1:l2) * ps(i,j,1,1) ) ) &
+                        / ps(i,j,1,1)
+       ELSE
+          SigLev8(i,j,:) = ( ( a(l1:l2) * p0 ) + ( b(l1:l2) * ps(i,j,1,1) ) ) &
+                        / ps(i,j,1,1)
+       ENDIF
+    ENDDO
+    ENDDO
+
+    ! Cleanup
+    IF ( ASSOCIATED(a ) ) DEALLOCATE(a )
+    IF ( ASSOCIATED(b ) ) DEALLOCATE(b )
+    IF ( ASSOCIATED(ps) ) DEALLOCATE(ps)
+
+    ! Return w/ success
+    RC = 0 
+
+  END SUBROUTINE NC_GET_SIG_FROM_HYBRID
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetVarFromFormula
+!
+! !DESCRIPTION: helper function to extract the variable name from a vertical
+! coordinate formula. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetVarFromFormula ( formula, inname, outname, RC )
+!
+! !USES:
+!
+    IMPLICIT NONE
+
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN   ) :: formula 
+    CHARACTER(LEN=*), INTENT(IN   ) :: inname
+!
+! !INPUT/OUTPUT PARAMETERS:
+!   
+    CHARACTER(LEN=*), INTENT(  OUT) :: outname
+    INTEGER,          INTENT(INOUT) :: RC              ! Return code
+!
+! !REVISION HISTORY:
+!  03 Oct 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: I, J, IDX, LN
+
+    !======================================================================
+    ! GetVarFromFormula begins here
+    !======================================================================
+
+    ! maximum length
+    LN = LEN(TRIM(formula))
+
+    ! Get start index of string 
+    !--------------------------
+    I = INDEX( TRIM(formula), TRIM(inname) )
+    IF ( I <= 0 ) THEN
+       WRITE(*,*) 'Cannot extract ', TRIM(inname), ' from ', TRIM(formula) 
+       RC = -999
+       RETURN 
+    ENDIF
+
+    ! The variable name follows the formula string plus one space!
+    I = I + LEN(inname) + 1
+
+    outname = ''
+    IDX = 1
+    DO J = I, LN
+       IF ( formula(J:J) == ' ' ) EXIT
+       outname(IDX:IDX) = formula(J:J)
+       IDX = IDX + 1
+    ENDDO
+
+    ! Return w/ success
+    RC = 0
+
+  END SUBROUTINE GetVarFromFormula 
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
