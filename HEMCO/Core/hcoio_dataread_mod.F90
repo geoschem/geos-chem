@@ -1921,7 +1921,7 @@ CONTAINS
        ELSE
           BEFORE = ''
        ENDIF
-       OFF   = LEN(TRIM(HcoState%TOKEN_MET)) + 1
+       OFF   = 4
        AFTER = srcFile((IDX+OFF):LN)
 
        ! Updated string
@@ -1939,7 +1939,7 @@ CONTAINS
        ELSE
           BEFORE = ''
        ENDIF
-       OFF   = LEN(TRIM(HcoState%TOKEN_RES)) + 1
+       OFF   = 4
        AFTER = srcFile((IDX+OFF):LN)
 
        ! Updated string

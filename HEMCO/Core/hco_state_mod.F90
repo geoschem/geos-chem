@@ -367,11 +367,15 @@ CONTAINS
     !=====================================================================
 
 #if defined( GEOS_FP )
-    HcoState%TOKEN_MET = 'geos_fp'
+    HcoState%TOKEN_MET = 'geosfp'
 #elif defined( GEOS_5 )
-    HcoState%TOKEN_MET = 'geos_5'
+    HcoState%TOKEN_MET = 'geos5'
 #elif defined( GEOS_4 )
-    HcoState%TOKEN_MET = 'geos_4'
+    HcoState%TOKEN_MET = 'geos4'
+#elif defined( MERRA )
+    HcoState%TOKEN_MET = 'merra'
+#elif defined( GCAP )
+    HcoState%TOKEN_MET = 'gcap'
 #else
     HcoState%TOKEN_MET = 'unknown_model'
 #endif 
