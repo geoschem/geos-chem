@@ -2426,13 +2426,13 @@ contains
 !$OMP END PARALLEL DO
 
     ! testing only: write out eflx
-!#if defined( DEBUG )
+#if defined( DEBUG )
     write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
     do N=1,N_TRACERS
        write(*,*) 'eflx TRACER ', N, ': ', SUM(eflx(:,:,N))
        write(*,*) 'dflx TRACER ', N, ': ', SUM(dflx(:,:,N))
     enddo
-!#endif
+#endif
 
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
