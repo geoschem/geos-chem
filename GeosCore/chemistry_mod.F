@@ -126,7 +126,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -321,8 +321,9 @@
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
             ! Call gas-phase chemistry
-            CALL CHEMDR
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+!            CALL CHEMDR
+!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 

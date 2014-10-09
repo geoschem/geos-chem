@@ -1429,6 +1429,12 @@ CONTAINS
     !----------------------------------------
     ! Fields for LINOZ strat chem
     !----------------------------------------
+    Input_Opt%LINOZ_NLEVELS = 25
+    Input_Opt%LINOZ_NLAT    = 18
+    Input_Opt%LINOZ_NMONTHS = 12
+    Input_Opt%LINOZ_NFIELDS = 7
+
+
     ALLOCATE( Input_Opt%LINOZ_TPARM( Input_Opt%LINOZ_NLEVELS,            &
                                      Input_Opt%LINOZ_NLAT,               &
                                      Input_Opt%LINOZ_NMONTHS,            &

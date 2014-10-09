@@ -376,6 +376,7 @@
       !vartrop fix (dkh, 05/08/11)
       !Save a copy of JLOP from the previous time step before re-ordering
       !the grid mappings.
+      
       JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
 
       ! Locate the tropopsheric boxes

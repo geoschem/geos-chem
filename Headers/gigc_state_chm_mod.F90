@@ -54,6 +54,7 @@ MODULE GIGC_State_Chm_Mod
 
      ! Chemical rates & rate parameters
      REAL*8,            POINTER :: DepSav     (:,:,:  )  ! Drydep freq [1/s]
+     INTEGER,           POINTER :: JLOP(:,:,:), JLOP_PREV(:,:,:)
 
      ! Stratospheric chemistry 
      INTEGER,           POINTER :: Schm_Id    (:      )  ! Strat Chem ID #'s
@@ -341,6 +342,8 @@ CONTAINS
 !
 ! !USES:
 !
+                                                                                                                                                         
+    USE Comode_Loop_Mod,    ONLY   : ILONG, ILAT, IPVERT
     USE GIGC_ErrCode_Mod                         ! Error codes
     USE GIGC_Input_Opt_Mod, ONLY   : OptInput    ! Derived type
 !
@@ -428,6 +431,14 @@ CONTAINS
     ! DEPSAV is allocated in drydep_mod
     ALLOCATE( State_Chm%DEPSAV        ( IM, JM,     Max_Dep    ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    ALLOCATE( State_Chm%JLOP( ILONG, ILAT, IPVERT ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%JLOP = 0
+
+    ALLOCATE( State_Chm%JLOP_PREV( ILONG, ILAT, IPVERT ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%JLOP_PREV = 0
 
 ! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
 !    !=====================================================================
