@@ -106,7 +106,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG63
+      SUBROUTINE DIAG63 ( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -121,11 +121,28 @@
       USE TIME_MOD,     ONLY : GET_TAUb
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE DIAG_MOD,     ONLY : AD63,    AD63_COUNT     
-      USE ERROR_MOD,    ONLY : SAFE_DIV
+      USE ERROR_MOD,    ONLY : SAFE_DIV, ERROR_STOP
 
       USE CMN_O3_MOD	     ! Pure O3, SAVENO2
       USE CMN_GCTM_MOD       ! XTRA2
+
+      ! Connect to HEMCO diagnostics
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTNO
+      USE HCO_DIAGN_MOD
+      USE HCO_ERROR_MOD
+      USE HCO_STATE_MOD,    ONLY : HCO_STATE
+      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
+!
+! !INPUT ARGUMENTS
+!
+      LOGICAL,        INTENT(IN   )       :: am_I_Root
+      TYPE(OptInput), INTENT(IN   )       :: Input_Opt  ! Input opts 
+!
+! !INPUT/OUTPUT ARGUMENTS
+!
+      INTEGER,        INTENT(INOUT)       :: RC
 !
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version based on DIAG49 
@@ -148,9 +165,26 @@
       CHARACTER(LEN=40)        :: UNIT
       CHARACTER(LEN=255)       :: FILENAME
 
+      ! Connect to HEMCO diagnostics
+      INTEGER                  :: FLAG
+      INTEGER                  :: AF
+      CHARACTER(LEN= 63)       :: DiagnName
+      CHARACTER(LEN=255)       :: MSG
+      TYPE(DiagnCont), POINTER :: DiagnCnt => NULL()
+      TYPE(HCO_State), POINTER :: HcoState => NULL()      
+      REAL*8                   :: FACTOR
+      REAL*8, PARAMETER        :: CM2PERM2 = 10000d0
+      CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG63 (DIAG63_MOD.F)' 
+
       !=================================================================
       ! DIAG63 begins here!
       !=================================================================
+
+      ! Get pointer to HEMCO state
+      CALL GetHcoState ( HcoState )
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         CALL ERROR_STOP ( 'HcoState not defined!', LOC )
+      ENDIF 
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
@@ -209,25 +243,60 @@
          ! SHIP-diagnostic tracers [unitless]
          !-------------------------------------
          CATEGORY = 'SHIP-$$$'
-         UNIT     = ''           ! Let GAMAP pick the unit
          GMNL     = ND63_NL
          GMTRC    = W
-         
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y)
-            DO Y = 1, ND63_NJ
-               J = JOFF + Y
-            DO X = 1, ND63_NI
-               I = GET_I( X )
-               ! Normalize by AD63_COUNT, 
-               ! the number of times diagnostics are summed
-               Q(X,Y,1) = SAFE_DIV( DBLE(AD63(I,J,W)), DBLE(AD63_COUNT),
-     &                              0d0 )
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
 
+         ! Pick variables to get diagnostics from HEMCO
+         SELECT CASE ( W )
+            CASE ( 1 ) 
+               DiagnName = 'PARANOX_NOXFRAC_REMAINING'
+               UNIT      = 'UNITLESS'
+               AF        = 0
+               FACTOR    = 1.0d0
+            CASE ( 2 ) 
+               DiagnName = 'PARANOX_OPE'
+               UNIT      = 'UNITLESS'
+               AF        = 0
+               FACTOR    = 1.0d0
+            CASE ( 3 ) 
+               DiagnName = 'PARANOX_OX_PRODUCTION'
+               UNIT      = 'molec/cm2/s'
+               AF        = 0
+               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+            CASE ( 4 ) 
+               DiagnName = 'PARANOX_NOX_REMAINING'
+               UNIT      = 'molec/cm2/s'
+               AF        = 0
+               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+            CASE ( 5 ) 
+               DiagnName = 'SHIP_NO'
+               UNIT      = 'molec/cm2/s'
+               AF        = 1
+               FACTOR    = Input_Opt%XNUMOL(IDTNO) / CM2PERM2 
+            CASE DEFAULT
+               MSG = 'Only 5 diagnostics expected!'
+               CALL ERROR_STOP ( MSG, LOC )
+         END SELECT
+
+         ! Get diagnostics from HEMCO
+         DiagnCnt => NULL()
+         CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt,
+     &                   FLAG,  RC, cName=TRIM(DiagnName),
+     &                   AutoFill=AF, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC )
+         ENDIF
+        
+         ! Save into ARRAY. Convert to desired output units
+         IF ( FLAG == HCO_SUCCESS ) THEN
+            Q(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR
+         ELSE
+            MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+            MSG = TRIM(MSG) // ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+         ENDIF
+ 
          !==============================================================
          ! Save this data block to the ND63 timeseries file
          !==============================================================
@@ -239,17 +308,7 @@
      &               ND63_IMIN+I0, ND63_JMIN+J0, 1, 
      &               REAL( Q(1:ND63_NI, 1:ND63_NJ, 1) ) )
       ENDDO
-            
-      !=================================================================
-      ! Reset the AD63 to zero
-      !=================================================================
-
-      ! Zero all elements
-      AD63(:,:,:) = 0d0
-
-      ! Reset the counter
-      AD63_COUNT = 0d0
-
+ 
       !=================================================================
       ! Close the file at the proper time
       !=================================================================
@@ -268,6 +327,11 @@
          ! Close file
          CLOSE( IU_ND63 ) 
       ENDIF
+
+      ! Return w/ success
+      DiagnCnt => NULL()
+      HcoState => NULL()
+      RC = GIGC_SUCCESS
 
       END SUBROUTINE DIAG63
 !EOC

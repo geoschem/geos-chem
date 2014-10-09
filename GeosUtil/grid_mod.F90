@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: grid_mod
+! !MODULE: grid_mod.F90
 !
 ! !DESCRIPTION: Module GRID\_MOD contains variables and routines which are 
 !  used to specify the parameters of a GEOS-Chem horizontal grid. Grid 
@@ -27,6 +27,7 @@ MODULE Grid_Mod
 !
   PUBLIC  :: Cleanup_Grid
   PUBLIC  :: Compute_Grid
+  PUBLIC  :: DoGridComputation
   PUBLIC  :: Get_Area_m2
   PUBLIC  :: Get_Area_cm2
   PUBLIC  :: Get_Bounding_Box
@@ -47,6 +48,14 @@ MODULE Grid_Mod
 ! Make some arrays public - MSL: 7/31/14 (update from GEOS5/GEOS-Chem coupled system)
   PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
 
+! Make some arrays public
+  PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
+!
+! Comment out for now (bmy, 12/11/12)
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!      PUBLIC  :: YMID, XMID, YEDGE, XEDGE, AREA_M2
+!#endif
+!
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !  01 Mar 2012 - R. Yantosca - Validated for nested grids
@@ -54,7 +63,8 @@ MODULE Grid_Mod
 !  04 Dec 2012 - R. Yantosca - Modified for GIGC running in ESMF environment
 !  26 Feb 2013 - R. Yantosca - Fixed bug in computation of lons & lats when
 !                              connecting GEOS-Chem to the GEOS-5 GCM
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 May 2013 - C. Keller   - Added wrapper routine DoGridComputation so that
+!                              module can also be used by HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -95,14 +105,14 @@ MODULE Grid_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: compute_grid
 !
-! !DESCRIPTION: Subroutine COMPUTE\_GRID initializes the longitude, 
-!  latitude and surface area arrays. 
+! !DESCRIPTION: Subroutine COMPUTE\_GRID is the wrapper routine to 
+! initializes the longitude, latitude and surface area arrays. 
 !\\
 !\\
 ! !INTERFACE:
@@ -144,6 +154,96 @@ CONTAINS
 !       on each CPU for the grid-independent GEOS-Chem to function properly.
 !
 ! !REVISION HISTORY:
+!  19 May 2014 - C. Keller   - Initial version: now wrapper routine that
+!                              calls DoGridComputation.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+    !======================================================================
+    ! Compute_Grid starts here 
+    !======================================================================
+
+
+  Call DoGridComputation( am_I_Root,                                     &
+                          I1,      I2,       J1,        J2,      JSP,    &
+                          JNP,     L1,       L2,        DLON,    DLAT,   & 
+                          I_LO,    J_LO,     I0,        J0,      XMID,   &
+                          XEDGE,   YMID,     YEDGE,     YSIN,    YMID_R, & 
+                          YEDGE_R, YMID_R_W, YEDGE_R_W, AREA_M2, RC       )
+
+  END SUBROUTINE COMPUTE_GRID
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DoGridComputation 
+!
+! !DESCRIPTION: Subroutine DoGridComputation initializes the longitude, 
+!  latitude and surface area arrays. This used to be subroutine COMPUTE\_GRID.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DoGridComputation( am_I_Root,                               &
+                                I1,   I2,    J1,    J2,    JSP,   JNP,   &
+                                L1,   L2,    DLON,  DLAT,  I_LO,  J_LO,  &
+                                IOFF, JOFF,  XMD,   XDG,   YMD,   YDG,   & 
+                                YSN,  YMDR,  YDGR,  YMDRW, YDGRW, AM2, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN)  :: am_I_Root                     ! Root CPU?
+
+    ! Variables with local CPU indices
+    INTEGER, INTENT(IN)  :: I1,  I2                       ! Min lon index
+    INTEGER, INTENT(IN)  :: J1,  J2                       ! Local lat indices
+    INTEGER, INTENT(IN)  :: JSP, JNP                      ! Polar lat indices
+    INTEGER, INTENT(IN)  :: L1,  L2                       ! Local lev indices
+    REAL*8,  INTENT(IN)  :: DLON(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lon [deg]
+    REAL*8,  INTENT(IN)  :: DLAT(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lat [deg]
+
+    ! Variables with global CPU indices
+    INTEGER, INTENT(IN)  :: I_LO                          ! Min global lon
+    INTEGER, INTENT(IN)  :: J_LO                          ! Min global lat
+
+    ! Offsets (for nested grids) 
+    INTEGER, INTENT(IN)  :: IOFF
+    INTEGER, INTENT(IN)  :: JOFF
+
+    ! Arrays to be filled
+    REAL*8,  INTENT(OUT) :: XMD  (:,:,:) 
+    REAL*8,  INTENT(OUT) :: XDG  (:,:,:) 
+    REAL*8,  INTENT(OUT) :: YMD  (:,:,:) 
+    REAL*8,  INTENT(OUT) :: YDG  (:,:,:) 
+    REAL*8,  INTENT(OUT) :: YSN  (:,:,:) 
+    REAL*8,  INTENT(OUT) :: YMDR (:,:,:) 
+    REAL*8,  INTENT(OUT) :: YDGR (:,:,:) 
+    REAL*8,  INTENT(OUT) :: YMDRW(:,:,:) 
+    REAL*8,  INTENT(OUT) :: YDGRW(:,:,:) 
+    REAL*8,  INTENT(OUT) :: AM2  (:,:,:) 
+!
+! !OUTPUT PARAMETERS:
+!  
+    INTEGER, INTENT(OUT) :: RC                            ! Success or failure?
+!
+! !REMARKS:
+!  (1) Lon/lat loop indices IG, JG are global indices.
+!  (2) Lon/lat loop indices I,  J  are local to each CPU.
+!  (3) We do not need to have global loop indices for vertical levels,
+!       because we will always decompose the grid for MPI parallelization
+!       in longitude and/or latitude.  All vertical levels must be present
+!       on each CPU for the grid-independent GEOS-Chem to function properly.
+!
+! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
@@ -159,8 +259,7 @@ CONTAINS
 !  21 Mar 2013 - R. Yantosca - Rename loop indices to prevent confusion
 !  06 Jun 2013 - M. Payer    - Add fix to compute sine of last latitude edge
 !                              for MAP_A2A regridding (C. Keller)
-!  02 Jul 2013 - R. Yantosca - Now compute lon centers properly for GCAP,
-!                              which does not have any half-sized polar boxes
+!  19 May 2014 - C. Keller   - Renamed from Compute_grid to DoGridComputation.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,12 +280,12 @@ CONTAINS
 
     ! Index array for longitudes
     DO I = I1, I2+1
-       IND_X(I) = ( ( I + I0 - 1 ) * 1d0 ) + ( I_LO - 1 )
+       IND_X(I) = ( ( I + IOFF - 1 ) * 1d0 ) + ( I_LO - 1 )
     ENDDO
 
     ! Index array for latitudes
     DO J = J1, J2+1
-       IND_Y(J) = ( ( J + J0 - 1 ) * 1d0 ) + ( J_LO - 1 )
+       IND_Y(J) = ( ( J + JOFF - 1 ) * 1d0 ) + ( J_LO - 1 )
     ENDDO
 
     !======================================================================
@@ -207,14 +306,14 @@ CONTAINS
           DO I = I1, I2
 
              ! Longitude centers
-             XMID(I,J,L)  = ( DLON(I,J,L) * IND_X(I) ) - 180d0
+             XMD(I,J,L)  = ( DLON(I,J,L) * IND_X(I) ) - 180d0
           
              ! Longitude edges
-             XEDGE(I,J,L) = XMID(I,J,L) - ( DLON(I,J,L) * 0.5d0 )
+             XDG(I,J,L) = XMD(I,J,L) - ( DLON(I,J,L) * 0.5d0 )
 
              ! Compute the last longitude edge
              IF ( I == I2 ) THEN
-                XEDGE(I+1,J,L) = XEDGE(I,J,L) + DLON(I,J,L)
+                XDG(I+1,J,L) = XDG(I,J,L) + DLON(I,J,L)
              ENDIF
              
           ENDDO
@@ -238,7 +337,7 @@ CONTAINS
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !             ! Lat centers (degrees)
-!             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
+!             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
           
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
              !-------------------------------------------------------------
@@ -258,9 +357,9 @@ CONTAINS
              !-------------------------------------------------------------
 
              ! Lat centers (degrees)
-             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 88d0
+             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 88d0
 
-# else
+#else
 
              !-------------------------------------------------------------
              !             %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -273,18 +372,18 @@ CONTAINS
              !-------------------------------------------------------------
 
              ! Lat centers (degrees)
-             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
+             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
 
              IF ( JG == JSP ) THEN
-                YMID(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
+                YMD(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
              ELSE IF ( JG == JNP ) THEN
-                YMID(I,J,L)  = +90d0 - ( 0.5d0 * DLAT(I,J,L) )   ! N pole
+                YMD(I,J,L)  = +90d0 - ( 0.5d0 * DLAT(I,J,L) )   ! N pole
              ENDIF
 
 # endif
 #endif
              ! Lat centers (radians)
-             YMID_R(I,J,L)   = ( PI_180 * YMID(I,J,L)  )
+             YMDR(I,J,L)   = ( PI_180 * YMD(I,J,L)  )
 
 #if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
 
@@ -293,15 +392,15 @@ CONTAINS
              !-------------------------------------------------------------
 
              ! Lat centers (radians), for nested grid window array
-             YMID_R_W(I,J,L) = YMID_R(I,J,L)
+             YMDRW(I,J,L) = YMDR(I,J,L)
 
              ! Compute YMID_R_W at edges of nested region
              IF ( J == J1 ) THEN
                 !YMID_R_W(I,J1-1,1) = YMID_R(I,J1,L) - ( DLAT(I,J1,L) * PI_180 )
-                YMID_R_W(I,J-1,1) = YMID_R(I,J,L) - ( DLAT(I,J,L) * PI_180 )
+                YMDRW(I,J-1,1) = YMDR(I,J,L) - ( DLAT(I,J,L) * PI_180 )
              ELSE IF ( J == J2 ) THEN
                 !YMID_R_W(I,J2+1,1) = YMID_R(I,J2,L) + ( DLAT(I,J2,L) * PI_180 )
-                YMID_R_W(I,J+1,1) = YMID_R(I,J,L) + ( DLAT(I,J,L) * PI_180 )
+                YMDRW(I,J+1,1) = YMDR(I,J,L) + ( DLAT(I,J,L) * PI_180 )
              ENDIF
                     
 #endif
@@ -311,7 +410,7 @@ CONTAINS
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
              ! Lat edges (degrees and radians)
-             YEDGE(I,J,L)    = YMID(I,J,L) - ( DLAT(I,J,L) * 0.5d0 )
+             YDG(I,J,L)    = YMD(I,J,L) - ( DLAT(I,J,L) * 0.5d0 )
             
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
              !-----------------------------------------------------------
@@ -328,15 +427,15 @@ CONTAINS
              ! be -90 degrees latitude. (bmy, 3/21/13)
              !-----------------------------------------------------------
              IF ( JG == JSP ) THEN
-                YEDGE(I,J,L) = -90d0                             ! S pole
+                YDG(I,J,L) = -90d0                             ! S pole
              ENDIF
 #endif          
 
              ! Lat edges (radians)
-             YEDGE_R(I,J,L)  = ( PI_180  * YEDGE(I,J,L) )
+             YDGR(I,J,L)  = ( PI_180  * YDG(I,J,L) )
 
              ! mjc - Compute sine of latitude edges (needed for map_a2a regrid)
-             YSIN(I,J,L) = SIN ( YEDGE_R(I,J,L) )
+             YSN(I,J,L) = SIN ( YDGR(I,J,L) )
              
           ENDDO
        ENDDO
@@ -356,7 +455,7 @@ CONTAINS
              !
              ! Do not define half-sized polar boxes (bmy, 3/21/13)
              !-----------------------------------------------------------
-             YEDGE  (I,J2+1,L)   = YEDGE(I,J2,L)   + DLAT(I,J2,L)
+             YDG  (I,J2+1,L)   = YDG(I,J2,L)   + DLAT(I,J2,L)
 #else
              !-----------------------------------------------------------
              !            %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -365,12 +464,12 @@ CONTAINS
              ! the northern edge of grid boxes along the NORTH POLE to
              ! be +90 degrees latitude. (bmy, 3/21/13)
              !-----------------------------------------------------------
-             YEDGE  (I,J2+1,L)   = +90d0
+             YDG (I,J2+1,L)   = +90d0
 #endif
-             YEDGE_R(I,J2+1,L)   = YEDGE(I,J2+1,L) * PI_180
+             YDGR(I,J2+1,L)   = YDG(I,J2+1,L) * PI_180
 
              ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
-             YSIN(I,J2+1,L) = SIN ( YEDGE_R(I,J2+1,L) )
+             YSN(I,J2+1,L) = SIN ( YDGR(I,J2+1,L) )
           ENDDO
           
        ELSE
@@ -381,11 +480,11 @@ CONTAINS
 
           ! No north pole (nested grids only)
           DO I = I1, I2
-             YEDGE  (I,J2+1,L)  = YEDGE(I,J2,L  ) + DLAT(I,J2,L)
-             YEDGE_R(I,J2+1,L)  = YEDGE(I,J2+1,L) * PI_180
+             YDG (I,J2+1,L)  = YDG(I,J2,L  ) + DLAT(I,J2,L)
+             YDGR(I,J2+1,L)  = YDG(I,J2+1,L) * PI_180
 
              ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
-             YSIN(I,J2+1,L) = SIN ( YEDGE_R(I,J2+1,L) )
+             YSN(I,J2+1,L) = SIN ( YDGR(I,J2+1,L) )
           ENDDO
        ENDIF
 
@@ -470,8 +569,8 @@ CONTAINS
           DO I = I1, I2
 
              ! Sine of latitudes at N and S edges of grid box (I,J,L)
-             SIN_N       = SIN( YEDGE_R(I,J+1,L) )
-             SIN_S       = SIN( YEDGE_R(I,J,  L) )
+             SIN_N       = SIN( YDGR(I,J+1,L) )
+             SIN_S       = SIN( YDGR(I,J,  L) )
 
              ! Difference of sin(latitude) at N and S edges of grid box
              SIN_DIFF    = SIN_N - SIN_S
@@ -538,7 +637,7 @@ CONTAINS
 #endif
 
              ! Grid box surface areas [m2]
-             AREA_M2(I,J,L) = ( DLON(I,J,L) * PI_180 ) * ( Re**2 ) * SIN_DIFF
+             AM2(I,J,L) = ( DLON(I,J,L) * PI_180 ) * ( Re**2 ) * SIN_DIFF
 
           ENDDO
        ENDDO
@@ -552,26 +651,27 @@ CONTAINS
     ! Echo info to stdout
     !=================================================================
     IF ( am_I_Root ) THEN
-       WRITE( 6, '(''Nested-Grid X-offset [boxes]:'', i4 )' ) I0
-       WRITE( 6, '(''Nested-Grid Y-offset [boxes]:'', i4 )' ) J0
+       WRITE( 6, '(''Nested-Grid X-offset [boxes]:'', i4 )' ) IOFF
+       WRITE( 6, '(''Nested-Grid Y-offset [boxes]:'', i4 )' ) JOFF
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( XMID(I,1,1),  I=1,I2-I1+1 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( XMD(I,1,1),  I=1,I2-I1+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( XEDGE(I,1,1), I=1,I2+1-I1+1 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( XDG(I,1,1), I=1,I2+1-I1+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( YMID(1,J,1),  J=1,J2-J1+1 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( YMD(1,J,1),  J=1,J2-J1+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( YEDGE(1,J,1), J=1,J2+1-J1+1 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( YDG(1,J,1), J=1,J2+1-J1+1 )
     ENDIF
 
-  END SUBROUTINE Compute_Grid
+  END SUBROUTINE DoGridComputation 
+!
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -599,6 +699,7 @@ CONTAINS
   END SUBROUTINE Set_xOffSet
 !EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -627,7 +728,7 @@ CONTAINS
   END SUBROUTINE Set_yOffSet
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -673,7 +774,7 @@ CONTAINS
   END FUNCTION Get_xOffSet
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -719,7 +820,7 @@ CONTAINS
   END FUNCTION Get_yOffSet
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -753,7 +854,7 @@ CONTAINS
   END FUNCTION Get_xMid
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -788,7 +889,7 @@ CONTAINS
   END FUNCTION Get_xEdge
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -822,7 +923,7 @@ CONTAINS
   END FUNCTION Get_yMid
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -857,7 +958,7 @@ CONTAINS
   END FUNCTION Get_yEdge
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -891,7 +992,7 @@ CONTAINS
   END FUNCTION Get_yMid_R
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -918,12 +1019,11 @@ CONTAINS
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
 !  01 Mar 2012 - R. Yantosca - Bracket with #ifdef for nested grids
-!  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
 
     ! For nested grids, return the latitude center of the window
     ! region (in radians)
@@ -939,7 +1039,7 @@ CONTAINS
   END FUNCTION Get_yMid_R_W
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -974,7 +1074,7 @@ CONTAINS
   END FUNCTION Get_yEdge_R
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1009,7 +1109,7 @@ CONTAINS
       END FUNCTION Get_ySin
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1043,7 +1143,7 @@ CONTAINS
   END FUNCTION Get_Area_m2
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1077,7 +1177,7 @@ CONTAINS
   END FUNCTION Get_Area_cm2
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1187,7 +1287,7 @@ CONTAINS
   END SUBROUTINE Get_Bounding_Box
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1214,8 +1314,116 @@ CONTAINS
     
   END FUNCTION ITS_A_NESTED_GRID
 !EOC
+!-------------------------------------------------------------------------------
+! Prior to 12/4/12:
+! Dimension arrays with 
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: init_grid
+!!
+!! !DESCRIPTION: Subroutine INIT\_GRID initializes variables and allocates
+!!  module arrays.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE Init_Grid( am_I_Root, I1, I2, J1, J2, L1, L2, RC )
+!!
+!! !USES:
+!!
+!    USE GIGC_ErrCode_Mod
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU 
+!    INTEGER, INTENT(IN)  :: I1, I2      ! Local CPU lon index bounds
+!    INTEGER, INTENT(IN)  :: J1, J2      ! Local CPU lat index bounds
+!    INTEGER, INTENT(IN)  :: L1, L2      ! Local CPU lev index bounds
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!!
+!! !REVISION HISTORY:
+!!  24 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
+!!  01 Mar 2012 - R. Yantosca - Now define IS_NESTED based on Cpp flags
+!!  03 Dec 2012 - R. Yantosca - Add am_I_Root, RC to argument list
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!! 
+!    INTEGER :: AS
+!
+!    !======================================================================
+!    ! Initialize module variables
+!    !======================================================================
+!
+!    ! First assume that we are doing a global simulation
+!    IS_NESTED = .FALSE.
+!
+!   !ALLOCATE( XMID( I1:I2, J1:J2, L1:L2 ), STAT=AS )
+!    ALLOCATE( XMID( I2-I1+1, J2-J1+1, L2-L1+1 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'XMID' )
+!    XMID = 0
+!    
+!   !ALLOCATE( XEDGE( I1:I2+1, J1:J2, L1:L2 ), STAT=AS )
+!    ALLOCATE( XEDGE( I2-I1+2, J2-J1+1, L2-L1+1 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'XEDGE' )
+!    XEDGE = 0d0
+!    
+!    ALLOCATE( YMID( I1:I2, J1:J2, L1:L2 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID' )
+!    YMID = 0d0
+!    
+!    ALLOCATE( YEDGE( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
+!    YEDGE = 0d0
+!
+!    ALLOCATE( YSIN( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YSIN' )
+!    YSIN = 0d0
+!
+!    ALLOCATE( YMID_R( I1:I2, J1:J2, L1:L2 ), STAT=AS )               
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
+!    YMID_R = 0d0
+!   
+!    ALLOCATE( YEDGE_R( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_R' )
+!    YEDGE_R = 0d0
+!
+!    ALLOCATE( AREA_M2( I1:I2, J1:J2, L1:L2 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
+!    AREA_M2 = 0d0
+!
+!#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
+!
+!    !======================================================================
+!    ! Special settings for nested-grid simulations only
+!    !======================================================================
+!
+!    ! Denote that this is a nested-grid simulation
+!    IS_NESTED = .TRUE.
+!    
+!    ! Allocate nested-grid window array of lat centers (radians)
+!    ALLOCATE( YMID_R_W( I1:I2, 0:J2+1, L1:L2 ), STAT=AS ) 
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
+!    YMID_R_W = 0d0
+!
+!#endif
+!
+!    ! Return successfully
+!    RC = GIGC_SUCCESS
+!
+!  END SUBROUTINE Init_Grid
+!EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1250,8 +1458,6 @@ CONTAINS
 !  03 Dec 2012 - R. Yantosca - Add am_I_Root, RC to argument list
 !  04 Dec 2012 - R. Yantosca - Now dimension arrays with IM, JM, LM instead 
 !                              of I1, J1, L1, I2, J2, L2.  
-!  18 Apr 2013 - R. Yantosca - Bug fix: in nested block, use STAT=RC
-!  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1302,7 +1508,7 @@ CONTAINS
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
     AREA_M2 = 0d0
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
 
     !======================================================================
     ! Special settings for nested-grid simulations only
@@ -1312,7 +1518,7 @@ CONTAINS
     IS_NESTED = .TRUE.
     
     ! Allocate nested-grid window array of lat centers (radians)
-    ALLOCATE( YMID_R_W( IM, 0:JM+1, LM ), STAT=RC ) 
+    ALLOCATE( YMID_R_W( IM, 0:JM+1, LM ), STAT=AS ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
     YMID_R_W = 0d0
 
@@ -1321,7 +1527,7 @@ CONTAINS
   END SUBROUTINE Init_Grid
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !

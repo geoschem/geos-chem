@@ -44,8 +44,15 @@
 !  (6 ) Now only apply RPMARES to boxes in the troposphere. (bmy, 4/3/08)
 !  (7 ) Add bug fix for low ammonia case in RPMARES (phs, bmy, 4/10/08)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  23 Sep 2014 - M. Sulprizio- Get global HNO3 for offline aerosol simulation
+!                              from HEMCO
 !******************************************************************************
 !
+!
+! !USES:
+!
+      USE HCO_ERROR_MOD  ! For real precisions (hp)
+
       IMPLICIT NONE
 
       !=================================================================
@@ -68,6 +75,9 @@
       ! MODULE VARIABLES
       !=================================================================
       REAL*8, ALLOCATABLE :: HNO3_sav(:,:,:)
+
+      ! HEMCO pointers
+      REAL(hp), POINTER   :: HNO3(:,:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -103,18 +113,24 @@
 !                              derived type object
 !  05 Mar 2013 - R. Yantosca - Now accept Input_Opt as an argument
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  23 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
 !******************************************************************************
 !
 ! !USES:
 !      
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! Now get HNO3 from HEMCO (mps, 9/23/14)
+!      USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
+!------------------------------------------------------------------------------
+      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : IDTSO4,             IDTNH3, IDTNH4 
@@ -164,6 +180,9 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
 
+      ! For getting fields from HEMCO 
+      LOGICAL :: aIR
+
       !=================================================================
       ! DO_RPMARES begins here!
       !=================================================================
@@ -171,41 +190,76 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
+      ! am I root? 
+      aIR = am_I_Root
+
+      ! Error check tracer ID's
+      X = 'DO_RPMARES (rpmares_mod.F)'
+
       ! Initialize on first call
       IF ( FIRST ) THEN
+
+         IF ( IDTSO4 == 0 ) CALL ERROR_STOP( 'IDTSO4 is undefined!', X )
+         IF ( IDTNH3 == 0 ) CALL ERROR_STOP( 'IDTNH3 is undefined!', X )
+         IF ( IDTNH4 == 0 ) CALL ERROR_STOP( 'IDTNH4 is undefined!', X )
+         IF ( IDTNIT == 0 ) CALL ERROR_STOP( 'IDTNIT is undefined!', X )
+    
+         ! Initialize arrays
          CALL INIT_RPMARES
+
+         ! Check to see if we need to get HNO3 from HEMCO
+         IF ( IDTHNO3 == 0 ) THEN
+
+            IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+               ! Coupled simulation: stop w/ error since we need HNO3
+               CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
+
+            ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+               ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
+               CALL HCO_GetPtr( aIR, 'GLOBAL_HNO3', HNO3, RC )
+               IF ( RC /= GIGC_SUCCESS ) 
+     &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', X )
+
+            ELSE
+
+               ! Otherwise stop w/ error
+               CALL ERROR_STOP( 'Invalid simulation type !', X )
+
+            ENDIF
+         ENDIF
+
+         ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
-      
-      ! Error check tracer ID's
-      X = 'DO_RPMARES (rpmares_mod.f)'
-      IF ( IDTSO4 == 0 ) CALL ERROR_STOP( 'IDTSO4 is not defined!', X )
-      IF ( IDTNH3 == 0 ) CALL ERROR_STOP( 'IDTNH3 is not defined!', X )
-      IF ( IDTNH4 == 0 ) CALL ERROR_STOP( 'IDTNH4 is not defined!', X )
-      IF ( IDTNIT == 0 ) CALL ERROR_STOP( 'IDTNIT is not defined!', X )
-    
-      ! Check to see if we have to read in monthly mean HNO3
-      IF ( IDTHNO3 == 0 ) THEN
 
-         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-
-            ! Coupled simulation: stop w/ error since we need HNO3
-            CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
-
-         ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-
-            ! Offline simulation: read monthly mean HNO3
-            IF ( ITS_A_NEW_MONTH() ) THEN
-               CALL GET_GLOBAL_HNO3( GET_MONTH() )
-            ENDIF
-
-         ELSE
-
-            ! Otherwise stop w/ error
-            CALL ERROR_STOP( 'Invalid simulation type!', X )
-
-         ENDIF
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! Get global HNO3 from HEMCO (mps, 9/23/14)
+!      ! Check to see if we have to read in monthly mean HNO3
+!      IF ( IDTHNO3 == 0 ) THEN
+!
+!         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+!
+!            ! Coupled simulation: stop w/ error since we need HNO3
+!            CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
+!
+!         ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+!
+!            ! Offline simulation: read monthly mean HNO3
+!            IF ( ITS_A_NEW_MONTH() ) THEN
+!               CALL GET_GLOBAL_HNO3( GET_MONTH() )
+!            ENDIF
+!
+!         ELSE
+!
+!            ! Otherwise stop w/ error
+!            CALL ERROR_STOP( 'Invalid simulation type!', X )
+!
+!         ENDIF
+!      ENDIF
+!------------------------------------------------------------------------------
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -328,11 +382,16 @@
 !  NOTES:
 !  (1 ) Now use function GET_ELAPSED_MIN() from the new "time_mod.f" to
 !        get the elapsed minutes since the start of run. (bmy, 3/24/03)
+!  23 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sims from HEMCO
 !******************************************************************************
 !
       ! References to F90 modules
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! Now get HNO3 from HEMCO (mps, 9/23/14)
+!      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
+!------------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 
       ! Arguments
@@ -349,7 +408,17 @@
       ! Relax to monthly mean HNO3 concentrations every 3 hours
       ! Otherwise just return the concentration in HNO3_sav
       IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
-         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, State_Met )
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+!         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, State_Met )
+!------------------------------------------------------------------------------
+         ! HNO3 is in v/v (from HEMCO), convert to ug/m3
+         ! First convert HNO3 from [v/v] to [kg]
+         HNO3_UGM3 = HNO3( I, J, L ) * State_Met%AD(I,J,L) /
+     &               ( 28.97d0 / 63d0 )
+
+         ! Then convert HNO3 from [kg] to [ug/m3]
+         HNO3_UGM3 = HNO3_UGM3 * 1.d9 / State_Met%AIRVOL(I,J,L)
       ELSE
          HNO3_UGM3 = HNO3_sav(I,J,L)
       ENDIF
@@ -1958,6 +2027,9 @@
 !******************************************************************************
 !
       IF ( ALLOCATED( HNO3_sav ) ) DEALLOCATE( HNO3_sav )
+
+      ! Free pointers
+      IF ( ASSOCIATED( HNO3    ) ) HNO3 => NULL()
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_RPMARES

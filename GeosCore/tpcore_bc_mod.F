@@ -254,24 +254,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_BC_FILE( FOR_READ, FOR_WRITE, WINDOW ) 
+      SUBROUTINE OPEN_BC_FILE( am_I_Root, Input_Opt, RC, 
+     &                         WINDOW,    FOR_READ,  FOR_WRITE )
 !
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR,     TPBC_DIR_NA
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR_CH,  TPBC_DIR_EU
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR_SE
       USE inquireMod,    ONLY : findFreeLUN
       USE TIME_MOD,      ONLY : EXPAND_DATE,  GET_NYMD
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN), OPTIONAL :: FOR_READ   ! Open file for read?
-      LOGICAL, INTENT(IN), OPTIONAL :: FOR_WRITE  ! Open file for write?
-      INTEGER, INTENT(IN)           :: WINDOW     ! Specifies nested region 
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      LOGICAL, INTENT(IN), OPTIONAL :: FOR_READ    ! Open file for read?
+      LOGICAL, INTENT(IN), OPTIONAL :: FOR_WRITE   ! Open file for write?
+      INTEGER, INTENT(IN)           :: WINDOW      ! Specifies nested region 
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !   Pass these values via the WINDOW argument to do the following actions;
@@ -308,26 +314,29 @@
       ! OPEN_BC_FILE begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! Only open file if it's a new day
       IF ( ITS_A_NEW_DAY(.TRUE.) ) THEN
 
          ! File name for BC's
          IF ( WINDOW .eq. 6 ) THEN
 #if   defined( NESTED_NA )
-            FILENAME = TRIM( TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Input file, NA
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Input file, NA
 #elif defined( NESTED_EU )
-            FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Input file, EU
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Input file, EU
 #elif defined( NESTED_CH )
-            FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Input file, CH
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Input file, CH
 #endif
          ELSEIF ( WINDOW .eq. 1 ) THEN
-            FILENAME = TRIM( TPBC_DIR )    // 'BC.YYYYMMDD' ! Output file, CU
+            FILENAME = TRIM( Input_Opt%TPBC_DIR )    // 'BC.YYYYMMDD' ! Output file, CU
          ELSEIF ( WINDOW .eq. 2 ) THEN
-            FILENAME = TRIM( TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Output file, NA
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Output file, NA
          ELSEIF ( WINDOW .eq. 3 ) THEN
-            FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Output file, EU
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Output file, EU
          ELSEIF ( WINDOW .eq. 4 ) THEN
-            FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Output file, CH
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Output file, CH
          ENDIF
          
          ! Replace YYYYMMDD with the actual date
@@ -576,7 +585,8 @@
             !----------------------------------------------------------
 
             ! Open file for writing, if necessary
-            CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
+            CALL OPEN_BC_FILE( am_I_Root, Input_Opt, RC,
+     &                         WINDOW=IC, FOR_WRITE=.TRUE. )
 
             ! Loop over each tracer
             DO N = 1, N_TOT_TRC
@@ -607,7 +617,8 @@
             !----------------------------------------------------------
 
             ! Open file for writing, if necessary
-            CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
+            CALL OPEN_BC_FILE( am_I_Root, Input_Opt, RC, 
+     &                         WINDOW=IC, FOR_WRITE=.TRUE. )
 
             ! Loop over each tracer
             DO N = 1, N_TOT_TRC
@@ -639,7 +650,8 @@
             !----------------------------------------------------------
 
             ! Open file for writing, if necessary
-            CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
+            CALL OPEN_BC_FILE( am_I_Root, Input_Opt, RC, 
+     &                         WINDOW=IC, FOR_WRITE=.TRUE. )
 
             ! Loop over each tracer
             DO N = 1, N_TOT_TRC
@@ -671,7 +683,8 @@
             !----------------------------------------------------------
 
             ! Open file for writing, if necessary
-            CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
+            CALL OPEN_BC_FILE( am_I_Root, Input_Opt, RC, 
+     &                         WINDOW=IC, FOR_WRITE=.TRUE. )
 
             ! Loop over each tracer
             DO N = 1, N_TOT_TRC
@@ -1069,7 +1082,8 @@
       IF ( ITS_TIME_FOR_BC() ) THEN
 
          ! Open boundary conditions file (if necessary) 
-         CALL OPEN_BC_FILE( FOR_READ=.TRUE., WINDOW=6 )
+         CALL OPEN_BC_FILE( am_I_Root, Input_Opt, RC, 
+     &                      WINDOW=6,  FOR_READ=.TRUE. )
 
          ! Initialize # of tracers found
          NFOUND = 0
@@ -1551,7 +1565,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,      ONLY : TPBC_DIR
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 

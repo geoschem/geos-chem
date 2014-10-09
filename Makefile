@@ -45,7 +45,7 @@
 #------------------------------------------------------------------------------
 #BOC
 
-# Define variables
+# Directories
 GEOSAPM :=GeosApm
 GEOSDIR :=GeosCore
 GTMM    :=GTMM
@@ -112,6 +112,9 @@ tauclean:
 
 help:
 	@$(MAKE) -C $(GEOSDIR) help
+
+headerinfo:
+	@$(MAKE) -C $(GEOSDIR) headerinfo
 
 ###############################################################################
 ###                                                                         ###

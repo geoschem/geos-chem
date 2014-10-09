@@ -745,7 +745,6 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : JLOP
-      USE DIRECTORY_MOD,      ONLY : O3PL_DIR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -930,7 +929,7 @@
          CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
          ! Then prefix FILENAME w/ the data directory name
-         FILENAME = TRIM( O3PL_DIR ) // FILENAME
+         FILENAME = TRIM( Input_Opt%O3PL_DIR ) // FILENAME
 
          ! Echo info
          IF ( am_I_Root ) WRITE( 6, 110 ) TRIM( FILENAME )
@@ -1253,25 +1252,27 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_FAM_MWT( N ) RESULT( MWT )
+      FUNCTION GET_FAM_MWT( N, Input_Opt ) RESULT( MWT )
 !
 ! !USES:
 !
-      USE CHARPAK_MOD, ONLY : TRANUC
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE TRACER_MOD,  ONLY : N_TRACERS, TRACER_MW_KG, TRACER_NAME
+      USE CHARPAK_MOD,        ONLY : TRANUC
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)  :: N     ! Family # for desired molecular weight
+! 
+      INTEGER,        INTENT(IN)  :: N           ! Family # for desired mol wt
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !RETURN VALUE:
 !
-      REAL*8               :: MWT   ! Molecular weight
+      REAL*8                      :: MWT         ! Molecular weight
 !
 ! !REVISION HISTORY:
 !  02 May 2005 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt; remove refs to tracer_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1311,17 +1312,17 @@
       !=================================================================
 
       ! Loop over all CTM tracers
-      DO T = 1, N_TRACERS
+      DO T = 1, Input_Opt%N_TRACERS
 
          ! Tracer name
-         T_NAME = TRACER_NAME( T )
+         T_NAME = Input_Opt%TRACER_NAME( T )
 
          ! Convert to uppercase
          CALL TRANUC( T_NAME )
          
          ! If we have a name match, return the molecular wt
          IF ( TRIM( PL_NAME ) == TRIM( T_NAME ) ) THEN
-            MWT = TRACER_MW_KG( T )
+            MWT = Input_Opt%TRACER_MW_KG( T )
             EXIT
          ENDIF
       ENDDO
@@ -1341,20 +1342,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG_PL( DOPL, SAVEO3, N_FAM, NAME, 
-     &                         TYPE, NMEM,   MEMB,  COEF )
+      SUBROUTINE INIT_DIAG_PL( am_I_Root,   Input_Opt, DOPL, SAVEO3, 
+     &                         N_FAM,       NAME,      TYPE, NMEM,   
+     &                         MEMB,  COEF, RC                       )
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
-
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD   ! LFAMILY, NFAMILIES
-      USE CMN_DIAG_MOD      ! ND65,    LD65
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE CMN_DIAG_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,           INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput),    INTENT(IN) :: Input_Opt   ! Input Options object
+
+
       ! Turn on P/L diagnostic?
       LOGICAL,           INTENT(IN) :: DOPL
 
@@ -1378,20 +1384,24 @@
 
       ! Names for each prod/loss family member
       CHARACTER(LEN=14), INTENT(IN) :: MEMB(MAXMEM,MAXFAM)
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now allocate arrays up to LD65 levels (phs, bmy, 12/4/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
 !  26 Apr 2013 - R. Yantosca - Removed LTOMAS; we now use #if defined( TOMAS )
+!  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
- 
       !=================================================================
       ! INIT_DIAG_PL begins here!
       !=================================================================
@@ -1423,7 +1433,7 @@
       ENDIF
 
       ! Define number of vertical levels to save
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
          LD65 = MIN( ND65, LLCHEM )
       ELSE
          LD65 = MIN( ND65, LLPAR  )
@@ -1432,50 +1442,50 @@
       !=================================================================
       ! Allocate arrays
       !=================================================================
-      ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD65' )
+      ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'AD65' )
 
-      ALLOCATE( FAM_NMEM( MAXFAM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_NMEM' )
+      ALLOCATE( FAM_NMEM( MAXFAM ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_NMEM' )
       FAM_NMEM = 0
 
-      ALLOCATE( FAM_COEF( MAXMEM, MAXFAM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_COEF' )
+      ALLOCATE( FAM_COEF( MAXMEM, MAXFAM ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_COEF' )
       FAM_COEF = 0d0
 
-      ALLOCATE( FAM_NAME( MAXFAM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_NAME' )
+      ALLOCATE( FAM_NAME( MAXFAM ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_NAME' )
       FAM_NAME = ''
 
-      ALLOCATE( FAM_TYPE( MAXFAM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_TYPE' )
+      ALLOCATE( FAM_TYPE( MAXFAM ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_TYPE' )
       FAM_TYPE = ''
 
-      ALLOCATE( FAM_MEMB( MAXMEM, MAXFAM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_COEF' )
+      ALLOCATE( FAM_MEMB( MAXMEM, MAXFAM ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_COEF' )
       FAM_MEMB = ''
 
-      ALLOCATE( COUNT( IIPAR, JJPAR, LD65 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT' )
+      ALLOCATE( COUNT( IIPAR, JJPAR, LD65 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'COUNT' )
       COUNT = 0
 
       ! Only allocate FAM_PL for a fullchem simulation
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
-         ALLOCATE( FAM_PL( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_PL' )
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+         ALLOCATE( FAM_PL( IIPAR, JJPAR, LD65, NFAM ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'FAM_PL' )
       ENDIF
 
 #if   defined ( TOMAS )
       ! Only allocate H2SO4RATE for a TOMAS simulation !(win, 7/709)
-      ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLTROP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4RATE' )
+      ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLTROP ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'H2SO4RATE' )
 #endif
 
       ! Allocate PL24H if we are also saving out the P(Ox)
       ! and L(Ox) 
       IF ( DO_SAVE_O3 ) THEN
-         ALLOCATE( PL24H( IIPAR, JJPAR, LD65, 2 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PL24H' )
+         ALLOCATE( PL24H( IIPAR, JJPAR, LD65, 2 ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'PL24H' )
          PL24H = 0d0
       ENDIF
 

@@ -431,31 +431,39 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE MAKE_GTMM_RESTART( NYMD, NHMS, TAU )
+      SUBROUTINE MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 
+     &                              NHMS,      TAU,       RC    )
 ! 
 ! !USES:
 !
       USE BPCH2_MOD
       USE DIAG_MOD,      ONLY : AD39, AD44, AD38
-      USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TRACERID_MOD,  ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
       USE TIME_MOD,      ONLY : GET_CT_DYN, GET_CT_CHEM
       USE inquireMod,    ONLY : findFreeLUN
       USE CMN_SIZE_MOD                 ! Size parameters
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)   :: NYMD    ! Year-Month-Date
-      INTEGER, INTENT(IN)   :: NHMS    ! and Hour-Min-Sec for which to create 
-                                       ! a restart file 
-      REAL*8,  INTENT(IN)   :: TAU     ! GEOS-CHEM TAU value corresponding to 
-                                       ! NYMD, NHMS
+      INTEGER,        INTENT(IN)   :: NYMD        ! Year-Month-Date
+      INTEGER,        INTENT(IN)   :: NHMS        ! and Hour-Min-Sec
+      REAL*8,         INTENT(IN)   :: TAU         ! TAU value: hrs since 1/1/85
+      LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?
+
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  20 Jun 2014 - R. Yantosca - Remove reference to directory_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -475,6 +483,9 @@
       ! MAKE_GTMM_RESTART begins here!
       !=================================================================
     
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Initialize values
       IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
       JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
@@ -492,7 +503,7 @@
       IU_FILE   = findFreeLUN()
 
       ! Expand date in filename
-      FILENAME  = TRIM( RUN_DIR ) // TRIM( GTMM_RST_FILE )
+      FILENAME  = TRIM( Input_Opt%RUN_DIR ) // TRIM( GTMM_RST_FILE )
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info
@@ -554,35 +565,41 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE READ_GTMM_RESTART( YYYYMMDD, HHMMSS, 
-     &                            Hg0dryGEOS, HgIIdryGEOS, HgIIwetGEOS )
+      SUBROUTINE READ_GTMM_RESTART( am_I_Root,   Input_Opt,  
+     &                              YYYYMMDD,    HHMMSS,     
+     &                              Hg0dryGEOS,  HgIIdryGEOS, 
+     &                              HgIIwetGEOS, RC )
 ! 
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
-      USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE ERROR_MOD,     ONLY : DEBUG_MSG
       USE FILE_MOD,      ONLY : IOERROR
       USE inquireMod,    ONLY : findFreeLun
       USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TRACER_MOD,    ONLY : TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD,  ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,  ONLY : ID_Hg0,      ID_Hg2
-
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)   :: YYYYMMDD, HHMMSS
+      INTEGER,        INTENT(IN)    :: YYYYMMDD, HHMMSS
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
+      INTEGER,        I    NTENT(OUT)   :: RC          ! Success or failure?!
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: Hg0dryGEOS
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: HgIIdryGEOS
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
 !
 ! !REVISION HISTORY:
-!  15 Sep 2009 - C. Carouge - Initial version
+!  15 Sep 2009 - C. Carouge  - Initial version
+!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -610,21 +627,26 @@
       ! READ_GTMM_RESTART begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Find a free file LUN
       IU_FILE  = findFreeLUN()
 
       ! Copy input file name to a local variable
-      FILENAME = TRIM( RUN_DIR ) // TRIM( GTMM_RST_FILE )
+      FILENAME = TRIM( Input_Opt%RUN_DIR ) // TRIM( GTMM_RST_FILE )
     
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
     
       ! Echo some input to the screen
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, 100   ) 
-      WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
- 100  FORMAT( 'G T M M  H g   R E S T A R T   F I L E   I N P U T' )
- 110  FORMAT( /, 'READ_GTMM_RESTART: Reading ', a, ' on unit ', i6 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, 100   ) 
+         WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
+ 100     FORMAT( 'G T M M  H g   R E S T A R T   F I L E   I N P U T' )
+ 110     FORMAT( /, 'READ_GTMM_RESTART: Reading ', a, ' on unit ', i6 )
+      ENDIF
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
@@ -753,7 +775,6 @@
 ! !USES:
 !
       USE DIAG_MOD,     ONLY : AD38,   AD39,   AD44
-      USE LOGICAL_MOD,  ONLY : LGTMM
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM 
       USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2
 !
@@ -874,67 +895,69 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE INIT_DEPO_MERCURY( THIS_Hg_RST_FILE )
+      SUBROUTINE INIT_DEPO_MERCURY( am_I_Root, Input_Opt, RC )
 !
 ! !USES
 !
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,  ONLY : LGTMM
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : N_Hg_CATS
 !
 ! !INPUT PARAMETERS:
 !
-      ! Name of the GTMM restart file
-      CHARACTER(LEN=*), INTENT(IN) :: THIS_Hg_RST_FILE
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  23 Apr 2010 - C. Carouge   - Moved arrays allocation from 
-!                               ocean_mercury_mod.f
+!  23 Apr 2010 - C. Carouge  - Moved arrays allocation from ocean_mercury_mod.f
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                      :: AS
-
       ! GTMM restart file name
-      GTMM_RST_FILE = THIS_Hg_RST_FILE
+      GTMM_RST_FILE = Input_Opt%GTMM_RST_FILE
 
       ! Allocate arrays
-      ALLOCATE( DD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DD_Hg2' )
+      ALLOCATE( DD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_Hg2' )
       DD_Hg2 = 0d0
 
-      ALLOCATE( DD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DD_HgP' )
+      ALLOCATE( DD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_HgP' )
       DD_HgP = 0d0
 
-      ALLOCATE( WD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WD_Hg2' )
+      ALLOCATE( WD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_Hg2' )
       WD_Hg2 = 0d0
 
-      ALLOCATE( WD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
+      ALLOCATE( WD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
       WD_HgP = 0d0
 
-      ALLOCATE( SNOW_HG( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW_HG' )
+      ALLOCATE( SNOW_HG( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG' )
       SNOW_HG = 0d0
 
-      IF ( LGTMM ) THEN
-         ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG0mth_dd' )
+      IF ( Input_Opt%LGTMM ) THEN
+         ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG0mth_dd' )
          HG0mth_dd = 0d0
          
-         ALLOCATE( HG2mth_dd( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2mth_dd' )
+         ALLOCATE( HG2mth_dd( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_dd' )
          HG2mth_dd = 0d0
          
-         ALLOCATE( HG2mth_wd( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2mth_wd' )
+         ALLOCATE( HG2mth_wd( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_wd' )
          HG2mth_wd = 0d0
       ENDIF
 

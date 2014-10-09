@@ -189,10 +189,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS, State_Met )
+      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD,      NHMS, 
+     &                                  Input_Opt, State_Met )
 !
 ! !USES:
-!
+!      
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -202,6 +204,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
@@ -215,10 +218,11 @@
       !=================================================================      
       ! Read data from disk
       !=================================================================
-      CALL READ_I6( NYMD = NYMD, 
-     &              NHMS = NHMS, 
-     &              PS   = State_Met%PS1, 
-     &              RH   = State_Met%RH1   )
+      CALL READ_I6( NYMD      = NYMD, 
+     &              NHMS      = NHMS, 
+     &              Input_Opt = Input_Opt,
+     &              PS        = State_Met%PS1, 
+     &              RH        = State_Met%RH1   )
 
       END SUBROUTINE GET_MERRA_I6_FIELDS_1
 !EOC
@@ -235,10 +239,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS, State_Met )
+      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD,      NHMS, 
+     &                                  Input_Opt, State_Met )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -248,6 +254,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
@@ -260,10 +267,11 @@
       !=================================================================      
       ! Read data from disk
       !=================================================================
-      CALL READ_I6( NYMD = NYMD, 
-     &              NHMS = NHMS,
-     &              PS   = State_Met%PS2, 
-     &              RH   = State_Met%RH2  )
+      CALL READ_I6( NYMD      = NYMD, 
+     &              NHMS      = NHMS,
+     &              Input_Opt = Input_Opt,
+     &              PS        = State_Met%PS2, 
+     &              RH        = State_Met%RH2  )
 
       END SUBROUTINE GET_MERRA_I6_FIELDS_2
 !EOC
@@ -280,23 +288,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_I6( NYMD, NHMS, PS, RH )
+      SUBROUTINE READ_I6( NYMD, NHMS, Input_Opt, PS, RH )
 !
 ! !USES:
 !
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : SET_CT_I6
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D
-
-      USE CMN_SIZE_MOD                               ! Size parameters
-      USE CMN_DIAG_MOD                               ! NDxx flags
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD 
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_I6
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: NYMD                   ! YYYYMMDD and hhmmss
-      INTEGER, INTENT(IN)  :: NHMS                   !  time of desired data
+      INTEGER,        INTENT(IN)  :: NYMD            ! YYYYMMDD and hhmmss
+      INTEGER,        INTENT(IN)  :: NHMS            !  time of desired data
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt       ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -309,6 +318,7 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  15 Nov 2013 - R. Yantosca - Now convert RH from [1] to [%], in order
 !                              to be consistent with GEOS-Chem convention
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC

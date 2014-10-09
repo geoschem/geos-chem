@@ -36,7 +36,6 @@
       INTEGER, PUBLIC              :: LD53  ! # of levels
 
       ! Arrays
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD53(:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD53_PG_OC_NEG(:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD53_PG_OC_POS(:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD53_PG_BC_NEG(:,:,:)
@@ -57,6 +56,8 @@
 ! !REVISION HISTORY:
 !  20 Sep 2010 - N.E. Selin  - Initial Version based on DIAG03_MOD
 !  27 Nov 2012 - M. Payer    - Added ProTeX headers
+!  26 Aug 2014 - M. Sulprizio- Remove AD53 array, POPs emissions are now
+!                              tracked by HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -99,7 +100,6 @@
       IF ( ND53 == 0 ) RETURN
 
       ! Zero arrays
-      AD53              = 0D0
       AD53_PG_OC_NEG    = 0D0
       AD53_PG_OC_POS    = 0D0
       AD53_PG_BC_NEG    = 0D0
@@ -144,6 +144,8 @@
 ! !REVISION HISTORY:
 !  20 Sep 2010 - N.E. Selin  - Initial Version
 !  27 Nov 2012 - M. Payer    - Added ProTeX headers
+!  26 Aug 2014 - M. Sulprizio- Now track POPs emissions through HEMCO and
+!                              write to bpch in diag3.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,19 +193,13 @@
          ! Get ND53 tracer #
          N = TINDEX(53,M)
 
-         ! Pick the proper array & dimensions
-         IF ( N == 1 .or. N == 2 .or. N == 3 .or. N == 4  ) THEN
-               
-            !--------------------------------
-            ! #1 POP emissions (total, OC-sorbed, BC-sorbed, and gas phase)
-            !--------------------------------
-            CATEGORY          = 'PG-SRCE'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! NOTE: POPs emissions (N = 1-4) are now tracked by HEMCO
+         ! and handled in diag3.F (mps, 8/26/14)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ELSE IF ( N == 5  ) THEN
+         ! Pick the proper array & dimensions
+         IF ( N == 5  ) THEN 
 
             !--------------------------------
             ! #2 New gas phase from OC (negative formation of OC)
@@ -344,10 +340,6 @@
       ! Get number of levels for 3-D arrays
       LD53 = MIN( ND53, LLPAR )
 
-      ! 2-D array ("PG-SRCE")
-      ALLOCATE( AD53( IIPAR, JJPAR, PD53 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53' )
-
       ! 3-D arrays ("PP-PG-$")
       ALLOCATE( AD53_PG_OC_NEG( IIPAR, JJPAR, LD53 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_PG_OC_NEG' )
@@ -398,7 +390,6 @@
       !=================================================================
       ! CLEANUP_DIAG53 begins here!
       !=================================================================
-      IF ( ALLOCATED( AD53         ) ) DEALLOCATE( AD53         )
       IF ( ALLOCATED( AD53_PG_OC_NEG ) ) DEALLOCATE( AD53_PG_OC_NEG ) 
       IF ( ALLOCATED( AD53_PG_OC_POS ) ) DEALLOCATE( AD53_PG_OC_POS )
       IF ( ALLOCATED( AD53_PG_BC_NEG ) ) DEALLOCATE( AD53_PG_BC_NEG )

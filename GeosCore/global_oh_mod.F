@@ -27,7 +27,13 @@
 !
       PUBLIC :: CLEANUP_GLOBAL_OH
       PUBLIC :: GET_GLOBAL_OH
+      PUBLIC :: GET_DIURNAL_OH
+      PUBLIC :: GET_SZAFACT
       PUBLIC :: INIT_GLOBAL_OH
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: CALC_SUMCOSZA
 !
 ! !REVISION HISTORY:
 !  28 Jul 2000 - R. Yantosca - Initial version
@@ -48,6 +54,14 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+      ! Sum of cosine of the solar zenith angle. Used to impose a
+      ! diurnal variability on OH concentrations
+      REAL*8, ALLOCATABLE         :: SUMCOSZA(:,:)
+
+      ! Allocation status
+      LOGICAL                     :: Arrays_Allocated = .FALSE.
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -76,7 +90,6 @@
       USE BPCH2_MOD,            ONLY : READ_BPCH2
       USE DAO_MOD,              ONLY : AIRDEN_FULLGRID
       USE DAO_MOD,              ONLY : AIRQNT_FULLGRID
-      USE DIRECTORY_MOD,        ONLY : OH_DIR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GIGC_State_Met_Mod,   ONLY : MetState
@@ -125,9 +138,6 @@
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
 
-      ! First time flag
-      LOGICAL, SAVE      :: FIRST = .TRUE. 
-
       !=================================================================
       ! GET_GLOBAL_OH begins here!
       !=================================================================
@@ -136,19 +146,20 @@
       RC = GIGC_SUCCESS
 
       ! Allocate OH array, if this is the first call
-      IF ( FIRST ) THEN
+      IF ( .NOT. Arrays_Allocated ) THEN
          CALL INIT_GLOBAL_OH
-         FIRST = .FALSE.
       ENDIF
 
 #if defined( NESTED_NA )
       ! Filename
-      FILENAME = TRIM( OH_DIR ) // 'OH_3Dglobal.' // GET_NAME_EXT() // 
-     &           '.'            // GET_RES_EXT()  // '_NA'
+      FILENAME = TRIM( Input_Opt%OH_DIR ) // 'OH_3Dglobal.' // 
+     &           GET_NAME_EXT() //        // '.'            //
+     &           GET_RES_EXT()  // '_NA'
 #else
       ! Filename
-      FILENAME = TRIM( OH_DIR ) // 'OH_3Dglobal.' // GET_NAME_EXT() // 
-     &                              '.'           // GET_RES_EXT()
+      FILENAME = TRIM( Input_Opt%OH_DIR ) // 'OH_3Dglobal.' // 
+     &           GET_NAME_EXT()           // '.'            // 
+     &           GET_RES_EXT()
 #endif
 
       ! Echo some information to the standard output
@@ -214,6 +225,271 @@
       END SUBROUTINE GET_GLOBAL_OH
 !EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_szafact
+!
+! !DESCRIPTION:
+!  Subroutine GET\_SZAFACT returns diurnal scale factors from dividing
+!  the sza by the sum of the total sza per day. These factors are mainly
+!  imposed to the monthly OH climatology. 
+!  However, the same scale factors are dimensionless and can hence be 
+!  applied to other compounds too (e.g. O3).
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_SZAFACT ( I, J, State_Met ) RESULT( FACT )
+!
+! !USES:
+!
+      ! References to F90 modules
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !ARGUMENTS:
+!
+      INTEGER,        INTENT(IN) :: I, J
+      TYPE(MetState), INTENT(IN) :: State_Met
+
+      ! Local variables
+      REAL*8              :: FACT
+!
+! !REVISION HISTORY: 
+! 01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where these
+! calculations are done w/in GET_OH
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+      !=================================================================
+      ! GET_SZAFACT begins here!
+      !=================================================================
+
+      ! Check for allocation status of arrays 
+      IF ( .NOT. Arrays_Allocated ) CALL INIT_GLOBAL_OH
+
+      ! Update SUMCOSZA
+      CALL CALC_SUMCOSZA
+
+      ! Test for sunlight...
+      IF ( State_Met%SUNCOSmid(I,J) > 0d0  .AND. 
+     &     SUMCOSZA(I,J)            > 0d0 ) THEN
+
+         ! Impose a diurnal variation on OH during the day
+         FACT = ( State_Met%SUNCOSmid(I,J) / SUMCOSZA(I,J) ) *
+     &          ( 1440d0                   / GET_TS_CHEM() )
+
+      ELSE
+
+         ! At night, OH goes to zero
+         FACT = 0d0
+
+      ENDIF
+
+      END FUNCTION GET_SZAFACT
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_diurnal_oh
+!
+! !DESCRIPTION:
+!  Subroutine GET\_DIURNAL\_OH returns the OH concentration of a given
+!  field with the diurnal scaling factor applied to it. 
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_DIURNAL_OH ( I, J, L, State_Met ) 
+     &  RESULT( OH_MOLEC_CM3 )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !ARGUMENTS:
+!
+      INTEGER,        INTENT(IN) :: I, J, L
+      TYPE(MetState), INTENT(IN) :: State_Met
+!
+! !REVISION HISTORY: 
+! 01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where this
+! calculations are done w/in GET_OH
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Local variables
+      REAL*8              :: FACT
+      REAL*8              :: OH_MOLEC_CM3
+
+      !=================================================================
+      ! GET_DIURNAL_OH begins here!
+      !=================================================================
+
+      ! Calculate fraction to be applied
+      FACT = GET_SZAFACT( I, J, State_Met )
+
+      ! Multiply monthly average OH field with diurnal scale factor
+      OH_MOLEC_CM3 = OH(I,J,L) * FACT 
+
+      ! Make sure OH is not negative
+      OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
+
+      END FUNCTION GET_DIURNAL_OH
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_sumcosza
+!
+! !DESCRIPTION:
+!  Subroutine CALC\_SUMCOSZA computes the sum of cosine of the solar zenith
+!  angle over a 24 hour day, as well as the total length of daylight. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CALC_SUMCOSZA
+!
+! !USES:
+!
+      USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
+      USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_GCTM_MOD
+!
+! !REVISION HISTORY: 
+! 01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where it's
+! called OHNO3TIME
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER, SAVE       :: SAVEDOY = -1
+      INTEGER             :: I, IJLOOP, J, L, N, NT, NDYSTEP
+      REAL*8              :: A0, A1, A2, A3, B1, B2, B3
+      REAL*8              :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+      REAL*8              :: SUNTMP(MAXIJ)
+
+      !=================================================================
+      ! CALC_SUMCOSZA begins here!
+      !=================================================================
+
+      !  Solar declination angle (low precision formula, good enough for us):
+      A0 = 0.006918
+      A1 = 0.399912
+      A2 = 0.006758
+      A3 = 0.002697
+      B1 = 0.070257
+      B2 = 0.000907
+      B3 = 0.000148
+      R  = 2.* PI * float( GET_DAY_OF_YEAR() - 1 ) / 365.
+
+      DEC = A0 - A1*cos(  R) + B1*sin(  R)
+     &         - A2*cos(2*R) + B2*sin(2*R)
+     &         - A3*cos(3*R) + B3*sin(3*R)
+
+      LHR0 = int(float( GET_NHMSb() )/10000.)
+
+      ! Only do the following at the start of a new day
+      IF ( SAVEDOY /= GET_DAY_OF_YEAR() ) THEN 
+
+         ! Zero arrays
+         SUMCOSZA(:,:) = 0d0
+
+         ! NDYSTEP is # of chemistry time steps in this day
+         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()         
+
+         ! NT is the elapsed time [s] since the beginning of the run
+         NT = GET_ELAPSED_SEC()
+
+         ! Loop forward through NDYSTEP "fake" timesteps for this day 
+         DO N = 1, NDYSTEP
+            
+            ! Zero SUNTMP array
+            SUNTMP(:) = 0d0
+
+            ! Loop over surface grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+
+               ! Grid box latitude center [radians]
+               YMID_R = GET_YMID_R( I, J, 1 )
+
+               ! Increment IJLOOP
+               IJLOOP = ( (J-1) * IIPAR ) + I
+               TIMLOC = real(LHR0) + real(NT)/3600.0 + 
+     &                  GET_XMID( I, J, 1 ) / 15.0
+         
+               DO WHILE (TIMLOC .lt. 0)
+                  TIMLOC = TIMLOC + 24.0
+               ENDDO
+
+               DO WHILE (TIMLOC .gt. 24.0)
+                  TIMLOC = TIMLOC - 24.0
+               ENDDO
+
+               AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
+
+            !===========================================================
+            ! The cosine of the solar zenith angle (SZA) is given by:
+            !     
+            !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+            !                   
+            ! where LAT = the latitude angle, 
+            !       DEC = the solar declination angle,  
+            !       AHR = the hour angle, all in radians. 
+            !
+            ! If SUNCOS < 0, then the sun is below the horizon, and 
+            ! therefore does not contribute to any solar heating.  
+            !===========================================================
+
+               ! Compute Cos(SZA)
+               SUNTMP(IJLOOP) = sin(YMID_R) * sin(DEC) +
+     &                          cos(YMID_R) * cos(DEC) * cos(AHR)
+
+               ! SUMCOSZA is the sum of SUNTMP at location (I,J)
+               ! Do not include negative values of SUNTMP
+               SUMCOSZA(I,J) = SUMCOSZA(I,J) + MAX(SUNTMP(IJLOOP),0d0)
+
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+            ! Increment elapsed time [sec]
+            NT = NT + ( GET_TS_CHEM() * 60 )             
+         ENDDO
+
+         ! Set saved day of year to current day of year 
+         SAVEDOY = GET_DAY_OF_YEAR()
+
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALC_SUMCOSZA
+!EOC
+!------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -260,6 +536,14 @@
       ! Zero OH array
       OH = 0d0
 
+      ! Allocate SUMCOSZA array
+      ALLOCATE( SUMCOSZA( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMCOSZA' )
+      SUMCOSZA = 0d0
+
+      ! Arrays are now allocated
+      Arrays_Allocated = .TRUE.
+
       END SUBROUTINE INIT_GLOBAL_OH
 !EOC
 !------------------------------------------------------------------------------
@@ -285,7 +569,8 @@
       !=================================================================
       ! CLEANUP_GLOBAL_OH begins here!
       !=================================================================
-      IF ( ALLOCATED( OH ) ) DEALLOCATE( OH ) 
+      IF ( ALLOCATED( OH       ) ) DEALLOCATE( OH       ) 
+      IF ( ALLOCATED( SUMCOSZA ) ) DEALLOCATE( SUMCOSZA ) 
      
       END SUBROUTINE CLEANUP_GLOBAL_OH
 !EOC

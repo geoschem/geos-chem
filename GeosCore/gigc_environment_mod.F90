@@ -77,17 +77,15 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_Mod,            ONLY : Init_CMN
     USE CMN_DIAG_Mod,       ONLY : Init_CMN_DIAG
     USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
-    USE CMN_NOX_Mod,        ONLY : Init_CMN_NOX
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
     USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
     USE COMODE_LOOP_Mod,    ONLY : Init_COMODE_LOOP
-    USE COMMSOIL_Mod,       ONLY : Init_COMMSOIL
+    USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
     USE GIGC_ErrCode_Mod  
     USE GIGC_Input_Opt_Mod
-    USE VDIFF_PRE_Mod,      ONLY : Init_VDIFF_PRE
+    USE VDIFF_PRE_Mod,      ONLY : Init_Vdiff_Pre
 
     IMPLICIT NONE
 !
@@ -130,6 +128,10 @@ CONTAINS
 !  03 Dec 2012 - R. Yantosca - Add optional arguments to accept dimension
 !                              size information from the ESMF interface
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_mod.F
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_NOX_mod.F
+!  25 Jul 2014 - R. Yantosca - Remove reference to obsolete commsoil_mod.F90
+!  25 Jul 2014 - R. Yantosca - Now call INIT_GET_NDEP (GeosCore/get_ndep_mod.F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,19 +188,13 @@ CONTAINS
 #endif
 
     ! Set dimensions in CMN_DEP_mod.F and allocate arrays
-    CALL Init_CMN( am_I_Root, RC )  
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
     CALL Init_CMN_DIAG( am_I_Root, RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
-    CALL Init_CMN_NOX( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     CALL Init_CMN_O3( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    CALL Init_COMMSOIL( am_I_Root, RC )
+    CALL Init_Get_Ndep( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     CALL Init_COMODE_LOOP( am_I_Root, Input_Opt, RC )
@@ -383,25 +379,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !      
-  SUBROUTINE Get_nSchm_nSchmBry( am_I_Root, nSchm, nSchmBry, RC )
+  SUBROUTINE Get_nSchm_nSchmBry( am_I_Root, Input_Opt, nSchm, nSchmBry, RC )
 !
 ! !USES:
 !
     USE CMN_SIZE_MOD
     USE GIGC_ErrCode_Mod
-    USE LOGICAL_MOD,       ONLY : LLINOZ
-    USE TRACER_MOD,        ONLY : N_TRACERS, TRACER_NAME
-    USE TIME_MOD,          ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE TIME_MOD,           ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: nSchm       ! # of strat chem species
-    INTEGER, INTENT(OUT) :: nSchmBry    ! # of strat chem Bry species
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT) :: nSchm       ! # of strat chem species
+    INTEGER,        INTENT(OUT) :: nSchmBry    ! # of strat chem Bry species
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY:
 !  01 Feb 2011 - L. Murray   - Initial version
@@ -460,10 +456,10 @@ CONTAINS
     !=====================================================================
 
     ! Loop over all GEOS-Chem advected tracers
-    DO N = 1, N_TRACERS
+    DO N = 1, Input_Opt%N_TRACERS
 
        ! GEOS-Chem advected tracer name
-       GC_Name = TRACER_NAME(N) 
+       GC_Name = Input_Opt%TRACER_NAME(N) 
     
        !---------------------------------------------------------------
        ! For now, guarantee that GMI prod/loss rates are not used for  
@@ -501,7 +497,7 @@ CONTAINS
           !---------------------------------------------------------------
           IF ( TRIM( GC_Name ) == TRIM( GMI_Name ) ) THEN
                 
-             IF ( LLINOZ .and. ( TRIM( GC_Name ) == 'Ox' ) ) THEN
+             IF ( Input_Opt%LLINOZ .and. ( TRIM( GC_Name ) == 'Ox' ) ) THEN
                 IF ( am_I_Root ) THEN
                    WRITE( 6, '(a)' ) TRIM( GC_Name ) // ' (via Linoz)'
                 ENDIF

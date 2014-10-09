@@ -11,18 +11,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP( am_I_Root, RC )
+      SUBROUTINE CLEANUP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
-      USE AEIC_MOD,                ONLY : CLEANUP_AEIC
-      USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
-      USE BIOMASS_MOD,             ONLY : CLEANUP_BIOMASS
-      USE BIOFUEL_MOD,             ONLY : CLEANUP_BIOFUEL
-      USE BRAVO_MOD,               ONLY : CLEANUP_BRAVO
       USE C2H6_MOD,                ONLY : CLEANUP_C2H6
-      USE CAC_ANTHRO_MOD,          ONLY : CLEANUP_CAC_ANTHRO
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
       USE CHEMGRID_MOD,            ONLY : CLEANUP_CHEMGRID
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
@@ -40,31 +34,27 @@
       USE DIAG_PL_MOD,             ONLY : CLEANUP_DIAG_PL
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,                ONLY : CLEANUP_DUST
-      USE DUST_DEAD_MOD,           ONLY : CLEANUP_DUST_DEAD
-      USE EDGAR_MOD,               ONLY : CLEANUP_EDGAR
-      USE EMEP_MOD,                ONLY : CLEANUP_EMEP
-      USE EPA_NEI_MOD,             ONLY : CLEANUP_EPA_NEI
       USE ERROR_MOD,               ONLY : DEBUG_MSG
-      USE GC_BIOMASS_MOD,          ONLY : CLEANUP_GC_BIOMASS
-      USE GFED2_BIOMASS_MOD,       ONLY : CLEANUP_GFED2_BIOMASS
-      USE GFED3_BIOMASS_MOD,       ONLY : CLEANUP_GFED3_BIOMASS
+      USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
-      USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
-      USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! HEMCO has made these routines obsolete (mps, 9/23/14)
+!      USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
+!      USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
+!------------------------------------------------------------------------------
       USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
-      USE GLOBAL_O1D_MOD,          ONLY : CLEANUP_GLOBAL_O1D
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
-      USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC
-      USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
-      USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
       USE GRID_MOD,                ONLY : CLEANUP_GRID
-      USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
+!-----------------------------------------------------------------------------
+! The H2/HD simulation is now obsolete.  You can reactivate this if you want.
+!      USE GLOBAL_O1D_MOD,          ONLY : CLEANUP_GLOBAL_O1D
+!      USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
+!-----------------------------------------------------------------------------
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
-      USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
-      USE MEGAN_MOD,               ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
       USE MODIS_LAI_MOD,           ONLY : CLEANUP_MODIS_LAI
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
@@ -74,7 +64,6 @@
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
       USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
-      USE REGRID_1x1_MOD,          ONLY : CLEANUP_REGRID_1x1
       USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
       USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
@@ -86,15 +75,9 @@
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
       USE TPCORE_GEOSFP_WINDOW_MOD,ONLY : EXIT_GEOSFP_TPCORE_WINDOW !clb
-      USE TRACER_MOD,              ONLY : CLEANUP_TRACER
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
-      USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
-      USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
-      USE RETRO_MOD,               ONLY : CLEANUP_RETRO
-      USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
-      USE RCP_MOD,                 ONLY : CLEANUP_RCP !(cdh, 10/14/11)
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
@@ -102,24 +85,29 @@
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
-      USE CMN_Mod,                 ONLY : Cleanup_CMN
-      USE CMN_NOX_Mod,             ONLY : Cleanup_CMN_NOX
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
       USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
       USE COMODE_LOOP_Mod,         ONLY : Cleanup_COMODE_LOOP
-      USE COMMSOIL_Mod,            ONLY : Cleanup_COMMSOIL
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
+      USE GIGC_Input_Opt_Mod,      ONLY : OptInput
+      USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
+      
+      ! HEMCO
+#if !defined(ESMF_) 
+      USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
+#endif
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object 
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC           ! Success or failure
+      INTEGER,        INTENT(OUT) :: RC           ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version
@@ -233,6 +221,25 @@
 !  26 Sep 2013 - R. Yantosca - Now reference EXIT_GEOSFP_TPCORE_WINDOW
 !  29 Oct 2013 - R. Yantosca - Now call CLEANUP_DAO for all simulations (if
 !                              arrays are not allocated it'll exit gracefully)
+!  03 Jun 2014 - R. Yantosca - Don't finalize HEMCO if emissions are turned
+!                              off.  This prevents a seg fault error.
+!  03 Jun 2014 - R. Yantosca - Now pass Input_Opt via the argument list
+!  03 Jun 2014 - R. Yantosca - Remove references to emissions modules that
+!                              HEMCO renders obsolete
+!  24 Jun 2014 - R. Yantosca - Remove CLEANUP_BROMOCARB; HEMCO replaces this
+!  25 Jun 2014 - R. Yantosca - Remove reference to tracer_mod.F
+!  21 Jul 2014 - R. Yantosca - Remove reference to regrid_1x1_mod.F
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete global_grid_mod.F
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_NOX_mod.F
+!  25 Jul 2014 - R. Yantosca - Remove reference to commsoil_mod.F90
+!  25 Jul 2014 - R. Yantosca - Now call CLEANUP_GET_NDEP
+!  15 Aug 2014 - R. Yantosca - Remove reference to biofuel_mod.F
+!  15 Aug 2014 - R. Yantosca - Remove reference to biomass_mod.F
+!  10 Sep 2014 - M. Sulprizio- Remove references to global_oc_mod.F and
+!                              global_bc_mod.F
+!  23 Sep 2014 - M. Sulprizio- Remove references to global_hno3_mod.F and
+!                              global_no3_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -244,108 +251,95 @@
       WRITE( 6, 100 ) 
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
-      ! Call cleanup routines from individual F90 modules
-      CALL CLEANUP_AEROSOL
-      CALL CLEANUP_AEIC
-      CALL CLEANUP_ARCTAS_SHIP
-      CALL CLEANUP_BIOMASS
-      CALL CLEANUP_BIOFUEL
-      CALL CLEANUP_BRAVO
-      CALL CLEANUP_BROMOCARB  ! jpp, 6/17/09
-      CALL CLEANUP_C2H6
-      CALL CLEANUP_CAC_ANTHRO
-      CALL CLEANUP_CARBON
-      CALL CLEANUP_CHEMGRID
-      CALL CLEANUP_CO2
-      CALL CLEANUP_COMODE
-      CALL CLEANUP_GCKPP_COMODE
-      CALL CLEANUP_DAO
-      CALL CLEANUP_DIAG
-      CALL CLEANUP_DIAG03
-      CALL CLEANUP_DIAG04
-      CALL CLEANUP_DIAG41
-      CALL CLEANUP_DIAG50
-      CALL CLEANUP_DIAG51
-      CALL CLEANUP_DIAG53
-      CALL CLEANUP_DIAG_OH
-      CALL CLEANUP_DIAG_PL
-      CALL CLEANUP_DRYDEP
-      CALL CLEANUP_DUST_DEAD
-      CALL CLEANUP_DUST
-      CALL CLEANUP_EDGAR
-      CALL CLEANUP_EMEP
-      CALL CLEANUP_EPA_NEI
-      CALL CLEANUP_GC_BIOMASS
-      CALL CLEANUP_GFED2_BIOMASS
-      CALL CLEANUP_GFED3_BIOMASS
-      CALL CLEANUP_GLOBAL_CH4
-      CALL CLEANUP_GLOBAL_HNO3
-      CALL CLEANUP_GLOBAL_NO3
-      CALL CLEANUP_GLOBAL_NOX
-      CALL CLEANUP_GLOBAL_NO3
-      CALL CLEANUP_GLOBAL_O1D
-      CALL CLEANUP_GLOBAL_OH
-      CALL CLEANUP_GLOBAL_OC
-      CALL CLEANUP_GLOBAL_BC
-      CALL CLEANUP_GLOBAL_GRID
-      CALL CLEANUP_GRID
-      CALL CLEANUP_H2_HD
-      CALL CLEANUP_HCN_CH3CN
-      CALL CLEANUP_HDF
-      CALL CLEANUP_ISOROPIAII
-      CALL CLEANUP_LIGHTNING_NOX
-      CALL CLEANUP_LINOZ
-      CALL CLEANUP_MEGAN
-      CALL CLEANUP_MERCURY
-      CALL CLEANUP_MODIS_LAI
-      CALL CLEANUP_OCEAN_MERCURY
-      CALL CLEANUP_DEPO_MERCURY
-      CALL CLEANUP_LAND_MERCURY
-      CALL CLEANUP_PBL_MIX
-      CALL CLEANUP_PJC_PFIX
-      CALL CLEANUP_PLANEFLIGHT
-      CALL CLEANUP_PRESSURE
-      CALL CLEANUP_REGRID_1x1
-      CALL CLEANUP_SEASALT
-      CALL CLEANUP_SULFATE
-      CALL CLEANUP_STRAT_CHEM
-      CALL CLEANUP_TAGGED_CO
-#if ! defined( ESMF_ )
-      CALL CLEANUP_TRANSPORT
+      ! Cleanup HEMCO 
+#if !defined(ESMF_) 
+      IF ( Input_Opt%LEMIS ) THEN
+         CALL EMISSIONS_FINAL ( am_I_Root )
+      ENDIF
 #endif
-      CALL CLEANUP_TOMS
-      CALL CLEANUP_TRACER
-      CALL CLEANUP_UCX
-      CALL CLEANUP_UVALBEDO
-      CALL CLEANUP_VISTAS_ANTHRO
-      CALL CLEANUP_WETSCAV
-      CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
-      CALL CLEANUP_RETRO
-      CALL CLEANUP_RCP !(cdh, 10/14/11)
+
+      ! Call cleanup routines from individual F90 modules
+      CALL CLEANUP_AEROSOL()
+      CALL CLEANUP_C2H6()
+      CALL CLEANUP_CARBON()
+      CALL CLEANUP_CHEMGRID()
+      CALL CLEANUP_CO2()
+      CALL CLEANUP_COMODE()
+      CALL CLEANUP_GCKPP_COMODE()
+      CALL CLEANUP_DAO()
+      CALL CLEANUP_DIAG()
+      CALL CLEANUP_DIAG03()
+      CALL CLEANUP_DIAG04()
+      CALL CLEANUP_DIAG41()
+      CALL CLEANUP_DIAG50()
+      CALL CLEANUP_DIAG51()
+      CALL CLEANUP_DIAG53()
+      CALL CLEANUP_DIAG_OH()
+      CALL CLEANUP_DIAG_PL()
+      CALL CLEANUP_DRYDEP()
+      CALL CLEANUP_DUST()
+      CALL CLEANUP_GLOBAL_CH4()
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! HEMCO has made these routines obsolete (mps, 9/23/14)
+!      CALL CLEANUP_GLOBAL_HNO3()
+!      CALL CLEANUP_GLOBAL_NO3()
+!------------------------------------------------------------------------------
+      CALL CLEANUP_GLOBAL_NOX()
+      CALL CLEANUP_GLOBAL_OH()
+      CALL CLEANUP_GRID()
+!-----------------------------------------------------------------------------
+! This simulation is obsolete.  You can restore it if you wish (bmy, 6/23/14)
+!      CALL CLEANUP_GLOBAL_O1D()
+!      CALL CLEANUP_H2_HD()
+!-----------------------------------------------------------------------------
+      CALL CLEANUP_HCN_CH3CN()
+      CALL CLEANUP_HDF()
+      CALL CLEANUP_ISOROPIAII()
+      CALL CLEANUP_LINOZ()
+      CALL CLEANUP_MAP_A2A()
+      CALL CLEANUP_MERCURY()
+      CALL CLEANUP_MODIS_LAI()
+      CALL CLEANUP_OCEAN_MERCURY()
+      CALL CLEANUP_DEPO_MERCURY()
+      CALL CLEANUP_LAND_MERCURY()
+      CALL CLEANUP_PBL_MIX()
+      CALL CLEANUP_PJC_PFIX()
+      CALL CLEANUP_PLANEFLIGHT()
+      CALL CLEANUP_PRESSURE()
+      CALL CLEANUP_SEASALT()
+      CALL CLEANUP_SULFATE()
+      CALL CLEANUP_STRAT_CHEM()
+      CALL CLEANUP_TAGGED_CO()
+#if ! defined( ESMF_ )
+      CALL CLEANUP_TRANSPORT()
+#endif
+      CALL CLEANUP_TOMS()
+      CALL CLEANUP_UCX()
+      CALL CLEANUP_UVALBEDO()
+      CALL CLEANUP_WETSCAV()
 
 #if   defined( APM )
-      CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
+      CALL CLEANUP_WETSCAVBIN()  ! Cleanup arrays for APM wet scavenging
 #endif
 
 
 #if   defined( TOMAS )
-      CALL CLEANUP_TOMAS
+      CALL CLEANUP_TOMAS()
 #endif
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-      CALL EXIT_GEOS5_TPCORE_WINDOW 
+      CALL EXIT_GEOS5_TPCORE_WINDOW() 
 #elif defined( GEOS_FP) && defined( GRID025x03125)
       ! clb
-      CALL EXIT_GEOSFP_TPCORE_WINDOW
+      CALL EXIT_GEOSFP_TPCORE_WINDOW()
 #else
-      CALL EXIT_TPCORE
+      CALL EXIT_TPCORE()
 #endif
 
       ! Call extra cleanup routines, mostly from modules in Headers/
-      CALL Cleanup_CMN        ( am_I_Root, RC )
-      CALL Cleanup_CMN_NOX    ( am_I_Root, RC )
       CALL Cleanup_CMN_O3     ( am_I_Root, RC )
       CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
-      CALL Cleanup_COMMSOIL   ( am_I_Root, RC )
+      CALL Cleanup_Get_Ndep   ( am_I_Root, RC )
       CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
       CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
       CALL Cleanup_CMN_FJX    ( am_I_Root, RC )

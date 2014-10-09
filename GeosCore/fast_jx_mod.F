@@ -1614,21 +1614,23 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_FJX(am_I_Root)
+      SUBROUTINE INIT_FJX( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE inquireMod,   ONLY : findFreeLUN
-      USE CMN_DIAG_MOD, ONLY : ND64
+      USE inquireMod,         ONLY : findFreeLUN
+      USE CMN_DIAG_MOD,       ONLY : ND64
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
-! !OUTPUT VARIABLES:
+! !OUTPUT PARAMETERS:
 !
-!
-! !REMARKS:
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
@@ -1642,12 +1644,15 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       INTEGER                     :: JXUNIT,J
       CHARACTER(LEN=255)          :: FILENAME
       INTEGER                     :: NJXX
-      CHARACTER*6,DIMENSION(JVN_)  :: TITLEJXX
+      CHARACTER*6,DIMENSION(JVN_) :: TITLEJXX
       REAL*8                      :: ND64MULT
 
       !=================================================================
       ! INIT_FJX begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       IF ( am_I_Root) THEN
          write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
@@ -1722,9 +1727,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       call SET_AER(am_I_Root)
 
       ! Read in T & O3 climatology used to fill e.g. upper layers or if O3 not calc.
-!      if ( am_I_Root ) then
-!         call RD_PROF_NC( am_I_Root )
-!      endif
+!      call RD_PROF_NC( am_I_Root, Input_Opt, RC )
 
       NJXX = NJX
       do J = 1,NJX
@@ -3874,15 +3877,20 @@ c  Ensure all 'AN_' types are valid selections
 !\\
 ! !INTERFACE:
 !
-      REAL*8 FUNCTION FJXFUNC(I,J,L,NREAC,BRCH,NAME)
-!
-! !USES:
-!
+      FUNCTION FJXFUNC( I, J, L, NREAC, BRCH, NAME ) RESULT( JVAL )
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,           INTENT(IN) :: I,J,L,NREAC,BRCH
-      CHARACTER (LEN=4), INTENT(IN) :: NAME
+      INTEGER,           INTENT(IN) :: I       ! Longitude index
+      INTEGER,           INTENT(IN) :: J       ! Latitude index
+      INTEGER,           INTENT(IN) :: L       ! Level index
+      INTEGER,           INTENT(IN) :: NREAC   ! Photolysis reaction #
+      INTEGER,           INTENT(IN) :: BRCH    ! Branch # of photolysis rxn
+      CHARACTER (LEN=4), INTENT(IN) :: NAME    ! Photolysis species name
+!
+! !RETURN VALUE:
+!
+      REAL*8                        :: JVAL    ! Desired J-value [s-1]
 !
 ! !REVISION HISTORY: 
 !  (1  ) "cmn_fj.h" also includes "CMN_SIZE" and "define.h".
@@ -3891,13 +3899,14 @@ c  Ensure all 'AN_' types are valid selections
 !         and made some cosmetic changes. (bmy, 10/15/02)
 !  27 Mar 2013 - S. D. Eastham - Rolled into FAST_JX_MOD
 !  29 Mar 2013 - S. D. Eastham - Converted from fjfunc into fjxfunc
+!  22 Jul 2014 - R. Yantosca   - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                       :: N
+      INTEGER  :: N
       
       !=================================================================
       ! FJXFUNC begins here!
@@ -3933,7 +3942,7 @@ c  Ensure all 'AN_' types are valid selections
       !=================================================================
       ! Return the appropriate J-value as the value of the function 
       !=================================================================
-      FJXFUNC = ZPJ(L,N,I,J)
+      JVAL = ZPJ(L,N,I,J)
 
 !      ! Uncomment following lines for more rigorous checking
 !      IF (ISNAN(FJXFUNC)) THEN
@@ -4069,7 +4078,7 @@ c  Ensure all 'AN_' types are valid selections
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_PROF_NC( am_I_Root )
+      SUBROUTINE RD_PROF_NC( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -4078,16 +4087,17 @@ c  Ensure all 'AN_' types are valid selections
       USE m_netcdf_io_read
       USE m_netcdf_io_readattr
       USE m_netcdf_io_close
-
-      ! GEOS-Chem modules
-      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1    ! Data directory 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)         :: am_I_Root  ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
-! !OUTPUT VARIABLES:
+! !OUTPUT PARAMETERS:
 !
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  This file was automatically generated by the Perl scripts in the
@@ -4099,6 +4109,7 @@ c  Ensure all 'AN_' types are valid selections
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  10 Apr 2013 - S. D. Eastham - Adapted for Fast-JX v7.0
+!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4123,12 +4134,15 @@ c  Ensure all 'AN_' types are valid selections
       ! RD_PROF_NC begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       !=========================================================================
       ! Open and read data from the netCDF file
       !=========================================================================
     
       ! Directory and file names
-      nc_dir  = TRIM( DATA_DIR_1x1 ) // 'FastJ_201204/'      
+      nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'FastJ_201204/'      
       nc_file = 'fastj.jv_atms_dat.nc'  
       nc_path = TRIM( nc_dir ) // TRIM( nc_file )
     

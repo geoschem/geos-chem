@@ -229,7 +229,8 @@
 
 !-------------------------------------------------------------------------
 
-      SUBROUTINE READ_HG2_PARTITIONING( THISMONTH, State_Met )
+      SUBROUTINE READ_HG2_PARTITIONING( am_I_Root, Input_Opt,
+     &                                  State_Met, THISMONTH, RC )
 
 !****************************************************************************  
 !  SUBROUTINE READ_HG2_PARTITIONING calculates the fractions of Hg(II) is the particle 
@@ -323,26 +324,36 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  15 Apr 2014 - R. Yantosca - Eliminate array temporaries 
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !*****************************************************************************
-     
-      ! References F90 modules
+!
+! !USES:
+!     
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT ,  GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,       READ_BPCH2
       USE DIAG03_MOD,         ONLY : ND03                
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR      
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : SET_Hg2_DIAG        
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D  ,  TRANSFER_3D_TROP
-
-      USE CMN_SIZE_MOD             ! Size parameters3
-      USE CMN_DIAG_MOD             ! Diagnostic arrays & parameters
-
-      ! Arguments
-      INTEGER,        INTENT(IN)  :: THISMONTH
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       ! Arrays to hold aerosol concentrations  
       REAL*4               :: ARRAYso4(  IGLOB, JGLOB, LGLOB )  ! so4
       REAL*4               :: ARRAYnit(  IGLOB, JGLOB, LGLOB )  ! nit
@@ -368,6 +379,9 @@
       REAL*8               :: AIR_MW = 2.897D-02  ! avg molecular weight of air 
       REAL*8, DIMENSION(5) :: CU                  ! ratio of aerosol/air MW
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       !----------------------------------------!
       ! Molecular weights, for unit conversion !
       !----------------------------------------!
@@ -384,7 +398,7 @@
 
 #if defined( GRID4x5 ) || defined( GRID2x25 )
       ! tropospheric aerosols (v8-02-03, GEOS5, 4x5)
-      FILENAME = TRIM( DATA_DIR )   //
+      FILENAME = TRIM( Input_Opt%DATA_DIR )        //
      &           'mercury_201007/Hg_partitioning/' //
      &           'aero.IJ_AVG.2007.'               //
      &           GET_NAME_EXT()     // '.'         //
@@ -446,11 +460,6 @@
      &                 LGLOB,     ARRAYbcpo, QUIET=.TRUE. )
 
       ! convert REAL*4 to REAL*8 
-!-----------------------------------------------------------------------------
-! Prior to 4/15/14:
-! Remove an array temporary (bmy, 4/15/14)
-!      CALL TRANSFER_3D_TROP( ARRAYbcpi + ARRAYbcpo , BC_CONC ) 
-!-----------------------------------------------------------------------------
       ARRAYtemp = ARRAYbcpi + ARRAYbcpo
       CALL TRANSFER_3D_TROP( ARRAYtemp, BC_CONC ) 
 
@@ -465,11 +474,6 @@
      &                 LGLOB,     ARRAYocpo, QUIET=.TRUE. )
 
       ! convert REAL*4 to REAL*8 
-!-----------------------------------------------------------------------------
-! Prior to 4/15/14:
-! Remove an array temporary (bmy, 4/15/14)
-!      CALL TRANSFER_3D_TROP( ARRAYocpi + ARRAYocpo , OC_CONC ) 
-!-----------------------------------------------------------------------------
       ARRAYtemp = ARRAYocpi + ARRAYocpo
       CALL TRANSFER_3D_TROP( ARRAYtemp, OC_CONC ) 
 
@@ -561,8 +565,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE OCEAN_MERCURY_FLUX( FLUX,      Input_Opt, 
-     &                               State_Met, State_Chm )
+      SUBROUTINE OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt, State_Met, 
+     &                               State_Chm, FLUX,      RC         )
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
@@ -722,13 +726,14 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,            ONLY : IS_WATER 
       USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
       USE DIAG03_MOD,         ONLY : AD03, ND03
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -750,7 +755,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
@@ -760,7 +765,8 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,         INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
+      REAL*8,         INTENT(OUT)   :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !LOCAL VARIABLES:
 !
@@ -819,9 +825,6 @@
       REAL*8,  PARAMETER   :: NPPMINNUM   = 5D-2       
       REAL*8,  PARAMETER   :: CHLMINNUM   = 1D-1       
 
-      ! External functions
-      REAL*8,  EXTERNAL     :: SFCWINDSQR 
-     
       ! For values from Input_Opt
       LOGICAL         :: LSPLIT
       INTEGER         :: N_TRACERS
@@ -870,14 +873,15 @@
          THISMONTH = GET_MONTH()
 
          ! Get monthly MLD, NPP, CHL etc.                         
-         !CALL OCEAN_MERCURY_READ( THISMONTH )
-         CALL OCEAN_MERCURY_READ( THISMONTH, THISYEAR ) !jaf
+         CALL OCEAN_MERCURY_READ
+     &      ( am_I_Root, Input_Opt, THISMONTH, THISYEAR, RC ) !jaf
 
       ENDIF    
 
       !eds 10/19/10
       IF ( FIRST ) THEN
-         CALL GET_MLD_FOR_LAST_MONTH( THISMONTH )
+         CALL GET_MLD_FOR_LAST_MONTH
+     &      ( am_I_Root, Input_Opt, THISMONTH, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -896,7 +900,8 @@
 
          ! Read next month's MLD
          !CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH )
-         CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH, THISYEAR )
+         CALL GET_MLD_FOR_NEXT_MONTH
+     &        ( am_I_Root, Input_Opt, THISMONTH, THISYEAR, RC )
 !--jaf.end
          
       ENDIF
@@ -945,16 +950,16 @@
       ! Loop over surface boxes  
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED  )
-!$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV   )
-!$OMP+PRIVATE( N,   TK,   CHg0,    FRAC_L,  k_red_bio  )
-!$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad  )
-!$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall  )
-!$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,   Hg2aq_tot  )
-!$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  OC_tot_kg  )
-!$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE   )
-!$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg   )
-!$OMP+PRIVATE( IS_OCEAN_BOX                   )
+!$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED                       )
+!$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV             )
+!$OMP+PRIVATE( N,   TK,   CHg0,    FRAC_L,  k_red_bio            )
+!$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad            )
+!$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall            )
+!$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,  Hg2aq_tot )
+!$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  OC_tot_kg            )
+!$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE                      )
+!$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg                      )
+!$OMP+PRIVATE( IS_OCEAN_BOX                                      )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1172,7 +1177,7 @@
             ScCO2  = 644.7d0 + TC * ( -6.16d0 + TC * ( 0.11d0 ) ) 
 
             ! Square of surface (actually 10m) wind speed [m2/s2]
-            Usq    = SFCWINDSQR( I, J, State_Met%U10M, State_Met%V10M )
+            Usq    = State_Met%U10M(I,J)**2 + State_Met%V10M(I,J)**2
 
             !------------------------------------------------------
             ! Parameterizations for calculating water side mass trasfer coefficient 
@@ -1749,8 +1754,8 @@
 
 !------------------------------------------------------------------------------
 
-!      SUBROUTINE OCEAN_MERCURY_READ( THISMONTH )
-      SUBROUTINE OCEAN_MERCURY_READ( THISMONTH, THISYEAR )
+      SUBROUTINE OCEAN_MERCURY_READ( am_I_Root, Input_Opt,
+     &                               THISMONTH, THISYEAR,  RC  )
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_READ reads in the mixed layer depth, net primary 
@@ -1767,19 +1772,29 @@
 !        from DATA_DIR_1x1/mercury_200511. (sas, cdh, bmy, 3/28/06)
 !******************************************************************************
 !
-      ! References to F90 modules
+! !USES:
+!
       USE BPCH2_MOD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1, DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE TIME_MOD,	 ONLY : ITS_A_LEAPYEAR ! jaf
-      USE FILE_MOD,	 ONLY : IOERROR, IU_FILE ! jaf
-
-      USE CMN_SIZE_MOD      ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: THISMONTH
-      INTEGER, INTENT(IN)    :: THISYEAR ! jaf
-
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE TIME_MOD,	      ONLY : ITS_A_LEAPYEAR
+      USE FILE_MOD,	      ONLY : IOERROR, IU_FILE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH
+      INTEGER,        INTENT(IN)  :: THISYEAR    
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       ! Local Variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
       REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
@@ -1795,6 +1810,9 @@
       ! OCEAN_MERCURY_READ begins here!
       !=================================================================
      
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Get the last month (jaf, 12/8/11)
       IF ( THISMONTH == 1 ) THEN
          LASTMONTH = 12
@@ -1816,19 +1834,21 @@
       ! MLD file name
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( DATA_DIR )                  // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
      &           'mercury_201203/MLD_DReqDT.'      // 
      &           GET_NAME_EXT()    // '.'          //
      &           GET_RES_EXT()
 #else
-      FILENAME = TRIM( DATA_DIR )                  // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
      &           'mercury_201007/MLD_DReqDT.geos.' // 
      &           GET_RES_EXT()
 #endif
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - OCEAN_MERCURY_READ: Reading ', a )  
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - OCEAN_MERCURY_READ: Reading ', a )  
+      ENDIF
 
       ! TAU0 value (uses year 2003) !(uses year 1985, anls)
       TAU = GET_TAU0( THISMONTH, 1, 1985 )
@@ -1860,19 +1880,21 @@
 
       ! Chl file name
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( DATA_DIR )                  // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
      &           'mercury_201203/Chl_2003.'        // 
      &           GET_NAME_EXT()     // '.'         //
      &           GET_RES_EXT()
 #else
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( DATA_DIR )                  // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
      &           'mercury_201007/Chl_2003.geos.'   //
      &           GET_RES_EXT()
 #endif
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME )
+      ENDIF
 
       ! TAU0 values (uses year 2003)
       TAU = GET_TAU0( THISMONTH, 1, 2003 )      
@@ -1899,18 +1921,20 @@
       ! NPP file name (anls, 100111)
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( DATA_DIR )                  // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
      &           'mercury_201203/NPP_2003.'        // 
      &          GET_NAME_EXT()     // '.'          //
      &          GET_RES_EXT()  
 #else
-      FILENAME = TRIM( DATA_DIR )                  // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
      &           'mercury_201007/NPP_2003.geos.'   //
      &           GET_RES_EXT()
 #endif
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME )
+      ENDIF
 
       ! TAU0 values (uses year 2003)
       TAU = GET_TAU0( THISMONTH, 1, 2003 )
@@ -1931,18 +1955,20 @@
       ! NPP file name
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( DATA_DIR )                   // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )         // 
      &           'mercury_201203/ekman_upvel.'      // 
      &           GET_NAME_EXT()    // '.'           //
      &           GET_RES_EXT() 
 #else
-      FILENAME = TRIM( DATA_DIR_1x1 )               // 
+      FILENAME = TRIM(Input_Opt% DATA_DIR_1x1 )     // 
      &           'mercury_200511/ekman_upvel.geos.' //
      &           GET_RES_EXT()
 #endif
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME )
+      ENDIF
 
       ! TAU0 value (uses year 1985)
       TAU = GET_TAU0( THISMONTH, 1, 1985 )
@@ -1969,8 +1995,8 @@
 
 !------------------------------------------------------------------------------
 
-!      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( THISMONTH )
-      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( THISMONTH, THISYEAR )
+      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( am_I_Root, Input_Opt,
+     &                                   THISMONTH, THISYEAR, RC )
 !
 !******************************************************************************
 !  Subroutine GET_MLD_FOR_NEXT_MONTH reads the mixed-layer depth (MLD) 
@@ -1987,19 +2013,27 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT   ! Y. Zhang
-
-      USE CMN_SIZE_MOD      ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: THISMONTH
-      INTEGER, INTENT(IN)    :: THISYEAR
-
-      ! Local variables
+      USE BPCH2_MOD,          ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH
+      INTEGER,        INTENT(IN)  :: THISYEAR
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                :: I, J, NEXTMONTH
       REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                 :: TAU
@@ -2012,6 +2046,9 @@
       ! GET_MLD_FOR_NEXT_MONTH begins here!
       !=================================================================
       
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Calculate days in this month (jaf, 7/6/11)
       IF ( THISMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
          DAYS_IN_MONTH = M(THISMONTH) + 1
@@ -2022,20 +2059,22 @@
       ! MLD file name
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
-      FILENAME = TRIM( DATA_DIR )                  // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
      &           'mercury_201203/MLD_DReqDT.'      // 
      &           GET_NAME_EXT()    // '.'          //
      &           GET_RES_EXT()   
 #else
-      FILENAME = TRIM( DATA_DIR )                  // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
      &           'mercury_201007/MLD_DReqDT.geos.' //
      &            GET_RES_EXT()
 #endif
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - GET_MLD_FOR_NEXT_MONTH: Reading ', a )  
-      
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - GET_MLD_FOR_NEXT_MONTH: Reading ', a )  
+      ENDIF
+
       ! Get the next month
       NEXTMONTH = MOD( THISMONTH, 12 ) +1
 
@@ -2071,7 +2110,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GET_MLD_FOR_LAST_MONTH( THISMONTH )
+      SUBROUTINE GET_MLD_FOR_LAST_MONTH( am_I_Root, Input_Opt,
+     &                                   THISMONTH, RC         )
 !
 !******************************************************************************
 !  Subroutine GET_MLD_FOR_LAST_MONTH reads the mixed-layer depth (MLD)
@@ -2086,41 +2126,54 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT   
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD     ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: THISMONTH
-
-      ! Local variables
-      INTEGER                :: I, J, LASTMONTH
-      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8                 :: TAU
-      CHARACTER(LEN=255)     :: FILENAME
+      USE BPCH2_MOD,          ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT   
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I, J, LASTMONTH
+      REAL*4             :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8             :: TAU
+      CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
       ! GET_MLD_FOR_NEXT_MONTH begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! MLD file name
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
-      FILENAME = TRIM( DATA_DIR )                  // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
      &           'mercury_201203/MLD_DReqDT.'      // 
      &           GET_NAME_EXT()    // '.'          //
      &           GET_RES_EXT()   
 #else
-      FILENAME = TRIM( DATA_DIR )	//
+      FILENAME = TRIM( Input_Opt%DATA_DIR )        //
      &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()
 #endif
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - GET_MLD_FOR_LAST_MONTH: Reading ', a )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - GET_MLD_FOR_LAST_MONTH: Reading ', a )
+      ENDIF
 
       ! Get the next month
 !      LASTMONTH = MOD( (THISMONTH-2), 12 ) +1
@@ -2130,8 +2183,10 @@
         LASTMONTH = THISMONTH -1
       ENDIF
      
-      PRINT *, 'LAST MONTH: '
-      PRINT *, LASTMONTH
+      IF ( am_I_Root ) THEN
+         PRINT *, 'LAST MONTH: '
+         PRINT *, LASTMONTH
+      ENDIF
 
       ! TAU0 value for next month (uses year 1985)
       TAU	= GET_TAU0( LASTMONTH, 1, 1985 )
@@ -2514,13 +2569,13 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  23 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
       USE CMN_SIZE_MOD
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG, CHECK_DIMENSIONS
-      USE DIRECTORY_MOD,      ONLY : RUN_DIR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE FILE_MOD,           ONLY : IOERROR
@@ -2583,7 +2638,7 @@
       IU_FILE         = findFreeLUN()
 
       ! Copy input file name to a local variable
-      FILENAME        = TRIM( RUN_DIR ) // TRIM( Hg_RST_FILE )
+      FILENAME        = TRIM( Input_Opt%RUN_DIR ) // TRIM( Hg_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
@@ -2864,12 +2919,12 @@
 !  NOTES:
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  23 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG
-      USE DIRECTORY_MOD,      ONLY : RUN_DIR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,           ONLY : EXPAND_DATE, GET_TAU
@@ -2921,7 +2976,7 @@
       IU_FILE   = findFreeLUN()
 
       ! Expand date in filename
-      FILENAME  = TRIM( RUN_DIR ) // Hg_RST_FILE
+      FILENAME  = TRIM( Input_Opt%RUN_DIR ) // Hg_RST_FILE
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info
@@ -3256,7 +3311,6 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,           ONLY : ERROR_STOP
-      USE LOGICAL_MOD,         ONLY : LSPLIT
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
       USE CMN_SIZE_MOD            ! Size parameters
@@ -3364,13 +3418,10 @@
 !  NOTES:
 !******************************************************************************
 !
-      ! References to F90 modules
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,           ONLY : ERROR_STOP
-      USE LOGICAL_MOD,         ONLY : LSPLIT
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
       USE DEPO_MERCURY_MOD,    ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
-
-      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -3483,7 +3534,6 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,           ONLY : ERROR_STOP
-      USE LOGICAL_MOD,         ONLY : LSPLIT
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
       USE CMN_SIZE_MOD            ! Size parameters
@@ -3559,7 +3609,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_OCEAN_MERCURY( THIS_Hg_RST_FILE, THIS_USE_CHECKS )
+      SUBROUTINE INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine INIT_OCEAN_MERCURY allocates and zeroes module arrays.  
@@ -3575,34 +3625,35 @@
 !                               should be "South Atlantic Ocean".
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-      USE LOGICAL_MOD,  ONLY : LPREINDHG
-
-      USE CMN_SIZE_MOD     ! Size parameters
-
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(IN) :: THIS_Hg_RST_FILE
-      LOGICAL,          INTENT(IN) :: THIS_USE_CHECKS
-
-      ! Local variables
-      INTEGER                      :: AS
-
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE TRACERID_MOD,       ONLY : N_Hg_CATS
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+ 
       !=================================================================
       ! INIT_OCEAN_MERCURY begins here!
       !=================================================================
 
       ! Ocean Hg restart file name
-      Hg_RST_FILE = THIS_Hg_RST_FILE
+      Hg_RST_FILE = Input_Opt%Hg_RST_FILE
       
       ! Turn on error checks for tagged & total sums?
-      USE_CHECKS  = THIS_USE_CHECKS
- 
+      USE_CHECKS  = Input_Opt%USE_CHECKS
 
       ! Set up concentrations of Hg(0), Hg(II), Hg(C) in deep ocean REDALERT
- 
-      IF (LPREINDHG) THEN
+      IF ( Input_Opt%LPREINDHG) THEN
          CDEEP    = (/ 2d-11, 1.67d-10, 1.67d-10 /)
          CDEEPATL = (/ 2d-11, 1.67d-10, 1.67d-10 /)
          CDEEPNAT = (/ 2d-11, 1.67d-10, 1.67d-10 /)
@@ -3626,105 +3677,105 @@
 
       
       ! Allocate arrays     
-      ALLOCATE( dMLD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'dMLD' )
+      ALLOCATE( dMLD( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'dMLD' )
       dMLD = 0d0
 
-      ALLOCATE( Hg0aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Hg0aq' )
+      ALLOCATE( Hg0aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg0aq' )
       Hg0aq = 0d0
 
-      ALLOCATE( Hg2aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Hg2aq' )
+      ALLOCATE( Hg2aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg2aq' )
       Hg2aq = 0d0
 
 !- eds 8/31/10 ---------------------------------------------
 ! Added NN to HgPaq throughout module
-!      ALLOCATE( HgPaq( IIPAR, JJPAR ), STAT=AS )
-      ALLOCATE( HgPaq (IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HgPaq' )
+!      ALLOCATE( HgPaq( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( HgPaq (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq' )
       HgPaq = 0d0
 
       !eds 5/15/12 fix
-      ALLOCATE( Hgaq_tot (IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Hgaq_tot' )
+      ALLOCATE( Hgaq_tot (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hgaq_tot' )
       HgPaq = 0d0
 
-      ALLOCATE( HgPaq_SUNK (IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HgPaq_SUNK' )
+      ALLOCATE( HgPaq_SUNK (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq_SUNK' )
       HgPaq = 0d0
 
-      ALLOCATE( MLD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MLD' )
+      ALLOCATE( MLD( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLD' )
       MLD = 0d0
 
-      ALLOCATE( MLDav( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MLDav' )
+      ALLOCATE( MLDav( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLDav' )
       MLDav = 0d0
 
-      ALLOCATE( newMLD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'newMLD' )
+      ALLOCATE( newMLD( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'newMLD' )
       newMLD = 0d0
 
       !eds 10/19/10 fixing restart bug
-      ALLOCATE( prevMLD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /=0 ) CALL ALLOC_ERR( 'prevMLD' )
+      ALLOCATE( prevMLD( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /=0 ) CALL ALLOC_ERR( 'prevMLD' )
       prevMLD = 0d0
 
-      ALLOCATE( NPP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NPP' )
+      ALLOCATE( NPP( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NPP' )
       NPP = 0d0
 
-      ALLOCATE( CHL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CHL' )
+      ALLOCATE( CHL( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CHL' )
       CHL = 0d0
 
-      ALLOCATE( UPVEL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPVEL' )
+      ALLOCATE( UPVEL( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'UPVEL' )
       UPVEL = 0d0
 
-      ALLOCATE( Fg( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Fg' )
+      ALLOCATE( Fg( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fg' )
       Fg = 0d0    
 
-      ALLOCATE( Fp( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Fp' )
+      ALLOCATE( Fp( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fp' )
       Fp = 0d0  
      
-      ALLOCATE( BULK_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BULK_CONC' )
+      ALLOCATE( BULK_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BULK_CONC' )
       BULK_CONC = 0d0  
 
-      ALLOCATE( SO4_GC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_GC' )
+      ALLOCATE( SO4_GC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_GC' )
       SO4_GC = 0d0 
 
-      ALLOCATE( NIT_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NIT_CONC' )
+      ALLOCATE( NIT_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NIT_CONC' )
       NIT_CONC = 0d0 
 
-      ALLOCATE( NH4_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NH4_CONC' )
+      ALLOCATE( NH4_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NH4_CONC' )
       NH4_CONC = 0d0 
 
-      ALLOCATE( OC_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC_CONC' )
+      ALLOCATE( OC_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'OC_CONC' )
       OC_CONC = 0d0 
 
-      ALLOCATE( BC_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CONC' )
+      ALLOCATE( BC_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BC_CONC' )
       BC_CONC = 0d0 
 
-      ALLOCATE( DST_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DST_CONC' )
+      ALLOCATE( DST_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'DST_CONC' )
       DST_CONC = 0d0 
 
-      ALLOCATE( R( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'R' )
+      ALLOCATE( R( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'R' )
       R = 0d0 
 
-      ALLOCATE( SO4_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
+      ALLOCATE( SO4_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
       SO4_CONC = 0d0 
 
 

@@ -283,6 +283,7 @@ CONTAINS
     INTEGER           :: I,    J,      L,   N,   NN
     REAL*8            :: dt,   P,      k,   M0,  RC,     M
     REAL*8            :: TK,   RDLOSS, T1L, mOH, BryDay, BryNight
+    REAL*8            :: BOXVL
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     LOGICAL           :: LBRGCCM
@@ -298,9 +299,6 @@ CONTAINS
     REAL*8, POINTER   :: STT(:,:,:,:)
     REAL*8, POINTER   :: AD(:,:,:)
     REAL*8, POINTER   :: T(:,:,:)
-
-    ! External functions
-    REAL*8, EXTERNAL  :: BOXVL
 
     !===============================
     ! DO_STRAT_CHEM begins here!
@@ -342,12 +340,12 @@ CONTAINS
        ! Read rates for this month
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 #if defined( GRID4x5 ) || defined( GRID2x25 )
-          CALL GET_RATES( GET_MONTH(), Input_Opt, State_Chm,  &
-                                       am_I_Root, errCode    )
+          CALL GET_RATES &
+               ( am_I_Root, Input_Opt, GET_MONTH(), State_Chm, errCode )
 #else
           ! For resolutions finer than 2x2.5, nested, 
           ! or otherwise exotic domains and resolutions
-          CALL GET_RATES_INTERP( GET_MONTH(), am_I_Root )
+          CALL GET_RATES_INTERP( am_I_Root, Input_Opt, GET_MONTH(), RC )
 #endif
        ENDIF
 
@@ -463,7 +461,7 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, M, TK, RC, RDLOSS, T1L, mOH )
+       !$OMP PRIVATE( I, J, L, M, TK, RC, RDLOSS, T1L, mOH, BOXVL )
        DO J=1,JJPAR
           DO I=1,IIPAR  
 
@@ -474,8 +472,11 @@ CONTAINS
 
                 IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) CYCLE
 
+                ! Grid box volume [cm3]
+                BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
+
                 ! Density of air at grid box (I,J,L) in [molec cm-3]
-                M = AD(I,J,L) / BOXVL(I,J,L,State_Met) * XNUMOLAIR
+                M = AD(I,J,L) / BOXVL * XNUMOLAIR
 
                 ! OH number density [molec cm-3]
                 mOH = M * STRAT_OH(I,J,L)
@@ -700,7 +701,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_RATES( THISMONTH, Input_Opt, State_Chm, am_I_Root, RC )
+  SUBROUTINE GET_RATES( am_I_Root, Input_Opt, THISMONTH, State_Chm, RC )
 !
 ! !USES:
 !
@@ -710,7 +711,6 @@ CONTAINS
     USE BPCH2_MOD,          ONLY : GET_TAU0
     USE BPCH2_MOD,          ONLY : READ_BPCH2
     USE CMN_SIZE_MOD
-    USE DIRECTORY_MOD,      ONLY : DATA_DIR
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -727,8 +727,8 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -774,7 +774,7 @@ CONTAINS
     !=================================================================
     ! GET_RATES begins here
     !=================================================================
-
+   
     ! Intialize arrays
     LOSS = 0e0
     PROD = 0e0
@@ -800,6 +800,9 @@ CONTAINS
     ! prod/loss data from netCDF files. (bmy, 10/26/12)
     !----------------------------------------------------------------------
 
+    ! Assume success
+    RC = GIGC_SUCCESS
+
     ! Copy fields from Input_Opt to Llocal variables
     N_TRACERS                = Input_Opt%N_TRACERS
     TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
@@ -817,7 +820,7 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() //  &
                '.'                              // GET_RES_EXT()  // '.nc'
-    FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
+    FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
 
     IF ( am_I_Root ) THEN
        WRITE( 6, 100 ) TRIM( filename )
@@ -847,7 +850,7 @@ CONTAINS
        FILENAME = 'strat_chem_201206/gmi.clim.' // &
                   TRIM( GMI_TrName(NN) ) // '.' // & 
                   GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
-       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
+       FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
 
        IF ( am_I_Root ) THEN
           WRITE( 6, 100 ) TRIM( filename )
@@ -917,12 +920,12 @@ CONTAINS
     XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
 
     ! the daytime concentrations
-    dayfile = TRIM( DATA_DIR ) // 'bromine_201205/' // &
+    dayfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
          'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
          GET_NAME_EXT()   // '.' // GET_RES_EXT()
 
     ! the nighttime concentrations
-    nightfile = TRIM(DATA_DIR) // 'bromine_201205/' // &
+    nightfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
          'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
          GET_NAME_EXT()   // '.' // GET_RES_EXT()
     
@@ -964,24 +967,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_RATES_INTERP( THISMONTH, am_I_Root )
+  SUBROUTINE GET_RATES_INTERP( am_I_Root, Input_Opt, THISMONTH, RC )
 !
 ! !USES:
 !
     ! GEOS-Chem routines
-    USE BPCH2_MOD,       ONLY : GET_NAME_EXT
-    USE BPCH2_MOD,       ONLY : GET_RES_EXT
-    USE BPCH2_MOD,       ONLY : GET_TAU0
-    USE BPCH2_MOD,       ONLY : READ_BPCH2
+    USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+    USE BPCH2_MOD,          ONLY : GET_RES_EXT
+    USE BPCH2_MOD,          ONLY : GET_TAU0
+    USE BPCH2_MOD,          ONLY : READ_BPCH2
     USE CMN_SIZE_MOD
-    USE DIRECTORY_MOD,   ONLY : DATA_DIR_1x1
-    USE GRID_MOD,        ONLY : GET_XMID
-    USE GRID_MOD,        ONLY : GET_YMID
-    USE LOGICAL_MOD,     ONLY : LLINOZ
-    USE TIME_MOD,        ONLY : GET_MONTH
-    USE TRACER_MOD,      ONLY : N_TRACERS, TRACER_NAME
-    USE TRANSFER_MOD,    ONLY : TRANSFER_3D
-    USE TRANSFER_MOD,    ONLY : TRANSFER_3D_Bry
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GRID_MOD,           ONLY : GET_XMID
+    USE GRID_MOD,           ONLY : GET_YMID
+    USE TIME_MOD,           ONLY : GET_MONTH
+    USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+    USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Bry
 
     ! netCDF routines
     USE m_netcdf_io_open
@@ -990,10 +992,18 @@ CONTAINS
 
     IMPLICIT NONE
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
 ! !INPUT PARAMETERS: 
 !
-    INTEGER, INTENT(IN) :: THISMONTH   ! Current month
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  01 Feb 2011 - L. Murray   - Initial version
@@ -1005,6 +1015,7 @@ CONTAINS
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  26 Aug 2013 - R. Yantosca - Avoid array temporaries
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1041,9 +1052,17 @@ CONTAINS
     ! Pointers
     REAL*4, POINTER    :: ptr_3D(:,:,:)
 
+    ! For values from Input_Opt
+    INTEGER            :: N_TRACERS
+    CHARACTER(LEN=255) :: TRACER_NAME(Input_Opt%N_TRACERS)
+
     !=================================================================
     ! GET_RATES_INTERP begins here
     !=================================================================
+
+    ! Copy values from Input_Opt
+    N_TRACERS   = Input_Opt%N_TRACERS
+    TRACER_NAME = Input_Opt%TRACER_NAME(1:N_TRACERS)
 
     ! Intialize arrays
     LOSS = 0d0
@@ -1051,7 +1070,7 @@ CONTAINS
 
     ! Path to input data, use 2 x 2.5 file
     FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() // '.2x25.nc'
-    FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
+    FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // TRIM( FILENAME )
 
     ! Echo info
     IF ( am_I_Root ) THEN
@@ -1127,12 +1146,12 @@ CONTAINS
     XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
 
     ! the daytime concentrations
-    dayfile = TRIM( DATA_DIR_1x1 ) // 'bromine_201205/' // &
+    dayfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
          'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
          GET_NAME_EXT()   // '.2x25'
     
     ! the nighttime concentrations
-    nightfile = TRIM(DATA_DIR_1x1 ) // 'bromine_201205/' // &
+    nightfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
          'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
          GET_NAME_EXT()   // '.2x25'
     
@@ -1174,7 +1193,7 @@ CONTAINS
        ! Path to input data, use 2 x 2.5 file
        FILENAME = 'strat_chem_201206/gmi.clim.' // &
             TRIM( GMI_TrName(NN) ) // '.' // GET_NAME_EXT() // '.2x25.nc'
-       FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
+       FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // TRIM( FILENAME )
 
        IF ( am_I_Root ) THEN
           WRITE( 6, 12 ) TRIM( filename )
@@ -1807,7 +1826,6 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE LOGICAL_MOD,        ONLY : LVARTROP 
     USE PRESSURE_MOD,       ONLY : GET_PEDGE,   GET_PCENTER
     USE TAGGED_Ox_MOD,      ONLY : ADD_STRAT_POX
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
@@ -2081,7 +2099,7 @@ CONTAINS
           ! Comment out for now (bmy, 10/2/07)
           ! replace L70mb with Tropopause pressure if the later is 
           ! lower -PHS #### still Beta testing ####
-          !IF ( LVARTROP ) THEN
+          !IF ( Input_Opt%LVARTROP ) THEN
           !   PTP = State_Met%TROPP(I,J)
           !   IF ( PTP < P70mb ) THEN
           !      P70mb = PTP

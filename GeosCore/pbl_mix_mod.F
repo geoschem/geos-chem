@@ -124,10 +124,10 @@
       LOGICAL,        INTENT(IN)    :: DO_TURBDAY  ! =T means call TURBDAY 
                                                    !    for full PBL mixing
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
@@ -135,6 +135,7 @@
 !  07 Sep 2011 - G. Luo      - Add modifications for APM
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  22 Aug 2014 - R. Yantosca - Now declare State_Met INTENT(INOUT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -214,9 +215,9 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_GCTM_MOD             ! Scale height
 !
-! !INPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -229,6 +230,7 @@
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  22 Aug 2014 - R. Yantosca - Now declare State_Met INTENT(INOUT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -293,23 +295,28 @@
 
          ! IMIX(I,J)   is the level where the PBL top occurs at (I,J)
          ! IMIX(I,J)-1 is the number of whole levels below the PBL top
-         IMIX(I,J)        = LTOP 
+         IMIX(I,J)                = LTOP 
 
          ! Fraction of the IMIXth level underneath the PBL top
-         FPBL(I,J)        = 1d0 - ( BLTOP     - P(LTOP) ) / 
-     &                            ( P(LTOP-1) - P(LTOP) ) 
+         FPBL(I,J)                = 1d0 - ( BLTOP     - P(LTOP) ) / 
+     &                                    ( P(LTOP-1) - P(LTOP) ) 
 
          ! PBL top [model layers]
-         PBL_TOP_L(I,J)   = FLOAT( IMIX(I,J) - 1 ) + FPBL(I,J)
+         PBL_TOP_L(I,J)           = FLOAT( IMIX(I,J) - 1 ) + FPBL(I,J)
+
+         ! PBL top level [integral model layers]
+         ! This is needed by the non-local PBL mixing scheme to
+         ! apply emissions in the boundary layer (bmy, 8/22/14)
+         State_Met%PBL_TOP_L(I,J) = MAX( 1, FLOOR( PBL_TOP_L(I,J) ) )
 
          ! PBL top [hPa]
-         PBL_TOP_hPa(I,J) = BLTOP
+         PBL_TOP_hPa(I,J)         = BLTOP
 
          ! Zero PBL top [m] -- compute below
-         PBL_TOP_m(I,J)   = 0d0
+         PBL_TOP_m(I,J)           = 0d0
 
          ! PBL thickness [hPa]
-         PBL_THICK(I,J)   = BLTHIK
+         PBL_THICK(I,J)           = BLTHIK
 
          !==============================================================
          ! Loop up to edge of chemically-active grid

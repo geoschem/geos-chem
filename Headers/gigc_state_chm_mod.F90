@@ -44,8 +44,7 @@ MODULE GIGC_State_Chm_Mod
      INTEGER,           POINTER :: Trac_Id    (:      )  ! Tracer ID #'s
      CHARACTER(LEN=14), POINTER :: Trac_Name  (:      )  ! Tracer names
      REAL*8,            POINTER :: Tracers    (:,:,:,:)  ! Tracer conc [kg]
-     REAL*8,            POINTER :: Trac_Tend  (:,:,:,:)  ! Tracer tendency
-     REAL*8,            POINTER :: Trac_Btend (:,:,:,:)  ! Biomass tendency
+     REAL*8,            POINTER :: Trac_Tend  (:,:,:,:)  ! Tracer tendency [kg/m2/s]
 
      ! Chemical species
      INTEGER,           POINTER :: Spec_Id    (:      )  ! Species ID # 
@@ -147,6 +146,8 @@ MODULE GIGC_State_Chm_Mod
 !  07 Mar 2013 - R. Yantosca - Add Register_Tracer subroutine
 !  07 Mar 2013 - R. Yantosca - Now make POSITION a locally SAVEd variable
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 May 2014 - C. Keller   - Removed Trac_Btend. DepSav array covers now
+!                              all species.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -408,9 +409,6 @@ CONTAINS
     ALLOCATE( State_Chm%Trac_Tend     ( IM, JM, LM, nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Trac_Btend    ( IM, JM, LM, nBiomax    ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
     !=====================================================================
     ! Allocate chemical species fields
     !=====================================================================
@@ -429,7 +427,7 @@ CONTAINS
     !=====================================================================
 
     ! DEPSAV is allocated in drydep_mod
-    ALLOCATE( State_Chm%DEPSAV        ( IM, JM,     Max_Dep    ), STAT=RC )
+    ALLOCATE( State_Chm%DEPSAV        ( IM, JM,     nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     ALLOCATE( State_Chm%JLOP( ILONG, ILAT, IPVERT ), STAT=RC )
@@ -488,7 +486,6 @@ CONTAINS
     State_Chm%Trac_name   = ''
     State_Chm%Tracers     = 0d0
     State_Chm%Trac_Tend   = 0d0
-    State_Chm%Trac_Btend  = 0d0
 
     ! Dry deposition
     State_Chm%DepSav      = 0d0
@@ -567,7 +564,6 @@ CONTAINS
     IF ( ASSOCIATED(State_Chm%Spec_Id    ) ) DEALLOCATE(State_Chm%Spec_Id    )
     IF ( ASSOCIATED(State_Chm%Spec_Name  ) ) DEALLOCATE(State_Chm%Spec_Name  )
     IF ( ASSOCIATED(State_Chm%Trac_Tend  ) ) DEALLOCATE(State_Chm%Trac_Tend  )
-    IF ( ASSOCIATED(State_Chm%Trac_Btend ) ) DEALLOCATE(State_Chm%Trac_Btend )
     IF ( ASSOCIATED(State_Chm%Tracers    ) ) DEALLOCATE(State_Chm%Tracers    )
     IF ( ASSOCIATED(State_Chm%Species    ) ) DEALLOCATE(State_Chm%Species    )
     IF ( ASSOCIATED(State_Chm%DepSav     ) ) DEALLOCATE(State_Chm%DepSav     )

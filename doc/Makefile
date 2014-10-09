@@ -33,48 +33,59 @@
 #  31 Aug 2010 - R. Yantosca - Add documentation for GTMM routines
 #  14 Sep 2010 - R. Yantosca - Now split make commands into include files
 #  20 Aug 2013 - R. Yantosca - Remove GeosTomas directory, that is obsolete
+#  09 Jul 2014 - R. Yantosca - Now build HEMCO documentation
+#  21 Jul 2014 - R. Yantosca - Now look for HEMCO modules in subdirectories
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-#==============================================================================
-# Initialization
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
 
 # Define variables
-ROOTDIR := ..
-BIN     := $(ROOTDIR)/bin
-BPCH    := $(ROOTDIR)/GeosBpch
-CORE    := $(ROOTDIR)/GeosCore
-DOC     := $(ROOTDIR)/doc
-ESMF    := $(ROOTDIR)/ESMF
-GTMM    := $(ROOTDIR)/GTMM
-HDR     := $(ROOTDIR)/Headers
-HELP    := $(ROOTDIR)/help
-ISO     := $(ROOTDIR)/ISOROPIA
-KPP     := $(ROOTDIR)/KPP
-UTIL    := $(ROOTDIR)/GeosUtil
+ROOT  :=..
+BIN   :=$(ROOT)/bin
+BPCH  :=$(ROOT)/GeosBpch
+CORE  :=$(ROOT)/GeosCore
+DOC   :=$(ROOT)/doc
+ESMF  :=$(ROOT)/ESMF
+GTMM  :=$(ROOT)/GTMM
+HCO   :=$(ROOT)/HEMCO/Core
+HCOI  :=$(ROOT)/HEMCO/Interfaces
+HCOX  :=$(ROOT)/HEMCO/Extensions
+HDR   :=$(ROOT)/Headers
+HELP  :=$(ROOT)/help
+ISO   :=$(ROOT)/ISOROPIA
+KPP   :=$(ROOT)/KPP
+UTIL  :=$(ROOT)/GeosUtil
 
 # Get the Unix shell in SHELL from the Makefile_header.mk
-include $(ROOTDIR)/Makefile_header.mk
+include $(ROOT)/Makefile_header.mk
 
-#==============================================================================
-# Makefile targets
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: doc docclean help
 
-doc: srcdoc utildoc gtmmdoc makedoc
+doc: srcdoc utildoc gtmmdoc makedoc hemcodoc
 
 clean:
-	rm -f *.tex *.ps *.pdf
+	rm -f *.tex *.ps *.pdf *.aux *.dvi *.log *.toc
 
 help:
-	@$(MAKE) -C $(HELPDIR)
+	@$(MAKE) -C $(HELP)
 
-#==============================================================================
-# Build the GEOS-Chem documentation
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Build the GEOS-Chem documentation                                      ###
+###                                                                         ###
+###############################################################################
 
 # Commands to build the source code documentation
 include ./Makefile_SrcDoc.mk
@@ -88,5 +99,7 @@ include ./Makefile_MakeDoc.mk
 # Commands to build the GTMM documentation
 include ./Makefile_GtmmDoc.mk
 
+# Commands to build the GTMM documentation
+include ./Makefile_Hemco.mk
 
 #EOC

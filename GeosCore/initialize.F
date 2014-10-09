@@ -16,7 +16,7 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE( IFLAG, am_I_Root )
+      SUBROUTINE INITIALIZE( am_I_Root, Input_Opt, IFLAG, RC )
 !
 ! !USES:
 !
@@ -25,6 +25,8 @@
       USE CMN_DIAG_MOD
       USE ERROR_MOD
       USE TIME_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       ! Modules from GeosCore subdirectory
       USE DIAG_MOD
@@ -35,19 +37,23 @@
       USE DIAG53_MOD
       USE DIAG56_MOD
       USE DIAG_PL_MOD
-      USE LOGICAL_MOD
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+
+
       ! If IFLAG=1, zero global CTM arrays 
       ! If IFLAG=2, zero accumulating diagnostic arrays
       ! If IFLAG=3, zero accumulating diagnostic counters
-      INTEGER, INTENT(IN)  :: IFLAG
-
-      ! Is this the root CPU?
-      LOGICAL, INTENT(IN) :: am_I_Root   
+      INTEGER,        INTENT(IN)  :: IFLAG
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Eventually we will fold this into "diag_mod.f" in a cleaner,
@@ -131,6 +137,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  08 Nov 2013 - M. Sulprizio- Removed CTO3. It is no longer used because O3
 !                              is now a tracer.
+!  15 Aug 2014 - R. Yantosca - Remove diagnostics now tracked by HEMCO
+!  17 Sep 2014 - M. Sulprizio- Now initialize AD61 for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,7 +166,6 @@
          IF ( ND05 > 0 ) AD05     = 0e0
          IF ( ND06 > 0 ) AD06     = 0e0
          IF ( ND08 > 0 ) AD08     = 0e0
-         IF ( ND11 > 0 ) AD11     = 0e0
          IF ( ND12 > 0 ) AD12     = 0e0
          IF ( ND14 > 0 ) CONVFLUP = 0d0
          IF ( ND15 > 0 ) TURBFLUP = 0d0
@@ -170,25 +177,19 @@
          IF ( ND24 > 0 ) MASSFLEW = 0d0
          IF ( ND25 > 0 ) MASSFLNS = 0d0
          IF ( ND26 > 0 ) MASSFLUP = 0d0
-         IF ( ND28 > 0 ) AD28     = 0e0
-         IF ( ND29 > 0 ) AD29     = 0e0
          IF ( ND30 > 0 ) AD30     = 0e0
          IF ( ND31 > 0 ) AD31     = 0e0
          IF ( ND33 > 0 ) AD33     = 0e0
-         IF ( ND34 > 0 ) AD34     = 0e0
          IF ( ND35 > 0 ) AD35     = 0e0
          IF ( ND37 > 0 ) AD37     = 0e0
          IF ( ND38 > 0 ) AD38     = 0e0
          IF ( ND39 > 0 ) AD39     = 0e0
          IF ( ND43 > 0 ) AD43     = 0e0
          IF ( ND44 > 0 ) AD44     = 0e0
-         IF ( ND45 > 0 ) AD45     = 0e0
-         IF ( ND46 > 0 ) AD46     = 0e0
          IF ( ND47 > 0 ) AD47     = 0e0
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
          IF ( ND55 > 0 ) AD55     = 0e0
-         !potential temp (fp, 6/2009)
          IF ( ND57 > 0 ) AD57     = 0e0
          IF ( ND58 > 0 ) AD58     = 0e0
          IF ( ND60 > 0 ) AD60     = 0e0
@@ -241,55 +242,22 @@
             AD09     = 0e0
             AD09_em  = 0e0
          ENDIF
-         
-         ! For ND10 -- H2 & HD simulation (phs, 9/18/07)
-         IF ( ND10 > 0 ) THEN 
-            AD10    = 0e0
-            AD10em  = 0e0
-         ENDIF
-
-         ! For ND13 - sulfur emissions (bmy, 6/6/00, 5/20/04)
-         IF ( ND13 > 0 ) THEN
-            AD13_DMS    = 0e0  
-            AD13_SO2_ac = 0e0
-            AD13_SO2_an = 0e0
-            AD13_SO2_bb = 0e0
-            AD13_SO2_bf = 0e0
-            AD13_SO2_nv = 0e0
-            AD13_SO2_ev = 0e0
-            AD13_SO2_sh = 0e0
-            AD13_SO4_an = 0e0
-            AD13_SO4_bf = 0e0
-            AD13_NH3_an = 0e0
-            AD13_NH3_na = 0e0
-            AD13_NH3_bb = 0e0
-            AD13_NH3_bf = 0e0
-         ENDIF
+ 
+!----------------------------------------------------------------------------- 
+!%%% Prior to 8/18/14
+!%%% THE H2/HD SIMULATION IS OBSOLETE.  YOU CAN RESTORE IT IF YOU WANT. 
+!%%% UNTIL THEN WE WILL LEAVE THIS COMMENTED OUT.  (bmy, 8/18/14)
+!         ! For ND10 -- H2 & HD simulation (phs, 9/18/07)
+!         IF ( ND10 > 0 ) THEN 
+!            AD10    = 0e0
+!            AD10em  = 0e0
+!         ENDIF
+!----------------------------------------------------------------------------- 
 
          ! ND21 -- optical depths
          IF ( ND21 > 0 ) THEN
             AD21 = 0e0
-            IF ( LCRYST ) AD21_cr = 0e0
-         ENDIF
-
-         ! For ND32 -- NOx source diagnostics (bmy, 3/28/00)
-         IF ( ND32 > 0 ) THEN 
-            AD32_ac = 0e0
-            AD32_an = 0e0
-            AD32_bb = 0e0
-            AD32_bf = 0e0
-            AD32_fe = 0e0
-            AD32_li = 0e0
-            AD32_so = 0e0
-            AD32_ub = 0e0
-            AD32_ship       = 0e0
-            AD32_ship_count = 0
-         ENDIF
-
-         IF ( ND36 > 0 ) THEN
-            AD36            = 0e0
-            AD36_SHIP       = 0e0
-            AD36_SHIP_COUNT = 0
+            IF ( Input_Opt%LCRYST ) AD21_cr = 0e0
          ENDIF
 
          ! For ND41 - afternoon PBL heights (bmy, 2/17/05)
@@ -329,6 +297,9 @@
             AD60_ERROR = 0e0
             AD60_SOA   = 0e0
          ENDIF
+
+         ! For ND61 - 3-D process rate diagnostic
+         IF ( ND61 > 0 ) AD61 = 0e0
 #endif
 
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)

@@ -141,6 +141,11 @@
 #  19 Mar 2014 - R. Yantosca - Restore GTMM compilation funcitonality
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #  20 Mar 2014 - R. Yantosca - Bug fix: "+= -DDEBUG" instead of ":= -DDEBUG"
+#  09 Jul 2014 - R. Yantosca - Now don't require MET or GRID if target is
+#                              srcdoc, utildoc, gtmmdoc, makedoc, or hemcodoc
+#  21 Jul 2014 - R. Yantosca - Update build sequence
+#  03 Oct 2014 - R. Yantosca - Now turn on NO_REDUCED=y for hpc target
+#  03 Oct 2014 - R. Yantosca - Now compatible with netCDF 4.1.1 or 4.2+
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -190,13 +195,16 @@ ifndef OMP
 OMP            :=yes
 endif
 
+# %%%%% Set the HPC variable if we are building for use w/ ESMF/MPI %%%%
 ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
-HPC :=yes
-export HPC
+  HPC :=yes
+  export HPC
 endif
-# %%%%% Disable OpenMP for HPC; we use MPI parallelizaiton instead %%%%%
+
+# %%%%% For HPC, we disable OpenMP and turn on the full vertical grid %%%
 ifeq ($(HPC),yes)
-OMP            :=no
+  OMP          :=no
+  NO_REDUCED   :=yes
 endif
 
 # %%%%% Set default compiler %%%%%
@@ -277,7 +285,7 @@ endif
 # to compile with "clean", "distclean", "realclean", "doc", "help",
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of MET.
 ifndef MET
-REGEXP         :=($clean|^doc|^help|^libnc|^ncdfcheck)
+REGEXP         :=($clean|^doc|^srcdoc|^utildoc|^gtmmdoc|^makedoc|^hemcodoc|^help|^libnc|^ncdfcheck)
 ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ $(REGEXP) ]] && echo true),true)
 NO_MET_NEEDED  :=1
 else
@@ -346,7 +354,7 @@ endif  # NO_MET_NEEDED
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
 ifndef NO_GRID_NEEDED
 ifndef GRID
-REGEXP         :=($clean|^doc|^help|^libnc|^ncdfcheck)
+REGEXP         :=($clean|^doc|^srcdoc|^utildoc|^gtmmdoc|^makedoc|^hemcodoc|^help|^libnc|^ncdfcheck)
 ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
 NO_GRID_NEEDED :=1
 else
@@ -534,33 +542,50 @@ endif
 # Library include path
 NCI            := -I$(GC_INCLUDE)
 
-# Library link path: first try to get the list of proper linking flags
-# for this build of netCDF with nf-config and nc-config. 
-NCL            := $(shell $(GC_BIN)/nc-config --flibs)
-NCL            += $(shell $(GC_BIN)/nc-config --libs)
-#NCL            := $(filter -l%,$(NCL))
+# Find the correct nc-config commands based on the netCDF version
+NCV            := $(shell $(GC_BIN)/nc-config --version)
+REGEXP         :="netCDF 4.1.1"
+
+ifeq ($(shell [[ "$(NCV)" == $(REGEXP) ]] && echo true),true)
+
+  #-------------------------------------------------------------------------
+  # netCDF 4.1.1: Use "nc-config --flibs"
+  #-------------------------------------------------------------------------
+  NCL          := $(shell $(GC_BIN)/nc-config --libs)
+
+else
+
+  #-------------------------------------------------------------------------
+  # netCDF 4.2 etc. use "nf-config --flibs" and "nc-config --libs"
+  #-------------------------------------------------------------------------
+  NCL          := $(shell $(GC_BIN)/nf-config --flibs)
+  NCL          += $(shell $(GC_BIN)/nc-config --libs)
+
+  # NOTE: To make this more portable, we'll strip off the directory path
+  # returned by nc-config and nf-config, and then just use the GC_LIB
+  # path as set in the user's configuration. (bmy, 10/3/14)
+  NCL          := $(filter -l%,$(NCL))
+  NCL          :=-L$(GC_LIB) $(NCL)
+
+endif
 
 #------------------------------------------------------------------------------
 # NOTE TO GEOS-CHEM USERS: If you do not have netCDF-4.2 installed
 # Then you can add/modify the linking sequence here.  (This sequence
 # is a guess, but is probably good enough for other netCDF builds.)
-#ifeq ($(NCL),) 
-#NCL            :=-lnetcdf -lhdf5_hl -lhdf5 -lz
-#endif
+#<<>>ifeq ($(NCL),) 
+#<<>>NCL            :=-lnetcdf -lhdf5_hl -lhdf5 -lz
+#<<>>endif
 #------------------------------------------------------------------------------
-
-# Prepend the library directory path to the linking sequence
-NCL            :=-L$(GC_LIB) $(NCL)
 
 # Command to link to local library files
 ifeq ($(GTMM_NEEDED),1)
-LINK           :=-L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil -lHeaders
+ LINK          :=-L$(LIB) -lHg
 else
-LINK           :=-L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
+ LINK          :=-L$(LIB)
 endif
-
-# Append command to link to netCDF etc library files
-LINK           :=$(LINK) -lNcUtils $(NCL)
+LINK           :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
+LINK           :=$(LINK) -lHeaders -lNcUtils $(NCL)
 
 ###############################################################################
 ###                                                                         ###
@@ -677,7 +702,8 @@ endif
 FFLAGS         += $(USER_DEFS)
 
 # Include options (i.e. for finding *.h, *.mod files)
-INCLUDE        := -I$(HDR) -module $(MOD) $(NCI)
+#INCLUDE        := -I$(HDR) -module $(MOD) $(NCI)
+INCLUDE        := -module $(MOD) $(NCI)
 
 INCLUDE_ISO := $(INCLUDE) # For some reason, isoropia won't link properly, giving a math error.
 ifeq ($(HPC),yes)

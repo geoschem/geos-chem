@@ -1107,7 +1107,6 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
-      USE CMN_MOD
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
       USE GIGC_ErrCode_Mod
@@ -1118,7 +1117,6 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE FILE_MOD,           ONLY : FILE_EXISTS
-      USE LOGICAL_MOD,        ONLY : LPRT
       USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -1153,6 +1151,7 @@
 !  04 Apr 2013 - R. Yantosca - Now declare State_Chm INTENT(INOUT)
 !  22 Aug 2013 - R. Yantosca - Add Input_Opt, RC arguments
 !  22 Aug 2013 - R. Yantosca - Now get species restart filename from Input_Opt
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1179,10 +1178,13 @@
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
 
+      ! For values from Input_Opt
+      LOGICAL             :: LPRT
+
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
-      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+      REAL*8,  POINTER    :: CSPEC_FULL(:,:,:,:)
 
       !=================================================================
       ! READ_CSPEC_FILE begins here!
@@ -1190,6 +1192,9 @@
 
       ! Assume success
       RC         = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LPRT       = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! Initialize some variables
       !TMP(:,:,:) = 0e0
@@ -1223,7 +1228,8 @@
  
       ! Check to see if cspec restart file exists
       IT_EXISTS = FILE_EXISTS( FILENAME )
-      IF ( .not. IT_EXISTS ) THEN 
+      IF ( .not. IT_EXISTS ) THEN
+         NULLIFY( CSPEC_FULL )
          RETURN
       ENDIF 
 

@@ -249,7 +249,7 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD,           ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+      USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
       USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -510,7 +510,7 @@
          TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
 
          ! Convert from [kg] to [v/v]
-         TR_DIFF = SAFE_DIV(TR_DIFF, SUMADA, 0.d0) * TCVV(N)
+         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.d0 ) * TCVV(N)
 
          ! Add mass difference [v/v] back to STT
          DO L = 1, LLPAR
@@ -555,8 +555,8 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD,           ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG
+      USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -601,6 +601,7 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
+!  04 Sep 2014 - R. Yantosca - Avoid div-by-zero errors in division w/ SUMADA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -821,7 +822,7 @@
          TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
 
          ! Convert from [kg] to [v/v]
-         TR_DIFF = TR_DIFF / SUMADA * TCVV(N)
+         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.d0 ) * TCVV(N)
 
          ! Add mass difference [v/v] back to STT
          DO L = 1, LLPAR

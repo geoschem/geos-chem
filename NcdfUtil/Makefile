@@ -41,6 +41,7 @@
 #  11 May 2012 - R. Yantosca - Now use exported NCL from Makefile_header.mk
 #  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  10 Jul 2014 - R. Yantosca - Now compile ncdf_mod.F90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -51,26 +52,42 @@
 ###                                                                         ###
 ###############################################################################
 
-# Define variables
-ROOTDIR := ..
-BIN     := $(ROOTDIR)/bin
-DOC     := $(ROOTDIR)/doc
-HDR     := $(ROOTDIR)/Headers
-EXE     := TestNcdfUtil.x
-LIB     := $(ROOTDIR)/lib
-MOD     := $(ROOTDIR)/mod
+# Directories
+ROOT   :=..
+BIN    :=$(ROOT)/bin
+DOC    :=$(ROOT)/doc
+LIB    :=$(ROOT)/lib
+MOD    :=$(ROOT)/mod
+
+# Executables
+EXE    :=TestNcdfUtil.x
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
+include $(ROOT)/Makefile_header.mk
 
-# Files for library build (code & objects)
-SRC  = $(wildcard m_*.F90)
-OBJ  = $(SRC:.F90=.o)
-MOD  = $(SRC:.F90=.mod)
+# Include these files in the library libNcUtils.a
+OBJlib :=                  \
+m_do_err_out.o             \
+m_netcdf_io_checks.o	   \
+m_netcdf_io_close.o	   \
+m_netcdf_io_create.o	   \
+m_netcdf_io_define.o	   \
+m_netcdf_io_get_dimlen.o   \
+m_netcdf_io_handle_err.o   \
+m_netcdf_io_open.o	   \
+m_netcdf_io_read.o	   \
+m_netcdf_io_readattr.o	   \
+m_netcdf_io_write.o        \
+ncdf_mod.o
+
+# But compile all of these files.  The modules charpak_mod.F and julday_mod.F
+# are needed to build ncdf_mod.F90, but don't need to be added into library
+# libNcUtils.a.  These modules already get packaged into libGeosUtil.a.
+OBJ    :=charpak_mod.o julday_mod.o $(OBJlib)
 
 # Files for standalone test driver (code, object, exe)
-OBJx = $(EXE:.x=.o)
+OBJx   :=$(EXE:.x=.o)
 
 ###############################################################################
 ###                                                                         ###
@@ -89,6 +106,10 @@ OBJx = $(EXE:.x=.o)
 ###       in this directory must have a listed dependency.                  ###
 ###                                                                         ###
 ###############################################################################
+
+charpak_mod.o            : charpak_mod.F
+
+julday_mod.o             : julday_mod.F
 
 m_do_err_out.o           : m_do_err_out.F90
 
@@ -121,6 +142,20 @@ m_netcdf_io_readattr.o   : m_netcdf_io_readattr.F90     \
 m_netcdf_io_write.o      : m_netcdf_io_write.F90        \
                            m_do_err_out.o
 
+ncdf_mod.o               : ncdf_mod.F90                 \
+                           charpak_mod.F                \
+                           julday_mod.F                 \
+                           m_netcdf_io_checks.o         \
+                           m_netcdf_io_close.o          \
+                           m_netcdf_io_create.o	        \
+                           m_netcdf_io_define.o         \
+                           m_netcdf_io_get_dimlen.o     \
+                           m_netcdf_io_handle_err.o     \
+                           m_netcdf_io_open.o           \
+                           m_netcdf_io_read.o           \
+                           m_netcdf_io_readattr.o       \
+                           m_netcdf_io_write.o
+
 TestNcdfUtil.o           : TestNcdfUtil.F90             \
                            m_do_err_out.o               \
                            m_netcdf_io_create.o         \
@@ -142,7 +177,7 @@ TestNcdfUtil.o           : TestNcdfUtil.F90             \
 .PHONY: clean help libnc ncdfcheck test
 
 libnc: $(OBJ)
-	$(AR) crs libNcUtils.a $(OBJ)
+	$(AR) crs libNcUtils.a $(OBJlib)
 	mv libNcUtils.a $(LIB)
 
 lib: libnc

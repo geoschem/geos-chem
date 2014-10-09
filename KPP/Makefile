@@ -65,32 +65,38 @@
 #------------------------------------------------------------------------------
 #BOC
 
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
+
 # Define variables
-ROOTDIR = ..
-DOC     = $(ROOTDIR)/doc
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-LIB     = $(ROOTDIR)/lib
-MOD     = $(ROOTDIR)/mod
+ROOT := ..
+DOC  := $(ROOT)/doc
+HELP := $(ROOT)/help
+LIB  := $(ROOT)/lib
+MOD  := $(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
+include $(ROOT)/Makefile_header.mk
 
 # Make the standard 43-tracer simulation the default
 ifndef CHEM
-CHEM = standard
+ CHEM :=standard
 endif
 
 # Check if NTRAC option is used
+#%%% NOTE: THE # oF TRACERS USED IS NOW OUT OF DATE (bmy, 7/21/14)
 ifdef NTRAC 
 
 ifeq ($(NTRAC),43)
-CHEM = standard
+ CHEM :=standard
 endif
 
 ifeq ($(NTRAC),54)
-CHEM = SOA 
+ CHEM :=SOA 
 endif
 
 endif
@@ -98,17 +104,18 @@ endif
 
 # Make rosenbrock the default solver
 ifndef KPPSOLVER
-KPPSOLVER = rosenbrock
+ KPPSOLVER := rosenbrock
 endif
 
 # solver (S=Source, T=Target)
-SOLVER_SFILE=./int/gckpp_Integrator_$(KPPSOLVER).F90
-SOLVER_TFILE=./$(CHEM)/gckpp_Integrator.F90
+SOLVER_SFILE :=./int/gckpp_Integrator_$(KPPSOLVER).F90
+SOLVER_TFILE :=./$(CHEM)/gckpp_Integrator.F90
 
-
-#=============================================================================
-# Makefile targets: type "make help" for a complete listing!
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: all lib kppintegrator clean realclean doc help
 

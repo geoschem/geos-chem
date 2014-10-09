@@ -582,7 +582,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YEDGE
-      USE LOGICAL_MOD,        ONLY : LVARTROP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -702,7 +701,7 @@
      &                         State_Met%PS1(I,J) ) * TC2 
 
          ! Test if we are using the variable tropopause
-         IF ( LVARTROP ) THEN
+         IF ( Input_Opt%LVARTROP ) THEN
  
             ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
             State_Met%TROPP(I,J) = State_Met%TROPP1(I,J) +
@@ -753,7 +752,7 @@
          ! so that we don't do chemistry at an abnormally high
          ! altitude.  Set TROPP in the polar regions to 200 hPa.
          ! (jal, phs, bmy, 9/18/07)
-         IF ( LVARTROP ) THEN
+         IF ( Input_Opt%LVARTROP ) THEN
             IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
                State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200d0 )
             ENDIF
@@ -794,7 +793,7 @@
             ! so that we don't do chemistry at an abnormally high
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
-            IF ( LVARTROP ) THEN
+            IF ( Input_Opt%LVARTROP ) THEN
                IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
                   State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
      &                                        200d0 )
@@ -846,7 +845,7 @@
             ! so that we don't do chemistry at an abnormally high
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
-            IF ( LVARTROP ) THEN
+            IF ( Input_Opt%LVARTROP ) THEN
                IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
                   State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
      &                                        200d0 )

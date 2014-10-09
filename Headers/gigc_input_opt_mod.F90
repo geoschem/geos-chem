@@ -64,6 +64,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LVARTROP           
      INTEGER                     :: NESTED_I0          
      INTEGER                     :: NESTED_J0          
+     CHARACTER(LEN=255)          :: HcoConfigFile
 
      !----------------------------------------
      ! TRACER MENU fields
@@ -79,6 +80,8 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255), POINTER :: TRACER_CONST(:,:)  
      REAL*8,             POINTER :: TRACER_COEFF(:,:)  
      INTEGER,            POINTER :: ID_EMITTED(:)  
+     INTEGER                     :: SIM_TYPE
+     CHARACTER(LEN=255)          :: SIM_NAME
      LOGICAL                     :: LSPLIT
      LOGICAL                     :: ITS_A_RnPbBe_SIM
      LOGICAL                     :: ITS_A_CH3I_SIM
@@ -124,6 +127,14 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! EMISSIONS MENU fields
      !----------------------------------------
+
+! --- TODO --- !
+! Almost all of the emissions switches are obsolete
+! under HEMCO. Keep them in here because many parts
+! of the code (diagnostics, chemistry, etc.) still
+! depend on them. We have to rehaul these parts soon!
+! ckeller, 05/21/14.
+
      LOGICAL                     :: LEMIS
      INTEGER                     :: TS_EMIS
      LOGICAL                     :: LANTHRO
@@ -484,6 +495,7 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: WILD_CARD
      CHARACTER(LEN=255)          :: UNZIP_CMD
      CHARACTER(LEN=255)          :: ZIP_SUFFIX
+     CHARACTER(LEN=1)            :: SPACE
 
      !----------------------------------------
      ! NESTED GRID MENU fields
@@ -562,24 +574,24 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! POPS MENU fields
      !----------------------------------------
-     CHARACTER(LEN=3)           :: POP_TYPE
-     LOGICAL                    :: CHEM_PROCESS
-     CHARACTER(LEN=255)         :: POP_EMISFILE
-     REAL*8                     :: POP_XMW
-     REAL*8                     :: POP_KOA
-     REAL*8                     :: POP_KBC
-     REAL*8                     :: POP_K_POPG_OH
-     REAL*8                     :: POP_K_POPP_O3A
-     REAL*8                     :: POP_K_POPP_O3B
-     REAL*8                     :: POP_HSTAR
-     REAL*8                     :: POP_DEL_H
-     REAL*8                     :: POP_DEL_Hw
+     CHARACTER(LEN=3)            :: POP_TYPE
+     LOGICAL                     :: CHEM_PROCESS
+     REAL*8                      :: POP_XMW
+     REAL*8                      :: POP_KOA
+     REAL*8                      :: POP_KBC
+     REAL*8                      :: POP_K_POPG_OH
+     REAL*8                      :: POP_K_POPP_O3A
+     REAL*8                      :: POP_K_POPP_O3B
+     REAL*8                      :: POP_HSTAR
+     REAL*8                      :: POP_DEL_H
+     REAL*8                      :: POP_DEL_Hw
 
      !----------------------------------------
      ! Fields for drydep and dust.  These get
      ! set in the init stage based on info 
      ! from file "input.geos". (mlong, 1/5/13)
      !----------------------------------------
+     INTEGER                     :: N_DUST_BINS
      INTEGER                    :: NUMDEP
      INTEGER,           POINTER :: NDVZIND(:)
      INTEGER,           POINTER :: NTRAIND(:)
@@ -597,17 +609,17 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
-     LOGICAL                    :: haveImpRst
-     INTEGER                    :: myCpu
+     LOGICAL                     :: haveImpRst
+     INTEGER                     :: myCpu
 
      !----------------------------------------
      ! Fields for LINOZ strat chem
      !----------------------------------------
-     INTEGER                    :: LINOZ_NLEVELS
-     INTEGER                    :: LINOZ_NLAT
-     INTEGER                    :: LINOZ_NMONTHS
-     INTEGER                    :: LINOZ_NFIELDS
-     REAL*8,            POINTER :: LINOZ_TPARM(:,:,:,:)
+     INTEGER                     :: LINOZ_NLEVELS
+     INTEGER                     :: LINOZ_NLAT
+     INTEGER                     :: LINOZ_NMONTHS
+     INTEGER                     :: LINOZ_NFIELDS
+     REAL*8,             POINTER :: LINOZ_TPARM(:,:,:,:)
 
      !----------------------------------------
      ! Fields for overhead O3
@@ -647,6 +659,9 @@ MODULE GIGC_Input_Opt_Mod
 !  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
 !  13 Dec 2013 - M. Sulprizio- Add USE_O3_FROM_MET logical flag
 !  16 Apr 2014 - M. Sulprizio- Add field for PSC restart file
+!  23 Jun 2014 - R. Yantosca - Add POP_EMISDIR field for POPs simlulation
+!  25 Jun 2014 - R. Yantosca - Now add Input_Opt%SIM_TYPE field
+!  29 Sep 2014 - R. Yantosca - Now add Input_Opt%N_DUST_BINS field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -718,6 +733,7 @@ CONTAINS
 !  07 Aug 2013 - M. Sulprizio- Add extra fields for SOA + SVPOA simulation
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
+!  25 Jun 2014 - R. Yantosca - Now initialize Input_Opt%SIM_TYPE field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -762,6 +778,7 @@ CONTAINS
     Input_Opt%LVARTROP               = .FALSE.
     Input_Opt%NESTED_I0              = 0
     Input_Opt%NESTED_J0              = 0
+    Input_Opt%HcoConfigFile          = ''
      
     !----------------------------------------
     ! TRACER MENU fields
@@ -788,6 +805,8 @@ CONTAINS
     Input_Opt%TRACER_CONST           = ''  
     Input_Opt%TRACER_COEFF           = 0d0
     Input_Opt%ID_EMITTED             = 0
+    Input_Opt%SIM_TYPE               = 0
+    Input_Opt%SIM_NAME               = ''
     Input_Opt%LSPLIT                 = .FALSE.
     Input_Opt%ITS_A_RnPbBe_SIM       = .FALSE.
     Input_Opt%ITS_A_CH3I_SIM         = .FALSE.
@@ -838,61 +857,61 @@ CONTAINS
     !----------------------------------------
     Input_Opt%LEMIS                  = .FALSE.
     Input_Opt%TS_EMIS                = 0
-    Input_Opt%LANTHRO                = .FALSE.
-    Input_Opt%FSCALYR                = .FALSE.
-    Input_Opt%LEMEP                  = .FALSE.
-    Input_Opt%LBRAVO                 = .FALSE.
-    Input_Opt%LEDGAR                 = .FALSE.
-    Input_Opt%LSTREETS               = .FALSE.
-    Input_Opt%LCAC                   = .FALSE.
-    Input_Opt%LNEI05                 = .FALSE.
-    Input_Opt%LNEI08                 = .FALSE.
-    Input_Opt%LRETRO                 = .FALSE.
-    Input_Opt%LNEI99                 = .FALSE.
-    Input_Opt%LICARTT                = .FALSE.
-    Input_Opt%LVISTAS                = .FALSE.
-    Input_Opt%LBIOFUEL               = .FALSE.
-    Input_Opt%LBIOGENIC              = .FALSE.
-    Input_Opt%LMEGAN                 = .FALSE.
-    Input_Opt%LPECCA                 = .FALSE.
-    Input_Opt%LMEGANMONO             = .FALSE.
-    Input_Opt%ISOP_SCALING           = 0d0
-    Input_Opt%LBIOMASS               = .FALSE.
-    Input_Opt%LBBSEA                 = .FALSE.
-    Input_Opt%LTOMSAI                = .FALSE.
-    Input_Opt%LGFED2BB               = .FALSE.
-    Input_Opt%L8DAYBB                = .FALSE.
-    Input_Opt%L3HRBB                 = .FALSE.
-    Input_Opt%LSYNOPBB               = .FALSE.
-    Input_Opt%LGFED3BB               = .FALSE.
-    Input_Opt%LDAYBB3                = .FALSE.
-    Input_Opt%L3HRBB3                = .FALSE.
-    Input_Opt%LAEIC                  = .FALSE.
-    Input_Opt%LLIGHTNOX              = .FALSE.
-    Input_Opt%LOTDLOC                = .FALSE.
+     Input_Opt%LANTHRO                = .FALSE.
+     Input_Opt%FSCALYR                = .FALSE.
+     Input_Opt%LEMEP                  = .FALSE.
+     Input_Opt%LBRAVO                 = .FALSE.
+     Input_Opt%LEDGAR                 = .FALSE.
+     Input_Opt%LSTREETS               = .FALSE.
+     Input_Opt%LCAC                   = .FALSE.
+     Input_Opt%LNEI05                 = .FALSE.
+     Input_Opt%LNEI08                 = .FALSE.
+     Input_Opt%LRETRO                 = .FALSE.
+     Input_Opt%LNEI99                 = .FALSE.
+     Input_Opt%LICARTT                = .FALSE.
+     Input_Opt%LVISTAS                = .FALSE.
+     Input_Opt%LBIOFUEL               = .FALSE.
+     Input_Opt%LBIOGENIC              = .FALSE.
+     Input_Opt%LMEGAN                 = .FALSE.
+     Input_Opt%LPECCA                 = .FALSE.
+     Input_Opt%LMEGANMONO             = .FALSE.
+     Input_Opt%ISOP_SCALING           = 0d0
+     Input_Opt%LBIOMASS               = .FALSE.
+     Input_Opt%LBBSEA                 = .FALSE.
+     Input_Opt%LTOMSAI                = .FALSE.
+     Input_Opt%LGFED2BB               = .FALSE.
+     Input_Opt%L8DAYBB                = .FALSE.
+     Input_Opt%L3HRBB                 = .FALSE.
+     Input_Opt%LSYNOPBB               = .FALSE.
+     Input_Opt%LGFED3BB               = .FALSE.
+     Input_Opt%LDAYBB3                = .FALSE.
+     Input_Opt%L3HRBB3                = .FALSE.
+     Input_Opt%LAEIC                  = .FALSE.
+     Input_Opt%LLIGHTNOX              = .FALSE.
+     Input_Opt%LOTDLOC                = .FALSE.
     Input_Opt%LSOILNOX               = .FALSE.
-    Input_Opt%SOIL_RST_FILE          = ''
-    Input_Opt%LFERTILIZERNOX         = .FALSE.
-    Input_Opt%NOx_SCALING            = 0d0
-    Input_Opt%LEDGARSHIP             = .FALSE.
-    Input_Opt%LICOADSSHIP            = .FALSE.
-    Input_Opt%LEMEPSHIP              = .FALSE.
-    Input_Opt%LSHIPSO2               = .FALSE.
-    Input_Opt%LARCSHIP               = .FALSE.
-    Input_Opt%LCOOKE                 = .FALSE.
-    Input_Opt%LHIST                  = .FALSE.
-    Input_Opt%HISTYR                 = .FALSE.
+     Input_Opt%SOIL_RST_FILE          = ''
+     Input_Opt%LFERTILIZERNOX         = .FALSE.
+     Input_Opt%NOx_SCALING            = 0d0
+     Input_Opt%LEDGARSHIP             = .FALSE.
+     Input_Opt%LICOADSSHIP            = .FALSE.
+     Input_Opt%LEMEPSHIP              = .FALSE.
+     Input_Opt%LSHIPSO2               = .FALSE.
+     Input_Opt%LARCSHIP               = .FALSE.
+     Input_Opt%LCOOKE                 = .FALSE.
+     Input_Opt%LHIST                  = .FALSE.
+     Input_Opt%HISTYR                 = .FALSE.
     Input_Opt%LWARWICK_VSLS          = .FALSE.
     Input_Opt%LSSABr2                = .FALSE.
     Input_Opt%LFIX_PBL_BRO           = .FALSE.
-    Input_Opt%Br_SCALING             = 0d0    
-    Input_Opt%LEDGARNOx              = .FALSE.
-    Input_Opt%LEDGARCO               = .FALSE. 
-    Input_Opt%LEDGARSOX              = .FALSE.
-    Input_Opt%LRCP                   = .FALSE.
-    Input_Opt%LRCPSHIP               = .FALSE.
-    Input_Opt%LRCPAIR                = .FALSE.
-    Input_Opt%LFIXEDYR               = .FALSE.
+     Input_Opt%Br_SCALING             = 0d0    
+     Input_Opt%LEDGARNOx              = .FALSE.
+     Input_Opt%LEDGARCO               = .FALSE. 
+     Input_Opt%LEDGARSOX              = .FALSE.
+     Input_Opt%LRCP                   = .FALSE.
+     Input_Opt%LRCPSHIP               = .FALSE.
+     Input_Opt%LRCPAIR                = .FALSE.
+     Input_Opt%LFIXEDYR               = .FALSE.
     Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LOCSEMIS               = .FALSE.
@@ -1378,7 +1397,6 @@ CONTAINS
     !----------------------------------------
     Input_Opt%POP_TYPE               = ''
     Input_Opt%CHEM_PROCESS           = .FALSE.
-    Input_Opt%POP_EMISFILE           = ''
     Input_Opt%POP_XMW                = 0d0
     Input_Opt%POP_KOA                = 0d0
     Input_Opt%POP_KBC                = 0d0
@@ -1406,6 +1424,7 @@ CONTAINS
     ALLOCATE( Input_Opt%A_RADI  ( MAX_DEP ), STAT=RC ) ! Drydep
     ALLOCATE( Input_Opt%A_DEN   ( MAX_DEP ), STAT=RC ) ! Drydep
 
+    Input_Opt%N_DUST_BINS            = NDSTBIN
     Input_Opt%NUMDEP                 = 0
     Input_Opt%NDVZIND                = 0
     Input_Opt%IDDEP                  = 0

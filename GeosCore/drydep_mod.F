@@ -18,16 +18,12 @@
       USE CMN_SIZE_MOD                          ! Size parameters
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE CMN_GCTM_MOD                          ! Physical constants
-      USE COMMSOIL_MOD                          ! Soil wetness variables
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field subroutines
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
-      USE DIRECTORY_MOD                         ! Data directory paths
       USE ERROR_MOD                             ! Error handling routines
-      USE GET_POPSINFO_MOD                      ! For POPs simulation
       USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
-      USE LOGICAL_MOD                           ! GEOS-Chem logical switches
       USE PBL_MIX_MOD                           ! Boundary layer quantities
       USE PRESSURE_MOD,   ONLY : GET_PEDGE      ! Pressure @ level edges
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
@@ -44,12 +40,14 @@
       PUBLIC :: CLEANUP_DRYDEP     
       PUBLIC :: DO_DRYDEP
       PUBLIC :: DRYFLX   
-      PUBLIC :: DRYFLXH2HD
+!-----------------------------------------------------------------------------
+! This simulation is obsolete.  You can restore it if you want (bmy, 6/24/14)
+!      PUBLIC :: DRYFLXH2HD
+!-----------------------------------------------------------------------------
       PUBLIC :: DRYFLXRnPbBe       
       PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP
       PUBLIC :: INIT_WEIGHTSS
-
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -190,6 +188,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  29 Jan 2014 - R. Yantosca - Now set MAXDEP=105 for all simulations.  For
 !                              TOMAS we had MAXDEP=100; this is close enough.
+!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  25 Jul 2014 - R. Yantosca - Removed reference to commsoil_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -254,7 +254,7 @@
       INTEGER              :: DRYPOPG
 
       ! Arrays for Baldocchi drydep polynomial coefficients
-      REAL*8               :: DRYCOEFF(NPOLY    )
+      REAL*8, TARGET       :: DRYCOEFF(NPOLY    )
 
       ! Arrays that hold information for each of the 74 Olson land types
       INTEGER              :: INDOLSON(NVEGTYPE )
@@ -712,18 +712,17 @@
 !  28 Nov 2012 - R. Yantosca - Add SUNCOS_MID to the argument list and 
 !                              populate that with State_Met%SUNCOSmid
 !  21 Oct 2013 - R. Yantosca - Bug fix: need to hold SP private in OMP loop
+!  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: I,  J,  IJLOOP
-      REAL*8                :: THIK
-      REAL*8                :: SP
-
-      ! External functions
-      REAL*8, EXTERNAL      :: SFCWINDSQR ! Surface wind speed (jaegle 5/11/11)
+      INTEGER :: I,  J,  IJLOOP
+      REAL*8  :: THIK
+      REAL*8  :: SP
+      REAL*8  :: SFCWINDSQR
 
       !=================================================================
       ! METERO begins here!
@@ -739,7 +738,7 @@
       ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, THIK, SP )
+!$OMP+PRIVATE( I, J, IJLOOP, THIK, SP, SFCWINDSQR )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -795,10 +794,10 @@
          !  jaegle (5/11/11)
          RHB(IJLOOP)    = MIN( 0.98d0, State_Met%RH(I,J,1) * 1.d-2 )
 
-         ! 10m windspeed (jaegle 5/11/11)
-         W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
-     &                                       State_Met%U10M,
-     &                                       State_Met%V10M ) )
+         ! 10m windspeed [m/s] (jaegle 5/11/11)
+         SFCWINDSQR     = State_Met%U10M(I,J)**2
+     &                  + State_Met%V10M(I,J)**2
+         W10(IJLOOP)    = SQRT( SFCWINDSQR )
 
          ! Cosine of solar zenith angle at midpoint 
          ! of the current chemistry timestep.
@@ -830,7 +829,6 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      USE COMMSOIL_MOD
       USE COMODE_MOD
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
@@ -880,6 +878,7 @@
 !  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOILNOX and Input_Opt%NUMDEP
 !  30 Oct 2013 - M. Sulprizio- Bug fix: Hold AREA_CM2 private in !$OMP loop
+!  25 Jul 2014 - R. Yantosca - Removed reference to commsoil_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1106,7 +1105,9 @@
 
             ! add option for non-local PBL mixing scheme: only the surface
             ! (Lin, 03/31/09) 
-            IF (LNLPBL) FRACLOST = DEPSAV(I,J,N) * DTCHEM
+            IF ( Input_Opt%LNLPBL) THEN
+               FRACLOST = DEPSAV(I,J,N) * DTCHEM
+            ENDIF
 
             !===========================================================
             ! Proceed as follows:
@@ -1155,275 +1156,278 @@
       END SUBROUTINE DRYFLXRnPbBe
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: dryflxh2hd
-!
-! !DESCRIPTION: Subroutine DRYFLXH2HD removes dry deposition losses from the
-!  tracer array and archives deposition fluxes AND VELOCITY to the ND44
-!  diagnostic. (adapted from DRYFLX v5-05, jaegle 11/02/2005). 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DRYFLXH2HD( State_Met, State_Chm )
-!
-! !USES:
-!
-      USE DIAG_MOD,           ONLY : AD44
-      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD,        ONLY : LDRYD
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
-      USE COMMSOIL_MOD             ! Soil wetness variables
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-! 
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% NOTE: THIS ROUTINE SHOULD BE REWRITTEN FOR THE NEW SOIL NOX SCHEME. %%%
-!  %%% We have commented out the obsolete INDEXSOIL and NLAND variables,   %%%
-!  %%% which were different depending on which horizontal grid was used.   %%%
-!  %%% The grid-independent GEOS-Chem cannot know a-priori what the size   %%%
-!  %%% of the horizontal grid is, since it will be told that by the        %%%
-!  %%% interface to the external GEOS-Chem.  Therefore, we cannot use      %%%
-!  %%% fixed parameters to define the horizontal (and vertical) grids that %%%
-!  %%% are used in GEOS-Chem.  (bmy, 10/30/12)                             %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-! !REVISION HISTORY: 
-!  (1) Now deposit through the PBL. Commented but kept code related to soil
-!       temperature (phs, 5/16/07)
-!  (2) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  09 Apr 2012 - R. Yantosca - Replace IJLAND, IJUSE arrays w/ ILAND, IUSE
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER     :: I, J, L, N, NN, M, PBL_MAX
-      INTEGER     :: IJLOOP, I0, J0, IREF, JREF, K, STYP
-      INTEGER     :: JLOP(IIPAR,JJPAR,1), NTYP(IIPAR,JJPAR)
-      REAL*8      :: DTCHEM, FRACLOST, AMT_LOST
-      REAL*8      :: THIK, DRYF, SVEL, FSOIL, AREA_CM2
-      REAL*8      :: SOIL_H2, SOIL_HD, TMMP, STEMP(IIPAR,JJPAR)
-      REAL*8      :: MLD
-      REAL*8      :: F_UNDER_TOP
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
-
-      ! External functions, for calculating soil temperature
-      REAL*8, EXTERNAL   :: SOILTEMP
-
-      !=================================================================
-      ! DRYFLXH2HD begins here!!
-      !=================================================================
-
-      ! Chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0
-
-      ! Obsolete - Call soiltype to determine whether soil is dry or
-      ! wet for all land grid-boxes
-      !CALL SOILTYPE
-
-      ! Only do the following if DRYDEP is turned on
-      IF ( .not. LDRYD ) RETURN
-
-      ! Maximum extent of the PBL [model layers]
-      PBL_MAX = GET_PBL_MAX_L() 
-
-      ! Add option for non-local PBL mixing scheme: only the surface
-      ! (Lin, 03/31/09) 
-      IF (LNLPBL) PBL_MAX = 1
-
-      ! Need nested-grid offsets for soiltemp code
-      I0 = GET_XOFFSET()
-      J0 = GET_YOFFSET()
-
-      ! Initalize
-      IJLOOP = 0
-      DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            IJLOOP        = IJLOOP + 1
-            JLOP(I,J,1)   = IJLOOP
-         ENDDO
-      ENDDO
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
-      ! Loop over drydep species
-      DO N = 1, NUMDEP
-
-         ! Tracer index in STT that corresponds to drydep species N
-         ! If invalid, then cycle
-         NN = NTRAIND(N)
-         IF ( NN == 0 ) CYCLE
-
-         ! Loop over layers (most efficient if moved below?)
-         DO L = 1, PBL_MAX
-
-           ! reset STEMP (could be a scalar -depends on future usage-)
-           ! STEMP = 0  ! Not use yet
-
-!           ! Loop over each land grid-box
-!            DO M      = 1, NLAND
-!
-!               !IREF   = INDEXSOIL(1,M)
-!               !JREF   = INDEXSOIL(2,M)
-!               I      = IREF - I0
-!               J      = JREF - J0
-!               IJLOOP = JLOP(I,J,1)
-!
-!               ! Fraction of grid box that is ocean
-!               FSOIL = State_Met%FRCLND(I,J)
-! 
-!
-!               ! Only apply dry deposition over land surfaces which
-!                    ! are not covered with ice or desert (albedo < 0.4)
-!               ! and if we are in the window simulation.
-!               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
-!     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
-!     &              (FSOIL > 0.d0) .AND. 
-!     &              (State_Met%ALBD(I,J) < 0.4d0) ) THEN
-!
-!                  ! Grid box area in cm2
-!                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-!
-!                  ! SVEL [cm/s] is the air-to-soil transfer velocity
-!                  ! Use uniform value of 3.94d-2 cm/s over land
-!                  ! not covered by snow or desert.
-!                  SVEL = 3.94d-2
-!		  
-!                  ! if soil temperature is below freezing reduce dep vel
-!                  ! by 1/2, and additional 1/2 below -15C(hup, 6/21/2005)
-!                  ! for now use surface temperature (TS) instead of
-!                  ! air temperature (T) jaegle, 12/12/2005
-!		  IF (State_Met%TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
-!		  IF (State_Met%TS(I,J) <= 258.15d0) SVEL = SVEL / 2.0d0
-!                  
-!		  ! if desert, set deposition velocity to zero by multiplying
-!		  ! dep vel by the fraction covered by desert(hup, 5/1/2006)
-!		  ! IJLAND+1 is the Olson Land type index 
-!            	  ! 51: desert	52: desert set SVEL = 0
-!		  ! IJUSE is the fraction of the grid square occupied by surface K
-!		  ! in units of per mil (IJUSE=500 -> 50% of the grid square). 
-!		  DO K = 1, IREG(IREF,JREF)
-!	          
-!                     NTYP(I,J) = ILAND(I,J,K) + 1
-!                     
-!                     IF (NTYP(I,J) .eq. 52 .or. NTYP(I,J) .eq. 51) THEN 
-!		  	SVEL = SVEL*(1-(IUSE(I,J,K)/1.d3)) 
-!                     ENDIF
-!                     
-!		  ENDDO
-!		  
-!		  ! For HD add soil fractionation with 
-!                  ! an alpha coefficient of 0.943 Gerst & Quay, 2001
-!		  IF (N .eq. 2) SVEL = SVEL * 0.943
-!
-!
-!                  ! Get THIK  (cannot use ZH variable, since
-!                  ! DO_DRYDEP, METERO, and DEPVEL are not called in H2/HD sims)
-!
-!                  ! Fraction of box (I,J,L) under PBL top [unitless]
-!                  F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
+! Prior to 6/23/14:
+! THis simulation is obsolete.  You can restore it if you wish. (bmy, 6/24/13)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: dryflxh2hd
+!!
+!! !DESCRIPTION: Subroutine DRYFLXH2HD removes dry deposition losses from the
+!!  tracer array and archives deposition fluxes AND VELOCITY to the ND44
+!!  diagnostic. (adapted from DRYFLX v5-05, jaegle 11/02/2005). 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE DRYFLXH2HD( State_Met, State_Chm )
+!!
+!! !USES:
+!!
+!      USE DIAG_MOD,           ONLY : AD44
+!      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
+!      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE GRID_MOD,           ONLY : GET_AREA_CM2
+!      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+!      USE LOGICAL_MOD,        ONLY : LDRYD
+!      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m
+!      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+!      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+!      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !      
-!                  ! Mixed layer depth [m]
-!                  MLD = GET_PBL_TOP_m( I, J )
-!      
-!                  ! THIK = thickness of surface layer [m]
-!                  THIK    = State_Met%BXHEIGHT(I,J,1)
+!      USE CMN_SIZE_MOD             ! Size parameters
+!      USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
+!!
+!! !INPUT PARAMETERS:
+!!
+!      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS: 
+!!
+!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!! 
+!! !REMARKS:
+!!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!  %%% NOTE: THIS ROUTINE SHOULD BE REWRITTEN FOR THE NEW SOIL NOX SCHEME. %%%
+!!  %%% We have commented out the obsolete INDEXSOIL and NLAND variables,   %%%
+!!  %%% which were different depending on which horizontal grid was used.   %%%
+!!  %%% The grid-independent GEOS-Chem cannot know a-priori what the size   %%%
+!!  %%% of the horizontal grid is, since it will be told that by the        %%%
+!!  %%% interface to the external GEOS-Chem.  Therefore, we cannot use      %%%
+!!  %%% fixed parameters to define the horizontal (and vertical) grids that %%%
+!!  %%% are used in GEOS-Chem.  (bmy, 10/30/12)                             %%%
+!!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!
+!! !REVISION HISTORY: 
+!!  (1) Now deposit through the PBL. Commented but kept code related to soil
+!!       temperature (phs, 5/16/07)
+!!  (2) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
+!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!!  09 Apr 2012 - R. Yantosca - Replace IJLAND, IJUSE arrays w/ ILAND, IUSE
+!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!!                              derived type object
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER     :: I, J, L, N, NN, M, PBL_MAX
+!      INTEGER     :: IJLOOP, I0, J0, IREF, JREF, K, STYP
+!      INTEGER     :: JLOP(IIPAR,JJPAR,1), NTYP(IIPAR,JJPAR)
+!      REAL*8      :: DTCHEM, FRACLOST, AMT_LOST
+!      REAL*8      :: THIK, DRYF, SVEL, FSOIL, AREA_CM2
+!      REAL*8      :: SOIL_H2, SOIL_HD, TMMP, STEMP(IIPAR,JJPAR)
+!      REAL*8      :: MLD
+!      REAL*8      :: F_UNDER_TOP
 !
-!                  ! Add option for non-local PBL mixing scheme: 
-!                  ! only the surface (Lin, 03/31/09) 
-!                  IF (.NOT. LNLPBL) THIK    = MAX( MLD, THIK ) 
-!                  
-!                  ! Dry deposition frequency [1/s]
-!                  DRYF    = ( SVEL / 100.d0 ) / THIK
-!		  
-!		  ! FRACLOST = Fraction of species lost to drydep [unitless]
-!                  FRACLOST = DRYF * DTCHEM * F_UNDER_TOP
-!                  ! Add option for non-local PBL mixing scheme:
-!                  ! only the surface (Lin, 03/31/29)
-!                  IF (LNLPBL) FRACLOST = DRYF * DTCHEM
+!      ! Pointers
+!      ! We need to define local arrays to hold corresponding values 
+!      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+!      REAL*8, POINTER :: STT(:,:,:,:)
 !
-!                  !========================================================
-!                  ! Proceed as follows:
-!                  ! -------
-!                  ! (a) If FRACLOST < 0, then stop the run.
-!                  !
-!                  ! (b) If FRACLOST > 1, use an exponential loss to 
-!                  !     avoid negative tracer
-!                  !
-!                  ! (c) If FRACLOST is in the range (0-1), then use the 
-!                  !     regular formula (STT * FRACLOST) to compute
-!                  !     the loss from dry deposition.
-!                  !========================================================
+!      ! External functions, for calculating soil temperature
+!      REAL*8, EXTERNAL   :: SOILTEMP
 !
-!                  ! Stop the run on negative FRACLOST!
-!                  IF ( FRACLOST < 0 ) THEN
-!                     CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxH2HD' )
-!                  ENDIF
+!      !=================================================================
+!      ! DRYFLXH2HD begins here!!
+!      !=================================================================
 !
+!      ! Chemistry timestep in seconds
+!      DTCHEM = GET_TS_CHEM() * 60d0
 !
-!                  ! AMT_LOST = amount of tracer lost to drydep [kg]
-!                  IF ( FRACLOST > 1 ) THEN
-!                     AMT_LOST = STT(I,J,L,NN) * ( 1d0 - EXP(-FRACLOST) )
-!     &                    * FSOIL
-!                  ELSE
-!                     AMT_LOST = STT(I,J,L,NN) * FRACLOST * FSOIL
-!                  ENDIF
+!      ! Obsolete - Call soiltype to determine whether soil is dry or
+!      ! wet for all land grid-boxes
+!      !CALL SOILTYPE
 !
+!      ! Only do the following if DRYDEP is turned on
+!      IF ( .not. LDRYD ) RETURN
 !
-!                  ! ND44 diagnostic: drydep flux [kg/s]
-!                  ! ND44 diagnostic: drydep velocity [cm/s]
-!                  IF ( ND44 > 0 ) THEN
-!                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
-!                     AD44(I,J,N,2) = AD44(I,J,N,2) + SVEL * FSOIL
-!                  ENDIF
+!      ! Maximum extent of the PBL [model layers]
+!      PBL_MAX = GET_PBL_MAX_L() 
 !
+!      ! Add option for non-local PBL mixing scheme: only the surface
+!      ! (Lin, 03/31/09) 
+!      IF (LNLPBL) PBL_MAX = 1
 !
-!                  ! Subtract AMT_LOST from the STT array [kg]
-!                  STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
-!		
-!                    
-!            ENDIF               ! I and J within bounds, ALBD<0.4 and FSOIL>0
-!         ENDDO                  ! M = LAND GRID BOXES
-         ENDDO                  ! PBL layers
-      ENDDO                     ! NUMDEP = Number of species that drydep
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      END SUBROUTINE DRYFLXH2HD
+!      ! Need nested-grid offsets for soiltemp code
+!      I0 = GET_XOFFSET()
+!      J0 = GET_YOFFSET()
+!
+!      ! Initalize
+!      IJLOOP = 0
+!      DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!            IJLOOP        = IJLOOP + 1
+!            JLOP(I,J,1)   = IJLOOP
+!         ENDDO
+!      ENDDO
+!
+!      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+!      ! (mpayer, 12/6/12)
+!      STT => State_Chm%Tracers
+!
+!      ! Loop over drydep species
+!      DO N = 1, NUMDEP
+!
+!         ! Tracer index in STT that corresponds to drydep species N
+!         ! If invalid, then cycle
+!         NN = NTRAIND(N)
+!         IF ( NN == 0 ) CYCLE
+!
+!         ! Loop over layers (most efficient if moved below?)
+!         DO L = 1, PBL_MAX
+!
+!           ! reset STEMP (could be a scalar -depends on future usage-)
+!           ! STEMP = 0  ! Not use yet
+!
+!!           ! Loop over each land grid-box
+!!            DO M      = 1, NLAND
+!!
+!!               !IREF   = INDEXSOIL(1,M)
+!!               !JREF   = INDEXSOIL(2,M)
+!!               I      = IREF - I0
+!!               J      = JREF - J0
+!!               IJLOOP = JLOP(I,J,1)
+!!
+!!               ! Fraction of grid box that is ocean
+!!               FSOIL = State_Met%FRCLND(I,J)
+!! 
+!!
+!!               ! Only apply dry deposition over land surfaces which
+!!                    ! are not covered with ice or desert (albedo < 0.4)
+!!               ! and if we are in the window simulation.
+!!               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
+!!     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
+!!     &              (FSOIL > 0.d0) .AND. 
+!!     &              (State_Met%ALBD(I,J) < 0.4d0) ) THEN
+!!
+!!                  ! Grid box area in cm2
+!!                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+!!
+!!                  ! SVEL [cm/s] is the air-to-soil transfer velocity
+!!                  ! Use uniform value of 3.94d-2 cm/s over land
+!!                  ! not covered by snow or desert.
+!!                  SVEL = 3.94d-2
+!!		  
+!!                  ! if soil temperature is below freezing reduce dep vel
+!!                  ! by 1/2, and additional 1/2 below -15C(hup, 6/21/2005)
+!!                  ! for now use surface temperature (TS) instead of
+!!                  ! air temperature (T) jaegle, 12/12/2005
+!!		  IF (State_Met%TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
+!!		  IF (State_Met%TS(I,J) <= 258.15d0) SVEL = SVEL / 2.0d0
+!!                  
+!!		  ! if desert, set deposition velocity to zero by multiplying
+!!		  ! dep vel by the fraction covered by desert(hup, 5/1/2006)
+!!		  ! IJLAND+1 is the Olson Land type index 
+!!            	  ! 51: desert	52: desert set SVEL = 0
+!!		  ! IJUSE is the fraction of the grid square occupied by surface K
+!!		  ! in units of per mil (IJUSE=500 -> 50% of the grid square). 
+!!		  DO K = 1, IREG(IREF,JREF)
+!!	          
+!!                     NTYP(I,J) = ILAND(I,J,K) + 1
+!!                     
+!!                     IF (NTYP(I,J) .eq. 52 .or. NTYP(I,J) .eq. 51) THEN 
+!!		  	SVEL = SVEL*(1-(IUSE(I,J,K)/1.d3)) 
+!!                     ENDIF
+!!                     
+!!		  ENDDO
+!!		  
+!!		  ! For HD add soil fractionation with 
+!!                  ! an alpha coefficient of 0.943 Gerst & Quay, 2001
+!!		  IF (N .eq. 2) SVEL = SVEL * 0.943
+!!
+!!
+!!                  ! Get THIK  (cannot use ZH variable, since
+!!                  ! DO_DRYDEP, METERO, and DEPVEL are not called in H2/HD sims)
+!!
+!!                  ! Fraction of box (I,J,L) under PBL top [unitless]
+!!                  F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
+!!      
+!!                  ! Mixed layer depth [m]
+!!                  MLD = GET_PBL_TOP_m( I, J )
+!!      
+!!                  ! THIK = thickness of surface layer [m]
+!!                  THIK    = State_Met%BXHEIGHT(I,J,1)
+!!
+!!                  ! Add option for non-local PBL mixing scheme: 
+!!                  ! only the surface (Lin, 03/31/09) 
+!!                  IF (.NOT. LNLPBL) THIK    = MAX( MLD, THIK ) 
+!!                  
+!!                  ! Dry deposition frequency [1/s]
+!!                  DRYF    = ( SVEL / 100.d0 ) / THIK
+!!		  
+!!		  ! FRACLOST = Fraction of species lost to drydep [unitless]
+!!                  FRACLOST = DRYF * DTCHEM * F_UNDER_TOP
+!!                  ! Add option for non-local PBL mixing scheme:
+!!                  ! only the surface (Lin, 03/31/29)
+!!                  IF (LNLPBL) FRACLOST = DRYF * DTCHEM
+!!
+!!                  !========================================================
+!!                  ! Proceed as follows:
+!!                  ! -------
+!!                  ! (a) If FRACLOST < 0, then stop the run.
+!!                  !
+!!                  ! (b) If FRACLOST > 1, use an exponential loss to 
+!!                  !     avoid negative tracer
+!!                  !
+!!                  ! (c) If FRACLOST is in the range (0-1), then use the 
+!!                  !     regular formula (STT * FRACLOST) to compute
+!!                  !     the loss from dry deposition.
+!!                  !========================================================
+!!
+!!                  ! Stop the run on negative FRACLOST!
+!!                  IF ( FRACLOST < 0 ) THEN
+!!                     CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxH2HD' )
+!!                  ENDIF
+!!
+!!
+!!                  ! AMT_LOST = amount of tracer lost to drydep [kg]
+!!                  IF ( FRACLOST > 1 ) THEN
+!!                     AMT_LOST = STT(I,J,L,NN) * ( 1d0 - EXP(-FRACLOST) )
+!!     &                    * FSOIL
+!!                  ELSE
+!!                     AMT_LOST = STT(I,J,L,NN) * FRACLOST * FSOIL
+!!                  ENDIF
+!!
+!!
+!!                  ! ND44 diagnostic: drydep flux [kg/s]
+!!                  ! ND44 diagnostic: drydep velocity [cm/s]
+!!                  IF ( ND44 > 0 ) THEN
+!!                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
+!!                     AD44(I,J,N,2) = AD44(I,J,N,2) + SVEL * FSOIL
+!!                  ENDIF
+!!
+!!
+!!                  ! Subtract AMT_LOST from the STT array [kg]
+!!                  STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
+!!		
+!!                    
+!!            ENDIF               ! I and J within bounds, ALBD<0.4 and FSOIL>0
+!!         ENDDO                  ! M = LAND GRID BOXES
+!         ENDDO                  ! PBL layers
+!      ENDDO                     ! NUMDEP = Number of species that drydep
+!
+!      ! Free pointer
+!      NULLIFY( STT )
+!
+!      END SUBROUTINE DRYFLXH2HD
 !EOC
+!------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1449,6 +1453,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE DRYDEP_TOOLBOX_MOD, ONLY : BIOFIT
 !
 ! !INPUT PARAMETERS:
 !
@@ -1615,6 +1620,7 @@
 !                              HSTAR>0 and XMW>0, or AIROSOL=t.  This avoids
 !                              a floating-point invalid condition.
 !  28 Jan 2014 - R. Yantosca - For TOMAS, don't hold A_RADI and A_DEN PRIVATE
+!  19 May 2014 - C. Keller   - Now call BIOFIT from drydep_toolbox_mod.F
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1673,7 +1679,7 @@
       REAL*8  XMWH2O,DAIR,TEMPK,TEMPC
       INTEGER IOLSON,II,IW
       INTEGER K,IJLOOP,LDT
-      REAL*8  RCLX,RIXX,BIOFIT
+      REAL*8  RCLX,RIXX    !,BIOFIT
 
 #if   defined( TOMAS )
       ! For TOMAS aerosol (win, 7/15/09)
@@ -1686,6 +1692,9 @@
 
       ! Loop indices (bmy, 3/29/12)
       INTEGER :: I, J
+
+      ! Size of DRYCOEFF (ckeller, 05/19/14)
+      INTEGER :: NN
 
       ! Added these to pass particle density & number to DUST_SFCRSII
       ! so as to avoid parallelization errors with TOMAS (bmy, 1/31/14)
@@ -1713,6 +1722,9 @@
 
       ! Is this a POPs simmulation?
       IS_POPS = Input_Opt%ITS_A_POPS_SIM  ! clf, 1/3/2011
+
+      ! Size of drycoeff (ckeller, 05/19/14)
+      NN = SIZE(DRYCOEFF)
 
 !***********************************************************************       
 !
@@ -1919,7 +1931,7 @@
             GFACI = 100.D0
             IF ( RAD0 > 0.D0 .and. XLAI(I,J,LDT) > 0.D0 ) THEN
                GFACI = 1.D0 / BIOFIT( DRYCOEFF,       XLAI(I,J,LDT),
-     &                                SUNCOS(IJLOOP), CFRAC(IJLOOP) )
+     &                                SUNCOS(IJLOOP), CFRAC(IJLOOP), NN)
             ENDIF
             
             RIX = RIX*GFACT*GFACI
@@ -2245,7 +2257,7 @@
 
             LRGERA(IJLOOP) = .FALSE.
             ! Add option for non-local PBL (Lin, 03/31/09) 
-            IF (.NOT. LNLPBL) THEN
+            IF (.NOT. Input_Opt%LNLPBL) THEN
                IF (CORR1 .GT. 0.D0) THEN
                   IF (CORR1 .GT.  1.5D0) LRGERA(IJLOOP) = .TRUE.
                ELSEIF(CORR1 .LE. 0.D0) THEN
@@ -2285,7 +2297,7 @@
             IF ( REYNO < 0.1d0 ) GOTO 220
 
             ! Add option for non-local PBL (Lin, 03/31/09) 
-            IF (.NOT. LNLPBL) THEN
+            IF (.NOT. Input_Opt%LNLPBL) THEN
 
 !...aerodynamically rough surface.
 !*                                 
@@ -2554,15 +2566,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DRYDEP_INPUTS( am_I_Root, DRYCOEFF, IOLSON, 
-     &                               IDEP,      IWATER,   NWATER, 
-     &                               IZO,       IDRYDEP,  IRI,    
-     &                               IRLU,      IRAC,     IRGSS,  
-     &                               IRGSO,     IRCLS,    IRCLO,  
-     &                               IVSMAX,    Data_Dir_1x1      )
+      SUBROUTINE READ_DRYDEP_INPUTS( am_I_Root, Input_Opt,
+     &                               DRYCOEFF,  IOLSON,   IDEP,      
+     &                               IWATER,    NWATER,   IZO,       
+     &                               IDRYDEP,   IRI,      IRLU,      
+     &                               IRAC,      IRGSS,    IRGSO,     
+     &                               IRCLS,     IRCLO,    IVSMAX,    
+     &                               RC )
 !
 ! !USES:
 !
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+
       ! Modules for netCDF read
       USE m_netcdf_io_open
       USE m_netcdf_io_get_dimlen
@@ -2574,8 +2590,8 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      CHARACTER(LEN=255), INTENT(IN) :: Data_Dir_1x1
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !  
@@ -2611,6 +2627,9 @@
       INTEGER, INTENT(OUT) :: IRCLS   (NDRYDTYPE)
       INTEGER, INTENT(OUT) :: IRCLO   (NDRYDTYPE)
       INTEGER, INTENT(OUT) :: IVSMAX  (NDRYDTYPE)
+
+      ! Success or failure flag
+      INTEGER, INTENT(OUT) :: RC
 !
 ! !REMARKS:
 !  Routine READ_DRYDEP_INPUTS replaces routines MODIN (which read the ASCII 
@@ -2656,15 +2675,16 @@
       !=================================================================
 
       ! Pick the proper input file for Olson 1992 or Olson 2001
-      IF ( USE_OLSON_2001 ) THEN
+      IF ( Input_Opt%USE_OLSON_2001 ) THEN
          nc_file = 'Olson_2001_Drydep_Inputs.nc'
       ELSE
          nc_file = 'Olson_1992_Drydep_Inputs.nc'
       ENDIF
 
       ! Open file for reading (construct full data path)
-      nc_dir  = TRIM( DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
-      nc_path = TRIM( nc_dir )       // TRIM( nc_file )
+      nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+     &          'Olson_Land_Map_201203/'
+      nc_path = TRIM( nc_dir ) // TRIM( nc_file )
       CALL Ncop_Rd( fId, TRIM(nc_path) )
 
       ! Echo info to stdout
@@ -2827,7 +2847,7 @@
 
       ! If using Olson 2001 land map, change IRI for coniferous forests
       ! to match IRI for deciduous forests (skim, mps, 2/3/14)
-      IF ( USE_OLSON_2001 ) THEN
+      IF ( Input_Opt%USE_OLSON_2001 ) THEN
          IRI(3) = 200
       ENDIF
 
@@ -4091,11 +4111,6 @@
       REAL*8  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
       REAL*8  :: SC, ST      ! Schmidt and Stokes number (nondim)
 
-!------------------------------------------------------------------------------
-! Prior to 1/31/14:
-! Now pass these as arguments to avoid parallel errors w/ TOMAS (bmy, 1/31/14)
-!      REAL*8  :: DIAM, DEN
-!------------------------------------------------------------------------------
       REAL*8  :: EB, EIM, EIN, R1, AA, VTS
 
 !=======================================================================
@@ -4235,16 +4250,6 @@
       !      R1 (Particle rebound)  = exp(-St^0.5)
       !=================================================================
  
-!-----------------------------------------------------------------------------  
-! Prior to 1/31/14:
-! Now pass these as arguments to avoid parallel errors w/ TOMAS (bmy, 1/31/14)
-!      ! Particle diameter [m]
-!      DIAM  = A_RADI(K) * 2.d0  
-!
-!      ! Particle density [kg/m3]
-!      DEN   = A_DEN(K)          
-!-----------------------------------------------------------------------------  
-
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.d6 
  
@@ -4400,14 +4405,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: IS_Hg
-      LOGICAL :: IS_POPS
-      INTEGER :: AS, N
-
-      REAL*8, SAVE :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
-      REAL*8, SAVE :: POP_K_POPP_O3A, POP_K_POPP_O3B
-      REAL*8, SAVE :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
-      REAL*8       :: DUM
+      LOGICAL      :: LDRYD
+      LOGICAL      :: IS_Hg
+      LOGICAL      :: IS_POPS
+      INTEGER      :: AS, N
 
       CHARACTER(LEN=255) :: MSG
 
@@ -4420,13 +4421,15 @@
      
       ! For GEOS-5, we need to do this only on the root CPU
       IF ( am_I_Root ) THEN
-      DUM = 1.0
 
       ! Is this a mercury simulation?
       IS_Hg      = Input_Opt%ITS_A_MERCURY_SIM
 
       ! Is this a pops simulation?
       IS_POPS    = Input_Opt%ITS_A_POPS_SIM
+
+      ! ARe we using drydep?
+      LDRYD      = Input_Opt%LDRYD
 
       ! Zero variables
       DRYDNO2    = 0
@@ -6142,7 +6145,7 @@
                ! For BENZO[a]PYRENE, log Kaw = -4.51
                ! Using the same conversion, HSTAR = 1.32d3 M/atm
                ! All log Kaws from Ma et al., J Chem Eng Data 2010, 55:819 
-               HSTAR(NUMDEP)   = GET_POP_HSTAR(DUM)
+               HSTAR(NUMDEP)   = Input_Opt%POP_HSTAR
                ! Adding Koa (octanol-ar partition coefficient) for POPs to
                ! account for accumulation in leaf cuticles
                ! Needs to be in units of mol/liter/atm as with HSTAR
@@ -6155,13 +6158,13 @@
                ! For BENZO[a]PYRENE, log Koa = 11.48
                ! use same conversion to get 1.23d10 M/atm 
                ! All log Koas from Ma et al., J Chem Eng Data 2010, 55:819 
-               KOA(NUMDEP)     = GET_POP_KOA(DUM) *0.0409
+               KOA(NUMDEP)     = Input_Opt%POP_KOA *0.0409
                F0(NUMDEP)      = 0.0d0
                ! Need to change molecular weight for different POPs
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               XMW(NUMDEP)     = Input_Opt%POP_XMW
                AIROSOL(NUMDEP) = .FALSE. 
             ENDIF
 
@@ -6180,7 +6183,7 @@
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               XMW(NUMDEP)     = Input_Opt%POP_XMW
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
 
@@ -6199,7 +6202,7 @@
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               XMW(NUMDEP)     = Input_Opt%POP_XMW
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
          ENDIF
@@ -6354,13 +6357,13 @@
       ! Read drydep inputs from the netCDF file
       ! Save Olson indices in INDOLSON array, in order to avoid
       ! confusion w/ previously-assinged variable name IOLSON
-      CALL READ_DRYDEP_INPUTS( am_I_Root,
-     &                         DRYCOEFF, INDOLSON, IDEP,    
-     &                         IWATER,   NWATER,   IZO,      
-     &                         IDRYDEP,  IRI,      IRLU,     
-     &                         IRAC,     IRGSS,    IRGSO, 
-     &                         IRCLS,    IRCLO,    IVSMAX, 
-     &                         Input_Opt%Data_Dir_1x1    )
+      CALL READ_DRYDEP_INPUTS( am_I_Root, Input_Opt, 
+     &                         DRYCOEFF,  INDOLSON, IDEP,    
+     &                         IWATER,    NWATER,   IZO,      
+     &                         IDRYDEP,   IRI,      IRLU,     
+     &                         IRAC,      IRGSS,    IRGSO, 
+     &                         IRCLS,     IRCLO,    IVSMAX, 
+     &                         RC )
 
 
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of 

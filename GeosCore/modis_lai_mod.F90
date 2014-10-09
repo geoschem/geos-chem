@@ -26,9 +26,7 @@ MODULE Modis_Lai_Mod
 ! !USES:
 !
   USE CMN_SIZE_Mod                                ! Size parameters
-  USE Directory_Mod                               ! Disk directory paths   
   USE Error_Mod                                   ! Error checking routines
-  USE Logical_Mod                                 ! Logical switches
   USE Mapping_Mod                                 ! Mapping weights & areas
   USE Time_Mod                                    ! EXPAND_DATE
 
@@ -37,11 +35,11 @@ MODULE Modis_Lai_Mod
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  INTEGER, PUBLIC              :: DAYS_BTW_MON    ! Days btw LAI midmonths
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
+  INTEGER, PUBLIC,              TARGET :: DAYS_BTW_MON    ! Days btw LAI midmonths
+  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
+  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
+  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
+  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -144,6 +142,7 @@ MODULE Modis_Lai_Mod
 !                              on which version of MODIS LAI we are using
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F;
 !                              XLAI, XLAI2 now are carried in State_Met
+!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,17 +184,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Modis_Lai( am_I_Root, State_Met,    doy, mm,  &
-                                mapping,   wasModisRead, RC       )
+  SUBROUTINE Compute_Modis_Lai( am_I_Root,    Input_Opt, State_Met,  &
+                                doy,          mm,        mapping,    &
+                                wasModisRead, RC                    )
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+    TYPE(OptInput),  INTENT(IN)  :: Input_Opt     ! Input Options object
     TYPE(MetState),  INTENT(IN)  :: State_Met     ! Meteorology State object
     INTEGER,         INTENT(IN)  :: doy           ! Day of year
     INTEGER,         INTENT(IN)  :: mm            ! Month for LAI data
@@ -222,6 +224,7 @@ CONTAINS
 !  13 Dec 2012 - R. Yantosca - Add am_I_Root, State_Met, RC arguments
 !  13 Dec 2012 - R. Yantosca - XLAI, XLAI2 are now carried in State_Met
 !                              instead of in obsolete Headers/CMN_DEP_mod.F
+!  23 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -463,30 +466,36 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Read_Modis_Lai( yyyy, mm, wasModisRead )
+  SUBROUTINE Read_Modis_Lai( am_I_Root, Input_Opt, yyyy, mm, wasModisRead, RC )
 !
 ! !USES:
 !
-    USE m_netcdf_io_open                       ! netCDF file open
-    USE m_netcdf_io_read                       ! netCDF read
-    USE m_netcdf_io_readattr                   ! netCDF attribute reads
-    USE m_netcdf_io_close                      ! netCDF file close
-    
-#   include "netcdf.inc"                       ! netCDF settings & parameters
+    USE m_netcdf_io_open                         ! netCDF file open
+    USE m_netcdf_io_read                         ! netCDF read
+    USE m_netcdf_io_readattr                     ! netCDF attribute reads
+    USE m_netcdf_io_close                        ! netCDF file close
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput 
+   
+#   include "netcdf.inc"                         ! netCDF settings & parameters
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN)  :: yyyy               ! Year for LAI data
-    INTEGER, INTENT(IN)  :: mm                 ! Month for LAI data
+    LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
+    INTEGER,        INTENT(IN)  :: yyyy          ! Year for LAI data
+    INTEGER,        INTENT(IN)  :: mm            ! Month for LAI data
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL, INTENT(OUT) :: wasModisRead       ! Was LAI data just read in?
+    LOGICAL,        INTENT(OUT) :: wasModisRead  ! Was LAI data just read in?
+    INTEGER,        INTENT(OUT) :: RC            ! Success or failure?   
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
 !  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
 !  05 Jun 2013 - R. Yantosca - Bug fix, use "mm" for current month index
+!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -520,6 +529,9 @@ CONTAINS
     ! Test if it is time to read data
     !======================================================================
 
+    ! Assume success
+    RC = GIGC_SUCCESS
+
     ! If we enter a new LAI month, then read MODIS LAI from disk
     ! Otherwise, just exit, since it is not time to read data yet
     IF ( mm /= mmLast ) THEN
@@ -537,14 +549,14 @@ CONTAINS
     !======================================================================
 
     ! Filename template 
-    IF ( USE_OLSON_2001 ) THEN
+    IF ( Input_Opt%USE_OLSON_2001 ) THEN
        nc_tmpl = 'For_Olson_2001/MODIS.LAIv.V5.generic.025x025.YYYY.nc'
     ELSE
        nc_tmpl = 'For_Olson_1992/MODIS.LAIv.V5.generic.05x05.YYYY.nc'   
     ENDIF
 
     ! Construct file path from directory & file name
-    nc_dir  = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_201204/'
+    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'MODIS_LAI_201204/'
 
     !======================================================================
     ! Read current month's LAI
@@ -562,7 +574,7 @@ CONTAINS
 
        ! Here, yyyy lies outside the MODIS data timespan,
        ! so we have to read data from a different year.
-       IF ( USE_OLSON_2001 ) THEN
+       IF ( Input_Opt%USE_OLSON_2001 ) THEN
           IF ( yyyy > MODIS_END ) THEN                    !%%% OLSON 2001 %%%
              yyyymmdd = MODIS_END*10000   + mm*100 + 01   ! Use final year
           ELSE IF ( yyyy < MODIS_START ) THEN             !
@@ -635,7 +647,7 @@ CONTAINS
 
        ! Here, yyyy lies outside the MODIS data timespan,
        ! so we have to read data from a different year.
-       IF ( USE_OLSON_2001 ) THEN
+       IF ( Input_Opt%USE_OLSON_2001 ) THEN
           IF ( Pyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
              yyyymmdd = MODIS_END*10000   + Pmm*100 + 01  ! Use final year
           ELSE IF ( Pyyyy < MODIS_START ) THEN            !
@@ -708,7 +720,7 @@ CONTAINS
 
        ! Here, yyyy lies outside the MODIS data timespan,
        ! so we have to read data from a different year.
-       IF ( USE_OLSON_2001 ) THEN
+       IF ( Input_Opt%USE_OLSON_2001 ) THEN
           IF ( Nyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
              yyyymmdd = MODIS_END*10000   + Nmm*100 + 01  ! Use final year
           ELSE IF ( Nyyyy < MODIS_START ) THEN            !
@@ -899,44 +911,57 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Modis_Lai()
+  SUBROUTINE Init_Modis_Lai( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
 !  03 Feb 2014 - M. Sulprizio- Force last year of MODIS data to 2008. There is
 !                              a large difference in the 2009 file that still
 !                              needs to be investigated (skim, 1/29/14)
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: as
-
     !======================================================================
     ! Allocate arrays on the "coarse" GEOS-Chem grid
     !======================================================================
-    ALLOCATE( GC_LAI( IIPAR, JJPAR ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'GC_LAI' )
+    ALLOCATE( GC_LAI( IIPAR, JJPAR ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI' )
     GC_LAI = 0d0
 
-    ALLOCATE( GC_LAI_PM( IIPAR, JJPAR ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'GC_LAI_PM' )
+    ALLOCATE( GC_LAI_PM( IIPAR, JJPAR ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_PM' )
     GC_LAI_PM = 0d0
 
-    ALLOCATE( GC_LAI_CM( IIPAR, JJPAR ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'GC_LAI_CM' )
+    ALLOCATE( GC_LAI_CM( IIPAR, JJPAR ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_CM' )
     GC_LAI_CM = 0d0
 
-    ALLOCATE( GC_LAI_NM( IIPAR, JJPAR ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'GC_LAI_NM' )
+    ALLOCATE( GC_LAI_NM( IIPAR, JJPAR ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_NM' )
     GC_LAI_NM = 0d0
 
     !======================================================================
     ! Allocate arrays on the "fine" MODIS grid grid
     !======================================================================
-    IF ( USE_OLSON_2001 ) THEN
+    IF ( Input_Opt%USE_OLSON_2001 ) THEN
        I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
        J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
        MODIS_START = 2005             ! First year of MODIS data  
@@ -949,20 +974,20 @@ CONTAINS
        MODIS_END   = 2008             ! Last  year of MODIS data
     ENDIF
 
-    ALLOCATE( MODIS_LAI( I_MODIS, J_MODIS ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI' )
+    ALLOCATE( MODIS_LAI( I_MODIS, J_MODIS ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI' )
     MODIS_LAI = 0d0
 
-    ALLOCATE( MODIS_LAI_PM( I_MODIS, J_MODIS ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_PM' )
+    ALLOCATE( MODIS_LAI_PM( I_MODIS, J_MODIS ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_PM' )
     MODIS_LAI_PM = 0d0
 
-    ALLOCATE( MODIS_LAI_CM( I_MODIS, J_MODIS ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_CM' )
+    ALLOCATE( MODIS_LAI_CM( I_MODIS, J_MODIS ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_CM' )
     MODIS_LAI_CM = 0d0
 
-    ALLOCATE( MODIS_LAI_NM( I_MODIS, J_MODIS ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_NM' )
+    ALLOCATE( MODIS_LAI_NM( I_MODIS, J_MODIS ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_NM' )
     MODIS_LAI_NM = 0d0
 
   END SUBROUTINE Init_Modis_Lai

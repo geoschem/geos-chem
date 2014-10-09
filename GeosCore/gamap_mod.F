@@ -142,7 +142,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
-      USE TRACER_MOD,         ONLY : GET_SIM_NAME 
 !
 ! !INPUT PARAMETERS:
 !
@@ -157,6 +156,8 @@
 !  03 May 2005 - R. Yantosca - Initial version
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  25 Jun 2014 - R. Yantosca - Now get SIM_NAME from Input_Opt
+!  25 Jun 2014 - R. Yantosca - Remove all references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,7 +175,7 @@
       STAMP    = SYSTEM_TIMESTAMP()
 
       ! Get simulation name
-      SIM_NAME = GET_SIM_NAME()
+      SIM_NAME = Input_Opt%SIM_NAME
 
       ! Write "diaginfo.dat" file
       CALL CREATE_DINFO()
@@ -1700,7 +1701,6 @@
       USE DIAG_PL_MOD,        ONLY : DO_SAVE_PL,  GET_NFAM
       USE DIAG_PL_MOD,        ONLY : GET_FAM_MWT, GET_FAM_NAME
       USE DRYDEP_MOD,         ONLY : DEPNAME,     NUMDEP,    NTRAIND
-      USE GET_POPSINFO_MOD,   ONLY : GET_POP_XMW
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACERID_MOD
@@ -1772,6 +1772,7 @@
 !  25 Apr 2014 - M. Sulprizio- Now include J-values for ACET in ND22
 !  27 May 2014 - M. Sulprizio- Now include J-values for ALD2, MVK, MACR, HAC,
 !                              and GLYC in ND22
+!  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to GET_FAM_MWT function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5214,16 +5215,16 @@
       !-------------------------------------
       IF ( ND28 > 0 ) THEN
 
-         IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-
-            !---------------------------
-            ! CO2 simulation only
-            !---------------------------
-
-            ! Number of tracers
-            NTRAC(28) = 1
-            
-            ! Define quantities
+         ! Initialize
+         T         = 0
+         NTRAC(28) = 0
+         
+         !-----------------------------------------------
+         ! Biomass species for CO2 simulation
+         !-----------------------------------------------
+         IF ( Input_Opt%ITS_A_CO2_SIM ) THEN 
+            T           = T + 1
+            NTRAC(28)   = NTRAC(28) + 1
             NAME (T,28) = 'CO2'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
             INDEX(T,28) = 1 + ( SPACING * 45 )
@@ -5231,222 +5232,290 @@
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
+         ENDIF
 
-         ELSE
-
-            !---------------------------
-            ! Full-chemistry simulation
-            !---------------------------
-
-            ! Number of tracers
-            ! Add GLYX, MGLY, GLYC, HAC, C2H2,BENZ, TOLU, XYLE, C2H4
-            !-----------------------------------------------------------------
-            ! Bug fix: omit SOA tracers if not needed. (bmy, 9/2/10)
-            !NTRAC(28) = 23
-            !-----------------------------------------------------------------
-            IF ( Input_Opt%LSOA ) THEN
-               ! SOAupdate: plus one for NAP (hotp 7/25/10)
-               NTRAC(28) = 24   ! Traditional SOA simulation
-            ELSE
-               IF (IDBCH4 == 0) THEN
-                  NTRAC(28) = 14    ! Standard simulation
-               ELSE
-                  NTRAC(28) = 15    ! Standard simulation (with CH4)
-               ENDIF
+         !-----------------------------------------------
+         ! Biomass species for fullchem/SOA simulations
+         !-----------------------------------------------
+         IF ( IDTNO > 0 ) THEN
+            T           = T + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'NO'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTNO + ( SPACING * 45 )
+            MWT  (T,28) = 14e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTCO > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'CO'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTCO + ( SPACING * 45 )
+            MWT  (T,28) = 28e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTALK4 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'ALK4'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTALK4 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 4
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTACET > 0  ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'ACET'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTACET + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 3
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTMEK > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'MEK'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTMEK + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 4
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTALD2 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'ALD2'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTALD2 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 3
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTPRPE > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'PRPE'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTPRPE + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 3
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTC3H8 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'C3H8'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTC3H8 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 3
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTCH2O > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'CH2O'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTCH2O + ( SPACING * 45 )
+            MWT  (T,28) = 30e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTC2H6 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'C2H6'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTC2H6 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 2
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTSO2 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'SO2'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTSO2 + ( SPACING * 45 )
+            MWT  (T,28) = 32e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'atoms S/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTNH3 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'NH3'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTNH3 + ( SPACING * 45 )
+            MWT  (T,28) = 17e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTBCPI > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'BC'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTBCPI + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTOCPI > 0 .or. IDTPOA1 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'OC'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            ! SOAupdate: allow non-vol or semi-vol POA (hotp 8/24/09)
+            IF ( IDTOCPI > 0 ) THEN
+               INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
+            ELSE IF ( IDTPOA1  > 0 ) THEN
+               INDEX(T,28) = IDTPOA1 + ( SPACING * 45 )
             ENDIF
-
-            ! Loop over tracers
-            DO T = 1, NTRAC(28)
-
-               ! removed hardwires (fp, 6/2009)
-               ! Case statement
-               ! Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
-               IF ( T == IDBNO ) THEN
-                  NAME (T,28) = 'NO'
-                  INDEX(T,28) = IDTNO + ( SPACING * 45 )
-                  MWT  (T,28) = 14e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-                  
-               ELSE IF ( T == IDBCO ) THEN
-                  NAME (T,28) = 'CO'
-                  INDEX(T,28) = IDTCO + ( SPACING * 45 )
-                  MWT  (T,28) = 28e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBALK4 ) THEN
-                  NAME (T,28) = 'ALK4'
-                  INDEX(T,28) = IDTALK4 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 4
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBACET ) THEN
-                  NAME (T,28) = 'ACET'
-                  INDEX(T,28) = IDTACET + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBMEK ) THEN
-                  NAME (T,28) = 'MEK'
-                  INDEX(T,28) = IDTMEK + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 4
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBALD2 ) THEN
-                  NAME (T,28) = 'ALD2'
-                  INDEX(T,28) = IDTALD2 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBPRPE ) THEN
-                  NAME (T,28) = 'PRPE'
-                  INDEX(T,28) = IDTPRPE + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBC3H8 ) THEN
-                  NAME (T,28) = 'C3H8'
-                  INDEX(T,28) = IDTC3H8 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBCH2O ) THEN
-                  NAME (T,28) = 'CH2O'
-                  INDEX(T,28) = IDTCH2O + ( SPACING * 45 )
-                  MWT  (T,28) = 30e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBC2H6 ) THEN
-                  NAME (T,28) = 'C2H6'
-                  INDEX(T,28) = IDTC2H6 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 2
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBSO2 ) THEN
-                  NAME (T,28) = 'SO2'
-                  INDEX(T,28) = IDTSO2 + ( SPACING * 45 )
-                  MWT  (T,28) = 32e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'atoms S/cm2/s'
-
-               ELSE IF ( T == IDBNH3 ) THEN
-                  NAME (T,28) = 'NH3'
-                  INDEX(T,28) = IDTNH3 + ( SPACING * 45 )
-                  MWT  (T,28) = 17e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBBC ) THEN
-                  NAME (T,28) = 'BC'
-                  INDEX(T,28) = IDTBCPI + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBOC ) THEN
-                  NAME (T,28) = 'OC'
-                  ! SOAupdate: allow non-vol or semi-vol POA (hotp 8/24/09)
-                  IF ( IDTOCPI > 0 ) 
-     &               INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
-                  IF ( IDTPOA1  > 0 )
-     &               INDEX(T,28) = IDTPOA1 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBCH4 ) THEN
-                  NAME (T,28) = 'CH4'
-                  INDEX(T,28) = IDTCH4 + ( SPACING * 45 )
-                  MWT  (T,28) = 16e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBGLYX ) THEN
-                  NAME (T,28) = 'GLYX'
-                  INDEX(T,28) = IDTGLYX + ( SPACING * 45 )
-                  MWT  (T,28) = 58e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBMGLY ) THEN
-                  NAME (T,28) = 'MGLY'
-                  INDEX(T,28) = IDTMGLY + ( SPACING * 45 )
-                  MWT  (T,28) = 72e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBBENZ ) THEN
-                  NAME (T,28) = 'BENZ'
-                  INDEX(T,28) = IDTBENZ + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 6
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBTOLU ) THEN
-                  NAME (T,28) = 'TOLU'
-                  INDEX(T,28) = IDTTOLU + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 7
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBXYLE ) THEN
-                  NAME (T,28) = 'XYLE'
-                  INDEX(T,28) = IDTXYLE + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 8
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBC2H4 ) THEN
-                  NAME (T,28) = 'C2H4'
-                  INDEX(T,28) = IDTC2H4 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 2
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBC2H2 ) THEN
-                  NAME (T,28) = 'C2H2'
-                  INDEX(T,28) = IDTC2H2 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 2
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBGLYC ) THEN
-                  NAME (T,28) = 'GLYC'
-                  INDEX(T,28) = IDTGLYC + ( SPACING * 45 )
-                  MWT  (T,28) = 60e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBHAC ) THEN
-                  NAME (T,28) = 'HAC'
-                  INDEX(T,28) = IDTHAC + ( SPACING * 45 )
-                  MWT  (T,28) = 74e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ! SOAupdate: add NAPSOA (hotp 8/23/09)
-               ELSEIF( T == IDBNAP ) THEN
-                     NAME (T,28) = 'NAP'
-                     INDEX(T,28) = IDTNAP + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'atoms C/cm2/s' 
-
-               ENDIF
-
-               ! Define other quantities
-               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-               SCALE(T,28) = 1e0
-            ENDDO
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTCH4 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'CH4'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTCH4 + ( SPACING * 45 )
+            MWT  (T,28) = 16e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTGLYX > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'GLYX'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTGLYX + ( SPACING * 45 )
+            MWT  (T,28) = 58e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTMGLY > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'MGLY'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTMGLY + ( SPACING * 45 )
+            MWT  (T,28) = 72e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTBENZ > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'BENZ'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTBENZ + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 6
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTTOLU > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'TOLU'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTTOLU + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 7
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTXYLE > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'XYLE'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTXYLE + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 8
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTC2H4 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'C2H4'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTC2H4 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 2
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTC2H2 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'C2H2'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTC2H2 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 2
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTGLYC > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'GLYC'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTGLYC + ( SPACING * 45 )
+            MWT  (T,28) = 60e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTHAC > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'HAC'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTHAC + ( SPACING * 45 )
+            MWT  (T,28) = 74e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF( IDTNAP > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'NAP'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTNAP + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'atoms C/cm2/s' 
+            SCALE(T,28) = 1e0
          ENDIF
       ENDIF
 
@@ -5523,38 +5592,42 @@
          SCALE(T,31) = 1e0
       ENDIF
 
-      !-------------------------------------      
-      ! CH3I emissions sources (ND36)
-      !-------------------------------------      
-      IF ( ND36 > 0 .and. Input_Opt%ITS_A_CH3I_SIM ) THEN
-
-         ! Number of tracers
-         NTRAC(36) = NEMANTHRO
-
-         ! The first few are tracers
-         DO T = 1, NTRAC(36)
-            IF ( T <= Input_Opt%N_TRACERS ) THEN
-               NAME (T,36) = Input_Opt%TRACER_NAME(T)
-               FNAME(T,36) = TRIM( NAME(T,36) ) // ' tracer'
-            ELSE IF ( T == 6 ) THEN
-               NAME (T,36) = 'CH3Iof'
-               FNAME(T,36) = 'CH3I ocean flux??'
-            ELSE IF ( T == 7 ) THEN
-               NAME (T,36) = 'CH3Igf'
-               FNAME(T,36) = 'CH3I gas flux??'
-            ELSE IF ( T == 8 ) THEN
-               NAME (T,36) = 'CH3Itf'
-               FNAME(T,36) = 'CH3I total flux??'
-            ENDIF
-
-            ! Define other quantities
-            MOLC (T,36) = 1
-            SCALE(T,36) = 1e0
-            INDEX(T,36) = T + ( SPACING * 44 )
-            MWT  (T,36) = 141.9e-3
-            UNIT (T,36) = 'ng/m2/s'
-         ENDDO
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/18/14:
+! The CH3I simulation is obsolete, so comment out for now (bmy, 8/25/14)
+!      !-------------------------------------      
+!      ! CH3I emissions sources (ND36)
+!      !-------------------------------------      
+!      IF ( ND36 > 0 .and. Input_Opt%ITS_A_CH3I_SIM ) THEN
+!
+!         ! Number of tracers
+!         NTRAC(36) = NEMANTHRO
+!
+!         ! The first few are tracers
+!         DO T = 1, NTRAC(36)
+!            IF ( T <= Input_Opt%N_TRACERS ) THEN
+!               NAME (T,36) = Input_Opt%TRACER_NAME(T)
+!               FNAME(T,36) = TRIM( NAME(T,36) ) // ' tracer'
+!            ELSE IF ( T == 6 ) THEN
+!               NAME (T,36) = 'CH3Iof'
+!               FNAME(T,36) = 'CH3I ocean flux??'
+!            ELSE IF ( T == 7 ) THEN
+!               NAME (T,36) = 'CH3Igf'
+!               FNAME(T,36) = 'CH3I gas flux??'
+!            ELSE IF ( T == 8 ) THEN
+!               NAME (T,36) = 'CH3Itf'
+!               FNAME(T,36) = 'CH3I total flux??'
+!            ENDIF
+!
+!            ! Define other quantities
+!            MOLC (T,36) = 1
+!            SCALE(T,36) = 1e0
+!            INDEX(T,36) = T + ( SPACING * 44 )
+!            MWT  (T,36) = 141.9e-3
+!            UNIT (T,36) = 'ng/m2/s'
+!         ENDDO
+!      ENDIF
+!------------------------------------------------------------------------------
 
       !-------------------------------------      
       ! Afternoon-average boundary 
@@ -6127,12 +6200,7 @@
       !-------------------------------------      
       IF ( ND46 > 0 .or. DO_TIMESERIES ) THEN 
 
-         ! Number of tracers
-         IF ( IDBCH4 == 0 ) THEN
-            NTRAC(46) = 20
-         ELSE
-            NTRAC(46) = 21 ! Add CH4 (SDE 03/25/13)
-         ENDIF
+         NTRAC(46) = 21  
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -6354,7 +6422,7 @@
             ! Define quantities
             UNIT (T,53) = 'kg'
             MOLC (T,53) = 1
-            MWT  (T,53) = GET_POP_XMW(DUM)
+            MWT  (T,53) = Input_Opt%POP_XMW
             SCALE(T,53) = 1e0
 
             ! Get name, long-name, index, and new units
@@ -6755,7 +6823,7 @@
             FNAME(T,65) = TRIM( NAME(T,65) ) // ' P/L family'
             INDEX(T,65) = T + ( SPACING * 17 )
             MOLC (T,65) = 1 
-            MWT  (T,65) = GET_FAM_MWT( T )
+            MWT  (T,65) = GET_FAM_MWT( T, Input_Opt )
             SCALE(T,65) = 1e0
             
             ! Unit for Tag Ox is kg/s, otherwise molec/cm3/s 
@@ -7072,6 +7140,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS, NYMDb, NHMSb
+      INTEGER :: MAXTRACER_HG
 
       !=================================================================
       ! INIT_GAMAP begins here!
@@ -7109,33 +7178,69 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NTRAC' )
       NTRAC = 0
 
-      ALLOCATE( INDEX( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )      
-      INDEX = 0
+      IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LSPLIT) THEN
 
-      ALLOCATE( MOLC( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLC' )      
-      MOLC = 0
+         MAXTRACER_HG = 480
 
-      ALLOCATE( MWT( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )      
-      MWT = 0.0
+         ALLOCATE( INDEX( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )      
+         INDEX = 0
 
-      ALLOCATE( SCALE( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )      
-      SCALE = 0.0
+         ALLOCATE( MOLC( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLC' )      
+         MOLC = 0
 
-      ALLOCATE( NAME( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )      
-      NAME = ''
+         ALLOCATE( MWT( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )      
+         MWT = 0.0
 
-      ALLOCATE( FNAME( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )      
-      FNAME = ''
+         ALLOCATE( SCALE( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )      
+         SCALE = 0.0
 
-      ALLOCATE( UNIT( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )      
-      UNIT = ''
+         ALLOCATE( NAME( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )      
+         NAME = ''
+
+         ALLOCATE( FNAME( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )      
+         FNAME = ''
+
+         ALLOCATE( UNIT( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )      
+         UNIT = ''
+
+      ELSE
+
+         ALLOCATE( INDEX( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )      
+         INDEX = 0
+
+         ALLOCATE( MOLC( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLC' )      
+         MOLC = 0
+
+         ALLOCATE( MWT( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )      
+         MWT = 0.0
+
+         ALLOCATE( SCALE( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )      
+         SCALE = 0.0
+
+         ALLOCATE( NAME( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )      
+         NAME = ''
+
+         ALLOCATE( FNAME( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )      
+         FNAME = ''
+
+         ALLOCATE( UNIT( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )      
+         UNIT = ''
+
+      ENDIF
 
       !=================================================================
       ! Initialize arrays for "diaginfo.dat" & "tracerinfo.dat" files

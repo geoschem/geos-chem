@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE HCO_ERROR_MOD   ! HEMCO precision definition and error handling
+
       IMPLICIT NONE
       PRIVATE
 
@@ -43,7 +45,7 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 ! 
       PRIVATE :: GET_REGIONAL_POX
-      PRIVATE :: READ_POX_LOX
+!      PRIVATE :: READ_POX_LOX
 !
 ! !REMARKS:
 !  THE SIMPLE TAGGED O3 SIMULATION (default setting) HAS THESE TRACERS:
@@ -105,14 +107,24 @@
 !  11 Apr 2014 - R. Yantosca - Now make the O3Strt tracer #2 for both the
 !                              simple and extended tagged O3 simulations
 !  11 Apr 2014 - R. Yantosca - Now make INIT_TAGGED_OX a public routine
+!  17 Sep 2014 - C. Keller   - Now use HEMCO for prod./loss rates. This makes
+!                              subroutine READ_POX_LOX obsolete.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      REAL*8,  ALLOCATABLE, PRIVATE :: P24H(:,:,:)     ! O3 production rate
-      REAL*8,  ALLOCATABLE, PRIVATE :: L24H(:,:,:)     ! O3 loss rate
+      REAL(hp), POINTER        :: P24H(:,:,:) => NULL() ! O3 production rate
+      REAL(hp), POINTER        :: L24H(:,:,:) => NULL() ! O3 loss rate
+!      REAL*8,  ALLOCATABLE, PRIVATE :: P24H(:,:,:)     ! O3 production rate
+!      REAL*8,  ALLOCATABLE, PRIVATE :: L24H(:,:,:)     ! O3 loss rate
+
+      ! Emission timestep (will be imported from HEMCO)
+      REAL*8                   :: TS_EMIS
+
+      ! To convert m3 to cm3
+      REAL*8, PARAMETER        :: CM3PERM3 = 1.0d6
 !
 ! !DEFINED PARAMETERS:
 ! 
@@ -198,197 +210,206 @@
 
       END SUBROUTINE ADD_STRAT_POX
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_pox_lox
-!
-! !DESCRIPTION: Subroutine READ\_POX\_LOX reads previously-archived Ox 
-!  production and loss rates from binary punch file format. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_POX_LOX
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_TAU0
-      USE DIRECTORY_MOD, ONLY : O3PL_DIR 
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TIME_MOD,      ONLY : GET_NYMD
-      USE TIME_MOD,      ONLY : GET_TAU
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
-      ! JLIU,2008/10/01
-      USE CHARPAK_MOD,   ONLY : STRREPL
-      USE TIME_MOD,      ONLY : YMD_EXTRACT
-      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
-      USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR
-      USE TIME_MOD,      ONLY : GET_YEAR
-      USE TIME_MOD,      ONLY : GET_MONTH
-      USE TIME_MOD,      ONLY : GET_DAY
-      USE TIME_MOD,      ONLY : GET_HOUR
-      USE DIAG_PL_MOD                                      !dbj
-      USE JULDAY_MOD,    ONLY : JULDAY                     !dbj
-           
-      USE CMN_SIZE_MOD ! Size parameters
-      USE CMN_DIAG_MOD ! LD65
-! 
-! !REVISION HISTORY:
-!  20 Aug 2003 - R. Yantosca - Initial version
-!  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
-!  (2 ) Now references O3PL_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4 ) Use LLTROP_FIX to limit array size to case of non-variable tropopause.
-!        Also zero ARRAY to avoid numerical problems (phs, 1/19/07)
-!  (5 ) Now use LLTROP instead of LLTROP_FIX (phs, bmy, 12/4/07)
-!  (6 ) Now use LD65, since this is the number of levels use to 
-!        save diag20 (phs, 11/17/08)
-!  (7 ) Updates for LINOZ (dbj, jliu, bmy, 10/16/09)
-!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  06 Nov 2013 - R. Yantosca - Use an #ifdef to decide if we are reading O3
-!                              P/L data from a different year than the met
-!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 or LLTROP_FIX
-!                              (hyl,bmy/11/3/11)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLTROP)
-      REAL*8             :: XTAU
-      CHARACTER(LEN=255) :: FILENAME
-      !JLIU, 2008/10/01
-      INTEGER            :: YYYY, MM, DD, FIRST_DATE
-      INTEGER            :: DAY_OF_YEAR,  NYMD
-      CHARACTER(LEN=2)   :: MM_STR, DD_STR
-
-      !=================================================================
-      ! READ_POX_LOX begins here!
-      !=================================================================
-
-      ! Get year of archived O3 prod/loss data.  This can be the
-      ! current simulation year (or more likely, a previous year). 
-#if defined( USE_THIS_O3_YEAR )
-      YYYY  = USE_THIS_O3_YEAR
-#else
-      YYYY  = GET_YEAR()
-#endif
-      
-      ! Get date of archived ozone prod/loss data to read
-      MM    = GET_MONTH()
-      DD    = GET_DAY()
-      NYMD  = YYYY*10000 + MM*100 + DD 
-
-      ! Create filename string
-      FILENAME = 'rate.YYYYMMDD'
-      CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-      ! Get the TAU value corresponding to the date
-      XTAU = GET_TAU0( MM, DD, YYYY )
-
-!------------------------------------------------------------------------------
-! Comment out for now (bmy, 2/4/11)
-!      ! -----------------------------------------
-!      ! dbj 
-!      ! JLIU, 2008/10/01
-!      ! -----------------------------------------
-!      IF (TAGO3_PL_YEAR .GT. 0) THEN
-!
-!          ! Extract today's date into year, month, and day sections
-!          CALL YMD_EXTRACT( GET_NYMD(), YYYY, MM, DD )
-!
-!          IF ( ITS_A_LEAPYEAR() ) THEN
-!             IF ( (.NOT. ITS_A_LEAPYEAR(TAGO3_PL_YEAR)) .AND. 
-!     &            (DD .EQ. 29) ) THEN
-!                 DD = DD - 1
-!             ENDIF
-!          ENDIF
-!
-!#if       defined( LINUX_PGI )
-!          ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
-!          ENCODE( 2, '(a,i4.4,i2.2,i2.2)', FILENAME ) 
-!     &        'rate.',TAGO3_PL_YEAR,MM,DD
-!#else
-!          ! For other platforms, use an F90 internal write (bmy, 9/29/03)
-!          WRITE(FILENAME, '(a,i4.4,i2.2,i2.2)') 
-!     &         'rate.',TAGO3_PL_YEAR,MM,DD
-!#endif
-!
-!      ELSE
-!          FILENAME = 'rate.YYYYMMDD'
-!          CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
-!
-!      ENDIF
-!------------------------------------------------------------------------------
-
-      ! Prefix FILENAME w/ the proper directory
-      FILENAME = TRIM( O3PL_DIR ) // FILENAME
-
-      ! Echo information
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_POX_LOX: Reading ', a )
-
-!------------------------------------------------------------------------------
-! Comment out for now (bmy, 2/4/11)
-!      !---------------------------------------
-!      ! dbj
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_pox_lox
+!!
+!! !DESCRIPTION: Subroutine READ\_POX\_LOX reads previously-archived Ox 
+!!  production and loss rates from binary punch file format. 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_POX_LOX( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD,     ONLY : READ_BPCH2
+!      USE BPCH2_MOD,     ONLY : GET_TAU0
+!      USE TIME_MOD,      ONLY : EXPAND_DATE
+!      USE TIME_MOD,      ONLY : GET_NYMD
+!      USE TIME_MOD,      ONLY : GET_TAU
+!      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
+!      ! JLIU,2008/10/01
+!      USE CHARPAK_MOD,   ONLY : STRREPL
+!      USE TIME_MOD,      ONLY : YMD_EXTRACT
+!      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
+!      USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR
+!      USE TIME_MOD,      ONLY : GET_YEAR
+!      USE TIME_MOD,      ONLY : GET_MONTH
+!      USE TIME_MOD,      ONLY : GET_DAY
+!      USE TIME_MOD,      ONLY : GET_HOUR
+!      USE DIAG_PL_MOD                                      !dbj
+!      USE JULDAY_MOD,    ONLY : JULDAY                     !dbj
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE CMN_SIZE_MOD ! Size parameters
+!      USE CMN_DIAG_MOD ! LD65
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!! 
+!! !REVISION HISTORY:
+!!  20 Aug 2003 - R. Yantosca - Initial version
+!!  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
+!!  (2 ) Now references O3PL_DIR from "directory_mod.f" (bmy, 7/20/04)
+!!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!!  (4 ) Use LLTROP_FIX to limit array size to case of non-variable tropopause.
+!!        Also zero ARRAY to avoid numerical problems (phs, 1/19/07)
+!!  (5 ) Now use LLTROP instead of LLTROP_FIX (phs, bmy, 12/4/07)
+!!  (6 ) Now use LD65, since this is the number of levels use to 
+!!        save diag20 (phs, 11/17/08)
+!!  (7 ) Updates for LINOZ (dbj, jliu, bmy, 10/16/09)
+!!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!!  06 Nov 2013 - R. Yantosca - Use an #ifdef to decide if we are reading O3
+!!                              P/L data from a different year than the met
+!!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 or LLTROP_FIX
+!!                              (hyl,bmy/11/3/11)
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      REAL*4             :: ARRAY(IIPAR,JJPAR,LLTROP)
+!      REAL*8             :: XTAU
+!      CHARACTER(LEN=255) :: FILENAME
 !      !JLIU, 2008/10/01
-!      !---------------------------------------
+!      INTEGER            :: YYYY, MM, DD, FIRST_DATE
+!      INTEGER            :: DAY_OF_YEAR,  NYMD
+!      CHARACTER(LEN=2)   :: MM_STR, DD_STR
 !
-!      IF (TAGO3_PL_YEAR .GT. 0) THEN
+!      !=================================================================
+!      ! READ_POX_LOX begins here!
+!      !=================================================================
 !
-!         XTAU =
-!     &          ( (JULDAY(TAGO3_PL_YEAR,MM,DFLOAT(DD)) - 
-!     &             JULDAY(1985,1,DFLOAT(1)))*24.0d0 ) +
-!     &             GET_HOUR()
+!      ! Get year of archived O3 prod/loss data.  This can be the
+!      ! current simulation year (or more likely, a previous year). 
+!#if defined( USE_THIS_O3_YEAR )
+!      YYYY  = USE_THIS_O3_YEAR
+!#else
+!      YYYY  = GET_YEAR()
+!#endif
+!      
+!      ! Get date of archived ozone prod/loss data to read
+!      MM    = GET_MONTH()
+!      DD    = GET_DAY()
+!      NYMD  = YYYY*10000 + MM*100 + DD 
 !
+!      ! Create filename string
+!      FILENAME = 'rate.YYYYMMDD'
+!      CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
 !
-!      ELSE
-!         ! Get the TAU0 value for today
-!         XTAU = GET_TAU()
-!      ENDIF
-!------------------------------------------------------------------------------
-
-      !=================================================================
-      ! Read P(O3) [kg/cm3/s]
-      !=================================================================
-
-      ! Initialize
-      ARRAY = 0e0
-
-      ! Prior to 11/3/11: 
-      ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-      ! tropopause. This is backward compatibility with offline data set.
-      ! Now limit array 3d dimension to LLTROP (hyl, bmy, 11/3/11)
-      CALL READ_BPCH2( FILENAME,  'PORL-L=$', 1,      
-     &                 XTAU,       IIPAR,     JJPAR,      
-     &                 LLCHEM,     ARRAY,     QUIET=.false.)
-
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_3D_TROP( ARRAY, P24H )
-
-      !=================================================================
-      ! Read L(O3) [1/cm3/s]
-      !=================================================================
-
-      ! Initialize
-      ARRAY = 0e0
-
-      ! read data
-      CALL READ_BPCH2( FILENAME,  'PORL-L=$', 2,      
-     &                 XTAU,       IIPAR,     JJPAR,      
-     &                 LLCHEM,     ARRAY,     QUIET=.false.)
-
-      ! Cast from REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAY, L24H )
-
-      END SUBROUTINE READ_POX_LOX
-!EOC
+!      ! Get the TAU value corresponding to the date
+!      XTAU = GET_TAU0( MM, DD, YYYY )
+!
+!!------------------------------------------------------------------------------
+!! Comment out for now (bmy, 2/4/11)
+!!      ! -----------------------------------------
+!!      ! dbj 
+!!      ! JLIU, 2008/10/01
+!!      ! -----------------------------------------
+!!      IF (TAGO3_PL_YEAR .GT. 0) THEN
+!!
+!!          ! Extract today's date into year, month, and day sections
+!!          CALL YMD_EXTRACT( GET_NYMD(), YYYY, MM, DD )
+!!
+!!          IF ( ITS_A_LEAPYEAR() ) THEN
+!!             IF ( (.NOT. ITS_A_LEAPYEAR(TAGO3_PL_YEAR)) .AND. 
+!!     &            (DD .EQ. 29) ) THEN
+!!                 DD = DD - 1
+!!             ENDIF
+!!          ENDIF
+!!
+!!#if       defined( LINUX_PGI )
+!!          ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
+!!          ENCODE( 2, '(a,i4.4,i2.2,i2.2)', FILENAME ) 
+!!     &        'rate.',TAGO3_PL_YEAR,MM,DD
+!!#else
+!!          ! For other platforms, use an F90 internal write (bmy, 9/29/03)
+!!          WRITE(FILENAME, '(a,i4.4,i2.2,i2.2)') 
+!!     &         'rate.',TAGO3_PL_YEAR,MM,DD
+!!#endif
+!!
+!!      ELSE
+!!          FILENAME = 'rate.YYYYMMDD'
+!!          CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+!!
+!!      ENDIF
+!!------------------------------------------------------------------------------
+!
+!      ! Prefix FILENAME w/ the proper directory
+!      FILENAME = TRIM( Input_Opt%O3PL_DIR ) // FILENAME
+!
+!      ! Echo information
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_POX_LOX: Reading ', a )
+!
+!!------------------------------------------------------------------------------
+!! Comment out for now (bmy, 2/4/11)
+!!      !---------------------------------------
+!!      ! dbj
+!!      !JLIU, 2008/10/01
+!!      !---------------------------------------
+!!
+!!      IF (TAGO3_PL_YEAR .GT. 0) THEN
+!!
+!!         XTAU =
+!!     &          ( (JULDAY(TAGO3_PL_YEAR,MM,DFLOAT(DD)) - 
+!!     &             JULDAY(1985,1,DFLOAT(1)))*24.0d0 ) +
+!!     &             GET_HOUR()
+!!
+!!
+!!      ELSE
+!!         ! Get the TAU0 value for today
+!!         XTAU = GET_TAU()
+!!      ENDIF
+!!------------------------------------------------------------------------------
+!
+!      !=================================================================
+!      ! Read P(O3) [kg/cm3/s]
+!      !=================================================================
+!
+!      ! Initialize
+!      ARRAY = 0e0
+!
+!      ! Prior to 11/3/11: 
+!      ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
+!      ! tropopause. This is backward compatibility with offline data set.
+!      ! Now limit array 3d dimension to LLTROP (hyl, bmy, 11/3/11)
+!      CALL READ_BPCH2( FILENAME,  'PORL-L=$', 1,      
+!     &                 XTAU,       IIPAR,     JJPAR,      
+!     &                 LLCHEM,     ARRAY,     QUIET=.false.)
+!
+!      ! Cast from REAL*4 to REAL*8
+!      CALL TRANSFER_3D_TROP( ARRAY, P24H )
+!
+!      !=================================================================
+!      ! Read L(O3) [1/cm3/s]
+!      !=================================================================
+!
+!      ! Initialize
+!      ARRAY = 0e0
+!
+!      ! read data
+!      CALL READ_BPCH2( FILENAME,  'PORL-L=$', 2,      
+!     &                 XTAU,       IIPAR,     JJPAR,      
+!     &                 LLCHEM,     ARRAY,     QUIET=.false.)
+!
+!      ! Cast from REAL*4 to REAL*8 
+!      CALL TRANSFER_3D_TROP( ARRAY, L24H )
+!
+!      END SUBROUTINE READ_POX_LOX
+!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -448,21 +469,20 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 (hyl,bmy,11/3/11)
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL          :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
-      LOGICAL          :: ITS_IN_UT,   ITS_IN_NH,  ITS_IN_ATL
-      LOGICAL          :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
-      LOGICAL          :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
-      INTEGER          :: PBLTOP,      MTTOP
-      REAL*8           :: PPROD,       X,          Y
-      
-      ! External functions
-      REAL*8, EXTERNAL :: BOXVL
+      LOGICAL :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
+      LOGICAL :: ITS_IN_UT,   ITS_IN_NH,  ITS_IN_ATL
+      LOGICAL :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
+      LOGICAL :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
+      INTEGER :: PBLTOP,      MTTOP
+      REAL*8  :: PPROD,       X,          Y
+      REAL*8  :: BOXVL
 
       !=================================================================
       ! Initialization
@@ -522,9 +542,12 @@
       ! Assign P(Ox) to tagged tracers by geographic/altitude regions
       !=================================================================
 
+      ! Grid box volume [cm3]
+      BOXVL = State_Met%AIRVOL(I,J,L) !* 1d6
+
       ! P(Ox) [kg]
-      PPROD = P24H(I,J,L)     * BOXVL(I,J,L,State_Met) *
-     &        ( GET_TS_CHEM() * 60d0 )
+      ! P24H is in kg/m3 per emission time step (ckeller, 9/17/2014).
+      PPROD = P24H(I,J,L) * BOXVL * ( GET_TS_CHEM() * 60d0 / TS_EMIS )
 
       !-----------------------
       ! #1: Total P(Ox)
@@ -633,9 +656,13 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY 
-      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+!      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY 
+!      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE TRACERID_MOD,       ONLY : IDTO3
+      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE ERROR_MOD,          ONLY : ERROR_STOP
 
       IMPLICIT NONE
 !
@@ -682,6 +709,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 (hyl,bmy,11/3/11)
 !  11 Apr 2014 - R. Yantosca - Remove call to INIT_TAGGED_OX
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  17 Sep 2014 - C. Keller   - Now use HEMCO for prod. and loss arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -693,9 +722,10 @@
       INTEGER           :: I, J, L, N
       REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
       REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
-      REAL*8            :: DTCHEM,  FREQ,    FLUX
+      REAL*8            :: DTCHEM,  DT,      FREQ,    FLUX
       REAL*8            :: LL,      PL,      Ox_0
       REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
+      REAL*8            :: BOXVL
       CHARACTER(LEN=16) :: STAMP
 
       ! For fields from Input_Opt
@@ -710,8 +740,10 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
 
-      ! External routines
-      REAL*8, EXTERNAL :: BOXVL
+      ! To get emission timestep
+      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+
+      CHARACTER(LEN=255) :: LOC = 'CHEM_TAGGED_OX (tagged_ox_mod.F)'
 
       !=================================================================
       ! CHEM_TAGGED_OX begins here!
@@ -735,12 +767,49 @@
       DTCHEM    = GET_TS_CHEM() * 60d0
 
       ! Read P(Ox) and L(Ox) if it's a new day
-      IF ( ITS_A_NEW_DAY() ) THEN
-         CALL READ_POX_LOX()
+!      IF ( ITS_A_NEW_DAY() ) THEN
+!         CALL READ_POX_LOX( am_I_Root, Input_Opt, RC )
+!      ENDIF
+
+      ! ----------------------------------------------------------
+      ! Get production and loss frequencies from HEMCO. The target
+      ! will be updated automatically by HEMCO. 
+      ! Important: the file data are converted by HEMCO to HEMCO
+      ! concentration units, e.g. the imported data is in kg/m3
+      ! (production) and 1/m3 (loss), e.g. the original data in
+      ! units of kg/m3/s multiplied by the emission timestep.
+      !                                     (ckeller, 9/17/2014)
+      ! ----------------------------------------------------------
+      IF ( FIRST ) THEN
+
+         ! Get pointer to O3 production
+         CALL HCO_GetPtr ( am_I_Root, 'O3_PROD', P24H, RC )
+         IF ( RC /= HCO_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to O3_PROD', LOC )
+
+         ! Get pointer to O3 loss
+         CALL HCO_GetPtr ( am_I_Root, 'O3_LOSS', L24H, RC )
+         IF ( RC /= HCO_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to O3_LOSS', LOC )
+
+         ! Get emissions timestep (seconds)
+         CALL GetHcoState ( HcoState )
+         IF ( .NOT. ASSOCIATED(HcoState) ) 
+     &      CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
+         TS_EMIS = HcoState%TS_EMIS
+
+         HcoState => NULL()
+         FIRST    = .FALSE.
       ENDIF
 
       ! Maximum extent of the PBL [model layers]
       PBL_MAX = GET_PBL_MAX_L()
+
+      ! DT is the ratio of the chemistry and emission time step.
+      ! Use this value to convert from kg/m3 or 1/m3 per emission
+      ! time step to kg/m3 or 1/m3 per chemistry time step.
+      ! (ckeller, 9/17/2014).
+      DT = DTCHEM / TS_EMIS
 
       !=================================================================
       ! Tagged Ox chemistry contains the following terms:
@@ -763,11 +832,15 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, LL, PL, FREQ, Ox_0, Ox_LOST, FLUX, F_UNDER_TOP )  
+!$OMP+PRIVATE( I,    J,       L,    LL,          PL,   FREQ )
+!$OMP+PRIVATE( Ox_0, Ox_LOST, FLUX, F_UNDER_TOP, BOXVL      )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLTROP
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+
+            ! Grid box volume [m3]
+            BOXVL = State_Met%AIRVOL(I,J,L) !* 1d6
 
             !===========================================================
             ! Get P(Ox) and L(Ox) for each tagged tracer in [kg]
@@ -778,10 +851,10 @@
             IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP,
      &                                           State_Met   )
             
-            ! L(Ox) is originally in [1/cm3/s]; convert to [kg] 
+            ! L(Ox) is originally in [1/cm3/s]; convert to [kg]
+            ! L(Ox) is now in [1/m3] (ckeller, 9/17/2014)
             IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
-               LL = STT(I,J,L,N)           * L24H(I,J,L) *
-     &              BOXVL(I,J,L,State_Met) * DTCHEM
+               LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
             ELSE
                LL = 0.0d0
             ENDIF 
@@ -794,12 +867,12 @@
                ! Only archive chemical production if this
                ! region has production to begin with [kg/s]
                IF ( PP(I,J,L,N) > 0d0 ) THEN
-                  PL            = P24H(I,J,L) * BOXVL(I,J,L,State_Met)
+                  PL            = P24H(I,J,L) * BOXVL / TS_EMIS
                   AD65(I,J,L,N) = AD65(I,J,L,N) + PL
                ENDIF
 
                ! Archive loss for all tracers [kg/s]
-               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L,State_Met)
+               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL / TS_EMIS
                AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
 
             ENDIF
@@ -952,14 +1025,14 @@
       ENDIF
 
       ! Allocate P24H
-      ALLOCATE( P24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'P24H' )
-      P24H = 0d0
+!      ALLOCATE( P24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'P24H' )
+!      P24H = 0d0
 
-      ! Allocate L24H
-      ALLOCATE( L24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'L24H' ) 
-      L24H = 0d0
+!      ! Allocate L24H
+!      ALLOCATE( L24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'L24H' ) 
+!      L24H = 0d0
 
       END SUBROUTINE INIT_TAGGED_OX
 !EOC
@@ -984,8 +1057,8 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Deallocate module arrays
-      IF ( ALLOCATED( P24H ) ) DEALLOCATE( P24H )
-      IF ( ALLOCATED( L24H ) ) DEALLOCATE( L24H )
+      IF ( ASSOCIATED( P24H ) ) P24H => NULL() 
+      IF ( ASSOCIATED( L24H ) ) L24H => NULL()
 
       END SUBROUTINE CLEANUP_TAGGED_OX
 !EOC

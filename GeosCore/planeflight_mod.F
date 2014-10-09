@@ -192,20 +192,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETUP_PLANEFLIGHT( am_I_Root )
+      SUBROUTINE SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE FILE_MOD,   ONLY : FILE_EXISTS
-      USE FILE_MOD,   ONLY : IOERROR
-      USE TIME_MOD,   ONLY : EXPAND_DATE
-      USE TIME_MOD,   ONLY : GET_NYMD
-      USE TIME_MOD,   ONLY : GET_NHMS
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput 
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_NYMD
+      USE TIME_MOD,           ONLY : GET_NHMS
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  For SMVGEAR or KPP simulations, the call to SETUP_PLANEFLIGHT is made from 
@@ -230,6 +236,8 @@
 !                              running with the traditional driver main.F
 !  06 Aug 2012 - R. Yantosca - Now use local IU_PLANE and not from file_mod.F
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt & RC via the arg list
+!  25 Jun 2014 - R. Yantosca - Now remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -303,10 +311,10 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'setup_planeflight:1')
 
       ! Read variables to be output -- sort into PVAR array by type
-      CALL READ_VARIABLES( IU_FILE, am_I_Root )
+      CALL READ_VARIABLES( am_I_Root, Input_Opt, IU_FILE, RC )
 
       ! Read information about each point (date/time/lon/lat/alt)
-      CALL READ_POINTS( IU_FILE, am_I_Root )
+      CALL READ_POINTS( am_I_Root, Input_Opt, IU_FILE, RC)
 
       ! Close the file
       CLOSE( IU_FILE )
@@ -317,17 +325,17 @@
       !=================================================================
       ! Find the species # for all components of RO2 (SMVGEAR only)
       !=================================================================
-      CALL RO2_SETUP
+      CALL RO2_SETUP( am_I_Root, Input_Opt, RC )
 
       !=================================================================
       ! Find the species # for all components of NOY (SMVGEAR only)
       !=================================================================
-      CALL NOY_SETUP
+      CALL NOY_SETUP( am_I_Root, Input_Opt, RC )
 
       !=================================================================
       ! Find the species # for all components of AN (SMVGEAR only)
       !=================================================================
-      CALL AN_SETUP
+      CALL AN_SETUP( am_I_Root, Input_Opt, RC )
     
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -387,21 +395,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_VARIABLES( IU_FILE, am_I_Root )
+      SUBROUTINE READ_VARIABLES( am_I_Root, Input_Opt, IU_FILE, RC )
 !
 ! !USES:
 !
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,   ONLY : IOERROR
-      USE TRACER_MOD, ONLY : N_TRACERS
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
       USE CMN_SIZE_MOD                   ! Size parameters
       USE COMODE_LOOP_MOD                ! NAMEGAS, NSPEC
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: IU_FILE     ! Logical unit # for ASCII read
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
+      INTEGER,        INTENT(IN)  :: IU_FILE    ! Logical unit # for ASCII read
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  30 Jul 2002 - M. Evans    - Initial version
@@ -425,6 +438,7 @@
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -432,18 +446,22 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: IS_FULLCHEM
-      INTEGER             :: M, N, NUM, R, IK, IOS
+      INTEGER             :: M, N, NUM, R, IK, IOS, N_TRACERS
       CHARACTER(LEN=255)  :: LINE
 
       !=================================================================
       ! READ_VARIABLES begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Reset NCS to NCSURBAN for safety's sake (dbm, bmy, 10/16/06)
       NCS = NCSURBAN
 
-      ! Test if this is a fullchem run
-      IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+      ! Get fields from Input_Opt
+      N_TRACERS   = Input_Opt%N_TRACERS
+      IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! Read four lines of header
       DO N = 1, 4 
@@ -718,17 +736,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_POINTS( IU_FILE, am_I_Root )
+      SUBROUTINE READ_POINTS( am_I_Root, Input_Opt, IU_FILE, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD, ONLY : GET_TAU0
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,  ONLY : IOERROR
+      USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: IU_FILE     ! Logical unit # of file
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  30 Jul 2002 - M. Evans    - Initial version
@@ -740,7 +766,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      INTEGER, INTENT(IN) :: IU_FILE
 !
 ! !LOCAL VARIABLES:
 !
@@ -892,15 +917,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RO2_SETUP
+      SUBROUTINE RO2_SETUP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD  ! NAMEGAS, NSPEC
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  01 Aug 2003 - M. Evans    - Initial version
@@ -912,6 +946,8 @@
 !  (5 ) NOTE: PO3 was a bug, that should have been PO2 (tmf, 2/10/09)
 !  (6 ) Add new RO2 species according to 'globchem.dat' (tmf, 3/10/09)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -928,7 +964,7 @@
       NPRO2 = 0
 
       ! We only need to proceed for SMVGEAR chemistry       
-      IF ( .not. ITS_A_FULLCHEM_SIM() ) RETURN
+      IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
       
       !=================================================================
       ! Loop over all SMVGEAR species, test for RO2 components
@@ -988,19 +1024,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE NOY_SETUP
+      SUBROUTINE NOY_SETUP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
-
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE COMODE_LOOP_MOD       ! NSPEC, NAMEGAS, NCS
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  01 Jun 2009 - F. Paulot   - Initial version
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1017,7 +1064,7 @@
       NPNOY = 0
 
       ! We only need to proceed for SMVGEAR chemistry       
-      IF ( .not. ITS_A_FULLCHEM_SIM() ) RETURN
+      IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
       
       !=================================================================
       ! Loop over all SMVGEAR species, test for NOY components
@@ -1076,19 +1123,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AN_SETUP
+      SUBROUTINE AN_SETUP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
-
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE COMODE_LOOP_MOD       ! NSPEC, NAMEGAS, NCS
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
-! !REVISION HISTORY:
-!  04 Jan 2010 - F. Paulot   - Initial version
+! !REVISION HISTORY: 
+!  01 Jun 2009 - F. Paulot   - Initial version
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1105,7 +1163,7 @@
       NPAN = 0
 
       ! We only need to proceed for SMVGEAR chemistry       
-      IF ( .not. ITS_A_FULLCHEM_SIM() ) RETURN
+      IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
       
       !=================================================================
       ! Loop over all SMVGEAR species, test for AN components
@@ -1313,7 +1371,7 @@
 
             ! Return grid box indices for the chemistry region
             ! NOTE: PCHEM and JLOOP are only defined for SMVGEAR runs!
-            CALL TEST_VALID( M, PCHEM, JLOOP, I, J, L )
+            CALL TEST_VALID( M, PCHEM, JLOOP, I, J, L, Input_Opt )
 
             ! Initialize SMVGEAR reaction counter
             R = 0
@@ -1660,21 +1718,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TEST_VALID( IND, PCHEM, JLOOP, I, J, L ) 
+      SUBROUTINE TEST_VALID( IND, PCHEM, JLOOP, I, J, L, Input_Opt ) 
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : JLOP
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
-      USE GRID_MOD,       ONLY : GET_XOFFSET
-      USE GRID_MOD,       ONLY : GET_YOFFSET
-
-      USE CMN_SIZE_MOD                ! Size parameters
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : JLOP
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE GRID_MOD,           ONLY : GET_XOFFSET
+      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: IND     ! # of the flight track point
+      INTEGER,        INTENT(IN) :: IND         ! # of the flight track point
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1747,7 +1805,7 @@
       !=================================================================
       ! We only do full-chemistry in the troposphere
       !=================================================================
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
   
          ! JLOOP indicates if a box is in chemgrid (/=0) or not. 
          JLOOP = JLOP(I,J,L)

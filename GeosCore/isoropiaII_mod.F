@@ -19,6 +19,8 @@
 !
 ! !USES:
 !
+      USE HCO_ERROR_MOD  ! For real precisions (hp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -73,6 +75,8 @@
 !  21 Apr 2010 - R. Yantosca  - Bug fix in DO_ISOROPIAII for offline aerosol
 !  16 Feb 2011 - R. Yantosca  - Add modifications for APM from G. Luo
 !  20 Aug 2013 - R. Yantosca  - Removed "define.h", this is now obsolete
+!  23 Sep 2014 - M. Sulprizio - Get global HNO3 for offline aerosol simulation
+!                               from HEMCO 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -89,6 +93,9 @@
       REAL*8,  ALLOCATABLE :: SULRAT_SAV(:,:,:)
       REAL*8,  ALLOCATABLE :: NARAT_SAV(:,:,:)
       REAL*8,  ALLOCATABLE :: ACIDPUR_SAV(:,:,:)
+
+      ! HEMCO pointers
+      REAL(hp), POINTER    :: HNO3(:,:,:) => NULL()
 
       CONTAINS
 !EOC
@@ -118,11 +125,16 @@
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! Now get HNO3 from HEMCO (mps, 9/23/14)
+!      USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
+!------------------------------------------------------------------------------
+      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTNIT
       USE TRACERID_MOD,       ONLY : IDTNH4
@@ -168,7 +180,8 @@
 !  14 Nov 2012 - R. Yantosca  - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer     - Replaced all met field arrays with State_Met
 !                               derived type object
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  25 Mar 2013 - M. Payer     - Now pass State_Chm object via the arg list
+!  23 Sep 2014 - M. Sulprizio - Now get HNO3 for offline aerosol sim from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,6 +239,9 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER          :: STT(:,:,:,:)
 
+      ! For getting fields from HEMCO 
+      LOGICAL                  :: aIR
+
       !=================================================================
       ! DO_ISOROPIAII begins here!
       !=================================================================
@@ -233,13 +249,16 @@
       ! Assume success
       RC                   = GIGC_SUCCESS
 
+      ! am I root? 
+      aIR                  = am_I_Root
+
       ! Copy fields from INPUT_OPT to local variables for use below
       LPRT                 = Input_Opt%LPRT  
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! Location string
-      X = 'DO_ISOROPIAII (isoropiaII_mod.f)'
+      X = 'DO_ISOROPIAII (isoropiaII_mod.F)'
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -254,37 +273,64 @@
          ! Initialize arrays
          CALL INIT_ISOROPIAII
 
+         ! Check to see if we need to get HNO3 from HEMCO
+         IF ( IDTHNO3 == 0 ) THEN
+
+            IF ( IT_IS_A_FULLCHEM_SIM ) THEN
+
+               ! Coupled simulation: stop w/ error since we need HNO3
+               CALL ERROR_STOP( 'IDTHNO3 is not defined !', X )
+ 
+            ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+
+               ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
+               CALL HCO_GetPtr( aIR, 'GLOBAL_HNO3', HNO3, RC )
+               IF ( RC /= GIGC_SUCCESS ) 
+     &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', X )
+
+            ELSE
+
+               ! Otherwise stop w/ error
+               CALL ERROR_STOP( 'Invalid simulation type !', X )
+
+            ENDIF
+         ENDIF
+
          ! Reset first-time flag
          FIRST = .FALSE. 
       ENDIF
 
-      !=================================================================
-      ! Check to see if we have to read in monthly mean HNO3
-      !=================================================================
-      IF ( IDTHNO3 == 0 ) THEN
-
-         IF ( IT_IS_A_FULLCHEM_SIM ) THEN
-
-            ! Coupled simulation: stop w/ error since we need HNO3
-            CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
- 
-         ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
-
-            ! Offline simulation: read monthly mean HNO3
-            IF ( ITS_A_NEW_MONTH() ) THEN
-               CALL GET_GLOBAL_HNO3( GET_MONTH() )
-            ENDIF
-
-            ! Initialize for each timestep (bec, bmy, 4/15/05)
-            GAS_HNO3 = 0d0
-
-         ELSE
-
-            ! Otherwise stop w/ error
-            CALL ERROR_STOP( 'Invalid simulation type!', X )
-
-         ENDIF
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! Get global HNO3 from HEMCO (mps, 9/23/14)
+!      !=================================================================
+!      ! Check to see if we have to read in monthly mean HNO3
+!      !=================================================================
+!      IF ( IDTHNO3 == 0 ) THEN
+!
+!         IF ( IT_IS_A_FULLCHEM_SIM ) THEN
+!
+!            ! Coupled simulation: stop w/ error since we need HNO3
+!            CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
+! 
+!         ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+!
+!            ! Offline simulation: read monthly mean HNO3
+!            IF ( ITS_A_NEW_MONTH() ) THEN
+!               CALL GET_GLOBAL_HNO3( GET_MONTH() )
+!            ENDIF
+!
+!            ! Initialize for each timestep (bec, bmy, 4/15/05)
+!            GAS_HNO3 = 0d0
+!
+!         ELSE
+!
+!            ! Otherwise stop w/ error
+!            CALL ERROR_STOP( 'Invalid simulation type!', X )
+!
+!         ENDIF
+!      ENDIF
+!------------------------------------------------------------------------------
 
       ! AEROPH: Initialize arrays all the way up to LLPAR for
       ! aeroph. Arrays go up to LLPAR due to ND42 use (hotp 8/11/09)
@@ -294,6 +340,11 @@
       SULRAT_SAV  = 0d0
       NARAT_SAV   = 0d0
       ACIDPUR_SAV = 0d0
+
+      ! Initialize for each timestep (bec, bmy, 4/15/05)
+      IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+         GAS_HNO3 = 0d0
+      ENDIF
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -703,8 +754,13 @@
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+! Now get HNO3 from HEMCO (mps, 9/23/14)
+!      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
+!------------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 !
 ! !INPUT PARAMETERS: 
@@ -721,6 +777,7 @@
 !                               since the start of run.
 !  06 Jul 2007 - H. O. T. Pye - Initial version, in ISORROPIA II
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
+!  23 Sep 2014 - M. Sulprizio - Now get HNO3 for offline aerosol sims from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -736,7 +793,17 @@
       ! Relax to monthly mean HNO3 concentrations every 3 hours
       ! Otherwise just return the concentration in HNO3_sav
       IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
-         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, State_Met )
+!------------------------------------------------------------------------------
+! Prior to 9/23/14:
+!         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, State_Met )
+!------------------------------------------------------------------------------
+         ! HNO3 is in v/v (from HEMCO), convert to ug/m3
+         ! First convert HNO3 from [v/v] to [kg]
+         HNO3_UGM3 = HNO3( I, J, L ) * State_Met%AD(I,J,L) /
+     &               ( 28.97d0 / 63d0 )
+
+         ! Then convert HNO3 from [kg] to [ug/m3]
+         HNO3_UGM3 = HNO3_UGM3 * 1.d9 / State_Met%AIRVOL(I,J,L)
       ELSE
          HNO3_UGM3 = HNO3_sav(I,J,L)
       ENDIF
@@ -930,6 +997,9 @@
       IF ( ALLOCATED( SULRAT_SAV  ) ) DEALLOCATE( SULRAT_SAV )
       IF ( ALLOCATED( NARAT_SAV   ) ) DEALLOCATE( NARAT_SAV  )
       IF ( ALLOCATED( ACIDPUR_SAV ) ) DEALLOCATE( ACIDPUR_SAV)
+
+      ! Free pointers
+      IF ( ASSOCIATED( HNO3       ) ) HNO3 => NULL()
 
       END SUBROUTINE CLEANUP_ISOROPIAII
 !EOC

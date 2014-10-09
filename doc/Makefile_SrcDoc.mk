@@ -81,6 +81,7 @@
 #  25 Feb 2014 - M. Sulprizio- Added chemgrid_mod, fast_jx_mod, and ucx_mod.
 #                              Removed references to tropopause_mod and routines
 #                              for Fast-J.
+#  08 Jul 2014 - R. Yantosca - Removed obsolete routines from the list
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -107,15 +108,10 @@ $(HDR)/smv_physconst_mod.F            \
 $(CORE)/main.F                        \
 $(CORE)/a3_read_mod.F                 \
 $(CORE)/a6_read_mod.F                 \
-$(CORE)/acetone_mod.F                 \
-$(CORE)/aeic_mod.F                    \
 $(CORE)/aerosol_mod.F                 \
-$(CORE)/arctas_ship_emiss_mod.F	      \
 $(CORE)/benchmark_mod.F               \
-$(CORE)/bravo_mod.F                   \
 $(CORE)/bromocarb_mod.F               \
 $(CORE)/c2h6_mod.F                    \
-$(CORE)/cac_anthro_mod.F              \
 $(CORE)/canopy_nox_mod.F              \
 $(CORE)/carbon_mod.F                  \
 $(CORE)/chemgrid_mod.F                \
@@ -140,60 +136,40 @@ $(CORE)/diag_oh_mod.F                 \
 $(CORE)/diag_mod.F                    \
 $(CORE)/drydep_mod.F                  \
 $(CORE)/dust_mod.F                    \
-$(CORE)/emep_mod.F                    \
-$(CORE)/emissions_mod.F               \
 $(CORE)/fast_jx_mod.F                 \
 $(CORE)/gamap_mod.F                   \
 $(CORE)/gcap_read_mod.F               \
 $(CORE)/get_ndep_mod.F                \
 $(CORE)/gigc_environment_mod.F90      \
-$(CORE)/gc_type_mod.F                 \
 $(CORE)/geosfp_read_mod.F90           \
 $(CORE)/get_popsinfo_mod.F            \
-$(CORE)/gfed3_biomass_mod.F           \
 $(CORE)/global_bc_mod.F               \
 $(CORE)/global_br_mod.F               \
 $(CORE)/global_ch4_mod.F              \
 $(CORE)/global_hno3_mod.F             \
 $(CORE)/global_no3_mod.F              \
 $(CORE)/global_nox_mod.F              \
-$(CORE)/global_o1d_mod.F              \
 $(CORE)/global_o3_mod.F               \
 $(CORE)/global_oc_mod.F               \
 $(CORE)/global_oh_mod.F               \
-$(CORE)/h2_hd_mod.F                   \
 $(CORE)/i6_read_mod.F                 \
-$(CORE)/icoads_ship_mod.F             \
 $(CORE)/input_mod.F                   \
 $(CORE)/isoropiaII_mod.F              \
 $(CORE)/land_mercury_mod.F            \
-$(CORE)/lightning_nox_mod.F           \
 $(CORE)/linoz_mod.F                   \
-$(CORE)/logical_mod.F                 \
 $(CORE)/mapping_mod.F90               \
-$(CORE)/megan_mod.F                   \
-$(CORE)/meganut_mod.F                 \
 $(CORE)/merra_a1_mod.F                \
 $(CORE)/merra_a3_mod.F                \
 $(CORE)/merra_cn_mod.F                \
 $(CORE)/merra_i6_mod.F                \
 $(CORE)/modis_lai_mod.F90             \
-$(CORE)/nei2005_anthro_mod.F          \
 $(CORE)/olson_landmap_mod.F90         \
 $(CORE)/optdepth_mod.F                \
-$(CORE)/paranox_mod.F                 \
 $(CORE)/pbl_mix_mod.F                 \
 $(CORE)/pjc_pfix_mod.F                \
 $(CORE)/planeflight_mod.F             \
 $(CORE)/pops_mod.F                    \
-$(CORE)/rcp_mod.F                     \
-$(CORE)/retro_mod.F                   \
 $(CORE)/RnPbBe_mod.F                  \
-$(CORE)/scale_anthro_mod.F            \
-$(CORE)/seasalt_mod.F                 \
-$(CORE)/soil_nox_mod.F                \
-$(CORE)/soilnox_restart_mod.F         \
-$(CORE)/ssa_bromine_mod.F             \
 $(CORE)/strat_chem_mod.F90            \
 $(CORE)/sulfate_mod.F                 \
 $(CORE)/tagged_co_mod.F               \
@@ -206,19 +182,14 @@ $(CORE)/tpcore_geos5_window_mod.F90   \
 $(CORE)/transport_mod.F               \
 $(CORE)/ucx_mod.F                     \
 $(CORE)/vdiff_mod.F90                 \
-$(CORE)/vdiff_pre_mod.F               \
-$(CORE)/vistas_anthro_mod.F           \
+$(CORE)/vdiff_pre_mod.F90             \
 ./subs.geos-chem                      \
-$(CORE)/anthroems.F                   \
-$(CORE)/biofit.F                      \
 $(CORE)/boxvl.F                       \
 $(CORE)/cldice_HBrHOBr_rxn.F          \
 $(CORE)/diag1.F                       \
 $(CORE)/diag3.F                       \
 $(CORE)/diag_2pm.F                    \
 $(CORE)/diagoh.F                      \
-$(CORE)/emfossil.F                    \
-$(CORE)/emf_scale.F                   \
 $(CORE)/gasconc.F                     \
 $(CORE)/initialize.F                  \
 $(CORE)/lump.F                        \
@@ -229,8 +200,7 @@ $(CORE)/physproc.F                    \
 $(CORE)/setemdep.F                    \
 $(CORE)/ruralbox.F                    \
 $(CORE)/setemis.F                     \
-$(CORE)/sfcwindsqr.F                  \
-$(CORE)/sunparam.F
+$(CORE)/sfcwindsqr.F
 
 
 # Output file names

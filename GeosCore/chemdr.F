@@ -21,7 +21,6 @@
       USE AEROSOL_MOD,          ONLY : SOILDUST
       USE CHEMGRID_MOD,         ONLY : SAVE_FULL_CHEMGRID
       USE CMN_DIAG_MOD
-      USE CMN_NOX_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE COMODE_MOD,           ONLY : ABSHUM
@@ -246,6 +245,7 @@
 !  06 Jun 2013 - M. Payer    - Move SETEMIS to after FAST_J (C. Holmes)
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  23 Jul 2014 - R. Yantosca - Removed reference to obsolete CMN_NOX_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -347,17 +347,18 @@
       !
       ! Call READER to read chemistry options from mglob.dat.  This is
       ! current practice in the std GEOS-Chem (bmy, 10/24/12)
+      ! ==> Now do in INIT_CHEMISTRY (ckeller, 5/19/14)
       !-----------------------------------------------------------------
       IF ( FIRSTCHEM ) THEN
 
-         ! Read from data file mglob.dat
-         CALL READER( FIRSTCHEM, am_I_Root )
-
-         !### Debug
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after READER' )
-         ENDIF
-
+!         ! Read from data file mglob.dat
+!         CALL READER( FIRSTCHEM, am_I_Root )
+!
+!         !### Debug
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMDR: after READER' )
+!         ENDIF
+!
          ! Set NCS for urban chemistry only (since that is where we
          ! have defined the GEOS-CHEM mechanism) (bdf, bmy, 4/21/03)
          NCS = NCSURBAN
@@ -433,7 +434,8 @@
          !---------------------------------
 
          ! Read "globchem.dat" chemistry mechanism
-         CALL READCHEM( am_I_Root, Input_Opt, RC )
+         ! Now do in INIT_CHEMISTRY (ckeller, 05/19/14)
+!         CALL READCHEM( am_I_Root, Input_Opt, RC )
 
          ! Set NCS=NCSURBAN here since we have defined our tropospheric
          ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
@@ -490,23 +492,25 @@
 
          !-------------------------------
          ! Initialize FAST-JX photolysis
+         ! Now done in INIT_CHEMISTRY (ckeller, 05/19/14)
          !-------------------------------
-         CALL INIT_FJX(am_I_Root) 
-         
-         !### Debug
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after INIT_FJX' )        
-         ENDIF
+!         CALL INIT_FJX(am_I_Root) 
+!         
+!         !### Debug
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMDR: after INIT_FJX' )        
+!         ENDIF
 
          !-------------------------------
          ! Flag certain chemical species
+         ! Now done in INIT_CHEMISTRY (ckeller, 05/19/14)
          !-------------------------------
-         CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
+!         CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
 
-         !### Debug
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
-         ENDIF
+!         !### Debug
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
+!         ENDIF
 
          !-------------------------------
          ! Flag emission & drydep rxns
@@ -549,7 +553,7 @@
       DATE = GET_NYMD()
 
       IF ( ND40 .and. DATE /= DATE_PREV ) THEN
-         CALL SETUP_PLANEFLIGHT( am_I_Root )
+         CALL SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, RC )
          DATE_PREV = DATE
       ENDIF
 
@@ -705,15 +709,15 @@
       ! (rjp, tdf, bmy, 4/1/04)
       !=================================================================
       IF ( LDUST ) THEN
-         CALL RDUST_ONLINE(  SOILDUST,    WAVELENGTH, State_Met )
+         CALL RDUST_ONLINE( am_I_Root, Input_Opt,  State_Met,
+     &                      SOILDUST,  WAVELENGTH, RC         )
       ELSE
-
 #if !defined( TOMAS )
-            ! Don't read dust emissions from disk when using TOMAS,
-            ! because TOMAS uses a different set of dust tracers than the 
-            ! std code (win, bmy, 1/25/10)
-            CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH, am_I_Root,
-     &                          State_Met )
+         ! Don't read dust emissions from disk when using TOMAS,
+         ! because TOMAS uses a different set of dust tracers than the 
+         ! std code (win, bmy, 1/25/10)
+         CALL RDUST_OFFLINE( am_I_Root, Input_Opt, State_Met,
+     &                       MONTH,     YEAR,      WAVELENGTH, RC )
 #endif
       ENDIF
 
@@ -740,8 +744,9 @@
       !=================================================================  
       ! Call SETEMIS which sets emission rates REMIS 
       !=================================================================
-      CALL SETEMIS( EMISRR,    EMISRRN,   am_I_Root, 
-     &              Input_Opt, State_Met, RC         )
+      CALL SETEMIS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!      CALL SETEMIS( EMISRR,    EMISRRN,   am_I_Root, 
+!     &              Input_Opt, State_Met, RC         )
       
       !### Debug
       IF ( prtDebug ) THEN

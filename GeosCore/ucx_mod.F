@@ -228,6 +228,7 @@
       CHARACTER*20,DIMENSION(50)        :: TRAC_EMIT
 
       ! Logicals
+      LOGICAL                           :: doPrint
       LOGICAL                           :: TRAC_ADD
       LOGICAL,PARAMETER                 :: STRAT2DCH4=.TRUE.
 
@@ -362,7 +363,7 @@
       !=================================================================
 
       ! Copy fields from INPUT_OPT
-      LPRT         = Input_Opt%LPRT
+      LPRT         = ( Input_Opt%LPRT .and. am_I_Root )
       LSETCH4      = Input_Opt%LSETCH4
       LSETOCS      = Input_Opt%LSETOCS
       LSETCFC      = Input_Opt%LSETCFC
@@ -375,6 +376,8 @@
       LBASICEMIS   = Input_Opt%LBASICEMIS
       N_TRACERS    = Input_Opt%N_TRACERS
       TCVV         = Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Set module variable
 
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
@@ -1568,7 +1571,6 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -2124,7 +2126,7 @@
 !
 ! !DESCRIPTION: Subroutine SET\_MONTREAL\_NCDF calls GET\_MONTREAL\_NCDF
 !  for the surface mixing ratio for a specific year, and applies it to
-!  GRID_EMIT.
+!  GRID\_EMIT.
 !\\
 !\\
 ! !INTERFACE:
@@ -2182,7 +2184,6 @@
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP, ALLOC_ERR
       USE FILE_MOD,    ONLY : IOERROR
-      USE LOGICAL_MOD, ONLY : LPRT
 !
 ! !INPUT PARAMETERS:
 !
@@ -2214,7 +2215,7 @@
       ! Read direct from master file
       FILENAME = TRIM(MONTREAL_FILE_ROOT)
 
-      IF (LPRT) THEN
+      IF ( doPrint ) THEN
          WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ', 
      &        TRIM(TRAC_NAME), ' from ', TRIM( FILENAME )
          CALL DEBUG_MSG( TRIM(DBGMSG) )
@@ -2310,7 +2311,6 @@
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP, ALLOC_ERR
       USE FILE_MOD,    ONLY : IOERROR
-      USE LOGICAL_MOD, ONLY : LPRT
 !
 ! !INPUT PARAMETERS:
 !
@@ -2344,7 +2344,7 @@
       FILENAME = TRIM(MONTREAL_FILE_ROOT) // TRIM(TRAC_NAME) // 
      &          '_boundary'
 
-      IF (LPRT) THEN
+      IF ( doPrint ) THEN
          WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ', 
      &        TRIM(TRAC_NAME), ' from ', TRIM( FILENAME )
          CALL DEBUG_MSG( TRIM(DBGMSG) )
@@ -2411,7 +2411,7 @@
       ! C2Br2F4 only
 103   FORMAT(F7.2,F8.2)
 
-      IF (LPRT) THEN
+      IF ( doPrint ) THEN
          WRITE(DBGMSG,'(a,E16.4)') ' ### UCX: Retrieved value: ', 
      &        MEAN_MIXRATIO
          CALL DEBUG_MSG( TRIM(DBGMSG) )
@@ -5071,7 +5071,6 @@
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
-!               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5089,7 +5088,6 @@
 !
       USE BPCH2_MOD
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_MOD                  ! TAU , NSRCX, LSOILNOX
       USE COMODE_LOOP_MOD          ! IGAS
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -5109,6 +5107,7 @@
 ! !REVISION HISTORY: 
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on MAKE_CSPEC_FILE
 !  16 Apr 2014 - M. Sulprizio  - Now get PSC restart file path from Input_Opt
+!  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5246,7 +5245,6 @@
 !
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_MOD                  ! TAU , NSRCX, LSOILNOX
       USE COMODE_LOOP_MOD          ! ITLOOP, IGAS
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -5266,6 +5264,7 @@
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on READ_CSPEC_FILE
 !  14 Feb 2014 - R. Yantosca   - Reorder DO loops for efficiency
 !  16 Apr 2014 - M. Sulprizio  - Now get PSC restart file path from Input_Opt
+!  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5859,7 +5858,6 @@
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -5921,7 +5919,7 @@
       !=================================================================
 
       ! Copy fields from INPUT_OPT
-      LPRT         = Input_Opt%LPRT
+      LPRT         = ( Input_Opt%LPRT .and. am_I_Root )
       LUCX         = Input_Opt%LUCX
       LFUTURECFC   = Input_Opt%LFUTURECFC
       LCH4SBC      = Input_Opt%LCH4SBC
@@ -5939,6 +5937,9 @@
       LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
       LSETN2O      = Input_Opt%LSETN2O
       LBASICEMIS   = Input_Opt%LBASICEMIS
+
+      ! Set module variable doPrint for use in internal functions
+      doPrint      = LPRT
 
       WRITE( 6,'(a)') REPEAT( '=', 79 )
       WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
@@ -5966,19 +5967,25 @@
 #endif
 
       ! Determine folder paths from root folder
-      IF (UCXNETCDF) THEN
-         WRITE(      AVG_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1),
+      IF (UCXNETCDF .and. am_I_Root ) THEN
+         WRITE( AVG_FILE_ROOT,'(a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1),
      &      'UCX_201403/Init2D/DiurnalAvg.nc'
-         WRITE(     NOON_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1), 
-     &      'UCX_201403/Init2D/Noontime.nc'
-         WRITE( MONTREAL_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1), 
-     &      'UCX_201403/Init1D/Montreal.nc'
+         WRITE( NOON_FILE_ROOT,'(a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1), 
+     &        'UCX_201403/Init2D/Noontime.nc'
+         WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1), 
+     &        'UCX_201403/Init1D/Montreal.nc'
       ELSE
-         WRITE(    AVG_FILE_ROOT,'(a,a,a)') TRIM(DATA_DIR_1x1),
+         WRITE( AVG_FILE_ROOT,'(a,a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1),
      &      'UCX_201403/DiurnalAvg/', TRIM(GRIDSPEC)
-         WRITE(   NOON_FILE_ROOT,'(a,a,a)') TRIM(DATA_DIR_1x1), 
-     &      'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
-         WRITE( MONTREAL_FILE_ROOT,'(a,a)') TRIM(DATA_DIR_1x1), 
+         WRITE(   NOON_FILE_ROOT,'(a,a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1), 
+     &        'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
+         WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
+     &        TRIM(Input_Opt%DATA_DIR_1x1), 
      &      'UCX_201403/Montreal/'
       ENDIF
   

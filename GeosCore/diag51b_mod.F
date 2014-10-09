@@ -2071,7 +2071,6 @@
       USE GRID_MOD,   ONLY : GET_YOFFSET
       USE GRID_MOD,   ONLY : ITS_A_NESTED_GRID
       USE TIME_MOD,   ONLY : GET_TAUb
-      USE TRACER_MOD, ONLY : N_TRACERS
   
       USE CMN_SIZE_MOD   ! Size parameters
 !
