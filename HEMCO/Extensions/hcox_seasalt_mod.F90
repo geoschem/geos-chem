@@ -452,18 +452,21 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Dec 2013 - C. Keller - Initial version
+!  07 Oct 2014 - C. Keller - Allow wind scale factor be set in configuration file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: N, R, AS
-    REAL*8              :: A, B, R0, R1
-    REAL*8              :: CONST_N
-    CHARACTER(LEN=255)  :: MSG
-    INTEGER             :: nSpc, minLen
-    REAL*8              :: SALA_REDGE_um(2), SALC_REDGE_um(2)
+    INTEGER                        :: N, R, AS
+    REAL*8                         :: A, B, R0, R1
+    REAL*8                         :: CONST_N
+    CHARACTER(LEN=255)             :: MSG
+    INTEGER                        :: nSpc, minLen
+    REAL*8                         :: SALA_REDGE_um(2), SALC_REDGE_um(2)
+    REAL(hp)                       :: tmpScale
+    LOGICAL                        :: FOUND
     INTEGER, ALLOCATABLE           :: HcoIDs(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
 
@@ -530,24 +533,44 @@ CONTAINS
     ! Final Br2 flag
     CalcBr2 = ( CalcBr2 .AND. IDTBR2 > 0 )
 
+    ! The source function calculated with GEOS-4 2x2.5 wind speeds
+    ! is too high compared to GEOS-5 at the same resolution. The 10m
+    ! winds in GEOS-4 are too rapid. To correct this, apply a global
+    ! scaling factor of 0.72 (jaegle 5/11/11)
+    ! Now check first if this factor is specified in configuration file
+    CALL GetExtOpt( ExtNr, 'Wind scale factor', & 
+                    OptValDp=tmpScale, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) THEN   
+       tmpScale = 1.0d0
+#if defined( GEOS_4 )
+       tmpScale = 0.72d0
+#endif
+    ENDIF
+    WindScale = tmpScale
+
     ! Verbose mode
-    MSG = 'Use sea salt aerosol emissions (extension module)'
-    CALL HCO_MSG( MSG, SEP1='-' )
-
-    WRITE(MSG,*) 'Accumulation aerosol: ', TRIM(SpcNames(1)), ':', IDTSALA 
-    CALL HCO_MSG(MSG)
-    WRITE(MSG,*) ' - size range: ', SALA_REDGE_um
-    CALL HCO_MSG(MSG)
-    WRITE(MSG,*) 'Coarse aerosol: ', TRIM(SpcNames(2)), ':', IDTSALC
-    CALL HCO_MSG(MSG)
-    WRITE(MSG,*) ' - size range: ', SALA_REDGE_um
-    CALL HCO_MSG(MSG)
-
-    IF ( CalcBr2 ) THEN
-       WRITE(MSG,*) 'Br2: ', TRIM(SpcNames(3)), IDTBr2
+    IF ( am_I_Root ) THEN
+       MSG = 'Use sea salt aerosol emissions (extension module)'
+       CALL HCO_MSG( MSG, SEP1='-' )
+   
+       WRITE(MSG,*) 'Accumulation aerosol: ', TRIM(SpcNames(1)), ':', IDTSALA 
        CALL HCO_MSG(MSG)
-       WRITE(MSG,*) 'Br2 scale factor: ', Br2Scale
+       WRITE(MSG,*) ' - size range       : ', SALA_REDGE_um
        CALL HCO_MSG(MSG)
+       WRITE(MSG,*) 'Coarse aerosol      : ', TRIM(SpcNames(2)), ':', IDTSALC
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) ' - size range       : ', SALA_REDGE_um
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) ' - wind scale factor: ', WindScale 
+       CALL HCO_MSG(MSG)
+   
+       IF ( CalcBr2 ) THEN
+          WRITE(MSG,*) 'Br2: ', TRIM(SpcNames(3)), IDTBr2
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Br2 scale factor: ', Br2Scale
+          CALL HCO_MSG(MSG)
+       ENDIF
     ENDIF
 
     ! ---------------------------------------------------------------------- 
@@ -677,15 +700,6 @@ CONTAINS
 !### 100        FORMAT( 'IR, R0, RRMID, R1: ', i3, 3f11.4,2x,es13.6 )
        ENDDO !R
     ENDDO !N
-
-    ! The source function calculated with GEOS-4 2x2.5 wind speeds
-    ! is too high compared to GEOS-5 at the same resolution. The 10m
-    ! winds in GEOS-4 are too rapid. To correct this, apply a global
-    ! scaling factor of 0.72 (jaegle 5/11/11)
-    WindScale = 1.0d0
-#if defined( GEOS_4 )
-    WindScale = 0.72d0
-#endif
 
     !=======================================================================
     ! Activate this module and the fields of ExtState that it uses

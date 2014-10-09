@@ -292,8 +292,9 @@ CONTAINS
 !  16 Apr 2013 - C. Keller - Initial version
 !  15 Aug 2014 - C. Keller - Now restrict calculations to temperatures above
 !                            10 deg C.
-!  03 Oct 2-14 - C. Keller - Added surface temperature limit of 45 degrees C
+!  03 Oct 2014 - C. Keller - Added surface temperature limit of 45 degrees C
 !                            to avoid negative Schmidt numbers.
+!  07 Oct 2014 - C. Keller - Now use skin temperature instead of air temperature
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -370,8 +371,8 @@ CONTAINS
           ! Get grid box and species specific quantities
           !-----------------------------------------------------------
  
-          ! surface air temp in K
-          TK = ExtState%TSURFK%Arr%Val(I,J)
+          ! skin surface temp in K
+          TK = ExtState%TSKIN%Arr%Val(I,J)
 
           ! Error check: the Schmidt number may become negative for
           ! very high temperatures - hence cap temperature at specified
@@ -718,7 +719,7 @@ CONTAINS
     ! Set met fields
     ExtState%U10M%DoUse   = .TRUE.
     ExtState%V10M%DoUse   = .TRUE.
-    ExtState%TSURFK%DoUse = .TRUE.
+    ExtState%TSKIN%DoUse  = .TRUE.
     ExtState%ALBD%DoUse   = .TRUE.
     ExtState%FRCLND%DoUse = .TRUE.
     

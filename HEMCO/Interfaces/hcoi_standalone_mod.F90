@@ -128,13 +128,6 @@ MODULE HCOI_StandAlone_Mod
   REAL(hp), ALLOCATABLE, TARGET  :: YSIN   (:,:,:)
   REAL(hp), ALLOCATABLE, TARGET  :: AREA_M2(:,:,:)
 
-  ! DAYS_BTW_M is the days between midmonths. Used by MEGAN
-  LOGICAL                        :: DAYS_BTW_M_USE = .FALSE.
-  INTEGER,  TARGET               :: DAYS_BTW_M
-
-  ! CLDTOPS is the cloud top level index. Used by lightning NOx
-  INTEGER,  ALLOCATABLE, TARGET  :: CLDTOPS(:,:)
-
   ! MAXIT is the maximum number of run calls allowed
   INTEGER, PARAMETER             :: MAXIT = 100000
 !
@@ -487,8 +480,7 @@ CONTAINS
        ! Run HCO extensions
        ! ================================================================
    
-       ! Eventually update local variables DAYS_BTW_M and CLDTOPS to
-       ! ensure that all ExtState fields are up to date.
+       ! Eventually update local variables.
        CALL ExtState_Update ( am_I_Root, RC )
  
        ! Execute all enabled emission extensions. Emissions will be 
@@ -580,7 +572,6 @@ CONTAINS
     IF ( ALLOCATED( YEDGE   ) ) DEALLOCATE ( YEDGE   )
     IF ( ALLOCATED( YSIN    ) ) DEALLOCATE ( YSIN    )
     IF ( ALLOCATED( AREA_M2 ) ) DEALLOCATE ( AREA_M2 )
-    IF ( ALLOCATED( CLDTOPS ) ) DEALLOCATE ( CLDTOPS )
 
     ! Cleanup HcoState object 
     CALL HcoState_Final( HcoState ) 
@@ -1472,15 +1463,6 @@ CONTAINS
     CALL SetExtPtr ( am_I_Root, ExtState%GC_LAI, 'GC_LAI', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%GC_LAI_PM, 'GC_LAI_PM', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    CALL SetExtPtr ( am_I_Root, ExtState%GC_LAI_CM, 'GC_LAI_CM', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    CALL SetExtPtr ( am_I_Root, ExtState%GC_LAI_NM, 'GC_LAI_NM', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL SetExtPtr ( am_I_Root, ExtState%JNO2, 'JNO2', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1491,7 +1473,7 @@ CONTAINS
     ! 3D fields 
     !-----------------------------------------------------------------
 
-    CALL SetExtPtr ( am_I_Root, ExtState%PCENTER, 'PCENTER', RC )
+    CALL SetExtPtr ( am_I_Root, ExtState%CNV_MFC, 'CNV_MFC', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL SetExtPtr ( am_I_Root, ExtState%SPHU, 'SPHU', RC )
@@ -1523,30 +1505,6 @@ CONTAINS
 
     CALL SetExtPtr ( am_I_Root, ExtState%WET_TOTN, 'WET_TOTN', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------
-    ! Internally calculate variable DAYS_BTW_M. Assume it's used in
-    ! combination with any of the MODIS variables. 
-    !-----------------------------------------------------------------
-    IF ( ExtState%GC_LAI%DoUse    .OR. ExtState%GC_LAI_PM%DoUse .OR. &
-         ExtState%GC_LAI_CM%DoUse .OR. ExtState%GC_LAI_NM%DoUse       ) THEN
-       DAYS_BTW_M_USE      = .TRUE.
-       ExtState%DAYS_BTW_M => DAYS_BTW_M
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! CLDTOPS is expected to be an integer field. Do conversion from
-    ! REAL to INTEGER at every time step. 
-    !-----------------------------------------------------------------
-    IF ( ExtState%CLDTOPS%DoUse ) THEN
-       ALLOCATE( CLDTOPS(HcoState%NX,HcoState%NY), STAT=AS )
-       IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR ( 'Cannot allocate CLDTOPS', RC )
-          RETURN
-       ENDIF
-       CLDTOPS = 0
-       ExtState%CLDTOPS%Arr%Val => CLDTOPS
-    ENDIF
 
     !-----------------------------------------------------------------
     ! ==> DRYCOEFF will be read from the configuration file in module
@@ -1678,7 +1636,8 @@ CONTAINS
 ! !IROUTINE: ExtState_Update 
 !
 ! !DESCRIPTION: Subroutine ExtState\_Update makes sure that all local variables
-! that ExtState is pointing to are up to date.
+! that ExtState is pointing to are up to date. For the moment, this is just a 
+! placeholder routine.
 !\\
 !\\
 ! !INTERFACE:
@@ -1706,91 +1665,14 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
 
-    REAL(hp), POINTER             :: Ptr2D(:,:) => NULL()
-
     !=================================================================
     ! ExtState_Update begins here
     !=================================================================
-
-    ! Eventually update variable DAYS_BTW_M
-    CALL DAYS_BTW_M_SET ( am_I_Root, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Eventually update variable CLDTOPS
-    IF ( ExtState%CLDTOPS%DoUse ) THEN
-       CALL HCO_GetPtr( am_I_Root, 'CLDTOPS', Ptr2D, RC )
-       IF ( RC /= 0 ) RETURN
-       CLDTOPS = NINT(Ptr2D)
-    ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
   END SUBROUTINE ExtState_Update 
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: DAYS_BTW_M_SET
-!
-! !DESCRIPTION: Subroutine DAYS\_BTW\_M\_SET updates the local variable 
-! DAYS\_BTW\_M. This routine is taken from modis\_lai\_mod.F90 of the
-! GEOS-Chem model.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE DAYS_BTW_M_SET ( am_I_Root, RC )
-!
-! !USES:
-!
-    USE HCO_CLOCK_MOD,  ONLY : HcoClock_Get
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS
-!
-    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  28 Jul 2014 - C. Keller - Initial Version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-!
-    INTEGER  :: MM, DOY
-
-    ! specify midmonth day for year 2000
-    INTEGER, PARAMETER   :: startDay(13) = (/  15,  45,  74, 105,      &
-                                              135, 166, 196, 227,      &
-                                              258, 288, 319, 349, 380/)
-
-    !=================================================================
-    ! DAYS_BTW_M_SET begins here
-    !=================================================================
-
-    IF ( DAYS_BTW_M_USE ) THEN
-       CALL HcoClock_Get ( cMM=MM, cDOY=DOY, RC=RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Adapted from modis_lai_mod.F90: 
-       IF ( doy < startDay(1) ) THEN
-          DAYS_BTW_M = 31
-       ELSE
-          DAYS_BTW_M = startDay(mm+1) - startDay(mm)
-       ENDIF
-    ENDIF
-
-    ! Return w/ success
-    RC = HCO_SUCCESS
-
-  END SUBROUTINE DAYS_BTW_M_SET
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
