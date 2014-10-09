@@ -287,6 +287,7 @@
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
 
+      write(*,*) "<<>>BEWARE! TOMS Overhead O3 is set to a constant"
       ! Loop over latitudes
       DO NLAT = 1, JJPAR
 
@@ -324,7 +325,8 @@
             SFCA            = State_Met%UVALBEDO(NLON,NLAT)
 
             ! Overhead ozone column [DU] at (NLON, NLAT)
-            O3_TOMS         = GET_OVERHEAD_O3( NLON, NLAT )
+!            O3_TOMS         = GET_OVERHEAD_O3( NLON, NLAT )
+            O3_TOMS = 250d0
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
             O3_CTM          = 0d0
