@@ -1,4 +1,3 @@
-# if !defined(ESMF_)
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -282,8 +281,17 @@ CONTAINS
     HcoState%TS_CHEM = GET_TS_CHEM() * 60.0
     HcoState%TS_DYN  = GET_TS_DYN()  * 60.0
 
-    ! This is not an ESMF simulation
-    HcoState%isESMF = .FALSE.  
+    ! Is this an ESMF simulation or not?
+    ! The ESMF flag must be set before calling HCO_Init because the
+    ! source file name is set differently in an ESMF environment
+    ! compared to a stand-alone version: in ESMF, the source file name
+    ! is set to the container name since this is the identifying name
+    ! used by ExtData.
+#if defined(ESMF_)
+    HcoState%isESMF = .TRUE.
+#else 
+    HcoState%isESMF = .FALSE.
+#endif
 
     ! HEMCO configuration file
     HcoState%ConfigFile = Input_Opt%HcoConfigFile
@@ -562,8 +570,8 @@ CONTAINS
     CALL MAP_HCO2GC( HcoState, Input_Opt, State_Met, State_Chm, RC )
 
     !=======================================================================
-    ! Reset deposition arrays
-    ! TODO: Do somewhere else? e.g. in drydep/wetdep routines?
+    ! Reset the accumulated nitrogen dry and wet deposition to zero. Will
+    ! be re-filled in drydep and wetdep.
     !=======================================================================
     CALL RESET_DEP_N()
 
@@ -790,7 +798,7 @@ CONTAINS
        !----------------------------------------------------------------------
        ! Dust emissions shall be directly added to the tracer array instead 
        ! of Trac_Tend. This is to avoid unrealistic vertical mixing of dust
-       ! particles. 
+       ! particles.
        !----------------------------------------------------------------------
        IF ( trcID == IDTDST1 .OR. trcID == IDTDST2 .OR. &
             trcID == IDTDST3 .OR. trcID == IDTDST4       ) THEN
@@ -1058,12 +1066,12 @@ CONTAINS
     USE Get_Ndep_Mod,       ONLY : DRY_TOTN
     USE Get_Ndep_Mod,       ONLY : WET_TOTN
 
-    ! MODIS variables (used by MEGAN & Soil NOx) 
-    USE Modis_LAI_Mod,      ONLY : GC_LAI
-
     ! testing only
     USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
 
+#if !defined(ESMF_)
+    USE MODIS_LAI_MOD,      ONLY : GC_LAI
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1202,17 +1210,17 @@ CONTAINS
        ExtState%CNV_MFC%Arr%Val => State_Met%CMFMC
     ENDIF
     IF ( ExtState%SNOWHGT%DoUse ) THEN
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-       ExtState%SNOWHGT%Arr%Val => State_Met%SNOMAS
-#else
+#if   defined( GEOS_4 ) 
        ExtState%SNOWHGT%Arr%Val => State_Met%SNOW
+#else
+       ExtState%SNOWHGT%Arr%Val => State_Met%SNOMAS
 #endif
     ENDIF
     IF ( ExtState%SNODP%DoUse ) THEN
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-       ExtState%SNODP%Arr%Val => State_Met%SNODP
-#else
+#if   defined( GEOS_4 ) 
        ExtState%SNODP%Arr%Val => State_Met%SNOW
+#else
+       ExtState%SNODP%Arr%Val => State_Met%SNODP
 #endif
     ENDIF
     IF ( ExtState%FRLAND%DoUse ) THEN
@@ -1231,7 +1239,14 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Modis LAI parameter
     IF ( ExtState%GC_LAI%DoUse ) THEN
+#if defined(ESMF_)
+       ExtState%GC_LAI%Arr%Val => State_Met%LAI
+#else
        ExtState%GC_LAI%Arr%Val => GC_LAI
+
+       ! testing only
+!       ExtState%GC_LAI%Arr%Val => State_Met%LAI
+#endif
     ENDIF
     
     ! 3D fields
@@ -2256,4 +2271,3 @@ CONTAINS
   END SUBROUTINE ModelSpec_Allocate
 !EOC
 END MODULE HCOI_GC_MAIN_MOD
-#endif

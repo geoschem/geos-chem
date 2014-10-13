@@ -465,7 +465,7 @@ CONTAINS
     CHARACTER(LEN=255)             :: MSG
     INTEGER                        :: nSpc, minLen
     REAL*8                         :: SALA_REDGE_um(2), SALC_REDGE_um(2)
-    REAL(hp)                       :: tmpScale
+    REAL(dp)                       :: tmpScale
     LOGICAL                        :: FOUND
     INTEGER, ALLOCATABLE           :: HcoIDs(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)

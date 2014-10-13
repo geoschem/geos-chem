@@ -36,7 +36,7 @@ MODULE Modis_Lai_Mod
 ! !PUBLIC DATA MEMBERS:
 !
 !  INTEGER, PUBLIC,              TARGET :: DAYS_BTW_MON    ! Days btw LAI midmonths
-  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
+   REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
 !  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
 !  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
 !  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
@@ -347,7 +347,7 @@ CONTAINS
 
           ! Compute the total leaf area in "coarse" GEOS-Chem
           ! grid box (I,J), irrespective of Olson land type
-          GC_LAI(I,J)       = GC_LAI(I,J)     + ( MODIS_LAI(II,JJ)    * area )
+          GC_LAI(I,J) = GC_LAI(I,J) + ( MODIS_LAI(II,JJ) * area )
 
 !          ! If a new month of MODIS LAI data was just read from disk,
 !          ! then also compute the corresponding total leaf areas in the 
@@ -367,7 +367,7 @@ CONTAINS
 
        ! Convert leaf area [cm2 leaf] to LAI [cm2 leaf/cm2 grid box]
        ! grid box (I,J), irrespective of Olson land type
-       GC_LAI(I,J)       = GC_LAI(I,J)    / sumArea
+       GC_LAI(I,J) = GC_LAI(I,J) / sumArea
 
 !       ! If a new month of MODIS LAI data was just read from disk,
 !       ! then also convert the appropriate arrays to leaf area index

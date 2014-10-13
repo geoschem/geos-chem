@@ -89,6 +89,8 @@ debug:
 ###                                                                         ###
 ###############################################################################
 
+hcoi_esmf_mod.o : hcoi_esmf_mod.F90
+
 hcoi_standalone_mod.o : hcoi_standalone_mod.F90
 
 #EOC

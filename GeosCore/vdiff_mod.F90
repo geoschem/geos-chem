@@ -2084,8 +2084,8 @@ contains
           eflx(I,J,N) = eflx(I,J,N) + tmpflx
 
           ! Also add drydep frequencies calculated by HEMCO to the DFLX
-          ! array.  These values are in originally m/s but are converted
-          ! to s-1.  They are then added in the same manner as all 
+          ! array.  These values are originally in m/s but are converted
+          ! to s-1 here.  They are then added in the same manner as all 
           ! other drydep frequencies below. DFLX will be converted to 
           ! kg/m2/s lateron. (ckeller, 04/01/2014)
           dflx(I,J,N) = dflx(I,J,N)                  &

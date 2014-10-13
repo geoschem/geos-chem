@@ -572,20 +572,20 @@
          ! anymore (--> UNITCONV = 1). ckeller, 14/01/25.
          !--------------------------------------------------------------
 
-         ! testing only
-         if ( i==ix .and. j==iy ) then
-                  write(*,*) ' '
-                  write(*,*) 'do HEMCO MEGAN @i,j ', i,j
-                  write(*,*) 'SUNCOSmid:             ', SUNCOS
-                  write(*,*) 'TEMPERATURE:',ExtState%TSURFK%Arr%Val(I,J)
-                  write(*,*) 'Q_DIR: ', Q_DIR_2 / WM2_TO_UMOLM2S
-                  write(*,*) 'Q_DIFF:', Q_DIFF_2 / WM2_TO_UMOLM2S
-                  write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J)
-                  write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J)
-                  write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J)
-                  write(*,*) 'HCOT_DAILY : ', HCOT_DAILY (I,J)
-                  write(*,*) ' '
-         endif
+!         ! testing only
+!         if ( i==ix .and. j==iy ) then
+!                  write(*,*) ' '
+!                  write(*,*) 'do HEMCO MEGAN @i,j ', i,j
+!                  write(*,*) 'SUNCOSmid:             ', SUNCOS
+!                  write(*,*) 'TEMPERATURE:',ExtState%TSURFK%Arr%Val(I,J)
+!                  write(*,*) 'Q_DIR: ', Q_DIR_2 / WM2_TO_UMOLM2S
+!                  write(*,*) 'Q_DIFF:', Q_DIFF_2 / WM2_TO_UMOLM2S
+!                  write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J)
+!                  write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J)
+!                  write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J)
+!                  write(*,*) 'HCOT_DAILY : ', HCOT_DAILY (I,J)
+!                  write(*,*) ' '
+!         endif
 !
          !--------------------------------------------------------------------
          ! MEGAN Isoprene
@@ -1471,6 +1471,18 @@
       !=================================================================
       ! ALL DONE! 
       !=================================================================
+
+      ! testing only
+      write(*,*) ''
+      write(*,*) 'MEGAN done!'
+      write(*,*) 'total LAI: ', SUM(ExtState%GC_LAI%Arr%Val)
+      write(*,*) 'total ISOP: ', SUM(FLUXISOP)
+      write(*,*) 'total ACET: ', SUM(FLUXACETmo)+SUM(FLUXACETmb)
+     &                          +SUM(FLUXACETbg)
+      write(*,*) 'total CO  : ', SUM(FLUXCO  )
+      write(*,*) 'total PRPE: ', SUM(FLUXPRPE)
+      write(*,*) 'total OCPI: ', SUM(FLUXOCPI)
+      write(*,*) ''
 
       ! Keep LAI in memory (ckeller, 10/9/2014)
       LAI_PREVSTEP = ExtState%GC_LAI%Arr%Val
