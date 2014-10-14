@@ -240,7 +240,7 @@
      &              State_Chm, 
      &              RC                               )
 
-#elif defined( MERRA ) || defined( GEOS_FP )
+#elif defined( MERRA ) || defined( GEOS_FP ) || defined( ESMF_ )
 
       !=================================================================
       ! MERRA or GEOS-FP met fields
@@ -1274,7 +1274,7 @@
          WRITE( 6, '(a)' ) 'Last Modification Date: 1/27/04'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
+#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA ) || defined( ESMF_ )
          ! Do nothing, these are all hybrid grids
 #else
          ! NOTE: We don't need to do this for GEOS-5 (bmy, 6/27/07)
@@ -2005,7 +2005,7 @@
       SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
       Q        => State_Chm%TRACERS (I,J,:,:      ) ! Tracer conc. [mol/mol] 
 
-#if   defined( GEOS_FP )
+#if   defined( GEOS_FP ) || defined( ESMF_ )
 
       !%%%%% FOR GEOS-FP, PFICU and PFLCU are on level edges %%%%%
       PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1) ! Dwnwd flx of conv 
