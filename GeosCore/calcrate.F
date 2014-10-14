@@ -25,7 +25,8 @@
      &                               REMIS,  T3,      TAREA,    CSPEC
       USE DAO_MOD,            ONLY : IS_ICE
       USE DIAG_MOD,           ONLY : AD22,   LTJV, AD52
-      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, DEPNAME, SHIPO3DEP
+      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, DEPNAME  !SHIPO3DEP
+      USE DRYDEP_MOD,         ONLY : NTRAIND
       USE ERROR_MOD,          ONLY : is_safe_div
       USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : CHECK_VALUE
@@ -159,6 +160,11 @@
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_MOD
 !  25 Jul 2014 - R. Yantosca - Now inlined functions ARSLIK, FYRNO3, FYHORO
 !  25 Jul 2014 - R. Yantosca - Added ProTeX headers
+!  13 Oct 2014 - C. Keller   - Added HEMCO deposition values for full-mixing
+!                              PBL. This includes O3 deposition from PARANOX.
+!                              Further, exclude now SALA and SALC deposition
+!                              if non-local PBL scheme is used since those are
+!                              already applied in vdiff_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -275,6 +281,9 @@
       !LOGICAL :: LWARWICK_VSLS
       LOGICAL :: LDICARB
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! For HEMCO drydep values (ckeller, 10/13/14)
+      INTEGER :: TRCID
 
       ! Pointers
       REAL*8, POINTER :: STT(:,:,:,:)
@@ -2001,10 +2010,15 @@ c new OH+CO rate from JPL2006.
                   if (IZ .NE. 1) then
                      RRATE(KLOOP,NK) = 0.D0 
                   else
+
+                     ! This used to include dust and sea salt aerosols,
+                     ! but sea salt deposition is already done in PBL 
+                     ! code. So exclude now from here (ckeller, 10/13/14).
                      SELECT CASE ( DEPNAME(I) )
-                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', 
-     &                         'SALC' )
-                           ! dusts and sea salts
+!                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', 
+!     &                         'SALC' )
+                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4' )
+                           ! dusts 
                            RRATE(KLOOP,NK) = DEPSAV(IX,IY,I)
                         CASE DEFAULT
                            ! gases + aerosols for full chemistry
@@ -2036,19 +2050,32 @@ c new OH+CO rate from JPL2006.
                   RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * 
      &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
 
+                  ! Also add deposition array from State_Chm. These are
+                  ! filled by HEMCO.
+                  ! (ckeller, 10/13/14)
+                  TRCID = NTRAIND(N)
+                  IF ( TRCID > 0 ) THEN
+                     RRATE(KLOOP,NK) = RRATE(KLOOP,NK)
+     &                               + State_Chm%DepSav(IX,IY,TRCID) * 
+     &                               * GET_FRAC_UNDER_PBLTOP(IX,IY,IZ)
+                  ENDIF          
+
                   ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
                   ! when there is O3 destruction in subgrid ship plume 
                   ! parameterization. This is roughly equivalent to negative
                   ! emissions, which were used previously by PARANOX,
                   ! but caused instability in the chemical solver
                   ! (cdh, 3/21/2013)
-                  SELECT CASE ( TRIM(DEPNAME(I)) )
-                     CASE ( 'O3' )
-                        RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + 
-     &                              SHIPO3DEP(IX,IY) * 
-     &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
-                     CASE DEFAULT  ! Do nothing
-                  END SELECT
+                  ! 
+                  ! This is now handled through State_Chm%DepSav 
+                  ! (ckeller, 10/13/14)
+!                  SELECT CASE ( TRIM(DEPNAME(I)) )
+!                     CASE ( 'O3' )
+!                        RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + 
+!     &                              SHIPO3DEP(IX,IY) * 
+!     &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
+!                     CASE DEFAULT  ! Do nothing
+!                  END SELECT
                ENDDO
             ENDIF
          ENDDO

@@ -431,10 +431,10 @@ CONTAINS
 
              ! Calculate deposition velocity (m/s) from flux
              ! NOTE: the calculated deposition flux is in kg/m2/s,
-             ! which has to be converted to m/s. Use here the O3 conc.
-             ! [kg/m3] of the lowest model box. 
+             ! which has to be converted to 1/s. Use here the O3 conc.
+             ! [kg] of the lowest model box. 
              DEPO3(I,J) = ABS(iFlx) / ExtState%O3%Arr%Val(I,J,1) &
-                          * ExtState%AIRVOL%Arr%Val(I,J,1)
+                          * HcoState%Grid%AREA_M2%Val(I,J)
 
           ENDIF
        ENDIF
@@ -506,7 +506,7 @@ CONTAINS
     ! O3 
     IF ( IDTO3 > 0 ) THEN
 
-       ! Add flux to emission array
+       ! Add flux to emission array (kg/m2/s)
        CALL HCO_EmisAdd( HcoState, FLUXO3, IDTO3, RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -520,7 +520,7 @@ CONTAINS
           Arr2D => NULL() 
        ENDIF
 
-       ! Add flux to emission array
+       ! Add flux to emission array (1/s)
        CALL HCO_DepvAdd( HcoState, DEPO3, IDTO3, RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -731,7 +731,6 @@ CONTAINS
    ExtState%SUNCOSmid%DoUse  = .TRUE.
    ExtState%SUNCOSmid5%DoUse = .TRUE.
    ExtState%TSURFK%DoUse     = .TRUE.
-   ExtState%AIRVOL%DoUse     = .TRUE.
    IF ( IDTHNO3 > 0 ) THEN
       ExtState%HNO3%DoUse    = .TRUE.
    ENDIF

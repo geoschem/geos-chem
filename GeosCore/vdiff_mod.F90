@@ -2084,13 +2084,11 @@ contains
           eflx(I,J,N) = eflx(I,J,N) + tmpflx
 
           ! Also add drydep frequencies calculated by HEMCO to the DFLX
-          ! array.  These values are originally in m/s but are converted
-          ! to s-1 here.  They are then added in the same manner as all 
-          ! other drydep frequencies below. DFLX will be converted to 
-          ! kg/m2/s lateron. (ckeller, 04/01/2014)
+          ! array. These values are stored in 1/s. They are added in the 
+          ! same manner as the DEPSAV values from drydep_mod.F.
+          ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
           dflx(I,J,N) = dflx(I,J,N)                  &
                       + ( State_Chm%DepSav(I,J,N)    &
-                        / State_Met%BXHEIGHT(I,J,1)  &
                         * as2_scal(I,J,N) / TCVV(N) )
 
        ENDDO
@@ -2155,17 +2153,22 @@ contains
        ! Apply dry deposition frequencies
        !----------------------------------------------------------------
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
-          ! Now include sea salt dry deposition (jaegle 5/11/11)
-          IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST2'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST3'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST4') CYCLE
-              !TRIM( DEPNAME(N) ) == 'SALA'.OR. &
-              !TRIM( DEPNAME(N) ) == 'SALC') CYCLE
-
           ! gases + aerosols for full chemistry 
           NN   = NTRAIND(N)
           if (NN == 0) CYCLE
+
+          ! Now include sea salt dry deposition (jaegle 5/11/11)
+          IF ( NN == IDTDST1 .OR. &
+               NN == IDTDST2 .OR. &
+               NN == IDTDST3 .OR. &
+               NN == IDTDST4       ) CYCLE
+
+!          IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
+!              TRIM( DEPNAME(N) ) == 'DST2'.OR. &
+!              TRIM( DEPNAME(N) ) == 'DST3'.OR. &
+!              TRIM( DEPNAME(N) ) == 'DST4') CYCLE
+!              !TRIM( DEPNAME(N) ) == 'SALA'.OR. &
+!              !TRIM( DEPNAME(N) ) == 'SALC') CYCLE
 
           ! adding the backward consistency with previous GEOS-Chem drydep 
           ! calculation. (Lin, 06/04/2008) 
@@ -2440,17 +2443,25 @@ contains
     if (ND44 > 0 .or. LGTMM .or. LSOILNOX) then
 
        do N = 1, NUMDEP
-          SELECT CASE ( DEPNAME(N) )
+
+!          SELECT CASE ( NN )
              ! non gases + aerosols for fully chemistry 
              !CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
              !       'SALC' )
 	     ! now include sea salt dry deposition (jaegle 5/11/11)
-             CASE ( 'DST1', 'DST2', 'DST3', 'DST4')
-                CYCLE
-             CASE DEFAULT
-                ! Locate position of each tracer in DEPSAV
-                NN   = NTRAIND(N)
-                if (NN == 0) CYCLE
+!             CASE ( 'DST1', 'DST2', 'DST3', 'DST4')
+!             CASE ( IDTDST1, IDTDST2, IDTDST3, IDTDST4 )
+!                CYCLE
+!             CASE DEFAULT
+
+          ! Locate position of each tracer in DEPSAV
+          NN = NTRAIND(N)
+          IF (NN == 0 .OR.       &
+              NN == IDTDST1 .OR. & 
+              NN == IDTDST2 .OR. &
+              NN == IDTDST3 .OR. &
+              NN == IDTDST4       ) CYCLE
+
                 ! only for the lowest model layer
                 ! Convert : kg/m2/s -> molec/cm2/s
                 ! consider timestep difference between convection and emissions
@@ -2476,7 +2487,7 @@ contains
                    ENDDO
 		ENDIF
 
-          END SELECT
+!          END SELECT
        enddo
 
        ! Add ITS_A_TAGOX_SIM (Lin, 06/21/08)

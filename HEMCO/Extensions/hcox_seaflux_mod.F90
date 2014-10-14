@@ -199,7 +199,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Calculate oceanic source (kg/m2/s) as well as the deposition 
-       ! velocity (m/s).
+       ! velocity (1/s).
        CALL Calc_SeaFlux ( am_I_Root, HcoState, ExtState, &
                            SOURCE,    SINK,     SeaConc,   &
                            OcID,      HcoID,    RC          )
@@ -209,7 +209,7 @@ CONTAINS
        CALL HCO_EmisAdd ( HcoState, SOURCE, HcoID, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
       
-       ! Set deposition velocity in HEMCO object [m/s]
+       ! Set deposition velocity in HEMCO object [1/s]
        CALL HCO_DepvAdd ( HcoState, SINK, HcoID, RC )  
        IF ( RC /= HCO_SUCCESS ) RETURN
       
@@ -302,7 +302,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER             :: I, J, L
-    REAL*8              :: IJSRC, IJSINK
+    REAL*8              :: IJSRC
     INTEGER             :: SCW
     REAL*8              :: P, V, VB, MW, KG
     REAL*8              :: K0, CR, PKA
@@ -467,11 +467,11 @@ CONTAINS
           SOURCE(I,J) = IJSRC
 
           !-----------------------------------------------------------
-          ! Calculate deposition velocity to the ocean (m s-1):
+          ! Calculate deposition velocity to the ocean (s-1):
           !-----------------------------------------------------------
 
           ! Pass to deposition array
-          SINK(I,J) = KG 
+          SINK(I,J) = KG / HcoState%Grid%BXHEIGHT_M%Val(I,J,1)
 
        ENDIF !Over ocean
     ENDDO !I
