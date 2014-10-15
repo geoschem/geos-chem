@@ -389,7 +389,7 @@
 
             ! Orography at surface
             ! Ocean is 0; land is 1; ice is 2
-            ORO(I)         = OROGRAPHY(I,J)
+            ORO(I)         = REAL(OROGRAPHY(I,J),KIND=8)
 
             SNW_HGT_LQD(I) = ExtState%SNOWHGT%Arr%Val(I,J) / 1000.d0
 
@@ -5446,7 +5446,7 @@ c Fix up for negative argument, erf, etc.
 
       ! Error 
       IF ( am_I_Root ) THEN
-         MSG = 'Cannot assign mass flux tuning factor - '
+         MSG = 'Cannot assign mass flux tuning factor - ' //
      &         'please set `mass tuning factor` in configuration file!'
          CALL HCO_ERROR ( MSG, RC, THISLOC='HCOX_DustDead_GetFluxTun')
       ENDIF

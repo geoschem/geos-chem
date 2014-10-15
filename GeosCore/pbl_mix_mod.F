@@ -374,13 +374,13 @@
             ENDIF 
 
 !### Debug
-!            IF ( I==10 .and. J==10 .and. L < 6 ) THEN 
+!            IF ( I==23 .and. J==34 .and. L < 6 ) THEN 
 !               PRINT*, '###--------------------------------------'
 !               PRINT*, '### COMPUTE_PBL_HEIGHT'
 !               PRINT*, '### I, J, L     : ', I, J, L
 !               PRINT*, '### P(L-1)      : ', P(L-1)
 !               PRINT*, '### P(L)        : ', P(L)
-!               PRINT*, '### PBL(I,J)    : ', State_Met%PBLH(I,J)
+!               PRINT*, '### PBL(I,J)    : ', PBL(I,J)
 !               PRINT*, '### F_OF_PBL    : ', F_OF_PBL(I,J,L)
 !               PRINT*, '### F_UNDER_TOP : ', F_UNDER_TOP(I,J,L)
 !               PRINT*, '### IMIX        : ', IMIX(I,J)
@@ -390,7 +390,7 @@
 !               PRINT*, '### DELP        : ', DELP
 !               PRINT*, '### BLTHIK      : ', BLTHIK
 !               PRINT*, '### BLTOP       : ', BLTOP
-!               PRINT*, '### BXHEIGHT    : ', State_Met%BXHEIGHT(I,J,L)
+!               PRINT*, '### BXHEIGHT    : ', BXHEIGHT(I,J,L)
 !               PRINT*, '### PBL_TOP_m   : ', PBL_TOP_m(I,J)
 !               PRINT*, '### other way m : ', 
 !     &               P(0) * EXP( -PBL_TOP_hPa(I,J) / SCALE_HEIGHT )

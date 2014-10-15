@@ -696,6 +696,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Jul 2012 - C. Keller - Initial version
+!  09 Oct 2014 - C. Keller - Now also support 'minutes since ...'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -704,7 +705,7 @@ CONTAINS
 !
     CHARACTER(LEN=255)  :: ncUnit
     INTEGER, POINTER    :: tVec(:) => NULL()
-    INTEGER             :: refYr, refMt, refDy, refHr
+    INTEGER             :: refYr, refMt, refDy, refHr, refMn
     INTEGER             :: T, YYYYMMDD, hhmmss 
     REAL*8              :: realrefDy, refJulday, tJulday
 
@@ -721,9 +722,9 @@ CONTAINS
 
     ! Get reference date in julian days
     CALL NC_GET_REFDATETIME ( ncUnit, refYr, refMt, &
-                                refDy,  refHr, RC      ) 
+                              refDy,  refHr, refMn, RC ) 
     IF ( RC /= 0 ) RETURN
-    realrefDy = refDy + ( MAX(0,refHr) / 24d0 )
+    realrefDy = refDy + ( MAX(0,refHr) / 24d0 ) + ( MAX(0,refMn) / 1440d0 )
     refJulday = JULDAY ( refYr, refMt, realrefDy )
 
     ! NOTE: It seems that there is an issue with reference dates
@@ -772,15 +773,16 @@ CONTAINS
 !
 ! !IROUTINE: nc_get_refdatetime 
 !
-! !DESCRIPTION: Returns the reference datetime (tYr / tMt / tDy / tHr )
-! of the provided time unit. For now, supported formats are 
-! "days since YYYY-MM-DD" and "hours since YYYY-MM-DD HH:MM:SS". For
-! times in days since refdate, the returned reference hour rHr is set 
-! to -1.
+! !DESCRIPTION: Returns the reference datetime (tYr / tMt / tDy / tHr / 
+! tMn ) of the provided time unit. For now, supported formats are 
+! "days since YYYY-MM-DD", "hours since YYYY-MM-DD HH:MM:SS", and 
+! "minutes since YYYY-MM-DD HH:NN:SS". For times in days since refdate, 
+! the returned reference hour rHr is set to -1. The same applies for the
+! reference minute for units in days / hours since XXX.
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_GET_REFDATETIME( tUnit, tYr, tMt, tDy, tHr, RC ) 
+  SUBROUTINE NC_GET_REFDATETIME( tUnit, tYr, tMt, tDy, tHr, tMn, RC ) 
 !
 ! !USES:
 !
@@ -797,6 +799,7 @@ CONTAINS
     INTEGER,          INTENT(OUT)    :: tMt
     INTEGER,          INTENT(OUT)    :: tDy
     INTEGER,          INTENT(OUT)    :: tHr
+    INTEGER,          INTENT(OUT)    :: tMn
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -806,6 +809,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jan 2012 - C. Keller - Initial version
+!  09 Oct 2014 - C. Keller - Now also support 'minutes since ...'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -815,7 +819,7 @@ CONTAINS
     CHARACTER(LEN=255)    :: LOC, MSG
     CHARACTER(LEN=255)    :: MIRRUNIT
     INTEGER               :: TTYPE, STAT, L1, L2
-    INTEGER               :: STRLEN, I
+    INTEGER               :: MINLEN, STRLEN, I
 
     !=================================================================
     ! NC_GET_REFDATETIME starts here 
@@ -823,14 +827,6 @@ CONTAINS
 
     ! Init
     LOC = 'NC_GET_REFDATETIME (ncdf_mod.F)'
-
-    ! Check length of time unit string. This must be at least 21 
-    ! (==> "days since YYYY:MM:DD" is of length 21)
-    STRLEN = LEN(tUnit)
-    IF ( STRLEN < 21 ) THEN
-       PRINT *, 'Time unit string too short!' 
-       RC = -999; RETURN
-    ENDIF
 
     ! ----------------------------------------------------------------------
     ! Determine time unit type
@@ -840,26 +836,38 @@ CONTAINS
     MIRRUNIT = tUnit
     CALL TRANLC( MIRRUNIT )
 
-    ! Check for 'hours since'. If true, set TTYPE to 1 and set the
-    ! begin of the effective date string to 12. Also check if the time
-    ! string is at least of length 25, which is required for this
-    ! unit.
-    IF ( MIRRUNIT(1:11) == 'hours since' ) THEN
-       TTYPE = 1
-       L1    = 13
-       IF ( STRLEN < 25 ) THEN
-          PRINT *, 'Time unit string too short: ' // TRIM(tUnit)
-          RC = -999; RETURN
-       ENDIF
+    ! Check for reference time unit '(days, hours, minutes) since ...'
+    ! Set beginning of reference date according to the unit and define
+    ! minimum string length required by unit.
 
-       ! Check for 'days since'. If true, set TTYPE to 2 and set the
-       ! begin of the effective date string to 11.
-    ELSEIF ( MIRRUNIT(1:10) == 'days since' ) THEN
-       TTYPE = 2
-       L1    = 12
+    ! 'days since YYYY-M-D'
+    IF ( MIRRUNIT(1:10) == 'days since' ) THEN
+       TTYPE  = 1
+       L1     = 12
+       MINLEN = 19
+
+    ! 'hours since YYYY-M-D h:m:s'
+    ELSEIF ( MIRRUNIT(1:11) == 'hours since' ) THEN
+       TTYPE  = 2
+       L1     = 13
+       MINLEN = 26
+
+    ! 'minutes since YYYY-M-D h:m:s'
+    ELSEIF ( MIRRUNIT(1:13) == 'minutes since' ) THEN
+       TTYPE  = 3
+       L1     = 15
+       MINLEN = 28
+
+    ! Return w/ error otherwise
     ELSE
-       ! Return w/ error
        PRINT *, 'Invalid time unit: ' // TRIM(tUnit) 
+       RC = -999; RETURN
+    ENDIF
+
+    ! Check if time string is long enough or not
+    STRLEN = LEN(tUnit)
+    IF ( STRLEN < MINLEN ) THEN
+       PRINT *, 'Time unit string too short: ' // TRIM(tUnit)
        RC = -999; RETURN
     ENDIF
 
@@ -905,8 +913,8 @@ CONTAINS
        RC = -999; RETURN
     ENDIF
 
-    ! Get reference hour only if 'hours since...'
-    IF ( TTYPE == 1 ) THEN
+    ! Get reference hour only if 'hours since... or minutes since...'
+    IF ( TTYPE > 1 ) THEN
 
        ! Reference hour
        L1 = L2 + 2
@@ -923,7 +931,26 @@ CONTAINS
     ELSE 
        ! Set reference hour to -1
        tHr = -1
+    ENDIF
 
+    ! Get reference minute only if 'minutes since...'
+    IF ( TTYPE>2 ) THEN
+
+       ! Reference minute
+       L1 = L2 + 2
+       DO I=L1,STRLEN
+          IF(tUnit(I:I) == ':') EXIT 
+       ENDDO
+       L2 = I-1
+       READ( tUnit(L1:L2), '(i)', IOSTAT=STAT ) tMn
+       IF ( STAT /= 0 ) THEN
+          PRINT *, 'Invalid minute in ', TRIM(tUnit)
+          RC = -999; RETURN
+       ENDIF
+ 
+    ELSE 
+       ! Set reference minute to -1
+       tMn = -1
     ENDIF
 
     ! Return w/ success

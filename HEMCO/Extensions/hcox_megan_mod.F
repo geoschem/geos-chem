@@ -23,7 +23,18 @@
 ! PARDF), this may result in very different average values - which in 
 ! turn may result in local differences of >50%. HEMCO emissions are 
 ! identical to original GEOS-Chem emissions once we pass the first 10 
-! days.
+! days (ckeller, 10/8/2013)! 
+!\\
+!\\
+! A similar procedure is now also applied for the leaf area index variables.
+! The original GEOS-Chem MEGAN code used three LAI variables: current month
+! LAI (LAI\_CM), previous month LAI (LAI\_PM), and instantaneous LAI (LAI, 
+! which was a daily interpolation of LAI\_CM and next month' LAI, LAI_NM). 
+! The HEMCO implementation uses only the instantaneous LAI any more, assuming 
+! it changes every day. The previous day LAI is kept in memory and used to
+! determine the LAI change over time (used to calculate the gamma leaf age).
+! For the first simulation day, a LAI change of zero is assumed.
+! (ckeller, 10/9/2014)
 !\\
 !\\
 ! !References:
@@ -131,6 +142,7 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  05 Oct 2013 - C. Keller   - Now a HEMCO extension 
 !  04 Aug 2014 - C. Keller   - Added 'manual' diagnostics for Acetone.
+!  09 Oct 2014 - C. Keller   - Now use only GC_LAI (keep prev. LAI in memory)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -193,9 +205,7 @@
       INTEGER, PARAMETER  :: IDMGBCAR = 11  ! beta-caryophyllene
       INTEGER, PARAMETER  :: IDMGOSQT = 12  ! other sesquiterpenes
       INTEGER, PARAMETER  :: IDMGOMTP = 9   ! other monoterpenes
-!
-! !PRIVATE TYPES:
-!
+
       ! Past light & temperature conditions (mpb,2009)
       ! (1) Temperature at 2m (TS):
       REAL*8, ALLOCATABLE :: HCOT_DAILY(:,:)       ! Daily averaged sfc temp
@@ -214,6 +224,13 @@
       REAL*8, ALLOCATABLE :: HCOPARDF_DAY(:,:,:)   ! Holds 1-day of PARDR data
       REAL*8, ALLOCATABLE :: HCOPARDF_15(:,:,:)    ! 10 days of daily avg'd PARDR 
       REAL*8, ALLOCATABLE :: HCOPARDF_15_AVG(:,:)  ! PARDF averaged over NUM_DAYS
+
+      ! previous LAI values (ckeller, 10/09/2014)
+      REAL*8, ALLOCATABLE :: LAI_PREVSTEP(:,:)     ! LAI of prev. time step
+      REAL*8, ALLOCATABLE :: LAI_PREVDAY(:,:)      ! LAI of prev. day
+
+      ! Days between mid-months (updated by HEMCO clock)
+      INTEGER             :: DAYS_BTW_M
 
       ! testing only
       integer, parameter  :: ix = -1 !25 !13 !20
@@ -258,6 +275,7 @@
 !
 ! !REVISION HISTORY: 
 !  05 Aug 2013 - C. Keller - Initial version 
+!  08 Oct 2014 - C. Keller - Now use HEMCO clock to get days between months
 !
 !------------------------------------------------------------------------------
 !BOC
@@ -430,11 +448,20 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
 
-      ! Make sure variable DAYS_BTW_M of ExtState obj. is defined
-      IF ( .NOT. ASSOCIATED(ExtState%DAYS_BTW_M) ) THEN
-         CALL HCO_ERROR ( 'DAYS_BTW_M not defined in ExtState!', RC )
-         RETURN
+      ! On first call, fill previous day LAI with current LAI since we
+      ! don't know the previous day values yet... 
+      IF ( FIRST ) THEN
+         LAI_PREVDAY = ExtState%GC_LAI%Arr%Val
+
+      ! On a new day, copy previous LAI values to array that holds
+      ! previous day LAI.
+      ELSEIF ( IsNewDay ) THEN
+         LAI_PREVDAY = LAI_PREVSTEP
       ENDIF
+
+      ! For testing, set to 1 day since we know that LAI is updated every
+      ! day.
+      DAYS_BTW_M = 1
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -493,10 +520,12 @@
          Q_DIR_2  = ExtState%PARDR%Arr%Val(I,J) * WM2_TO_UMOLM2S
          Q_DIFF_2 = ExtState%PARDF%Arr%Val(I,J) * WM2_TO_UMOLM2S
 
-         ! Pass met variables
+         ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
          ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
-         PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
-         MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
+         PMISOLAI = LAI_PREVDAY(I,J)
+         MISOLAI  = ISOLAI
+!         PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
+!         MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
 
          !-----------------------------------------------------------------
          ! Get species independent scale factors for particular grid box 
@@ -543,20 +572,20 @@
          ! anymore (--> UNITCONV = 1). ckeller, 14/01/25.
          !--------------------------------------------------------------
 
-         ! testing only
-         if ( i==ix .and. j==iy ) then
-                  write(*,*) ' '
-                  write(*,*) 'do HEMCO MEGAN @i,j ', i,j
-                  write(*,*) 'SUNCOSmid:             ', SUNCOS
-                  write(*,*) 'TEMPERATURE:',ExtState%TSURFK%Arr%Val(I,J)
-                  write(*,*) 'Q_DIR: ', Q_DIR_2 / WM2_TO_UMOLM2S
-                  write(*,*) 'Q_DIFF:', Q_DIFF_2 / WM2_TO_UMOLM2S
-                  write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J)
-                  write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J)
-                  write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J)
-                  write(*,*) 'HCOT_DAILY : ', HCOT_DAILY (I,J)
-                  write(*,*) ' '
-         endif
+!         ! testing only
+!         if ( i==ix .and. j==iy ) then
+!                  write(*,*) ' '
+!                  write(*,*) 'do HEMCO MEGAN @i,j ', i,j
+!                  write(*,*) 'SUNCOSmid:             ', SUNCOS
+!                  write(*,*) 'TEMPERATURE:',ExtState%TSURFK%Arr%Val(I,J)
+!                  write(*,*) 'Q_DIR: ', Q_DIR_2 / WM2_TO_UMOLM2S
+!                  write(*,*) 'Q_DIFF:', Q_DIFF_2 / WM2_TO_UMOLM2S
+!                  write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J)
+!                  write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J)
+!                  write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J)
+!                  write(*,*) 'HCOT_DAILY : ', HCOT_DAILY (I,J)
+!                  write(*,*) ' '
+!         endif
 !
          !--------------------------------------------------------------------
          ! MEGAN Isoprene
@@ -934,7 +963,14 @@
 
          ! Use CALTECH algorithm if SOA is turned on
          ELSE
-            
+           
+            ! Error trap: check if SZAFACT is indeed defined
+            IF ( .NOT. ASSOCIATED(ExtState%SZAFACT%Arr%Val) ) THEN
+                  CALL HCO_ERROR('SZAFACT not set - needed for SOA', RC)
+                  ERR = .TRUE.
+                  EXIT
+            ENDIF
+ 
             ! Impose a diurnal variation on NVOC during the day
             DIURFACT = ExtState%SZAFACT%Arr%Val(I,J)
             DIURORVC = DIURFACT * GEIA_ORVC(I,J) 
@@ -1436,6 +1472,21 @@
       ! ALL DONE! 
       !=================================================================
 
+      ! testing only
+      write(*,*) ''
+      write(*,*) 'MEGAN done!'
+      write(*,*) 'total LAI: ', SUM(ExtState%GC_LAI%Arr%Val)
+      write(*,*) 'total ISOP: ', SUM(FLUXISOP)
+      write(*,*) 'total ACET: ', SUM(FLUXACETmo)+SUM(FLUXACETmb)
+     &                          +SUM(FLUXACETbg)
+      write(*,*) 'total CO  : ', SUM(FLUXCO  )
+      write(*,*) 'total PRPE: ', SUM(FLUXPRPE)
+      write(*,*) 'total OCPI: ', SUM(FLUXOCPI)
+      write(*,*) ''
+
+      ! Keep LAI in memory (ckeller, 10/9/2014)
+      LAI_PREVSTEP = ExtState%GC_LAI%Arr%Val
+
       ! Return w/ success
       CALL HCO_LEAVE ( RC )
 
@@ -1514,14 +1565,17 @@
       GAMMA_LAI_ISOP  = 1.d0
 
       ! Number of days between MISOLAI and PMISOLAI
-      D_BTW_M  = DBLE( ExtState%DAYS_BTW_M )
+      D_BTW_M  = DBLE( DAYS_BTW_M )
 
-      ! Pass met variables
+      ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
       ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
-      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
-      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
+      PMISOLAI = LAI_PREVDAY(I,J)
+      MISOLAI  = ISOLAI
+!      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
+!      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
       TS       = ExtState%TSURFK%Arr%Val(I,J)
       SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
+
 
       !---------------------------------------------------
       ! Do only during day and over continent
@@ -1660,15 +1714,18 @@
       GAMMA_LEAF_AGE  = 0.d0
       GAMMA_LAI_EMMB  = 1.d0
 
-      ! Pass met variables
+      ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
       ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
-      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
-      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
+      PMISOLAI = LAI_PREVDAY(I,J)
+      MISOLAI = ISOLAI
+!      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
+!      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
       TS       = ExtState%TSURFK%Arr%Val(I,J)
       SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
 
+
       ! Number of days between MISOLAI and PMISOLAI
-      D_BTW_M  = DBLE( ExtState%DAYS_BTW_M )
+      D_BTW_M  = DBLE( DAYS_BTW_M )
 
       !-------------------------------------------------
       ! Do only during day and over continent
@@ -1796,14 +1853,17 @@
       GAMMA_LEAF_AGE  = 0.d0
       AEF_SPARE       = 0.d0
 
-      ! Pass met variables
+      ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
       ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
-      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
-      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
+      PMISOLAI = LAI_PREVDAY(I,J)
+      MISOLAI = ISOLAI
+!      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
+!      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
       TS       = ExtState%TSURFK%Arr%Val(I,J)
 
+
       ! Number of days between MISOLAI and PMISOLAI
-      D_BTW_M  = DBLE( ExtState%DAYS_BTW_M )
+      D_BTW_M  = DBLE( DAYS_BTW_M )
 
       ! Need to determine which monoterpene AEFs 
       ! we need to use (mpb,2009)
@@ -1997,15 +2057,15 @@
       GAMMA_T         = 0.d0
       GAMMA_LEAF_AGE  = 1.d0
 
-      ! Pass met variables
+      ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
       ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
-      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
-      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
+      PMISOLAI = LAI_PREVDAY(I,J)
+      MISOLAI = ISOLAI
+!      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
+!      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
       TS       = ExtState%TSURFK%Arr%Val(I,J)
       SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
 
-      ! Number of days between MISOLAI and PMISOLAI
-      D_BTW_M  = DBLE( ExtState%DAYS_BTW_M )
 
       !-----------------------------------------------------
       ! Only interested in terrestrial biosphere (pip)
@@ -3660,6 +3720,21 @@
       ENDIF
       AEF_GEN = 0.0_hp
 
+      ! LAI from previous time step
+      ALLOCATE( LAI_PREVSTEP( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+        CALL HCO_ERROR( 'LAI_PREVSTEP', RC )
+        RETURN
+      ENDIF
+      LAI_PREVSTEP = 0d0
+
+      ALLOCATE( LAI_PREVDAY( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+        CALL HCO_ERROR( 'LAI_PREVDAY', RC )
+        RETURN
+      ENDIF
+      LAI_PREVDAY = 0d0
+
       !=================================================================
       ! The original MEGAN code used to read the emission factors here.
       ! We now get the emisson factors through HEMCO, hence no need to
@@ -3678,9 +3753,6 @@
       ExtState%PARDF%DoUse     = .TRUE.
       ExtState%SZAFACT%DoUse   = .TRUE.
       ExtState%GC_LAI%DoUse    = .TRUE.
-      ExtState%GC_LAI_PM%DoUse = .TRUE.
-      ExtState%GC_LAI_CM%DoUse = .TRUE.
-      ExtState%GC_LAI_NM%DoUse = .TRUE.
 
       ! Enable module 
       ExtState%Megan = .TRUE.
@@ -3744,6 +3816,8 @@
       IF ( ALLOCATED( HCOPARDF_15     ) ) DEALLOCATE( HCOPARDF_15     )
       IF ( ALLOCATED( HCOPARDF_15_AVG ) ) DEALLOCATE( HCOPARDF_15_AVG )
       IF ( ALLOCATED( HCOPARDF_DAILY  ) ) DEALLOCATE( HCOPARDF_DAILY  )
+      IF ( ALLOCATED( LAI_PREVSTEP    ) ) DEALLOCATE( LAI_PREVSTEP    )
+      IF ( ALLOCATED( LAI_PREVDAY     ) ) DEALLOCATE( LAI_PREVDAY     )
 
       END SUBROUTINE HCOX_MEGAN_FINAL
 !EOC

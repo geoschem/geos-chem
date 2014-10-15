@@ -725,7 +725,6 @@
       ! Use GEOS-5 style error reporting when connecting to the GEOS-5
       ! GCM via the ESMF interface (bmy, 3/12/13)
       !-----------------------------------------------------------------
-      INTEGER :: RC      
       __Iam__('GEOSCHEMSTOP')
       STATUS = -1
       VERIFY_(STATUS)

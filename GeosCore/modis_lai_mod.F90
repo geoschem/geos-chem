@@ -35,11 +35,11 @@ MODULE Modis_Lai_Mod
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  INTEGER, PUBLIC,              TARGET :: DAYS_BTW_MON    ! Days btw LAI midmonths
-  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
+!  INTEGER, PUBLIC,              TARGET :: DAYS_BTW_MON    ! Days btw LAI midmonths
+   REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
+!  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
+!  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
+!  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -120,6 +120,12 @@ MODULE Modis_Lai_Mod
 !      to facilitate the Grid-Independent GEOS-Chem (GIGC) project.
 !      
 !      -- Bob Yantosca (geos-chem-support@as.harvard.edu), 13 Dec 2012
+!
+!  (4) The previous, current, and next month LAI values (GC_LAI_PM,
+!      GC_LAI_CM, GC_LAI_NM) were only used for MEGAN. In the HEMCO 
+!      implementation, MEGAN only needs GC_LAI as input, so all the
+!      other GC_LAI arrays were removed. This also makes MODIS_LAI_PM
+!      obsolete (ckeller, 10/9/2014).
 !                                                                             .
 !                                                                             .
 !  LAI arrays and where they are (or will be) used in GEOS-Chem:
@@ -143,6 +149,8 @@ MODULE Modis_Lai_Mod
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F;
 !                              XLAI, XLAI2 now are carried in State_Met
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  09 Oct 2014 - C. Keller   - Removed GC_LAI_PM, GC_LAI_CM, GC_LAI_NM and
+!                              MODIS_LAI_PM.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -157,7 +165,7 @@ MODULE Modis_Lai_Mod
                                               
   ! Arrays                                    
   REAL*4,  ALLOCATABLE :: MODIS_LAI   (:,:)   ! Daily LAI on the MODIS grid
-  REAL*4,  ALLOCATABLE :: MODIS_LAI_PM(:,:)   ! MODIS LAI for previous month 
+!  REAL*4,  ALLOCATABLE :: MODIS_LAI_PM(:,:)   ! MODIS LAI for previous month 
   REAL*4,  ALLOCATABLE :: MODIS_LAI_CM(:,:)   ! MODIS LAI for current month 
   REAL*4,  ALLOCATABLE :: MODIS_LAI_NM(:,:)   ! MODIS LAI for next month 
 
@@ -225,6 +233,8 @@ CONTAINS
 !  13 Dec 2012 - R. Yantosca - XLAI, XLAI2 are now carried in State_Met
 !                              instead of in obsolete Headers/CMN_DEP_mod.F
 !  23 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  09 Oct 2014 - C. Keller   - Removed GC_LAI_PM, GC_LAI_CM, GC_LAI_NM and
+!                              MODIS_LAI_PM.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -262,8 +272,8 @@ CONTAINS
        ITD            = startDay(mm+1) - startDay(mm)
     ENDIF
 
-    ! Archive the days between midmonths in the LAI data
-    DAYS_BTW_MON      = ITD
+!    ! Archive the days between midmonths in the LAI data
+!    DAYS_BTW_MON      = ITD
 
     ! Cast ITD, IMUL to REAL*8
     DITD              = DBLE( ITD  )
@@ -308,11 +318,11 @@ CONTAINS
 
        ! If a new month of MODIS LAI data was just read from disk,
        ! then also initialize the appropriate data arrays here.
-       IF ( wasModisRead ) THEN
-          GC_LAI_PM(I,J)    = 0d0
-          GC_LAI_CM(I,J)    = 0d0
-          GC_LAI_NM(I,J)    = 0d0
-       ENDIF
+!       IF ( wasModisRead ) THEN
+!          GC_LAI_PM(I,J)    = 0d0
+!          GC_LAI_CM(I,J)    = 0d0
+!          GC_LAI_NM(I,J)    = 0d0
+!       ENDIF
 
        !-------------------------------------------------------------------
        ! Sum up the leaf area indices from all of the the "fine" grid 
@@ -337,16 +347,16 @@ CONTAINS
 
           ! Compute the total leaf area in "coarse" GEOS-Chem
           ! grid box (I,J), irrespective of Olson land type
-          GC_LAI(I,J)       = GC_LAI(I,J)     + ( MODIS_LAI(II,JJ)    * area )
+          GC_LAI(I,J) = GC_LAI(I,J) + ( MODIS_LAI(II,JJ) * area )
 
-          ! If a new month of MODIS LAI data was just read from disk,
-          ! then also compute the corresponding total leaf areas in the 
-          ! "coarse" GEOS-Chem grid box (I,J).
-          IF ( wasModisRead ) THEN
-             GC_LAI_PM(I,J) = GC_LAI_PM(I,J)  + ( MODIS_LAI_PM(II,JJ) * area )
-             GC_LAI_CM(I,J) = GC_LAI_CM(I,J)  + ( MODIS_LAI_CM(II,JJ) * area )
-             GC_LAI_NM(I,J) = GC_LAI_NM(I,J)  + ( MODIS_LAI_NM(II,JJ) * area )
-          ENDIF
+!          ! If a new month of MODIS LAI data was just read from disk,
+!          ! then also compute the corresponding total leaf areas in the 
+!          ! "coarse" GEOS-Chem grid box (I,J).
+!          IF ( wasModisRead ) THEN
+!             GC_LAI_PM(I,J) = GC_LAI_PM(I,J)  + ( MODIS_LAI_PM(II,JJ) * area )
+!             GC_LAI_CM(I,J) = GC_LAI_CM(I,J)  + ( MODIS_LAI_CM(II,JJ) * area )
+!             GC_LAI_NM(I,J) = GC_LAI_NM(I,J)  + ( MODIS_LAI_NM(II,JJ) * area )
+!          ENDIF
        ENDDO
 
        !-------------------------------------------------------------------
@@ -357,16 +367,16 @@ CONTAINS
 
        ! Convert leaf area [cm2 leaf] to LAI [cm2 leaf/cm2 grid box]
        ! grid box (I,J), irrespective of Olson land type
-       GC_LAI(I,J)       = GC_LAI(I,J)    / sumArea
+       GC_LAI(I,J) = GC_LAI(I,J) / sumArea
 
-       ! If a new month of MODIS LAI data was just read from disk,
-       ! then also convert the appropriate arrays to leaf area index
-       ! [cm2 leaf/cm2 grid box].
-       IF ( wasModisRead ) THEN 
-          GC_LAI_PM(I,J) = GC_LAI_PM(I,J) / sumArea
-          GC_LAI_CM(I,J) = GC_LAI_CM(I,J) / sumArea
-          GC_LAI_NM(I,J) = GC_LAI_NM(I,J) / sumArea 
-       ENDIF
+!       ! If a new month of MODIS LAI data was just read from disk,
+!       ! then also convert the appropriate arrays to leaf area index
+!       ! [cm2 leaf/cm2 grid box].
+!       IF ( wasModisRead ) THEN 
+!          GC_LAI_PM(I,J) = GC_LAI_PM(I,J) / sumArea
+!          GC_LAI_CM(I,J) = GC_LAI_CM(I,J) / sumArea
+!          GC_LAI_NM(I,J) = GC_LAI_NM(I,J) / sumArea 
+!       ENDIF
 
        !-------------------------------------------------------------------
        ! Compute the LAI for each Olson land type at GEOS-Chem grid box
@@ -496,6 +506,7 @@ CONTAINS
 !  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
 !  05 Jun 2013 - R. Yantosca - Bug fix, use "mm" for current month index
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  09 Oct 2014 - C. Keller   - MODIS_LAI_PM not needed anymore.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -620,79 +631,79 @@ CONTAINS
     ! Echo info to stdout
     WRITE( 6, 140 )
 
-    !======================================================================
-    ! Read previous month's LAI
-    !======================================================================
+!    !======================================================================
+!    ! Read previous month's LAI
+!    !======================================================================
+!
+!    ! Previous LAI month
+!    Pmm = mm - 1
+!
+!    ! Year corresponding to previous LAI month (readjust for January)
+!    IF ( Pmm == 0 ) THEN
+!       Pmm   = 12
+!       Pyyyy = yyyy - 1
+!    ELSE
+!       Pyyyy = yyyy
+!    ENDIF
+!
+!    ! Test if Pyyy is w/in the valid range of MODIS data
+!    IF ( Pyyyy >= MODIS_START .and. Pyyyy <= MODIS_END ) THEN
+!
+!       ! Here, Pyyyy lies w/in the MODIS data timespan
+!       nc_file  = nc_tmpl
+!       yyyymmdd = Pyyyy*10000 + Pmm*100 + 01
+!       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+!
+!    ELSE
+!
+!       ! Here, yyyy lies outside the MODIS data timespan,
+!       ! so we have to read data from a different year.
+!       IF ( Input_Opt%USE_OLSON_2001 ) THEN
+!          IF ( Pyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
+!             yyyymmdd = MODIS_END*10000   + Pmm*100 + 01  ! Use final year
+!          ELSE IF ( Pyyyy < MODIS_START ) THEN            !
+!             yyyymmdd = MODIS_START*10000 + Pmm*100 + 01  ! Use 1st year
+!          ENDIF
+!       ELSE                                               !%%% OLSON 1992 %%%
+!          yyyymmdd = 19850001 + Pmm*100                   ! Use climatology
+!       ENDIF
+!
+!       ! Expand date tokens in filename
+!       nc_file  = nc_tmpl
+!       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+!          
+!    ENDIF
 
-    ! Previous LAI month
-    Pmm = mm - 1
-
-    ! Year corresponding to previous LAI month (readjust for January)
-    IF ( Pmm == 0 ) THEN
-       Pmm   = 12
-       Pyyyy = yyyy - 1
-    ELSE
-       Pyyyy = yyyy
-    ENDIF
-
-    ! Test if Pyyy is w/in the valid range of MODIS data
-    IF ( Pyyyy >= MODIS_START .and. Pyyyy <= MODIS_END ) THEN
-
-       ! Here, Pyyyy lies w/in the MODIS data timespan
-       nc_file  = nc_tmpl
-       yyyymmdd = Pyyyy*10000 + Pmm*100 + 01
-       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
-
-    ELSE
-
-       ! Here, yyyy lies outside the MODIS data timespan,
-       ! so we have to read data from a different year.
-       IF ( Input_Opt%USE_OLSON_2001 ) THEN
-          IF ( Pyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
-             yyyymmdd = MODIS_END*10000   + Pmm*100 + 01  ! Use final year
-          ELSE IF ( Pyyyy < MODIS_START ) THEN            !
-             yyyymmdd = MODIS_START*10000 + Pmm*100 + 01  ! Use 1st year
-          ENDIF
-       ELSE                                               !%%% OLSON 1992 %%%
-          yyyymmdd = 19850001 + Pmm*100                   ! Use climatology
-       ENDIF
-
-       ! Expand date tokens in filename
-       nc_file  = nc_tmpl
-       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
-          
-    ENDIF
-
-    ! Open file for read
-    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
-    CALL Ncop_Rd( fId, TRIM(nc_path) )
-     
-    ! Echo info to stdout
-    WRITE( 6, 100 ) REPEAT( '%', 79 )
-    WRITE( 6, 110 ) TRIM(nc_file)
-    WRITE( 6, 120 ) TRIM(nc_dir)
-
-    ! Variable name
-    v_name = "MODIS"
+!    ! Open file for read
+!    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
+!    CALL Ncop_Rd( fId, TRIM(nc_path) )
+!     
+!    ! Echo info to stdout
+!    WRITE( 6, 100 ) REPEAT( '%', 79 )
+!    WRITE( 6, 110 ) TRIM(nc_file)
+!    WRITE( 6, 120 ) TRIM(nc_dir)
+!
+!    ! Variable name
+!    v_name = "MODIS"
     
-    ! Read OLSON from file
-    st3d   = (/ 1,       1,       Pmm /)
-    ct3d   = (/ I_MODIS, J_MODIS, 1   /)
-    CALL NcRd( MODIS_LAI_PM, fId, TRIM(v_name), st3d, ct3d )
+!    ! Read OLSON from file
+!    st3d   = (/ 1,       1,       Pmm /)
+!    ct3d   = (/ I_MODIS, J_MODIS, 1   /)
+!    CALL NcRd( MODIS_LAI_PM, fId, TRIM(v_name), st3d, ct3d )
+!
+!    ! Read the OLSON:units attribute
+!    a_name = "units"
+!    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!    
+!    ! Echo info to stdout
+!    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val), Pmm
 
-    ! Read the OLSON:units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-    
-    ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val), Pmm
-
-    ! Close netCDF file
-    CALL NcCl( fId )
-    
-    ! Echo info to stdout
-    WRITE( 6, 140 )
-
+!    ! Close netCDF file
+!    CALL NcCl( fId )
+!    
+!    ! Echo info to stdout
+!    WRITE( 6, 140 )
+ 
     !======================================================================
     ! Read next month's LAI
     !======================================================================
@@ -946,17 +957,17 @@ CONTAINS
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI' )
     GC_LAI = 0d0
 
-    ALLOCATE( GC_LAI_PM( IIPAR, JJPAR ), STAT=RC ) 
-    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_PM' )
-    GC_LAI_PM = 0d0
-
-    ALLOCATE( GC_LAI_CM( IIPAR, JJPAR ), STAT=RC ) 
-    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_CM' )
-    GC_LAI_CM = 0d0
-
-    ALLOCATE( GC_LAI_NM( IIPAR, JJPAR ), STAT=RC ) 
-    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_NM' )
-    GC_LAI_NM = 0d0
+!    ALLOCATE( GC_LAI_PM( IIPAR, JJPAR ), STAT=RC ) 
+!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_PM' )
+!    GC_LAI_PM = 0d0
+!
+!    ALLOCATE( GC_LAI_CM( IIPAR, JJPAR ), STAT=RC ) 
+!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_CM' )
+!    GC_LAI_CM = 0d0
+!
+!    ALLOCATE( GC_LAI_NM( IIPAR, JJPAR ), STAT=RC ) 
+!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_NM' )
+!    GC_LAI_NM = 0d0
 
     !======================================================================
     ! Allocate arrays on the "fine" MODIS grid grid
@@ -978,9 +989,9 @@ CONTAINS
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI' )
     MODIS_LAI = 0d0
 
-    ALLOCATE( MODIS_LAI_PM( I_MODIS, J_MODIS ), STAT=RC ) 
-    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_PM' )
-    MODIS_LAI_PM = 0d0
+!    ALLOCATE( MODIS_LAI_PM( I_MODIS, J_MODIS ), STAT=RC ) 
+!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_PM' )
+!    MODIS_LAI_PM = 0d0
 
     ALLOCATE( MODIS_LAI_CM( I_MODIS, J_MODIS ), STAT=RC ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_CM' )
@@ -1013,11 +1024,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     IF ( ALLOCATED( GC_LAI       ) ) DEALLOCATE( GC_LAI       )
-    IF ( ALLOCATED( GC_LAI_PM    ) ) DEALLOCATE( GC_LAI_PM    )
-    IF ( ALLOCATED( GC_LAI_CM    ) ) DEALLOCATE( GC_LAI_CM    )
-    IF ( ALLOCATED( GC_LAI_NM    ) ) DEALLOCATE( GC_LAI_NM    )
+!    IF ( ALLOCATED( GC_LAI_PM    ) ) DEALLOCATE( GC_LAI_PM    )
+!    IF ( ALLOCATED( GC_LAI_CM    ) ) DEALLOCATE( GC_LAI_CM    )
+!    IF ( ALLOCATED( GC_LAI_NM    ) ) DEALLOCATE( GC_LAI_NM    )
     IF ( ALLOCATED( MODIS_LAI    ) ) DEALLOCATE( MODIS_LAI    )
-    IF ( ALLOCATED( MODIS_LAI_PM ) ) DEALLOCATE( MODIS_LAI_PM )
+!    IF ( ALLOCATED( MODIS_LAI_PM ) ) DEALLOCATE( MODIS_LAI_PM )
     IF ( ALLOCATED( MODIS_LAI_CM ) ) DEALLOCATE( MODIS_LAI_CM )
     IF ( ALLOCATED( MODIS_LAI_NM ) ) DEALLOCATE( MODIS_LAI_NM )
 

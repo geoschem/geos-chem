@@ -55,6 +55,7 @@ MODULE HCO_Clock_Mod
 !  29 Dec 2012 - C. Keller   - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  08 Oct 2014 - C. Keller   - Added mid-month day calculation 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,6 +122,13 @@ MODULE HCO_Clock_Mod
   ! be set to ResetFlagMonthly, so that all diagnostics with a reset
   ! flag equal or higher than this value will be written to disk.
   INTEGER                     :: CurrMinResetFlag  = ResetFlagHourly + 1
+
+  ! Midmonth days for year 2000 (from modis_lai_mod.F90)
+  ! These can be used to obtain the mid-month day of the current month,
+  ! as required for the MODIS LAI values.
+  INTEGER, PARAMETER   :: MidMon(13) = (/  15,  45,  74, 105,      &
+                                          135, 166, 196, 227,      &
+                                          258, 288, 319, 349, 380/)
 
 CONTAINS
 !EOC
@@ -392,11 +400,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_Get ( cYYYY, cMM, cDD,  cH,           & 
-                            cM,    cS,  cDOY, cWEEKDAY,     &
-                            pYYYY, pMM, pDD,  pH,           &
-                            pM,    pS,  pDOY, pWEEKDAY,     &
-                            LMD,   nSteps,    RC             ) 
+  SUBROUTINE HcoClock_Get ( cYYYY,   cMM, cDD,  cH,       & 
+                            cM,      cS,  cDOY, cWEEKDAY, &
+                            pYYYY,   pMM, pDD,  pH,       &
+                            pM,      pS,  pDOY, pWEEKDAY, &
+                            LMD,     nSteps,    cMidMon,  &
+                            dslmm,   dbtwmm,    RC         ) 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -418,6 +427,9 @@ CONTAINS
     INTEGER, INTENT(  OUT), OPTIONAL     :: pWEEKDAY  ! Previous weekday
     INTEGER, INTENT(  OUT), OPTIONAL     :: LMD       ! Last day of month 
     INTEGER, INTENT(  OUT), OPTIONAL     :: nSteps    ! # of passed steps 
+    INTEGER, INTENT(  OUT), OPTIONAL     :: cMidMon   ! Mid-month day of curr. month
+    INTEGER, INTENT(  OUT), OPTIONAL     :: dslmm     ! days since last mid-month
+    INTEGER, INTENT(  OUT), OPTIONAL     :: dbtwmm    ! days between mid-month
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -427,6 +439,7 @@ CONTAINS
 !  29 Dec 2012 - C. Keller - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  08 Oct 2014 - C. Keller   - Added mid-month day arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -456,6 +469,38 @@ CONTAINS
     IF ( PRESENT(LMD     ) ) LMD      = HcoClock%MonthLastDay
 
     IF ( PRESENT(nSteps  ) ) nSteps   = HcoClock%nSteps
+
+    ! Mid-month day related variables
+    IF ( PRESENT(cMidMon ) ) cMidMon  = MidMon(HcoClock%ThisMonth)
+
+    ! Days since passing the most recent mid-month day. From modis_lai_mod.F90
+    IF ( PRESENT(dslmm ) ) THEN
+       IF ( HcoClock%ThisDOY < MidMon(1) ) THEN
+          dslmm = 365 + HcoClock%ThisDoy - MidMon(12)
+       ELSE
+          dslmm = MidMon(HcoClock%ThisMonth+1) - MidMon(HcoClock%ThisMonth)
+       ENDIF
+    ENDIF
+
+    ! Days between most recently passed mid-month day and next one.
+    IF ( PRESENT(dbtwmm ) ) THEN
+
+       ! If day of year is earlier than first mid-month day, we are between
+       ! December and January.
+       IF ( HcoClock%ThisDOY < MidMon(1) ) THEN
+          dbtwmm = MidMon(13) - MidMon(12)
+
+       ! If day of year is earlier than mid-month day of current month, the
+       ! day difference has to be taken relative to previous month' mid-day
+       ELSEIF ( HcoClock%ThisDOY < MidMon(HcoClock%ThisMonth) ) THEN
+          dbtwmm = MidMon(HcoClock%ThisMonth) - MidMon(HcoClock%ThisMonth-1)
+
+       ! If day of year is after than mid-month day of current month, the
+       ! day difference has to be taken relative to current month' mid-day
+       ELSE
+          dbtwmm = MidMon(HcoClock%ThisMonth+1) - MidMon(HcoClock%ThisMonth)
+       ENDIF
+    ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS 

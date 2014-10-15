@@ -402,7 +402,7 @@
          State_Met%AD(I,J,L) = State_Met%DELP(L,I,J) 
      &                       * G0_100 
      &                       * AREA_M2
-         write(*,*) '<>AD: ', State_Met%AD(I,J,L) 
+
          !===========================================================
          ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
          !===========================================================

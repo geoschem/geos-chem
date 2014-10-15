@@ -1468,6 +1468,9 @@
 110   FORMAT(161E10.3)
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
 110   FORMAT(202E10.3)
+      ! dummy so that code works if none of the comp. switches is enabled
+#else
+110   FORMAT(300E10.3)
 #endif
 
             CLOSE(IU_FILE)
@@ -1727,6 +1730,9 @@
 110   FORMAT(161E10.3)
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
 110   FORMAT(202E10.3)
+      ! dummy so that code works if none of the comp. switches is enabled
+#else
+110   FORMAT(300E10.3)
 #endif
 
          CLOSE(IU_FILE)    

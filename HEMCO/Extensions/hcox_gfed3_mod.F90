@@ -446,14 +446,16 @@ CONTAINS
     !----------------------------------------------------------------------- 
 
     ! Prompt to log file
-    MSG = 'Use GFED3 extension'
-    CALL HCO_MSG( MSG, SEP1='-' )
-    WRITE(MSG,*) '   - Use daily scale factors : ', DoDay 
-    CALL HCO_MSG( MSG )
-    WRITE(MSG,*) '   - Use hourly scale factors: ', Do3Hr
-    CALL HCO_MSG( MSG )
-    WRITE(MSG,*) '   - CO scale factor         : ', COScale
-    CALL HCO_MSG( MSG )
+    IF ( am_I_Root ) THEN
+       MSG = 'Use GFED3 extension'
+       CALL HCO_MSG( MSG, SEP1='-' )
+       WRITE(MSG,*) '   - Use daily scale factors : ', DoDay 
+       CALL HCO_MSG( MSG )
+       WRITE(MSG,*) '   - Use hourly scale factors: ', Do3Hr
+       CALL HCO_MSG( MSG )
+       WRITE(MSG,*) '   - CO scale factor         : ', COScale
+       CALL HCO_MSG( MSG )
+    ENDIF
 
     ! Get HEMCO species IDs of all species specified in configuration file
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
@@ -494,8 +496,11 @@ CONTAINS
              GfedIDs(N) = M
              Matched    = .TRUE.
 
-             MSG = '   - Use GFED3 species ' // TRIM(GFED3_SPEC_NAME(M))
-             CALL HCO_MSG( MSG )
+             ! Verbose
+             IF ( am_I_Root ) THEN
+                MSG = '   - Use GFED3 species ' // TRIM(GFED3_SPEC_NAME(M))
+                CALL HCO_MSG( MSG )
+             ENDIF
              EXIT ! go to next species
           ENDIF
        ENDDO
