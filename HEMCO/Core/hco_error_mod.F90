@@ -62,11 +62,7 @@ MODULE HCO_Error_Mod
   ! Double and single precision definitions
   INTEGER, PARAMETER, PUBLIC  :: dp = kind(0.d0)     ! double precision
   INTEGER, PARAMETER, PUBLIC  :: sp = kind(0.0)      ! single precision
-#if defined(ESMF_)
-  INTEGER, PARAMETER, PUBLIC  :: hp = kind(0.d0)      ! HEMCO precision
-#else
   INTEGER, PARAMETER, PUBLIC  :: hp = kind(0.d0)     ! HEMCO precision
-#endif
   INTEGER, PARAMETER, PUBLIC  :: i4 = 4              ! FourByteInt 
   INTEGER, PARAMETER, PUBLIC  :: i8 = 8              ! EightByteInt
 

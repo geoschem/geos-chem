@@ -6,8 +6,17 @@
 ! !MODULE: get_ndep_mod
 !     
 ! !DESCRIPTION: Module GET\_NDEP\_MOD contains routines for computing the
-!  nitrogen dry and wet deposition. This quantity is needed by 
-!  GEOS-Chem soil emissions "FERT\_AW".
+! accumulated nitrogen dry and wet deposition between emission time steps. 
+! These variables are needed for soil NOx emission calculations.
+!\\
+!\\
+! This module is basically a simple wrapper module to save out the nitrogen
+! dry and wet deposition rates and pass them to HEMCO for soil NOx emission 
+! calculation (via hcoi_gc_main_mod.F90).
+!\\
+!\\
+! IMPORTANT: Routine RESET\_DEP\_N resets the deposition arrays to zero. It
+! is called in hcoi\_gc\_main\_mod.F90 after the emission calculations.
 !\\
 !\\ 
 ! !INTERFACE: 
@@ -22,7 +31,6 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! Soil NOx deposited N arrays
-      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: DEP_RESERVOIR(:,:) ! N reservoir
       REAL*8, PUBLIC, ALLOCATABLE, TARGET :: DRY_TOTN     (:,:) ! Drydep'd N
       REAL*8, PUBLIC, ALLOCATABLE, TARGET :: WET_TOTN     (:,:) ! Wetdep'd N
 ! 
@@ -30,7 +38,6 @@
 !      
       PUBLIC  :: SOIL_DRYDEP
       PUBLIC  :: SOIL_WETDEP
-      PUBLIC  :: GET_DEP_N
       PUBLIC  :: RESET_DEP_N
       PUBLIC  :: Init_Get_Ndep
       PUBLIC  :: Cleanup_Get_Ndep
@@ -41,6 +48,9 @@
 !                              and WET_TOTN here from Headers/commsoil_mod.F90
 !  25 Jul 2014 - R. Yantosca - Add routine INIT_GET_NDEP
 !  25 Jul 2014 - R. Yantosca - Add routine CLEANUP_GET_NDEP
+!  09 Oct 2014 - C. Keller   - Removed obsolete routines DEP_RESERVOIR, 
+!                              GET_DEP_N, SOURCE_DRYN, and SOURCE_WETN. These
+!                              are now handled in hcox_soilnox_mod.F90.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,201 +168,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: get_dep_N
-!
-! !DESCRIPTION: Subroutine GET\_DEP\_N sums dry and wet deposition since prev.
-!               timestep and calculates contribution to fertilizer N source.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GET_DEP_N( I, J, TS_EMIS, DEP_FERT )
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,  INTENT(IN)  :: I
-      INTEGER,  INTENT(IN)  :: J
-      REAL*8 ,  INTENT(IN)  :: TS_EMIS     ! Emission timestep [min]
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      ! Dep emitted as Fert [ng N/m2/s]
-      REAL*8 ,  INTENT(INOUT) :: DEP_FERT  
-!
-! !REVISION HISTORY:
-!  23 Oct 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-      REAL*8,  PARAMETER :: TAU_MONTHS   = 6. ! Decay rate of dep. N [months]
-      REAL*8,  PARAMETER :: SECPERDAY    = 86400.d0
-      REAL*8,  PARAMETER :: DAYSPERMONTH = 30.
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8             :: DRYN  ! Dry dep. N since prev timestep
-                                  ! Units ng N/m2/s     
-      REAL*8             :: WETN  ! Wet dep. N since prev timestep 
-      REAL*8             :: DEPN  ! dep. N since prev timestep 
-
-      REAL*8             :: C1
-      REAL*8             :: C2 
-      REAL*8             :: TAU_SEC
-      REAL*8             :: TS_SEC  
-
-      !Total all N species & convert molec/cm2/s --> ng N/m2/s
-      DRYN = SOURCE_DRYN( I,  J )
-
-      !Total all N species & convert kg/s --> ng N/m2/s
-      WETN = SOURCE_WETN( I,  J )
-
-      ! Sum wet and dry deposition
-      DEPN = DRYN + WETN 
-
-      !Emission Timestep in seconds
-      TS_SEC = TS_EMIS * 60.d0
-
-      !Do mass balance (see Intro to Atm Chem Chap. 3)
-      !m(t) = m(0) * exp(-t/tau) + Source * tau * (1 - exp(-t/tau))
-
-      !convert months -->  seconds (assume 30 days months)
-      TAU_SEC = TAU_MONTHS * DAYSPERMONTH * SECPERDAY
-
-      C1 = EXP( - TS_SEC / TAU_SEC)
-      C2 = 1.d0 - C1        
-
-      ! ng N/m2
-      DEP_RESERVOIR(I,J) = DEP_RESERVOIR (I,J) * C1
-     &                        + DEPN * TAU_SEC * C2
-
-      ! 40% runoff 
-      DEP_FERT = DEP_RESERVOIR(I,J) * 0.6d0   
-
-      END SUBROUTINE GET_DEP_N
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: source_dryN
-!
-! !DESCRIPTION: Subroutine SOURCE\_DRYN gets dry deposited Nitrogen since
-!               last emission time step, converts to ng N/m2/s.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION SOURCE_DRYN( I, J ) RESULT( DRYN )
-!
-! !USES:
-!
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE CMN_DIAG_MOD        
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)  :: I           
-      INTEGER, INTENT(IN)  :: J           
-!
-! !RETURN VALUE:
-!
-      REAL*8               :: DRYN         !Dry dep. N since prev timestep
-!
-! !REVISION HISTORY:
-!  23 Oct 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8               :: NTS, TS_EMIS, TS_CHEM
-!
-! !DEFINED PARAMETERS:
-!
-      REAL*8,  PARAMETER   :: AVO         = 6.022d23 ! Avogadro's # (molec/mol)
-      REAL*8,  PARAMETER   :: MW          = 14.d0    ! Molec weight N (14gN/mol)
-      REAL*8,  PARAMETER   :: NG_P_GRAM = 1.d9
-      REAL*8,  PARAMETER   :: CM2_P_M2  = 1.d4
-
-      ! ckeller (14/04/02)
-      TS_EMIS = GET_TS_EMIS()
-      TS_CHEM = GET_TS_CHEM() 
-      NTS     = TS_EMIS/TS_CHEM
-      DRYN    = DRY_TOTN(I,J) / NTS * CM2_P_M2 / AVO * MW * NG_P_GRAM
-
-      END FUNCTION SOURCE_DRYN
-
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: source_wetN
-!
-! !DESCRIPTION: Subroutine SOURCE\_WETN gets wet deposited Nitrogen since
-!               last emission time step, converts to ng N/m2/s.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION SOURCE_WETN( I, J ) RESULT( WETN )
-!
-! !USES:
-!
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE TIME_MOD,     ONLY : GET_TS_DYN
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE CMN_DIAG_MOD
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)  :: I           
-      INTEGER, INTENT(IN)  :: J           
-!
-! !RETURN VALUE:
-!
-      REAL*8               :: WETN         !Dry dep. N since prev timestep
-!
-! !REVISION HISTORY:
-!  23 Oct 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8 :: HNO3NG, NITNG,   NH3NG,  NH4NG
-      REAL*8 :: NTS,    TS_EMIS, TS_DYN, AREA_M2     
- 
-      ! Divide through by number of transport timesteps
-      ! because WET_xxxx is summed over transport timesteps
-      ! need to get average
-
-      TS_EMIS = GET_TS_EMIS()
-      TS_DYN  = GET_TS_DYN() 
-      NTS     = TS_EMIS/TS_DYN 
-      AREA_M2 = GET_AREA_M2( 1, J, 1 )
-
-      ! In my code and I think as it should be in everyones 
-      ! EMIS TS = 2 x DYN TS 
-      IF (NTS /= 2.) WRITE(6,*) 'ERROR! CHECK THIS'
-
-      ! ckeller (14/04/02)
-      WETN = WET_TOTN(I,J) / NTS * 1.d12 / AREA_M2
-
-      END FUNCTION SOURCE_WETN
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !ROUTINE: reset_dep_N
 !
 ! !DESCRIPTION: Subroutine RESET\_DEP\_N resets the dry and wet deposition 
@@ -409,14 +224,12 @@
 ! 
 ! !REVISION HISTORY: 
 !  25 Jul 2014 - R. Yantosca - Initial version
+!  09 Oct 2014 - C. Keller   - Removed obsolete variable DEP_RESERVOIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
       ! Allocate arrays
-      ALLOCATE( DEP_RESERVOIR( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-
       ALLOCATE( WET_TOTN     ( IIPAR, JJPAR ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
@@ -424,7 +237,6 @@
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
       ! Zero arrays
-      DEP_RESERVOIR = 0d0
       WET_TOTN      = 0d0
       DRY_TOTN      = 0d0
 
@@ -458,6 +270,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  25 Jul 2014 - R. Yantosca - Initial version
+!  09 Oct 2014 - C. Keller   - Removed obsolete variable DEP_RESERVOIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -465,7 +278,6 @@
       RC = GIGC_SUCCESS
       
       ! Deallocate arrays
-      IF ( ALLOCATED( DEP_RESERVOIR ) ) DEALLOCATE( DEP_RESERVOIR )
       IF ( ALLOCATED( DRY_TOTN      ) ) DEALLOCATE( DRY_TOTN      )
       IF ( ALLOCATED( WET_TOTN      ) ) DEALLOCATE( WET_TOTN      )
 

@@ -1290,7 +1290,7 @@
       ALLOCATE( TLSTT( JJPAR, 
      &                 LLPAR, 
      &                 Input_Opt%LINOZ_NFIELDS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'TLSTT' )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'TPARM' )
       TLSTT = 0d0
 
       END SUBROUTINE INIT_LINOZ

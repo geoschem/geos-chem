@@ -199,7 +199,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Calculate oceanic source (kg/m2/s) as well as the deposition 
-       ! velocity (m/s).
+       ! velocity (1/s).
        CALL Calc_SeaFlux ( am_I_Root, HcoState, ExtState, &
                            SOURCE,    SINK,     SeaConc,   &
                            OcID,      HcoID,    RC          )
@@ -209,7 +209,7 @@ CONTAINS
        CALL HCO_EmisAdd ( HcoState, SOURCE, HcoID, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
       
-       ! Set deposition velocity in HEMCO object [m/s]
+       ! Set deposition velocity in HEMCO object [1/s]
        CALL HCO_DepvAdd ( HcoState, SINK, HcoID, RC )  
        IF ( RC /= HCO_SUCCESS ) RETURN
       
@@ -292,8 +292,9 @@ CONTAINS
 !  16 Apr 2013 - C. Keller - Initial version
 !  15 Aug 2014 - C. Keller - Now restrict calculations to temperatures above
 !                            10 deg C.
-!  03 Oct 2-14 - C. Keller - Added surface temperature limit of 45 degrees C
+!  03 Oct 2014 - C. Keller - Added surface temperature limit of 45 degrees C
 !                            to avoid negative Schmidt numbers.
+!  07 Oct 2014 - C. Keller - Now use skin temperature instead of air temperature
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -301,7 +302,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER             :: I, J, L
-    REAL*8              :: IJSRC, IJSINK
+    REAL*8              :: IJSRC
     INTEGER             :: SCW
     REAL*8              :: P, V, VB, MW, KG
     REAL*8              :: K0, CR, PKA
@@ -370,8 +371,8 @@ CONTAINS
           ! Get grid box and species specific quantities
           !-----------------------------------------------------------
  
-          ! surface air temp in K
-          TK = ExtState%TSURFK%Arr%Val(I,J)
+          ! skin surface temp in K
+          TK = ExtState%TSKIN%Arr%Val(I,J)
 
           ! Error check: the Schmidt number may become negative for
           ! very high temperatures - hence cap temperature at specified
@@ -466,11 +467,11 @@ CONTAINS
           SOURCE(I,J) = IJSRC
 
           !-----------------------------------------------------------
-          ! Calculate deposition velocity to the ocean (m s-1):
+          ! Calculate deposition velocity to the ocean (s-1):
           !-----------------------------------------------------------
 
           ! Pass to deposition array
-          SINK(I,J) = KG 
+          SINK(I,J) = KG / HcoState%Grid%BXHEIGHT_M%Val(I,J,1)
 
        ENDIF !Over ocean
     ENDDO !I
@@ -718,7 +719,7 @@ CONTAINS
     ! Set met fields
     ExtState%U10M%DoUse   = .TRUE.
     ExtState%V10M%DoUse   = .TRUE.
-    ExtState%TSURFK%DoUse = .TRUE.
+    ExtState%TSKIN%DoUse  = .TRUE.
     ExtState%ALBD%DoUse   = .TRUE.
     ExtState%FRCLND%DoUse = .TRUE.
     

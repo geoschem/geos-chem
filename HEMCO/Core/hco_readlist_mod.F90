@@ -20,10 +20,6 @@
 ! \item Once: update only once (time-invariant data)
 ! \item Always: update every time step
 ! \end{itemize} 
-!
-! In an ESMF environment - where data reading and time interpolation is 
-! done through the ESMF/MAPL software framework - all arrays are added
-! to list 'Always' and hence become refreshed on every time step.
 !\\
 !\\
 ! !INTERFACE: 
@@ -156,25 +152,27 @@ CONTAINS
     ! we hence need to update ReadList (and EmisList) every time!
     ! The only exception to this are the one-time lists, which don't
     ! need to be renewed at all!
-    IF ( HcoState%isESMF ) THEN
-       IF ( intv /= 5 ) THEN
-          CALL DtCont_Add( ReadLists%Always, Dct )
-       ELSE
-          CALL DtCont_Add( ReadLists%Once,  Dct ) 
-       ENDIF
-    ELSE 
-       IF ( intv == 1 ) THEN 
-          CALL DtCont_Add( ReadLists%Hour,  Dct ) 
-       ELSEIF ( intv == 2 ) THEN 
-          CALL DtCont_Add( ReadLists%Day,   Dct ) 
-       ELSEIF ( intv == 3 ) THEN 
-          CALL DtCont_Add( ReadLists%Month, Dct ) 
-       ELSEIF ( intv == 4 ) THEN 
-          CALL DtCont_Add( ReadLists%Year,  Dct ) 
-       ELSE
-          CALL DtCont_Add( ReadLists%Once,  Dct ) 
-       ENDIF
+    ! Removed this. ESMF does only interpolate fields with an update
+    ! frequency of '0', which is not used by HEMCO (ckeller, 10/10/14)
+!    IF ( HcoState%isESMF ) THEN
+!       IF ( intv /= 5 ) THEN
+!          CALL DtCont_Add( ReadLists%Always, Dct )
+!       ELSE
+!          CALL DtCont_Add( ReadLists%Once,  Dct ) 
+!       ENDIF
+!    ELSE 
+    IF ( intv == 1 ) THEN 
+       CALL DtCont_Add( ReadLists%Hour,  Dct ) 
+    ELSEIF ( intv == 2 ) THEN 
+       CALL DtCont_Add( ReadLists%Day,   Dct ) 
+    ELSEIF ( intv == 3 ) THEN 
+       CALL DtCont_Add( ReadLists%Month, Dct ) 
+    ELSEIF ( intv == 4 ) THEN 
+       CALL DtCont_Add( ReadLists%Year,  Dct ) 
+    ELSE
+       CALL DtCont_Add( ReadLists%Once,  Dct ) 
     ENDIF
+!    ENDIF
 
     ! Verbose
     IF ( Verb ) THEN

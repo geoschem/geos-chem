@@ -131,12 +131,8 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: JNO2        ! J-Value for NO2 [1/s] 
      TYPE(ExtDat_2R),  POINTER :: JO1D        ! J-Value for O3  [1/s]
      TYPE(ExtDat_2R),  POINTER :: GC_LAI      ! daily leaf area index [cm2/cm2] 
-     TYPE(ExtDat_2R),  POINTER :: GC_LAI_PM   ! prev. month's LAI [cm2/cm2] 
-     TYPE(ExtDat_2R),  POINTER :: GC_LAI_CM   ! curr. month's LAI [cm2/cm2] 
-     TYPE(ExtDat_2R),  POINTER :: GC_LAI_NM   ! next month's LAI [cm2/cm2]
-     INTEGER,          POINTER :: DAYS_BTW_M  ! Days between months (for LAI) 
-     TYPE(ExtDat_2I),  POINTER :: CLDTOPS     ! Cloud top level index
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
+     TYPE(ExtDat_3R),  POINTER :: CNV_MFC     ! Convective cloud mass flux [kg/m2/s] 
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
      TYPE(ExtDat_3R),  POINTER :: PCENTER     ! Pressure a the center of the gridbox
      TYPE(ExtDat_3R),  POINTER :: SPHU        ! Spec. humidity [kg H2O/kg air] 
@@ -349,24 +345,13 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%GC_LAI, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%GC_LAI_PM, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    CALL ExtDat_Init ( ExtState%GC_LAI_CM, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    CALL ExtDat_Init ( ExtState%GC_LAI_NM, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Init ( ExtState%JNO2, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%JO1D, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ExtState%DAYS_BTW_M => NULL()
-
-    CALL ExtDat_Init ( ExtState%CLDTOPS, RC ) 
+    CALL ExtDat_Init ( ExtState%CNV_MFC, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ExtState%PBL_MAX    => NULL()
@@ -467,12 +452,9 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%FRLANDIC   )
        CALL ExtDat_Cleanup( ExtState%CLDFRC     )
        CALL ExtDat_Cleanup( ExtState%GC_LAI     )
-       CALL ExtDat_Cleanup( ExtState%GC_LAI_PM  )
-       CALL ExtDat_Cleanup( ExtState%GC_LAI_CM  )
-       CALL ExtDat_Cleanup( ExtState%GC_LAI_NM  )
        CALL ExtDat_Cleanup( ExtState%JNO2       )
        CALL ExtDat_Cleanup( ExtState%JO1D       )
-       CALL ExtDat_Cleanup( ExtState%CLDTOPS    )
+       CALL ExtDat_Cleanup( ExtState%CNV_MFC    )
        CALL ExtDat_Cleanup( ExtState%FRAC_OF_PBL)
        CALL ExtDat_Cleanup( ExtState%SPHU       )
        CALL ExtDat_Cleanup( ExtState%TK         )
@@ -485,7 +467,6 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%DRY_TOTN   )
        CALL ExtDat_Cleanup( ExtState%WET_TOTN   )
 
-       ExtState%DAYS_BTW_M => NULL()
        ExtState%DRYCOEFF   => NULL()
        ExtState%PBL_MAX    => NULL()
 

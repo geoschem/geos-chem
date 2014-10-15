@@ -287,7 +287,6 @@
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
 
-      write(*,*) "<<>>BEWARE! TOMS Overhead O3 is set to a constant"
       ! Loop over latitudes
       DO NLAT = 1, JJPAR
 
@@ -325,8 +324,7 @@
             SFCA            = State_Met%UVALBEDO(NLON,NLAT)
 
             ! Overhead ozone column [DU] at (NLON, NLAT)
-!            O3_TOMS         = GET_OVERHEAD_O3( NLON, NLAT )
-            O3_TOMS = 250d0
+            O3_TOMS         = GET_OVERHEAD_O3( NLON, NLAT )
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
             O3_CTM          = 0d0
@@ -1727,7 +1725,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       call SET_AER(am_I_Root)
 
       ! Read in T & O3 climatology used to fill e.g. upper layers or if O3 not calc.
-!      call RD_PROF_NC( am_I_Root, Input_Opt, RC )
+      call RD_PROF_NC( am_I_Root, Input_Opt, RC )
 
       NJXX = NJX
       do J = 1,NJX

@@ -108,7 +108,7 @@ MODULE HCO_State_Mod
      REAL(hp)                :: HenryK0    ! liq. over gas Henry const [M/atm]
      REAL(hp)                :: HenryCR    ! K0 temp. dependency [K] 
      REAL(hp)                :: HenryPKA   ! pKa for Henry const. correction
-     TYPE(Arr2D_HP), POINTER :: Depv       ! Deposition velocity [m/s]
+     TYPE(Arr2D_HP), POINTER :: Depv       ! Deposition velocity [1/s]
      TYPE(Arr3D_HP), POINTER :: Emis       ! Emission flux [kg/m2/s]
      TYPE(Arr3D_HP), POINTER :: Conc       ! Concentration [v/v]
   END TYPE HcoSpc

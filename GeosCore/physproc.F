@@ -147,7 +147,7 @@
       RC      = GIGC_SUCCESS
 
       ! Copy values from Input_Opt to local variables
-      LKPP    = .true.!Input_Opt%LKPP
+      LKPP    = Input_Opt%LKPP
 
       ! Initialize
       IRCHEM  = IRCHEM + 1
@@ -363,7 +363,7 @@
 !    (ccc, 01/20/10)
           call CPU_TIME(start)
           IF ( LKPP ) THEN
-             !CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
+             CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
 
           ELSE
              CALL SMVGEAR( am_I_Root, Input_Opt, RC )

@@ -295,8 +295,8 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(NCDF)  clean
 	@$(MAKE) -C $(UTIL)  clean
 	@$(MAKE) docclean
-ifneq ($(wildcard "$(ROOTDIR)/GIGC/GIGC.mk"),"")
-	@$(MAKE) -C $(GIGC) clean 
+ifeq ($(HPC),yes)
+	@$(MAKE) -C $(GIGC) clean
 endif
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
@@ -901,8 +901,6 @@ transport_mod.o             : transport_mod.F                                \
                               tpcore_geosfp_window_mod.o                     \
                               pjc_pfix_geos5_window_mod.o                    \
                               pjc_pfix_geosfp_window_mod.o
-
-unitconv_mod.o		    : unitconv_mod.F90
 
 update.o                    : update.F
 
