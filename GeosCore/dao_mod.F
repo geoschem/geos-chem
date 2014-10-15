@@ -344,8 +344,12 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
+#if defined( ESMF_ )
+         AREA_M2 = State_Met%AREA_M2(I,J,L)
+#else
          AREA_M2                   = GET_AREA_M2( I, J, L )
-  
+#endif
+
          ! Pressure at bottom edge of grid box [hPa]
          P1                        = GET_PEDGE( I, J, L )
 
@@ -402,7 +406,6 @@
          State_Met%AD(I,J,L) = State_Met%DELP(L,I,J) 
      &                       * G0_100 
      &                       * AREA_M2
-         write(*,*) '<>AD: ', State_Met%AD(I,J,L) 
          !===========================================================
          ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
          !===========================================================

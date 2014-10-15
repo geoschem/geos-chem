@@ -1,4 +1,3 @@
-# if !defined(ESMF_)
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -2054,6 +2053,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+#if !defined(ESMF_)
     INTEGER                   :: FLAG, ERR, LevIDx
     TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
 
@@ -2127,6 +2127,7 @@ CONTAINS
     ! Free pointer
     DgnCont  => NULL()
 
+#endif
     ! Leave with success 
     RC = HCO_SUCCESS
 
@@ -2207,4 +2208,3 @@ CONTAINS
   END SUBROUTINE ModelSpec_Allocate
 !EOC
 END MODULE HCOI_GC_MAIN_MOD
-#endif

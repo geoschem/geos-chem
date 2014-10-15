@@ -91,8 +91,8 @@ CONTAINS
     INTEGER                    :: II, JJ, LL, TT
     INTEGER                    :: I, J, L, T
     INTEGER                    :: STAT
-    REAL,             POINTER  :: Ptr3D(:,:,:)   => NULL() 
-    REAL,             POINTER  :: Ptr2D(:,:)     => NULL() 
+    REAL(hp),         POINTER  :: Ptr3D(:,:,:)   => NULL() 
+    REAL(hp),         POINTER  :: Ptr2D(:,:)     => NULL() 
     TYPE(ESMF_State), POINTER  :: IMPORT         => NULL()
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'

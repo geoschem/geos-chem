@@ -45,8 +45,6 @@ MODULE Grid_Mod
   PUBLIC  :: Its_A_Nested_Grid
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
-! Make some arrays public - MSL: 7/31/14 (update from GEOS5/GEOS-Chem coupled system)
-  PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
 
 ! Make some arrays public
   PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2

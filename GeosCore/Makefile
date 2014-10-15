@@ -173,6 +173,7 @@ KPP   :=$(ROOT)/KPP
 MOD   :=$(ROOT)/mod
 NCDF  :=$(ROOT)/NcdfUtil
 UTIL  :=$(ROOT)/GeosUtil
+DYN   := $(GIGC)/FVdycoreCubed_GridComp
 
 # Executables
 EXE   :=geos
@@ -241,6 +242,7 @@ lib:                                               # Build all G-C libraries
 libcore: $(OBJ)                                    # Build code in GeosCore/
 
 libgigc:
+	@$(MAKE) -C $(DYN) install
 	@$(MAKE) -C $(GIGC) lib
 
 libheaders:                                        # Build code in Headers/ 
@@ -257,10 +259,6 @@ libkpp:                                            # Build code in KPP/
 
 libnc:                                             # Build code in NcdfUtil/
 	@$(MAKE) -C $(NCDF) libnc
-
-libgigc:
-	@$(MAKE) -C $(DYCORE) install
-	@$(MAKE) -C $(GIGC) lib
 
 libutil:                                           # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)			  
@@ -622,50 +620,6 @@ global_o3_mod.o             : global_o3_mod.F
 
 global_oh_mod.o             : global_oh_mod.F                                \
                               dao_mod.o
-
-hco_calc_mod.o		: hco_calc_mod.F90 hco_error_mod.o \
-			  hco_emisll_mod.o
-
-hco_cleanup.o		: hco_cleanup.F90       hco_type_mod.o \
-		          hco_emisll_mod.o      hco_time_mod.o \
-			  hco_readlist_mod.o    hco_exts_mod.o \
-			  hco_main_mod.o
-
-hco_config_mod.o	: hco_config_mod.F90 hco_error_mod.o \
-			  hco_emisll_mod.o   hco_type_mod.o \
-			  hco_exts_mod.o hco_readlist_mod.o
-
-hco_emisll_mod.o	: hco_emisll_mod.F90 hco_error_mod.o \
-			  hco_time_mod.o
-
-hco_error_mod.o		: hco_error_mod.F90
-
-hco_exts_mod.o		: hco_exts_mod.F90
-
-hco_grid_mod.o		: hco_grid_mod.F90 hco_type_mod.o
-
-hco_main_mod.o		: hco_main_mod.F90 hco_error_mod.o \
-			  hco_emisll_mod.o hco_time_mod.o \
-			  hco_type_mod.o   hco_calc_mod.o \
-			  hco_config_mod.o hco_grid_mod.o
-
-hco_readlist_mod.o	: hco_readlist_mod.F90 hcoi_dataread_mod.o \
-			  hco_emisll_mod.o hco_error_mod.o  \
-			  hco_type_mod.o
-
-hco_time_mod.o		: hco_time_mod.F90 hco_error_mod.o \
-			  hco_type_mod.o
-
-hco_type_mod.o		: hco_type_mod.F90 hco_error_mod.o
-
-hcoi_dataread_mod.o	: hcoi_dataread_mod.F90 hco_error_mod.o \
-			  hco_time_mod.o        hco_type_mod.o \
-			  unitconv_mod.o
-
-hcoi_esmf_mod.o		: hcoi_esmf_mod.F90 hco_error_mod.o \
-			  hco_config_mod.o hco_main_mod.o
-
-henry_mod.o		: henry_mod.F
 
 h2_hd_mod.o                 : h2_hd_mod.F                                    \
                               chemgrid_mod.o          diag_mod.o             \
