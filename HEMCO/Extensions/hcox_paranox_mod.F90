@@ -59,6 +59,9 @@ MODULE HCOX_ParaNOx_MOD
 !  28 Jul 2014 - C. Keller   - Now pass J-Values through ExtState. This makes
 !                              the FJXFUNC shadow copy obsolete
 !  13 Aug 2014 - C. Keller   - Added manual diagnostics
+!  16 Oct 2014 - C. Keller   - Now store SUNCOSmid values internally over the
+!                              past 5 hours and use these values for SUNCOSmid5.
+!                              This is required for standalone mode.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -79,6 +82,10 @@ MODULE HCOX_ParaNOx_MOD
 
   ! Arrays
   REAL(hp), ALLOCATABLE, TARGET :: ShipNO(:,:,:)
+
+  ! For SunCosMid 5hrs ago
+  REAL(hp), ALLOCATABLE         :: SC5(:,:,:)
+  INTEGER                       :: SC5ID
 
 CONTAINS
 !EOC
@@ -256,6 +263,10 @@ CONTAINS
     CHARACTER(LEN=31)  :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
 
+    ! For internal SC5 array
+    INTEGER            :: HH
+    INTEGER, SAVE      :: lastHH = -1
+
 !------------------------------------------------------------------------------
 !### DEBUG -- COMMENT OUT FOR NOW
 !    ! testing only
@@ -280,7 +291,7 @@ CONTAINS
     ENDIF
 
     ! Get simulation month
-    CALL HcoClock_Get( cMM=MM, RC=RC )
+    CALL HcoClock_Get( cMM=MM, cH=HH, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! On first call, see if we need to write internal diagnostics
@@ -306,11 +317,45 @@ CONTAINS
           CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
           TmpCnt => NULL()
        ENDIF  
-       
+
+       ! Also make sure that the SC5 array holds values. Initialize them to
+       ! current one until we have gone through an entire 5-hour simulation cycle.
+       DO I = 1,6
+          SC5(:,:,I) = ExtState%SUNCOSmid%Arr%Val(:,:)
+       ENDDO
+
        ! Not first call any more...
        FIRST = .FALSE.  
     ENDIF
     IF ( DoDiagn ) DIAGN(:,:,:) = 0.0_hp
+
+    ! Update current active index in array SC5. This array holds the
+    ! SUNCOSmid values of the past 5 runs. They become stored chronologically, 
+    ! i.e. on the first time step, we archive the current SUNCOS in slice 1, on
+    ! the second time step in slice 2, etc. Index SC5ID refers to the slice 
+    ! that holds the SUNCOS value from 5 hours ago. It becomes moved forward
+    ! every time the simulation hour changes, and the SUNCOS values from the
+    ! previous time step become written into the formerly active index. This 
+    ! index will again become SC5ID in 5 hours from now!
+    IF ( HH /= lastHH ) THEN
+   
+       ! Copy SUNCOSmid from last time step from buffer into current slot
+       SC5(:,:,SC5ID) = SC5(:,:,6)
+
+       ! testing only
+       write(*,*) 'Previous SUNCOS written to slice ', SC5ID
+
+       ! Archive current SUNCOSmid for future.
+       SC5(:,:,6) = ExtState%SUNCOSmid%Arr%Val(:,:)
+
+       ! Increase index by 1. Cycle back to one if we hit end of array
+       SC5ID = SC5ID + 1
+       IF ( SC5ID > 5 ) SC5ID = 1
+
+       ! testing only
+       write(*,*) 'SC5ID updated to: ', SC5ID
+
+    ENDIF       
 
     ! Error check
     ERR = .FALSE.
@@ -370,7 +415,7 @@ CONTAINS
        NO2molec   = ExtState%NO2%Arr%Val(I,J,1) / MW_NO2
        AIRmolec   = ExtState%AIR%Arr%Val(I,J,1) / MW_AIR
        TS         = ExtState%TSURFK%Arr%Val(I,J)
-       SUNCOSmid5 = ExtState%SUNCOSmid5%Arr%Val(I,J)
+       SUNCOSmid5 = SC5(I,J,SC5ID)
        SUNCOSmid  = ExtState%SUNCOSmid%Arr%Val(I,J)
 
        CALL Interpolate_Lut2( HcoState,     I,    J,      &
@@ -559,6 +604,9 @@ CONTAINS
        Arr2D => NULL()       
     ENDIF
 
+    ! Update last hour to current one for next call.
+    lastHH = HH
+
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
 
@@ -666,8 +714,10 @@ CONTAINS
 
    IDTHNO3 = HCO_GetHcoID('HNO3', HcoState )
    IF ( IDTHNO3 <= 0 ) THEN
-      MSG = 'Species HNO3 not defined - needed by ParaNOx!' 
-      CALL HCO_WARNING ( MSG, RC )
+      IF ( am_I_Root ) THEN
+         MSG = 'Species HNO3 not defined - not used by ParaNOx!' 
+         CALL HCO_WARNING ( MSG, RC )
+      ENDIF
    ENDIF
 
    IDTNO2  = HCO_GetHcoID('NO2',  HcoState )
@@ -680,18 +730,20 @@ CONTAINS
    ENDIF
 
    ! Verbose mode
-   MSG = 'Use ParaNOx ship emissions (extension module)'
-   CALL HCO_MSG( MSG, SEP1='-' )
-   MSG = '    - Use the following species: ' 
-   CALL HCO_MSG( MSG )
-   WRITE(MSG,*) '     NO  : ', TRIM(SpcNames(1)), IDTNO
-   CALL HCO_MSG(MSG)
-   WRITE(MSG,*) '     NO2 : ', TRIM(SpcNames(2)), IDTNO2
-   CALL HCO_MSG(MSG)
-   WRITE(MSG,*) '     O3  : ', TRIM(SpcNames(3)), IDTO3
-   CALL HCO_MSG(MSG)
-   WRITE(MSG,*) '     HNO3: ', TRIM(SpcNames(4)), IDTHNO3
-   CALL HCO_MSG(MSG)
+   IF ( am_I_Root ) THEN
+      MSG = 'Use ParaNOx ship emissions (extension module)'
+      CALL HCO_MSG( MSG, SEP1='-' )
+      MSG = '    - Use the following species: ' 
+      CALL HCO_MSG( MSG )
+      WRITE(MSG,*) '     NO  : ', TRIM(SpcNames(1)), IDTNO
+      CALL HCO_MSG(MSG)
+      WRITE(MSG,*) '     NO2 : ', TRIM(SpcNames(2)), IDTNO2
+      CALL HCO_MSG(MSG)
+      WRITE(MSG,*) '     O3  : ', TRIM(SpcNames(3)), IDTO3
+      CALL HCO_MSG(MSG)
+      WRITE(MSG,*) '     HNO3: ', TRIM(SpcNames(4)), IDTHNO3
+      CALL HCO_MSG(MSG)
+   ENDIF
 
    !------------------------------------------------------------------------
    ! Initialize the PARANOX look-up tables
@@ -722,6 +774,34 @@ CONTAINS
    ENDIF
    ShipNO = 0.0_hp
 
+   ! Allocate variables for SunCosMid from 5 hours ago. We internally store 
+   ! the SunCosMid values from the past 5 hours in array SC5 and cycle through 
+   ! that array to get the SUNCOS value from 5 hours ago. The variable SC5ID 
+   ! is used to identify the slice representing the values from 5 hours ago for
+   ! the given time. It is updated every time the simulation hour changes. 
+   ! The sixth slice acts as a 'buffer' that holds the SUNCOS value from the 
+   ! last time step.
+   ! We assume explicitly that the chemistry time step is not larger that 60 
+   ! mins, i.e. that PARANOX is called at least once per hour. If that's not
+   ! the case, the SC5 array will hold values from further back!
+   ALLOCATE ( SC5(HcoState%NX,HcoState%NY,6), STAT=AS )
+   IF ( AS /= 0 ) THEN
+      CALL HCO_ERROR ( 'SC5', RC )
+      RETURN
+   ENDIF
+   SC5   = 0.0_hp
+   SC5ID = 1
+
+   ! Prompt warning if chemistry time step is more than 60 mins
+   IF ( HcoState%TS_CHEM > 3600.0_hp ) THEN
+      IF ( am_I_Root ) THEN
+         MSG = '    Cannot properly store SUNCOSmid values ' // &
+               ' because chemistry time step is more than 60 mins!'
+         CALL HCO_WARNING ( MSG, RC )
+      ENDIF
+   ENDIF
+
+
    ! Molecular weight of AIR
    MW_AIR = HcoState%Phys%AIRMW
 
@@ -731,7 +811,6 @@ CONTAINS
    ExtState%NO%DoUse         = .TRUE.
    ExtState%AIR%DoUse        = .TRUE.
    ExtState%SUNCOSmid%DoUse  = .TRUE.
-   ExtState%SUNCOSmid5%DoUse = .TRUE.
    ExtState%TSURFK%DoUse     = .TRUE.
    IF ( IDTHNO3 > 0 ) THEN
       ExtState%HNO3%DoUse    = .TRUE.
@@ -779,6 +858,7 @@ CONTAINS
    !=================================================================
 
    IF ( ALLOCATED(ShipNO) ) DEALLOCATE ( ShipNO )
+   IF ( ALLOCATED(SC5   ) ) DEALLOCATE ( SC5    )
 
  END SUBROUTINE HCOX_ParaNOx_Final
 !EOC

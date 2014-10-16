@@ -1087,9 +1087,11 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
-!  23 Oct 2012 - C. Keller   - Initial Version
-!  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
-!  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
+!  23 Oct 2012 - C. Keller    - Initial Version
+!  20 Aug 2014 - M. Sulprizio - Add PBL_MAX and FRAC_OF_PBL for POPs simulation
+!  02 Oct 2014 - C. Keller    - PEDGE is now in HcoState%Grid
+!  16 Oct 2014 - C. Keller    - Removed SUNCOSmid5. This is now calculated
+!                               internally in Paranox.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1191,9 +1193,6 @@ CONTAINS
     ENDIF
     IF ( ExtState%SUNCOSmid%DoUse ) THEN
        ExtState%SUNCOSmid%Arr%Val => State_Met%SUNCOSmid
-    ENDIF
-    IF ( ExtState%SUNCOSmid5%DoUse ) THEN
-       ExtState%SUNCOSmid5%Arr%Val => State_Met%SUNCOSmid5
     ENDIF
     IF ( ExtState%PARDR%DoUse ) THEN
        ExtState%PARDR%Arr%Val => State_Met%PARDR

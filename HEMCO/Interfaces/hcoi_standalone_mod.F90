@@ -1439,9 +1439,6 @@ CONTAINS
     CALL SetExtPtr ( am_I_Root, ExtState%SUNCOSmid, 'SUNCOSmid', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%SUNCOSmid5, 'SUNCOSmid5', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL SetExtPtr ( am_I_Root, ExtState%SZAFACT, 'SZAFACT', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

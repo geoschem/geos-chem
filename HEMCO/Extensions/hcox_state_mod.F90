@@ -117,7 +117,6 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: Z0          ! Sfc roughness height [m]
      TYPE(ExtDat_2R),  POINTER :: TROPP       ! Tropopause pressure [hPa] 
      TYPE(ExtDat_2R),  POINTER :: SUNCOSmid   ! COS (SZA) 
-     TYPE(ExtDat_2R),  POINTER :: SUNCOSmid5  ! SZA -5 hr
      TYPE(ExtDat_2R),  POINTER :: SZAFACT     ! current SZA/total daily SZA
      TYPE(ExtDat_2R),  POINTER :: PARDR       ! direct photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: PARDF       ! diffuse photsyn radiation [W/m2]
@@ -308,9 +307,6 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%SUNCOSmid, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%SUNCOSmid5, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Init ( ExtState%SZAFACT, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -439,7 +435,6 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%Z0         )
        CALL ExtDat_Cleanup( ExtState%TROPP      )
        CALL ExtDat_Cleanup( ExtState%SUNCOSmid  )
-       CALL ExtDat_Cleanup( ExtState%SUNCOSmid5 )
        CALL ExtDat_Cleanup( ExtState%SZAFACT    )
        CALL ExtDat_Cleanup( ExtState%PARDR      )
        CALL ExtDat_Cleanup( ExtState%PARDF      )
