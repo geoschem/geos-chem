@@ -232,11 +232,12 @@
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !  23 Jul 2014 - R. Yantosca - Disable obsolete ND27 diagnostic
 !  02 Aug 2014 - C. Keller   - Connect to HEMCO diagnostics
-!  06 Aug 2014 - C. Keller   - Added wrapper subroutine for HEMCO diagnostics. 
+!  06 Aug 2014 - C. Keller   - Added wrapper subroutine for HEMCO diagnostics
 !  14 Aug 2014 - R. Yantosca - Corrected units for several diagnostic outputs
 !  26 Aug 2014 - M. Sulprizio- Now get ND53 POPs emissions from HEMCO
 !  03 Sep 2014 - R. Yantosca - Units of AD01_Rn_SOURCE and AD01_Be7_SOURCE are
 !                              now defined as kg/s in hcoi_gc_diagn_mod.F90 
+!  15 Oct 2014 - C. Keller   - Updated ND37 diagnostics to write out all specs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -614,7 +615,7 @@
          !--------------------------------------------------------------
 
          !%%%%% Anthorpogenic BC %%%%%
-         DiagnName    = 'AD07_OC_ANTHRO'
+         DiagnName    = 'AD07_BC_ANTHRO'
          CATEGORY     = 'BC-ANTH'
          UNIT         = 'kgC'
          N            = IDTBCPI
@@ -2630,123 +2631,92 @@
          !%%% (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         !%%%%% NO %%%%%
-         IF ( IDTNO > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_NO'
-            UNIT      = 'molec/cm2/s'
-            N         = IDTNO
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
+         ! Now loop over all species and write out every defined
+         ! diagnostics (ckeller, 10/15/2014) 
+         DO I = 1, Input_Opt%N_TRACERS
 
-         !%%%%% CO %%%%%
-         IF ( IDTCO > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_CO'
-            UNIT      = 'molec/cm2/s'
-            N         = IDTCO
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
+            ! Init
+            N = 0
 
-         !%%%%% ALK4 %%%%%
-         IF ( IDTALK4 > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_ALK4'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTALK4
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
+            ! Get variables needed for HEMCO diagnostics
+            IF ( I == IDTNO ) THEN
+               DiagnName = 'ANTHROPOGENIC_NO'
+               UNIT      = 'molec/cm2/s'
+               N         = IDTNO
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+   
+            ELSE IF ( I == IDTCO ) THEN
+               DiagnName = 'ANTHROPOGENIC_CO'
+               UNIT      = 'molec/cm2/s'
+               N         = IDTCO
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               
+            ELSE IF ( I == IDTALK4 ) THEN
+               DiagnName = 'ANTHROPOGENIC_ALK4'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTALK4
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+          
+            ELSE IF ( I == IDTACET ) THEN
+               DiagnName = 'ANTHROPOGENIC_ACET'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTACET
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+                      
+            ELSE IF ( I == IDTMEK ) THEN
+               DiagnName = 'ANTHROPOGENIC_MEK'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTMEK
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+   
+            ELSE IF ( I == IDTALD2 ) THEN
+               DiagnName = 'ANTHROPOGENIC_ALD2'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTALD2
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+   
+            ELSE IF ( I == IDTPRPE ) THEN
+               DiagnName = 'ANTHROPOGENIC_PRPE'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTPRPE
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+   
+            ELSE IF ( I == IDTC3H8 ) THEN
+               DiagnName = 'ANTHROPOGENIC_C3H8'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTC3H8
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+   
+            ELSE IF ( I == IDTCH2O ) THEN
+               DiagnName = 'ANTHROPOGENIC_CH2O'
+               UNIT      = 'molec/cm2/s'
+               N         = IDTCH2O
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+   
+            ELSE IF ( I == IDTC2H6 ) THEN
+               DiagnName = 'ANTHROPOGENIC_C2H6'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTC2H6 
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-         !%%%%% ACET %%%%%
-         IF ( IDTACET > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_ACET'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTACET
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-                   
-         !%%%%% MEK %%%%%
-         IF ( IDTMEK > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_MEK'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTMEK
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
+            ENDIF
 
-         !%%%%% ALD2 %%%%%
-         IF ( IDTALD2 > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_ALD2'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTALD2
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
+            ! Call only if defined!
+            IF ( N > 0 ) THEN
+               ! kg/m2/s to molec/cm2/s 
+               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                         UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+               IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+            ENDIF
 
-         !%%%%% PRPE %%%%%
-         IF ( IDTPRPE > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_PRPE'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTPRPE
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% C3H8 %%%%%
-         IF ( IDTC3H8 > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_C3H8'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTC3H8
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% CH2O %%%%%
-         IF ( IDTCH2O > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_CH2O'
-            UNIT      = 'molec/cm2/s'
-            N         = IDTCH2O
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% C2H6 %%%%%
-         IF ( IDTC2H6 > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_C2H6'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTC2H6 
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
+         ENDDO ! I
       ENDIF
 !
 !******************************************************************************

@@ -457,9 +457,11 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Write warning
     !-----------------------------------------------------------------
-    MSG = 'You were calling diagnostics in an ESMF environment ' // &
-          '- this is currently not supported!'
-    CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+    IF ( am_I_Root ) THEN
+       MSG = 'You tried to write diagnostics in an ESMF environment ' // &
+             '- this is currently not supported!'
+       CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+    ENDIF
 
     ! Return 
     RC = HCO_SUCCESS

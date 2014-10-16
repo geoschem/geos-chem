@@ -1867,6 +1867,8 @@ contains
 !                              modifications: Hold TOPMIX, TEMPBL private
 !  06 Jun 2014 - R. Yantosca - Wrap some debug printout in #if defined(DEBUG)
 !  25 Jun 2014 - R. Yantosca - Now get N_MEMBERS from input_mod.F
+!  16 Oct 2014 - C. Keller   - Bug fix: now add deposition rates instead of
+!                              overwriting them.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2056,6 +2058,9 @@ contains
     do J = 1, JJPAR
     do I = 1, IIPAR
 
+       ! PBL top level [integral model levels]
+       topmix      = State_Met%PBL_TOP_L(I,J)
+
        !----------------------------------------------------------------
        ! Add emissions & deposition values calculated in HEMCO.
        ! Here we only consider emissions below the PBL top.
@@ -2073,9 +2078,6 @@ contains
        !----------------------------------------------------------------
        DO N = 1, N_TRACERS
 
-          ! PBL top level [integral model levels]
-          topmix      = State_Met%PBL_TOP_L(I,J)
-
           ! Sum emissions under the PBL top [kg/m2/s]
           tmpflx      = SUM( State_Chm%TRAC_TEND(I,J,1:topmix,N) )
 
@@ -2084,13 +2086,11 @@ contains
           eflx(I,J,N) = eflx(I,J,N) + tmpflx
 
           ! Also add drydep frequencies calculated by HEMCO to the DFLX
-          ! array.  These values are in originally m/s but are converted
-          ! to s-1.  They are then added in the same manner as all 
-          ! other drydep frequencies below. DFLX will be converted to 
-          ! kg/m2/s lateron. (ckeller, 04/01/2014)
+          ! array. These values are stored in 1/s. They are added in the 
+          ! same manner as the DEPSAV values from drydep_mod.F.
+          ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
           dflx(I,J,N) = dflx(I,J,N)                  &
                       + ( State_Chm%DepSav(I,J,N)    &
-                        / State_Met%BXHEIGHT(I,J,1)  &
                         * as2_scal(I,J,N) / TCVV(N) )
 
        ENDDO
@@ -2155,17 +2155,22 @@ contains
        ! Apply dry deposition frequencies
        !----------------------------------------------------------------
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
-          ! Now include sea salt dry deposition (jaegle 5/11/11)
-          IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST2'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST3'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST4') CYCLE
-              !TRIM( DEPNAME(N) ) == 'SALA'.OR. &
-              !TRIM( DEPNAME(N) ) == 'SALC') CYCLE
-
           ! gases + aerosols for full chemistry 
           NN   = NTRAIND(N)
           if (NN == 0) CYCLE
+
+          ! Now include sea salt dry deposition (jaegle 5/11/11)
+          IF ( NN == IDTDST1 .OR. &
+               NN == IDTDST2 .OR. &
+               NN == IDTDST3 .OR. &
+               NN == IDTDST4       ) CYCLE
+
+!          IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
+!              TRIM( DEPNAME(N) ) == 'DST2'.OR. &
+!              TRIM( DEPNAME(N) ) == 'DST3'.OR. &
+!              TRIM( DEPNAME(N) ) == 'DST4') CYCLE
+!              !TRIM( DEPNAME(N) ) == 'SALA'.OR. &
+!              !TRIM( DEPNAME(N) ) == 'SALC') CYCLE
 
           ! adding the backward consistency with previous GEOS-Chem drydep 
           ! calculation. (Lin, 06/04/2008) 
@@ -2189,7 +2194,9 @@ contains
              ! a problem even if the PBL top is lower than the top of the 
              ! first (lowest) model layer
              ! given that as2 is in v/v
-             dflx(I,J,NN) = DEPSAV(I,J,N) * (wk1/(wk2+1.d-30)) / TCVV(NN)
+             ! Now add to existing dflx (ckeller, 10/16/2014).
+             dflx(I,J,NN) = dflx(I,J,NN) &
+                          + DEPSAV(I,J,N) * (wk1/(wk2+1.d-30)) / TCVV(NN)
 
              ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
              ! when there is O3 destruction in subgrid ship plume 
@@ -2215,7 +2222,9 @@ contains
              ! given that as2 is in v/v
              ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-             dflx(I,J,NN) = DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
+             ! Now add to existing dflx (ckeller, 10/16/2014).
+             dflx(I,J,NN) = dflx(I,J,NN) &
+                          + DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
 
              ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
              ! when there is O3 destruction in subgrid ship plume 
@@ -2374,7 +2383,9 @@ contains
                 ! given that as2 is in v/v
                 ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
                 ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-                dflx(I,J,N) = DEPSAV(I,J,1) * as2_scal(I,J,N) / TCVV(1) 
+                ! Now add to existing dflx (ckeller, 10/16/2014).
+                dflx(I,J,N) = dflx(I,J,N) &
+                            + DEPSAV(I,J,1) * as2_scal(I,J,N) / TCVV(1) 
              endif
           enddo
        endif
@@ -2440,17 +2451,25 @@ contains
     if (ND44 > 0 .or. LGTMM .or. LSOILNOX) then
 
        do N = 1, NUMDEP
-          SELECT CASE ( DEPNAME(N) )
+
+!          SELECT CASE ( NN )
              ! non gases + aerosols for fully chemistry 
              !CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
              !       'SALC' )
 	     ! now include sea salt dry deposition (jaegle 5/11/11)
-             CASE ( 'DST1', 'DST2', 'DST3', 'DST4')
-                CYCLE
-             CASE DEFAULT
-                ! Locate position of each tracer in DEPSAV
-                NN   = NTRAIND(N)
-                if (NN == 0) CYCLE
+!             CASE ( 'DST1', 'DST2', 'DST3', 'DST4')
+!             CASE ( IDTDST1, IDTDST2, IDTDST3, IDTDST4 )
+!                CYCLE
+!             CASE DEFAULT
+
+          ! Locate position of each tracer in DEPSAV
+          NN = NTRAIND(N)
+          IF (NN == 0 .OR.       &
+              NN == IDTDST1 .OR. & 
+              NN == IDTDST2 .OR. &
+              NN == IDTDST3 .OR. &
+              NN == IDTDST4       ) CYCLE
+
                 ! only for the lowest model layer
                 ! Convert : kg/m2/s -> molec/cm2/s
                 ! consider timestep difference between convection and emissions
@@ -2476,7 +2495,7 @@ contains
                    ENDDO
 		ENDIF
 
-          END SELECT
+!          END SELECT
        enddo
 
        ! Add ITS_A_TAGOX_SIM (Lin, 06/21/08)

@@ -918,6 +918,8 @@
          !==============================================================
          !              ***** D A I L Y   D A T A *****
          !==============================================================
+         laiMM = -1
+         wasModisRead = .FALSE.
          IF ( ITS_A_NEW_DAY() ) THEN 
 
             !-----------------------------------------------------------
@@ -996,7 +998,7 @@
 
             ! Interpolate LAI quantities from native grid to GEOS-Chem grid
             CALL Compute_Modis_Lai( am_I_Root,    Input_Opt, State_Met, 
-     &                              day_of_year,  laiMM,     mapping,      
+     &                              day_of_year,  laiMM,     mapping,
      &                              wasModisRead, RC )
 
             !### Debug

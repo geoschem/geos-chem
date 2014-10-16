@@ -70,7 +70,8 @@
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  25 Nov 2013 - C. Keller - Now a HEMCO extension
-!
+!  06 Oct 2014 - C. Keller - Allow mass flux tuning factor be set in
+!                            configuration file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -388,7 +389,7 @@
 
             ! Orography at surface
             ! Ocean is 0; land is 1; ice is 2
-            ORO(I)         = OROGRAPHY(I,J)
+            ORO(I)         = REAL(OROGRAPHY(I,J),KIND=8)
 
             SNW_HGT_LQD(I) = ExtState%SNOWHGT%Arr%Val(I,J) / 1000.d0
 
@@ -482,7 +483,7 @@
 !
 ! !USES:
 !
-      USE HCO_ExtList_Mod,    ONLY : GetExtNr
+      USE HCO_ExtList_Mod,    ONLY : GetExtNr, GetExtOpt
       USE HCO_STATE_MOD,      ONLY : HCO_GetExtHcoID
 !
 ! !INPUT PARAMETERS:
@@ -509,7 +510,8 @@
       INTEGER                        :: I, J, N, AS
       INTEGER                        :: nSpc
       CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
-      LOGICAL                        :: verb
+      REAL(dp)                       :: TmpScal
+      LOGICAL                        :: FOUND
 
       !=================================================================
       ! HCOX_DUST_DEAD_INIT begins here!
@@ -522,7 +524,6 @@
       ! Enter
       CALL HCO_ENTER ('HCOX_DustDead_Init (hcox_dustdead_mod.F90)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-      verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
 
       ! Get horizontal dimensions
       I = HcoState%NX
@@ -542,22 +543,40 @@
          RETURN
       ENDIF
 
-      ! Set scale factor
-      FLX_MSS_FDG_FCT = HCOX_DustDead_GetFluxTun()
+      ! Set scale factor: first try to read from configuration file. If
+      ! not specified, call wrapper function which sets teh scale factor
+      ! based upon compiler switches.
+      CALL GetExtOpt ( ExtNr, 'Mass tuning factor', 
+     &                 OptValDp=TmpScal, Found=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Set parameter FLX_MSS_FDG_FCT to specified tuning factor. Get from
+      ! wrapper routine if not defined in configuration file
+      IF ( FOUND ) THEN
+         FLX_MSS_FDG_FCT = TmpScal
+      ELSE
+         FLX_MSS_FDG_FCT = HCOX_DustDead_GetFluxTun( am_I_Root )
+         IF ( FLX_MSS_FDG_FCT < 0.0_dp ) THEN
+            RC = HCO_FAIL
+            RETURN
+         ENDIF
+      ENDIF
 
       ! Verbose mode
-      MSG = 'Use DEAD dust emissions (extension module)'
-      CALL HCO_MSG( MSG, SEP1='-' )
-
-      MSG = 'Use the following species (Name: HcoID):' 
-      CALL HCO_MSG(MSG)
-      DO N = 1, nSpc
-         WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
+      IF ( am_I_Root ) THEN
+         MSG = 'Use DEAD dust emissions (extension module)'
+         CALL HCO_MSG( MSG, SEP1='-' )
+   
+         MSG = 'Use the following species (Name: HcoID):' 
          CALL HCO_MSG(MSG)
-      ENDDO
-         
-      WRITE(MSG,*) 'Global mass flux tuning factor: ',FLX_MSS_FDG_FCT
-      CALL HCO_MSG(MSG,SEP2='-')
+         DO N = 1, nSpc
+            WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
+            CALL HCO_MSG(MSG)
+         ENDDO
+            
+         WRITE(MSG,*) 'Global mass flux tuning factor: ',FLX_MSS_FDG_FCT
+         CALL HCO_MSG(MSG,SEP2='-')
+      ENDIF
 
       !-----------------------------------------------------------------
       ! Init module arrays 
@@ -5272,13 +5291,17 @@ c Fix up for negative argument, erf, etc.
 
 !******************************************************************************
 
-      FUNCTION HCOX_DustDead_GetFluxTun() RESULT( FLX_MSS_FDG_FCT )
+      FUNCTION HCOX_DustDead_GetFluxTun( am_I_Root ) 
+     & RESULT( FLX_MSS_FDG_FCT )
 !
 !******************************************************************************
 ! Returns global mass flux tuning factor (a posteriori).
 !
 !******************************************************************************
 !
+      ! Input argument
+      LOGICAL :: am_I_Root
+
       ! Output argument
       REAL*8  :: FLX_MSS_FDG_FCT
 
@@ -5415,12 +5438,18 @@ c Fix up for negative argument, erf, etc.
 #else
 
       ! Default value
-      FLX_MSS_FDG_FCT = 7.0d-4
+      ! ==> Don't allow default value anymore. The tuning factor can
+      ! now also be set in the HEMCO configuration file. This should be
+      ! done whenever the compiler combinations above don't apply!
+!      FLX_MSS_FDG_FCT = 7.0d-4
+      FLX_MSS_FDG_FCT = -999.0d0
 
-      ! Add warning
-      MSG = 'Assigned default flux tuning parameter - this may lead to 
-     &       false dust emissions!'
-      CALL HCO_WARNING ( MSG, RC, THISLOC='HCOX_DustDead_GetFluxTun' )
+      ! Error 
+      IF ( am_I_Root ) THEN
+         MSG = 'Cannot assign mass flux tuning factor - ' //
+     &         'please set `mass tuning factor` in configuration file!'
+         CALL HCO_ERROR ( MSG, RC, THISLOC='HCOX_DustDead_GetFluxTun')
+      ENDIF
 
 #endif
 

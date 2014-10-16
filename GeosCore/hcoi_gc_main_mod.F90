@@ -1,4 +1,3 @@
-# if !defined(ESMF_)
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -56,6 +55,7 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: Set_Current_Time
   PRIVATE :: ExtState_SetPointers
   PRIVATE :: ExtState_UpdtPointers
+  PRIVATE :: GridEdge_Set
   PRIVATE :: ModelSpec_Allocate
   PRIVATE :: Model_SetSpecies
   PRIVATE :: Set_Grid
@@ -111,7 +111,6 @@ MODULE HCOI_GC_Main_Mod
   ! Internal met fields (will be used by some extensions)
   INTEGER,               TARGET :: HCO_PBL_MAX            ! level
   REAL(hp), ALLOCATABLE, TARGET :: HCO_FRAC_OF_PBL(:,:,:) ! unitless
-  REAL(hp), ALLOCATABLE, TARGET :: HCO_PEDGE  (:,:,:)     ! Pa
   REAL(hp), ALLOCATABLE, TARGET :: HCO_SZAFACT(:,:)       ! -
 
   ! Arrays to store J-values (used by Paranox extension)
@@ -174,7 +173,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HcoState_Init
     USE HCO_Driver_Mod,     ONLY : HCO_Init
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
-    USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_DIagn_Init
+    USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_Diagn_Init
     USE HCOX_Driver_Mod,    ONLY : HCOX_Init
     USE HCOX_State_Mod,     ONLY : ExtStateInit
 
@@ -282,8 +281,17 @@ CONTAINS
     HcoState%TS_CHEM = GET_TS_CHEM() * 60.0
     HcoState%TS_DYN  = GET_TS_DYN()  * 60.0
 
-    ! This is not an ESMF simulation
-    HcoState%isESMF = .FALSE.  
+    ! Is this an ESMF simulation or not?
+    ! The ESMF flag must be set before calling HCO_Init because the
+    ! source file name is set differently in an ESMF environment
+    ! compared to a stand-alone version: in ESMF, the source file name
+    ! is set to the container name since this is the identifying name
+    ! used by ExtData.
+#if defined(ESMF_)
+    HcoState%isESMF = .TRUE.
+#else 
+    HcoState%isESMF = .FALSE.
+#endif
 
     ! HEMCO configuration file
     HcoState%ConfigFile = Input_Opt%HcoConfigFile
@@ -367,7 +375,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Define diagnostics
     !-----------------------------------------------------------------
-    IF ( DoDiagn ) THEN
+    IF ( DoDiagn .AND. .NOT. HcoState%isESMF ) THEN
 
        ! Set up traditional GEOS-Chem NDxx diagnostics for emissions
        CALL HCOI_GC_DIAGN_INIT                                &
@@ -490,10 +498,18 @@ CONTAINS
        CALL ERROR_STOP('ResetArrays', LOC )
        RETURN 
     ENDIF
+
+    !=======================================================================
+    ! Define pressure edges [Pa] on HEMCO grid.
+    !=======================================================================
+    CALL GridEdge_Set ( State_Met, HMRC )
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP('GridEdge_Update', LOC )
+       RETURN 
+    ENDIF
  
     !=======================================================================
-    ! Set HCO options and define all arrays needed by core module 
-    ! and the extensions 
+    ! Set HCO options 
     !=======================================================================
 
     ! Range of tracers and emission categories.
@@ -509,16 +525,6 @@ CONTAINS
     HcoState%Options%FillBuffer = .FALSE. 
 
     !=======================================================================
-    ! Eventually update variables in ExtState and calculate PEDGE that is
-    ! used as part of the HEMCO grid definition. 
-    !=======================================================================
-    CALL ExtState_UpdtPointers ( State_Met, State_Chm, HMRC )
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP('ExtState_UpdtPointers', LOC )
-       RETURN 
-    ENDIF
-
-    !=======================================================================
     ! Run HCO core module
     ! Emissions will be written into the corresponding flux arrays 
     ! in HcoState. 
@@ -526,6 +532,17 @@ CONTAINS
     CALL HCO_RUN ( am_I_Root, HcoState, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('HCO_RUN', LOC )
+       RETURN 
+    ENDIF
+
+    !=======================================================================
+    ! Update shadow variables used in ExtState. Should be done after HCO_RUN
+    ! just in case that some ExtState variables are defined using data from
+    ! the HEMCO configuration file (which becomes only updated in HCO_RUN).
+    !=======================================================================
+    CALL ExtState_UpdtPointers ( State_Met, State_Chm, HMRC )
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP('ExtState_UpdtPointers', LOC )
        RETURN 
     ENDIF
 
@@ -553,8 +570,8 @@ CONTAINS
     CALL MAP_HCO2GC( HcoState, Input_Opt, State_Met, State_Chm, RC )
 
     !=======================================================================
-    ! Reset deposition arrays
-    ! TODO: Do somewhere else? e.g. in drydep/wetdep routines?
+    ! Reset the accumulated nitrogen dry and wet deposition to zero. Will
+    ! be re-filled in drydep and wetdep.
     !=======================================================================
     CALL RESET_DEP_N()
 
@@ -648,7 +665,6 @@ CONTAINS
     ! Module variables
     IF ( ALLOCATED  ( ZSIGMA          ) ) DEALLOCATE ( ZSIGMA          )
     IF ( ALLOCATED  ( HCO_FRAC_OF_PBL ) ) DEALLOCATE ( HCO_FRAC_OF_PBL )
-    IF ( ALLOCATED  ( HCO_PEDGE       ) ) DEALLOCATE ( HCO_PEDGE       )
     IF ( ALLOCATED  ( HCO_SZAFACT     ) ) DEALLOCATE ( HCO_SZAFACT     )
     IF ( ALLOCATED  ( JNO2            ) ) DEALLOCATE ( JNO2            )
     IF ( ALLOCATED  ( JO1D            ) ) DEALLOCATE ( JO1D            )
@@ -744,6 +760,10 @@ CONTAINS
        ! Skip if no emissions defined
        IF ( .NOT. ASSOCIATED(HcoState%Spc(N)%Emis%Val) ) CYCLE
 
+       ! testing only
+       write(*,*) 'Flux range for tracer ', trcID, ': ', &
+          MINVAL(HcoState%Spc(N)%Emis%Val), MAXVAL(HcoState%Spc(N)%Emis%Val)
+
        ! If simulation grid and emission grid are equal, the 
        ! HEMCO state emission array already points to
        ! State_Chm%Trac_Tend and there is nothing to do here. 
@@ -782,7 +802,7 @@ CONTAINS
        !----------------------------------------------------------------------
        ! Dust emissions shall be directly added to the tracer array instead 
        ! of Trac_Tend. This is to avoid unrealistic vertical mixing of dust
-       ! particles. 
+       ! particles.
        !----------------------------------------------------------------------
        IF ( trcID == IDTDST1 .OR. trcID == IDTDST2 .OR. &
             trcID == IDTDST3 .OR. trcID == IDTDST4       ) THEN
@@ -1050,16 +1070,12 @@ CONTAINS
     USE Get_Ndep_Mod,       ONLY : DRY_TOTN
     USE Get_Ndep_Mod,       ONLY : WET_TOTN
 
-    ! MODIS variables (used by MEGAN & Soil NOx) 
-    USE Modis_LAI_Mod,      ONLY : DAYS_BTW_MON
-    USE Modis_LAI_Mod,      ONLY : GC_LAI
-    USE Modis_LAI_Mod,      ONLY : GC_LAI_PM 
-    USE Modis_LAI_Mod,      ONLY : GC_LAI_CM
-    USE Modis_LAI_Mod,      ONLY : GC_LAI_NM
-
     ! testing only
     USE HCO_ARR_MOD,        ONLY : HCO_ArrAssert
 
+#if !defined(ESMF_)
+    USE MODIS_LAI_MOD,      ONLY : GC_LAI
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1194,21 +1210,21 @@ CONTAINS
     IF ( ExtState%CLDFRC%DoUse ) THEN
        ExtState%CLDFRC%Arr%Val => State_Met%CLDFRC
     ENDIF
-    IF ( ExtState%CLDTOPS%DoUse ) THEN
-       ExtState%CLDTOPS%Arr%Val => State_Met%CLDTOPS
+    IF ( ExtState%CNV_MFC%DoUse ) THEN
+       ExtState%CNV_MFC%Arr%Val => State_Met%CMFMC
     ENDIF
     IF ( ExtState%SNOWHGT%DoUse ) THEN
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-       ExtState%SNOWHGT%Arr%Val => State_Met%SNOMAS
-#else
+#if   defined( GEOS_4 ) 
        ExtState%SNOWHGT%Arr%Val => State_Met%SNOW
+#else
+       ExtState%SNOWHGT%Arr%Val => State_Met%SNOMAS
 #endif
     ENDIF
     IF ( ExtState%SNODP%DoUse ) THEN
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-       ExtState%SNODP%Arr%Val => State_Met%SNODP
-#else
+#if   defined( GEOS_4 ) 
        ExtState%SNODP%Arr%Val => State_Met%SNOW
+#else
+       ExtState%SNODP%Arr%Val => State_Met%SNODP
 #endif
     ENDIF
     IF ( ExtState%FRLAND%DoUse ) THEN
@@ -1227,18 +1243,15 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Modis LAI parameter
     IF ( ExtState%GC_LAI%DoUse ) THEN
+#if defined(ESMF_)
+       ExtState%GC_LAI%Arr%Val => State_Met%LAI
+#else
        ExtState%GC_LAI%Arr%Val => GC_LAI
+
+       ! testing only
+!       ExtState%GC_LAI%Arr%Val => State_Met%LAI
+#endif
     ENDIF
-    IF ( ExtState%GC_LAI_PM%DoUse ) THEN
-       ExtState%GC_LAI_PM%Arr%Val => GC_LAI_PM
-    ENDIF
-    IF ( ExtState%GC_LAI_CM%DoUse ) THEN
-       ExtState%GC_LAI_CM%Arr%Val => GC_LAI_CM
-    ENDIF
-    IF ( ExtState%GC_LAI_NM%DoUse ) THEN
-       ExtState%GC_LAI_NM%Arr%Val => GC_LAI_NM
-    ENDIF
-    ExtState%DAYS_BTW_M => DAYS_BTW_MON
     
     ! 3D fields
     IF ( ExtState%SPHU%DoUse ) THEN
@@ -1309,7 +1322,7 @@ CONTAINS
 !
 ! !DESCRIPTION: SUBROUTINE ExtState\_UpdtPointers updates the extension 
 ! object data pointers. Updates are only required for the shadow arrays
-! defined in this module, such as pressure edges, J-values, etc.
+! defined in this module, such as J-values, SZAFACT, etc.
 !\\
 !\\
 ! !INTERFACE:
@@ -1323,7 +1336,6 @@ CONTAINS
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
 
-    USE PRESSURE_MOD,          ONLY : GET_PEDGE
     USE GLOBAL_OH_MOD,         ONLY : GET_SZAFACT
     USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
 
@@ -1373,10 +1385,6 @@ CONTAINS
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
-
-       ! pressure edges [Pa]. Always calculate as needed for HEMCO grid.
-       HCO_PEDGE(I,J,L) = GET_PEDGE( I,J,L) * 100.0_hp
-       IF ( L==LLPAR ) HCO_PEDGE(I,J,L+1) = GET_PEDGE(I,J,L+1) * 100.0_hp
 
        ! current SZA divided by total daily SZA (2D field only)
        IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
@@ -1437,6 +1445,71 @@ CONTAINS
 !$OMP END PARALLEL DO
 
   END SUBROUTINE ExtState_UpdtPointers
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GridEdge_Set 
+!
+! !DESCRIPTION: SUBROUTINE GridEdge\_Set sets the grid edge pressure values
+! on the HEMCO grid.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GridEdge_Set ( State_Met, RC )
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod,    ONLY : MetState
+    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
+    USE PRESSURE_MOD,          ONLY : GET_PEDGE
+
+! !INPUT PARAMETERS:
+!
+    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC
+!
+! !REVISION HISTORY:
+!  08 Oct 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER  :: I, J, L
+
+    !=================================================================
+    ! GridEdge_Set begins here
+    !=================================================================
+
+!$OMP PARALLEL DO                                                 &
+!$OMP DEFAULT( SHARED )                                           &
+!$OMP PRIVATE( I, J, L )
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+
+       ! Get pressure edges [Pa] and pass to HEMCO grid. 
+       HcoState%Grid%PEDGE%Val(I,J,L) = GET_PEDGE(I,J,L) * 100.0_hp
+       IF ( L==LLPAR ) THEN
+          HcoState%Grid%PEDGE%Val(I,J,L+1) = GET_PEDGE(I,J,L+1) * 100.0_hp
+       ENDIF
+    ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GridEdge_Set
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1690,6 +1763,7 @@ CONTAINS
     USE GRID_MOD,           ONLY : XMID,  YMID
     USE GRID_MOD,           ONLY : XEDGE, YEDGE, YSIN
     USE GRID_MOD,           ONLY : AREA_M2
+    USE HCO_ARR_MOD,        ONLY : HCO_ArrInit
 !
 ! !INPUT ARGUMENTS:
 !
@@ -1710,7 +1784,6 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER :: AS
 
     !=================================================================
     ! SET_GRID begins here
@@ -1737,14 +1810,9 @@ CONTAINS
     HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
     HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT
 
-    ! Allocate PEDGE
-    ALLOCATE(HCO_PEDGE(IIPAR,JJPAR,LLPAR+1),STAT=AS)
-    IF ( AS/=0 ) THEN
-       CALL HCO_ERROR ( 'HCO_PEDGE', RC, THISLOC='Set_Grid (hcoi_gc_main_mod.F90)')
-       RETURN
-    ENDIF
-    HCO_PEDGE = 0d0
-    HcoState%Grid%PEDGE%Val => HCO_PEDGE
+    ! Allocate PEDGE. Will be updated every time step!
+    CALL HCO_ArrInit( HcoState%Grid%PEDGE, HcoState%NX, HcoState%NY, HcoState%NZ+1, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -2207,4 +2275,3 @@ CONTAINS
   END SUBROUTINE ModelSpec_Allocate
 !EOC
 END MODULE HCOI_GC_MAIN_MOD
-#endif

@@ -3496,13 +3496,14 @@
          ! 
          ! McGrath and Rowland, 1994 estimate - 50 kJ/mol heat of solution
          ! H0 comes from Freznel et al. [1998]
-         CALL COMPUTE_L2G( 6.1d3, -6014.d0, TK, CLDLIQ(I,J,L), L2G )      
+         CALL COMPUTE_L2G( 6.1d3, -6014.d0, TK, CLDLIQ(I,J,L), L2G ) 
 
          ! Fraction of HOBr in liquid phase
          ! (Eqs. 4, 5, 6, Jacob et al, 2000)
          C_TOT = 1d0 + L2G
          F_L   = L2G / C_TOT
-         F_I   = I2G / C_TOT
+         ! F_I not defined for HOBr (ckeller, 10/11/2014)
+         !F_I   = I2G / C_TOT
 
          ! Compute the rate constant K.
          IF ( TK >= 268d0 ) THEN

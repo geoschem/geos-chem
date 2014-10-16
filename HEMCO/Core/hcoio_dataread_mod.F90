@@ -52,9 +52,7 @@ CONTAINS
 !\\
 !\\
 ! NOTE/TODO: For now, all arrays are copied into the HEMCO data array. 
-! We may directly point to the ESMF arrays in future. In this case, we
-! may have to force the target ID to be equal to the container ID (the
-! target ID is set in hco\_config\_mod).
+! We may directly point to the ESMF arrays in future. 
 !\\
 !\\
 ! !INTERFACE:
@@ -94,6 +92,7 @@ CONTAINS
     REAL,             POINTER  :: Ptr3D(:,:,:)   => NULL() 
     REAL,             POINTER  :: Ptr2D(:,:)     => NULL() 
     TYPE(ESMF_State), POINTER  :: IMPORT         => NULL()
+    LOGICAL                    :: verb
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
 
@@ -107,6 +106,13 @@ CONTAINS
 
     ! Point to ESMF IMPORT object
     IMPORT => HcoState%IMPORT
+
+    ! Verbose?
+    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+    IF ( verb ) THEN
+       MSG = 'Reading from ExtData: ' // TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_MSG(MSG)
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Read 3D data from ESMF 
@@ -130,16 +136,19 @@ CONTAINS
        LL = SIZE(Ptr3D,3)
        TT = 1 
 
-       ! Define HEMCO array pointer if not yet defined
+       ! Define HEMCO array if not yet defined.
        IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V3) ) THEN
-!          Lct%Dct%Dta%V3 => NULL()
-          CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, 0, RC )
+
+          ! Use pointer if types match
+          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, 0, RC )
+          CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, LL, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! Pointer to data. HEMCO expected data to have surface level at
        ! index 1 ('up'), so revert ESMF levels (which are 'down').
-       Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
+       !Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
+       Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
 
     !-----------------------------------------------------------------
     ! Read 2D data from ESMF 
@@ -149,7 +158,6 @@ CONTAINS
        ! Get data
        CALL MAPL_GetPointer( IMPORT, Ptr2D, &
                              TRIM(Lct%Dct%Dta%ncFile), RC=STAT )
-
 
        ! Check for MAPL error 
        IF( MAPL_VRFY(STAT,LOC,2) ) THEN
@@ -166,13 +174,14 @@ CONTAINS
 
        ! Define HEMCO array pointer if not yet defined
        IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V2) ) THEN
-!          Lct%Dct%Dta%V2 => NULL()
-          CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, RC )
+          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, RC )
+          CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! Pointer to data
-       Lct%Dct%Dta%V2(1)%Val => Ptr2D
+       !Lct%Dct%Dta%V2(1)%Val => Ptr2D
+       Lct%Dct%Dta%V2(1)%Val = Ptr2D
 
     ENDIF
  
@@ -301,7 +310,7 @@ CONTAINS
     PI_180 = HcoState%Phys%PI / 180.0_dp
 
     ! Check for verbose mode
-    verb = HCO_VERBOSE_CHECK()
+    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
 
     ! Get unit tolerance set in configuration file
     UnitTolerance = HCO_UnitTolerance()
