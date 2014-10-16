@@ -605,6 +605,7 @@ CONTAINS
 !  13 Aug 2014 - R. Yantosca - Now read the PARANOX look-up tables here
 !  14 Aug 2014 - R. Yantosca - Minor fix, read the PARANOX look-up tables
 !                              after displaying text about PARANOX extension
+!  16 Oct 2014 - C. Keller   - Added error check after READ_PARANOX_LUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -709,6 +710,7 @@ CONTAINS
    ! with the ESMF/MAPL run environment.  We are currently working on a
    ! better implementation of this, stay tuned. (bmy, 8/13/14)
    CALL READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE, RC )
+   IF ( RC /= HCO_SUCCESS ) RETURN
 
    !------------------------------------------------------------------------
    ! Set other module variables 

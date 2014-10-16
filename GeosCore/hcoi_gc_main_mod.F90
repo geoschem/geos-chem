@@ -173,7 +173,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HcoState_Init
     USE HCO_Driver_Mod,     ONLY : HCO_Init
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
-    USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_DIagn_Init
+    USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_Diagn_Init
     USE HCOX_Driver_Mod,    ONLY : HCOX_Init
     USE HCOX_State_Mod,     ONLY : ExtStateInit
 
@@ -375,7 +375,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Define diagnostics
     !-----------------------------------------------------------------
-    IF ( DoDiagn ) THEN
+    IF ( DoDiagn .AND. .NOT. HcoState%isESMF ) THEN
 
        ! Set up traditional GEOS-Chem NDxx diagnostics for emissions
        CALL HCOI_GC_DIAGN_INIT                                &
@@ -759,6 +759,10 @@ CONTAINS
 
        ! Skip if no emissions defined
        IF ( .NOT. ASSOCIATED(HcoState%Spc(N)%Emis%Val) ) CYCLE
+
+       ! testing only
+       write(*,*) 'Flux range for tracer ', trcID, ': ', &
+          MINVAL(HcoState%Spc(N)%Emis%Val), MAXVAL(HcoState%Spc(N)%Emis%Val)
 
        ! If simulation grid and emission grid are equal, the 
        ! HEMCO state emission array already points to

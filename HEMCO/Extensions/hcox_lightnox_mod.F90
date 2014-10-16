@@ -425,7 +425,7 @@ CONTAINS
     ENDIF
 
     ! Reset arrays 
-    SLBASE = 0d0
+    SLBASE = 0.0_hp
     IF (DoDiagn) DIAGN = 0.0_hp
 
     ! LMAX: the highest L-level to look for lightnox (usually LLPAR-1)
@@ -473,22 +473,21 @@ CONTAINS
        XMID     = HcoState%Grid%XMID%Val( I, J )
 
        ! Get surface type. Note that these types are different than 
-       ! the types used elsewhere else: 0 = land, 1=water, 2=ice!
+       ! the types used elsewhere: 0 = land, 1=water, 2=ice!
        LNDTYPE = HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J),  & 
                                ExtState%ALBD%Arr%Val(I,J) ) 
 
+       ! Adjusted SFCTYPE variable for this module:
+       IF ( LNDTYPE == 2 ) THEN
+          SFCTYPE = 2    ! Ice
+       ELSEIF ( LNDTYPE == 1 ) THEN
+          SFCTYPE = 0    ! Land
+       ELSE
+          SFCTYPE = 1    ! Ocean (default)
+       ENDIF
+
        ! Tropopause pressure. Convert to Pa
        TROPP = ExtState%TROPP%Arr%Val(I,J) * 100.0_hp
-
-       ! Adjust SFCTYPE variable for this module:
-       SELECT CASE( LNDTYPE )
-          CASE( 2 )
-             SFCTYPE = 2    ! Ice
-          CASE( 1 )
-             SFCTYPE = 0    ! Land
-          CASE DEFAULT
-             SFCTYPE = 1    ! Ocean (default)
-       END SELECT
 
        ! Initialize
        LBOTTOM       = 0 
@@ -499,7 +498,6 @@ CONTAINS
        TOTAL         = 0d0
        TOTAL_IC      = 0d0
        TOTAL_CG      = 0d0
-       SLBASE(I,J,1) = 0.0_hp
        
        ! Get factors for OTD-LIS local redistribution or none.
        ! This constrains the seasonality and spatial distribution

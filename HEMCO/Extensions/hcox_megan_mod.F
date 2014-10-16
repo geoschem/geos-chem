@@ -276,7 +276,9 @@
 ! !REVISION HISTORY: 
 !  05 Aug 2013 - C. Keller - Initial version 
 !  08 Oct 2014 - C. Keller - Now use HEMCO clock to get days between months
-!
+!  09 Oct 2014 - C. Keller - Now use only GC_LAI. This makes days between months
+!                            obsolete
+!  16 Oct 2014 - C. Keller - Initialize flux arrays to avoid float invalid
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -385,6 +387,21 @@
       IsNewHour = HcoClock_NewHour()
       IsNewDay  = HcoClock_NewDay()
       FIRST     = HcoClock_First()
+
+      ! Initialize flux arrays
+      FLUXISOP   = 0.0_hp
+      FLUXEMMO   = 0.0_hp
+      FLUXACETmo = 0.0_hp
+      FLUXACETmb = 0.0_hp
+      FLUXACETbg = 0.0_hp
+      FLUXCO     = 0.0_hp
+      FLUXPRPE   = 0.0_hp
+      FLUXC2H4   = 0.0_hp
+      FLUXOCPI   = 0.0_hp
+      FLUXLIMO   = 0.0_hp
+      FLUXMTPA   = 0.0_hp
+      FLUXMTPO   = 0.0_hp
+      FLUXSESQ   = 0.0_hp
 
       !-----------------------------------------------------------------
       ! Point to external data 
@@ -1472,17 +1489,17 @@
       ! ALL DONE! 
       !=================================================================
 
-      ! testing only
-      write(*,*) ''
-      write(*,*) 'MEGAN done!'
-      write(*,*) 'total LAI: ', SUM(ExtState%GC_LAI%Arr%Val)
-      write(*,*) 'total ISOP: ', SUM(FLUXISOP)
-      write(*,*) 'total ACET: ', SUM(FLUXACETmo)+SUM(FLUXACETmb)
-     &                          +SUM(FLUXACETbg)
-      write(*,*) 'total CO  : ', SUM(FLUXCO  )
-      write(*,*) 'total PRPE: ', SUM(FLUXPRPE)
-      write(*,*) 'total OCPI: ', SUM(FLUXOCPI)
-      write(*,*) ''
+!      ! testing only
+!      write(*,*) ''
+!      write(*,*) 'MEGAN done!'
+!      write(*,*) 'total LAI: ', SUM(ExtState%GC_LAI%Arr%Val)
+!      write(*,*) 'total ISOP: ', SUM(FLUXISOP)
+!      write(*,*) 'total ACET: ', SUM(FLUXACETmo)+SUM(FLUXACETmb)
+!     &                          +SUM(FLUXACETbg)
+!      write(*,*) 'total CO  : ', SUM(FLUXCO  )
+!      write(*,*) 'total PRPE: ', SUM(FLUXPRPE)
+!      write(*,*) 'total OCPI: ', SUM(FLUXOCPI)
+!      write(*,*) ''
 
       ! Keep LAI in memory (ckeller, 10/9/2014)
       LAI_PREVSTEP = ExtState%GC_LAI%Arr%Val

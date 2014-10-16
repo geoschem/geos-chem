@@ -1867,6 +1867,8 @@ contains
 !                              modifications: Hold TOPMIX, TEMPBL private
 !  06 Jun 2014 - R. Yantosca - Wrap some debug printout in #if defined(DEBUG)
 !  25 Jun 2014 - R. Yantosca - Now get N_MEMBERS from input_mod.F
+!  16 Oct 2014 - C. Keller   - Bug fix: now add deposition rates instead of
+!                              overwriting them.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2056,6 +2058,9 @@ contains
     do J = 1, JJPAR
     do I = 1, IIPAR
 
+       ! PBL top level [integral model levels]
+       topmix      = State_Met%PBL_TOP_L(I,J)
+
        !----------------------------------------------------------------
        ! Add emissions & deposition values calculated in HEMCO.
        ! Here we only consider emissions below the PBL top.
@@ -2072,9 +2077,6 @@ contains
        ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
        !----------------------------------------------------------------
        DO N = 1, N_TRACERS
-
-          ! PBL top level [integral model levels]
-          topmix      = State_Met%PBL_TOP_L(I,J)
 
           ! Sum emissions under the PBL top [kg/m2/s]
           tmpflx      = SUM( State_Chm%TRAC_TEND(I,J,1:topmix,N) )
@@ -2192,7 +2194,9 @@ contains
              ! a problem even if the PBL top is lower than the top of the 
              ! first (lowest) model layer
              ! given that as2 is in v/v
-             dflx(I,J,NN) = DEPSAV(I,J,N) * (wk1/(wk2+1.d-30)) / TCVV(NN)
+             ! Now add to existing dflx (ckeller, 10/16/2014).
+             dflx(I,J,NN) = dflx(I,J,NN) &
+                          + DEPSAV(I,J,N) * (wk1/(wk2+1.d-30)) / TCVV(NN)
 
              ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
              ! when there is O3 destruction in subgrid ship plume 
@@ -2218,7 +2222,9 @@ contains
              ! given that as2 is in v/v
              ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-             dflx(I,J,NN) = DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
+             ! Now add to existing dflx (ckeller, 10/16/2014).
+             dflx(I,J,NN) = dflx(I,J,NN) &
+                          + DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
 
              ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
              ! when there is O3 destruction in subgrid ship plume 
@@ -2377,7 +2383,9 @@ contains
                 ! given that as2 is in v/v
                 ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
                 ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-                dflx(I,J,N) = DEPSAV(I,J,1) * as2_scal(I,J,N) / TCVV(1) 
+                ! Now add to existing dflx (ckeller, 10/16/2014).
+                dflx(I,J,N) = dflx(I,J,N) &
+                            + DEPSAV(I,J,1) * as2_scal(I,J,N) / TCVV(1) 
              endif
           enddo
        endif
