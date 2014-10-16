@@ -3505,7 +3505,7 @@
                CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
             ENDIF
 
-            ! Write combined ANTHROPOGENIC NO + SHIP NO to disk
+            ! Write combined BIOGENIC ACET and OCEAN ACET to disk
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   

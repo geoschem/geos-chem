@@ -165,7 +165,8 @@ CONTAINS
     ! assembled and passed to STT or Trac_Tend.
     ! This is a wrapper for backwards consistency, in particular for the
     ! ND58 diagnostics).
-    IF ( Input_Opt%ITS_A_CH4_SIM .OR. IDTCH4 > 0 ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
+       ( IDTCH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
        CALL EMISSCH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
        IF ( RC /= GIGC_SUCCESS ) RETURN 
     ENDIF

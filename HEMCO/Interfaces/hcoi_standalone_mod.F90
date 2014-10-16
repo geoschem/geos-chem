@@ -1366,7 +1366,8 @@ CONTAINS
     INTEGER, INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  28 Jul 2014 - C. Keller - Initial Version
+!  28 Jul 2014 - C. Keller   - Initial Version
+!  06 Oct 2014 - M. Sulprizio- Remove PCENTER. Now calculate from pressure edges
 !EOP
 !------------------------------------------------------------------------------
 !BOC
