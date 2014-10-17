@@ -1827,28 +1827,12 @@ CONTAINS
 ! with the intendend characters. The parsed file name is returned in string
 ! srcFile, while the original file name is retained in Lct.
 !
-!\\
-!\\
-! At the moment, the following tokens are searched and replaced:
-!\begin{itemize}
-!\item \$ROOT: will be replaced by the root path specified in the settings
-! section of the configuration file.
-!\item \$YYYY: will be replaced by the (4-digit) year according to the 
-! source time settings set in the configuration file.
-!\item \$MM: will be replaced by the (2-digit) month according to the
-! source time settings set in the configuration file.
-!\item \$DD: will be replaced by the (2-digit) day according to the
-! source time settings set in the configuration file.
-!\item \$HH: will be replaced by the (2-digit) hour according to the
-! source time settings set in the configuration file.
-!\end{itemize}
-! !INTERFACE:
-!
   SUBROUTINE SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, RC )
 !
 ! !USES:
 !
     USE HCO_TIDX_MOD,         ONLY : HCO_GetPrefTimeAttr
+    USE HCO_CHARTOOLS_MOD,    ONLY : HCO_CharParse
 !
 ! !INPUT PARAMETERS:
 !
@@ -1872,13 +1856,7 @@ CONTAINS
 ! 
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)  :: MSG
-    CHARACTER(LEN=255)  :: LOC = 'SrcFile_Parse (HCOIO_DataRead_Mod.F90)'
-    CHARACTER(LEN=2047) :: TMPSTR, BEFORE, AFTER
-    INTEGER             :: LN, IDX, OFF
-    INTEGER             :: prefYr, prefMt, prefDy, prefHr
-    CHARACTER(LEN=4)    :: YYYY
-    CHARACTER(LEN=2)    :: MM, DD, HH
+    INTEGER :: prefYr, prefMt, prefDy, prefHr
 
     !=================================================================
     ! SrcFile_Parse
@@ -1887,142 +1865,13 @@ CONTAINS
     ! Initialize to input string
     srcFile = Lct%Dct%Dta%ncFile
 
-    ! Get preferred dates just in case we need them below
+    ! Get preferred dates (to be passed to parser
     CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Check for root token
-    !-------------------------------------------------------------------
-    IDX = INDEX( srcFile, '$ROOT' )
-    IF ( IDX > 0 ) THEN
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 5
-       AFTER = srcFile((IDX+OFF):LN)
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(HCO_ROOT()) // TRIM(AFTER)
-    ENDIF
-
-    ! Check for year token
-    !-------------------------------------------------------------------
-    DO 
-       IDX = INDEX( srcFile, '$YYYY' )
-       IF ( IDX <= 0 ) EXIT
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 5
-       AFTER = srcFile((IDX+OFF):LN)
-
-       WRITE(YYYY,'(i4.4)') prefYr
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(YYYY) // TRIM(AFTER)
-    ENDDO
-
-    ! Check for month token
-    !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( srcFile, '$MM' )
-       IF ( IDX <= 0 ) EXIT 
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 3
-       AFTER = srcFile((IDX+OFF):LN)
-
-       WRITE(MM,'(i2.2)') prefMt
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(MM) // TRIM(AFTER)
-    ENDDO
-
-    ! Check for day token
-    !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( srcFile, '$DD' )
-       IF ( IDX <= 0 ) EXIT 
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 3
-       AFTER = srcFile((IDX+OFF):LN)
-
-       WRITE(DD,'(i2.2)') prefDy
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(DD) // TRIM(AFTER)
-    ENDDO
-
-    ! Check for hour token
-    !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( srcFile, '$HH' )
-       IF ( IDX <= 0 ) EXIT 
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 3
-       AFTER = srcFile((IDX+OFF):LN)
-
-       WRITE(HH,'(i2.2)') prefHr
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(HH) // TRIM(AFTER)
-    ENDDO
-
-    ! Check for met. model token 
-    !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( srcFile, '$MET' )
-       IF ( IDX <= 0 ) EXIT 
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 4
-       AFTER = srcFile((IDX+OFF):LN)
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(HcoState%TOKEN_MET) // TRIM(AFTER)
-    ENDDO
-
-    ! Check for met. resolution token 
-    !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( srcFile, '$RES' )
-       IF ( IDX <= 0 ) EXIT 
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 4
-       AFTER = srcFile((IDX+OFF):LN)
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(HcoState%TOKEN_RES) // TRIM(AFTER)
-    ENDDO
+    ! Call the parser
+    CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
     RC = HCO_SUCCESS

@@ -3402,16 +3402,18 @@
 !$OMP END PARALLEL DO
 
       ! Diagnostic info to log/screen
-      write(MSG,*) 'Annual Sesquiterpene Base AEFs [TgC/yr]:'
-      CALL HCO_MSG(MSG)
-      write(MSG,*) '   FARN', SUMFARN
-      CALL HCO_MSG(MSG)
-      write(MSG,*) '   BCAR', SUMBCAR
-      CALL HCO_MSG(MSG)
-      write(MSG,*) '   OSQT', SUMOSQT
-      CALL HCO_MSG(MSG)
-      write(MSG,*) '   OMTP', SUMOMTP
-      CALL HCO_MSG(MSG)
+      IF ( am_I_Root ) THEN
+         write(MSG,*) 'Annual Sesquiterpene Base AEFs [TgC/yr]:'
+         CALL HCO_MSG(MSG)
+         write(MSG,*) '   FARN', SUMFARN
+         CALL HCO_MSG(MSG)
+         write(MSG,*) '   BCAR', SUMBCAR
+         CALL HCO_MSG(MSG)
+         write(MSG,*) '   OSQT', SUMOSQT
+         CALL HCO_MSG(MSG)
+         write(MSG,*) '   OMTP', SUMOMTP
+         CALL HCO_MSG(MSG)
+      ENDIF
 
       ! Nullify pointers
       PFT_BT => NULL()
@@ -3528,22 +3530,24 @@
       IDTC2H4 = HcoIDs(4)
 
       ! Verbose mode
-      MSG = 'Use MEGAN biogenic emissions (extension module)'
-      CALL HCO_MSG( MSG, SEP1='-' )
-      WRITE(MSG,*) '   - Use PECCA model: ', LPECCA
-      CALL HCO_MSG( MSG )
-      MSG = '   - Use the following species:'
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '     Isoprene   = ', TRIM(SpcNames(1)), IDTISOP 
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '     --> Isoprene scale factor is ', ISOP_SCALING
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '     Acetone    = ', TRIM(SpcNames(2)), IDTACET 
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '     C3 Alkenes = ', TRIM(SpcNames(3)), IDTPRPE 
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '     Ethene     = ', TRIM(SpcNames(4)), IDTC2H4
-      CALL HCO_MSG( MSG )
+      IF ( am_I_Root ) THEN
+         MSG = 'Use MEGAN biogenic emissions (extension module)'
+         CALL HCO_MSG( MSG, SEP1='-' )
+         WRITE(MSG,*) '   - Use PECCA model: ', LPECCA
+         CALL HCO_MSG( MSG )
+         MSG = '   - Use the following species:'
+         CALL HCO_MSG( MSG )
+         WRITE(MSG,*) '     Isoprene   = ', TRIM(SpcNames(1)), IDTISOP 
+         CALL HCO_MSG( MSG )
+         WRITE(MSG,*) '     --> Isoprene scale factor is ', ISOP_SCALING
+         CALL HCO_MSG( MSG )
+         WRITE(MSG,*) '     Acetone    = ', TRIM(SpcNames(2)), IDTACET 
+         CALL HCO_MSG( MSG )
+         WRITE(MSG,*) '     C3 Alkenes = ', TRIM(SpcNames(3)), IDTPRPE 
+         CALL HCO_MSG( MSG )
+         WRITE(MSG,*) '     Ethene     = ', TRIM(SpcNames(4)), IDTC2H4
+         CALL HCO_MSG( MSG )
+      ENDIF
 
       ! Check for monoterpene option --> this one is required for 
       ! CO, OCPI, MONX
@@ -3564,14 +3568,16 @@
          IDTMONX = HcoIDs(3)
 
          ! Verbose
-         MSG = '   - MEGAN monoterpene option enabled:' 
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     CO         = ', TRIM(SpcNames(1)), IDTCO
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     OC aerosol = ', TRIM(SpcNames(2)), IDTOCPI
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     Monoterp.  = ', TRIM(SpcNames(3)), IDTMONX
-         CALL HCO_MSG( MSG )
+         IF ( am_I_Root ) THEN
+            MSG = '   - MEGAN monoterpene option enabled:' 
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) '     CO         = ', TRIM(SpcNames(1)), IDTCO
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) '     OC aerosol = ', TRIM(SpcNames(2)), IDTOCPI
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) '     Monoterp.  = ', TRIM(SpcNames(3)), IDTMONX
+            CALL HCO_MSG( MSG )
+         ENDIF
       ELSE
          IDTCO      = -1 
          IDTOCPI    = -1 
@@ -3614,16 +3620,22 @@
          IDTSESQ = HcoIDs(4)
 
          ! Verbose
-         MSG = '   - SOA mechanism enabled:' 
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     a-,b-pinene    = ',TRIM(SpcNames(1)),IDTMTPA
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     Other monoterp.= ',TRIM(SpcNames(2)),IDTMTPO
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     Limonene       = ',TRIM(SpcNames(3)),IDTLIMO
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     Sesquiterpenes = ',TRIM(SpcNames(4)),IDTSESQ
-         CALL HCO_MSG( MSG )
+         IF ( am_I_Root ) THEN
+            MSG = '   - SOA mechanism enabled:' 
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) '     a-,b-pinene    = ',
+     &         TRIM(SpcNames(1)),IDTMTPA
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) '     Other monoterp.= ',
+     &         TRIM(SpcNames(2)),IDTMTPO
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) '     Limonene       = ',
+     &         TRIM(SpcNames(3)),IDTLIMO
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) '     Sesquiterpenes = ',
+     &         TRIM(SpcNames(4)),IDTSESQ
+            CALL HCO_MSG( MSG )
+         ENDIF
       ELSE
          IDTMTPA = -1
          IDTMTPO = -1

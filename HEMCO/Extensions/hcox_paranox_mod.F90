@@ -629,11 +629,12 @@ CONTAINS
 !
 ! !USES:
 !
-   USE HCO_State_MOD,    ONLY : HCO_GetHcoID
-   USE HCO_State_MOD,    ONLY : HCO_GetExtHcoID
-   USE HCO_ExtList_Mod,  ONLY : GetExtNr
-   USE HCO_ExtList_Mod,  ONLY : GetExtOpt
-   USE ParaNOx_Util_Mod, ONLY : Read_ParaNOx_LUT
+   USE HCO_Chartools_Mod, ONLY : HCO_CharParse
+   USE HCO_State_MOD,     ONLY : HCO_GetHcoID
+   USE HCO_State_MOD,     ONLY : HCO_GetExtHcoID
+   USE HCO_ExtList_Mod,   ONLY : GetExtNr
+   USE HCO_ExtList_Mod,   ONLY : GetExtOpt
+   USE ParaNOx_Util_Mod,  ONLY : Read_ParaNOx_LUT
 !
 ! !INPUT PARAMETERS:
 !
@@ -654,6 +655,7 @@ CONTAINS
 !  14 Aug 2014 - R. Yantosca - Minor fix, read the PARANOX look-up tables
 !                              after displaying text about PARANOX extension
 !  16 Oct 2014 - C. Keller   - Added error check after READ_PARANOX_LUT
+!  17 Oct 2014 - C. Keller   - Now parse input files via HCO_CharParse
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -755,6 +757,15 @@ CONTAINS
 
    ! Integrated Ozone production efficiency (OPE)
    CALL GetExtOpt ( ExtNr, 'IntOPE table', OptValChar=INTOPE_FILE, RC=RC)
+   IF ( RC /= HCO_SUCCESS ) RETURN
+
+   ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
+   ! There shouldn't be any date token in there ($YYYY, etc.), so just
+   ! provide some dummy variables here
+   CALL HCO_CharParse( FRACNOX_FILE, -999, -1, -1, -1, RC )
+   IF ( RC /= HCO_SUCCESS ) RETURN
+
+   CALL HCO_CharParse( INTOPE_FILE, -999, -1, -1, -1, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Read PARANOX look-up tables from disk
