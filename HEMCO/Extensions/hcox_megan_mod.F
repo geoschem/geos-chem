@@ -3571,11 +3571,11 @@
          IF ( am_I_Root ) THEN
             MSG = '   - MEGAN monoterpene option enabled:' 
             CALL HCO_MSG( MSG )
-            WRITE(MSG,*) '     CO         = ', TRIM(SpcNames(1)), IDTCO
+            WRITE(MSG,*) '     CO         = ', TRIM(SpcNames(1)),IDTCO
             CALL HCO_MSG( MSG )
-            WRITE(MSG,*) '     OC aerosol = ', TRIM(SpcNames(2)), IDTOCPI
+            WRITE(MSG,*) '     OC aerosol = ', TRIM(SpcNames(2)),IDTOCPI
             CALL HCO_MSG( MSG )
-            WRITE(MSG,*) '     Monoterp.  = ', TRIM(SpcNames(3)), IDTMONX
+            WRITE(MSG,*) '     Monoterp.  = ', TRIM(SpcNames(3)),IDTMONX
             CALL HCO_MSG( MSG )
          ENDIF
       ELSE
