@@ -342,18 +342,12 @@ CONTAINS
        ! Copy SUNCOSmid from last time step from buffer into current slot
        SC5(:,:,SC5ID) = SC5(:,:,6)
 
-       ! testing only
-       write(*,*) 'Previous SUNCOS written to slice ', SC5ID
-
        ! Archive current SUNCOSmid for future.
        SC5(:,:,6) = ExtState%SUNCOSmid%Arr%Val(:,:)
 
        ! Increase index by 1. Cycle back to one if we hit end of array
        SC5ID = SC5ID + 1
        IF ( SC5ID > 5 ) SC5ID = 1
-
-       ! testing only
-       write(*,*) 'SC5ID updated to: ', SC5ID
 
     ENDIF       
 

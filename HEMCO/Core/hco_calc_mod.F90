@@ -715,7 +715,7 @@ CONTAINS
     ! the effectively filled vertical levels. For most inventories, 
     ! this is only the first model level.
     IF ( BaseDct%Dta%SpaceDim==3 ) THEN 
-       BaseLL = SIZE(BaseDct%Dta%V3(1)%Val,3) 
+       BaseLL = SIZE(BaseDct%Dta%V3(1)%Val,3)
     ELSE
        BaseLL = 1
     ENDIF
