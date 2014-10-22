@@ -33,6 +33,7 @@ MODULE HCO_FluxArr_Mod
 !                                                                             
 ! !REVISION HISTORY:
 !  05 Jan 2014 - C. Keller - Initial version, adapted from hco_state_mod.F90 
+!  21 Oct 2014 - C. Keller - Added error check for negative values to HCO_EmisAdd
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -159,13 +160,13 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    REAL(dp),        INTENT(INOUT) :: Arr3D( HcoState%NX, &
+                                             HcoState%NY, &
+                                             HcoState%NZ )
     INTEGER,         INTENT(INOUT) :: RC 
 !
 ! !INPUT PARAMETERS:
 ! 
-    REAL(dp),        INTENT(IN   ) :: Arr3D( HcoState%NX, &
-                                             HcoState%NY, &
-                                             HcoState%NZ )
     INTEGER,         INTENT(IN   ) :: HcoID 
 !
 ! !REVISION HISTORY: 
@@ -182,6 +183,26 @@ CONTAINS
     CALL HCO_ArrAssert ( HcoState%Spc(HcoID)%Emis, &
                          HcoState%NX, HcoState%NY, HcoState%NZ, RC )
     IF ( RC /=HCO_SUCCESS ) RETURN
+
+    ! Check for negative values. NegFlag determines the behavior for
+    ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
+    IF ( HcoState%Options%NegFlag /= 2 ) THEN
+       IF ( ANY( Arr3D < 0.0_hp ) ) THEN
+  
+          ! Negative flag is 1: set to zero and prompt warning 
+          IF ( HcoState%Options%NegFlag == 1 ) THEN
+             WHERE ( Arr3D < 0.0_hp ) Arr3D = 0.0_hp
+             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+
+          ! Negative flag is 0: return w/ error
+          ELSE
+             CALL HCO_ERROR ( 'Negative values found!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+             RETURN
+          ENDIF
+       ENDIF
+    ENDIF
 
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(:,:,:) = &
@@ -210,13 +231,13 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(HCO_State), INTENT(INOUT)   :: HcoState
+    REAL(sp),        INTENT(INOUT)   :: Arr3D( HcoState%NX, &
+                                               HcoState%NY, &
+                                               HcoState%NZ )
     INTEGER,         INTENT(INOUT)   :: RC 
 !
 ! !INPUT PARAMETERS:
 ! 
-    REAL(sp),        INTENT(IN   )   :: Arr3D( HcoState%NX, &
-                                               HcoState%NY, &
-                                               HcoState%NZ )
     INTEGER,         INTENT(IN   )   :: HcoID 
 !
 ! !REVISION HISTORY: 
@@ -233,6 +254,26 @@ CONTAINS
     CALL HCO_ArrAssert ( HcoState%Spc(HcoID)%Emis, &
                          HcoState%NX, HcoState%NY, HcoState%NZ, RC )
     IF ( RC /=HCO_SUCCESS ) RETURN
+
+    ! Check for negative values. NegFlag determines the behavior for
+    ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
+    IF ( HcoState%Options%NegFlag /= 2 ) THEN
+       IF ( ANY( Arr3D < 0.0_sp ) ) THEN
+  
+          ! Negative flag is 1: set to zero and prompt warning 
+          IF ( HcoState%Options%NegFlag == 1 ) THEN
+             WHERE ( Arr3D < 0.0_sp ) Arr3D = 0.0_sp
+             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+
+          ! Negative flag is 0: return w/ error
+          ELSE
+             CALL HCO_ERROR ( 'Negative values found!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+             RETURN
+          ENDIF
+       ENDIF
+    ENDIF
 
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(:,:,:) = &
@@ -261,11 +302,11 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    REAL(dp),        INTENT(INOUT) :: Arr2D(HcoState%NX,HcoState%NY)
     INTEGER,         INTENT(INOUT) :: RC 
 !                                  
 ! !INPUT PARAMETERS:        
 !                                  
-    REAL(dp),        INTENT(IN   ) :: Arr2D(HcoState%NX,HcoState%NY)
     INTEGER,         INTENT(IN   ) :: HcoID 
 !
 ! !REVISION HISTORY: 
@@ -282,6 +323,26 @@ CONTAINS
     CALL HCO_ArrAssert ( HcoState%Spc(HcoID)%Emis, &
                          HcoState%NX, HcoState%NY, HcoState%NZ, RC )
     IF ( RC /=HCO_SUCCESS ) RETURN
+
+    ! Check for negative values. NegFlag determines the behavior for
+    ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
+    IF ( HcoState%Options%NegFlag /= 2 ) THEN
+       IF ( ANY( Arr2D < 0.0_hp ) ) THEN
+  
+          ! Negative flag is 1: set to zero and prompt warning 
+          IF ( HcoState%Options%NegFlag == 1 ) THEN
+             WHERE ( Arr2D < 0.0_hp ) Arr2D = 0.0_hp
+             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+
+          ! Negative flag is 0: return w/ error
+          ELSE
+             CALL HCO_ERROR ( 'Negative values found!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+             RETURN
+          ENDIF
+       ENDIF
+    ENDIF
 
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(:,:,1) = &
@@ -311,11 +372,11 @@ CONTAINS
 !
 !
     TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    REAL(sp),        INTENT(INOUT) :: Arr2D(HcoState%NX,HcoState%NY)
     INTEGER,         INTENT(INOUT) :: RC 
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(sp),        INTENT(IN   ) :: Arr2D(HcoState%NX,HcoState%NY)
     INTEGER,         INTENT(IN   ) :: HcoID 
 !
 ! !REVISION HISTORY: 
@@ -332,6 +393,26 @@ CONTAINS
     CALL HCO_ArrAssert ( HcoState%Spc(HcoID)%Emis, &
                          HcoState%NX, HcoState%NY, HcoState%NZ, RC )
     IF ( RC /=HCO_SUCCESS ) RETURN
+
+    ! Check for negative values. NegFlag determines the behavior for
+    ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
+    IF ( HcoState%Options%NegFlag /= 2 ) THEN
+       IF ( ANY( Arr2D < 0.0_sp ) ) THEN
+  
+          ! Negative flag is 1: set to zero and prompt warning 
+          IF ( HcoState%Options%NegFlag == 1 ) THEN
+             WHERE ( Arr2D < 0.0_sp ) Arr2D = 0.0_sp
+             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+
+          ! Negative flag is 0: return w/ error
+          ELSE
+             CALL HCO_ERROR ( 'Negative values found!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+             RETURN
+          ENDIF
+       ENDIF
+    ENDIF
 
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(:,:,1) = &
@@ -361,11 +442,11 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    REAL(dp),        INTENT(INOUT) :: iVal 
     INTEGER,         INTENT(INOUT) :: RC 
 !
 ! !INPUT PARAMETERS:
 ! 
-    REAL(dp),        INTENT(IN   ) :: iVal 
     INTEGER,         INTENT(IN   ) :: HcoID 
     INTEGER,         INTENT(IN   ) :: I 
     INTEGER,         INTENT(IN   ) :: J 
@@ -404,6 +485,26 @@ CONTAINS
                          HcoState%NX, HcoState%NY, HcoState%NZ, RC )
     IF ( RC /=HCO_SUCCESS ) RETURN
 
+    ! Check for negative values. NegFlag determines the behavior for
+    ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
+    IF ( HcoState%Options%NegFlag /= 2 ) THEN
+       IF ( iVal < 0.0_hp ) THEN
+  
+          ! Negative flag is 1: set to zero and prompt warning 
+          IF ( HcoState%Options%NegFlag == 1 ) THEN
+             iVal = 0.0_hp
+             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+
+          ! Negative flag is 0: return w/ error
+          ELSE
+             CALL HCO_ERROR ( 'Negative values found!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+             RETURN
+          ENDIF
+       ENDIF
+    ENDIF
+
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(I,J,L) = &
        HcoState%Spc(HcoID)%Emis%Val(I,J,L) + iVal
@@ -432,11 +533,11 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(HCO_State), INTENT(INOUT) :: HcoState
+    REAL(sp),        INTENT(INOUT) :: iVal 
     INTEGER,         INTENT(INOUT) :: RC 
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(sp),        INTENT(IN   ) :: iVal 
     INTEGER,         INTENT(IN   ) :: HcoID 
     INTEGER,         INTENT(IN   ) :: I 
     INTEGER,         INTENT(IN   ) :: J 
@@ -474,6 +575,26 @@ CONTAINS
     CALL HCO_ArrAssert ( HcoState%Spc(HcoID)%Emis, &
                          HcoState%NX, HcoState%NY, HcoState%NZ, RC )
     IF ( RC /=HCO_SUCCESS ) RETURN
+
+    ! Check for negative values. NegFlag determines the behavior for
+    ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
+    IF ( HcoState%Options%NegFlag /= 2 ) THEN
+       IF ( iVal < 0.0_sp ) THEN
+  
+          ! Negative flag is 1: set to zero and prompt warning 
+          IF ( HcoState%Options%NegFlag == 1 ) THEN
+             iVal = 0.0_sp
+             CALL HCO_WARNING ( 'Negative values found - set to zero!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+
+          ! Negative flag is 0: return w/ error
+          ELSE
+             CALL HCO_ERROR ( 'Negative values found!', &
+                RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
+             RETURN
+          ENDIF
+       ENDIF
+    ENDIF
 
     ! Add array
     HcoState%Spc(HcoID)%Emis%Val(I,J,L) = &

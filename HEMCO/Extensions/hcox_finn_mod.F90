@@ -286,7 +286,7 @@ CONTAINS
        ID = FinnIDs(N)
        IF ( ID <= 0 ) CYCLE
 
-       ! HcoID is the species index in the atm. model
+       ! HcoID is the species index in HEMCO
        HcoID = HcoIDs(ID)
        IF ( HcoID < 0 ) CYCLE
 
@@ -332,7 +332,11 @@ CONTAINS
 
        ! Add flux to HEMCO emission array
        CALL HCO_EmisAdd( HcoState, SpcArr, HcoID, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoID)%SpcName)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN 
+       ENDIF
    
        ! Write out total (daily or monthly) emissions to log-file
        IF ( am_I_Root ) THEN

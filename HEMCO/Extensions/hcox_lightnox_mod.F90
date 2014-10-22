@@ -285,7 +285,10 @@ CONTAINS
 
        ! Add flux to emission array
        CALL HCO_EmisAdd( HcoState, SLBASE, IDTNO, RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: SLBASE', RC )
+          RETURN 
+       ENDIF
 
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN

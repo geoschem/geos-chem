@@ -52,6 +52,9 @@
       USE UCX_MOD,            ONLY : KHETI_SLA
       USE ERROR_MOD,          ONLY : IT_IS_FINITE
 
+      ! To get HEMCO deposition values
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -284,6 +287,8 @@
 
       ! For HEMCO drydep values (ckeller, 10/13/14)
       INTEGER :: TRCID
+      REAL*8  :: Dep8
+      LOGICAL :: Fnd
 
       ! Pointers
       REAL*8, POINTER :: STT(:,:,:,:)
@@ -2013,7 +2018,11 @@ c new OH+CO rate from JPL2006.
 
                      ! This used to include dust and sea salt aerosols,
                      ! but sea salt deposition is already done in PBL 
-                     ! code. So exclude now from here (ckeller, 10/13/14).
+                     ! code. So exclude now from here 
+                     ! No need to check here for HEMCO drydep rates of
+                     ! dust (that shouldn't exist anyways!) since those
+                     ! would have been added to the tracers array in 
+                     ! DUSTMIX already (ckeller, 10/13/14).
                      SELECT CASE ( DEPNAME(I) )
 !                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', 
 !     &                         'SALC' )
@@ -2050,14 +2059,15 @@ c new OH+CO rate from JPL2006.
                   RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * 
      &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
 
-                  ! Also add deposition array from State_Chm. These are
-                  ! filled by HEMCO.
-                  ! (ckeller, 10/13/14)
+                  ! Also add deposition values from HEMCO. (ckeller, 10/13/14)
                   TRCID = NTRAIND(N)
                   IF ( TRCID > 0 ) THEN
-                     RRATE(KLOOP,NK) = RRATE(KLOOP,NK)
-     &                               + State_Chm%DepSav(IX,IY,TRCID) * 
-     &                               * GET_FRAC_UNDER_PBLTOP(IX,IY,IZ)
+                     CALL GetHcoVal( TRCID, IX, IY, 1, Fnd, Dep8=Dep8 )
+                     IF ( Fnd ) THEN
+                       RRATE(KLOOP,NK) = RRATE(KLOOP,NK)
+     &                                 + Dep8
+     &                                 * GET_FRAC_UNDER_PBLTOP(IX,IY,IZ)
+                     ENDIF          
                   ENDIF          
 
                   ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
@@ -2067,7 +2077,7 @@ c new OH+CO rate from JPL2006.
                   ! but caused instability in the chemical solver
                   ! (cdh, 3/21/2013)
                   ! 
-                  ! This is now handled through State_Chm%DepSav 
+                  ! This is now handled through HEMCO.
                   ! (ckeller, 10/13/14)
 !                  SELECT CASE ( TRIM(DEPNAME(I)) )
 !                     CASE ( 'O3' )

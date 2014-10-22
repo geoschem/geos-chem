@@ -43,6 +43,9 @@
 #if defined( USE_CH4_BUDGET_DIAG )
       REAL*8, ALLOCATABLE, PUBLIC :: TCH4(:,:,:,:)
 #endif
+
+      ! Make CH4_EMIS now public so that it can be used by vdiff_mod.F90
+      REAL*8,  ALLOCATABLE, PUBLIC :: CH4_EMIS(:,:,:)
 ! 
 ! !REVISION HISTORY: 
 !  17 Jan 2001- J. Wang, B. Duncan, R. Yantosca -- Initial version
@@ -123,20 +126,19 @@
 ! !LOCAL VARIABLES:
 !
       ! Various arrays      
-      REAL*8,  ALLOCATABLE :: BAIRDENS(:,:,:)
-      REAL*8,  ALLOCATABLE :: PAVG(:,:,:)
-      REAL*8,  ALLOCATABLE :: TAVG(:,:,:)
-      REAL*8,  ALLOCATABLE :: CH4_EMIS(:,:,:)
+      REAL*8,  ALLOCATABLE         :: BAIRDENS(:,:,:)
+      REAL*8,  ALLOCATABLE         :: PAVG(:,:,:)
+      REAL*8,  ALLOCATABLE         :: TAVG(:,:,:)
 
       ! HEMCO pointers
-      REAL(hp), POINTER    :: BOH    (:,:,:) => NULL() ! Get from HEMCO
-      REAL(hp), POINTER    :: CH4LOSS(:,:,:) => NULL() ! Get from HEMCO
+      REAL(hp), POINTER            :: BOH    (:,:,:) => NULL() ! Get from HEMCO
+      REAL(hp), POINTER            :: CH4LOSS(:,:,:) => NULL() ! Get from HEMCO
 
       ! Online CH4 only
-      REAL*8,  ALLOCATABLE :: SUMANTHRO(:,:)
-      REAL*8,  ALLOCATABLE :: SUMBIOG(:,:)
+      REAL*8,  ALLOCATABLE         :: SUMANTHRO(:,:)
+      REAL*8,  ALLOCATABLE         :: SUMBIOG(:,:)
 
-      REAL*8               :: TROPOCH4
+      REAL*8                       :: TROPOCH4
 
       CONTAINS
 !EOC
@@ -443,16 +445,15 @@
 
       ! =================================================================
       ! --> All emission calculations are now done through HEMCO
-      !
-      ! HEMCO automatically adds emissions to the trac_tend arrays
-      ! of Chm_State. Those emissions are mixed into the atmosphere
-      ! through the non local PBL scheme. If the non-local PBL scheme is
-      ! turned off, we have to pass the emissions to STT here.
-      ! For a multi-tracer run of the CH4 offline simulation, no emissions
-      ! are calculated for total CH4 (CH4_tot), and we have to add the 
-      ! emissions from all sources into this array.
-      ! For a single-tracer run of the CH4 offline simulation, there is
-      ! only one emissions species (CH4 or CH4_tot).
+      ! HEMCO stores emissions of all tracers internally in the HEMCO
+      ! state object. Here, we pass these emissions into module array 
+      ! CH4_EMIS. These values are then either added to the tracers 
+      ! array (full mixing scheme) or used lateron in vdiff_mod.F90 if 
+      ! the non-local PBL mixing scheme is used.
+      ! The CH4_EMIS array is mostly used for backwards compatibility
+      ! (especially the diagnostics). It is also used to ensure that 
+      ! in a multi-tracer simulation, tracer 1 (total CH4) is properly
+      ! defined. 
       !                                              (ckeller, 9/12/2013)
       ! =================================================================
       CH4_EMIS(:,:,:) = 0d0
@@ -654,6 +655,8 @@
 
             ! Pass directly to tracers array (surface level) if
             ! non-local scheme is not used.
+            ! For the non-local PBL scheme, CH4_EMIS will
+            ! be used directly in vdiff_mod.F90
             IF ( .NOT. Input_Opt%LNLPBL ) THEN
                DO N = 1, N_TRACERS
                   State_Chm%Tracers(IREF,JREF,1,N)
@@ -661,17 +664,7 @@
      &            + CH4_EMIS(IREF,JREF,ID_TRACER(N))
      &            * DTSRCE * AREA_M2
                ENDDO
-
-            ! Save into TRAC_TEND because this is now used by the
-            ! non-local PBL scheme. Trac_Tend is in kg/m2/s.
-            ! (ckeller, 9/13/2014)
-            ELSE
-               DO N = 1, N_TRACERS
-               State_Chm%Trac_Tend(IREF,JREF,1,N)
-     &            = CH4_EMIS(IREF,JREF,ID_TRACER(N))
-               ENDDO
             ENDIF
-
          ENDIF
 
          ! Update diagnostics

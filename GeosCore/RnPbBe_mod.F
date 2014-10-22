@@ -113,6 +113,7 @@
       USE TRACERID_MOD,       ONLY : IDTPb
       USE TRACERID_MOD,       ONLY : IDTBe7    
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
 !
 ! !INPUT PARAMETERS:
 !
@@ -173,6 +174,10 @@
 
       ! Arrays
       REAL*8            :: Rn_LOST(IIPAR,JJPAR,LLPAR)
+
+      ! To get HEMCO values
+      REAL*8                 :: Emis8
+      LOGICAL                :: FOUND
 !
 ! !DEFINED PARAMETERS
 !
@@ -234,8 +239,11 @@
 
             ! Add emissions into the tracer array
             ! Convert from [kg/m2/s] to [kg]
+            ! Now use GetHcoVal (ckeller, 10/21/2014)
+            CALL GetHcoVal( N, I, J, L, FOUND, Emis8=Emis8 )
+            IF ( .NOT. FOUND ) CYCLE
             State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)
-     &                                 + ( State_Chm%TRAC_TEND(I,J,L,N)
+     &                                 + ( Emis8
      &                                 *   State_Met%AREA_M2  (I,J,L  )
      &                                 *   DTCHEM                      )
 

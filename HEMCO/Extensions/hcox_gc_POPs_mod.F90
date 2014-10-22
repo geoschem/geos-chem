@@ -408,7 +408,10 @@ CONTAINS
        Arr3D => EPOP_OC(:,:,:)
        CALL HCO_EmisAdd( HcoState, Arr3D, IDTPOPPOC, RC )
        Arr3D => NULL()
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: EPOP_OC', RC )
+          RETURN 
+       ENDIF
 
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -430,7 +433,10 @@ CONTAINS
        Arr3D => EPOP_BC(:,:,:)
        CALL HCO_EmisAdd( HcoState, Arr3D, IDTPOPPBC, RC )
        Arr3D => NULL()
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: EPOP_BC', RC )
+          RETURN 
+       ENDIF
 
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -452,7 +458,10 @@ CONTAINS
        Arr3D => EPOP_G(:,:,:)
        CALL HCO_EmisAdd( HcoState, Arr3D, IDTPOPG, RC )
        Arr3D => NULL()
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: EPOP_G', RC )
+          RETURN 
+       ENDIF
 
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN

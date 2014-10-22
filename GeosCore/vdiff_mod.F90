@@ -1811,6 +1811,10 @@ contains
     USE TRACERID_MOD
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
                                    NDRYDEP, emis_save
+    USE MERCURY_MOD,        ONLY : HG_EMIS
+    USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
+
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
 
     implicit none
 !
@@ -1937,7 +1941,8 @@ contains
 
     ! Total PBL emissions
     INTEGER            :: topmix
-    REAL*8             :: tmpflx
+    REAL*8             :: tmpflx, emis, dep
+    LOGICAL            :: fnd
 
     !=================================================================
     ! vdiffdr begins here!
@@ -1969,12 +1974,12 @@ contains
 
     ! Copy values from Input_Opt (bmy, 8/1/13)
     IS_CH4       = Input_Opt%ITS_A_CH4_SIM
-    IS_FULLCHEM  = Input_Opt%ITS_A_FULLCHEM_SIM
+!    IS_FULLCHEM  = Input_Opt%ITS_A_FULLCHEM_SIM
     IS_Hg        = Input_Opt%ITS_A_MERCURY_SIM
-    IS_TAGCO     = Input_Opt%ITS_A_TAGCO_SIM
+!    IS_TAGCO     = Input_Opt%ITS_A_TAGCO_SIM
     IS_TAGOX     = Input_Opt%ITS_A_TAGOX_SIM
     IS_AEROSOL   = Input_Opt%ITS_AN_AEROSOL_SIM
-    IS_RnPbBe    = Input_Opt%ITS_A_RnPbBe_SIM
+!    IS_RnPbBe    = Input_Opt%ITS_A_RnPbBe_SIM
     LDYNOCEAN    = Input_Opt%LDYNOCEAN
     LGTMM        = Input_Opt%LGTMM
     LSOILNOX     = Input_Opt%LSOILNOX
@@ -2078,20 +2083,24 @@ contains
        !----------------------------------------------------------------
        DO N = 1, N_TRACERS
 
-          ! Sum emissions under the PBL top [kg/m2/s]
-          tmpflx      = SUM( State_Chm%TRAC_TEND(I,J,1:topmix,N) )
-
           ! Add total emissions in the PBL to the EFLX array
           ! which tracks emission fluxes.  Units are [kg/m2/s].
+          tmpflx = 0.0d0
+          DO L = 1, TOPMIX
+             CALL GetHcoVal ( N, I, J, L, fnd, emis8=emis )
+             IF ( .NOT. fnd ) EXIT
+             tmpflx = tmpflx + emis
+          ENDDO
           eflx(I,J,N) = eflx(I,J,N) + tmpflx
 
           ! Also add drydep frequencies calculated by HEMCO to the DFLX
           ! array. These values are stored in 1/s. They are added in the 
           ! same manner as the DEPSAV values from drydep_mod.F.
           ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
-          dflx(I,J,N) = dflx(I,J,N)                  &
-                      + ( State_Chm%DepSav(I,J,N)    &
-                        * as2_scal(I,J,N) / TCVV(N) )
+          CALL GetHcoVal ( N, I, J, 1, fnd, dep8=dep )
+          IF ( fnd ) THEN
+             dflx(I,J,N) = dflx(I,J,N) + ( dep * as2_scal(I,J,N) / TCVV(N) )
+          ENDIF
 
        ENDDO
           
@@ -2125,34 +2134,39 @@ contains
 !          eflx(I,J,:) = 0d0 
 !       ENDIF
 !
-!       !----------------------------------------------------------------
-!       ! Add emissions for offline CH4 simulation
-!       !----------------------------------------------------------------
-!       IF ( IS_CH4 ) THEN
-!          ! add surface emis
-!          ! (after converting kg/box/timestep to kg/m2/s)
-!          ! Should NOT use ID_EMITTED here, since it is only for gases 
-!          ! for SMVGEAR. (Lin, 06/10/08)
-!          do N = 1, N_TRACERS
-!             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) &
-!                         / GET_AREA_M2( I, J, 1 )         &
-!                         / GET_TS_EMIS() / 60.d0
-!          enddo
-!       endif
-!
-!       !----------------------------------------------------------------
-!       ! Add emissions for offline mercury simulation
-!       !----------------------------------------------------------------
-!       IF ( IS_Hg ) THEN
-!          do N = 1, N_TRACERS
-!             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) & 
-!                         / GET_AREA_M2( I, J, 1 )         &
-!                         / GET_TS_EMIS() / 60.d0
-!          enddo
-!       ENDIF
+       !----------------------------------------------------------------
+       ! Overwrite emissions for offline CH4 simulation.
+       ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F.
+       ! We use CH4_EMIS here instead of the HEMCO internal emissions
+       ! only to make sure that total CH4 emissions are properly defined
+       ! in a multi-tracer CH4 simulation. For a single-tracer simulation
+       ! and/or all other source types, we could use the HEMCO internal
+       ! values set above and would not need the code below.
+       ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
+       !----------------------------------------------------------------
+       IF ( IS_CH4 ) THEN
+          do N = 1, N_TRACERS
+             eflx(I,J,N) = CH4_EMIS(I,J,Input_Opt%ID_TRACER(N))
+          enddo
+       ENDIF
+
+       !----------------------------------------------------------------
+       ! Overwrite emissions for offline mercury simulation
+       ! HG emissions become stored in HG_EMIS in mercury_mod.F.
+       ! This is a workaround to ensure backwards compatibility.
+       ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
+       !----------------------------------------------------------------
+       IF ( IS_Hg ) THEN
+          do N = 1, N_TRACERS
+             eflx(I,J,N) = HG_EMIS(I,J,N) 
+          enddo
+       ENDIF
 
        !----------------------------------------------------------------
        ! Apply dry deposition frequencies
+       ! These are the frequencies calculated in drydep_mod.F
+       ! The HEMCO drydep frequencies (from air-sea exchange and 
+       ! PARANOX) were already added above.
        !----------------------------------------------------------------
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
           ! gases + aerosols for full chemistry 
@@ -2400,7 +2414,6 @@ contains
 
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
-
 
        !----------------------------------------------------------------
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)

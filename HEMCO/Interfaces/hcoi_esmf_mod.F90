@@ -93,7 +93,7 @@ CONTAINS
       ! ================================================================
 
       ! For MAPL/ESMF error handling (defined Iam and STATUS)
-      __Iam__('HCO_SetServices (HEMCO_GridCompMod.F90)')
+      __Iam__('HCO_SetServices (HCOI_ESMF_MOD.F90)')
 
       ! ---------------------------------------------------------------------
       ! Read file into buffer
@@ -142,7 +142,12 @@ CONTAINS
                DIMS       = MAPL_DimsHorzOnly,               &
                VLOCATION  = MAPL_VLocationNone,              &
                RC         = STATUS                            )
-            VERIFY_(STATUS)
+
+            ! Error trap
+            IF ( STATUS /= ESMF_SUCCESS ) THEN
+               WRITE(*,*) '2D import error: ', TRIM(CurrCont%Dct%Dta%ncFile)
+               VERIFY_(STATUS)
+            ENDIF
 
          ! Import 3D data: Assume central location in vertical dimension!
          ELSEIF ( CurrCont%Dct%Dta%SpaceDim == 3 ) THEN
@@ -154,7 +159,12 @@ CONTAINS
                DIMS       = MAPL_DimsHorzVert,               &
                VLOCATION  = MAPL_VLocationCenter,            &
                RC         = STATUS                            )
-            VERIFY_(STATUS)
+
+            ! Error trap
+            IF ( STATUS /= ESMF_SUCCESS ) THEN
+               WRITE(*,*) '3D import error: ', TRIM(CurrCont%Dct%Dta%ncFile)
+               VERIFY_(STATUS)
+            ENDIF
 
          ! Return w/ error if not 2D or 3D data 
          ELSE

@@ -81,11 +81,6 @@ MODULE HCO_Calc_Mod
 !
   PRIVATE :: GET_CURRENT_EMISSIONS
 !
-! !MODULE VARIABLES
-!
-  ! FLAG to control behavior of negative values
-  INTEGER             :: NegFlag = -1
-!
 ! ============================================================================
 !
 ! !REVISION HISTORY:
@@ -196,14 +191,6 @@ CONTAINS
 
     ! verb mode? 
     verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
-
-    ! Read positive values settings from HEMCO configuration file. If not found, set
-    ! to 0 (return w/ error if negative values are found).
-    IF ( NegFlag < 0 ) THEN
-       CALL GetExtOpt ( 0, 'Negative values', OptValInt=NegFlag, Found=Found, RC=RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IF ( .NOT. Found ) NegFlag = 0
-    ENDIF
 
     !-----------------------------------------------------------------
     ! Initialize variables 
@@ -457,12 +444,12 @@ CONTAINS
        ! Check for negative values according to the corresponding setting
        ! in the configuration file: 2 means allow negative values, 1 means
        ! set to zero and prompt a warning, else return with error.
-       IF ( NegFlag /= 2 ) THEN
+       IF ( HcoState%Options%NegFlag /= 2 ) THEN
 
           IF ( ANY(TmpFlx < 0.0_hp) ) THEN
 
              ! Set to zero and prompt warning
-             IF ( NegFlag == 1 ) THEN
+             IF ( HcoState%Options%NegFlag == 1 ) THEN
                 WHERE ( TmpFlx < 0.0_hp ) TmpFlx = 0.0_hp
                 MSG = 'Negative emissions set to zero: '// TRIM(Dct%cName)
                 CALL HCO_WARNING( MSG, RC )
@@ -894,10 +881,10 @@ CONTAINS
              ! For negative scale factor, proceed according to the
              ! negative value setting specified in the configuration
              ! file (NegFlag = 2: use this value):
-             IF ( TMPVAL < 0.0_hp .AND. NegFlag /= 2 ) THEN
+             IF ( TMPVAL < 0.0_hp .AND. HcoState%Options%NegFlag /= 2 ) THEN
 
                 ! NegFlag = 1: ignore and show warning 
-                IF ( NegFlag == 1 ) THEN
+                IF ( HcoState%Options%NegFlag == 1 ) THEN
                    ERROR = -1 ! Will prompt warning 
                    CYCLE
 

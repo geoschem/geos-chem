@@ -263,6 +263,7 @@
       REAL*8, PARAMETER      :: RGAS    = 8314.3d0 / 28.97d0
       REAL*8, PARAMETER      :: AKAP    = RGAS     / CP
       REAL*8, PARAMETER      :: P1000   = 1000d0
+      CHARACTER(LEN=255)     :: MSG
 
       !=================================================================
       ! HCOX_DUSTDEAD_RUN begins here!
@@ -446,7 +447,11 @@
 
             ! Add to emissions array
             CALL HCO_EmisAdd( HcoState, FLUX(:,:,N), HcoIDs(N), RC)
-            IF ( RC /= HCO_SUCCESS ) RETURN 
+            IF ( RC /= HCO_SUCCESS ) THEN
+               WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
+               CALL HCO_ERROR( MSG, RC )
+               RETURN 
+            ENDIF
 
             ! Eventually update diagnostics
             IF ( Diagn_AutoFillLevelDefined(2) ) THEN

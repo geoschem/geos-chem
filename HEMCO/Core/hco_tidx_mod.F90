@@ -36,11 +36,12 @@
 ! data (netCDF) file.
 !\\
 !\\
-! Specifically, spatial uniform data (i.e. nx = ny = 1) is always 
-! assigned the local time cycle intervals (hourly, weekdaily, or 
-! monthly), while for gridded data, it's assumed that local-time
-! effects are already taken into account and the gridded cycle intervals
-! are thus applied.
+! Spatial uniform data (i.e. nx = ny = 1) is always assigned the local 
+! time cycle intervals (hourly, weekdaily, or monthly), e.g. the local
+! time is used at every grid box when picking the time slice at a given
+! time. For gridded data, it's assumed that local-time effects are already 
+! taken into account and UTC time is used at all locations to select the
+! currently valid time slice.
 !\\
 !\\
 ! Structure AlltIDx organizes the indexing of the vector arrays. It
@@ -931,8 +932,14 @@ CONTAINS
 ! \begin{enumerate}
 ! \item Range of values, separated by - sign: e.g. 2000-2010.
 ! \item Single value: 2000
-! \item Asterisk as wildcard character: *
-! \item Placeholder for start date, i.e. YYYY, MM, DD, HH.
+! \item Wildcard character (default = *). In this case, the data interval
+!  is determined automatically by HEMCO based on the number of time slices
+!  found in the data set.
+! \item Time tokens: $YYYY, $MM, $DD, $HH. When reading the data, these values
+!  will be substituted by the current simulation date.
+! \item String 'WD'. Denotes that the data contains weekday data. Weekdaily data
+!  is always completely read into array (e.g. all seven data arrays) and it is
+!  expected that the first slice represents Sunday.
 ! \end{enumerate}
 !
 ! The extracted time stamp is written into the arrays ncYrs, ncMts,
@@ -1001,14 +1008,23 @@ CONTAINS
        IF ( TRIM(SUBSTR(I)) == TRIM(HCO_WCD() ) ) THEN
           TimeVec(I0:I1) = -1 
 
-       ELSEIF ( TRIM(SUBSTR(I)) == 'YYYY' .OR. &
-                TRIM(SUBSTR(I)) == 'MM'   .OR. &
-                TRIM(SUBSTR(I)) == 'DD'   .OR. &
-                TRIM(SUBSTR(I)) == 'HH'         ) THEN
+       ! Characters YYYY, MM, DD, and/or HH can be used to ensure that
+       ! the current simulation time is being used.
+       ELSEIF ( INDEX( TRIM(SUBSTR(I)), 'YYYY' ) > 0 .OR. &
+                INDEX( TRIM(SUBSTR(I)), 'MM'   ) > 0 .OR. &
+                INDEX( TRIM(SUBSTR(I)), 'DD'   ) > 0 .OR. &
+                INDEX( TRIM(SUBSTR(I)), 'HH'   ) > 0       ) THEN 
           TimeVec(I0:I1) = -999
 
-       ! Otherwise, check if date range if given and set lower and
-       ! upper bound accordingly.
+       ! For the daily index, value 'WD' is also supported. This 
+       ! indicates weekdays (Sun-Sat). Weekday data is always read
+       ! entirely (e.g. all seven arrays) and we can set the time limits
+       ! to -1.
+       ELSEIF ( I==3 .AND. INDEX( TRIM(SUBSTR(I)), 'WD' ) > 0 ) THEN
+          TimeVec(I0:I1) = -1 
+
+       ! Otherwise, check for date range and set lower and upper bound
+       ! accordingly.
        ELSE
           CALL STRSPLIT( SUBSTR(I), '-', DATERNG, N )
 

@@ -1260,7 +1260,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXISOP, IDTISOP, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXISOP', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1279,7 +1282,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXEMMO, IDTMONX, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXEMMO', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1320,7 +1326,10 @@
          ! Add flux to emission array
          FLUXACETbg = FLUXACETbg + FLUXACETmo + FLUXACETmb
          CALL HCO_EmisAdd( HcoState, FLUXACETbg, IDTACET, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXACETbg', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1339,7 +1348,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXCO, IDTCO, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXCO', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1358,7 +1370,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXPRPE, IDTPRPE, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXPRPE', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1377,7 +1392,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXC2H4, IDTC2H4, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXC2H4', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1396,7 +1414,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXOCPI, IDTOCPI, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXOCPI', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1415,7 +1436,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXMTPA, IDTMTPA, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMTPA', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1434,7 +1458,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXMTPO, IDTMTPO, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMTPO', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1453,7 +1480,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXLIMO, IDTLIMO, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXLIMO', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1472,7 +1502,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXSESQ, IDTSESQ, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSESQ', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN

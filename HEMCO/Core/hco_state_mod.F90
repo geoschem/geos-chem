@@ -121,6 +121,10 @@ MODULE HCO_State_Mod
      LOGICAL :: AutoFillDiagn ! Write into AutoFill diagnostics?
      LOGICAL :: FillBuffer    ! Write calculated emissions into buffer
                               ! instead of emission array? 
+     INTEGER :: NegFlag       ! Negative value flag (from configfile):
+                              ! 2 = allow negative values
+                              ! 1 = set neg. values to zero and prompt warning 
+                              ! 0 = return w/ error if neg. value
   END TYPE HcoOpt
 
   !=========================================================================
@@ -192,6 +196,10 @@ CONTAINS
 !
   SUBROUTINE HcoState_Init( am_I_Root, HcoState, nSpecies, RC ) 
 !
+! !USES:
+!
+    USE HCO_EXTLIST_MOD,    ONLY : GetExtOpt
+!
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,          INTENT(IN)    :: am_I_Root ! root CPU?
@@ -211,6 +219,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, AS
+    LOGICAL :: FOUND
 
     !=====================================================================
     ! HcoState_Init begins here!
@@ -358,6 +367,14 @@ CONTAINS
     HcoState%Options%AutoFillDiagn = .TRUE.
     HcoState%Options%FillBuffer    = .FALSE.
 
+    ! Get negative flag value from configuration file. If not found, set to 0. 
+    CALL GetExtOpt ( 0, 'Negative values', &
+                     OptValInt=HcoState%Options%NegFlag, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%NegFlag = 0
+
+    !-----------------------------------------------------------------
+    ! Initialize variables 
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 

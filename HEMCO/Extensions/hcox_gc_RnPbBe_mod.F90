@@ -300,7 +300,10 @@ CONTAINS
     Arr2D => EmissRn(:,:)
     CALL HCO_EmisAdd( HcoState, Arr2D, IDTRn, RC )
     Arr2D => NULL()
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR( 'HCO_EmisAdd error: EmisRn', RC )
+       RETURN 
+    ENDIF
 
     ! Add diagnostics
     IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -374,7 +377,10 @@ CONTAINS
     Arr3D => EmissBe7(:,:,:)
     CALL HCO_EmisAdd( HcoState, Arr3D, IDTBe7, RC )
     Arr3D => NULL()
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR( 'HCO_EmisAdd error: EmisBe7', RC )
+       RETURN 
+    ENDIF
 
     ! Add diagnostics
     IF ( Diagn_AutoFillLevelDefined(2) ) THEN

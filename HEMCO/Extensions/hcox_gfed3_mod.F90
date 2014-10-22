@@ -184,6 +184,7 @@ CONTAINS
     INTEGER             :: N, M
     REAL(hp), POINTER   :: Arr2D (:,:) => NULL()
     REAL(hp), POINTER   :: TMPPTR(:,:) => NULL()
+    CHARACTER(LEN=63)   :: MSG
 
     REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
@@ -308,7 +309,11 @@ CONTAINS
 
        ! Add flux to HEMCO emission array
        CALL HCO_EmisAdd( HcoState, SpcArr, HcoIDs(N), RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoIDs(N))%SpcName)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN 
+       ENDIF
 
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN

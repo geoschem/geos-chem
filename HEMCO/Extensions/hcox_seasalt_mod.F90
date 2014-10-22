@@ -296,12 +296,6 @@ CONTAINS
              FLUXSALC(I,J) = SALT / A_M2 / HcoState%TS_EMIS 
           ENDIF
 
-!            CALL HCO_EmisAdd ( HcoState, FLUX, tmpID, I,J,1, RC )
-!            IF ( RC /= HCO_SUCCESS ) THEN
-!               ERR = .TRUE.
-!               EXIT
-!            ENDIF
-
 !=============================================================================
 !            ! Alkalinity [kg] (bec, bmy, 4/13/05)
 !            ALK_EMIS(I,J,L,N) = SALT
@@ -322,12 +316,6 @@ CONTAINS
 
           ! kg --> kg/m2/s
           FLUXBR2(I,J) = SSA_Br2 / A_M2 / HcoState%TS_EMIS
-
-!          CALL HCO_EmisAdd ( HcoState, FLUX, tmpID, I,J,1, RC )
-!          IF ( RC /= HCO_SUCCESS ) THEN
-!             ERR = .TRUE.
-!             EXIT
-!          ENDIF
        ENDIF
 
 !=============================================================================
@@ -363,7 +351,10 @@ CONTAINS
 
        ! Add flux to emission array
        CALL HCO_EmisAdd( HcoState, FLUXSALA, IDTSALA, RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALA', RC )
+          RETURN 
+       ENDIF
 
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -381,7 +372,10 @@ CONTAINS
 
        ! Add flux to emission array
        CALL HCO_EmisAdd( HcoState, FLUXSALC, IDTSALC, RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSALC', RC )
+          RETURN 
+       ENDIF
 
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -399,7 +393,10 @@ CONTAINS
 
        ! Add flux to emission array
        CALL HCO_EmisAdd( HcoState, FLUXBr2, IDTBr2, RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXBr2', RC )
+          RETURN 
+       ENDIF
 
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN

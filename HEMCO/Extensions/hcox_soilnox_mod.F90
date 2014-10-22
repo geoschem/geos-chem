@@ -392,7 +392,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        PFACTOR(:,:) = TmpArr(:,:)
        TmpArr => NULL()
-          
+   
        ! DRYPERIOD [unitless]
        CALL HCO_GetPtr ( aIR, 'SOILNOX_DRYPER', TmpArr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -474,17 +474,17 @@ CONTAINS
        IF ( DRYPERIOD(I,J) > 8760d0 ) DRYPERIOD(I,J) = 8760d0
  
        ! Return NO emissions from soils [kg NO/m2/s]
-       CALL SOIL_NOX_EMISSION( ExtState,                                &
-                               TSEMIS, I, J,                            &
-                               SOILFRT,                                 &
-                               GWET_PREV(I,J), DRYPERIOD(I,J),  &
-                               PFACTOR(I,J),   IJFLUX,              &
-                               DEP_FERT,           FERTDIAG,            &
-                               UNITCONV,                                &
-                               CANOPYNOX(I,J,:)                  )
+       CALL SOIL_NOX_EMISSION( ExtState,                       &
+                               TSEMIS, I, J,                   &
+                               SOILFRT,                        &
+                               GWET_PREV(I,J), DRYPERIOD(I,J), &
+                               PFACTOR(I,J),   IJFLUX,         &
+                               DEP_FERT,       FERTDIAG,       &
+                               UNITCONV,                       &
+                               CANOPYNOX(I,J,:)                 )
      
        ! Write out
-       FLUX_2D(I,J) = IJFLUX
+       FLUX_2D(I,J) = MAX(IJFLUX,0.0_hp)
        IF (DoDiagn) DIAG(I,J) = FERTDIAG
 
     ENDDO !J 
@@ -497,7 +497,10 @@ CONTAINS
 
     ! Add flux to emission array
     CALL HCO_EmisAdd( HcoState, FLUX_2D, IDTNO, RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN 
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR( 'HCO_EmisAdd error', RC )
+       RETURN 
+    ENDIF
 
     ! Eventually update diagnostics
     IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -919,9 +922,9 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     REAL*8,   INTENT(OUT) :: SOILNOx         ! Soil NOx emissions [kg/m2/s]
-    REAL(hp), INTENT(OUT) :: GWET_PREV   ! Soil Moisture Prev timestep
-    REAL(hp), INTENT(OUT) :: DRYPERIOD   ! Dry period length in hours
-    REAL(hp), INTENT(OUT) :: PFACTOR     ! Pulsing Factor
+    REAL(hp), INTENT(OUT) :: GWET_PREV       ! Soil Moisture Prev timestep
+    REAL(hp), INTENT(OUT) :: DRYPERIOD       ! Dry period length in hours
+    REAL(hp), INTENT(OUT) :: PFACTOR         ! Pulsing Factor
     REAL*8,   INTENT(OUT) :: FERTDIAG        ! Fert emissions [kg/m2/s]
 !
 ! !REMARKS:
@@ -2006,6 +2009,7 @@ CONTAINS
 !  31 Jan 2011 - R. Hudman   - Rewrote pulsing scheme
 !  31 Jan 2011 - R. Hudman   - Updated ProTex header
 !  29 May 2013 - R. Yantosca - Bug fix: prevent log(0) from happening
+!  21 Oct 2014 - C. Keller   - Limit PFACTOR to 1.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2036,6 +2040,9 @@ CONTAINS
           ELSE
              PFACTOR = -53.6d0
           ENDIF
+
+          ! If dry period < ~3 days then no pulse
+          IF ( PFACTOR < 1.0 ) PFACTOR = 1.0
 
           ! Reinitialize dry period
           DRYPERIOD = 0d0

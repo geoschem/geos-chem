@@ -33,9 +33,9 @@
       ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
       PUBLIC :: BETANOSAVE
 
-      ! Make BIOG_SESQ array public so that it can be used by HEMCO
-      ! (ckeller, 05/19/14)
-      PUBLIC :: BIOG_SESQ
+!      ! Make BIOG_SESQ array public so that it can be used by HEMCO
+!      ! (ckeller, 05/19/14)
+!      PUBLIC :: BIOG_SESQ
 !
 ! !REMARKS:
 !  4 Aerosol species : Organic and Black carbon 
@@ -304,9 +304,9 @@
       REAL*8, ALLOCATABLE :: BIOG_LIMO(:,:)
       REAL*8, ALLOCATABLE :: BIOG_MTPO(:,:)
 
-      ! BIOG_SESQ is now 3D so that it can be used by HEMCO
-      ! (ckeller, 05/19/14)
-      REAL*8, ALLOCATABLE, TARGET :: BIOG_SESQ(:,:,:)
+!      ! BIOG_SESQ is now 3D so that it can be used by HEMCO
+!      ! (ckeller, 05/19/14)
+!      REAL*8, ALLOCATABLE, TARGET :: BIOG_SESQ(:,:,:)
       REAL*8, ALLOCATABLE :: DIUR_ORVC(:,:)
       REAL*8, ALLOCATABLE :: GEIA_ORVC(:,:)
       REAL*8, ALLOCATABLE :: TCOSZ(:,:)
@@ -5824,6 +5824,7 @@ ccc
       ! HEMCO update ( ckeller 05/19.2014)
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal
 !
 ! !INPUT PARAMETERS:
 !      
@@ -5849,7 +5850,8 @@ ccc
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!  19 May 2014 - C. Keller   - Updates SESQ emissions.
+!  19 May 2014 - C. Keller   - Updated SESQ emissions.
+!  21 Oct 2014 - C. Keller   - Now use GetHcoVal for SESQ emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5870,6 +5872,11 @@ ccc
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
+
+      ! HEMCO update
+      REAL*8          :: Emis8
+      LOGICAL         :: FOUND
+      INTEGER, SAVE   :: SESQID = -999
 
       !=================================================================
       ! EMITHIGH begins here!
@@ -5897,6 +5904,11 @@ ccc
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
+
+      ! Eventually get HEMCO ID of species SESQ 
+      IF ( SESQID == -999 ) THEN
+         SESQID = GetHcoID( 'SESQ' )
+      ENDIF
 
       ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
       ! (units: kg) (Lin, 06/09/08) 
@@ -5939,13 +5951,16 @@ ccc
             ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
             F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
-            IF ( IS_LIMO ) THEN
-               ! Sesquiterpenes. BIOG_SESQ is calculated in HEMCO. Units
-               ! are kgC/m2/s, convert to kgC/box here.
-               TMPFLX = BIOG_SESQ(I,J,1) * GET_TS_EMIS()   * 
-     &                  60.0d0           * GET_AREA_M2(I,J,1)
-               ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-     &                            ( F_OF_PBL * TMPFLX )
+            IF ( SESQID > 0 ) THEN
+               ! Sesquiterpenes emissions are caluclated in HEMCO. 
+               ! Units are kgC/m2/s, convert to kgC/box here.
+               CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis8=Emis8 )
+               IF ( FOUND ) THEN
+                  TMPFLX = Emis8   * GET_TS_EMIS()   * 
+     &                     60.0d0  * GET_AREA_M2(I,J,1)
+                  ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L) + 
+     &                               ( F_OF_PBL * TMPFLX )
+               ENDIF
             ENDIF
 
             ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
@@ -6023,13 +6038,18 @@ ccc
          IF ( IS_MTPO ) THEN
             STT(I,J,L,IDTMTPO) = STT(I,J,L,IDTMTPO) + 
      &                           ( F_OF_PBL * BIOG_MTPO(I,J) )
+         ENDIF
 
-            ! Sesquiterpenes. BIOG_SESQ is calculated in HEMCO. Units
-            ! are kgC/m2/s, convert to kgC/box here.
-            TMPFLX = BIOG_SESQ(I,J,1) * GET_TS_EMIS()   * 
-     &               60.0d0           * GET_AREA_M2(I,J,1)
-            ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-     &                           ( F_OF_PBL * TMPFLX ) 
+         ! Sesquiterpenes emissions are caluclated in HEMCO. 
+         ! Units are kgC/m2/s, convert to kgC/box here.
+         IF ( SESQID > 0 ) THEN
+            CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis8=Emis8 )
+            IF ( FOUND ) THEN
+               TMPFLX = Emis8   * GET_TS_EMIS()   * 
+     &                  60.0d0  * GET_AREA_M2(I,J,1)
+               ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L) + 
+     &                            ( F_OF_PBL * TMPFLX )
+            ENDIF
          ENDIF
 
          ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
@@ -9223,9 +9243,9 @@ ccc
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPO' )
          BIOG_MTPO = 0d0
 
-         ALLOCATE( BIOG_SESQ( IIPAR, JJPAR, 1 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_SESQ' )
-         BIOG_SESQ = 0d0
+!         ALLOCATE( BIOG_SESQ( IIPAR, JJPAR, 1 ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_SESQ' )
+!         BIOG_SESQ = 0d0
 
          ALLOCATE( DIUR_ORVC( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'DIUR_ORVC' )
@@ -9535,7 +9555,7 @@ ccc
       IF ( ALLOCATED( BIOG_MTPA     ) ) DEALLOCATE( BIOG_MTPA     )
       IF ( ALLOCATED( BIOG_LIMO     ) ) DEALLOCATE( BIOG_LIMO     )
       IF ( ALLOCATED( BIOG_MTPO     ) ) DEALLOCATE( BIOG_MTPO     )
-      IF ( ALLOCATED( BIOG_SESQ     ) ) DEALLOCATE( BIOG_SESQ     )
+!      IF ( ALLOCATED( BIOG_SESQ     ) ) DEALLOCATE( BIOG_SESQ     )
       IF ( ALLOCATED( DIUR_ORVC     ) ) DEALLOCATE( DIUR_ORVC     )
       IF ( ALLOCATED( GEIA_ORVC     ) ) DEALLOCATE( GEIA_ORVC     )
       IF ( ALLOCATED( TCOSZ         ) ) DEALLOCATE( TCOSZ         )

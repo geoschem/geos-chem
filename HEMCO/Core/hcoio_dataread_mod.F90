@@ -1558,7 +1558,8 @@ CONTAINS
        IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) .OR. & 
             Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
             Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
-          MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
+          MSG = 'Data must not have more than one time dimension: ' // &
+                 TRIM(Lct%Dct%cName)
           CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF

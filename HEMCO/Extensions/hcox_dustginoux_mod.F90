@@ -190,6 +190,7 @@ CONTAINS
     REAL*8            :: SRCE_P, REYNOL, ALPHA,  BETA
     REAL*8            :: GAMMA,  CW,     DTSRCE, A_M2,  G
     REAL              :: DSRC
+    CHARACTER(LEN=63) :: MSG
 
     ! Arrays
     REAL(hp), TARGET  :: FLUX(HcoState%NX,HcoState%NY,NBINS)
@@ -348,7 +349,11 @@ CONTAINS
 
           ! Add flux to emission array
           CALL HCO_EmisAdd( HcoState, FLUX(:,:,N), HcoIDs(N), RC)
-          IF ( RC /= HCO_SUCCESS ) RETURN 
+          IF ( RC /= HCO_SUCCESS ) THEN
+             WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
+             CALL HCO_ERROR( MSG, RC )
+             RETURN 
+          ENDIF
 
           ! Eventually update diagnostics
           IF ( Diagn_AutoFillLevelDefined(2) ) THEN
