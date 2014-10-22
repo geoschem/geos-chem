@@ -5370,16 +5370,15 @@ c Fix up for negative argument, erf, etc.
       FLX_MSS_FDG_FCT = 2.16d-4
 #endif
 
-
-#elif defined( GEOS_4 ) && defined( GRID2x25 )
-      FLX_MSS_FDG_FCT = 3.5d-4
-
+#elif defined( GEOS_5 ) && defined( GRID4x5 )
+      FLX_MSS_FDG_FCT = 7.0d-4
 
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
-
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
       FLX_MSS_FDG_FCT = 4.9d-4
 
+#elif defined( GEOS_4 ) && defined( GRID2x25 )
+      FLX_MSS_FDG_FCT = 3.5d-4
 
 #elif defined( MERRA ) && defined( GRID2x25 )
 
