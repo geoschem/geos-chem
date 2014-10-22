@@ -216,7 +216,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L, N, Emis8, FOUND )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, N_TRACERS
 

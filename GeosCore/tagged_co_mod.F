@@ -376,7 +376,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L, N, FOUND, Emis8 )
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR

@@ -2059,6 +2059,7 @@ contains
 !$OMP DEFAULT( SHARED )                                               &
 !$OMP PRIVATE( I,      J,               L,           N,      NN     ) &
 !$OMP PRIVATE( WK1,    WK2,             PBL_TOP,     DEP_KG, TOPMIX ) &
+!$OMP PRIVATE( fnd,    emis,            dep                         ) &
 !$OMP PRIVATE( TMPFLX, FRAC_NO_HG0_DEP, ZERO_HG0_DEP                )
     do J = 1, JJPAR
     do I = 1, IIPAR

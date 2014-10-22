@@ -110,6 +110,9 @@
 
          ! Loop over all tropospheric grid boxes
          ! --> Stratospheric emissions are ignored!
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, L1, JLOOP, Fnd, Emis8 )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
@@ -141,9 +144,7 @@
             ENDDO !L
          ENDDO
          ENDDO
-
-         ! testing only
-!         write(*,*) 'total REMIS of tracer ', NN , ': ', SUM(REMIS(:,N))
+!$OMP END PARALLEL DO
 
       ENDDO ! N
 

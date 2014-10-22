@@ -5943,7 +5943,7 @@ ccc
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_OF_PBL )
+!$OMP+PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis8, FOUND )
          DO L = 1, PBL_MAX
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -5990,7 +5990,7 @@ ccc
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_OF_PBL )
+!$OMP+PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis8, FOUND )
       DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
