@@ -1114,9 +1114,9 @@
                   ! Other sesquiterpene
                   CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
      &                                   GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                                   UNITCONV , 'QSQTE', OSQT, RC )
+     &                                   UNITCONV , 'OSQTE', OSQT, RC )
                   IF ( RC /= HCO_SUCCESS ) THEN 
-                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_QSQTE', RC )
+                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_OSQTE', RC )
                      ERR = .TRUE.
                      EXIT
                   ENDIF 
