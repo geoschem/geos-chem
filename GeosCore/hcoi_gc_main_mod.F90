@@ -1355,8 +1355,8 @@ CONTAINS
     !-----------------------------------------------------------------
     ELSEIF ( Input_Opt%ITS_A_CO2_SIM ) THEN
 
-       ! There are up to 10 tracers
-       nModelSpec = 10 
+       ! There are up to 11 tracers
+       nModelSpec = 11 
    
        ! Allocate model species variables
        CALL ModelSpec_Allocate ( nModelSpec, RC )
@@ -1372,29 +1372,31 @@ CONTAINS
           ! used in the HEMCO configuration file!
           SELECT CASE ( N )
 
-             CASE ( 1  ) 
-                ThisName = 'CO2ff'
+             CASE ( 1  )
+                ThisName = 'CO2'
              CASE ( 2  ) 
-                ThisName = 'CO2oc'
+                ThisName = 'CO2ff'
              CASE ( 3  ) 
-                ThisName = 'CO2bal'
+                ThisName = 'CO2oc'
              CASE ( 4  ) 
-                ThisName = 'CO2bb'
+                ThisName = 'CO2bal'
              CASE ( 5  ) 
-                ThisName = 'CO2bf'
+                ThisName = 'CO2bb'
              CASE ( 6  ) 
-                ThisName = 'CO2nte'
+                ThisName = 'CO2bf'
              CASE ( 7  ) 
-                ThisName = 'CO2se'
+                ThisName = 'CO2nte'
              CASE ( 8  ) 
-                ThisName = 'CO2av'
+                ThisName = 'CO2se'
              CASE ( 9  ) 
-                ThisName = 'CO2ch'
+                ThisName = 'CO2av'
              CASE ( 10 ) 
+                ThisName = 'CO2ch'
+             CASE ( 11 ) 
                 ThisName = 'CO2corr'
 
              CASE DEFAULT
-                MSG = 'Only 10 species defined for CO2 simulation!'
+                MSG = 'Only 11 species defined for CO2 simulation!'
                 CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
                 RETURN
 
@@ -1403,9 +1405,8 @@ CONTAINS
           ! Species name 
           ModelSpecNames(N)      = ThisName 
           
-          ! Species ID. Tracer 1 is total CO2, thus add one to get 
-          ! emission tracer ID.
-          ModelSpecIDs(N)        = N + 1
+          ! Species ID.
+          ModelSpecIDs(N)        = N
    
           ! Molecular weights and molecule ratio
           ModelSpecMW(N)         = Input_Opt%Tracer_MW_G(N)
@@ -1416,9 +1417,6 @@ CONTAINS
           ModelSpecK0(N)         = K0
           ModelSpecCR(N)         = CR
           ModelSpecPKA(N)        = PKA
-
-!          ! For CO2 sim, never set pointers to Trac_Tend arrays
-!          UsePtrs2GC = .FALSE.
 
        ENDDO
 
@@ -1551,9 +1549,9 @@ CONTAINS
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller   - Initial Version
 !  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  27 Oct 2014 - C. Keller   - Now allocate M2HID here to prevent 
-!                              out-of-bounds error lateron if there are no
-!                              species defined in the HEMCO config. file.
+!  27 Oct 2014 - C. Keller   - Now allocate M2HID also if there are no
+!                              species in the HEMCO config file (to prevent 
+!                              out-of-bounds error lateron).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1572,23 +1570,14 @@ CONTAINS
     ! Extract number of species found in the HEMCO config. file.
     nConfigSpec = Config_GetnSpecies ( )
 
-    ! Initialize mapping vector. Do this here to make sure that M2HID
-    ! is also allocated if there are no species defined in the HEMCO
-    ! config file. This is to prevent out-of-bounds error in references
-    ! to M2HID lateron.
-    ALLOCATE( M2HID(Input_Opt%N_TRACERS), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR ( 'Allocation error: M2HID', RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-    DO I = 1, Input_Opt%N_TRACERS
-       M2HID(I)%ID = -1
-    ENDDO
-
     ! If there is no species in the HEMCO configuration file, there
     ! are no matching species!
     IF ( nConfigSpec == 0 ) THEN
        nHcoSpec = 0
+
+       ! To prevent out of bounds error
+       CALL M2HID_Allocate( Input_Opt%N_TRACERS, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If at least one species is set in the configuration file, try
     ! to match those species against the GEOS-Chem species.
@@ -2135,6 +2124,58 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Also allocate M2HID
+    CALL M2HID_Allocate( N, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
   END SUBROUTINE ModelSpec_Allocate
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: M2HID_Allocate 
+!
+! !DESCRIPTION: Subroutine M2HID\_Allocate allocates the M2HID derived type.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE M2HID_Allocate ( N, RC )
+!
+! !INPUT/OUTPUT ARGUMENTS:
+!
+    INTEGER, INTENT(IN   ) :: N     ! Array size
+    INTEGER, INTENT(INOUT) :: RC    ! Return code 
+!
+! !REVISION HISTORY:
+!  27 Oct 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER            :: I, AS
+    CHARACTER(LEN=255) :: LOC = 'M2HID_Allocate (hcoi_gc_main_mod.F90)'
+
+    !=================================================================
+    ! M2HID_Allocate begins here
+    !=================================================================
+
+    ! Initialize mapping vector. 
+    ALLOCATE( M2HID(N), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'Allocation error: M2HID', RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    DO I = 1, N
+       M2HID(I)%ID = -1
+    ENDDO
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE M2HID_Allocate
 !EOC
 END MODULE HCOI_GC_MAIN_MOD
