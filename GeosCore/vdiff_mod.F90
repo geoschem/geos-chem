@@ -2454,8 +2454,9 @@ contains
 #if defined( DEBUG )
     write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
     do N=1,N_TRACERS
-       write(*,*) 'eflx TRACER ', N, ': ', SUM(eflx(:,:,N))
-       write(*,*) 'dflx TRACER ', N, ': ', SUM(dflx(:,:,N))
+!       write(*,*) 'eflx TRACER ', N, ': ', SUM(eflx(:,:,N))
+!       write(*,*) 'dflx TRACER ', N, ': ', SUM(dflx(:,:,N))
+       write(*,*) 'eflx TRACER ', N, ': ', MINVAL(eflx(:,:,N)), MAXVAL(eflx(:,:,N))
     enddo
 #endif
 

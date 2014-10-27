@@ -1551,13 +1551,17 @@ CONTAINS
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller   - Initial Version
 !  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  27 Oct 2014 - C. Keller   - Now allocate M2HID here to prevent 
+!                              out-of-bounds error lateron if there are no
+!                              species defined in the HEMCO config. file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER            :: nConfigSpec, nModelSpec, AS
+    INTEGER            :: nConfigSpec, nModelSpec
+    INTEGER            :: I, AS
     CHARACTER(LEN=255) :: LOC = 'Get_nHcoSpc (hcoi_gc_main_mod.F90)'
     CHARACTER(LEN=255) :: MSG
 
@@ -1568,10 +1572,26 @@ CONTAINS
     ! Extract number of species found in the HEMCO config. file.
     nConfigSpec = Config_GetnSpecies ( )
 
-    ! If at least one species is set in the configuration file, try
-    ! to match those species against the GEOS-Chem species.
+    ! Initialize mapping vector. Do this here to make sure that M2HID
+    ! is also allocated if there are no species defined in the HEMCO
+    ! config file. This is to prevent out-of-bounds error in references
+    ! to M2HID lateron.
+    ALLOCATE( M2HID(Input_Opt%N_TRACERS), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'Allocation error: M2HID', RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    DO I = 1, Input_Opt%N_TRACERS
+       M2HID(I)%ID = -1
+    ENDDO
+
+    ! If there is no species in the HEMCO configuration file, there
+    ! are no matching species!
     IF ( nConfigSpec == 0 ) THEN
        nHcoSpec = 0
+
+    ! If at least one species is set in the configuration file, try
+    ! to match those species against the GEOS-Chem species.
     ELSE
 
        ! Get list of all species names found in the HEMCO config file.
@@ -2114,16 +2134,6 @@ CONTAINS
        CALL HCO_ERROR ( 'Allocation error: ModelSpecPKA', RC, THISLOC=LOC )
        RETURN
     ENDIF
-
-    ! Initialize mapping vector
-    ALLOCATE( M2HID(N), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR ( 'Allocation error: M2HID', RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-    DO I = 1, N
-       M2HID(I)%ID = -1
-    ENDDO
 
   END SUBROUTINE ModelSpec_Allocate
 !EOC

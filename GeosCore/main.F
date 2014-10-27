@@ -1057,7 +1057,7 @@
          CALL DIAG_2PM( State_Met )
 
          ! Get the overhead column O3 for use with FAST-J
-         CALL GET_OVERHEAD_O3_FOR_FASTJ()
+         CALL GET_OVERHEAD_O3_FOR_FASTJ( am_I_Root )
 
          !==============================================================
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
@@ -2265,7 +2265,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_OVERHEAD_O3_FOR_FASTJ()
+      SUBROUTINE GET_OVERHEAD_O3_FOR_FASTJ( am_I_Root )
+!
+! INPUT ARGUMENTS:
+! 
+      LOGICAL, INTENT(IN   )   :: am_I_Root   ! Root CPU?
 ! 
 ! !REMARKS:
 !  This routine makes use of variables declared in above in the main program
@@ -2279,6 +2283,7 @@
 !  14 Nov 2013 - R. Yantosca - For GEOS-FP, read O3 from met field files
 !  13 Dec 2013 - M. Sulprizio- Moved USE_O3_FROM_MET to the Input_Opt object and
 !                              set in initialization stage of GEOS_CHEM
+!  22 Oct 2014 - C. Keller   - Added am_I_Root
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2297,7 +2302,8 @@
              
             ! Get the overhead O3 column for FAST-J.  Take either the
             ! TOMS O3 data or the column O3 directly from the met fields
-            CALL COMPUTE_OVERHEAD_O3( DAY,
+            CALL COMPUTE_OVERHEAD_O3( am_I_Root,  
+     &                                DAY,
      &                                Input_Opt%USE_O3_FROM_MET, 
      &                                State_Met%TO3 )
          ENDIF
