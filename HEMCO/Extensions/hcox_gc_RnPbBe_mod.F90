@@ -120,6 +120,8 @@ CONTAINS
 !  07 Jul 2014 - R. Yantosca - Initial version
 !  03 Sep 2014 - R. Yantosca - Bug fix: Prevent div-by-zero errors
 !  06 Oct 2014 - C. Keller   - Now calculate pressure centers from edges.
+!  29 Oct 2014 - R. Yantosca - Use latitude centers of the grid box to
+!                              facilitate running in ESMF/MPI environment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -127,13 +129,13 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER           :: I,          J,          L,          N
+    INTEGER           :: I,        J,          L,          N
     INTEGER           :: HcoID
-    REAL*8            :: A_CM2,      ADD_Be,     ADD_Rn,     Rn_LAND
-    REAL*8            :: Rn_WATER,   DTSRCE,     LAT_TMP,    P_TMP
-    REAL*8            :: Be_TMP,     Rn_TMP,     LAT_S,      LAT_N
-    REAL*8            :: LAT_H,      LAT_L,      F_LAND,     F_WATER
-    REAL*8            :: F_BELOW_70, F_BELOW_60, F_ABOVE_60, DENOM
+    REAL*8            :: A_CM2,    ADD_Be,     ADD_Rn,     Rn_LAND
+    REAL*8            :: Rn_WATER, DTSRCE,     LAT_TMP,    P_TMP
+    REAL*8            :: Be_TMP,   Rn_TMP,     LAT,        F_LAND     
+    REAL*8            :: F_WATER,  F_BELOW_70, F_BELOW_60, F_ABOVE_60
+    REAL*8            :: DENOM
 
     ! Pointers
     REAL(hp), POINTER :: Arr2D(:,:  ) => NULL()
@@ -175,24 +177,18 @@ CONTAINS
     !  global atmospheric transport models using Rn-222 and other 
     !  short-lived tracers, JGR, 1997 (102):5953-5970
     !=======================================================================
-!$OMP PARALLEL DO                                                      &
-!$OMP DEFAULT( SHARED )                                                &
-!$OMP PRIVATE( I,       J,        LAT_S,      LAT_N,      LAT_H      ) &
-!$OMP PRIVATE( LAT_L,   DENOM,    F_BELOW_70, F_BELOW_60, F_ABOVE_60 ) &
-!$OMP PRIVATE( Rn_LAND, Rn_WATER, F_LAND,     F_WATER,    ADD_Rn     ) &
+!$OMP PARALLEL DO                                            &
+!$OMP DEFAULT( SHARED )                                       &
+!$OMP PRIVATE( I,          J,          LAT,        DENOM   ) &
+!$OMP PRIVATE( F_BELOW_70, F_BELOW_60, F_ABOVE_60, Rn_LAND ) &
+!$OMP PRIVATE( Rn_WATER,   F_LAND,     F_WATER,    ADD_Rn  ) &
 !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, HcoState%Ny
     DO I = 1, HcoState%Nx
 
-       ! Get ABS( latitude ) at S and N edges of grid box
-       LAT_S         = ABS( HcoState%Grid%YEDGE%Val( I, J   ) ) 
-       LAT_N         = ABS( HcoState%Grid%YEDGE%Val( I, J+1 ) )
-       LAT_H         = MAX( LAT_S, LAT_N )
-       LAT_L         = MIN( LAT_S, LAT_N ) 
+       ! Get ABS( latitude ) of the grid box
+       LAT           = ABS( HcoState%Grid%YMID%Val( I, J ) )
 
-       ! Grid box extent, for use in denominators below
-       DENOM         = ( LAT_H - LAT_L )
-       
        ! Zero for safety's sake
        F_BELOW_70    = 0d0
        F_BELOW_60    = 0d0
@@ -214,7 +210,7 @@ CONTAINS
        !--------------------
        ! 90S-70S or 70N-90N
        !--------------------
-       IF ( LAT_L >= 70d0 ) THEN 
+       IF ( LAT >= 70d0 ) THEN 
 
           ! 222Rn emissions are shut off poleward of 70 degrees
           ADD_Rn = 0.0d0
@@ -222,18 +218,22 @@ CONTAINS
        !--------------------
        ! 70S-60S or 60N-70N 
        !--------------------
-       ELSE IF ( LAT_L >= 60d0 ) THEN    
+       ELSE IF ( LAT >= 60d0 ) THEN    
 
-          IF ( LAT_H <= 70d0 ) THEN             
+          IF ( LAT <= 70d0 ) THEN             
 
              ! If the entire grid box lies equatorward of 70 deg,
              ! then 222Rn emissions here are 0.005 [atoms/cm2/s]
              ADD_Rn = Rn_WATER
                
           ELSE
-               
+
+             ! N-S extent of grid box [degrees]
+             DENOM = HcoState%Grid%YMID%Val( I, J+1 ) &
+                   - HcoState%Grid%YMID%Val( I, J   )               
+
              ! Compute the fraction of the grid box below 70 degrees
-             F_BELOW_70 = ( 70.0d0 - LAT_L ) / DENOM
+             F_BELOW_70 = ( 70.0d0 - LAT ) / DENOM
 
              ! If the grid box straddles the 70S or 70N latitude line,
              ! then only count 222Rn emissions equatorward of 70 degrees.
@@ -247,10 +247,14 @@ CONTAINS
           !--------------------
           ! 70S-60S or 60N-70N
           !--------------------
-          IF ( LAT_H > 60d0 ) THEN
+          IF ( LAT > 60d0 ) THEN
+             
+             ! N-S extent of grid box [degrees]
+             DENOM  = HcoState%Grid%YMID%Val( I, J+1 ) &
+                    - HcoState%Grid%YMID%Val( I, J   )
 
              ! Fraction of grid box with ABS( lat ) below 60 degrees
-             F_BELOW_60 = ( 60.0d0 - LAT_L ) / DENOM
+             F_BELOW_60 = ( 60.0d0 - LAT ) / DENOM
 
              ! Fraction of grid box with ABS( lat ) above 60 degrees
              F_ABOVE_60 = F_BELOW_60
