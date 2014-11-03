@@ -26,7 +26,7 @@
 !
       PUBLIC :: CHEMSEASALT
       PUBLIC :: CLEANUP_SEASALT
-      PUBLIC :: GET_ALK
+!      PUBLIC :: GET_ALK
       PUBLIC :: INIT_SEASALT
 !
 ! !PUBLIC DATA MEMBERS:
@@ -76,8 +76,7 @@
 !                              which facilitates connection to GEOS-5 GCM
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Jun 2014 - R. Yantosca - Remove code now made obsolete by HEMCO
-!  02 Nov 2014 - C. Keller   - Interface with HEMCO for alkalinity and number
-!                              densities
+!  03 Nov 2014 - C. Keller   - Moved GET_ALK to sulfate_mod.F. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -106,9 +105,8 @@
       ! 
       ! Note: sea salt emissions are now calculated in HEMCO following the
       ! original code (hcox_seasalt_mod.F). This has made some of the arrays
-      ! obsolete. Alkalinity and number density are now obtained through the
-      ! HEMCO interface (see subroutine GET_ALK). The arrays NDENS_SALA and
-      ! NDENS_SALC now replace N_DENS (ckeller, 11/02/2014).
+      ! obsolete. Alkalinity and number density are now calculated in 
+      ! sulfate_mod.F through the HEMCO interface (ckeller, 11/03/2014).
       !=======================================================================-
 
       ! Scalars
@@ -120,8 +118,6 @@
       REAL*8,   ALLOCATABLE :: SALT_V(:)
       REAL*8,   ALLOCATABLE :: DMID(:)
       REAL*8,   PARAMETER   :: SS_DEN(NSALT)   = (/ 2200.d0, 2200.d0 /)
-      REAL(hp), POINTER     :: NDENS_SALA(:,:) => NULL()
-      REAL(hp), POINTER     :: NDENS_SALC(:,:) => NULL()
 
       ! Now obsolete
 !      REAL*8,   ALLOCATABLE :: REDGE(:,:)   
@@ -889,302 +885,6 @@
       ENDIF
 
       END SUBROUTINE DRY_DEPOSITION
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_alk
-!
-! !DESCRIPTION: Subroutine GET\_ALK returns the seasalt alkalinity emitted at
-!  each timestep to sulfate\_mod.f for chemistry on seasalt aerosols.
-!  (bec, 12/7/04, 11/23/09)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GET_ALK( am_I_Root, I, J, L, ALK1, ALK2, Kt1, Kt2, 
-     &                    Kt1N, Kt2N, Input_Opt, State_Met, RC )
-!
-! !USES:
-!
-      USE GIGC_ErrCode_Mod
-      USE ERROR_MOD,          ONLY : IT_IS_NAN, ERROR_STOP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
-      USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU? 
-      INTEGER,        INTENT(IN)    :: I, J, L     ! Lon-lat-alt indices
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS: 
-!
-      REAL*8,         INTENT(OUT)   :: ALK1, ALK2           ! [kg]
-      REAL*8,         INTENT(OUT)   :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(INOUT) :: RC
-!
-! !REVISION HISTORY: 
-!  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
-!  (2 ) Bug fix to remove a double-substitution.  Replace code lines for 
-!        TERM{123}A, TERM{123}B, TERM{123}AN, TERM{123}BN. (bec, bmy, 7/18/08)
-!  (3 ) Updated hygroscopic growth parameters (bec, bmy, 11/23/09)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
-!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F     
-!  02 Nov 2014 - C. Keller   - Now get alkalinity and number density from HEMCO
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8,  PARAMETER :: PI = 3.14159265
-      REAL*8             :: N1, N2, Kt
-      REAL*8             :: HGF, ALK
-      REAL*8             :: RAD1, RAD2, RAD3
-      REAL*8             :: term1a, term2a, term3a
-      REAL*8             :: term1b, term2b, term3b
-      REAL*8             :: term1aN, term2aN, term3aN
-      REAL*8             :: term1bN, term2bN, term3bN
-      REAL*8             :: const1, const2, const1N, const2N
-      REAL*8             :: a1, a2, b1, b2, a1N, a2N, b1N, b2N
-      REAL*8,  PARAMETER :: MINDAT = 1.d-20
-      INTEGER            :: IRH
-      REAL*8,  PARAMETER :: gamma_SO2 = 0.11d0 !from Worsnop et al. (1989)
-      REAL*8,  PARAMETER :: gamma_HNO3 = 0.2d0 !from JPL [2001] 
-      REAL*8,  PARAMETER :: Dg = 0.2d0 !gas phase diffusion coeff. [cm2/s]
-      REAL*8,  PARAMETER :: v = 3.0d4  !cm/s
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-
-      ! HEMCO update
-      REAL*8                       :: AM2, FEMIS
-      INTEGER                      :: NTOP
-      LOGICAL                      :: FOUND
-      CHARACTER(LEN=63), PARAMETER :: LOC = 'GET_ALK (seasalt_mod.F)'
- 
-      !=================================================================
-      ! GET_ALK begins here!
-      !=================================================================
-
-      ! Zero variables
-      ALK1  = 0.D0
-      ALK2  = 0.D0
-      KT1   = 0.D0
-      KT2   = 0.D0
-      KT1N  = 0.D0
-      KT2N  = 0.D0
-      N1    = 0.D0
-      N2    = 0.D0
-
-      !-----------------------------------------------------------------------
-      ! Get alkalinity from HEMCO. This is just the current emissions,
-      ! converted from kg/m2/s to kg. In the original seasalt code, the 
-      ! alkalinity was set to the total surface flux for every layer within
-      ! the PBL, and to zero above. This is replicated below.
-      ! I'm not sure if it would make more sense to weight the alkalinity by
-      ! the fraction of PBL?
-      !                                                 (ckeller, 10/31/2014)
-      !-----------------------------------------------------------------------
-      ! [kg] use this when not transporting alk
-!      ALK1  = ALK_EMIS(I,J,L,1)
-!      ALK2  = ALK_EMIS(I,J,L,2)
-
-      ! On first call, get pointers to diagnostics arrays
-      IF ( FIRST ) THEN
-
-         ! Sea salt density, fine mode
-         CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE', 
-     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALA )
-         IF ( RC /= HCO_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_FINE', LOC )
-
-         ! Sea salt density, coarse mode 
-         CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE', 
-     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALC )
-         IF ( RC /= HCO_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_COARSE', LOC )
-
-      ENDIF 
-
-      ! Layer in which the PBL top occurs
-      NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
-      
-      ! Do the following only if we are within the PBL
-      IF ( L <= NTOP ) THEN      
-
-         ! Grid box area [m2]
-         AM2 = State_Met%AREA_M2(I,J,1)
- 
-         ! Get ALK1 from sea salt fine mode
-         CALL GetHcoVal( IDTSALA, I, J, 1, FOUND, Emis=ALK1 )
-         IF ( .NOT. FOUND ) THEN
-            IF ( FIRST ) WRITE( 6, 100 ) 'SALA'
-            ALK1 = 0.0d0
-         ELSE
-            ALK1 = ALK1 * AM2 * GET_TS_EMIS() * 60.0d0
-         ENDIF
-   
-         ! Get ALK2 from sea salt coarse mode
-         CALL GetHcoVal( IDTSALC, I, J, 1, FOUND, Emis=ALK2 )
-         IF ( .NOT. FOUND ) THEN
-            IF ( FIRST ) WRITE( 6, 100 ) 'SALC'
-            ALK2 = 0.0d0
-         ELSE
-            ALK2 = ALK2 * AM2 * GET_TS_EMIS() * 60.0d0
-         ENDIF
-
- 100     FORMAT( '### WARNING: Cannot define alkalinity - ', 
-     &           'there are no sea salt emissions: ', a )
- 
-         ! Number density. Convert from [#] to [# cm-3]
-         N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) * 1.d-6
-         N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) * 1.d-6
-
-!***************************************************************
-         ! To take into account fraction of PBL, uncomment the 
-         ! following lines:
-
-         ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-!         FEMIS = GET_FRAC_OF_PBL( I, J, L )
-
-         ! weight by fraction of PBL
-!         ALK1 = ALK1 * FEMIS
-!         ALK2 = ALK2 * FEMIS
-!         N1   = N1   * FEMIS
-!         N2   = N2   * FEMIS
-!***************************************************************
-
-      ENDIF
-
-      !-----------------------------------------------------------------------
-      ! NOTE: If you want to transport alkalinity then uncomment this section
-      ! (bec, bmy, 4/13/05)
-      ! 
-      !! alkalinity [v/v] to [kg] use this when transporting alk
-      !! or using Liao et al [2004] assumption of a continuous supply of
-      ! alkalinity based on Laskin et al. [2003]
-      !ALK1 = STT(I,J,L,IDTSALA) * State_Met%AD(I,J,L)/TCVV(IDTSALA)
-      !ALK2 = STT(I,J,L,IDTSALC) * State_Met%AD(I,J,L)/TCVV(IDTSALC)
-      !-----------------------------------------------------------------------
-
-      ! Conversion from [m-3] --> [cm-3]
-!      N1 = N_DENS(I,J,L,1) * 1.d-6
-!      N2 = N_DENS(I,J,L,2) * 1.d-6
-
-      ALK = ALK1 + ALK2
-
-      ! If there is any alkalinity ...
-      IF ( ALK > MINDAT ) THEN
-
-         ! set humidity index IRH as a percent
-         IRH = State_Met%RH(I,J,L)
-         IRH = MAX(  1, IRH )
-         IRH = MIN( 99, IRH )
-
-         ! Hygroscopic growth factor for sea-salt from Chin et al. (2002)
-         ! Updated (bec, bmy, 11/23/09)
-         IF ( IRH < 100 ) HGF = 4.8d0
-         IF ( IRH < 99  ) HGF = 2.9d0
-         IF ( IRH < 95  ) HGF = 2.4d0
-         IF ( IRH < 90  ) HGF = 2.0d0
-         IF ( IRH < 80  ) HGF = 1.8d0
-         IF ( IRH < 70  ) HGF = 1.6d0
-         IF ( IRH < 50  ) HGF = 1.0d0
-
-         ! radius of sea-salt aerosol size bins [cm] accounting for 
-         ! hygroscopic growth
-         RAD1 = Input_Opt%SALA_REDGE_um(1) * HGF * 1.d-4 
-         RAD2 = Input_Opt%SALA_REDGE_um(2) * HGF * 1.d-4 
-         RAD3 = Input_Opt%SALC_REDGE_um(2) * HGF * 1.d-4 
-
-         !----------------------------------
-         ! SO2 uptake onto fine particles 
-         !----------------------------------
-
-	 ! calculate gas-to-particle rate constant for uptake of 
-	 ! SO2 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
-         CONST1 = 4.D0/(V*GAMMA_SO2)
-         A1     = (RAD1/DG)+CONST1
-         B1     = (RAD2/DG)+CONST1
-         TERM1A = ((B1**2)/2.0d0) - ((A1**2)/2.0d0)
-         TERM2A = 2.D0*CONST1*(B1-A1)
-         TERM3A = (CONST1**2)*LOG(B1/A1)
-         KT1    = 4.D0*PI*N1*(DG**3)*(TERM1A - TERM2A + TERM3A)
-
-         !----------------------------------
-         ! SO2 uptake onto coarse particles 
-         !----------------------------------
-         
-	 ! calculate gas-to-particle rate constant for uptake of 
-	 ! SO2 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
-         CONST2 = 4.D0/(V*GAMMA_SO2)
-         A2     = (RAD2/DG)+CONST2
-         B2     = (RAD3/DG)+CONST2
-         TERM1B = ((B2**2)/2.0d0) - ((A2**2)/2.0d0)
-         TERM2B = 2.D0*CONST2*(B2-A2)
-         TERM3B = (CONST2**2)*LOG(B2/A2)
-         KT2    = 4.D0*PI*N2*(DG**3)*(TERM1B - TERM2B + TERM3B)
-         KT     = KT1 + KT2
-
-         !----------------------------------
-         ! HNO3 uptake onto fine particles 
-         !----------------------------------
-
-         ! calculate gas-to-particle rate constant for uptake of 
-         ! HNO3 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
-         CONST1N = 4.D0/(V*GAMMA_HNO3)
-         A1N     = (RAD1/DG)+CONST1N
-         B1N     = (RAD2/DG)+CONST1N
-         TERM1AN = ((B1N**2)/2.0d0) - ((A1N**2)/2.0d0)
-         TERM2AN = 2.D0*CONST1N*(B1N-A1N)
-         TERM3AN = (CONST1N**2)*LOG(B1N/A1N)
-         KT1N    = 4.D0*PI*N1*(DG**3)*(TERM1AN - TERM2AN + TERM3AN)
-
-         !----------------------------------
-         ! HNO3 uptake onto coarse particles 
-         !----------------------------------
-
-	 ! calculate gas-to-particle rate constant for uptake of 
-	 ! HNO3 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
-         CONST2N = 4.D0/(V*GAMMA_HNO3)
-         A2N     = (RAD2/DG)+CONST2N
-         B2N     = (RAD3/DG)+CONST2N
-         TERM1BN = ((B2N**2)/2.0d0) - ((A2N**2)/2.0d0)
-         TERM2BN = 2.D0*CONST2N*(B2N-A2N)
-         TERM3BN = (CONST2N**2)*LOG(B2N/A2N)
-         KT2N    = 4.D0*PI*N2*(DG**3)*(TERM1BN - TERM2BN + TERM3BN)
-
-
-      ELSE
-
-         ! If no alkalinity, set everything to zero
-         KT1  = 0.D0
-         KT1N = 0.D0
-         KT2  = 0.D0
-         KT2N = 0.D0
-
-      ENDIF
-
-      ! Update first flag
-      FIRST = .FALSE.
-
-      ! Return w/ success
-      RC = GIGC_SUCCESS
-
-      END SUBROUTINE GET_ALK
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
