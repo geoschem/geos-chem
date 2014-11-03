@@ -1310,7 +1310,7 @@ CONTAINS
           ELSE 
              ModelSpecNames(N) = Input_Opt%TRACER_NAME(N)
           ENDIF
-          
+ 
           ! Species ID
           ModelSpecIDs(N)   = Input_Opt%ID_TRACER(N)
    
@@ -1762,7 +1762,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetHcoVal ( TrcID, I, J, L, Found, Emis8, Emis4, Dep8, Dep4 ) 
+  SUBROUTINE GetHcoVal ( TrcID, I, J, L, Found, Emis, Dep ) 
 !
 ! !USES
 !
@@ -1776,10 +1776,8 @@ CONTAINS
 ! !OUTPUT ARGUMENTS:
 !
     LOGICAL,            INTENT(  OUT)  :: FOUND   ! Was this tracer ID found?
-    REAL(dp), OPTIONAL, INTENT(  OUT)  :: Emis8   ! Output in double precision
-    REAL(sp), OPTIONAL, INTENT(  OUT)  :: Emis4   ! Output in single precision
-    REAL(dp), OPTIONAL, INTENT(  OUT)  :: Dep8    ! Output in double precision
-    REAL(sp), OPTIONAL, INTENT(  OUT)  :: Dep4    ! Output in single precision
+    REAL(dp), OPTIONAL, INTENT(  OUT)  :: Emis    ! Emissions  [kg/m2/s]
+    REAL(dp), OPTIONAL, INTENT(  OUT)  :: Dep     ! Deposition [1/s] 
 !
 ! !REVISION HISTORY:
 !  20 Oct 2014 - C. Keller - Initial Version
@@ -1787,7 +1785,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     INTEGER   :: HcoID, tID
-    REAL(hp)  :: Emis, Dep
 
     !=================================================================
     ! GetHcoVal begins here
@@ -1795,10 +1792,8 @@ CONTAINS
 
     ! Init
     FOUND = .FALSE.
-    IF ( PRESENT(Emis8) ) Emis8 = 0.0_dp
-    IF ( PRESENT(Emis4) ) Emis4 = 0.0_sp
-    IF ( PRESENT(Dep8 ) ) Dep8  = 0.0_dp
-    IF ( PRESENT(Dep4 ) ) Dep4  = 0.0_sp
+    IF ( PRESENT(Emis) ) Emis = 0.0_dp
+    IF ( PRESENT(Dep ) ) Dep  = 0.0_dp
 
     ! Define tracer ID to be used. This is only different from the
     ! passed tracer ID if some species mapping occurs at this level,
@@ -1818,26 +1813,15 @@ CONTAINS
 
     ! If HEMCO species exists, get value from HEMCO state
     IF ( HcoID > 0 ) THEN
-       IF ( ASSOCIATED(HcoState%Spc(HcoID)%Emis%Val) ) THEN
-          Emis = HcoState%Spc(HcoID)%Emis%Val(I,J,L)
-          IF ( PRESENT(Emis8) ) THEN
-             Emis8 = Emis
+       IF ( PRESENT(Emis) ) THEN
+          IF ( ASSOCIATED(HcoState%Spc(HcoID)%Emis%Val) ) THEN
+             Emis  = HcoState%Spc(HcoID)%Emis%Val(I,J,L)
              FOUND = .TRUE.
           ENDIF
-          IF ( PRESENT(Emis4) ) THEN
-             Emis4 = Emis
-             FOUND = .TRUE.
-          ENDIF
-       
        ENDIF
-       IF ( ASSOCIATED(HcoState%Spc(HcoID)%Depv%Val) ) THEN
-          Dep = HcoState%Spc(HcoID)%Depv%Val(I,J)
-          IF ( PRESENT(Dep8) ) THEN
-             Dep8  = Dep
-             FOUND = .TRUE.
-          ENDIF
-          IF ( PRESENT(Dep4) ) THEN
-             Dep4  = Dep
+       IF ( PRESENT(Dep) ) THEN
+          IF ( ASSOCIATED(HcoState%Spc(HcoID)%Depv%Val) ) THEN
+             Dep   = HcoState%Spc(HcoID)%Depv%Val(I,J)
              FOUND = .TRUE.
           ENDIF
        ENDIF
@@ -1846,28 +1830,20 @@ CONTAINS
     ! Eventually apply correction factor, e.g. to fractionate
     ! BC into BCPI and BCPO.
     IF ( TrcID == IDTBCPI ) THEN
-       IF ( PRESENT(Emis8) ) Emis8 = Emis8 * BC2BCPI
-       IF ( PRESENT(Emis4) ) Emis4 = Emis4 * BC2BCPI
-       IF ( PRESENT(Dep8 ) ) Dep8  = Dep8  * BC2BCPI
-       IF ( PRESENT(Dep4 ) ) Dep4  = Dep4  * BC2BCPI
+       IF ( PRESENT(Emis) ) Emis = Emis * BC2BCPI
+       IF ( PRESENT(Dep ) ) Dep  = Dep  * BC2BCPI
 
     ELSEIF ( TrcID == IDTBCPO ) THEN
-       IF ( PRESENT(Emis8) ) Emis8 = Emis8 * BC2BCPO
-       IF ( PRESENT(Emis4) ) Emis4 = Emis4 * BC2BCPO
-       IF ( PRESENT(Dep8 ) ) Dep8  = Dep8  * BC2BCPO
-       IF ( PRESENT(Dep4 ) ) Dep4  = Dep4  * BC2BCPO
+       IF ( PRESENT(Emis) ) Emis = Emis * BC2BCPO
+       IF ( PRESENT(Dep ) ) Dep  = Dep  * BC2BCPO
 
     ELSEIF ( TrcID == IDTOCPI ) THEN
-       IF ( PRESENT(Emis8) ) Emis8 = Emis8 * OC2OCPI
-       IF ( PRESENT(Emis4) ) Emis4 = Emis4 * OC2OCPI
-       IF ( PRESENT(Dep8 ) ) Dep8  = Dep8  * OC2OCPI
-       IF ( PRESENT(Dep4 ) ) Dep4  = Dep4  * OC2OCPI
+       IF ( PRESENT(Emis) ) Emis = Emis * OC2OCPI
+       IF ( PRESENT(Dep ) ) Dep  = Dep  * OC2OCPI
 
     ELSEIF ( TrcID == IDTOCPO ) THEN
-       IF ( PRESENT(Emis8) ) Emis8 = Emis8 * OC2OCPO
-       IF ( PRESENT(Emis4) ) Emis4 = Emis4 * OC2OCPO
-       IF ( PRESENT(Dep8 ) ) Dep8  = Dep8  * OC2OCPO
-       IF ( PRESENT(Dep4 ) ) Dep4  = Dep4  * OC2OCPO
+       IF ( PRESENT(Emis) ) Emis = Emis * OC2OCPO
+       IF ( PRESENT(Dep ) ) Dep  = Dep  * OC2OCPO
     ENDIF
 
   END SUBROUTINE GetHcoVal

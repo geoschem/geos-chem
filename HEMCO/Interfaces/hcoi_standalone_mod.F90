@@ -719,23 +719,24 @@ CONTAINS
           UPP = UPP - 1 ! Don't read space
 
           ! Read into vector
-          IF ( I == 1 ) THEN
-             READ( DUM(LOW:UPP), * ) ModelSpecIDs(N)
-          ELSEIF ( I == 2 ) THEN
-             READ( DUM(LOW:UPP), * ) ModelSpecNames(N)
-          ELSEIF ( I == 3 ) THEN
-             READ( DUM(LOW:UPP), * ) ModelSpecMW(N)
-          ELSEIF ( I == 4 ) THEN
-             READ( DUM(LOW:UPP), * ) ModelSpecEmMW(N)
-          ELSEIF ( I == 5 ) THEN
-             READ( DUM(LOW:UPP), * ) ModelSpecMolecRatio(N)
-          ELSEIF ( I == 6 ) THEN
-             READ( DUM(LOW:UPP), * ) ModelSpecK0(N)
-          ELSEIF ( I == 7 ) THEN
-             READ( DUM(LOW:UPP), * ) ModelSpecCR(N)
-          ELSEIF ( I == 8 ) THEN
-             READ( DUM(LOW:UPP), * ) ModelSpecPKA(N)
-          ENDIF
+          SELECT CASE ( I ) 
+             CASE ( 1 )
+                READ( DUM(LOW:UPP), * ) ModelSpecIDs(N)
+             CASE ( 2 )
+                READ( DUM(LOW:UPP), * ) ModelSpecNames(N)
+             CASE ( 3 )
+                READ( DUM(LOW:UPP), * ) ModelSpecMW(N)
+             CASE ( 4 )
+                READ( DUM(LOW:UPP), * ) ModelSpecEmMW(N)
+             CASE ( 5 )
+                READ( DUM(LOW:UPP), * ) ModelSpecMolecRatio(N)
+             CASE ( 6 )
+                READ( DUM(LOW:UPP), * ) ModelSpecK0(N)
+             CASE ( 7 )
+                READ( DUM(LOW:UPP), * ) ModelSpecCR(N)
+             CASE ( 8 )
+                READ( DUM(LOW:UPP), * ) ModelSpecPKA(N)
+          END SELECT
 
           ! Continue from upper position (+1 to skip space). The
           ! while loop at the beginning of the do-loop will advance
@@ -864,29 +865,29 @@ CONTAINS
     NZ = SZ(3)
 
     ! Now that sizes are known, allocate all arrays
-    ALLOCATE ( DLON(NX,NY,NZ) )
-    DLON = 0.0_hp
-    ALLOCATE ( DLAT(NX,NY,NZ) )
-    DLAT = 0.0_hp
-    ALLOCATE ( XMID(NX,NY,NZ) )
-    XMID = 0.0_hp
-    ALLOCATE ( YMID(NX,NY,NZ) )
-    YMID = 0.0_hp
-    ALLOCATE ( XEDGE(NX+1,NY,NZ) )
-    XEDGE = 0.0_hp
-    ALLOCATE ( YEDGE(NX,NY+1,NZ) )
-    YEDGE = 0.0_hp
-    ALLOCATE ( YSIN(NX,NY+1,NZ) )
-    YSIN = 0.0_hp
-    ALLOCATE ( YMID_R(NX,NY,NZ) )
-    YMID_R = 0.0_hp
-    ALLOCATE ( YEDGE_R(NX,NY+1,NZ) )
-    YEDGE_R = 0.0_hp
-    ALLOCATE ( AREA_M2(NX,NY,NZ) )
-    AREA_M2 = 0.0_hp
-    ALLOCATE ( YMID_R_W(NX,NY,NZ) )
-    YMID_R_W = 0.0_hp
-    ALLOCATE ( YEDGE_R_W(NX,NY+1,NZ) )
+    ALLOCATE ( DLON     (NX,  NY,  NZ) )
+    ALLOCATE ( DLAT     (NX,  NY,  NZ) )
+    ALLOCATE ( XMID     (NX,  NY,  NZ) )
+    ALLOCATE ( YMID     (NX,  NY,  NZ) )
+    ALLOCATE ( XEDGE    (NX+1,NY,  NZ) )
+    ALLOCATE ( YEDGE    (NX,  NY+1,NZ) )
+    ALLOCATE ( YSIN     (NX,  NY+1,NZ) )
+    ALLOCATE ( YMID_R   (NX,  NY,  NZ) )
+    ALLOCATE ( YEDGE_R  (NX,  NY+1,NZ) )
+    ALLOCATE ( AREA_M2  (NX,  NY,  NZ) )
+    ALLOCATE ( YMID_R_W (NX,  NY,  NZ) )
+    ALLOCATE ( YEDGE_R_W(NX,  NY+1,NZ) )
+    DLON      = 0.0_hp
+    DLAT      = 0.0_hp
+    XMID      = 0.0_hp
+    YMID      = 0.0_hp
+    XEDGE     = 0.0_hp
+    YEDGE     = 0.0_hp
+    YSIN      = 0.0_hp
+    YMID_R    = 0.0_hp
+    YEDGE_R   = 0.0_hp
+    AREA_M2   = 0.0_hp
+    YMID_R_W  = 0.0_hp
     YEDGE_R_W = 0.0_hp
 
     ! Read delta lon (dx) or lat (dy) from file. This can be
@@ -966,7 +967,7 @@ CONTAINS
     HcoState%NY = NY
     HcoState%NZ = NZ 
 
-    ! For now, assume global grid with south pole at index 1 and north 
+    ! Assume global grid with south pole at index 1 and north 
     ! pole at last index position
     JSP = 1
     JNP = NY
@@ -1009,7 +1010,7 @@ CONTAINS
     ! The pressure edges are obtained from an external file in ExtOpt_SetPointers.
     HcoState%Grid%PEDGE%Val      => NULL()
 
-    ! Cleanup
+    ! Cleanup variables that are not needed by HEMCO.
     DEALLOCATE( YMID_R, YEDGE_R, YMID_R_W, YEDGE_R_W )
 
     ! Return w/ success
@@ -1024,8 +1025,8 @@ CONTAINS
 !
 ! !IROUTINE: Get_nnMatch 
 !
-! !DESCRIPTION: Subroutine Get\_nnMatch returns the number of HEMCO species
-! that are also used in the atmospheric model. 
+! !DESCRIPTION: Subroutine Get\_nnMatch returns the number of species
+! found in both the HEMCO configuration and the species input file. 
 !\\
 !\\
 ! !INTERFACE:
@@ -1346,8 +1347,6 @@ CONTAINS
 !       hcox\_soilnox\_mod.F90). This variable should be provided in section 
 !       soil NOx extension settings (DRYCOEFF: xx.x/xx.x/xx.x/...). It is
 !       read in hcox\_soilnox\_mod.F90.
-! \item DAYS\_BTW\_M: days between midmonths (used in hcox\_megan\_mod.F). 
-!       This variable becomes defined and updated within this module.
 ! \end{itemize}
 ! !INTERFACE:
 !
@@ -1635,7 +1634,8 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine ExtState\_Update makes sure that all local variables
 ! that ExtState is pointing to are up to date. For the moment, this is just a 
-! placeholder routine.
+! placeholder routine. Content can be added to it if there are variables that
+! need to be updated manually, e.g. not through netCDF input data.
 !\\
 !\\
 ! !INTERFACE:
@@ -1666,6 +1666,8 @@ CONTAINS
     !=================================================================
     ! ExtState_Update begins here
     !=================================================================
+
+    ! nothing to do for now.
 
     ! Return w/ success
     RC = HCO_SUCCESS
