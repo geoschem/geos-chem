@@ -143,6 +143,7 @@
 !  20 Aug 2013 - R. Yantosca   - Removed "define.h", this is now obsolete
 !  18 Sep 2014 - M. Sulprizio  - Get oxidant fields for offline aerosol
 !                                simulation from HEMCO 
+!  03 Nov 2014 - C. Keller     - Incorporated GET_ALK from seasalt_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,12 +308,14 @@
       INTEGER              :: DRYLET,  DRYNH4aq
 
       ! HEMCO pointers
-      REAL(hp), POINTER    :: O3m(:,:,:)    => NULL()
-      REAL(hp), POINTER    :: PH2O2m(:,:,:) => NULL()
-      REAL(hp), POINTER    :: JH2O2(:,:,:)  => NULL()
-      REAL(hp), POINTER    :: OH(:,:,:)     => NULL()
-      REAL(hp), POINTER    :: NO3(:,:,:)    => NULL()
-      REAL(hp), POINTER    :: HNO3(:,:,:)   => NULL()
+      REAL(hp), POINTER    :: O3m(:,:,:)      => NULL()
+      REAL(hp), POINTER    :: PH2O2m(:,:,:)   => NULL()
+      REAL(hp), POINTER    :: JH2O2(:,:,:)    => NULL()
+      REAL(hp), POINTER    :: OH(:,:,:)       => NULL()
+      REAL(hp), POINTER    :: NO3(:,:,:)      => NULL()
+      REAL(hp), POINTER    :: HNO3(:,:,:)     => NULL()
+      REAL(hp), POINTER    :: NDENS_SALA(:,:) => NULL()
+      REAL(hp), POINTER    :: NDENS_SALC(:,:) => NULL()
 
       ! Emission timestep (imported from HEMCO)
       REAL*8               :: TS_EMIS
@@ -688,13 +691,6 @@
             IF ( RC /= GIGC_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', LOC )
 
-            ! Get emissions timestep (seconds)
-            CALL GetHcoState ( HcoState )
-            IF ( .NOT. ASSOCIATED(HcoState) ) 
-     &           CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
-            TS_EMIS = HcoState%TS_EMIS
-            HcoState => NULL()
-
          ENDIF
 
          ! And compute time scaling arrays for offline OH, NO3
@@ -707,6 +703,16 @@
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
+
+      ! TS_EMIS is the emission timestep (in seconds). This is a module
+      ! variable, hence define only on first call.
+      IF ( FIRSTCHEM ) THEN
+         CALL GetHcoState ( HcoState )
+         IF ( .NOT. ASSOCIATED(HcoState) ) 
+     &        CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
+         TS_EMIS = HcoState%TS_EMIS
+         HcoState => NULL()
+      ENDIF
 
       ! Initialize module arrays
       PSO2_DMS = 0d0
@@ -1805,6 +1811,7 @@
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -1824,9 +1831,10 @@
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTNH3,  IDTNH4,  IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTNIT,  IDTDST1, IDTDST2, IDTDST3
       USE TRACERID_MOD,       ONLY : IDTDST4, IDTSALA, IDTSALC
-      USE SEASALT_MOD,        ONLY : GET_ALK
+!      USE SEASALT_MOD,        ONLY : GET_ALK
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
 !
 ! !INPUT PARAMETERS:
 !
@@ -1840,7 +1848,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+      INTEGER,        INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Reaction List (by Rokjin Park, rjp@io.harvard.edu)                      
@@ -1961,6 +1969,11 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
 
+      ! For HEMCO update
+      LOGICAL, SAVE   :: FIRST = .TRUE.
+
+      CHARACTER(LEN=255), PARAMETER :: LOC = 'CHEM_SO2 (sulfate_mod.F)'
+
       !=================================================================
       ! CHEM_SO2 begins here!
       !=================================================================
@@ -2002,6 +2015,29 @@
 
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) ND44_TMP = 0d0
+
+      ! On first call, get pointers to HEMCO diagnostics arrays.
+      ! These are the sea salt aerosol number densities for the fine
+      ! and coarse mode, respectively. Values are in # / surface grid
+      ! box. These values are needed in the GET_ALK call below.
+      ! (ckeller, 11/03/2014)
+      IF ( FIRST ) THEN
+
+         ! Sea salt density, fine mode
+         CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE', 
+     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALA )
+         IF ( RC /= HCO_SUCCESS )
+     &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_FINE', LOC )
+
+         ! Sea salt density, coarse mode 
+         CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE', 
+     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALC )
+         IF ( RC /= HCO_SUCCESS )
+     &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_COARSE', LOC )
+         
+         ! Adjust first flag
+         FIRST = .FALSE.
+      ENDIF 
       
       ! Loop over chemistry grid boxes
 !$OMP PARALLEL DO
@@ -2096,7 +2132,7 @@
          !==============================================================
 
          ! Get alkalinity of accum (ALK1) and coarse (ALK2) [kg]
-         CALL GET_ALK( am_I_Root, I, J, L, ALK1, ALK2, Kt1, Kt2, 
+         CALL GET_ALK( am_I_Root, I, J, L, ALK1, ALK2, Kt1, Kt2,  
      &                 Kt1N, Kt2N, Input_Opt, State_Met, RC )
 
          ! Total alkalinity [kg]
@@ -7855,6 +7891,263 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_alk
+!
+! !DESCRIPTION: Subroutine GET\_ALK returns the seasalt alkalinity emitted at
+!  each timestep to sulfate\_mod.f for chemistry on seasalt aerosols.
+!  (bec, 12/7/04, 11/23/09)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_ALK( am_I_Root, I,J,L, ALK1, ALK2, Kt1, Kt2, 
+     &                    Kt1N, Kt2N, Input_Opt, State_Met, RC)
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE ERROR_MOD,          ONLY : IT_IS_NAN, ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+      USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU? 
+      INTEGER,        INTENT(IN)    :: I, J, L     ! Lon-lat-alt indices
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8,         INTENT(OUT)   :: ALK1, ALK2  ! [kg]
+      REAL*8,         INTENT(OUT)   :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(INOUT) :: RC
+!
+! !REVISION HISTORY: 
+!  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
+!  (2 ) Bug fix to remove a double-substitution.  Replace code lines for 
+!        TERM{123}A, TERM{123}B, TERM{123}AN, TERM{123}BN. (bec, bmy, 7/18/08)
+!  (3 ) Updated hygroscopic growth parameters (bec, bmy, 11/23/09)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F     
+!  02 Nov 2014 - C. Keller   - Now get alkalinity and number density from HEMCO
+!  04 Nov 2014 - C. Keller   - Moved from seasalt_mod.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8,  PARAMETER :: PI = 3.14159265
+      REAL*8             :: N1, N2, Kt
+      REAL*8             :: HGF, ALK
+      REAL*8             :: RAD1, RAD2, RAD3
+      REAL*8             :: term1a, term2a, term3a
+      REAL*8             :: term1b, term2b, term3b
+      REAL*8             :: term1aN, term2aN, term3aN
+      REAL*8             :: term1bN, term2bN, term3bN
+      REAL*8             :: const1, const2, const1N, const2N
+      REAL*8             :: a1, a2, b1, b2, a1N, a2N, b1N, b2N
+      REAL*8,  PARAMETER :: MINDAT = 1.d-20
+      INTEGER            :: IRH
+      REAL*8,  PARAMETER :: gamma_SO2 = 0.11d0 !from Worsnop et al. (1989)
+      REAL*8,  PARAMETER :: gamma_HNO3 = 0.2d0 !from JPL [2001] 
+      REAL*8,  PARAMETER :: Dg = 0.2d0 !gas phase diffusion coeff. [cm2/s]
+      REAL*8,  PARAMETER :: v = 3.0d4  !cm/s
+
+      ! HEMCO update
+      REAL*8                       :: FEMIS
+      INTEGER                      :: NTOP
+      LOGICAL                      :: FOUND
+ 
+      !=================================================================
+      ! GET_ALK begins here!
+      !=================================================================
+
+      ! Zero variables
+      KT1   = 0.D0
+      KT2   = 0.D0
+      KT1N  = 0.D0
+      KT2N  = 0.D0
+      N1    = 0.D0
+      N2    = 0.D0
+
+      !-----------------------------------------------------------------------
+      ! Get alkalinity from HEMCO. This is just the current emissions,
+      ! converted from kg/m2/s to kg. In the original seasalt code, the 
+      ! alkalinity was set to the total surface flux for every layer within
+      ! the PBL, and to zero above. This is replicated below.
+      ! I'm not sure if it would make more sense to weight the alkalinity by
+      ! the fraction of PBL?
+      !                                                 (ckeller, 10/31/2014)
+      !-----------------------------------------------------------------------
+      ! [kg] use this when not transporting alk
+!      ALK1  = ALK_EMIS(I,J,L,1)
+!      ALK2  = ALK_EMIS(I,J,L,2)
+
+      ! Layer in which the PBL top occurs
+      NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+      
+      ! Do the following only if we are within the PBL
+      IF ( L <= NTOP ) THEN      
+
+         ! Get ALK1 and ALK2 surface emissions from HEMCO. These are in 
+         ! kg/m2/s. 
+         CALL GetHcoVal( IDTSALA, I, J, 1, FOUND, Emis=ALK1 )
+         CALL GetHcoVal( IDTSALC, I, J, 1, FOUND, Emis=ALK2 )
+
+         ! kg/m2/s --> kg
+         ALK1 = MAX(ALK1,0.0d0) * State_Met%AREA_M2(I,J,1) * TS_EMIS 
+         ALK2 = MAX(ALK2,0.0d0) * State_Met%AREA_M2(I,J,1) * TS_EMIS 
+
+         ! Get number densities in # / cm3.
+         N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) * 1.d-6
+         N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) * 1.d-6
+
+!***************************************************************
+         ! To take into account fraction of PBL, uncomment the 
+         ! following lines:
+
+         ! Fraction of the PBL spanned by box (I,J,L) [unitless]
+!         FEMIS = GET_FRAC_OF_PBL( I, J, L )
+
+         ! weight by fraction of PBL
+!         ALK1 = ALK1 * FEMIS
+!         ALK2 = ALK2 * FEMIS
+!         N1   = N1   * FEMIS
+!         N2   = N2   * FEMIS
+!***************************************************************
+
+      ENDIF
+
+      !-----------------------------------------------------------------------
+      ! NOTE: If you want to transport alkalinity then uncomment this section
+      ! (bec, bmy, 4/13/05)
+      ! 
+      !! alkalinity [v/v] to [kg] use this when transporting alk
+      !! or using Liao et al [2004] assumption of a continuous supply of
+      ! alkalinity based on Laskin et al. [2003]
+      !ALK1 = STT(I,J,L,IDTSALA) * State_Met%AD(I,J,L)/TCVV(IDTSALA)
+      !ALK2 = STT(I,J,L,IDTSALC) * State_Met%AD(I,J,L)/TCVV(IDTSALC)
+      !-----------------------------------------------------------------------
+
+      ! Conversion from [m-3] --> [cm-3]
+!      N1 = N_DENS(I,J,L,1) * 1.d-6
+!      N2 = N_DENS(I,J,L,2) * 1.d-6
+
+      ALK = ALK1 + ALK2
+
+      ! If there is any alkalinity ...
+      IF ( ALK > MINDAT ) THEN
+
+         ! set humidity index IRH as a percent
+         IRH = State_Met%RH(I,J,L)
+         IRH = MAX(  1, IRH )
+         IRH = MIN( 99, IRH )
+
+         ! Hygroscopic growth factor for sea-salt from Chin et al. (2002)
+         ! Updated (bec, bmy, 11/23/09)
+         IF ( IRH < 100 ) HGF = 4.8d0
+         IF ( IRH < 99  ) HGF = 2.9d0
+         IF ( IRH < 95  ) HGF = 2.4d0
+         IF ( IRH < 90  ) HGF = 2.0d0
+         IF ( IRH < 80  ) HGF = 1.8d0
+         IF ( IRH < 70  ) HGF = 1.6d0
+         IF ( IRH < 50  ) HGF = 1.0d0
+
+         ! radius of sea-salt aerosol size bins [cm] accounting for 
+         ! hygroscopic growth
+         RAD1 = Input_Opt%SALA_REDGE_um(1) * HGF * 1.d-4 
+         RAD2 = Input_Opt%SALA_REDGE_um(2) * HGF * 1.d-4 
+         RAD3 = Input_Opt%SALC_REDGE_um(2) * HGF * 1.d-4 
+
+         !----------------------------------
+         ! SO2 uptake onto fine particles 
+         !----------------------------------
+
+	 ! calculate gas-to-particle rate constant for uptake of 
+	 ! SO2 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
+         CONST1 = 4.D0/(V*GAMMA_SO2)
+         A1     = (RAD1/DG)+CONST1
+         B1     = (RAD2/DG)+CONST1
+         TERM1A = ((B1**2)/2.0d0) - ((A1**2)/2.0d0)
+         TERM2A = 2.D0*CONST1*(B1-A1)
+         TERM3A = (CONST1**2)*LOG(B1/A1)
+         KT1    = 4.D0*PI*N1*(DG**3)*(TERM1A - TERM2A + TERM3A)
+
+         !----------------------------------
+         ! SO2 uptake onto coarse particles 
+         !----------------------------------
+         
+	 ! calculate gas-to-particle rate constant for uptake of 
+	 ! SO2 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
+         CONST2 = 4.D0/(V*GAMMA_SO2)
+         A2     = (RAD2/DG)+CONST2
+         B2     = (RAD3/DG)+CONST2
+         TERM1B = ((B2**2)/2.0d0) - ((A2**2)/2.0d0)
+         TERM2B = 2.D0*CONST2*(B2-A2)
+         TERM3B = (CONST2**2)*LOG(B2/A2)
+         KT2    = 4.D0*PI*N2*(DG**3)*(TERM1B - TERM2B + TERM3B)
+         KT     = KT1 + KT2
+
+         !----------------------------------
+         ! HNO3 uptake onto fine particles 
+         !----------------------------------
+
+         ! calculate gas-to-particle rate constant for uptake of 
+         ! HNO3 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
+         CONST1N = 4.D0/(V*GAMMA_HNO3)
+         A1N     = (RAD1/DG)+CONST1N
+         B1N     = (RAD2/DG)+CONST1N
+         TERM1AN = ((B1N**2)/2.0d0) - ((A1N**2)/2.0d0)
+         TERM2AN = 2.D0*CONST1N*(B1N-A1N)
+         TERM3AN = (CONST1N**2)*LOG(B1N/A1N)
+         KT1N    = 4.D0*PI*N1*(DG**3)*(TERM1AN - TERM2AN + TERM3AN)
+
+         !----------------------------------
+         ! HNO3 uptake onto coarse particles 
+         !----------------------------------
+
+	 ! calculate gas-to-particle rate constant for uptake of 
+	 ! HNO3 onto coarse sea-salt aerosols [Jacob, 2000] analytical solution
+         CONST2N = 4.D0/(V*GAMMA_HNO3)
+         A2N     = (RAD2/DG)+CONST2N
+         B2N     = (RAD3/DG)+CONST2N
+         TERM1BN = ((B2N**2)/2.0d0) - ((A2N**2)/2.0d0)
+         TERM2BN = 2.D0*CONST2N*(B2N-A2N)
+         TERM3BN = (CONST2N**2)*LOG(B2N/A2N)
+         KT2N    = 4.D0*PI*N2*(DG**3)*(TERM1BN - TERM2BN + TERM3BN)
+
+
+      ELSE
+
+         ! If no alkalinity, set everything to zero
+         KT1  = 0.D0
+         KT1N = 0.D0
+         KT2  = 0.D0
+         KT2N = 0.D0
+
+      ENDIF
+
+      ! Return w/ success
+      RC = GIGC_SUCCESS
+
+      END SUBROUTINE GET_ALK
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: init_sulfate
 !
 ! !DESCRIPTION: Subroutine INIT\_SULFATE initializes and zeros all allocatable
@@ -8209,12 +8502,14 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Free pointers
-      IF ( ASSOCIATED( O3m       ) ) O3m    => NULL()
-      IF ( ASSOCIATED( PH2O2m    ) ) PH2O2m => NULL()
-      IF ( ASSOCIATED( JH2O2     ) ) JH2O2  => NULL()
-      IF ( ASSOCIATED( OH        ) ) OH     => NULL()
-      IF ( ASSOCIATED( NO3       ) ) NO3    => NULL()
-      IF ( ASSOCIATED( HNO3      ) ) HNO3   => NULL()
+      IF ( ASSOCIATED( O3m        ) ) O3m        => NULL()
+      IF ( ASSOCIATED( PH2O2m     ) ) PH2O2m     => NULL()
+      IF ( ASSOCIATED( JH2O2      ) ) JH2O2      => NULL()
+      IF ( ASSOCIATED( OH         ) ) OH         => NULL()
+      IF ( ASSOCIATED( NO3        ) ) NO3        => NULL()
+      IF ( ASSOCIATED( HNO3       ) ) HNO3       => NULL()
+      IF ( ASSOCIATED( NDENS_SALA ) ) NDENS_SALA => NULL()
+      IF ( ASSOCIATED( NDENS_SALC ) ) NDENS_SALC => NULL()
 
       END SUBROUTINE CLEANUP_SULFATE
 !EOC
