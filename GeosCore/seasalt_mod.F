@@ -1039,10 +1039,6 @@
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
 
-      ! Free pointer
-      NDENS_SALA => NULL()
-      NDENS_SALC => NULL()
-
       END SUBROUTINE CLEANUP_SEASALT
 !EOC
 #if   defined( TOMAS )
