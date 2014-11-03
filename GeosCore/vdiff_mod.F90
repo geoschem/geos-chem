@@ -2088,7 +2088,7 @@ contains
           ! which tracks emission fluxes.  Units are [kg/m2/s].
           tmpflx = 0.0d0
           DO L = 1, TOPMIX
-             CALL GetHcoVal ( N, I, J, L, fnd, emis8=emis )
+             CALL GetHcoVal ( N, I, J, L, fnd, emis=emis )
              IF ( .NOT. fnd ) EXIT
              tmpflx = tmpflx + emis
           ENDDO
@@ -2098,7 +2098,7 @@ contains
           ! array. These values are stored in 1/s. They are added in the 
           ! same manner as the DEPSAV values from drydep_mod.F.
           ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
-          CALL GetHcoVal ( N, I, J, 1, fnd, dep8=dep )
+          CALL GetHcoVal ( N, I, J, 1, fnd, dep=dep )
           IF ( fnd ) THEN
              dflx(I,J,N) = dflx(I,J,N) + ( dep * as2_scal(I,J,N) / TCVV(N) )
           ENDIF
@@ -2454,9 +2454,9 @@ contains
 #if defined( DEBUG )
     write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
     do N=1,N_TRACERS
-!       write(*,*) 'eflx TRACER ', N, ': ', SUM(eflx(:,:,N))
-!       write(*,*) 'dflx TRACER ', N, ': ', SUM(dflx(:,:,N))
-       write(*,*) 'eflx TRACER ', N, ': ', MINVAL(eflx(:,:,N)), MAXVAL(eflx(:,:,N))
+       write(*,*) 'eflx TRACER ', N, ': ', SUM(eflx(:,:,N))
+       write(*,*) 'dflx TRACER ', N, ': ', SUM(dflx(:,:,N))
+!       write(*,*) 'eflx TRACER ', N, ': ', MINVAL(eflx(:,:,N)), MAXVAL(eflx(:,:,N))
     enddo
 #endif
 

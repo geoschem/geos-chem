@@ -824,7 +824,7 @@ seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o           tomas_mod.o            \
                               tracerid_mod.o          vdiff_pre_mod.o        \
-                              tracer_mod.o
+                              tracer_mod.o            hcoi_gc_main_mod.o
 
 setemdep.o                  : setemdep.F                                     \
                               tracerid_mod.o

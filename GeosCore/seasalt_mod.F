@@ -17,6 +17,7 @@
 !
 ! !USES:
 !
+      USE HCO_ERROR_MOD
 
       IMPLICIT NONE
       PRIVATE
@@ -75,6 +76,8 @@
 !                              which facilitates connection to GEOS-5 GCM
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Jun 2014 - R. Yantosca - Remove code now made obsolete by HEMCO
+!  02 Nov 2014 - C. Keller   - Interface with HEMCO for alkalinity and number
+!                              densities
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -100,23 +103,33 @@
       ! ALK_EMIS : Array for alkalinity [kg]
       ! N_DENS   : Number density of seasalt emissions [#/m3]
       ! SALT_V   : Log-normal volum size distribution for sea salt
+      ! 
+      ! Note: sea salt emissions are now calculated in HEMCO following the
+      ! original code (hcox_seasalt_mod.F). This has made some of the arrays
+      ! obsolete. Alkalinity and number density are now obtained through the
+      ! HEMCO interface (see subroutine GET_ALK). The arrays NDENS_SALA and
+      ! NDENS_SALC now replace N_DENS (ckeller, 11/02/2014).
       !=======================================================================-
 
       ! Scalars
-      INTEGER              :: DRYSALA
-      INTEGER              :: DRYSALC
+      INTEGER               :: DRYSALA
+      INTEGER               :: DRYSALC
 
       ! Arrays
-      INTEGER              :: IDDEP(NSALT)
-      REAL*8,  ALLOCATABLE :: REDGE(:,:)   
-      REAL*8,  ALLOCATABLE :: RMID(:,:)
-      REAL*8,  ALLOCATABLE :: SRC(:,:)   
-      REAL*8,  ALLOCATABLE :: SRC_N(:,:)   
-      REAL*8,  ALLOCATABLE :: ALK_EMIS(:,:,:,:)
-      REAL*8,  ALLOCATABLE :: N_DENS(:,:,:,:)    
-      REAL*8,  ALLOCATABLE :: SALT_V(:)
-      REAL*8,  ALLOCATABLE :: DMID(:)
-      REAL*8               :: SS_DEN(NSALT)    = (/ 2200.d0, 2200.d0 /)
+      INTEGER               :: IDDEP(NSALT)
+      REAL*8,   ALLOCATABLE :: SALT_V(:)
+      REAL*8,   ALLOCATABLE :: DMID(:)
+      REAL*8,   PARAMETER   :: SS_DEN(NSALT)   = (/ 2200.d0, 2200.d0 /)
+      REAL(hp), POINTER     :: NDENS_SALA(:,:) => NULL()
+      REAL(hp), POINTER     :: NDENS_SALC(:,:) => NULL()
+
+      ! Now obsolete
+!      REAL*8,   ALLOCATABLE :: REDGE(:,:)   
+!      REAL*8,   ALLOCATABLE :: RMID(:,:)
+!      REAL*8,   ALLOCATABLE :: SRC(:,:)   
+!      REAL*8,   ALLOCATABLE :: SRC_N(:,:)   
+!      REAL*8,   ALLOCATABLE :: ALK_EMIS(:,:,:,:)
+!      REAL*8,   ALLOCATABLE :: N_DENS(:,:,:,:)    
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -891,25 +904,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N,
-     &                    Input_Opt, State_Met )
+      SUBROUTINE GET_ALK( am_I_Root, I, J, L, ALK1, ALK2, Kt1, Kt2, 
+     &                    Kt1N, Kt2N, Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,          ONLY : IT_IS_NAN
+      USE GIGC_ErrCode_Mod
+      USE ERROR_MOD,          ONLY : IT_IS_NAN, ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
+      USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)  :: I, J, L     ! Lon-lat-alt indices
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU? 
+      INTEGER,        INTENT(IN)    :: I, J, L     ! Lon-lat-alt indices
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL*8,         INTENT(OUT) :: ALK1, ALK2           ! [kg]
-      REAL*8,         INTENT(OUT) :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
+      REAL*8,         INTENT(OUT)   :: ALK1, ALK2           ! [kg]
+      REAL*8,         INTENT(OUT)   :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY: 
 !  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
@@ -921,6 +944,7 @@
 !                              derived type object
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F     
+!  02 Nov 2014 - C. Keller   - Now get alkalinity and number density from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -943,8 +967,13 @@
       REAL*8,  PARAMETER :: gamma_HNO3 = 0.2d0 !from JPL [2001] 
       REAL*8,  PARAMETER :: Dg = 0.2d0 !gas phase diffusion coeff. [cm2/s]
       REAL*8,  PARAMETER :: v = 3.0d4  !cm/s
-
       LOGICAL, SAVE      :: FIRST = .TRUE.
+
+      ! HEMCO update
+      REAL*8                       :: AM2, FEMIS
+      INTEGER                      :: NTOP
+      LOGICAL                      :: FOUND
+      CHARACTER(LEN=63), PARAMETER :: LOC = 'GET_ALK (seasalt_mod.F)'
  
       !=================================================================
       ! GET_ALK begins here!
@@ -960,9 +989,85 @@
       N1    = 0.D0
       N2    = 0.D0
 
+      !-----------------------------------------------------------------------
+      ! Get alkalinity from HEMCO. This is just the current emissions,
+      ! converted from kg/m2/s to kg. In the original seasalt code, the 
+      ! alkalinity was set to the total surface flux for every layer within
+      ! the PBL, and to zero above. This is replicated below.
+      ! I'm not sure if it would make more sense to weight the alkalinity by
+      ! the fraction of PBL?
+      !                                                 (ckeller, 10/31/2014)
+      !-----------------------------------------------------------------------
       ! [kg] use this when not transporting alk
-      ALK1  = ALK_EMIS(I,J,L,1)
-      ALK2  = ALK_EMIS(I,J,L,2)
+!      ALK1  = ALK_EMIS(I,J,L,1)
+!      ALK2  = ALK_EMIS(I,J,L,2)
+
+      ! On first call, get pointers to diagnostics arrays
+      IF ( FIRST ) THEN
+
+         ! Sea salt density, fine mode
+         CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE', 
+     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALA )
+         IF ( RC /= HCO_SUCCESS )
+     &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_FINE', LOC )
+
+         ! Sea salt density, coarse mode 
+         CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE', 
+     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALC )
+         IF ( RC /= HCO_SUCCESS )
+     &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_COARSE', LOC )
+
+      ENDIF 
+
+      ! Layer in which the PBL top occurs
+      NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+      
+      ! Do the following only if we are within the PBL
+      IF ( L <= NTOP ) THEN      
+
+         ! Grid box area [m2]
+         AM2 = State_Met%AREA_M2(I,J,1)
+ 
+         ! Get ALK1 from sea salt fine mode
+         CALL GetHcoVal( IDTSALA, I, J, 1, FOUND, Emis=ALK1 )
+         IF ( .NOT. FOUND ) THEN
+            IF ( FIRST ) WRITE( 6, 100 ) 'SALA'
+            ALK1 = 0.0d0
+         ELSE
+            ALK1 = ALK1 * AM2 * GET_TS_EMIS() * 60.0d0
+         ENDIF
+   
+         ! Get ALK2 from sea salt coarse mode
+         CALL GetHcoVal( IDTSALC, I, J, 1, FOUND, Emis=ALK2 )
+         IF ( .NOT. FOUND ) THEN
+            IF ( FIRST ) WRITE( 6, 100 ) 'SALC'
+            ALK2 = 0.0d0
+         ELSE
+            ALK2 = ALK2 * AM2 * GET_TS_EMIS() * 60.0d0
+         ENDIF
+
+ 100     FORMAT( '### WARNING: Cannot define alkalinity - ', 
+     &           'there are no sea salt emissions: ', a )
+ 
+         ! Number density. Convert from [#] to [# cm-3]
+         N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) * 1.d-6
+         N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) * 1.d-6
+
+!***************************************************************
+         ! To take into account fraction of PBL, uncomment the 
+         ! following lines:
+
+         ! Fraction of the PBL spanned by box (I,J,L) [unitless]
+!         FEMIS = GET_FRAC_OF_PBL( I, J, L )
+
+         ! weight by fraction of PBL
+!         ALK1 = ALK1 * FEMIS
+!         ALK2 = ALK2 * FEMIS
+!         N1   = N1   * FEMIS
+!         N2   = N2   * FEMIS
+!***************************************************************
+
+      ENDIF
 
       !-----------------------------------------------------------------------
       ! NOTE: If you want to transport alkalinity then uncomment this section
@@ -976,8 +1081,8 @@
       !-----------------------------------------------------------------------
 
       ! Conversion from [m-3] --> [cm-3]
-      N1 = N_DENS(I,J,L,1) * 1.d-6
-      N2 = N_DENS(I,J,L,2) * 1.d-6
+!      N1 = N_DENS(I,J,L,1) * 1.d-6
+!      N2 = N_DENS(I,J,L,2) * 1.d-6
 
       ALK = ALK1 + ALK2
 
@@ -1073,6 +1178,12 @@
 
       ENDIF
 
+      ! Update first flag
+      FIRST = .FALSE.
+
+      ! Return w/ success
+      RC = GIGC_SUCCESS
+
       END SUBROUTINE GET_ALK
 !EOC
 !------------------------------------------------------------------------------
@@ -1134,29 +1245,29 @@
       IF ( IS_INIT ) RETURN
 
       ! Allocate arrays
-      ALLOCATE( REDGE( 0:NR_MAX, NSALT ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REDGE' )
-      REDGE = 0d0
+!      ALLOCATE( REDGE( 0:NR_MAX, NSALT ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REDGE' )
+!      REDGE = 0d0
 
-      ALLOCATE( RMID( NR_MAX, NSALT ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RMID' )
-      RMID = 0d0
+!      ALLOCATE( RMID( NR_MAX, NSALT ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RMID' )
+!      RMID = 0d0
 
-      ALLOCATE( SRC( NR_MAX, NSALT ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC' )
-      SRC = 0d0
+!      ALLOCATE( SRC( NR_MAX, NSALT ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC' )
+!      SRC = 0d0
 
-      ALLOCATE( SRC_N( NR_MAX, NSALT ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC_N' )
-      SRC_N = 0d0
+!      ALLOCATE( SRC_N( NR_MAX, NSALT ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC_N' )
+!      SRC_N = 0d0
 
-      ALLOCATE( ALK_EMIS( IIPAR, JJPAR, LLCHEM, NSALT ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALK_EMIS' )
-      ALK_EMIS = 0d0
+!      ALLOCATE( ALK_EMIS( IIPAR, JJPAR, LLCHEM, NSALT ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALK_EMIS' )
+!      ALK_EMIS = 0d0
 
-      ALLOCATE( N_DENS( IIPAR, JJPAR, LLCHEM, NSALT ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'N_DENS' )
-      N_DENS = 0d0
+!      ALLOCATE( N_DENS( IIPAR, JJPAR, LLCHEM, NSALT ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'N_DENS' )
+!      N_DENS = 0d0
 
       ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )
@@ -1219,14 +1330,18 @@
       !=================================================================
       ! CLEANUP_SEASALT begins here!
       !=================================================================
-      IF ( ALLOCATED( REDGE    ) ) DEALLOCATE( REDGE    )
-      IF ( ALLOCATED( RMID     ) ) DEALLOCATE( RMID     )
-      IF ( ALLOCATED( SRC      ) ) DEALLOCATE( SRC      )
-      IF ( ALLOCATED( SRC_N    ) ) DEALLOCATE( SRC_N    )
-      IF ( ALLOCATED( ALK_EMIS ) ) DEALLOCATE( ALK_EMIS )
-      IF ( ALLOCATED( N_DENS   ) ) DEALLOCATE( N_DENS   )      
+!      IF ( ALLOCATED( REDGE    ) ) DEALLOCATE( REDGE    )
+!      IF ( ALLOCATED( RMID     ) ) DEALLOCATE( RMID     )
+!      IF ( ALLOCATED( SRC      ) ) DEALLOCATE( SRC      )
+!      IF ( ALLOCATED( SRC_N    ) ) DEALLOCATE( SRC_N    )
+!      IF ( ALLOCATED( ALK_EMIS ) ) DEALLOCATE( ALK_EMIS )
+!      IF ( ALLOCATED( N_DENS   ) ) DEALLOCATE( N_DENS   )      
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
+
+      ! Free pointer
+      NDENS_SALA => NULL()
+      NDENS_SALC => NULL()
 
       END SUBROUTINE CLEANUP_SEASALT
 !EOC

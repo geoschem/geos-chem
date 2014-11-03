@@ -2013,7 +2013,7 @@
 !$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
 !$OMP+PRIVATE( HPLUS, SO4nss, TNH3, TNO3,  GNO3, ANIT,   LSTOT, ALKdst )
 !$OMP+PRIVATE( ALKds, ALKss,  NH3,  SSCvv, aSO4, SO2_sr, SR,    TANIT  )
-!$OMP+PRIVATE( BULK,  SIZE_RES                                         )
+!$OMP+PRIVATE( BULK,  SIZE_RES,     RC                                 )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR 
       DO J = 1, JJPAR
@@ -2096,8 +2096,8 @@
          !==============================================================
 
          ! Get alkalinity of accum (ALK1) and coarse (ALK2) [kg]
-         CALL GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N,
-     &                 Input_Opt, State_Met )
+         CALL GET_ALK( am_I_Root, I, J, L, ALK1, ALK2, Kt1, Kt2, 
+     &                 Kt1N, Kt2N, Input_Opt, State_Met, RC )
 
          ! Total alkalinity [kg]
          ALK = ALK1 + ALK2

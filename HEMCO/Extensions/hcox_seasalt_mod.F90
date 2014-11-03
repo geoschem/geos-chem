@@ -7,6 +7,9 @@
 !
 ! !DESCRIPTION: Module HCOX\_SeaSalt\_Mod contains routines to calculate
 ! sea salt aerosol emissions, following the implementation in GEOS-Chem.
+! Emission number densities of the fine and coarse mode sea salt aerosols
+! are written into diagnostic containers `SEASALT\_DENS\_FINE` and
+! `SEASALT\_DENS\_COARSE`, respectively.
 !\\
 !\\ 
 ! This is a HEMCO extension module that uses many of the HEMCO core
@@ -65,6 +68,10 @@ MODULE HCOX_SeaSalt_Mod
   REAL*8, ALLOCATABLE :: SRRC_N(:,:)
   REAL*8, ALLOCATABLE :: RREDGE(:,:)
   REAL*8, ALLOCATABLE :: RRMID (:,:)
+
+  ! Number densities
+  REAL(hp), POINTER   :: NDENS_SALA(:,:) => NULL()
+  REAL(hp), POINTER   :: NDENS_SALC(:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -287,13 +294,22 @@ CONTAINS
           ENDDO !R
 
           ! ----------------------------------------------------------------
-          ! Pass sea salt emissions do tracer tendency array in [molec/cm2/s]
+          ! Pass sea salt emissions do emission array [kg/m2/s]
           ! ----------------------------------------------------------------
           ! kg --> kg/m2/s
           IF     ( N == 1 ) THEN
              FLUXSALA(I,J) = SALT / A_M2 / HcoState%TS_EMIS 
           ELSEIF ( N == 2 ) THEN    
              FLUXSALC(I,J) = SALT / A_M2 / HcoState%TS_EMIS 
+          ENDIF
+
+          ! ----------------------------------------------------------------
+          ! Write out number density for diagnostics [#]
+          ! ----------------------------------------------------------------
+          IF     ( N == 1 ) THEN
+             NDENS_SALA(I,J) = SALT_N 
+          ELSEIF ( N == 2 ) THEN
+             NDENS_SALC(I,J) = SALT_N 
           ENDIF
 
 !=============================================================================
@@ -598,6 +614,20 @@ CONTAINS
     ENDIF
     RRMID = 0d0
 
+    ALLOCATE ( NDENS_SALA( HcoState%NX, HcoState%NY), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( 'Cannot allocate NDENS_SALA', RC )
+       RETURN
+    ENDIF
+    NDENS_SALA = 0.0_hp
+
+    ALLOCATE ( NDENS_SALC( HcoState%NX, HcoState%NY), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( 'Cannot allocate NDENS_SALC', RC )
+       RETURN
+    ENDIF
+    NDENS_SALC = 0.0_hp
+
     !=================================================================
     ! Define edges and midpoints of each incremental radius bin
     !=================================================================
@@ -699,6 +729,43 @@ CONTAINS
     ENDDO !N
 
     !=======================================================================
+    ! Create diagnostics. The number densities of both modes are always
+    ! written into a diagnostics so that they can be used by other routines
+    ! and from outside of HEMCO. These two diagnostics just hold a pointer
+    ! to the respective density arrays filled by the run method of this
+    ! module.
+    !=======================================================================
+    CALL Diagn_Create ( am_I_Root, HcoState,                &    
+                        cName      = 'SEASALT_DENS_FINE',   &
+                        ExtNr      = ExtNr,                 &
+                        Cat        = -1,                    &
+                        Hier       = -1,                    &
+                        HcoID      = IDTSALA,               &
+                        SpaceDim   = 2,                     &
+                        OutUnit    = 'number_dens',         &
+                        WriteFreq  = 'Manual',              &
+                        AutoFill   = 0,                     &
+                        Trgt2D     = NDENS_SALA,            &
+                        cID        = N,                     &
+                        RC         = RC                      )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL Diagn_Create ( am_I_Root, HcoState,                &    
+                        cName      = 'SEASALT_DENS_COARSE', &
+                        ExtNr      = ExtNr,                 &
+                        Cat        = -1,                    &
+                        Hier       = -1,                    &
+                        HcoID      = IDTSALC,               &
+                        SpaceDim   = 2,                     &
+                        OutUnit    = 'number_dens',         &
+                        WriteFreq  = 'Manual',              &
+                        AutoFill   = 0,                     &
+                        Trgt2D     = NDENS_SALC,            &
+                        cID        = N,                     &
+                        RC         = RC                      )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !=======================================================================
     ! Activate this module and the fields of ExtState that it uses
     !=======================================================================
 
@@ -745,10 +812,12 @@ CONTAINS
     !=================================================================
 
     ! Cleanup module arrays
-    IF ( ALLOCATED( SRRC    ) ) DEALLOCATE( SRRC    )
-    IF ( ALLOCATED( SRRC_N  ) ) DEALLOCATE( SRRC_N  )
-    IF ( ALLOCATED( RREDGE  ) ) DEALLOCATE( RREDGE  )
-    IF ( ALLOCATED( RRMID   ) ) DEALLOCATE( RRMID   )
+    IF ( ALLOCATED ( SRRC       ) ) DEALLOCATE( SRRC       )
+    IF ( ALLOCATED ( SRRC_N     ) ) DEALLOCATE( SRRC_N     )
+    IF ( ALLOCATED ( RREDGE     ) ) DEALLOCATE( RREDGE     )
+    IF ( ALLOCATED ( RRMID      ) ) DEALLOCATE( RRMID      )
+    IF ( ASSOCIATED( NDENS_SALA ) ) DEALLOCATE( NDENS_SALA )
+    IF ( ASSOCIATED( NDENS_SALC ) ) DEALLOCATE( NDENS_SALC )
 
   END SUBROUTINE HCOX_SeaSalt_Final
 !EOC
