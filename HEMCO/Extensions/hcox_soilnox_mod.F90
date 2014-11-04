@@ -400,9 +400,11 @@ CONTAINS
        TmpArr => NULL()
 
        ! Print a warning
-       MSG = 'Restart variables obtained from restart file - ' // &
-            'I hope the correct time stamp is used!'
-       CALL HCO_WARNING( MSG, RC )
+       IF ( am_I_Root ) THEN
+          MSG = 'Restart variables obtained from restart file - ' // &
+                'I hope the correct time stamp is used!'
+          CALL HCO_WARNING( MSG, RC )
+       ENDIF
 
        ! Check if ExtState variables DRYCOEFF is defined. Otherwise, try to
        ! read it from settings.

@@ -7980,6 +7980,8 @@
       KT2N  = 0.D0
       N1    = 0.D0
       N2    = 0.D0
+      ALK1  = 0.D0
+      ALK2  = 0.D0
 
       !-----------------------------------------------------------------------
       ! Get alkalinity from HEMCO. This is just the current emissions,
@@ -8131,6 +8133,8 @@
       ELSE
 
          ! If no alkalinity, set everything to zero
+         ALK1 = 0.D0
+         ALK2 = 0.D0
          KT1  = 0.D0
          KT1N = 0.D0
          KT2  = 0.D0
