@@ -176,7 +176,7 @@
       REAL*8            :: Rn_LOST(IIPAR,JJPAR,LLPAR)
 
       ! To get HEMCO values
-      REAL*8                 :: Emis8
+      REAL*8                 :: Emis
       LOGICAL                :: FOUND
 !
 ! !DEFINED PARAMETERS
@@ -216,7 +216,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, Emis8, FOUND )
+!$OMP+PRIVATE( I, J, L, N, Emis, FOUND )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, N_TRACERS
 
@@ -240,10 +240,10 @@
             ! Add emissions into the tracer array
             ! Convert from [kg/m2/s] to [kg]
             ! Now use GetHcoVal (ckeller, 10/21/2014)
-            CALL GetHcoVal( N, I, J, L, FOUND, Emis8=Emis8 )
+            CALL GetHcoVal( N, I, J, L, FOUND, Emis=Emis )
             IF ( .NOT. FOUND ) CYCLE
             State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)
-     &                                 + ( Emis8
+     &                                 + ( Emis
      &                                 *   State_Met%AREA_M2  (I,J,L  )
      &                                 *   DTCHEM                      )
 

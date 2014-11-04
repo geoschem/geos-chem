@@ -737,7 +737,7 @@ CONTAINS
           ELSE
              TMPVAL = BaseDct%Dta%V3(tIDx)%Val(I,J,L)
           ENDIF
-          
+   
           ! Pass base value to output array
           OUTARR_3D(I,J,L) = TMPVAL
        ENDDO !L

@@ -23,15 +23,15 @@
 ! PARDF), this may result in very different average values - which in 
 ! turn may result in local differences of >50%. HEMCO emissions are 
 ! identical to original GEOS-Chem emissions once we pass the first 10 
-! days (ckeller, 10/8/2013)! 
+! days (ckeller, 10/8/2013).
 !\\
 !\\
 ! A similar procedure is now also applied for the leaf area index variables.
 ! The original GEOS-Chem MEGAN code used three LAI variables: current month
-! LAI (LAI\_CM), previous month LAI (LAI\_PM), and instantaneous LAI (LAI, 
-! which was a daily interpolation of LAI\_CM and next month' LAI, LAI_NM). 
-! The HEMCO implementation uses only the instantaneous LAI any more, assuming 
-! it changes every day. The previous day LAI is kept in memory and used to
+! LAI (LAI\_CM), previous month LAI (LAI\_PM), and instantaneous LAI (LAI), 
+! which was a daily interpolation of LAI\_CM and next month' LAI, (LAI\_NM). 
+! The HEMCO implementation uses only the instantaneous LAI, assuming it is
+! updated every day. The previous day LAI is kept in memory and used to
 ! determine the LAI change over time (used to calculate the gamma leaf age).
 ! For the first simulation day, a LAI change of zero is assumed.
 ! (ckeller, 10/9/2014)
@@ -233,8 +233,8 @@
       INTEGER             :: DAYS_BTW_M
 
       ! testing only
-      integer, parameter  :: ix = -1 !25 !13 !20
-      integer, parameter  :: iy = -1 !22 !38 !31
+      integer, parameter  :: ix = -1 !20 !25 !13 !20
+      integer, parameter  :: iy = -1 !43 !22 !38 !31
 
       CONTAINS
 !EOC
@@ -476,8 +476,7 @@
          LAI_PREVDAY = LAI_PREVSTEP
       ENDIF
 
-      ! For testing, set to 1 day since we know that LAI is updated every
-      ! day.
+      ! Set to 1 day since we know that LAI is updated every day.
       DAYS_BTW_M = 1
 
 !$OMP PARALLEL DO
@@ -601,9 +600,12 @@
 !                  write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J)
 !                  write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J)
 !                  write(*,*) 'HCOT_DAILY : ', HCOT_DAILY (I,J)
+!                  write(*,*) 'ISOLAI: ', ISOLAI
+!                  write(*,*) 'PMISOLAI: ', PMISOLAI
+!                  write(*,*) 'MISOLAI: ', MISOLAI
 !                  write(*,*) ' '
 !         endif
-!
+
          !--------------------------------------------------------------------
          ! MEGAN Isoprene
          !--------------------------------------------------------------------
@@ -757,7 +759,7 @@
 ! -------------------------------------------------------------
 
           ! testing only
-          if ( i == ix .AND. j == iy ) then
+          if ( i == ix .AND. j == iy .and. .FALSE. ) then
                   write(*,*) ' '
                   write(*,*) 'HEMCO MEGAN (kg/m2/s) @ ', i, j 
                   write(*,*) 'EMISOP: ', EMISOP
@@ -906,7 +908,7 @@
             FLUXCO(I,J) = EMMO * 0.4666d0
 
             ! testing only
-            if ( i==ix .and. j==iy ) then
+            if ( i==ix .and. j==iy .and. .FALSE. ) then
                write(*,*) ' '
                write(*,*) 'HEMCO MEGAN @ ', ix, iy
                write(*,*) 'CO (kg/m2/s): ', FLUXCO(I,J)
@@ -924,7 +926,7 @@
             FLUXPRPE(I,J) = EMISOP * BIOSCAL
 
             ! testing only
-            if ( i==ix .and. j==iy ) then
+            if ( i==ix .and. j==iy .and. .FALSE. ) then
                write(*,*) ' '
                write(*,*) 'HEMCO MEGAN @ ', ix, iy
                write(*,*) 'PRPE (kg/m2/s): ', FLUXPRPE(I,J)
@@ -972,6 +974,8 @@
                   write(*,*) ' '
                   write(*,*) 'HEMCO MEGAN @ ', ix, iy
                   write(*,*) 'OCPI (NOSOA) (kg/m2/s): ', FLUXOCPI(I,J)
+                  write(*,*) 'TERP_ORGC: ', TERP_ORGC
+                  write(*,*) 'EMMT2OC: ', EMMT2OC
                endif
 
             ELSE
@@ -1661,28 +1665,30 @@
          ENDIF
       ENDIF
    
-!      ! testing only
-!      if ( i==ix .and. j==iy ) then
-!         write(*,*) ' ' 
-!         write(*,*) 'HEMCO MEGAN @ ', i,j
-!         write(*,*) 'EMISOP: ', EMISOP
-!         write(*,*) 'AEF_ISOP [kgC/m2/s]: ', AEF_ISOP(I,J,1,1)
-!         write(*,*) 'GAMMA_LAI: ', GAMMA_LAI 
-!         write(*,*) 'GAMMA_LEAF_AGE: ', GAMMA_LEAF_AGE
-!         write(*,*) 'GAMMA_T: ', GAMMA_T
-!         write(*,*) 'GAMMA_P: ', GAMMA_P 
-!         write(*,*) 'GAMMA_SM: ', GAMMA_SM 
-!         write(*,*) 'TS: ', TS 
-!         write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J) 
-!         write(*,*) 'HCOT_DAILY: ', HCOT_DAILY(I,J) 
-!         write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J) 
-!         write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J) 
-!         write(*,*) 'ISOLAI  : ', ISOLAI
-!         write(*,*) 'MISOLAI : ', MISOLAI
-!         write(*,*) 'PMISOLAI: ', PMISOLAI
-!         write(*,*) 'D_BTW_M : ', D_BTW_M 
-!         write(*,*) ' ' 
-!      endif
+      ! testing only
+      if ( i==ix .and. j==iy ) then
+         write(*,*) ' ' 
+         write(*,*) '--- GET_EMISOP_MEGAN --- ' 
+         write(*,*) 'HEMCO MEGAN @ ', i,j
+         write(*,*) 'EMISOP: ', EMISOP
+         write(*,*) 'SUNCOS  : ', SUNCOS
+         write(*,*) 'AEF_ISOP [kgC/m2/s]: ', AEF_ISOP(I,J)
+         write(*,*) 'GAMMA_LAI_ISOP: ', GAMMA_LAI_ISOP
+         write(*,*) 'GAMMA_LEAF_AGE: ', GAMMA_LEAF_AGE
+         write(*,*) 'GAMMA_T: ', GAMMA_T
+         write(*,*) 'GAMMA_P: ', GAMMA_P 
+         write(*,*) 'GAMMA_SM: ', GAMMA_SM 
+         write(*,*) 'TS: ', TS 
+         write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J) 
+         write(*,*) 'HCOT_DAILY: ', HCOT_DAILY(I,J) 
+         write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J) 
+         write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J) 
+         write(*,*) 'ISOLAI  : ', ISOLAI
+         write(*,*) 'MISOLAI : ', MISOLAI
+         write(*,*) 'PMISOLAI: ', PMISOLAI
+         write(*,*) 'D_BTW_M : ', D_BTW_M 
+         write(*,*) ' ' 
+      endif
 
       ! Leave w/ success
       RC = HCO_SUCCESS

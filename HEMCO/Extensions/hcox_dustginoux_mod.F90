@@ -416,7 +416,6 @@ CONTAINS
     ! Scalars
     INTEGER                        :: N, nSpc
     CHARACTER(LEN=255)             :: MSG
-    LOGICAL                        :: verb
     REAL(dp)                       :: Mp, Rp
 
     ! Arrays
@@ -454,7 +453,7 @@ CONTAINS
     CH_DUST = HcoX_DustGinoux_GetCHDust()
 
     ! Verbose mode
-    IF ( verb ) THEN
+    IF ( am_I_Root ) THEN
        MSG = 'Use Ginoux dust emissions (extension module)'
        CALL HCO_MSG( MSG )
 

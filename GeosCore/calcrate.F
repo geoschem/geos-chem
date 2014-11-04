@@ -287,7 +287,7 @@
 
       ! For HEMCO drydep values (ckeller, 10/13/14)
       INTEGER :: TRCID
-      REAL*8  :: Dep8
+      REAL*8  :: Dep 
       LOGICAL :: Fnd
 
       ! Pointers
@@ -2062,10 +2062,10 @@ c new OH+CO rate from JPL2006.
                   ! Also add deposition values from HEMCO. (ckeller, 10/13/14)
                   TRCID = NTRAIND(N)
                   IF ( TRCID > 0 ) THEN
-                     CALL GetHcoVal( TRCID, IX, IY, 1, Fnd, Dep8=Dep8 )
+                     CALL GetHcoVal( TRCID, IX, IY, 1, Fnd, Dep=Dep )
                      IF ( Fnd ) THEN
                        RRATE(KLOOP,NK) = RRATE(KLOOP,NK)
-     &                                 + Dep8
+     &                                 + Dep
      &                                 * GET_FRAC_UNDER_PBLTOP(IX,IY,IZ)
                      ENDIF          
                   ENDIF          

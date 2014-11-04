@@ -62,7 +62,7 @@
       INTEGER :: N_TRACERS
       REAL*8  :: COEF1, COEF2
       LOGICAL :: LNLPBL, Fnd
-      REAL*8  :: Emis8
+      REAL*8  :: Emis 
 
       !=================================================================
       ! SETEMIS begins here!
@@ -112,7 +112,7 @@
          ! --> Stratospheric emissions are ignored!
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, L1, JLOOP, Fnd, Emis8 )
+!$OMP+PRIVATE( I, J, L, L1, JLOOP, Fnd, Emis )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
@@ -135,9 +135,9 @@
                ! kg(tracer)/m2/s to molec(species)/cm3/s.
                JLOOP = JLOP(I,J,L)
                IF ( JLOOP /= 0 ) THEN
-                  CALL GetHcoVal( NN, I, J, L, Fnd, Emis8=Emis8 )
+                  CALL GetHcoVal( NN, I, J, L, Fnd, Emis=Emis )
                   IF ( Fnd ) THEN
-                     REMIS(JLOOP,N) = Emis8 / COEF1 * COEF2 
+                     REMIS(JLOOP,N) = Emis / COEF1 * COEF2 
      &                              / ( State_Met%BXHEIGHT(I,J,L) * 1d2)
                   ENDIF
                ENDIF

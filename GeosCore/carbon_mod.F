@@ -5874,7 +5874,7 @@ ccc
       REAL*8, POINTER :: STT(:,:,:,:)
 
       ! HEMCO update
-      REAL*8          :: Emis8
+      REAL*8          :: Emis
       LOGICAL         :: FOUND
       INTEGER, SAVE   :: SESQID = -999
 
@@ -5943,7 +5943,7 @@ ccc
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis8, FOUND )
+!$OMP+PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis, FOUND )
          DO L = 1, PBL_MAX
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -5954,9 +5954,9 @@ ccc
             IF ( SESQID > 0 ) THEN
                ! Sesquiterpenes emissions are caluclated in HEMCO. 
                ! Units are kgC/m2/s, convert to kgC/box here.
-               CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis8=Emis8 )
+               CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis=Emis )
                IF ( FOUND ) THEN
-                  TMPFLX = Emis8   * GET_TS_EMIS()   * 
+                  TMPFLX = Emis    * GET_TS_EMIS()   * 
      &                     60.0d0  * GET_AREA_M2(I,J,1)
                   ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L) + 
      &                               ( F_OF_PBL * TMPFLX )
@@ -5990,7 +5990,7 @@ ccc
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis8, FOUND )
+!$OMP+PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis, FOUND )
       DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -6043,9 +6043,9 @@ ccc
          ! Sesquiterpenes emissions are caluclated in HEMCO. 
          ! Units are kgC/m2/s, convert to kgC/box here.
          IF ( SESQID > 0 ) THEN
-            CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis8=Emis8 )
+            CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis=Emis )
             IF ( FOUND ) THEN
-               TMPFLX = Emis8   * GET_TS_EMIS()   * 
+               TMPFLX = Emis    * GET_TS_EMIS()   * 
      &                  60.0d0  * GET_AREA_M2(I,J,1)
                ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L) + 
      &                            ( F_OF_PBL * TMPFLX )

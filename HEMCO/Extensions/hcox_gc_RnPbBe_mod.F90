@@ -448,7 +448,6 @@ CONTAINS
 !
     ! Scalars
     INTEGER                        :: N, nSpc
-    LOGICAL                        :: verb
     CHARACTER(LEN=255)             :: MSG 
 
     ! Arrays
@@ -467,15 +466,12 @@ CONTAINS
     CALL HCO_ENTER( 'HcoX_GC_RnPbBe_Init (hcox_gc_RnPbBe_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Verbose output?
-    verb = ( am_I_Root .AND. HCO_VERBOSE_CHECK() )
-
     ! Set species IDs      
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    IF ( verb ) THEN
+    IF ( am_I_Root ) THEN
        MSG = 'Use gc_RnPbBe emissions module (extension module)'
        CALL HCO_MSG( MSG )
 

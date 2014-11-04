@@ -824,7 +824,7 @@ seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o           tomas_mod.o            \
                               tracerid_mod.o          vdiff_pre_mod.o        \
-                              tracer_mod.o
+                              tracer_mod.o            hcoi_gc_main_mod.o
 
 setemdep.o                  : setemdep.F                                     \
                               tracerid_mod.o
@@ -858,7 +858,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               drydep_mod.o                                   \
                               future_emissions_mod.o  get_ndep_mod.o         \
-                              pbl_mix_mod.o           seasalt_mod.o          \
+                              pbl_mix_mod.o                                  \
                               wetscav_mod.o           tomas_mod.o            \
                               tracer_mod.o            tracerid_mod.o         \
                               ucx_mod.o               uvalbedo_mod.o         \

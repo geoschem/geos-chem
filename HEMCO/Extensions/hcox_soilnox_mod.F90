@@ -400,9 +400,11 @@ CONTAINS
        TmpArr => NULL()
 
        ! Print a warning
-       MSG = 'Restart variables obtained from restart file - ' // &
-            'I hope the correct time stamp is used!'
-       CALL HCO_WARNING( MSG, RC )
+       IF ( am_I_Root ) THEN
+          MSG = 'Restart variables obtained from restart file - ' // &
+                'I hope the correct time stamp is used!'
+          CALL HCO_WARNING( MSG, RC )
+       ENDIF
 
        ! Check if ExtState variables DRYCOEFF is defined. Otherwise, try to
        ! read it from settings.
@@ -613,21 +615,23 @@ CONTAINS
     IDTNO = HcoIDs(1)
 
     ! Verbose mode
-    MSG = 'Use soil NOx emissions (extension module)'
-    CALL HCO_MSG( MSG, SEP1='-' )
+    IF ( am_I_Root ) THEN
+       MSG = 'Use soil NOx emissions (extension module)'
+       CALL HCO_MSG( MSG, SEP1='-' )
 
-    WRITE(MSG,*) '   - NOx species:', TRIM(SpcNames(1)), IDTNO
-    CALL HCO_MSG(MSG)
-    WRITE(MSG,*) '   - Use fertilizer NOx: ', LFERTILIZERNOX
-    CALL HCO_MSG(MSG)
-    WRITE(MSG,*) '   - Global scale factor: ', FERT_SCALE 
-    CALL HCO_MSG(MSG)
-    MSG = '   --> Restart variables are taken from file specified in'
-    CALL HCO_MSG(MSG)
-    MSG = '       the config. file - I hope this file contains the'
-    CALL HCO_MSG(MSG)
-    MSG = '       simulation start date!!!' 
-    CALL HCO_MSG(MSG,SEP2='-')
+       WRITE(MSG,*) '   - NOx species:', TRIM(SpcNames(1)), IDTNO
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   - Use fertilizer NOx: ', LFERTILIZERNOX
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   - Global scale factor: ', FERT_SCALE 
+       CALL HCO_MSG(MSG)
+       MSG = '   --> Restart variables are taken from file specified in'
+       CALL HCO_MSG(MSG)
+       MSG = '       the config. file - I hope this file contains the'
+       CALL HCO_MSG(MSG)
+       MSG = '       simulation start date!!!' 
+       CALL HCO_MSG(MSG,SEP2='-')
+    ENDIF
 
     ! ---------------------------------------------------------------------- 
     ! Set module variables
