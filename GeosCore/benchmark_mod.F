@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -34,6 +36,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  05 Nov 2014 - M. Yannetti - PRECISION_MOD Changed REAL*8 to REAL(fp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
