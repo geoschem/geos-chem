@@ -697,6 +697,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  27 Jul 2012 - C. Keller - Initial version
 !  09 Oct 2014 - C. Keller - Now also support 'minutes since ...'
+!  05 Nov 2014 - C. Keller - Bug fix if reference datetime is in minutes.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -745,10 +746,13 @@ CONTAINS
     ALLOCATE( all_YYYYMMDDhh(nTime) )
     all_YYYYMMDDhh = 0 
  
-    ! Construct julian date for every available time slice
+    ! Construct julian date for every available time slice. Make sure it is
+    ! in the proper 'units', e.g. in days, hours or minutes, depending on 
+    ! the reference unit.
     DO T = 1, nTime
        tJulday = real(tVec(T), kind=8)
        IF ( refHr >= 0 ) tJulday = tJulday / 24.d0
+       IF ( refMn >= 0 ) tJulday = tJulday / 60.d0
        tJulday = tJulday + refJulday
        CALL CALDATE ( tJulday, YYYYMMDD, hhmmss )
        all_YYYYMMDDhh(T) = YYYYMMDD * 100 & 
