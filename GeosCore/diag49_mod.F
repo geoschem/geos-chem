@@ -257,6 +257,9 @@
 !                              of removal of NOx-Ox partitioning
 !  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
 !  25 Jul 2014 - R. Yantosca - Remove reference to commsoil_mod.F90
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -548,7 +551,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Met%CLDF(K,I,J)
+               Q(X,Y,K) = State_Met%CLDF(I,J,K)
             ENDDO
             ENDDO
             ENDDO
@@ -571,7 +574,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = SUM( State_Met%OPTD(:,I,J) )
+               Q(X,Y,1) = SUM( State_Met%OPTD(I,J,:) )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -620,7 +623,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+               Q(X,Y,K) = State_Met%AIRDEN(I,J,L) * XNUMOLAIR * 1d-6
             ENDDO
             ENDDO
             ENDDO

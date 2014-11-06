@@ -2648,6 +2648,7 @@ c new OH+CO rate from JPL2006.
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2720,7 +2721,7 @@ c new OH+CO rate from JPL2006.
      &   ( IS_ICE ( I, J, State_Met )) ) THEN
 #endif
          ! do we have clouds? and do we have warm temperatures?
-         IF ( ( CLDF(L,I,J) > 0    )   .and.
+         IF ( ( CLDF(I,J,L) > 0    )   .and.
      &        ( T(I,J,L)    > 258.0) ) THEN
             yn_continue = .TRUE.
          ELSE
@@ -2808,10 +2809,10 @@ c new OH+CO rate from JPL2006.
       ! get the volume of cloud [cm3]
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       ! QL is [g/g]
-      Vc = CLDF(L,I,J) * QL * AD(I,J,L) / dens_h2o
+      Vc = CLDF(I,J,L) * QL * AD(I,J,L) / dens_h2o
 #else
       ! QL is [cm3/cm3]
-      Vc = CLDF(L,I,J) * QL * XAIRM3
+      Vc = CLDF(I,J,L) * QL * XAIRM3
 #endif
 
       ! now calculate the cloud droplet surface area

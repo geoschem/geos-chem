@@ -201,6 +201,8 @@
 !                              derived type object
 !  28 Feb 2014 - M. Sulprizio- Now obtain O3_CTM directly from State_Chm%Tracers
 !  05 Mar 2014 - R. Yantosca - Cosmetic changes
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -338,7 +340,7 @@
             OPTDUST         = ODMDUST(NLON,NLAT,:,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
-            OPTD            = State_Met%OPTD(1:LLPAR,NLON,NLAT)
+            OPTD            = State_Met%OPTD(NLON,NLAT,1:LLPAR)
 
             !-----------------------------------------------------------
             !### If you want to exclude aerosol OD, mineral dust OD,
@@ -358,7 +360,7 @@
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
             ! Column cloud fraction (not less than zero)
-            CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
+            CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
             ! NOTE: For GEOS-5, GEOS-FP, and MERRA met fields, the optical
@@ -386,7 +388,7 @@
             !===========================================================
 
             ! Column cloud fraction (not less than zero)
-            CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
+            CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
             WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )

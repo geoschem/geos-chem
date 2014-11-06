@@ -947,6 +947,7 @@ CONTAINS
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3Cld
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1021,12 +1022,12 @@ CONTAINS
     ! Read CLOUD
     v_name = "CLOUD"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_A6( Q, State_Met%CLDF )
+    CALL TRANSFER_3d( Q, State_Met%CLDF )
     
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_A6( Q, State_Met%OPTDEP )
+    CALL TRANSFER_3d( Q, State_Met%OPTDEP )
 
     ! Read QI
     v_name = "QI"

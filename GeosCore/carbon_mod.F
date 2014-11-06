@@ -7296,6 +7296,8 @@ ccc
 !                              derived type object
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7390,11 +7392,11 @@ ccc
          !---------------------------------------------
 
          ! Get cloud fraction from met fields
-         FC      = State_Met%CLDF(L,I,J)
+         FC      = State_Met%CLDF(I,J,L)
 
          ! Get liquid water content within cloud [g/m3] directly from met
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
-         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1d3
+         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1d3
 
          !%%% NOTE: Someone should investigate effect of dividing LWC by the
          !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
@@ -7531,6 +7533,8 @@ ccc
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7626,11 +7630,11 @@ ccc
          !---------------------------------------------
 
          ! Get cloud fraction from met fields [unitless]
-         FC      = State_Met%CLDF(L,I,J)
+         FC      = State_Met%CLDF(I,J,L)
 
          ! Get liquid water content within cloud [g/m3] directly from met
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
-         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1d3
+         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1d3
 
 #else
          !---------------------------------------------

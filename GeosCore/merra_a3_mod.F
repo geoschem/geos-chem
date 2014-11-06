@@ -414,7 +414,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_A3
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD,       ONLY : TRANSFER_A6
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Lp1
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
       USE TRANSFER_MOD,       ONLY : TRANSFER_G5_PLE
@@ -452,11 +451,9 @@
       REAL*8,  INTENT(OUT) :: TAUCLW    (IIPAR,JJPAR,LLPAR  )
       REAL*8,  INTENT(OUT) :: U         (IIPAR,JJPAR,LLPAR  )
       REAL*8,  INTENT(OUT) :: V         (IIPAR,JJPAR,LLPAR  )
-
-      ! Fields dimensioned as (L,I,J)
-      REAL*8,  INTENT(OUT) :: CLOUD     (LLPAR,IIPAR,JJPAR  )
-      REAL*8,  INTENT(OUT) :: MOISTQ    (LLPAR,IIPAR,JJPAR  )
-      REAL*8,  INTENT(OUT) :: OPTDEPTH  (LLPAR,IIPAR,JJPAR  )
+      REAL*8,  INTENT(OUT) :: CLOUD     (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: MOISTQ    (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: OPTDEPTH  (IIPAR,JJPAR,LLPAR  )
 
       ! Optional arguments
       REAL*8,  OPTIONAL    :: T_FULLGRID(IIPAR,JJPAR,LGLOB  )
@@ -470,6 +467,8 @@
 !  28 Oct 2013 - R. Yantosca - Add optional T_FULLGRID argument for the
 !                              offline "specialty" simulations
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  06 Nov 2014 - R. Yantosca - All input arguments are declared as (I,J,L)
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -524,7 +523,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:2' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_A6( D, CLOUD )
+                  CALL TRANSFER_3D( D, CLOUD )
                   NFOUND = NFOUND + 1 
                ENDIF
 
@@ -620,7 +619,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:10' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_A6( D, MOISTQ )
+                  CALL TRANSFER_3D( D, MOISTQ )
                   NFOUND = NFOUND + 1 
                ENDIF
 
@@ -632,7 +631,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:11' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_A6( D, OPTDEPTH )
+                  CALL TRANSFER_3D( D, OPTDEPTH )
                   NFOUND = NFOUND + 1 
                ENDIF
 

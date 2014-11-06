@@ -444,7 +444,7 @@
 ! 
 !  Therefore, the equation for QQ is:
 ! 
-!    QQ(L,I,J) = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1000.0
+!    QQ(L,I,J) = FRAC * MOISTQ(I,J,L) * AIRDEN(I,J,L) / 1000.0
 !      
 !  (3) Compute PDOWN, the column precipitation 
 !      [cm3 H2O/cm2 air/s], by multiplying QQ(L,I,J) by 
@@ -484,6 +484,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%MOISTQ(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -539,7 +541,7 @@
             ! Rate of new precipitation formation in grid box (I,J,L)
             ! [cm3 H2O/cm3 air/s]
             QQ(L,I,J)    = ( State_Met%DQRLSAN(I,J,L)          )
-     &                   * ( State_Met%AIRDEN(L,I,J)  / 1000d0 )
+     &                   * ( State_Met%AIRDEN(I,J,L)  / 1000d0 )
 
             ! Column precipitation [cm3 H2O/cm2 air/s]
             PDOWN(L,I,J) = ( ( State_Met%PFLLSAN(I,J,L+1) / 1000d0 ) 
@@ -560,7 +562,7 @@
             ! Rate of new precipitation formation in grid box (I,J,L)
             ! [cm3 H2O/cm3 air/s]
             QQ(L,I,J)    = ( State_Met%DQRLSAN(I,J,L)          )
-     &                   * ( State_Met%AIRDEN(L,I,J)  / 1000d0 )
+     &                   * ( State_Met%AIRDEN(I,J,L)  / 1000d0 )
 
             ! Column precipitation [cm3 H2O/cm2 air/s]
             PDOWN(L,I,J) = ( ( State_Met%PFLLSAN(I,J,L) / 1000d0 ) 
@@ -599,8 +601,8 @@
 
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
             QQ(L,I,J)    = FRAC                      *
-     &                     State_Met%MOISTQ(L,I,J)   *
-     &                     State_Met%AIRDEN(L,I,J)   / 1d3
+     &                     State_Met%MOISTQ(I,J,L)   *
+     &                     State_Met%AIRDEN(I,J,L)   / 1d3
             PTEMP        = QQ(L,I,J)                 *
      &                     State_Met%BXHEIGHT(I,J,L) * 1d2
             PDOWN(L,I,J) = PTEMP
@@ -613,8 +615,8 @@
                
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level.
                QQ(L,I,J)    = FRAC                      *
-     &                        State_Met%MOISTQ(L,I,J)   *
-     &                        State_Met%AIRDEN(L,I,J)   / 1d3
+     &                        State_Met%MOISTQ(I,J,L)   *
+     &                        State_Met%AIRDEN(I,J,L)   / 1d3
                PDOWN(L,I,J) = PTEMP                     + QQ(L,I,J) *
      &                        State_Met%BXHEIGHT(I,J,L) * 1d2  
                PTEMP        = PDOWN(L,I,J)
@@ -647,8 +649,8 @@
 
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
             QQ(L,I,J)    = FRAC                      *
-     &                     State_Met%MOISTQ(L,I,J)   *
-     &                     State_Met%AIRDEN(L,I,J)   / 1d3
+     &                     State_Met%MOISTQ(I,J,L)   *
+     &                     State_Met%AIRDEN(I,J,L)   / 1d3
             PTEMP        = QQ(L,I,J)                 *
      &                     State_Met%BXHEIGHT(I,J,L) * 1d2
             PDOWN(L,I,J) = PTEMP
@@ -661,8 +663,8 @@
               
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level
                QQ(L,I,J)    = FRAC                      *
-     &                        State_Met%MOISTQ(L,I,J)   *
-     &                        State_Met%AIRDEN(L,I,J)   / 1d3
+     &                        State_Met%MOISTQ(I,J,L)   *
+     &                        State_Met%AIRDEN(I,J,L)   / 1d3
                PDOWN(L,I,J) = PTEMP                     + QQ(L,I,J) *
      &                        State_Met%BXHEIGHT(I,J,L) * 1d2 
                PTEMP        = PDOWN(L,I,J)

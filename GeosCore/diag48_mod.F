@@ -162,6 +162,9 @@
 !                              derived type object
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
 !                              of removal of NOx-Ox partitioning
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -405,7 +408,7 @@
             GMTRC    = 4
 
             DO L = 1, K
-               Q(L) = State_Met%CLDF(L,I,J)
+               Q(L) = State_Met%CLDF(I,J,L)
             ENDDO
 
          ELSE IF ( N == 155 .and. IS_OPTD ) THEN
@@ -417,7 +420,7 @@
             UNIT     = 'unitless'
             GMTRC    = 5
 
-            Q(1) = SUM( State_Met%OPTD(:,I,J) )
+            Q(1) = SUM( State_Met%OPTD(I,J,:) )
 
          ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN
 
@@ -442,7 +445,7 @@
             GMTRC    = 7
 
             DO L = 1, K
-               Q(L) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+               Q(L) = State_Met%AIRDEN(I,J,L) * XNUMOLAIR * 1d-6
             ENDDO
 
          ELSE IF ( N == 158 .and. IS_SEASALT ) THEN

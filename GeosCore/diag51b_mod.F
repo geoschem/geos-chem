@@ -462,6 +462,9 @@
 !                              derived type object
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
 !                              of removal of NOx-Ox partitioning
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -709,7 +712,7 @@
                !--------------------------------------
                ! 3-D CLOUD FRACTIONS [unitless]
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%CLDF(L,I,J) *
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%CLDF(I,J,L) *
      &                      GOOD(I) )
 
             ELSE IF ( N == 155 .and. IS_OPTD ) THEN
@@ -717,7 +720,7 @@
                !--------------------------------------
                ! COLUMN OPTICAL DEPTHS [unitless]
                !--------------------------------------
-               Q(X,Y,1,W) = Q(X,Y,1,W) + ( State_Met%OPTD(L,I,J) *
+               Q(X,Y,1,W) = Q(X,Y,1,W) + ( State_Met%OPTD(I,J,L) *
      &                      GOOD(I) )
 
             ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN
@@ -735,7 +738,7 @@
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(L,I,J) *
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(I,J,L) *
      &                      XNUMOLAIR  * 1d-6 * GOOD(I) )
  
             ELSE IF ( N == 158 .and. IS_SEASALT ) THEN

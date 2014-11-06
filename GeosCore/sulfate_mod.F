@@ -1255,6 +1255,7 @@
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1329,7 +1330,7 @@
          TK     = State_Met%T(I,J,L)
 
          ! Get O2 [molec/cm3], DMS [v/v], OH [molec/cm3], NO3 [molec/cm3]
-         O2     = State_Met%AIRDEN(L,I,J) * f * 0.21d0
+         O2     = State_Met%AIRDEN(I,J,L) * f * 0.21d0
          DMS0   = STT(I,J,L,IDTDMS)
          OH     = GET_OH(  I, J, L, Input_Opt, State_Met )
          XNO3   = GET_NO3( I, J, L, Input_Opt, State_Met )
@@ -1382,12 +1383,12 @@
          
             ! Update OH after rxn w/ DMS (coupled runs only)
             OH    = OH0 - ( ( DMS0 - DMS_OH ) *
-     &              State_Met%AIRDEN(L,I,J) * f )
+     &              State_Met%AIRDEN(I,J,L) * f )
             IF ( OH < SMALLNUM ) OH = 0d0
 
             ! Update NO3 after rxn w/ DMS (coupled runs only)
             XNO3  = XNO30 - ( ( DMS_OH - DMS ) *
-     &              State_Met%AIRDEN(L,I,J) * f )
+     &              State_Met%AIRDEN(I,J,L) * f )
             IF ( XNO3 < SMALLNUM ) XNO3 = 0d0
 
          ENDIF 
@@ -1574,6 +1575,7 @@
 !                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  18 Sep 2014 - M. Sulprizio- Now get J(H2O2) and PH2O2m from HEMCO
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1691,7 +1693,7 @@
          IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
 
          ! Density of air [molec/cm3]
-         M     = State_Met%AIRDEN(L,I,J) * f  
+         M     = State_Met%AIRDEN(I,J,L) * f  
 
          ! Initial H2O2 [v/v]
          H2O20 = STT(I,J,L,IDTH2O2)
@@ -1925,6 +1927,8 @@
 !                              carries its own dust tracers instead of DST1-4.
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to GET_ALK
 !  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2080,7 +2084,7 @@
             ! Updated to match JPL 2006 + full chem (jaf, 10/14/09)
             K0  = 3.3d-31 * ( 300.d0 / TK )**4.3d0
             Ki  = 1.6d-12
-            M   = State_Met%AIRDEN(L,I,J) * F
+            M   = State_Met%AIRDEN(I,J,L) * F
             KK  = K0 * M / Ki
             F1  = ( 1.d0 + ( LOG10( KK ) )**2 )**( -1 )
             RK1 = ( K0 * M / ( 1.d0 + KK ) ) * 0.6d0**F1 * 
@@ -2174,11 +2178,11 @@
          !---------------------------------------------
 
          ! Get cloud fraction from met fields
-         FC      = State_Met%CLDF(L,I,J)
+         FC      = State_Met%CLDF(I,J,L)
 
          ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
          ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
-         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1D-3
+         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1D-3
 
          ! LWC is a grid-box averaged quantity. To improve the representation 
          ! of sulfate chemistry, we divide LWC by the cloud fraction and 
@@ -2301,7 +2305,7 @@
 	    ! Get sulfate concentration and convert from [v/v] to
             ! [moles/liter]
 	    ! Use a cloud scavenging ratio of 0.7 
-	    SO4nss  =  STT(I,J,L,IDTSO4) * State_Met%AIRDEN(L,I,J) *
+	    SO4nss  =  STT(I,J,L,IDTSO4) * State_Met%AIRDEN(I,J,L) *
      &                 0.7d0 / ( 28.97d0 * LWC )
 
 	    ! Get total ammonia (NH3 + NH4+) concentration [v/v]
@@ -4143,6 +4147,7 @@
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
 !  05 Sep 2013 - M. Sulprizio- Now pass met fields using the State_Met object
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4280,7 +4285,7 @@
       SR = DSVI - B 
 
       ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
-      SR = SR * Input_Opt%TCVV(IDTSO4) * 1.D-9 / AIRDEN(L,I,J)
+      SR = SR * Input_Opt%TCVV(IDTSO4) * 1.D-9 / AIRDEN(I,J,L)
 	
       ! Don't allow SR to be negative
       SR = MAX( SR, 0.d0 )
@@ -6466,6 +6471,7 @@
 !                              derived type object
 !  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
 !                              Input_Opt%ITS_AN_AEROSOL_SIM
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6492,7 +6498,7 @@
          ! O3 data will only be defined below the tropopause
          IF ( JLOOP  > 0 ) THEN
             O3_VV = ( CSPEC(JLOOP,IDO3)       * 1d6       ) / 
-     &              ( State_Met%AIRDEN(L,I,J) * XNUMOLAIR )
+     &              ( State_Met%AIRDEN(I,J,L) * XNUMOLAIR )
          ELSE
             O3_VV = 0d0
          ENDIF
