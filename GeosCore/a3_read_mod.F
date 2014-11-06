@@ -827,7 +827,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput!
       USE TIME_MOD,           ONLY : SET_CT_A3
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 !
 ! !INPUT PARAMETERS: 
 !
@@ -934,6 +933,7 @@
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  05 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -988,7 +988,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:2' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( ALBEDO ) ) CALL TRANSFER_2D( Q2,ALBEDO )
+                  IF ( PRESENT( ALBEDO ) ) ALBEDO = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1001,7 +1001,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:3' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( CLDFRC ) ) CALL TRANSFER_2D( Q2,CLDFRC )
+                  IF ( PRESENT( CLDFRC ) ) CLDFRC = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1013,7 +1013,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:4' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( EVAP ) ) CALL TRANSFER_2D( Q2, EVAP )
+                  IF ( PRESENT( EVAP ) ) EVAP = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1025,7 +1025,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:5' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( GRN ) ) CALL TRANSFER_2D( Q2, GRN )
+                  IF ( PRESENT( GRN ) ) GRN = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1037,9 +1037,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:6' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( GWETROOT ) ) THEN
-                     CALL TRANSFER_2D( Q2,GWETROOT )
-                  ENDIF
+                  IF ( PRESENT( GWETROOT ) ) GWETROOT = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1051,7 +1049,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:7' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( GWETTOP ) ) CALL TRANSFER_2D(Q2,GWETTOP)
+                  IF ( PRESENT( GWETTOP ) ) GWETTOP = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1063,7 +1061,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:8' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( HFLUX ) ) CALL TRANSFER_2D( Q2, HFLUX )
+                  IF ( PRESENT( HFLUX ) ) HFLUX = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1075,7 +1073,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:9' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( LAI ) ) CALL TRANSFER_2D( Q2, LAI )
+                  IF ( PRESENT( LAI ) ) LAI = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1087,9 +1085,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:10' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( MOLENGTH ) ) THEN
-                     CALL TRANSFER_2D( Q2, MOLENGTH )
-                  ENDIF
+                  IF ( PRESENT( MOLENGTH ) ) MOLENGTH = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1101,7 +1097,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:11' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( OICE ) ) CALL TRANSFER_2D( Q2, OICE )
+                  IF ( PRESENT( OICE ) ) OICE = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1113,7 +1109,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:12' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PARDF ) ) CALL TRANSFER_2D( Q2, PARDF )
+                  IF ( PRESENT( PARDF ) ) PARDF = Q2
                   NFOUND = NFOUND + 1
                ENDIF  
 
@@ -1125,7 +1121,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:13' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PARDR ) ) CALL TRANSFER_2D( Q2, PARDR )
+                  IF ( PRESENT( PARDR ) ) PARDR = Q2
                   NFOUND = NFOUND + 1
                ENDIF 
 
@@ -1137,7 +1133,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:14' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PBL ) ) CALL TRANSFER_2D( Q2, PBL )
+                  IF ( PRESENT( PBL ) ) PBL = Q2
                   NFOUND = NFOUND + 1
                ENDIF       
 
@@ -1150,7 +1146,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:15' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PREACC ) ) CALL TRANSFER_2D( Q2,PREACC )
+                  IF ( PRESENT( PREACC ) ) PREACC = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1163,7 +1159,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:16' )
               
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PRECON ) ) CALL TRANSFER_2D( Q2,PRECON )
+                  IF ( PRESENT( PRECON ) ) PRECON = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1175,7 +1171,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:17' )
               
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PRECSNO ) ) CALL TRANSFER_2D(Q2,PRECSNO)
+                  IF ( PRESENT( PRECSNO ) ) PRECSNO = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1188,7 +1184,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:18' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( RADLWG ) ) CALL TRANSFER_2D( Q2,RADLWG )
+                  IF ( PRESENT( RADLWG ) ) RADLWG = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1201,7 +1197,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:19' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( RADSWG ) ) CALL TRANSFER_2D( Q2,RADSWG )
+                  IF ( PRESENT( RADSWG ) ) RADSWG = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1213,7 +1209,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:20' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( RADSWT ) ) CALL TRANSFER_2D( Q2,RADSWT )
+                  IF ( PRESENT( RADSWT ) ) RADSWT = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1225,7 +1221,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:21' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNICE ) ) CALL TRANSFER_2D( Q2, SNICE )
+                  IF ( PRESENT( SNICE ) ) SNICE = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1238,7 +1234,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:22' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNOMAS ) ) CALL TRANSFER_2D( Q2,SNOMAS )
+                  IF ( PRESENT( SNOMAS ) ) SNOMAS = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1251,7 +1247,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:23' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNODP ) ) CALL TRANSFER_2D( Q2, SNODP )
+                  IF ( PRESENT( SNODP ) ) SNODP = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1263,7 +1259,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:24' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNOW ) ) CALL TRANSFER_2D( Q2, SNOW )
+                  IF ( PRESENT( SNOW ) ) SNOW = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1275,7 +1271,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:25' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TROPP ) ) CALL TRANSFER_2D( Q2, TROPP )
+                  IF ( PRESENT( TROPP ) ) TROPP = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1287,7 +1283,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:26' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TS ) ) CALL TRANSFER_2D( Q2, TS )
+                  IF ( PRESENT( TS ) ) TS = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1299,7 +1295,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:27' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TSKIN ) ) CALL TRANSFER_2D( Q2, TSKIN )
+                  IF ( PRESENT( TSKIN ) ) TSKIN = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1311,7 +1307,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:28' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( U10M ) ) CALL TRANSFER_2D( Q2, U10M )
+                  IF ( PRESENT( U10M ) ) U10M = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1323,7 +1319,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:29' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( USTAR ) ) CALL TRANSFER_2D( Q2, USTAR )
+                  IF ( PRESENT( USTAR ) ) USTAR = Q2
                   NFOUND = NFOUND + 1
                ENDIF
             
@@ -1335,7 +1331,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:30' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( V10M ) ) CALL TRANSFER_2D( Q2, V10M )
+                  IF ( PRESENT( V10M ) ) V10M = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1347,7 +1343,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:31' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( Z0 ) ) CALL TRANSFER_2D( Q2, Z0 ) 
+                  IF ( PRESENT( Z0 ) ) Z0 = Q2
                   NFOUND = NFOUND + 1
                ENDIF
   
@@ -1360,7 +1356,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:32' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( EFLUX ) ) CALL TRANSFER_2D( Q2, EFLUX )
+                  IF ( PRESENT( EFLUX ) ) EFLUX = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -1394,7 +1390,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:35')
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FRLAND ) ) CALL TRANSFER_2D( Q2, FRLAND) 
+                  IF ( PRESENT( FRLAND ) ) FRLAND = Q2
                   NFOUND = NFOUND + 1
                ENDIF         
 
@@ -1406,7 +1402,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:36')
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FRLAKE ) ) CALL TRANSFER_2D( Q2, FRLAKE) 
+                  IF ( PRESENT( FRLAKE ) ) FRLAKE = Q2
                   NFOUND = NFOUND + 1
                ENDIF 
 
@@ -1418,10 +1414,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:37')
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FROCEAN ) ) THEN
-                     CALL TRANSFER_2D( Q2, FROCEAN ) 
-                     NFOUND = NFOUND + 1
-                  ENDIF
+                  IF ( PRESENT( FROCEAN ) ) FROCEAN = Q2
+                  NFOUND = NFOUND + 1
                ENDIF 
 
             !--------------------------------            
@@ -1432,10 +1426,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:38')
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FRLANDIC ) ) THEN
-                     CALL TRANSFER_2D( Q2, FRLANDIC ) 
-                     NFOUND = NFOUND + 1
-                  ENDIF
+                  IF ( PRESENT( FRLANDIC ) ) FRLANDIC = Q2
+                  NFOUND = NFOUND + 1
                ENDIF 
 
             !--------------------------------

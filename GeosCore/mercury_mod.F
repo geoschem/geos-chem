@@ -7320,7 +7320,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
       IMPLICIT NONE
 !
@@ -7338,6 +7337,7 @@
 ! !REVISION HISTORY: 
 !  11 Jan 2011 - Y. Zhang    - Initial version
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7387,7 +7387,7 @@
      &                 1,     ARRAY(:,:,1),     QUIET=.TRUE. )
      
       ! Regrid to the current grid
-      CALL TRANSFER_2D( ARRAY(:,:,1), E_ELECTRICITY_Hg2 )
+      E_ELECTRICITY_Hg2 = ARRAY(:,:,1)
 
       DO J=1,JJPAR
       DO I=1,IIPAR

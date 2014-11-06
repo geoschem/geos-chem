@@ -27,20 +27,12 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: TRANSFER_2D
       PUBLIC  :: TRANSFER_3D
       PUBLIC  :: TRANSFER_3D_Bry
       PUBLIC  :: TRANSFER_3D_Lp1
-      PUBLIC  :: TRANSFER_3D_TROP
       PUBLIC  :: TRANSFER_G5_PLE
       PUBLIC  :: INIT_TRANSFER
       PUBLIC  :: CLEANUP_TRANSFER
-
-      INTERFACE TRANSFER_2D
-         MODULE PROCEDURE TRANSFER_2D_INT
-         MODULE PROCEDURE TRANSFER_2D_R4
-         MODULE PROCEDURE TRANSFER_2D_R8
-      END INTERFACE
 
       INTERFACE TRANSFER_3D
          MODULE PROCEDURE TRANSFER_3D_R4
@@ -56,9 +48,6 @@
       PRIVATE :: LUMP_4
       PRIVATE :: LUMP_4_R4
       PRIVATE :: LUMP_4_R8
-      PRIVATE :: TRANSFER_2D_INT
-      PRIVATE :: TRANSFER_2D_R4
-      PRIVATE :: TRANSFER_2D_R8
       PRIVATE :: TRANSFER_3D_R4
       PRIVATE :: TRANSFER_3D_R8
 
@@ -160,6 +149,8 @@
 !  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_A6 function
 !  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_ZONAL* functions
 !  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_TO_1D function
+!  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_2D* functions
+!   6 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_3D_TROP function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -703,180 +694,6 @@
 #endif
 
       END SUBROUTINE TRANSFER_3D_Lp1
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_3d_trop
-!
-! !DESCRIPTION: Subroutine TRANSFER\_3D\_TROP transfers tropospheric 3-D 
-!  data from a REAL*4  array to a REAL*8 array. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_3D_TROP( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LLCHEM_FIX)     ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLCHEM_FIX)    ! Output data
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - M. Evans    - Initial version
-!  08 Feb 2007 - R. Yantosca - Now use LLCHEM_FIX instead of LLCHEM, since 
-!                              most of the offline simulations use the annual 
-!                              mean tropopause
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: L
-     
-      !=================================================================
-      ! TRANSFER_3D_TROP begins here!
-      !=================================================================
-
-      ! Cast to REAL*8 and resize up to LLTROP
-      DO L = 1, LLCHEM_FIX
-         CALL TRANSFER_2D( IN(:,:,L), OUT(:,:,L) )
-      ENDDO
-      
-      END SUBROUTINE TRANSFER_3D_TROP 
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_2d_int
-!
-! !DESCRIPTION: Subroutine TRANSFER\_2D\_INT transfers 2-D data from a REAL*4 
-!  array of dimension (IIPAR,JJPAR) to an INTEGER array of dimension
-!  (IIPAR,JJPAR). 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_2D_INT( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR)    ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER, INTENT(OUT) :: OUT(IIPAR,JJPAR)   ! Output data
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - R. Yantosca - Initial version
-!  (1 ) Use parallel DO loops to speed things up (bmy, 9/21/01)!
-!  (2 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
-!        Now I0 and J0 are local variables. (bmy, 3/11/03)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! TRANSFER_2D_INT begins here!
-      !=================================================================
-
-      ! Copy and cast array
-      OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
-
-      END SUBROUTINE TRANSFER_2D_INT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_2d_r4
-!
-! !DESCRIPTION: Subroutine TRANSFER\_2D\_R4 transfers 2-D data from a REAL*4 
-!  array of dimension (IIPAR,JJPAR) to a REAL*4 array of dimension 
-!  (IIPAR,JJPAR). 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_2D_R4( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR)
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*4,  INTENT(OUT) :: OUT(IIPAR,JJPAR)
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - R. Yantosca - Initial version
-!  (1 ) Use parallel DO loops to speed things up (bmy, 9/21/01)
-!  (2 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f"
-!        Now I0 and J0 are local variables (bmy, 3/11/03)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! TRANSFER_2D_R4 begins here!
-      !=================================================================
-      
-      ! Copy and cast array
-      OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
-
-      END SUBROUTINE TRANSFER_2D_R4
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_2d_r8
-!
-! !DESCRIPTION: Subroutine TRANSFER\_2D\_R8 transfers 2-D data from a REAL*4 
-!  array of dimension (IIPAR,JJPAR) to a REAL*8 array of dimension
-!  (IIPAR,JJPAR). 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_2D_R8( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR)    ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR)   ! Output data
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - R. Yantosca - Initial version
-!  (1 ) Use parallel DO loops to speed things up (bmy, 9/21/01)
-!  (2 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f"
-!        Now I0 and J0 are local variables. (bmy, 3/11/03)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! TRANSFER_2D_R8 begins here!
-      !=================================================================
-
-      ! Copy and cast array
-      OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
-      
-      END SUBROUTINE TRANSFER_2D_R8
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

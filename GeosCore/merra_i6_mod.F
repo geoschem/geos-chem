@@ -298,7 +298,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_I6
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
 ! !INPUT PARAMETERS: 
@@ -371,7 +370,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:2' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PS )
+                  PS     = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 

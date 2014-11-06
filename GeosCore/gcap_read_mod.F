@@ -447,7 +447,6 @@
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD                                     ! Size parameters
       USE CMN_DIAG_MOD                                     ! ND67
@@ -472,6 +471,7 @@
 !        LWI to the arg list. (swu, bmy, 5/25/05)
 !  06 Aug 2012 - R. Yantosca - Added ProTeX headers
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -522,7 +522,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_PH, 'read_phis:2' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  CALL TRANSFER_2D( Q2, PHIS )
+                  PHIS   = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -534,7 +534,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_PH, 'read_phis:3' )
                
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( LWI ) ) CALL TRANSFER_2D( Q2, LWI )
+                  IF ( PRESENT( LWI ) ) LWI = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 

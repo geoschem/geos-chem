@@ -89,7 +89,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D_TROP
       USE OCEAN_MERCURY_MOD,  ONLY : LGCBROMINE     !eds 4/19/12
 !
 ! !INPUT PARAMETERS: 
@@ -116,6 +115,7 @@
 !        regridding code which will produce the appropriate BR files.
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_3D_TROP with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,7 +185,7 @@
    
          ! Assign data from ARRAY to the module variable BR
          CALL TRANSFER_3D( ARRAY, BR_TROP )
-   
+
          ! Convert	ppbv ->	pptv
          BR_TROP  = BR_TROP * 1D3                         
    
@@ -405,7 +405,7 @@
      &                 LLCHEM,    ARRAY2,    QUIET=.TRUE. )
 
       ! Assign data from ARRAY2 to the module variable BR
-      CALL TRANSFER_3D_TROP( ARRAY2, J_BrO )
+      J_BrO(:,:,1:LLCHEM_FIX) = ARRAY2(:,:,1:LLCHEM_FIX)
 
       END SUBROUTINE GET_GLOBAL_Br
 !EOC

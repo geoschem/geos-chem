@@ -328,7 +328,6 @@
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 !
 ! !INPUT PARAMETERS:
 !     
@@ -370,6 +369,7 @@
 !  21 Feb 2014 - M. Sulprizio- Remove call to INIT_TROPOPAUSE, this is now
 !                              done in the init stage
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -407,7 +407,7 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Copy from REAL*4 to INTEGER and resize to (IIPAR,JJPAR)
-      CALL TRANSFER_2D( ARRAY(:,:,1), TROPOPAUSE )
+      TROPOPAUSE = ARRAY(:,:,1)
 
       !=================================================================
       ! L <  TROPOPAUSE(I,J) are tropospheric boxes  

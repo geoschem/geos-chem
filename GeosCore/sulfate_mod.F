@@ -1518,7 +1518,6 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : IDTH2O2
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D_TROP
 !
 ! !INPUT PARAMETERS:
 !
@@ -7643,7 +7642,6 @@
 !      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
 !      USE CMN_SIZE_MOD
 !      USE DIRECTORY_MOD, ONLY : DATA_DIR
-!      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
 !!
 !! !INPUT PARAMETERS: 
 !!
@@ -7699,8 +7697,8 @@
 !     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
 !
 !      ! Cast to REAL*8 and resize if necessary
-!      CALL TRANSFER_3D_TROP( ARRAY, PH2O2m )
-!            
+!      PH2O2m(:,:,1:LLCHEM_FIX) = ARRAY(:,:,1:LLCHEM_FIX)      
+!      
 !      !=================================================================
 !      ! Read monthly mean O3 [v/v]
 !      !=================================================================
@@ -7720,8 +7718,8 @@
 !     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
 !
 !      ! Cast to REAL*8 and resize if necessary
-!      CALL TRANSFER_3D_TROP( ARRAY, O3m ) 
-!      
+!      O3m(:,:,1:LLCHEM_FIX) = ARRAY(:,:,1:LLCHEM_FIX)      
+!
 !      END SUBROUTINE READ_OXIDANT
 !!EOC
 !------------------------------------------------------------------------------

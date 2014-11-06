@@ -338,7 +338,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : SET_Hg2_DIAG        
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D  ,  TRANSFER_3D_TROP
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
 !
@@ -432,15 +432,15 @@
      &                 LGLOB,     ARRAYso4,  QUIET=.TRUE. )
 
       ! convert REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAYso4, SO4_GC ) 
-     
+      SO4_GC(:,:,1:LLCHEM_FIX) = ARRAYso4(:,:,1:LLCHEM_FIX)
+
       ! nh4, tracer = 31
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 31,      
      &                 XTAU,      IGLOB,     JGLOB,
      &                 LGLOB,     ARRAYnh4,  QUIET=.TRUE. )
 
       ! convert REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAYnh4, NH4_CONC ) 
+      NH4_CONC(:,:,1:LLCHEM_FIX) = ARRAYnh4(:,:,1:LLCHEM_FIX)
 
       ! nit, tracer = 32
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 32,      
@@ -448,7 +448,7 @@
      &                 LGLOB,     ARRAYnit,  QUIET=.TRUE. )
 
       ! convert REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAYnit, NIT_CONC ) 
+      NIT_CONC(:,:,1:LLCHEM_FIX) = ARRAYnit(:,:,1:LLCHEM_FIX)
 
       ! bcpi, tracer = 34
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 34,      
@@ -462,7 +462,7 @@
 
       ! convert REAL*4 to REAL*8 
       ARRAYtemp = ARRAYbcpi + ARRAYbcpo
-      CALL TRANSFER_3D_TROP( ARRAYtemp, BC_CONC ) 
+      BC_CONC(:,:,1:LLCHEM_FIX) = ARRAYtemp(:,:,1:LLCHEM_FIX)
 
       ! ocpi, tracer = 35
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 35,      
@@ -476,7 +476,7 @@
 
       ! convert REAL*4 to REAL*8 
       ARRAYtemp = ARRAYocpi + ARRAYocpo
-      CALL TRANSFER_3D_TROP( ARRAYtemp, OC_CONC ) 
+      OC_CONC(:,:,1:LLCHEM_FIX) = ARRAYtemp(:,:,1:LLCHEM_FIX)
 
       ! dst1, tracer = 38   
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 49,  
@@ -484,7 +484,7 @@
      &                 LGLOB,     ARRAYdst1, QUIET=.TRUE. )
  
       ! convert REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAYdst1 , DST_CONC ) 
+      DST_CONC(:,:,1:LLCHEM_FIX) = ARRAYdst1(:,:,1:LLCHEM_FIX)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -728,6 +728,7 @@
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !******************************************************************************
 !
       ! References to F90 modules
@@ -750,7 +751,6 @@
       USE TRACERID_MOD,       ONLY : ID_Hg_ocn
 !---------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : ID_Hg0,          N_Hg_CATS
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -1771,6 +1771,7 @@
 !  NOTES:
 !  (1 ) Modified for S. Strode's latest ocean Hg code.  Now read files
 !        from DATA_DIR_1x1/mercury_200511. (sas, cdh, bmy, 3/28/06)
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !******************************************************************************
 !
 ! !USES:
@@ -1779,7 +1780,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
       USE TIME_MOD,	      ONLY : ITS_A_LEAPYEAR
       USE FILE_MOD,	      ONLY : IOERROR, IU_FILE
 !
@@ -1860,7 +1860,7 @@
      &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
       ! Resize and cast to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), MLD )
+      MLD = ARRAY(:,:,1)
 
       ! Convert [m] to [cm]
       MLD = MLD * 100d0
@@ -1912,7 +1912,7 @@
 #endif
 
       ! Resize and cast to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), CHL )
+      CHL = ARRAY(:,:,1)
 
 
       !--------------------------------
@@ -1946,7 +1946,7 @@
      &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
       ! Resize and cast to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), NPP )
+      NPP = ARRAY(:,:,1)
   
 
       !---------------------------------
@@ -1986,7 +1986,7 @@
 #endif
 
       ! Resize and cast to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), UPVEL )
+      UPVEL = ARRAY(:,:,1)
 
       ! convert [cm/s] to [m/s]
       UPVEL = UPVEL * 1.D-2
@@ -2011,6 +2011,7 @@
 !  NOTES:
 !  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
 !  (2 ) Now use actual number of days in given month (jaf, 7/6/11)
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2019,7 +2020,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
       USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
 !
 ! !INPUT PARAMETERS:
@@ -2088,7 +2088,7 @@
      &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
       ! Resize and cast to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), newMLD )
+      newMLD = ARRAY(:,:,1)
 
       ! Convert [m] to [cm]
       newMLD = newMLD * 100d0
@@ -2124,6 +2124,7 @@
 !
 !  NOTES:
 !  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2132,7 +2133,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 !
 ! !INPUT PARAMETERS:
 !
@@ -2198,7 +2198,7 @@
      &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
       ! Resize and cast to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), prevMLD )
+      prevMLD = ARRAY(:,:,1)
 
       ! Convert [m] to [cm]
       prevMLD = prevMLD * 100d0
