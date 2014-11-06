@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -217,6 +219,7 @@
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to DO_TOMAS
 !  19 May 2014 - C. Keller   - Removed call for acetone ocean sink - now done
 !                              in HEMCO.
+!  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,7 +261,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -659,7 +662,7 @@
 !
       INTEGER, INTENT(IN) :: KTLOOP       ! Local loop index
       INTEGER, INTENT(IN) :: JLOOPLO      ! JLOOPLO + KLOOP = JLOOP
-      REAL*8,  INTENT(IN) :: R_KPP(:,:)   ! Array of reaction rates
+      REAL(fp),  INTENT(IN) :: R_KPP(:,:)   ! Array of reaction rates
       INTEGER, INTENT(IN) :: NSPEC_GC     ! # of active chemical species
 !
 ! !REMARKS:
@@ -722,7 +725,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8        :: T, TIN, TOUT
+      REAL(fp)        :: T, TIN, TOUT
       INTEGER       :: ICNTRL(20)
       REAL(kind=dp) :: RCNTRL(20)
       INTEGER       :: ISTATUS(20)
@@ -733,22 +736,22 @@
       
       !=================================================================
 
-      STEPMIN = 0.0d0
-      STEPMAX = 0.0d0
+      STEPMIN = 0.0e+0_fp
+      STEPMAX = 0.0e+0_fp
 
       ! Suggested tolerance for Rosenbrock solvers
       DO i=1,NVAR
 #if defined (UCX )
-         RTOL(i) = 2.d-2
+         RTOL(i) = 2.e-2_fp
 #else
-         RTOL(i) = 2.d-1
+         RTOL(i) = 2.e-1_fp
 #endif
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE: This update was made in the SEAC4RS code.  Leave here in case we
 !%%% need to restore this. (bmy, 9/25/13)
 !         RTOL(i) = 5.d-2
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         ATOL(i) = 1.d-2
+         ATOL(i) = 1.e-2_fp
       END DO
       
       ! for LSODE
@@ -761,7 +764,7 @@
       ! Set parameters to default. See comments in Integrator module for
       ! a list of the defaults.
       ICNTRL(:) = 0
-      RCNTRL(:) = 0.d0
+      RCNTRL(:) = 0.e+0_fp
 
       ! Change some parameters from the default to new values
       ICNTRL(1) = 1             ! Autonomous
@@ -781,17 +784,17 @@
 
       IF(FIRST)THEN
 
-         RSTATE(Nhexit) = 0d0
+         RSTATE(Nhexit) = 0e+0_fp
 
          FIRST = .FALSE. 
 
       ENDIF
 
       ! GET TS_CHEM and convert it to seconds. 
-      DT = GET_TS_CHEM() * 60d0
+      DT = GET_TS_CHEM() * 60e+0_fp
 
       ! Set time parameters. 
-      T = 0d0
+      T = 0e+0_fp
       TIN = T
       TOUT = T + DT
 
@@ -866,7 +869,7 @@
             write(6,*)  'JLOOP, I, J, L ', JLOOP, I, J, L
 
             ! Reset first time step and start concentrations
-            RCNTRL(3)  = 0d0
+            RCNTRL(3)  = 0e+0_fp
             CALL Initialize( )  ! v2.1 
 
             ! 1D grid box index in the KTLOOP subset.
@@ -883,7 +886,7 @@
             !%%% Increase tolerances by factor of 2     %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
            !RTOL = 2d0 * RTOL    ! Relative
-            ATOL = 2d0 * ATOL    ! Absolute
+            ATOL = 2e+0_fp * ATOL    ! Absolute
 #endif
 
             call Integrate( TIN,    TOUT,    ICNTRL, 
