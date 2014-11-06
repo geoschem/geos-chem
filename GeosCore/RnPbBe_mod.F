@@ -199,15 +199,15 @@
       N_TRACERS    = Input_Opt%N_TRACERS
 
       ! Chemistry timestep [s]
-      DTCHEM       =  GET_TS_CHEM() * 60d0
+      DTCHEM       =  GET_TS_CHEM() * 60e+0_fp
 
       ! Pre-compute exponential terms only on first timestep
       IF ( FIRSTCHEM ) THEN 
          
          ! Fraction of (222Rn, 210Pb, 7Be) left after radioactive decay
-         EXP_Rn    = EXP( -DTCHEM * 2.097d-6  )
-         EXP_Pb    = EXP( -DTCHEM * 9.725d-10 ) 
-         EXP_Be    = EXP( -DTCHEM * 1.506d-7  )
+         EXP_Rn    = EXP( -DTCHEM * 2.097e-6_fp  )
+         EXP_Pb    = EXP( -DTCHEM * 9.725e-10_fp ) 
+         EXP_Be    = EXP( -DTCHEM * 1.506e-7_fp  )
 
          ! Reset FIRSTCHEM flag
          FIRSTCHEM = .FALSE.
@@ -275,7 +275,7 @@
 
             ! Rn_LOST = amount of 222Rn lost to decay [kg]
             Rn_LOST(I,J,L)             = State_Chm%TRACERS(I,J,L,N) 
-     &                                 * ( 1d0 - EXP_Rn )
+     &                                 * ( 1e+0_fp - EXP_Rn )
 
             ! ND02 diag: 222Rn lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
@@ -318,7 +318,7 @@
             !%%%%% the Be7 source is computed.  This replicates the
             !%%%%% pre-HEMCO code. (bmy, 9/4/14)
             IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
-               ADD_Pb                  = ADD_Pb / 3.5d0
+               ADD_Pb                  = ADD_Pb / 3.5e+0_fp
             ENDIF
 #endif
 
@@ -335,7 +335,7 @@
             ! Amount of 210Pb lost to radioactive decay [kg]
             ! NOTE: we've already added in the 210Pb gained from 222Rn
             Pb_LOST                    = State_Chm%TRACERS(I,J,L,N) 
-     &                                 * ( 1d0 - EXP_Pb )
+     &                                 * ( 1e+0_fp - EXP_Pb )
 
             ! ND02 diag: 210Pb lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN

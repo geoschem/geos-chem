@@ -17,6 +17,8 @@
 !
       USE CMN_SIZE_MOD, ONLY : LLSTRAT
 
+      USE PRECISION_MOD   ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -66,6 +68,7 @@
 !                                and aerosol grids independently of one another
 !  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
 !  21 Feb 2014 - M. Sulprizio  - Now make INIT_CHEMGRID a public function
+!  06 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -277,7 +280,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J
-      REAL*8  :: TPAUSE_LEV(IIPAR,JJPAR)
+      REAL(fp)  :: TPAUSE_LEV(IIPAR,JJPAR)
 
       !=================================================================
       ! CHECK_VAR_TROP begins here!
@@ -716,7 +719,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: L
-      REAL*8  :: PRESS_BEDGE
+      REAL(fp)  :: PRESS_BEDGE
 
       !=================================================================
       ! GET_TPAUSE_LEVEL begins here!
@@ -820,7 +823,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: PRESS_BEDGE
+      REAL(fp) :: PRESS_BEDGE
 
       !=================================================================
       ! ITS_IN_THE_TROP begins here
@@ -1167,7 +1170,7 @@
 ! 
       ! Scalars
       INTEGER :: I, J,    L,  L_TP
-      REAL*8  :: H, FRAC, Pb, Pt
+      REAL(fp)  :: H, FRAC, Pb, Pt
 
       !=================================================================
       ! %%%%% GEOS-4, GEOS-5, MERRA met fields %%%%%
@@ -1213,7 +1216,7 @@
             ! Archive into ND55 array
             !---------------------------
             AD55(I,J,1) = AD55(I,J,1) + L_TP        ! T'pause level
-            AD55(I,J,2) = AD55(I,J,2) + H/1.0d3     ! T'pause height [km]
+            AD55(I,J,2) = AD55(I,J,2) + H/1.0e+3_fp     ! T'pause height [km]
             AD55(I,J,3) = AD55(I,J,3) +             ! T'pause pressure [hPa]
      &                    State_Met%TROPP(I,J)
 
@@ -1232,7 +1235,7 @@
       INTEGER :: I, J, L
 
       ! Arrays
-      REAL*8  :: H(IIPAR,JJPAR,LLPAR)
+      REAL(fp)  :: H(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! %%%%% ALL OTHER MET FIELDS %%%%%
@@ -1248,7 +1251,7 @@
       ! H (in m) is the height of the midpoint of layer L (hyl, 03/28/99)
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         H(I,J,1) = State_Met%BXHEIGHT(I,J,1) / 2.d0
+         H(I,J,1) = State_Met%BXHEIGHT(I,J,1) / 2.e+0_fp
       ENDDO
       ENDDO
 
@@ -1258,7 +1261,7 @@
       DO I = 1, IIPAR
          H(I,J,L+1) = H(I,J,L) + 
      &               ( State_Met%BXHEIGHT(I,J,L) +
-     &                 State_Met%BXHEIGHT(I,J,L+1) ) / 2.d0
+     &                 State_Met%BXHEIGHT(I,J,L+1) ) / 2.e+0_fp
       ENDDO
       ENDDO
       ENDDO
@@ -1282,7 +1285,7 @@
             AD55(I,J,1) = AD55(I,J,1) + L
 
             ! Archive tropopause height [km]
-            AD55(I,J,2) = AD55(I,J,2) + H(I,J,L) / 1.0d3 ! m --> km
+            AD55(I,J,2) = AD55(I,J,2) + H(I,J,L) / 1.0e+3_fp ! m --> km
 
             ! We have to estimate the tropopause pressure from the 
             ! tropopause level.  Archive the pressure at the midpoint

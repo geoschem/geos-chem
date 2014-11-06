@@ -994,7 +994,6 @@
       REAL(fp), INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
       REAL(fp), INTENT(OUT), OPTIONAL :: ZMMU(IIPAR,JJPAR,LLPAR)
       REAL(fp), INTENT(OUT), OPTIONAL :: T_FULLGRID(IIPAR,JJPAR,LGLOB)
-
 !
 ! !REMARKS:
 !  (3 ) CLDF     : (3-D) Total cloud fractions                 [unitless]

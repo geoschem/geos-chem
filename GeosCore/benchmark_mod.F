@@ -113,7 +113,7 @@
       INTEGER             :: HALFPOLAR
       REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL*4              :: LONRES, LATRES
-      REAL*8              :: TAU
+      REAL(fp)              :: TAU
       CHARACTER(LEN=20)   :: MODELNAME 
       CHARACTER(LEN=40)   :: CATEGORY, RESERVED, UNIT
       CHARACTER(LEN=80)   :: TITLE
@@ -122,7 +122,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! STDRUN begins here!
