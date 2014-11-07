@@ -718,7 +718,8 @@
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
             IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
-               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200e+0_fp )
+               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 
+     &                                     200e+0_fp )
             ENDIF
          ENDIF
       ENDDO
@@ -758,7 +759,8 @@
          ! (jal, phs, bmy, 9/18/07)
          IF ( Input_Opt%LVARTROP ) THEN
             IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
-               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200e+0_fp )
+               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 
+     &                                     200e+0_fp )
             ENDIF
          ENDIF
       ENDDO
