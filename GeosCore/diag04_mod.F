@@ -15,6 +15,8 @@
 !     
 ! !USES:
 !     
+      USE PRECISION_MOD     ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PUBLIC 
 !
@@ -53,6 +55,7 @@
 !       chemical source for CO2 (3-D) (RayNassar, 2009-12-23)
 !  20 May 2010 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -152,7 +155,7 @@
       INTEGER            :: LFIRST,    LMAX,      M,      N       
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL*4             :: LONRES,    LATRES
-      REAL*8             :: DIAGb,     DIAGe,       SCALE
+      REAL(fp)             :: DIAGb,     DIAGe,       SCALE
       CHARACTER(LEN=20)  :: MODELNAME 
       CHARACTER(LEN=40)  :: CATEGORY,  RESERVED,    UNIT
 
@@ -175,7 +178,7 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
+      SCALE     = DBLE( GET_CT_EMIS() ) + 1e-32_fp
 
       !=================================================================
       ! Write data to the bpch file
