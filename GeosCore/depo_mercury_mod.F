@@ -14,6 +14,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD   ! For Geos-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -38,15 +40,15 @@
       PUBLIC :: HG2mth_wd, HG0mth_dd, HG2mth_dd
       PUBLIC :: SNOW_HG
       PUBLIC :: LHGSNOW
-      REAL*8,  ALLOCATABLE :: DD_Hg2(:,:,:)
-      REAL*8,  ALLOCATABLE :: DD_HgP(:,:,:)
-      REAL*8,  ALLOCATABLE :: WD_Hg2(:,:,:)
-      REAL*8,  ALLOCATABLE :: WD_HgP(:,:,:)
-      REAL*8,  ALLOCATABLE :: HG0mth_dd(:,:)
-      REAL*8,  ALLOCATABLE :: HG2mth_dd(:,:)
-      REAL*8,  ALLOCATABLE :: HG2mth_wd(:,:)
-      REAL*8,  ALLOCATABLE :: SNOW_HG(:,:,:) !CDH Hg stored in snow+ice
-      REAL*8,  ALLOCATABLE :: Hg0dryGEOS(:,:), HgIIdryGEOS(:,:), 
+      REAL(fp),  ALLOCATABLE :: DD_Hg2(:,:,:)
+      REAL(fp),  ALLOCATABLE :: DD_HgP(:,:,:)
+      REAL(fp),  ALLOCATABLE :: WD_Hg2(:,:,:)
+      REAL(fp),  ALLOCATABLE :: WD_HgP(:,:,:)
+      REAL(fp),  ALLOCATABLE :: HG0mth_dd(:,:)
+      REAL(fp),  ALLOCATABLE :: HG2mth_dd(:,:)
+      REAL(fp),  ALLOCATABLE :: HG2mth_wd(:,:)
+      REAL(fp),  ALLOCATABLE :: SNOW_HG(:,:,:) !CDH Hg stored in snow+ice
+      REAL(fp),  ALLOCATABLE :: Hg0dryGEOS(:,:), HgIIdryGEOS(:,:), 
      &                        HgIIwetGEOS(:,:)
 !
 ! !PRIVATE DATA MEMBERS:
@@ -59,6 +61,7 @@
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,7 +89,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL*8,  INTENT(IN)   :: DRY_Hg2   ! Hg(II) dry deposited out of the 
+      REAL(fp),  INTENT(IN)   :: DRY_Hg2   ! Hg(II) dry deposited out of the 
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
@@ -140,7 +143,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL*8,  INTENT(IN)   :: WET_Hg2   ! Hg(II) scavenged out of the 
+      REAL(fp),  INTENT(IN)   :: WET_Hg2   ! Hg(II) scavenged out of the 
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
@@ -194,7 +197,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL*8,  INTENT(IN)   :: DRY_HgP   ! HgP dry deposited out of the 
+      REAL(fp),  INTENT(IN)   :: DRY_HgP   ! HgP dry deposited out of the 
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
@@ -248,7 +251,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)   :: I, J, N   ! GEOS-Chem long, lat and tracer index
-      REAL*8,  INTENT(IN)   :: WET_HgP   ! HgP scavenged out of the 
+      REAL(fp),  INTENT(IN)   :: WET_HgP   ! HgP scavenged out of the 
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
@@ -305,7 +308,7 @@
 !
       ! Arguments as input
       INTEGER,        INTENT(IN)  :: I, J, N
-      REAL*8,         INTENT(IN)  :: Dep_Hg2
+      REAL(fp),         INTENT(IN)  :: Dep_Hg2
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY:
@@ -327,7 +330,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      REAL*8  :: FRAC_SNOW_OR_ICE 
+      REAL(fp)  :: FRAC_SNOW_OR_ICE 
       LOGICAL :: IS_SNOW_OR_ICE 
       INTEGER :: NN
 
@@ -351,26 +354,26 @@
       ! land fraction of 1 and only use boxes that are mostly snow/ice. 
       ! For MERRA we use the actual fractions, so FRAC_SNOW_OR_ICE is 
       ! overwritten (jaf, 4/25/11)
-      FRAC_SNOW_OR_ICE = 1d0
+      FRAC_SNOW_OR_ICE = 1e+0_fp
 
 #if   defined( MERRA ) || defined( GEOS_FP )
       ! Don't let fraction be greater than 1
       FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
      &                        State_Met%FRSEAICE(I,J)  + 
-     &                        State_Met%FRLANDIC(I,J), 1d0)
-      IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0d0 )
+     &                        State_Met%FRLANDIC(I,J), 1e+0_fp)
+      IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0e+0_fp )
 
 #elif defined( GEOS_5 )
       ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
       IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
      &                    ( IS_LAND( I, J, State_Met     )  .AND. 
-     &                      State_Met%SNOMAS(I,J) > 10d0 ))
+     &                      State_Met%SNOMAS(I,J) > 10e+0_fp ))
 
 #else
       ! Use GEOS1-4 snow height (water equivalent) in mm
       IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
      &                    ( IS_LAND( I, J, State_Met     )  .AND. 
-     &                      State_Met%SNOW(I,J)   > 10d0 ))
+     &                      State_Met%SNOW(I,J)   > 10e+0_fp ))
 #endif 
 
       ! Check if there is snow on the ground, or if this is sea ice
@@ -380,7 +383,7 @@
          ! in surface) multiplied by the fraction of the box that is 
          ! snow or ice (i.e. 1 for all met fields but MERRA and GEOS-5.7.x)
          SNOW_HG(I,J,NN) = SNOW_HG(I,J,NN) + 
-     &                     FRAC_SNOW_OR_ICE * MAX( 0.6D0*DEP_HG2, 0D0 )
+     &           FRAC_SNOW_OR_ICE * MAX( 0.6e+0_fp*DEP_HG2, 0e0_fp )
 
       ENDIF
 
@@ -411,10 +414,10 @@
 !BOC
 !
       ! Reset deposition arrays.
-      DD_Hg2 = 0d0
-      WD_Hg2 = 0d0
-      DD_HgP = 0d0
-      WD_HgP = 0d0
+      DD_Hg2 = 0e+0_fp
+      WD_Hg2 = 0e+0_fp
+      DD_HgP = 0e+0_fp
+      WD_HgP = 0e+0_fp
 
       END SUBROUTINE RESET_HG_DEP_ARRAYS
 !EOC
@@ -451,7 +454,7 @@
 !
       INTEGER,        INTENT(IN)   :: NYMD        ! Year-Month-Date
       INTEGER,        INTENT(IN)   :: NHMS        ! and Hour-Min-Sec
-      REAL*8,         INTENT(IN)   :: TAU         ! TAU value: hrs since 1/1/85
+      REAL(fp),         INTENT(IN)   :: TAU         ! TAU value: hrs since 1/1/85
       LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
 !
@@ -473,7 +476,7 @@
       INTEGER               :: HALFPOLAR, CENTER180, IU_FILE
       INTEGER               :: IFIRST,    JFIRST,    LFIRST
       INTEGER               :: N,         NN
-      REAL*8                :: TS_DYN,    TS_CHEM
+      REAL(fp)                :: TS_DYN,    TS_CHEM
       REAL*4                :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
       CHARACTER(LEN=20)     :: MODELNAME
       CHARACTER(LEN=40)     :: CATEGORY,  UNIT,     RESERVED
@@ -593,9 +596,9 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        I    NTENT(OUT)   :: RC          ! Success or failure?!
-      REAL*8, DIMENSION(IIPAR, JJPAR)   :: Hg0dryGEOS
-      REAL*8, DIMENSION(IIPAR, JJPAR)   :: HgIIdryGEOS
-      REAL*8, DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
+      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: Hg0dryGEOS
+      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIdryGEOS
+      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
 !
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
@@ -617,7 +620,7 @@
       INTEGER               :: NTRACER,   NSKIP
       INTEGER               :: HALFPOLAR, CENTER180
       REAL*4                :: LONRES,    LATRES
-      REAL*8                :: ZTAU0,     ZTAU1
+      REAL(fp)                :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)     :: MODELNAME
       CHARACTER(LEN=40)     :: CATEGORY
       CHARACTER(LEN=40)     :: UNIT     
@@ -791,15 +794,15 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: N
-      REAL*8  :: SCALEDYN, SCALECHEM
+      REAL(fp)  :: SCALEDYN, SCALECHEM
 
       !=================================================================
       ! UPDATE_DEP begins here!
       !=================================================================
 
       ! counter variables 
-      SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1d-32
-      SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1d-32
+      SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1e-32_fp
+      SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1e-32_fp
 
       ! Hg2 total wet deposition at the surface
       HG2mth_wd = HG2mth_wd + ( SUM(AD38(:,:,:,NN), DIM=3) + 
@@ -929,36 +932,36 @@
       ! Allocate arrays
       ALLOCATE( DD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_Hg2' )
-      DD_Hg2 = 0d0
+      DD_Hg2 = 0e+0_fp
 
       ALLOCATE( DD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_HgP' )
-      DD_HgP = 0d0
+      DD_HgP = 0e+0_fp
 
       ALLOCATE( WD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_Hg2' )
-      WD_Hg2 = 0d0
+      WD_Hg2 = 0e+0_fp
 
       ALLOCATE( WD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
-      WD_HgP = 0d0
+      WD_HgP = 0e+0_fp
 
       ALLOCATE( SNOW_HG( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG' )
-      SNOW_HG = 0d0
+      SNOW_HG = 0e+0_fp
 
       IF ( Input_Opt%LGTMM ) THEN
          ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG0mth_dd' )
-         HG0mth_dd = 0d0
+         HG0mth_dd = 0e+0_fp
          
          ALLOCATE( HG2mth_dd( IIPAR, JJPAR ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_dd' )
-         HG2mth_dd = 0d0
+         HG2mth_dd = 0e+0_fp
          
          ALLOCATE( HG2mth_wd( IIPAR, JJPAR ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_wd' )
-         HG2mth_wd = 0d0
+         HG2mth_wd = 0e+0_fp
       ENDIF
 
       END SUBROUTINE INIT_DEPO_MERCURY

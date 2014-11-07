@@ -51,6 +51,8 @@
       USE CMN_DIAG_MOD             ! Diagnostic arrays & parameters
       USE CMN_GCTM_MOD             ! Physical constants
 
+      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -130,6 +132,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  29 Aug 2013 - R. Yantosca - In ND57, we need to make ND57 !$OMP PRIVATE
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -142,22 +145,22 @@
 !
       LOGICAL :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
       INTEGER :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
-      REAL*8  :: FDTT, XLOCTM, AREA_M2
+      REAL(fp)  :: FDTT, XLOCTM, AREA_M2
 #if   defined( APM ) 
-      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,
+      REAL(fp)  :: STT_VV(IIPAR,JJPAR,LLPAR,
      &                  Input_Opt%N_TRACERS+N_APMTRA)
 #else
-      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
+      REAL(fp)  :: STT_VV(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
 #endif 
 
       !FOR ND57
       ! For FP potential temperature (hotp 7/31/09)
-      REAL*8  :: P0
+      REAL(fp)  :: P0
 
       ! For fields from Input_Opt
       LOGICAL :: ITS_A_FULLCHEM_SIM
       INTEGER :: N_TRACERS
-      REAL*8  :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)  :: TCVV(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! DIAG1 begins here!
@@ -194,7 +197,7 @@
          DO I = 1, IIPAR
             STT_VV(I,J,L,N) = 
      &         MAX( State_Chm%Tracers(I,J,L,N) * TCVV(N) /
-     &              State_Met%AD(I,J,L), 0d0 )
+     &              State_Met%AD(I,J,L), 0e+0_fp )
          ENDDO
          ENDDO
          ENDDO
@@ -221,13 +224,13 @@
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
      &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
      &                      TCVV(ID_Hg2(ID_Hg_tot)) /
-     &                      State_Met%AD(I,J,L) *1D12 
+     &                      State_Met%AD(I,J,L) *1e+12_fp
 
           ! Reactive particulate mercury, PBM
           AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
      &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
      &                      TCVV(ID_HgP(ID_Hg_tot)) / 
-     &                      State_Met%AD(I,J,L) *1D12
+     &                      State_Met%AD(I,J,L) *1e+12_fp
                                                        
         ENDDO
         ENDDO

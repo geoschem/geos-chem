@@ -73,6 +73,8 @@
 !     
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE 
 !     
@@ -122,6 +124,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -131,27 +134,27 @@
       INTEGER, ALLOCATABLE :: FOSSIL_REGION(:,:)
       INTEGER, ALLOCATABLE :: BIOSPH_REGION(:,:)
       INTEGER, ALLOCATABLE :: OCEAN_REGION(:,:)
-!      REAL*8,  ALLOCATABLE :: EMFOSSCO2(:,:)
-!      REAL*8,  ALLOCATABLE :: EMOCCO2(:,:)
-!      REAL*8,  ALLOCATABLE :: EMBIOCO2(:,:)
-!      REAL*8,  ALLOCATABLE :: EMBIOBRNCO2(:,:)
-!      REAL*8,  ALLOCATABLE :: EMBIOFUELCO2(:,:)
-!      REAL*8,  ALLOCATABLE :: EMBIONETCO2(:,:)
-!      REAL*8,  ALLOCATABLE :: EMSHIPCO2(:,:)
-!      REAL*8,  ALLOCATABLE :: EMPLANECO2(:,:,:)
-!      REAL*8,  ALLOCATABLE :: CHEMCO2(:,:,:)
-!      REAL*8,  ALLOCATABLE :: EMIS_SUB(:,:)
+!      REAL(fp),  ALLOCATABLE :: EMFOSSCO2(:,:)
+!      REAL(fp),  ALLOCATABLE :: EMOCCO2(:,:)
+!      REAL(fp),  ALLOCATABLE :: EMBIOCO2(:,:)
+!      REAL(fp),  ALLOCATABLE :: EMBIOBRNCO2(:,:)
+!      REAL(fp),  ALLOCATABLE :: EMBIOFUELCO2(:,:)
+!      REAL(fp),  ALLOCATABLE :: EMBIONETCO2(:,:)
+!      REAL(fp),  ALLOCATABLE :: EMSHIPCO2(:,:)
+!      REAL(fp),  ALLOCATABLE :: EMPLANECO2(:,:,:)
+!      REAL(fp),  ALLOCATABLE :: CHEMCO2(:,:,:)
+!      REAL(fp),  ALLOCATABLE :: EMIS_SUB(:,:)
 
 !      don't need CHEMSRC anymore (ckeller, 08/27/2014)
-!      REAL*8,  ALLOCATABLE, SAVE :: CHEMSRC(:,:,:) !dbj, msl
+!      REAL(fp),  ALLOCATABLE, SAVE :: CHEMSRC(:,:,:) !dbj, msl
 !
 ! !DEFINED PARAMETERS:
 !
       ! FMOL_CO2     - kg CO2 / mole CO2 
-      REAL*8,  PARAMETER   :: FMOL_CO2   = 44d-3
+      REAL(fp),  PARAMETER   :: FMOL_CO2   = 44e-3_fp
 
       ! XNUMOL_CO2   - molecules CO2 / kg CO2 
-      REAL*8,  PARAMETER   :: XNUMOL_CO2 = 6.022d+23 / FMOL_CO2
+      REAL(fp),  PARAMETER   :: XNUMOL_CO2 = 6.022e+23_fp / FMOL_CO2
 
       CONTAINS
 !EOC
@@ -230,13 +233,13 @@
 
       ! Local variables
       INTEGER                :: I, J, L, N
-      REAL*8                 :: A_CM2, DTSRCE, E_CO2
-!      REAL*8                 :: biomass_sum, bionet_sum
+      REAL(fp)                 :: A_CM2, DTSRCE, E_CO2
+!      REAL(fp)                 :: biomass_sum, bionet_sum
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER        :: STT(:,:,:,:) => NULL()
+      REAL(fp), POINTER        :: STT(:,:,:,:) => NULL()
 
       ! For values from Input_Opt
       LOGICAL                :: LGENFF
@@ -266,7 +269,7 @@
       INTEGER                :: N_TRACERS
 
 !      ! External functions     
-!      REAL*8, EXTERNAL       :: BOXVL    ! dbj
+!      REAL(fp), EXTERNAL       :: BOXVL    ! dbj
 
       ! HEMCO update
       TYPE(HCO_STATE), POINTER :: HcoState => NULL()
