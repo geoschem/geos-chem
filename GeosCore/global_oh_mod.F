@@ -127,6 +127,7 @@
 !  23 Oct 2013 - R. Yantosca - Now accept Input_Opt argument
 !  29 Oct 2013 - R. Yantosca - Remove TRANSFER_3D_NOLUMP routine, we can just
 !                              instead do a direct cast assignment
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -203,7 +204,7 @@
       ! Note that peculiar units don't matter because we immediately
       ! convert back after regridding
       DO L=1, LGLOB
-         ARRAY(:,:,L) = ARRAY(:,:,L) / AIRDEN_FULLGRID(L,:,:)
+         ARRAY(:,:,L) = ARRAY(:,:,L) / AIRDEN_FULLGRID(:,:,L)
       ENDDO
          
       ! Assign data from ARRAY to the module variable OH
@@ -211,7 +212,7 @@
       
       ! convert mixing ratio (molec m3 kg-1 cm-3) -> molec/cm3
       DO L=1, LLPAR
-         OH(:,:,L) = OH(:,:,L) * State_Met%AIRDEN(L,:,:)
+         OH(:,:,L) = OH(:,:,L) * State_Met%AIRDEN(:,:,L)
       ENDDO
 
 #else

@@ -125,6 +125,9 @@
 !        for the ND21 diagnostic (bmy, 4/20/05)
 !  14 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  27 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt and State_Met args
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTDEP(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,12 +153,12 @@
       DO L = 1, LLPAR
 
          ! Copy optical depth over from OPTDEP array
-         State_Met%OPTD(L,I,J) = State_Met%OPTDEP(L,I,J) 
+         State_Met%OPTD(I,J,L) = State_Met%OPTDEP(I,J,L) 
          
          ! Save to AD21 array only if ND21 is turned on
          IF ( ND21 > 0 .and. L <= LD21 ) THEN
-            AD21(I,J,L,1) = AD21(I,J,L,1) + State_Met%OPTD(L,I,J) 
-            AD21(I,J,L,2) = AD21(I,J,L,2) + State_Met%CLDF(L,I,J)
+            AD21(I,J,L,1) = AD21(I,J,L,1) + State_Met%OPTD(I,J,L) 
+            AD21(I,J,L,2) = AD21(I,J,L,2) + State_Met%CLDF(I,J,L)
          ENDIF 
 
       ENDDO

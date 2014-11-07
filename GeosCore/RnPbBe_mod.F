@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -77,6 +79,7 @@
 !  22 Aug 2014 - R. Yantosca - Removed LATSOU, PRESOU, BESOU arrays, these
 !                              are now defined in the HEMCO code.
 !  22 Aug 2014 - R. Yantosca - Remove XNUMOL_* parameters; these are obsolete
+!  04 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -155,6 +158,7 @@
 !  22 Aug 2014 - R. Yantosca - Copy emissions above the PBL to tracer array
 !  22 Aug 2014 - R. Yantosca - Cosmetic changes, for clarity
 !  04 Sep 2014 - R. Yantosca - Add minor changes for efficiency
+!  04 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp) 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,16 +168,16 @@
       ! Scalars
       INTEGER           :: I,        J,         L
       INTEGER           :: LSTART,   N,         N_TRACERS            
-      REAL*8            :: ADD_Pb,   Be_LOST,   DTCHEM   
-      REAL*8            :: Pb_LOST,  XNUMOL_Rn, XNUMOL_Pb
-      REAL*8            :: XNUMOL_Be
+      REAL(fp)          :: ADD_Pb,   Be_LOST,   DTCHEM   
+      REAL(fp)          :: Pb_LOST,  XNUMOL_Rn, XNUMOL_Pb
+      REAL(fp)          :: XNUMOL_Be
 
       ! Static scalars
       LOGICAL, SAVE     :: FIRSTCHEM = .TRUE.
-      REAL*8,  SAVE     :: EXP_Rn,   EXP_Pb,    EXP_Be
+      REAL(fp),  SAVE   :: EXP_Rn,   EXP_Pb,    EXP_Be
 
       ! Arrays
-      REAL*8            :: Rn_LOST(IIPAR,JJPAR,LLPAR)
+      REAL(fp)            :: Rn_LOST(IIPAR,JJPAR,LLPAR)
 
       ! To get HEMCO values
       REAL*8                 :: Emis
@@ -182,7 +186,7 @@
 ! !DEFINED PARAMETERS
 !
       ! Ratio of molecular weights of 210Pb/222Rn
-      REAL*8, PARAMETER :: Pb_Rn_RATIO = 210d0 / 222d0
+      REAL(fp), PARAMETER :: Pb_Rn_RATIO = 210e+0_fp / 222e+0_fp
 
       !=================================================================
       ! CHEMRnPbBe begins here!
@@ -195,15 +199,15 @@
       N_TRACERS    = Input_Opt%N_TRACERS
 
       ! Chemistry timestep [s]
-      DTCHEM       =  GET_TS_CHEM() * 60d0
+      DTCHEM       =  GET_TS_CHEM() * 60e+0_fp
 
       ! Pre-compute exponential terms only on first timestep
       IF ( FIRSTCHEM ) THEN 
          
          ! Fraction of (222Rn, 210Pb, 7Be) left after radioactive decay
-         EXP_Rn    = EXP( -DTCHEM * 2.097d-6  )
-         EXP_Pb    = EXP( -DTCHEM * 9.725d-10 ) 
-         EXP_Be    = EXP( -DTCHEM * 1.506d-7  )
+         EXP_Rn    = EXP( -DTCHEM * 2.097e-6_fp  )
+         EXP_Pb    = EXP( -DTCHEM * 9.725e-10_fp ) 
+         EXP_Be    = EXP( -DTCHEM * 1.506e-7_fp  )
 
          ! Reset FIRSTCHEM flag
          FIRSTCHEM = .FALSE.
@@ -271,7 +275,7 @@
 
             ! Rn_LOST = amount of 222Rn lost to decay [kg]
             Rn_LOST(I,J,L)             = State_Chm%TRACERS(I,J,L,N) 
-     &                                 * ( 1d0 - EXP_Rn )
+     &                                 * ( 1e+0_fp - EXP_Rn )
 
             ! ND02 diag: 222Rn lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
@@ -314,7 +318,7 @@
             !%%%%% the Be7 source is computed.  This replicates the
             !%%%%% pre-HEMCO code. (bmy, 9/4/14)
             IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
-               ADD_Pb                  = ADD_Pb / 3.5d0
+               ADD_Pb                  = ADD_Pb / 3.5e+0_fp
             ENDIF
 #endif
 
@@ -331,7 +335,7 @@
             ! Amount of 210Pb lost to radioactive decay [kg]
             ! NOTE: we've already added in the 210Pb gained from 222Rn
             Pb_LOST                    = State_Chm%TRACERS(I,J,L,N) 
-     &                                 * ( 1d0 - EXP_Pb )
+     &                                 * ( 1e+0_fp - EXP_Pb )
 
             ! ND02 diag: 210Pb lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
@@ -404,15 +408,15 @@
 !
       INTEGER :: N        ! First dimension of Z
       INTEGER :: M        ! Second dimension of Z
-      REAL*8  :: X(N)     ! X-axis coordinate on original grid
-      REAL*8  :: Y(M)     ! Y-axis coordinate on original grid
-      REAL*8  :: Z(N,M)   ! Array of data on original grid
-      REAL*8  :: U        ! X-axis coordinate for desired interpolated value
-      REAL*8  :: V        ! Y-axis coordinate for desired interpolated value
+      REAL(fp)  :: X(N)     ! X-axis coordinate on original grid
+      REAL(fp)  :: Y(M)     ! Y-axis coordinate on original grid
+      REAL(fp)  :: Z(N,M)   ! Array of data on original grid
+      REAL(fp)  :: U        ! X-axis coordinate for desired interpolated value
+      REAL(fp)  :: V        ! Y-axis coordinate for desired interpolated value
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8  :: W        ! Interpolated value of Z array, at coords (U,V) 
+      REAL(fp)  :: W        ! Interpolated value of Z array, at coords (U,V) 
 !
 ! !REMARKS:
 ! 
@@ -422,13 +426,14 @@
 !  (1 ) Added to "RnPbBe_mod.f" (bmy, 7/16/01)
 !  (2 ) Removed duplicate definition of IQ.  Added comments. (bmy, 11/15/01)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  04 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp) 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8  :: B(3), HH
+      REAL(fp)  :: B(3), HH
       INTEGER :: NN,   IP, I, J, L, IQ, K, MM
 
       !=================================================================

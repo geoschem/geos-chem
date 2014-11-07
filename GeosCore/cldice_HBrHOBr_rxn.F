@@ -72,6 +72,7 @@
 !  05 Sep 2013 - R. Yantosca - Now exit if IWC <= 0, this will cause the
 !                              logarithm to choke
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -132,12 +133,12 @@
 
       ! IWC in [g/cm3]
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-      iwc = CLDF(L,I,J) * QI * AD(I,J,L) / AIRVOL(I,J,L)
+      iwc = CLDF(I,J,L) * QI * AD(I,J,L) / AIRVOL(I,J,L)
       iwc = iwc / 1.d3
 #else
       ! Convert cm3/cm3 to g/cm3
       ! (cm3 ice * 0.92 g ice/cm3 H2O ) / cm3 air
-      iwc = CLDF(L,I,J) * ( QI * 1d3 * dens_ice )
+      iwc = CLDF(I,J,L) * ( QI * 1d3 * dens_ice )
 #endif
 
       !%%% ERROR CHECK!  Do not let IWC<=0 because it will cause the
@@ -261,9 +262,9 @@
 !------------------------------------------------------------------------------
       !%%% ERROR CHECK!  Do not let RADIUS=0 because it will cause the
       !%%% LOG10 statement in the upcoming section (bmy, 10/23/12)
-      IF ( (              RADIUS   < 0     )        .or.
-     &     ( .not. ( ABS( RADIUS ) > 0d0 ) )        .or.
-     &     ( .not. ( ABS( CLDF(L,I,J) ) > 0d0 ) ) ) THEN
+      IF ( (              RADIUS        < 0     )   .or.
+     &     ( .not. ( ABS( RADIUS      ) > 0d0 ) )   .or.
+     &     ( .not. ( ABS( CLDF(I,J,L) ) > 0d0 ) ) ) THEN
          gamma  = 0.d0
          k_hbr  = 0.d0
          k_hobr = 0.d0
@@ -275,7 +276,7 @@
 
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       ! get the volume of cloud ice [cm3]
-      Vc = CLDF(L,I,J) * QI * AD(I,J,L) / dens_ice
+      Vc = CLDF(I,J,L) * QI * AD(I,J,L) / dens_ice
 #else
       ! Doesn't matter, Vc is not used.
 #endif

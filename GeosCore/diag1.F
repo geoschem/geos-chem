@@ -129,6 +129,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  29 Aug 2013 - R. Yantosca - In ND57, we need to make ND57 !$OMP PRIVATE
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -445,7 +446,7 @@
          DO I = 1, IIPAR
             AD68(I,J,L,1) = AD68(I,J,L,1) + State_Met%BXHEIGHT(I,J,L)
             AD68(I,J,L,2) = AD68(I,J,L,2) + State_Met%AD(I,J,L)
-            AD68(I,J,L,4) = AD68(I,J,L,4) + State_Met%AIRDEN(L,I,J) *
+            AD68(I,J,L,4) = AD68(I,J,L,4) + State_Met%AIRDEN(I,J,L) *
      &                      XNUMOLAIR
 
             ! Make sure AVGW is now allocated (bmy, 9/25/01)

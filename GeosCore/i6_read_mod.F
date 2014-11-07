@@ -759,7 +759,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_I6
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
 !
@@ -815,6 +814,7 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -872,7 +872,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:2' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( ALBD ) ) CALL TRANSFER_2D( Q2, ALBD )
+                  IF ( PRESENT( ALBD ) ) ALBD = Q2
                   NFOUND = NFOUND + 1
                ENDIF
          
@@ -884,7 +884,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:3' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( LWI ) ) CALL TRANSFER_2D( Q2, LWI )
+                  IF ( PRESENT( LWI ) ) LWI = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -896,7 +896,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:4' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PS ) ) CALL TRANSFER_2D( Q2, PS )
+                  IF ( PRESENT( PS ) ) PS = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -908,7 +908,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:5' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SLP ) ) CALL TRANSFER_2D( Q2, SLP )
+                  IF ( PRESENT( SLP ) ) SLP = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -950,7 +950,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:8' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TO3 ) ) CALL TRANSFER_2D( Q2, TO3 )
+                  IF ( PRESENT( TO3 ) ) TO3 = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -962,7 +962,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:9' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TROPP ) ) CALL TRANSFER_2D( Q2, TROPP )
+                  IF ( PRESENT( TROPP ) ) TROPP = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -974,7 +974,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:10' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TTO3 ) ) CALL TRANSFER_2D( Q2, TTO3 )
+                  IF ( PRESENT( TTO3 ) ) TTO3 = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 

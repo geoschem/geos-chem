@@ -745,7 +745,6 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,   READ_BPCH2
       USE BPCH2_MOD,      ONLY : GET_RES_EXT
       USE TIME_MOD,       ONLY : GET_MONTH,  ITS_A_NEW_MONTH
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -772,6 +771,7 @@
 ! !REVISION HISTORY: 
 !  15 Sep 2006 - N. E. Selin - Initial version
 !  30 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -810,7 +810,8 @@
      &                 XTAU,      IIPAR,     JJPAR,    
      &                 1,         ARRAY,   QUIET=.TRUE. )
 
-      CALL TRANSFER_2D( ARRAY(:,:,1), TRANSP )
+      ! Cast
+      TRANSP = ARRAY(:,:,1)
       
       ! convert from mm/month to m/s
       TRANSP = TRANSP * 1D-3 * 12D0 / ( 365D0 * 24D0 * 60D0 * 60D0 )

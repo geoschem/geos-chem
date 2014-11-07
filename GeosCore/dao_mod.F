@@ -323,6 +323,8 @@
 !  22 Oct 2012 - R. Yantosca - Renamed LOCAL_MET argument to State_Met
 !  09 Nov 2012 - M. Payer    - Copy met field arrays to the State_Met derived
 !                              type object
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%DELP(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,7 +355,7 @@
          P2                        = GET_PEDGE( I, J, L+1 )
 
          ! Pressure difference between top & bottom edges [hPa]
-         State_Met%DELP(L,I,J)     = P1 - P2
+         State_Met%DELP(I,J,L)     = P1 - P2
 
          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
@@ -399,14 +401,14 @@
          !  ----  =    ----      * ----  * -----  *      -----
          !    1          1          mb       m             1
          !===========================================================
-         State_Met%AD(I,J,L) = State_Met%DELP(L,I,J) 
+         State_Met%AD(I,J,L) = State_Met%DELP(I,J,L) 
      &                       * G0_100 
      &                       * AREA_M2
 
          !===========================================================
          ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
          !===========================================================
-         State_Met%AIRDEN(L,I,J) = State_Met%AD(I,J,L) 
+         State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L) 
      &                           / State_Met%AIRVOL(I,J,L)
 
       ENDDO
@@ -552,7 +554,7 @@
          !===========================================================
          ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
          !===========================================================
-         AIRDEN_FULLGRID(L,I,J) = AD_TMP / AIRVOL_TMP
+         AIRDEN_FULLGRID(I,J,L) = AD_TMP / AIRVOL_TMP
 
       ENDDO
       ENDDO
@@ -1527,9 +1529,9 @@
       REAL*8, PARAMETER :: CP    = 1000.0d0
 
       ! Numerator
-      NUM = - State_Met%AIRDEN(1,I,J) * CP                   *
-     &        State_Met%TS(I,J)        * State_Met%USTAR(I,J) *
-     &        State_Met%USTAR(I,J)     * State_Met%USTAR(I,J)
+      NUM = - State_Met%AIRDEN(I,J,1) * CP                   *
+     &        State_Met%TS(I,J)       * State_Met%USTAR(I,J) *
+     &        State_Met%USTAR(I,J)    * State_Met%USTAR(I,J)
 
       ! Denominator
       DEN =  KAPPA         * g0       * State_Met%HFLUX(I,J) 
@@ -2186,6 +2188,7 @@
 !                              if we are using an offline (non-fullchem) sim
 !  23 Oct 2013 - R. Yantosca - Also allocate T_FULLGRID_1 and T_FULLGRID_2
 !                              which are needed for GEOS-FP met only
+!   6 Nov 2014 - R. Yantosca - Now use AIRDEN_FULLGRID(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2200,7 +2203,7 @@
       IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN 
 
          ! Number density of air on full vertical grid
-         ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=RC ) 
+         ALLOCATE( AIRDEN_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=RC ) 
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
          AIRDEN_FULLGRID = 0d0
 

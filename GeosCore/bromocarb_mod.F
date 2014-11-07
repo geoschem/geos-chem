@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -34,6 +36,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  24 Jun 2014 - R. Yantosca - Removed code made obsolete by HEMCO
 !  24 Jun 2014 - R. Yantosca - Removed INIT_BROMOCARB, CLEANUP_BROMOCARB
+!  06 Nov 2015 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -41,10 +44,10 @@
 ! !DEFINED PARAMETERS:
 !
       ! Molecular weight of CHBr3  [kg/mol]
-      REAL*8,  PARAMETER   :: MWT_CHBr3  = 2.53d-1
+      REAL(fp),  PARAMETER   :: MWT_CHBr3  = 2.53e-1_fp
 
       ! Molecular weight of CH2Br2 [kg/mol]
-      REAL*8,  PARAMETER   :: MWT_CH2Br2 = 1.74d-1
+      REAL(fp),  PARAMETER   :: MWT_CH2Br2 = 1.74e-1_fp
 
       ! Number of elements for TOT_OC_AREA
       INTEGER, PARAMETER   :: NUM_REGIONS = 2
@@ -52,7 +55,7 @@
 ! PRIVATE TYPES:
 !
       ! Surface area of the box; only depends on latitude
-      REAL*8               :: A_M2
+      REAL(fp)               :: A_M2
 
       LOGICAL, SAVE        :: FIRST_INIT = .TRUE.
 
@@ -122,22 +125,22 @@
 ! !DEFINED PARAMETERS:
 !
       ! CH3Br values ( from pptv )
-      REAL*8, PARAMETER :: gt55N     = 8.35d-12 
-      REAL*8, PARAMETER :: gt0_lt55N = 8.27d-12
-      REAL*8, PARAMETER :: lt0_gt55S = 6.94d-12
-      REAL*8, PARAMETER :: lt55S     = 6.522d-12
+      REAL(fp), PARAMETER :: gt55N     = 8.35e-12_fp 
+      REAL(fp), PARAMETER :: gt0_lt55N = 8.27e-12_fp
+      REAL(fp), PARAMETER :: lt0_gt55S = 6.94e-12_fp
+      REAL(fp), PARAMETER :: lt55S     = 6.522e-12_fp
 !
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: I,  J,  L,  N
       INTEGER           :: CH3Br_sel
-      REAL*8            :: CH3Br_conc
-      REAL*8            :: LAT_MID
+      REAL(fp)            :: CH3Br_conc
+      REAL(fp)            :: LAT_MID
 
       ! For values from Input_Opt
       INTEGER           :: N_TRACERS
-      REAL*8            :: TCVV(Input_Opt%N_TRACERS)
-      REAL*8,   POINTER :: STT(:,:,:,:)
+      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp),   POINTER :: STT(:,:,:,:)
 
       !===================================
       ! Initializing Variables
@@ -149,8 +152,8 @@
       STT        => State_Chm%TRACERS
 
       ! Zero
-      LAT_MID    = 0d0
-      CH3Br_conc = 0d0
+      LAT_MID    = 0e+0_fp
+      CH3Br_conc = 0e+0_fp
 
       ! get ID # for CH3Br
       DO N = 1, N_TRACERS
@@ -179,20 +182,22 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0d0 ) THEN
+         IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0e+0_fp ) THEN
 
             ! base lat band selection on midpoint
             ! latitude of the box
             LAT_MID = GET_YMID( I, J, L )
 
             ! Selecting the latitude bands:
-            IF ( LAT_MID > 55d0 ) THEN
+            IF ( LAT_MID > 55e+0_fp ) THEN
                CH3Br_conc = gt55N
-            ELSEIF ( (LAT_MID >= 0d0) .and. (LAT_MID <= 55d0) ) THEN
+            ELSEIF ( (LAT_MID >= 0e+0_fp) .and. (LAT_MID <= 55e+0_fp) ) 
+     &       THEN
                CH3Br_conc = gt0_lt55N
-            ELSEIF ( (LAT_MID < 0d0) .and. (LAT_MID >= -55d0) ) THEN
+            ELSEIF ( (LAT_MID < 0e+0_fp) .and. (LAT_MID >= -55e+0_fp) )
+     &       THEN
                CH3Br_conc = lt0_gt55S
-            ELSEIF ( LAT_MID < -55d0 ) THEN
+            ELSEIF ( LAT_MID < -55e+0_fp ) THEN
                CH3Br_conc = lt55S
             ENDIF
 
@@ -279,6 +284,7 @@
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  24 Jun 2014 - R. Yantosca - Remove IJLOOP, it's not used anymroe
+!  06 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -287,11 +293,11 @@
 !
       ! Scalars
       INTEGER         :: I,  J,  L,  N, N_TRACERS, BrO_sel
-      REAL*8          :: BrO_conc
+      REAL(fp)          :: BrO_conc
 
       ! Pointers
-      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !====================================================================
       ! SET_BrO begins here!

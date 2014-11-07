@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -34,6 +36,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  05 Nov 2014 - M. Yannetti - PRECISION_MOD Changed REAL*8 to REAL(fp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,7 +113,7 @@
       INTEGER             :: HALFPOLAR
       REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL*4              :: LONRES, LATRES
-      REAL*8              :: TAU
+      REAL(fp)              :: TAU
       CHARACTER(LEN=20)   :: MODELNAME 
       CHARACTER(LEN=40)   :: CATEGORY, RESERVED, UNIT
       CHARACTER(LEN=80)   :: TITLE
@@ -119,7 +122,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! STDRUN begins here!

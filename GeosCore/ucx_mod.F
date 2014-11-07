@@ -3351,6 +3351,7 @@
 !  14 Feb 2014 - R. Yantosca   - Make the L-loop the outermost DO loop
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  06 Nov 2014 - R. Yantosca   - Now use State_Met%CLDF(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3678,10 +3679,10 @@
      &                              State_Met%AD(I,J,L)/AIRMW
                      ELSE
                         H2O_BOX_S = State_Met%QI(I,J,L)   *
-     &                              State_Met%CLDF(L,I,J) *
+     &                              State_Met%CLDF(I,J,L) *
      &                              AIRMW / ICEMW
                         KG_ICE    = State_Met%QI(I,J,L)   *
-     &                              State_Met%CLDF(L,I,J) *
+     &                              State_Met%CLDF(I,J,L) *
      &                              State_Met%AD(I,J,L)
                      ENDIF
                      VOL_ICE = H2O_BOX_S * DENAIR * (1.d-3) * ICEMW /

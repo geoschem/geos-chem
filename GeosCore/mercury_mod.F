@@ -469,6 +469,8 @@
 !                              logical_mod.F and tracer_mod.F
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -789,11 +791,11 @@
          !---------------------------------------------
 
          ! Get cloud fraction from met fields [unitless]
-         FC = State_Met%CLDF(L,I,J)
+         FC = State_Met%CLDF(I,J,L)
 
          ! Get grid-average liquid water content [m3 H2O/m3 air] from met
          ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
-         LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1D-3
+         LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1D-3
 
          ! LWC is a grid-box averaged quantity. To improve representation 
          ! of sulfate chemistry, we divide LWC by the cloud fraction and 
@@ -7318,7 +7320,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
       IMPLICIT NONE
 !
@@ -7336,6 +7337,7 @@
 ! !REVISION HISTORY: 
 !  11 Jan 2011 - Y. Zhang    - Initial version
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7385,7 +7387,7 @@
      &                 1,     ARRAY(:,:,1),     QUIET=.TRUE. )
      
       ! Regrid to the current grid
-      CALL TRANSFER_2D( ARRAY(:,:,1), E_ELECTRICITY_Hg2 )
+      E_ELECTRICITY_Hg2 = ARRAY(:,:,1)
 
       DO J=1,JJPAR
       DO I=1,IIPAR

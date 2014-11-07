@@ -41,8 +41,8 @@
       ! MODULE VARIABLES
       !=================================================================
 
-      ! Array for UV albedo data
-      REAL*8, ALLOCATABLE :: UVALBEDO(:,:)
+!      ! Array for UV albedo data
+!     REAL*8, ALLOCATABLE :: UVALBEDO(:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -103,7 +103,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 !
 ! !INPUT PARAMETERS:
 !
@@ -135,21 +134,25 @@
       ! Assume success
       RC  =  GIGC_SUCCESS
 
-      !=================================================================
-      ! Allocate UVALBEDO array on the first call
-      !=================================================================
-      IF ( FIRST ) THEN
-
-         ! Allocate UVALBEDO
-         ALLOCATE( UVALBEDO( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UVALBEDO' )
-         
-         ! Zero UVALBEDO
-         UVALBEDO(:,:) = 0d0
-
-         ! Reset FIRST flag
-         FIRST = .FALSE.
-      ENDIF
+!----------------------------------------------------------------------------
+! Prior to 11/6/14:
+!      UVALBEDO = AR
+!      !=================================================================
+!      ! Allocate UVALBEDO array on the first call
+!      !=================================================================
+!      IF ( FIRST ) THEN
+!
+!         ! Allocate UVALBEDO
+!         ALLOCATE( UVALBEDO( IIPAR, JJPAR ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UVALBEDO' )
+!         
+!         ! Zero UVALBEDO
+!         UVALBEDO(:,:) = 0d0
+!
+!         ! Reset FIRST flag
+!         FIRST = .FALSE.
+!      ENDIF
+!----------------------------------------------------------------------------
 
       !=================================================================
       ! Read UVALBEDO data from disk
@@ -178,10 +181,14 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )         
 
       ! Transfer data from REAL*4 to REAL*8 and to size (IIPAR,JJPAR)
-      CALL TRANSFER_2D( ARRAY(:,:,1), UVALBEDO )
-      
-      ! Copy met field to State_Met
-      State_Met%UVALBEDO = UVALBEDO
+!----------------------------------------------------------------------------
+! Prior to 11/6/14:
+!      UVALBEDO = ARRAY(:,:,1)
+!      
+!      ! Copy met field to State_Met
+!      State_Met%UVALBEDO = UVALBEDO
+!----------------------------------------------------------------------------
+      State_Met%UVALBEDO = ARRAY(:,:,1)
 
       ! Return to calling program
       END SUBROUTINE READ_UVALBEDO
@@ -194,7 +201,10 @@
 !  Subroutine CLEANUP_UVALBEDO deallocates the UVALBEDO array (bmy, 1/15/02)
 !******************************************************************************
 !
-      IF ( ALLOCATED( UVALBEDO ) ) DEALLOCATE( UVALBEDO )
+!----------------------------------------------------------------------------
+! Prior to 11/6/14:
+!      IF ( ALLOCATED( UVALBEDO ) ) DEALLOCATE( UVALBEDO )
+!----------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_UVALBEDO

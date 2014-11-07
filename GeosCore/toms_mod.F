@@ -115,7 +115,6 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE TIME_MOD,       ONLY : EXPAND_DATE
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -193,6 +192,7 @@
 !                              grid (J. Lin)
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  23 Jun 2014 - R. Yantosca - Now use Input_Opt%DATA_DIR_1x1
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -352,7 +352,7 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )         
 
       ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), TOMS )
+      TOMS = ARRAY(:,:,1)
 
       !--------------------------------
       ! d(TOMS)/dT (1st half of month)
@@ -364,7 +364,7 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )         
 
       ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), DTOMS1 )
+      DTOMS1 = ARRAY(:,:,1)
       
       !--------------------------------
       ! d(TOMS)/dT (2nd half of month)
@@ -376,7 +376,7 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )         
 
       ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), DTOMS2 )
+      DTOMS2 = ARRAY(:,:,1)
 
 #endif
 

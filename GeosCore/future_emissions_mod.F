@@ -368,6 +368,7 @@
 !
 !  NOTES:
 !  20 Jun 2014 - R. Yantosca - Now accept Input_Opt via the argument list
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !******************************************************************************
 !
 ! !USES:
@@ -375,7 +376,6 @@
       USE BPCH2_MOD,            ONLY : GET_RES_EXT, GET_NAME_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,    READ_BPCH2
       USE FILE_MOD,             ONLY : FILE_EXISTS
-      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -429,7 +429,7 @@
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), GRFACTORS )
+      GRFACTORS = ARRAY(:,:,1)
 
       ! Return to calling program
       END SUBROUTINE READ_GROWTH_FACTORS

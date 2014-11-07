@@ -251,7 +251,6 @@
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 !
 ! !INPUT PARAMETERS: 
 !
@@ -280,6 +279,7 @@
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_CN file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -328,7 +328,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_CN, 'read_cn:2' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, FRLAKE )
+                  FRLAKE = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -340,7 +340,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_CN, 'read_cn:3' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, FRLAND )
+                  FRLAND = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -352,8 +352,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_CN, 'read_cn:4' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, FRLANDIC )
-                  NFOUND = NFOUND + 1
+                  FRLANDIC = Q2
+                  NFOUND   = NFOUND + 1
                ENDIF
          
             !-----------------------------------------------
@@ -364,8 +364,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_CN, 'read_cn:5' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, FROCEAN )
-                  NFOUND = NFOUND + 1
+                  FROCEAN = Q2
+                  NFOUND  = NFOUND + 1
                ENDIF
 
             !-----------------------------------------------
@@ -376,7 +376,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_CN, 'read_cn:5' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PHIS )
+                  PHIS   = Q2
                   NFOUND = NFOUND + 1
 
                   ! Convert from [m2/s2] to [m]
