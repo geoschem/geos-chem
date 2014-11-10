@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -95,6 +97,7 @@
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND50 a local module variable
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -147,14 +150,14 @@
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180=1
       REAL*4               :: LONRES,         LATRES
-      REAL*8               :: TAU0,           TAU1
+      REAL(fp)               :: TAU0,           TAU1
       CHARACTER(LEN=20)    :: MODELNAME
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE
       CHARACTER(LEN=255)   :: ND50_OUTPUT_FILE
 
       ! Arrays
-      REAL*8,  ALLOCATABLE :: Q(:,:,:,:)
+      REAL(fp),  ALLOCATABLE :: Q(:,:,:,:)
       INTEGER, ALLOCATABLE :: COUNT_CHEM3D(:,:,:)
 
       CONTAINS
@@ -319,7 +322,7 @@
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
-      REAL*8              :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
+      REAL(fp)              :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16)   :: STAMP
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
@@ -327,11 +330,11 @@
 
       ! For fields from Input_Opt
       INTEGER             :: N_TRACERS
-      REAL*8              :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)              :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL*8, POINTER     :: STT(:,:,:,:)
-      REAL*8, POINTER     :: AD(:,:,:)
+      REAL(fp), POINTER     :: STT(:,:,:,:)
+      REAL(fp), POINTER     :: AD(:,:,:)
 
       !=================================================================
       ! ACCUMULATE_DIAG50 begins here!
@@ -458,7 +461,7 @@
                !--------------------------------------
   
                ! Temp variable for accumulation
-               TMP = 0d0
+               TMP = 0e+0_fp
             
                ! NO
                TMP = TMP + ( TCVV(IDTNO)         * 
@@ -804,14 +807,14 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: HR1
+      REAL(fp) :: HR1
 
       !=================================================================
       ! ITS_TIME_FOR_WRITE_DIAG50 begins here!
       !=================================================================
 
       ! Current hour
-      HR1      = GET_HOUR() + ( GET_MINUTE() / 60d0 )
+      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
 
       ! Hour at the next dynamic timestep
 
@@ -994,7 +997,7 @@
             IF ( DIVISOR(X,Y,K) > 0 ) THEN
                Q(X,Y,K,W) = Q(X,Y,K,W) / DBLE( DIVISOR(X,Y,K) )
             ELSE
-               Q(X,Y,K,W) = 0d0
+               Q(X,Y,K,W) = 0e+0_fp
             ENDIF
 
          ENDDO
@@ -1309,14 +1312,14 @@
  130  FORMAT( '     - DIAG50: Zeroing arrays at ', a )
 
       ! Set STARTING TAU for the next bpch write
-      TAU0       = GET_TAU() + ( GET_TS_DYN() / 60d0 )
+      TAU0       = GET_TAU() + ( GET_TS_DYN() / 60e+0_fp )
 
       ! Zero counters
       COUNT        = 0
       COUNT_CHEM3D = 0  
       
       ! Zero accumulating array
-      Q            = 0d0
+      Q            = 0e+0_fp
 
       END SUBROUTINE WRITE_DIAG50
 !EOC
@@ -1572,12 +1575,12 @@
       ! Accumulator array
       ALLOCATE( Q( ND50_NI, ND50_NJ, ND50_NL, ND50_N_TRACERS), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Q' )
-      Q = 0d0
+      Q = 0e+0_fp
 
       ! 3-D full chemistry timestep counter in troposphere
       ALLOCATE( COUNT_CHEM3D( ND50_NI, ND50_NJ, ND50_NL ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
-      COUNT_CHEM3D = 0d0
+      COUNT_CHEM3D = 0e+0_fp
 
       END SUBROUTINE INIT_DIAG50
 !EOC

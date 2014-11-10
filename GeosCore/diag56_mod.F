@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -41,6 +43,7 @@
 !  (2 ) Now divide AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -128,7 +131,7 @@
       INTEGER               :: JFIRST,    LFIRST,      M,      N         
       REAL*4                :: ARRAY(IIPAR,JJPAR,1)
       REAL*4                :: LONRES,    LATRES
-      REAL*8                :: DIAGb,     DIAGe,       SCALE
+      REAL(fp)                :: DIAGb,     DIAGe,       SCALE
       CHARACTER(LEN=20)     :: MODELNAME 
       CHARACTER(LEN=40)     :: CATEGORY,  RESERVED,    UNIT
 
@@ -152,11 +155,11 @@
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
 #if   defined( MERRA )
-      SCALE     = DBLE( GET_CT_A3() ) + 1d-32
+      SCALE     = DBLE( GET_CT_A3() ) + 1e-32_fp
 #elif defined( GEOS_FP )
-      SCALE     = DBLE( GET_CT_I3() ) + 1d-32
+      SCALE     = DBLE( GET_CT_I3() ) + 1e-32_fp
 #else
-      SCALE     = DBLE( GET_CT_A6() ) + 1d-32
+      SCALE     = DBLE( GET_CT_A6() ) + 1e-32_fp
 #endif     
   
       !=================================================================

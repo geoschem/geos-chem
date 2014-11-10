@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -34,8 +36,8 @@
       INTEGER, PUBLIC              :: LD42            ! # of levels for ND42
 
       ! SOAupdate: ratio of OM/OC (hotp 6/12/09)
-      REAL*8, PARAMETER    :: OCFPOA  = 1.4d0
-      REAL*8, PARAMETER    :: OCFOPOA = 1.4d0*1.5d0  ! 2.1
+      REAL(fp), PARAMETER    :: OCFPOA  = 1.4e+0_fp
+      REAL(fp), PARAMETER    :: OCFOPOA = 1.4e+0_fp*1.5e+0_fp  ! 2.1
 
       ! Arrays
       REAL*4,  PUBLIC, ALLOCATABLE :: AD42(:,:,:,:)   ! Array for SOA [ug/m3]
@@ -59,6 +61,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,9 +137,9 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: I,      J,    L
-      REAL*8            :: FACTOR, PRES
+      REAL(fp)            :: FACTOR, PRES
       ! SOAupdate: Temporary variables for diagnostics (hotp 8/24/09)
-      REAL*8            :: TEMP6, TEMP7
+      REAL(fp)            :: TEMP6, TEMP7
 
       ! SOAupdate: Logical SOA tracer flags (mpayer, 7/12/11)
       LOGICAL           :: IS_SOA1,  IS_SOA2,  IS_SOA3,  IS_SOA4
@@ -149,12 +152,12 @@
 ! !DEFINED PARAMETERS:
 !
       ! Factor for computing standard volume
-      REAL*8, PARAMETER :: STD_VOL_FAC = 1013.25d0 / 273.15d0
+      REAL(fp), PARAMETER :: STD_VOL_FAC = 1013.25e+0_fp / 273.15e+0_fp
      
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !================================================================= 
       ! DIAG42 begins here! 
@@ -198,7 +201,7 @@
          !FACTOR        = 1d9 / State_Met%AIRVOL(I,J,L) * LTOTH(I,J) 
 
          ! Conversion factor from [kg] --> [ug/m3]
-         FACTOR        = 1d9 / State_Met%AIRVOL(I,J,L)
+         FACTOR        = 1e+9_fp / State_Met%AIRVOL(I,J,L)
 
          ! SOAupdate: AD42(1-11) updated (hotp 7/29/10)
          ! TSOA (terpene SOA) (hotp 5/24/10)
@@ -288,7 +291,7 @@
      &                 STT(I,J,L,IDTASOAN) + 
      &                 STT(I,J,L,IDTASOA1) + 
      &                 STT(I,J,L,IDTASOA2) + 
-     &                 STT(I,J,L,IDTASOA3)  ) / 2.1d0
+     &                 STT(I,J,L,IDTASOA3)  ) / 2.1e+0_fp
 
             IF ( IS_POA ) THEN
                TEMP7 = TEMP7 + STT(I,J,L,IDTPOA1) +
@@ -396,12 +399,12 @@
 
             ! SOAG [ug total mass /m3]
             AD42(I,J,L,19) = AD42(I,J,L,19)        + 
-     &                      ( STT(I,J,L,IDTSOAG) * 1.d0 * FACTOR )
+     &                      ( STT(I,J,L,IDTSOAG) * 1.e+0_fp * FACTOR )
 
 
             ! SOAM [ug total mass /m3]
             AD42(I,J,L,20) = AD42(I,J,L,20)        + 
-     &                      ( STT(I,J,L,IDTSOAM) * 1.d0 * FACTOR )
+     &                      ( STT(I,J,L,IDTSOAM) * 1.e+0_fp * FACTOR )
 
          ENDIF
 
@@ -515,9 +518,9 @@
       INTEGER           :: IFIRST,    JFIRST,    LFIRST        
       REAL*4            :: LONRES,    LATRES
       REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
-      !REAL*8            :: SCALE(IIPAR,JJPAR)
-      REAL*8            :: SCALE
-      REAL*8            :: DIAGb,     DIAGe
+      !REAL(fp)            :: SCALE(IIPAR,JJPAR)
+      REAL(fp)            :: SCALE
+      REAL(fp)            :: DIAGb,     DIAGe
       CHARACTER(LEN=20) :: MODELNAME 
       CHARACTER(LEN=40) :: CATEGORY
       CHARACTER(LEN=40) :: RESERVED

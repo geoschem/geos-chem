@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -109,6 +111,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,8 +276,8 @@
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NHMS, TS_DIAG
-      REAL*8                   :: TAU, TMP,   SCALEAODnm
-      REAL*8                   :: Q( ND49_NI, ND49_NJ, ND49_NL )
+      REAL(fp)                   :: TAU, TMP,   SCALEAODnm
+      REAL(fp)                   :: Q( ND49_NI, ND49_NJ, ND49_NL )
       CHARACTER(LEN=16)        :: STAMP
       CHARACTER(LEN=40)        :: CATEGORY
       CHARACTER(LEN=40)        :: UNIT
@@ -287,11 +290,11 @@
       LOGICAL                  :: LSOILNOX
       LOGICAL                  :: DO_DIAG_WRITE
       INTEGER                  :: N_TRACERS
-      REAL*8                   :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)                   :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
-      REAL*8, POINTER          :: STT(:,:,:,:)
-      REAL*8, POINTER          :: AD(:,:,:)
+      REAL(fp), POINTER          :: STT(:,:,:,:)
+      REAL(fp), POINTER          :: AD(:,:,:)
 
       !=================================================================
       ! DIAG49 begins here!
@@ -378,7 +381,7 @@
          N = ND49_TRACERS(W)
 
          ! Zero summing array
-         Q = 0d0
+         Q = 0e+0_fp
 
          ! Test by tracer number
          IF ( N <= N_TRACERS ) THEN
@@ -452,7 +455,7 @@
                I = GET_I( X )  
 
                ! Temp variable for accumulation
-               TMP = 0d0
+               TMP = 0e0_fp
             
                ! NO
                TMP = TMP + ( TCVV(IDTNO)         *
@@ -490,7 +493,7 @@
      &                       AD(I,J,L) )
             
                ! N2O5
-               TMP = TMP + ( 2d0 * TCVV(IDTN2O5) *
+               TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) *
      &                       STT(I,J,L,IDTN2O5)  / 
      &                       AD(I,J,L) )
                         
@@ -1653,14 +1656,14 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: HR1
+      REAL(fp) :: HR1
 
       !=================================================================
       ! ITS_TIME_TO_CLOSE_FILE begins here!
       !=================================================================
 
       ! Current hour
-      HR1      = GET_HOUR() + ( GET_MINUTE() / 60d0 )
+      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
 
 !--- Previous to (ccc, 8/12/09)
 !      ! Hour at the next dynamic timestep

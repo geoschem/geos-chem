@@ -15,6 +15,8 @@
 ! 
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -58,6 +60,7 @@
 !  27 Nov 2012 - M. Payer    - Added ProTeX headers
 !  26 Aug 2014 - M. Sulprizio- Remove AD53 array, POPs emissions are now
 !                              tracked by HEMCO
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -100,11 +103,11 @@
       IF ( ND53 == 0 ) RETURN
 
       ! Zero arrays
-      AD53_PG_OC_NEG    = 0D0
-      AD53_PG_OC_POS    = 0D0
-      AD53_PG_BC_NEG    = 0D0
-      AD53_PG_BC_POS    = 0D0
-      AD53_POPG_OH      = 0D0
+      AD53_PG_OC_NEG    = 0e+0_fp
+      AD53_PG_OC_POS    = 0e+0_fp
+      AD53_PG_BC_NEG    = 0e+0_fp
+      AD53_PG_BC_POS    = 0e+0_fp
+      AD53_POPG_OH      = 0e+0_fp
 
       END SUBROUTINE ZERO_DIAG53
 !EOC
@@ -157,10 +160,10 @@
       INTEGER               :: M,         N,           NN
       REAL*4                :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL*4                :: LONRES,    LATRES
-      REAL*8                :: DIAGb,     DIAGe,       SCALE
+      REAL(fp)                :: DIAGb,     DIAGe,       SCALE
       CHARACTER(LEN=20)     :: MODELNAME 
       CHARACTER(LEN=40)     :: CATEGORY,  RESERVED,    UNIT
-      REAL*8                :: NCHEMSTEP !CDH for sea salt loss rate
+      REAL(fp)                :: NCHEMSTEP !CDH for sea salt loss rate
 
       !=================================================================
       ! WRITE_DIAG53 begins here!
@@ -181,8 +184,8 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
-      NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1d0 ) !CDH for sea salt loss rat         
+      SCALE     = DBLE( GET_CT_EMIS() ) + 1e-32_fp
+      NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1e+0_fp ) !CDH for sea salt loss rat         
       !=================================================================
       ! Write data to the bpch file
       !=================================================================
