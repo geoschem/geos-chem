@@ -324,6 +324,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
           Arr2D => NULL()
        ENDIF
+
     ENDDO !N
 
     ! Nullify pointers for safety's sake

@@ -345,7 +345,7 @@ CONTAINS
 #else
           ! For resolutions finer than 2x2.5, nested, 
           ! or otherwise exotic domains and resolutions
-          CALL GET_RATES_INTERP( am_I_Root, Input_Opt, GET_MONTH(), RC )
+          CALL GET_RATES_INTERP( am_I_Root, Input_Opt, GET_MONTH(), errCode )
 #endif
        ENDIF
 
