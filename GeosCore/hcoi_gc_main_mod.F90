@@ -255,7 +255,7 @@ CONTAINS
     ! the HEMCO configuration file and GEOS-Chem. However, additional
     ! species can be defined, e.g. those not transported in GEOS-Chem
     ! (e.g. SESQ) or tagged species (e.g. specialty simulations).
-    CALL Get_nHcoSpc( Input_Opt, nHcoSpc, HMRC )
+    CALL Get_nHcoSpc( am_I_Root, Input_Opt, nHcoSpc, HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Get_nHcoSpc', LOC )
 
     !-----------------------------------------------------------------
@@ -1527,7 +1527,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_nHcoSpc( Input_Opt, nHcoSpec, RC ) 
+  SUBROUTINE Get_nHcoSpc( am_I_Root, Input_Opt, nHcoSpec, RC ) 
 !
 ! !USES:
 !
@@ -1538,6 +1538,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
+    LOGICAL,        INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input Options object
     INTEGER,        INTENT(INOUT)  :: RC         ! Success or fialure
 !
@@ -1606,7 +1607,7 @@ CONTAINS
                            MatchIDx,       nHcoSpec        )
     ENDIF
 
-    IF ( nHcoSpec == 0 ) THEN
+    IF ( nHcoSpec == 0 .AND. am_I_Root ) THEN
        MSG = 'No matching species between HEMCO and the model!'
        CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
     ENDIF
@@ -1700,10 +1701,10 @@ CONTAINS
           M2HID(ModelSpecIDs(IDX))%ID  = CNT
    
           ! Write to logfile
-          CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
+          IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
    
        ENDDO !I
-       CALL HCO_MSG(SEP1='-')
+       IF ( am_I_Root ) CALL HCO_MSG(SEP1='-')
 
     ENDIF 
 
