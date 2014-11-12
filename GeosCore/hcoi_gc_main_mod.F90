@@ -366,7 +366,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Define diagnostics
     !-----------------------------------------------------------------
-    IF ( DoDiagn .AND. .NOT. HcoState%isESMF ) THEN
+    IF ( DoDiagn ) THEN 
 
        ! Set up traditional GEOS-Chem NDxx diagnostics for emissions
        CALL HCOI_GC_DIAGN_INIT                                &

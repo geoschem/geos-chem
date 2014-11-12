@@ -7941,6 +7941,7 @@
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F     
 !  02 Nov 2014 - C. Keller   - Now get alkalinity and number density from HEMCO
 !  04 Nov 2014 - C. Keller   - Moved from seasalt_mod.F
+!  12 Nov 2014 - C. Keller   - Now weight # dens. and alk. by fraction of PBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8002,32 +8003,23 @@
       ! Do the following only if we are within the PBL
       IF ( L <= NTOP ) THEN      
 
+         ! Fraction of the PBL spanned by box (I,J,L) [unitless]
+         FEMIS = GET_FRAC_OF_PBL( I, J, L )
+
          ! Get ALK1 and ALK2 surface emissions from HEMCO. These are in 
          ! kg/m2/s. 
          CALL GetHcoVal( IDTSALA, I, J, 1, FOUND, Emis=ALK1 )
          CALL GetHcoVal( IDTSALC, I, J, 1, FOUND, Emis=ALK2 )
 
-         ! kg/m2/s --> kg
-         ALK1 = MAX(ALK1,0.0d0) * State_Met%AREA_M2(I,J,1) * TS_EMIS 
-         ALK2 = MAX(ALK2,0.0d0) * State_Met%AREA_M2(I,J,1) * TS_EMIS 
+         ! kg/m2/s --> kg. Weight by fraction of PBL
+         ALK1 = MAX(ALK1,0.0d0) 
+     &        * State_Met%AREA_M2(I,J,1) * TS_EMIS * FEMIS 
+         ALK2 = MAX(ALK2,0.0d0) 
+     &        * State_Met%AREA_M2(I,J,1) * TS_EMIS * FEMIS 
 
-         ! Get number densities in # / cm3.
-         N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) * 1.d-6
-         N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) * 1.d-6
-
-!***************************************************************
-         ! To take into account fraction of PBL, uncomment the 
-         ! following lines:
-
-         ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-!         FEMIS = GET_FRAC_OF_PBL( I, J, L )
-
-         ! weight by fraction of PBL
-!         ALK1 = ALK1 * FEMIS
-!         ALK2 = ALK2 * FEMIS
-!         N1   = N1   * FEMIS
-!         N2   = N2   * FEMIS
-!***************************************************************
+         ! Get number densities in # / cm3. Weight by fraction of PBL
+         N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) * 1.d-6 * FEMIS
+         N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) * 1.d-6 * FEMIS
 
       ENDIF
 

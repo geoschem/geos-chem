@@ -76,17 +76,75 @@ MODULE HCOI_GC_Diagn_Mod
 !  20 Aug 2014 - R. Yantosca - Split code into several routines, for clarity
 !  26 Aug 2014 - M. Sulprizio- Add modifications for POPs emissions diagnostics
 !  23 Sep 2014 - C. Keller   - Added Hg diagnostics
+!  11 Nov 2014 - C. Keller   - Added call to ESMF diagnostics.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-!EOC
+#if defined(ESMF_)
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOI_GC_DiagN_Init
+! !IROUTINE: HCOI_GC_Diagn_Init
+!
+! !DESCRIPTION: Subroutine HCOI\_GC\_Diagn\_Init initializes the HEMCO 
+! diagnostics in GEOS-Chem in an ESMF environment.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOI_GC_Diagn_Init( am_I_Root, Input_Opt, HcoState, ExtState, RC ) 
+!
+! !USES:
+!
+    USE HCO_State_Mod,      ONLY : HCO_State
+    USE HCOI_ESMF_MOD,      ONLY : HCOI_ESMF_DIAGNCREATE
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCOX_State_Mod,     ONLY : Ext_State
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
+    TYPE(EXT_State),  POINTER        :: ExtState   ! Extensions state object 
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  11 Nov 2014 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'HCOI_GC_DIAGN_INIT (hcoi_gc_diagn_mod.F90)'
+
+    !=======================================================================
+    ! HCOI_GC_DIAGN_INIT begins here!
+    !=======================================================================
+
+    CALL HCOI_ESMF_DIAGNCREATE( am_I_Root, HcoState, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Leave w/ success
+    RC = HCO_SUCCESS 
+
+  END SUBROUTINE HCOI_GC_Diagn_Init
+!EOC
+#else
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOI_GC_Diagn_Init
 !
 ! !DESCRIPTION: Subroutine HCOI\_GC\_Diagn\_Init initializes the HEMCO 
 ! diagnostics in GEOS-Chem. 
@@ -4346,10 +4404,10 @@ CONTAINS
     ! %%%%% BIOMASS BURNING HG %%%%%
     ! ==> defined in Diagn_Biomass
     !-------------------------------------------
- 
 
   END SUBROUTINE Diagn_Hg
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
