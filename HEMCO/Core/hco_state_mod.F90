@@ -73,9 +73,11 @@ MODULE HCO_State_Mod
      CHARACTER(LEN=255)          :: ConfigFile ! Full path to HEMCO Config file
      LOGICAL                     :: isESMF     ! Are we using ESMF?
      TYPE(HcoOpt),       POINTER :: Options    ! HEMCO run options
+
+     !%%%%%  ESMF state objects
 #if defined(ESMF_)
-     TYPE(ESMF_State),   POINTER :: IMPORT     ! ESMF Import State (only needed
-                                               ! if option isESMF = .TRUE.)
+     TYPE(ESMF_State),   POINTER :: IMPORT
+     TYPE(ESMF_State),   POINTER :: EXPORT
 #endif
   END TYPE HCO_State
 !
@@ -456,6 +458,7 @@ CONTAINS
 
 #if defined(ESMF_)
     HcoState%IMPORT => NULL()
+    HcoState%EXPORT => NULL()
 #endif
 
   END SUBROUTINE HcoState_Final

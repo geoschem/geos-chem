@@ -2752,6 +2752,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  29 May 2013 - R. Yantosca - Segregate TOMAS-specific code with #ifdefs
+!  10 Nov 2014 - C. Keller   - Now also apply TINY check in ESMF environment.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2760,9 +2761,7 @@
 !
       INTEGER             :: I, J, L
       REAL*8              :: TMP
-#if defined( TOMAS )
-      REAL*8              :: TINY1 = 1.0d-20
-#endif
+      REAL*8, PARAMETER   :: TINY1 = 1.0d-20
 
       !=================================================================
       ! F_AEROSOL begins here!
@@ -2784,7 +2783,7 @@
      &                   State_Met%BXHEIGHT(I,J,L) ) 
        
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
-#if defined( TOMAS )
+#if defined( TOMAS ) || defined( ESMF_ )
          !-------------------------------------
          ! TOMAS: set F=1 if Vud is too small
          !-------------------------------------

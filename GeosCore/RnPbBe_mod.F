@@ -166,27 +166,36 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER           :: I,        J,         L
-      INTEGER           :: LSTART,   N,         N_TRACERS            
-      REAL(fp)          :: ADD_Pb,   Be_LOST,   DTCHEM   
-      REAL(fp)          :: Pb_LOST,  XNUMOL_Rn, XNUMOL_Pb
-      REAL(fp)          :: XNUMOL_Be
+      INTEGER             :: I,        J,         L
+      INTEGER             :: LSTART,   N,         N_TRACERS            
+      REAL(fp)            :: ADD_Pb,   Be_LOST,   DTCHEM   
+      REAL(fp)            :: Pb_LOST,  XNUMOL_Rn, XNUMOL_Pb
+      REAL(fp)            :: XNUMOL_Be
 
       ! Static scalars
-      LOGICAL, SAVE     :: FIRSTCHEM = .TRUE.
-      REAL(fp),  SAVE   :: EXP_Rn,   EXP_Pb,    EXP_Be
+      LOGICAL,   SAVE     :: FIRSTCHEM = .TRUE.
+      REAL(fp),  SAVE     :: EXP_Rn,   EXP_Pb,    EXP_Be
 
       ! Arrays
       REAL(fp)            :: Rn_LOST(IIPAR,JJPAR,LLPAR)
 
+      ! To calculate decay rate
+      REAL(fp)            :: Decay
+
       ! To get HEMCO values
-      REAL*8                 :: Emis
-      LOGICAL                :: FOUND
+      REAL*8              :: Emis
+      LOGICAL             :: FOUND
 !
 ! !DEFINED PARAMETERS
 !
       ! Ratio of molecular weights of 210Pb/222Rn
       REAL(fp), PARAMETER :: Pb_Rn_RATIO = 210e+0_fp / 222e+0_fp
+
+      ! Ln 2
+      REAL(fp), PARAMETER :: ln2   = 0.693147181E+00_fp
+
+      ! Lifetime of Radon-222 in days
+      REAL(fp), PARAMETER :: RnTau = 3.83E+00_fp
 
       !=================================================================
       ! CHEMRnPbBe begins here!
@@ -203,11 +212,19 @@
 
       ! Pre-compute exponential terms only on first timestep
       IF ( FIRSTCHEM ) THEN 
-         
+
          ! Fraction of (222Rn, 210Pb, 7Be) left after radioactive decay
-         EXP_Rn    = EXP( -DTCHEM * 2.097e-6_fp  )
-         EXP_Pb    = EXP( -DTCHEM * 9.725e-10_fp ) 
-         EXP_Be    = EXP( -DTCHEM * 1.506e-7_fp  )
+!-----------------------------------------------------------------------------
+! Prior to 11/12/14:
+! New algorithm from Christoph Keller (bmy, 11/12/14)
+!         EXP_Rn    = EXP( -DTCHEM * 2.097e-6_fp  )
+!         EXP_Pb    = EXP( -DTCHEM * 9.725e-10_fp ) 
+!         EXP_Be    = EXP( -DTCHEM * 1.506e-7_fp  )
+!-----------------------------------------------------------------------------
+         Decay     = ln2 / ( RnTau * 24.E+00_fp * 3600.E+00_fp ) 
+         EXP_Rn    = EXP( -DTCHEM * Decay        )
+         EXP_Pb    = EXP( -DTCHEM * 9.725E-10_fp ) 
+         EXP_Be    = EXP( -DTCHEM * 1.506E-7_fp  )
 
          ! Reset FIRSTCHEM flag
          FIRSTCHEM = .FALSE.

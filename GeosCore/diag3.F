@@ -297,7 +297,7 @@
       ! Interface w/ HEMCO diagnostics
       INTEGER                   :: FLAG
       INTEGER                   :: AFill
-      CHARACTER(LEN= 63)        :: DiagnName
+      CHARACTER(LEN= 63)        :: DiagnName, SrcName, SpcName
       CHARACTER(LEN=255)        :: MSG
       TYPE(DiagnCont), POINTER  :: DiagnCnt => NULL() 
       TYPE(HCO_State), POINTER  :: HcoState => NULL()
@@ -611,45 +611,114 @@
          !UNIT = 'kg' 
          ! UNITS WERE CONFUSING -> everything in kgC (see latter)
          UNIT   = 'kgC' ! SOAupdate (hotp 7/29/10)
+         FACTOR = SECONDS 
     
          !--------------------------------------------------------------
-         ! Black carbon (BC) diagnostics
+         ! Emission diagnostics (OCPI,OCPO,BCPI,BCPO).
+         ! All carbon diagnostics are now in kgC/m2/s. Convert to kgC
+         ! here. Also, HEMCO writes out diagnostics for hydrophilic and
+         ! hydrophobic fractions individually. Add them together here.
          !--------------------------------------------------------------
 
-         !%%%%% Anthorpogenic BC %%%%%
-         DiagnName    = 'AD07_BC_ANTHRO'
-         CATEGORY     = 'BC-ANTH'
-         UNIT         = 'kgC'
-         N            = IDTBCPI
-         FACTOR       = 1e+0_fp
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ! Do for BC and OC
+         DO J = 1, 2
 
-         !%%%%% Biomass BC (convert kg/m2/s --> kg) %%%%%
-         DiagnName    = 'BIOMASS_BC'
-         CATEGORY     = 'BC-BIOB'
-         UNIT         = 'kg/m2/s'
-         N            = IDTBCPI
-         FACTOR       = SECONDS
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1)
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-            
-         !%%%%% Biofuel BC %%%%%
-         DiagnName    = 'AD07_BC_BIOFUEL'
-         CATEGORY     = 'BC-BIOF'
-         UNIT         = 'kgC'
-         N            = IDTBCPI
-         FACTOR       = 1.0e+0_fp
+            ! Select species name
+            IF ( J==1 ) THEN
+               N       = IDTBCPI
+               SpcName = 'BC'
+            ELSEIF ( J==2 ) THEN
+               IF ( IDTOCPI > 0 ) N = IDTOCPI
+               IF ( IDTPOA1 > 0 ) N = IDTPOA1
+               SpcName = 'OC'
+            ENDIF
+  
+            ! Do for all sources 
+            DO I = 1, 3
+               SELECT CASE ( I )
+                  CASE ( 1 ) 
+                     CATEGORY = TRIM(SpcName)//'-ANTH'
+                     SRCNAME  = 'ANTHRO'
+                  CASE ( 2 ) 
+                     CATEGORY = TRIM(SpcName)//'-BIOF'
+                     SRCNAME  = 'BIOFUEL'
+                  CASE ( 3 ) 
+                     CATEGORY = TRIM(SpcName)//'-BIOB'
+                     SRCNAME  = 'BIOMASS'
+               END SELECT
+   
+               !----- (1) Hydrophilic -----
+               IF ( I == 3 ) THEN
+                  DiagnName='BIOMASS_'//TRIM(SpcName)//'PI'
+               ELSE
+                  DiagnName='AD07_'//TRIM(SpcName)//'PI_'//TRIM(SRCNAME)
+               ENDIF
+   
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+      
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
+     &                         * FACTOR * HcoState%Grid%AREA_M2%Val(:,:)
+               ELSE
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+      
+               !----- (2) Add hydrophobic part -----
+               IF ( I == 3 ) THEN
+                  DiagnName='BIOMASS_'//TRIM(SpcName)//'PO'
+               ELSE
+                  DiagnName='AD07_'//TRIM(SpcName)//'PO_'//TRIM(SRCNAME)
+               ENDIF
+   
+               ! Get diagnostics from HEMCO
+               DiagnCnt  => NULL()
+               CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+      
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = ARRAY(:,:,1) 
+     &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+     &                         *   HcoState%Grid%AREA_M2%Val(:,:) ) 
+               ELSE
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+      
+               ! Write combined diagnostics to disk
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, N,
+     &                     UNIT ,     DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     1,        IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+      
+               ! Free pointer
+               DiagnCnt => NULL()
+            ENDDO !I
+         ENDDO !J
 
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         !--------------------------------------------------------------
+         ! Other BC diagnostics
+         !--------------------------------------------------------------
 
          !%%%%% Hydrophilic BC from Hydrophobic BC %%%%%
          CATEGORY     = 'PL-BC=$'
-         UNIT         = 'kgC'
          N            = IDTBCPI
 
          DO L = 1, LD07
@@ -662,53 +731,24 @@
      &               IIPAR,     JJPAR,     LD07,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
 
-         !--------------------------------------------------------------
-         ! Organic carbon (OC) diagnostics
-         !--------------------------------------------------------------
 
-         !%%%%% Anthropogenic OC %%%%%
-         DiagnName    = 'AD07_OC_ANTHRO'
-         CATEGORY     = 'OC-ANTH'
-         UNIT         = 'kgC'
-         FACTOR       = 1.0e+0_fp
+         !--------------------------------------------------------------
+         ! Other OC diagnostics
+         !--------------------------------------------------------------
 
          ! SOAupdate (hotp 5/27/09)
          ! semivolpoa: now use POA or OCPI (hotp 2/17/09)
          IF ( IDTOCPI > 0 ) N = IDTOCPI
          IF ( IDTPOA1 > 0 ) N = IDTPOA1
 
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
-         !%%%%% Biomass OC (convert kg/m2/s --> kg) %%%%%
-         DiagnName = 'BIOMASS_OC'
-         CATEGORY  = 'OC-BIOB'
-         UNIT      = 'kg/m2/s'
+         !%%%%% Biogenic OC (kg/m2/s --> kg) %%%%%         
+         DiagnName = 'BIOGENIC_OCPI'
+         CATEGORY  = 'OC-BIOG'
+         UNIT      = 'kgC'
          FACTOR    = SECONDS
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &           UNIT, N, 1, -1, .FALSE., FACTOR, RC, AreaScal=1 )
+     &                 UNIT, N, 1, -1, .FALSE., FACTOR, RC, AreaScal=1 )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
-         !%%%%% Biofuel OC %%%%%
-         DiagnName = 'AD07_OC_BIOFUEL'
-         CATEGORY  = 'OC-BIOF'
-         UNIT      = 'kgC'
-         FACTOR    = 1.0e+0_fp
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .FALSE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
-! turn off for now, we seem to get no diagnostics returned
-! will investigate further (bmy, 8/18/14)
-!         !%%%%% Biogenic OC (kg/m2/s --> kg) %%%%%         
-!         DiagnName = 'BIOGENIC_OC'
-!         CATEGORY  = 'OC-BIOG'
-!         UNIT      = 'kg/m2/s'
-!         FACTOR    = SECONDS
-!         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-!     &                 UNIT, N, 1, -1, .FALSE., FACTOR, RC, AreaScal=1 )
-!         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !%%%%% Hydrophilic OC from hydrophobic OC %%%%%
          IF ( IDTOCPI > 0 ) THEN

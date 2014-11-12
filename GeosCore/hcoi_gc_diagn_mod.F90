@@ -76,17 +76,75 @@ MODULE HCOI_GC_Diagn_Mod
 !  20 Aug 2014 - R. Yantosca - Split code into several routines, for clarity
 !  26 Aug 2014 - M. Sulprizio- Add modifications for POPs emissions diagnostics
 !  23 Sep 2014 - C. Keller   - Added Hg diagnostics
+!  11 Nov 2014 - C. Keller   - Added call to ESMF diagnostics.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-!EOC
+#if defined(ESMF_)
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOI_GC_DiagN_Init
+! !IROUTINE: HCOI_GC_Diagn_Init
+!
+! !DESCRIPTION: Subroutine HCOI\_GC\_Diagn\_Init initializes the HEMCO 
+! diagnostics in GEOS-Chem in an ESMF environment.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOI_GC_Diagn_Init( am_I_Root, Input_Opt, HcoState, ExtState, RC ) 
+!
+! !USES:
+!
+    USE HCO_State_Mod,      ONLY : HCO_State
+    USE HCOI_ESMF_MOD,      ONLY : HCOI_ESMF_DIAGNCREATE
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCOX_State_Mod,     ONLY : Ext_State
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
+    TYPE(EXT_State),  POINTER        :: ExtState   ! Extensions state object 
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  11 Nov 2014 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'HCOI_GC_DIAGN_INIT (hcoi_gc_diagn_mod.F90)'
+
+    !=======================================================================
+    ! HCOI_GC_DIAGN_INIT begins here!
+    !=======================================================================
+
+    CALL HCOI_ESMF_DIAGNCREATE( am_I_Root, HcoState, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Leave w/ success
+    RC = HCO_SUCCESS 
+
+  END SUBROUTINE HCOI_GC_Diagn_Init
+!EOC
+#else
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOI_GC_Diagn_Init
 !
 ! !DESCRIPTION: Subroutine HCOI\_GC\_Diagn\_Init initializes the HEMCO 
 ! diagnostics in GEOS-Chem. 
@@ -576,8 +634,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ExtNr, HcoID, N
-    CHARACTER(LEN=31)  :: DiagnName
+    INTEGER            :: ExtNr, HcoID, N, I, J
+    CHARACTER(LEN=31)  :: SpcName, SrcName, DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_CARBON (hcoi_gc_diagn_mod.F90)'
 
@@ -597,94 +655,60 @@ CONTAINS
     ! Define diagnostics
     IF ( ND07 > 0 .AND. Input_Opt%LCARB ) THEN
 
-       !-------------------------------------------
-       ! %%%%% BC %%%%%
-       !-------------------------------------------
+       ! Do for all species
+       DO I = 1, 4
+          
+          ! Get species name
+          SELECT CASE ( I ) 
+             CASE ( 1 ) 
+                SpcName = 'BCPI'
+             CASE ( 2 ) 
+                SpcName = 'BCPO'
+             CASE ( 3 ) 
+                SpcName = 'OCPI'
+             CASE ( 4 ) 
+                SpcName = 'OCPO'
+          END SELECT
 
-       ! HEMCO species ID
-       HcoID = GetHemcoId( 'BC', HcoState, LOC, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'BCPI', HcoState, LOC, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Anthropogenic BC
-       DiagnName = 'AD07_BC_ANTHRO'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState,                      &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = 0,                 &
-                          Cat       = 1,                 &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg',              &
-                          WriteFreq = 'Manual',          &
-                          AutoFill  = 1,                 &
-                          cID       = N,                 & 
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+          ! Do for all sources
+          DO J = 1, 2
 
+             SELECT CASE ( J )
+                CASE ( 1 )
+                   SrcName = 'ANTHRO'
+                CASE ( 2 )
+                   SrcName = 'BIOFUEL'
+             END SELECT
 
-       ! Biofuel BC
-       DiagnName = 'AD07_BC_BIOFUEL'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState,                      &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = 0,                 &
-                          Cat       = 2,                 &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg',              &
-                          WriteFreq = 'Manual',          &
-                          AutoFill  = 1,                 &
-                          cID       = N,                 & 
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+             !-------------------------------------------
+             ! %%%%% DEFINE DIAGNOSTICS %%%%%% 
+             ! -------------------------------------------
 
-       !-------------------------------------------
-       ! %%%%% OC %%%%%
-       !-------------------------------------------
+             ! Set DiagnName
+             DiagnName = "AD07_"//TRIM(SpcName)//"_"//TRIM(SrcName)
 
-       ! HEMCO species ID
-       HcoID = GetHemcoId( 'OC', HcoState, LOC, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState,                      &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = 0,                 &
+                                Cat       = 1,                 &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                WriteFreq = 'Manual',          &
+                                AutoFill  = 1,                 &
+                                cID       = N,                 & 
+                                RC        = RC                  ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN 
 
-       ! Anthropogenic OC
-       DiagnName = 'AD07_OC_ANTHRO'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState,                      &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = 0,                 &
-                          Cat       = 1,                 &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg',              &
-                          WriteFreq = 'Manual',          &
-                          AutoFill  = 1,                 &
-                          cID       = N,                 & 
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-
-       ! Biofuel OC
-       DiagnName = 'AD07_OC_BIOFUEL'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState,                      &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = 0,                 &
-                          Cat       = 2,                 &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg',              &
-                          WriteFreq = 'Manual',          &
-                          AutoFill  = 1,                 &
-                          cID       = N,                 & 
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+          ENDDO
+       ENDDO
     ENDIF 
 
   END SUBROUTINE Diagn_Carbon
@@ -1599,11 +1623,11 @@ CONTAINS
           !----------------------------------------
           
           ! HEMCO species ID
-          HcoID = GetHemcoId( 'OC', HcoState, LOC, RC )
+          HcoID = GetHemcoId( 'OCPI', HcoState, LOC, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           
           ! Create diagnostic container
-          DiagnName = 'BIOMASS_OC'
+          DiagnName = 'BIOMASS_OCPI'
           CALL Diagn_Create( am_I_Root,                     & 
                              HcoState,                      &
                              cName     = TRIM( DiagnName ), &
@@ -1620,16 +1644,60 @@ CONTAINS
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
           
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'OCPO', HcoState, LOC, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          
+          ! Create diagnostic container
+          DiagnName = 'BIOMASS_OCPO'
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState,                      &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = Cat,               &
+                             Hier      = -1,                &
+                             HcoID     = HcoID,             &
+                             SpaceDim  = 2,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/m2/s',         &
+                             WriteFreq = 'Manual',          &
+                             AutoFill  = 1,                 &
+                             cID       = N,                 & 
+                             RC        = RC                  ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
           !----------------------------------------
           ! %%%%% Biomass BC %%%%%
           !----------------------------------------
           
           ! HEMCO species ID
-          HcoID = GetHemcoId( 'BC', HcoState, LOC, RC )
+          HcoID = GetHemcoId( 'BCPI', HcoState, LOC, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           
           ! Create diagnostic container
-          DiagnName = 'BIOMASS_BC'
+          DiagnName = 'BIOMASS_BCPI'
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState,                      &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = Cat,               &
+                             Hier      = -1,                &
+                             HcoID     = HcoID,             &
+                             SpaceDim  = 2,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/m2/s',         &
+                             WriteFreq = 'Manual',          &
+                             AutoFill  = 1,                 &
+                             cID       = N,                 & 
+                             RC        = RC                  ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'BCPO', HcoState, LOC, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          
+          ! Create diagnostic container
+          DiagnName = 'BIOMASS_BCPO'
           CALL Diagn_Create( am_I_Root,                     & 
                              HcoState,                      &
                              cName     = TRIM( DiagnName ), &
@@ -3007,11 +3075,11 @@ CONTAINS
           !----------------------------------------
 
           ! HEMCO species ID
-          HcoID = GetHemcoId( 'OC', HcoState, LOC, RC )
+          HcoID = GetHemcoId( 'OCPI', HcoState, LOC, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Create diagnostic container
-          DiagnName = 'BIOGENIC_OC'
+          DiagnName = 'BIOGENIC_OCPI'
           CALL Diagn_Create( am_I_Root,                     &  
                              HcoState,                      &
                              cName     = TRIM( DiagnName ), &
@@ -4336,10 +4404,10 @@ CONTAINS
     ! %%%%% BIOMASS BURNING HG %%%%%
     ! ==> defined in Diagn_Biomass
     !-------------------------------------------
- 
 
   END SUBROUTINE Diagn_Hg
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------

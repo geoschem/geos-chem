@@ -154,7 +154,7 @@
 #if defined( NESTED_NA )
       ! Filename
       FILENAME = TRIM( Input_Opt%OH_DIR ) // 'OH_3Dglobal.' // 
-     &           GET_NAME_EXT() //        // '.'            //
+     &           GET_NAME_EXT()           // '.'            //
      &           GET_RES_EXT()  // '_NA'
 #else
       ! Filename

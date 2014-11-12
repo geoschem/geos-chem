@@ -233,6 +233,7 @@ CONTAINS
 !  22 Jul 2014 - R. Yantosca - Comment out debug print statements
 !  28 Jul 2014 - C. Keller   - Now get J-values through ExtState
 !  12 Aug 2014 - R. Yantosca - READ_PARANOX_LUT is now called from Init phase
+!  10 Nov 2014 - C. Keller   - Added div-zero error trap for O3 deposition.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -460,7 +461,7 @@ CONTAINS
           iFlx = ShipNoEmis(I,J,1) * (1d0-FRACTION_NOx) * INT_OPE
 
           ! For positive fluxes, add to emission flux array 
-          IF ( iFlx >= 0d0 ) THEN
+          IF ( iFlx >= 0.0_hp ) THEN
              FLUXO3(I,J) = iFlx
 
           ! For negative fluxes, calculate deposition velocity based
@@ -471,9 +472,12 @@ CONTAINS
              ! Calculate deposition velocity (m/s) from flux
              ! NOTE: the calculated deposition flux is in kg/m2/s,
              ! which has to be converted to 1/s. Use here the O3 conc.
-             ! [kg] of the lowest model box. 
-             DEPO3(I,J) = ABS(iFlx) / ExtState%O3%Arr%Val(I,J,1) &
-                          * HcoState%Grid%AREA_M2%Val(I,J)
+             ! [kg] of the lowest model box.
+             ! Now avoid div-zero error (ckeller, 11/10/2014).
+             IF ( ExtState%O3%Arr%Val(I,J,1) > 0.0_dp ) THEN
+                DEPO3(I,J) = ABS(iFlx) / ExtState%O3%Arr%Val(I,J,1) &
+                           * HcoState%Grid%AREA_M2%Val(I,J)
+             ENDIF
 
           ENDIF
        ENDIF

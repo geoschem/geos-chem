@@ -15,13 +15,6 @@
 ! \begin{itemize}
 ! \item HEMCO is used to calculate all emission fields. The emission tendencies
 !  are passed to GEOS-Chem through the Trac\_Tend array of State\_Chm.
-! \item Carbon aerosols are treated in HEMCO as black carbon (BC) and organic 
-!  carbon (OC). The speciation into hydrophobic and hydrophilic carbon is 
-!  done when passing HEMCO emissions to GEOS-Chem (MAP\_HCO2GC). Speciation
-!  factors are defined below.
-! \item Dust aerosol emissions become directly added to the Tracers array 
-!  instead of Trac\_Tend. This is to avoid unrealistic vertical mixing of dust
-!  particles.
 ! \item Most meteorological fields needed by the HEMCO extensions are provided
 !  through the GEOS-Chem meteorological state object Met\_State. Few fields 
 !  such as the pressure edges or J-values are defined and updated explicitly 
@@ -70,7 +63,6 @@ MODULE HCOI_GC_Main_Mod
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  30 Jul 2014 - C. Keller   - Added GetHcoState 
-!  01 Aug 2014 - C. Keller   - Now use only OC and BC within HEMCO. 
 !  20 Aug 2014 - M. Sulprizio- Modify for POPs simulation
 !  21 Aug 2014 - R. Yantosca - Added routine EmissRnPbBe; cosmetic changes
 !  06 Oct 2014 - C. Keller   - Removed PCENTER. Now calculate from pressure edges
@@ -133,14 +125,6 @@ MODULE HCOI_GC_Main_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Hydrophilic and hydrophobic fraction of black carbon
-  REAL(dp),           PARAMETER :: BC2BCPI = 0.2_dp  ! hydrophilic
-  REAL(dp),           PARAMETER :: BC2BCPO = 0.8_dp  ! hydrophobic
-
-  ! Hydrophilic and hydrophobic fraction of organic carbon
-  REAL(dp),           PARAMETER :: OC2OCPI = 0.5_dp  ! hydrophilic
-  REAL(dp),           PARAMETER :: OC2OCPO = 0.5_dp  ! hydrophobic
-
   ! Temporary toggle for diagnostics
   LOGICAL,            PARAMETER :: DoDiagn = .TRUE.
 
@@ -255,7 +239,7 @@ CONTAINS
     ! the HEMCO configuration file and GEOS-Chem. However, additional
     ! species can be defined, e.g. those not transported in GEOS-Chem
     ! (e.g. SESQ) or tagged species (e.g. specialty simulations).
-    CALL Get_nHcoSpc( Input_Opt, nHcoSpc, HMRC )
+    CALL Get_nHcoSpc( am_I_Root, Input_Opt, nHcoSpc, HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Get_nHcoSpc', LOC )
 
     !-----------------------------------------------------------------
@@ -382,7 +366,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Define diagnostics
     !-----------------------------------------------------------------
-    IF ( DoDiagn .AND. .NOT. HcoState%isESMF ) THEN
+    IF ( DoDiagn ) THEN 
 
        ! Set up traditional GEOS-Chem NDxx diagnostics for emissions
        CALL HCOI_GC_DIAGN_INIT                                &
@@ -1301,15 +1285,7 @@ CONTAINS
        DO N = 1, Input_Opt%N_TRACERS 
    
           ! Get species names
-          ! ==> Treat BCPI as BC and OCPI as OC. Will be split into
-          !     hydrophobic and hydrophilic fraction lateron!
-          IF ( TRIM(Input_Opt%TRACER_NAME(N)) == 'BCPI' ) THEN
-             ModelSpecNames(N) = 'BC' 
-          ELSEIF ( TRIM(Input_Opt%TRACER_NAME(N)) == 'OCPI' ) THEN
-             ModelSpecNames(N) = 'OC' 
-          ELSE 
-             ModelSpecNames(N) = Input_Opt%TRACER_NAME(N)
-          ENDIF
+          ModelSpecNames(N) = Input_Opt%TRACER_NAME(N)
  
           ! Species ID
           ModelSpecIDs(N)   = Input_Opt%ID_TRACER(N)
@@ -1527,7 +1503,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_nHcoSpc( Input_Opt, nHcoSpec, RC ) 
+  SUBROUTINE Get_nHcoSpc( am_I_Root, Input_Opt, nHcoSpec, RC ) 
 !
 ! !USES:
 !
@@ -1538,6 +1514,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
+    LOGICAL,        INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input Options object
     INTEGER,        INTENT(INOUT)  :: RC         ! Success or fialure
 !
@@ -1606,7 +1583,7 @@ CONTAINS
                            MatchIDx,       nHcoSpec        )
     ENDIF
 
-    IF ( nHcoSpec == 0 ) THEN
+    IF ( nHcoSpec == 0 .AND. am_I_Root ) THEN
        MSG = 'No matching species between HEMCO and the model!'
        CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
     ENDIF
@@ -1700,10 +1677,10 @@ CONTAINS
           M2HID(ModelSpecIDs(IDX))%ID  = CNT
    
           ! Write to logfile
-          CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
+          IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
    
        ENDDO !I
-       CALL HCO_MSG(SEP1='-')
+       IF ( am_I_Root ) CALL HCO_MSG(SEP1='-')
 
     ENDIF 
 
@@ -1796,17 +1773,8 @@ CONTAINS
     IF ( PRESENT(Dep ) ) Dep  = 0.0_dp
 
     ! Define tracer ID to be used. This is only different from the
-    ! passed tracer ID if some species mapping occurs at this level,
-    ! e.g. to fractionate BC into BCPI/BCPO. 
+    ! passed tracer ID if some species mapping occurs at this level.
     tID = TrcID
-
-    ! In HEMCO, carbon is stored as BC and OC and model IDs BCPI and 
-    ! OCPI, respectively, assigned to them.
-    IF ( TrcID == IDTBCPO ) THEN
-       tID = IDTBCPI
-    ELSEIF ( TrcID == IDTOCPO ) THEN
-       tID = IDTOCPI
-    ENDIF
 
     ! HEMCO species ID corresponding to this GEOS-Chem tracer
     IF ( tID > 0 ) HcoID = M2HID(tID)%ID
@@ -1825,25 +1793,6 @@ CONTAINS
              FOUND = .TRUE.
           ENDIF
        ENDIF
-    ENDIF
-
-    ! Eventually apply correction factor, e.g. to fractionate
-    ! BC into BCPI and BCPO.
-    IF ( TrcID == IDTBCPI ) THEN
-       IF ( PRESENT(Emis) ) Emis = Emis * BC2BCPI
-       IF ( PRESENT(Dep ) ) Dep  = Dep  * BC2BCPI
-
-    ELSEIF ( TrcID == IDTBCPO ) THEN
-       IF ( PRESENT(Emis) ) Emis = Emis * BC2BCPO
-       IF ( PRESENT(Dep ) ) Dep  = Dep  * BC2BCPO
-
-    ELSEIF ( TrcID == IDTOCPI ) THEN
-       IF ( PRESENT(Emis) ) Emis = Emis * OC2OCPI
-       IF ( PRESENT(Dep ) ) Dep  = Dep  * OC2OCPI
-
-    ELSEIF ( TrcID == IDTOCPO ) THEN
-       IF ( PRESENT(Emis) ) Emis = Emis * OC2OCPO
-       IF ( PRESENT(Dep ) ) Dep  = Dep  * OC2OCPO
     ENDIF
 
   END SUBROUTINE GetHcoVal

@@ -1511,6 +1511,8 @@ CONTAINS
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
 #elif defined( GRID025x03125 ) && defined( NESTED_CH )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.6591586d0
+#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+      REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
 #endif
 
     ! Are we using GEOS 5.2.0 or GEOS 5.1.0?
