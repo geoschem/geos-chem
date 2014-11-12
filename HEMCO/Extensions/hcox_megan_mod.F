@@ -3319,6 +3319,7 @@
 !  13 Jul 2011 - M. Payer    - Added ProTeX headers
 !  19 May 2014 - C. Keller   - Now a HEMCO extension: get plant functional
 !                              types through HEMCO framework.
+!  11 Nov 2014 - C. Keller   - Some updates to identify species names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3522,7 +3523,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                        :: nSpc, AS, NX, NY
+      INTEGER                        :: I, nSpc, AS, NX, NY
       INTEGER, ALLOCATABLE           :: HcoIDs(:)
       REAL*8                         :: PI_180
       CHARACTER(LEN=255)             :: MSG
@@ -3553,74 +3554,101 @@
      &                 OptValDp=ISOP_SCALING, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
+      ! Verbose mode
+      IF ( am_I_Root ) THEN
+         MSG = 'Use MEGAN biogenic emissions (extension module)'
+         CALL HCO_MSG( MSG, SEP1='-' )
+         WRITE(MSG,*) ' - Use PECCA model: ', LPECCA
+         CALL HCO_MSG( MSG )
+         MSG = ' - Use the following species:'
+         CALL HCO_MSG( MSG )
+      ENDIF
+
       ! Get species IDs
       ! --> Assume that species are ordered ISOP, ACET, PRPE, C2H4 in
       !     config. file!
       CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
-      IF ( nSpc /= 4 ) THEN
-         MSG = 'Expected four species for extension ' // TRIM(ExtName)
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF
-      IDTISOP = HcoIDs(1)
-      IDTACET = HcoIDs(2)
-      IDTPRPE = HcoIDs(3)
-      IDTC2H4 = HcoIDs(4)
+      
+      ! Assign species IDs
+      IDTISOP = -1
+      IDTACET = -1
+      IDTPRPE = -1
+      IDTC2H4 = -1
+      DO I = 1, nSpc
+         SELECT CASE ( SpcNames(I) )
+            CASE( 'ISOP' )
+               IDTISOP = HcoIDs(I)
+               WRITE(MSG,*) '   Isoprene   = ',TRIM(SpcNames(I)),IDTISOP
+            CASE( 'ACET' )
+               IDTACET = HcoIDs(I)
+               WRITE(MSG,*) '   Acetone    = ',TRIM(SpcNames(I)),IDTACET
+            CASE( 'PRPE' )
+               IDTPRPE = HcoIDs(I)
+               WRITE(MSG,*) '   C3 Alkenes = ',TRIM(SpcNames(I)),IDTPRPE
+            CASE( 'C2H4' )
+               IDTC2H4 = HcoIDs(I)
+               WRITE(MSG,*) '   Ethene     = ',TRIM(SpcNames(I)),IDTC2H4
+            CASE DEFAULT
+               MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
+               CALL HCO_ERROR( MSG, RC )
+               RETURN
+         END SELECT
+    
+         ! Verbose
+         IF ( am_I_Root ) CALL HCO_MSG( MSG )
+      ENDDO
 
       ! Verbose mode
       IF ( am_I_Root ) THEN
-         MSG = 'Use MEGAN biogenic emissions (extension module)'
-         CALL HCO_MSG( MSG, SEP1='-' )
-         WRITE(MSG,*) '   - Use PECCA model: ', LPECCA
-         CALL HCO_MSG( MSG )
-         MSG = '   - Use the following species:'
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     Isoprene   = ', TRIM(SpcNames(1)), IDTISOP 
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     --> Isoprene scale factor is ', ISOP_SCALING
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     Acetone    = ', TRIM(SpcNames(2)), IDTACET 
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     C3 Alkenes = ', TRIM(SpcNames(3)), IDTPRPE 
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     Ethene     = ', TRIM(SpcNames(4)), IDTC2H4
+         WRITE(MSG,*) ' --> Isoprene scale factor is ', ISOP_SCALING
          CALL HCO_MSG( MSG )
       ENDIF
 
       ! Check for monoterpene option --> this one is required for 
       ! CO, OCPI, MONX
+      IDTCO     = -1 
+      IDTOCPI   = -1 
+      IDTMONX   = -1 
       ExtNrMono = GetExtNr('MEGAN_Mono')
       IF ( ExtNrMono > 0 ) THEN
-
-         ! Get HEMCO species IDs of CO, OCPI and MONX
-         CALL HCO_GetExtHcoID( HcoState, ExtNrMono, HcoIDs,
-     &                         SpcNames, nSpc,      RC       )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-         IF ( nSpc /= 3 ) THEN
-            MSG = 'Expected three species for MEGAN_Mono extension' 
-            CALL HCO_ERROR ( MSG, RC )
-            RETURN
-         ENDIF
-         IDTCO   = HcoIDs(1)
-         IDTOCPI = HcoIDs(2)
-         IDTMONX = HcoIDs(3)
 
          ! Verbose
          IF ( am_I_Root ) THEN
             MSG = '   - MEGAN monoterpene option enabled:' 
             CALL HCO_MSG( MSG )
-            WRITE(MSG,*) '     CO         = ', TRIM(SpcNames(1)),IDTCO
-            CALL HCO_MSG( MSG )
-            WRITE(MSG,*) '     OC aerosol = ', TRIM(SpcNames(2)),IDTOCPI
-            CALL HCO_MSG( MSG )
-            WRITE(MSG,*) '     Monoterp.  = ', TRIM(SpcNames(3)),IDTMONX
-            CALL HCO_MSG( MSG )
          ENDIF
+
+         ! Get HEMCO species IDs of CO, OCPI and MONX
+         CALL HCO_GetExtHcoID( HcoState, ExtNrMono, HcoIDs,
+     &                         SpcNames, nSpc,      RC       )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+    
+         DO I = 1, nSpc
+            SELECT CASE ( SpcNames(I) )
+               CASE( 'CO' )
+                  IDTCO = HcoIDs(I)
+                  WRITE(MSG,*) '   CO         = ',
+     &                         TRIM(SpcNames(I)),IDTCO
+               CASE( 'OC', 'OCPI' )
+                  IDTOCPI = HcoIDs(I)
+                  WRITE(MSG,*) '   OC aorosol = ',
+     &                         TRIM(SpcNames(I)),IDTOCPI
+               CASE( 'MONX' )
+                  IDTMONX = HcoIDs(I)
+                  WRITE(MSG,*) '   Monoterp.  = ',
+     &                         TRIM(SpcNames(I)),IDTMONX
+               CASE DEFAULT
+                  MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
+                  CALL HCO_ERROR( MSG, RC )
+                  RETURN
+            END SELECT
+
+            ! Verbose
+            IF ( am_I_Root ) CALL HCO_MSG( MSG )
+         ENDDO
+
       ELSE
-         IDTCO      = -1 
-         IDTOCPI    = -1 
-         IDTMONX    = -1 
 
          ! CO emissions and acetone emissions will be zero/incomplete!
          IF ( IDTACET > 0 ) THEN
@@ -3636,6 +3664,10 @@
       ! --> Check for SOA option. This option is only valid together
       !     w/ monoterpene!
       ! This also adds species ALPH/LIMO/ALCO
+      IDTMTPA = -1 
+      IDTMTPO = -1 
+      IDTLIMO = -1 
+      IDTSESQ = -1
       ExtNrSoa = GetExtNr('MEGAN_SOA')
       IF ( ExtNrSoa > 0 ) THEN
          IF ( ExtNrMono <= 0 ) THEN
@@ -3644,42 +3676,44 @@
             RETURN
          ENDIF
 
-         ! Get HEMCO species IDs of ALPH/LIMO/ALCO 
-         CALL HCO_GetExtHcoID( HcoState, ExtNrSoa, HcoIDs,
-     &                         SpcNames, nSpc,     RC       )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-         IF ( nSpc /= 4 ) THEN
-            MSG = 'Expected four species for MEGAN_SOA extension' 
-            CALL HCO_ERROR ( MSG, RC )
-            RETURN
-         ENDIF
-         IDTMTPA = HcoIDs(1)
-         IDTMTPO = HcoIDs(2)
-         IDTLIMO = HcoIDs(3)
-         IDTSESQ = HcoIDs(4)
-
          ! Verbose
          IF ( am_I_Root ) THEN
             MSG = '   - SOA mechanism enabled:' 
             CALL HCO_MSG( MSG )
-            WRITE(MSG,*) '     a-,b-pinene    = ',
-     &         TRIM(SpcNames(1)),IDTMTPA
-            CALL HCO_MSG( MSG )
-            WRITE(MSG,*) '     Other monoterp.= ',
-     &         TRIM(SpcNames(2)),IDTMTPO
-            CALL HCO_MSG( MSG )
-            WRITE(MSG,*) '     Limonene       = ',
-     &         TRIM(SpcNames(3)),IDTLIMO
-            CALL HCO_MSG( MSG )
-            WRITE(MSG,*) '     Sesquiterpenes = ',
-     &         TRIM(SpcNames(4)),IDTSESQ
-            CALL HCO_MSG( MSG )
          ENDIF
-      ELSE
-         IDTMTPA = -1
-         IDTMTPO = -1
-         IDTLIMO = -1
-         IDTSESQ = -1
+
+         ! Get HEMCO species IDs of ALPH/LIMO/ALCO 
+         CALL HCO_GetExtHcoID( HcoState, ExtNrSoa, HcoIDs,
+     &                         SpcNames, nSpc,     RC       )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+
+         DO I = 1, nSpc
+            SELECT CASE ( SpcNames(I) )
+               CASE( 'MTPA' )
+                  IDTMTPA = HcoIDs(I)
+                  WRITE(MSG,*) '     a-,b-pinene    = ',
+     &               TRIM(SpcNames(I)),IDTMTPA
+               CASE( 'MTPO' )
+                  IDTMTPO = HcoIDs(I)
+                  WRITE(MSG,*) '     Other monoterp.= ',
+     &               TRIM(SpcNames(I)),IDTMTPO
+               CASE( 'LIMO' )
+                  IDTLIMO = HcoIDs(I)
+                  WRITE(MSG,*) '     Limonene       = ',
+     &               TRIM(SpcNames(I)),IDTLIMO
+               CASE( 'SESQ' )
+                  IDTSESQ = HcoIDs(I)
+                  WRITE(MSG,*) '     Sesquiterpenes = ',
+     &               TRIM(SpcNames(I)),IDTSESQ
+               CASE DEFAULT
+                  MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
+                  CALL HCO_ERROR( MSG, RC )
+                  RETURN
+            END SELECT
+
+            ! Verbose
+            IF ( am_I_Root ) CALL HCO_MSG( MSG )
+         ENDDO
       ENDIF
 
       !-----------------------------------------------------------------

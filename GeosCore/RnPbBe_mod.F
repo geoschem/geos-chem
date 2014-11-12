@@ -175,6 +175,9 @@
       ! Arrays
       REAL*8            :: Rn_LOST(IIPAR,JJPAR,LLPAR)
 
+      ! To calculate decay rate
+      REAL*8            :: Decay
+
       ! To get HEMCO values
       REAL*8                 :: Emis
       LOGICAL                :: FOUND
@@ -183,6 +186,12 @@
 !
       ! Ratio of molecular weights of 210Pb/222Rn
       REAL*8, PARAMETER :: Pb_Rn_RATIO = 210d0 / 222d0
+
+      ! Ln 2
+      REAL*8, PARAMETER :: ln2   = 0.693147181d0
+
+      ! Lifetime of Radon-222 in days
+      REAL*8, PARAMETER :: RnTau = 3.83d0
 
       !=================================================================
       ! CHEMRnPbBe begins here!
@@ -199,9 +208,12 @@
 
       ! Pre-compute exponential terms only on first timestep
       IF ( FIRSTCHEM ) THEN 
-         
+        
+ 
          ! Fraction of (222Rn, 210Pb, 7Be) left after radioactive decay
-         EXP_Rn    = EXP( -DTCHEM * 2.097d-6  )
+         Decay     = ln2 / ( RnTau * 24.d0 * 3600.d0 ) 
+         EXP_Rn    = EXP( -DTCHEM * Decay )
+!         EXP_Rn    = EXP( -DTCHEM * 2.097d-6  )
          EXP_Pb    = EXP( -DTCHEM * 9.725d-10 ) 
          EXP_Be    = EXP( -DTCHEM * 1.506d-7  )
 
