@@ -123,11 +123,16 @@ MODULE HCOX_GFED3_MOD
   !              Can be set in HEMCO configuration file (default=0.5)
   ! BCPIfrac   : Fraction of BC that converts into hydrophilic BC.
   !              Can be set in HEMCO configuration file (default=0.2)
+  ! POASCALE  : Scale factor for POA. If tracer POG1 is specified, 
+  !             emissions are calculated from OC, multiplied by a
+  !             POA scale factor that must be specified in the HEMCO
+  !             configuration file (POA scale).
   !=================================================================
   REAL(hp),          ALLOCATABLE :: GFED3_EMFAC(:,:)
   REAL(sp)                       :: COScale
   REAL(sp)                       :: OCPIfrac 
   REAL(sp)                       :: BCPIfrac
+  REAL(sp)                       :: POASCALE
 
   !=================================================================
   ! DATA ARRAY POINTERS 
@@ -314,6 +319,8 @@ CONTAINS
              SpcArr = SpcArr * BCPIfrac
           CASE ( 'BCPO' )
              SpcArr = SpcArr * (1.0_sp - BCPIfrac)
+          CASE ( 'POG1' )
+             SpcArr = POASCALE * SpcArr
        END SELECT
 
        ! Add flux to HEMCO emission array
@@ -555,7 +562,7 @@ CONTAINS
              SpcName = 'CH4'
           CASE ( 'BC', 'BCPI', 'BCPO' )
              SpcName = 'BC'
-          CASE ( 'OC', 'OCPI', 'OCPO' )
+          CASE ( 'OC', 'OCPI', 'OCPO', 'POG1' )
              SpcName = 'OC'
        END SELECT
 
@@ -580,6 +587,21 @@ CONTAINS
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ENDIF
+
+       ! For tracer POG1, the POA scale factor must be defined in the HEMCO 
+       ! configuration file
+       IF ( TRIM(SpcNames(N)) == 'POG1' ) THEN
+          CALL GetExtOpt ( ExtNr, 'POA scale', &
+                           OptValSp=ValSp, FOUND=FOUND, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( .NOT. FOUND ) THEN
+             MSG = 'You must specify a POA scale factor for species POG1'
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+          POASCALE = ValSp
+       ENDIF
+
     ENDDO
 
     ! Enable module

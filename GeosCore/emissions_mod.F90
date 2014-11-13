@@ -111,6 +111,7 @@ CONTAINS
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
     USE DUST_MOD,           ONLY : DUSTMIX
+    USE CARBON_MOD,         ONLY : EMISSCARBON
     USE CO2_MOD,            ONLY : EMISSCO2
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE TRACERID_MOD,       ONLY : IDTCH4
@@ -136,6 +137,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  27 Aug 2014 - C. Keller    - Initial version 
+!  13 Nov 2014 - C. Keller    - Added EMISSCARBON (for SESQ and POA)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -154,7 +156,15 @@ CONTAINS
     ! PBL mixing is not applied to dust emissions. Instead, they become 
     ! directly added to the tracer arrays.
     CALL DUSTMIX( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
- 
+    IF ( RC /= GIGC_SUCCESS ) RETURN 
+
+    ! Call carbon emissions module to make sure that sesquiterpene
+    ! emissions calculated in HEMCO (SESQ) are passed to the internal
+    ! species array in carbon, as well as to ensure that POA emissions
+    ! are correctly treated.
+    CALL EMISSCARBON( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN 
+
     ! For CO2 simulation, emissions are not added to Trac_Tend and hence
     ! not passed to the Tracers array during PBL mixing. Thus, need to add 
     ! emissions explicitly to the tracers array here.

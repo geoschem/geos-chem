@@ -978,8 +978,6 @@
                   write(*,*) 'EMMT2OC: ', EMMT2OC
                endif
 
-            ELSE
-               FLUXOCPI(I,J) = 0.0d0 
             ENDIF
 
          ! Use CALTECH algorithm if SOA is turned on
@@ -1413,8 +1411,10 @@
       ENDIF
 
       ! ----------------------------------------------------------------
-      ! OC 
-      IF ( (ExtNrMono>0) .AND. (ExtNrSoa<=0) .AND. (IDTOCPI>0) ) THEN
+      ! OC
+      ! Note: OC emissions will only be non-zero if OC species is defined
+      ! and Monoterpene option is enabled AND SOA option is disabled.
+      IF ( IDTOCPI > 0 ) THEN 
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXOCPI, IDTOCPI, RC)
@@ -3663,7 +3663,7 @@
 
       ! --> Check for SOA option. This option is only valid together
       !     w/ monoterpene!
-      ! This also adds species ALPH/LIMO/ALCO
+      ! This further adds species ALPH/LIMO/ALCO
       IDTMTPA = -1 
       IDTMTPO = -1 
       IDTLIMO = -1 

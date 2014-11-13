@@ -443,7 +443,7 @@ cleanup.o                   : cleanup.F                                      \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
                               wetscav_mod.o                                  \
                               tpcore_geos5_window_mod.o                      \
-                              tpcore_geosfp_window_mod.o                     \
+                              tpcore_geosfp_window_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -552,9 +552,10 @@ dust_mod.o                  : dust_mod.F                                     \
                               tomas_mod.o             tracerid_mod.o
 
 emissions_mod.o             : emissions_mod.F90                              \
-                              co2_mod.o               dust_mod.o             \
-                              global_ch4_mod.o        hcoi_gc_main_mod.o     \
-                              tracerid_mod.o          ucx_mod.o 
+                              carbon_mod.o            co2_mod.o              \
+                              dust_mod.o              global_ch4_mod.o       \
+                              hcoi_gc_main_mod.o      tracerid_mod.o         \
+                              ucx_mod.o 
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
                               chemgrid_mod.o          dao_mod.o              \
