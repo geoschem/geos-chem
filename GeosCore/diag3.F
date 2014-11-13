@@ -740,17 +740,17 @@
          IF ( IDTOCPI > 0 ) N = IDTOCPI
          IF ( IDTPOA1 > 0 ) N = IDTPOA1
 
-! turn off for now, we seem to get no diagnostics returned
-! will investigate further (bmy, 8/18/14)
-         !%%%%% Biogenic OC (kg/m2/s --> kg) %%%%%         
-         DiagnName = 'BIOGENIC_OCPI'
-         CATEGORY  = 'OC-BIOG'
-         UNIT      = 'kgC'
-         FACTOR    = SECONDS
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+         !%%%%% Biogenic OC (kg/m2/s --> kg) %%%%%
+         IF ( IDTOCPI > 0 .and. ( .not. Input_Opt%LSOA ) ) THEN
+            DiagnName = 'BIOGENIC_OCPI'
+            CATEGORY  = 'OC-BIOG'
+            UNIT      = 'kgC'
+            FACTOR    = SECONDS
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                 UNIT, N, 1, -1, .FALSE., FACTOR, RC, AreaScal=1 )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+         
          !%%%%% Hydrophilic OC from hydrophobic OC %%%%%
          IF ( IDTOCPI > 0 ) THEN
             CATEGORY     = 'PL-OC=$'
