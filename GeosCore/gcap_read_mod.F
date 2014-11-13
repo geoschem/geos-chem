@@ -18,6 +18,8 @@
 ! 
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE 
 !
@@ -38,6 +40,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  06 Aug 2012 - R. Yantosca - Now make IU_PH a local variable
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -459,8 +462,8 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT)           :: PHIS(IIPAR,JJPAR)  ! PHIS [m2/s2]
-      REAL*8,  INTENT(OUT), OPTIONAL :: LWI(IIPAR,JJPAR)   ! LWI flags
+      REAL(fp),  INTENT(OUT)           :: PHIS(IIPAR,JJPAR)  ! PHIS [m2/s2]
+      REAL(fp),  INTENT(OUT), OPTIONAL :: LWI(IIPAR,JJPAR)   ! LWI flags
 ! 
 ! !REVISION HISTORY: 
 !  01 Feb 2006 - S. Wu       - Initial version

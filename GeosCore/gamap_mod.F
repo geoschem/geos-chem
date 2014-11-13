@@ -20,6 +20,8 @@
       USE CMN_DIAG_MOD                    ! Diagnostic parameters
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 
@@ -87,6 +89,7 @@
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  09 Apr 2014 - R. Yantosca - Increase MAXCAT to 160 
+!  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1782,8 +1785,8 @@
       INTEGER :: N, NN, NYMDb, NHMSb, T
       LOGICAL :: DO_TIMESERIES
 
-      REAL*8,     SAVE      :: POP_XMW
-      REAL*8                :: DUM
+      REAL(fp),     SAVE      :: POP_XMW
+      REAL(fp)                :: DUM
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -2367,7 +2370,7 @@
          ! Loop over tracers
          DO N = 1, N_Hg_CATS
 
-         T = N + 1 + (2d0 * N_Hg_CATS)
+         T = N + 1 + (2e+0_fp * N_Hg_CATS)
 
             ! Get name and long name for each tracer
             SELECT CASE( T )
