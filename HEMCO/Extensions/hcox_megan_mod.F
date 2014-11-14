@@ -177,7 +177,6 @@
       ! These arrays represent the base emission values in kg(C)/m2/s
       ! that will be scaled based upon meteorological conditions.
       REAL(hp), POINTER       :: AEF_ISOP(:,:) => NULL()     ! Isoprene 
-      REAL(hp), POINTER       :: AEF_MONOT(:,:) => NULL()    ! Total monoterpenes
       REAL(hp), POINTER       :: AEF_MBO(:,:) => NULL()      ! Methyl butenol
       REAL(hp), POINTER       :: AEF_APINE(:,:) => NULL()    ! Alpha-pinene
       REAL(hp), POINTER       :: AEF_BPINE(:,:) => NULL()    ! Beta-pinene
@@ -233,8 +232,8 @@
       INTEGER             :: DAYS_BTW_M
 
       ! testing only
-      integer, parameter  :: ix = -1 !20 !25 !13 !20
-      integer, parameter  :: iy = -1 !43 !22 !38 !31
+      integer, parameter  :: ix = 20 !20 !25 !13 !20
+      integer, parameter  :: iy = 43 !43 !22 !38 !31
 
       CONTAINS
 !EOC
@@ -409,50 +408,42 @@
 
       ! Isoprene and acetone are always calculated
       IF ( FIRST ) THEN
-         CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_ISOP', 
-     &                             AEF_ISOP,   RC )
+         CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_ISOP', AEF_ISOP, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
-   
-         CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_ACET', 
-     &                             AEF_ACET,   RC )
+
+         CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_ACET', AEF_ACET, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
          ! Arrays used if monoterpene switch is turned on
-            IF ( ExtNrMono > 0 ) THEN
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MONOT', 
-     &                                AEF_MONOT,   RC )
-            IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MBO', 
-     &                                AEF_MBO,   RC )
+         IF ( ExtNrMono > 0 ) THEN
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MBO', AEF_MBO, RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
       
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_APINE', 
-     &                                AEF_APINE,   RC )
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_APINE',AEF_APINE, RC)
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_BPINE', 
-     &                                AEF_BPINE,   RC )
+
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_BPINE',AEF_BPINE, RC)
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_LIMON', 
-     &                                AEF_LIMON,   RC )
+
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_LIMON',AEF_LIMON, RC)
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_SABIN', 
-     &                                AEF_SABIN,   RC )
+
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_SABIN',AEF_SABIN, RC)
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MYRCN', 
-     &                                AEF_MYRCN,   RC )
+
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MYRCN',AEF_MYRCN, RC)
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_CAREN', 
-     &                                AEF_CAREN,   RC )
+
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_CAREN',AEF_CAREN, RC)
             IF ( RC /= HCO_SUCCESS ) RETURN
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_OCIMN', 
-     &                                AEF_OCIMN,   RC )
+
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_OCIMN',AEF_OCIMN, RC)
             IF ( RC /= HCO_SUCCESS ) RETURN
          ENDIF
    
          ! Only used for SOA simulation:
          IF ( ExtNrSoa>0 ) THEN
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_ORVC', 
-     &                                GEIA_ORVC, RC )
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_ORVC', GEIA_ORVC, RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
          ENDIF
       ENDIF ! FIRST
@@ -3894,7 +3885,6 @@
       ! Nullify pointers
       GEIA_ORVC => NULL()
       AEF_ISOP  => NULL()
-      AEF_MONOT => NULL()
       AEF_MBO   => NULL()
       AEF_APINE => NULL()
       AEF_BPINE => NULL()

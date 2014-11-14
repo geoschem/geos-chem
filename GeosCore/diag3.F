@@ -652,14 +652,14 @@
                !----- (1) Hydrophilic -----
                ! Get the fullname. This is the name used in the
                ! HEMCO diagnostics.
-               FullName = TRIM(SpcName)//'PI_'
-               IF ( N == IDTPOA1 ) FullName = 'POA1_'
+               FullName = TRIM(SpcName)//'PI'
+               IF ( N == IDTPOA1 ) FullName = 'POA1'
 
                ! Get diagnostics name
                IF ( I == 3 ) THEN
                   DiagnName='BIOMASS_'//TRIM(FullName)
                ELSE
-                  DiagnName='AD07_'//TRIM(FullName)//TRIM(SRCNAME)
+                  DiagnName='AD07_'//TRIM(FullName)//'_'//TRIM(SRCNAME)
                ENDIF
   
                ! Get diagnostics from HEMCO
@@ -685,14 +685,14 @@
 
                ! Get the fullname. This is the name used in the
                ! HEMCO diagnostics.
-               FullName = TRIM(SpcName)//'PO_'
-               IF ( N == IDTPOA1 ) FullName = 'POG1_'
+               FullName = TRIM(SpcName)//'PO'
+               IF ( N == IDTPOA1 ) FullName = 'POG1'
           
                ! Get diagnostics name
                IF ( I == 3 ) THEN
                   DiagnName='BIOMASS_'//TRIM(FullName)
                ELSE
-                  DiagnName='AD07_'//TRIM(FullName)//TRIM(SRCNAME)
+                  DiagnName='AD07_'//TRIM(FullName)//'_'//TRIM(SRCNAME)
                ENDIF
    
                ! Get diagnostics from HEMCO
