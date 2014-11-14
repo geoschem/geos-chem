@@ -17,6 +17,8 @@
 !
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -44,7 +46,7 @@
 !  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (8 ) Now account for GEOS-4 coastal boxes in LWI properly (bmy, 8/10/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (10) Now make LWI REAL*8 for near-land formulation (ltm, bmy, 5/9/06)
+!  (10) Now make LWI REAL(fp) for near-land formulation (ltm, bmy, 5/9/06)
 !  (11) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (12) Now set negative SPHU to a very small positive # (bmy, 9/8/06)
 !  (13) Now read TROPP files for GEOS-4, and check tropopause level 
@@ -56,6 +58,7 @@
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -770,17 +773,17 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT), OPTIONAL :: ALBD (IIPAR,JJPAR      )  
-      REAL*8,  INTENT(OUT), OPTIONAL :: LWI  (IIPAR,JJPAR      )    
-      REAL*8,  INTENT(OUT), OPTIONAL :: PS   (IIPAR,JJPAR      )     
-      REAL*8,  INTENT(OUT), OPTIONAL :: SLP  (IIPAR,JJPAR      )      
-      REAL*8,  INTENT(OUT), OPTIONAL :: SPHU (IIPAR,JJPAR,LLPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: TMPU (IIPAR,JJPAR,LLPAR)  
-      REAL*8,  INTENT(OUT), OPTIONAL :: TO3  (IIPAR,JJPAR      )  
-      REAL*8,  INTENT(OUT), OPTIONAL :: TROPP(IIPAR,JJPAR      )  
-      REAL*8,  INTENT(OUT), OPTIONAL :: TTO3 (IIPAR,JJPAR      )  
-      REAL*8,  INTENT(OUT), OPTIONAL :: UWND (IIPAR,JJPAR,LLPAR)   
-      REAL*8,  INTENT(OUT), OPTIONAL :: VWND (IIPAR,JJPAR,LLPAR)  
+      REAL(fp),  INTENT(OUT), OPTIONAL :: ALBD (IIPAR,JJPAR      )  
+      REAL(fp),  INTENT(OUT), OPTIONAL :: LWI  (IIPAR,JJPAR      )    
+      REAL(fp),  INTENT(OUT), OPTIONAL :: PS   (IIPAR,JJPAR      )     
+      REAL(fp),  INTENT(OUT), OPTIONAL :: SLP  (IIPAR,JJPAR      )      
+      REAL(fp),  INTENT(OUT), OPTIONAL :: SPHU (IIPAR,JJPAR,LLPAR) 
+      REAL(fp),  INTENT(OUT), OPTIONAL :: TMPU (IIPAR,JJPAR,LLPAR)  
+      REAL(fp),  INTENT(OUT), OPTIONAL :: TO3  (IIPAR,JJPAR      )  
+      REAL(fp),  INTENT(OUT), OPTIONAL :: TROPP(IIPAR,JJPAR      )  
+      REAL(fp),  INTENT(OUT), OPTIONAL :: TTO3 (IIPAR,JJPAR      )  
+      REAL(fp),  INTENT(OUT), OPTIONAL :: UWND (IIPAR,JJPAR,LLPAR)   
+      REAL(fp),  INTENT(OUT), OPTIONAL :: VWND (IIPAR,JJPAR,LLPAR)  
 !
 ! !REMARKS:
 !  (3 ) ALBD  : (2-D) GMAO Surface albedo            [unitless]
@@ -801,7 +804,7 @@
 !  (2 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
 !        date/time output. (bmy, 10/28/03)
 !  (3 ) Round up to account for GEOS-4 coastal boxes properly (bmy, 8/10/05)
-!  (4 ) For near-land formulation: (a) make LWI a REAL*8 and (b) do not round 
+!  (4 ) For near-land formulation: (a) make LWI a REAL(fp) and (b) do not round 
 !        up LWI for GEOS-4 meteorology (ltm, bmy, 5/9/06)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (6 ) Now set negative SPHU to a small positive number (1d-32) instead of 
@@ -925,7 +928,7 @@
                   ! NOTE: Now set negative SPHU to a small positive # 
                   ! instead of zero, so as not to blow up logarithms
                   ! (bmy, 9/8/06)
-                  WHERE ( SPHU < 0d0 ) SPHU = 1d-32
+                  WHERE ( SPHU < 0e+0_fp ) SPHU = 1e-32_fp
                   !=====================================================
                   NFOUND = NFOUND + 1
                ENDIF

@@ -15,23 +15,25 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
 !
       ! Array to store global monthly mean BR field
-      REAL*8, PUBLIC, ALLOCATABLE :: BR_TROP(:,:,:)
-      REAL*8, PUBLIC, ALLOCATABLE :: BR_STRAT(:,:,:)
-      REAL*8, PUBLIC, ALLOCATABLE :: BR_MERGE(:,:,:)
+      REAL(fp), PUBLIC, ALLOCATABLE :: BR_TROP(:,:,:)
+      REAL(fp), PUBLIC, ALLOCATABLE :: BR_STRAT(:,:,:)
+      REAL(fp), PUBLIC, ALLOCATABLE :: BR_MERGE(:,:,:)
 
       ! Array to store global monthly mean BrO field
-      REAL*8, PUBLIC, ALLOCATABLE :: BRO_TROP(:,:,:)
-      REAL*8, PUBLIC, ALLOCATABLE :: BRO_STRAT(:,:,:)
-      REAL*8, PUBLIC, ALLOCATABLE :: BRO_MERGE(:,:,:)
+      REAL(fp), PUBLIC, ALLOCATABLE :: BRO_TROP(:,:,:)
+      REAL(fp), PUBLIC, ALLOCATABLE :: BRO_STRAT(:,:,:)
+      REAL(fp), PUBLIC, ALLOCATABLE :: BRO_MERGE(:,:,:)
 
       ! Array to store global monthly J-BrO field
-      REAL*8, PUBLIC, ALLOCATABLE :: J_BRO(:,:,:)
+      REAL(fp), PUBLIC, ALLOCATABLE :: J_BRO(:,:,:)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
@@ -55,6 +57,7 @@
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  19 Apr 2012 - E.S. Corbitt - Added LGCBROMINE to use GEOS-Chem bromine.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,7 +128,7 @@
       INTEGER                      :: I, J, L
       REAL*4                       :: ARRAY(IIPAR,JJPAR,LGLOB)
       REAL*4                       :: ARRAY2(IIPAR,JJPAR,LLCHEM)
-      REAL*8                       :: XTAU
+      REAL(fp)                       :: XTAU
 !      REAL*4                       :: TPAUSE(IIPAR,JJPAR)
       CHARACTER(LEN=255)           :: FILENAME
       INTEGER                      :: TPL
@@ -187,7 +190,7 @@
          CALL TRANSFER_3D( ARRAY, BR_TROP )
 
          ! Convert	ppbv ->	pptv
-         BR_TROP  = BR_TROP * 1D3                         
+         BR_TROP  = BR_TROP * 1e+3_fp                         
    
          !-----------------------------------------------------------------
          ! Read BrO from GEOS-Chem
@@ -201,7 +204,7 @@
          CALL TRANSFER_3D( ARRAY, BRO_TROP )
        
          ! Convert ppbv -> pptv
-         BRO_TROP  = BRO_TROP * 1D3 
+         BRO_TROP  = BRO_TROP * 1e+3_fp 
 
       ELSE
 
@@ -452,17 +455,17 @@
       ! Allocate BR_TROP array
       ALLOCATE( BR_TROP( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BR_TROP' )
-      BR_TROP = 0d0
+      BR_TROP = 0e+0_fp
 
       ! Allocate BR_STRAT array
       ALLOCATE( BR_STRAT( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BR_STRAT' )
-      BR_STRAT = 0d0
+      BR_STRAT = 0e+0_fp
 
       ! Allocate BR_MERGE array
       ALLOCATE( BR_MERGE( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BR_MERGE' )
-      BR_MERGE = 0d0
+      BR_MERGE = 0e+0_fp
 
 
       !-------------------------------------
@@ -472,22 +475,22 @@
       ! Allocate J_BrO array
       ALLOCATE( J_BrO( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'J_BrO' )
-      J_BrO = 0d0
+      J_BrO = 0e+0_fp
 
       ! Allocate BrO_TROP array
       ALLOCATE( BrO_TROP( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BrO_TROP' )
-      BrO_TROP = 0d0
+      BrO_TROP = 0e+0_fp
 
       ! Allocate BrO_STRAT array
       ALLOCATE( BrO_STRAT( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BrO_STRAT' )
-      BrO_STRAT = 0d0
+      BrO_STRAT = 0e+0_fp
 
       ! Allocate BrO_MERGE array
       ALLOCATE( BrO_MERGE( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BrO_MERGE' )
-      BrO_MERGE = 0d0
+      BrO_MERGE = 0e+0_fp
 
       END SUBROUTINE INIT_GLOBAL_BR
 !EOC
