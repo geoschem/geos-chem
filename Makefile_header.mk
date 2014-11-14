@@ -146,6 +146,8 @@
 #  21 Jul 2014 - R. Yantosca - Update build sequence
 #  03 Oct 2014 - R. Yantosca - Now turn on NO_REDUCED=y for hpc target
 #  03 Oct 2014 - R. Yantosca - Now compatible with netCDF 4.1.1 or 4.2+
+#  17 Oct 2014 - R. Yantosca - Don't require MET or GRID to remove ESMF etc.
+#  14 Nov 2014 - R. Yantosca - Further updates for hpc compilation
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -170,6 +172,9 @@ ERR_GRID       :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, G
 
 # Error message for bad NEST input
 ERR_NEST       :="Select a nested grid: NEST=ch, NEST=eu, NEST=na"
+
+# Error message for bad GIGC config
+ERR_GIGC       :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
 
 ###############################################################################
 ###                                                                         ###
@@ -282,7 +287,7 @@ endif
 # to compile with "clean", "distclean", "realclean", "doc", "help",
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of MET.
 ifndef MET
-REGEXP         :=($clean|^doc|^srcdoc|^utildoc|^gtmmdoc|^makedoc|^hemcodoc|^help|^libnc|^ncdfcheck)
+REGEXP         :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
 ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ $(REGEXP) ]] && echo true),true)
 NO_MET_NEEDED  :=1
 else
@@ -351,7 +356,7 @@ endif  # NO_MET_NEEDED
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
 ifndef NO_GRID_NEEDED
 ifndef GRID
-REGEXP         :=($clean|^doc|^srcdoc|^utildoc|^gtmmdoc|^makedoc|^hemcodoc|^help|^libnc|^ncdfcheck)
+REGEXP         :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
 ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
 NO_GRID_NEEDED :=1
 else
@@ -546,9 +551,20 @@ REGEXP         :="netCDF 4.1.1"
 ifeq ($(shell [[ "$(NCV)" == $(REGEXP) ]] && echo true),true)
 
   #-------------------------------------------------------------------------
-  # netCDF 4.1.1: Use "nc-config --flibs"
+  # netCDF 4.1.1: Use "nc-config --libs"
   #-------------------------------------------------------------------------
   NCL          := $(shell $(GC_BIN)/nc-config --libs)
+
+else
+
+REGEXP         :="netCDF 4.1.3"
+ifeq ($(shell [[ "$(NCV)" == $(REGEXP) ]] && echo true),true)
+
+  #-------------------------------------------------------------------------
+  # netCDF 4.1.3: Use "nc-config --flibs"
+  #-------------------------------------------------------------------------
+  NCL          := $(shell $(GC_BIN)/nc-config --flibs)
+  NCL          += $(shell $(GC_BIN)/nc-config --libs)
 
 else
 
@@ -558,12 +574,7 @@ else
   NCL          := $(shell $(GC_BIN)/nf-config --flibs)
   NCL          += $(shell $(GC_BIN)/nc-config --libs)
 
-  # NOTE: To make this more portable, we'll strip off the directory path
-  # returned by nc-config and nf-config, and then just use the GC_LIB
-  # path as set in the user's configuration. (bmy, 10/3/14)
-  NCL          := $(filter -l%,$(NCL))
-  NCL          :=-L$(GC_LIB) $(NCL)
-
+endif
 endif
 
 #------------------------------------------------------------------------------
@@ -571,9 +582,13 @@ endif
 # Then you can add/modify the linking sequence here.  (This sequence
 # is a guess, but is probably good enough for other netCDF builds.)
 ifeq ($(NCL),) 
-NCL            :=-L$(GC_LIB) -lnetcdf -lhdf5_hl -lhdf5 -lz
+NCL            :=-lnetcdf -lhdf5_hl -lhdf5 -lz
 endif
 #------------------------------------------------------------------------------
+
+# Prepend the library directory path to the linking sequence
+NCL          := $(filter -l%,$(NCL))
+NCL          :=-L$(GC_LIB) $(NCL)
 
 # Command to link to local library files
 ifeq ($(GTMM_NEEDED),1)
@@ -592,24 +607,16 @@ LINK           :=$(LINK) -lHeaders -lNcUtils $(NCL)
 
 # If we are building w/ the HPC target, then include GIGC.mk as well
 # Determine if we are building with the hpc target
-ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
-include $(ROOTDIR)/GIGC/GIGC.mk
-HPC            :=yes
+ifeq ($(HPC),yes)
+ifneq ("$(wildcard $(CURDIR)/../GIGC/GIGC.mk)","")
+include $(CURDIR)/../GIGC/GIGC.mk
+else
+ifneq ("$(wildcard $(CURDIR)/../../GIGC/GIGC.mk)","")
+include $(CURDIR)/../../GIGC/GIGC.mk
+else
+$(error $(ERR_GIGC))
 endif
-
-# If HPC=yes then set 
-REGEXP         := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DESMF_
-ESMF_MOD       := -I$(ESMF_DIR)/$(ARCH)/mod
-ESMF_INC       := -I$(ESMF_DIR)/$(ARCH)/include
-ESMF_LIB       := -lrt $(ESMF_DIR)/$(ARCH)/lib/libesmf.so
-MAPL_INC       := -I$(ESMADIR)/$(ARCH)/include/MAPL_Base
-MAPL_INC       += -I$(ESMADIR)/$(ARCH)/include/GMAO_mpeu
-MAPL_LIB       := -L$(ESMADIR)/$(ARCH)/lib -lMAPL_Base -lMAPL_cfio -lGMAO_mpeu
-MPI_INC        := $(dir $(shell which mpif90))../include
-MPI_LIB        := -L$(dir $(shell which mpif90))../lib -lmpi -lmpi_cxx -lmpi_f77 -lmpi_f90 -lopen-rte -lopen-pal
-LINK           := $(LINK) -lGIGC $(ESMF_LIB) $(MAPL_LIB) $(MPI_LIB)
+endif
 endif
 
 ###############################################################################
@@ -702,12 +709,11 @@ endif
 FFLAGS         += $(USER_DEFS)
 
 # Include options (i.e. for finding *.h, *.mod files)
-#INCLUDE        := -I$(HDR) -module $(MOD) $(NCI)
-INCLUDE        := -module $(MOD) $(NCI)
+INCLUDE        :=-module $(MOD) $(NCI)
 
 # Add include options for ESMF & MAPL
 ifeq ($(HPC),yes)
-INCLUDE        += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC)
+INCLUDE        += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC) $(FV_INC)
 endif
 
 # Set the standard compiler variables
@@ -715,7 +721,10 @@ CC             :=
 F90            :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
 LD             :=$(COMPILE_CMD) $(FFLAGS)
 FREEFORM       := -free
-R8             := -r8
+#ifneq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
+#ifneq ($(HPC),yes)
+R8        := -r8
+#endif
 
 endif
 
@@ -779,7 +788,7 @@ endif
 FFLAGS         += $(USER_DEFS)
 
 # Include options (i.e. for finding *.h, *.mod files)
-INCLUDE        := -I$(HDR) -module $(MOD) $(NCI)
+INCLUDE        := -module $(MOD) -$(NCI)
 
 # Set the standard compiler variables
 CC             :=gcc
