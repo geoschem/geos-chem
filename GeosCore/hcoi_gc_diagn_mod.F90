@@ -610,6 +610,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE TRACERID_MOD,       ONLY : IDTPOA1, IDTPOG1
 !
 ! !INPUT PARAMETERS:
 !
@@ -664,14 +665,16 @@ CONTAINS
                 SpcName = 'BCPI'
              CASE ( 2 ) 
                 SpcName = 'BCPO'
-             CASE ( 3 ) 
+             CASE ( 3 )
                 SpcName = 'OCPI'
+                IF ( IDTPOA1 > 0 ) SpcName = 'POA1'
              CASE ( 4 ) 
                 SpcName = 'OCPO'
+                IF ( IDTPOG1 > 0 ) SpcName = 'POG1'
           END SELECT
 
           ! HEMCO species ID
-          HcoID = GetHemcoId( 'BCPI', HcoState, LOC, RC )
+          HcoID = GetHemcoId( SpcName, HcoState, LOC, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Do for all sources
@@ -1281,6 +1284,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
+    USE TRACERID_MOD,       ONLY : IDTPOA1
 !
 ! !INPUT PARAMETERS:
 !
@@ -1619,52 +1623,80 @@ CONTAINS
             Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
 
           !----------------------------------------
+          ! %%%%% FOR POA SIMULATION %%%%%
+          !----------------------------------------
+          IF ( IDTPOA1 > 0 ) THEN
+             ! HEMCO species ID
+             HcoID = GetHemcoId( 'POA1', HcoState, LOC, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             
+             ! Create diagnostic container
+             DiagnName = 'BIOMASS_POA1'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState,                      &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                WriteFreq = 'Manual',          &
+                                AutoFill  = 1,                 &
+                                cID       = N,                 & 
+                                RC        = RC                  ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+
+          !----------------------------------------
           ! %%%%% Biomass OC %%%%%
           !----------------------------------------
+          ELSE
           
-          ! HEMCO species ID
-          HcoID = GetHemcoId( 'OCPI', HcoState, LOC, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          
-          ! Create diagnostic container
-          DiagnName = 'BIOMASS_OCPI'
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState,                      &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = Cat,               &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
-                             WriteFreq = 'Manual',          &
-                             AutoFill  = 1,                 &
-                             cID       = N,                 & 
-                             RC        = RC                  ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          
-          ! HEMCO species ID
-          HcoID = GetHemcoId( 'OCPO', HcoState, LOC, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          
-          ! Create diagnostic container
-          DiagnName = 'BIOMASS_OCPO'
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState,                      &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = Cat,               &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
-                             WriteFreq = 'Manual',          &
-                             AutoFill  = 1,                 &
-                             cID       = N,                 & 
-                             RC        = RC                  ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
+             ! HEMCO species ID
+             HcoID = GetHemcoId( 'OCPI', HcoState, LOC, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             
+             ! Create diagnostic container
+             DiagnName = 'BIOMASS_OCPI'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState,                      &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                WriteFreq = 'Manual',          &
+                                AutoFill  = 1,                 &
+                                cID       = N,                 & 
+                                RC        = RC                  ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             
+             ! HEMCO species ID
+             HcoID = GetHemcoId( 'OCPO', HcoState, LOC, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             
+             ! Create diagnostic container
+             DiagnName = 'BIOMASS_OCPO'
+             CALL Diagn_Create( am_I_Root,                     & 
+                                HcoState,                      &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                WriteFreq = 'Manual',          &
+                                AutoFill  = 1,                 &
+                                cID       = N,                 & 
+                                RC        = RC                  ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF
 
           !----------------------------------------
           ! %%%%% Biomass BC %%%%%
@@ -2750,6 +2782,7 @@ CONTAINS
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+    USE TRACERID_MOD,       ONLY : IDTPOA1
 !
 ! !INPUT PARAMETERS:
 !
@@ -3075,26 +3108,27 @@ CONTAINS
           !----------------------------------------
 
           ! HEMCO species ID
-          HcoID = GetHemcoId( 'OCPI', HcoState, LOC, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          HcoID = HCO_GetHcoID( 'OCPI', HcoState )
 
           ! Create diagnostic container
-          DiagnName = 'BIOGENIC_OCPI'
-          CALL Diagn_Create( am_I_Root,                     &  
-                             HcoState,                      &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &  
-                             Cat       = Cat,               &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
-                             WriteFreq = 'Manual',          &
-                             AutoFill  = 1,                 &
-                             cID       = N,                 & 
-                             RC        = RC                  ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
+          IF ( HcoID > 0 ) THEN
+             DiagnName = 'BIOGENIC_OCPI'
+             CALL Diagn_Create( am_I_Root,                     &  
+                                HcoState,                      &
+                                cName     = TRIM( DiagnName ), &
+                                ExtNr     = ExtNr,             &  
+                                Cat       = Cat,               &
+                                Hier      = -1,                &
+                                HcoID     = HcoID,             &
+                                SpaceDim  = 2,                 &
+                                LevIDx    = -1,                &
+                                OutUnit   = 'kg/m2/s',         &
+                                WriteFreq = 'Manual',          &
+                                AutoFill  = 1,                 &
+                                cID       = N,                 & 
+                                RC        = RC                  ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN 
+          ENDIF
        ENDIF
 
        !%%% For ND29 diag %%%

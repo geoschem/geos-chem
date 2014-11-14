@@ -131,7 +131,7 @@ MODULE HcoX_FINN_Mod
   !             Can be set in HEMCO configuration file (default=0.5)
   ! BCPIfrac  : Fraction of BC that converts into hydrophilic BC.
   !             Can be set in HEMCO configuration file (default=0.2)
-  ! POASCALE  : Scale factor for POA. If tracer POG1 is specified, 
+  ! POASCALE  : Scale factor for POA. If tracer POA1 is specified, 
   !             emissions are calculated from OC, multiplied by a
   !             POA scale factor that must be specified in the HEMCO
   !             configuration file (POA scale).
@@ -356,7 +356,7 @@ CONTAINS
              SpcArr = SpcArr * BCPIfrac
           CASE ( 'BCPO' )
              SpcArr = SpcArr * (1.0_sp - BCPIfrac)
-          CASE ( 'POG1' )
+          CASE ( 'POA1' )
              SpcArr = POASCALE * SpcArr
        END SELECT
 
@@ -728,7 +728,7 @@ CONTAINS
             SpcName = 'CH4'
           CASE ( 'BC', 'BCPI', 'BCPO' )
              SpcName = 'BC'
-          CASE ( 'OC', 'OCPI', 'OCPO', 'POG1' )
+          CASE ( 'OC', 'OCPI', 'OCPO', 'POA1' )
              SpcName = 'OC'
        END SELECT
 
@@ -873,14 +873,14 @@ CONTAINS
 
        ENDDO !While missing
 
-       ! For tracer POG1, the POA scale factor must be defined in the HEMCO 
+       ! For tracer POA1, the POA scale factor must be defined in the HEMCO 
        ! configuration file
-       IF ( TRIM(SpcNames(L)) == 'POG1' ) THEN
+       IF ( TRIM(SpcNames(L)) == 'POA1' ) THEN
           CALL GetExtOpt ( ExtNr, 'POA scale', &
                            OptValSp=ValSp, FOUND=FOUND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. FOUND ) THEN
-             MSG = 'You must specify a POA scale factor for species POG1'
+             MSG = 'You must specify a POA scale factor for species POA1'
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ENDIF
