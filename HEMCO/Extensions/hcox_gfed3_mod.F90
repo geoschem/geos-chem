@@ -127,12 +127,17 @@ MODULE HCOX_GFED3_MOD
   !             emissions are calculated from OC, multiplied by a
   !             POA scale factor that must be specified in the HEMCO
   !             configuration file (POA scale).
+  ! NAPSCALE  : Scale factor for NAP. If tracer NAP is specified, 
+  !             emissions are calculated from CO, multiplied by a
+  !             NAP scale factor that must be specified in the HEMCO
+  !             configuration file (NAP scale).
   !=================================================================
   REAL(hp),          ALLOCATABLE :: GFED3_EMFAC(:,:)
   REAL(sp)                       :: COScale
   REAL(sp)                       :: OCPIfrac 
   REAL(sp)                       :: BCPIfrac
   REAL(sp)                       :: POASCALE
+  REAL(sp)                       :: NAPSCALE
 
   !=================================================================
   ! DATA ARRAY POINTERS 
@@ -321,6 +326,8 @@ CONTAINS
              SpcArr = SpcArr * (1.0_sp - BCPIfrac)
           CASE ( 'POA1' )
              SpcArr = POASCALE * SpcArr
+          CASE ( 'NAP' )
+             SpcArr = NAPSCALE * SpcArr
        END SELECT
 
        ! Add flux to HEMCO emission array
@@ -564,6 +571,8 @@ CONTAINS
              SpcName = 'BC'
           CASE ( 'OC', 'OCPI', 'OCPO', 'POA1' )
              SpcName = 'OC'
+          CASE ( 'NAP' )
+             SpcName = 'CO'
        END SELECT
 
        ! Search for matching GFED3 species by name
@@ -589,7 +598,8 @@ CONTAINS
        ENDIF
 
        ! For tracer POA1, the POA scale factor must be defined in the HEMCO 
-       ! configuration file
+       ! configuration file. This is the factor by which OC emissions will
+       ! be scaled.
        IF ( TRIM(SpcNames(N)) == 'POA1' ) THEN
           CALL GetExtOpt ( ExtNr, 'POA scale', &
                            OptValSp=ValSp, FOUND=FOUND, RC=RC )
@@ -602,7 +612,22 @@ CONTAINS
           POASCALE = ValSp
        ENDIF
 
-    ENDDO
+       ! For tracer NAP, the NAP scale factor must be defined in the HEMCO 
+       ! configuration file. This is the factor by which CO emissions will
+       ! be scaled.
+       IF ( TRIM(SpcNames(N)) == 'NAP' ) THEN
+          CALL GetExtOpt ( ExtNr, 'NAP scale', &
+                           OptValSp=ValSp, FOUND=FOUND, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( .NOT. FOUND ) THEN
+             MSG = 'You must specify a NAP scale factor for species NAP'
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+          NAPSCALE = ValSp
+       ENDIF
+
+    ENDDO !N
 
     ! Enable module
     ExtState%GFED3 = .TRUE.

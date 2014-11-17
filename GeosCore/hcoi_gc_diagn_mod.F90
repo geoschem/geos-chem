@@ -635,7 +635,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ExtNr, HcoID, N, I, J
+    INTEGER            :: ExtNr, HcoID, Cat, N, I, J
     CHARACTER(LEN=31)  :: SpcName, SrcName, DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_CARBON (hcoi_gc_diagn_mod.F90)'
@@ -683,8 +683,10 @@ CONTAINS
              SELECT CASE ( J )
                 CASE ( 1 )
                    SrcName = 'ANTHRO'
+                   Cat     = CATEGORY_ANTHRO
                 CASE ( 2 )
                    SrcName = 'BIOFUEL'
+                   Cat     = CATEGORY_BIOFUEL 
              END SELECT
 
              !-------------------------------------------
@@ -698,7 +700,7 @@ CONTAINS
                                 HcoState,                      &
                                 cName     = TRIM( DiagnName ), &
                                 ExtNr     = 0,                 &
-                                Cat       = 1,                 &
+                                Cat       = Cat,               &
                                 Hier      = -1,                &
                                 HcoID     = HcoID,             &
                                 SpaceDim  = 2,                 &
