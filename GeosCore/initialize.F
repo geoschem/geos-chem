@@ -139,6 +139,7 @@
 !                              is now a tracer.
 !  15 Aug 2014 - R. Yantosca - Remove diagnostics now tracked by HEMCO
 !  17 Sep 2014 - M. Sulprizio- Now initialize AD61 for TOMAS
+!  17 Nov 2014 - C. Keller   - Now reset ND45 if IFLAG is set to 2.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,6 +187,7 @@
          IF ( ND39 > 0 ) AD39     = 0e0
          IF ( ND43 > 0 ) AD43     = 0e0
          IF ( ND44 > 0 ) AD44     = 0e0
+         IF ( ND45 > 0 ) AD45     = 0e0
          IF ( ND47 > 0 ) AD47     = 0e0
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
