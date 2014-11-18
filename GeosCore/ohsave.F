@@ -21,21 +21,23 @@
       USE TRACERID_MOD,    ONLY : IDOH, IDHO2
       USE TRACERID_MOD,    ONLY : IDO1D, IDO3P
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 !
 ! !OUTPUT PARAMETERS:
 !
       ! Array of OH  concentrations [molec/cm3]
-      REAL*8, INTENT(OUT) :: SAVEOH(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT) :: SAVEOH(IIPAR,JJPAR,LLPAR)
 
       ! Array of HO2 concentrations [v/v]
-      REAL*8, INTENT(OUT) :: SAVEHO2(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT) :: SAVEHO2(IIPAR,JJPAR,LLPAR)
 
       ! Array of O1D concentrations (molec/cm3)
-      REAL*8, INTENT(OUT) :: SAVEO1D(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT) :: SAVEO1D(IIPAR,JJPAR,LLPAR)
 
       ! Array of O3P concentrations (molec/cm3)
-      REAL*8, INTENT(OUT) :: SAVEO3P(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT) :: SAVEO3P(IIPAR,JJPAR,LLPAR)
 !
 ! !REVISION HISTORY: 
 !  27 Feb 2002 - R. Yantosca - Initial version
@@ -63,6 +65,7 @@
 !  29 Mar 2013 - M. Payer    - Removed SAVENO, SAVENO2, SAVENO3.
 !  31 May 2013 - R. Yantosca - Extra cleanup, remove N_TRACERS, XNUMOL, STT
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,10 +85,10 @@
       ! Reset because of variable tropopause.  Ensure that data for boxes 
       ! that once were in the troposphere, and are not anymore, do not
       ! carry dubious data over. (phs, 1/19/07)
-      SAVEOH  = 0d0
-      SAVEHO2 = 0d0
-      SAVEO1D = 0d0
-      SAVEO3P = 0d0
+      SAVEOH  = 0e+0_fp
+      SAVEHO2 = 0e+0_fp
+      SAVEO1D = 0e+0_fp
+      SAVEO3P = 0e+0_fp
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

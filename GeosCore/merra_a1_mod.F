@@ -17,6 +17,8 @@
 !
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -39,6 +41,7 @@
 !  03 Aug 2012 - R. Yantosca - Now make IU_A1 a private module variable
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -427,48 +430,48 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: ALBEDO  (IIPAR,JJPAR)  ! Sfc albedo [unitless]
-      REAL*8,  INTENT(OUT) :: CLDTOT  (IIPAR,JJPAR)  ! Column cld fraction
-      REAL*8,  INTENT(OUT) :: EFLUX   (IIPAR,JJPAR)  ! Latent heat flux [W/m2]
-      REAL*8,  INTENT(OUT) :: EVAP    (IIPAR,JJPAR)  ! Surface evap [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: FRSEAICE(IIPAR,JJPAR)  ! Sfc sea ice fraction
-      REAL*8,  INTENT(OUT) :: FRSNO   (IIPAR,JJPAR)  ! Sfc snow fraction
-      REAL*8,  INTENT(OUT) :: GRN     (IIPAR,JJPAR)  ! Greenness fraction
-      REAL*8,  INTENT(OUT) :: GWETROOT(IIPAR,JJPAR)  ! Root soil wetness [frac]
-      REAL*8,  INTENT(OUT) :: GWETTOP (IIPAR,JJPAR)  ! Topsoil wetness [frac]
-      REAL*8,  INTENT(OUT) :: HFLUX   (IIPAR,JJPAR)  ! Sensible H-flux [W/m2]
-      REAL*8,  INTENT(OUT) :: LAI     (IIPAR,JJPAR)  ! Leaf area index [m2/m2]
-      REAL*8,  INTENT(OUT) :: LWI     (IIPAR,JJPAR)  ! Leaf area index [m2/m2]
-      REAL*8,  INTENT(OUT) :: LWGNT   (IIPAR,JJPAR)  ! Net LW rad @ sfc [W/m2]
-      REAL*8,  INTENT(OUT) :: PARDF   (IIPAR,JJPAR)  ! Diffuse PAR [W/m2]
-      REAL*8,  INTENT(OUT) :: PARDR   (IIPAR,JJPAR)  ! Direct PAR [W/m2]
-      REAL*8,  INTENT(OUT) :: PBLH    (IIPAR,JJPAR)  ! PBL height [m]
-      REAL*8,  INTENT(OUT) :: PRECANV (IIPAR,JJPAR)  ! Anv prec @ sfc [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: PRECTOT (IIPAR,JJPAR)  ! Tot prec @ sfc [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: PRECCON (IIPAR,JJPAR)  ! CV prec @ sfc [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: PRECLSC (IIPAR,JJPAR)  ! LS prec @ sfc [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: PRECSNO (IIPAR,JJPAR)  ! Snow precip [kg/m2/s]
-      REAL*8,  INTENT(OUT) :: SEAICE00(IIPAR,JJPAR)  ! Sea ice coverage 00-10%
-      REAL*8,  INTENT(OUT) :: SEAICE10(IIPAR,JJPAR)  ! Sea ice coverage 10-20%
-      REAL*8,  INTENT(OUT) :: SEAICE20(IIPAR,JJPAR)  ! Sea ice coverage 20-30%
-      REAL*8,  INTENT(OUT) :: SEAICE30(IIPAR,JJPAR)  ! Sea ice coverage 30-40%
-      REAL*8,  INTENT(OUT) :: SEAICE40(IIPAR,JJPAR)  ! Sea ice coverage 40-50%
-      REAL*8,  INTENT(OUT) :: SEAICE50(IIPAR,JJPAR)  ! Sea ice coverage 50-60%
-      REAL*8,  INTENT(OUT) :: SEAICE60(IIPAR,JJPAR)  ! Sea ice coverage 60-70%
-      REAL*8,  INTENT(OUT) :: SEAICE70(IIPAR,JJPAR)  ! Sea ice coverage 70-80%
-      REAL*8,  INTENT(OUT) :: SEAICE80(IIPAR,JJPAR)  ! Sea ice coverage 80-90%
-      REAL*8,  INTENT(OUT) :: SEAICE90(IIPAR,JJPAR)  ! Sea ice coverage 90-100%
-      REAL*8,  INTENT(OUT) :: SLP     (IIPAR,JJPAR)  ! Sea level pressure [hPa]
-      REAL*8,  INTENT(OUT) :: SNODP   (IIPAR,JJPAR)  ! Snow depth [m]
-      REAL*8,  INTENT(OUT) :: SNOMAS  (IIPAR,JJPAR)  ! Snow mass [kg/m2]
-      REAL*8,  INTENT(OUT) :: SWGNT   (IIPAR,JJPAR)  ! SW rad @ sfc [W/m2] 
-      REAL*8,  INTENT(OUT) :: TROPPT  (IIPAR,JJPAR)  ! T'pause pressure [hPa]
-      REAL*8,  INTENT(OUT) :: T2M     (IIPAR,JJPAR)  ! T @ 2m height [K]
-      REAL*8,  INTENT(OUT) :: TS      (IIPAR,JJPAR)  ! Sfc skin T [K]
-      REAL*8,  INTENT(OUT) :: U10M    (IIPAR,JJPAR)  ! U-wind @ 10m [m/s]
-      REAL*8,  INTENT(OUT) :: USTAR   (IIPAR,JJPAR)  ! Friction velocity [m/s]
-      REAL*8,  INTENT(OUT) :: V10M    (IIPAR,JJPAR)  ! V-wind @ 10m [m/s]
-      REAL*8,  INTENT(OUT) :: Z0M     (IIPAR,JJPAR)  ! Roughness height [m]
+      REAL(fp),  INTENT(OUT) :: ALBEDO  (IIPAR,JJPAR)  ! Sfc albedo [unitless]
+      REAL(fp),  INTENT(OUT) :: CLDTOT  (IIPAR,JJPAR)  ! Column cld fraction
+      REAL(fp),  INTENT(OUT) :: EFLUX   (IIPAR,JJPAR)  ! Latent heat flux [W/m2]
+      REAL(fp),  INTENT(OUT) :: EVAP    (IIPAR,JJPAR)  ! Surface evap [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: FRSEAICE(IIPAR,JJPAR)  ! Sfc sea ice fraction
+      REAL(fp),  INTENT(OUT) :: FRSNO   (IIPAR,JJPAR)  ! Sfc snow fraction
+      REAL(fp),  INTENT(OUT) :: GRN     (IIPAR,JJPAR)  ! Greenness fraction
+      REAL(fp),  INTENT(OUT) :: GWETROOT(IIPAR,JJPAR)  ! Root soil wetness [frac]
+      REAL(fp),  INTENT(OUT) :: GWETTOP (IIPAR,JJPAR)  ! Topsoil wetness [frac]
+      REAL(fp),  INTENT(OUT) :: HFLUX   (IIPAR,JJPAR)  ! Sensible H-flux [W/m2]
+      REAL(fp),  INTENT(OUT) :: LAI     (IIPAR,JJPAR)  ! Leaf area index [m2/m2]
+      REAL(fp),  INTENT(OUT) :: LWI     (IIPAR,JJPAR)  ! Leaf area index [m2/m2]
+      REAL(fp),  INTENT(OUT) :: LWGNT   (IIPAR,JJPAR)  ! Net LW rad @ sfc [W/m2]
+      REAL(fp),  INTENT(OUT) :: PARDF   (IIPAR,JJPAR)  ! Diffuse PAR [W/m2]
+      REAL(fp),  INTENT(OUT) :: PARDR   (IIPAR,JJPAR)  ! Direct PAR [W/m2]
+      REAL(fp),  INTENT(OUT) :: PBLH    (IIPAR,JJPAR)  ! PBL height [m]
+      REAL(fp),  INTENT(OUT) :: PRECANV (IIPAR,JJPAR)  ! Anv prec @ sfc [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: PRECTOT (IIPAR,JJPAR)  ! Tot prec @ sfc [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: PRECCON (IIPAR,JJPAR)  ! CV prec @ sfc [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: PRECLSC (IIPAR,JJPAR)  ! LS prec @ sfc [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: PRECSNO (IIPAR,JJPAR)  ! Snow precip [kg/m2/s]
+      REAL(fp),  INTENT(OUT) :: SEAICE00(IIPAR,JJPAR)  ! Sea ice coverage 00-10%
+      REAL(fp),  INTENT(OUT) :: SEAICE10(IIPAR,JJPAR)  ! Sea ice coverage 10-20%
+      REAL(fp),  INTENT(OUT) :: SEAICE20(IIPAR,JJPAR)  ! Sea ice coverage 20-30%
+      REAL(fp),  INTENT(OUT) :: SEAICE30(IIPAR,JJPAR)  ! Sea ice coverage 30-40%
+      REAL(fp),  INTENT(OUT) :: SEAICE40(IIPAR,JJPAR)  ! Sea ice coverage 40-50%
+      REAL(fp),  INTENT(OUT) :: SEAICE50(IIPAR,JJPAR)  ! Sea ice coverage 50-60%
+      REAL(fp),  INTENT(OUT) :: SEAICE60(IIPAR,JJPAR)  ! Sea ice coverage 60-70%
+      REAL(fp),  INTENT(OUT) :: SEAICE70(IIPAR,JJPAR)  ! Sea ice coverage 70-80%
+      REAL(fp),  INTENT(OUT) :: SEAICE80(IIPAR,JJPAR)  ! Sea ice coverage 80-90%
+      REAL(fp),  INTENT(OUT) :: SEAICE90(IIPAR,JJPAR)  ! Sea ice coverage 90-100%
+      REAL(fp),  INTENT(OUT) :: SLP     (IIPAR,JJPAR)  ! Sea level pressure [hPa]
+      REAL(fp),  INTENT(OUT) :: SNODP   (IIPAR,JJPAR)  ! Snow depth [m]
+      REAL(fp),  INTENT(OUT) :: SNOMAS  (IIPAR,JJPAR)  ! Snow mass [kg/m2]
+      REAL(fp),  INTENT(OUT) :: SWGNT   (IIPAR,JJPAR)  ! SW rad @ sfc [W/m2] 
+      REAL(fp),  INTENT(OUT) :: TROPPT  (IIPAR,JJPAR)  ! T'pause pressure [hPa]
+      REAL(fp),  INTENT(OUT) :: T2M     (IIPAR,JJPAR)  ! T @ 2m height [K]
+      REAL(fp),  INTENT(OUT) :: TS      (IIPAR,JJPAR)  ! Sfc skin T [K]
+      REAL(fp),  INTENT(OUT) :: U10M    (IIPAR,JJPAR)  ! U-wind @ 10m [m/s]
+      REAL(fp),  INTENT(OUT) :: USTAR   (IIPAR,JJPAR)  ! Friction velocity [m/s]
+      REAL(fp),  INTENT(OUT) :: V10M    (IIPAR,JJPAR)  ! V-wind @ 10m [m/s]
+      REAL(fp),  INTENT(OUT) :: Z0M     (IIPAR,JJPAR)  ! Roughness height [m]
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
@@ -1100,10 +1103,10 @@
       !=================================================================
       
       ! Convert from [kg/m2/s] --> [mm/day]
-      PRECANV = PRECANV * 86400d0
-      PRECCON = PRECCON * 86400d0
-      PRECLSC = PRECLSC * 86400d0
-      PRECTOT = PRECTOT * 86400d0
+      PRECANV = PRECANV * 86400e+0_fp
+      PRECCON = PRECCON * 86400e+0_fp
+      PRECLSC = PRECLSC * 86400e+0_fp
+      PRECTOT = PRECTOT * 86400e+0_fp
 
       ! Correction for MERRA PBLH:
       ! PBLH must be greater than a minimum mechanical mixing depth,
@@ -1111,7 +1114,7 @@
       ! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         PBLH(I,J) = max( PBLH(I,J), 700d0*USTAR(I,J) )
+         PBLH(I,J) = max( PBLH(I,J), 700e+0_fp*USTAR(I,J) )
       ENDDO
       ENDDO
 

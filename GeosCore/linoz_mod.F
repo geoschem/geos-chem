@@ -15,12 +15,14 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
 ! !PRIVATE DATA MEMBERS:
 !
-      REAL*8, ALLOCATABLE :: TLSTT(:,:,:)
+      REAL(fp), ALLOCATABLE :: TLSTT(:,:,:)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -96,6 +98,7 @@
 !                              modifications for GIGC interface to GEOS-5 GCM
 !  18 Mar 2013 - R. Yantosca - Comment out STRAT_INIT, it's not called
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -160,7 +163,7 @@
 
       ! Non-SAVEd sclars
       INTEGER       :: MONTH
-      REAL*8        :: NSCHEM
+      REAL(fp)        :: NSCHEM
 
       !=================================================================
       ! DO_LINOZ begins here!
@@ -179,7 +182,7 @@
       ENDIF
 
       ! Linoz needs time step in seconds
-      NSCHEM = GET_TS_CHEM() * 60D0 
+      NSCHEM = GET_TS_CHEM() * 60e+0_fp 
 
       ! Call the Linoz chemistry
       CALL LINOZ_CHEM3( NSCHEM,    am_I_Root, Input_Opt, 
@@ -219,7 +222,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8,         INTENT(IN)    :: DTCHEM      ! Time step [seconds]
+      REAL(fp),         INTENT(IN)    :: DTCHEM      ! Time step [seconds]
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -267,18 +270,18 @@
       INTEGER :: I,       J,          L,    N
       INTEGER :: K,       M,          LBOT, L_OVERWRLD
       INTEGER :: NTRACER, NUM_TRACER, LPOS, ITRC
-      REAL*8  :: CLIMO3,  CLIMPML,    DCO3, DERO3, DERTMP
-      REAL*8  :: DERCO3,  DMASS,      DTMP, SSO3
+      REAL(fp)  :: CLIMO3,  CLIMPML,    DCO3, DERO3, DERTMP
+      REAL(fp)  :: DERCO3,  DMASS,      DTMP, SSO3
 
       ! Arrays
-      REAL*8  :: DCOLO3  (IIPAR,JJPAR,LLPAR                    )
-      REAL*8  :: COLO3   (IIPAR,JJPAR,LLPAR                    )
-      REAL*8  :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
-      REAL*8  :: TCVV    (                  Input_Opt%N_TRACERS)
+      REAL(fp)  :: DCOLO3  (IIPAR,JJPAR,LLPAR                    )
+      REAL(fp)  :: COLO3   (IIPAR,JJPAR,LLPAR                    )
+      REAL(fp)  :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
+      REAL(fp)  :: TCVV    (                  Input_Opt%N_TRACERS)
 
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
       
       !=================================================================
       ! LINOZ_CHEM3 begins here!
@@ -365,7 +368,7 @@
          ENDIF
 
          ! Start at top layer and continue to lowest layer for strat. chem
-         OUT_DATA = 0d0
+         OUT_DATA = 0e+0_fp
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -376,7 +379,7 @@
          DO I = 1, IM
             LBOT = GET_CHEMGRID_LEVEL( I, J, State_Met )+1
             LPOS = 1
-            DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3D0)
+            DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3e+0_fp)
                LPOS = LPOS +1
             ENDDO
             LPOS = LPOS-1
@@ -413,7 +416,7 @@
             DO L = LM, LBOT, -1
 
                ! Skip if tracer is negative
-               IF ( STT(I,J,L,NTRACER) .LE. 0.D0 ) CYCLE
+               IF ( STT(I,J,L,NTRACER) .LE. 0.e+0_fp ) CYCLE
 
                ! calculate ozone column above box (and save)
                ! dcolo3 = ozone column (in DU) in given layer
@@ -425,13 +428,15 @@
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER) *
      &                 State_Met%AD(I,J,L) /
      &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 6.022d23 / (28.97/TCVV(NTRACER)*1d-3) / 2.687d16
+     &                 6.022e+23_fp / (28.97/TCVV(NTRACER)*1e-3_fp) / 
+     &                 2.687e+16_fp
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER) * 
      &                 State_Met%AD(I,J,L) / 
      &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
-     &                 6.022d23 / (28.97/TCVV(NTRACER)*1d-3) / 2.687d16
+     &                 6.022e+23_fp / (28.97/TCVV(NTRACER)*1e-3_fp) / 
+     &                 2.687e+16_fp
                   colo3(i,j,l) = colo3(i,j,l+1) +
      &                 (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5
                endif
@@ -464,7 +469,7 @@
                ! LINOX valid only up to 58 km, so do not use above 0.3 hPa
                ! dbj: impose exponential fall off of mixing ratio 
                ! between 0.3 and 0.01 hPa (with fall off of a scale height)
-               IF (GET_PEDGE(I,J,L) .LE. 0.3D0) THEN
+               IF (GET_PEDGE(I,J,L) .LE. 0.3e+0_fp) THEN
                   STT(I,J,L,NTRACER) = 
      &                (GET_PCENTER(I,J,L)/GET_PCENTER(I,J,LPOS-1)) * 
      &                STT(I,J,LPOS-1,NTRACER)
@@ -561,12 +566,12 @@
 
       ! Arrays
       INTEGER           :: JLATMD(JJPAR                  )
-      REAL*8            :: P0L   (LLPAR+1                )
-      REAL*8            :: STRT0L(LLPAR+1                )
-      REAL*8            :: STRT1L(LLPAR+1                )
-      REAL*8            :: STRT2L(LLPAR+1                )
-      REAL*8            :: STRTX (Input_Opt%LINOZ_NLEVELS)
-      REAL*8            :: YSTRT (Input_Opt%LINOZ_NLAT   )
+      REAL(fp)            :: P0L   (LLPAR+1                )
+      REAL(fp)            :: STRT0L(LLPAR+1                )
+      REAL(fp)            :: STRT1L(LLPAR+1                )
+      REAL(fp)            :: STRT2L(LLPAR+1                )
+      REAL(fp)            :: STRTX (Input_Opt%LINOZ_NLEVELS)
+      REAL(fp)            :: YSTRT (Input_Opt%LINOZ_NLAT   )
 
       ! Month names
       CHARACTER(LEN=3)  :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr',
@@ -575,7 +580,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8, PARAMETER :: PSF = 1010D0   ! Surface pressure [hPa]
+      REAL(fp), PARAMETER :: PSF = 1010e+0_fp   ! Surface pressure [hPa]
 
       !=================================================================
       ! LINOZ_STRATL begins here!
@@ -634,15 +639,15 @@
 
       ! YSTRT(J) are the latitudes (-85, -75, -65, ... +65, +75, +85)
       ! contained in the LINOZ climatology
-      YSTRT(1) = -85.d0   
+      YSTRT(1) = -85.e+0_fp   
       do J = 2, NLAT_LINOZ
-        YSTRT(J) = YSTRT(J-1) + 10.d0
+        YSTRT(J) = YSTRT(J-1) + 10.e+0_fp
       enddo
 
       ! JLATMD(J) is the nearest-neighbor LINOZ data column corresponding
       ! to each GEOS-Chem latitude index J. (dbj, 6/25/03)
       DO J = 1, JJPAR
-         JXXX      = INT( 0.1d0 * GET_YMID(1,J,1) + 10.d0 )
+         JXXX      = INT( 0.1e+0_fp * GET_YMID(1,J,1) + 10.e+0_fp )
          JLATMD(J) = MIN( 18,     MAX( 1, JXXX )          )
       ENDDO
 
@@ -768,8 +773,8 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root
       TYPE(OptInput), INTENT(IN)  :: Input_Opt
       INTEGER,        INTENT(IN)  :: NSTRT
-      REAL*8,         INTENT(IN)  :: STRTX(Input_Opt%LINOZ_NLEVELS)
-      REAL*8,         INTENT(IN)  :: P0L(LLPAR+1)
+      REAL(fp),         INTENT(IN)  :: STRTX(Input_Opt%LINOZ_NLEVELS)
+      REAL(fp),         INTENT(IN)  :: P0L(LLPAR+1)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -779,9 +784,9 @@
       ! STRT2L    : 2nd moment of distribution, on GEOS-Chem grid edges
       ! RC        : Success or failure?
       !--------------------------------------------------------------------
-      REAL*8,         INTENT(OUT) :: STRT0L(LLPAR+1)
-      REAL*8,         INTENT(OUT) :: STRT1L(LLPAR+1)
-      REAL*8,         INTENT(OUT) :: STRT2L(LLPAR+1)
+      REAL(fp),         INTENT(OUT) :: STRT0L(LLPAR+1)
+      REAL(fp),         INTENT(OUT) :: STRT1L(LLPAR+1)
+      REAL(fp),         INTENT(OUT) :: STRT2L(LLPAR+1)
       INTEGER,        INTENT(OUT) :: RC
 !
 ! !REMARKS:
@@ -833,12 +838,12 @@
 !
       ! Scalars
       INTEGER :: NL,  NCBOX, L,      K,    NX
-      REAL*8  :: P1,  P2,    F0,     F1
-      REAL*8  :: F2,  XPSD,  XPSLM1, XPSL
+      REAL(fp)  :: P1,  P2,    F0,     F1
+      REAL(fp)  :: F2,  XPSD,  XPSLM1, XPSL
 
       ! Arrays
-      REAL*8  :: PS(Input_Opt%LINOZ_NLEVELS+6)  ! Old code: PS(NL+1)
-      REAL*8  :: F (Input_Opt%LINOZ_NLEVELS+5)  ! Old code: PS(NL)
+      REAL(fp)  :: PS(Input_Opt%LINOZ_NLEVELS+6)  ! Old code: PS(NL+1)
+      REAL(fp)  :: F (Input_Opt%LINOZ_NLEVELS+5)  ! Old code: PS(NL)
 
       !=================================================================
       ! Initialization
@@ -868,17 +873,17 @@
       !  N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       !=================================================================
 
-      XPSD       = 10.D0 **(-0.125D0)
-      XPSLM1     = 1000.D0
-      PS(1)      = 1000.D0
+      XPSD       = 10.e+0_fp **(-0.125e+0_fp)
+      XPSLM1     = 1000.e+0_fp
+      PS(1)      = 1000.e+0_fp
       DO L = 2,NL
          XPSL    = XPSLM1 *XPSD
-         PS(L)   = 0.5D0 *(XPSLM1 +XPSL)
+         PS(L)   = 0.5e+0_fp *(XPSLM1 +XPSL)
          XPSLM1  = XPSL
       ENDDO
-      PS(NL+1)   = 0.D0
+      PS(NL+1)   = 0.e+0_fp
       DO L = 1,NL-NX
-         F(L)     = 0.D0
+         F(L)     = 0.e+0_fp
       ENDDO
 
       ! K=1 is at the top of atmosphere
@@ -916,16 +921,16 @@
 ! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)  :: NL
-      REAL*8,  INTENT(IN)  :: F(NL)
-      REAL*8,  INTENT(IN)  :: PS(NL+1)
-      REAL*8,  INTENT(IN)  :: P1
-      REAL*8,  INTENT(IN)  :: P2
+      REAL(fp),  INTENT(IN)  :: F(NL)
+      REAL(fp),  INTENT(IN)  :: PS(NL+1)
+      REAL(fp),  INTENT(IN)  :: P1
+      REAL(fp),  INTENT(IN)  :: P2
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: F0
-      REAL*8,  INTENT(OUT) :: F1
-      REAL*8,  INTENT(OUT) :: F2
+      REAL(fp),  INTENT(OUT) :: F0
+      REAL(fp),  INTENT(OUT) :: F1
+      REAL(fp),  INTENT(OUT) :: F2
 !
 ! REMARKS:
 ! The pressure levels BETWEEN z* values are:
@@ -950,11 +955,11 @@
 ! !LOCAL VARIABLES:
 !
       integer  I
-      real*8   XB,XC,PC,PB,THIRD,sgnf0
+      real(fp)   XB,XC,PC,PB,THIRD,sgnf0
 
-      F0     = 0.D0
-      F1     = 0.D0
-      F2     = 0.D0
+      F0     = 0.e+0_fp
+      F1     = 0.e+0_fp
+      F2     = 0.e+0_fp
       DO I = 1,NL
          PC   = MIN(P1,PS(I))
          PB   = MAX(P2,PS(I+1))
@@ -970,9 +975,10 @@
             ! F2: 5((2c3-3c2+c)-(2b3-3b2+b))
             ! calculate its contribution to the moments in the interval [0,1]
             F0 = F0 +F(I) *(XC -XB)
-            F1 = F1 +F(I) *3.D0 *((XC *XC -XC) - (XB *XB -XB))
-            F2 = F2 +F(I) *5.D0 *
-     &           ((XC+XC-1.D0)*(XC*XC -XC) - (XB+XB-1.D0)*(XB*XB -XB))
+            F1 = F1 +F(I) *3.e+0_fp *((XC *XC -XC) - (XB *XB -XB))
+            F2 = F2 +F(I) *5.e+0_fp *
+     &      ((XC+XC-1.e+0_fp)*(XC*XC -XC) - 
+     &      (XB+XB-1.e+0_fp)*(XB*XB -XB))
          ENDIF
       ENDDO
 
@@ -987,13 +993,13 @@
       f0=abs(f0)
       
       !F0 = MAX(F0, 0.D0)
-      THIRD = 1.D0/3.D0
-      IF (F2 .GT. 0.D0)  THEN
+      THIRD = 1.e+0_fp/3.e+0_fp
+      IF (F2 .GT. 0.e+0_fp)  THEN
 
 
          ! do not allow reversal of curvature: F2 > 0
-         F2   = MIN(F2, ABS(F1)*THIRD, 5.D-1*F0)
-         IF (F1 .LT .0.D0)  THEN
+         F2   = MIN(F2, ABS(F1)*THIRD, 5.e-1_fp*F0)
+         IF (F1 .LT .0.e+0_fp)  THEN
             F1 = MAX(-(F0+F2), F1)
          ELSE
             F1 = MIN(+(F0+F2), F1)
@@ -1067,7 +1073,7 @@
       ! Scalars
       INTEGER            :: IU_FILE, K,     J
       INTEGER            :: M,       NTBLS, IOS
-      REAL*8             :: TMAX,    TMIN
+      REAL(fp)             :: TMAX,    TMIN
 
       ! Dimension sizes
       INTEGER            :: NFIELDS_LINOZ
@@ -1128,8 +1134,8 @@
       DO NTBLS = 1, NFIELDS_LINOZ
 
          ! Zero min & max values
-         TMIN = +1.d30
-         TMAX = -1.d30
+         TMIN = +1.e+30_fp
+         TMAX = -1.e+30_fp
 
          ! Skip header line
          READ( IU_FILE, '(a)' ) TITL1
@@ -1196,13 +1202,13 @@
       INTEGER, INTENT(IN)  :: IE
       INTEGER, INTENT(IN)  :: ND
       INTEGER, INTENT(IN)  :: NE
-      REAL*8,  INTENT(IN)  :: XI(IE) 
-      REAL*8,  INTENT(IN)  :: XN(ND)
-      REAL*8,  INTENT(IN)  :: YI(KE,IE)
+      REAL(fp),  INTENT(IN)  :: XI(IE) 
+      REAL(fp),  INTENT(IN)  :: XN(ND)
+      REAL(fp),  INTENT(IN)  :: YI(KE,IE)
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: YN(KE,ND)
+      REAL(fp),  INTENT(OUT) :: YN(KE,ND)
 
 !
 ! !REVISION HISTORY: 
@@ -1214,7 +1220,7 @@
 ! !LOCAL VARIABLES:
 !
       integer  I,II,J,K
-      real*8   CNST1,CNST2
+      real(fp)   CNST1,CNST2
 
       ! k=height; i=lat
       J       = 2
@@ -1291,7 +1297,7 @@
      &                 LLPAR, 
      &                 Input_Opt%LINOZ_NFIELDS ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'TPARM' )
-      TLSTT = 0d0
+      TLSTT = 0e+0_fp
 
       END SUBROUTINE INIT_LINOZ
 !EOC

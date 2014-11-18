@@ -23,6 +23,8 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTRMB, NMEMBER, CTRMB
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -49,6 +51,7 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC\
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -56,16 +59,16 @@
 ! !LOCAL VARIABLES
 !
       INTEGER         :: I, J, L, N, JLOOP, KK, JJ
-      REAL*8          :: CONCTMP  
+      REAL(fp)          :: CONCTMP  
 
       ! For values from Input_Opt
       INTEGER         :: N_TRACERS
-      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! LUMP begins here!
@@ -102,10 +105,11 @@
 
             ! Compute tracer concentration [molec/cm3/box] by
             ! looping over all species belonging to this tracer
-            CONCTMP = 0.d0
+            CONCTMP = 0.e+0_fp
             DO KK = 1, NMEMBER(N)
                JJ = IDTRMB(N, KK)
-               CONCTMP = CONCTMP + ( 1d0+CTRMB(N,KK) ) * CSPEC(JLOOP,JJ)
+               CONCTMP = CONCTMP + ( 1e+0_fp+CTRMB(N,KK) ) * 
+     &                   CSPEC(JLOOP,JJ)
             ENDDO
 
             ! Save tracer concentrations back to STT

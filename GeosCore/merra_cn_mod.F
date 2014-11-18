@@ -20,6 +20,8 @@
       USE CMN_GCTM_MOD                     ! g0
       USE inquireMod, ONLY : findFreeLUN   ! Routine to find free LUNs
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -42,6 +44,7 @@
 !  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
 !  09 Nov 2012 - R. Yantosca - Now get met fields from State_Met object
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -261,19 +264,19 @@
 ! !OUTPUT PARAMETERS:
 !
       ! Fraction of grid box covered by lakes [unitless] 
-      REAL*8,         INTENT(OUT) :: FRLAKE  (IIPAR,JJPAR)    
+      REAL(fp),         INTENT(OUT) :: FRLAKE  (IIPAR,JJPAR)    
 
       ! Fraction of grid box covered by land ice [unitless]
-      REAL*8,         INTENT(OUT) :: FRLAND  (IIPAR,JJPAR)
+      REAL(fp),         INTENT(OUT) :: FRLAND  (IIPAR,JJPAR)
 
       ! Fraction of grid box covered by land ice [unitless]
-      REAL*8,         INTENT(OUT) :: FRLANDIC(IIPAR,JJPAR)
+      REAL(fp),         INTENT(OUT) :: FRLANDIC(IIPAR,JJPAR)
 
       ! Fraction of grid box covered by ocean [unitless]
-      REAL*8,         INTENT(OUT) :: FROCEAN (IIPAR,JJPAR)
+      REAL(fp),         INTENT(OUT) :: FROCEAN (IIPAR,JJPAR)
 
       ! Surface geopotential height [m2/s2]
-      REAL*8,         INTENT(OUT) :: PHIS    (IIPAR,JJPAR) 
+      REAL(fp),         INTENT(OUT) :: PHIS    (IIPAR,JJPAR) 
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
