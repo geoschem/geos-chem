@@ -1285,7 +1285,7 @@
             ! dust stored in the 6th species bin of LUT variables
             ODMDUST(I,J,L,IWV,N) = 0.75d0 * BXHEIGHT(I,J,L) * 
      &                         DUST(I,J,L,N) * QQAA(IWV,N,6)     / 
-     &                        ( MSDENS(N) * RWAA(N,6) * 1.0D-6 )
+     &                        ( MSDENS(N) * RDAA(N,6) * 1.0D-6 )
 #if defined ( RRTMG )
             !add dust optics to the RT code arrays
             !SSA and ASYM copying seems a little redundant...
@@ -1328,7 +1328,7 @@
          J = IYSAVE(JLOOP)
          L = IZSAVE(JLOOP)
 
-         ERADIUS(JLOOP,N) = RWAA(N,6) * 1.0D-4
+         ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0D-4
 
          TAREA(JLOOP,N)   = 3.D0 / ERADIUS(JLOOP,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
@@ -1704,7 +1704,7 @@
             ! dust stored in the 6th species bin of LUT variables
             ODMDUST(I,J,L,IWV,N) = 0.75d0 * BXHEIGHT(I,J,L) *
      &                         DUST(I,J,L,N) * QQAA(IWV,N,6)     /
-     &                        ( MSDENS(N) * RWAA(N,6) * 1.0D-6 )
+     &                        ( MSDENS(N) * RDAA(N,6) * 1.0D-6 )
 #if defined ( RRTMG )
             !add dust optics to the RT code arrays
             !SSA and ASYM copying seems a little redundant...
@@ -1755,7 +1755,7 @@
 
 !            IF ( ODSWITCH > 0 ) THEN
 
-               ERADIUS(JLOOP,N) = RWAA(N,6) * 1.0D-4
+               ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0D-4
 
 !            ELSE
 !
