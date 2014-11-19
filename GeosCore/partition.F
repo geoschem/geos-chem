@@ -26,6 +26,8 @@
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
@@ -34,7 +36,7 @@
       INTEGER, INTENT(IN)    :: NTRACER
 
       ! Conversion factor: molecules tracer / kg tracer 
-      REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
+      REAL(fp),  INTENT(IN)    :: XNUMOL(NTRACER)
 
       ! Is this the root CPU?
       LOGICAL, INTENT(IN)    :: am_I_Root
@@ -75,6 +77,7 @@
 !                              NO, NO2, NO3, HNO3, and O3.
 !  17 Apr 2013 - S.D. Eastham- Resize CSAVE to IGAS rather than NTRACER
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -87,14 +90,14 @@
       INTEGER :: CS, IDNUM, AS 
       INTEGER :: LTEST
       INTEGER :: JLOOP_P 
-      REAL*8  :: CONCTMP, CONCNOX, SUM, SUM1
-      REAL*8  :: CSAVE( ITLOOP, IGAS )
-      REAL*8  :: QTEMP
+      REAL(fp)  :: CONCTMP, CONCNOX, SUM, SUM1
+      REAL(fp)  :: CSAVE( ITLOOP, IGAS )
+      REAL(fp)  :: QTEMP
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! PARTITION begins here!
@@ -231,7 +234,7 @@
             ! First, find sum of starting concentrations
             !===========================================================
 
-            SUM = 0.d0
+            SUM = 0.e+0_fp
 
             DO KK = 1, NMEMBER(N)
                JJ = IDTRMB(N, KK)
@@ -269,7 +272,7 @@
                ! uniform paritioning among all member species of the
                ! given tracer. (phs, bmy, 2/26/08)
                QTEMP = SAFE_DIV( CSAVE(JLOOP,CSAVEID(JJ)),
-     &                           SUM, 1d0/NMEMBER(N) )
+     &                           SUM, 1e+0_fp/NMEMBER(N) )
                      
                ! Store the concentration of member species KK
                ! into the CSPEC array.  Do not allow underflow!

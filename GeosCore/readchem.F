@@ -53,6 +53,7 @@
 !  28 May 2014 - M. Sulprizio- Changed HOC2H4O reaction flag from 'F' to 'FF'
 !                              to avoid conflict with HAC + OH reaction. Now
 !                              initialize NKHAC, NKMCO3, NKGLYC. (S.D. Eastham)
+!  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
 ! !USES:
@@ -66,6 +67,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
 !#if defined( DEVEL ) || defined ( ESMF_ )
 !      USE GIGC_MPI_WRAP
@@ -164,7 +166,7 @@
       INTEGER MB,MBP,INACT1,JGAS1,J,IORD,NCOF,JORD,NDUM,NK,NAR,NK1
       INTEGER JPR,JNUM,ITHIRDB,NM2,NR,NN,JGAS2,JGAS3,NA,N,NS2
 
-      REAL*8 C1,CSTRAT,CTROPL,CTROPS,CURBAN,QTHERMG
+      REAL(fp) C1,CSTRAT,CTROPL,CTROPS,CURBAN,QTHERMG
 
       ! ININT used to be defined w/in "comode.h", but it is only ever used
       ! w/in "readchem.f".  Declare here as a local variable. (bmy, 7/16/03)
@@ -250,13 +252,13 @@
 !
       DO 46 I            = 1, IGAS
        NAMEGAS(I)        = ' '
-       WTGAS(  I)        = 0.d0
-       QBKGAS( I)        = 0.d0
+       WTGAS(  I)        = 0.e+0_fp
+       QBKGAS( I)        = 0.e+0_fp
  46   CONTINUE
 !
       DO 47 I            = 1, MXGSAER
-       CPREV( I)         = 0.d0
-       CMODEL(I)         = 0.d0
+       CPREV( I)         = 0.e+0_fp
+       CMODEL(I)         = 0.e+0_fp
  47   CONTINUE
 !
       DO 48 I            = 1, MAXGL4  
@@ -265,7 +267,7 @@
  48   CONTINUE
 !
       DO 49 I            = 1, IPHOT
-       DEFPRAT(I,:)      = 0.d0
+       DEFPRAT(I,:)      = 0.e+0_fp
  49   CONTINUE
 !
 !
@@ -898,7 +900,7 @@
           IRM(I,NK,NCS)    = JNUM 
           NPRODUC(NK,NCS)  = I 
           IF (PINP(I).EQ.0.) THEN
-           FKOEF(I,NK,NCS) = 1.0d0
+           FKOEF(I,NK,NCS) = 1.0e+0_fp
           ELSE 
            FKOEF(I,NK,NCS) = PINP(I)
           ENDIF 
@@ -1223,7 +1225,8 @@
                   JGAS1            = IRM(1,NK,NCS) 
                   JGAS2            = IRM(2,NK,NCS) 
                   JGAS3            = IRM(3,NK,NCS) 
-                  QTHERMG  = 0.25d0*SQRT(EIGHTDPI*RSTARG/WTGAS(JGAS1)) 
+                  QTHERMG  = 0.25e+0_fp * SQRT( EIGHTDPI * RSTARG
+     &                       / WTGAS( JGAS1 ) ) 
                   ARR(NK,NCS)      = ARR(NK,NCS) * QTHERMG 
                   NKSURF(NS2)      = NK 
                   NCOATG(NS2)      = JGAS2  
