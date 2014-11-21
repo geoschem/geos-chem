@@ -71,10 +71,12 @@
 !                              emissions are now handled in HEMCO
 !  15 Aug 2014 - R. Yantosca - We can remove the IDF* flags as all biomass
 !                              emissions are now handled in HEMCO
+!  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
       ! for CTM tracers
       USE CMN_SIZE_MOD, ONLY : NNNTRID=>NNPAR
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 
@@ -82,7 +84,7 @@
       INTEGER            :: NMEMBER(NNNTRID) 
       INTEGER            :: IDTRMB(NNNTRID,MMMEMBER)
       INTEGER            :: IDEMIS(NNNTRID)
-      REAL*8             :: CTRMB(NNNTRID,MMMEMBER)
+      REAL(fp)             :: CTRMB(NNNTRID,MMMEMBER)
      
       ! ID's for SMVGEAR species
       INTEGER            :: IDO3,    IDNO2,    IDNO3,   IDNO,    IDHNO2
@@ -2660,7 +2662,7 @@
 
       ! Arrays
       INTEGER            :: ID_EMITTED    ( Input_Opt%MAX_TRCS )
-      REAL*8             :: TRACER_COEFF  ( Input_Opt%MAX_TRCS, 
+      REAL(fp)             :: TRACER_COEFF  ( Input_Opt%MAX_TRCS, 
      &                                      Input_Opt%MAX_MEMB )
       CHARACTER(LEN=255) :: TRACER_CONST  ( Input_Opt%MAX_TRCS, 
      &                                      Input_Opt%MAX_MEMB )

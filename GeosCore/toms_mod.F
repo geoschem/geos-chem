@@ -17,6 +17,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD                    ! Size parameters
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -79,16 +80,17 @@
 !  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
 !                              to GEOS-5.7.2 met data for the time being.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      REAL*8, PRIVATE, ALLOCATABLE :: TOMS(:,:)               
-      REAL*8, PRIVATE, ALLOCATABLE :: DTOMS1(:,:)             
-      REAL*8, PRIVATE, ALLOCATABLE :: DTOMS2(:,:)     
-      REAL*8, PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
+      REAL(fp), PRIVATE, ALLOCATABLE :: TOMS(:,:)               
+      REAL(fp), PRIVATE, ALLOCATABLE :: DTOMS1(:,:)             
+      REAL(fp), PRIVATE, ALLOCATABLE :: DTOMS2(:,:)     
+      REAL(fp), PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
 
       CONTAINS
 !EOC
@@ -202,12 +204,12 @@
       LOGICAL            :: FIRST = .TRUE.
       INTEGER            :: YYYYMMDD, YEAR
       REAL*4             :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8             :: XTAU
+      REAL(fp)             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
 
       CHARACTER(LEN=255) :: LLFILENAME
       REAL*4             :: ARRAY1x1(I1x1,J1x1,1)
-      REAL*8             :: INGRID (I1x1,J1x1)
+      REAL(fp)             :: INGRID (I1x1,J1x1)
 
 
       !=================================================================
@@ -351,7 +353,7 @@
      &                 XTAU,      IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. )         
 
-      ! Cast to REAL*8 and resize if necessary
+      ! Cast to REAL(fp) and resize if necessary
       TOMS = ARRAY(:,:,1)
 
       !--------------------------------
@@ -363,7 +365,7 @@
      &                 XTAU,      IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. )         
 
-      ! Cast to REAL*8 and resize if necessary
+      ! Cast to REAL(fp) and resize if necessary
       DTOMS1 = ARRAY(:,:,1)
       
       !--------------------------------
@@ -375,7 +377,7 @@
      &                 XTAU,      IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. )         
 
-      ! Cast to REAL*8 and resize if necessary
+      ! Cast to REAL(fp) and resize if necessary
       DTOMS2 = ARRAY(:,:,1)
 
 #endif
@@ -421,7 +423,7 @@
       LOGICAL, INTENT(IN)  :: USE_O3_FROM_MET
       
       ! TO3 from the met fields [Dobsons]
-      REAL*8,  INTENT(IN)  :: TO3(IIPAR,JJPAR)
+      REAL(fp),  INTENT(IN)  :: TO3(IIPAR,JJPAR)
 !
 ! !REMARKS:
 ! Reference for the TOMS/SBUV merged O3 columns:
@@ -503,7 +505,7 @@
       INTEGER       :: I, J
 
       ! Initialize
-      TO3_DAILY = 0d0
+      TO3_DAILY = 0e+0_fp
 
       !=================================================================
       ! Now weight the O3 column by the observed monthly mean TOMS.
@@ -540,8 +542,8 @@
 !$OMP+DEFAULT( SHARED )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               IF ( TOMS(I,J)   > -999d0  .AND. 
-     &              DTOMS1(I,J) > -999d0 ) THEN  
+               IF ( TOMS(I,J)   > -999e+0_fp  .AND. 
+     &              DTOMS1(I,J) > -999e+0_fp ) THEN  
                   TO3_DAILY(I,J) = TOMS(I,J) 
      &                           + DTOMS1(I,J) * ( DAY - 15 )
                ENDIF            
@@ -557,8 +559,8 @@
 !$OMP+DEFAULT( SHARED )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               IF ( TOMS(I,J)   > -999d0  .AND. 
-     &              DTOMS2(I,J) > -999d0 ) THEN  
+               IF ( TOMS(I,J)   > -999e+0_fp  .AND. 
+     &              DTOMS2(I,J) > -999e+0_fp ) THEN  
                   TO3_DAILY(I,J) = TOMS(I,J) 
      &                           + DTOMS2(I,J) * ( DAY - 15 )
                ENDIF
@@ -595,7 +597,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8  :: OVERHEAD_O3   ! Total overhead O3 column [DU]
+      REAL(fp)  :: OVERHEAD_O3   ! Total overhead O3 column [DU]
 ! 
 ! !REVISION HISTORY: 
 !  06 Mar 2012 - R. Yantosca - Initial version
@@ -646,21 +648,21 @@
       ! Allocate TOMS
       ALLOCATE( TOMS( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TOMS' )
-      TOMS = 0d0
+      TOMS = 0e+0_fp
 
       ! Allocate DTOMS
       ALLOCATE( DTOMS1( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTOMS1' )
-      DTOMS1 = 0d0
+      DTOMS1 = 0e+0_fp
 
       ! Allocate DTOMS2
       ALLOCATE( DTOMS2( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTOMS2' )
-      DTOMS2 = 0d0
+      DTOMS2 = 0e+0_fp
 
       ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3_DAILY' )
-      TO3_DAILY = 0d0
+      TO3_DAILY = 0e+0_fp
 
       END SUBROUTINE INIT_TOMS
 !EOC

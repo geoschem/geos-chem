@@ -17,6 +17,7 @@
 ! !USES:
 !
       USE HCO_ERROR_MOD   ! HEMCO precision definition and error handling
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -109,6 +110,7 @@
 !  17 Sep 2014 - C. Keller   - Now use HEMCO for prod./loss rates. This makes
 !                              subroutine READ_POX_LOX obsolete.
 !  06 Nov 2014 - R. Yantosca - Removed code orphaned by HEMCO
+!  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,10 +121,10 @@
       REAL(hp), POINTER        :: L24H(:,:,:) => NULL() ! O3 loss rate
 
       ! Emission timestep (will be imported from HEMCO)
-      REAL*8                   :: TS_EMIS
+      REAL(fp)                   :: TS_EMIS
 
       ! To convert m3 to cm3
-      REAL*8, PARAMETER        :: CM3PERM3 = 1.0d6
+      REAL(fp), PARAMETER        :: CM3PERM3 = 1.0e+6_fp
 !
 ! !DEFINED PARAMETERS:
 ! 
@@ -176,7 +178,7 @@
       INTEGER, INTENT(IN) :: I     ! GEOS-Chem grid box lon index
       INTEGER, INTENT(IN) :: J     ! GEOS-Chem grid box lat index
       INTEGER, INTENT(IN) :: L     ! GEOS-Chem grid box level index
-      REAL*8,  INTENT(IN) :: POx   ! P(Ox) in the stratosphere [v/v]
+      REAL(fp),  INTENT(IN) :: POx   ! P(Ox) in the stratosphere [v/v]
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -246,7 +248,7 @@
 ! !OUTPUT PARAMETERS:
 !
       ! Array containing P(Ox) for each tagged tracer
-      REAL*8,  INTENT(OUT) :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      REAL(fp),  INTENT(OUT) :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2003 - A. Fiore - Initial version
@@ -279,15 +281,15 @@
       LOGICAL :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
       LOGICAL :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
       INTEGER :: PBLTOP,      MTTOP
-      REAL*8  :: PPROD,       X,          Y
-      REAL*8  :: BOXVL
+      REAL(fp)  :: PPROD,       X,          Y
+      REAL(fp)  :: BOXVL
 
       !=================================================================
       ! Initialization
       !=================================================================
 
       ! Initialize
-      PP(I,J,L,:) = 0d0
+      PP(I,J,L,:) = 0e+0_fp
       
       ! IS TROP is TRUE if we are in the troposphere
       ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L, State_Met )
@@ -345,7 +347,7 @@
 
       ! P(Ox) [kg]
       ! P24H is in kg/m3 per emission time step (ckeller, 9/17/2014).
-      PPROD = P24H(I,J,L) * BOXVL * ( GET_TS_CHEM() * 60d0 / TS_EMIS )
+      PPROD = P24H(I,J,L) * BOXVL * ( GET_TS_CHEM()*60e+0_fp/TS_EMIS )
 
       !-----------------------
       ! #1: Total P(Ox)
@@ -516,12 +518,12 @@
       LOGICAL, SAVE     :: FIRST   = .TRUE.
       INTEGER, SAVE     :: LASTDAY = -1
       INTEGER           :: I, J, L, N
-      REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
-      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
-      REAL*8            :: DTCHEM,  DT,      FREQ,    FLUX
-      REAL*8            :: LL,      PL,      Ox_0
-      REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
-      REAL*8            :: BOXVL
+      REAL(fp)            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      REAL(fp)            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+      REAL(fp)            :: DTCHEM,  DT,      FREQ,    FLUX
+      REAL(fp)            :: LL,      PL,      Ox_0
+      REAL(fp)            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
+      REAL(fp)            :: BOXVL
       CHARACTER(LEN=16) :: STAMP
 
       ! For fields from Input_Opt
@@ -529,12 +531,12 @@
       LOGICAL           :: LNLPBL
       LOGICAL           :: LSPLIT
       INTEGER           :: N_TRACERS
-      REAL*8            :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)            :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       ! To get emission timestep
       TYPE(HCO_STATE), POINTER :: HcoState => NULL()
@@ -560,7 +562,7 @@
       STT       => State_Chm%Tracers
 
       ! Chemistry timestep [s]
-      DTCHEM    = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
 
 
       ! ----------------------------------------------------------
@@ -620,7 +622,7 @@
       DO N = 1, N_TRACERS
 
          ! Zero ND44_TMP array
-         IF ( ND44 > 0 ) ND44_TMP = 0d0
+         IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -648,7 +650,7 @@
             IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
             ELSE
-               LL = 0.0d0
+               LL = 0.0e+0_fp
             ENDIF 
 
             !===========================================================
@@ -658,7 +660,7 @@
 
                ! Only archive chemical production if this
                ! region has production to begin with [kg/s]
-               IF ( PP(I,J,L,N) > 0d0 ) THEN
+               IF ( PP(I,J,L,N) > 0e+0_fp ) THEN
                   PL            = P24H(I,J,L) * BOXVL / TS_EMIS
                   AD65(I,J,L,N) = AD65(I,J,L,N) + PL
                ENDIF
@@ -678,25 +680,25 @@
                ! Fraction of box underneath the PBL top [unitless]
                F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-               IF ( F_UNDER_TOP > 0d0 ) THEN
+               IF ( F_UNDER_TOP > 0e+0_fp ) THEN
                
                   ! Ox Drydep frequency [1/s]
                   FREQ = DEPSAV(I,J,1) * F_UNDER_TOP
 
                   ! Add option for non-local PBL (Lin, 03/31/09)  
-                  IF (LNLPBL) FREQ = 0.D0
+                  IF (LNLPBL) FREQ = 0.e+0_fp
 
                   ! Only proceed if drydep frequency is nonzero
-                  IF ( FREQ > 0d0 ) THEN
+                  IF ( FREQ > 0e+0_fp ) THEN
 
                      ! Initial Ox [kg]
                      Ox_0    = STT(I,J,L,N)
 
                      ! Amount of Ox LOST to drydep [kg]
-                     Ox_LOST = Ox_0 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
+                     Ox_LOST = Ox_0 * ( 1e+0_fp - EXP(-FREQ * DTCHEM) )
                   
                      ! Prevent underflow condition
-                     IF ( Ox_LOST < 1d-20 ) Ox_LOST = 0d0
+                     IF ( Ox_LOST < 1e-20_fp ) Ox_LOST = 0e+0_fp
                        
                      ! Subtract Ox lost [kg] 
                      STT(I,J,L,N) = Ox_0 - Ox_LOST 
@@ -704,7 +706,7 @@
                      !==================================================
                      ! ND44 diagnostic: Ox lost to drydep [molec/cm2/s]
                      !==================================================
-                     IF ( ND44 > 0 .and. Ox_LOST > 0d0 ) THEN
+                     IF ( ND44 > 0 .and. Ox_LOST > 0e+0_fp ) THEN
 
                         ! Convert from [kg] to [molec/cm2/s]
                         FLUX = Ox_LOST             * XNUMOL(IDTO3) / 
