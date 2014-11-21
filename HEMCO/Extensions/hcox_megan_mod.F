@@ -450,8 +450,7 @@
 
       ! SET AEF_GEN (only on first call). These values are needed for
       ! subroutine GET_EMMONOT_MEGAN, which is only called for OCPI
-      IF ( FIRST .AND. (ExtNrMono>0) .AND. (ExtNrSoa<=0) .AND. 
-     &     (IDTOCPI>0) ) THEN
+      IF ( FIRST .AND. (ExtNrMono>0) .AND. (IDTOCPI>0) ) THEN 
          CALL GET_AEF_GEN( am_I_Root, HcoState, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
@@ -940,39 +939,35 @@
          ! use CALTECH algorithm to calculate biogenic VOC emissions.
          !--------------------------------------------------------------------
 
-         ! IF secondary organic aerosol is turned off...
-         IF ( ExtNrSoa <= 0 ) THEN
+         ! Get monoterpenes from MEGAN [kg C/m2/s]
+         ! terpene emissions
+         IF ( (ExtNrMono > 0 ) .AND. ( IDTOCPI > 0 ) ) THEN 
 
-            ! Get monoterpenes from MEGAN [kg C/m2/s]
-            ! terpene emissions
-            IF ( (ExtNrMono > 0 ) .AND. ( IDTOCPI > 0 ) ) THEN 
+            CALL GET_EMMONOT_MEGAN( HcoState, ExtState, I, J, 
+     &                              GAMMA_LAI, GAMMA_P, GAMMA_SM, 
+     &                              UNITCONV, TERP_ORGC, RC )
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( 'GET_EMMONOT_MEGAN', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF               
 
-               CALL GET_EMMONOT_MEGAN( HcoState, ExtState, I, J, 
-     &                                 GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                                 UNITCONV, TERP_ORGC, RC )
-               IF ( RC /= HCO_SUCCESS ) THEN 
-                  CALL HCO_ERROR( 'GET_EMMONOT_MEGAN', RC )
-                  ERR = .TRUE.
-                  EXIT
-               ENDIF               
+            ! Convert monoterpenes into hydrophilic OC and pass to
+            ! OC emissions array 
+            FLUXOCPI(I,J) = TERP_ORGC * EMMT2OC
 
-               ! Convert monoterpenes into hydrophilic OC and pass to
-               ! OC emissions array 
-               FLUXOCPI(I,J) = TERP_ORGC * EMMT2OC
-
-               ! testing only
-               if ( i==ix .and. j==iy ) then
+            ! testing only
+            if ( i==ix .and. j==iy ) then
                   write(*,*) ' '
                   write(*,*) 'HEMCO MEGAN @ ', ix, iy
                   write(*,*) 'OCPI (NOSOA) (kg/m2/s): ', FLUXOCPI(I,J)
                   write(*,*) 'TERP_ORGC: ', TERP_ORGC
                   write(*,*) 'EMMT2OC: ', EMMT2OC
-               endif
-
-            ENDIF
+            endif
+         ENDIF
 
          ! Use CALTECH algorithm if SOA is turned on
-         ELSE
+         IF ( ExtNrSoa > 0 ) THEN
            
             ! Error trap: check if SZAFACT is indeed defined
             IF ( .NOT. ASSOCIATED(ExtState%SZAFACT%Arr%Val) ) THEN
@@ -1404,7 +1399,7 @@
       ! ----------------------------------------------------------------
       ! OC
       ! Note: OC emissions will only be non-zero if OC species is defined
-      ! and Monoterpene option is enabled AND SOA option is disabled.
+      ! and Monoterpene option is enabled.
       IF ( IDTOCPI > 0 ) THEN 
 
          ! Add flux to emission array
@@ -3639,6 +3634,15 @@
             IF ( am_I_Root ) CALL HCO_MSG( MSG )
          ENDDO
 
+         ! Check if at least one of the Mono species is defined 
+         IF ( IDTCO   < 0 .AND. IDTOCPI < 0 .AND. IDTMONX < 0 ) THEN
+            MSG = 'MEGAN_MONO option is anabled but none of the '// 
+     &            'species is found (CO, OC/OCPI, MONX)!'
+            CALL HCO_ERROR( MSG, RC )
+            RETURN
+         ENDIF
+
+      !-----------------------------------------------------------------
       ELSE
 
          ! CO emissions and acetone emissions will be zero/incomplete!
@@ -3705,6 +3709,25 @@
             ! Verbose
             IF ( am_I_Root ) CALL HCO_MSG( MSG )
          ENDDO
+
+         ! Check if at least one of the SOA species is defined 
+         IF ( IDTMTPA < 0 .AND. IDTMTPO < 0 .AND.  
+     &        IDTLIMO < 0 .AND. IDTSESQ < 0        ) THEN
+            MSG = 'MEGAN_SOA option is anabled but none of the '// 
+     &            'SOA species is found (MTPA, MTPO, LIMO, SESQ)!'
+            CALL HCO_ERROR( MSG, RC )
+            RETURN
+         ENDIF
+
+         ! Never calculate OCPI if SOA is turned on!!
+         IF ( IDTOCPI > 0 ) THEN
+            IDTOCPI = -1
+            IF ( am_I_Root ) THEN
+               MSG = 'SOA option is turned on - '// 
+     &               'no OCPI emissions will be calculated'
+               CALL HCO_MSG(MSG)
+            ENDIF
+         ENDIF
       ENDIF
 
       !-----------------------------------------------------------------
