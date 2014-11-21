@@ -148,6 +148,8 @@
 #  03 Oct 2014 - R. Yantosca - Now compatible with netCDF 4.1.1 or 4.2+
 #  17 Oct 2014 - R. Yantosca - Don't require MET or GRID to remove ESMF etc.
 #  14 Nov 2014 - R. Yantosca - Further updates for hpc compilation
+#  21 Nov 2014 - R. Yantosca - Add special compilation command for ISORROPIA
+#  21 Nov 2014 - R. Yantosca - Add cosmetic changes and indentation 
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -159,22 +161,22 @@
 ###############################################################################
 
 # Set default shell to bash, for use with the Makefile conditionals
-SHELL          :=/bin/bash
+SHELL                :=/bin/bash
 
 # Error message for bad COMPILER input
-ERR_CMPLR      :="Select a compiler: COMPILER=ifort, COMPILER=pgi"
+ERR_CMPLR            :="Select a compiler: COMPILER=ifort, COMPILER=pgi"
 
 # Error message for bad MET input
-ERR_MET        :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp)"
+ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp)"
 
 # Error message for bad GRID input
-ERR_GRID       :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=025x03125"
+ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=025x03125"
 
 # Error message for bad NEST input
-ERR_NEST       :="Select a nested grid: NEST=ch, NEST=eu, NEST=na"
+ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se"
 
 # Error message for bad GIGC config
-ERR_GIGC       :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
+ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
 
 ###############################################################################
 ###                                                                         ###
@@ -194,46 +196,46 @@ ERR_GIGC       :="Unable to find the GIGC configuration file. Have you downloade
 
 # %%%%% OpenMP parallelization default) %%%%%
 ifndef OMP
-OMP            :=yes
+  OMP                :=yes
 endif
 
 # %%%%% Set the HPC variable if we are building for use w/ ESMF/MPI %%%%
 ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
-  HPC :=yes
+  HPC                :=yes
   export HPC
 endif
 
 # %%%%% For HPC, we disable OpenMP and turn on the full vertical grid %%%
 ifeq ($(HPC),yes)
-  OMP          :=no
-  NO_REDUCED   :=yes
+  OMP                :=no
+  NO_REDUCED         :=yes
 endif
 
 # %%%%% Set default compiler %%%%%
 ifndef COMPILER
-COMPILER       :=ifort
+  COMPILER           :=ifort
 endif
 
 # %%%%% Test if IFORT compiler is selected %%%%%
-REGEXP         :=(^[Ii][Ff][Oo][Rr][Tt])
+REGEXP               :=(^[Ii][Ff][Oo][Rr][Tt])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-COMPLER        :=ifort
-COMPILE_CMD    :=ifort
-USER_DEFS      += -DLINUX_IFORT
+  COMPLER            :=ifort
+  COMPILE_CMD        :=ifort
+  USER_DEFS          += -DLINUX_IFORT
 endif
 
 # %%%%% Test if PGI compiler is selected  %%%%%
-REGEXP         :=(^[Pp][Gg][Ii])
+REGEXP               :=(^[Pp][Gg][Ii])
 ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-COMPILER       :=pgi
-COMPILE_CMD    :=pgf90
-USER_DEFS      += -DLINUX_PGI
+  COMPILER           :=pgi
+  COMPILE_CMD        :=pgf90
+  USER_DEFS          += -DLINUX_PGI
 endif
 
 # %%%%% ERROR CHECK!  Make sure our COMPILER selection is valid! %%%%%
-REGEXP         :=((-DLINUX_)?IFORT|PGI)
+REGEXP               :=((-DLINUX_)?IFORT|PGI)
 ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-$(error $(ERR_CMPLR))
+  $(error $(ERR_CMPLR))
 endif
 
 #------------------------------------------------------------------------------
@@ -241,30 +243,30 @@ endif
 #------------------------------------------------------------------------------
 
 # %%%%% DEVEL %%%%%
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(DEVEL)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DDEVEL
+  USER_DEFS          += -DDEVEL
 endif
 
 # %%%%% ESMF %%%%%
-REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(ESMF)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DESMF_
-NO_GRID_NEEDED :=1
+  USER_DEFS          += -DESMF_
+  NO_GRID_NEEDED     :=1
 endif
 
 # %%%%% EXTERNAL_GRID %%%%%
-REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_GRID)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DEXTERNAL_GRID
-NO_GRID_NEEDED :=1
+  USER_DEFS          += -DEXTERNAL_GRID
+  NO_GRID_NEEDED     :=1
 endif
 
 # %%%%% EXTERNAL_FORCING %%%%%
-REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DEXTERNAL_FORCING
-NO_GRID_NEEDED :=1
+  USER_DEFS          += -DEXTERNAL_FORCING
+  NO_GRID_NEEDED     :=1
 endif
 
 #------------------------------------------------------------------------------
@@ -272,11 +274,11 @@ endif
 #------------------------------------------------------------------------------
 
 # %%%%% UCX %%%%%
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(UCX)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DUCX
-NO_REDUCED     :=yes
-CHEM           :=UCX
+  USER_DEFS          += -DUCX
+  NO_REDUCED         :=yes
+  CHEM               :=UCX
 endif
 
 #------------------------------------------------------------------------------
@@ -287,61 +289,61 @@ endif
 # to compile with "clean", "distclean", "realclean", "doc", "help",
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of MET.
 ifndef MET
-REGEXP         :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
-ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ $(REGEXP) ]] && echo true),true)
-NO_MET_NEEDED  :=1
-else
-$(error $(ERR_MET))
-endif
+  REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
+  ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ $(REGEXP) ]] && echo true),true)
+    NO_MET_NEEDED    :=1
+  else
+    $(error $(ERR_MET))
+  endif
 endif
 
 # We can skip the following checks for targets that don't require MET
 ifndef NO_MET_NEEDED 
 
-# %%%%% GCAP %%%%%
-REGEXP         :=(^[Gg][Cc][Aa][Pp])
-ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DGCAP
-endif
+  # %%%%% GCAP %%%%%
+  REGEXP             :=(^[Gg][Cc][Aa][Pp])
+  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DGCAP
+  endif
 
-# %%%%% GEOS-4 %%%%%
-REGEXP         :=((^[Gg][Ee][Oo][Ss])?4|.4)
-ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DGEOS_4
-endif
+  # %%%%% GEOS-4 %%%%%
+  REGEXP             :=((^[Gg][Ee][Oo][Ss])?4|.4)
+  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DGEOS_4
+  endif
 
-# %%%%% GEOS-5 %%%%%
-REGEXP         :=((^[Gg][Ee][Oo][Ss])?5|.5)
-ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DGEOS_5
-endif
+  # %%%%% GEOS-5 %%%%%
+  REGEXP             :=((^[Gg][Ee][Oo][Ss])?5|.5)
+  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DGEOS_5
+  endif
 
-# %%%%% MERRA %%%%%
-REGEXP         :=(^[Mm][Ee][Rr][Rr][Aa])
-ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DMERRA
-endif
+  # %%%%% MERRA %%%%%
+  REGEXP             :=(^[Mm][Ee][Rr][Rr][Aa])
+  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DMERRA
+  endif
 
-# %%%%% GEOS-FP %%%%%
-REGEXP         :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
-ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DGEOS_FP
-endif
+  # %%%%% GEOS-FP %%%%%
+  REGEXP             :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
+  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DGEOS_FP
+  endif
 
-# %%%%% REDUCED VERTICAL GRID (default, unless specified otherwise) %%%%
-ifndef NO_REDUCED
-USER_DEFS      += -DGRIDREDUCED
-else
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(NO_REDUCED)" =~ $(REGEXP) ]] && echo true),true)
-endif
-endif
+  # %%%%% REDUCED VERTICAL GRID (default, unless specified otherwise) %%%%
+  ifndef NO_REDUCED
+    USER_DEFS        += -DGRIDREDUCED
+  else
+    REGEXP           :=(^[Yy]|^[Yy][Ee][Ss])
+    ifeq ($(shell [[ "$(NO_REDUCED)" =~ $(REGEXP) ]] && echo true),true)
+    endif
+  endif
 
-# %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-REGEXP         :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP)
-ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-$(error $(ERR_MET))
-endif
+  # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
+  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP)
+  ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+    $(error $(ERR_MET))
+  endif
 
 endif  # NO_MET_NEEDED
 
@@ -355,116 +357,116 @@ endif  # NO_MET_NEEDED
 # to compile with "clean", "distclean", "realclean", "doc", "help",
 # "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
 ifndef NO_GRID_NEEDED
-ifndef GRID
-REGEXP         :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
-ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
-NO_GRID_NEEDED :=1
-else
-$(error $(ERR_GRID))
-endif
-endif
+  ifndef GRID
+    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout.|baselib.)
+    ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
+      NO_GRID_NEEDED :=1
+    else
+      $(error $(ERR_GRID))
+    endif
+  endif
 endif
 
 # We can skip the following checks for targets that don't require GRID
 ifndef NO_GRID_NEEDED
 
-# %%%%% 4 x 5 %%%%%
-REGEXP         :=(^4.5|^4\.0.5\.0)
-ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DGRID4x5
-endif
+  # %%%%% 4 x 5 %%%%%
+  REGEXP             :=(^4.5|^4\.0.5\.0)
+  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DGRID4x5
+  endif
 
-# %%%%% 2 x 2.5 %%%%%
-REGEXP         :=(^2.25|^2.2\.5|^2\.0.2\.5)
-ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DGRID2x25
-endif
+  # %%%%% 2 x 2.5 %%%%%
+  REGEXP             :=(^2.25|^2.2\.5|^2\.0.2\.5)
+  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DGRID2x25
+  endif
 
-# %%%%% 1 x 1.25 %%%%%
-REGEXP         :=(^1.125|^1.1\.25|^1\.0.1\.25)
-ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DGRID1x125
-endif
+  # %%%%% 1 x 1.25 %%%%%
+  REGEXP             :=(^1.125|^1.1\.25|^1\.0.1\.25)
+  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DGRID1x125
+  endif
 
-# %%%%% 0.5 x 0.666 %%%%%
-REGEXP         :=(^05.066.|^0\.5.0\.066.)
-ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
+  # %%%%% 0.5 x 0.666 %%%%%
+  REGEXP             :=(^05.066.|^0\.5.0\.066.)
+  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
 
-# Ensure that MET=geos5
-REGEXP         := ((^[Gg][Ee][Oo][Ss])?5|.5)
-ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-$(error When GRID=05x0666, you can only use MET=geos5)
-endif
+    # Ensure that MET=geos5
+    REGEXP           := ((^[Gg][Ee][Oo][Ss])?5|.5)
+    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+      $(error When GRID=05x0666, you can only use MET=geos5)
+    endif
 
-# Ensure that a nested-grid option is selected
-ifndef NEST
-$(error Please select a nested grid option, e.g. NEST=ch, NEST=eu, NEST=na)
-else
-NEST_NEEDED    :=1
-USER_DEFS      += -DGRID05x0666
-endif
-endif
+    # Ensure that a nested-grid option is selected
+    ifndef NEST
+      $(error $(ERR_NEST))
+    else
+      NEST_NEEDED    :=1
+      USER_DEFS      += -DGRID05x0666
+    endif
+  endif
 
-# %%%%% 0.25 x 0.3125 %%%%%
-REGEXP         :=(^025.03125|^0\.25.0\.3125)
-ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
+  # %%%%% 0.25 x 0.3125 %%%%%
+  REGEXP             :=(^025.03125|^0\.25.0\.3125)
+  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
 
-# Ensure that MET=geos-fp
-REGEXP         :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
-ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-$(error When GRID=025x03125, you can only use MET=geos-fp)
-endif
+    # Ensure that MET=geos-fp
+    REGEXP           :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
+    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+      $(error When GRID=025x03125, you can only use MET=geos-fp)
+    endif
 
-# Ensure that a nested-grid option is selected
-ifndef NEST
-$(error Please select a nested grid option, e.g. NEST=ch, NEST=eu, NEST=na)
-else
-NEST_NEEDED    :=1
-USER_DEFS      += -DGRID025x03125
-endif
-endif
+    # Ensure that a nested-grid option is selected
+    ifndef NEST
+      $(error $(ERR_NEST))
+    else
+      NEST_NEEDED    :=1
+      USER_DEFS      += -DGRID025x03125
+    endif
+  endif
 
-# %%%%% ERROR CHECK!  Make sure our GRID selection is valid! %%%%%
-REGEXP         := ((\-DGRID)?4x5|2x25|1x125|05x0666|025x03125)
-ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-$(error $(ERR_GRID))
-endif
+  # %%%%% ERROR CHECK!  Make sure our GRID selection is valid! %%%%%
+  REGEXP             := ((\-DGRID)?4x5|2x25|1x125|05x0666|025x03125)
+  ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+    $(error $(ERR_GRID))
+  endif
 
 #------------------------------------------------------------------------------
 # Nested grid settings
 #------------------------------------------------------------------------------
 
-# %%%%% China (CH) %%%%%
-REGEXP         :=(^[Cc][Hh])
-ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DNESTED_CH
-endif
+  # %%%%% China (CH) %%%%%
+  REGEXP             :=(^[Cc][Hh])
+  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DNESTED_CH
+  endif
 
-# %%%%% Europe (EU) %%%%%
-REGEXP         :=(^[Ee][Uu])
-ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DNESTED_EU
-endif
+  # %%%%% Europe (EU) %%%%%
+  REGEXP             :=(^[Ee][Uu])
+  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DNESTED_EU
+  endif
 
-# %%%%% North America (NA) %%%%%
-REGEXP         :=(^[Nn][Aa])
-ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DNESTED_NA
-endif
+  # %%%%% North America (NA) %%%%%
+  REGEXP             :=(^[Nn][Aa])
+  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DNESTED_NA
+  endif
 
-# %%%%% SE Asia (SE) %%%%%
-REGEXP         :=(^[Ss][Ee])
-ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DNESTED_SE
-endif
+  # %%%%% SE Asia (SE) %%%%%
+  REGEXP             :=(^[Ss][Ee])
+  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DNESTED_SE
+  endif
 
-# %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
-ifdef NEST_NEEDED
-REGEXP         :=((\-DNESTED_)?CH|NA|EU)
-ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-$(error $(ERR_NEST))
-endif
-endif
+  # %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
+  ifdef NEST_NEEDED
+    REGEXP           :=((\-DNESTED_)?CH|NA|EU)
+    ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
+      $(error $(ERR_NEST))
+    endif
+  endif
 
 endif  # NO_GRID_NEEDED
 
@@ -473,33 +475,33 @@ endif  # NO_GRID_NEEDED
 #------------------------------------------------------------------------------
 
 # %%%%% TOMAS, 30 bins (default) %%%%%
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DTOMAS
+  USER_DEFS          += -DTOMAS
 endif
 
 # %%%%% TOMAS, 40 bins %%%%%
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS40)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DTOMAS -DTOMAS40
+  USER_DEFS          += -DTOMAS -DTOMAS40
 endif
 
 # %%%%% TOMAS, 15 bins %%%%% 
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS15)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DTOMAS -DTOMAS15
+  USER_DEFS          += -DTOMAS -DTOMAS15
 endif
 
 # %%%%% TOMAS, 12 bins %%%%%
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS12)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DTOMAS -DTOMAS12
+USER_DEFS            += -DTOMAS -DTOMAS12
 endif
 
 # %%%%% APM %%%%%
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(APM)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DAPM
+  USER_DEFS          += -DAPM
 endif
 
 #------------------------------------------------------------------------------
@@ -507,32 +509,33 @@ endif
 #------------------------------------------------------------------------------
 
 # Activate Global Terrestrial Mercury Model (GTMM) if necessary
-GTMM_NEEDED    :=0
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+GTMM_NEEDED          :=0
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(GTMM_Hg)" =~ $(REGEXP) ]] && echo true),true)
-GTMM_NEEDED    :=1
-USER_DEFS      += -DGTMM_Hg
+  GTMM_NEEDED        :=1
+  USER_DEFS          += -DGTMM_Hg
 endif
 
 # Option to turn off ISORROPIA for testing
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(NO_ISO)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS      += -DNO_ISORROPIA
+  USER_DEFS          += -DNO_ISORROPIA
 endif
 
 # Specify year of tagged O3 prod/loss data
+# NOTE: THIS IS OBSOLETE W/ HEMCO! (bmy, 11/21/14)
 ifdef TAGO3YR
-USER_DEFS      += -DUSE_THIS_O3_YEAR=$(TAGO3YR)
+  USER_DEFS          += -DUSE_THIS_O3_YEAR=$(TAGO3YR)
 endif
 
 #------------------------------------------------------------------------------
 # TAU Performance Profiling (only works w/ IFORT for now)
 #------------------------------------------------------------------------------
 ifeq ($(COMPILER),ifort)
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
-COMPILE_CMD    :=tau_f90.sh
-endif
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(TAU_PROF)" =~ $(REGEXP) ]] && echo true),true)
+    COMPILE_CMD      :=tau_f90.sh
+  endif
 endif
 
 ###############################################################################
@@ -542,37 +545,37 @@ endif
 ###############################################################################
 
 # Library include path
-NCI            := -I$(GC_INCLUDE)
+NCI                  := -I$(GC_INCLUDE)
 
 # Find the correct nc-config commands based on the netCDF version
-NCV            := $(shell $(GC_BIN)/nc-config --version)
-REGEXP         :="netCDF 4.1.1"
+NCV                  := $(shell $(GC_BIN)/nc-config --version)
+REGEXP               :="netCDF 4.1.1"
 
 ifeq ($(shell [[ "$(NCV)" == $(REGEXP) ]] && echo true),true)
 
   #-------------------------------------------------------------------------
   # netCDF 4.1.1: Use "nc-config --libs"
   #-------------------------------------------------------------------------
-  NCL          := $(shell $(GC_BIN)/nc-config --libs)
+  NCL                := $(shell $(GC_BIN)/nc-config --libs)
 
 else
 
-REGEXP         :="netCDF 4.1.3"
+REGEXP               :="netCDF 4.1.3"
 ifeq ($(shell [[ "$(NCV)" == $(REGEXP) ]] && echo true),true)
 
   #-------------------------------------------------------------------------
   # netCDF 4.1.3: Use "nc-config --flibs"
   #-------------------------------------------------------------------------
-  NCL          := $(shell $(GC_BIN)/nc-config --flibs)
-  NCL          += $(shell $(GC_BIN)/nc-config --libs)
+  NCL                := $(shell $(GC_BIN)/nc-config --flibs)
+  NCL                += $(shell $(GC_BIN)/nc-config --libs)
 
 else
 
   #-------------------------------------------------------------------------
   # netCDF 4.2 etc. use "nf-config --flibs" and "nc-config --libs"
   #-------------------------------------------------------------------------
-  NCL          := $(shell $(GC_BIN)/nf-config --flibs)
-  NCL          += $(shell $(GC_BIN)/nc-config --libs)
+  NCL                := $(shell $(GC_BIN)/nf-config --flibs)
+  NCL                += $(shell $(GC_BIN)/nc-config --libs)
 
 endif
 endif
@@ -582,22 +585,22 @@ endif
 # Then you can add/modify the linking sequence here.  (This sequence
 # is a guess, but is probably good enough for other netCDF builds.)
 ifeq ($(NCL),) 
-NCL            :=-lnetcdf -lhdf5_hl -lhdf5 -lz
+NCL                  :=-lnetcdf -lhdf5_hl -lhdf5 -lz
 endif
 #------------------------------------------------------------------------------
 
 # Prepend the library directory path to the linking sequence
-NCL          := $(filter -l%,$(NCL))
-NCL          :=-L$(GC_LIB) $(NCL)
+NCL                  := $(filter -l%,$(NCL))
+NCL                  :=-L$(GC_LIB) $(NCL)
 
 # Command to link to local library files
 ifeq ($(GTMM_NEEDED),1)
- LINK          :=-L$(LIB) -lHg
+  LINK               :=-L$(LIB) -lHg
 else
- LINK          :=-L$(LIB)
+  LINK               :=-L$(LIB)
 endif
-LINK           :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
-LINK           :=$(LINK) -lHeaders -lNcUtils $(NCL)
+LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
+LINK                 :=$(LINK) -lHeaders -lNcUtils $(NCL)
 
 ###############################################################################
 ###                                                                         ###
@@ -608,15 +611,15 @@ LINK           :=$(LINK) -lHeaders -lNcUtils $(NCL)
 # If we are building w/ the HPC target, then include GIGC.mk as well
 # Determine if we are building with the hpc target
 ifeq ($(HPC),yes)
-ifneq ("$(wildcard $(CURDIR)/../GIGC/GIGC.mk)","")
-include $(CURDIR)/../GIGC/GIGC.mk
-else
-ifneq ("$(wildcard $(CURDIR)/../../GIGC/GIGC.mk)","")
-include $(CURDIR)/../../GIGC/GIGC.mk
-else
-$(error $(ERR_GIGC))
-endif
-endif
+  ifneq ("$(wildcard $(CURDIR)/../GIGC/GIGC.mk)","")
+    include $(CURDIR)/../GIGC/GIGC.mk
+  else
+  ifneq ("$(wildcard $(CURDIR)/../../GIGC/GIGC.mk)","")
+    include $(CURDIR)/../../GIGC/GIGC.mk
+  else
+    $(error $(ERR_GIGC))
+  endif
+  endif
 endif
 
 ###############################################################################
@@ -627,104 +630,109 @@ endif
 
 ifeq ($(COMPILER),ifort) 
 
-# Default optimization level for all routines (-O2)
-ifndef OPT
-OPT            := -O2
-endif
+  # Default optimization level for all routines (-O2)
+  ifndef OPT
+    OPT              := -O2
+  endif
 
-# Pick compiler options for debug run or regular run 
-REGEXP         := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         :=-cpp -w -O0 -auto -noalign -convert big_endian
-FFLAGS         += -g -check arg_temp_created -debug all
-TRACEBACK      := yes
-USER_DEFS      += -DDEBUG
-else
-FFLAGS         :=-cpp -w $(OPT) -auto -noalign -convert big_endian
-FFLAGS         += -vec-report0
-endif
+  # Pick compiler options for debug run or regular run 
+  REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           :=-cpp -w -O0 -auto -noalign -convert big_endian
+    FFLAGS           += -g -check arg_temp_created -debug all
+    TRACEBACK        := yes
+    USER_DEFS        += -DDEBUG
+  else
+    FFLAGS           :=-cpp -w $(OPT) -auto -noalign -convert big_endian
+    FFLAGS           += -vec-report0
+  endif
 
-# Prevent any optimizations that would change numerical results
-FFLAGS         += -fp-model source
+  # Prevent any optimizations that would change numerical results
+  FFLAGS             += -fp-model source
 
-# Turn on OpenMP parallelization
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -openmp
-endif
+  # Turn on OpenMP parallelization
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -openmp
+  endif
 
-# Get Operating System (Linux = Linux; Darwin = MacOSX)
-ifndef UNAME
-UNAME          :=$(shell uname)
-endif
+  # Get Operating System (Linux = Linux; Darwin = MacOSX)
+  ifndef UNAME
+    UNAME            :=$(shell uname)
+  endif
 
-# OSX compilation options
-ifeq ($(UNAME),Darwin)
-FFLAGS         += -Wl,-stack_size,0x2cb410000 # Allow 12GB of stack space
-ifdef DEBUG
-FFLAGS         += -g0 -debug -save-temps -fpic -Wl,-no_pie
-endif
-endif
+  # OSX compilation options
+  ifeq ($(UNAME),Darwin)
+    FFLAGS           += -Wl,-stack_size,0x2cb410000  # 12 GB of stack space
+    ifdef DEBUG
+      FFLAGS         += -g0 -debug -save-temps -fpic -Wl,-no_pie
+    endif
+  endif
 
-# Add options for medium memory model.  This is to prevent G-C from 
-# running out of memory at hi-res, especially when using netCDF I/O.
-ifneq ($(UNAME),Darwin)
-FFLAGS         += -mcmodel=medium -shared-intel
-endif
+  # Add options for medium memory model.  This is to prevent G-C from 
+  # running out of memory at hi-res, especially when using netCDF I/O.
+  ifneq ($(UNAME),Darwin)
+    FFLAGS           += -mcmodel=medium -shared-intel
+  endif
 
-# Turn on checking for floating-point exceptions
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -fpe0 -ftrapuv
-endif
-ifeq ($(shell [[ "$(FPEX)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -fpe0 -ftrapuv
-endif
+  # Turn on checking for floating-point exceptions
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -fpe0 -ftrapuv
+  endif
+  ifeq ($(shell [[ "$(FPEX)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -fpe0 -ftrapuv
+  endif
 
-# Add special IFORT optimization commands
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(IPO)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -ipo -static
-endif
+  # Add special IFORT optimization commands
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(IPO)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -ipo -static
+  endif
 
-# Add option for "array out of bounds" checking
-REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -check bounds
-endif
+  # Add option for "array out of bounds" checking
+  REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -check bounds
+  endif
 
-# Also add traceback option
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -traceback
-endif
+  # Also add traceback option
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -traceback
+  endif
 
-# Loosen KPP tolerances upon non-convergence and try again
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -DKPP_SOLVE_ALWAYS
-endif
+  # Loosen KPP tolerances upon non-convergence and try again
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DKPP_SOLVE_ALWAYS
+  endif
 
-# Append the user options in USER_DEFS to FFLAGS
-FFLAGS         += $(USER_DEFS)
+  # Append the user options in USER_DEFS to FFLAGS
+  FFLAGS             += $(USER_DEFS)
 
-# Include options (i.e. for finding *.h, *.mod files)
-INCLUDE        :=-module $(MOD) $(NCI)
+  # Include options (i.e. for finding *.h, *.mod files)
+  INCLUDE            :=-module $(MOD) $(NCI)
 
-# Add include options for ESMF & MAPL
-ifeq ($(HPC),yes)
-INCLUDE        += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC) $(FV_INC)
-endif
+  # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it 
+  # will not compile.  ISORROPIA is slated for removal shortly. (bmy, 11/21/14)
+  INCLUDE_ISO        :=$(INCLUDE)
 
-# Set the standard compiler variables
-CC             :=
-F90            :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
-LD             :=$(COMPILE_CMD) $(FFLAGS)
-FREEFORM       := -free
-#ifneq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
-#ifneq ($(HPC),yes)
-R8        := -r8
-#endif
+  # Append the ESMF/MAPL/FVDYCORE include commands
+  ifeq ($(HPC),yes)
+    INCLUDE          += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC) $(FV_INC)
+  endif
+
+  # Set the standard compiler variables
+  CC                 :=
+  F90                :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
+  F90ISO             :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE_ISO)
+  LD                 :=$(COMPILE_CMD) $(FFLAGS)
+  FREEFORM           := -free
+  #ifneq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
+  #ifneq ($(HPC),yes)
+    R8               := -r8
+  #endif
 
 endif
 
@@ -736,66 +744,76 @@ endif
 
 ifeq ($(COMPILER),pgi) 
 
-# Default optimization level for all routines (-fast)
-ifndef OPT
-OPT            :=-fast
-endif
+  # Default optimization level for all routines (-fast)
+  ifndef OPT
+    OPT              :=-fast
+   endif
 
-# Pick compiler options for debug run or regular run 
-REGEXP         := (^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         :=-byteswapio -Mpreprocess -Bstatic -g -O0 
-USER_DEFS      += -DDEBUG
-else
-FFLAGS         :=-byteswapio -Mpreprocess -Bstatic $(OPT)
-endif
+  # Pick compiler options for debug run or regular run 
+  REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           :=-byteswapio -Mpreprocess -Bstatic -g -O0 
+    USER_DEFS        += -DDEBUG
+  else
+    FFLAGS           :=-byteswapio -Mpreprocess -Bstatic $(OPT)
+  endif
 
-# Add options for medium memory model.  This is to prevent G-C from 
-# running out of memory at hi-res, especially when using netCDF I/O.
-FFLAGS         += -mcmodel=medium
+  # Add options for medium memory model.  This is to prevent G-C from 
+  # running out of memory at hi-res, especially when using netCDF I/O.
+  FFLAGS             += -mcmodel=medium
 
-# Turn on OpenMP parallelization
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -mp -Mnosgimp -Dmultitask
-endif
+  # Turn on OpenMP parallelization
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -mp -Mnosgimp -Dmultitask
+  endif
 
-# Add option for suppressing PGI non-uniform memory access (numa) library 
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(NONUMA)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -mp=nonuma
-endif
+  # Add option for suppressing PGI non-uniform memory access (numa) library 
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(NONUMA)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -mp=nonuma
+  endif
 
-# Add option for "array out of bounds" checking
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -C
-endif
+  # Add option for "array out of bounds" checking
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -C
+  endif
 
-# Also add traceback option
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -traceback
-endif
+  # Also add traceback option
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
+    FFLAGS           += -traceback
+  endif
 
-# Loosen KPP tolerances upon non-convergence and try again
-REGEXP         :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
-FFLAGS         += -DKPP_SOLVE_ALWAYS
-endif
+  # Loosen KPP tolerances upon non-convergence and try again
+  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
+  ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DKPP_SOLVE_ALWAYS
+  endif
 
-# Append the user options in USER_DEFS to FFLAGS
-FFLAGS         += $(USER_DEFS)
+  # Append the user options in USER_DEFS to FFLAGS
+  FFLAGS             += $(USER_DEFS)
 
-# Include options (i.e. for finding *.h, *.mod files)
-INCLUDE        := -module $(MOD) -$(NCI)
+  # Include options (i.e. for finding *.h, *.mod files)
+  INCLUDE            := -module $(MOD) -$(NCI)
 
-# Set the standard compiler variables
-CC             :=gcc
-F90            :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
-LD             :=$(COMPILE_CMD) $(FFLAGS)
-FREEFORM       := -Mfree
-R8             := -Mextend -r8
+  # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it 
+  # will not compile.  ISORROPIA is slated for removal shortly. (bmy, 11/21/14)
+  INCLUDE_ISO        :=$(INCLUDE)
+
+  # Append the ESMF/MAPL/FVDYCORE include commands
+  ifeq ($(HPC),yes)
+   INCLUDE           += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC) $(FV_INC)
+  endif
+
+  # Set the standard compiler variables
+  CC             :=gcc
+  F90            :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
+  F90ISO         :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE_ISO)
+  LD             :=$(COMPILE_CMD) $(FFLAGS)
+  FREEFORM       := -Mfree
+  R8             := -Mextend -r8
 
 endif
 
@@ -825,6 +843,7 @@ endif
 
 export CC
 export F90
+export F90ISO
 export FREEFORM
 export LD
 export LINK
