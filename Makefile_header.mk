@@ -141,6 +141,8 @@
 #  19 Mar 2014 - R. Yantosca - Restore GTMM compilation funcitonality
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #  20 Mar 2014 - R. Yantosca - Bug fix: "+= -DDEBUG" instead of ":= -DDEBUG"
+#  03 Oct 2014 - R. Yantosca - Now turn on NO_REDUCED=y for hpc target
+#  03 Oct 2014 - R. Yantosca - Now compatible with netCDF 4.1.1 or 4.2+
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -190,13 +192,19 @@ ifndef OMP
 OMP            :=yes
 endif
 
-ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
-HPC :=yes
-export HPC
-endif
 # %%%%% Disable OpenMP for HPC; we use MPI parallelizaiton instead %%%%%
 ifeq ($(HPC),yes)
 OMP            :=no
+# %%%%% Set the HPC variable if we are building for use w/ ESMF/MPI %%%%
+ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
+  HPC :=yes
+  export HPC
+endif
+
+# %%%%% For HPC, we disable OpenMP and turn on the full vertical grid %%%
+ifeq ($(HPC),yes)
+  OMP          :=no
+  NO_REDUCED   :=yes
 endif
 
 # %%%%% Set default compiler %%%%%
@@ -534,11 +542,32 @@ endif
 # Library include path
 NCI            := -I$(GC_INCLUDE)
 
-# Library link path: first try to get the list of proper linking flags
-# for this build of netCDF with nf-config and nc-config. 
-NCL            := $(shell $(GC_BIN)/nc-config --flibs)
-NCL            += $(shell $(GC_BIN)/nc-config --libs)
-NCL            := $(filter -l%,$(NCL))
+# Find the correct nc-config commands based on the netCDF version
+NCV            := $(shell $(GC_BIN)/nc-config --version)
+REGEXP         :="netCDF 4.1.1"
+
+ifeq ($(shell [[ "$(NCV)" == $(REGEXP) ]] && echo true),true)
+
+  #-------------------------------------------------------------------------
+  # netCDF 4.1.1: Use "nc-config --flibs"
+  #-------------------------------------------------------------------------
+  NCL          := $(shell $(GC_BIN)/nc-config --libs)
+
+else
+
+  #-------------------------------------------------------------------------
+  # netCDF 4.2 etc. use "nf-config --flibs" and "nc-config --libs"
+  #-------------------------------------------------------------------------
+  NCL          := $(shell $(GC_BIN)/nf-config --flibs)
+  NCL          += $(shell $(GC_BIN)/nc-config --libs)
+
+  # NOTE: To make this more portable, we'll strip off the directory path
+  # returned by nc-config and nf-config, and then just use the GC_LIB
+  # path as set in the user's configuration. (bmy, 10/3/14)
+  NCL          := $(filter -l%,$(NCL))
+  NCL          :=-L$(GC_LIB) $(NCL)
+
+endif
 
 #------------------------------------------------------------------------------
 # NOTE TO GEOS-CHEM USERS: If you do not have netCDF-4.2 installed
@@ -570,12 +599,15 @@ LINK           :=$(LINK) -lNcUtils $(NCL)
 
 # If we are building w/ the HPC target, then include GIGC.mk as well
 # Determine if we are building with the hpc target
-#ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
 ifeq ($(HPC),yes)
-ifneq ("$(wildcard $(ROOTDIR)/GIGC/GIGC.mk)","")
-include $(ROOTDIR)/GIGC/GIGC.mk
+ifneq ("$(wildcard $(CURDIR)/../GIGC/GIGC.mk)","")
+include $(CURDIR)/../GIGC/GIGC.mk
+else
+ifneq ("$(wildcard $(CURDIR)/../../GIGC/GIGC.mk)","")
+include $(CURDIR)/../../GIGC/GIGC.mk
 else
 $(error $(ERR_GIGC))
+endif
 endif
 endif
 
@@ -818,3 +850,4 @@ export HPC
 #	@@echo "include : $(INCLUDE)"
 #	@@echo "link    : $(LINK)"
 #	@@echo "userdefs: $(USER_DEFS)"
+

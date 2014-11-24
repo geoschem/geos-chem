@@ -364,6 +364,7 @@
          ! R for air (M.W = 0.02897 kg/mol),  or 
          ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
          !===========================================================
+         write(*,*) '### Airqnt:', State_Met%T(I,J,L), P1, P2
          State_Met%BXHEIGHT(I,J,L) = Rdg0 
      &                             * State_Met%T(I,J,L) 
      &                             * LOG( P1 / P2 )

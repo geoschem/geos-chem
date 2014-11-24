@@ -250,6 +250,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LACTIVEH2O
      LOGICAL                     :: LO3FJX
      INTEGER, POINTER            :: NTLOOPNCS(:)
+     INTEGER, ALLOCATABLE        :: JLOP(:,:,:), JLOP_PREV(:,:,:)
 
      !----------------------------------------
      ! TRANSPORT MENU fields

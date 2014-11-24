@@ -1132,6 +1132,7 @@ CONTAINS
     !=================================================================
     ! Longitude search
     !=================================================================
+    
     DO J = 1,  1
     DO I = I1, I2
 
@@ -1148,11 +1149,13 @@ CONTAINS
 
     ! Error check lower-left longitude
     IF ( INDICES(1) == 0 ) THEN
+       write(*,*) 'OFFENDING COORDS<> ', COORDS
        CALL ERROR_STOP( 'Invalid lower-left lon index!',  LOCATION )
     ENDIF
     
     ! Error check upper-right longitude
     IF ( INDICES(3) == 0 ) THEN
+       write(*,*) 'OFFENDING COORDS<> ', COORDS
        CALL ERROR_STOP( 'Invalid upper-right lon index!', LOCATION )
     ENDIF
       
