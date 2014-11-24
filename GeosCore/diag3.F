@@ -238,6 +238,7 @@
 !  03 Sep 2014 - R. Yantosca - Units of AD01_Rn_SOURCE and AD01_Be7_SOURCE are
 !                              now defined as kg/s in hcoi_gc_diagn_mod.F90 
 !  15 Oct 2014 - C. Keller   - Updated ND37 diagnostics to write out all specs
+!  24 Nov 2014 - R. Yantosca - Bug fix for ND28 BC/OC: Don't multiply by area
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2120,7 +2121,7 @@
          ! Save into ARRAY. Convert to units
          IF ( FLAG == HCO_SUCCESS ) THEN
             ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
-     &                   * FACTOR * HcoState%Grid%AREA_M2%Val(:,:)
+     &                   * FACTOR 
          ELSE
             MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
             MSG = TRIM(MSG) // ' - will write zeros!'
@@ -2141,8 +2142,7 @@
          ! Save into ARRAY. Convert to units
          IF ( FLAG == HCO_SUCCESS ) THEN
             ARRAY(:,:,1) = ARRAY(:,:,1) 
-     &                   + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR 
-     &                   *   HcoState%Grid%AREA_M2%Val(:,:) ) 
+     &                   + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
          ELSE
             MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
             MSG = TRIM(MSG) // ' - will write zeros!'
@@ -2158,7 +2158,6 @@
       
          ! Free pointer
          DiagnCnt => NULL()
-
 
          !%%%%% POA simulation %%%%%
          IF ( IDTPOA1 > 0 ) THEN
@@ -2191,7 +2190,7 @@
             ! Save into ARRAY. Convert to units
             IF ( FLAG == HCO_SUCCESS ) THEN
                ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
-     &                      * FACTOR * HcoState%Grid%AREA_M2%Val(:,:)
+     &                      * FACTOR
             ELSE
                MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                MSG = TRIM(MSG) // ' - will write zeros!'
@@ -2212,8 +2211,7 @@
             ! Save into ARRAY. Convert to units
             IF ( FLAG == HCO_SUCCESS ) THEN
                ARRAY(:,:,1) = ARRAY(:,:,1) 
-     &                      + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR 
-     &                      *   HcoState%Grid%AREA_M2%Val(:,:) ) 
+     &                      + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
             ELSE
                MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                MSG = TRIM(MSG) // ' - will write zeros!'
