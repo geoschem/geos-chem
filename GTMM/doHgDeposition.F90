@@ -17,18 +17,21 @@ SUBROUTINE doHgDeposition
   USE defineConstants
   USE loadCASAinput
   USE defineArrays
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
   
   implicit none
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - Parallelization
+!  09 Jul 2010 - C. Carouge  - Parallelization
+!  25 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-  REAL*8     :: photo_frac(n_veg, 1)
+  REAL(fp)     :: photo_frac(n_veg, 1)
       
 !!!!!   Hg0dry
   !! 1 - deposited to leaf and soil surfaces
@@ -40,18 +43,18 @@ SUBROUTINE doHgDeposition
 !$OMP WORKSHARE
   fstom(:,1)=(LAI(:,mo)/5)  ! chosen to match Rea et al seasonal cycle
 
-  WHERE (fstom(:,1) > 1.0d0) 
-     fstom(:,1)=1.0d0
+  WHERE (fstom(:,1) > 1.0e+0_fp) 
+     fstom(:,1)=1.0e+0_fp
   END WHERE
 
   fstom(:,1)=fstom(:,1)
-  fsoil(:,1)=1.00d0-fstom(:,1)
+  fsoil(:,1)=1.00e+0_fp-fstom(:,1)
   Hg0_surf_soil(:,1)=Hg0_surf_soil(:,1)+(Hg0dry(:,1)*fsoil(:,1))
   leafpool_hg(:,1)=leafpool_hg(:,1)+(Hg0dry(:,1)*fstom(:,1))
   hleafpool_hg(:,1)=hleafpool_hg(:,1)+(Hg0dry(:,1)*fstom(:,1))
   !all elemental hg sitting in surface pools is volatilized each
   !month
-  freemitted(:,1)=1.0d0
+  freemitted(:,1)=1.0e+0_fp
   reemitted(:,1)=(freemitted(:,1)*Hg0_surf_soil(:,1))
   
   Hg0_surf_soil(:,1)=Hg0_surf_soil(:,1)-reemitted(:,1)
@@ -66,11 +69,12 @@ SUBROUTINE doHgDeposition
   leafpool_hg(:,1)=leafpool_hg(:,1)+(HgIIdry(:,1)*fstom(:,1))
   hleafpool_hg(:,1)=hleafpool_hg(:,1)+(HgIIdry(:,1)*fstom(:,1))
   
-  photo_frac(:,1)=0.667577d0*(1.0d0-exp(solrad1(:,mo)*(-1d0)*(0.01603d0)))
+  photo_frac(:,1)=0.667577e+0_fp*(1.0e+0_fp- &
+           exp(solrad1(:,mo)*(-1e+0_fp)*(0.01603e+0_fp)))
   !photo_frac equation is fit to curve in Rolfhus and Fitzgerald 
   
-  WHERE (photo_frac(:,1) <= 0.0d0) 
-     photo_frac(:,1)=0.0d0
+  WHERE (photo_frac(:,1) <= 0.0e+0_fp) 
+     photo_frac(:,1)=0.0e+0_fp
   END WHERE
 
   photoreduced(:,1)=photo_frac(:,1)*(HgII_surf_soil(:,1))
@@ -82,14 +86,14 @@ SUBROUTINE doHgDeposition
   photoreduced(:,1)=photoreduced(:,1)+temp_hg(:,1)
   HgIIwet(:,1)=HgIIwet(:,1)-temp_hg(:,1)
 
-  WHERE (HgIIwet(:,1) < 0d0)
-     HgIIwet(:,1)=0.0d0
+  WHERE (HgIIwet(:,1) < 0e+0_fp)
+     HgIIwet(:,1)=0.0e+0_fp
   END WHERE
 
   !if there is rain - wash off HgII and add to HgII wet pool  
-  WHERE (ppt1(:,mo) > 0d0 .AND. airt1(:,mo) > 0d0)
+  WHERE (ppt1(:,mo) > 0e+0_fp .AND. airt1(:,mo) > 0e+0_fp)
      HgIIwet(:,1)=HgIIwet(:,1)+HgII_surf_soil(:,1)
-     HgII_surf_soil(:,1)=0.0d0
+     HgII_surf_soil(:,1)=0.0e+0_fp
   END WHERE
 
 !$OMP END WORKSHARE

@@ -19,6 +19,7 @@ SUBROUTINE HgOutForGEOS(LCPLE, Hg0reemit)
   USE loadCASAinput
   USE defineArrays
   USE CasaRegridModule
+  USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
   
   IMPLICIT NONE
 !
@@ -28,34 +29,35 @@ SUBROUTINE HgOutForGEOS(LCPLE, Hg0reemit)
 !
 ! !OUTPUT PARAMETERS:
 !
-  REAL*8, INTENT(OUT) :: Hg0reemit(72, 46)
+  REAL(fp), INTENT(OUT) :: Hg0reemit(72, 46)
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - Modified to couple with GEOS-Chem
+!  09 Jul 2010 - C. Carouge  - Modified to couple with GEOS-Chem
+!  25 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-  REAL*8 ::                 Hg0outGEOS(72,46)
-  REAL*8 ::                 Hg0out1x1(360,180)
-  REAL*8 ::                 Hg0CombGEOS(72,46)
-  REAL*8 ::                 Hg0Comb1x1(360,180)
-  REAL*8 ::                 HgPCombGEOS(72,46)
-  REAL*8 ::                 HgPComb1x1(360,180)
-  REAL*8 ::                 Hg0PhotGEOS(72,46)
-  REAL*8 ::                 Hg0Phot1x1(360,180)
-  REAL*8 ::                 Hg0VoltGEOS(72,46)
-  REAL*8 ::                 Hg0Volt1x1(360,180)
-  REAL*8 ::                 Hg0RespGEOS(72,46)
-  REAL*8 ::                 Hg0Resp1x1(360,180) 
-  REAL*8 ::                 LAT_LONG(3,n_veg)
-  REAL*8 ::                 pi=3.14159265d0
-  REAL*8 ::                 radius=6378140.00d0
-  REAL*8 ::                 g, a, apixel
-  REAL*8, dimension(360,180) ::                 gridAreaf
-  REAL*8, dimension(72,46)   ::                 gridAreag 
+  REAL(fp) ::                 Hg0outGEOS(72,46)
+  REAL(fp) ::                 Hg0out1x1(360,180)
+  REAL(fp) ::                 Hg0CombGEOS(72,46)
+  REAL(fp) ::                 Hg0Comb1x1(360,180)
+  REAL(fp) ::                 HgPCombGEOS(72,46)
+  REAL(fp) ::                 HgPComb1x1(360,180)
+  REAL(fp) ::                 Hg0PhotGEOS(72,46)
+  REAL(fp) ::                 Hg0Phot1x1(360,180)
+  REAL(fp) ::                 Hg0VoltGEOS(72,46)
+  REAL(fp) ::                 Hg0Volt1x1(360,180)
+  REAL(fp) ::                 Hg0RespGEOS(72,46)
+  REAL(fp) ::                 Hg0Resp1x1(360,180) 
+  REAL(fp) ::                 LAT_LONG(3,n_veg)
+  REAL(fp) ::                 pi=3.14159265e+0_fp
+  REAL(fp) ::                 radius=6378140.00e+0_fp
+  REAL(fp) ::                 g, a, apixel
+  REAL(fp), dimension(360,180) ::                 gridAreaf
+  REAL(fp), dimension(72,46)   ::                 gridAreag 
   CHARACTER(LEN=f_len+6) :: filename1
   CHARACTER(LEN=f_len_output+9) :: filename2 
   CHARACTER(3), DIMENSION(12) :: months 
@@ -75,7 +77,7 @@ SUBROUTINE HgOutForGEOS(LCPLE, Hg0reemit)
 !$OMP PARALLEL         &
 !$OMP DEFAULT(SHARED)  
 !$OMP WORKSHARE
-  Hg0out(:,1)=0.0d0
+  Hg0out(:,1)=0.0e+0_fp
   Hg0out(:,1)=(wresp_hg(:,1)*frac_tree(:,1))+  &
        (hresp_hg(:,1)*frac_herb(:,1))+        &
        reemitted(:,1)+photoreduced(:,1)
@@ -89,14 +91,14 @@ SUBROUTINE HgOutForGEOS(LCPLE, Hg0reemit)
   
 
   ! Initialize arrays to 0. (ccc, 10/21/09)
-  Hg0out1x1   = 0d0
-  Hg0Phot1x1  = 0d0
-  Hg0Volt1x1  = 0d0
-  Hg0Resp1x1  = 0d0
-  Hg0outGEOS  = 0d0
-  Hg0PhotGEOS = 0d0
-  Hg0VoltGEOS = 0d0
-  Hg0RespGEOS = 0d0
+  Hg0out1x1   = 0e+0_fp
+  Hg0Phot1x1  = 0e+0_fp
+  Hg0Volt1x1  = 0e+0_fp
+  Hg0Resp1x1  = 0e+0_fp
+  Hg0outGEOS  = 0e+0_fp
+  Hg0PhotGEOS = 0e+0_fp
+  Hg0VoltGEOS = 0e+0_fp
+  Hg0RespGEOS = 0e+0_fp
 
 !$OMP PARALLEL DO      &
 !$OMP DEFAULT(SHARED)  &
@@ -125,14 +127,14 @@ SUBROUTINE HgOutForGEOS(LCPLE, Hg0reemit)
 !$OMP PRIVATE(i, j)  
   DO j=1, 46
      DO i=1, 72 
-        Hg0outGEOS(i,j)=Hg0outGEOS(i,j)*gridAreag(i,j)*(1d0/1000d0)*   &
-             (1d0/2629743.8d0)
-        Hg0PhotGEOS(i,j)=Hg0PhotGEOS(i,j)*gridAreag(i,j)*(1d0/1000d0)* &
-             (1d0/2629743.8d0)
-        Hg0VoltGEOS(i,j)=Hg0VoltGEOS(i,j)*gridAreag(i,j)*(1d0/1000d0)* &
-             (1d0/2629743.8d0)
-        Hg0RespGEOS(i,j)=Hg0RespGEOS(i,j)*gridAreag(i,j)*(1d0/1000d0)* &
-             (1d0/2629743.8d0)
+        Hg0outGEOS(i,j)=Hg0outGEOS(i,j)*gridAreag(i,j)*(1e+0_fp/1000e+0_fp)*   &
+             (1e+0_fp/2629743.8e+0_fp)
+        Hg0PhotGEOS(i,j)=Hg0PhotGEOS(i,j)*gridAreag(i,j)*(1e+0_fp/1000e+0_fp)* &
+             (1e+0_fp/2629743.8e+0_fp)
+        Hg0VoltGEOS(i,j)=Hg0VoltGEOS(i,j)*gridAreag(i,j)*(1e+0_fp/1000e+0_fp)* &
+             (1e+0_fp/2629743.8e+0_fp)
+        Hg0RespGEOS(i,j)=Hg0RespGEOS(i,j)*gridAreag(i,j)*(1e+0_fp/1000e+0_fp)* &
+             (1e+0_fp/2629743.8e+0_fp)
      END DO
   END DO
 !$OMP END PARALLEL DO    
