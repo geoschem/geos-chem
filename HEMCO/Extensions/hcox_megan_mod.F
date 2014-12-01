@@ -617,12 +617,12 @@
          IF ( IDTISOP > 0 ) THEN
             FLUXISOP(I,J) = EMISOP 
 
-            ! testing only
-            if ( i==ix .and. j==iy ) then
-               write(*,*) 'HEMCO MEGAN @ ', ix, iy
-               write(*,*) 'ISOP_SCAL: ', ISOP_SCALING
-               write(*,*) 'ISOP (kgC/m2/s): ', EMISOP
-            endif
+!            ! testing only
+!            if ( i==ix .and. j==iy ) then
+!               write(*,*) 'HEMCO MEGAN @ ', ix, iy
+!               write(*,*) 'ISOP_SCAL: ', ISOP_SCALING
+!               write(*,*) 'ISOP (kgC/m2/s): ', EMISOP
+!            endif
 
          ENDIF
 
@@ -748,21 +748,21 @@
 !         EMISS_BVOC( I , J , 10) =  OCIMN  / AREA_CM2 / DTSRCE 
 ! -------------------------------------------------------------
 
-          ! testing only
-          if ( i == ix .AND. j == iy .and. .FALSE. ) then
-                  write(*,*) ' '
-                  write(*,*) 'HEMCO MEGAN (kg/m2/s) @ ', i, j 
-                  write(*,*) 'EMISOP: ', EMISOP
-                  write(*,*) 'EMMO: ', EMMO
-                  write(*,*) 'EMMB: ', EMMB
-                  write(*,*) 'APINE: ', APINE
-                  write(*,*) 'BPINE: ', BPINE
-                  write(*,*) 'LIMON: ', LIMON
-                  write(*,*) 'SABIN: ', SABIN
-                  write(*,*) 'MYRCN: ', MYRCN
-                  write(*,*) 'CAREN: ', CAREN
-                  write(*,*) 'OCIMN: ', OCIMN
-          endif
+!         ! testing only
+!         if ( i == ix .AND. j == iy .and. .FALSE. ) then
+!                 write(*,*) ' '
+!                 write(*,*) 'HEMCO MEGAN (kg/m2/s) @ ', i, j 
+!                 write(*,*) 'EMISOP: ', EMISOP
+!                 write(*,*) 'EMMO: ', EMMO
+!                 write(*,*) 'EMMB: ', EMMB
+!                 write(*,*) 'APINE: ', APINE
+!                 write(*,*) 'BPINE: ', BPINE
+!                 write(*,*) 'LIMON: ', LIMON
+!                 write(*,*) 'SABIN: ', SABIN
+!                 write(*,*) 'MYRCN: ', MYRCN
+!                 write(*,*) 'CAREN: ', CAREN
+!                 write(*,*) 'OCIMN: ', OCIMN
+!         endif
 
 !-----------------------------------------------------------------------------
          
@@ -897,12 +897,12 @@
 !            FLUX = EMMO * 0.2d0
             FLUXCO(I,J) = EMMO * 0.4666d0
 
-            ! testing only
-            if ( i==ix .and. j==iy .and. .FALSE. ) then
-               write(*,*) ' '
-               write(*,*) 'HEMCO MEGAN @ ', ix, iy
-               write(*,*) 'CO (kg/m2/s): ', FLUXCO(I,J)
-            endif
+!            ! testing only
+!            if ( i==ix .and. j==iy .and. .FALSE. ) then
+!               write(*,*) ' '
+!               write(*,*) 'HEMCO MEGAN @ ', ix, iy
+!               write(*,*) 'CO (kg/m2/s): ', FLUXCO(I,J)
+!            endif
 
 !            ! ND29: CO-source from monoterpenes [molec/cm2/s]
 !            IF ( ND29 > 0 ) THEN
@@ -915,12 +915,12 @@
          IF ( IDTPRPE > 0 ) THEN
             FLUXPRPE(I,J) = EMISOP * BIOSCAL
 
-            ! testing only
-            if ( i==ix .and. j==iy .and. .FALSE. ) then
-               write(*,*) ' '
-               write(*,*) 'HEMCO MEGAN @ ', ix, iy
-               write(*,*) 'PRPE (kg/m2/s): ', FLUXPRPE(I,J)
-            endif
+!           ! testing only
+!           if ( i==ix .and. j==iy .and. .FALSE. ) then
+!              write(*,*) ' '
+!              write(*,*) 'HEMCO MEGAN @ ', ix, iy
+!              write(*,*) 'PRPE (kg/m2/s): ', FLUXPRPE(I,J)
+!           endif
 
          ENDIF
 
@@ -956,14 +956,14 @@
             ! OC emissions array 
             FLUXOCPI(I,J) = TERP_ORGC * EMMT2OC
 
-            ! testing only
-            if ( i==ix .and. j==iy ) then
-                  write(*,*) ' '
-                  write(*,*) 'HEMCO MEGAN @ ', ix, iy
-                  write(*,*) 'OCPI (NOSOA) (kg/m2/s): ', FLUXOCPI(I,J)
-                  write(*,*) 'TERP_ORGC: ', TERP_ORGC
-                  write(*,*) 'EMMT2OC: ', EMMT2OC
-            endif
+!            ! testing only
+!            if ( i==ix .and. j==iy ) then
+!                  write(*,*) ' '
+!                  write(*,*) 'HEMCO MEGAN @ ', ix, iy
+!                  write(*,*) 'OCPI (NOSOA) (kg/m2/s): ', FLUXOCPI(I,J)
+!                  write(*,*) 'TERP_ORGC: ', TERP_ORGC
+!                  write(*,*) 'EMMT2OC: ', EMMT2OC
+!            endif
          ENDIF
 
          ! Use CALTECH algorithm if SOA is turned on
@@ -1651,30 +1651,30 @@
          ENDIF
       ENDIF
    
-      ! testing only
-      if ( i==ix .and. j==iy ) then
-         write(*,*) ' ' 
-         write(*,*) '--- GET_EMISOP_MEGAN --- ' 
-         write(*,*) 'HEMCO MEGAN @ ', i,j
-         write(*,*) 'EMISOP: ', EMISOP
-         write(*,*) 'SUNCOS  : ', SUNCOS
-         write(*,*) 'AEF_ISOP [kgC/m2/s]: ', AEF_ISOP(I,J)
-         write(*,*) 'GAMMA_LAI_ISOP: ', GAMMA_LAI_ISOP
-         write(*,*) 'GAMMA_LEAF_AGE: ', GAMMA_LEAF_AGE
-         write(*,*) 'GAMMA_T: ', GAMMA_T
-         write(*,*) 'GAMMA_P: ', GAMMA_P 
-         write(*,*) 'GAMMA_SM: ', GAMMA_SM 
-         write(*,*) 'TS: ', TS 
-         write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J) 
-         write(*,*) 'HCOT_DAILY: ', HCOT_DAILY(I,J) 
-         write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J) 
-         write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J) 
-         write(*,*) 'ISOLAI  : ', ISOLAI
-         write(*,*) 'MISOLAI : ', MISOLAI
-         write(*,*) 'PMISOLAI: ', PMISOLAI
-         write(*,*) 'D_BTW_M : ', D_BTW_M 
-         write(*,*) ' ' 
-      endif
+!      ! testing only
+!      if ( i==ix .and. j==iy ) then
+!         write(*,*) ' ' 
+!         write(*,*) '--- GET_EMISOP_MEGAN --- ' 
+!         write(*,*) 'HEMCO MEGAN @ ', i,j
+!         write(*,*) 'EMISOP: ', EMISOP
+!         write(*,*) 'SUNCOS  : ', SUNCOS
+!         write(*,*) 'AEF_ISOP [kgC/m2/s]: ', AEF_ISOP(I,J)
+!         write(*,*) 'GAMMA_LAI_ISOP: ', GAMMA_LAI_ISOP
+!         write(*,*) 'GAMMA_LEAF_AGE: ', GAMMA_LEAF_AGE
+!         write(*,*) 'GAMMA_T: ', GAMMA_T
+!         write(*,*) 'GAMMA_P: ', GAMMA_P 
+!         write(*,*) 'GAMMA_SM: ', GAMMA_SM 
+!         write(*,*) 'TS: ', TS 
+!         write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J) 
+!         write(*,*) 'HCOT_DAILY: ', HCOT_DAILY(I,J) 
+!         write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J) 
+!         write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J) 
+!         write(*,*) 'ISOLAI  : ', ISOLAI
+!         write(*,*) 'MISOLAI : ', MISOLAI
+!         write(*,*) 'PMISOLAI: ', PMISOLAI
+!         write(*,*) 'D_BTW_M : ', D_BTW_M 
+!         write(*,*) ' ' 
+!      endif
 
       ! Leave w/ success
       RC = HCO_SUCCESS

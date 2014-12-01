@@ -184,7 +184,7 @@ lib: libnc
 
 ncdfcheck: $(OBJx)
 	$(LD) $(OBJx) -L$(LIB) -lNcUtils $(NCL) -o $(EXE)
-	$(EXE) 
+	./$(EXE) 
 
 check: ncdfcheck
 test: ncdfcheck
