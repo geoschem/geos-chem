@@ -58,7 +58,6 @@ MODULE HCOI_GC_Diagn_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-
 !
 ! !REMARKS:
 !  This is currently a "bridge" module to provide backwards compatibility
@@ -207,7 +206,7 @@ CONTAINS
     CHARACTER(LEN=31)  :: DiagnName 
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'HCOI_GC_DIAGN_INIT (hcoi_gc_diagn_mod.F90)'
-
+ 
     !=======================================================================
     ! HCOI_GC_DIAGN_INIT begins here!
     !=======================================================================

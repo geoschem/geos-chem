@@ -348,8 +348,8 @@
       ENDIF
       var_array(7) = (no + no2) / dens * 1.E12        ! [NOx] in pptv
       
-      ! prevent NaN when jvalues are 0.
-      IF (JNO2 .eq. 0.) var_array(6) = 0. 
+!      ! prevent NaN when jvalues are 0.
+!      IF (JNO2 .eq. 0.) var_array(6) = 0. 
 
       ! First some error checking
       ! ########### MAYBE CHECK HERE FOR NEGATIVE VALUES?##########
