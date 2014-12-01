@@ -1813,7 +1813,7 @@ contains
                                    NDRYDEP, emis_save
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
-
+    ! HEMCO update
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
 
     implicit none
@@ -1939,10 +1939,10 @@ contains
     CHARACTER(LEN=255) :: TRACER_NAME (Input_Opt%N_TRACERS)
     REAL*8             :: TCVV        (Input_Opt%N_TRACERS)
 
-    ! Total PBL emissions
-    INTEGER            :: topmix
-    REAL*8             :: tmpflx, emis, dep
-    LOGICAL            :: fnd
+    ! HEMCO update
+    LOGICAL            :: FND
+    REAL*8             :: TMPFLX, EMIS, DEP
+    INTEGER            :: TOPMIX
 
     !=================================================================
     ! vdiffdr begins here!
@@ -2102,9 +2102,8 @@ contains
           IF ( fnd ) THEN
              dflx(I,J,N) = dflx(I,J,N) + ( dep * as2_scal(I,J,N) / TCVV(N) )
           ENDIF
-
        ENDDO
-          
+       
 !       !----------------------------------------------------------------
 !       ! Add emissions for offline aerosol simulation
 !       !----------------------------------------------------------------
@@ -2450,7 +2449,6 @@ contains
     enddo
 !$OMP END PARALLEL DO
 
-    ! testing only: write out eflx
 #if defined( DEBUG )
     write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
     do N=1,N_TRACERS
@@ -2676,8 +2674,6 @@ contains
 
        CALL COMPUTE_PBL_HEIGHT( State_Met )
     endif
-
-
 
 !      !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )

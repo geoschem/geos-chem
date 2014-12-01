@@ -236,7 +236,8 @@ CONTAINS
 !  12 Aug 2014 - R. Yantosca - READ_PARANOX_LUT is now called from Init phase
 !  10 Nov 2014 - C. Keller   - Added div-zero error trap for O3 deposition.
 !  25 Nov 2014 - C. Keller   - Now convert NO fluxes to HNO3 and O3 using 
-!                              corresponding molecular weight ratios.
+!                              corresponding molecular weight ratios. Safe 
+!                              division check for O3 deposition calculation. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -249,7 +250,7 @@ CONTAINS
     REAL*8             :: JNO2, JO1D, TS, SUNCOSmid5, SUNCOSmid
     REAL*8             :: O3molec, NOmolec, NO2molec, AIRmolec
     REAL*4             :: FRACTION_NOx, INT_OPE
-    REAL(hp)           :: iFlx
+    REAL(hp)           :: iFlx, TMP
     CHARACTER(LEN=255) :: MSG
 
     ! Arrays
@@ -377,9 +378,9 @@ CONTAINS
 #if defined( NULL )
 !$OMP PARALLEL DO                                                   &
 !$OMP DEFAULT( SHARED )                                             &
-!$OMP PRIVATE( I, J, L, RC, iFlx, NK, SPECNAME, JNO2, JO1D        ) &
+!$OMP PRIVATE( I, J, L, RC, iFlx, NK, SPECNAME, JNO2, JO1D, TMP   ) &
 !$OMP PRIVATE( O3molec, NOmolec, NO2molec, AIRmolec, INT_OPE      ) &
-!$OMP PRIVATE( FRACTION_NOx, LMAX, TS, SUNCOSmid5, SUNCOSmid      ) &     
+!$OMP PRIVATE( FRACTION_NOx, LMAX, TS, SUNCOSmid5, SUNCOSmid, MSG ) &     
 !$OMP SCHEDULE( DYNAMIC )
 #endif
     DO J = 1, HcoState%NY
@@ -478,9 +479,24 @@ CONTAINS
              ! which has to be converted to 1/s. Use here the O3 conc.
              ! [kg] of the lowest model box.
              ! Now avoid div-zero error (ckeller, 11/10/2014).
-             IF ( ExtState%O3%Arr%Val(I,J,1) > 0.0_dp ) THEN
-                DEPO3(I,J) = ABS(iFlx) / ExtState%O3%Arr%Val(I,J,1) &
-                           * HcoState%Grid%AREA_M2%Val(I,J)
+             IF ( ExtState%O3%Arr%Val(I,J,1) > 0.0_hp ) THEN
+                TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
+
+                ! Check if it's safe to do division
+                IF ( (EXPONENT(TMP)-EXPONENT(ExtState%O3%Arr%Val(I,J,1))) &
+                     < MAXEXPONENT(TMP) ) THEN
+                   DEPO3(I,J) = TMP / ExtState%O3%Arr%Val(I,J,1)
+                ENDIF
+
+                ! Sanity check: if deposition velocities are above one, 
+                ! something must have gone wrong (they are on the order
+                ! of <1e-9)
+                IF ( DEPO3(I,J) > 1.0_hp ) THEN
+                   DEPO3(I,J) = 0.0_hp
+                   WRITE(MSG,*) 'O3 deposition velocity > 1., set to zero', &
+                      I, J, DEPO3(I,J), ABS(iFlx), ExtState%O3%Arr%Val(I,J,1)
+                   CALL HCO_WARNING(MSG, RC)
+                ENDIF
              ENDIF
 
           ENDIF
