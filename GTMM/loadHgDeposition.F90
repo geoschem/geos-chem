@@ -19,6 +19,8 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
   USE loadCASAinput
   USE defineArrays
   USE CasaRegridModule
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
     
   IMPLICIT NONE
 !
@@ -26,27 +28,28 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
 !
   LOGICAL, INTENT(IN)           :: LCPLE
   
-  REAL*8, INTENT(IN), OPTIONAL  :: DD_Hg0(72, 46), DD_HgII(72, 46)
-  REAL*8, INTENT(IN), OPTIONAL  :: WD_HgII(72, 46)
+  REAL(fp), INTENT(IN), OPTIONAL  :: DD_Hg0(72, 46), DD_HgII(72, 46)
+  REAL(fp), INTENT(IN), OPTIONAL  :: WD_HgII(72, 46)
 !
 ! !REVISION HISTORY:
-! 15 Dec 09 - C. Carouge  - Add arguments for coupling with GEOS-Chem
-!                         - Change format of emission years file to 
-!                           facilitate restart.
+! 15 Dec 2009 - C. Carouge  - Add arguments for coupling with GEOS-Chem
+  !                         - Change format of emission years file to 
+!                             facilitate restart.
+! 01 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !-----------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-  REAL*8 ::                 Hg0dryGEOS(72,46)
-  REAL*8 ::                 HgIIdryGEOS(72,46)
-  REAL*8 ::                 HgIIwetGEOS(72,46)
-  REAL*8 ::                 area_pix(72,46)
-  REAL*8 ::                 Hg0dry1x1(360,180)
-  REAL*8 ::                 HgIIdry1x1(360,180)
-  REAL*8 ::                 HgIIwet1x1(360,180)
-  REAL*8 ::                 LAT_LONG(3,n_veg)
+  REAL(fp) ::                 Hg0dryGEOS(72,46)
+  REAL(fp) ::                 HgIIdryGEOS(72,46)
+  REAL(fp) ::                 HgIIwetGEOS(72,46)
+  REAL(fp) ::                 area_pix(72,46)
+  REAL(fp) ::                 Hg0dry1x1(360,180)
+  REAL(fp) ::                 HgIIdry1x1(360,180)
+  REAL(fp) ::                 HgIIwet1x1(360,180)
+  REAL(fp) ::                 LAT_LONG(3,n_veg)
   INTEGER ::                i, j, ios, v,w, k
   CHARACTER(LEN=f_len+14) :: filename1
   CHARACTER(LEN=f_len+6) :: filename2
@@ -116,14 +119,14 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
      DO j=1,72
         HgIIwetGEOS(j,i)=HgIIwetGEOS(j,i)/area_pix(j,i)
         
-        HgIIwetGEOS(j,i)=HgIIwetGEOS(j,i)*1000.0d0*2629743.83d0
+        HgIIwetGEOS(j,i)=HgIIwetGEOS(j,i)*1000.0e+0_fp*2629743.83e+0_fp
         !now in units of g/m2/mo
         
         !dry dep is in unitls of molec/cm2/s
-        HgIIdryGEOS(j,i)=(HgIIdryGEOS(j,i)*(10000.0d0*2629743.83d0*200.59d0))  &
-             /(6.022d23)
-        Hg0dryGEOS(j,i)=(Hg0dryGEOS(j,i)*(10000.0d0*2629743.83d0*200.59d0))    &
-             /(6.022d23)
+        HgIIdryGEOS(j,i)=(HgIIdryGEOS(j,i)*(10000.0e+0_fp*2629743.83e+0_fp* &
+                200.59e+0_fp))/(6.022e+23_fp)
+        Hg0dryGEOS(j,i)=(Hg0dryGEOS(j,i)*(10000.0e+0_fp*2629743.83e+0_fp* &
+                200.59e+0_fp))/(6.022e+23_fp)
         !now in units of g/m2/mo
      END DO
      END DO
@@ -137,9 +140,9 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
   
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!Now convert 1x1 to n_veg x1 for use by CASA
-     Hg0dry(:,:)=0.0d0
-     HgIIdry(:,:)=0.0d0
-     HgIIwet(:,:)=0.0d0
+     Hg0dry(:,:)=0.0e+0_fp
+     HgIIdry(:,:)=0.0e+0_fp
+     HgIIwet(:,:)=0.0e+0_fp
      Hg0dry(:,:) = maskfile(Hg0dry1x1, mask2)
      HgIIdry(:,:) = maskfile(HgIIdry1x1, mask2)
      HgIIwet(:,:) = maskfile(HgIIwet1x1, mask2)
@@ -199,14 +202,14 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
            DO j=1,72
               HgIIwetGEOS(j,i)=HgIIwetGEOS(j,i)/area_pix(j,i)
               
-              HgIIwetGEOS(j,i)=HgIIwetGEOS(j,i)*1000.0d0*2629743.83d0
+              HgIIwetGEOS(j,i)=HgIIwetGEOS(j,i)*1000.0e+0_fp*2629743.83e+0_fp
               !now in units of g/m2/mo
               
               !dry dep is in unitls of molec/cm2/s
-              HgIIdryGEOS(j,i)=(HgIIdryGEOS(j,i)*(10000.0d0*2629743.83d0*200.59d0))  &
-                   /(6.022d23)
-              Hg0dryGEOS(j,i)=(Hg0dryGEOS(j,i)*(10000.0d0*2629743.83d0*200.59d0))    &
-                   /(6.022d23)
+              HgIIdryGEOS(j,i)=(HgIIdryGEOS(j,i)*(10000.0e+0_fp*2629743.83e+0_fp &
+                *200.59e+0_fp))/(6.022e+23_fp)
+              Hg0dryGEOS(j,i)=(Hg0dryGEOS(j,i)*(10000.0e+0_fp*2629743.83e+0_fp &
+                *200.59e+0_fp))/(6.022e+23_fp)
               !now in units of g/m2/mo
            END DO
            END DO
@@ -221,9 +224,9 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
 !!!!Now convert 1x1 to n_veg x1 for use by CASA
-           Hg0dry_mo(:,:,k)=0.0d0
-           HgIIdry_mo(:,:,k)=0.0d0
-           HgIIwet_mo(:,:,k)=0.0d0
+           Hg0dry_mo(:,:,k)=0.0e+0_fp
+           HgIIdry_mo(:,:,k)=0.0e+0_fp
+           HgIIwet_mo(:,:,k)=0.0e+0_fp
            Hg0dry_mo(:,:,k) = maskfile(Hg0dry1x1, mask2)
            HgIIdry_mo(:,:,k) = maskfile(HgIIdry1x1, mask2)
            HgIIwet_mo(:,:,k) = maskfile(HgIIwet1x1, mask2)

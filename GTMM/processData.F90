@@ -17,11 +17,14 @@ SUBROUTINE processData
   USE defineConstants
   USE loadCASAinput
   USE defineArrays
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   
   IMPLICIT NONE
 !
 ! !REVISION HISTORY:
 !  09 Jul 2010 - C. Caroauge - Initial version
+!  01 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -32,7 +35,7 @@ SUBROUTINE processData
   integer, dimension(26)    :: st
   character(len=f_len_output+14) :: filename1
 
-  st(:)=0.0d0
+  st(:)=0.0e+0_fp
 !!!!!monthly sum of total fluxes for all veg. pixels
 !!!!! UNITS = g
   NPPmonthly(yr,mo)    = SUM(gridAreab(:,1)*(frac_tree(:,1)+frac_herb(:,1))*NPP(:,mo))
