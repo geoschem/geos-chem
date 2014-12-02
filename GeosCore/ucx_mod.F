@@ -323,6 +323,8 @@
 !  07 Feb 2014 - R. Yantosca   - !$OMP DO loops now go in L-J-I order
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  24 Nov 2014 - C. Keller     - Update for stratospheric NOy (as suggested by 
+!                                Seb Eastham)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -489,26 +491,86 @@
      &                         Input_Opt, State_Met, State_Chm )
          ENDIF
 
-         ! Stratospheric NOy
+         ! Stratospheric NOy (update ckeller, 11/25/14)
          IF (LSETNOYSTRAT) THEN
             IF ( am_I_Root ) THEN
-               WRITE(6,*) '|NOx      |HNO3     |         |'
+               WRITE(6,*) '|NO       |NO2      |NO3      |'
+               WRITE(6,*) '|---------|---------|---------|'
+               WRITE(6,*) '|HNO2     |HNO3     |HNO4     |'
+               WRITE(6,*) '|---------|---------|---------|'
+               WRITE(6,*) '|N2O5     |PAN      |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
-
+ 
             ! No Montreal scaling
             SCALEFAC = 1.d0
-
+ 
+            TRAC_IDX = IDTNO
+            TRAC_SET = 'NO'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+ 
+            TRAC_IDX = IDTNO2
+            TRAC_SET = 'NO2'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+ 
+            ! Unstable product of ETO2 + NO2 gets lumped into NO2 for now
+            TRAC_SET = 'ETHO2NO2'
+            CALL APPLY_2DTRAC( .TRUE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+ 
+            TRAC_IDX = IDTNO3
+            TRAC_SET = 'NO3'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+ 
+            TRAC_IDX = IDTN2O5
+            TRAC_SET = 'N2O5'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+ 
+            TRAC_IDX = IDTHNO2
+            TRAC_SET = 'HONO'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+ 
             TRAC_IDX = IDTHNO3
             TRAC_SET = 'HNO3'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
-
-            TRAC_IDX = IDTNO
-            TRAC_SET = 'NOX'
+ 
+            TRAC_IDX = IDTHNO4
+            TRAC_SET = 'HO2NO2'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+ 
+            TRAC_IDX = IDTPAN
+            TRAC_SET = 'PAN'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
          ENDIF
+
+!         ! Stratospheric NOy
+!         IF (LSETNOYSTRAT) THEN
+!            IF ( am_I_Root ) THEN
+!               WRITE(6,*) '|NOx      |HNO3     |         |'
+!               WRITE(6,*) '|---------|---------|---------|'
+!            ENDIF
+!
+!            ! No Montreal scaling
+!            SCALEFAC = 1.d0
+!
+!            TRAC_IDX = IDTHNO3
+!            TRAC_SET = 'HNO3'
+!            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+!     &                         Input_Opt, State_Met, State_Chm )
+!
+!            TRAC_IDX = IDTNO
+!            TRAC_SET = 'NOX'
+!            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+!     &                         Input_Opt, State_Met, State_Chm )
+!         ENDIF
 
          ! Br-Cl (special case)
          IF (LSETCL.or.LSETBR.or.LSETBRSTRAT) THEN
