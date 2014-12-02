@@ -719,6 +719,11 @@ ifeq ($(COMPILER),ifort)
     USER_DEFS        += -DKPP_SOLVE_ALWAYS
   endif
 
+  # Add flexible precision declaration
+  ifeq ($(PRECISION),8)
+    USER_DEFS        += -DUSE_REAL8
+  endif
+
   # Append the user options in USER_DEFS to FFLAGS
   FFLAGS             += $(USER_DEFS)
 
@@ -801,6 +806,11 @@ ifeq ($(COMPILER),pgi)
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
     USER_DEFS        += -DKPP_SOLVE_ALWAYS
+  endif
+
+  # Add flexible precision declaration
+  ifeq ($(PRECISION),8)
+    USER_DEFS        += -DUSE_REAL8
   endif
 
   # Append the user options in USER_DEFS to FFLAGS
