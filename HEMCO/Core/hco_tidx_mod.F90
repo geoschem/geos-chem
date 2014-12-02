@@ -59,7 +59,7 @@ MODULE HCO_tIdx_Mod
 ! !USES:
 !
   USE HCO_Error_Mod
-  USE HCO_fileData_Mod,  ONLY : TimeIdx
+  USE HCO_FileData_Mod,  ONLY : TimeIdx
 
   IMPLICIT NONE
   PRIVATE

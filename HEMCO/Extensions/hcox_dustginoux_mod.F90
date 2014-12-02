@@ -464,7 +464,7 @@ CONTAINS
     ELSE
        ! Get global mass flux tuning factor
        CH_DUST = HcoX_DustGinoux_GetCHDust()
-       IF ( FLX_MSS_FDG_FCT < 0.0_dp ) THEN
+       IF ( CH_DUST < 0.0_dp ) THEN
           RC = HCO_FAIL
           RETURN
        ENDIF
