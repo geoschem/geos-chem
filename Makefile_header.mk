@@ -545,53 +545,57 @@ endif
 ###############################################################################
 
 # Library include path
-NCI                  := -I$(GC_INCLUDE)
+NC_INC_CMD           := -I$(GC_INCLUDE)
 
-# Find the correct nc-config commands based on the netCDF version
-NCV                  := $(shell $(GC_BIN)/nc-config --version)
-REGEXP               :="netCDF 4.1.1"
+# Get the version number (e.g. "4130"=netCDF 4.1.3; "4200"=netCDF 4.2, etc.)
+NC_VERSION           :=$(shell $(GC_BIN)/nc-config --version)
+NC_VERSION           :=$(shell echo "$(NC_VERSION)" | sed 's|netCDF ||g')
+NC_VERSION           :=$(shell echo "$(NC_VERSION)" | sed 's|\.||g')
+NC_VERSION_LEN       :=$(shell perl -e "print length $(NC_VERSION)")
+ifeq ($(NC_VERSION_LEN),3)
+ NC_VERSION          :=$(NC_VERSION)0
+endif
+ifeq ($(NC_VERSION_LEN),2) 
+ NC_VERSION          :=$(NC_VERSION)00
+endif
 
-ifeq ($(shell [[ "$(NCV)" == $(REGEXP) ]] && echo true),true)
+# Test if we have at least netCDF 4.2.0.0
+AT_LEAST_NC_4200     :=$(shell perl -e "print ($(NC_VERSION) ge 4200)")
+
+ifeq ($(AT_LEAST_NC_4200),1) 
 
   #-------------------------------------------------------------------------
-  # netCDF 4.1.1: Use "nc-config --libs"
+  # netCDF 4.2 and higher:
+  # Use "nf-config --flibs" and "nc-config --libs"
   #-------------------------------------------------------------------------
-  NCL                := $(shell $(GC_BIN)/nc-config --libs)
+  NC_LINK_CMD        := $(shell $(GC_BIN)/nf-config --flibs)
+  NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
 
 else
 
-REGEXP               :="netCDF 4.1.3"
-ifeq ($(shell [[ "$(NCV)" == $(REGEXP) ]] && echo true),true)
-
-  #-------------------------------------------------------------------------
-  # netCDF 4.1.3: Use "nc-config --flibs"
-  #-------------------------------------------------------------------------
-  NCL                := $(shell $(GC_BIN)/nc-config --flibs)
-  NCL                += $(shell $(GC_BIN)/nc-config --libs)
-
-else
-
-  #-------------------------------------------------------------------------
-  # netCDF 4.2 etc. use "nf-config --flibs" and "nc-config --libs"
-  #-------------------------------------------------------------------------
-  NCL                := $(shell $(GC_BIN)/nf-config --flibs)
-  NCL                += $(shell $(GC_BIN)/nc-config --libs)
+  #-----------------------------------------------------------------------
+  # Prior to netCDF 4.2:
+  # Use "nc-config --flibs" and nc-config --libs
+  #-----------------------------------------------------------------------
+  NC_LINK_CMD        := $(shell $(GC_BIN)/nc-config --flibs)
+  NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
 
 endif
-endif
 
-#------------------------------------------------------------------------------
-# NOTE TO GEOS-CHEM USERS: If you do not have netCDF-4.2 installed
-# Then you can add/modify the linking sequence here.  (This sequence
-# is a guess, but is probably good enough for other netCDF builds.)
-ifeq ($(NCL),) 
-NCL                  :=-lnetcdf -lhdf5_hl -lhdf5 -lz
+#=============================================================================
+#%%%%% KLUDGE FOR HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP MACHINES
+#%%%%% Manually prefix the library directory to the linker command.
+#%%%%% This corrects for an incomplete netCDF installation.
+NODENAME             :=$(shell uname -n)
+REGEXP               :=".as.harvard.edu"
+ifeq ($(shell [[ "$(NODENAME)" =~ $(REGEXP) ]] && echo true),true)
+  NC_LINK_CMD        := $(filter -l%,$(NC_LINK_CMD))
+  NC_LINK_CMD        :=-L$(GC_LIB) $(NC_LINK_CMD)
 endif
-#------------------------------------------------------------------------------
+#=============================================================================
 
-# Prepend the library directory path to the linking sequence
-NCL                  := $(filter -l%,$(NCL))
-NCL                  :=-L$(GC_LIB) $(NCL)
+# Save for backwards compatibility
+NCL                  := $(NC_LINK_CMD)
 
 # Command to link to local library files
 ifeq ($(GTMM_NEEDED),1)
@@ -600,7 +604,7 @@ else
   LINK               :=-L$(LIB)
 endif
 LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
-LINK                 :=$(LINK) -lHeaders -lNcUtils $(NCL)
+LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
 
 ###############################################################################
 ###                                                                         ###
@@ -712,7 +716,7 @@ ifeq ($(COMPILER),ifort)
   FFLAGS             += $(USER_DEFS)
 
   # Include options (i.e. for finding *.h, *.mod files)
-  INCLUDE            :=-module $(MOD) $(NCI)
+  INCLUDE            :=-module $(MOD) $(NC_INC_CMD)
 
   # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it 
   # will not compile.  ISORROPIA is slated for removal shortly. (bmy, 11/21/14)
@@ -796,7 +800,7 @@ ifeq ($(COMPILER),pgi)
   FFLAGS             += $(USER_DEFS)
 
   # Include options (i.e. for finding *.h, *.mod files)
-  INCLUDE            := -module $(MOD) -$(NCI)
+  INCLUDE            := -module $(MOD) -$(NC_INC_CMD)
 
   # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it 
   # will not compile.  ISORROPIA is slated for removal shortly. (bmy, 11/21/14)
@@ -850,6 +854,7 @@ export LINK
 export R8
 export SHELL
 export NCL
+export NC_LINK_CMD
 export HPC
 
 #EOC
