@@ -405,14 +405,10 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_OVERHEAD_O3( am_I_Root,       DAY,
-     &                                USE_O3_FROM_MET, TO3 )
+      SUBROUTINE COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, TO3 )
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Root CPU?
-      LOGICAL, INTENT(IN)  :: am_I_Root
-
       ! Day of month 
       INTEGER, INTENT(IN)  :: DAY      
 
@@ -492,7 +488,6 @@
 !  06 Mar 2012 - R. Yantosca - Initial version, pulled code out from 
 !                              the FAST-J routine SET_PROF; based on the
 !                              GEOS-Chem column code routine
-!  22 Oct 2014 - C. Keller   - Added am_I_Root parameter.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -515,7 +510,7 @@
          ! Here we are using the overhead O3 from the meteorology;
          ! we won't overwrite this with TOMS/SBUV O3 columns
          !---------------------------------------------------------------
-         IF ( am_I_Root .AND. FIRST ) THEN
+         IF ( FIRST ) THEN
             WRITE( 6, '(a)' ) REPEAT( '%', 45 )
             WRITE( 6, 100   )
  100        FORMAT( '%%% USING O3 COLUMNS FROM THE MET FIELDS! %%% ' )

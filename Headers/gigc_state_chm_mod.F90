@@ -44,7 +44,7 @@ MODULE GIGC_State_Chm_Mod
      INTEGER,           POINTER :: Trac_Id    (:      )  ! Tracer ID #'s
      CHARACTER(LEN=14), POINTER :: Trac_Name  (:      )  ! Tracer names
      REAL*8,            POINTER :: Tracers    (:,:,:,:)  ! Tracer conc [kg]
-!     REAL*8,            POINTER :: Trac_Tend  (:,:,:,:)  ! Tracer tendency [kg/m2/s]
+     REAL*8,            POINTER :: Trac_Tend  (:,:,:,:)  ! Tracer tendency [kg/m2/s]
 
      ! Chemical species
      INTEGER,           POINTER :: Spec_Id    (:      )  ! Species ID # 
@@ -52,7 +52,8 @@ MODULE GIGC_State_Chm_Mod
      REAL*8,            POINTER :: Species    (:,:,:,:)  ! Species [molec/cm3]
 
      ! Chemical rates & rate parameters
-!     REAL*8,            POINTER :: DepSav     (:,:,:  )  ! Drydep freq [1/s]
+     REAL*8,            POINTER :: DepSav     (:,:,:  )  ! Drydep freq [1/s]
+     INTEGER,           POINTER :: JLOP(:,:,:), JLOP_PREV(:,:,:)
 
      ! Stratospheric chemistry 
      INTEGER,           POINTER :: Schm_Id    (:      )  ! Strat Chem ID #'s
@@ -342,6 +343,8 @@ CONTAINS
 !
 ! !USES:
 !
+                                                                                                                                                         
+    USE Comode_Loop_Mod,    ONLY   : ILONG, ILAT, IPVERT
     USE GIGC_ErrCode_Mod                         ! Error codes
     USE GIGC_Input_Opt_Mod, ONLY   : OptInput    ! Derived type
 !
@@ -403,8 +406,8 @@ CONTAINS
     ALLOCATE( State_Chm%Tracers       ( IM, JM, LM, nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-!    ALLOCATE( State_Chm%Trac_Tend     ( IM, JM, LM, nTracers+1 ), STAT=RC )
-!    IF ( RC /= GIGC_SUCCESS ) RETURN
+    ALLOCATE( State_Chm%Trac_Tend     ( IM, JM, LM, nTracers+1 ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !=====================================================================
     ! Allocate chemical species fields
@@ -423,9 +426,17 @@ CONTAINS
     ! Allocate chemical rate fields
     !=====================================================================
 
-!    ! DEPSAV is allocated in drydep_mod
-!    ALLOCATE( State_Chm%DEPSAV        ( IM, JM,     nSpecies   ), STAT=RC )
-!    IF ( RC /= GIGC_SUCCESS ) RETURN
+    ! DEPSAV is allocated in drydep_mod
+    ALLOCATE( State_Chm%DEPSAV        ( IM, JM,     nSpecies   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    ALLOCATE( State_Chm%JLOP( ILONG, ILAT, IPVERT ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%JLOP = 0
+
+    ALLOCATE( State_Chm%JLOP_PREV( ILONG, ILAT, IPVERT ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Chm%JLOP_PREV = 0
 
 ! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
 !    !=====================================================================
@@ -474,10 +485,10 @@ CONTAINS
     State_Chm%Trac_Id     = 0
     State_Chm%Trac_name   = ''
     State_Chm%Tracers     = 0d0
-!    State_Chm%Trac_Tend   = 0d0
-!
-!    ! Dry deposition
-!    State_Chm%DepSav      = 0d0
+    State_Chm%Trac_Tend   = 0d0
+
+    ! Dry deposition
+    State_Chm%DepSav      = 0d0
 
     ! Chemical species
     State_Chm%Spec_Id     = 0
@@ -552,10 +563,10 @@ CONTAINS
     IF ( ASSOCIATED(State_Chm%Trac_Name  ) ) DEALLOCATE(State_Chm%Trac_Name  )
     IF ( ASSOCIATED(State_Chm%Spec_Id    ) ) DEALLOCATE(State_Chm%Spec_Id    )
     IF ( ASSOCIATED(State_Chm%Spec_Name  ) ) DEALLOCATE(State_Chm%Spec_Name  )
-!    IF ( ASSOCIATED(State_Chm%Trac_Tend  ) ) DEALLOCATE(State_Chm%Trac_Tend  )
+    IF ( ASSOCIATED(State_Chm%Trac_Tend  ) ) DEALLOCATE(State_Chm%Trac_Tend  )
     IF ( ASSOCIATED(State_Chm%Tracers    ) ) DEALLOCATE(State_Chm%Tracers    )
     IF ( ASSOCIATED(State_Chm%Species    ) ) DEALLOCATE(State_Chm%Species    )
-!    IF ( ASSOCIATED(State_Chm%DepSav     ) ) DEALLOCATE(State_Chm%DepSav     )
+    IF ( ASSOCIATED(State_Chm%DepSav     ) ) DEALLOCATE(State_Chm%DepSav     )
 
     ! NOTE: Comment out for now, leave for future expansion (bmy, 11/26/12)
     !IF ( ASSOCIATED(State_Chm%Schm_Id    ) ) DEALLOCATE(State_Chm%Schm_Id    )

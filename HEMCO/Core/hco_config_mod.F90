@@ -1277,6 +1277,13 @@ CONTAINS
           CALL HCO_MSG(MSG)
        ENDIF
 
+!       ! -------------------------------------------------------------
+!       ! Eventually read data from file 
+!       IF ( .NOT. Lct%Dct%Dta%ncRead ) THEN
+!          CALL ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
+!          IF ( RC /= HCO_SUCCESS ) RETURN
+!       ENDIF       
+
        ! -------------------------------------------------------------
        ! Extract vector of scale factor container IDs to be applied 
        ! to this base field (vector Scal_cID). For now, this container
@@ -1453,6 +1460,18 @@ CONTAINS
           RETURN 
        ENDIF
  
+       ! Eventually read scalar data (scale fields only)
+       ! Spatially homogenous scale factors ('scalars') can directly 
+       ! be defined in the configuration file (column 'Scalar'). All 
+       ! file information (sourceFile, sourceVar, and time stamp) will 
+       ! be ignored in this case. More than one scalar can be 
+       ! specified, in which case these are interpreted as temporal 
+       ! variations (7=day of week, 12=monthly, 24=hourly). 
+!       IF ( .NOT. Lct%Dct%Dta%ncRead ) THEN 
+!          CALL ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
+!          IF ( RC /= HCO_SUCCESS ) RETURN
+!       ENDIF
+
        ! Register container in ReadList. Containers will be listed 
        ! in the reading lists sorted by cID.  
        CALL ReadList_Set( am_I_Root, HcoState, Lct%Dct, RC )

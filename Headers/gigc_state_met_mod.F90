@@ -57,7 +57,7 @@ MODULE GIGC_State_Met_Mod
      REAL*8,  POINTER :: GWETTOP   (:,:  )  ! Top soil moisture [1]
      REAL*8,  POINTER :: HFLUX     (:,:  )  ! Sensible heat flux [W/m2]
      REAL*8,  POINTER :: LAI       (:,:  )  ! Leaf area index [m2/m2]
-     REAL*8,  POINTER :: ITY       (:,:  )  ! Land surface type index
+     REAL*8,  POINTER :: ITY       (:,:  )  ! Land-surface Type Index
      REAL*8,  POINTER :: LWI       (:,:  )  ! Land/water indices [1]
      REAL*8,  POINTER :: LWI_GISS  (:,:  )  ! Land fraction [1]
      REAL*8,  POINTER :: MOLENGTH  (:,:  )  ! Monin-Obhukov length [m]
@@ -190,9 +190,6 @@ MODULE GIGC_State_Met_Mod
 !  13 Dec 2012 - R. Yantosca - Add XLAI, XLAI2 fields for dry deposition
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  15 Nov 2013 - R. Yantosca - Now denote that RH fields have units of [%]
-!  10 Oct 2014 - C. Keller   - Added ITY (needed for GIGC). For now, this value
-!                              is just initialized to 1.0 and not modified any
-!                              more.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -326,7 +323,7 @@ CONTAINS
 
     ALLOCATE( State_Met%ITY       ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%ITY      = 1d0
+    State_Met%ITY      = 1.d0
 
     ALLOCATE( State_Met%LWI       ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -916,7 +913,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%GWETTOP    )) DEALLOCATE( State_Met%GWETTOP    )
     IF ( ASSOCIATED( State_Met%HFLUX      )) DEALLOCATE( State_Met%HFLUX      )
     IF ( ASSOCIATED( State_Met%LAI        )) DEALLOCATE( State_Met%LAI        )
-    IF ( ASSOCIATED( State_Met%ITY        )) DEALLOCATE( State_Met%ITY        )
     IF ( ASSOCIATED( State_Met%LWI        )) DEALLOCATE( State_Met%LWI        )
     IF ( ASSOCIATED( State_Met%PARDR      )) DEALLOCATE( State_Met%PARDR      )
     IF ( ASSOCIATED( State_Met%PARDF      )) DEALLOCATE( State_Met%PARDF      )

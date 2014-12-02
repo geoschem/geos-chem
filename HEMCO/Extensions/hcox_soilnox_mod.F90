@@ -115,21 +115,21 @@ MODULE HCOX_SoilNOx_Mod
   REAL*8                        :: FERT_SCALE     ! fertilizer scale factor
 
   ! # of MODIS/Koppen biome types
-  INTEGER, PARAMETER            :: NBIOM = 24 
+  INTEGER, PARAMETER            :: NBIOM_HSN = 24 
 
   ! Dry period length (from restart)
-  REAL(hp), ALLOCATABLE, TARGET :: DRYPERIOD    (:,:  )
+  REAL(hp), ALLOCATABLE, TARGET :: DRYPERIOD_HSN    (:,:  )
 
   ! Pulse factors (from restart)
-  REAL(hp), ALLOCATABLE, TARGET :: PFACTOR      (:,:  )
-  REAL(hp), ALLOCATABLE, TARGET :: GWET_PREV    (:,:  )
+  REAL(hp), ALLOCATABLE, TARGET :: PFACTOR_HSN      (:,:  )
+  REAL(hp), ALLOCATABLE, TARGET :: GWET_PREV_HSN    (:,:  )
 
   ! Deposition reservoir (from restart)
-  REAL(hp), POINTER             :: DEP_RESERVOIR(:,:  ) => NULL()
+  REAL(hp), ALLOCATABLE, TARGET :: DEP_RESERVOIR_HSN(:,:  )
 
   ! Instantaneous soil NOx and fertilizer
-  REAL*8,  ALLOCATABLE          :: INST_SOIL    (:,:  )
-  REAL*8,  ALLOCATABLE          :: INST_FERT    (:,:  )
+  REAL*8,  ALLOCATABLE          :: INST_SOIL_HSN    (:,:  )
+  REAL*8,  ALLOCATABLE          :: INST_FERT_HSN    (:,:  )
 
   ! NOx in the canopy
   REAL*8,  ALLOCATABLE          :: CANOPYNOX        (:,:,:)
@@ -140,7 +140,7 @@ MODULE HCOX_SoilNOx_Mod
   ENDTYPE MODL
   TYPE(MODL), POINTER           :: LANDTYPE         (:    ) => NULL()
 
-  ! Soil fertilizer (kg/m3) 
+  ! Soil fertilizer 
   REAL(hp), POINTER             :: SOILFERT         (:,:  ) => NULL()
 
   ! Fraction of arid and non-arid land
@@ -157,80 +157,80 @@ MODULE HCOX_SoilNOx_Mod
   ! Canopy wind extinction coefficients
   ! (cf. Yienger & Levy [1995], Sec 5), now a function of the
   ! MODIS/KOPPEN biometype (J.D. Maasakkers)
-  REAL*8,  PARAMETER, PRIVATE :: SOILEXC(NBIOM) =               (/ & 
+  REAL*8,  PARAMETER, PRIVATE :: SOILEXC(NBIOM_HSN) =               (/ & 
         0.10, 0.50, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 1.00,    &
         1.00, 1.00, 1.00, 2.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00,    &
         4.00, 2.00, 0.10, 2.00                                       /)
 
   ! Steinkamp and Lawrence, 2011 A values, wet biome coefficients
   ! for each of the 24 soil biomes [ng N/m2/s].
-  REAL*8,  PARAMETER, PRIVATE  :: A_BIOME(NBIOM) =              (/ &
+  REAL*8,  PARAMETER, PRIVATE  :: A_BIOME(NBIOM_HSN) =              (/ &
         0.00, 0.00, 0.00, 0.00, 0.00, 0.06, 0.09, 0.09, 0.01, 0.84,    &
         0.84, 0.24, 0.42, 0.62, 0.03, 0.36, 0.36, 0.35, 1.66, 0.08,    &
         0.44, 0.57, 0.57, 0.57                                       /)
 
   ! "A" coefficients for converting surface temp to soil temp
   ! for each of the 24 soil biomes
-  REAL*8,  PARAMETER, PRIVATE :: SOILTA(NBIOM)  =               (/ &
+  REAL*8,  PARAMETER, PRIVATE :: SOILTA(NBIOM_HSN)  =               (/ &
         0.00, 0.92, 0.00, 0.66, 0.66, 0.66, 0.66, 0.66, 0.66, 0.66,    &
         0.66, 0.66, 0.66, 0.66, 0.84, 0.84, 0.84, 0.84, 0.84, 0.84,    &
         0.84, 1.03, 1.03, 1.03                                       /)
 
   ! "B" coefficients for converting surface temp to soil temp
   ! for each of the 24 soil biomes
-  REAL*8,  PARAMETER, PRIVATE :: SOILTB(NBIOM)  =               (/ &
+  REAL*8,  PARAMETER, PRIVATE :: SOILTB(NBIOM_HSN)  =               (/ &
         0.00, 4.40, 0.00, 8.80, 8.80, 8.80, 8.80, 8.80, 8.80, 8.80,    &
         8.80, 8.80, 8.80, 8.80, 3.60, 3.60, 3.60, 3.60, 3.60, 3.60,    &
         3.60, 2.90, 2.90, 2.90                                       /)
 
   ! MODIS/Koppen resistance values
-  INTEGER, PARAMETER, PRIVATE :: SNIMODIS(NBIOM) =              (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIMODIS(NBIOM_HSN) =              (/ &
            1,    2,    3,    4,    5,    6,    7,    8,    9,   10,    &
           11,   12,   13,   14,   15,   16,   17,   18,   19,   20,    &
           21,   22,   23,   24                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRI(NBIOM) =                 (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRI(NBIOM_HSN) =                 (/ &
         9999,  200, 9999, 9999, 9999, 9999,  200,  200,  200,  200,    &
          200,  200,  200,  200,  200,  200,  200,  400,  400,  200,    &
          200,  200, 9999,  200                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRLU(NBIOM) =                (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRLU(NBIOM_HSN) =                (/ &
         9999, 9000, 9999, 9999, 9999, 9999, 9000, 9000, 9000, 9000,    &
         9000, 9000, 9000, 9000, 9000, 1000, 9000, 9000, 9000, 9000,    &
         1000, 9000, 9999, 9000                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRAC(NBIOM) =                (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRAC(NBIOM_HSN) =                (/ &
            0,  300,    0,    0,    0,    0,  100,  100,  100,  100,    &
          100,  100,  100,  100, 2000, 2000, 2000, 2000, 2000, 2000,    &
         2000,  200,  100,  200                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRGSS(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRGSS(NBIOM_HSN) =               (/ &
            0,    0,  100, 1000,  100, 1000,  350,  350,  350,  350,    &
          350,  350,  350,  350,  500,  200,  500,  500,  500,  500,    &
          200,  150,  400,  150                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRGSO(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRGSO(NBIOM_HSN) =               (/ &
         2000, 1000, 3500,  400, 3500,  400,  200,  200,  200,  200,    &
          200,  200,  200,  200,  200,  200,  200,  200,  200,  200,    &
          200,  150,  300,  150                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRCLS(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRCLS(NBIOM_HSN) =               (/ &
        9999, 2500, 9999, 9999, 9999, 9999, 2000, 2000, 2000, 2000,     &
        2000, 2000, 2000, 2000, 2000, 9999, 2000, 2000, 2000, 2000,     &
        9999, 2000, 9999, 2000                                        /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRCLO(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRCLO(NBIOM_HSN) =               (/ &
        9999, 1000, 1000, 9999, 1000, 9999, 1000, 1000, 1000, 1000,     & 
        1000, 1000, 1000, 1000, 1000, 9999, 1000, 1000, 1000, 1000,     &
        9999, 1000, 9999, 1000                                        /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIVSMAX(NBIOM) =              (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIVSMAX(NBIOM_HSN) =              (/ &
          10,  100,  100,   10,  100,   10,  100,  100,  100,  100,     &
         100,  100,  100,  100,  100,  100,  100,  100,  100,  100,     &
         100,  100,  100,  100                                        /)
 
-!  ! Conversion factor from kg NO to ng N
-!  REAL*8,  PARAMETER, PRIVATE :: kgNO_to_ngN = 4.666d11 !(14/30 * 1e12)
+  ! Conversion factor from kg NO to ng N
+  REAL*8,  PARAMETER, PRIVATE :: kgNO_to_ngN = 4.666d11 !(14/30 * 1e12)
 
 CONTAINS
 !EOC
@@ -279,6 +279,7 @@ CONTAINS
     REAL(hp), TARGET       :: FLUX_2D(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: DIAG   (HcoState%NX,HcoState%NY)
     REAL*8                 :: FERTDIAG, DEP_FERT, SOILFRT
+    REAL*8, PARAMETER      :: SEC_PER_YEAR = 3.1536d7
     REAL*4                 :: TSEMIS
     REAL*8                 :: UNITCONV, IJFLUX
     REAL(dp), ALLOCATABLE  :: VecDp(:)
@@ -375,36 +376,35 @@ CONTAINS
        ! in the configuration file. 
        !---------------------------------------------------------------
 
-       ! DEP_RESERVOIR. Read in kg NO/m3.
+       ! DEP_RESERVOIR. HEMCO converts this to kgNO/m2/s. Convert here
+       ! back to ngN/m2.
        CALL HCO_GetPtr ( aIR, 'SOILNOX_DEPRES', TmpArr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       DEP_RESERVOIR(:,:) = TmpArr(:,:)
+       DEP_RESERVOIR_HSN(:,:) = TmpArr(:,:) * kgNO_to_ngN * HcoState%TS_EMIS
        TmpArr => NULL()
 
        ! GWET_PREV [unitless]
        CALL HCO_GetPtr ( aIR, 'SOILNOX_GWET', TmpArr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       GWET_PREV(:,:) = TmpArr(:,:)
+       GWET_PREV_HSN(:,:) = TmpArr(:,:)
        TmpArr => NULL()
           
        ! PFACTOR [unitless]
        CALL HCO_GetPtr ( aIR, 'SOILNOX_PFACT', TmpArr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       PFACTOR(:,:) = TmpArr(:,:)
+       PFACTOR_HSN(:,:) = TmpArr(:,:)
        TmpArr => NULL()
-   
+          
        ! DRYPERIOD [unitless]
        CALL HCO_GetPtr ( aIR, 'SOILNOX_DRYPER', TmpArr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       DRYPERIOD(:,:) = TmpArr(:,:)
+       DRYPERIOD_HSN(:,:) = TmpArr(:,:)
        TmpArr => NULL()
 
        ! Print a warning
-       IF ( am_I_Root ) THEN
-          MSG = 'Restart variables obtained from restart file - ' // &
-                'I hope the correct time stamp is used!'
-          CALL HCO_WARNING( MSG, RC )
-       ENDIF
+       MSG = 'Restart variables obtained from restart file - ' // &
+            'I hope the correct time stamp is used!'
+       CALL HCO_WARNING( MSG, RC )
 
        ! Check if ExtState variables DRYCOEFF is defined. Otherwise, try to
        ! read it from settings.
@@ -455,13 +455,11 @@ CONTAINS
 
        ! Get Deposited Fertilizer DEP_FERT [kg NO/m2]
        CALL GET_DEP_N( I, J, ExtState, HcoState, DEP_FERT )
-
-!       ! Convert to [kg NO/m2] 
-!       DEP_FERT = DEP_FERT / sec_per_year
-!       CALL FLUSH(6)
+       DEP_FERT = DEP_FERT / sec_per_year
+       CALL FLUSH(6)
 
        ! Get N fertilizer reservoir associated with chemical and
-       ! manure fertilizer [kg NO/m2]
+       ! manure fertilizer [kg NO/m2/s]
        IF ( LFERTILIZERNOX ) THEN
           SOILFRT =  SOILFERT( I, J )  
        ELSE
@@ -473,20 +471,20 @@ CONTAINS
 
        ! Put in constraint if dry period gt 1 yr, keep at 1yr to
        ! avoid unrealistic pulse
-       IF ( DRYPERIOD(I,J) > 8760d0 ) DRYPERIOD(I,J) = 8760d0
+       IF ( DRYPERIOD_HSN(I,J) > 8760d0 ) DRYPERIOD_HSN(I,J) = 8760d0
  
        ! Return NO emissions from soils [kg NO/m2/s]
-       CALL SOIL_NOX_EMISSION( ExtState,                       &
-                               TSEMIS, I, J,                   &
-                               SOILFRT,                        &
-                               GWET_PREV(I,J), DRYPERIOD(I,J), &
-                               PFACTOR(I,J),   IJFLUX,         &
-                               DEP_FERT,       FERTDIAG,       &
-                               UNITCONV,                       &
-                               CANOPYNOX(I,J,:)                 )
+       CALL SOIL_NOX_EMISSION( ExtState,                                &
+                               TSEMIS, I, J,                            &
+                               SOILFRT,                                 &
+                               GWET_PREV_HSN(I,J), DRYPERIOD_HSN(I,J),  &
+                               PFACTOR_HSN(I,J),   IJFLUX,              &
+                               DEP_FERT,           FERTDIAG,            &
+                               UNITCONV,                                &
+                               CANOPYNOX(I,J,:)                  )
      
        ! Write out
-       FLUX_2D(I,J) = MAX(IJFLUX,0.0_hp)
+       FLUX_2D(I,J) = IJFLUX
        IF (DoDiagn) DIAG(I,J) = FERTDIAG
 
     ENDDO !J 
@@ -499,10 +497,7 @@ CONTAINS
 
     ! Add flux to emission array
     CALL HCO_EmisAdd( HcoState, FLUX_2D, IDTNO, RC)
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL HCO_ERROR( 'HCO_EmisAdd error', RC )
-       RETURN 
-    ENDIF
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! Eventually update diagnostics
     IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -615,23 +610,21 @@ CONTAINS
     IDTNO = HcoIDs(1)
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
-       MSG = 'Use soil NOx emissions (extension module)'
-       CALL HCO_MSG( MSG, SEP1='-' )
+    MSG = 'Use soil NOx emissions (extension module)'
+    CALL HCO_MSG( MSG, SEP1='-' )
 
-       WRITE(MSG,*) '   - NOx species:', TRIM(SpcNames(1)), IDTNO
-       CALL HCO_MSG(MSG)
-       WRITE(MSG,*) '   - Use fertilizer NOx: ', LFERTILIZERNOX
-       CALL HCO_MSG(MSG)
-       WRITE(MSG,*) '   - Global scale factor: ', FERT_SCALE 
-       CALL HCO_MSG(MSG)
-       MSG = '   --> Restart variables are taken from file specified in'
-       CALL HCO_MSG(MSG)
-       MSG = '       the config. file - I hope this file contains the'
-       CALL HCO_MSG(MSG)
-       MSG = '       simulation start date!!!' 
-       CALL HCO_MSG(MSG,SEP2='-')
-    ENDIF
+    WRITE(MSG,*) '   - NOx species:', TRIM(SpcNames(1)), IDTNO
+    CALL HCO_MSG(MSG)
+    WRITE(MSG,*) '   - Use fertilizer NOx: ', LFERTILIZERNOX
+    CALL HCO_MSG(MSG)
+    WRITE(MSG,*) '   - Global scale factor: ', FERT_SCALE 
+    CALL HCO_MSG(MSG)
+    MSG = '   --> Restart variables are taken from file specified in'
+    CALL HCO_MSG(MSG)
+    MSG = '       the config. file - I hope this file contains the'
+    CALL HCO_MSG(MSG)
+    MSG = '       simulation start date!!!' 
+    CALL HCO_MSG(MSG,SEP2='-')
 
     ! ---------------------------------------------------------------------- 
     ! Set module variables
@@ -641,66 +634,66 @@ CONTAINS
     I = HcoState%NX
     J = HcoState%NY
 
-    ALLOCATE( DRYPERIOD    ( I, J        ), STAT=AS )
+    ALLOCATE( DRYPERIOD_HSN    ( I, J        ), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('DRYPERIOD',     RC )
+       CALL HCO_ERROR('DRYPERIOD_HSN',     RC )
        RETURN
     ENDIF
 
-    ALLOCATE( PFACTOR      ( I, J        ), STAT=AS )
+    ALLOCATE( PFACTOR_HSN      ( I, J        ), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('PFACTOR',       RC )
+       CALL HCO_ERROR('PFACTOR_HSN',       RC )
        RETURN
     ENDIF
 
-    ALLOCATE( GWET_PREV    ( I, J        ), STAT=AS )
+    ALLOCATE( GWET_PREV_HSN    ( I, J        ), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('GWET_PREV',     RC )
+       CALL HCO_ERROR('GWET_PREV_HSN',     RC )
        RETURN
     ENDIF
 
-    ALLOCATE( INST_SOIL    ( I, J        ), STAT=AS )
+    ALLOCATE( INST_SOIL_HSN    ( I, J        ), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('INST_SOIL',     RC )
+       CALL HCO_ERROR('INST_SOIL_HSN',     RC )
        RETURN
     ENDIF
 
-    ALLOCATE( INST_FERT    ( I, J        ), STAT=AS )
+    ALLOCATE( INST_FERT_HSN    ( I, J        ), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('INST_FERT',     RC )
+       CALL HCO_ERROR('INST_FERT_HSN',     RC )
        RETURN
     ENDIF
 
-    ALLOCATE( DEP_RESERVOIR( I, J        ), STAT=AS )
+    ALLOCATE( DEP_RESERVOIR_HSN( I, J        ), STAT=AS )
     IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('DEP_RESERVOIR', RC )
+       CALL HCO_ERROR('DEP_RESERVOIR_HSN', RC )
        RETURN
     ENDIF
 
-    ALLOCATE( CANOPYNOX( I, J, NBIOM     ), STAT=AS )
+    ALLOCATE( CANOPYNOX( I, J, NBIOM_HSN     ), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR('CANOPYNOX',         RC )
        RETURN
     ENDIF
 
     ! Reserve 24 pointers for land fractions for each Koppen category
-    ALLOCATE ( LANDTYPE(NBIOM), STAT=AS )
+    ALLOCATE ( LANDTYPE(NBIOM_HSN), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR('LANDTYPE',           RC )
        RETURN
     ENDIF
-    DO II = 1,NBIOM
-       LANDTYPE(NBIOM)%VAL => NULL()
+    DO II = 1,NBIOM_HSN
+       LANDTYPE(NBIOM_HSN)%VAL => NULL()
     ENDDO
 
     ! Zero arrays
-    DRYPERIOD     = 0.0_hp
-    PFACTOR       = 0.0_hp
-    GWET_PREV     = 0.0_hp
-    INST_SOIL     = 0d0
-    INST_FERT     = 0d0
+    DRYPERIOD_HSN     = 0.0_hp
+    PFACTOR_HSN       = 0.0_hp
+    GWET_PREV_HSN     = 0.0_hp
+    INST_SOIL_HSN     = 0d0
+    INST_FERT_HSN     = 0d0
     CANOPYNOX         = 0d0
-    DEP_RESERVOIR = 0.0_hp
+    DEP_RESERVOIR_HSN = 0.0_hp
 
     ! ---------------------------------------------------------------------- 
     ! Set diagnostics 
@@ -715,7 +708,7 @@ CONTAINS
                         OutUnit    = 'unitless',  &
                         WriteFreq  = 'End',       &
                         AutoFill   = 0,           &
-                        Trgt2D     = PFACTOR, &
+                        Trgt2D     = PFACTOR_HSN, &
                         cID        = II,          &
                         RC         = RC            )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -730,7 +723,7 @@ CONTAINS
                         OutUnit    = 'unitless',    &
                         WriteFreq  = 'End',         &
                         AutoFill   = 0,             &
-                        Trgt2D     = DRYPERIOD, &
+                        Trgt2D     = DRYPERIOD_HSN, &
                         cID        = II,            &
                         RC         = RC              )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -745,7 +738,7 @@ CONTAINS
                         OutUnit    = 'unitless',    &
                         WriteFreq  = 'End',         &
                         AutoFill   = 0,             &
-                        Trgt2D     = GWET_PREV, &
+                        Trgt2D     = GWET_PREV_HSN, &
                         cID        = II,            &
                         RC         = RC              )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -757,10 +750,10 @@ CONTAINS
                         Hier       = -1,                &
                         HcoID      = IDTNO,             &
                         SpaceDim   = 2,                 &
-                        OutUnit    = 'kg/m3',           &
+                        OutUnit    = 'ngN/m2',          &
                         WriteFreq  = 'End',             &
                         AutoFill   = 0,                 &
-                        Trgt2D     = DEP_RESERVOIR, &
+                        Trgt2D     = DEP_RESERVOIR_HSN, &
                         cID        = II,                &
                         RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -826,18 +819,18 @@ CONTAINS
     !=================================================================
 
     ! Deallocate arrays
-    IF ( ALLOCATED (DRYPERIOD    ) ) DEALLOCATE ( DRYPERIOD     )
-    IF ( ALLOCATED (PFACTOR      ) ) DEALLOCATE ( PFACTOR       )
-    IF ( ALLOCATED (GWET_PREV    ) ) DEALLOCATE ( GWET_PREV     )
-    IF ( ALLOCATED (INST_SOIL    ) ) DEALLOCATE ( INST_SOIL     )
-    IF ( ALLOCATED (INST_FERT    ) ) DEALLOCATE ( INST_FERT     )
-    IF ( ALLOCATED (CANOPYNOX        ) ) DEALLOCATE ( CANOPYNOX         )
-    IF ( ASSOCIATED(DEP_RESERVOIR) ) DEALLOCATE ( DEP_RESERVOIR )
-    IF ( ALLOCATED (DRYCOEFF         ) ) DEALLOCATE ( DRYCOEFF          )
+    IF ( ALLOCATED(DRYPERIOD_HSN    ) ) DEALLOCATE ( DRYPERIOD_HSN     )
+    IF ( ALLOCATED(PFACTOR_HSN      ) ) DEALLOCATE ( PFACTOR_HSN       )
+    IF ( ALLOCATED(GWET_PREV_HSN    ) ) DEALLOCATE ( GWET_PREV_HSN     )
+    IF ( ALLOCATED(INST_SOIL_HSN    ) ) DEALLOCATE ( INST_SOIL_HSN     )
+    IF ( ALLOCATED(INST_FERT_HSN    ) ) DEALLOCATE ( INST_FERT_HSN     )
+    IF ( ALLOCATED(CANOPYNOX        ) ) DEALLOCATE ( CANOPYNOX         )
+    IF ( ALLOCATED(DEP_RESERVOIR_HSN) ) DEALLOCATE ( DEP_RESERVOIR_HSN )
+    IF ( ALLOCATED(DRYCOEFF         ) ) DEALLOCATE ( DRYCOEFF          )
 
     ! Deallocate LANDTYPE vector 
     IF ( ASSOCIATED(LANDTYPE) ) THEN
-       DO I = 1,NBIOM
+       DO I = 1,NBIOM_HSN
           LANDTYPE(I)%VAL => NULL()
        ENDDO
        DEALLOCATE ( LANDTYPE )
@@ -905,8 +898,8 @@ CONTAINS
 !
   SUBROUTINE Soil_NOx_Emission( ExtState,   TS_EMIS,   I, J, &
                                 SOILFRT,   &
-                                GWET_PREV, DRYPERIOD, &
-                                PFACTOR,   SOILNOx,   &
+                                GWET_PREV_HSN, DRYPERIOD_HSN, &
+                                PFACTOR_HSN,   SOILNOx,   &
                                 DEPN,      FERTDIAG,  &
                                 UNITCONV,  R_CANOPY )
 !
@@ -916,8 +909,8 @@ CONTAINS
     REAL*4,  INTENT(IN)  :: TS_EMIS          ! Emission timestep [s]
     INTEGER, INTENT(IN)  :: I                ! grid box lon index 
     INTEGER, INTENT(IN)  :: J                ! grid box lat index 
-    REAL*8,  INTENT(IN)  :: DEPN             ! Dry Dep Fert term [kg/m2]
-    REAL*8,  INTENT(IN)  :: SOILFRT          ! Fertilizer emissions [kg/m2]
+    REAL*8,  INTENT(IN)  :: DEPN             ! Dry Dep Fert term [kg/m2/s]
+    REAL*8,  INTENT(IN)  :: SOILFRT          ! Fertilizer emissions [kg/m2/s]
     REAL*8,  INTENT(IN)  :: UNITCONV         ! ng N to kg NO 
 
     !Input parameters for the canopy reduction factor
@@ -926,9 +919,9 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     REAL*8,   INTENT(OUT) :: SOILNOx         ! Soil NOx emissions [kg/m2/s]
-    REAL(hp), INTENT(OUT) :: GWET_PREV       ! Soil Moisture Prev timestep
-    REAL(hp), INTENT(OUT) :: DRYPERIOD       ! Dry period length in hours
-    REAL(hp), INTENT(OUT) :: PFACTOR         ! Pulsing Factor
+    REAL(hp), INTENT(OUT) :: GWET_PREV_HSN   ! Soil Moisture Prev timestep
+    REAL(hp), INTENT(OUT) :: DRYPERIOD_HSN   ! Dry period length in hours
+    REAL(hp), INTENT(OUT) :: PFACTOR_HSN     ! Pulsing Factor
     REAL*8,   INTENT(OUT) :: FERTDIAG        ! Fert emissions [kg/m2/s]
 !
 ! !REMARKS:
@@ -989,7 +982,7 @@ CONTAINS
 
     ! Cumulative multiplication factor (over baseline emissions) 
     ! that accounts for soil pulsing
-    PULSE = PULSING( GWET, TS_EMIS, GWET_PREV, PFACTOR, DRYPERIOD )
+    PULSE = PULSING( GWET, TS_EMIS, GWET_PREV_HSN, PFACTOR_HSN, DRYPERIOD_HSN )
 
     ! ------Loop Over MODIS/Koppen  Landtypes
     DO K = 1, 24
@@ -1101,13 +1094,13 @@ CONTAINS
     REAL*8           :: LAI,   SUNCOS, CLDFRC
 
     ! Arrays
-    REAL*8           :: RI  (NBIOM) 
-    REAL*8           :: RLU (NBIOM)      
-    REAL*8           :: RAC (NBIOM)      
-    REAL*8           :: RGSS(NBIOM)     
-    REAL*8           :: RGSO(NBIOM)     
-    REAL*8           :: RCLS(NBIOM)     
-    REAL*8           :: RCLO(NBIOM)  
+    REAL*8           :: RI  (NBIOM_HSN) 
+    REAL*8           :: RLU (NBIOM_HSN)      
+    REAL*8           :: RAC (NBIOM_HSN)      
+    REAL*8           :: RGSS(NBIOM_HSN)     
+    REAL*8           :: RGSO(NBIOM_HSN)     
+    REAL*8           :: RCLS(NBIOM_HSN)     
+    REAL*8           :: RCLO(NBIOM_HSN)  
 
     !=================================================================
     ! GET_CANOPY_NOX begins here!
@@ -1151,7 +1144,7 @@ CONTAINS
        ! components are normalized to a leaf area index of unity.
        !--------------------------------------------------------------
        !Loop over all biometypes
-       DO K = 1, NBIOM
+       DO K = 1, NBIOM_HSN
 
           ! Skip if not present
           IF ( LANDTYPE(K)%VAL(I,J) == 0.0_hp ) CYCLE
@@ -1398,8 +1391,7 @@ CONTAINS
 ! !IROUTINE: Get_Dep_N
 !
 ! !DESCRIPTION: Subroutine GET\_DEP\_N sums dry and wet deposition since prev.
-! timestep and calculates contribution to fertilizer N source. Output is in
-! kg NO/m2.
+!  timestep and calculates contribution to fertilizer N source.
 !\\
 !\\
 ! !INTERFACE:
@@ -1415,7 +1407,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    ! Dep emitted as Fert [kgNO/m2]
+    ! Dep emitted as Fert [ng N/m2]
     REAL*8 ,  INTENT(INOUT) :: DEP_FERT  
 !
 ! !REVISION HISTORY:
@@ -1463,14 +1455,12 @@ CONTAINS
     C1 = EXP( - TS_SEC / TAU_SEC)
     C2 = 1.d0 - C1        
 
-    ! kg NO/m2
-    ! NOTE: DEP_RESERVOIR is stored in kg NO/m3, but we just assume
-    ! that this is kg NO/m2.
-    DEP_RESERVOIR(I,J) = ( DEP_RESERVOIR (I,J) * C1 ) &
-                       + DEPN * TAU_SEC * C2
+    ! ngN/m2
+    DEP_RESERVOIR_HSN(I,J) = ( DEP_RESERVOIR_HSN (I,J) * C1 ) &
+                           + DEPN * TAU_SEC * C2
 
-    ! 40% runoff. 
-    DEP_FERT = DEP_RESERVOIR(I,J) * 0.6d0 
+    ! 40% runoff. Convert ngN/m2 to kgNO/m2
+    DEP_FERT = DEP_RESERVOIR_HSN(I,J) * 0.6d0 / kgNO_to_ngN 
 
   END SUBROUTINE Get_Dep_N
 !EOC
@@ -1482,7 +1472,7 @@ CONTAINS
 ! !IROUTINE: Source_DryN
 !
 ! !DESCRIPTION: Subroutine SOURCE\_DRYN gets dry deposited Nitrogen since
-!               last emission time step, converts to kg NO/m2/s.
+!               last emission time step, converts to ng N/m2/s.
 !\\
 !\\
 ! !INTERFACE:
@@ -1530,7 +1520,7 @@ CONTAINS
 ! !IROUTINE: Source_WetN
 !
 ! !DESCRIPTION: Subroutine Source\_WetN gets wet deposited Nitrogen since
-!  last emission time step, converts to kg NO/m2/s.
+!  last emission time step, converts to ng N/m2/s.
 !\\
 !\\
 ! !INTERFACE:
@@ -1933,12 +1923,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-    ! Seconds per year
-    REAL*8, PARAMETER      :: SEC_PER_YEAR = 3.1536d7
+    ! Initialize
+    FERT_ADD = 0d0
 
-
-    ! Soil fert and dep [ kg/m2 ], a measure of N avail. in soil
-    FERT_ADD = ( SOILFRT + DEPN ) / SEC_PER_YEAR
+    ! Soil fert and dep [ kg/m2/s ], a measure of N avail. in soil
+    FERT_ADD = SOILFRT  + DEPN
 
     ! Convert [ng N/m2] --> [kg/m2/s]
     ! (scale needed to force fert emiss of 1.8 Tg N/yr w/o canopy uptake)
@@ -1965,8 +1954,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Pulsing( GWET,      TS_EMIS,             & 
-                    GWET_PREV, PFACTOR, DRYPERIOD ) &
+  FUNCTION Pulsing( GWET,          TS_EMIS,                     & 
+                    GWET_PREV_HSN, PFACTOR_HSN, DRYPERIOD_HSN ) &
                     RESULT( THE_PULSING )
 !
 ! !INPUT PARAMETERS: 
@@ -1976,9 +1965,9 @@ CONTAINS
 
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(hp), INTENT(INOUT) :: GWET_PREV   ! Soil Moisture Prev timestep
-    REAL(hp), INTENT(INOUT) :: PFACTOR     ! Pulsing Factor
-    REAL(hp), INTENT(INOUT) :: DRYPERIOD   ! Dry period length in hours
+    REAL(hp), INTENT(INOUT) :: GWET_PREV_HSN   ! Soil Moisture Prev timestep
+    REAL(hp), INTENT(INOUT) :: PFACTOR_HSN     ! Pulsing Factor
+    REAL(hp), INTENT(INOUT) :: DRYPERIOD_HSN   ! Dry period length in hours
 !  
 ! !RETURN VALUE:
 !
@@ -1992,14 +1981,14 @@ CONTAINS
 !  (relative to the flux prewetting) is determined by the antecedent dry 
 !  period, with a simple logarithmic relationship,
 ! 
-!     PFACTOR = 13.01 ln ( DRYPERIOD ) -  53.6
+!     PFACTOR_HSN = 13.01 ln ( DRYPERIOD_HSN ) -  53.6
 ! 
-!  where PFACTOR is the magnitude of peak flux relative to prewetting flux, 
-!  and DRYPERIOD  is the length of the antecedent dry period in hours.
+!  where PFACTOR_HSN is the magnitude of peak flux relative to prewetting flux, 
+!  and DRYPERIOD_HSN  is the length of the antecedent dry period in hours.
 ! 
 !  The pulse decays with 
 ! 
-!     PFACTOR = PFACTOR * EXP( -0.068d0 * DTSRCE )       
+!     PFACTOR_HSN = PFACTOR_HSN * EXP( -0.068d0 * DTSRCE )       
 ! 
 !  References:
 !  ============================================================================
@@ -2013,7 +2002,6 @@ CONTAINS
 !  31 Jan 2011 - R. Hudman   - Rewrote pulsing scheme
 !  31 Jan 2011 - R. Hudman   - Updated ProTex header
 !  29 May 2013 - R. Yantosca - Bug fix: prevent log(0) from happening
-!  21 Oct 2014 - C. Keller   - Limit PFACTOR to 1.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2030,54 +2018,51 @@ CONTAINS
     DTSRCE = TS_EMIS / 3600d0
 
     ! If soil moisture less than 0.3 and no pulse is taking place
-    IF ( GWET < 0.3D0 .and. PFACTOR == 1.D0) THEN
+    IF ( GWET < 0.3D0 .and. PFACTOR_HSN == 1.D0) THEN
 
        ! Get change in soil moisture since previous timestep
-       GDIFF = ( GWET - GWET_PREV )
+       GDIFF = ( GWET - GWET_PREV_HSN )
 
        ! If change in soil moisture is > 0.01 (rains)
        IF ( GDIFF > 0.01 ) THEN
 
           ! Initialize new pulse factor (dry period hours)
-          IF ( DRYPERIOD > 0d0 ) THEN
-             PFACTOR = 13.01d0 * LOG( DRYPERIOD ) - 53.6d0
+          IF ( DRYPERIOD_HSN > 0d0 ) THEN
+             PFACTOR_HSN = 13.01d0 * LOG( DRYPERIOD_HSN ) - 53.6d0
           ELSE
-             PFACTOR = -53.6d0
+             PFACTOR_HSN = -53.6d0
           ENDIF
 
-          ! If dry period < ~3 days then no pulse
-          IF ( PFACTOR < 1.0 ) PFACTOR = 1.0
-
           ! Reinitialize dry period
-          DRYPERIOD = 0d0
+          DRYPERIOD_HSN = 0d0
 
        ! If no rain (i.e.,  change in soil moisture is < 0.01)
        ELSE
 
           ! Add one timestep to dry period
-          DRYPERIOD = DRYPERIOD + DTSRCE
+          DRYPERIOD_HSN = DRYPERIOD_HSN + DTSRCE
 
        ENDIF
 
     ! If box is already pulsing , then decay pulse one timestep
-    ELSEIF ( PFACTOR /= 1.d0) THEN
+    ELSEIF ( PFACTOR_HSN /= 1.d0) THEN
 
        ! Decay pulse
-       PFACTOR   = PFACTOR * EXP( -0.068d0 * DTSRCE )
+       PFACTOR_HSN   = PFACTOR_HSN * EXP( -0.068d0 * DTSRCE )
 
        ! Update dry period
-       IF ( GWET < 0.3D0 ) DRYPERIOD = DRYPERIOD + DTSRCE
+       IF ( GWET < 0.3D0 ) DRYPERIOD_HSN = DRYPERIOD_HSN + DTSRCE
 
        ! If end of pulse
-       IF ( PFACTOR < 1.d0 ) PFACTOR = 1.d0
+       IF ( PFACTOR_HSN < 1.d0 ) PFACTOR_HSN = 1.d0
       
     ENDIF
 
     ! Update soil moisture holder for previous timestep
-    GWET_PREV = GWET
+    GWET_PREV_HSN = GWET
 
     ! Return the pulsing factor
-    THE_PULSING = PFACTOR
+    THE_PULSING = PFACTOR_HSN
 
   END FUNCTION Pulsing
 !EOC

@@ -53,6 +53,10 @@ MODULE HCO_State_Mod
      INTEGER                     :: NZ         ! # of z-pts (levs) on this CPU
      TYPE(HcoGrid),      POINTER :: Grid       ! HEMCO grid information
   
+     ! Met field tokens (set based on compiler flags) 
+     CHARACTER(LEN=15)           :: TOKEN_MET  ! met. data type 
+     CHARACTER(LEN=15)           :: TOKEN_RES  ! met. data resolution
+                       
      ! Data array        
      TYPE(Arr3D_HP),     POINTER :: Buffer3D   ! Placeholder to store temporary
                                                ! 3D array.  Emissions will be
@@ -73,11 +77,9 @@ MODULE HCO_State_Mod
      CHARACTER(LEN=255)          :: ConfigFile ! Full path to HEMCO Config file
      LOGICAL                     :: isESMF     ! Are we using ESMF?
      TYPE(HcoOpt),       POINTER :: Options    ! HEMCO run options
-
-     !%%%%%  ESMF state objects
 #if defined(ESMF_)
-     TYPE(ESMF_State),   POINTER :: IMPORT
-     TYPE(ESMF_State),   POINTER :: EXPORT
+     TYPE(ESMF_State),   POINTER :: IMPORT     ! ESMF Import State (only needed
+                                               ! if option isESMF = .TRUE.)
 #endif
   END TYPE HCO_State
 !
@@ -123,10 +125,6 @@ MODULE HCO_State_Mod
      LOGICAL :: AutoFillDiagn ! Write into AutoFill diagnostics?
      LOGICAL :: FillBuffer    ! Write calculated emissions into buffer
                               ! instead of emission array? 
-     INTEGER :: NegFlag       ! Negative value flag (from configfile):
-                              ! 2 = allow negative values
-                              ! 1 = set neg. values to zero and prompt warning 
-                              ! 0 = return w/ error if neg. value
   END TYPE HcoOpt
 
   !=========================================================================
@@ -198,10 +196,6 @@ CONTAINS
 !
   SUBROUTINE HcoState_Init( am_I_Root, HcoState, nSpecies, RC ) 
 !
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,    ONLY : GetExtOpt
-!
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,          INTENT(IN)    :: am_I_Root ! root CPU?
@@ -221,7 +215,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: I, AS
-    LOGICAL :: FOUND
 
     !=====================================================================
     ! HcoState_Init begins here!
@@ -369,14 +362,38 @@ CONTAINS
     HcoState%Options%AutoFillDiagn = .TRUE.
     HcoState%Options%FillBuffer    = .FALSE.
 
-    ! Get negative flag value from configuration file. If not found, set to 0. 
-    CALL GetExtOpt ( 0, 'Negative values', &
-                     OptValInt=HcoState%Options%NegFlag, Found=Found, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. Found ) HcoState%Options%NegFlag = 0
+    !=====================================================================
+    ! Set tokens for meteorological model and resolution. These are only 
+    ! needed for file name token replacements ($RES => TOKEN_RES; 
+    ! $MET => TOKEN_MET). The ROOT token is handled in hco_charpak_mod.F90
+    !=====================================================================
 
-    !-----------------------------------------------------------------
-    ! Initialize variables 
+#if defined( GEOS_FP )
+    HcoState%TOKEN_MET = 'geosfp'
+#elif defined( GEOS_5 )
+    HcoState%TOKEN_MET = 'geos5'
+#elif defined( GEOS_4 )
+    HcoState%TOKEN_MET = 'geos4'
+#elif defined( MERRA )
+    HcoState%TOKEN_MET = 'merra'
+#elif defined( GCAP )
+    HcoState%TOKEN_MET = 'gcap'
+#else
+    HcoState%TOKEN_MET = 'unknown_model'
+#endif 
+
+#if defined( GRID4x5 )
+    HcoState%TOKEN_RES = '4x5'
+#elif defined( GRID2x25 )
+    HcoState%TOKEN_RES = '2x25'
+#elif defined( GRID1x125 )
+    HcoState%TOKEN_RES = '1x125'
+#elif defined( GRID05x0666 )
+    HcoState%TOKEN_RES = '05x0666'
+#else
+    HcoState%TOKEN_RES = 'unknown_res'
+#endif
+
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
@@ -458,7 +475,6 @@ CONTAINS
 
 #if defined(ESMF_)
     HcoState%IMPORT => NULL()
-    HcoState%EXPORT => NULL()
 #endif
 
   END SUBROUTINE HcoState_Final

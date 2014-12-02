@@ -190,7 +190,6 @@ CONTAINS
     REAL*8            :: SRCE_P, REYNOL, ALPHA,  BETA
     REAL*8            :: GAMMA,  CW,     DTSRCE, A_M2,  G
     REAL              :: DSRC
-    CHARACTER(LEN=63) :: MSG
 
     ! Arrays
     REAL(hp), TARGET  :: FLUX(HcoState%NX,HcoState%NY,NBINS)
@@ -349,11 +348,7 @@ CONTAINS
 
           ! Add flux to emission array
           CALL HCO_EmisAdd( HcoState, FLUX(:,:,N), HcoIDs(N), RC)
-          IF ( RC /= HCO_SUCCESS ) THEN
-             WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
-             CALL HCO_ERROR( MSG, RC )
-             RETURN 
-          ENDIF
+          IF ( RC /= HCO_SUCCESS ) RETURN 
 
           ! Eventually update diagnostics
           IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -416,6 +411,7 @@ CONTAINS
     ! Scalars
     INTEGER                        :: N, nSpc
     CHARACTER(LEN=255)             :: MSG
+    LOGICAL                        :: verb
     REAL(dp)                       :: Mp, Rp
 
     ! Arrays
@@ -453,7 +449,7 @@ CONTAINS
     CH_DUST = HcoX_DustGinoux_GetCHDust()
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( verb ) THEN
        MSG = 'Use Ginoux dust emissions (extension module)'
        CALL HCO_MSG( MSG )
 
