@@ -92,6 +92,7 @@ CONTAINS
     REAL,             POINTER  :: Ptr3D(:,:,:)   => NULL() 
     REAL,             POINTER  :: Ptr2D(:,:)     => NULL() 
     TYPE(ESMF_State), POINTER  :: IMPORT         => NULL()
+    TYPE(ESMF_State), POINTER  :: EXPORT         => NULL()
     LOGICAL                    :: verb
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
@@ -106,6 +107,7 @@ CONTAINS
 
     ! Point to ESMF IMPORT object
     IMPORT => HcoState%IMPORT
+    EXPORT => HcoState%EXPORT
 
     ! Verbose?
     verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
