@@ -22,6 +22,8 @@ MODULE VDIFF_MOD
   USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
   USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
 
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -36,40 +38,40 @@ MODULE VDIFF_MOD
 
   integer :: plevp
   
-  real*8, parameter ::          &
-       rearth = 6.37122d6,      & ! radius earth (m)
-       cpwv   = 1.81d3,         &
-       cpair  = 1004.64d0,      &
-       rair   = 287.04d0,       &
-       rh2o   = 461.d0,         &
+  real(fp), parameter ::          &
+       rearth = 6.37122e+6_fp,      & ! radius earth (m)
+       cpwv   = 1.81e+3_fp,         &
+       cpair  = 1004.64e+0_fp,      &
+       rair   = 287.04e+0_fp,       &
+       rh2o   = 461.e+0_fp,         &
        zvir   = rh2o/rair - 1., &
-       gravit = 9.80616d0,      &
-       ra     = 1.d0/rearth,    &
-       epsilo = 0.622d0,        &
-       latvap = 2.5104d06,      &
-       latice = 3.336d5,        &
+       gravit = 9.80616e+0_fp,      &
+       ra     = 1.e+0_fp/rearth,    &
+       epsilo = 0.622e+0_fp,        &
+       latvap = 2.5104e+06_fp,      &
+       latice = 3.336e+5_fp,        &
        cappa  = rair/cpair,     &
-       rhoh2o = 1.d3,           &
+       rhoh2o = 1.e+3_fp,           &
        r_g    = rair / gravit,  &
-       tfh2o  = 273.16d0
+       tfh2o  = 273.16e+0_fp
 
 !-----------------------------------------------------------------------
 ! 	... pbl constants
 !-----------------------------------------------------------------------
 
   ! These are constants, so use PARAMETER tag
-  real*8, parameter ::   &
-       betam  = 15.d0,   & ! constant in wind gradient expression
-       betas  =  5.d0,   & ! constant in surface layer gradient expression
-       betah  = 15.d0,   & ! constant in temperature gradient expression 
-       fak    =  8.5d0,  & ! constant in surface temperature excess         
-       fakn   =  7.2d0,  & ! constant in turbulent prandtl number
-       ricr   =   .3d0,  & ! critical richardson number
-       sffrac =   .1d0,  & ! surface layer fraction of boundary layer
-       vk     =   .4d0     ! von karmans constant
+  real(fp), parameter ::   &
+       betam  = 15.e+0_fp,   & ! constant in wind gradient expression
+       betas  =  5.e+0_fp,   & ! constant in surface layer gradient expression
+       betah  = 15.e+0_fp,   & ! constant in temperature gradient expression 
+       fak    =  8.5e+0_fp,  & ! constant in surface temperature excess         
+       fakn   =  7.2e+0_fp,  & ! constant in turbulent prandtl number
+       ricr   =   .3e+0_fp,  & ! critical richardson number
+       sffrac =   .1e+0_fp,  & ! surface layer fraction of boundary layer
+       vk     =   .4e+0_fp     ! von karmans constant
 
   ! These are assigned later, so we can't use the PARAMETER tag
-  real*8 ::              & 
+  real(fp) ::              & 
        g,                & ! gravitational acceleration
        onet,             & ! 1/3 power in wind gradient expression
        ccon,             & ! fak * sffrac * vk
@@ -79,10 +81,10 @@ MODULE VDIFF_MOD
 !-----------------------------------------------------------------------
 ! 	... constants used in vertical diffusion and pbl
 !-----------------------------------------------------------------------
-  real*8 :: &
+  real(fp) :: &
        zkmin            ! minimum kneutral*f(ri)
-  real*8, allocatable :: ml2(:)   ! mixing lengths squaredB
-  real*8, allocatable :: qmincg(:)   ! min. constituent concentration 
+  real(fp), allocatable :: ml2(:)   ! mixing lengths squaredB
+  real(fp), allocatable :: qmincg(:)   ! min. constituent concentration 
                                      !  counter-gradient term
   
   integer :: &
@@ -124,6 +126,7 @@ MODULE VDIFF_MOD
 !  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  24 Jun 2014 - R. Yantosca - Now get PCNST from vdiff_pre_mod.F90
+!  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,7 +154,7 @@ contains
 !
 ! !INPUT PARAMETERS: 
 !
-    real*8, intent(in) :: gravx     !  acceleration of gravity
+    real(fp), intent(in) :: gravx     !  acceleration of gravity
 !
 ! !REVISION HISTORY: 
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
@@ -167,7 +170,7 @@ contains
 !-----------------------------------------------------------------------
     plevp = plev+1
     g     = gravx
-    onet  = 1d0/3.d0
+    onet  = 1e+0_fp/3.e+0_fp
     
 !-----------------------------------------------------------------------
 ! 	... derived constants
@@ -214,9 +217,9 @@ contains
 !
     integer, intent(in) :: lat, ip ! latitude index, long tile index
     integer, intent(in) :: plonl   ! number of local longitudes
-    real*8,  intent(in) ::   &
+    real(fp),  intent(in) ::   &
          ztodt                     ! 2 delta-t
-    real*8,  intent(in) ::   &
+    real(fp),  intent(in) ::   &
          uwnd(:,:,:),        &     ! u wind input
          vwnd(:,:,:),        &     ! v wind input
          tadv(:,:,:),        &     ! temperature input
@@ -233,26 +236,26 @@ contains
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    real*8, intent(inout) :: &
+    real(fp), intent(inout) :: &
          as2(:,:,:,:),       &     ! moist, tracers after vert. diff
          shp(:,:,:),         &     ! specific humidity (kg/kg)
          thp_arg(:,:,:)            ! pot temp after vert. diffusion
 !
 ! !OUTPUT PARAMETERS: 
 !
-    real*8, intent(out) ::   &
+    real(fp), intent(out) ::   &
          kvh_arg(:,:,:),     &     ! coefficient for heat and tracers
          kvm_arg(:,:,:),     &     ! coefficient for momentum
          tpert_arg(:,:),     &     ! convective temperature excess
          qpert_arg(:,:),     &     ! convective humidity excess
          cgs_arg(:,:,:)            ! counter-grad star (cg/flux)
 
-    real*8, optional, intent(inout) :: &
+    real(fp), optional, intent(inout) :: &
          taux_arg(:,:),      &     ! x surface stress (n)
          tauy_arg(:,:),      &     ! y surface stress (n)
          ustar_arg(:,:)            ! surface friction velocity
 
-    real*8, intent(inout) :: pblh_arg(:,:) ! boundary-layer height [m]
+    real(fp), intent(inout) :: pblh_arg(:,:) ! boundary-layer height [m]
 
 !
 ! !REMARKS:
@@ -295,7 +298,7 @@ contains
          indx(plonl), &         ! array of indices of potential q<0
          nval, &                ! num of values which meet criteria
          ii                     ! longitude index of found points
-    real*8 :: &
+    real(fp) :: &
          dvdz2 , &                 ! (du/dz)**2 + (dv/dz)**2
          dz , &                    ! delta z between midpoints
          fstab , &                 ! stable f(ri)
@@ -308,7 +311,7 @@ contains
          rcpair, &                 ! 1./cpair
          ztodtgor, &               ! ztodt*gravit/rair
          gorsq                     ! (gravit/rair)**2
-    real*8 :: &
+    real(fp) :: &
          cah(plonl,plev), &        ! -upper diag for heat and constituts
          cam(plonl,plev), &        ! -upper diagonal for momentum
          cch(plonl,plev), &        ! -lower diag for heat and constits
@@ -317,7 +320,7 @@ contains
          cgq(plonl,plevp,pcnst), & ! countergrad term for constituent
          cgsh(plonl,plevp), &      ! countergrad term for sh
          kvf(plonl,plevp)          ! free atmosphere kv at interfaces
-    real*8 :: &
+    real(fp) :: &
          potbar(plonl,plevp), &    ! pintm1(k)/(.5*(tm1(k)+tm1(k-1))
          tmp1(plonl), &            ! temporary storage
          dubot(plonl), &           ! lowest layer u change from stress
@@ -335,7 +338,7 @@ contains
          termm(plonl,plev)         ! 1./(1.+cam(k) + ccm(k) - ccm(k)*zem(k-1))
     logical :: adjust(plonl)
 
-    real*8 :: &
+    real(fp) :: &
          um1(plonl,plev), &        ! u wind input
          vm1(plonl,plev), &        ! v wind input
          tm1(plonl,plev), &        ! temperature input
@@ -347,25 +350,25 @@ contains
          shflx(plonl), &           ! surface sensible heat flux (w/m2)
          cflx(plonl,pcnst), &      ! surface constituent flux (kg/m2/s)
          wvflx(plonl)              ! water vapor flux (kg/m2/s)
-    real*8 :: &
+    real(fp) :: &
          qp1(plonl,plev,pcnst), &  ! moist, tracers after vert. diff
          shp1(plonl,plev), &       ! specific humidity (kg/kg)
          thp(plonl,plev)           ! pot temp after vert. diffusion
-    real*8 :: &
+    real(fp) :: &
          kvh(plonl,plevp), &       ! coefficient for heat and tracers
          kvm(plonl,plevp), &       ! coefficient for momentum
          tpert(plonl), &           ! convective temperature excess
          qpert(plonl), &           ! convective humidity excess
          cgs(plonl,plevp)          ! counter-grad star (cg/flux)
 
-    real*8 :: &
+    real(fp) :: &
         taux(plonl), &             ! x surface stress (n)
         tauy(plonl), &             ! y surface stress (n)
         ustar(plonl)               ! surface friction velocity
 
-    real*8 :: pblh(plonl)          ! boundary-layer height [m]
+    real(fp) :: pblh(plonl)          ! boundary-layer height [m]
 
-    real*8 :: qp0(plonl,plev,pcnst) ! To store initial concentration values
+    real(fp) :: qp0(plonl,plev,pcnst) ! To store initial concentration values
                                     ! (as2)
 
     !=================================================================
@@ -406,7 +409,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... convert the surface fluxes to lowest level tendencies
 !-----------------------------------------------------------------------
-    rcpair = 1.d0/cpair
+    rcpair = 1.e+0_fp/cpair
     do i = 1,plonl
        tmp1(i)      = ztodt*gravit*rpdel(i,plev)
        ! simplified treatment -- dubot and dvbot are not used under current PBL scheme, anyway
@@ -417,7 +420,7 @@ contains
        endif
        dshbot(i)    = wvflx(i)*tmp1(i)
        dtbot(i)     = shflx(i)*tmp1(i)*rcpair
-       kvf(i,plevp) = 0.d0
+       kvf(i,plevp) = 0.e+0_fp
     end do
     do m = 1,pcnst
        dqbot(:plonl,m) = cflx(:plonl,m)*tmp1(:plonl)
@@ -431,7 +434,7 @@ contains
 ! 	... set the vertical diffusion coefficient above the top diffusion level
 !-----------------------------------------------------------------------
     do k = 1,ntopfl
-       kvf(:plonl,k) = 0.d0
+       kvf(:plonl,k) = 0.e+0_fp
     end do
 
 !-----------------------------------------------------------------------
@@ -458,24 +461,27 @@ contains
 !-----------------------------------------------------------------------
 ! 	... vertical shear squared, min value of (delta v)**2 prevents zero shear.
 !-----------------------------------------------------------------------
-          dvdz2 = (um1(i,k) - um1(i,k+1))**2 + (vm1(i,k) - vm1(i,k+1))**2
-          dvdz2 = max( dvdz2,1.d-36 )
+          dvdz2 = (um1(i,k) - um1(i,k+1))**2 + &
+                 (vm1(i,k) - vm1(i,k+1))**2
+          dvdz2 = max( dvdz2,1.e-36_fp )
           dz    = zm(i,k) - zm(i,k+1)
           dvdz2 = dvdz2/(dz**2)
 !-----------------------------------------------------------------------
 ! 	... static stability (use virtual potential temperature)
 !-----------------------------------------------------------------------
-          sstab = gravit*2.d0*(thv(i,k) - thv(i,k+1))/((thv(i,k) + thv(i,k+1))*dz)
+          sstab = gravit*2.e+0_fp*(thv(i,k) - thv(i,k+1))/((thv(i,k) &
+                 + thv(i,k+1))*dz)
 !-----------------------------------------------------------------------
 ! 	... richardson number, stable and unstable modifying functions
 !-----------------------------------------------------------------------
           rinub = sstab/dvdz2
-          fstab = 1.0d0/(1.0d0 + 10.0d0*rinub*(1.0d0 + 8.0d0*rinub))
-          funst = max( 1.d0 - 18.d0*rinub,0.d0 )
+          fstab = 1.0e+0_fp/(1.0e+0_fp + 10.0e+0_fp*rinub*(1.0e+0_fp &
+                 + 8.0e+0_fp*rinub))
+          funst = max( 1.e+0_fp - 18.e+0_fp*rinub,0.e+0_fp )
 !-----------------------------------------------------------------------
 ! 	... select the appropriate function of the richardson number
 !-----------------------------------------------------------------------
-          if( rinub < 0.d0 ) then
+          if( rinub < 0.e+0_fp ) then
              fstab = sqrt( funst )
           end if
 !-----------------------------------------------------------------------
@@ -544,7 +550,7 @@ contains
     end do
     do k = 2,plev
        do i = 1,plonl
-          potbar(i,k) = pintm1(i,k)/(.5d0*(tm1(i,k) + tm1(i,k-1)))
+          potbar(i,k) = pintm1(i,k)/(.5e+0_fp*(tm1(i,k) + tm1(i,k-1)))
        end do
     end do
     do i = 1,plonl
@@ -654,23 +660,25 @@ contains
 ! 	... the last element of the upper diagonal is zero.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       cah(i,plev) = 0.d0
-       cam(i,plev) = 0.d0
+       cah(i,plev) = 0.e+0_fp
+       cam(i,plev) = 0.e+0_fp
     end do
 !-----------------------------------------------------------------------
 ! 	... calculate e(k) for heat & momentum vertical diffusion.  this term is 
 !           required in solution of tridiagonal matrix defined by implicit diffusion eqn.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       termh(i,ntopfl) = 1.d0/(1.d0 + cah(i,ntopfl))
-       termm(i,ntopfl) = 1.d0/(1.d0 + cam(i,ntopfl))
+       termh(i,ntopfl) = 1.e+0_fp/(1.e+0_fp + cah(i,ntopfl))
+       termm(i,ntopfl) = 1.e+0_fp/(1.e+0_fp + cam(i,ntopfl))
        zeh(i,ntopfl)   = cah(i,ntopfl)*termh(i,ntopfl)
        zem(i,ntopfl)   = cam(i,ntopfl)*termm(i,ntopfl)
     end do
     do k = ntopfl+1,plev-1
        do i = 1,plonl
-          termh(i,k) = 1.d0/(1.d0 + cah(i,k) + cch(i,k) - cch(i,k)*zeh(i,k-1))
-          termm(i,k) = 1.d0/(1.d0 + cam(i,k) + ccm(i,k) - ccm(i,k)*zem(i,k-1))
+          termh(i,k) = 1.e+0_fp/(1.e+0_fp + cah(i,k) + cch(i,k) &
+                      - cch(i,k)*zeh(i,k-1))
+          termm(i,k) = 1.e+0_fp/(1.e+0_fp + cam(i,k) + ccm(i,k) &
+                      - ccm(i,k)*zem(i,k-1))
           zeh(i,k)   = cah(i,k)*termh(i,k)
           zem(i,k)   = cam(i,k)*termm(i,k)
        end do
@@ -691,8 +699,8 @@ contains
 !-----------------------------------------------------------------------
 !      call qneg3( 'vdiff   ', lat, qp1, plonl )
 ! just use a simplified treatment
-    where (qp1 < 0.d0)
-       qp1 = 0.d0
+    where (qp1 < 0.e+0_fp)
+       qp1 = 0.e+0_fp
     endwhere
 
 !-----------------------------------------------------------------------
@@ -707,7 +715,7 @@ contains
 !      call shneg( 'vdiff:sh', lat, shp1, plonl )
 ! just use a simplified treatment
     where (shp1 < 1.d-12)
-       shp1 = 0.d0
+       shp1 = 0.e+0_fp
     endwhere
 
 !-----------------------------------------------------------------------
@@ -741,7 +749,7 @@ contains
     !=======================================================
     IF ( ND15 > 0 ) THEN
 
-       dqbot = 0d0
+       dqbot = 0e+0_fp
        call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
             termh, qp1, plonl )
 
@@ -803,7 +811,7 @@ contains
 !
     integer, intent(in) :: &
 	 plonl
-    real*8, intent(in) :: &
+    real(fp), intent(in) :: &
          th(plonl,plev), &          ! potential temperature [k]
          q(plonl,plev), &           ! specific humidity [kg/kg]
          z(plonl,plev), &           ! height above surface [m]
@@ -818,16 +826,16 @@ contains
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    real*8, optional, intent(inout) :: &
+    real(fp), optional, intent(inout) :: &
          taux(plonl), &            ! x surface stress (n)
          tauy(plonl), &            ! y surface stress (n)
          ustar(plonl)              ! surface friction velocity
 
-    real*8, intent(inout) :: pblh(plonl)       ! boundary-layer height [m]
+    real(fp), intent(inout) :: pblh(plonl)       ! boundary-layer height [m]
 !
 ! !OUTPUT PARAMETERS:
 !
-    real*8, intent(out) :: &
+    real(fp), intent(out) :: &
          kvm(plonl,plevp), &        ! eddy diffusivity for momentum [m2/s]
          kvh(plonl,plevp), &        ! eddy diffusivity for heat [m2/s]
          cgh(plonl,plevp), &        ! counter-gradient term for heat [k/m]
@@ -846,7 +854,7 @@ contains
 !
 ! !LOCAL VARIABLES:
 !
-    real*8, parameter :: tiny = 1.d-36      ! lower bound for wind magnitude
+    real(fp), parameter :: tiny = 1.e-36_fp      ! lower bound for wind magnitude
     
     integer :: &
          i, &                 ! longitude index
@@ -859,7 +867,7 @@ contains
          unssrf(plonl), &     ! unstb pbl w/lvls within srf pbl lyr
          unsout(plonl), &     ! unstb pbl w/lvls in outer pbl lyr
          check(plonl)         ! true=>chk if richardson no.>critcal
-    real*8 :: &
+    real(fp) :: &
          heatv(plonl), &         ! surface virtual heat flux
          thvsrf(plonl), &        ! sfc (bottom) level virtual temperature
          thvref(plonl), &        ! reference level virtual temperature
@@ -875,7 +883,7 @@ contains
          kqfs(plonl,pcnst), &    ! sfc kinematic constituent flux [m/s]
          kshfs(plonl), &         ! sfc kinematic moisture flux [m/s]
          zmzp                    ! level height halfway between zm and zp
-    real*8 :: &
+    real(fp) :: &
          rino(plonl,plev), &     ! bulk richardson no. from level to ref lev
          tlv(plonl), &           ! ref. level pot tmp + tmp excess
          fak1(plonl), &          ! k*ustar*pblh
@@ -890,7 +898,7 @@ contains
          rrho(plonl), &          ! 1./bottom level density (temporary)
          obklen(plonl), &        ! obukhov length
          ustr                    ! unbounded ustar
-    real*8 :: &
+    real(fp) :: &
          term, &                 ! intermediate calculation
          fac, &                  ! interpolation factor
          pblmin                  ! min pbl height due to mechanical mixing
@@ -906,7 +914,7 @@ contains
        rrho(i)  = rair*t(i,plev)/pmid(i,plev)
        if (present(taux) .and. present(tauy)) then
           ustr     = sqrt( sqrt( taux(i)**2 + tauy(i)**2 )*rrho(i) )
-          ustar(i) = max( ustr,.01d0 )
+          ustar(i) = max( ustr,.01e+0_fp )
        endif
        khfs(i)  = shflx(i)*rrho(i)/cpair
        kshfs(i) = wvflx(i)*rrho(i)
@@ -921,13 +929,13 @@ contains
     do k = 1,plevp
        kvm(:,k)  = kvf(:,k)
        kvh(:,k)  = kvf(:,k)
-       cgh(:,k)  = 0.d0
-       cgsh(:,k) = 0.d0
-       cgs(:,k)  = 0.d0
+       cgh(:,k)  = 0.e+0_fp
+       cgsh(:,k) = 0.e+0_fp
+       cgs(:,k)  = 0.e+0_fp
     end do
     do m = 1,pcnst
        do k = 1,plevp
-          cgq(:,k,m) = 0.d0
+          cgq(:,k,m) = 0.e+0_fp
        end do
     end do
 
@@ -935,14 +943,14 @@ contains
 ! 	... compute various arrays for use later:
 !------------------------------------------------------------------------
     do i = 1,plonl
-       thvsrf(i) = th(i,plev)*(1.0d0 + 0.61d0*q(i,plev))
-       heatv(i)  = khfs(i) + 0.61d0*th(i,plev)*kshfs(i)
-       wm(i)     = 0.d0
-       therm(i)  = 0.d0
-       qpert(i)  = 0.d0
-       tpert(i)  = 0.d0
-       fak3(i)   = 0.d0  
-       zh(i)     = 0.d0  
+       thvsrf(i) = th(i,plev)*(1.0e+0_fp + 0.61e+0_fp*q(i,plev))
+       heatv(i)  = khfs(i) + 0.61e+0_fp*th(i,plev)*kshfs(i)
+       wm(i)     = 0.e+0_fp
+       therm(i)  = 0.e+0_fp
+       qpert(i)  = 0.e+0_fp
+       tpert(i)  = 0.e+0_fp
+       fak3(i)   = 0.e+0_fp  
+       zh(i)     = 0.e+0_fp  
        obklen(i) = -thvsrf(i)*ustar(i)**3 &
                    /(g*vk*(heatv(i) + sign( 1.d-10,heatv(i) )))
     end do
@@ -950,12 +958,12 @@ contains
     if (pblh_ar) then  ! use archived PBLH
        
        do i = 1,plonl
-          if( heatv(i) > 0.d0 ) then
+          if( heatv(i) > 0.e+0_fp ) then
              unstbl(i) = .true.
           else
              unstbl(i) = .false.
           end if
-          thvref(i) = th(i,plev)*(1.0d0 + 0.61d0*q(i,plev))
+          thvref(i) = th(i,plev)*(1.0e+0_fp + 0.61e+0_fp*q(i,plev))
        end do
 
     else ! use derived PBLH
@@ -967,14 +975,14 @@ contains
 !------------------------------------------------------------------------
        fac = 100.
        do i = 1,plonl
-          thvref(i) = th(i,plev)*(1.0d0 + 0.61d0*q(i,plev))
+          thvref(i) = th(i,plev)*(1.0e+0_fp + 0.61e+0_fp*q(i,plev))
           pblh(i)   = z(i,plev)
           check(i)  = .true.
 !------------------------------------------------------------------------
 ! 	... initialization of lowest level ri number 
 !           (neglected in initial holtslag implementation)
 !------------------------------------------------------------------------
-          rino(i,plev) = 0.d0
+          rino(i,plev) = 0.e+0_fp
        end do
 
 !------------------------------------------------------------------------
@@ -988,7 +996,7 @@ contains
                 vvk = (u(i,k) - u(i,plev))**2 + (v(i,k) - v(i,plev))**2 + &
                       fac*ustar(i)**2
                 vvk = max( vvk,tiny )
-                tkv = th(i,k)*(1. + .61d0*q(i,k))
+                tkv = th(i,k)*(1. + .61e+0_fp*q(i,k))
                 rino(i,k) = g*(tkv - thvref(i))*(z(i,k)-z(i,plev))/ &
                             (thvref(i)*vvk)
                 if( rino(i,k) >= ricr ) then
@@ -1016,7 +1024,7 @@ contains
 !           find unstable points (virtual heat flux is positive):
 !------------------------------------------------------------------------
        do i = 1,plonl
-          if( heatv(i) > 0.d0 ) then
+          if( heatv(i) > 0.e+0_fp ) then
              unstbl(i) = .true.
              check(i)  = .true.
           else
@@ -1031,10 +1039,10 @@ contains
 !------------------------------------------------------------------------
        do i = 1,plonl
           if( check(i) ) then
-             phiminv(i)   = (1.d0 - binm*pblh(i)/obklen(i))**onet
+             phiminv(i)   = (1.e+0_fp - binm*pblh(i)/obklen(i))**onet
              wm(i)        = ustar(i)*phiminv(i)
              therm(i)     = heatv(i)*fak/wm(i)       
-             rino(i,plev) = 0.d0
+             rino(i,plev) = 0.e+0_fp
              tlv(i)       = thvref(i) + therm(i)
           end if
        end do
@@ -1049,7 +1057,7 @@ contains
                 vvk = (u(i,k) - u(i,plev))**2 + (v(i,k) - v(i,plev))**2 &
                       + fac*ustar(i)**2
                 vvk = max( vvk,tiny )
-                tkv = th(i,k)*(1. + 0.61d0*q(i,k))
+                tkv = th(i,k)*(1. + 0.61e+0_fp*q(i,k))
                 rino(i,k) = g*(tkv - tlv(i))*(z(i,k)-z(i,plev)) &
                             /(thvref(i)*vvk)
                 if( rino(i,k) >= ricr ) then
@@ -1084,7 +1092,7 @@ contains
 ! latitude value for f so that c = 0.07/f = 700.
 !------------------------------------------------------------------------
        do i = 1,plonl
-          pblmin  = 700.d0*ustar(i)
+          pblmin  = 700.e+0_fp*ustar(i)
           pblh(i) = max( pblh(i),pblmin )
        end do
        
@@ -1095,24 +1103,24 @@ contains
 ! 	... pblh is now available; do preparation for diffusivity calculation:
 !------------------------------------------------------------------------
     do i = 1,plonl
-       pblk(i) = 0.d0
+       pblk(i) = 0.e+0_fp
        fak1(i) = ustar(i)*pblh(i)*vk
 !------------------------------------------------------------------------
 ! 	... do additional preparation for unstable cases only, set temperature
 !           and moisture perturbations depending on stability.
 !------------------------------------------------------------------------
        if( unstbl(i) ) then
-          phiminv(i) = (1.d0 - binm*pblh(i)/obklen(i))**onet
-          phihinv(i) = sqrt(1.d0 - binh*pblh(i)/obklen(i))
+          phiminv(i) = (1.e+0_fp - binm*pblh(i)/obklen(i))**onet
+          phihinv(i) = sqrt(1.e+0_fp - binh*pblh(i)/obklen(i))
           wm(i)      = ustar(i)*phiminv(i)
           fak2(i)    = wm(i)*pblh(i)*vk
           wstr(i)    = (heatv(i)*g*pblh(i)/thvref(i))**onet 
           fak3(i)    = fakn*wstr(i)/wm(i)
-          tpert(i)   = max( khfs(i)*fak/wm(i),0.d0 )   
-          qpert(i)   = max( kshfs(i)*fak/wm(i),0.d0 )    
+          tpert(i)   = max( khfs(i)*fak/wm(i),0.e+0_fp )   
+          qpert(i)   = max( kshfs(i)*fak/wm(i),0.e+0_fp )    
        else
-          tpert(i)   = max( khfs(i)*fak/ustar(i),0.d0 ) 
-          qpert(i)   = max( kshfs(i)*fak/ustar(i),0.d0 ) 
+          tpert(i)   = max( khfs(i)*fak/ustar(i),0.e+0_fp ) 
+          qpert(i)   = max( kshfs(i)*fak/ustar(i),0.e+0_fp ) 
        end if
     end do
 
@@ -1128,17 +1136,17 @@ contains
           stblev(i) = .false.
           zm(i) = z(i,k)
           zp(i) = z(i,k-1)
-          if( zkmin == 0.d0 .and. zp(i) > pblh(i) ) then
+          if( zkmin == 0.e+0_fp .and. zp(i) > pblh(i) ) then
              zp(i) = pblh(i)
           end if
           if( zm(i) < pblh(i) ) then
-             zmzp = 0.5d0*(zm(i) + zp(i))
+             zmzp = 0.5e+0_fp*(zm(i) + zp(i))
              zh(i) = zmzp/pblh(i)
              zl(i) = zmzp/obklen(i)
-             if( zh(i) <= 1.d0 ) then
-                zzh(i) = (1.d0 - zh(i))**2
+             if( zh(i) <= 1.e+0_fp ) then
+                zzh(i) = (1.e+0_fp - zh(i))**2
              else
-                zzh(i) = 0.d0
+                zzh(i) = 0.e+0_fp
              end if
 !------------------------------------------------------------------------
 ! 	... stblev for points zm < plbh and stable and neutral
@@ -1157,7 +1165,7 @@ contains
 !------------------------------------------------------------------------
        do i = 1,plonl
           if( stblev(i) ) then
-             if( zl(i) <= 1.d0 ) then
+             if( zl(i) <= 1.e+0_fp ) then
                 pblk(i) = fak1(i)*zh(i)*zzh(i)/(1. + betas*zl(i))
              else
                 pblk(i) = fak1(i)*zh(i)*zzh(i)/(betas + zl(i))
@@ -1186,9 +1194,9 @@ contains
 !------------------------------------------------------------------------
        do i = 1,plonl
           if( unssrf(i) ) then
-             term    = (1.d0 - betam*zl(i))**onet
+             term    = (1.e+0_fp - betam*zl(i))**onet
              pblk(i) = fak1(i)*zh(i)*zzh(i)*term
-             pr(i)   = term/sqrt(1.d0 - betah*zl(i))
+             pr(i)   = term/sqrt(1.e+0_fp - betah*zl(i))
           end if
        end do
 !------------------------------------------------------------------------
@@ -1250,7 +1258,7 @@ contains
          plonl
     integer, intent(in) :: &
          ncnst                    ! num of constituents being diffused
-    real*8, intent(in) :: &
+    real(fp), intent(in) :: &
          qm1(plonl,plev,ncnst), & ! initial constituent
          qflx(plonl,ncnst), &     ! sfc q flux into lowest model level
          cc(plonl,plev), &        ! -lower diag coeff.of tri-diag matrix
@@ -1258,12 +1266,12 @@ contains
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    real*8, intent(inout) :: &
+    real(fp), intent(inout) :: &
          ze(plonl,plev)           ! term in tri-diag. matrix system
 !
 ! !OUTPUT PARAMETERS: 
 !
-    real*8, intent(out) :: &
+    real(fp), intent(out) :: &
          qp1(plonl,plev,ncnst)    ! final constituent
 !
 ! !REMARKS:
@@ -1279,7 +1287,7 @@ contains
 !
 ! !LOCAL VARIABLES:
 !
-    real*8 :: &
+    real(fp) :: &
          zfq(plonl,plev,pcnst), & ! terms appear in soln of tri-diag sys
          tmp1d(plonl)             ! temporary workspace (1d array)
     integer :: &
@@ -1309,7 +1317,8 @@ contains
 ! 	... bottom level: (includes  surface fluxes)
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       tmp1d(i) = 1.d0/(1.d0 + cc(i,plev) - cc(i,plev)*ze(i,plev-1))
+       tmp1d(i) = 1.e+0_fp/(1.e+0_fp + cc(i,plev) - &
+                  cc(i,plev)*ze(i,plev-1))
        ze(i,plev) = 0.
     end do
     do m = 1,ncnst
@@ -1360,7 +1369,7 @@ contains
 !
     integer, intent(in) :: lat     ! latitude index
     integer, intent(in) :: plonl   ! lon tile dim
-    real*8, intent(in) :: &
+    real(fp), intent(in) :: &
          ztodt , &                 ! 2 delta-t
          tadv(:,:,:), &        ! temperature input
          pmid(:,:,:), &     ! midpoint pressures
@@ -1373,7 +1382,7 @@ contains
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    real*8, intent(inout) :: &
+    real(fp), intent(inout) :: &
          as2(:,:,:,:)     ! moist, tracers after vert. diff
 !
 ! !REVISION HISTORY: 
@@ -1385,7 +1394,7 @@ contains
 !
 ! !LOCAL VARIABLES:
 !
-    real*8 :: &
+    real(fp) :: &
          cah(plonl,plev), &       ! -upper diag for heat and constituts
          cch(plonl,plev), &       ! -lower diag for heat and constits
          cgq(plonl,plevp,pcnst), &! countergrad term for constituent
@@ -1408,7 +1417,7 @@ contains
          k, &                  ! vertical index
          m                     ! constituent index
 
-    real*8 :: &
+    real(fp) :: &
          tm1(plonl,plev), &        ! temperature input
          pmidm1(plonl,plev), &     ! midpoint pressures
          pintm1(plonl,plevp), &    ! interface pressures
@@ -1417,7 +1426,7 @@ contains
          cflx(plonl,pcnst), &      ! surface constituent flux (kg/m2/s)
          kvh(plonl,plevp), &       ! coefficient for heat and tracers
          cgs(plonl,plevp)          ! counter-grad star (cg/flux)
-    real*8 :: &
+    real(fp) :: &
          qp1(plonl,plev,pcnst)     ! moist, tracers after vert. diff
     !=================================================================
     ! vdiffar begins here!
@@ -1466,7 +1475,7 @@ contains
        end do
     end do
     do k = 2,plev
-       potbar(:,k) = pintm1(:,k)/(.5d0*(tm1(:,k) + tm1(:,k-1)))
+       potbar(:,k) = pintm1(:,k)/(.5e+0_fp*(tm1(:,k) + tm1(:,k-1)))
     end do
     potbar(:,plevp) = pintm1(:,plevp)/tm1(:,plev)
 
@@ -1537,7 +1546,7 @@ contains
 ! 	... the last element of the upper diagonal is zero.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       cah(i,plev) = 0.d0
+       cah(i,plev) = 0.e+0_fp
     end do
 !-----------------------------------------------------------------------
 ! 	... calculate e(k) for heat vertical diffusion.  this term is 
@@ -1545,12 +1554,13 @@ contains
 !           diffusion eqn.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       termh(i,ntopfl) = 1.d0/(1.d0 + cah(i,ntopfl))
+       termh(i,ntopfl) = 1.e+0_fp/(1.e+0_fp + cah(i,ntopfl))
        zeh(i,ntopfl) = cah(i,ntopfl)*termh(i,ntopfl)
     end do
     do k = ntopfl+1,plev-1
        do i = 1,plonl
-          termh(i,k) = 1.d0/(1.d0 + cah(i,k) + cch(i,k) - cch(i,k)*zeh(i,k-1))
+          termh(i,k) = 1.e+0_fp/(1.e+0_fp + cah(i,k) + cch(i,k) &
+                      - cch(i,k)*zeh(i,k-1))
           zeh(i,k) = cah(i,k)*termh(i,k)
        end do
     end do
@@ -1564,8 +1574,8 @@ contains
 !-----------------------------------------------------------------------
 !      call qneg3( 'vdiff   ', lat, qp1(1,1,1), plonl )
 !     simplified treatment
-    where (qp1 < 0.d0)
-       qp1 = 0.d0
+    where (qp1 < 0.e+0_fp)
+       qp1 = 0.e+0_fp
     endwhere
     
     !Output values from local variables to arguments.(ccc, 11/17/09)
@@ -1596,7 +1606,7 @@ contains
 !
     integer, intent(in) :: &
          plonl
-    real*8, intent(in) :: &
+    real(fp), intent(in) :: &
          t(plonl,plev), &        ! temperature (used for density)
          pmid(plonl,plev), &     ! midpoint pressures
          cflx(plonl,pcnst), &     ! surface constituent flux (kg/m2/s)
@@ -1604,7 +1614,7 @@ contains
 !
 ! !OUTPUT PARAMETERS: 
 !
-    real*8, intent(out) :: &
+    real(fp), intent(out) :: &
          cgq(plonl,plevp,pcnst)  ! counter-gradient term for constituents
 !
 ! !REVISION HISTORY: 
@@ -1620,7 +1630,7 @@ contains
          i, &                 ! longitude index
          k, &                 ! level index
          m                    ! constituent index
-    real*8 :: &
+    real(fp) :: &
          rrho(plonl), &          ! 1./bottom level density
          kqfs(plonl,pcnst)       ! sfc kinematic constituent flux [m/s]
 
@@ -1640,7 +1650,7 @@ contains
 !------------------------------------------------------------------------
     do m = 1,pcnst
        do k = 1,plevp
-          cgq(:,k,m) = 0.d0
+          cgq(:,k,m) = 0.e+0_fp
        end do
     end do
 !------------------------------------------------------------------------
@@ -1685,24 +1695,24 @@ contains
 !
 ! !LOCAL VARIABLES:
 !
-    real*8, parameter :: pbl_press = 400.e2         ! pressure cap for pbl (pa)
+    real(fp), parameter :: pbl_press = 400.e2         ! pressure cap for pbl (pa)
     integer :: k, &                               ! vertical loop index
                m
     
     integer :: AS
-    real*8  :: ref_pmid(LLPAR)
+    real(fp)  :: ref_pmid(LLPAR)
 
     !=================================================================
     ! vdinti begins here!
     !=================================================================
 
-    ref_pmid = 0.d0
+    ref_pmid = 0.e+0_fp
     plevp = plev+1
 !-----------------------------------------------------------------------
 ! 	... hard-wired numbers.
 !           zkmin = minimum k = kneutral*f(ri)
 !-----------------------------------------------------------------------
-    zkmin = .01d0
+    zkmin = .01e+0_fp
 
 !-----------------------------------------------------------------------
 ! 	... set physical constants for vertical diffusion and pbl
@@ -1711,8 +1721,9 @@ contains
     ! REF_PMID is indexed with K=1 being the atm. top and K=PLEV being 
     ! the surface.  Eliminate call to UPSIDEDOWN (bmy, 12/21/10)
     do k = 1, plev
-       ref_pmid(plev-k+1) = 0.5d0*( GET_AP(k  )*100.d0 + GET_BP(k  )*1.d5 + &
-                                    GET_AP(k+1)*100.d0 + GET_BP(k+1)*1.d5 )
+       ref_pmid(plev-k+1) = 0.5e+0_fp*( GET_AP(k  )*100.e+0_fp &
+           + GET_BP(k  )*1.e+5_fp + &
+           GET_AP(k+1)*100.e+0_fp + GET_BP(k+1)*1.e+5_fp )
     enddo
 
 !-----------------------------------------------------------------------
@@ -1727,7 +1738,7 @@ contains
     end do
     npbl = max( 1,plev - k )
     write(*,*) 'vdinti: pbl height will be limited to bottom ',npbl, &
-               ' model levels. top is ',1.d-2*ref_pmid(plevp-npbl),' hpa'
+               ' model levels. top is ',1.e-2_fp*ref_pmid(plevp-npbl),' hpa'
     if( plev == 1 ) then
        ntopfl = 0
     else
@@ -1740,11 +1751,11 @@ contains
     ALLOCATE( ml2(plevp), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'ml2' )
 
-    ml2(1) = 0.d0
+    ml2(1) = 0.e+0_fp
     do k = 2,plev
-       ml2(k) = (30.d0)**2
+       ml2(k) = (30.e+0_fp)**2
     end do
-    ml2(plevp) = 0.d0
+    ml2(plevp) = 0.e+0_fp
 !-----------------------------------------------------------------------
 ! 	... set the minimum mixing ratio for the counter-gradient term.
 !           normally this should be the same as qmin.
@@ -1754,7 +1765,7 @@ contains
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINE' )
     
     do m = 1,pcnst
-       qmincg(m) = 0.d0
+       qmincg(m) = 0.e+0_fp
     end do
 
 !-----------------------------------------------------------------------
@@ -1802,7 +1813,8 @@ contains
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GRID_MOD,           ONLY : GET_AREA_M2
-    USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !hma
+    USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma
+    USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
@@ -1830,7 +1842,7 @@ contains
     TYPE(ChmState), INTENT(INOUT)         :: State_Chm
 
     ! Advected species
-    REAL*8,         intent(inout), TARGET :: as2(IIPAR,JJPAR,LLPAR,&
+    REAL(fp),         intent(inout), TARGET :: as2(IIPAR,JJPAR,LLPAR,&
                                                  Input_Opt%N_TRACERS) 
 !
 ! !REMARKS:
@@ -1881,52 +1893,52 @@ contains
 !
     integer :: I,J,L,JLOOP,N,NN
 
-!    REAL*8                :: SNOW_HT !cdh - obsolete
-    REAL*8                :: FRAC_NO_HG0_DEP !jaf 
+!    REAL(fp)                :: SNOW_HT !cdh - obsolete
+    REAL(fp)                :: FRAC_NO_HG0_DEP !jaf 
     LOGICAL               :: ZERO_HG0_DEP !jaf 
 
-    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: pmid, rpdel, rpdeli, zm
-    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: pint
-    real*8, TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: sflx
-    real*8, TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: eflx, dflx ! surface flux
-    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: cgs, kvh, kvm
-    real*8, TARGET, dimension(IIPAR,JJPAR) :: pblh, tpert, qpert
-    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: thp         ! potential temperature
-    real*8, TARGET, dimension(IIPAR,JJPAR) :: shflx    ! water vapor flux
-    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: t1
-    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) :: as ! save tracer MR 
+    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR) :: pmid, rpdel, rpdeli, zm
+    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: pint
+    real(fp), TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: sflx
+    real(fp), TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: eflx, dflx ! surface flux
+    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: cgs, kvh, kvm
+    real(fp), TARGET, dimension(IIPAR,JJPAR) :: pblh, tpert, qpert
+    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR) :: thp         ! potential temperature
+    real(fp), TARGET, dimension(IIPAR,JJPAR) :: shflx    ! water vapor flux
+    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR) :: t1
+    real(fp), TARGET, dimension(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) :: as ! save tracer MR 
                                                          ! before vdiffdr
-    real*8 :: vtemp
-    real*8 :: p0 = 1.d5
-    real*8 :: dtime
-    real*8 :: wk1, wk2
-    real*8 :: soilflux
+    real(fp) :: vtemp
+    real(fp) :: p0 = 1.e+5_fp
+    real(fp) :: dtime
+    real(fp) :: wk1, wk2
+    real(fp) :: soilflux
     integer :: pbl_top
       
-    REAL*8  :: DEP_KG !(cdh, 8/28/09)
+    REAL(fp)  :: DEP_KG !(cdh, 8/28/09)
 
     ! Array to store a single level of the AS2 array,
     ! so as not to blow up the parallelization (ccc, 12/22.10)
-    REAL*8, dimension(IIPAR, JJPAR, Input_Opt%N_TRACERS)  :: as2_scal
+    REAL(fp), dimension(IIPAR, JJPAR, Input_Opt%N_TRACERS)  :: as2_scal
 
     ! Pointers 
-    REAL*8,  POINTER :: p_um1   (:,:,:  )
-    REAL*8,  POINTER :: p_vm1   (:,:,:  )
-    REAL*8,  POINTER :: p_tadv  (:,:,:  )
-    REAL*8,  POINTER :: p_hflux (:,:    )
-    REAL*8,  POINTER :: p_ustar (:,:    )
-    REAL*8,  POINTER :: p_pmid  (:,:,:  )
-    REAL*8,  POINTER :: p_pint  (:,:,:  )
-    REAL*8,  POINTER :: p_rpdel (:,:,:  ) 
-    REAL*8,  POINTER :: p_rpdeli(:,:,:  )
-    REAL*8,  POINTER :: p_zm    (:,:,:  )
-    REAL*8,  POINTER :: p_thp   (:,:,:  )
-    REAL*8,  POINTER :: p_kvh   (:,:,:  )
-    REAL*8,  POINTER :: p_kvm   (:,:,:  )
-    REAL*8,  POINTER :: p_cgs   (:,:,:  )
-    REAL*8,  POINTER :: p_shp   (:,:,:  )
-    REAL*8,  POINTER :: p_t1    (:,:,:  )
-    REAL*8,  POINTER :: p_as2   (:,:,:,:)
+    REAL(fp),  POINTER :: p_um1   (:,:,:  )
+    REAL(fp),  POINTER :: p_vm1   (:,:,:  )
+    REAL(fp),  POINTER :: p_tadv  (:,:,:  )
+    REAL(fp),  POINTER :: p_hflux (:,:    )
+    REAL(fp),  POINTER :: p_ustar (:,:    )
+    REAL(fp),  POINTER :: p_pmid  (:,:,:  )
+    REAL(fp),  POINTER :: p_pint  (:,:,:  )
+    REAL(fp),  POINTER :: p_rpdel (:,:,:  ) 
+    REAL(fp),  POINTER :: p_rpdeli(:,:,:  )
+    REAL(fp),  POINTER :: p_zm    (:,:,:  )
+    REAL(fp),  POINTER :: p_thp   (:,:,:  )
+    REAL(fp),  POINTER :: p_kvh   (:,:,:  )
+    REAL(fp),  POINTER :: p_kvm   (:,:,:  )
+    REAL(fp),  POINTER :: p_cgs   (:,:,:  )
+    REAL(fp),  POINTER :: p_shp   (:,:,:  )
+    REAL(fp),  POINTER :: p_t1    (:,:,:  )
+    REAL(fp),  POINTER :: p_as2   (:,:,:,:)
 
     ! For values from Input_Opt
     LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg,     IS_TAGOx
@@ -1934,14 +1946,14 @@ contains
     LOGICAL            :: LGTMM,     LSOILNOX
     INTEGER            :: N_TRACERS, N_MEMBERS 
     INTEGER            :: ID_EMITTED  (Input_Opt%N_TRACERS)
-    REAL*8             :: TRACER_COEFF(Input_Opt%N_TRACERS, Input_Opt%MAX_MEMB)
-    REAL*8             :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+    REAL(fp)           :: TRACER_COEFF(Input_Opt%N_TRACERS, Input_Opt%MAX_MEMB)
+    REAL(fp)           :: TRACER_MW_KG(Input_Opt%N_TRACERS)
     CHARACTER(LEN=255) :: TRACER_NAME (Input_Opt%N_TRACERS)
-    REAL*8             :: TCVV        (Input_Opt%N_TRACERS)
+    REAL(fp)           :: TCVV        (Input_Opt%N_TRACERS)
 
     ! HEMCO update
     LOGICAL            :: FND
-    REAL*8             :: TMPFLX, EMIS, DEP
+    REAL(fp)           :: TMPFLX, EMIS, DEP
     INTEGER            :: TOPMIX
 
     !=================================================================
@@ -1952,34 +1964,31 @@ contains
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
     
     ! Initialize local arrays. (ccc, 12/21/10)
-    pmid    = 0d0
-    rpdel   = 0d0
-    rpdeli  = 0d0
-    zm      = 0d0
-    pint    = 0d0
-    sflx    = 0d0
-    eflx    = 0d0
-    dflx    = 0d0
-    soilflux = 0d0
-    cgs     = 0d0
-    kvh     = 0d0
-    kvm     = 0d0
-    pblh    = 0d0
-    tpert   = 0d0
-    qpert   = 0d0
-    thp     = 0d0
-    shflx   = 0d0
-    t1      = 0d0
-    as2_scal= 0d0
+    pmid    = 0e+0_fp
+    rpdel   = 0e+0_fp
+    rpdeli  = 0e+0_fp
+    zm      = 0e+0_fp
+    pint    = 0e+0_fp
+    sflx    = 0e+0_fp
+    eflx    = 0e+0_fp
+    dflx    = 0e+0_fp
+    soilflux = 0e+0_fp
+    cgs     = 0e+0_fp
+    kvh     = 0e+0_fp
+    kvm     = 0e+0_fp
+    pblh    = 0e+0_fp
+    tpert   = 0e+0_fp
+    qpert   = 0e+0_fp
+    thp     = 0e+0_fp
+    shflx   = 0e+0_fp
+    t1      = 0e+0_fp
+    as2_scal= 0e+0_fp
 
     ! Copy values from Input_Opt (bmy, 8/1/13)
     IS_CH4       = Input_Opt%ITS_A_CH4_SIM
-!    IS_FULLCHEM  = Input_Opt%ITS_A_FULLCHEM_SIM
     IS_Hg        = Input_Opt%ITS_A_MERCURY_SIM
-!    IS_TAGCO     = Input_Opt%ITS_A_TAGCO_SIM
     IS_TAGOX     = Input_Opt%ITS_A_TAGOX_SIM
     IS_AEROSOL   = Input_Opt%ITS_AN_AEROSOL_SIM
-!    IS_RnPbBe    = Input_Opt%ITS_A_RnPbBe_SIM
     LDYNOCEAN    = Input_Opt%LDYNOCEAN
     LGTMM        = Input_Opt%LGTMM
     LSOILNOX     = Input_Opt%LSOILNOX
@@ -1991,7 +2000,7 @@ contains
     TRACER_NAME  = Input_Opt%TRACER_NAME (1:N_TRACERS             )
     TCVV         = Input_Opt%TCVV        (1:N_TRACERS             )
 
-    dtime = GET_TS_CONV()*60d0 ! min -> second
+    dtime = GET_TS_CONV()*60e+0_fp ! min -> second
     
     shflx = State_Met%EFLUX / latvap ! latent heat -> water vapor flux
 
@@ -2003,8 +2012,8 @@ contains
 
     ! calculate variables related to pressure
     do L = 1, LLPAR
-       pmid(I,J,L) = GET_PCENTER(I,J,L)*100.d0 ! hPa -> Pa
-       pint(I,J,L) = GET_PEDGE(I,J,L)*100.d0   ! hPa -> Pa
+       pmid(I,J,L) = GET_PCENTER(I,J,L)*100.e+0_fp ! hPa -> Pa
+       pint(I,J,L) = GET_PEDGE(I,J,L)*100.e+0_fp   ! hPa -> Pa
        ! calculate potential temperature
        thp(I,J,L) = State_Met%T(I,J,L)*(p0/pmid(I,J,L))**cappa
     enddo
@@ -2036,14 +2045,14 @@ contains
     do J = 1, JJPAR
     do I = 1, IIPAR
        do L = 1, LLPAR
-          rpdel(I,J,L) = 1.d0 / (pint(I,J,L) - pint(I,J,L+1))
+          rpdel(I,J,L) = 1.e+0_fp / (pint(I,J,L) - pint(I,J,L+1))
        enddo
 
-       !rpdeli(I,J,1) = 1.d0 / (PS(I,J) - pmid(I,J,1))
-       rpdeli(I,J,1) = 0.d0 ! follow mozart setup (shown in mo_physlic.F90) 
+       !rpdeli(I,J,1) = 1.e+0_fp / (PS(I,J) - pmid(I,J,1))
+       rpdeli(I,J,1) = 0.e+0_fp ! follow mozart setup (shown in mo_physlic.F90) 
 
        do L = 2, LLPAR
-          rpdeli(I,J,L) = 1.d0 / (pmid(I,J,L-1) - pmid(I,J,L))
+          rpdeli(I,J,L) = 1.e+0_fp / (pmid(I,J,L-1) - pmid(I,J,L))
        enddo
     enddo
     enddo
@@ -2086,7 +2095,7 @@ contains
 
           ! Add total emissions in the PBL to the EFLX array
           ! which tracks emission fluxes.  Units are [kg/m2/s].
-          tmpflx = 0.0d0
+          tmpflx = 0.0e+0_fp
           DO L = 1, TOPMIX
              CALL GetHcoVal ( N, I, J, L, fnd, emis=emis )
              IF ( .NOT. fnd ) EXIT
@@ -2116,7 +2125,7 @@ contains
 !          do N = 1, N_TRACERS
 !             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
 !                                       / GET_AREA_M2( I, J, 1 ) &
-!                                       / GET_TS_EMIS() / 60.d0
+!                                       / GET_TS_EMIS() / 60.e+0_fp
 !          enddo
 !
 !       ENDIF
@@ -2131,7 +2140,7 @@ contains
 !       ! is also approximate, anyway. (Lin, 06/20/09) 
 !       !----------------------------------------------------------------
 !       IF ( IS_TAGCO ) THEN
-!          eflx(I,J,:) = 0d0 
+!          eflx(I,J,:) = 0e+0_fp 
 !       ENDIF
 !
        !----------------------------------------------------------------
@@ -2194,8 +2203,8 @@ contains
           ! use mean concentration within the PBL for calculating drydep 
           ! fluxes
           if (pbl_mean_drydep) then 
-             wk1 = 0.d0
-             wk2 = 0.d0
+             wk1 = 0.e+0_fp
+             wk2 = 0.e+0_fp
              pbl_top = GET_PBL_MAX_L() ! the highest layer the PBL reaches, 
              ! globally
              do L = 1, pbl_top
@@ -2210,7 +2219,7 @@ contains
              ! given that as2 is in v/v
              ! Now add to existing dflx (ckeller, 10/16/2014).
              dflx(I,J,NN) = dflx(I,J,NN) &
-                          + DEPSAV(I,J,N) * (wk1/(wk2+1.d-30)) / TCVV(NN)
+                          + DEPSAV(I,J,N) * (wk1/(wk2+1.e-30_fp)) / TCVV(NN)
 
              ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
              ! when there is O3 destruction in subgrid ship plume 
@@ -2225,7 +2234,7 @@ contains
 
              ! consistency with the standard GEOS-Chem setup (Lin, 07/14/08)
              if (drydep_back_cons) then 
-                dflx(I,J,NN) = dflx(I,J,NN) * (wk2+1.d-30) / &
+                dflx(I,J,NN) = dflx(I,J,NN) * (wk2+1.e-30_fp) / &
                                State_Met%AD(I,J,1)         * &
                                State_Met%BXHEIGHT(I,J,1)   / &
                                GET_PBL_TOP_m(I,J)
@@ -2247,7 +2256,7 @@ contains
              ! but caused instability in the chemical solver
              ! (cdh, 3/21/2013)
              ! Now done through HEMCO (ckeller, 5/19/14).
-!             IF ( (TRIM( DEPNAME(N) ) == 'O3') .and. (SHIPO3DEP(I,J) > 0d0) ) THEN
+!             IF ( (TRIM( DEPNAME(N) ) == 'O3') .and. (SHIPO3DEP(I,J) > 0e+0_fp) ) THEN
 !                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * as2_scal(I,J,NN) / TCVV(NN)
 !             ENDIF
 
@@ -2316,7 +2325,7 @@ contains
 !#endif 
 !
 !          IF ( IS_Hg .AND. IS_HG0(NN) .AND. &
-!               ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT > 10d0) ) ) THEN
+!               ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT > 10e+0_fp) ) ) THEN
 !             DFLX(I,J,NN) = 0D0
 !          ENDIF
 
@@ -2328,33 +2337,33 @@ contains
 
           ! Except in MERRA, we assume entire grid box is water or ice
           ! if conditions are met (jaf, 4/26/11)
-          FRAC_NO_HG0_DEP = 1d0
+          FRAC_NO_HG0_DEP = 1e+0_fp
 
 #if   defined( MERRA ) || defined( GEOS_FP )
           FRAC_NO_HG0_DEP = MIN( State_Met%FROCEAN(I,J) + &
                                  State_Met%FRSNO(I,J)   + &
-                                 State_Met%FRLANDIC(I,J), 1d0)
-          ZERO_HG0_DEP    = ( FRAC_NO_HG0_DEP > 0d0 )
+                                 State_Met%FRLANDIC(I,J), 1e+0_fp)
+          ZERO_HG0_DEP    = ( FRAC_NO_HG0_DEP > 0e+0_fp )
 
 #elif defined( GEOS_5 )
           ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
           ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0      )  .OR.  &
                           ( IS_ICE ( I, J, State_Met     )) .OR.  &
                           ( IS_LAND( I, J, State_Met     )  .AND. &
-                            State_Met%SNOMAS(I,J) > 10d0 ))
+                            State_Met%SNOMAS(I,J) > 10e+0_fp ))
 
 #else
           ! GEOS1-4 snow heigt (water equivalent) in mm
           ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0      )  .OR.  &
                           ( IS_ICE ( I, J, State_Met     )) .OR.  &
                           ( IS_LAND( I, J, State_Met     )  .AND. &
-                            State_Met%SNOW(I,J)   > 10d0 ))
+                            State_Met%SNOW(I,J)   > 10e+0_fp ))
 #endif
           
           IF ( IS_Hg .AND. IS_HG0(NN) ) THEN
              IF ( ZERO_HG0_DEP ) THEN
                 DFLX(I,J,NN) = DFLX(I,J,NN) * &
-                               MAX(1d0 - FRAC_NO_HG0_DEP,0d0)
+                               MAX(1e+0_fp - FRAC_NO_HG0_DEP,0e+0_fp)
              ENDIF
           ENDIF
 
@@ -2369,8 +2378,8 @@ contains
        IF ( IS_TAGOX ) THEN
           do N = 2, N_TRACERS ! the first species, Ox, has been done above
              if (pbl_mean_drydep) then
-                wk1 = 0.d0
-                wk2 = 0.d0
+                wk1 = 0.e+0_fp
+                wk2 = 0.e+0_fp
                 pbl_top = GET_PBL_MAX_L() ! the highest layer the PBL reaches,
                                           ! globally
                 do L = 1, pbl_top
@@ -2383,11 +2392,11 @@ contains
                 ! a problem even if the PBL top is lower than the top of the 
                 ! first (lowest) model layer
                 ! given that as2 is in v/v
-                dflx(I,J,N) = DEPSAV(I,J,1) * (wk1/(wk2+1.d-30)) / TCVV(1)
+                dflx(I,J,N) = DEPSAV(I,J,1) * (wk1/(wk2+1.e-30_fp)) / TCVV(1)
 
                 ! Consistent with the standard GEOS-Chem setup.(Lin, 07/14/08) 
                 if (drydep_back_cons) then 
-                   dflx(I,J,N) = dflx(I,J,N) * (wk2+1.d-30) / &
+                   dflx(I,J,N) = dflx(I,J,N) * (wk2+1.e-30_fp) / &
                                  State_Met%AD(I,J,1)        * &
                                  State_Met%BXHEIGHT(I,J,1)  / &
                                  GET_PBL_TOP_m(I,J)
@@ -2428,7 +2437,7 @@ contains
              
              ! Deposition mass, kg
              DEP_KG = dflx( I, J, NN ) * GET_AREA_M2( I, J, 1 ) &
-                    * GET_TS_CONV()    * 60d0
+                    * GET_TS_CONV()    * 60e+0_fp
 
              IF ( IS_Hg2(NN) ) THEN 
                 
@@ -2488,20 +2497,20 @@ contains
                 ! consider timestep difference between convection and emissions
 		IF(ND44 > 0 .or. LGTMM) THEN                
 		AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,NN) &
-                                / TRACER_MW_KG(NN) * 6.022d23 * 1.d-4 &
-                                * GET_TS_CONV() / GET_TS_EMIS() 
+                       / TRACER_MW_KG(NN) * 6.022e+23_fp * 1.e-4_fp &
+                       * GET_TS_CONV() / GET_TS_EMIS() 
 		ENDIF
 
                 ! If Soil NOx is turned on, then call SOIL_DRYDEP to
                 ! archive dry deposition fluxes for nitrogen species
                 ! (SOIL_DRYDEP will exit if it can't find a match.)
 		IF ( LSOILNOX ) THEN
-                   soilflux = 0d0
+                   soilflux = 0e+0_fp
                    DO J = 1, JJPAR
                    DO I = 1, IIPAR
                       soilflux = dflx(I,J,NN) &
-		               / TRACER_MW_KG(NN) * 6.022d23 * 1.d-4 &
-                               * GET_TS_CONV() / GET_TS_EMIS()
+		        / TRACER_MW_KG(NN) * 6.022e+23_fp * 1.e-4_fp &
+                        * GET_TS_CONV() / GET_TS_EMIS()
 
                       CALL SOIL_DRYDEP ( I, J, 1, NN, soilflux)
                    ENDDO
@@ -2518,8 +2527,8 @@ contains
              ! Convert : kg/m2/s -> molec/cm2/s
              ! Consider timestep difference between convection and emissions
              AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,N) &
-                             / TRACER_MW_KG(1) * 6.022d23 * 1.d-4 &
-                             * GET_TS_CONV() / GET_TS_EMIS()
+                       / TRACER_MW_KG(1) * 6.022e+23_fp * 1.e-4_fp &
+                       * GET_TS_CONV() / GET_TS_EMIS()
              AD44(:,:,N,2) = AD44(:,:,1,2) ! drydep velocity
           enddo
        endif
@@ -2574,7 +2583,7 @@ contains
        ENDDO
 
        ! Convert g/kg -> kg/kg
-       p_shp              =  p_shp * 1.d-3 
+       p_shp              =  p_shp * 1.e-3_fp 
 
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
@@ -2601,7 +2610,7 @@ contains
        ENDDO
 
        ! Convert kg/kg -> g/kg
-       p_shp    = p_shp * 1.d3
+       p_shp    = p_shp * 1.e+3_fp
 
        ! Free pointers
        NULLIFY( p_um1,   p_vm1,    p_tadv, p_pmid, p_pint )
@@ -2749,7 +2758,7 @@ contains
       ! Pointers
     ! We need to define local arrays to hold corresponding values 
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL*8, POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER :: STT(:,:,:,:)
 
     !=================================================================
     ! DO_PBL_MIX_2 begins here!

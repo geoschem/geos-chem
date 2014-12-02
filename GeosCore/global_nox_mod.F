@@ -15,13 +15,15 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
 !
       ! Array to store global monthly mean BNOX field
-      REAL*8, PUBLIC, ALLOCATABLE :: BNOX(:,:,:)
+      REAL(fp), PUBLIC, ALLOCATABLE :: BNOX(:,:,:)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -45,6 +47,7 @@
 !  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -85,7 +88,7 @@
 !  28 Jul 2000 - R. Yantosca - Initial version
 !  (1 ) Now use version of GET_TAU0 with 3 arguments.  Now call READ_BPCH2 
 !        with IIPAR,JJPAR,LGLOB.  Call TRANSFER_3D to cast from REAL*4 to 
-!        REAL*8 and to regrid to 30 levels for GEOS-3 (if necessary).  ARRAY 
+!        REAL(fp) and to regrid to 30 levels for GEOS-3 (if necessary).  ARRAY 
 !        should now be of size (IIPAR,JJPAR,LGLOB). (bmy, 1/14/02)
 !  (2 ) Eliminated obsolete code from 1/02 (bmy, 2/27/02)
 !  (3 ) Bug fix in FORMAT statement: replace missing commas.  Also make sure
@@ -104,7 +107,7 @@
 !
       INTEGER            :: I, J, L
       REAL*4             :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL*8             :: XTAU
+      REAL(fp)             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
       CHARACTER(LEN=255) :: FIELD_DIR, RGNAME, TEMPO, CHAROP
       CHARACTER(LEN=3)   :: BMONTH(12) = (/ 'jan', 'feb', 'mar', 
@@ -173,7 +176,7 @@
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 1,     XTAU,  
      &                 IIPAR,    JJPAR,      LGLOB, ARRAY )
 
-      ! Cast from REAL*4 to REAL*8
+      ! Cast from REAL*4 to REAL(fp)
       CALL TRANSFER_3D( ARRAY, BNOX )
 
       END SUBROUTINE GET_GLOBAL_NOx
@@ -218,7 +221,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BNOX' )
 
       ! Zero BNOX array
-      BNOX = 0d0
+      BNOX = 0e+0_fp
 
       END SUBROUTINE INIT_GLOBAL_NOX
 !EOC

@@ -18,6 +18,8 @@
 !
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -145,6 +147,7 @@
 !  26 Sep 2013 - R. Yantosca - Now read GEOS_FP_DIR from Input_Opt everywhere
 !  23 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
 !  23 Jun 2014 - R. Yantosca - Removed INIT_INPUT routine
+!  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  24 Nov 2014 - C. Keller   - Updates on timestep handling in ESMF environment
 !EOP
 !------------------------------------------------------------------------------
@@ -1049,11 +1052,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 5.0d0              ! Delta-longitude array [degrees]
-      DLAT          = 4.0d0              ! Delta-latitude array [degrees]
+      DLON          = 5.0e+0_fp              ! Delta-longitude array [degrees]
+      DLAT          = 4.0e+0_fp              ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 2.0d0              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 2.0d0              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 2.0e+0_fp              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 2.0e+0_fp              !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID2x25 )
@@ -1063,11 +1066,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 2.5d0              ! Delta-longitude array [degrees]
-      DLAT          = 2.0d0              ! Delta-latitude array [degrees]
+      DLON          = 2.5e+0_fp              ! Delta-longitude array [degrees]
+      DLAT          = 2.0e+0_fp              ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 1.0d0              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 1.0d0              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 1.0e+0_fp              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 1.0e+0_fp              !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID1x125 )
@@ -1077,11 +1080,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 1.25d0             ! Delta-longitude array [degrees]
-      DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+      DLON          = 1.25e+0_fp             ! Delta-longitude array [degrees]
+      DLAT          = 1.0e+0_fp              ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 0.5e+0_fp              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5e+0_fp              !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID1x1 )
@@ -1091,11 +1094,11 @@
       !-----------------------------
       JSP           = 1                  ! Lat index of S Pole
       JNP           = JM_WORLD           ! Lat index of N pole
-      DLON          = 1.0d0              ! Delta-longitude array [degrees]
-      DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+      DLON          = 1.0e+0_fp              ! Delta-longitude array [degrees]
+      DLAT          = 1.0e+0_fp              ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 0.5e+0_fp              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5e+0_fp              !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID05x0666 )
@@ -1105,8 +1108,8 @@
       !-----------------------------
       JSP           = 0                  ! Lat index of S Pole
       JNP           = 0                  ! Lat index of N pole
-      DLON          = 2d0/3d0            ! Delta-longitude array [degrees]
-      DLAT          = 0.5d0              ! Delta-latitude array [degrees]
+      DLON          = 2e+0_fp/3e+0_fp            ! Delta-longitude array [degrees]
+      DLAT          = 0.5e+0_fp              ! Delta-latitude array [degrees]
 
 #elif defined( GRID025x03125 )
 
@@ -1115,8 +1118,8 @@
       !-----------------------------
       JSP           = 0                  ! Lat index of S Pole
       JNP           = 0                  ! Lat index of N pole
-      DLON          = 0.3125d0           ! Delta-longitude array [degrees]
-      DLAT          = 0.25d0             ! Delta-latitude array [degrees]
+      DLON          = 0.3125e+0_fp           ! Delta-longitude array [degrees]
+      DLAT          = 0.25e+0_fp             ! Delta-latitude array [degrees]
 
 #elif defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 
@@ -1363,13 +1366,13 @@
          READ( SUBSTRS(3), * ) Input_Opt%TRACER_MW_G(T) 
 
          ! Save tracer molecular wt [kg/mole]
-         Input_Opt%TRACER_MW_KG(T) = Input_Opt%TRACER_MW_G(T) * 1d-3
+         Input_Opt%TRACER_MW_KG(T) = Input_Opt%TRACER_MW_G(T) * 1e-3_fp
 
          ! Ratio of MW air / MW tracer 
-         Input_Opt%TCVV(T) = 28.97d0 / Input_Opt%TRACER_MW_G(T)
+         Input_Opt%TCVV(T) = 28.97e+0_fp / Input_Opt%TRACER_MW_G(T)
 
          ! Molecules tracer / kg tracer
-         Input_Opt%XNUMOL(T) = 6.022d+23 / Input_Opt%TRACER_MW_KG(T)
+         Input_Opt%XNUMOL(T) = 6.022e+23_fp / Input_Opt%TRACER_MW_KG(T)
          
          !----------------------------------------------------
          ! If this is a family tracer, get member species
@@ -1394,7 +1397,7 @@
                   NAME = NAME( 2:LEN_TRIM( NAME )-1 )
 
                   ! Set coeff of emitted tracer to 1 for now
-                  Input_Opt%TRACER_COEFF(T,C) = 1d0
+                  Input_Opt%TRACER_COEFF(T,C) = 1e+0_fp
 
                   ! Index of which family member is the emitted species
                   Input_Opt%ID_EMITTED(T) = C
@@ -1432,7 +1435,7 @@
                ELSE 
 
                   ! Set coeff of emitted tracer to 1 for now
-                  Input_Opt%TRACER_COEFF(T,C) = 1d0
+                  Input_Opt%TRACER_COEFF(T,C) = 1e+0_fp
 
                   ! 2nd character of name is a number
                   IF ( ISDIGIT( NAME(1:1) ) ) THEN
@@ -1478,7 +1481,7 @@
             Input_Opt%ID_EMITTED(T)     = 0
 
             ! Coefficient of each tracer constituent
-            Input_Opt%TRACER_COEFF(T,1) = 1d0
+            Input_Opt%TRACER_COEFF(T,1) = 1e+0_fp
 
             ! Tracer constituent name
             Input_Opt%TRACER_CONST(T,1) = Input_Opt%TRACER_NAME(T)
@@ -2054,7 +2057,7 @@
          WRITE( 6, 120     ) 'NAT supercooling requirement: ',
      &                                                 T_NAT_SUPERCOOL
          WRITE( 6, 120     ) 'Ice supersaturation req.    : ',
-     &                                        ((P_ICE_SUPERSAT-1)*1.d2)
+     &                                     ((P_ICE_SUPERSAT-1)*1.e+2_fp)
          WRITE( 6, 100     ) 'Perform PSC het. chemistry? : ',LPSCCHEM
          WRITE( 6, 100     ) 'Use strat. aerosol OD?      : ', LSTRATOD
       ENDIF
@@ -5699,7 +5702,7 @@
       INTEGER            :: N_ND51,  FREQ
       INTEGER            :: IMIN,    IMAX,     JMIN
       INTEGER            :: JMAX,    LMIN,     LMAX
-      REAL*8             :: HR1,     HR2,      HR_WRITE
+      REAL(fp)             :: HR1,     HR2,      HR_WRITE
       CHARACTER(LEN=255) :: FILE,    MSG
 
       ! Arrays
@@ -5877,7 +5880,7 @@
       INTEGER              :: N_ND51,  FREQ
       INTEGER              :: IMIN,    IMAX,    JMIN
       INTEGER              :: JMAX,    LMIN,    LMAX
-      REAL*8               :: HR1,     HR2,     HR_WRITE
+      REAL(fp)               :: HR1,     HR2,     HR_WRITE
       CHARACTER(LEN=255)   :: FILE,    MSG
 
       ! Arrays
@@ -6207,7 +6210,7 @@
 
       ! Arrays
       INTEGER              :: FAM_NMEM(MAXFAM)
-      REAL*8               :: FAM_COEF(MAXMEM,MAXFAM)
+      REAL(fp)               :: FAM_COEF(MAXMEM,MAXFAM)
       CHARACTER(LEN=14 )   :: FAM_NAME(MAXFAM)
       CHARACTER(LEN=14 )   :: FAM_TYPE(MAXFAM)
       CHARACTER(LEN=14 )   :: FAM_MEMB(MAXMEM,MAXFAM)
@@ -6232,7 +6235,7 @@
       FAM_TYPE(:)   = ''
       FAM_NMEM(:)   = 0
       FAM_MEMB(:,:) = ''
-      FAM_COEF(:,:) = 0d0
+      FAM_COEF(:,:) = 0e+0_fp
 
       !=================================================================
       ! Read info about prod & loss families
@@ -6282,7 +6285,7 @@
             NAME          =  TRIM( SUBSTRS(M+1) )
 
             ! Family member coefficient (set to 1 for now)
-            FAM_COEF(M,F) = 1d0
+            FAM_COEF(M,F) = 1e+0_fp
 
             ! If first char is a digit ...
             IF ( ISDIGIT( NAME(1:1) ) ) THEN
@@ -6343,7 +6346,7 @@
          FAM_TYPE(:)   = ''
          FAM_NMEM(:)   = 0
          FAM_MEMB(:,:) = ''
-         FAM_COEF(:,:) = 0d0
+         FAM_COEF(:,:) = 0e+0_fp
       ENDIF
 
       !=================================================================
@@ -7349,10 +7352,10 @@
       ! Scalars
       INTEGER            :: N
       LOGICAL            :: CHEM_PROCESS
-      REAL*8             :: POP_XMW, POP_KOA, POP_KBC
-      REAL*8             :: POP_K_POPG_OH
-      REAL*8             :: POP_K_POPP_O3A, POP_K_POPP_O3B
-      REAL*8             :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL(fp)             :: POP_XMW, POP_KOA, POP_KBC
+      REAL(fp)             :: POP_K_POPG_OH
+      REAL(fp)             :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL(fp)             :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
       CHARACTER(LEN=3)   :: POP_TYPE
 
       ! Arrays
@@ -7542,8 +7545,9 @@
 
       ! Increment the TCVV and XNUMOL arrays for APM tracers
       DO T = 1, N_APMTRA
-         Input_Opt%TCVV(N_TRACERS+T)   = 28.97d0   / APMTRACER_MW_G(T)
-         Input_Opt%XNUMOL(N_TRACERS+T) = 6.022d+23 / APMTRACER_MW_KG(T) 
+         Input_Opt%TCVV(N_TRACERS+T) = 28.97e+0_fp / APMTRACER_MW_G(T)
+         Input_Opt%XNUMOL(N_TRACERS+T) = 6.022e+23_fp / 
+     &                                   APMTRACER_MW_KG(T) 
       ENDDO
 
       !=================================================================
@@ -8077,7 +8081,7 @@
 !
       LOGICAL :: IS_LEAPYEAR
       INTEGER :: NYMDe, Y, M, D, LASTDAY
-      REAL*8  :: JD, JD0
+      REAL(fp)  :: JD, JD0
 
       !=================================================================
       ! IS_LAST_DAY_GOOD begins here!
@@ -8089,7 +8093,7 @@
       JD = JULDAY( Y, M, DBLE( D ) )
 
       ! Astronomical Julian Day corresponding to the 1st of the year
-      JD0 = JULDAY( Y, 1, 0d0 )
+      JD0 = JULDAY( Y, 1, 0e+0_fp )
 
       ! LASTDAY is the day of year corresponding to NYMDe      
       LASTDAY = JD - JD0

@@ -18,6 +18,7 @@
 !
       USE CMN_SIZE_MOD           ! Size parameters
       USE CMN_GCTM_MOD           ! Physical constants
+      USE PRECISION_MOD          ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -45,10 +46,10 @@
 !
       ! Arrays AIRDEN_FULLGRID and T_FULLGRID are used to correct vertical
       ! regridding of OH for offline simulations (mpayer, 3/14/13)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID_1   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID_2   (:,:,:)
+      REAL(fp),  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
+      REAL(fp),  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
+      REAL(fp),  ALLOCATABLE, PUBLIC :: T_FULLGRID_1   (:,:,:)
+      REAL(fp),  ALLOCATABLE, PUBLIC :: T_FULLGRID_2   (:,:,:)
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -135,6 +136,7 @@
 !                              T_FULLGRID. They are required to correct vertical
 !                              regridding of OH for offline simulations.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,7 +163,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8, INTENT(INOUT) :: Z(IIPAR,JJPAR)   ! Quantity to be averaged 
+      REAL(fp), INTENT(INOUT) :: Z(IIPAR,JJPAR)   ! Quantity to be averaged 
                                                 !  over the pole (usually PS)
 ! 
 ! !REVISION HISTORY: 
@@ -189,8 +191,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J
-      REAL*8  :: TOTAL_Z1, TOTAL_Z2, TOTAL_Z3, TOTAL_Z4
-      REAL*8  :: TOTAL_A1, TOTAL_A2, TOTAL_A3, TOTAL_A4
+      REAL(fp)  :: TOTAL_Z1, TOTAL_Z2, TOTAL_Z3, TOTAL_Z4
+      REAL(fp)  :: TOTAL_A1, TOTAL_A2, TOTAL_A3, TOTAL_A4
 
       !=================================================================
       ! AVGPOLE begins here!                                                  
@@ -271,11 +273,11 @@
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
 !  ========================================================================
-!  (1 ) BXHEIGHT (REAL*8 ) : Vertical extent of a grid box   [m       ]
-!  (2 ) DELP     (REAL*8 ) : Delta-P extent  of a grid box   [mb      ]
-!  (3 ) AIRVOL   (REAL*8 ) : Volume  of air  in a grid box   [m^3     ]
-!  (4 ) AD       (REAL*8 ) : Mass    of air  in a grid box   [kg      ]
-!  (5 ) AIRDEN   (REAL*8 ) : Density of air  in a grid box   [kg/m^3  ]
+!  (1 ) BXHEIGHT (REAL(fp) ) : Vertical extent of a grid box   [m       ]
+!  (2 ) DELP     (REAL(fp) ) : Delta-P extent  of a grid box   [mb      ]
+!  (3 ) AIRVOL   (REAL(fp) ) : Volume  of air  in a grid box   [m^3     ]
+!  (4 ) AD       (REAL(fp) ) : Mass    of air  in a grid box   [kg      ]
+!  (5 ) AIRDEN   (REAL(fp) ) : Density of air  in a grid box   [kg/m^3  ]
 ! 
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
@@ -323,6 +325,8 @@
 !  22 Oct 2012 - R. Yantosca - Renamed LOCAL_MET argument to State_Met
 !  09 Nov 2012 - M. Payer    - Copy met field arrays to the State_Met derived
 !                              type object
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%DELP(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -331,7 +335,7 @@
 !
 
       INTEGER :: I,  J,  L
-      REAL*8  :: P1, P2, AREA_M2
+      REAL(fp)  :: P1, P2, AREA_M2
 
       !=================================================================
       ! AIRQNT begins here! 
@@ -353,7 +357,7 @@
          P2                        = GET_PEDGE( I, J, L+1 )
 
          ! Pressure difference between top & bottom edges [hPa]
-         State_Met%DELP(L,I,J)     = P1 - P2
+         State_Met%DELP(I,J,L)     = P1 - P2
 
          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
@@ -399,14 +403,14 @@
          !  ----  =    ----      * ----  * -----  *      -----
          !    1          1          mb       m             1
          !===========================================================
-         State_Met%AD(I,J,L) = State_Met%DELP(L,I,J) 
+         State_Met%AD(I,J,L) = State_Met%DELP(I,J,L) 
      &                       * G0_100 
      &                       * AREA_M2
 
          !===========================================================
          ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
          !===========================================================
-         State_Met%AIRDEN(L,I,J) = State_Met%AD(I,J,L) 
+         State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L) 
      &                           / State_Met%AIRVOL(I,J,L)
 
       ENDDO
@@ -450,7 +454,7 @@
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT_FULLGRID:
 !  ========================================================================
-!  (1 ) AIRDEN_FULLGRID (REAL*8 ) : Density of air  in a grid box   [kg/m^3  ]
+!  (1 ) AIRDEN_FULLGRID (REAL(fp) ) : Density of air  in a grid box   [kg/m^3  ]
 !
 !  NOTES:
 !  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
@@ -464,8 +468,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I,  J,  L
-      REAL*8  :: P1, P2, AREA_M2, DELP_TMP
-      REAL*8  :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
+      REAL(fp)  :: P1, P2, AREA_M2, DELP_TMP
+      REAL(fp)  :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
 
       !=================================================================
       ! AIRQNT_FULLGRID begins here! 
@@ -552,7 +556,7 @@
          !===========================================================
          ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
          !===========================================================
-         AIRDEN_FULLGRID(L,I,J) = AD_TMP / AIRVOL_TMP
+         AIRDEN_FULLGRID(I,J,L) = AD_TMP / AIRVOL_TMP
 
       ENDDO
       ENDDO
@@ -655,9 +659,9 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I,        J,        L
-      REAL*8  :: D_NTIME0, D_NTIME1, D_NDT
-      REAL*8  :: D_NTDT,   TM,       TC2
-      REAL*8  :: YSOUTH,   YNORTH
+      REAL(fp)  :: D_NTIME0, D_NTIME1, D_NDT
+      REAL(fp)  :: D_NTDT,   TM,       TC2
+      REAL(fp)  :: YSOUTH,   YNORTH
 
       !=================================================================
       ! Initialization
@@ -669,13 +673,13 @@
       D_NTDT   = DBLE( NTDT   )
 
 #if   defined( GEOS_FP )
-      D_NDT    = 10800d0              ! For 3-hr instantaneous fields
+      D_NDT    = 10800e+0_fp              ! For 3-hr instantaneous fields
 #else
-      D_NDT    = 21600d0              ! For 6-hr instantaneous fields
+      D_NDT    = 21600e+0_fp              ! For 6-hr instantaneous fields
 #endif      
 
       ! Fraction of 6h timestep elapsed at mid point of this dyn timestep
-      TM  = ( D_NTIME1 + D_NTDT/2d0 - D_NTIME0 ) / D_NDT
+      TM  = ( D_NTIME1 + D_NTDT/2e+0_fp - D_NTIME0 ) / D_NDT
       
       ! Fraction of 6h timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
@@ -713,8 +717,9 @@
             ! so that we don't do chemistry at an abnormally high
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
-            IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200d0 )
+            IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
+               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 
+     &                                     200e+0_fp )
             ENDIF
          ENDIF
       ENDDO
@@ -753,8 +758,9 @@
          ! altitude.  Set TROPP in the polar regions to 200 hPa.
          ! (jal, phs, bmy, 9/18/07)
          IF ( Input_Opt%LVARTROP ) THEN
-            IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200d0 )
+            IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
+               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 
+     &                                     200e+0_fp )
             ENDIF
          ENDIF
       ENDDO
@@ -794,9 +800,9 @@
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
             IF ( Input_Opt%LVARTROP ) THEN
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+               IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
                   State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
-     &                                        200d0 )
+     &                                        200e+0_fp )
                ENDIF
             ENDIF
          ENDIF
@@ -846,9 +852,9 @@
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
             IF ( Input_Opt%LVARTROP ) THEN
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+               IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
                   State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
-     &                                        200d0 )
+     &                                        200e+0_fp )
                ENDIF
             ENDIF
          ENDIF
@@ -960,8 +966,8 @@
 
       ! It's a land box if 50% or more of the box is covered by 
       ! land and less than 50% of the box is covered by ice
-      LAND = ( State_Met%LWI_GISS(I,J) >= 0.5d0 .and. 
-     &         State_Met%SNICE(I,J)    <  0.5d0 )
+      LAND = ( State_Met%LWI_GISS(I,J) >= 0.5e+0_fp .and. 
+     &         State_Met%SNICE(I,J)    <  0.5e+0_fp )
 
 #else
 
@@ -971,7 +977,7 @@
 
       ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
       LAND = ( NINT( State_Met%LWI(I,J) ) == 1       .and.
-     &               State_Met%ALBD(I,J)  <  0.695d0 )
+     &               State_Met%ALBD(I,J)  <  0.695e+0_fp )
 
 #endif
 
@@ -1046,8 +1052,8 @@
 
       ! It's a water box if less than 50% of the box is
       ! covered by land and less than 50% is covered by ice
-      WATER = ( State_Met%LWI_GISS(I,J) < 0.5d0 .and. 
-     &          State_Met%SNICE(I,J)    < 0.5d0 )
+      WATER = ( State_Met%LWI_GISS(I,J) < 0.5e+0_fp .and. 
+     &          State_Met%SNICE(I,J)    < 0.5e+0_fp )
 
 #else
 
@@ -1057,7 +1063,7 @@
 
       ! LWI=0 and ALBEDO less than 69.5% is a water box 
       WATER = ( NINT( State_Met%LWI(I,J) ) == 0       .and.
-     &                State_Met%ALBD(I,J)  <  0.695d0 )
+     &                State_Met%ALBD(I,J)  <  0.695e+0_fp )
 
 #endif
 
@@ -1112,7 +1118,7 @@
       !--------------------------
 
       ! It's an ice box if 50% or more of the box is covered by ice
-      ICE = ( State_Met%SNICE(I,J) >= 0.5d0 )
+      ICE = ( State_Met%SNICE(I,J) >= 0.5e+0_fp )
 
 #else
 
@@ -1122,7 +1128,7 @@
 
       ! LWI=2 or ALBEDO > 69.5% is ice
       ICE = ( NINT( State_Met%LWI(I,J) ) == 2       .or.
-     &              State_Met%ALBD(I,J)  >= 0.695d0 )
+     &              State_Met%ALBD(I,J)  >= 0.695e+0_fp )
 
 #endif
 
@@ -1154,7 +1160,7 @@
       ! Arguments
       INTEGER,        INTENT(IN) :: I, J       ! Lon & lat grid box indices
       INTEGER,        INTENT(IN) :: NEIGHBOR   ! # of neighbor boxes to consider
-      REAL*8,         INTENT(IN) :: THRESH     ! LWI threshold for near-land 
+      REAL(fp),         INTENT(IN) :: THRESH     ! LWI threshold for near-land 
       TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -1231,7 +1237,7 @@
             ! It's near-land if THRESH <= LWI_GISS <= 1.0 
             !---------------------------------------------------
             IF ( State_Met%LWI_GISS(LONGI,LATJ) >  THRESH .and.
-     &           State_Met%LWI_GISS(LONGI,LATJ) <= 1.0d0 ) THEN
+     &           State_Met%LWI_GISS(LONGI,LATJ) <= 1.0e+0_fp ) THEN
 
                ! We are in a near-land box
                NEAR = .TRUE.
@@ -1255,7 +1261,7 @@
             ! It's near-land if THRESH <= LWI <= 1.0 
             !---------------------------------------------------
             IF ( State_Met%LWI(LONGI,LATJ) >  THRESH  .and.
-     &           State_Met%LWI(LONGI,LATJ) <= 1d0    ) THEN
+     &           State_Met%LWI(LONGI,LATJ) <= 1e+0_fp    ) THEN
 
                ! We are in a near-land box
                NEAR = .TRUE.
@@ -1321,7 +1327,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Conversion factor
-      REAL*8, PARAMETER   :: HCONV = 28.97d-3 / 18.0d0 
+      REAL(fp), PARAMETER   :: HCONV = 28.97e-3_fp / 18.0e+0_fp 
 
       !=================================================================
       ! MAKE_AVGW begins here!
@@ -1385,9 +1391,9 @@
 ! !REMARKS:
 !  Module variables used:
 !  ===========================================================================
-!  (1 ) SPHU (REAL*8) : Array containing 3-D specific humidity [g H2O/kg air]
-!  (2 ) TMPU (REAL*8) : Array containing 3-D temperature field [K]
-!  (3 ) RH   (REAL*8) : Output array for relative humidity     [%]
+!  (1 ) SPHU (REAL(fp)) : Array containing 3-D specific humidity [g H2O/kg air]
+!  (2 ) TMPU (REAL(fp)) : Array containing 3-D temperature field [K]
+!  (3 ) RH   (REAL(fp)) : Output array for relative humidity     [%]
 ! 
 ! !REVISION HISTORY: 
 !  13 Oct 1999 - R. Yantosca - Initial version
@@ -1409,14 +1415,14 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8              :: ESAT, SHMB, PRES, TEMP
+      REAL(fp)              :: ESAT, SHMB, PRES, TEMP
       INTEGER             :: I, J, L
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8, PARAMETER   :: A =   23.5518d0
-      REAL*8, PARAMETER   :: B = 2937.4d0
-      REAL*8, PARAMETER   :: C =   -4.9283d0
+      REAL(fp), PARAMETER   :: A =   23.5518e+0_fp
+      REAL(fp), PARAMETER   :: B = 2937.4e+0_fp
+      REAL(fp), PARAMETER   :: C =   -4.9283e+0_fp
 
       !=================================================================
       ! MAKE_RH begins here!
@@ -1436,13 +1442,13 @@
 
          ! Saturation water vapor pressure in mbar 
          ! (from NASA GTE PEM-Tropics handbook)
-         ESAT = ( 10d0**( A - ( B / TEMP ) ) ) * ( TEMP**C )
+         ESAT = ( 10e+0_fp**( A - ( B / TEMP ) ) ) * ( TEMP**C )
             
          ! Specific humidity in mb
-         SHMB = State_Met%SPHU(I,J,L) * 1.6072d-3 * PRES
+         SHMB = State_Met%SPHU(I,J,L) * 1.6072e-3_fp * PRES
             
          ! Relative humidity as a percentage
-         State_Met%RH(I,J,L) = ( SHMB / ESAT ) * 100d0 
+         State_Met%RH(I,J,L) = ( SHMB / ESAT ) * 100e+0_fp 
 
       ENDDO
       ENDDO
@@ -1478,7 +1484,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                      :: OBK         ! Monin-Obhukhov length
+      REAL(fp)                      :: OBK         ! Monin-Obhukhov length
 !
 ! !REMARKS:
 ! 
@@ -1520,25 +1526,25 @@
       !=================================================================
 
       ! Local variables
-      REAL*8            :: NUM, DEN
+      REAL(fp)            :: NUM, DEN
 
       ! Parameters
-      REAL*8, PARAMETER :: KAPPA = 0.4d0 
-      REAL*8, PARAMETER :: CP    = 1000.0d0
+      REAL(fp), PARAMETER :: KAPPA = 0.4e+0_fp 
+      REAL(fp), PARAMETER :: CP    = 1000.0e+0_fp
 
       ! Numerator
-      NUM = - State_Met%AIRDEN(1,I,J) * CP                   *
-     &        State_Met%TS(I,J)        * State_Met%USTAR(I,J) *
-     &        State_Met%USTAR(I,J)     * State_Met%USTAR(I,J)
+      NUM = - State_Met%AIRDEN(I,J,1) * CP                   *
+     &        State_Met%TS(I,J)       * State_Met%USTAR(I,J) *
+     &        State_Met%USTAR(I,J)    * State_Met%USTAR(I,J)
 
       ! Denominator
       DEN =  KAPPA         * g0       * State_Met%HFLUX(I,J) 
 
       ! Prevent div by zero
-      IF ( ABS( DEN ) > 0d0 ) THEN
+      IF ( ABS( DEN ) > 0e+0_fp ) THEN
          OBK = NUM / DEN
       ELSE
-         OBK = 1.0d5
+         OBK = 1.0e+5_fp
       ENDIF
 
 #endif
@@ -1604,7 +1610,7 @@
 !
       ! Scalars
       INTEGER :: DOY,  DOY5, YEAR, MONTH,  DAY, HOUR, HOUR5, MINUTE
-      REAL*8  :: DDAY, JD,   JD5,  JDJan0, GMT, GMT5
+      REAL(fp)  :: DDAY, JD,   JD5,  JDJan0, GMT, GMT5
 
       !=================================================================
       ! Get cosine(SZA) at the current time (SUNCOS) and at the
@@ -1622,7 +1628,7 @@
       HOUR   = GET_HOUR()                              ! Current GMT hour
       MINUTE = GET_MINUTE()                            ! Current GMT minutes
       GMT    = GET_GMT()                               ! Current GMT
-      DDAY   = DAY + ( HOUR/24d0 ) + ( MINUTE/1440d0 ) ! Current decimal day
+      DDAY   = DAY + ( HOUR/24e+0_fp ) + ( MINUTE/1440e+0_fp ) ! Current decimal day
       JD     = JULDAY( YEAR, MONTH, DDAY )             ! Current Julian date
 
       ! Compute cosine(SZA) quantities for the current time
@@ -1634,10 +1640,10 @@
       !=================================================================
 
       ! Time 5h ago
-      JDJan0 = JULDAY( YEAR, 1, 0d0 )                  ! Julian date on Jan 0
-      JD5    = JD  - ( 5d0 / 24d0 )                    ! Julian date 5h ago
+      JDJan0 = JULDAY( YEAR, 1, 0e+0_fp )                  ! Julian date on Jan 0
+      JD5    = JD  - ( 5e+0_fp / 24e+0_fp )                    ! Julian date 5h ago
       DOY5   = JD5 - JDJan0                            ! Day of year 5h ago
-      GMT5   = GMT - 5d0                               ! GMT 5h ago
+      GMT5   = GMT - 5e+0_fp                               ! GMT 5h ago
       HOUR5  = INT( GMT5 )
 
       ! Compute cosine(SZA) quantities for 5h ago
@@ -1745,22 +1751,22 @@
 !      
       INTEGER            :: I,        IJLOOP,   J
       INTEGER            :: MINUTE,   TS_SUN,   FACTOR
-      REAL*8             :: AHR,      GMT_CUR,  GMT_MID 
-      REAL*8             :: TIMLOC,   DEC,      C_DEC
-      REAL*8             :: S_DEC,    R,        YMID_R
-      REAL*8             :: C_YMID_R, S_YMID_R
-      REAL*8             :: SUNCOS,   SUNCOS_MID
+      REAL(fp)             :: AHR,      GMT_CUR,  GMT_MID 
+      REAL(fp)             :: TIMLOC,   DEC,      C_DEC
+      REAL(fp)             :: S_DEC,    R,        YMID_R
+      REAL(fp)             :: C_YMID_R, S_YMID_R
+      REAL(fp)             :: SUNCOS,   SUNCOS_MID
 !
 ! !DEFINED PARAMETERS:
 !
       ! Coefficients for solar declination angle
-      REAL*8,  PARAMETER :: A0 = 0.006918d0
-      REAL*8,  PARAMETER :: A1 = 0.399912d0
-      REAL*8,  PARAMETER :: A2 = 0.006758d0
-      REAL*8,  PARAMETER :: A3 = 0.002697d0
-      REAL*8,  PARAMETER :: B1 = 0.070257d0
-      REAL*8,  PARAMETER :: B2 = 0.000907d0
-      REAL*8,  PARAMETER :: B3 = 0.000148d0
+      REAL(fp),  PARAMETER :: A0 = 0.006918e+0_fp
+      REAL(fp),  PARAMETER :: A1 = 0.399912e+0_fp
+      REAL(fp),  PARAMETER :: A2 = 0.006758e+0_fp
+      REAL(fp),  PARAMETER :: A3 = 0.002697e+0_fp
+      REAL(fp),  PARAMETER :: B1 = 0.070257e+0_fp
+      REAL(fp),  PARAMETER :: B2 = 0.000907e+0_fp
+      REAL(fp),  PARAMETER :: B3 = 0.000148e+0_fp
 
       !=================================================================
       ! Initialization   
@@ -1776,16 +1782,16 @@
 
       ! GMT at the midpoint of the chemistry time interval
       GMT_MID  = ( DBLE( GMT_HOUR        )        )  
-     &         + ( DBLE( TS_SUN * FACTOR ) / 60d0 ) 
-     &         + ( DBLE( TS_SUN / 2      ) / 60d0 ) 
+     &         + ( DBLE( TS_SUN * FACTOR ) / 60e+0_fp ) 
+     &         + ( DBLE( TS_SUN / 2      ) / 60e+0_fp ) 
 
       ! Path length of earth's orbit traversed since Jan 1 [radians]
-      R        = ( 2d0 * PI / 365d0 ) * DBLE( DOY - 1 ) 
+      R        = ( 2e+0_fp * PI / 365e+0_fp ) * DBLE( DOY - 1 ) 
 
       ! Solar declination angle (low precision formula) [radians]
       DEC      = A0 - A1*COS(     R ) + B1*SIN(     R )
-     &              - A2*COS( 2d0*R ) + B2*SIN( 2d0*R )
-     &              - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
+     &              - A2*COS( 2e+0_fp*R ) + B2*SIN( 2e+0_fp*R )
+     &              - A3*COS( 3e+0_fp*R ) + B3*SIN( 3e+0_fp*R )
 
       ! Pre-compute sin & cos of DEC outside of DO loops (for efficiency)
       S_DEC    = SIN( DEC )
@@ -1816,7 +1822,7 @@
          TIMLOC     = GET_LOCALTIME( I, J, 1, GMT=GMT_CUR )
 
          ! Hour angle at box (I,J) [radians]
-         AHR        = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+         AHR        = ABS( TIMLOC - 12e+0_fp ) * 15e+0_fp * PI_180
          
          ! Cosine of solar zenith angle at box (I,J) [unitless]
          SUNCOS     = ( S_YMID_R * S_DEC              ) 
@@ -1831,7 +1837,7 @@
          TIMLOC     = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
 
          ! Hour angle at box (I,J) [radians]
-         AHR        = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+         AHR        = ABS( TIMLOC - 12e+0_fp ) * 15e+0_fp * PI_180
          
          ! Corresponding cosine( SZA ) at box (I,J) [unitless]
          SUNCOS_MID = ( S_YMID_R * S_DEC              )
@@ -1892,15 +1898,15 @@
       INTEGER, INTENT(IN)    :: N_TRACERS 
 
       ! Array containing [Air MW / Tracer MW] for tracers
-      REAL*8,  INTENT(IN)    :: TCVV(N_TRACERS)
+      REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
 
       ! Array containing grid box air masses
-      REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
+      REAL(fp),  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
 !
 ! !OUTPUT PARAMETERS:
 !
       !  Array containing tracer conc. [kg] or [v/v]
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
 ! !REMARKS
 !  Most of the GEOS-Chem subroutines require the tracer array STT to be in 
@@ -2186,6 +2192,7 @@
 !                              if we are using an offline (non-fullchem) sim
 !  23 Oct 2013 - R. Yantosca - Also allocate T_FULLGRID_1 and T_FULLGRID_2
 !                              which are needed for GEOS-FP met only
+!   6 Nov 2014 - R. Yantosca - Now use AIRDEN_FULLGRID(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2200,14 +2207,14 @@
       IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN 
 
          ! Number density of air on full vertical grid
-         ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=RC ) 
+         ALLOCATE( AIRDEN_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=RC ) 
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
-         AIRDEN_FULLGRID = 0d0
+         AIRDEN_FULLGRID = 0e+0_fp
 
          ! Temperature on full vertical grid 
          ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
-         T_FULLGRID = 0d0
+         T_FULLGRID = 0e+0_fp
 
 #if defined( GEOS_FP )
 
@@ -2219,12 +2226,12 @@
          ! Temperature on full vertical grid 
          ALLOCATE( T_FULLGRID_1( IIPAR, JJPAR, LGLOB ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID_1' )
-         T_FULLGRID_1 = 0d0
+         T_FULLGRID_1 = 0e+0_fp
 
          ! Temperature on full vertical grid 
          ALLOCATE( T_FULLGRID_2( IIPAR, JJPAR, LGLOB ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID_2' )
-         T_FULLGRID_2 = 0d0
+         T_FULLGRID_2 = 0e+0_fp
 
 #endif
 

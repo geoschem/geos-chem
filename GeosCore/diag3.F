@@ -28,6 +28,7 @@
       USE GRID_MOD, ONLY : GET_AREA_M2, GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
       USE ERROR_MOD, ONLY : ERROR_STOP
+      USE PRECISION_MOD                      ! For GEOS-Chem Precision (fp)
 
       ! Modules from GeosCore directory
       USE BPCH2_MOD                          ! For binary punch I/O routines
@@ -238,6 +239,7 @@
 !  03 Sep 2014 - R. Yantosca - Units of AD01_Rn_SOURCE and AD01_Be7_SOURCE are
 !                              now defined as kg/s in hcoi_gc_diagn_mod.F90 
 !  15 Oct 2014 - C. Keller   - Updated ND37 diagnostics to write out all specs
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  24 Nov 2014 - R. Yantosca - Bug fix for ND28 BC/OC: Don't multiply by area
 !EOP
 !------------------------------------------------------------------------------
@@ -252,14 +254,14 @@
       INTEGER            :: NN1    ! TOMAS tracers
       INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
 
-      REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
-      REAL*8             :: SCALE_I6,   SCALE_A6,   SCALE_A3  
-      REAL*8             :: SCALE_A1,   SCALED,     SCALEDYN
-      REAL*8             :: SCALECONV,  SCALESRCE,  SCALECHEM  
-      REAL*8             :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
-      REAL*8             :: SCALEX,     SECONDS,    PMASS      
-      REAL*8             :: PRESSX,     FDTT,       AREA_M2
-      REAL*8             :: DIAGb,      DIAGe,      SCALE_I3
+      REAL(fp)             :: SCALE_TMP(IIPAR,JJPAR)
+      REAL(fp)             :: SCALE_I6,   SCALE_A6,   SCALE_A3  
+      REAL(fp)             :: SCALE_A1,   SCALED,     SCALEDYN
+      REAL(fp)             :: SCALECONV,  SCALESRCE,  SCALECHEM  
+      REAL(fp)             :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
+      REAL(fp)             :: SCALEX,     SECONDS,    PMASS      
+      REAL(fp)             :: PRESSX,     FDTT,       AREA_M2
+      REAL(fp)             :: DIAGb,      DIAGe,      SCALE_I3
       
       ! For binary punch file, version 2.0
       CHARACTER (LEN=40) :: CATEGORY 
@@ -291,7 +293,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: STT(:,:,:,:)
 
       ! Interface w/ HEMCO diagnostics
       INTEGER                   :: FLAG
@@ -333,18 +335,18 @@
       ! Now use counter variables from "time_mod.f" (bmy, 3/27/03)
       DIAGb      = GET_DIAGb()
       DIAGe      = GET_DIAGe()
-      SECONDS    = ( DIAGe - DIAGb ) * 3600d0
-      SCALED     = 1d0
-      SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1d-32
-      SCALECONV  = DBLE( GET_CT_CONV() ) + 1d-32
-      SCALESRCE  = DBLE( GET_CT_EMIS() ) + 1d-32
-      SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1d-32
-      SCALE_A1   = DBLE( GET_CT_A1()   ) + 1d-32
-      SCALE_A3   = DBLE( GET_CT_A3()   ) + 1d-32
-      SCALE_A6   = DBLE( GET_CT_A6()   ) + 1d-32
-      SCALE_I3   = DBLE( GET_CT_I3()   ) + 1d-32
-      SCALE_I6   = DBLE( GET_CT_I6()   ) + 1d-32
-      SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1d-32
+      SECONDS    = ( DIAGe - DIAGb ) * 3600e+0_fp
+      SCALED     = 1e+0_fp
+      SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1e-32_fp
+      SCALECONV  = DBLE( GET_CT_CONV() ) + 1e-32_fp
+      SCALESRCE  = DBLE( GET_CT_EMIS() ) + 1e-32_fp
+      SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1e-32_fp
+      SCALE_A1   = DBLE( GET_CT_A1()   ) + 1e-32_fp
+      SCALE_A3   = DBLE( GET_CT_A3()   ) + 1e-32_fp
+      SCALE_A6   = DBLE( GET_CT_A6()   ) + 1e-32_fp
+      SCALE_I3   = DBLE( GET_CT_I3()   ) + 1e-32_fp
+      SCALE_I6   = DBLE( GET_CT_I6()   ) + 1e-32_fp
+      SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1e-32_fp
 !
 !******************************************************************************
 !  Setup for binary punch file:
@@ -403,7 +405,7 @@
          IF ( IDTRn > 0 ) THEN
             DiagnName    = 'AD01_Rn_SOURCE'
             N            = IDTRn
-            FACTOR       = 1.0d0
+            FACTOR       = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,     N, 1, -1, .TRUE., FACTOR, RC    )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -433,7 +435,7 @@
          IF ( IDTBe7 > 0 ) THEN 
             DiagnName    = 'AD01_Be7_SOURCE'
             N            = IDTBe7
-            FACTOR       = 1.0d0
+            FACTOR       = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT, N, 1, LD01, .TRUE., FACTOR, RC      )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -517,7 +519,7 @@
             ENDIF
 
             NN     = N
-            SCALEX = 1.d0
+            SCALEX = 1.e+0_fp
 
             DO L = 1, LD05
                ARRAY(:,:,L) = AD05(:,:,L,N) / SCALEX
@@ -544,7 +546,7 @@
          ! Category & unit string
          UNIT     = 'kg'
          CATEGORY = 'DUSTSRCE'
-         FACTOR   = 1.0d0
+         FACTOR   = 1.0e+0_fp
 
          ! Loop over # of dust bins
          DO N = 1, Input_Opt%N_DUST_BINS
@@ -728,7 +730,6 @@
                DiagnCnt => NULL()
             ENDDO !I
          ENDDO !J
-
 
          !--------------------------------------------------------------
          ! Other BC diagnostics
@@ -938,7 +939,7 @@
             ENDIF
 
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                      UNIT, NN, 1, -1, .FALSE., 1.0d0, RC )
+     &                      UNIT, NN, 1, -1, .FALSE., 1.0e+0_fp, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          ENDDO
@@ -1037,7 +1038,8 @@
          UNIT     = 'atoms C/cm2/s'
 
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR   = 3d0 * GPERKG / MWC * HcoState%Phys%Avgdr / CM2PERM2
+         FACTOR   = 3e+0_fp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &              CM2PERM2
 
          ! Loop over all four emission sources
          DO N = 1, 4 
@@ -1205,7 +1207,7 @@
          DiagnName = 'AD13_NH3_ANTHROPOGENIC'
          UNIT      = 'kg'
          CATEGORY  = 'NH3-ANTH'
-         FACTOR    = 1.0d0
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -1213,7 +1215,7 @@
          !%%%%%  Natural source NH3 %%%%%
          DiagnName = 'AD13_NH3_NATURAL'
          CATEGORY  = 'NH3-NATU'
-         FACTOR    = 1.0d0
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -1229,7 +1231,7 @@
          !%%%%% Biofuel NH3 %%%%%
          DiagnName = 'AD13_NH3_BIOFUEL'
          CATEGORY  = 'NH3-BIOF'
-         FACTOR    = 1.0d0
+         FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -1317,7 +1319,7 @@
             NN = N 
               
             DO L = 1, LD16
-               SCALE_TMP(:,:) = FLOAT( CT16(:,:,L,N) ) + 1d-20
+               SCALE_TMP(:,:) = FLOAT( CT16(:,:,L,N) ) + 1e-20_fp
                ARRAY(:,:,L)   = AD16(:,:,L,N) / SCALE_TMP(:,:)
             ENDDO
 
@@ -1369,7 +1371,7 @@
             CATEGORY = 'WD-LSR-$'
                
             DO L = 1, LD17
-               SCALE_TMP(:,:) = FLOAT( CT17(:,:,L,1) ) + 1d-20
+               SCALE_TMP(:,:) = FLOAT( CT17(:,:,L,1) ) + 1e-20_fp
                ARRAY(:,:,L)   = AD17(:,:,L,N,1) / SCALE_TMP(:,:) 
             ENDDO
             
@@ -1384,7 +1386,7 @@
             CATEGORY = 'WD-CVR-$'
 
             DO L = 1, LD17
-               SCALE_TMP(:,:) = FLOAT( CT17(:,:,L,2) ) + 1d-20
+               SCALE_TMP(:,:) = FLOAT( CT17(:,:,L,2) ) + 1e-20_fp
                ARRAY(:,:,L)   = AD17(:,:,L,N,2) / SCALE_TMP(:,:) 
             ENDDO
 
@@ -1435,7 +1437,7 @@
             CATEGORY = 'WD-LSW-$'
 
             DO L = 1, LD18
-               SCALE_TMP(:,:) = FLOAT( CT18(:,:,L,1) ) + 1d-20
+               SCALE_TMP(:,:) = FLOAT( CT18(:,:,L,1) ) + 1e-20_fp
                ARRAY(:,:,L)   = AD18(:,:,L,N,1) / SCALE_TMP(:,:) 
             ENDDO
 
@@ -1450,7 +1452,7 @@
             CATEGORY = 'WD-CVW-$'
 
             DO L = 1, LD18
-               SCALE_TMP(:,:) = FLOAT( CT18(:,:,L,2) ) + 1d-20
+               SCALE_TMP(:,:) = FLOAT( CT18(:,:,L,2) ) + 1e-20_fp
                ARRAY(:,:,L)   = AD18(:,:,L,N,2) / SCALE_TMP(:,:) 
             ENDDO
 
@@ -1682,7 +1684,7 @@
 !
       IF ( ND22 > 0 ) THEN
          CATEGORY  = 'JV-MAP-$'
-         SCALE_TMP = FLOAT( CTJV ) + 1d-20
+         SCALE_TMP = FLOAT( CTJV ) + 1e-20_fp
          UNIT      = 's-1'
 
          DO M = 1, TMAX(22)
@@ -1829,7 +1831,7 @@
 !  (1)  MASSFLEW : Eastward mass flux - transport  : kg/s     : SCALEDYN
 !
 !  NOTES:
-!  (1) MASSFLEW is REAL*8...store to ARRAY, which is REAL*4
+!  (1) MASSFLEW is REAL(fp)...store to ARRAY, which is REAL*4
 !       before sending to BPCH or IJSCAL (bey, bmy, 4/23/99)
 !  (2) Now only write LD24 levels out to the bpch file (bmy, 12/7/00)
 !******************************************************************************
@@ -1862,7 +1864,7 @@
 !  (1)  MASSFLNS : Northward mass flux - transport : kg/s     : SCALEDYN
 !
 !  NOTES:
-!  (1) MASSFLNS is REAL*8...store to ARRAY, which is REAL*4
+!  (1) MASSFLNS is REAL(fp)...store to ARRAY, which is REAL*4
 !       before sending to BPCH or IJSCAL (bey, bmy, 4/23/99)
 !  (2) Now only write LD25 levels out to the bpch file (bmy, 12/7/00)
 !******************************************************************************
@@ -1895,7 +1897,7 @@
 !  (1)  MASSFLUP : Upward mass flux - transport    : kg/s     : SCALEDYN
 !
 !  NOTES:
-!  (1) MASSFLNS is REAL*8...store to ARRAY, which is REAL*4
+!  (1) MASSFLNS is REAL(fp)...store to ARRAY, which is REAL*4
 !       before sending to BPCH or IJSCAL (bey, bmy, 4/23/99)
 !  (2) Now only write LD26 levels to the bpch file (bmy, 12/7/00)
 !******************************************************************************
@@ -3499,7 +3501,7 @@
 !
       IF ( ND45 > 0 ) THEN
          CATEGORY    = 'IJ-AVG-$'
-         SCALE_TMP   = FLOAT( CTOTH ) + 1d-20
+         SCALE_TMP   = FLOAT( CTOTH ) + 1e-20_fp
          UNIT        = ''   
 
          DO M = 1, TMAX(45)
@@ -3527,7 +3529,7 @@
       IF ( IFTEMPOUT ) THEN
 
          CATEGORY  = 'IJ-TMP-$'
-         SCALE_TMP = FLOAT( NPOUTSTEPS ) + 1d-20
+         SCALE_TMP = FLOAT( NPOUTSTEPS ) + 1e-20_fp
          UNIT      = ''
 
          DO NN = 1, NTEMPOUT
@@ -3544,7 +3546,7 @@
 
          ENDDO
 
-         TEMPOUT    = 0.d0
+         TEMPOUT    = 0.e+0_fp
          NPOUTSTEPS = 0
       ENDIF
 #endif
@@ -3711,7 +3713,7 @@
          IF ( IDTCHBr3 > 0 ) THEN
             DiagnName = 'BIOGENIC_CHBR3'
             N         = 18
-            FACTOR    = 1.0d0
+            FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3721,7 +3723,7 @@
          IF ( IDTCH2Br2 > 0 ) THEN
             DiagnName = 'BIOGENIC_CH2BR2'
             N         = 19
-            FACTOR    = 1.0d0
+            FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3731,7 +3733,7 @@
          IF ( IDTBr2 > 0 ) THEN
             DiagnName = 'SEASALT_BR2'
             N         = 20
-            FACTOR    = 1.0d0
+            FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3930,7 +3932,7 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             DiagnName = 'AD01_POPPOC_SOURCE'
             N         = 2
-            FACTOR    = 1.0d0
+            FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3944,7 +3946,7 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             DiagnName = 'AD01_POPPBC_SOURCE'
             N         = 3
-            FACTOR    = 1.0d0
+            FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3958,7 +3960,7 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             DiagnName = 'AD01_POPG_SOURCE'
             N         = 4
-            FACTOR    = 1.0d0
+            FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -4045,7 +4047,7 @@
           ! Get scale factor
 
           ! --> If diagnostics OutOper is set to 'Mean':
-          FACTOR = 1.0d0
+          FACTOR = 1.0e+0_fp
 
           ! --> If diagnostics OutOper is set to 'Cumsum' (same as original ND56):
 !#if   defined( MERRA )
@@ -4350,7 +4352,7 @@
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
             
-            SCALEX = 1.d0
+            SCALEX = 1.e+0_fp
 
             IF ( ( NN .ge. IDTNK1 ) .and. 
      &           ( NN .lt. IDTNK1+IBINS )      ) THEN
@@ -4379,7 +4381,7 @@
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
             
-            SCALEX = 1.d0
+            SCALEX = 1.e+0_fp
 
             IF ( ( NN .ge. IDTNK1 ) .and. 
      &           ( NN .lt. IDTNK1+IBINS )      ) THEN
@@ -4408,7 +4410,7 @@
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
             
-            SCALEX = 1.d0
+            SCALEX = 1.e+0_fp
 
             IF ( ( NN .ge. IDTNK1 ) .and. 
      &           ( NN .lt. IDTNK1+IBINS )      ) THEN
@@ -4437,7 +4439,7 @@
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
             
-            SCALEX = 1.d0
+            SCALEX = 1.e+0_fp
 
             IF ( ( NN .ge. IDTNK1 ) .and. 
      &           ( NN .lt. IDTNK1+IBINS )      ) THEN
@@ -4466,7 +4468,7 @@
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
             
-            SCALEX = 1.d0
+            SCALEX = 1.e+0_fp
 
             IF ( ( NN .ge. IDTNK1 ) .and. 
      &           ( NN .lt. IDTNK1+IBINS )      ) THEN
@@ -4495,7 +4497,7 @@
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
             
-            SCALEX = 1.d0
+            SCALEX = 1.e+0_fp
 
             IF ( ( NN .ge. IDTNK1 ) .and. 
      &           ( NN .lt. IDTNK1+IBINS )      ) THEN
@@ -4620,13 +4622,13 @@
                ! Grid box surface area [cm2]
                AREA_M2 = GET_AREA_M2( I, J, 1 )
 
-               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) )      * 6.022d22 )
+               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * 6.022e+22_fp )
      &                      / ( Input_Opt%TRACER_MW_G(N) * AREA_M2  )
             ENDDO
             ENDDO
 
             ! Write the proper unit string
-            IF ( Input_Opt%TRACER_MW_G(N) > 12d0 ) THEN
+            IF ( Input_Opt%TRACER_MW_G(N) > 12e+0_fp ) THEN
                UNIT = 'molec/cm2'
             ELSE
                UNIT = 'atoms C/cm2'
@@ -5148,7 +5150,7 @@
       INTEGER,          INTENT(IN)    :: dAF       ! AutoFill of diagnostic
       INTEGER,          INTENT(IN)    :: dZ        ! # of vertical levels
       LOGICAL,          INTENT(IN)    :: dOPTIONAL ! Optional field?
-      REAL*8,           INTENT(IN)    :: dFACTOR   ! Scale factor
+      REAL(fp),           INTENT(IN)    :: dFACTOR   ! Scale factor
       INTEGER,          OPTIONAL      :: AreaScal  ! Area scaling 
 !
 ! !INPUT/OUTPUT PARAMETERS: 

@@ -30,16 +30,18 @@ MODULE Modis_Lai_Mod
   USE Mapping_Mod                                 ! Mapping weights & areas
   USE Time_Mod                                    ! EXPAND_DATE
 
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
 !
 !  INTEGER, PUBLIC,              TARGET :: DAYS_BTW_MON    ! Days btw LAI midmonths
-   REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
-!  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
-!  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
-!  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
+   REAL(fp),  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
+!  REAL(fp),  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
+!  REAL(fp),  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
+!  REAL(fp),  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -143,7 +145,7 @@ MODULE Modis_Lai_Mod
 !  05 Apr 2012 - R. Yantosca - Added descriptive comments
 !  09 Apr 2012 - R. Yantosca - Fixed error in ROUNDOFF function that caused
 !                              numbers to be rounded up incorrectly.
-!  09 Apr 2012 - R. Yantosca - Changed variables to REAL*8
+!  09 Apr 2012 - R. Yantosca - Changed variables to REAL(fp)
 !  09 Apr 2012 - R. Yantosca - Now set MODIS_START and MODIS_END depending
 !                              on which version of MODIS LAI we are using
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F;
@@ -151,6 +153,7 @@ MODULE Modis_Lai_Mod
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  09 Oct 2014 - C. Keller   - Removed GC_LAI_PM, GC_LAI_CM, GC_LAI_NM and
 !                              MODIS_LAI_PM.
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -222,7 +225,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  03 Apr 2012 - R. Yantosca - Initial version
 !  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
-!  09 Apr 2012 - R. Yantosca - Changed variables to REAL*8
+!  09 Apr 2012 - R. Yantosca - Changed variables to REAL(fp)
 !  09 Apr 2012 - R. Yantosca - Now follows same algorithm as rdlai.F for
 !                              populating XLAI array
 !  09 Apr 2012 - R. Yantosca - Remove refs to CMN_VEL_mod.F and XYLAI array;
@@ -246,13 +249,13 @@ CONTAINS
     ! Scalars
     INTEGER :: I,     J,    IMUL,    ITD,  IJLOOP
     INTEGER :: C,     II,   JJ,      type, K
-    REAL*8  :: mapWt, area, sumArea, DMON, DITD, DIMUL
+    REAL(fp)  :: mapWt, area, sumArea, DMON, DITD, DIMUL
 
     ! Arrays
-    REAL*8  :: tempArea (0:NVEGTYPE-1)
-    REAL*8  :: tempLai  (0:NVEGTYPE-1)
-    REAL*8  :: tempLaiCm(0:NVEGTYPE-1)
-    REAL*8  :: tempLaiNm(0:NVEGTYPE-1)
+    REAL(fp)  :: tempArea (0:NVEGTYPE-1)
+    REAL(fp)  :: tempLai  (0:NVEGTYPE-1)
+    REAL(fp)  :: tempLaiCm(0:NVEGTYPE-1)
+    REAL(fp)  :: tempLaiNm(0:NVEGTYPE-1)
 
     !======================================================================
     ! Interpolate the LAI data on the MODIS grid to current day
@@ -275,7 +278,7 @@ CONTAINS
 !    ! Archive the days between midmonths in the LAI data
 !    DAYS_BTW_MON      = ITD
 
-    ! Cast ITD, IMUL to REAL*8
+    ! Cast ITD, IMUL to REAL(fp)
     DITD              = DBLE( ITD  )
     DIMUL             = DBLE( IMUL )
 
@@ -308,20 +311,20 @@ CONTAINS
     DO I = 1, IIPAR
 
        ! Initialize
-       tempArea             = 0d0
-       tempLai              = 0d0
-       tempLaiCm            = 0d0
-       tempLaiNm            = 0d0
+       tempArea             = 0e+0_fp
+       tempLai              = 0e+0_fp
+       tempLaiCm            = 0e+0_fp
+       tempLaiNm            = 0e+0_fp
        sumArea              = mapping(I,J)%sumarea
        IJLOOP               = ( (J-1) * IIPAR ) + I
-       GC_LAI(I,J)          = 0d0
+       GC_LAI(I,J)          = 0e+0_fp
 
        ! If a new month of MODIS LAI data was just read from disk,
        ! then also initialize the appropriate data arrays here.
 !       IF ( wasModisRead ) THEN
-!          GC_LAI_PM(I,J)    = 0d0
-!          GC_LAI_CM(I,J)    = 0d0
-!          GC_LAI_NM(I,J)    = 0d0
+!          GC_LAI_PM(I,J)    = 0e+0_fp
+!          GC_LAI_CM(I,J)    = 0e+0_fp
+!          GC_LAI_NM(I,J)    = 0e+0_fp
 !       ENDIF
 
        !-------------------------------------------------------------------
@@ -385,7 +388,7 @@ CONTAINS
        DO C = 0, NVEGTYPE-1
           
           ! Skip land types that are not in "coarse" grid box (I,J)
-          IF ( tempArea(C) > 0d0 ) THEN
+          IF ( tempArea(C) > 0e+0_fp ) THEN
           
              ! Ordering for ILAND, IUSE, XLAI, XYLAI etc arrays
              K = mapping(I,J)%ordOlson(C)
@@ -863,12 +866,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 ! 
-    REAL*8,  INTENT(IN) :: X   ! Number to be rounded
+    REAL(fp),  INTENT(IN) :: X   ! Number to be rounded
     INTEGER, INTENT(IN) :: N   ! Number of decimal places to keep
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Number rounded to N decimal places
+    REAL(fp)              :: Y   ! Number rounded to N decimal places
 !
 ! !REMARKS:
 !  The algorithm to round X to N decimal places is as follows:
@@ -887,22 +890,22 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Apr 2012 - R. Yantosca - Initial version
-!  09 Apr 2012 - R. Yantosca - Changed all variables & arguments to REAL*8
+!  09 Apr 2012 - R. Yantosca - Changed all variables & arguments to REAL(fp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
-    REAL*8 :: TEN_TO_THE_N                   ! Term for 10**N
-    REAL*8 :: TEN_TO_THE_Np1                 ! Term for 10**(N+1)
+    REAL(fp) :: TEN_TO_THE_N                   ! Term for 10**N
+    REAL(fp) :: TEN_TO_THE_Np1                 ! Term for 10**(N+1)
 
     ! Pre-compute exponential terms
-    TEN_TO_THE_N   = 10d0**N
-    TEN_TO_THE_Np1 = 10d0**(N+1)
+    TEN_TO_THE_N   = 10e+0_fp**N
+    TEN_TO_THE_Np1 = 10e+0_fp**(N+1)
     
     ! Steps (1) through (4) above
-    Y = INT( ( X * TEN_TO_THE_Np1 ) + SIGN( 5d0, X ) ) / TEN_TO_THE_Np1
+    Y = INT( ( X * TEN_TO_THE_Np1 ) + SIGN( 5e+0_fp, X ) ) / TEN_TO_THE_Np1
 
     ! Step (5) above
     Y = INT( Y * TEN_TO_THE_N ) / TEN_TO_THE_N
@@ -955,19 +958,19 @@ CONTAINS
     !======================================================================
     ALLOCATE( GC_LAI( IIPAR, JJPAR ), STAT=RC ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI' )
-    GC_LAI = 0d0
+    GC_LAI = 0e+0_fp
 
 !    ALLOCATE( GC_LAI_PM( IIPAR, JJPAR ), STAT=RC ) 
 !    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_PM' )
-!    GC_LAI_PM = 0d0
+!    GC_LAI_PM = 0e+0_fp
 !
 !    ALLOCATE( GC_LAI_CM( IIPAR, JJPAR ), STAT=RC ) 
 !    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_CM' )
-!    GC_LAI_CM = 0d0
+!    GC_LAI_CM = 0e+0_fp
 !
 !    ALLOCATE( GC_LAI_NM( IIPAR, JJPAR ), STAT=RC ) 
 !    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_NM' )
-!    GC_LAI_NM = 0d0
+!    GC_LAI_NM = 0e+0_fp
 
     !======================================================================
     ! Allocate arrays on the "fine" MODIS grid grid
@@ -987,19 +990,19 @@ CONTAINS
 
     ALLOCATE( MODIS_LAI( I_MODIS, J_MODIS ), STAT=RC ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI' )
-    MODIS_LAI = 0d0
+    MODIS_LAI = 0e+0_fp
 
 !    ALLOCATE( MODIS_LAI_PM( I_MODIS, J_MODIS ), STAT=RC ) 
 !    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_PM' )
-!    MODIS_LAI_PM = 0d0
+!    MODIS_LAI_PM = 0e+0_fp
 
     ALLOCATE( MODIS_LAI_CM( I_MODIS, J_MODIS ), STAT=RC ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_CM' )
-    MODIS_LAI_CM = 0d0
+    MODIS_LAI_CM = 0e+0_fp
 
     ALLOCATE( MODIS_LAI_NM( I_MODIS, J_MODIS ), STAT=RC ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_NM' )
-    MODIS_LAI_NM = 0d0
+    MODIS_LAI_NM = 0e+0_fp
 
   END SUBROUTINE Init_Modis_Lai
 !EOC

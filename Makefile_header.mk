@@ -147,6 +147,7 @@
 #  03 Oct 2014 - R. Yantosca - Now turn on NO_REDUCED=y for hpc target
 #  03 Oct 2014 - R. Yantosca - Now compatible with netCDF 4.1.1 or 4.2+
 #  17 Oct 2014 - R. Yantosca - Don't require MET or GRID to remove ESMF etc.
+#  05 Nov 2014 - R. Yantosca - Will compile w/ 8-byte precision by default
 #  14 Nov 2014 - R. Yantosca - Further updates for hpc compilation
 #  21 Nov 2014 - R. Yantosca - Add special compilation command for ISORROPIA
 #  21 Nov 2014 - R. Yantosca - Add cosmetic changes and indentation 
@@ -209,6 +210,12 @@ endif
 ifeq ($(HPC),yes)
   OMP                :=no
   NO_REDUCED         :=yes
+# PRECISION          :=4
+endif
+
+# %%%%% Default to 8-byte precision unless specified otherwise %%%%%
+ifndef PRECISION
+ PRECISION           :=8
 endif
 
 # %%%%% Set default compiler %%%%%

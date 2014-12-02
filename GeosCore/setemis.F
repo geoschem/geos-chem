@@ -36,6 +36,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 !
 ! !ARGUMENTS:
 !
@@ -50,6 +51,7 @@
 !  31 Jan 2013 - C. Keller - Now pass chemistry and met state as argument
 !  22 Aug 2013 - C. Keller - Now pass Trac_Tend2 to REMIS
 !  21 Oct 2014 - C. Keller - Now use GetHcoVal instead of Trac_Tend
+!  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !
 !EOP
 !------------------------------------------------------------------------------
@@ -60,9 +62,9 @@
       INTEGER :: I, J,  JLOOP, JLOOP1, LTROP
       INTEGER :: L, L1, LL, N, NN,  NBB, NBF
       INTEGER :: N_TRACERS
-      REAL*8  :: COEF1, COEF2
+      REAL(fp)  :: COEF1, COEF2
       LOGICAL :: LNLPBL, Fnd
-      REAL*8  :: Emis 
+      REAL(fp)  :: Emis 
 
       !=================================================================
       ! SETEMIS begins here!
@@ -76,7 +78,7 @@
       LNLPBL    = Input_Opt%LNLPBL
 
       ! Reset 
-      REMIS = 0d0
+      REMIS = 0e+0_fp
 
       ! NOTE: If NCS=0 and we are NOT doing a full-chemistry run, then
       ! setting REMIS=0 can lead to a seg-fault error.  Therefore, you should
@@ -106,7 +108,7 @@
          COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))
 
          ! COEF2 = conversion factor from kg/m2/s to molec/cm2/s
-         COEF2 = Input_Opt%XNUMOL(NN) / 1.0d4
+         COEF2 = Input_Opt%XNUMOL(NN) / 1.0e+4_fp
 
          ! Loop over all tropospheric grid boxes
          ! --> Stratospheric emissions are ignored!
@@ -138,7 +140,7 @@
                   CALL GetHcoVal( NN, I, J, L, Fnd, Emis=Emis )
                   IF ( Fnd ) THEN
                      REMIS(JLOOP,N) = Emis / COEF1 * COEF2 
-     &                              / ( State_Met%BXHEIGHT(I,J,L) * 1d2)
+     &                         / ( State_Met%BXHEIGHT(I,J,L) * 1e+2_fp)
                   ENDIF
                ENDIF
             ENDDO !L

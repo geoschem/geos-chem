@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -27,7 +29,7 @@
 ! !PUBLIC DATA MEMBERS:
 !            
       PUBLIC              :: O3
-      REAL*8, ALLOCATABLE :: O3(:,:,:)        ! Global monthly mean OH field
+      REAL(fp), ALLOCATABLE :: O3(:,:,:)        ! Global monthly mean OH field
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -45,6 +47,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -117,7 +120,7 @@
 !
       REAL*4               :: ARRAY(IIPAR,JJPAR,LGLOB)
       REAL*4               :: ARRAY2(IIPAR,JJPAR,LLPAR)
-      REAL*8               :: XTAU
+      REAL(fp)               :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
 
       ! First time flag
@@ -271,7 +274,7 @@
       !=================================================================
       ALLOCATE( O3( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'O3' )
-      O3 = 0d0
+      O3 = 0e+0_fp
 
       END SUBROUTINE INIT_GLOBAL_O3
 !EOC      

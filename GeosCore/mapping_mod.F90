@@ -20,6 +20,9 @@ MODULE Mapping_Mod
   USE CMN_SIZE_MOD                    ! Size parameters
   USE ERROR_MOD                       ! Error handling routines
 
+  USE PRECISION_MOD                   ! For GEOS-Chem Precision (fp)
+
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -59,6 +62,7 @@ MODULE Mapping_Mod
 !                              leave this for future expansion
 !  17 Apr 2012 - R. Yantosca - Rename pointer object "map" to "mapping,
 !                              to remove confusion w/ F90 intrinsic
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -244,8 +248,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8 :: ox1, ox2, nx1, nx2, ov1, ov2, xOverLap
-    REAL*8 :: oy1, oy2, ny1, ny2,           yOverLap
+    REAL(fp) :: ox1, ox2, nx1, nx2, ov1, ov2, xOverLap
+    REAL(fp) :: oy1, oy2, ny1, ny2,           yOverLap
 
     !======================================================================
     ! Get overlap in longitude

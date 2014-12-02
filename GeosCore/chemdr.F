@@ -58,6 +58,8 @@
       USE UCX_MOD,              ONLY : UCX_NOX ! SDE 07/17/13
       USE UCX_MOD,              ONLY : UCX_H2SO4PHOT ! SDE 08/17/13
 
+      USE PRECISION_MOD  ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -246,6 +248,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  23 Jul 2014 - R. Yantosca - Removed reference to obsolete CMN_NOX_mod.F
+!  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -271,7 +274,7 @@
 
       ! Local variables for quantities from Input_Opt
       INTEGER       :: N_TRACERS
-      REAL*8        :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)        :: XNUMOL(Input_Opt%N_TRACERS)
       LOGICAL       :: LCARB
       LOGICAL       :: LDUST
       LOGICAL       :: LPRT
@@ -285,7 +288,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEMDR begins here!

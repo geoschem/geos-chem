@@ -37,6 +37,8 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
@@ -124,6 +126,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -135,19 +138,19 @@
       INTEGER :: IX, IY, IZ, N, NK, JJ
       INTEGER :: JGAS,JLOOP,NGASMIX,JALTS,K,J,NM,L,JN,MLOOP,I
       INTEGER :: IPCOMPAR,JRUN,JNEW,JOLD,NGCOUNT,IAVG,KN,SUM,SUM1
-      REAL*8  :: PMBCEN,PBELOW,PABOVE,ALNPRES,PS,ALNCONC,AVMIX,S1CON
-      REAL*8  :: S2CON,GRCONC1,GRCONC2,GRCONC3,SUMRMS,SUMFRACS,QNEW
-      REAL*8  :: QACC,FRACDIF,FRACABS,AVGERR,RMSCUR
-      REAL*8  :: TK,CONSEXP,VPRESH2O,CONST
+      REAL(fp)  :: PMBCEN,PBELOW,PABOVE,ALNPRES,PS,ALNCONC,AVMIX,S1CON
+      REAL(fp)  :: S2CON,GRCONC1,GRCONC2,GRCONC3,SUMRMS,SUMFRACS,QNEW
+      REAL(fp)  :: QACC,FRACDIF,FRACABS,AVGERR,RMSCUR
+      REAL(fp)  :: TK,CONSEXP,VPRESH2O,CONST
 
       ! For fields from Input_Opt
       INTEGER         :: NTRACER
-      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
-      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+      REAL(fp), POINTER :: CSPEC_FULL(:,:,:,:)
 
       !=================================================================
       ! GASCONC begins here!
@@ -212,7 +215,7 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-                  CONST = GET_PCENTER(IX,IY,IZ) * 1000D0 / 
+                  CONST = GET_PCENTER(IX,IY,IZ) * 1000e+0_fp / 
      &                  ( State_Met%T(IX,IY,IZ) * BK )
                 
                   !------------------------------
@@ -227,7 +230,7 @@
                      IF ( State_Met%FRCLND(IX,IY) >= 0.5 ) THEN
 
                          ! Continental boundary layer: 2 ppbv MOH
-                        CSPEC_FULL(IX,IY,IZ,JGAS) = 2.000d-9 * CONST
+                        CSPEC_FULL(IX,IY,IZ,JGAS) = 2.000e-9_fp * CONST
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 
@@ -236,7 +239,7 @@
                      ELSE
 
                         ! Marine boundary layer: 0.9 ppbv MOH
-                        CSPEC_FULL(IX,IY,IZ,JGAS) = 0.900d-9 * CONST
+                        CSPEC_FULL(IX,IY,IZ,JGAS) = 0.900e-9_fp * CONST
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 
@@ -252,7 +255,7 @@
      &                                     State_Met ) ) THEN
                       
                         ! Free troposphere: 0.6 ppbv MOH
-                        CSPEC_FULL(IX,IY,IZ,JGAS) = 0.600d-9 * CONST
+                        CSPEC_FULL(IX,IY,IZ,JGAS) = 0.600e-9_fp * CONST
 
                         ! Make sure MOH conc. is not negative (SMAL2 = 1d-99)
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 
@@ -280,7 +283,7 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-                  CONST = GET_PCENTER(IX,IY,IZ) * 1000D0 /
+                  CONST = GET_PCENTER(IX,IY,IZ) * 1000e+0_fp /
      &                  ( State_Met%T(IX,IY,IZ) * BK )
                 
                   ! Copy default background conc. from "globchem.dat" to CSPEC
@@ -363,7 +366,7 @@
          JJ = IRM(NPRODLO+1,NK,NCS)
          IF (JJ.LE.0) GOTO 130
          DO 135 JLOOP = 1,NTTLOOP
-            CSPEC(JLOOP,JJ) = 0.0D0
+            CSPEC(JLOOP,JJ) = 0.0e+0_fp
  135     CONTINUE
  130  CONTINUE
 
@@ -379,8 +382,8 @@
       IF (IH2O.GT.NGAS) THEN
          DO 33 JLOOP    = 1, NTTLOOP
             TK            = T3(JLOOP)
-            CONSEXP       = 17.2693882D0 * (TK - 273.16D0) /
-     1           (TK - 35.86D0)
+            CONSEXP       = 17.2693882e+0_fp * (TK - 273.16e+0_fp) /
+     1           (TK - 35.86e+0_fp)
             VPRESH2O      = CONSVAP * EXP(CONSEXP) / TK 
             CSPEC(JLOOP,IH2O) = ABSHUM(JLOOP)
 !     then calculate R.H.
@@ -393,8 +396,8 @@
 #if defined( UCX )
       DO JLOOP = 1,NTTLOOP
          TK            = T3(JLOOP)
-         CONSEXP       = 17.2693882D0 * (TK - 273.16D0) /
-     &        (TK - 35.86D0)
+         CONSEXP       = 17.2693882e+0_fp * (TK - 273.16e+0_fp) /
+     &        (TK - 35.86e+0_fp)
          VPRESH2O      = CONSVAP * EXP(CONSEXP) / TK 
          ABSHUM(JLOOP) = ABSHUM(JLOOP) / VPRESH2O
       ENDDO
@@ -407,7 +410,7 @@
 ! OXYCONS = (# G-1) CONVERSION OF O2 FROM G CM-3 TO # CM-3
 !
       IF (IOXYGEN.GT.NGAS) THEN
-         OXYCONS           = 0.2095d0
+         OXYCONS           = 0.2095e+0_fp
          DO 260 JLOOP      = 1, NTLOOP
  260        CSPEC(JLOOP,IOXYGEN) = AIRDENS(JLOOP) * OXYCONS
       ENDIF
@@ -423,7 +426,7 @@
 !
       IF ( ILISOPOH > 0 ) THEN
          DO JLOOP = 1, NTLOOP
-            CSPEC(JLOOP,ILISOPOH) = 0d0
+            CSPEC(JLOOP,ILISOPOH) = 0e+0_fp
          ENDDO
       ENDIF 
 !
@@ -437,7 +440,7 @@
 !
       IF ( ILISOPNO3 > 0 ) THEN
          DO JLOOP = 1, NTLOOP
-            CSPEC(JLOOP,ILISOPNO3) = 0d0
+            CSPEC(JLOOP,ILISOPNO3) = 0e+0_fp
          ENDDO
       ENDIF 
 !
@@ -476,20 +479,20 @@
 
             ! Reset value of LISOPOH to zero 
             DO JLOOP      = 1, NTLOOP
-               CSPEC(JLOOP,ILBRO2H) = 0d0
-               CSPEC(JLOOP,ILBRO2N) = 0d0
-               CSPEC(JLOOP,ILTRO2H) = 0d0
-               CSPEC(JLOOP,ILTRO2N) = 0d0
-               CSPEC(JLOOP,ILXRO2H) = 0d0
-               CSPEC(JLOOP,ILXRO2N) = 0d0
+               CSPEC(JLOOP,ILBRO2H) = 0e+0_fp
+               CSPEC(JLOOP,ILBRO2N) = 0e+0_fp
+               CSPEC(JLOOP,ILTRO2H) = 0e+0_fp
+               CSPEC(JLOOP,ILTRO2N) = 0e+0_fp
+               CSPEC(JLOOP,ILXRO2H) = 0e+0_fp
+               CSPEC(JLOOP,ILXRO2N) = 0e+0_fp
             ENDDO
 
             ! SOAupdate: allow NAP to be present or not in rxns (9/13/09)
             IF ( ILNRO2H > 0 .and. ILNRO2N > 0  ) THEN
                DO JLOOP = 1, NTLOOP
                   ! add NAP species (hotp 6/25/09)
-                  CSPEC(JLOOP,ILNRO2H) = 0d0
-                  CSPEC(JLOOP,ILNRO2N) = 0d0
+                  CSPEC(JLOOP,ILNRO2H) = 0e+0_fp
+                  CSPEC(JLOOP,ILNRO2N) = 0e+0_fp
                ENDDO
             ENDIF
 
@@ -598,8 +601,8 @@
         IF (JRUN.EQ.0) THEN
          IF (IPCOMPAR.EQ.1) WRITE(6,475)
 !
-         SUMRMS      = 0.d0
-         SUMFRACS    = 0.d0
+         SUMRMS      = 0.e+0_fp
+         SUMFRACS    = 0.e+0_fp
          NGCOUNT     = 0
 !
          DO 485 JNEW = 1, ISCHANG(NCS)
@@ -614,7 +617,7 @@
            STOP 
           ENDIF 
 !
-          IF (QNEW.GT.1.0d-20) THEN
+          IF (QNEW.GT.1.0e-20_fp) THEN
            FRACDIF   = (QNEW - QACC)/QACC
            FRACABS   = ABS(FRACDIF)
            SUMFRACS  = SUMFRACS + FRACABS 
@@ -622,7 +625,7 @@
            NGCOUNT   = NGCOUNT + 1
            IAVG      = 1
           ELSE
-           FRACDIF   = 0.d0
+           FRACDIF   = 0.e+0_fp
            IAVG      = 0
           ENDIF
           IF (IPCOMPAR.EQ.1) THEN
@@ -633,8 +636,8 @@
           ENDIF
  485     CONTINUE
 !
-         AVGERR      = 100.d0 * SUMFRACS     / NGCOUNT  
-         RMSCUR      = 100.d0 * SQRT(SUMRMS  / NGCOUNT)
+         AVGERR      = 100.e+0_fp * SUMFRACS     / NGCOUNT  
+         RMSCUR      = 100.e+0_fp * SQRT(SUMRMS  / NGCOUNT)
          IF ( am_I_Root ) THEN
             WRITE(6,505) JRUN, AVGERR, NGCOUNT  
          ENDIF

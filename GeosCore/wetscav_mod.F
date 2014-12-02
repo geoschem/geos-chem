@@ -15,13 +15,15 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:)   ! Save H2O2 and SO2 [v/v]
-      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)    !  for sulfate chemistry
+      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:)   ! Save H2O2 and SO2 [v/v]
+      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)    !  for sulfate chemistry
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -142,6 +144,7 @@
 !                              with either TOMAS=yes or TOMAS40=yes
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -165,7 +168,7 @@
       INTEGER, PARAMETER   :: NSOLMAX = 110     ! Max # of soluble tracers
                                                 !  for regular G-C runs
 #endif
-      REAL*8,  PARAMETER   :: EPSILON = 1d-32   ! A very small positive #
+      REAL(fp),  PARAMETER   :: EPSILON = 1e-32_fp   ! A very small positive #
 !
 ! !LOCAL VARIABLES:
 !
@@ -174,16 +177,16 @@
 
       ! Arrays
       INTEGER              :: IDWETD(NSOLMAX)   ! Index array for WETDEP
-      REAL*8,  ALLOCATABLE :: Vud(:,:)          ! Updraft velocity [m/s]
-      REAL*8,  ALLOCATABLE :: C_H2O(:,:,:)      ! Mixing ratio of H2O [v/v]
-      REAL*8,  ALLOCATABLE :: CLDICE(:,:,:)     ! Cloud ice mixing ratio
+      REAL(fp),  ALLOCATABLE :: Vud(:,:)          ! Updraft velocity [m/s]
+      REAL(fp),  ALLOCATABLE :: C_H2O(:,:,:)      ! Mixing ratio of H2O [v/v]
+      REAL(fp),  ALLOCATABLE :: CLDICE(:,:,:)     ! Cloud ice mixing ratio
                                                 !  [cm3 ice/cm3 air]
-      REAL*8,  ALLOCATABLE :: CLDLIQ(:,:,:)     ! Cloud liquid water mix rat
+      REAL(fp),  ALLOCATABLE :: CLDLIQ(:,:,:)     ! Cloud liquid water mix rat
                                                 !  [cm3 H2O/cm3 air]
-      REAL*8,  ALLOCATABLE :: PDOWN(:,:,:)      ! Precipitation thru the
+      REAL(fp),  ALLOCATABLE :: PDOWN(:,:,:)      ! Precipitation thru the
                                                 !  bottom of the grid box 
                                                 !  [cm3 H2O/cm2 area/s]
-      REAL*8,  ALLOCATABLE :: QQ(:,:,:)         ! Rate of new precip formation
+      REAL(fp),  ALLOCATABLE :: QQ(:,:,:)         ! Rate of new precip formation
                                                 !  [cm3 H2O/cm3 air/s]
 
       ! Define local shadow variables for values in Input_Opt
@@ -444,7 +447,7 @@
 ! 
 !  Therefore, the equation for QQ is:
 ! 
-!    QQ(L,I,J) = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1000.0
+!    QQ(L,I,J) = FRAC * MOISTQ(I,J,L) * AIRDEN(I,J,L) / 1000.0
 !      
 !  (3) Compute PDOWN, the column precipitation 
 !      [cm3 H2O/cm2 air/s], by multiplying QQ(L,I,J) by 
@@ -484,6 +487,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%MOISTQ(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -491,7 +496,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J, L, AS
-      REAL*8  :: PTEMP, FRAC
+      REAL(fp)  :: PTEMP, FRAC
       LOGICAL :: FIRST = .TRUE.
 
       !=================================================================
@@ -502,12 +507,12 @@
          ! Allocate PDOWN on first call
          ALLOCATE( PDOWN( LLPAR, IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PDOWN' )
-         PDOWN = 0d0
+         PDOWN = 0e+0_fp
       
          ! Allocate QQ on first call
          ALLOCATE( QQ( LLPAR, IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'QQ' )
-         QQ = 0d0
+         QQ = 0e+0_fp
          
          ! Reset flag
          FIRST = .FALSE.
@@ -539,12 +544,12 @@
             ! Rate of new precipitation formation in grid box (I,J,L)
             ! [cm3 H2O/cm3 air/s]
             QQ(L,I,J)    = ( State_Met%DQRLSAN(I,J,L)          )
-     &                   * ( State_Met%AIRDEN(L,I,J)  / 1000d0 )
+     &                   * ( State_Met%AIRDEN(I,J,L)  / 1000e+0_fp )
 
             ! Column precipitation [cm3 H2O/cm2 air/s]
-            PDOWN(L,I,J) = ( ( State_Met%PFLLSAN(I,J,L+1) / 1000d0 ) 
-     &                   +   ( State_Met%PFILSAN(I,J,L+1) /  917d0 ) )
-     &                   * 100d0
+            PDOWN(L,I,J) = ( ( State_Met%PFLLSAN(I,J,L+1) / 1000e+0_fp )
+     &                   + ( State_Met%PFILSAN(I,J,L+1) /  917e+0_fp ) )
+     &                   * 100e+0_fp
 
          ENDDO
 
@@ -560,12 +565,12 @@
             ! Rate of new precipitation formation in grid box (I,J,L)
             ! [cm3 H2O/cm3 air/s]
             QQ(L,I,J)    = ( State_Met%DQRLSAN(I,J,L)          )
-     &                   * ( State_Met%AIRDEN(L,I,J)  / 1000d0 )
+     &                   * ( State_Met%AIRDEN(I,J,L)  / 1000e+0_fp )
 
             ! Column precipitation [cm3 H2O/cm2 air/s]
-            PDOWN(L,I,J) = ( ( State_Met%PFLLSAN(I,J,L) / 1000d0 ) 
-     &                   +   ( State_Met%PFILSAN(I,J,L) /  917d0 ) )
-     &                   * 100d0
+            PDOWN(L,I,J) = ( ( State_Met%PFLLSAN(I,J,L) / 1000e+0_fp ) 
+     &                   +   ( State_Met%PFILSAN(I,J,L) /  917e+0_fp ) )
+     &                   * 100e+0_fp
 
          ENDDO
 
@@ -574,11 +579,11 @@
          !==============================================================
          ! %%%%% FOR ALL OTHER MET FIELDS EXCEPT MERRA %%%%%
          !==============================================================
-         IF ( State_Met%PRECTOT(I,J) > 0d0 ) THEN
+         IF ( State_Met%PRECTOT(I,J) > 0e+0_fp ) THEN
 
             ! Large scale or convective fraction of precipitation
             IF ( LS ) THEN
-               FRAC = ( State_Met%PRECTOT(I,J) - State_Met%PRECCON(I,J)) 
+               FRAC = ( State_Met%PRECTOT(I,J) - State_Met%PRECCON(I,J))
      &                / State_Met%PRECTOT(I,J) 
             ELSE
                FRAC =   State_Met%PRECCON(I,J) / State_Met%PRECTOT(I,J)
@@ -590,8 +595,8 @@
            !### FRAC to blow up to near infinity and PDOWN to be a very
            !### large number.  For now, limit FRAC to be between 0 and 1.
            !### 
-           IF ( FRAC > 1d0 ) FRAC = 1d0
-           IF ( FRAC < 0d0 ) FRAC = 0d0 
+           IF ( FRAC > 1e+0_fp ) FRAC = 1e+0_fp
+           IF ( FRAC < 0e+0_fp ) FRAC = 0e+0_fp 
            !##################################################################
 
             ! Start at the top of the atmosphere
@@ -599,28 +604,28 @@
 
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
             QQ(L,I,J)    = FRAC                      *
-     &                     State_Met%MOISTQ(L,I,J)   *
-     &                     State_Met%AIRDEN(L,I,J)   / 1d3
+     &                     State_Met%MOISTQ(I,J,L)   *
+     &                     State_Met%AIRDEN(I,J,L)   / 1e+3_fp
             PTEMP        = QQ(L,I,J)                 *
-     &                     State_Met%BXHEIGHT(I,J,L) * 1d2
+     &                     State_Met%BXHEIGHT(I,J,L) * 1e+2_fp
             PDOWN(L,I,J) = PTEMP
 
             ! PDOWN cannot be negative
-            IF ( PDOWN(L,I,J) < 0d0 ) PDOWN(L,I,J) = 0.d0
+            IF ( PDOWN(L,I,J) < 0e+0_fp ) PDOWN(L,I,J) = 0.e+0_fp
 
             ! Loop down from LLPAR to the surface
             DO L = LLPAR-1, 1, -1
                
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level.
                QQ(L,I,J)    = FRAC                      *
-     &                        State_Met%MOISTQ(L,I,J)   *
-     &                        State_Met%AIRDEN(L,I,J)   / 1d3
+     &                        State_Met%MOISTQ(I,J,L)   *
+     &                        State_Met%AIRDEN(I,J,L)   / 1e+3_fp
                PDOWN(L,I,J) = PTEMP                     + QQ(L,I,J) *
-     &                        State_Met%BXHEIGHT(I,J,L) * 1d2  
+     &                        State_Met%BXHEIGHT(I,J,L) * 1e+2_fp  
                PTEMP        = PDOWN(L,I,J)
 
                ! PDOWN cannot be negative
-               IF ( PDOWN(L,I,J) < 0.0d0 ) PDOWN(L,I,J) = 0.d0
+               IF ( PDOWN(L,I,J) < 0.0e+0_fp ) PDOWN(L,I,J) = 0.e+0_fp
             ENDDO
   
          !==============================================================
@@ -628,8 +633,8 @@
          ! (I,J) column, then assume any precipitation at altitude to 
          ! be large-scale.
          ! 
-         ! (1) Assume the large scale fraction = 1d0, 
-         !                convective fraction  = 0d0
+         ! (1) Assume the large scale fraction = 1e+0_fp, 
+         !                convective fraction  = 0e+0_fp
          ! (2) Compute QQ as described above
          ! (3) Compute PDOWN as described above
          !==============================================================
@@ -637,9 +642,9 @@
 
             ! Assume large-scale precipitation!
             IF ( LS ) THEN
-               FRAC = 1d0
+               FRAC = 1e+0_fp
             ELSE         
-               FRAC = 0d0
+               FRAC = 0e+0_fp
             ENDIF
 
             ! Start at the top of the atmosphere
@@ -647,28 +652,28 @@
 
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
             QQ(L,I,J)    = FRAC                      *
-     &                     State_Met%MOISTQ(L,I,J)   *
-     &                     State_Met%AIRDEN(L,I,J)   / 1d3
+     &                     State_Met%MOISTQ(I,J,L)   *
+     &                     State_Met%AIRDEN(I,J,L)   / 1e+3_fp
             PTEMP        = QQ(L,I,J)                 *
-     &                     State_Met%BXHEIGHT(I,J,L) * 1d2
+     &                     State_Met%BXHEIGHT(I,J,L) * 1e+2_fp
             PDOWN(L,I,J) = PTEMP
            
             ! PDOWN cannot be negative
-            IF( PDOWN(L,I,J) < 0d0 ) PDOWN(L,I,J) = 0.d0
+            IF( PDOWN(L,I,J) < 0e+0_fp ) PDOWN(L,I,J) = 0.e+0_fp
 
             ! Loop down from LLPAR to the surface
             DO L = LLPAR-1, 1, -1
               
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level
                QQ(L,I,J)    = FRAC                      *
-     &                        State_Met%MOISTQ(L,I,J)   *
-     &                        State_Met%AIRDEN(L,I,J)   / 1d3
+     &                        State_Met%MOISTQ(I,J,L)   *
+     &                        State_Met%AIRDEN(I,J,L)   / 1e+3_fp
                PDOWN(L,I,J) = PTEMP                     + QQ(L,I,J) *
-     &                        State_Met%BXHEIGHT(I,J,L) * 1d2 
+     &                        State_Met%BXHEIGHT(I,J,L) * 1e+2_fp 
                PTEMP        = PDOWN(L,I,J)
 
                ! PDOWN cannot be negative
-               IF ( PDOWN(L,I,J) < 0.0d0 ) PDOWN(L,I,J) = 0.d0
+               IF ( PDOWN(L,I,J) < 0.0e+0_fp ) PDOWN(L,I,J) = 0.e+0_fp
             ENDDO
          ENDIF
 
@@ -697,11 +702,11 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: TK      ! Temperature [K] 
+      REAL(fp), INTENT(IN) :: TK      ! Temperature [K] 
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: VALUE   ! Saturation vapor pressure [hPa]
+      REAL(fp)             :: VALUE   ! Saturation vapor pressure [hPa]
 !
 ! !REMARKS:
 !  Marti & Mauersberber (GRL '93) formulation of saturation 
@@ -717,15 +722,15 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8, PARAMETER  :: A = -2663.5d0
-      REAL*8, PARAMETER  :: B =  12.537d0
+      REAL(fp), PARAMETER  :: A = -2663.5e+0_fp
+      REAL(fp), PARAMETER  :: B =  12.537e+0_fp
 
       !=================================================================
       ! E_ICE begins here!
       !=================================================================
       
       ! Saturation vap press of Ice [Pa] -- divide by 100 for [hPa]
-      VALUE = ( 10d0**( A/TK + B ) ) / 100d0 
+      VALUE = ( 10e+0_fp**( A/TK + B ) ) / 100e+0_fp 
 
       END FUNCTION E_ICE
 !EOC
@@ -747,17 +752,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN)  :: KStar298    ! Henry's law constant @ 298 K   
+      REAL(fp), INTENT(IN)  :: KStar298    ! Henry's law constant @ 298 K   
                                          !  [M/atm]
-      REAL*8, INTENT(IN)  :: H298_R      ! Molar heat of formation @ 298 K / R 
+      REAL(fp), INTENT(IN)  :: H298_R      ! Molar heat of formation @ 298 K / R 
                                          !  [K]
-      REAL*8, INTENT(IN)  :: TK          ! Temperature [K]
-      REAL*8, INTENT(IN)  :: H2OLIQ      ! Liquid water content 
+      REAL(fp), INTENT(IN)  :: TK          ! Temperature [K]
+      REAL(fp), INTENT(IN)  :: H2OLIQ      ! Liquid water content 
                                          !  [cm3 H2O/cm3 air]
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8, INTENT(OUT) :: L2G         ! Cliq/Cgas ratio for given tracer  
+      REAL(fp), INTENT(OUT) :: L2G         ! Cliq/Cgas ratio for given tracer  
                                          !  [unitless]
 !
 ! !REMARKS:
@@ -778,22 +783,22 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8              :: Kstar
+      REAL(fp)              :: Kstar
 !
 ! !DEFINED PARAMETERS:
 !
       ! R = universal gas constant [L*atm/moles/K]
-      REAL*8, PARAMETER   :: R = 8.2057d-2
+      REAL(fp), PARAMETER   :: R = 8.2057e-2_fp
 
       ! INV_T0 = 1/298 K
-      REAL*8, PARAMETER   :: INV_T0 = 1d0 / 298d0
+      REAL(fp), PARAMETER   :: INV_T0 = 1e+0_fp / 298e+0_fp
 
       !=================================================================
       ! COMPUTE_L2G begins here!
       !=================================================================
 
       ! Get Kstar, the effective Henry's law constant for temperature TK
-      Kstar = Kstar298 * EXP( -H298_R * ( ( 1d0 / TK ) - INV_T0 ) )
+      Kstar = Kstar298 * EXP( -H298_R * ( ( 1e+0_fp / TK ) - INV_T0 ) )
 
       ! Use Henry's Law to get the ratio:
       ! [ mixing ratio in liquid phase / mixing ratio in gas phase ]
@@ -842,7 +847,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: ISOL       ! Index for ND38 diag
-      REAL*8,         INTENT(OUT)   :: F(:,:,:)   ! Soluble fraction of tracer
+      REAL(fp),         INTENT(OUT)   :: F(:,:,:)   ! Soluble fraction of tracer
 !
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - H. Liu, R. Yantosca - Initial version
@@ -917,31 +922,31 @@
 !
       ! Scalars
       INTEGER             :: I, J, L, NN, N_TRACERS
-      REAL*8              :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
+      REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
 #if defined( TOMAS )
       ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
-      REAL*8              :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
-      REAL*8              :: SOLFRAC, XFRAC
+      REAL(fp)           :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
+      REAL(fp)           :: SOLFRAC, XFRAC
 #endif
 
       ! Pointers
-      REAL*8, POINTER     :: BXHEIGHT(:,:,:)
-      REAL*8, POINTER     :: T       (:,:,:)
+      REAL(fp), POINTER     :: BXHEIGHT(:,:,:)
+      REAL(fp), POINTER     :: T       (:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
       ! Kc is the conversion rate from cloud condensate to precip [s^-1]
-      REAL*8,  PARAMETER  :: KC        = 5d-3
+      REAL(fp),  PARAMETER  :: KC        = 5e-3_fp
 
       ! CONV_H2O2 = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
       ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
       ! 1.9 is ( molecular weight H2O2 / molecular weight water )
-      REAL*8,  PARAMETER  :: CONV_H2O2 = 8.27042925126d-1
+      REAL(fp),  PARAMETER  :: CONV_H2O2 = 8.27042925126e-1_fp
 
       ! CONV_NH3 = 0.6 * SQRT( 0.9 ), used for the ice to gas ratio for NH3
       ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
       ! 0.9 is ( molecular weight NH3 / molecular weight water )
-      REAL*8,  PARAMETER  :: CONV_NH3  = 5.69209978831d-1
+      REAL(fp),  PARAMETER  :: CONV_NH3  = 5.69209978831e-1_fp
 
       !=================================================================
       ! COMPUTE_F begins here!
@@ -975,7 +980,7 @@
       ELSE IF ( N == IDTH2O2 ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Start scavenging at level 2
          DO L = 2, LLPAR
@@ -984,32 +989,33 @@
 
             ! Compute ice to gas ratio for H2O2 by co-condensation
             ! (Eq. 9, Jacob et al, 2000)
-            IF ( C_H2O(I,J,L) > 0d0 ) THEN 
+            IF ( C_H2O(I,J,L) > 0e+0_fp ) THEN 
                I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_H2O2
             ELSE
-               I2G = 0d0
+               I2G = 0e+0_fp
             ENDIF
 
             ! Compute liquid to gas ratio for H2O2, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 8.3d4,    -7.4d3, 
+            CALL COMPUTE_L2G( 8.3e+4_fp,    -7.4e+3_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of H2O2 in liquid & ice phases
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G + I2G
+            C_TOT = 1e+0_fp + L2G + I2G
             F_L   = L2G / C_TOT
             F_I   = I2G / C_TOT
 
             ! Compute the rate constant K.  The retention factor for 
             ! liquid H2O2 is 0.05 for 248 K < T < 268 K and 1.0 for 
             ! T >= 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * ( F_L + F_I )
  
-            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( ( 5d-2 * F_L ) + F_I ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp  .and. T(I,J,L) < 268e+0_fp )
+     &       THEN
+               K = KC * ( ( 5e-2_fp * F_L ) + F_I ) 
 
             ELSE
                K = KC * F_I
@@ -1017,11 +1023,11 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
             
             ! Compute F, the fraction of scavenged H2O2.
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1036,7 +1042,7 @@
       ELSE IF ( N == IDTCH2O ) THEN 
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -1046,35 +1052,36 @@
             ! Compute liquid to gas ratio for CH2O, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 3.0d3,    -7.2d3, 
+            CALL COMPUTE_L2G( 3.0e+3_fp,    -7.2e+3_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of CH2O in liquid phase 
             ! NOTE: CH2O does not exist in the ice phase!
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  The retention factor 
             ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
             ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp )
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
 
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of CH2O scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1090,7 +1097,7 @@
       ELSE IF ( N == IDTHOBr ) THEN 
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -1106,35 +1113,36 @@
             ! (- 12 kcal/mol)
             ! acid dissociation constant in Heff is small (1.5e-9), reported
             ! by Haag and Holne [1983]
-            CALL COMPUTE_L2G( 6.1d3, -6014.d0, 
+            CALL COMPUTE_L2G( 6.1e+3_fp, -6014.e+0_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of HOBr in liquid phase
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
 
                K = KC * F_L
 
-            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248e+0_fp  .and. T(I,J,L) < 268e+0_fp )
+     &       THEN
 
-               K = KC * (0.d0 * F_L) 
+               K = KC * (0.e+0_fp * F_L) 
 
             ELSE
 
-               K = 0.d0
+               K = 0.e+0_fp
                   
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of HOBr scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1150,7 +1158,7 @@
       ELSE IF ( N == IDTHCl ) THEN 
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -1160,37 +1168,38 @@
             ! Compute liquid to gas ratio for HCl:
             ! 1. first argument is the adjusted Henry's law coefficient
             ! H0 and heat of solution are estimated by Yang et al. [2005]
-            CALL COMPUTE_L2G( 7.1d15,   -1.10d4,
+            CALL COMPUTE_L2G( 7.1e+15_fp,   -1.10e+4_fp,
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of HCl in liquid phase
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
 
                K = KC * F_L
 
-            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248e+0_fp  .and. T(I,J,L) < 268e+0_fp )
+     &       THEN
                
                ! HCl has a large effective Henry's
                ! Law Constant & retention fraction of 1.
-               K = KC * (1.d0 * F_L)
+               K = KC * (1.e+0_fp * F_L)
 
             ELSE
 
-               K = 0.d0
+               K = 0.e+0_fp
                   
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of HCl scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
 
          ENDDO
@@ -1207,7 +1216,7 @@
       ELSE IF ( N == IDTHBr ) THEN 
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -1219,21 +1228,22 @@
             ! which I've calculated for pH = 4.5
             !
             ! H0 and heat of solution are estimated by Yang et al. [2005]
-            CALL COMPUTE_L2G( 7.1d13, -10200.0d0, 
+            CALL COMPUTE_L2G( 7.1e+13_fp, -10200.0e+0_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
 
             ! Fraction of HBr in liquid phase
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
 
                K = KC * F_L
 
-            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248e+0_fp  .and. T(I,J,L) < 268e+0_fp )
+     &       THEN
                
                ! HBr has a large effective Henry's
                ! Law Constant, similar to HCl and HNO3, which have
@@ -1243,20 +1253,20 @@
                ! suggest that species with large
                ! Hstar's should have RF's of about 1.
                ! (jpp, 6/13/2011)
-               K = KC * (1.d0 * F_L) !jpp, testing riming efficiency
+               K = KC * (1.e+0_fp * F_L) !jpp, testing riming efficiency
 
             ELSE
 
-               K = 0.d0
+               K = 0.e+0_fp
                   
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of HBr scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
 
          ENDDO
@@ -1273,7 +1283,7 @@
       ELSE IF ( N == IDTBr2 ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -1281,11 +1291,11 @@
          DO I = 1, IIPAR
 
             ! Compute liquid to gas ratio for Br2:
-            CALL COMPUTE_L2G( 0.76d0,   -3.72d3, 
+            CALL COMPUTE_L2G( 0.76e+0_fp,   -3.72e+3_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of Br2 in liquid phase
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
    
             ! Compute the rate constant K.
@@ -1297,27 +1307,28 @@
             !   above 248K and below 268K. (jpp, 1/14/2011)
             ! * CL2 analogue has low mass accomodation coeff. for ice
             !   0 uptake in cold clouds. (<1e-4, Sander et al [2010] - JPL)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
 
                K = KC * F_L
 
-            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248e+0_fp  .and. T(I,J,L) < 268e+0_fp )
+     &       THEN
 
-               K = KC * (0.d0 * F_L) !jpp, testing riming efficiency
+               K = KC * (0.e+0_fp * F_L) !jpp, testing riming efficiency
 
             ELSE
 
-               K = 0d0   
+               K = 0e+0_fp   
 
             ENDIF
 
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                   
             ! F is the fraction of Br2 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1334,7 +1345,7 @@
       ELSE IF ( N == IDTGLYX ) THEN 
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -1346,34 +1357,35 @@
             ! (2) Schweitzer et al. (1998) showed that the temperature 
             ! dependence for CH2O works well for glyoxal, so we use the 
             ! same H298_R as CH2O
-            CALL COMPUTE_L2G( 3.6d5,   -7.2d3, 
+            CALL COMPUTE_L2G( 3.6e+5_fp,   -7.2e+3_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of GLYX in liquid phase 
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! assume same retention factor as CH2O
             ! Compute the rate constant K.  The retention factor 
             ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
             ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
 
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of GLYX scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1388,7 +1400,7 @@
       ELSE IF ( N == IDTMGLY ) THEN 
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -1399,36 +1411,37 @@
             ! the appropriate parameters for Henry's law
             ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
             ! H298_R = -7.5d3 K
-            CALL COMPUTE_L2G( 3.7d3,    -7.5d3, 
+            CALL COMPUTE_L2G( 3.7e+3_fp,    -7.5e+3_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of MGLY in liquid phase 
             ! NOTE: CH2O does not exist in the ice phase!
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! assume same retention factor as CH2O
             ! Compute the rate constant K.  The retention factor 
             ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
             ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
 
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of MGLY scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1443,7 +1456,7 @@
       ELSE IF ( N == IDTGLYC ) THEN 
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -1454,36 +1467,37 @@
             ! the appropriate parameters for Henry's law
             ! from Betterton and Hoffman 1988): 
             ! Kstar298 = 4.1d4 M/atm;  H298_R = -4600 K
-            CALL COMPUTE_L2G( 4.1d4,    -4.6d3, 
+            CALL COMPUTE_L2G( 4.1e+4_fp,    -4.6e+3_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of MGLY in liquid phase 
             ! NOTE: CH2O does not exist in the ice phase!
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! assume same retention factor as CH2O
             ! Compute the rate constant K.  The retention factor 
             ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
             ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
 
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of MGLY scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1498,7 +1512,7 @@
       ELSE IF ( N == IDTMP ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Start scavenging at level 2
          DO L = 2, LLPAR
@@ -1508,35 +1522,36 @@
             ! Compute liquid to gas ratio for CH3OOH, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 3.1d2,    -5.2d3, 
+            CALL COMPUTE_L2G( 3.1e+2_fp,    -5.2e+3_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of CH3OOH in liquid phase
             ! NOTE: CH3OOH does not exist in the ice phase!
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  The retention factor  
             ! for liquid CH3OOH is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of CH3OOH scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1573,7 +1588,7 @@
                ! Limit F
                SO2LOSS      = MIN( H2O2s(I,J,L), SO2s(I,J,L) )
                F(I,J,L)     = F(I,J,L) * SO2LOSS / SO2s(I,J,L)
-               F(I,J,L)     = MAX(F(I,J,L), 0d0)
+               F(I,J,L)     = MAX(F(I,J,L), 0e+0_fp)
         
                ! Update saved H2O2 concentration
                H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * F(I,J,L) )
@@ -1582,12 +1597,12 @@
             ELSE
 
                ! Set F = 0 if SO2s < EPSILON (dkh, rjp, bmy, 11/17/05) 
-               F(I,J,L)     = 0d0
+               F(I,J,L)     = 0e+0_fp
         
             ENDIF
 
             ! Update SO2
-            SO2s(I,J,L)     = SO2s(I,J,L) * ( 1d0 - F(I,J,L) )
+            SO2s(I,J,L)     = SO2s(I,J,L) * ( 1e+0_fp - F(I,J,L) )
             SO2s(I,J,L)     = MAX( SO2s(I,J,L), EPSILON )
               
          ENDDO
@@ -1616,7 +1631,7 @@
       ELSE IF ( N == IDTNH3 ) THEN
          
          ! No scavenging at surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Start scavenging at level 2
          DO L = 2, LLPAR
@@ -1625,32 +1640,33 @@
 
             ! Compute ice to gas ratio for NH3 by co-condensation
             ! (Eq. 9, Jacob et al, 2000)
-            IF ( C_H2O(I,J,L) > 0d0 ) THEN 
+            IF ( C_H2O(I,J,L) > 0e+0_fp ) THEN 
                I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_NH3
             ELSE
-               I2G = 0d0
+               I2G = 0e+0_fp
             ENDIF
 
             ! Compute liquid to gas ratio for NH3, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 3.3d6,    -4.1d3, 
+            CALL COMPUTE_L2G( 3.3e+6_fp,    -4.1e+3_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of NH3 in liquid & ice phases
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G + I2G
+            C_TOT = 1e+0_fp + L2G + I2G
             F_L   = L2G / C_TOT
             F_I   = I2G / C_TOT
 
             ! Compute the rate constant K.  The retention factor  
             ! for liquid NH3 is 0.0 for T <= 248 K and 0.05 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * ( F_L + F_I )
                   
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( ( 5d-2 * F_L ) + F_I )
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( ( 5e-2_fp * F_L ) + F_I )
                   
             ELSE
                K = KC * F_I
@@ -1659,7 +1675,7 @@
   
             ! F is the fraction of NH3 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * BXHEIGHT(I,J,L) / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * BXHEIGHT(I,J,L) / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1705,7 +1721,7 @@
      &          N == IDTPOA1 .or. N == IDTPOA2  ) THEN
 
          ! Force not to be lost in convective updraft for now
-         F    = 0d0
+         F    = 0e+0_fp
          ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
@@ -1731,7 +1747,7 @@
       ELSE IF ( N == IDTMTPA ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Start scavenging at level 2
          DO L = 2, LLPAR
@@ -1743,34 +1759,35 @@
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
             ! Use H-law of 0.049 for all pinene (Sander, 1999)
             ! updated for new mtp (hotp 5/24/10), SOAupdate
-            CALL COMPUTE_L2G( 0.049d0,  0.d0,
+            CALL COMPUTE_L2G( 0.049e+0_fp,  0.e+0_fp,
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of MTPA in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid MTPA is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of MTPA scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1784,7 +1801,7 @@
       ELSE IF ( N == IDTLIMO ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Start scavenging at level 2
          DO L = 2, LLPAR
@@ -1794,34 +1811,35 @@
             ! Compute liquid to gas ratio for LIMO, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 0.07d0, 0.d0, 
+            CALL COMPUTE_L2G( 0.07e+0_fp, 0.e+0_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of LIMO in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1837,7 +1855,7 @@
       ELSE IF ( N == IDTMTPO ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Start scavenging at level 2
          DO L = 2, LLPAR
@@ -1850,34 +1868,35 @@
             ! SOAupdate
             ! Terpenoid alcohol emission expected to be much lower
             ! than previously estimated. Use pinene H-law (hotp 5/24/10)
-            CALL COMPUTE_L2G( 0.049d0,  0.d0,
+            CALL COMPUTE_L2G( 0.049e+0_fp,  0.e+0_fp,
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of MTPO in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid MTPO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of MTPO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1893,7 +1912,7 @@
       ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Start scavenging at level 2
          DO L = 2, LLPAR
@@ -1905,34 +1924,35 @@
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
             ! Heff and deltaH/R based on phenanthrene from
             ! Sander 1999
-            CALL COMPUTE_L2G( 9.5d0,    -4.70d3,
+            CALL COMPUTE_L2G( 9.5e+0_fp,    -4.70e+3_fp,
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POG in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid POG is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of POG scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -1954,7 +1974,7 @@
      &          N == IDTASOG3                         ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Start scavenging at level 2
          DO L = 2, LLPAR
@@ -1964,34 +1984,35 @@
             ! Compute liquid to gas ratio for GAS1, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 1.0d5, -6.039d3, 
+            CALL COMPUTE_L2G( 1.0e+5_fp, -6.039e+3_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of GAS1 in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid GAS1 is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of GAS1 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -2018,7 +2039,7 @@
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            F(I,J,L) = 0.8d0 * F(I,J,L)
+            F(I,J,L) = 0.8e+0_fp * F(I,J,L)
          ENDDO
          ENDDO
          ENDDO
@@ -2037,7 +2058,7 @@
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            F(I,J,L) = 0.8d0 * F(I,J,L)
+            F(I,J,L) = 0.8e+0_fp * F(I,J,L)
          ENDDO
          ENDDO
          ENDDO
@@ -2054,7 +2075,7 @@
          ! Calculate gas-liquid partitioning from Henry's law
          ! then assume Hg2 is scavenged only by liquid precip
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -2068,30 +2089,30 @@
             ! hma, 10-Jan-2011, Henry's law constant for 
             ! HgCl2 = 1.4d+6 M/atm
             ! Ref: Lindqvist and Rhode, 1985
-            CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
+            CALL COMPUTE_L2G( 1.4e+6_fp, -8.4e+3_fp, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of HgCl2 in liquid phase 
             ! Assume that HgCl2 is not present in ice phase
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K. 
             !CDH allow scavening during riming (8/7/2009
             !Scavenging at all temperatures
-            IF ( T(I,J,L) >= 248d0 ) THEN
+            IF ( T(I,J,L) >= 248e+0_fp ) THEN
                K = KC * F_L  
             ELSE 
-               K = 0d0
+               K = 0e+0_fp
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
               
             ! F is the fraction of HgCl2 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -2257,7 +2278,7 @@
       ELSE IF (N == IDTPOPG ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -2282,30 +2303,30 @@
             ! Fraction of POP in liquid phase 
             ! Assume (for now) that POP is not present in ice phase
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention efficiency  
             ! for POPG in liquid is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ! ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+            ! ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) THEN
             !   K = KC * ( 2d-2 * F_L )
             ! clf, 1/7/11 - no retention below 268 K 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of POP scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -2320,7 +2341,7 @@
       ELSE IF (N == IDTPOPPOC ) THEN
 
          ! Force not to be lost in convective updraft for now
-         F    = 0d0
+         F    = 0e+0_fp
          ISOL = GET_ISOL( N, N_TRACERS )
 
       !-------------------------------
@@ -2329,7 +2350,7 @@
       ELSE IF (N == IDTPOPPBC ) THEN
 
          ! Force not to be lost in convective updraft for now
-         F    = 0d0
+         F    = 0e+0_fp
          ISOL = GET_ISOL( N, N_TRACERS )
 
       ! Additional tracers for isoprene
@@ -2343,7 +2364,7 @@
       ELSE IF ( N == IDTMOBA ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -2357,34 +2378,35 @@
             !based on methacrylic acid with acetic acid T dependance
             ! pKa = 4.1 - pH=5
 
-            CALL COMPUTE_L2G( 2.3d4,    -6.3d3,
+            CALL COMPUTE_L2G( 2.3e+4_fp,    -6.3e+3_fp,
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of LIMO in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -2399,7 +2421,7 @@
       ELSE IF ( N == IDTISOPN ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -2413,32 +2435,33 @@
 
             !FP ISOP : BUG FIX FOR CONSISTENCY WITH DRY DEP MODULE
             !USE ITO NUMBER
-            CALL COMPUTE_L2G( 17D3,     -9.2d3,
+            CALL COMPUTE_L2G( 17e+3_fp,     -9.2e+3_fp,
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -2453,7 +2476,7 @@
       ELSE IF ( N == IDTMMN ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -2466,32 +2489,33 @@
 
             !FP ISOP : BUG FIX FOR CONSISTENCY WITH DRY DEP MODULE
             !USE ITO NUMBER
-            CALL COMPUTE_L2G( 17D3,     -9.2d3,
+            CALL COMPUTE_L2G( 17e+3_fp,     -9.2e+3_fp,
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -2506,7 +2530,7 @@
       ELSE IF ( N == IDTPROPNN ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
@@ -2518,33 +2542,34 @@
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
 
             !NITROOXYACETONE IN SANDER TABLE
-            CALL COMPUTE_L2G( 1.0d3,    0.0d0,
+            CALL COMPUTE_L2G( 1.0e+3_fp,    0.0e+0_fp,
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
 
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -2559,41 +2584,42 @@
       ELSE IF ( N == IDTRIP ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            CALL COMPUTE_L2G( 1.7d6,    0.0d0,              !USE H2O2
+            CALL COMPUTE_L2G( 1.7e+6_fp,    0.0e+0_fp,              !USE H2O2
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of LIMO in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -2608,36 +2634,37 @@
       ELSE IF ( N == IDTMAP ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            CALL COMPUTE_L2G( 8.4d2,    -5.3d3,              !USE H2O2
+            CALL COMPUTE_L2G( 8.4e+2_fp,  -5.3e+3_fp,              !USE H2O2
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -2653,36 +2680,37 @@
       ELSE IF ( N == IDTIEPOX ) THEN
 
          ! No scavenging at the surface
-         F(:,:,1) = 0d0
+         F(:,:,1) = 0e+0_fp
 
          ! Apply scavenging in levels 2 and higher
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            CALL COMPUTE_L2G( 1.3d8,    0.0d0,               !USE H2O2
+            CALL COMPUTE_L2G( 1.3e+8_fp,    0.0e+0_fp,               !USE H2O2
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( T(I,J,L) >= 268e+0_fp ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ELSE IF ( T(I,J,L) > 248e+0_fp .and. T(I,J,L) < 268e+0_fp ) 
+     &       THEN
+               K = KC * ( 2e-2_fp * F_L ) 
                   
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
 
          ENDDO
          ENDDO
@@ -2695,7 +2723,7 @@
       ! Insoluble tracer, set F=0
       !----------------------------
       ELSE
-         F(:,:,:) = 0d0
+         F(:,:,:) = 0e+0_fp
          ISOL     = 0
 
       ENDIF
@@ -2731,7 +2759,7 @@
 ! !INPUT PARAMETERS: 
 !
       ! Conversion rate from cloud condensate to precip [1/s]
-      REAL*8,         INTENT(IN)  :: KC
+      REAL(fp),         INTENT(IN)  :: KC
 
       !Add N to idendify tracers (qq,10/11/2011)
       INTEGER,        INTENT(IN)  :: N
@@ -2742,7 +2770,7 @@
 ! !OUTPUT PARAMETERS:
 !
       ! Fraction of aerosol scavenged in updrafts [unitless]
-      REAL*8,         INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR)
+      REAL(fp),         INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR)
 ! 
 ! !REVISION HISTORY: 
 !  07 Nov 2002 - R. Yantosca - Initial version
@@ -2758,8 +2786,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J, L
-      REAL*8              :: TMP
-      REAL*8, PARAMETER   :: TINY1 = 1.0d-20
+      REAL(fp)              :: TMP
+      REAL(fp), PARAMETER   :: TINY1 = 1.0e-20_fp
 
       !=================================================================
       ! F_AEROSOL begins here!
@@ -2769,7 +2797,7 @@
       !=================================================================
       
       ! Turn off scavenging in the first level by setting F = 0
-      F(:,:,1) = 0d0
+      F(:,:,1) = 0e+0_fp
  
       ! Apply scavenging in levels 2 and higher
       DO L = 2, LLPAR
@@ -2777,7 +2805,7 @@
       DO I = 1, IIPAR
                 
          ! Distance between grid box centers [m]
-         TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+         TMP = 0.5e+0_fp * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                   State_Met%BXHEIGHT(I,J,L) ) 
        
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
@@ -2786,26 +2814,26 @@
          ! TOMAS: set F=1 if Vud is too small
          !-------------------------------------
          IF ( Vud(I,J) < TINY1 ) THEN
-            F(I,J,L) = 1d0
+            F(I,J,L) = 1e+0_fp
          ELSE
-            F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
+            F(I,J,L) = 1e+0_fp - EXP( -KC * TMP / Vud(I,J) )
          ENDIF
 #else
          !-------------------------------------
          ! STD G-C: Preserve existing code
          !-------------------------------------
-         F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
+         F(I,J,L) = 1e+0_fp - EXP( -KC * TMP / Vud(I,J) )
 #endif
 
          ! snow vs rain (qq, 10/11/2011)
-         IF ( State_Met%T(I,J,L) >= 258d0 .and. N == IDTBCPO) THEN
-            F(I,J,L) = 0d0
+         IF ( State_Met%T(I,J,L) >= 258e+0_fp .and. N == IDTBCPO) THEN
+            F(I,J,L) = 0e+0_fp
          ENDIF
-         IF ( State_Met%T(I,J,L)  < 258d0       .and.
+         IF ( State_Met%T(I,J,L)  < 258e+0_fp       .and.
      &        N /= IDTBCPO  .and. N /= IDTHNO3  .and.
      &        N /= IDTDST1  .and. N /= IDTDST2  .and.
      &        N /= IDTDST3  .and. N /= IDTDST4) THEN
-            F(I,J,L) = 0d0
+            F(I,J,L) = 0e+0_fp
          ENDIF
             
       ENDDO
@@ -2918,13 +2946,13 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTPB,   IDTBE7,   IDTHNO3, IDTH2O2 
-      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMP,    IDTSO2,  IDTSO4  
-      USE TRACERID_MOD,       ONLY : IDTSO4s, IDTSO4aq, IDTMSA,  IDTNH3   
-      USE TRACERID_MOD,       ONLY : IDTNH4,  IDTNH4aq, IDTNIT,  IDTNITs  
-      USE TRACERID_MOD,       ONLY : IDTAS,   IDTAHS,   IDTLET,  IDTBCPI 
-      USE TRACERID_MOD,       ONLY : IDTOCPI, IDTBCPO,  IDTOCPO, IDTDST1 
-      USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3,  IDTDST4, IDTSALA 
+      USE TRACERID_MOD,       ONLY : IDTPB,   IDTBE7,   IDTHNO3, IDTH2O2
+      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMP,    IDTSO2,  IDTSO4 
+      USE TRACERID_MOD,       ONLY : IDTSO4s, IDTSO4aq, IDTMSA,  IDTNH3 
+      USE TRACERID_MOD,       ONLY : IDTNH4,  IDTNH4aq, IDTNIT,  IDTNITs
+      USE TRACERID_MOD,       ONLY : IDTAS,   IDTAHS,   IDTLET,  IDTBCPI
+      USE TRACERID_MOD,       ONLY : IDTOCPI, IDTBCPO,  IDTOCPO, IDTDST1
+      USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3,  IDTDST4, IDTSALA
       USE TRACERID_MOD,       ONLY : IDTSALC
       USE TRACERID_MOD,       ONLY : IS_Hg2,  IS_HgP
       USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
@@ -2965,16 +2993,16 @@
       INTEGER,        INTENT(IN)  :: J          ! Latitude index
       INTEGER,        INTENT(IN)  :: L          ! Level index
       INTEGER,        INTENT(IN)  :: N          ! Tracer number
-      REAL*8,         INTENT(IN)  :: K_RAIN     ! Rainout rate constant [1/s]
-      REAL*8,         INTENT(IN)  :: DT         ! Timestep for rainout event [s]
-      REAL*8,         INTENT(IN)  :: F          ! Fraction of grid box that is
+      REAL(fp),         INTENT(IN)  :: K_RAIN     ! Rainout rate constant [1/s]
+      REAL(fp),         INTENT(IN)  :: DT         ! Timestep for rainout event [s]
+      REAL(fp),         INTENT(IN)  :: F          ! Fraction of grid box that is
                                                 !  precipitating [unitless]
       TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
       TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,         INTENT(OUT) :: RAINFRAC   ! Fraction of tracer lost 
+      REAL(fp),         INTENT(OUT) :: RAINFRAC   ! Fraction of tracer lost 
                                                 !  to rainout [unitless]
 ! 
 ! !REVISION HISTORY: 
@@ -3026,19 +3054,19 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8            :: L2G, I2G, C_TOT, F_L, F_I, K, TK, SO2LOSS
+      REAL(fp)            :: L2G, I2G, C_TOT, F_L, F_I, K, TK, SO2LOSS
 !
 ! !DEFINED PARAMETERS:
 !
       ! CONV_H2O2 = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
       ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
       ! 1.9 is ( molecular weight H2O2 / molecular weight water )
-      REAL*8, PARAMETER :: CONV_H2O2 = 8.27042925126d-1
+      REAL(fp), PARAMETER :: CONV_H2O2 = 8.27042925126e-1_fp
 
       ! CONV_NH3 = 0.6 * SQRT( 0.9 ), used for the ice to gas ratio for NH3
       ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
       ! 0.9 is ( molecular weight NH3 / molecular weight water )
-      REAL*8, PARAMETER :: CONV_NH3  = 5.69209978831d-1
+      REAL(fp), PARAMETER :: CONV_NH3  = 5.69209978831e-1_fp
 
       !==================================================================
       ! RAINOUT begins here!
@@ -3057,31 +3085,31 @@
 
          ! Compute ice to gas ratio for H2O2 by co-condensation
          ! (Eq. 9, Jacob et al, 2000)
-         IF ( C_H2O(I,J,L) > 0d0 ) THEN 
+         IF ( C_H2O(I,J,L) > 0e+0_fp ) THEN 
             I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_H2O2
          ELSE
-            I2G = 0d0
+            I2G = 0e+0_fp
          ENDIF
 
          ! Compute liquid to gas ratio for H2O2, using
          ! the appropriate parameters for Henry's law
          ! (Eqs. 7, 8 and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G( 8.3d4, -7.4d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(8.3e+4_fp, -7.4e+3_fp, TK, CLDLIQ(I,J,L), L2G)
 
          ! Fraction of H2O2 in liquid & ice phases
          ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G + I2G
+         C_TOT = 1e+0_fp + L2G + I2G
          F_L   = L2G / C_TOT
          F_I   = I2G / C_TOT
 
          ! Compute the rate constant K.  The retention factor  
          ! for liquid H2O2 is 0.05 for 248 K < T < 268 K, and 
          ! 1.0 for T >= 268 K.  (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * ( F_L + F_I ) 
                
-         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( ( 5d-2 * F_L ) + F_I ) 
+         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( ( 5e-2_fp * F_L ) + F_I ) 
 
          ELSE 
             K = K_RAIN * F_I
@@ -3100,25 +3128,25 @@
          ! Compute liquid to gas ratio for CH2O, using
          ! the appropriate parameters for Henry's law
          ! (Eqs. 7, 8 and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G( 3.0d3, -7.2d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(3.0e+3_fp, -7.2e+3_fp, TK, CLDLIQ(I,J,L), L2G)
             
          ! Fraction of CH2O in liquid phase 
          ! NOTE: CH2O does not exist in the ice phase!
          ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L 
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )
                
          ELSE
-            K = 0d0
+            K = 0e+0_fp
 
          ENDIF
 
@@ -3136,24 +3164,24 @@
          ! (1) Zhou and Mopper (1990): Kstar298 = 3.6e5 M/atm 
          ! (2) Schweitzer et al. (1998) showed that the temperature dependence 
          ! for CH2O works well for glyoxal, so we use the same H298_R as CH2O
-         CALL COMPUTE_L2G( 3.6d5, -7.2d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(3.6e+5_fp, -7.2e+3_fp, TK, CLDLIQ(I,J,L), L2G)
 
          ! Fraction of GLYX in liquid phase 
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! assume same retention factor as CH2O
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L 
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )
                
          ELSE
-            K = 0d0
+            K = 0e+0_fp
 
          ENDIF
 
@@ -3170,26 +3198,26 @@
          ! the appropriate parameters for Henry's law
          ! from Betterton and Hoffman 1988): 
          ! Kstar298 = 3.71d3 M/atm;  H298_R = -7.5d3 K
-         CALL COMPUTE_L2G( 3.7d3, -7.5d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(3.7e+3_fp, -7.5e+3_fp, TK, CLDLIQ(I,J,L), L2G)
             
          ! Fraction of MGLY in liquid phase 
          ! NOTE: CH2O does not exist in the ice phase!
          ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! assume same retention factor as CH2O
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L 
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )
                
          ELSE
-            K = 0d0
+            K = 0e+0_fp
 
          ENDIF
 
@@ -3206,26 +3234,26 @@
          ! the appropriate parameters for Henry's law
          ! from Betterton and Hoffman 1988): 
          ! Kstar298 = 4.1d4 M/atm;  H298_R = -4.6d3 K
-         CALL COMPUTE_L2G( 4.1d4, -4.6d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(4.1e+4_fp, -4.6e+3_fp, TK, CLDLIQ(I,J,L), L2G)
             
          ! Fraction of GLYC in liquid phase 
          ! NOTE: CH2O does not exist in the ice phase!
          ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! assume same retention factor as CH2O
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L 
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )
                
          ELSE
-            K = 0d0
+            K = 0e+0_fp
 
          ENDIF
 
@@ -3242,25 +3270,25 @@
          ! Compute liquid to gas ratio for CH3OOH, using
          ! the appropriate parameters for Henry's law
          ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G( 3.1d2, -5.2d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(3.1e+2_fp, -5.2e+3_fp, TK, CLDLIQ(I,J,L), L2G)
 
          ! Fraction of CH3OOH in liquid phase
          ! NOTE: CH3OOH does not exist in the ice phase!
          ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L  
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )  
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )  
             
          ELSE
-            K = 0d0
+            K = 0e+0_fp
                
          ENDIF
   
@@ -3278,25 +3306,25 @@
       ELSE IF ( N == IDTMOBA ) THEN
          
          !based on methacrylic acid
-         CALL COMPUTE_L2G( 2.3d4, -6.3d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(2.3e+4_fp, -6.3e+3_fp, TK, CLDLIQ(I,J,L), L2G)
 
          ! Fraction of methacrylic acid in liquid phase
          ! Assume: methacrylic acid does not exist in the ice phase!
          ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L  
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )  
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )  
             
          ELSE
-            K = 0d0
+            K = 0e+0_fp
                
          ENDIF
   
@@ -3311,22 +3339,22 @@
 
          !Based on 2-pentyl nitrate
 
-         CALL COMPUTE_L2G( 17D3, -9.2d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(17e+3_fp, -9.2e+3_fp, TK, CLDLIQ(I,J,L), L2G)
 
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L  
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )  
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )  
             
          ELSE
-            K = 0d0
+            K = 0e+0_fp
                
          ENDIF
   
@@ -3340,23 +3368,23 @@
       ELSE IF ( N == IDTMMN ) THEN
 
          !Ito 2007
-         CALL COMPUTE_L2G( 17d3, -9.2d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(17e+3_fp, -9.2e+3_fp, TK, CLDLIQ(I,J,L), L2G)
 
 
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L  
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )  
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )  
             
          ELSE
-            K = 0d0
+            K = 0e+0_fp
                
          ENDIF
   
@@ -3369,23 +3397,23 @@
       !------------------------------
       ELSE IF ( N == IDTPROPNN ) THEN
 
-         CALL COMPUTE_L2G( 1.0d3, 0.0d0, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(1.0e+3_fp, 0.0e+0_fp, TK, CLDLIQ(I,J,L), L2G)
 
 
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L  
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )  
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )  
             
          ELSE
-            K = 0d0
+            K = 0e+0_fp
                
          ENDIF
   
@@ -3399,22 +3427,22 @@
       ELSE IF ( N == IDTRIP ) THEN
 
          !USE H2O2 
-         CALL COMPUTE_L2G( 1.7d6, 0.0d0, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(1.7e+6_fp, 0.0e+0_fp, TK, CLDLIQ(I,J,L), L2G)
 
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L  
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )  
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )  
             
          ELSE
-            K = 0d0
+            K = 0e+0_fp
                
          ENDIF
   
@@ -3428,22 +3456,23 @@
       ELSE IF ( N == IDTMAP ) THEN
 
          !USE H2O2 
-         CALL COMPUTE_L2G( 8.4d2, -5.3d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 8.4e+2_fp, -5.3e+3_fp, TK, 
+     &         CLDLIQ(I,J,L), L2G )
 
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L  
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )  
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )  
             
          ELSE
-            K = 0d0
+            K = 0e+0_fp
          ENDIF
   
          ! Compute RAINFRAC, the fraction of rained-out CH3OOH
@@ -3456,23 +3485,24 @@
       ELSE IF ( N == IDTIEPOX ) THEN
 
          !USE H2O2 
-         CALL COMPUTE_L2G( 1.3d8, 0.0d0, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 1.3e+8_fp, 0.0e+0_fp, TK, 
+     &         CLDLIQ(I,J,L), L2G )
 
 
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  The retention factor  
          ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L  
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )  
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )  
             
          ELSE
-            K = 0d0
+            K = 0e+0_fp
                
          ENDIF
   
@@ -3495,24 +3525,25 @@
          ! 
          ! McGrath and Rowland, 1994 estimate - 50 kJ/mol heat of solution
          ! H0 comes from Freznel et al. [1998]
-         CALL COMPUTE_L2G( 6.1d3, -6014.d0, TK, CLDLIQ(I,J,L), L2G ) 
+         CALL COMPUTE_L2G( 6.1e+3_fp, -6014.e+0_fp, TK, 
+     &         CLDLIQ(I,J,L), L2G ) 
 
          ! Fraction of HOBr in liquid phase
          ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
          ! F_I not defined for HOBr (ckeller, 10/11/2014)
          !F_I   = I2G / C_TOT
 
          ! Compute the rate constant K.
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L 
-         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
+         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
 
-            K = K_RAIN * (0.d0 * F_L)
+            K = K_RAIN * (0.e+0_fp * F_L)
 
          ELSE
-            K = 0.d0
+            K = 0.e+0_fp
          ENDIF
 
          ! Compute RAINFRAC, the fraction of rained-out HOBr
@@ -3524,23 +3555,24 @@
       !-----------------------------------
       ELSE IF ( N == IDTHCl ) THEN
 
-         CALL COMPUTE_L2G( 7.1d15, -1.10d4, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 7.1e+15_fp, -1.10e+4_fp, TK, 
+     &         CLDLIQ(I,J,L), L2G )
 
          ! Fraction of HCl in liquid phase
          ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L 
-         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
+         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
 
             ! HCl has a large effective H*
-            K = K_RAIN * (1.d0 * F_L)
+            K = K_RAIN * (1.e+0_fp * F_L)
 
          ELSE
-            K = 0.d0
+            K = 0.e+0_fp
          ENDIF
   
          ! Compute RAINFRAC, the fraction of rained-out HCl
@@ -3557,17 +3589,18 @@
          ! which I've calculated for pH = 4.5
          !
          ! H0 and heat of solution are estimated by Yang et al. [2005]
-         CALL COMPUTE_L2G( 7.1d13, -10200.0d0, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 7.1e+13_fp, -10200.0e+0_fp, TK, 
+     &         CLDLIQ(I,J,L), L2G )
 
          ! Fraction of HBr in liquid phase
          ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L 
-         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
+         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
 
             ! HBr has a large effective Henry's
             ! Law Constant, similar to HCl and HNO3, which have
@@ -3577,10 +3610,10 @@
             ! suggest that species with large
             ! Hstar's should have RF's of about 1.
             ! (jpp, 6/13/2011)
-            K = K_RAIN * (1.d0 * F_L) ! jpp, testing riming efficiency
+            K = K_RAIN * (1.e+0_fp * F_L) ! jpp, testing riming efficiency
 
          ELSE
-            K = 0.d0
+            K = 0.e+0_fp
          ENDIF
   
          ! Compute RAINFRAC, the fraction of rained-out HBr
@@ -3595,19 +3628,20 @@
          ! 1. H0 and the heat of solution are taken from Dean [1992].
          ! 2. Dissociation constant for hydrolysis is small (4e-9) and taken
          !    from Beckwith et al. [1996]
-         CALL COMPUTE_L2G( 0.76d0, -3.72d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 0.76e+0_fp, -3.72e+3_fp, TK, 
+     &         CLDLIQ(I,J,L), L2G )
 
          ! Fraction of HBr in liquid phase
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L
-         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
-            K = K_RAIN * (0.d0 * F_L)
+         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * (0.e+0_fp * F_L)
          ELSE
-            K = 0d0   
+            K = 0e+0_fp   
          ENDIF
   
          ! Compute RAINFRAC, the fraction of rained-out HBr
@@ -3621,10 +3655,10 @@
 
          ! Compute ice to gas ratio for NH3 by co-condensation
          ! (Eq. 9, Jacob et al, 2000)
-         IF ( C_H2O(I,J,L) > 0d0 ) THEN 
+         IF ( C_H2O(I,J,L) > 0e+0_fp ) THEN 
             I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_NH3
          ELSE
-            I2G = 0d0
+            I2G = 0e+0_fp
          ENDIF
                   
          ! Compute liquid to gas ratio for NH3, using
@@ -3632,22 +3666,22 @@
          ! (Seinfeld and Pandis, p343 eq. 6.8)
          ! PH    = 4.5  ! Assumed PH for typical cloud drop
          ! Hstar = 1.054d11 * (10.**(-PH)) == 3.3d6
-         CALL COMPUTE_L2G( 3.3d6, -4.1d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(3.3e+6_fp, -4.1e+3_fp, TK, CLDLIQ(I,J,L), L2G)
 
          ! Fraction of NH3 in liquid & ice phases
          ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G + I2G
+         C_TOT = 1e+0_fp + L2G + I2G
          F_L   = L2G / C_TOT
          F_I   = I2G / C_TOT
 
          ! Compute the rate constant K.  The retention factor  
          ! for liquid NH3 is 0.05 for 248 K < T < 268 K, and 
          ! 1.0 for T >= 268 K.  (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * ( F_L + F_I ) 
 
-         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( ( 5d-2 * F_L ) + F_I ) 
+         ELSE IF ( TK > 248e+0_fp  .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( ( 5e-2_fp * F_L ) + F_I ) 
 
          ELSE 
             K = K_RAIN * F_I
@@ -3668,24 +3702,24 @@
          ! the appropriate parameters for Henry's law
          ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
          ! use H-law of 0.049 (hotp 5/24/10), SOAupdate
-         CALL COMPUTE_L2G( 0.049d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(0.049e+0_fp, 0.e+0_fp, TK, CLDLIQ(I,J,L), L2G)
 
          ! Fraction of MTPA in liquid phase
          ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  Assume that the retention factor
          ! for liquid MTPA is 0.02 for 248 K < T < 268 K, and
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )
 
          ELSE
-            K = 0d0
+            K = 0e+0_fp
 
          ENDIF
  
@@ -3701,24 +3735,24 @@
          ! Compute liquid to gas ratio for LIMO, using
          ! the appropriate parameters for Henry's law
          ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G( 0.07d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G(0.07e+0_fp, 0.e+0_fp, TK, CLDLIQ(I,J,L), L2G)
 
          ! Fraction of LIMO in liquid phase
          ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  Assume that the retention factor
          ! for liquid LIMO is 0.02 for 248 K < T < 268 K, and
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )
 
          ELSE
-            K = 0d0
+            K = 0e+0_fp
 
          ENDIF
 
@@ -3736,24 +3770,25 @@
          ! the appropriate parameters for Henry's law.
          ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
          ! H-law is 0.049 (hotp 5/24/10), SOAupdate
-         CALL COMPUTE_L2G( 0.049d0, 0.d0, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 0.049e+0_fp, 0.e+0_fp, TK, 
+     &         CLDLIQ(I,J,L), L2G )
 
          ! Fraction of MTPO in liquid phase
          ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  Assume that the retention factor
          ! for liquid MTPO is 0.02 for 248 K < T < 268 K, and
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )
 
          ELSE
-            K = 0d0
+            K = 0e+0_fp
 
          ENDIF
 
@@ -3771,24 +3806,25 @@
          ! the appropriate parameters for Henry's law
          ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
          ! Heff and deltaH/R based on phenanthrene from Sander 1999
-         CALL COMPUTE_L2G( 9.5d0, -4.70d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 9.5e+0_fp, -4.70e+3_fp, TK, 
+     &          CLDLIQ(I,J,L), L2G )
 
          ! Fraction of POG in liquid phase
          ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  Assume that the retention factor
          ! for liquid POG is 0.02 for 248 K < T < 268 K, and
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )
 
          ELSE
-            K = 0d0
+            K = 0e+0_fp
 
          ENDIF
  
@@ -3811,24 +3847,25 @@
          ! Compute liquid to gas ratio for GAS1, using
          ! the appropriate parameters for Henry's law
          ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-         CALL COMPUTE_L2G( 1.0d5, -6.039d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 1.0e+5_fp, -6.039e+3_fp, TK, 
+     &               CLDLIQ(I,J,L), L2G )
 
          ! Fraction of GAS1 in liquid phase
          ! (Eqs. 4, 5, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G
+         C_TOT = 1e+0_fp + L2G
          F_L   = L2G / C_TOT
 
          ! Compute the rate constant K.  Assume that the retention factor
          ! for liquid GAS1 is 0.02 for 248 K < T < 268 K, and
          ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 268d0 ) THEN
+         IF ( TK >= 268e+0_fp ) THEN
             K = K_RAIN * F_L
 
-         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            K = K_RAIN * ( 2d-2 * F_L )
+         ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+            K = K_RAIN * ( 2e-2_fp * F_L )
 
          ELSE
-            K = 0d0
+            K = 0e+0_fp
 
          ENDIF
  
@@ -3847,13 +3884,13 @@
          ! (cdh, 4/16/09, 5/20/09)
          !------------------------------------------------------------------- 
 ! CDH 8/7/2009, 10/27/2009. All temperature dependence for Hg handled below
-         IF ( TK < 258d0 .AND. (.NOT. ITS_A_MERCURY_SIM ) ) THEN
+         IF ( TK < 258e+0_fp .AND. (.NOT. ITS_A_MERCURY_SIM ) ) THEN
             ! allow Dust and BCPO to be IN (qq,10/11/2011)
             IF ( N == IDTBCPO .or. N == IDTDST1 .or. N == IDTDST2 .or.
      &           N == IDTDST3 .or. N == IDTDST4 .or.N == IDTHNO3) THEN
                RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
             ELSE 
-               RAINFRAC = 0d0
+               RAINFRAC = 0e+0_fp
             ENDIF
             RETURN
          ENDIF
@@ -3893,19 +3930,19 @@
                ! Limit RAINFRAC 
                SO2LOSS      = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
                RAINFRAC     = SO2LOSS * RAINFRAC / SO2s(I,J,L)
-               RAINFRAC     = MAX( RAINFRAC, 0d0 )
+               RAINFRAC     = MAX( RAINFRAC, 0e+0_fp )
          
                ! Update saved H2O2 concentration
                H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * RAINFRAC )
                H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
            
             ELSE
-               RAINFRAC = 0D0
+               RAINFRAC = 0e+0_fp
            
             ENDIF
            
             ! Update saved SO2 concentration
-            SO2s(I,J,L) = SO2s(I,J,L) * ( 1.D0 - RAINFRAC )
+            SO2s(I,J,L) = SO2s(I,J,L) * ( 1.e+0_fp - RAINFRAC )
             SO2s(I,J,L) = MAX( SO2s(I,J,L), EPSILON )         
   
          !----------------------------
@@ -3956,7 +3993,7 @@
      &             N == IDTPOA1 .or. N == IDTPOA2 ) THEN
   
             ! No rainout 
-            RAINFRAC = 0.0D0                  
+            RAINFRAC = 0.0e+0_fp                  
   
          !-------------------------------
          ! DUST all size bins (aerosol)
@@ -3986,7 +4023,7 @@
      &             N == IDTASOAN .or. N == IDTASOA1 .or.
      &             N == IDTASOA2 .or. N == IDTASOA3      ) THEN
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-            RAINFRAC = RAINFRAC * 0.8d0
+            RAINFRAC = RAINFRAC * 0.8e+0_fp
   
          !--------------------------------------
          ! SOAG and SOAM (aerosol)
@@ -3994,7 +4031,7 @@
          !--------------------------------------
          ELSE IF ( N == IDTSOAG .OR. N == IDTSOAM ) THEN
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-            RAINFRAC = RAINFRAC * 0.8d0
+            RAINFRAC = RAINFRAC * 0.8e+0_fp
   
          !------------------------------
          ! Hg2 (liquid phase only)
@@ -4007,20 +4044,21 @@
             !
             ! hma, 10-Jan-2011, Henry's law constant for 
             ! HgCl2 = 1.4d+6 M/atm for HgCl2 (Lindqvist and Rodhe, 1985)
-            CALL COMPUTE_L2G( 1.4d+6, -8.4d3, TK, CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G(1.4e+6_fp, -8.4e+3_fp, TK, 
+     &              CLDLIQ(I,J,L), L2G )
          
             ! Fraction of HgCl2 in liquid phase
             ! Assume no HgCl2 in the ice phase
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume the retention factor  
             ! for liquid HgCl2 is 0 for T < 268 K, and 
             ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( TK >= 248d0 ) THEN
+            IF ( TK >= 248e+0_fp ) THEN
                K = K_RAIN * F_L  
             ELSE
-               K = 0d0               
+               K = 0e+0_fp               
             ENDIF
   
             ! Compute RAINFRAC, the fraction of rained-out HgCl2
@@ -4034,7 +4072,7 @@
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
             ! CDH 9/28/2009
-!            IF ( TK < 248d0 ) RAINFRAC = 0d0
+!            IF ( TK < 248e+0_fp ) RAINFRAC = 0e+0_fp
 
 
 #if defined( TOMAS )
@@ -4123,21 +4161,21 @@
             ! Fraction of POP in liquid phase 
             ! Assume (for now) that POP is not present in ice phase
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
+            C_TOT = 1e+0_fp + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume that the retention factor
             ! for liquid POP is 0.02 for 248 K < T < 268 K, and
             ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( TK >= 268d0 ) THEN
+            IF ( TK >= 268e+0_fp ) THEN
                K = K_RAIN * F_L
 
-            ! ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            ! ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
             ! K = K_RAIN * ( 2d-2 * F_L ) 
             ! clf, 1/7/11 - no retention below 268 K     
    
             ELSE
-               K = 0d0
+               K = 0e+0_fp
 
             ENDIF
                
@@ -4150,14 +4188,14 @@
          !------------------------------
          ELSE IF ( N == IDTPOPPOC ) THEN
             ! No rainout 
-            RAINFRAC = 0.0D0
+            RAINFRAC = 0.0e+0_fp
          
          !------------------------------
          ! POPPBC (treat like hydrophobic BC aerosol)
          !------------------------------
          ELSE IF ( N == IDTPOPPBC ) THEN
             ! No rainout 
-            RAINFRAC = 0.0D0  
+            RAINFRAC = 0.0e+0_fp  
          
          !------------------------------
          ! ERROR: insoluble tracer!
@@ -4188,14 +4226,14 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: K          ! Rainout rate constant [1/s]
-      REAL*8, INTENT(IN) :: F          ! Timestep for rainout event [s]
-      REAL*8, INTENT(IN) :: DT         ! Fraction of grid box that is
+      REAL(fp), INTENT(IN) :: K          ! Rainout rate constant [1/s]
+      REAL(fp), INTENT(IN) :: F          ! Timestep for rainout event [s]
+      REAL(fp), INTENT(IN) :: DT         ! Fraction of grid box that is
                                        !  undergoing precipitation [unitless]
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: RAINFRAC   ! Fraction of tracer lost to rainout
+      REAL(fp)             :: RAINFRAC   ! Fraction of tracer lost to rainout
 !
 ! !REVISION HISTORY: 
 !  08 Nov 2002 - R. Yantosca - Initial version
@@ -4285,12 +4323,12 @@
       INTEGER, INTENT(IN)    :: J          ! Latitude index
       INTEGER, INTENT(IN)    :: L          ! Level index
       INTEGER, INTENT(IN)    :: N          ! Tracer number
-      REAL*8,  INTENT(IN)    :: BXHEIGHT   ! Grid box height [m]
-      REAL*8,  INTENT(IN)    :: TK         ! Temperature [K]
-      REAL*8,  INTENT(IN)    :: PP         ! Precip rate thru  bottom of grid
+      REAL(fp),  INTENT(IN)    :: BXHEIGHT   ! Grid box height [m]
+      REAL(fp),  INTENT(IN)    :: TK         ! Temperature [K]
+      REAL(fp),  INTENT(IN)    :: PP         ! Precip rate thru  bottom of grid
                                            !  box (I,J,L)  [cm3 H2O/cm2 air/s]
-      REAL*8,  INTENT(IN)    :: DT         ! Timestep for rainout event [s]
-      REAL*8,  INTENT(IN)    :: F          ! Fraction of grid box that is 
+      REAL(fp),  INTENT(IN)    :: DT         ! Timestep for rainout event [s]
+      REAL(fp),  INTENT(IN)    :: F          ! Fraction of grid box that is 
                                            !   precipitating [unitless]
 
       TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input options
@@ -4299,15 +4337,15 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      REAL*8,  INTENT(INOUT) :: H2O2s      ! H2O2 [v/v] and SO2 [v/v] 
-      REAL*8,  INTENT(INOUT) :: SO2s       ! concentrations after aqueous rxns 
+      REAL(fp),  INTENT(INOUT) :: H2O2s      ! H2O2 [v/v] and SO2 [v/v] 
+      REAL(fp),  INTENT(INOUT) :: SO2s       ! concentrations after aqueous rxns 
                                            ! are applied.  These are computed 
                                            ! in the sulfate chemistry module
                                            ! and passed here as arguments. 
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT)   :: WASHFRAC   ! Fraction of tracer lost to 
+      REAL(fp),  INTENT(OUT)   :: WASHFRAC   ! Fraction of tracer lost to 
                                            !  washout [unitless]
       LOGICAL, INTENT(OUT)   :: KIN        ! =T washout is a kinetic process
                                            ! =F washout is an equilibrium process
@@ -4373,7 +4411,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8            :: L2G, DZ, SO2LOSS
+      REAL(fp)            :: L2G, DZ, SO2LOSS
 
       !=================================================================
       ! WASHOUT begins here!
@@ -4384,7 +4422,7 @@
       !=================================================================
 
       ! DZ is the height of the grid box in cm
-      DZ = BXHEIGHT * 1d2
+      DZ = BXHEIGHT * 1e+2_fp
 
       !------------------------------
       ! 210Pb or 7Be (aerosol)
@@ -4405,7 +4443,7 @@
       !------------------------------
       ELSE IF ( N == IDTH2O2 ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 8.3e+4_fp, -7.4e+3_fp, PP,       DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4413,7 +4451,7 @@
       !------------------------------
       ELSE IF ( N == IDTCH2O ) THEN 
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 3.0e+3_fp, -7.2e+3_fp, PP,       DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4422,7 +4460,7 @@
       ELSE IF ( N == IDTHOBr ) THEN 
          KIN      = .FALSE.
          ! McGrath and Rowland, 1994 says dH_sol for HOBr = 50 kJ/mol
-         CALL WASHFRAC_LIQ_GAS( 6.1d3, -6014.d0, PP,       DT,  F, 
+         CALL WASHFRAC_LIQ_GAS( 6.1e+3_fp, -6014.e+0_fp, PP, DT,  F, 
      &                          DZ,     TK,      WASHFRAC, KIN  )
 
       !------------------------------
@@ -4430,7 +4468,7 @@
       !------------------------------
       ELSE IF ( N == IDTHBr ) THEN 
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 7.1d13, -10200.d0, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 7.1e+13_fp, -10200.e+0_fp, PP, DT,  F,
      &                          DZ,     TK,        WASHFRAC, KIN  )
 
       !------------------------------
@@ -4438,7 +4476,7 @@
       !------------------------------
       ELSE IF ( N == IDTHCl ) THEN 
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 7.1d15, -1.10d4, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 7.1e+15_fp, -1.10e+4_fp, PP, DT,  F,
      &                          DZ,     TK,      WASHFRAC, KIN  )
 
       !------------------------------
@@ -4446,7 +4484,7 @@
       !------------------------------
       ELSE IF ( N == IDTBr2 ) THEN 
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 0.76d0, -3.72d3, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 0.76e+0_fp, -3.72e+3_fp, PP, DT,  F,
      &                          DZ,      TK,     WASHFRAC, KIN  ) 
 
       !------------------------------
@@ -4460,7 +4498,7 @@
          ! dependence for CH2O works well for glyoxal,
          !      so we use the same H298_R as CH2O
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.6d5, -7.2d3, PP,       DT,  F, 
+         CALL WASHFRAC_LIQ_GAS( 3.6e+5_fp, -7.2e+3_fp, PP, DT,  F, 
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4472,7 +4510,7 @@
          ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
          ! H298_R = -7.5d3 K
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.7d3, -7.5d3, PP,       DT,  F, 
+         CALL WASHFRAC_LIQ_GAS( 3.7e+3_fp, -7.5e+3_fp, PP, DT,  F, 
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4484,7 +4522,7 @@
          ! from Betterton and Hoffman 1988): Kstar298 = 4.6d4 M/atm;  
          ! H298_R = -4.6d3 K
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 4.1d4, -4.6d3, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 4.1e+4_fp, -4.6e+3_fp, PP, DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4492,7 +4530,7 @@
       !------------------------------
       ELSE IF ( N == IDTMP ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 3.1e+2_fp, -5.2e+3_fp, PP, DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4500,7 +4538,7 @@
       !------------------------------
       ELSE IF ( N == IDTMOBA ) THEN       
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 2.6d4, -6.3d3, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 2.6e+4_fp, -6.3e+3_fp, PP, DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4508,7 +4546,7 @@
       !------------------------------
       ELSE IF ( N == IDTISOPN ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS(17d3, -9.2d3 , PP,        DT,  F,
+         CALL WASHFRAC_LIQ_GAS(17e+3_fp, -9.2e+3_fp , PP, DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4516,7 +4554,7 @@
       !------------------------------
       ELSE IF ( N == IDTMMN ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP,        DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 17e+3_fp, -9.2e+3_fp, PP, DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4524,7 +4562,7 @@
       !------------------------------
       ELSE IF ( N == IDTPROPNN ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.0d3, 0.0d0, PP,        DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 1.0e+3_fp, 0.0e+0_fp, PP, DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4533,7 +4571,7 @@
       ELSE IF ( N == IDTRIP ) THEN
          !USE H2O2 
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.7d6, 0.0d0, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 1.7e+6_fp, 0.0e+0_fp, PP, DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4541,7 +4579,7 @@
       !------------------------------
       ELSE IF ( N == IDTMAP ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 8.4d2, -5.3d3, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 8.4e+2_fp, -5.3e+3_fp, PP, DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4549,7 +4587,7 @@
       !------------------------------
       ELSE IF ( N == IDTIEPOX ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.3d8, 0.0d0, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 1.3e+8_fp, 0.0e+0_fp, PP, DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4570,24 +4608,24 @@
          ! of H2O2 in the precipitating grid box.  Then scavenge the 
          ! soluble SO2 at the same rate as sulfate.
          !==============================================================
-         IF ( TK >= 268d0 .AND. SO2s  > EPSILON ) THEN
+         IF ( TK >= 268e+0_fp .AND. SO2s  > EPSILON ) THEN
          
             ! Adjust WASHFRAC
             SO2LOSS  = MIN( SO2s, H2O2s )
             WASHFRAC = SO2LOSS * WASHFRAC / SO2s
-            WASHFRAC = MAX( WASHFRAC, 0d0 )
+            WASHFRAC = MAX( WASHFRAC, 0e+0_fp )
                   
             ! Deplete H2O2s the same as SO2s (dkh, rjp, bmy, 11/17/05)
             H2O2s = H2O2s - ( SO2s * WASHFRAC )
             H2O2s = MAX( H2O2s, EPSILON )
 
          ELSE
-            WASHFRAC = 0d0
+            WASHFRAC = 0e+0_fp
          
          ENDIF
          
          ! Update saved SO2 concentration 
-         SO2s = SO2s * ( 1d0 - WASHFRAC )
+         SO2s = SO2s * ( 1e+0_fp - WASHFRAC )
          SO2s = MAX( SO2s, EPSILON ) 
           
       !------------------------------
@@ -4609,7 +4647,7 @@
       !------------------------------
       ELSE IF ( N == IDTNH3 ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3, PP,       DT,  F, 
+         CALL WASHFRAC_LIQ_GAS( 3.3e+6_fp, -4.1e+3_fp, PP, DT,  F, 
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -4672,7 +4710,7 @@
       ! new mtp (hotp 5/24/10), SOAupdate
       ELSE IF ( N == IDTMTPA ) THEN
          KIN      = .FALSE. 
-         CALL WASHFRAC_LIQ_GAS( 0.049d0, 0.d0, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 0.049e+0_fp, 0.e+0_fp, PP, DT,  F,
      &                          DZ,      TK,   WASHFRAC, KIN  )
 
       !------------------------------
@@ -4680,7 +4718,7 @@
       !------------------------------
       ELSE IF ( N == IDTLIMO ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP,       DT,  F,  
+         CALL WASHFRAC_LIQ_GAS( 0.07e+0_fp, 0.e+0_fp, PP, DT,  F,  
      &                          DZ,     TK,   WASHFRAC, KIN  )
 
       !-------------------------------
@@ -4689,7 +4727,7 @@
       ! new mtp (hotp 5/24/10), SOAupdate
       ELSE IF ( N == IDTMTPO ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 0.049d0, 0.d0, PP,       DT,  F, 
+         CALL WASHFRAC_LIQ_GAS( 0.049e+0_fp, 0.e+0_fp, PP, DT,  F, 
      &                          DZ,      TK,   WASHFRAC, KIN  )
 
       !------------------------------------
@@ -4698,7 +4736,7 @@
       ! Treat POG as relatively hydrophobic (hotp 9/22/09)
       ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 9.5d0, -4.70d3, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 9.5e+0_fp, -4.70e+3_fp, PP, DT,  F,
      &                          DZ,    TK,      WASHFRAC, KIN  )
 
       !---------------------------------
@@ -4713,7 +4751,7 @@
      &          N == IDTASOG1 .or. N == IDTASOG2 .or.
      &          N == IDTASOG3                    ) THEN   
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP,       DT,  F,  
+         CALL WASHFRAC_LIQ_GAS( 1.0e+5_fp, -6.039e+3_fp, PP, DT, F,  
      &                          DZ,     TK,      WASHFRAC, KIN  )
 
       !------------------------------
@@ -4746,7 +4784,7 @@
          ! according to Henry's law
          ! HgCl2: 1.4d+6 M/atm (Ref: Lindqvist and Rhode, 1985) 
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.4d+6, -8.4d3, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 1.4e+6_fp, -8.4e+3_fp, PP, DT, F,
      &                          DZ,      TK,    WASHFRAC, KIN  )
       
       !------------------------------
@@ -4890,16 +4928,16 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: DT         ! Timestep of washout event [s]
-      REAL*8, INTENT(IN) :: F          ! Fraction of grid box that is
+      REAL(fp), INTENT(IN) :: DT         ! Timestep of washout event [s]
+      REAL(fp), INTENT(IN) :: F          ! Fraction of grid box that is
                                        !  precipitating [unitless]
-      REAL*8, INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
+      REAL(fp), INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
                                        !  box (I,J,L)  [cm3 H2O/cm2 air/s]
-      REAL*8, INTENT(IN) :: TK         ! Temperature in grid box [K]
+      REAL(fp), INTENT(IN) :: TK         ! Temperature in grid box [K]
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: WASHFRAC   ! Fraction of soluble tracer 
+      REAL(fp)             :: WASHFRAC   ! Fraction of soluble tracer 
                                        !  lost to washout
 ! 
 ! !REVISION HISTORY: 
@@ -4926,21 +4964,21 @@
 !
       ! Washout rate constant for aerosols: aP^b (p: mm h^-1)
       ! K_WASH for aerosols in accumulation mode (qq,10/11/2011)
-      REAL*8, PARAMETER :: K_WASH = 1.06d-3
+      REAL(fp), PARAMETER :: K_WASH = 1.06e-3_fp
 
       !=================================================================
       ! WASHFRAC_FINE_AEROSOL begins here!
       !=================================================================
-      IF ( ( TK >= 268d0 ) .OR. ITS_A_POPS_SIM ) THEN
+      IF ( ( TK >= 268e+0_fp ) .OR. ITS_A_POPS_SIM ) THEN
 
          !---------------------------------
          ! T >= 268K (or POPS simulation)  
          !---------------------------------
-         IF ( F > 0d0 ) THEN
-            WASHFRAC = F *(1d0 - EXP( -K_WASH * 
-     &                    (PP / F*3.6d4 )**0.61d0 * DT / 3.6d3 ))
+         IF ( F > 0e+0_fp ) THEN
+            WASHFRAC = F *(1e+0_fp - EXP( -K_WASH * 
+     &              (PP / F*3.6e+4_fp )**0.61e+0_fp * DT / 3.6e+3_fp ))
          ELSE
-            WASHFRAC = 0d0
+            WASHFRAC = 0e+0_fp
          ENDIF
 
       ELSE
@@ -4948,11 +4986,11 @@
          !---------------------------------
          ! T < 268K
          !---------------------------------
-         IF ( F > 0d0 ) THEN 
-            WASHFRAC = F *(1d0 - EXP( -2.6d1*K_WASH *
-     &                    (PP / F*3.6d4 )**0.96d0 * DT / 3.6d3 ))
+         IF ( F > 0e+0_fp ) THEN 
+            WASHFRAC = F *(1e+0_fp - EXP( -2.6e+1_fp*K_WASH *
+     &              (PP / F*3.6e+4_fp )**0.96e+0_fp * DT / 3.6e+3_fp ))
          ELSE
-            WASHFRAC = 0d0
+            WASHFRAC = 0e+0_fp
          ENDIF
 
       ENDIF
@@ -4980,16 +5018,16 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: DT         ! Timestep of washout event [s]
-      REAL*8, INTENT(IN) :: F          ! Fraction of grid box that is
+      REAL(fp), INTENT(IN) :: DT         ! Timestep of washout event [s]
+      REAL(fp), INTENT(IN) :: F          ! Fraction of grid box that is
                                        !  precipitating [unitless]
-      REAL*8, INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
+      REAL(fp), INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
                                        !  box (I,J,L)  [cm3 H2O/cm2 air/s]
-      REAL*8, INTENT(IN) :: TK         ! Temperature in grid box [K]
+      REAL(fp), INTENT(IN) :: TK         ! Temperature in grid box [K]
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: WASHFRAC   ! Fraction of soluble tracer 
+      REAL(fp)             :: WASHFRAC   ! Fraction of soluble tracer 
                                        !  lost to washout
 ! 
 ! !REVISION HISTORY: 
@@ -5014,16 +5052,16 @@
       !=================================================================
 
       ! Washout only happens at or above 268 K
-      IF ( TK >= 268d0 ) THEN
+      IF ( TK >= 268e+0_fp ) THEN
 
          !-------------
          ! T >= 268K 
          !-------------
-         IF ( F > 0d0 ) THEN
-            WASHFRAC = F *(1d0 - EXP( -0.92d0 * ( PP / F*3.6d4 )**0.79d0 
-     &                                        * DT / 3.6d3 ))
+         IF ( F > 0e+0_fp ) THEN
+            WASHFRAC = F*(1e+0_fp - EXP(-0.92e+0_fp * (PP / F*3.6e+4_fp)
+     &                ** 0.79e+0_fp * DT / 3.6e+3_fp ))
          ELSE
-            WASHFRAC = 0d0
+            WASHFRAC = 0e+0_fp
          ENDIF
 
       ELSE
@@ -5031,11 +5069,11 @@
          !-------------
          ! T < 268K 
          !-------------
-         IF ( F > 0d0 ) THEN
-            WASHFRAC = F *(1d0 - EXP( -1.57d0 *
-     &                           (PP / F*3.6d4)**0.96d0 * DT / 3.6d3 ))
+         IF ( F > 0e+0_fp ) THEN
+            WASHFRAC = F *(1e+0_fp - EXP( -1.57e+0_fp *
+     &                (PP / F*3.6e+4_fp)**0.96e+0_fp * DT / 3.6e+3_fp ))
          ELSE
-            WASHFRAC = 0d0
+            WASHFRAC = 0e+0_fp
          ENDIF
 
       ENDIF   
@@ -5070,13 +5108,13 @@
 !
 ! !INPUT PARAMETERS:
 ! 
-      REAL*8,         INTENT(IN)    :: DT          ! Dynamic timestep [s]     
-      REAL*8,         INTENT(IN)    :: F           ! Fraction of grid box
+      REAL(fp),         INTENT(IN)    :: DT          ! Dynamic timestep [s]     
+      REAL(fp),         INTENT(IN)    :: F           ! Fraction of grid box
                                                    !  that is precipitating
-      REAL*8,         INTENT(IN)    :: PP          ! Precip rate thru bottom
+      REAL(fp),         INTENT(IN)    :: PP          ! Precip rate thru bottom
                                                    !  of grid box (I,J,L)
                                                    !  [cm3 H2O/cm2 air/s]
-      REAL*8,         INTENT(IN)    :: TK          ! Temperature [K] 
+      REAL(fp),         INTENT(IN)    :: TK          ! Temperature [K] 
       INTEGER,        INTENT(IN)    :: I           ! Longitude index
       INTEGER,        INTENT(IN)    :: J           ! Latitude index
       INTEGER,        INTENT(IN)    :: L           ! Level index
@@ -5090,7 +5128,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                        :: WASHFRAC    ! Fraction of tracer 
+      REAL(fp)                        :: WASHFRAC    ! Fraction of tracer 
                                                    !  lost to washout
 ! 
 ! !REVISION HISTORY: 
@@ -5104,9 +5142,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8             :: DPAERO          ! Average diameter of particle 
-      REAL*8             :: SCAVR !Below-cloud scavenging coefficient (per cm rain)
-      REAL*8, SAVE       :: SCAVRSAVE(IBINS)
+      REAL(fp)             :: DPAERO          ! Average diameter of particle 
+      REAL(fp)             :: SCAVR !Below-cloud scavenging coefficient (per cm rain)
+      REAL(fp), SAVE       :: SCAVRSAVE(IBINS)
       INTEGER            :: BIN 
       
 
@@ -5114,7 +5152,7 @@
       ! WASHFRAC_SIZE_AEROSOL begins here!
       !=================================================================
 
-      IF ( TK >= 268d0 ) THEN
+      IF ( TK >= 268e+0_fp ) THEN
 
          !-------------
          ! T >= 268K 
@@ -5130,7 +5168,7 @@
 !            DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
 !            ! External function stratscav returns the scavenging rate (mm^-1)
 !            ! Let scavr has a unit of cm^-1
-!            SCAVR = 10.d0* STRATSCAV( DPAERO )
+!            SCAVR = 10.e+0_fp* STRATSCAV( DPAERO )
 !            SCAVRSAVE(N-IDTNK1+1) = scavr
 !         ELSE
 !            BIN = MOD( N - IDTNK1 + 1, IBINS )
@@ -5142,13 +5180,13 @@
             DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
             ! External function stratscav returns the scavenging rate (mm^-1)
             ! Let scavr has a unit of cm^-1
-            SCAVR = 10.d0* STRATSCAV( DPAERO )
+            SCAVR = 10.e+0_fp* STRATSCAV( DPAERO )
 
          ! Prevent div by zero (bmy, 9/4/13)
-         IF ( F > 0d0 ) THEN
-            WASHFRAC = F * ( 1d0 - EXP( -SCAVR * ( PP / F ) * DT ) )
+         IF ( F > 0e+0_fp ) THEN
+            WASHFRAC = F * ( 1e+0_fp - EXP( -SCAVR * ( PP / F ) * DT ) )
          ELSE
-            WASHFRAC = 0d0
+            WASHFRAC = 0e+0_fp
          ENDIF
 
       ELSE
@@ -5156,7 +5194,7 @@
          !-------------
          ! T < 268K 
          !-------------
-         WASHFRAC = 0d0
+         WASHFRAC = 0e+0_fp
 
       ENDIF
 
@@ -5185,16 +5223,16 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: DT         ! Timestep of washout event [s]
-      REAL*8, INTENT(IN) :: F          ! Fraction of grid box that is
+      REAL(fp), INTENT(IN) :: DT         ! Timestep of washout event [s]
+      REAL(fp), INTENT(IN) :: F          ! Fraction of grid box that is
                                        !  precipitating [unitless]
-      REAL*8, INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
+      REAL(fp), INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
                                        !  box (I,J,L)  [cm3 H2O/cm2 air/s]
-      REAL*8, INTENT(IN) :: TK         ! Temperature in grid box [K]
+      REAL(fp), INTENT(IN) :: TK         ! Temperature in grid box [K]
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: WASHFRAC   ! Fraction of soluble tracer 
+      REAL(fp)             :: WASHFRAC   ! Fraction of soluble tracer 
 
 ! 
 ! !REVISION HISTORY: 
@@ -5214,21 +5252,21 @@
 !
 ! !DEFINED PARAMETER:
 !
-      REAL*8, PARAMETER :: K_WASH = 1.0d0  ! First order washout rate 
+      REAL(fp), PARAMETER :: K_WASH = 1.0e+0_fp  ! First order washout rate 
                                            ! constant [cm^-1]. 
 
       !=================================================================
       ! WASHFRAC_HNO3 begins here!
       !=================================================================
-      IF ( TK >= 268d0  ) THEN
+      IF ( TK >= 268e+0_fp  ) THEN
 
          !------------------------
          ! T >= 268K: Do washout
          !------------------------
-         IF ( F > 0d0 ) THEN
-            WASHFRAC = F * ( 1d0 - EXP( -K_WASH * ( PP / F ) * DT ) )
+         IF ( F > 0e+0_fp ) THEN
+            WASHFRAC = F * (1e+0_fp - EXP(-K_WASH * (PP / F) * DT))
          ELSE
-            WASHFRAC = 0d0
+            WASHFRAC = 0e+0_fp
          ENDIF
 
       ELSE
@@ -5236,7 +5274,7 @@
          !------------------------
          ! T < 268K: No washout
          !------------------------
-         WASHFRAC = 0d0
+         WASHFRAC = 0e+0_fp
 
       ENDIF
 
@@ -5261,20 +5299,20 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN)  :: Kstar298   ! Effective Henry's law constant 
+      REAL(fp),  INTENT(IN)  :: Kstar298   ! Effective Henry's law constant 
                                          !  @ 298 K  [moles/atm]
-      REAL*8,  INTENT(IN)  :: H298_R     ! Henry's law coefficient [K]
-      REAL*8,  INTENT(IN)  :: PP         ! Precip rate thru bottom of the
+      REAL(fp),  INTENT(IN)  :: H298_R     ! Henry's law coefficient [K]
+      REAL(fp),  INTENT(IN)  :: PP         ! Precip rate thru bottom of the
                                          !  grid box [cm3 H2O/cm2 air/s]
-      REAL*8,  INTENT(IN)  :: DT         ! Timestep for washout event [s]
-      REAL*8,  INTENT(IN)  :: F          ! Fraction of grid box that is
+      REAL(fp),  INTENT(IN)  :: DT         ! Timestep for washout event [s]
+      REAL(fp),  INTENT(IN)  :: F          ! Fraction of grid box that is
                                          !  precipitating [unitless]
-      REAL*8,  INTENT(IN)  :: DZ         ! Height of grid box [cm]
-      REAL*8,  INTENT(IN)  :: TK         ! Temperature in grid box [K]
+      REAL(fp),  INTENT(IN)  :: DZ         ! Height of grid box [cm]
+      REAL(fp),  INTENT(IN)  :: TK         ! Temperature in grid box [K]
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: WASHFRAC   ! Fraction of tracer lost to washout
+      REAL(fp),  INTENT(OUT) :: WASHFRAC   ! Fraction of tracer lost to washout
       LOGICAL, INTENT(OUT) :: KIN        ! T = washout is a kinetic process
                                          ! F = washout is an equilibrium process
 !
@@ -5297,11 +5335,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: L2G, LP, WASHFRAC_F_14
+      REAL(fp) :: L2G, LP, WASHFRAC_F_14
 !
 ! !DEFINED PARAMETERS
 !
-      REAL*8, PARAMETER :: K_WASH = 1d0  ! First order washout rate 
+      REAL(fp), PARAMETER :: K_WASH = 1e+0_fp  ! First order washout rate 
                                          ! constant [cm^-1]. 
 
       !=================================================================
@@ -5313,7 +5351,7 @@
       KIN = .FALSE.
 
       ! Suppress washout below 268 K
-      IF ( TK >= 268d0 ) THEN
+      IF ( TK >= 268e+0_fp ) THEN
 
          !------------------------
          ! T >= 268K: Do washout
@@ -5328,11 +5366,11 @@
          CALL COMPUTE_L2G( Kstar298, H298_R, TK, LP, L2G )
 
          ! Washout fraction from Henry's law (Eq. 16, Jacob et al, 2000)
-         WASHFRAC = L2G / ( 1d0 + L2G )
+         WASHFRAC = L2G / ( 1e+0_fp + L2G )
 
          ! Washout fraction / F from Eq. 14, Jacob et al, 2000
          ! Note: WASHFRAC_F_14 should match what's used for HNO3 (hma, 13aug2011)
-         WASHFRAC_F_14 = 1d0 - EXP( -K_WASH * ( PP / F ) * DT )
+         WASHFRAC_F_14 = 1e+0_fp - EXP( -K_WASH * ( PP / F ) * DT )
 
          ! Do not let the Henry's law washout fraction exceed
          ! that of HNO3 -- this is a cap
@@ -5346,7 +5384,7 @@
          !------------------------
          ! T < 268K: No washout
          !------------------------
-         WASHFRAC = 0d0
+         WASHFRAC = 0e+0_fp
             
       ENDIF
 
@@ -5510,8 +5548,8 @@
 !  (3 ) Since we are working with an (I,J) column, the ordering of the
 !        loops goes J - I - L - N.  Dimension arrays DSTT, PDOWN, QQ
 !        to take advantage of this optimal configuration (bmy, 2/28/00)
-!  (4 ) Use double-precision exponents to force REAL*8 accuracy
-!        (e.g. 1d0, bmy, 2/28/00)
+!  (4 ) Use double-precision exponents to force REAL(fp) accuracy
+!        (e.g. 1e+0_fp, bmy, 2/28/00)
 !  (5 ) Diagnostics ND16, ND17, ND18, and ND39 use allocatable arrays 
 !        from "diag_mod.f"  (bmy, bey, 3/14/00)
 !  (6 ) WETDEP only processes soluble tracers and/or aerosols, as are
@@ -5572,16 +5610,16 @@
                          
       INTEGER            :: I, IDX, J, L, N, NN
                          
-      REAL*8             :: Q,     QDOWN,  DT,        DT_OVER_TAU
-      REAL*8             :: K,     K_MIN,  K_RAIN,    RAINFRAC
-      REAL*8             :: F,     FTOP,   F_PRIME,   WASHFRAC
-      REAL*8             :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
-      REAL*8             :: ALPHA, ALPHA2, WETLOSS,   TMP
-      REAL*8             :: F_RAINOUT,     F_WASHOUT
+      REAL(fp)             :: Q,     QDOWN,  DT,        DT_OVER_TAU
+      REAL(fp)             :: K,     K_MIN,  K_RAIN,    RAINFRAC
+      REAL(fp)             :: F,     FTOP,   F_PRIME,   WASHFRAC
+      REAL(fp)             :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
+      REAL(fp)             :: ALPHA, ALPHA2, WETLOSS,   TMP
+      REAL(fp)             :: F_RAINOUT,     F_WASHOUT
 
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
-      REAL*8             :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
+      REAL(fp)             :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
 
  
       CHARACTER(LEN=255) :: ERRMSG
@@ -5589,7 +5627,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
@@ -5603,7 +5641,7 @@
       STT => State_Chm%Tracers
 
       ! Dynamic timestep [s]
-      DT    = GET_TS_DYN() * 60d0
+      DT    = GET_TS_DYN() * 60e+0_fp
       
       ! Select index for diagnostic arrays -- will archive either
       ! large-scale or convective rainout/washout fractions
@@ -5626,12 +5664,12 @@
       DO I = 1, IIPAR
 
          ! Zero FTOP
-         FTOP = 0d0
+         FTOP = 0e+0_fp
 
          ! Zero accumulator array
          DO L  = 1, LLPAR
          DO NN = 1, NSOL
-            DSTT(NN,L,I,J) = 0d0
+            DSTT(NN,L,I,J) = 0e+0_fp
          ENDDO
          ENDDO
 
@@ -5646,19 +5684,19 @@
 
          ! Zero variables for this level
          ERRMSG    = 'RAINOUT: Top of atm'
-         F         = 0d0
-         F_PRIME   = 0d0
-         F_RAINOUT = 0d0      
-         F_WASHOUT = 0d0      
-         K_RAIN    = 0d0
-         Q         = 0d0
-         QDOWN     = 0d0
+         F         = 0e+0_fp
+         F_PRIME   = 0e+0_fp
+         F_RAINOUT = 0e+0_fp      
+         F_WASHOUT = 0e+0_fp      
+         K_RAIN    = 0e+0_fp
+         Q         = 0e+0_fp
+         QDOWN     = 0e+0_fp
 
          ! Start at the top of the atmosphere
          L = LLPAR
 
          ! If precip forms at (I,J,L), assume it all rains out
-         IF ( QQ(L,I,J) > 0d0 ) THEN
+         IF ( QQ(L,I,J) > 0e+0_fp ) THEN
 
             ! Q is the new precip that is forming within grid box (I,J,L)
             Q = QQ(L,I,J)
@@ -5669,7 +5707,7 @@
                K_RAIN  = LS_K_RAIN( Q )
                F_PRIME = LS_F_PRIME( Q, K_RAIN )
             ELSE
-               K_RAIN  = 1.5d-3
+               K_RAIN  = 1.5e-3_fp
                F_PRIME = CONV_F_PRIME( Q, K_RAIN, DT )
             ENDIF
             
@@ -5678,7 +5716,7 @@
 
             ! Only compute rainout if F > 0. 
             ! This helps to eliminate unnecessary CPU cycles.
-            IF ( F > 0d0 ) THEN 
+            IF ( F > 0e+0_fp ) THEN 
                CALL DO_RAINOUT_ONLY( LS,  I,      J,    L,   
      &                               IDX, ERRMSG, F,    K_RAIN, 
      &                               DT,  STT,    DSTT, Input_opt,
@@ -5704,16 +5742,16 @@
          DO L = LLPAR-1, 2, -1
 
             ! Zero variables for each level
-            F         = 0d0
-            F_PRIME   = 0d0
-            F_RAINOUT = 0d0 
-            F_WASHOUT = 0d0 
-            K_RAIN    = 0d0
-            Q         = 0d0
-            QDOWN     = 0d0
+            F         = 0e+0_fp
+            F_PRIME   = 0e+0_fp
+            F_RAINOUT = 0e+0_fp 
+            F_WASHOUT = 0e+0_fp 
+            K_RAIN    = 0e+0_fp
+            Q         = 0e+0_fp
+            QDOWN     = 0e+0_fp
 
             ! If there is new precip forming w/in the grid box ...
-            IF ( QQ(L,I,J) > 0d0 ) THEN
+            IF ( QQ(L,I,J) > 0e+0_fp ) THEN
 
                ! Compute K_RAIN and F' for either large-scale or convective
                ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000) 
@@ -5721,13 +5759,13 @@
                   K_RAIN  = LS_K_RAIN( QQ(L,I,J) )
                   F_PRIME = LS_F_PRIME( QQ(L,I,J), K_RAIN )
                ELSE
-                  K_RAIN  = 1.5d-3
+                  K_RAIN  = 1.5e-3_fp
                   F_PRIME = CONV_F_PRIME( QQ(L,I,J), K_RAIN, DT )
                ENDIF
                
             ELSE
                
-               F_PRIME = 0d0
+               F_PRIME = 0e+0_fp
  
             ENDIF
 
@@ -5750,13 +5788,13 @@
             ! Calculate the fractional areas subjected to rainout and
             ! washout. If PDOWN = 0, then all dissolved tracer returns
             ! to the atmosphere. (cdh, 7/13/10)
-            IF ( PDOWN(L,I,J) > 0d0 ) THEN
+            IF ( PDOWN(L,I,J) > 0e+0_fp ) THEN
                F_RAINOUT = F_PRIME
                ! Washout occurs where there is no rainout
-               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
+               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0e+0_fp )
             ELSE
-               F_RAINOUT = 0d0
-               F_WASHOUT = 0d0
+               F_RAINOUT = 0e+0_fp
+               F_WASHOUT = 0e+0_fp
             ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -5770,22 +5808,22 @@
 !%%% SAME ALGORITHM USED IN v8-03-01, UNCOMMENT THESE LINES:
 !%%%
 !            ! Zero
-!            F_RAINOUT = 0d0
-!            F_WASHOUT = 0d0
+!            F_RAINOUT = 0e+0_fp
+!            F_WASHOUT = 0e+0_fp
 !
 !            ! If there is downward-falling precip from the level above ...
-!            IF ( PDOWN(L,I,J) > 0d0 ) THEN
+!            IF ( PDOWN(L,I,J) > 0e+0_fp ) THEN
 !               
 !               ! ... and if there is new precip forming in this level,
 !               ! then we have a rainout condition.  F_RAINOUT is the
 !               ! fraction of the grid box that where rainout occurs
-!               IF ( QQ(L,I,J) > 0d0 ) THEN
+!               IF ( QQ(L,I,J) > 0e+0_fp ) THEN
 !                  F_RAINOUT = MAX( FTOP, F_PRIME )
 !               ENDIF 
 !
 !               ! The rest of the precipitating part of the box is
 !               ! undergoing washout.  Store this fraction in F_WASHOUT.
-!               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
+!               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0e+0_fp )
 !
 !            ENDIF
 !
@@ -5795,7 +5833,7 @@
             F = MAX( F_PRIME, FTOP )
 
             ! If there is rainout occurring ...
-            IF ( F_RAINOUT > 0d0  ) THEN
+            IF ( F_RAINOUT > 0e+0_fp  ) THEN
 
                ! Error msg for stdout
                ERRMSG = 'RAINOUT: Middle levels'
@@ -5814,7 +5852,7 @@
             ! at all) at grid box (I,J,L), but have rain coming down from 
             ! grid box (I,J,L+1).
             !==============================================================
-            IF ( F_WASHOUT > 0d0 ) THEN
+            IF ( F_WASHOUT > 0e+0_fp ) THEN
 
                ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
                ! Q     is the new precip that is forming within box (I,J,L)
@@ -5822,7 +5860,7 @@
                Q     = QQ(L,I,J)
 
                ! Also test if we have rainout happening simultaneously
-               IF ( F_RAINOUT > 0d0 ) THEN
+               IF ( F_RAINOUT > 0e+0_fp ) THEN
 
                   ! The precipitation causing washout is the precip entering
                   ! the top
@@ -5833,7 +5871,7 @@
                   ! forming) then we have no way to estimate this, so assume
                   ! zero for now. Consequently there will be no resuspended
                   ! aerosol.
-                  Q = 0d0
+                  Q = 0e+0_fp
                ENDIF
 
                ! Error msg for stdout
@@ -5860,10 +5898,10 @@
             ! re-enter the atmosphere in the gas phase in grid box 
             ! (I,J,L).  This is called "resuspension".
             !===========================================================
-            IF ( F_WASHOUT == 0d0 .and. F_RAINOUT == 0d0 ) THEN
+            IF ( F_WASHOUT == 0e+0_fp .and. F_RAINOUT == 0e+0_fp ) THEN
 
                ! No precipitation at grid box (I,J,L), thus F = 0
-               F = 0d0
+               F = 0e+0_fp
                
                ! Error message
                ERRMSG = 'RESUSPENSION in middle levels'
@@ -5889,17 +5927,17 @@
 
          ! Zero variables for this level
          ERRMSG  = 'WASHOUT: at surface'
-         F       = 0d0
-         F_PRIME = 0d0
-         K_RAIN  = 0d0
-         Q       = 0d0
-         QDOWN   = 0d0
+         F       = 0e+0_fp
+         F_PRIME = 0e+0_fp
+         K_RAIN  = 0e+0_fp
+         Q       = 0e+0_fp
+         QDOWN   = 0e+0_fp
          
          ! We are at the surface, set L = 1
          L = 1
 
          ! Washout at level 1 criteria
-         IF ( PDOWN(L+1,I,J) > 0d0 ) THEN
+         IF ( PDOWN(L+1,I,J) > 0e+0_fp ) THEN
 
             ! QDOWN is the precip leaving thru the bottom of box (I,J,L+1)
             QDOWN = PDOWN(L+1,I,J)
@@ -5909,7 +5947,7 @@
             F = FTOP
 
             ! Only compute washout if F > 0.
-            IF ( F > 0d0 ) THEN
+            IF ( F > 0e+0_fp ) THEN
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
      &                                 DT,  STT,    DSTT,  Input_Opt,
@@ -6137,23 +6175,23 @@
                          
       INTEGER            :: I, IDX, J, L, N, NN
                          
-      REAL*8             :: Q,     QDOWN,  DT,        DT_OVER_TAU
-      REAL*8             :: K,     K_MIN,  K_RAIN,    RAINFRAC
-      REAL*8             :: F,     FTOP,   F_PRIME,   WASHFRAC
-      REAL*8             :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
-      REAL*8             :: ALPHA, ALPHA2, WETLOSS,   TMP
-      REAL*8             :: F_RAINOUT,     F_WASHOUT 
+      REAL(fp)             :: Q,     QDOWN,  DT,        DT_OVER_TAU
+      REAL(fp)             :: K,     K_MIN,  K_RAIN,    RAINFRAC
+      REAL(fp)             :: F,     FTOP,   F_PRIME,   WASHFRAC
+      REAL(fp)             :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
+      REAL(fp)             :: ALPHA, ALPHA2, WETLOSS,   TMP
+      REAL(fp)             :: F_RAINOUT,     F_WASHOUT 
 
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
-      REAL*8             :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
+      REAL(fp)             :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
  
       CHARACTER(LEN=255) :: ERRMSG
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
@@ -6167,7 +6205,7 @@
       STT => State_Chm%Tracers
 
       ! Dynamic timestep [s]
-      DT    = GET_TS_DYN() * 60d0
+      DT    = GET_TS_DYN() * 60e+0_fp
       
       ! Select index for diagnostic arrays -- will archive either
       ! large-scale or convective rainout/washout fractions
@@ -6191,12 +6229,12 @@
       DO I = 1, IIPAR
 
          ! Zero FTOP
-         FTOP = 0d0
+         FTOP = 0e+0_fp
 
          ! Zero accumulator array
          DO L  = 1, LLPAR
          DO NN = 1, NSOL
-            DSTT(NN,L,I,J) = 0d0
+            DSTT(NN,L,I,J) = 0e+0_fp
          ENDDO
          ENDDO
 
@@ -6206,18 +6244,18 @@
 
          ! Zero variables for this level
          ERRMSG      = 'RAINOUT: Top of atm'
-         F           = 0d0
-         F_PRIME     = 0d0
-         F_RAINOUT   = 0d0      
-         F_WASHOUT   = 0d0      
-         K_RAIN      = 0d0
-         Q           = 0d0     
+         F           = 0e+0_fp
+         F_PRIME     = 0e+0_fp
+         F_RAINOUT   = 0e+0_fp      
+         F_WASHOUT   = 0e+0_fp      
+         K_RAIN      = 0e+0_fp
+         Q           = 0e+0_fp     
 
          ! Start at the top of the atmosphere
          L = LLPAR
 
          ! If precip forms at (I,J,L), assume it all rains out
-         IF ( QQ(L,I,J) > 0d0 ) THEN
+         IF ( QQ(L,I,J) > 0e+0_fp ) THEN
 
             ! Q is the new precip that is forming within grid box (I,J,L)
             Q = QQ(L,I,J)
@@ -6232,7 +6270,7 @@
 
             ! Only compute rainout if F > 0. 
             ! This helps to eliminate unnecessary CPU cycles.
-            IF ( F > 0d0 ) THEN 
+            IF ( F > 0e+0_fp ) THEN 
                CALL DO_RAINOUT_ONLY( LS,  I,      J,    L,   
      &                               IDX, ERRMSG, F,    K_RAIN, 
      &                               DT,  STT,    DSTT, Input_Opt,
@@ -6251,16 +6289,16 @@
          DO L = LLPAR-1, 2, -1
 
             ! Zero variables for each level
-            F           = 0d0
-            F_PRIME     = 0d0
-            F_RAINOUT   = 0d0 
-            F_WASHOUT   = 0d0 
-            K_RAIN      = 0d0
-            Q           = 0d0
-            QDOWN       = 0d0
+            F           = 0e+0_fp
+            F_PRIME     = 0e+0_fp
+            F_RAINOUT   = 0e+0_fp 
+            F_WASHOUT   = 0e+0_fp 
+            K_RAIN      = 0e+0_fp
+            Q           = 0e+0_fp
+            QDOWN       = 0e+0_fp
 
             ! If there is new precip forming w/in the grid box ...
-            IF ( QQ(L,I,J) > 0d0 ) THEN
+            IF ( QQ(L,I,J) > 0e+0_fp ) THEN
 
                ! Compute K_RAIN and F_RAINOUT for large-scale 
                ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000) 
@@ -6271,7 +6309,7 @@
                
             ELSE
                
-               F_PRIME = 0d0
+               F_PRIME = 0e+0_fp
  
             ENDIF
 
@@ -6279,17 +6317,17 @@
             ! Calculate the fractional areas subjected to rainout and
             ! washout. If PDOWN = 0, then all dissolved tracer returns
             ! to the atmosphere. (cdh, 7/13/10)
-            IF ( PDOWN(L,I,J) > 0d0 ) THEN
+            IF ( PDOWN(L,I,J) > 0e+0_fp ) THEN
                F_RAINOUT = F_PRIME
                ! Washout occurs where there is no rainout
-               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
+               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0e+0_fp )
             ELSE
-               F_RAINOUT = 0d0
-               F_WASHOUT = 0d0
+               F_RAINOUT = 0e+0_fp
+               F_WASHOUT = 0e+0_fp
             ENDIF
 
 
-            IF ( F_WASHOUT > 0d0 ) THEN    
+            IF ( F_WASHOUT > 0e+0_fp ) THEN    
 
                ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
                ! Q     is the new precip that is forming within box (I,J,L)
@@ -6297,7 +6335,7 @@
                Q     = QQ(L,I,J)
 
                !  Define PDOWN and p
-               IF ( F_RAINOUT > 0d0 ) THEN
+               IF ( F_RAINOUT > 0e+0_fp ) THEN
 
                   ! The precipitation causing washout 
                   ! is the precip entering thru the top
@@ -6308,7 +6346,7 @@
                   ! forming) then we have no way to estimate this, so assume
                   ! zero for now. Consequently there will be no resuspended
                   ! aerosol.
-                  Q = 0d0
+                  Q = 0e+0_fp
                ENDIF
 
             ENDIF 
@@ -6325,11 +6363,11 @@
 
             ! If a non-zero fraction of the grid box is 
             ! experiencing rainout...
-            IS_RAINOUT = ( F_RAINOUT > 0d0 )
+            IS_RAINOUT = ( F_RAINOUT > 0e+0_fp )
 
             ! If a non-zero fraction of the grid box is 
             ! experiencing washout...
-            IS_WASHOUT = ( F_WASHOUT > 0d0 )
+            IS_WASHOUT = ( F_WASHOUT > 0e+0_fp )
 
             IF ( IS_RAINOUT ) THEN
 
@@ -6381,10 +6419,10 @@
 
             ! Check if there is precip entering grid box, but not
             ! leaving grid box
-            IF ( F_WASHOUT == 0d0 .and. F_RAINOUT == 0d0 ) THEN
+            IF ( F_WASHOUT == 0e+0_fp .and. F_RAINOUT == 0e+0_fp ) THEN
 
                ! No precipitation at grid box (I,J,L), thus F = 0
-               F = 0d0
+               F = 0e+0_fp
                
                ! Error message
                ERRMSG = 'RESUSPENSION in middle levels'
@@ -6406,17 +6444,17 @@
 
          ! Zero variables for this level
          ERRMSG  = 'WASHOUT: at surface'
-         F       = 0d0
-         F_PRIME = 0d0
-         K_RAIN  = 0d0
-         Q       = 0d0
-         QDOWN   = 0d0
+         F       = 0e+0_fp
+         F_PRIME = 0e+0_fp
+         K_RAIN  = 0e+0_fp
+         Q       = 0e+0_fp
+         QDOWN   = 0e+0_fp
          
          ! We are at the surface, set L = 1
          L = 1
 
          ! Washout at level 1 criteria
-         IF ( PDOWN(L+1,I,J) > 0d0 ) THEN
+         IF ( PDOWN(L+1,I,J) > 0e+0_fp ) THEN
 
             ! QDOWN is the precip leaving thru the bottom of box (I,J,L+1)
             QDOWN = PDOWN(L+1,I,J)
@@ -6426,7 +6464,7 @@
             F = FTOP
 
             ! Only compute washout if F > 0.
-            IF ( F > 0d0 ) THEN
+            IF ( F > 0e+0_fp ) THEN
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
      &                                 DT,  STT,    DSTT,  Input_Opt,
@@ -6501,12 +6539,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: Q        ! Rate of precipitation formation 
+      REAL(fp), INTENT(IN) :: Q        ! Rate of precipitation formation 
                                      !  [cm3 H2O/cm3 air/s]
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: K_RAIN   ! 1st order rainout rate constant [1/s]
+      REAL(fp)             :: K_RAIN   ! 1st order rainout rate constant [1/s]
 !
 ! !REVISION HISTORY: 
 !  18 Mar 2004 - R. Yantosca - Initial version
@@ -6526,7 +6564,7 @@
 !      K_RAIN = 1.0d-4 + ( Q / 1.5d-6 ) 
       !tunable parameter (qq,10/14/2011)
       ! 1.0d-6 = L + W, the condensed water content (liq + ice) in the cloud
-      K_RAIN = 1.0d-4 + ( Q / 1.0d-6 ) 
+      K_RAIN = 1.0e-4_fp + ( Q / 1.0e-6_fp ) 
       
       END FUNCTION LS_K_RAIN
 !EOC
@@ -6548,13 +6586,13 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: Q         ! Rate of precipitation formation 
+      REAL(fp), INTENT(IN) :: Q         ! Rate of precipitation formation 
                                       !  [cm3 H2O/cm3 air/s]
-      REAL*8, INTENT(IN) :: K_RAIN    ! 1st order rainout rate constant [1/s]
+      REAL(fp), INTENT(IN) :: K_RAIN    ! 1st order rainout rate constant [1/s]
 !
 ! !REMARKS:
 ! 
-      REAL*8             :: F_PRIME   ! Fraction of grid box undergoing 
+      REAL(fp)             :: F_PRIME   ! Fraction of grid box undergoing 
                                       !  large-scale precipitation [unitless]
 ! 
 ! !REVISION HISTORY: 
@@ -6574,7 +6612,7 @@
 !      F_PRIME = Q / ( K_RAIN * 1.0d-6 )
       !tunable parameter (qq,10/14/2011)
       ! 1.0d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
-      F_PRIME = Q / ( K_RAIN * 1.0d-6 )
+      F_PRIME = Q / ( K_RAIN * 1.0e-6_fp )
 
       END FUNCTION LS_F_PRIME
 !EOC
@@ -6595,14 +6633,14 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: Q         ! Rate of precipitation formation 
+      REAL(fp), INTENT(IN) :: Q         ! Rate of precipitation formation 
                                       !  [cm3 H2O/cm3 air/s]
-      REAL*8, INTENT(IN) :: K_RAIN    ! 1st order rainout rate constant [1/s]
-      REAL*8, INTENT(IN) :: DT        ! Wet deposition timestep [s]
+      REAL(fp), INTENT(IN) :: K_RAIN    ! 1st order rainout rate constant [1/s]
+      REAL(fp), INTENT(IN) :: DT        ! Wet deposition timestep [s]
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: F_PRIME   ! Frac. of grid box undergoing
+      REAL(fp)             :: F_PRIME   ! Frac. of grid box undergoing
                                       !  convective precipitation [unitless]
 ! 
 ! !REVISION HISTORY: 
@@ -6616,7 +6654,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: TIME
+      REAL(fp) :: TIME
 
       !=================================================================
       ! CONV_F_PRIME begins here!
@@ -6624,13 +6662,13 @@
       
       ! Assume the rainout event happens in 30 minutes (1800 s)
       ! Compute the minimum of DT / 1800s and 1.0
-      TIME = MIN( DT / 1800d0, 1d0 )
+      TIME = MIN( DT / 1800e+0_fp, 1e+0_fp )
 
       ! Compute F' for convective precipitation (Eq. 13, Jacob et al, 2000)
       ! 0.3  = FMAX, the maximum value of F' for convective precip
       ! 2d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
-      F_PRIME = ( 0.3d0 * Q * TIME ) / 
-     &          ( ( Q * TIME ) + ( 0.3d0 * K_RAIN * 2d-6 ) )
+      F_PRIME = ( 0.3e+0_fp * Q * TIME ) / 
+     &          ( ( Q * TIME ) + ( 0.3e+0_fp * K_RAIN * 2e-6_fp ) )
 
       END FUNCTION CONV_F_PRIME
 !EOC
@@ -6680,18 +6718,18 @@
       INTEGER,          INTENT(IN)    :: J             ! Latitude index
       INTEGER,          INTENT(IN)    :: L             ! Level index
       INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
-      REAL*8,           INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box 
+      REAL(fp),           INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box 
                                                        !  undergoing rainout
-      REAL*8,           INTENT(IN)    :: K_RAIN        ! Rainout constant
-      REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
+      REAL(fp),           INTENT(IN)    :: K_RAIN        ! Rainout constant
+      REAL(fp),           INTENT(IN)    :: DT            ! Rainout timestep [s]
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8,           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL*8,           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
+      REAL(fp),           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
 ! 
 ! !REMARKS:
 !  The modifications for the MERRA met fields require calling this same 
@@ -6723,12 +6761,12 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: N,        NN
-      REAL*8  :: RAINFRAC, WETLOSS
+      REAL(fp)  :: RAINFRAC, WETLOSS
 
 #if defined( TOMAS )
       ! Scavenging fraction of 30-bin aerosols (win, 7/16/09)
-      REAL*8              :: TOM_SC_FRACTION(IBINS)
-      REAL*8              :: SOLFRAC, XFRAC
+      REAL(fp)              :: TOM_SC_FRACTION(IBINS)
+      REAL(fp)              :: SOLFRAC, XFRAC
 #endif
 
       !=================================================================
@@ -6824,23 +6862,23 @@
          ! Error checks
          !--------------------------------------------------------------
          IF ( IT_IS_NAN( STT(I,J,L,N) )   .or.
-     &        STT(I,J,L,N)   < 0d0        .or.
-     &        DSTT(NN,L,I,J) < 0d0      ) THEN
+     &        STT(I,J,L,N)   < 0e+0_fp        .or.
+     &        DSTT(NN,L,I,J) < 0e+0_fp      ) THEN
 
             ! Print error message and stop simulaton
             CALL SAFETY( I, J, L, N, ERRMSG,
      &                   LS          = LS,             
      &                   PDOWN       = PDOWN(L,I,J),  
      &                   QQ          = QQ(L,I,J),      
-     &                   ALPHA       = 0d0,       
-     &                   ALPHA2      = 0d0,         
+     &                   ALPHA       = 0e+0_fp,       
+     &                   ALPHA2      = 0e+0_fp,         
      &                   RAINFRAC    = RAINFRAC,     
-     &                   WASHFRAC    = 0d0, 
-     &                   MASS_WASH   = 0d0,
-     &                   MASS_NOWASH = 0d0,
+     &                   WASHFRAC    = 0e+0_fp, 
+     &                   MASS_WASH   = 0e+0_fp,
+     &                   MASS_NOWASH = 0e+0_fp,
      &                   WETLOSS     = WETLOSS,
-     &                   GAINED      = 0d0,         
-     &                   LOST        = 0d0,         
+     &                   GAINED      = 0e+0_fp,         
+     &                   LOST        = 0e+0_fp,         
      &                   DSTT        = DSTT(NN,:,I,J), 
      &                   STT         = STT(I,J,:,N)     )
          ENDIF
@@ -6907,23 +6945,23 @@
       INTEGER,          INTENT(IN)    :: L             ! Level index
       INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
-      REAL*8,           INTENT(IN)    :: QDOWN         ! Precip leaving thru
+      REAL(fp),           INTENT(IN)    :: QDOWN         ! Precip leaving thru
                                                        !  bottom of box (I,J,L)
-      REAL*8,           INTENT(IN)    :: Q             ! New precip forming
+      REAL(fp),           INTENT(IN)    :: Q             ! New precip forming
                                                        !  in box (I,J,L)
-      REAL*8,           INTENT(IN)    :: F_WASHOUT     ! Fraction of grid box 
+      REAL(fp),           INTENT(IN)    :: F_WASHOUT     ! Fraction of grid box 
                                                        !  undergoing washout
-      REAL*8,           INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box 
+      REAL(fp),           INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box 
                                                        !  undergoing rainout
-      REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
-      REAL*8,           INTENT(IN)    :: PDOWN(:,:,:)  ! Precip 
+      REAL(fp),           INTENT(IN)    :: DT            ! Rainout timestep [s]
+      REAL(fp),           INTENT(IN)    :: PDOWN(:,:,:)  ! Precip 
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8,           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL*8,           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
+      REAL(fp),           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 ! 
 ! !REMARKS:
@@ -7007,12 +7045,12 @@
 !
       LOGICAL :: KIN,       DO_REEVAP
       INTEGER :: N,         NN
-      REAL*8  :: ALPHA,     ALPHA2,      GAINED,   LOST
-      REAL*8  :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
-      REAL*8  :: TK,        TF  
+      REAL(fp)  :: ALPHA,     ALPHA2,      GAINED,   LOST
+      REAL(fp)  :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
+      REAL(fp)  :: TK,        TF  
 
 #if defined( TOMAS )
-      REAL*8  :: REEVAPSO2  !(win, 7/16/09)
+      REAL(fp)  :: REEVAPSO2  !(win, 7/16/09)
       INTEGER :: KMIN       !(win, 7/16/09)
 #endif
 
@@ -7021,7 +7059,7 @@
       !=================================================================
 
       ! ND16 diagnostic...save F (fraction of grid box raining)
-      IF ( ND16 > 0d0 .and. L <= LD16 ) THEN
+      IF ( ND16 > 0e+0_fp .and. L <= LD16 ) THEN
          AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F_WASHOUT
          CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1
       ENDIF
@@ -7043,14 +7081,14 @@
       DO NN = 1, NSOL
 
          ! zero local variables
-         ALPHA       = 0d0
-         ALPHA2      = 0d0
-         WASHFRAC    = 0d0
-         MASS_WASH   = 0d0
-         MASS_NOWASH = 0d0
-         WETLOSS     = 0d0
-         GAINED      = 0d0
-         LOST        = 0d0
+         ALPHA       = 0e+0_fp
+         ALPHA2      = 0e+0_fp
+         WASHFRAC    = 0e+0_fp
+         MASS_WASH   = 0e+0_fp
+         MASS_NOWASH = 0e+0_fp
+         WETLOSS     = 0e+0_fp
+         GAINED      = 0e+0_fp
+         LOST        = 0e+0_fp
 
          ! Tracer # corresponding to each wetdep species #
          N  = IDWETD(NN)
@@ -7076,7 +7114,7 @@
          ! DSTT < 0 and SAFETY trips.  (Helen Amos, 20100928)
          IF ( IT_IS_NAN( WASHFRAC ) ) THEN
             CYCLE
-         ELSEIF ( WASHFRAC < 1D-3 ) THEN
+         ELSEIF ( WASHFRAC < 1e-3_fp ) THEN
             CYCLE
          ENDIF
 #endif
@@ -7097,19 +7135,19 @@
 
             ! Define ALPHA, the fraction of the raindrops that 
             ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-            ALPHA = ( ABS( Q ) * State_Met%BXHEIGHT(I,J,L) * 100d0 )
+            ALPHA = ( ABS( Q ) * State_Met%BXHEIGHT(I,J,L) * 100e+0_fp )
      &            / ( PDOWN(L+1,I,J)                               )
 
             ! Restrict ALPHA to be less than 1 (>1 is unphysical)
             ! (hma, 24-Dec-2010)
             ! NOTE: GEOS-5 should not produce any ALPHA > 1.
-            IF ( ALPHA > 1d0 ) THEN 
-               ALPHA = 1d0
+            IF ( ALPHA > 1e+0_fp ) THEN 
+               ALPHA = 1e+0_fp
             ENDIF
 
             ! ALPHA2 is the fraction of the rained-out aerosols
             ! that gets resuspended in grid box (I,J,L)
-            ALPHA2  = 0.5d0 * ALPHA
+            ALPHA2  = 0.5e+0_fp * ALPHA
 
             ! GAINED is the rained out aerosol coming down from 
             ! grid box (I,J,L+1) that will evaporate and re-enter 
@@ -7128,10 +7166,10 @@
             ! (rjp, bmy, 3/23/03)
             IF ( N == IDTSO2 ) THEN
                STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) 
-     &                           + GAINED * 96D0 / 64D0
+     &                           + GAINED * 96e+0_fp / 64e+0_fp
 
                STT(I,J,L,N)      = STT(I,J,L,N) *
-     &                                          ( 1d0 - WASHFRAC )
+     &                                          ( 1e+0_fp - WASHFRAC )
 
 
 #if defined( TOMAS )
@@ -7141,18 +7179,18 @@
             ! by reacting with H2O2 (win, 7/16/09)
             IF ( ND05 > 0 .and. L <= LD05 ) 
      &         AD05(I,J,L,6) = AD05(I,J,L,6) +
-     &         ( GAINED * 32D0 / 64D0 )
+     &         ( GAINED * 32e+0_fp / 64e+0_fp )
                             
             ! Re-evaporated portion get distributed onto
             ! size-resolved sulfate by AQOXID (win, 7/16/09)
-            IF ( GAINED > 0d0 ) THEN 
+            IF ( GAINED > 0e+0_fp ) THEN 
                IF ( LS ) THEN
                   KMIN = 10
                ELSE
                   KMIN = 6
                ENDIF
 
-               REEVAPSO2 = GAINED * 96D0 / 64D0
+               REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
                CALL AQOXID( REEVAPSO2, KMIN, I, J, L, 
      &                      State_Met, State_Chm  )
             ENDIF
@@ -7171,7 +7209,7 @@
             ! Add the washed out tracer from grid box (I,J,L) to 
             ! DSTT.  Also add the amount of tracer coming down
             ! from grid box (I,J,L+1) that does NOT re-evaporate.
-            IF ( F_RAINOUT > 0d0 ) THEN 
+            IF ( F_RAINOUT > 0e+0_fp ) THEN 
                DSTT(NN,L,I,J) = DSTT(NN,L,  I,J) + WETLOSS
             ELSE
                DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
@@ -7191,7 +7229,7 @@
                   
             ! MASS_NOWASH is the amount of non-aerosol tracer in 
             ! grid box (I,J,L) that is NOT available for washout.
-            MASS_NOWASH = ( 1d0 - F_WASHOUT ) * STT(I,J,L,N)
+            MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * STT(I,J,L,N)
                
             ! MASS_WASH is the total amount of non-aerosol tracer
             ! that is available for washout in grid box (I,J,L).
@@ -7212,7 +7250,7 @@
             STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS  
             
             ! Add washout losses in grid box (I,J,L) to DSTT 
-            IF ( F_RAINOUT > 0d0 ) THEN
+            IF ( F_RAINOUT > 0e+0_fp ) THEN
                DSTT(NN,L,I,J) = DSTT(NN,L,  I,J) + WETLOSS
             ELSE
                DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
@@ -7242,8 +7280,8 @@
          ! Error checks
          !--------------------------------------------------------------
          IF ( IT_IS_NAN( STT(I,J,L,N) )   .or.
-     &        STT(I,J,L,N)   < 0d0        .or. 
-     &        DSTT(NN,L,I,J) < 0d0      ) THEN
+     &        STT(I,J,L,N)   < 0e+0_fp        .or. 
+     &        DSTT(NN,L,I,J) < 0e+0_fp      ) THEN
 
             ! Print error message and stop simulaton
             CALL SAFETY( I, J, L, N, ERRMSG,
@@ -7252,7 +7290,7 @@
      &                   QQ          = QQ(L,I,J),      
      &                   ALPHA       = ALPHA,       
      &                   ALPHA2      = ALPHA2,         
-     &                   RAINFRAC    = 0d0,     
+     &                   RAINFRAC    = 0e+0_fp,     
      &                   WASHFRAC    = WASHFRAC, 
      &                   MASS_WASH   = MASS_WASH,
      &                   MASS_NOWASH = MASS_NOWASH,
@@ -7317,14 +7355,14 @@
       INTEGER,          INTENT(IN)    :: L             ! Level index
       INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
-      REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
+      REAL(fp),           INTENT(IN)    :: DT            ! Rainout timestep [s]
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! sfarina Required for TOMAS routines
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
-      REAL*8,           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL*8,           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
+      REAL(fp),           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
 ! 
 ! !REMARKS:
 !  The modifications for the MERRA met fields require calling this same 
@@ -7340,11 +7378,11 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: N, NN
-      REAL*8  :: WETLOSS
+      REAL(fp)  :: WETLOSS
 
 
 #if defined( TOMAS )
-      REAL*8  :: REEVAPSO2  !(win, 7/16/09)
+      REAL(fp)  :: REEVAPSO2  !(win, 7/16/09)
       INTEGER :: KMIN       !(win, 7/16/09)
 #endif
 
@@ -7367,7 +7405,7 @@
          ! In evap, SO2 comes back as SO4 (rjp, bmy, 3/23/03)
          IF ( N == IDTSO2 ) THEN
             STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) 
-     &                        - ( WETLOSS * 96d0 / 64d0 )
+     &                        - ( WETLOSS * 96e+0_fp / 64e+0_fp )
 
 
 #if defined( TOMAS )
@@ -7387,13 +7425,13 @@
                             
                        ! Re-evaporated portion get distributed onto
                      ! size-resolved sulfate by AQOXID (win, 7/16/09)
-                     IF ( ABS(WETLOSS) > 0d0 ) THEN 
+                     IF ( ABS(WETLOSS) > 0e+0_fp ) THEN 
                         IF ( LS ) THEN
                            KMIN = 10
                         ELSE
                            KMIN = 6
                         ENDIF
-                        REEVAPSO2 =  - ( WETLOSS * 96d0 / 64d0 )
+                        REEVAPSO2 =  - ( WETLOSS * 96e+0_fp / 64e+0_fp )
                         CALL AQOXID( REEVAPSO2, KMIN, I, J, L,
      &                               State_Met, State_Chm )
                      ENDIF
@@ -7407,7 +7445,7 @@
 
          ! There is nothing rained out/washed out in grid box
          ! (I,J,L), so set DSTT at grid box (I,J,L) to zero.
-         DSTT(NN,L,I,J) = 0d0
+         DSTT(NN,L,I,J) = 0e+0_fp
          
          !--------------------------------------------------------------
          ! Diagnostics
@@ -7429,23 +7467,23 @@
          ! Error checks
          !--------------------------------------------------------------
          IF ( IT_IS_NAN( STT(I,J,L,N) )   .or.
-     &        STT(I,J,L,N)   < 0d0        .or. 
-     &        DSTT(NN,L,I,J) < 0d0      ) THEN
+     &        STT(I,J,L,N)   < 0e+0_fp        .or. 
+     &        DSTT(NN,L,I,J) < 0e+0_fp      ) THEN
 
             ! Print error message and stop simulaton
             CALL SAFETY( I, J, L, N, ERRMSG,
      &                   LS          = LS,             
-     &                   PDOWN       = 0d0,
-     &                   QQ          = 0d0,      
-     &                   ALPHA       = 0d0,       
-     &                   ALPHA2      = 0d0,         
-     &                   RAINFRAC    = 0d0,     
-     &                   WASHFRAC    = 0d0, 
-     &                   MASS_WASH   = 0d0,
-     &                   MASS_NOWASH = 0d0,
+     &                   PDOWN       = 0e+0_fp,
+     &                   QQ          = 0e+0_fp,      
+     &                   ALPHA       = 0e+0_fp,       
+     &                   ALPHA2      = 0e+0_fp,         
+     &                   RAINFRAC    = 0e+0_fp,     
+     &                   WASHFRAC    = 0e+0_fp, 
+     &                   MASS_WASH   = 0e+0_fp,
+     &                   MASS_NOWASH = 0e+0_fp,
      &                   WETLOSS     = WETLOSS,
-     &                   GAINED      = 0d0,         
-     &                   LOST        = 0d0,         
+     &                   GAINED      = 0e+0_fp,         
+     &                   LOST        = 0e+0_fp,         
      &                   DSTT        = DSTT(NN,:,I,J), 
      &                   STT         = STT(I,J,:,N)     )
          ENDIF
@@ -7498,18 +7536,18 @@
       INTEGER,          INTENT(IN)    :: L             ! Level index
       INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
-      REAL*8,           INTENT(IN)    :: QDOWN         ! Precip leaving thru
+      REAL(fp),           INTENT(IN)    :: QDOWN         ! Precip leaving thru
                                                        !  bottom of box (I,J,L)
-      REAL*8,           INTENT(IN)    :: F             ! Fraction of grid box 
+      REAL(fp),           INTENT(IN)    :: F             ! Fraction of grid box 
                                                        !  undergoing precip
-      REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
+      REAL(fp),           INTENT(IN)    :: DT            ! Rainout timestep [s]
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8,           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
-      REAL*8,           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      REAL(fp),           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
+      REAL(fp),           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 ! 
 ! !REMARKS:
@@ -7533,8 +7571,8 @@
 !
       LOGICAL :: KIN
       INTEGER :: N,        NN
-      REAL*8  :: WASHFRAC, WETLOSS, TMP
-      REAL*8  :: TK   
+      REAL(fp)  :: WASHFRAC, WETLOSS, TMP
+      REAL(fp)  :: TK   
 
       !=================================================================
       ! DO_WASHOUT_AT_SFC begins here!
@@ -7621,12 +7659,12 @@
          ! stuff from stratospheric boxes -- this can cause 
          ! negative tracer (rvm, bmy, 6/21/00)
          !
-         IF ( STT(I,J,L,N) < 0d0 .and. L > 23 ) THEN
+         IF ( STT(I,J,L,N) < 0e+0_fp .and. L > 23 ) THEN
              WRITE ( 6, 101 ) I, J, L, N, 7
  101         FORMAT( 'WETDEP - STT < 0 at ', 3i4, 
      &               ' for tracer ', i4, 'in area ', i4 )
              PRINT*, 'STT:', STT(I,J,:,N)
-             STT(I,J,L,N) = 0d0
+             STT(I,J,L,N) = 0e+0_fp
          ENDIF
          !-----------------------------------------------------
 
@@ -7634,8 +7672,8 @@
          ! Error checks
          !--------------------------------------------------------------
          IF ( IT_IS_NAN( STT(I,J,L,N) )   .or.
-     &        STT(I,J,L,N)   < 0d0        .or. 
-     &        DSTT(NN,L,I,J) < 0d0      ) THEN
+     &        STT(I,J,L,N)   < 0e+0_fp        .or. 
+     &        DSTT(NN,L,I,J) < 0e+0_fp      ) THEN
 
             PRINT*, 'WASHFRAC = ', WASHFRAC
             PRINT*, 'F        = ', F
@@ -7643,17 +7681,17 @@
             ! Print error message and stop simulaton
             CALL SAFETY( I, J, L, N, ERRMSG,
      &                   LS          = LS,             
-     &                   PDOWN       = 0d0,
-     &                   QQ          = 0d0,      
-     &                   ALPHA       = 0d0,       
-     &                   ALPHA2      = 0d0,         
-     &                   RAINFRAC    = 0d0,     
-     &                   WASHFRAC    = 0d0, 
-     &                   MASS_WASH   = 0d0,
-     &                   MASS_NOWASH = 0d0,
+     &                   PDOWN       = 0e+0_fp,
+     &                   QQ          = 0e+0_fp,      
+     &                   ALPHA       = 0e+0_fp,       
+     &                   ALPHA2      = 0e+0_fp,         
+     &                   RAINFRAC    = 0e+0_fp,     
+     &                   WASHFRAC    = 0e+0_fp, 
+     &                   MASS_WASH   = 0e+0_fp,
+     &                   MASS_NOWASH = 0e+0_fp,
      &                   WETLOSS     = WETLOSS,
-     &                   GAINED      = 0d0,         
-     &                   LOST        = 0d0,         
+     &                   GAINED      = 0e+0_fp,         
+     &                   LOST        = 0e+0_fp,         
      &                   DSTT        = DSTT(NN,:,I,J), 
      &                   STT         = STT(I,J,:,N)     )
 
@@ -7697,19 +7735,19 @@
       INTEGER,          INTENT(IN) :: L             !
       INTEGER,          INTENT(IN) :: N             !
       CHARACTER(LEN=*), INTENT(IN) :: A             !
-      REAL*8,           INTENT(IN) :: PDOWN         !
-      REAL*8,           INTENT(IN) :: QQ            !
-      REAL*8,           INTENT(IN) :: ALPHA         !
-      REAL*8,           INTENT(IN) :: ALPHA2        !
-      REAL*8,           INTENT(IN) :: RAINFRAC      !
-      REAL*8,           INTENT(IN) :: WASHFRAC      ! 
-      REAL*8,           INTENT(IN) :: MASS_WASH     !
-      REAL*8,           INTENT(IN) :: MASS_NOWASH   !
-      REAL*8,           INTENT(IN) :: WETLOSS       !
-      REAL*8,           INTENT(IN) :: GAINED        !
-      REAL*8,           INTENT(IN) :: LOST          !
-      REAL*8,           INTENT(IN) :: DSTT(LLPAR)   !
-      REAL*8,           INTENT(IN) :: STT(LLPAR)    !
+      REAL(fp),           INTENT(IN) :: PDOWN         !
+      REAL(fp),           INTENT(IN) :: QQ            !
+      REAL(fp),           INTENT(IN) :: ALPHA         !
+      REAL(fp),           INTENT(IN) :: ALPHA2        !
+      REAL(fp),           INTENT(IN) :: RAINFRAC      !
+      REAL(fp),           INTENT(IN) :: WASHFRAC      ! 
+      REAL(fp),           INTENT(IN) :: MASS_WASH     !
+      REAL(fp),           INTENT(IN) :: MASS_NOWASH   !
+      REAL(fp),           INTENT(IN) :: WETLOSS       !
+      REAL(fp),           INTENT(IN) :: GAINED        !
+      REAL(fp),           INTENT(IN) :: LOST          !
+      REAL(fp),           INTENT(IN) :: DSTT(LLPAR)   !
+      REAL(fp),           INTENT(IN) :: STT(LLPAR)    !
 ! 
 ! !REVISION HISTORY: 
 !  18 Mar 2004 - R. Yantosca - Initial version
@@ -8695,13 +8733,13 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER       :: I, J, L
-      REAL*8        :: PL, TK
+      REAL(fp)        :: PL, TK
       LOGICAL, SAVE :: FIRST = .TRUE.      
             
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! INIT_WETSCAV begins here!
@@ -8721,7 +8759,7 @@
          IF ( IDTH2O2 > 0 ) THEN
             H2O2s = STT(:,:,:,IDTH2O2)
          ELSE
-            H2O2s = 0d0
+            H2O2s = 0e+0_fp
          ENDIF
 
          ! Allocate SO2s for wet deposition
@@ -8733,7 +8771,7 @@
          IF ( IDTSO2 > 0 ) THEN
             SO2s = STT(:,:,:,IDTSO2)
          ELSE
-            SO2s = 0d0
+            SO2s = 0e+0_fp
          ENDIF
 
          ! Free pointer
@@ -8744,22 +8782,22 @@
             ! Allocate Vud on first call
             ALLOCATE( Vud( IIPAR, JJPAR ), STAT=RC )
             IF ( RC /= 0 ) CALL ALLOC_ERR( 'Vud' )
-            Vud = 0d0
+            Vud = 0e+0_fp
             
             ! Allocate C_H2O on first call
             ALLOCATE( C_H2O( IIPAR, JJPAR, LLPAR ), STAT=RC )
             IF ( RC /= 0 ) CALL ALLOC_ERR( 'C_H2O' )
-            C_H2O = 0d0
+            C_H2O = 0e+0_fp
             
             ! Allocate CLDLIQ on first call
             ALLOCATE( CLDLIQ( IIPAR, JJPAR, LLPAR ), STAT=RC )
             IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDLIQ' )
-            CLDLIQ = 0d0
+            CLDLIQ = 0e+0_fp
             
             ! Allocate CLDICE on first call
             ALLOCATE( CLDICE( IIPAR, JJPAR, LLPAR ), STAT=RC )
             IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDICE' )
-            CLDICE = 0d0
+            CLDICE = 0e+0_fp
          ENDIF
 
          ! Reset flag
@@ -8808,9 +8846,9 @@
             !==============================================================
             IF ( L == 1 ) THEN
                IF ( IS_WATER( I, J, State_Met ) ) THEN
-                  Vud(I,J) = 5d0
+                  Vud(I,J) = 5e+0_fp
                ELSE
-                  Vud(I,J) = 10d0
+                  Vud(I,J) = 10e+0_fp
                ENDIF
             ENDIF
          
@@ -8823,14 +8861,14 @@
             !    CLDLIQ = 0                       [     T <= 248 K    ]
             !
             !==============================================================
-            IF ( TK >= 268d0 ) THEN
-               CLDLIQ(I,J,L) = 1d-6
+            IF ( TK >= 268e+0_fp ) THEN
+               CLDLIQ(I,J,L) = 1e-6_fp
          
-            ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-               CLDLIQ(I,J,L) = 1d-6 * ( ( TK - 248d0 ) / 20d0 )
+            ELSE IF ( TK > 248e+0_fp .and. TK < 268e+0_fp ) THEN
+               CLDLIQ(I,J,L) = 1e-6_fp * ((TK - 248e+0_fp) / 20e+0_fp )
          
             ELSE
-               CLDLIQ(I,J,L) = 0d0
+               CLDLIQ(I,J,L) = 0e+0_fp
                
             ENDIF
               
@@ -8839,7 +8877,7 @@
             !
             !    CLDICE = 1.0e-6 - CLDLIQ
             !=============================================================
-            CLDICE(I,J,L) = 1d-6 - CLDLIQ(I,J,L)
+            CLDICE(I,J,L) = 1e-6_fp - CLDLIQ(I,J,L)
          
             !=============================================================
             ! C_H2O is given by Dalton's Law as:

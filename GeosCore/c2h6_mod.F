@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -60,6 +62,7 @@
 !  11 Apr 2014 - R. Yantosca - Now declare INIT_C2H6 public, so that it can
 !                              be called from input_mod.F
 !  20 Jun 2014 - R. Yantosca - Remove obsolete code now replaced by HEMCO
+!  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -67,15 +70,15 @@
 ! !DEFINED PARAMETERS:
 !
       ! Molecular weight of C2H6 [kg/mole]
-      REAL*8, PARAMETER   :: FMOL_C2H6 = 30d-3
+      REAL(fp), PARAMETER   :: FMOL_C2H6 = 30e-3_fp
 
       ! Ratio of [molec C2H6/kg C2H6]
-      REAL*8, PARAMETER   :: XNUMOL_C2H6 = 6.022d+23/FMOL_C2H6
+      REAL(fp), PARAMETER   :: XNUMOL_C2H6 = 6.022e+23_fp/FMOL_C2H6
 !
 ! PRIVATE TYPES:
 !
       ! Global monthly mean natural gas C2H6 emissions
-      REAL*8, ALLOCATABLE :: NGASC2H6(:,:)
+      REAL(fp), ALLOCATABLE :: NGASC2H6(:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -137,6 +140,7 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
+!  06 Nov 2014 - M. Yannetti - Converted REAL*8 to REAL(fp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,12 +155,12 @@
       LOGICAL                :: LSPLIT
       INTEGER                :: N_TRACERS
       INTEGER                :: I, J, L, N
-      REAL*8                 :: DTCHEM, KRATE
+      REAL(fp)                 :: DTCHEM, KRATE
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEMC2H6 begins here! 
@@ -175,7 +179,7 @@
       ENDIF
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -209,11 +213,11 @@
       DO I = 1, IIPAR
          
          ! Loss rate [molec2 C2H6/cm6/s]^-1
-         KRATE = 8.7d-12 * EXP( -1070.0d0 / State_Met%T(I,J,L) )
+         KRATE = 8.7e-12_fp * EXP( -1070.0e+0_fp / State_Met%T(I,J,L) )
 
          ! Apply loss to total C2H6 (tracer #1)
          STT(I,J,L,1) = STT(I,J,L,1) *
-     &                  ( 1d0 - KRATE * OH(I,J,L) * DTCHEM )
+     &                  ( 1e+0_fp - KRATE * OH(I,J,L) * DTCHEM )
 
          ! If we are running w/ tagged tracers,
          ! then also apply the loss to each of these
@@ -223,7 +227,7 @@
                ! Subtract loss of C2H6 by OH and store in STT [kg C2H6]
                ! Loss = k * [C2H6] * [OH] * dt
                STT(I,J,L,N) = STT(I,J,L,N) *
-     &                        ( 1d0 - KRATE * OH(I,J,L) * DTCHEM )
+     &                        ( 1e+0_fp - KRATE * OH(I,J,L) * DTCHEM )
             ENDDO
          ENDIF
 
@@ -266,7 +270,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                :: C2H6_ANTHRO
+      REAL(fp)                :: C2H6_ANTHRO
 ! 
 ! !REVISION HISTORY: 
 !  22 Mar 2012 - M. Payer    - Initial version adapted from GET_RETRO_ANTHRO
@@ -339,7 +343,7 @@
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'NGASC2H6' )
 
       ! Zero NGASC2H6 array
-      NGASC2H6 = 0d0
+      NGASC2H6 = 0e+0_fp
 
       END SUBROUTINE INIT_C2H6
 !EOC

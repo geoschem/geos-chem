@@ -37,6 +37,7 @@
 
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE PRECISION_MOD
 
       IMPLICIT NONE
 !
@@ -65,6 +66,7 @@
 !                              derived type object
 !  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to routines
+!  05 Nov 2014 - M. Yannetti - PRECISION_MOD convert REAL*8 to REAL(fp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -72,25 +74,25 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, L, N, JC, BIN, ID, IJLOOP
-      REAL*8                 :: DTCHEM,  AREA_CM2, FLUX
-      REAL*8                 :: X, X0(IBINS, ICOMP-IDIAG+1)
-      REAL*8                 :: Y, Y0, RKT
-      REAL*8                 :: NU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL*8                 :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL*8                 :: SIZ_DIA(IIPAR*JJPAR,IBINS)
-      REAL*8                 :: SIZ_DEN(IIPAR*JJPAR,IBINS)
-      REAL*8                 :: DEN,   DP,    PDP,  TEMP,  P
-      REAL*8                 :: CONST, SLIP,  VISC, DELZ,  DELZ1
-      REAL*8                 :: TOT1,  TOT2
-      REAL*8,  PARAMETER     :: Go = 9.8d0  !Gravitational accel [m/s2]
-      REAL*8                 :: TC(LLPAR),  TC0(LLPAR)
+      REAL(fp)                 :: DTCHEM,  AREA_CM2, FLUX
+      REAL(fp)                 :: X, X0(IBINS, ICOMP-IDIAG+1)
+      REAL(fp)                 :: Y, Y0, RKT
+      REAL(fp)                 :: NU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)                 :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)                 :: SIZ_DIA(IIPAR*JJPAR,IBINS)
+      REAL(fp)                 :: SIZ_DEN(IIPAR*JJPAR,IBINS)
+      REAL(fp)                 :: DEN,   DP,    PDP,  TEMP,  P
+      REAL(fp)                 :: CONST, SLIP,  VISC, DELZ,  DELZ1
+      REAL(fp)                 :: TOT1,  TOT2
+      REAL(fp),  PARAMETER     :: Go = 9.8e+0_fp  !Gravitational accel [m/s2]
+      REAL(fp)                 :: TC(LLPAR),  TC0(LLPAR)
       INTEGER,SAVE           :: DRYD(IBINS)
       LOGICAL,SAVE           :: FIRST = .TRUE.
       INTEGER,SAVE           :: H2SO4ID
       LOGICAL                :: DOSETTLING = .TRUE.
 
       ! Settling velocity of particle (m/s)
-      REAL*8                :: VTS(LLPAR)  
+      REAL(fp)                :: VTS(LLPAR)  
       
       !debug
       integer   :: ii, jj , ix, jx, bb, ll
@@ -99,12 +101,12 @@
       ! For fields from Input_Opt
       LOGICAL         :: LPRT
       INTEGER         :: N_TRACERS
-      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL*8, POINTER :: STT(:,:,:,:)
-      REAL*8, POINTER :: BXHEIGHT(:,:,:)
-      REAL*8, POINTER :: T(:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: BXHEIGHT(:,:,:)
+      REAL(fp), POINTER :: T(:,:,:)
 
       !=================================================================
       ! AERO_DRYDEP begins here!

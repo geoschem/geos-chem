@@ -19,6 +19,8 @@
 !
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -62,6 +64,7 @@
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -116,7 +119,7 @@
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
       INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
-      REAL*8,         INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
+      REAL(fp),         INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
@@ -185,12 +188,12 @@
       ! For fields from Input_Opt
       LOGICAL              :: LPRT
       INTEGER              :: N_TRACERS
-      REAL*8               :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)               :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER      :: STT(:,:,:,:)
+      REAL(fp), POINTER      :: STT(:,:,:,:)
 
       !=================================================================
       ! MAKE_RESTART_FILE begins here!
@@ -370,7 +373,7 @@
       INTEGER             :: I, IOS, IU_RST, J, L, N
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4              :: TRACER(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: SUMTC
+      REAL(fp)              :: SUMTC
       CHARACTER(LEN=255)  :: FILENAME
 
       ! For binary punch file, version 2.0
@@ -379,7 +382,7 @@
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
       REAL*4              :: LONRES,    LATRES
-      REAL*8              :: ZTAU0,     ZTAU1
+      REAL(fp)              :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     
@@ -388,7 +391,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! READ_RESTART_FILE begins here!
@@ -963,7 +966,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
-      REAL*8, POINTER      :: CSPEC_FULL(:,:,:,:)
+      REAL(fp), POINTER      :: CSPEC_FULL(:,:,:,:)
 
       !=================================================================
       ! MAKE_CSPEC_FILE begins here!
@@ -1052,7 +1055,7 @@
         
             ! fix recommended by pls, save CSPEC_FULL (hotp 2/18/09)
             ! now set conc no smalle than 1d-30
-            IF ( CSPEC_FULL(I,J,L,N) .LE. 1d-30 ) THEN
+            IF ( CSPEC_FULL(I,J,L,N) .LE. 1e-30_fp ) THEN
                  TMP(I,J,L) = 1e-30
             ELSE
                  TMP(I,J,L) = CSPEC_FULL(I,J,L,N)
@@ -1162,7 +1165,7 @@
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4		  :: TMP(ILONG,ILAT,IPVERT)
 
-      REAL*8              :: SUMTC
+      REAL(fp)              :: SUMTC
       CHARACTER(LEN=255)  :: FILENAME
       CHARACTER(LEN=255)  :: MSG
 
@@ -1172,7 +1175,7 @@
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
       REAL*4              :: LONRES,    LATRES
-      REAL*8              :: ZTAU0,     ZTAU1
+      REAL(fp)              :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     
@@ -1184,7 +1187,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
-      REAL*8,  POINTER    :: CSPEC_FULL(:,:,:,:)
+      REAL(fp),  POINTER    :: CSPEC_FULL(:,:,:,:)
 
       !=================================================================
       ! READ_CSPEC_FILE begins here!

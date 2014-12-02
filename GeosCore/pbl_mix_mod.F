@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -54,6 +56,7 @@
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -78,14 +81,14 @@
       
       ! Arrays
       INTEGER, ALLOCATABLE :: IMIX(:,:)
-      REAL*8,  ALLOCATABLE :: FPBL(:,:)
-      REAL*8,  ALLOCATABLE :: F_OF_PBL(:,:,:)
-      REAL*8,  ALLOCATABLE :: F_UNDER_TOP(:,:,:)
-      REAL*8,  ALLOCATABLE :: PBL_TOP_hPa(:,:)
-      REAL*8,  ALLOCATABLE :: PBL_TOP_L(:,:)
-      REAL*8,  ALLOCATABLE :: PBL_TOP_m(:,:)
-      REAL*8,  ALLOCATABLE :: PBL_THICK(:,:)
-      REAL*8,  ALLOCATABLE :: XTRA2(:,:)
+      REAL(fp),  ALLOCATABLE :: FPBL(:,:)
+      REAL(fp),  ALLOCATABLE :: F_OF_PBL(:,:,:)
+      REAL(fp),  ALLOCATABLE :: F_UNDER_TOP(:,:,:)
+      REAL(fp),  ALLOCATABLE :: PBL_TOP_hPa(:,:)
+      REAL(fp),  ALLOCATABLE :: PBL_TOP_L(:,:)
+      REAL(fp),  ALLOCATABLE :: PBL_TOP_m(:,:)
+      REAL(fp),  ALLOCATABLE :: PBL_THICK(:,:)
+      REAL(fp),  ALLOCATABLE :: XTRA2(:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -148,12 +151,12 @@
       INTEGER        :: N_TRACERS
 
       ! Arrays
-      REAL*8         :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_PBL_MIX begins here!
@@ -238,8 +241,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I,     J,      L,    LTOP
-      REAL*8  :: BLTOP, BLTHIK, DELP
-      REAL*8  :: P(0:LLPAR)
+      REAL(fp)  :: BLTOP, BLTHIK, DELP
+      REAL(fp)  :: P(0:LLPAR)
 
       !=================================================================
       ! COMPUTE_PBL_HEIGHT begins here!
@@ -298,7 +301,7 @@
          IMIX(I,J)                = LTOP 
 
          ! Fraction of the IMIXth level underneath the PBL top
-         FPBL(I,J)                = 1d0 - ( BLTOP     - P(LTOP) ) / 
+         FPBL(I,J)                = 1e+0_fp - ( BLTOP     - P(LTOP) ) / 
      &                                    ( P(LTOP-1) - P(LTOP) ) 
 
          ! PBL top [model layers]
@@ -313,7 +316,7 @@
          PBL_TOP_hPa(I,J)         = BLTOP
 
          ! Zero PBL top [m] -- compute below
-         PBL_TOP_m(I,J)           = 0d0
+         PBL_TOP_m(I,J)           = 0e+0_fp
 
          ! PBL thickness [hPa]
          PBL_THICK(I,J)           = BLTHIK
@@ -336,7 +339,7 @@
                F_OF_PBL(I,J,L)    = DELP / BLTHIK
 
                ! Fraction of grid box (I,J,L) underneath PBL top
-               F_UNDER_TOP(I,J,L) = 1d0
+               F_UNDER_TOP(I,J,L) = 1e+0_fp
 
                ! PBL height [m]
                PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) +
@@ -366,10 +369,10 @@
                !--------------------------------------------
 
                ! Fraction of grid box (I,J,L) w/in the PBL
-               F_OF_PBL(I,J,L)    = 0d0
+               F_OF_PBL(I,J,L)    = 0e+0_fp
 
                ! Fraction of grid box (I,J,L) underneath PBL top
-               F_UNDER_TOP(I,J,L) = 0d0
+               F_UNDER_TOP(I,J,L) = 0e+0_fp
                
             ENDIF 
 
@@ -399,7 +402,7 @@
          ENDDO
 
          ! Error check
-         IF ( ABS( SUM( F_OF_PBL(I,J,:) ) - 1.d0 ) > 1.d-3 ) THEN
+         IF (ABS(SUM( F_OF_PBL(I,J,:) ) - 1.e+0_fp) > 1.e-3_fp) THEN
             PRINT*, 'bad sum at: ', I, J
             CALL ERROR_STOP( 'Error in computing F_OF_PBL!',
      &                       'COMPUTE_PBL_HEIGHT ("pbl_mix_mod.f")' )
@@ -443,7 +446,7 @@
       INTEGER,        INTENT(IN)    :: NTRC             
 
       ! MW air (g/mol) / MW tracer (g/mol)     [ unitless ]
-      REAL*8,         INTENT(IN)    :: TCVV(NTRC)
+      REAL(fp),         INTENT(IN)    :: TCVV(NTRC)
 
       ! Meteorology State object
       TYPE(MetState), INTENT(IN)    :: State_Met
@@ -451,7 +454,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       ! Tracer concentration [v/v]
-      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NTRC) 
+      REAL(fp),         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NTRC) 
 ! 
 ! !REMARKS:
 !  Original subroutine by Dale Allen, Univ of MD.
@@ -523,12 +526,12 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I,  J,  L,     LTOP,    N
-      REAL*8        :: AA, CC, CC_AA, AREA_M2, DTCONV
-      REAL*8        :: A(IIPAR,JJPAR)
-      REAL*8        :: DTC(IIPAR,JJPAR,LLPAR,NTRC)  
+      REAL(fp)        :: AA, CC, CC_AA, AREA_M2, DTCONV
+      REAL(fp)        :: A(IIPAR,JJPAR)
+      REAL(fp)        :: DTC(IIPAR,JJPAR,LLPAR,NTRC)  
 
       ! Pointers
-      REAL*8, POINTER :: AD(:,:,:)
+      REAL(fp), POINTER :: AD(:,:,:)
 
       !=================================================================
       ! TURBDAY begins here!          
@@ -556,7 +559,7 @@
       AD    => State_Met%AD
 
       ! Convection timestep [s]
-      DTCONV = GET_TS_CONV() * 60d0
+      DTCONV = GET_TS_CONV() * 60e+0_fp
 
       ! Loop over Lat/Long grid boxes (I,J)
 !$OMP PARALLEL DO
@@ -567,10 +570,10 @@
   
          ! We assume full mixing in the boundary layer, so the A
          ! coefficients are 1 everywhere, day & night (bmy, 2/11/03)
-         A(I,J) = 1d0
+         A(I,J) = 1e+0_fp
 
          ! Calculate air mass within PBL at grid box (I,J,L)
-         AA = 0.d0 
+         AA = 0.e+0_fp 
          DO L = 1, IMIX(I,J)-1 
             AA = AA + AD(I,J,L) 
          ENDDO       
@@ -586,7 +589,7 @@
             !===========================================================
  
             ! Sum mass from (I,J,L) below the PBL top
-            CC = 0.d0
+            CC = 0.e+0_fp
             DO L = 1, IMIX(I,J)-1 
                CC = CC + AD(I,J,L) * TC(I,J,L,N)
             ENDDO       
@@ -690,7 +693,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: FRAC       ! Fraction of box (I,J,L) in the PBL
+      REAL(fp)              :: FRAC       ! Fraction of box (I,J,L) in the PBL
 ! 
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -705,7 +708,7 @@
       IF ( L <= LLCHEM ) THEN
          FRAC = F_OF_PBL(I,J,L)
       ELSE
-         FRAC = 0d0
+         FRAC = 0e+0_fp
       ENDIF
 
       ! Return to calling program
@@ -736,7 +739,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: FRAC      ! Fraction of box (I,J,L) below PBL top
+      REAL(fp)              :: FRAC      ! Fraction of box (I,J,L) below PBL top
 ! 
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -747,7 +750,7 @@
       IF ( L <= LLCHEM ) THEN
          FRAC = F_UNDER_TOP(I,J,L)
       ELSE
-         FRAC = 0d0
+         FRAC = 0e+0_fp
       ENDIF
 
       END FUNCTION GET_FRAC_UNDER_PBLTOP
@@ -802,7 +805,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: TOP    ! PBL top [hPa]
+      REAL(fp)              :: TOP    ! PBL top [hPa]
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -839,7 +842,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: TOP    ! PBL top [model levels]
+      REAL(fp)              :: TOP    ! PBL top [model levels]
 ! 
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -872,7 +875,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: TOP    ! PBL top [m]
+      REAL(fp)              :: TOP    ! PBL top [m]
 ! 
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -905,7 +908,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: THICK   ! PBL thickness [hPa]
+      REAL(fp)              :: THICK   ! PBL thickness [hPa]
 ! 
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -968,31 +971,31 @@
 
       ALLOCATE( FPBL( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FPBL' )
-      FPBL = 0d0
+      FPBL = 0e+0_fp
 
       ALLOCATE( F_OF_PBL( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'F_OF_PBL' )
-      F_OF_PBL = 0d0
+      F_OF_PBL = 0e+0_fp
 
       ALLOCATE( F_UNDER_TOP( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'F_UNDER_TOP' )
-      F_UNDER_TOP = 0d0
+      F_UNDER_TOP = 0e+0_fp
 
       ALLOCATE( PBL_TOP_hPa( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL_TOP_hPa' )
-      PBL_TOP_hPa = 0d0
+      PBL_TOP_hPa = 0e+0_fp
 
       ALLOCATE( PBL_TOP_L( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL_TOP_L' )
-      PBL_TOP_L = 0d0
+      PBL_TOP_L = 0e+0_fp
 
       ALLOCATE( PBL_TOP_m( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL_TOP_m' )
-      PBL_TOP_m = 0d0
+      PBL_TOP_m = 0e+0_fp
 
       ALLOCATE( PBL_THICK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL_THICK' )
-      PBL_THICK = 0d0
+      PBL_THICK = 0e+0_fp
 
       END SUBROUTINE INIT_PBL_MIX
 !EOC

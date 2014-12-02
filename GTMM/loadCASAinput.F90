@@ -17,58 +17,60 @@ MODULE loadCASAinput
   USE defineConstants
   USE CasaRegridModule
 
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
 !
 ! !PUBLIC DATA MEMBERS:
 !
 !CONTINUOUS FIELD MAPS
-  REAL*8, ALLOCATABLE :: perc_tree(:,:)
-  REAL*8, ALLOCATABLE :: perc_herb(:,:) 
+  REAL(fp), ALLOCATABLE :: perc_tree(:,:)
+  REAL(fp), ALLOCATABLE :: perc_herb(:,:) 
   
 !RESIZED CONTINUOUS FIELD MAPS
-  REAL*8, ALLOCATABLE :: perc_tree1(:,:)
-  REAL*8, ALLOCATABLE :: perc_herb1(:,:)
-  REAL*8, ALLOCATABLE :: frac_tree(:,:)
-  REAL*8, ALLOCATABLE :: frac_herb(:,:)
-  REAL*8, ALLOCATABLE :: frac_veg(:,:)
+  REAL(fp), ALLOCATABLE :: perc_tree1(:,:)
+  REAL(fp), ALLOCATABLE :: perc_herb1(:,:)
+  REAL(fp), ALLOCATABLE :: frac_tree(:,:)
+  REAL(fp), ALLOCATABLE :: frac_herb(:,:)
+  REAL(fp), ALLOCATABLE :: frac_veg(:,:)
 
 !CLIMATE FILES
-  REAL*8, ALLOCATABLE :: airt(:,:,:)   !monthly air temperature
-  REAL*8, ALLOCATABLE :: ppt(:,:,:)    !monthly precipitation
-  REAL*8, ALLOCATABLE :: solrad(:,:,:) !monthly solar radiation, 
+  REAL(fp), ALLOCATABLE :: airt(:,:,:)   !monthly air temperature
+  REAL(fp), ALLOCATABLE :: ppt(:,:,:)    !monthly precipitation
+  REAL(fp), ALLOCATABLE :: solrad(:,:,:) !monthly solar radiation, 
                                        !Taken from Bishop and Rossow
                                        !average 83-99 from Jim Collatz
 
-  REAL*8, ALLOCATABLE :: NDVI(:,:,:)   !monthly fraction PAR
-  REAL*8, ALLOCATABLE :: BF(:,:,:)     !fraction gridcell tha burns
-  REAL*8, ALLOCATABLE :: ppt_mo(:,:)   !sum of all precip in each mo
+  REAL(fp), ALLOCATABLE :: NDVI(:,:,:)   !monthly fraction PAR
+  REAL(fp), ALLOCATABLE :: BF(:,:,:)     !fraction gridcell tha burns
+  REAL(fp), ALLOCATABLE :: ppt_mo(:,:)   !sum of all precip in each mo
    
 !RESIZED CLIMATE FILES
-  REAL*8, ALLOCATABLE :: airt1(:,:)
-  REAL*8, ALLOCATABLE :: ppt1(:,:)
-  REAL*8, ALLOCATABLE :: solrad1(:,:)
-  REAL*8, ALLOCATABLE :: NDVI1(:,:)
-  REAL*8, ALLOCATABLE :: BF1(:,:)
-  REAL*8, ALLOCATABLE :: maxt(:,:)
-  REAL*8, ALLOCATABLE :: mint(:,:)
+  REAL(fp), ALLOCATABLE :: airt1(:,:)
+  REAL(fp), ALLOCATABLE :: ppt1(:,:)
+  REAL(fp), ALLOCATABLE :: solrad1(:,:)
+  REAL(fp), ALLOCATABLE :: NDVI1(:,:)
+  REAL(fp), ALLOCATABLE :: BF1(:,:)
+  REAL(fp), ALLOCATABLE :: maxt(:,:)
+  REAL(fp), ALLOCATABLE :: mint(:,:)
  
 !OTHER FILES
-  REAL*8, ALLOCATABLE :: soiltext(:,:)  ! soil type
-  REAL*8, ALLOCATABLE :: veg(:,:)       ! vegetation map
-  REAL*8, ALLOCATABLE :: fuelneed(:,:)  ! fuelwood needed 
+  REAL(fp), ALLOCATABLE :: soiltext(:,:)  ! soil type
+  REAL(fp), ALLOCATABLE :: veg(:,:)       ! vegetation map
+  REAL(fp), ALLOCATABLE :: fuelneed(:,:)  ! fuelwood needed 
                                         !   per capita
-  REAL*8, ALLOCATABLE :: popdens(:,:)   ! population density (/m2)
-  REAL*8, ALLOCATABLE :: gridAreaa(:,:)
-  REAL*8, ALLOCATABLE :: gridAreab(:,:)
+  REAL(fp), ALLOCATABLE :: popdens(:,:)   ! population density (/m2)
+  REAL(fp), ALLOCATABLE :: gridAreaa(:,:)
+  REAL(fp), ALLOCATABLE :: gridAreab(:,:)
    
 !RESIZED OTHER FILES
-  REAL*8, ALLOCATABLE :: soiltext1(:,:)
-  REAL*8, ALLOCATABLE :: veg1(:,:)
-  REAL*8, ALLOCATABLE :: fuelneed1(:,:)
-  REAL*8, ALLOCATABLE :: popdens1(:,:)
+  REAL(fp), ALLOCATABLE :: soiltext1(:,:)
+  REAL(fp), ALLOCATABLE :: veg1(:,:)
+  REAL(fp), ALLOCATABLE :: fuelneed1(:,:)
+  REAL(fp), ALLOCATABLE :: popdens1(:,:)
 
    
-  REAL*8, ALLOCATABLE :: mask2(:,:)
+  REAL(fp), ALLOCATABLE :: mask2(:,:)
 !
 ! !REMARKS: For global studies, these files should be given 
 !  as 180 by 360 matrix for 1x1 degree, 360 by 720 for half by half 
@@ -82,6 +84,7 @@ MODULE loadCASAinput
 ! !REVISION HISTORY:
 ! 9 July 2010 - C. Carouge  - Modified for coupled simulations with GEOS-Chem
 !                             or to restart offline simulations. 
+! 01 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,8 +122,8 @@ MODULE loadCASAinput
 !
    integer   ::   i, j, k, l, m, n, b, c, ios
    character(len=f_len+8)                :: filename
-   real*8, dimension(72,46)              ::   geos
-   real*8, dimension(columns, rows)      ::   geos1x1
+   real(fp), dimension(72,46)              ::   geos
+   real(fp), dimension(columns, rows)      ::   geos1x1
    character(3), dimension(12)           ::   months     ! Months names
    
    !<<<<<<<< ALLOCATE ARRAYS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -213,8 +216,8 @@ MODULE loadCASAinput
          CALL regrid4x5to1x1(1, geos, geos1x1)
          airt(:,:,i)=geos1x1
 
-         geos(:,:)=0.0d0
-         geos1x1(:,:)=0.0d0
+         geos(:,:)=0.0e+0_fp
+         geos1x1(:,:)=0.0e+0_fp
 
          airt(:,:,i)=airt(:,:,i)-273.15
       
@@ -232,8 +235,8 @@ MODULE loadCASAinput
          
          CALL regrid4x5to1x1(1, geos, geos1x1)
          ppt(:,:,i)=geos1x1
-         geos(:,:)=0.0d0
-         geos1x1(:,:)=0.0d0
+         geos(:,:)=0.0e+0_fp
+         geos1x1(:,:)=0.0e+0_fp
    
          ppt_mo(1,i)=sum(ppt(:,:,i))
 
@@ -251,8 +254,8 @@ MODULE loadCASAinput
 
          CALL regrid4x5to1x1(1, geos, geos1x1)
          solrad(:,:,i)=geos1x1
-         geos(:,:)=0.0d0
-         geos1x1(:,:)=0.0d0
+         geos(:,:)=0.0e+0_fp
+         geos1x1(:,:)=0.0e+0_fp
       END DO
    ENDIF
 
@@ -361,13 +364,13 @@ MODULE loadCASAinput
    integer :: i
    character(len=f_len+8)                :: filename
    
-   real*8, dimension(columns, rows)      ::   mask1, dummy
+   real(fp), dimension(columns, rows)      ::   mask1, dummy
 
-   real*8  :: radius=6378140.000d0 !m at equator
-   real*8  :: pi=3.14159265d0
-   real*8  :: g, a, apixel
-   real*8, dimension(columns, rows)  :: gridAreac
-   real*8  :: testa(180)
+   real(fp)  :: radius=6378140.000e+0_fp !m at equator
+   real(fp)  :: pi=3.14159265e+0_fp
+   real(fp)  :: g, a, apixel
+   real(fp), dimension(columns, rows)  :: gridAreac
+   real(fp)  :: testa(180)
 
    IF (.NOT. ALLOCATED(mask2) ) ALLOCATE(mask2(columns, rows))
    mask1=(perc_tree+perc_herb)
@@ -409,12 +412,12 @@ MODULE loadCASAinput
    frac_veg(:,1)=perc_tree1(:,1)+perc_herb1(:,1)
    
    DO i=1, n_veg
-      IF (frac_veg(i,1) .gt. 0d0) THEN
+      IF (frac_veg(i,1) .gt. 0e+0_fp) THEN
          frac_tree(i,1)=perc_tree1(i,1)/frac_veg(i,1)
          frac_herb(i,1)=perc_herb1(i,1)/frac_veg(i,1)
       ELSE
-         frac_tree(i,1)=0.0d0
-         frac_herb(i,1)=0.0d0
+         frac_tree(i,1)=0.0e+0_fp
+         frac_herb(i,1)=0.0e+0_fp
       ENDIF
    END DO
    
@@ -429,13 +432,13 @@ MODULE loadCASAinput
    END DO
    !makes a grid area map depending on the resolution 
    
-   g=0.0d0
-   a=90.0d0
+   g=0.0e+0_fp
+   a=90.0e+0_fp
    DO i=1,rows
-      apixel=2.00d0*pi*radius
+      apixel=2.00e+0_fp*pi*radius
       apixel=apixel/columns
       apixel=apixel*apixel
-      g=a*0.0174532925d0
+      g=a*0.0174532925e+0_fp
       testa(i)=cos(g)
       gridAreac(:,i)=apixel*abs(testa(i))
       a=a-1!(180.0/rows)
@@ -485,11 +488,11 @@ MODULE loadCASAinput
 !
 ! !INPUT PARAMETERS:
 !
-   real*8, dimension(columns, rows) :: dummy, mask3
+   real(fp), dimension(columns, rows) :: dummy, mask3
 !
 ! !RETURN VALUE:
 !
-   real*8, dimension(n_veg,1)  :: masked_file
+   real(fp), dimension(n_veg,1)  :: masked_file
 !
 ! !REVISION HISTORY:
 !
@@ -501,7 +504,7 @@ MODULE loadCASAinput
 !
    integer                 :: a,b,c,g,i,j
    character(len=f_len_output+3)       :: filename3
-   real*8, dimension(3,n_veg)           :: key
+   real(fp), dimension(3,n_veg)           :: key
    
    filename3(1:f_len_output)=outputpath
    filename3(f_len_output+1:f_len_output+3)='key'
@@ -546,12 +549,12 @@ MODULE loadCASAinput
 !
 ! !INPUT PARAMETERS:
 !
-   real*8, dimension(columns, rows, 12)  ::  dummy12
-   real*8, dimension(columns, rows)      ::  mask3
+   real(fp), dimension(columns, rows, 12)  ::  dummy12
+   real(fp), dimension(columns, rows)      ::  mask3
 !
 ! !RETURN VALUE:
 !
-   real*8, dimension(n_veg, 12)              ::  masked_12file
+   real(fp), dimension(n_veg, 12)              ::  masked_12file
 !
 ! !REVISION HISTORY:
 !
@@ -566,7 +569,7 @@ MODULE loadCASAinput
    g=1
    DO i=1,columns
       DO j=1, rows
-         IF (mask3(i,j) .gt. 0d0) THEN
+         IF (mask3(i,j) .gt. 0e+0_fp) THEN
             DO k=1,12  ! months
                masked_12file(g,k)=dummy12(i,j,k)
             END DO

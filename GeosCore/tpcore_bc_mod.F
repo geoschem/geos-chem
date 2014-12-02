@@ -16,6 +16,7 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
       IMPLICIT NONE
       PRIVATE
 !
@@ -149,6 +150,7 @@
 !                              and IU_BC_SE local variables for findFreeLUN
 !  07 Sep 2012 - R. Yantosca - Minor fixes for numerical stability
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -518,7 +520,7 @@
       INTEGER            :: I, IOS, J, L, N, IC, N_TOT_TRC
       REAL*4             :: LONRES, LATRES
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*8             :: TAU
+      REAL(fp)             :: TAU
       CHARACTER(LEN=16)  :: STAMP
       CHARACTER(LEN=20)  :: MODELNAME 
       CHARACTER(LEN=40)  :: CATEGORY  = 'IJ-AVG-$'
@@ -536,7 +538,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: STT(:,:,:,:)
 
       !=================================================================
       ! SAVE_GLOBAL_TPCORE_BC begins here!
@@ -788,7 +790,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_WINDOW_TPCORE_BC begins here!
@@ -960,7 +962,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2012 - R. Yantosca - Simplify coding, remove parallel loops
-!  07 Sep 2012 - R. Yantosca - Now use 0d0 instead of 0e0 to zero BC arrays
+!  07 Sep 2012 - R. Yantosca - Now use 0e+0_fp instead of 0e0 to zero BC arrays
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
@@ -994,23 +996,23 @@
       N_TRACERS = Input_Opt%N_TRACERS
 
 #if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU )
-      BC = 0d0
+      BC = 0e+0_fp
 #endif
 
       IF ( LWINDO_CU ) THEN
-         BC = 0d0
+         BC = 0e+0_fp
       ENDIF
 
       IF ( LWINDO_NA ) THEN
-         BC_NA = 0d0
+         BC_NA = 0e+0_fp
       ENDIF
 
       IF ( LWINDO_EU ) THEN
-         BC_EU = 0d0
+         BC_EU = 0e+0_fp
       ENDIF 
  
       IF ( LWINDO_CH ) THEN
-         BC_CH = 0d0
+         BC_CH = 0e+0_fp
       ENDIF
 
       END SUBROUTINE CLEAN_WINDOW_TPCORE_BC
@@ -1070,7 +1072,7 @@
       INTEGER           :: NSKIP,  NTRACER, HALFPOLAR, CENTER180
       REAL*4            :: LONRES, LATRES
       REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*8            :: ZTAU0,  ZTAU1
+      REAL(fp)            :: ZTAU0,  ZTAU1
       CHARACTER(LEN=20) :: S = 'read_window_boundary'  
       CHARACTER(LEN=20) :: MODELNAME 
       CHARACTER(LEN=40) :: CATEGORY  
@@ -1213,8 +1215,8 @@
 !
       !clb
       INTEGER       :: I, II, J, JJ
-      REAL*8        :: X, Y
-      REAL*8        :: XE4x5(73), YE4x5(47)
+      REAL(fp)        :: X, Y
+      REAL(fp)        :: XE4x5(73), YE4x5(47)
 
       !=================================================================
       ! GET_4x5_BC_INIT begins here!
@@ -1227,17 +1229,17 @@
 
       ! Lon edges
       DO I = 1, 73
-         XE4x5(I) = -182.5d0 + 5 * ( I - 1 )
+         XE4x5(I) = -182.5e+0_fp + 5 * ( I - 1 )
       ENDDO
 
       ! Lat edges
       DO J = 2, 46
-         YE4x5(J) = -92d0 + 4 * ( J - 1 ) 
+         YE4x5(J) = -92e+0_fp + 4 * ( J - 1 ) 
       ENDDO
 
       ! Polar lats
-      YE4x5(1)  = -90d0
-      YE4x5(47) = +90d0
+      YE4x5(1)  = -90e+0_fp
+      YE4x5(47) = +90e+0_fp
 
       !==============================================================
       ! Locate the 4x5 box(es) to which each 1x1 box belongs
@@ -1342,7 +1344,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: VALUE   ! 4 x 5 BC @ location of nested grid box
+      REAL(fp)              :: VALUE   ! 4 x 5 BC @ location of nested grid box
 !
 ! !REMARKS:
 !  NOTE: This routine was originally written for the 1 x 1 nested grid,
@@ -1453,8 +1455,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER       :: I, II, J, JJ
-      REAL*8        :: X, Y
-      REAL*8        :: XE2x25(145), YE2x25(92)
+      REAL(fp)        :: X, Y
+      REAL(fp)        :: XE2x25(145), YE2x25(92)
 
       !=================================================================
       ! GET_2x25_BC_INIT begins here!
@@ -1467,17 +1469,17 @@
 
       ! Lon edges
       DO I = 1, 145
-         XE2x25(I) = -181.25d0 + 2.5 * ( I - 1 )
+         XE2x25(I) = -181.25e+0_fp + 2.5 * ( I - 1 )
       ENDDO
 
       ! Lat edges
       DO J = 2, 91
-         YE2x25(J) = -91d0 + 2 * ( J - 1 )
+         YE2x25(J) = -91e+0_fp + 2 * ( J - 1 )
       ENDDO
 
       ! Polar lats
-      YE2x25(1)  = -90d0
-      YE2x25(92) = +90d0
+      YE2x25(1)  = -90e+0_fp
+      YE2x25(92) = +90e+0_fp
 
       !==============================================================
       ! Locate the 2x25 box(es) to which each 1x1 box belongs
@@ -1580,7 +1582,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: VALUE   ! 2 x 2.5 BC @ location of nested grid box
+      REAL(fp)              :: VALUE   ! 2 x 2.5 BC @ location of nested grid box
 !
 ! !REMARKS:
 !  NOTE: This routine was originally written for the 1 x 1 nested grid,
@@ -1714,7 +1716,7 @@
 !        Now references ITS_A_NESTED_GRID from "grid_mod.f".  Also added 
 !        arguments to take values from "input_mod.f". (bmy, 7/20/04)
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
-!  07 Sep 2012 - R. Yantosca - Now use 0d0 instead of 0e0 to zero BC arrays
+!  07 Sep 2012 - R. Yantosca - Now use 0e+0_fp instead of 0e0 to zero BC arrays
 !  17 Oct 2012 - M. Payer    - Bug fix: Define extent of coarse grid BC region
 !                              even if LWINDO_CH or LWINDO_SE = False to
 !                              avoid out-of-bounds errors in array BC
@@ -1962,7 +1964,7 @@
       IF ( LWINDO_CU ) THEN
          ALLOCATE( BC( IM_BC, JM_BC, LLPAR, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
-         BC = 0d0
+         BC = 0e+0_fp
       ENDIF
 
       ! Boundary condition array for NESTED CHINA/SE ASIA REGION
@@ -1970,7 +1972,7 @@
          ALLOCATE( BC_CH( IM_BC_CH, JM_BC_CH, 
      &                    LLPAR,    N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CH' )
-         BC_CH = 0d0
+         BC_CH = 0e+0_fp
       ENDIF
 
       ! Boundary condition array for NESTED N. AMERICA REGION
@@ -1978,7 +1980,7 @@
          ALLOCATE( BC_NA( IM_BC_NA, JM_BC_NA, 
      &                    LLPAR, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_NA' )
-         BC_NA = 0d0
+         BC_NA = 0e+0_fp
       ENDIF
 
       ! Boundary condition array for NESTED EUROPE REGION
@@ -1986,7 +1988,7 @@
          ALLOCATE( BC_EU( IM_BC_EU, JM_BC_EU, 
      &                    LLPAR,    N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_EU' )
-         BC_EU = 0d0
+         BC_EU = 0e+0_fp
       ENDIF
 
       ! If running a nested simulation, just allocate the custom BC
@@ -2031,7 +2033,7 @@
 
       ALLOCATE( BC( IM_BC, JM_BC, LLPAR, N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
-      BC = 0d0
+      BC = 0e+0_fp
 
       ALLOCATE( MAP1x1( IIPAR, JJPAR, 4 ) , STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MAP1x1' )
