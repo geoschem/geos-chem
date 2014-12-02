@@ -205,10 +205,9 @@
 
       ! Chemistry timestep [s]
       DTCHEM       =  GET_TS_CHEM() * 60d0
-
+ 
       ! Pre-compute exponential terms only on first timestep
       IF ( FIRSTCHEM ) THEN 
-        
  
          ! Fraction of (222Rn, 210Pb, 7Be) left after radioactive decay
          Decay     = ln2 / ( RnTau * 24.d0 * 3600.d0 ) 
@@ -219,6 +218,17 @@
 
          ! Reset FIRSTCHEM flag
          FIRSTCHEM = .FALSE.
+
+         ! testing only 
+         IF(am_I_Root) THEN
+            write(*,*) ''
+            write(*,*) '### GEOS-Chem Radon simulation ###'
+            write(*,*) '    Timestep (secs)   : ', DTCHEM
+            write(*,*) '    Rn lifetime (days): ', RnTau
+            write(*,*) '    Rn decadence      : ', EXP_Rn
+            write(*,*) ''
+         ENDIF
+
       ENDIF
 
       !=================================================================

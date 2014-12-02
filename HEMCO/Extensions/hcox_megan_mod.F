@@ -23,15 +23,15 @@
 ! PARDF), this may result in very different average values - which in 
 ! turn may result in local differences of >50%. HEMCO emissions are 
 ! identical to original GEOS-Chem emissions once we pass the first 10 
-! days (ckeller, 10/8/2013)! 
+! days (ckeller, 10/8/2013).
 !\\
 !\\
 ! A similar procedure is now also applied for the leaf area index variables.
 ! The original GEOS-Chem MEGAN code used three LAI variables: current month
-! LAI (LAI\_CM), previous month LAI (LAI\_PM), and instantaneous LAI (LAI, 
-! which was a daily interpolation of LAI\_CM and next month' LAI, LAI_NM). 
-! The HEMCO implementation uses only the instantaneous LAI any more, assuming 
-! it changes every day. The previous day LAI is kept in memory and used to
+! LAI (LAI\_CM), previous month LAI (LAI\_PM), and instantaneous LAI (LAI), 
+! which was a daily interpolation of LAI\_CM and next month' LAI, (LAI\_NM). 
+! The HEMCO implementation uses only the instantaneous LAI, assuming it is
+! updated every day. The previous day LAI is kept in memory and used to
 ! determine the LAI change over time (used to calculate the gamma leaf age).
 ! For the first simulation day, a LAI change of zero is assumed.
 ! (ckeller, 10/9/2014)
@@ -233,8 +233,8 @@
       INTEGER             :: DAYS_BTW_M
 
       ! testing only
-      integer, parameter  :: ix = -1 !25 !13 !20
-      integer, parameter  :: iy = -1 !22 !38 !31
+      integer, parameter  :: ix = -1 !20 !25 !13 !20
+      integer, parameter  :: iy = -1 !43 !22 !38 !31
 
       CONTAINS
 !EOC
@@ -276,7 +276,9 @@
 ! !REVISION HISTORY: 
 !  05 Aug 2013 - C. Keller - Initial version 
 !  08 Oct 2014 - C. Keller - Now use HEMCO clock to get days between months
-!
+!  09 Oct 2014 - C. Keller - Now use only GC_LAI. This makes days between months
+!                            obsolete
+!  16 Oct 2014 - C. Keller - Initialize flux arrays to avoid float invalid
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -386,6 +388,21 @@
       IsNewDay  = HcoClock_NewDay()
       FIRST     = HcoClock_First()
 
+      ! Initialize flux arrays
+      FLUXISOP   = 0.0_hp
+      FLUXEMMO   = 0.0_hp
+      FLUXACETmo = 0.0_hp
+      FLUXACETmb = 0.0_hp
+      FLUXACETbg = 0.0_hp
+      FLUXCO     = 0.0_hp
+      FLUXPRPE   = 0.0_hp
+      FLUXC2H4   = 0.0_hp
+      FLUXOCPI   = 0.0_hp
+      FLUXLIMO   = 0.0_hp
+      FLUXMTPA   = 0.0_hp
+      FLUXMTPO   = 0.0_hp
+      FLUXSESQ   = 0.0_hp
+
       !-----------------------------------------------------------------
       ! Point to external data 
       !-----------------------------------------------------------------
@@ -459,8 +476,7 @@
          LAI_PREVDAY = LAI_PREVSTEP
       ENDIF
 
-      ! For testing, set to 1 day since we know that LAI is updated every
-      ! day.
+      ! Set to 1 day since we know that LAI is updated every day.
       DAYS_BTW_M = 1
 
 !$OMP PARALLEL DO
@@ -584,9 +600,12 @@
 !                  write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J)
 !                  write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J)
 !                  write(*,*) 'HCOT_DAILY : ', HCOT_DAILY (I,J)
+!                  write(*,*) 'ISOLAI: ', ISOLAI
+!                  write(*,*) 'PMISOLAI: ', PMISOLAI
+!                  write(*,*) 'MISOLAI: ', MISOLAI
 !                  write(*,*) ' '
 !         endif
-!
+
          !--------------------------------------------------------------------
          ! MEGAN Isoprene
          !--------------------------------------------------------------------
@@ -740,7 +759,7 @@
 ! -------------------------------------------------------------
 
           ! testing only
-          if ( i == ix .AND. j == iy ) then
+          if ( i == ix .AND. j == iy .and. .FALSE. ) then
                   write(*,*) ' '
                   write(*,*) 'HEMCO MEGAN (kg/m2/s) @ ', i, j 
                   write(*,*) 'EMISOP: ', EMISOP
@@ -889,7 +908,7 @@
             FLUXCO(I,J) = EMMO * 0.4666d0
 
             ! testing only
-            if ( i==ix .and. j==iy ) then
+            if ( i==ix .and. j==iy .and. .FALSE. ) then
                write(*,*) ' '
                write(*,*) 'HEMCO MEGAN @ ', ix, iy
                write(*,*) 'CO (kg/m2/s): ', FLUXCO(I,J)
@@ -907,7 +926,7 @@
             FLUXPRPE(I,J) = EMISOP * BIOSCAL
 
             ! testing only
-            if ( i==ix .and. j==iy ) then
+            if ( i==ix .and. j==iy .and. .FALSE. ) then
                write(*,*) ' '
                write(*,*) 'HEMCO MEGAN @ ', ix, iy
                write(*,*) 'PRPE (kg/m2/s): ', FLUXPRPE(I,J)
@@ -955,6 +974,8 @@
                   write(*,*) ' '
                   write(*,*) 'HEMCO MEGAN @ ', ix, iy
                   write(*,*) 'OCPI (NOSOA) (kg/m2/s): ', FLUXOCPI(I,J)
+                  write(*,*) 'TERP_ORGC: ', TERP_ORGC
+                  write(*,*) 'EMMT2OC: ', EMMT2OC
                endif
 
             ELSE
@@ -1097,9 +1118,9 @@
                   ! Other sesquiterpene
                   CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
      &                                   GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                                   UNITCONV , 'QSQTE', OSQT, RC )
+     &                                   UNITCONV , 'OSQTE', OSQT, RC )
                   IF ( RC /= HCO_SUCCESS ) THEN 
-                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_QSQTE', RC )
+                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_OSQTE', RC )
                      ERR = .TRUE.
                      EXIT
                   ENDIF 
@@ -1243,7 +1264,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXISOP, IDTISOP, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXISOP', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1262,7 +1286,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXEMMO, IDTMONX, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXEMMO', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1303,7 +1330,10 @@
          ! Add flux to emission array
          FLUXACETbg = FLUXACETbg + FLUXACETmo + FLUXACETmb
          CALL HCO_EmisAdd( HcoState, FLUXACETbg, IDTACET, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXACETbg', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1322,7 +1352,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXCO, IDTCO, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXCO', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1341,7 +1374,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXPRPE, IDTPRPE, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXPRPE', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1360,7 +1396,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXC2H4, IDTC2H4, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXC2H4', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1379,7 +1418,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXOCPI, IDTOCPI, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXOCPI', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1398,7 +1440,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXMTPA, IDTMTPA, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMTPA', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1417,7 +1462,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXMTPO, IDTMTPO, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMTPO', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1436,7 +1484,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXLIMO, IDTLIMO, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXLIMO', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1455,7 +1506,10 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXSESQ, IDTSESQ, RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSESQ', RC )
+            RETURN 
+         ENDIF
 
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -1472,17 +1526,17 @@
       ! ALL DONE! 
       !=================================================================
 
-      ! testing only
-      write(*,*) ''
-      write(*,*) 'MEGAN done!'
-      write(*,*) 'total LAI: ', SUM(ExtState%GC_LAI%Arr%Val)
-      write(*,*) 'total ISOP: ', SUM(FLUXISOP)
-      write(*,*) 'total ACET: ', SUM(FLUXACETmo)+SUM(FLUXACETmb)
-     &                          +SUM(FLUXACETbg)
-      write(*,*) 'total CO  : ', SUM(FLUXCO  )
-      write(*,*) 'total PRPE: ', SUM(FLUXPRPE)
-      write(*,*) 'total OCPI: ', SUM(FLUXOCPI)
-      write(*,*) ''
+!      ! testing only
+!      write(*,*) ''
+!      write(*,*) 'MEGAN done!'
+!      write(*,*) 'total LAI: ', SUM(ExtState%GC_LAI%Arr%Val)
+!      write(*,*) 'total ISOP: ', SUM(FLUXISOP)
+!      write(*,*) 'total ACET: ', SUM(FLUXACETmo)+SUM(FLUXACETmb)
+!     &                          +SUM(FLUXACETbg)
+!      write(*,*) 'total CO  : ', SUM(FLUXCO  )
+!      write(*,*) 'total PRPE: ', SUM(FLUXPRPE)
+!      write(*,*) 'total OCPI: ', SUM(FLUXOCPI)
+!      write(*,*) ''
 
       ! Keep LAI in memory (ckeller, 10/9/2014)
       LAI_PREVSTEP = ExtState%GC_LAI%Arr%Val
@@ -1611,28 +1665,30 @@
          ENDIF
       ENDIF
    
-!      ! testing only
-!      if ( i==ix .and. j==iy ) then
-!         write(*,*) ' ' 
-!         write(*,*) 'HEMCO MEGAN @ ', i,j
-!         write(*,*) 'EMISOP: ', EMISOP
-!         write(*,*) 'AEF_ISOP [kgC/m2/s]: ', AEF_ISOP(I,J,1,1)
-!         write(*,*) 'GAMMA_LAI: ', GAMMA_LAI 
-!         write(*,*) 'GAMMA_LEAF_AGE: ', GAMMA_LEAF_AGE
-!         write(*,*) 'GAMMA_T: ', GAMMA_T
-!         write(*,*) 'GAMMA_P: ', GAMMA_P 
-!         write(*,*) 'GAMMA_SM: ', GAMMA_SM 
-!         write(*,*) 'TS: ', TS 
-!         write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J) 
-!         write(*,*) 'HCOT_DAILY: ', HCOT_DAILY(I,J) 
-!         write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J) 
-!         write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J) 
-!         write(*,*) 'ISOLAI  : ', ISOLAI
-!         write(*,*) 'MISOLAI : ', MISOLAI
-!         write(*,*) 'PMISOLAI: ', PMISOLAI
-!         write(*,*) 'D_BTW_M : ', D_BTW_M 
-!         write(*,*) ' ' 
-!      endif
+      ! testing only
+      if ( i==ix .and. j==iy ) then
+         write(*,*) ' ' 
+         write(*,*) '--- GET_EMISOP_MEGAN --- ' 
+         write(*,*) 'HEMCO MEGAN @ ', i,j
+         write(*,*) 'EMISOP: ', EMISOP
+         write(*,*) 'SUNCOS  : ', SUNCOS
+         write(*,*) 'AEF_ISOP [kgC/m2/s]: ', AEF_ISOP(I,J)
+         write(*,*) 'GAMMA_LAI_ISOP: ', GAMMA_LAI_ISOP
+         write(*,*) 'GAMMA_LEAF_AGE: ', GAMMA_LEAF_AGE
+         write(*,*) 'GAMMA_T: ', GAMMA_T
+         write(*,*) 'GAMMA_P: ', GAMMA_P 
+         write(*,*) 'GAMMA_SM: ', GAMMA_SM 
+         write(*,*) 'TS: ', TS 
+         write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J) 
+         write(*,*) 'HCOT_DAILY: ', HCOT_DAILY(I,J) 
+         write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J) 
+         write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J) 
+         write(*,*) 'ISOLAI  : ', ISOLAI
+         write(*,*) 'MISOLAI : ', MISOLAI
+         write(*,*) 'PMISOLAI: ', PMISOLAI
+         write(*,*) 'D_BTW_M : ', D_BTW_M 
+         write(*,*) ' ' 
+      endif
 
       ! Leave w/ success
       RC = HCO_SUCCESS
@@ -3263,6 +3319,7 @@
 !  13 Jul 2011 - M. Payer    - Added ProTeX headers
 !  19 May 2014 - C. Keller   - Now a HEMCO extension: get plant functional
 !                              types through HEMCO framework.
+!  11 Nov 2014 - C. Keller   - Some updates to identify species names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3385,16 +3442,18 @@
 !$OMP END PARALLEL DO
 
       ! Diagnostic info to log/screen
-      write(MSG,*) 'Annual Sesquiterpene Base AEFs [TgC/yr]:'
-      CALL HCO_MSG(MSG)
-      write(MSG,*) '   FARN', SUMFARN
-      CALL HCO_MSG(MSG)
-      write(MSG,*) '   BCAR', SUMBCAR
-      CALL HCO_MSG(MSG)
-      write(MSG,*) '   OSQT', SUMOSQT
-      CALL HCO_MSG(MSG)
-      write(MSG,*) '   OMTP', SUMOMTP
-      CALL HCO_MSG(MSG)
+      IF ( am_I_Root ) THEN
+         write(MSG,*) 'Annual Sesquiterpene Base AEFs [TgC/yr]:'
+         CALL HCO_MSG(MSG)
+         write(MSG,*) '   FARN', SUMFARN
+         CALL HCO_MSG(MSG)
+         write(MSG,*) '   BCAR', SUMBCAR
+         CALL HCO_MSG(MSG)
+         write(MSG,*) '   OSQT', SUMOSQT
+         CALL HCO_MSG(MSG)
+         write(MSG,*) '   OMTP', SUMOMTP
+         CALL HCO_MSG(MSG)
+      ENDIF
 
       ! Nullify pointers
       PFT_BT => NULL()
@@ -3464,7 +3523,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                        :: nSpc, AS, NX, NY
+      INTEGER                        :: I, nSpc, AS, NX, NY
       INTEGER, ALLOCATABLE           :: HcoIDs(:)
       REAL*8                         :: PI_180
       CHARACTER(LEN=255)             :: MSG
@@ -3495,70 +3554,101 @@
      &                 OptValDp=ISOP_SCALING, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
+      ! Verbose mode
+      IF ( am_I_Root ) THEN
+         MSG = 'Use MEGAN biogenic emissions (extension module)'
+         CALL HCO_MSG( MSG, SEP1='-' )
+         WRITE(MSG,*) ' - Use PECCA model: ', LPECCA
+         CALL HCO_MSG( MSG )
+         MSG = ' - Use the following species:'
+         CALL HCO_MSG( MSG )
+      ENDIF
+
       ! Get species IDs
       ! --> Assume that species are ordered ISOP, ACET, PRPE, C2H4 in
       !     config. file!
       CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
-      IF ( nSpc /= 4 ) THEN
-         MSG = 'Expected four species for extension ' // TRIM(ExtName)
-         CALL HCO_ERROR ( MSG, RC )
-         RETURN
-      ENDIF
-      IDTISOP = HcoIDs(1)
-      IDTACET = HcoIDs(2)
-      IDTPRPE = HcoIDs(3)
-      IDTC2H4 = HcoIDs(4)
+      
+      ! Assign species IDs
+      IDTISOP = -1
+      IDTACET = -1
+      IDTPRPE = -1
+      IDTC2H4 = -1
+      DO I = 1, nSpc
+         SELECT CASE ( SpcNames(I) )
+            CASE( 'ISOP' )
+               IDTISOP = HcoIDs(I)
+               WRITE(MSG,*) '   Isoprene   = ',TRIM(SpcNames(I)),IDTISOP
+            CASE( 'ACET' )
+               IDTACET = HcoIDs(I)
+               WRITE(MSG,*) '   Acetone    = ',TRIM(SpcNames(I)),IDTACET
+            CASE( 'PRPE' )
+               IDTPRPE = HcoIDs(I)
+               WRITE(MSG,*) '   C3 Alkenes = ',TRIM(SpcNames(I)),IDTPRPE
+            CASE( 'C2H4' )
+               IDTC2H4 = HcoIDs(I)
+               WRITE(MSG,*) '   Ethene     = ',TRIM(SpcNames(I)),IDTC2H4
+            CASE DEFAULT
+               MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
+               CALL HCO_ERROR( MSG, RC )
+               RETURN
+         END SELECT
+    
+         ! Verbose
+         IF ( am_I_Root ) CALL HCO_MSG( MSG )
+      ENDDO
 
       ! Verbose mode
-      MSG = 'Use MEGAN biogenic emissions (extension module)'
-      CALL HCO_MSG( MSG, SEP1='-' )
-      WRITE(MSG,*) '   - Use PECCA model: ', LPECCA
-      CALL HCO_MSG( MSG )
-      MSG = '   - Use the following species:'
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '     Isoprene   = ', TRIM(SpcNames(1)), IDTISOP 
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '     --> Isoprene scale factor is ', ISOP_SCALING
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '     Acetone    = ', TRIM(SpcNames(2)), IDTACET 
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '     C3 Alkenes = ', TRIM(SpcNames(3)), IDTPRPE 
-      CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '     Ethene     = ', TRIM(SpcNames(4)), IDTC2H4
-      CALL HCO_MSG( MSG )
+      IF ( am_I_Root ) THEN
+         WRITE(MSG,*) ' --> Isoprene scale factor is ', ISOP_SCALING
+         CALL HCO_MSG( MSG )
+      ENDIF
 
       ! Check for monoterpene option --> this one is required for 
       ! CO, OCPI, MONX
+      IDTCO     = -1 
+      IDTOCPI   = -1 
+      IDTMONX   = -1 
       ExtNrMono = GetExtNr('MEGAN_Mono')
       IF ( ExtNrMono > 0 ) THEN
+
+         ! Verbose
+         IF ( am_I_Root ) THEN
+            MSG = '   - MEGAN monoterpene option enabled:' 
+            CALL HCO_MSG( MSG )
+         ENDIF
 
          ! Get HEMCO species IDs of CO, OCPI and MONX
          CALL HCO_GetExtHcoID( HcoState, ExtNrMono, HcoIDs,
      &                         SpcNames, nSpc,      RC       )
          IF ( RC /= HCO_SUCCESS ) RETURN
-         IF ( nSpc /= 3 ) THEN
-            MSG = 'Expected three species for MEGAN_Mono extension' 
-            CALL HCO_ERROR ( MSG, RC )
-            RETURN
-         ENDIF
-         IDTCO   = HcoIDs(1)
-         IDTOCPI = HcoIDs(2)
-         IDTMONX = HcoIDs(3)
+    
+         DO I = 1, nSpc
+            SELECT CASE ( SpcNames(I) )
+               CASE( 'CO' )
+                  IDTCO = HcoIDs(I)
+                  WRITE(MSG,*) '   CO         = ',
+     &                         TRIM(SpcNames(I)),IDTCO
+               CASE( 'OC', 'OCPI' )
+                  IDTOCPI = HcoIDs(I)
+                  WRITE(MSG,*) '   OC aorosol = ',
+     &                         TRIM(SpcNames(I)),IDTOCPI
+               CASE( 'MONX' )
+                  IDTMONX = HcoIDs(I)
+                  WRITE(MSG,*) '   Monoterp.  = ',
+     &                         TRIM(SpcNames(I)),IDTMONX
+               CASE DEFAULT
+                  MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
+                  CALL HCO_ERROR( MSG, RC )
+                  RETURN
+            END SELECT
 
-         ! Verbose
-         MSG = '   - MEGAN monoterpene option enabled:' 
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     CO         = ', TRIM(SpcNames(1)), IDTCO
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     OC aerosol = ', TRIM(SpcNames(2)), IDTOCPI
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     Monoterp.  = ', TRIM(SpcNames(3)), IDTMONX
-         CALL HCO_MSG( MSG )
+            ! Verbose
+            IF ( am_I_Root ) CALL HCO_MSG( MSG )
+         ENDDO
+
       ELSE
-         IDTCO      = -1 
-         IDTOCPI    = -1 
-         IDTMONX    = -1 
 
          ! CO emissions and acetone emissions will be zero/incomplete!
          IF ( IDTACET > 0 ) THEN
@@ -3574,6 +3664,10 @@
       ! --> Check for SOA option. This option is only valid together
       !     w/ monoterpene!
       ! This also adds species ALPH/LIMO/ALCO
+      IDTMTPA = -1 
+      IDTMTPO = -1 
+      IDTLIMO = -1 
+      IDTSESQ = -1
       ExtNrSoa = GetExtNr('MEGAN_SOA')
       IF ( ExtNrSoa > 0 ) THEN
          IF ( ExtNrMono <= 0 ) THEN
@@ -3582,36 +3676,44 @@
             RETURN
          ENDIF
 
+         ! Verbose
+         IF ( am_I_Root ) THEN
+            MSG = '   - SOA mechanism enabled:' 
+            CALL HCO_MSG( MSG )
+         ENDIF
+
          ! Get HEMCO species IDs of ALPH/LIMO/ALCO 
          CALL HCO_GetExtHcoID( HcoState, ExtNrSoa, HcoIDs,
      &                         SpcNames, nSpc,     RC       )
          IF ( RC /= HCO_SUCCESS ) RETURN
-         IF ( nSpc /= 4 ) THEN
-            MSG = 'Expected four species for MEGAN_SOA extension' 
-            CALL HCO_ERROR ( MSG, RC )
-            RETURN
-         ENDIF
-         IDTMTPA = HcoIDs(1)
-         IDTMTPO = HcoIDs(2)
-         IDTLIMO = HcoIDs(3)
-         IDTSESQ = HcoIDs(4)
 
-         ! Verbose
-         MSG = '   - SOA mechanism enabled:' 
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     a-,b-pinene    = ',TRIM(SpcNames(1)),IDTMTPA
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     Other monoterp.= ',TRIM(SpcNames(2)),IDTMTPO
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     Limonene       = ',TRIM(SpcNames(3)),IDTLIMO
-         CALL HCO_MSG( MSG )
-         WRITE(MSG,*) '     Sesquiterpenes = ',TRIM(SpcNames(4)),IDTSESQ
-         CALL HCO_MSG( MSG )
-      ELSE
-         IDTMTPA = -1
-         IDTMTPO = -1
-         IDTLIMO = -1
-         IDTSESQ = -1
+         DO I = 1, nSpc
+            SELECT CASE ( SpcNames(I) )
+               CASE( 'MTPA' )
+                  IDTMTPA = HcoIDs(I)
+                  WRITE(MSG,*) '     a-,b-pinene    = ',
+     &               TRIM(SpcNames(I)),IDTMTPA
+               CASE( 'MTPO' )
+                  IDTMTPO = HcoIDs(I)
+                  WRITE(MSG,*) '     Other monoterp.= ',
+     &               TRIM(SpcNames(I)),IDTMTPO
+               CASE( 'LIMO' )
+                  IDTLIMO = HcoIDs(I)
+                  WRITE(MSG,*) '     Limonene       = ',
+     &               TRIM(SpcNames(I)),IDTLIMO
+               CASE( 'SESQ' )
+                  IDTSESQ = HcoIDs(I)
+                  WRITE(MSG,*) '     Sesquiterpenes = ',
+     &               TRIM(SpcNames(I)),IDTSESQ
+               CASE DEFAULT
+                  MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
+                  CALL HCO_ERROR( MSG, RC )
+                  RETURN
+            END SELECT
+
+            ! Verbose
+            IF ( am_I_Root ) CALL HCO_MSG( MSG )
+         ENDDO
       ENDIF
 
       !-----------------------------------------------------------------

@@ -357,9 +357,12 @@ CONTAINS
 !
 ! !USES:
 !
-
+    USE ESMF
+    USE MAPL_MOD
     USE HCO_State_Mod, ONLY : HCO_State
     USE HCO_Clock_Mod, ONLY : HcoClock_GetMinResetFlag
+
+# include "MAPL_Generic.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -384,10 +387,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
-    INTEGER                   :: FLAG
+    INTEGER                   :: FLAG, STAT
     CHARACTER(LEN=255)        :: MSG
     INTEGER                   :: MinResetFlag, MaxResetFlag
     LOGICAL                   :: EOI, PrevTime, Manual
+    REAL, POINTER             :: Ptr2D(:,:)   => NULL()
+    REAL, POINTER             :: Ptr3D(:,:,:) => NULL()
 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)'
     !=================================================================
@@ -417,14 +422,13 @@ CONTAINS
     ! EOI is the end-of-interval flag that will be used by routine
     ! Diagn_Get. If set to true, only the containers at the end of
     ! their averaging interval are returned.
-    IF ( WriteAll ) THEN
-       MinResetFlag = -1
-       EOI = .FALSE.
-    ELSE
-       MinResetFlag = HcoClock_GetMinResetFlag()
-       EOI = .TRUE.
-    ENDIF
+
+    ! In an ESMF environment, always get all diagnostics since output
+    ! is scheduled through MAPL History!
+    MinResetFlag = -1
     MaxResetFlag = Diagn_GetMaxResetFlag()
+    EOI          = .FALSE.
+    Manual       = .TRUE.
     IF ( MinResetFlag > MaxResetFlag ) RETURN
 
     ! Get PrevTime flag from input argument or set to default (=> TRUE)
@@ -435,7 +439,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Get all diagnostics but don't do anything 
+    ! Connect diagnostics to export state.
     !-----------------------------------------------------------------
 
     ! Loop over all diagnostics in diagnostics list 
@@ -449,17 +453,34 @@ CONTAINS
                         InclManual=Manual )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( FLAG /= HCO_SUCCESS ) EXIT
+
+       ! Only write diagnostics if this is the first Diagn_Get call for
+       ! this container and time step. 
+       IF ( ThisDiagn%nnGetCalls > 1 ) CYCLE
+
+       ! Get pointer to ESMF EXPORT field and pass data to it (if found):
+
+       ! 2D...
+       IF ( ThisDiagn%SpaceDim == 2 ) THEN
+          CALL MAPL_GetPointer ( HcoState%EXPORT, Ptr2D, &
+             TRIM(ThisDiagn%cName), NotFoundOk=.TRUE., RC=STAT )
+          IF ( ASSOCIATED(Ptr2D) ) Ptr2D = ThisDiagn%Arr2D%Val
+
+       ! ... or 3D
+       ELSEIF ( ThisDiagn%SpaceDim == 3 ) THEN
+          CALL MAPL_GetPointer ( HcoState%EXPORT, Ptr3D, &
+             TRIM(ThisDiagn%cName), NotFoundOk=.TRUE., RC=STAT )
+          IF ( ASSOCIATED(Ptr3D) ) Ptr3D = ThisDiagn%Arr3D%Val
+
+       ENDIF
+
+       ! Free pointer
+       Ptr2D => NULL()
+       Ptr3D => NULL()
     ENDDO
 
     ! Cleanup
     ThisDiagn => NULL()
-
-    !-----------------------------------------------------------------
-    ! Write warning
-    !-----------------------------------------------------------------
-    MSG = 'You were calling diagnostics in an ESMF environment ' // &
-          '- this is currently not supported!'
-    CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
 
     ! Return 
     RC = HCO_SUCCESS

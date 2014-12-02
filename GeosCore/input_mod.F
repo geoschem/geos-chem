@@ -156,11 +156,11 @@
       INTEGER            :: IU_GEOS
       INTEGER, PARAMETER :: FIRSTCOL = 26
       INTEGER, PARAMETER :: MAXDIM   = 500
-      INTEGER            :: TS_CHEM
-      INTEGER            :: TS_DYN
-      INTEGER            :: TS_CONV
-      INTEGER            :: TS_EMIS
-      INTEGER            :: TS_UNIT
+!      INTEGER            :: TS_CHEM
+!      INTEGER            :: TS_DYN
+!      INTEGER            :: TS_CONV
+!      INTEGER            :: TS_EMIS
+!      INTEGER            :: TS_UNIT
       INTEGER            :: CT1, CT2, CT3
       CHARACTER(LEN=255) :: FILENAME = 'input.geos'
       CHARACTER(LEN=255) :: TOPTITLE
@@ -1332,14 +1332,20 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:2' )
       READ( SUBSTRS(1:N), * ) Input_Opt%N_TRACERS
 
+      ! Error check: number of tracers must not be higher than max. number
+      ! of tracers because the tracer vectors of Input_Opt only span 
+      ! MAX_TRCS. MAX_TRCS is equal to NNPAR for a standard sim, and equal 
+      ! to MAX_TRCS set in GEOSCHEMchem_GridComp.rc in an ESMF environment
+      ! (ckeller, 11/19/2014).
+      IF ( Input_Opt%N_TRACERS > Input_Opt%MAX_TRCS) THEN
+         CALL ERROR_STOP( 'Error: N_TRACERS > MAX_TRCS!', 
+     &                    'read_tracer_menu (input_mod.f)' )
+         RC = GIGC_FAILURE
+         RETURN
+      ENDIF
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
-      ! NTRACE cannot exceed NNPAR
-
-      IF ( Input_Opt%N_TRACERS > NNPAR ) THEN
-         CALL ERROR_STOP( 'Error: N_TRACERS > NNPAR!', 
-     &                    'read_tracer_menu (input_mod.f)' )
-      ENDIF
      
       !=================================================================
       ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt
@@ -1374,10 +1380,10 @@
   
             ! Number of species in this family
             Input_Opt%TRACER_N_CONST(T) = N-3
-               
+              
             ! Loop over substrings
             DO C = 1, N-3
-         
+        
                ! Trim the name
                NAME = TRIM( SUBSTRS(C+3) )
          
@@ -1502,7 +1508,7 @@
             WRITE( 6, 100 ) Input_Opt%ID_TRACER(T), 
      &                      Input_Opt%TRACER_NAME(T), 
      &                      Input_Opt%TRACER_MW_G(T)
-              
+            
             ! If a family tracer (or just a tracer w/ emission)
             ! then also print info about species
             IF ( Input_Opt%TRACER_N_CONST(T) > 1 .or. 
@@ -2345,6 +2351,7 @@
       LOGICAL            :: LSETN2O,  LSETH2SO4,    LBASICEMIS
       LOGICAL            :: LCH4CHEM, LFUTURECFC
       INTEGER            :: N,       HISTYR
+      INTEGER            :: TS_EMIS
       CHARACTER(LEN=255) :: MSG,     LOC
       CHARACTER(LEN=255) :: HcoConfigFile
 
@@ -2616,9 +2623,12 @@
 
       !=================================================================
       ! Set fields of Input Options object
+      ! Input_Opt%TS_EMIS is set externally in ESMF environment!
       !=================================================================
       Input_Opt%LEMIS          = LEMIS
+#if !defined( ESMF_ ) && !defined( EXTERNAL_FORCING )
       Input_Opt%TS_EMIS        = TS_EMIS
+#endif
       Input_Opt%HcoConfigFile  = HcoConfigFile
       Input_Opt%LFIX_PBL_BRO   = LFIX_PBL_BRO
       Input_Opt%LCH4EMIS       = LCH4EMIS
@@ -2657,7 +2667,8 @@
         WRITE( 6, '(/,a)' ) 'EMISSIONS MENU'
         WRITE( 6, '(  a)' ) '--------------'
         WRITE( 6, 100 ) 'Turn on emissions?          : ', LEMIS
-        WRITE( 6, 110 ) 'Emissions timestep [min]    : ', TS_EMIS
+        WRITE( 6, 110 ) 'Emissions timestep [min]    : ', 
+     &                    Input_Opt%TS_EMIS
         WRITE( 6, 130 ) 'HEMCO Configuration file    : ',
      &                    TRIM( HcoConfigFile )
         WRITE( 6, 100 ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
@@ -3175,6 +3186,7 @@
       LOGICAL            :: LSVCSPEC, LKPP,     LUCX    
       LOGICAL            :: LO3FJX,   LCH4CHEM, LACTIVEH2O
       INTEGER            :: N
+      INTEGER            :: TS_CHEM
       CHARACTER(LEN=255) :: MSG, LOCATION
       CHARACTER(LEN=255) :: SPEC_RST_FILE
 
@@ -3312,14 +3324,14 @@
       ! (bmy, 12/6/12)
       !-----------------------------------------------------------------
       
-      ! Save to local variables for printing below
-      TS_CHEM                 = Input_Opt%TS_CHEM
-
-      ! Pass chemistry timestep to time_mod.F
-      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
-     &                                value_TS_CHEM = TS_CHEM,   
-     &                                RC            = RC         )
-     &                                 
+!      ! Save to local variables for printing below
+!      TS_CHEM                 = Input_Opt%TS_CHEM
+!
+!      ! Pass chemistry timestep to time_mod.F
+!      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+!     &                                value_TS_CHEM = TS_CHEM,   
+!     &                                RC            = RC         )
+!     &                                 
 
 #else
       !-----------------------------------------------------------------
@@ -3358,7 +3370,8 @@
          WRITE( 6, 100     ) 'Enable UCX?                 : ', LUCX
          WRITE( 6, 100     ) 'Online CH4 chemistry?       : ', LCH4CHEM
          WRITE( 6, 100     ) 'Online strat. H2O?          : ',LACTIVEH2O
-         WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
+         WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', 
+     &        Input_Opt%TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
          WRITE( 6, 130     ) ' => CSPEC restart file?     : ', 
      &        TRIM( SPEC_RST_FILE )
@@ -3447,6 +3460,7 @@
       LOGICAL            :: LFILL, LTRAN
       INTEGER            :: N,     IORD,    JORD,    KORD
       INTEGER            :: J1,    KS,      MAX_DYN
+      INTEGER            :: TS_DYN
       CHARACTER(LEN=255) :: MSG,   LOCATION
 
       ! Arrays
@@ -3505,12 +3519,6 @@
       MAX_DYN = 60
 #endif
 
-      ! If TS_DYN is greater than MAX_DYN, then stop w/ error
-      IF ( TS_DYN > MAX_DYN .and. LTRAN ) THEN
-         MSG = 'Transport timestep is too big!'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ENDIF
-
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -3549,14 +3557,14 @@
       ! (bmy, 12/6/12)
       !-----------------------------------------------------------------
       
-      ! Save to local variables for printing below
-      TS_DYN                = Input_Opt%TS_DYN
+!      ! Save to local variables for printing below
+!      TS_DYN                = Input_Opt%TS_DYN
 
-      ! Pass chemistry timestep to time_mod.F
-      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
-     &                                value_TS_DYN  = TS_DYN,
-     &                                RC            = RC         )
-     &                                 
+!      ! Pass chemistry timestep to time_mod.F
+!      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+!     &                                value_TS_DYN  = TS_DYN,
+!     &                                RC            = RC         )
+!     &                                 
 
 #else
       !-----------------------------------------------------------------
@@ -3569,6 +3577,12 @@
       Input_Opt%TS_DYN      = TS_DYN
 
 #endif
+
+      ! If TS_DYN is greater than MAX_DYN, then stop w/ error
+      IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
+         MSG = 'Transport timestep is too big!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -3583,7 +3597,8 @@
          WRITE( 6, 100     ) 'Let TPCORE Fill negatives?  : ', LFILL
          WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
      &                                                   JORD, KORD
-         WRITE( 6, 120     ) 'Transport timestep [min]    : ', TS_DYN
+         WRITE( 6, 120     ) 'Transport timestep [min]    : ', 
+     &      Input_Opt%TS_DYN
       ENDIF
 
       ! FORMAT statements
@@ -3661,6 +3676,7 @@
       ! Scalars
       LOGICAL            :: LCONV, LTURB, LNLPBL
       INTEGER            :: N
+      INTEGER            :: TS_CONV
       CHARACTER(LEN=255) :: MSG
 
       ! Arrays
@@ -3730,18 +3746,19 @@
       ! CHECK_TIMESTEPS. (bmy, 3/1/13)
       !-----------------------------------------------------------------
       
-      ! Set TS_CONV from Input_Opt%TS_DYN
-      TS_CONV           = Input_Opt%TS_DYN
-
-      ! Pass chemistry timestep to time_mod.F
-      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
-     &                                value_TS_CONV = TS_CONV,
-     &                                RC            = RC         )
-     &                                 
-#endif
+!      ! Set TS_CONV from Input_Opt%TS_DYN
+!      TS_CONV           = Input_Opt%TS_DYN
+!
+!      ! Pass chemistry timestep to time_mod.F
+!      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+!     &                                value_TS_CONV = TS_CONV,
+!     &                                RC            = RC         )
+!     &                                 
+#else
 
       Input_Opt%TS_CONV = TS_CONV
 
+#endif
       ! Return success
       RC = GIGC_SUCCESS
 
@@ -3754,7 +3771,8 @@
          WRITE( 6, 100     ) 'Turn on cloud convection?   : ', LCONV
          WRITE( 6, 100     ) 'Turn on PBL mixing?         : ', LTURB
          WRITE( 6, 100     ) 'Turn on non-local PBL?      : ', LNLPBL
-         WRITE( 6, 110     ) 'Convection timestep [min]   : ', TS_CONV
+         WRITE( 6, 110     ) 'Convection timestep [min]   : ', 
+     &      Input_Opt%TS_CONV
       ENDIF
 
       ! FORMAT statements
@@ -7895,19 +7913,25 @@
       LOGICAL :: LEMIS, LTRAN,       LTURB 
       INTEGER :: I,     J,           K 
       INTEGER :: L,     TS_SMALLEST, TS_DIAG
-      
+      INTEGER :: TS_UNIT
+      INTEGER :: TS_EMIS, TS_CHEM, TS_CONV, TS_DYN
+ 
       !=================================================================
       ! CHECK_TIME_STEPS begins here!
       !=================================================================
 
       ! Copy fields from Input_Opt
-      LCONV = Input_Opt%LCONV
-      LCHEM = Input_Opt%LCHEM
-      LDRYD = Input_Opt%LDRYD 
-      LEMIS = Input_Opt%LEMIS
-      LTRAN = Input_Opt%LTRAN
-      LTURB = Input_Opt%LTURB 
-      
+      LCONV   = Input_Opt%LCONV
+      LCHEM   = Input_Opt%LCHEM
+      LDRYD   = Input_Opt%LDRYD 
+      LEMIS   = Input_Opt%LEMIS
+      LTRAN   = Input_Opt%LTRAN
+      LTURB   = Input_Opt%LTURB 
+      TS_EMIS = Input_Opt%TS_EMIS      
+      TS_CHEM = Input_Opt%TS_CHEM      
+      TS_CONV = Input_Opt%TS_CONV      
+      TS_DYN  = Input_Opt%TS_DYN       
+
       ! NUNIT is time step in minutes for unit conversion
       TS_UNIT = -1
 

@@ -408,7 +408,10 @@ CONTAINS
        Arr3D => EPOP_OC(:,:,:)
        CALL HCO_EmisAdd( HcoState, Arr3D, IDTPOPPOC, RC )
        Arr3D => NULL()
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: EPOP_OC', RC )
+          RETURN 
+       ENDIF
 
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -430,7 +433,10 @@ CONTAINS
        Arr3D => EPOP_BC(:,:,:)
        CALL HCO_EmisAdd( HcoState, Arr3D, IDTPOPPBC, RC )
        Arr3D => NULL()
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: EPOP_BC', RC )
+          RETURN 
+       ENDIF
 
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -452,7 +458,10 @@ CONTAINS
        Arr3D => EPOP_G(:,:,:)
        CALL HCO_EmisAdd( HcoState, Arr3D, IDTPOPG, RC )
        Arr3D => NULL()
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( 'HCO_EmisAdd error: EPOP_G', RC )
+          RETURN 
+       ENDIF
 
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -515,7 +524,6 @@ CONTAINS
 !
     ! Scalars
     INTEGER                        :: N, nSpc
-    LOGICAL                        :: verb
     CHARACTER(LEN=255)             :: MSG 
 
     ! Arrays
@@ -534,15 +542,12 @@ CONTAINS
     CALL HCO_ENTER( 'HcoX_GC_POPs_Init (hcox_gc_POPs_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Verbose output?
-    verb = ( am_I_Root .AND. HCO_VERBOSE_CHECK() )
-
     ! Set species IDs      
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    IF ( verb ) THEN
+    IF ( am_I_Root ) THEN
        MSG = 'Use gc_POPs emissions module (extension module)'
        CALL HCO_MSG( MSG )
 

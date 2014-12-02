@@ -117,7 +117,6 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: Z0          ! Sfc roughness height [m]
      TYPE(ExtDat_2R),  POINTER :: TROPP       ! Tropopause pressure [hPa] 
      TYPE(ExtDat_2R),  POINTER :: SUNCOSmid   ! COS (SZA) 
-     TYPE(ExtDat_2R),  POINTER :: SUNCOSmid5  ! SZA -5 hr
      TYPE(ExtDat_2R),  POINTER :: SZAFACT     ! current SZA/total daily SZA
      TYPE(ExtDat_2R),  POINTER :: PARDR       ! direct photsyn radiation [W/m2]
      TYPE(ExtDat_2R),  POINTER :: PARDF       ! diffuse photsyn radiation [W/m2]
@@ -134,7 +133,6 @@ MODULE HCOX_STATE_MOD
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
      TYPE(ExtDat_3R),  POINTER :: CNV_MFC     ! Convective cloud mass flux [kg/m2/s] 
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
-     TYPE(ExtDat_3R),  POINTER :: PCENTER     ! Pressure a the center of the gridbox
      TYPE(ExtDat_3R),  POINTER :: SPHU        ! Spec. humidity [kg H2O/kg air] 
      TYPE(ExtDat_3R),  POINTER :: TK          ! Air temperature [K]
      TYPE(ExtDat_3R),  POINTER :: AIR         ! Air mass [kg]
@@ -309,9 +307,6 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%SUNCOSmid, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%SUNCOSmid5, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     CALL ExtDat_Init ( ExtState%SZAFACT, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -440,7 +435,6 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%Z0         )
        CALL ExtDat_Cleanup( ExtState%TROPP      )
        CALL ExtDat_Cleanup( ExtState%SUNCOSmid  )
-       CALL ExtDat_Cleanup( ExtState%SUNCOSmid5 )
        CALL ExtDat_Cleanup( ExtState%SZAFACT    )
        CALL ExtDat_Cleanup( ExtState%PARDR      )
        CALL ExtDat_Cleanup( ExtState%PARDF      )
