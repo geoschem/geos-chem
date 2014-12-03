@@ -308,7 +308,8 @@ CONTAINS
     REAL*8              :: K0, CR, PKA
     REAL*8              :: KH, HEFF
     REAL*8              :: TK, TC
-    LOGICAL             :: WARN
+    INTEGER, SAVE       :: WARN = 0
+    INTEGER             :: OLDWARN
 
     ! For now, hardcode salinity
     REAL(dp), PARAMETER :: S = 35.0_dp
@@ -344,6 +345,9 @@ CONTAINS
     ! Model surface layer
     L = 1
 
+    ! Write out original warning status
+    OLDWARN = WARN
+
     ! Loop over all grid boxes. Only emit into lowest layer
 
 !$OMP PARALLEL DO                                                   &
@@ -378,8 +382,7 @@ CONTAINS
           ! very high temperatures - hence cap temperature at specified
           ! limit
           IF ( TK > TMAX ) THEN
-             WRITE(MSG,*) 'Temperature limited to ', TMAX, 'K'
-             WARN = .TRUE. 
+             WARN = 1
              TK   = TMAX
           ENDIF
  
@@ -485,7 +488,8 @@ CONTAINS
     ENDIF
 
     ! Warning?
-    IF ( WARN ) THEN
+    IF ( WARN /= OLDWARN ) THEN
+       WRITE(MSG,*) 'Temperature limited to ', TMAX, 'K'
        CALL HCO_WARNING ( MSG, RC )
     ENDIF
 
