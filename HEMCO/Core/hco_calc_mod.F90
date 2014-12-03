@@ -602,7 +602,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_State_Mod,    ONLY : HCO_State
-    USE HCO_tIdx_MOD,     ONLY : tIDx_GetIndxVec
+    USE HCO_tIdx_MOD,     ONLY : tIDx_GetIndx
     USE HCO_FileData_Mod, ONLY : FileData_ArrIsDefined
 !
 ! !INPUT PARAMETERS:
@@ -638,6 +638,7 @@ CONTAINS
 !  06 Jun 2014 - R. Yantosca -  Cosmetic changes in ProTeX headers
 !  07 Sep 2014 - C. Keller   -  Mask update. Now set mask to zero as soon as 
 !                               on of the applied masks is zero.
+!  03 Dec 2014 - C. Keller   -  Now calculate time slice index on-the-fly.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -649,8 +650,7 @@ CONTAINS
 
     ! Scalars
     REAL(hp)                :: TMPVAL
-    INTEGER                 :: tIdxVec(nI), tIDx
-    INTEGER                 :: IDX
+    INTEGER                 :: tIDx, IDX
     INTEGER                 :: I, J, L, N
     INTEGER                 :: BaseLL, ScalLL, TmpLL
     INTEGER                 :: ERROR
@@ -707,13 +707,8 @@ CONTAINS
        BaseLL = 1
     ENDIF
 
-    ! Precalculate timeslice index. The data containers can 
-    ! carry 2D/3D arrays for multiple time steps (i.e. for 
-    ! every hour of the day), stored in a vector.
-    ! tIdxVec contains the vector index to be used at the current
-    ! datetime. This parameter may vary with longitude due to time
-    ! zone shifts! 
-    tIdxVec = tIDx_GetIndxVec( BaseDct%Dta, nI ) 
+    ! Initialize ERROR. Will be set to 1 if error occurs below
+    ERROR = 0
 
     ! Loop over all latitudes and longitudes
 !$OMP PARALLEL DO                                                      &
@@ -723,8 +718,14 @@ CONTAINS
     DO J = 1, nJ
     DO I = 1, nI
 
-       ! Time slice index for this lon
-       tIdx = tIdxVec(I)
+       ! Get current time index for this container and at this location
+       tIDx = tIDx_GetIndx( HcoState, BaseDct%Dta, I, J )
+       IF ( tIDx < 1 ) THEN
+          WRITE(MSG,*) 'Cannot get time slice index at location ',I,J,&
+                       ': ', TRIM(BaseDct%cName)
+          ERROR = 1
+          EXIT
+       ENDIF
 
        ! Loop over all levels
        DO L = 1, BaseLL
@@ -745,6 +746,12 @@ CONTAINS
     ENDDO !I
     ENDDO !J
 !$OMP END PARALLEL DO
+
+    ! Check for error
+    IF ( ERROR == 1 ) THEN
+       CALL HCO_ERROR( MSG, RC )
+       RETURN
+    ENDIF
 
     ! ----------------------------------------------------------------
     ! Apply scale factors
@@ -792,10 +799,7 @@ CONTAINS
           ScalLL = SIZE(ScalDct%Dta%V3(1)%Val,3)
        ENDIF
 
-       ! Get vector of time slice indeces
-       tIDxVec = tIDx_GetIndxVec( ScalDct%Dta, nI ) 
-
-       ! Initialize error flag. Will be set to 1 or 2 if error occurs,
+       ! Reinitialize error flag. Will be set to 1 or 2 if error occurs,
        ! and to -1 if negative scale factor is ignored. 
        ERROR = 0
 
@@ -807,9 +811,13 @@ CONTAINS
        DO J = 1, nJ
        DO I = 1, nI
 
-          ! Get current time index
-          tIdx = tIdxVec(I)
-            
+          ! Get current time index for this container and at this location
+          tIDx = tIDx_GetIndx( HcoState, ScalDct%Dta, I, J )
+          IF ( tIDx < 1 ) THEN
+             ERROR = 1
+             EXIT
+          ENDIF
+
           ! ------------------------------------------------------------ 
           ! Check if this is a mask. If so, add mask values to the MASK
           ! array. For now, we assume masks to be binary, i.e. 0 or 1.
@@ -1114,7 +1122,13 @@ CONTAINS
        ! tIdxVec contains the vector index to be used at the current
        ! datetime. This parameter may vary with longitude due to time
        ! zone shifts! 
-       tIdx = tIDx_GetIndx ( BaseDct%Dta, I )
+       tIDx = tIDx_GetIndx( HcoState, BaseDct%Dta, I, J )
+       IF ( tIDx < 0 ) THEN
+          write(MSG,*) 'Cannot get time slice index at location ',I,J,&
+                       ': ', TRIM(BaseDct%cName)
+          ERR = .TRUE.
+          EXIT
+       ENDIF
 
        ! # of levels w/ defined emissions 
        IJFILLED = 0
@@ -1203,7 +1217,13 @@ CONTAINS
           ENDIF
    
           ! Get current time index
-          tIdx = tIDx_GetIndx ( ScalDct%Dta, I )
+          tIDx = tIDx_GetIndx( HcoState, ScalDct%Dta, I, J )
+          IF ( tIDx < 0 ) THEN
+             write(MSG,*) 'Cannot get time slice index at location ',I,J,&
+                          ': ', TRIM(ScalDct%cName)
+             ERR = .TRUE.
+             EXIT
+          ENDIF
             
           ! ------------------------------------------------------------ 
           ! Check if this is a mask. If so, add mask values to the MASK
@@ -1323,7 +1343,7 @@ CONTAINS
 
     ! Check exit status
     IF ( ERR ) THEN
-       RC = HCO_FAIL
+       CALL HCO_ERROR ( MSG, RC )
        RETURN
     ENDIF
 
