@@ -38,6 +38,8 @@
 !
 ! !USES:
 ! 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -47,8 +49,9 @@
       PUBLIC :: CALC_HEFF
 !
 ! !REVISION HISTORY:
-!  16 Apr 2013 - C. Keller - Initial version
-!  08 Aug 2014 - C. Keller - Moved coefficients into separate module
+!  16 Apr 2013 - C. Keller   - Initial version
+!  08 Aug 2014 - C. Keller   - Moved coefficients into separate module
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -56,9 +59,9 @@
 ! !PRIVATE TYPES:
 !
       ! Parameter
-      REAL*8,  PARAMETER    :: TREF = 298.15d0    ![K]
-      REAL*8,  PARAMETER    :: R    = 8.3144621d0 ![JK-1mol-1]
-      REAL*8,  PARAMETER    :: ATM  = 101.325     ![mPa (!)]
+      REAL(fp),  PARAMETER    :: TREF = 298.15e+0_fp    ![K]
+      REAL(fp),  PARAMETER    :: R    = 8.3144621e+0_fp ![JK-1mol-1]
+      REAL(fp),  PARAMETER    :: ATM  = 101.325     ![mPa (!)]
 
       CONTAINS
 !EOC
@@ -84,13 +87,13 @@
 !
 ! !INPUT ARGUMENTS:
 !
-      REAL*8,  INTENT(IN)         :: thisK0     ! [M/atm] 
-      REAL*8,  INTENT(IN)         :: thisCR     ! [-d ln kH / d(1/T) ]
-      REAL*8,  INTENT(IN)         :: TK         ! Temperature [K]
+      REAL(fp),  INTENT(IN)         :: thisK0     ! [M/atm] 
+      REAL(fp),  INTENT(IN)         :: thisCR     ! [-d ln kH / d(1/T) ]
+      REAL(fp),  INTENT(IN)         :: TK         ! Temperature [K]
 !
 ! !OUTPUT ARGUMENTS:
 !
-      REAL*8,  INTENT(OUT)        :: KH      ! Henry liquid over gas constant [-]
+      REAL(fp),  INTENT(OUT)        :: KH      ! Henry liquid over gas constant [-]
       INTEGER, INTENT(INOUT)      :: RC      ! Error handling 
 !
 ! !REVISION HISTORY:
@@ -108,7 +111,7 @@
       RC = 0
 
       ! Error if not defined
-      IF ( thisK0 == 0d0 ) THEN
+      IF ( thisK0 == 0e+0_fp ) THEN
          RC = -999
          KH = -999
          RETURN
@@ -165,13 +168,13 @@
 !
 ! !INPUT ARGUMENTS:
 !
-      REAL*8,  INTENT(IN)         :: thispKa    ! pKa value [-] 
-      REAL*8,  INTENT(IN)         :: PH         ! PH value [-] 
-      REAL*8,  INTENT(IN)         :: KH         ! gas/aq Henry constant [-] 
+      REAL(fp),  INTENT(IN)         :: thispKa    ! pKa value [-] 
+      REAL(fp),  INTENT(IN)         :: PH         ! PH value [-] 
+      REAL(fp),  INTENT(IN)         :: KH         ! gas/aq Henry constant [-] 
 !
 ! !OUTPUT ARGUMENTS:
 !
-      REAL*8,  INTENT(OUT)        :: HEFF  ! effective gas/aq constant [-] 
+      REAL(fp),  INTENT(OUT)        :: HEFF  ! effective gas/aq constant [-] 
       INTEGER, INTENT(INOUT)      :: RC    ! for error handling 
 !
 ! !REMARKS:
@@ -201,8 +204,8 @@
       RC = 0
 
       ! Calculate correction term.
-      IF ( thispKa > 0d0 ) THEN
-         HEFF = KH * ( 1d0 + 10d0**( pH - thispKa ) )
+      IF ( thispKa > 0e+0_fp ) THEN
+         HEFF = KH * ( 1e+0_fp + 10e+0_fp**( pH - thispKa ) )
       ELSE
          HEFF = KH
       ENDIF

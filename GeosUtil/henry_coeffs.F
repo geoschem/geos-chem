@@ -13,7 +13,9 @@
       MODULE HENRY_COEFFS
 !
 ! !USES:
-! 
+!
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+ 
       IMPLICIT NONE
       PRIVATE
 !
@@ -22,7 +24,8 @@
       PUBLIC :: GET_HENRY_CONSTANT
 !
 ! !REVISION HISTORY:
-!  16 Apr 2013 - C. Keller - Initial version
+!  16 Apr 2013 - C. Keller   - Initial version
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -38,20 +41,20 @@
      &                                             'DMS',    ! De Bruyn et al. 1995
      &                                             'ACET' /) ! Benkelberg et al. 1995
 
-      REAL*8,            PARAMETER :: K0(N)   = (/ 8.3d4,  
-     &                                             1.4d-1,
-     &                                             4.8d-1, 
-     &                                             27d0   /)
+      REAL(fp),          PARAMETER :: K0(N)   = (/ 8.3e+4_fp,  
+     &                                             1.4e-1_fp,
+     &                                             4.8e-1_fp, 
+     &                                             27e+0_fp   /)
 
-      REAL*8,            PARAMETER :: CR(N)   = (/ 7.4d3,  
-     &                                             4.3d3,
-     &                                             3.1d3,  
-     &                                             5300d0 /) 
+      REAL(fp),          PARAMETER :: CR(N)   = (/ 7.4e+3_fp,  
+     &                                             4.3e+3_fp,
+     &                                             3.1e+3_fp,  
+     &                                             5300e+0_fp /) 
 
-      REAL*8,            PARAMETER :: PKa(N)  = (/ -999d0, 
-     &                                             -999d0,
-     &                                             -999d0, 
-     &                                             -999d0 /) 
+      REAL(fp),          PARAMETER :: PKa(N)  = (/ -999e+0_fp, 
+     &                                             -999e+0_fp,
+     &                                             -999e+0_fp, 
+     &                                             -999e+0_fp /) 
 
       CONTAINS
 !EOC
@@ -76,9 +79,9 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       CHARACTER(LEN=*), INTENT(IN   )  :: NM
-      REAL*8,           INTENT(  OUT)  :: thisK0      
-      REAL*8,           INTENT(  OUT)  :: thisCR     
-      REAL*8,           INTENT(  OUT)  :: thispKa    
+      REAL(fp),           INTENT(  OUT)  :: thisK0      
+      REAL(fp),           INTENT(  OUT)  :: thisCR     
+      REAL(fp),           INTENT(  OUT)  :: thispKa    
       INTEGER,          INTENT(INOUT)  :: RC    
 !
 ! !REVISION HISTORY:
@@ -97,9 +100,9 @@
 
       ! Init
       RC      = 0
-      thisK0  = -999.0d0
-      thisCR  = -999.0d0
-      thisPKa = -999.0d0
+      thisK0  = -999.0e+0_fp
+      thisCR  = -999.0e+0_fp
+      thisPKa = -999.0e+0_fp
 
       ! Loop over all species
       DO I = 1,N

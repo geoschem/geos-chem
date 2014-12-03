@@ -22,6 +22,7 @@ MODULE GIGC_State_Chm_Mod
 !
 ! USES:
 !
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
   IMPLICIT NONE
   PRIVATE
 !
@@ -43,26 +44,26 @@ MODULE GIGC_State_Chm_Mod
      ! Advected tracers
      INTEGER,           POINTER :: Trac_Id    (:      )  ! Tracer ID #'s
      CHARACTER(LEN=14), POINTER :: Trac_Name  (:      )  ! Tracer names
-     REAL*8,            POINTER :: Tracers    (:,:,:,:)  ! Tracer conc [kg]
-!     REAL*8,            POINTER :: Trac_Tend  (:,:,:,:)  ! Tracer tendency [kg/m2/s]
+     REAL(fp),            POINTER :: Tracers    (:,:,:,:)  ! Tracer conc [kg]
+!     REAL(fp),            POINTER :: Trac_Tend  (:,:,:,:)  ! Tracer tendency [kg/m2/s]
 
      ! Chemical species
      INTEGER,           POINTER :: Spec_Id    (:      )  ! Species ID # 
      CHARACTER(LEN=14), POINTER :: Spec_Name  (:      )  ! Species names
-     REAL*8,            POINTER :: Species    (:,:,:,:)  ! Species [molec/cm3]
+     REAL(fp),            POINTER :: Species    (:,:,:,:)  ! Species [molec/cm3]
 
      ! Chemical rates & rate parameters
-!     REAL*8,            POINTER :: DepSav     (:,:,:  )  ! Drydep freq [1/s]
+!     REAL(fp),            POINTER :: DepSav     (:,:,:  )  ! Drydep freq [1/s]
 
      ! Stratospheric chemistry 
      INTEGER,           POINTER :: Schm_Id    (:      )  ! Strat Chem ID #'s
      CHARACTER(LEN=14), POINTER :: Schm_Name  (:      )  ! Strat Chem Names
-     REAL*8,            POINTER :: Schm_P     (:,:,:,:)  ! Strat prod [v/v/s]
-     REAL*8,            POINTER :: Schm_k     (:,:,:,:)  ! Strat loss [1/s]
+     REAL(fp),            POINTER :: Schm_P     (:,:,:,:)  ! Strat prod [v/v/s]
+     REAL(fp),            POINTER :: Schm_k     (:,:,:,:)  ! Strat loss [1/s]
      INTEGER,           POINTER :: Schm_BryId (:      )  ! Bry tracer #'s
      CHARACTER(LEN=14), POINTER :: Schm_BryNam(:      )  ! Bry Names
-     REAL*8,            POINTER :: Schm_BryDay(:,:,:,:)  ! Bry, Day
-     REAL*8,            POINTER :: Schm_BryNit(:,:,:,:)  ! Bry, Night
+     REAL(fp),            POINTER :: Schm_BryDay(:,:,:,:)  ! Bry, Day
+     REAL(fp),            POINTER :: Schm_BryNit(:,:,:,:)  ! Bry, Night
  
   END TYPE ChmState
 !
@@ -147,6 +148,7 @@ MODULE GIGC_State_Chm_Mod
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 May 2014 - C. Keller   - Removed Trac_Btend. DepSav array covers now
 !                              all species.
+!  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -473,30 +475,30 @@ CONTAINS
     ! Advected tracers
     State_Chm%Trac_Id     = 0
     State_Chm%Trac_name   = ''
-    State_Chm%Tracers     = 0d0
-!    State_Chm%Trac_Tend   = 0d0
+    State_Chm%Tracers     = 0e+0_fp
+!    State_Chm%Trac_Tend   = 0e+0_fp
 !
 !    ! Dry deposition
-!    State_Chm%DepSav      = 0d0
+!    State_Chm%DepSav      = 0e+0_fp
 
     ! Chemical species
     State_Chm%Spec_Id     = 0
     State_Chm%Spec_Name   = ''
-    State_Chm%Species     = 0d0
+    State_Chm%Species     = 0e+0_fp
 
 ! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
 !    ! Stratospheric chemistry    
 !    IF ( nSchm > 0 ) THEN
 !       State_Chm%Schm_Id     = 0
 !       State_Chm%Schm_Name   = ''
-!       State_Chm%Schm_P      = 0d0
-!       State_Chm%Schm_k      = 0d0
+!       State_Chm%Schm_P      = 0e+0_fp
+!       State_Chm%Schm_k      = 0e+0_fp
 !    ENDIF
 !    IF ( nSchmBry > 0 ) THEN
 !       State_Chm%Schm_BryId  = 0
 !       State_Chm%Schm_BryNam = ''
-!       State_Chm%Schm_BryDay = 0d0
-!       State_Chm%Schm_BryNit = 0d0
+!       State_Chm%Schm_BryDay = 0e+0_fp
+!       State_Chm%Schm_BryNit = 0e+0_fp
 !    ENDIF
 
   END SUBROUTINE Init_GIGC_State_Chm

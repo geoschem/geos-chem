@@ -15,6 +15,8 @@ MODULE GIGC_Input_Opt_Mod
 !
 ! !USES:
 !
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -72,13 +74,13 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: N_TRACERS          
      INTEGER,            POINTER :: ID_TRACER(:)       
      CHARACTER(LEN=255), POINTER :: TRACER_NAME(:)     
-     REAL*8,             POINTER :: TRACER_MW_G(:)     
-     REAL*8,             POINTER :: TRACER_MW_KG(:)    
-     REAL*8,             POINTER :: TCVV(:)            
-     REAL*8,             POINTER :: XNUMOL(:)          
+     REAL(fp),             POINTER :: TRACER_MW_G(:)     
+     REAL(fp),             POINTER :: TRACER_MW_KG(:)    
+     REAL(fp),             POINTER :: TCVV(:)            
+     REAL(fp),             POINTER :: XNUMOL(:)          
      INTEGER,            POINTER :: TRACER_N_CONST(:)  
      CHARACTER(LEN=255), POINTER :: TRACER_CONST(:,:)  
-     REAL*8,             POINTER :: TRACER_COEFF(:,:)  
+     REAL(fp),             POINTER :: TRACER_COEFF(:,:)  
      INTEGER,            POINTER :: ID_EMITTED(:)  
      INTEGER                     :: SIM_TYPE
      CHARACTER(LEN=255)          :: SIM_NAME
@@ -107,20 +109,20 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCARB              
      LOGICAL                     :: LSOA               
      LOGICAL                     :: LSVPOA
-     REAL*8                      :: NAPEMISS
-     REAL*8                      :: POAEMISSSCALE
+     REAL(fp)                      :: NAPEMISS
+     REAL(fp)                      :: POAEMISSSCALE
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
      LOGICAL                     :: LDICARB            
-     REAL*8,             POINTER :: SALA_REDGE_um(:)   
-     REAL*8,             POINTER :: SALC_REDGE_um(:)   
+     REAL(fp),             POINTER :: SALA_REDGE_um(:)   
+     REAL(fp),             POINTER :: SALC_REDGE_um(:)   
      LOGICAL                     :: LGRAVSTRAT
      LOGICAL                     :: LSOLIDPSC
      CHARACTER(LEN=255)          :: PSC_RST_FILE
      LOGICAL                     :: LHOMNUCNAT
-     REAL*8                      :: T_NAT_SUPERCOOL
-     REAL*8                      :: P_ICE_SUPERSAT
+     REAL(fp)                      :: T_NAT_SUPERCOOL
+     REAL(fp)                      :: P_ICE_SUPERSAT
      LOGICAL                     :: LPSCCHEM
      LOGICAL                     :: LSTRATOD
 
@@ -155,7 +157,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LMEGAN
      LOGICAL                     :: LPECCA 
      LOGICAL                     :: LMEGANMONO
-     REAL*8                      :: ISOP_SCALING 
+     REAL(fp)                      :: ISOP_SCALING 
      LOGICAL                     :: LBIOMASS 
      LOGICAL                     :: LBBSEA
      LOGICAL                     :: LTOMSAI
@@ -172,7 +174,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSOILNOX
      CHARACTER(LEN=255)          :: SOIL_RST_FILE
      LOGICAL                     :: LFERTILIZERNOX
-     REAL*8                      :: NOx_SCALING
+     REAL(fp)                      :: NOx_SCALING
      LOGICAL                     :: LEDGARSHIP
      LOGICAL                     :: LICOADSSHIP
      LOGICAL                     :: LEMEPSHIP
@@ -184,7 +186,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LWARWICK_VSLS
      LOGICAL                     :: LSSABr2
      LOGICAL                     :: LFIX_PBL_BRO
-     REAL*8                      :: Br_SCALING
+     REAL(fp)                      :: Br_SCALING
      LOGICAL                     :: LEDGARNOx
      LOGICAL                     :: LEDGARCO
      LOGICAL                     :: LEDGARSOx
@@ -255,7 +257,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSVCSPEC
      CHARACTER(LEN=255)          :: SPEC_RST_FILE
      LOGICAL                     :: LKPP
-     REAL*8                      :: GAMMA_HO2
+     REAL(fp)                      :: GAMMA_HO2
      LOGICAL                     :: LUCX
      LOGICAL                     :: LCH4CHEM
      LOGICAL                     :: LACTIVEH2O
@@ -430,9 +432,9 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: ND51_FILE
      INTEGER                     :: LND51_HDF
      INTEGER,            POINTER :: ND51_TRACERS(:)
-     REAL*8                      :: ND51_HR_WRITE
-     REAL*8                      :: ND51_HR1
-     REAL*8                      :: ND51_HR2
+     REAL(fp)                      :: ND51_HR_WRITE
+     REAL(fp)                      :: ND51_HR1
+     REAL(fp)                      :: ND51_HR2
      INTEGER                     :: ND51_IMIN
      INTEGER                     :: ND51_IMAX
      INTEGER                     :: ND51_JMIN
@@ -447,9 +449,9 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: ND51b_FILE
      INTEGER                     :: LND51b_HDF
      INTEGER,            POINTER :: ND51b_TRACERS(:)
-     REAL*8                      :: ND51b_HR_WRITE
-     REAL*8                      :: ND51b_HR1
-     REAL*8                      :: ND51b_HR2
+     REAL(fp)                      :: ND51b_HR_WRITE
+     REAL(fp)                      :: ND51b_HR1
+     REAL(fp)                      :: ND51b_HR2
      INTEGER                     :: ND51b_IMIN
      INTEGER                     :: ND51b_IMAX
      INTEGER                     :: ND51b_JMIN
@@ -477,7 +479,7 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: ND65, LD65
      LOGICAL                     :: DO_SAVE_O3
      INTEGER                     :: NFAM
-     REAL*8,             POINTER :: FAM_COEF(:,:)
+     REAL(fp),             POINTER :: FAM_COEF(:,:)
      CHARACTER(LEN=255), POINTER :: FAM_MEMB(:,:)
      CHARACTER(LEN=255), POINTER :: FAM_NAME(:  )
      INTEGER,            POINTER :: FAM_NMEM(:  )
@@ -567,22 +569,22 @@ MODULE GIGC_Input_Opt_Mod
      ! APM MENU fields
      !----------------------------------------  
      LOGICAL                     :: IFNUCL
-     REAL*8                      :: FE0
+     REAL(fp)                      :: FE0
 
      !----------------------------------------
      ! POPS MENU fields
      !----------------------------------------
      CHARACTER(LEN=3)            :: POP_TYPE
      LOGICAL                     :: CHEM_PROCESS
-     REAL*8                      :: POP_XMW
-     REAL*8                      :: POP_KOA
-     REAL*8                      :: POP_KBC
-     REAL*8                      :: POP_K_POPG_OH
-     REAL*8                      :: POP_K_POPP_O3A
-     REAL*8                      :: POP_K_POPP_O3B
-     REAL*8                      :: POP_HSTAR
-     REAL*8                      :: POP_DEL_H
-     REAL*8                      :: POP_DEL_Hw
+     REAL(fp)                      :: POP_XMW
+     REAL(fp)                      :: POP_KOA
+     REAL(fp)                      :: POP_KBC
+     REAL(fp)                      :: POP_K_POPG_OH
+     REAL(fp)                      :: POP_K_POPP_O3A
+     REAL(fp)                      :: POP_K_POPP_O3B
+     REAL(fp)                      :: POP_HSTAR
+     REAL(fp)                      :: POP_DEL_H
+     REAL(fp)                      :: POP_DEL_Hw
 
      !----------------------------------------
      ! Fields for drydep and dust.  These get
@@ -593,8 +595,8 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: NUMDEP
      INTEGER,            POINTER :: NDVZIND(:)
      INTEGER,            POINTER :: IDDEP(:)
-     REAL*8,             POINTER :: DUSTREFF(:)
-     REAL*8,             POINTER :: DUSTDEN(:)
+     REAL(fp),             POINTER :: DUSTREFF(:)
+     REAL(fp),             POINTER :: DUSTDEN(:)
      CHARACTER(LEN=14),  POINTER :: DEPNAME(:)
 
      !----------------------------------------
@@ -610,7 +612,7 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: LINOZ_NLAT
      INTEGER                     :: LINOZ_NMONTHS
      INTEGER                     :: LINOZ_NFIELDS
-     REAL*8,             POINTER :: LINOZ_TPARM(:,:,:,:)
+     REAL(fp),             POINTER :: LINOZ_TPARM(:,:,:,:)
 
      !----------------------------------------
      ! Fields for overhead O3
@@ -653,6 +655,7 @@ MODULE GIGC_Input_Opt_Mod
 !  23 Jun 2014 - R. Yantosca - Add POP_EMISDIR field for POPs simlulation
 !  25 Jun 2014 - R. Yantosca - Now add Input_Opt%SIM_TYPE field
 !  29 Sep 2014 - R. Yantosca - Now add Input_Opt%N_DUST_BINS field
+!  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -788,13 +791,13 @@ CONTAINS
     Input_Opt%N_TRACERS              = 0
     Input_Opt%ID_TRACER              = 0
     Input_Opt%TRACER_NAME            = ''
-    Input_Opt%TRACER_MW_G            = 0d0
-    Input_Opt%TRACER_MW_KG           = 0d0
-    Input_Opt%TCVV                   = 0d0
-    Input_Opt%XNUMOL                 = 0d0
+    Input_Opt%TRACER_MW_G            = 0e+0_fp
+    Input_Opt%TRACER_MW_KG           = 0e+0_fp
+    Input_Opt%TCVV                   = 0e+0_fp
+    Input_Opt%XNUMOL                 = 0e+0_fp
     Input_Opt%TRACER_N_CONST         = 0
     Input_Opt%TRACER_CONST           = ''  
-    Input_Opt%TRACER_COEFF           = 0d0
+    Input_Opt%TRACER_COEFF           = 0e+0_fp
     Input_Opt%ID_EMITTED             = 0
     Input_Opt%SIM_TYPE               = 0
     Input_Opt%SIM_NAME               = ''
@@ -826,20 +829,20 @@ CONTAINS
     Input_Opt%LCARB                  = .FALSE.
     Input_Opt%LSOA                   = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
-    Input_Opt%NAPEMISS               = 0d0
-    Input_Opt%POAEMISSSCALE          = 0d0
+    Input_Opt%NAPEMISS               = 0e+0_fp
+    Input_Opt%POAEMISSSCALE          = 0e+0_fp
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.
     Input_Opt%LDICARB                = .FALSE.
-    Input_Opt%SALA_REDGE_um          = 0d0
-    Input_Opt%SALC_REDGE_um          = 0d0
+    Input_Opt%SALA_REDGE_um          = 0e+0_fp
+    Input_Opt%SALC_REDGE_um          = 0e+0_fp
     Input_Opt%LGRAVSTRAT             = .FALSE.
     Input_Opt%LSOLIDPSC              = .FALSE.
     Input_Opt%PSC_RST_FILE           = ''
     Input_Opt%LHOMNUCNAT             = .FALSE.
-    Input_Opt%T_NAT_SUPERCOOL        = 0d0
-    Input_Opt%P_ICE_SUPERSAT         = 0d0
+    Input_Opt%T_NAT_SUPERCOOL        = 0e+0_fp
+    Input_Opt%P_ICE_SUPERSAT         = 0e+0_fp
     Input_Opt%LPSCCHEM               = .FALSE.
     Input_Opt%LSTRATOD               = .FALSE.
 
@@ -866,7 +869,7 @@ CONTAINS
      Input_Opt%LMEGAN                 = .FALSE.
      Input_Opt%LPECCA                 = .FALSE.
      Input_Opt%LMEGANMONO             = .FALSE.
-     Input_Opt%ISOP_SCALING           = 0d0
+     Input_Opt%ISOP_SCALING           = 0e+0_fp
      Input_Opt%LBIOMASS               = .FALSE.
      Input_Opt%LBBSEA                 = .FALSE.
      Input_Opt%LTOMSAI                = .FALSE.
@@ -883,7 +886,7 @@ CONTAINS
     Input_Opt%LSOILNOX               = .FALSE.
      Input_Opt%SOIL_RST_FILE          = ''
      Input_Opt%LFERTILIZERNOX         = .FALSE.
-     Input_Opt%NOx_SCALING            = 0d0
+     Input_Opt%NOx_SCALING            = 0e+0_fp
      Input_Opt%LEDGARSHIP             = .FALSE.
      Input_Opt%LICOADSSHIP            = .FALSE.
      Input_Opt%LEMEPSHIP              = .FALSE.
@@ -895,7 +898,7 @@ CONTAINS
     Input_Opt%LWARWICK_VSLS          = .FALSE.
     Input_Opt%LSSABr2                = .FALSE.
     Input_Opt%LFIX_PBL_BRO           = .FALSE.
-     Input_Opt%Br_SCALING             = 0d0    
+     Input_Opt%Br_SCALING             = 0e+0_fp    
      Input_Opt%LEDGARNOx              = .FALSE.
      Input_Opt%LEDGARCO               = .FALSE. 
      Input_Opt%LEDGARSOX              = .FALSE.
@@ -967,7 +970,7 @@ CONTAINS
     Input_Opt%LSVCSPEC               = .FALSE. 
     Input_Opt%SPEC_RST_FILE          = ''
     Input_Opt%LKPP                   = .FALSE. 
-    Input_Opt%GAMMA_HO2              = 0d0
+    Input_Opt%GAMMA_HO2              = 0e+0_fp
     Input_Opt%LUCX                   = .FALSE.
     Input_Opt%LCH4CHEM               = .FALSE.
     Input_Opt%LACTIVEH2O             = .FALSE.
@@ -1237,9 +1240,9 @@ CONTAINS
     Input_Opt%ND51_FILE              = ''
     Input_Opt%LND51_HDF              = .FALSE.
     Input_Opt%ND51_TRACERS           = 0
-    Input_Opt%ND51_HR_WRITE          = 0d0
-    Input_Opt%ND51_HR1               = 0d0
-    Input_Opt%ND51_HR2               = 0d0
+    Input_Opt%ND51_HR_WRITE          = 0e+0_fp
+    Input_Opt%ND51_HR1               = 0e+0_fp
+    Input_Opt%ND51_HR2               = 0e+0_fp
     Input_Opt%ND51_IMIN              = 0
     Input_Opt%ND51_IMAX              = 0
     Input_Opt%ND51_JMIN              = 0
@@ -1255,9 +1258,9 @@ CONTAINS
     Input_Opt%ND51b_FILE             = ''
     Input_Opt%LND51b_HDF             = .FALSE.
     Input_Opt%ND51b_TRACERS          = 0
-    Input_Opt%ND51b_HR_WRITE         = 0d0
-    Input_Opt%ND51b_HR1              = 0d0
-    Input_Opt%ND51b_HR2              = 0d0
+    Input_Opt%ND51b_HR_WRITE         = 0e+0_fp
+    Input_Opt%ND51b_HR1              = 0e+0_fp
+    Input_Opt%ND51b_HR2              = 0e+0_fp
     Input_Opt%ND51b_IMIN             = 0
     Input_Opt%ND51b_IMAX             = 0
     Input_Opt%ND51b_JMIN             = 0
@@ -1292,7 +1295,7 @@ CONTAINS
     Input_Opt%ND65                   = 0
     Input_Opt%DO_SAVE_O3             = .FALSE.
     Input_Opt%NFAM                   = 0
-    Input_Opt%FAM_COEF               = 0d0
+    Input_Opt%FAM_COEF               = 0e+0_fp
     Input_Opt%FAM_MEMB               = ''
     Input_Opt%FAM_NAME               = ''
     Input_Opt%FAM_NMEM               = 0
@@ -1381,22 +1384,22 @@ CONTAINS
     ! APM MENU fields
     !----------------------------------------  
     Input_Opt%IFNUCL                 = .FALSE.
-    Input_Opt%FE0                    = 0d0
+    Input_Opt%FE0                    = 0e+0_fp
 
     !----------------------------------------
     ! POPS MENU fields
     !----------------------------------------
     Input_Opt%POP_TYPE               = ''
     Input_Opt%CHEM_PROCESS           = .FALSE.
-    Input_Opt%POP_XMW                = 0d0
-    Input_Opt%POP_KOA                = 0d0
-    Input_Opt%POP_KBC                = 0d0
-    Input_Opt%POP_K_POPG_OH          = 0d0
-    Input_Opt%POP_K_POPP_O3A         = 0d0
-    Input_Opt%POP_K_POPP_O3B         = 0d0
-    Input_Opt%POP_HSTAR              = 0d0
-    Input_Opt%POP_DEL_H              = 0d0
-    Input_Opt%POP_DEL_Hw             = 0d0
+    Input_Opt%POP_XMW                = 0e+0_fp
+    Input_Opt%POP_KOA                = 0e+0_fp
+    Input_Opt%POP_KBC                = 0e+0_fp
+    Input_Opt%POP_K_POPG_OH          = 0e+0_fp
+    Input_Opt%POP_K_POPP_O3A         = 0e+0_fp
+    Input_Opt%POP_K_POPP_O3B         = 0e+0_fp
+    Input_Opt%POP_HSTAR              = 0e+0_fp
+    Input_Opt%POP_DEL_H              = 0e+0_fp
+    Input_Opt%POP_DEL_Hw             = 0e+0_fp
 
     !----------------------------------------
     ! Fields for DRYDEP and DUST based on
@@ -1412,8 +1415,8 @@ CONTAINS
     Input_Opt%NUMDEP                 = 0
     Input_Opt%NDVZIND                = 0
     Input_Opt%IDDEP                  = 0
-    Input_Opt%DUSTREFF               = 0d0
-    Input_Opt%DUSTDEN                = 0d0
+    Input_Opt%DUSTREFF               = 0e+0_fp
+    Input_Opt%DUSTDEN                = 0e+0_fp
     Input_Opt%DEPNAME                = ''
 
     !----------------------------------------
@@ -1431,7 +1434,7 @@ CONTAINS
                                      Input_Opt%LINOZ_NMONTHS,            &
                                      Input_Opt%LINOZ_NFIELDS ), STAT=RC )
 
-    Input_Opt%LINOZ_TPARM            = 0d0
+    Input_Opt%LINOZ_TPARM            = 0e+0_fp
 
     !----------------------------------------
     ! Fields for overhead O3

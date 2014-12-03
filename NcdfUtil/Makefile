@@ -183,7 +183,7 @@ libnc: $(OBJ)
 lib: libnc
 
 ncdfcheck: $(OBJx)
-	$(LD) $(OBJx) -L$(LIB) -lNcUtils $(NCL) -o $(EXE)
+	$(LD) $(OBJx) -L$(LIB) -lNcUtils $(NC_LINK_CMD) -o $(EXE)
 	$(EXE) 
 
 check: ncdfcheck
