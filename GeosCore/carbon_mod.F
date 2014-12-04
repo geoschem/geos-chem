@@ -25,6 +25,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: CHEMCARBON
+      PUBLIC :: EMISSCARBON
       PUBLIC :: CLEANUP_CARBON
       PUBLIC :: INIT_CARBON
 !
@@ -33,9 +34,9 @@
       ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
       PUBLIC :: BETANOSAVE
 
-      ! Make BIOG_SESQ array public so that it can be used by HEMCO
-      ! (ckeller, 05/19/14)
-      PUBLIC :: BIOG_SESQ
+!      ! Make BIOG_SESQ array public so that it can be used by HEMCO
+!      ! (ckeller, 05/19/14)
+!      PUBLIC :: BIOG_SESQ
 !
 ! !REMARKS:
 !  4 Aerosol species : Organic and Black carbon 
@@ -189,6 +190,8 @@
 !  20 Jun 2014 - R. Yantosca - Removed obsolete code; we now use HEMCO
 !  23 Sep 2014 - M. Sulprizio- Get OH, NO3, and O3 fields for offline aerosol
 !                              simulation from HEMCO 
+!  13 Nov 2014 - C. Keller   - Added EMISSCARBON to make sure that SESQ and POA
+!                              emissions are properly passed from HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -288,27 +291,27 @@
       ! with each allowed reactant (hotp 5/24/10)
       REAL*8              :: DELTAHCSAVE(MNOX,MHC)
 
-      REAL*8, ALLOCATABLE :: ANTH_BLKC(:,:,:)
-      REAL*8, ALLOCATABLE :: ANTH_ORGC(:,:,:)
-      REAL*8, ALLOCATABLE :: BIOB_BLKC(:,:,:)
-      REAL*8, ALLOCATABLE :: BIOB_ORGC(:,:,:)
-      REAL*8, ALLOCATABLE :: BIOF_BLKC(:,:,:)
-      REAL*8, ALLOCATABLE :: BIOF_ORGC(:,:,:)
-      REAL*8, ALLOCATABLE :: EF_BLKC(:,:)
-      REAL*8, ALLOCATABLE :: EF_ORGC(:,:)
-      REAL*8, ALLOCATABLE :: TERP_ORGC(:,:)
+!      REAL*8, ALLOCATABLE :: ANTH_BLKC(:,:,:)
+!      REAL*8, ALLOCATABLE :: ANTH_ORGC(:,:,:)
+!      REAL*8, ALLOCATABLE :: BIOB_BLKC(:,:,:)
+!      REAL*8, ALLOCATABLE :: BIOB_ORGC(:,:,:)
+!      REAL*8, ALLOCATABLE :: BIOF_BLKC(:,:,:)
+!      REAL*8, ALLOCATABLE :: BIOF_ORGC(:,:,:)
+!      REAL*8, ALLOCATABLE :: EF_BLKC(:,:)
+!      REAL*8, ALLOCATABLE :: EF_ORGC(:,:)
+!      REAL*8, ALLOCATABLE :: TERP_ORGC(:,:)
       REAL*8, ALLOCATABLE :: BCCONV(:,:,:)
       REAL*8, ALLOCATABLE :: OCCONV(:,:,:)
       ! new mtp precursors (hotp 5/20/10)
-      REAL*8, ALLOCATABLE :: BIOG_MTPA(:,:)
-      REAL*8, ALLOCATABLE :: BIOG_LIMO(:,:)
-      REAL*8, ALLOCATABLE :: BIOG_MTPO(:,:)
+!      REAL*8, ALLOCATABLE :: BIOG_MTPA(:,:)
+!      REAL*8, ALLOCATABLE :: BIOG_LIMO(:,:)
+!      REAL*8, ALLOCATABLE :: BIOG_MTPO(:,:)
 
-      ! BIOG_SESQ is now 3D so that it can be used by HEMCO
-      ! (ckeller, 05/19/14)
-      REAL*8, ALLOCATABLE, TARGET :: BIOG_SESQ(:,:,:)
-      REAL*8, ALLOCATABLE :: DIUR_ORVC(:,:)
-      REAL*8, ALLOCATABLE :: GEIA_ORVC(:,:)
+!      ! BIOG_SESQ is now 3D so that it can be used by HEMCO
+!      ! (ckeller, 05/19/14)
+!      REAL*8, ALLOCATABLE, TARGET :: BIOG_SESQ(:,:,:)
+!      REAL*8, ALLOCATABLE :: DIUR_ORVC(:,:)
+!      REAL*8, ALLOCATABLE :: GEIA_ORVC(:,:)
       REAL*8, ALLOCATABLE :: TCOSZ(:,:)
       REAL*8, ALLOCATABLE :: ORVC_SESQ(:,:,:)
       REAL*8, ALLOCATABLE :: ISOP_PRIOR(:,:,:)  ! (dkh, 10/09/05)  
@@ -4131,7 +4134,7 @@
 
       ! for debug (hotp 5/10/10)
       REAL*8   :: TEMPHC
-
+ 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
@@ -5800,259 +5803,441 @@ ccc
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: emithigh
+! !IROUTINE: emisscarbon 
 !
-! !DESCRIPTION: Subroutine EMITHIGH mixes tracer completely from the surface to
-!  the PBL top. (rjp, bmy, 4/2/04, 1/11/10)
+! !DESCRIPTION: Subroutine EMISSCARBON is the emissions routine for the carbon 
+! module. All carbon emissions, incl. SESQ and POA, are calculated through 
+! HEMCO and this module simply makes sure that the SESQ and POA emissions (if
+! defined) are properly passed to the internal arrays. 
+!\\
+!\\
+! POA emissions are expected to be fully calculated by HEMCO, e.g. its emissions
+! need be specified in the HEMCO configuration file. In the original code, the
+! emissions were calculated by scaling anthropogenic, biofuel and biomass burning
+! OC emissions. The same behavior can be achieved in HEMCO by assigning the desired
+! POA tracer name to the given source type, e.g.:
+!
+!0 BOND_ANTH .../Bond_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POA1 70/300 1 1
+!
+! It is assumed here that emissions that shall go into array POAEMISS(:,:,:,1) 
+! represent tracer POA1 and POAEMISS(:,:,:,2) represent tracer POG1.
+!\\
+!\\
+! IMPORTANT: the POA emissions scale factor should be applied through HEMCO. In
+! the example above, scale factor 300 represents the scale POA scale factor. The
+! same scale factor should also be applied to the biomass burning extensions.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMITHIGH( BCSRC, OCSRC, Input_Opt, State_Chm )
+      SUBROUTINE EMISSCARBON( am_I_Root, Input_Opt, 
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
-      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
-      USE TRACERID_MOD,       ONLY : IDTMTPA, IDTLIMO, IDTMTPO ! hotp 5/20/10
-      ! Add POA treatment (hotp 8/24/09)
-      USE TRACERID_MOD,       ONLY : IDTPOA1
-      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (Lin, 03/31/09)
-      ! HEMCO update ( ckeller 05/19.2014)
-      USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,    ONLY : OptInput
+      USE GIGC_State_Chm_Mod,    ONLY : ChmState
+      USE GIGC_State_Met_Mod,    ONLY : MetState
+      USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR
+      USE TRACERID_MOD,          ONLY : IDTPOA1, IDTPOG1
+      USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
+      USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
+      USE GRID_MOD,              ONLY : GET_AREA_M2
+      USE TIME_MOD,              ONLY : GET_TS_EMIS
+      USE HCOI_GC_MAIN_MOD,      ONLY : GetHcoState, GetHcoID, GetHcoVal
+      USE HCO_STATE_MOD,         ONLY : HCO_STATE
+      USE HCO_ERROR_MOD
 !
 ! !INPUT PARAMETERS:
 !      
-      REAL*8,         INTENT(IN)    :: BCSRC(IIPAR,JJPAR,2) ! Total BC [kg]
-      REAL*8,         INTENT(IN)    :: OCSRC(IIPAR,JJPAR,2) ! Total OC [kg]
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt            ! Input Options
+      LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Root CPU?
+      TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
+      TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
+      INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
 ! 
 ! !REVISION HISTORY:
-!  (1 ) Now also mix ALPH, LIMO, ALCO tracers (rjp, bmy, 7/8/04)
-!  (2 ) Now reference STT from "tracer_mod.f" (bmy, 7/20/04)
-!  (3 ) Remove references to "dao_mod.f", "pressure_mod.f", and "error_mod.f".
-!        Rewrote for computational expediency using routines from
-!        "pbl_mix_mod.f".  (bmy, 2/17/05)
-!  (4 ) Add emis_save to save surface emissions for non-local PBL scheme. 
-!        (lin, 5/29/09)
-!  (5 ) Bug fix: EMIS_SAVE should be EMIS_SAVE(I,J,...) instead of
-!        EMIS_SAVE(:,:,...) since we are in a parallel loop (bmy, 1/11/10)
-!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, args
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!  19 May 2014 - C. Keller   - Updates SESQ emissions.
+!  11 Nov 2014 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL         :: IS_BCPO, IS_OCPO, IS_BCPI, IS_OCPI
-      LOGICAL         :: IS_MTPA, IS_LIMO, IS_MTPO ! hotp 5/20/10
-      LOGICAL         :: IS_POA ! for poa (hotp 8/24/09)
-      INTEGER         :: I,       J,       L,       PBL_MAX
-      REAL*8          :: F_OF_PBL, TMPFLX
-
-      ! For fields from Input_Opt
-      LOGICAL         :: LNLPBL
-      REAL*8          :: POAEMISSSCALE
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+      INTEGER                  :: I, J, L, PBL_MAX
+      INTEGER                  :: HCOPOA1, HCOPOG1
+      REAL*8                   :: EMIS, TMPFLX
+      REAL*8                   :: F_OF_PBL      
+      LOGICAL                  :: FOUND
+      INTEGER, SAVE            :: SESQID = -999
 
       !=================================================================
-      ! EMITHIGH begins here!
+      ! EMISSCARBON begins here!
       !=================================================================
 
-      ! Copy values from Input_Opt
-      LNLPBL        = Input_Opt%LNLPBL
-      POAEMISSSCALE = Input_Opt%POAEMISSSCALE
+      ! Assume failure until successful return
+      RC = GIGC_FAILURE
 
-      ! Define logical flags for expediency
-      ! semivolpoa: no OCPI and OCPO tracers, replace with POA
-      IS_BCPI = ( IDTBCPI > 0 )
-      IS_OCPI = ( IDTOCPI > 0 ) 
-      IS_BCPO = ( IDTBCPO > 0 )
-      IS_OCPO = ( IDTOCPO > 0 )
-      IS_POA  = ( IDTPOA1 > 0 )  ! hotp 8/24/09
-      ! Update for new lumping (hotp 5/20/10)
-      IS_MTPA = ( IDTMTPA > 0 )
-      IS_LIMO = ( IDTLIMO > 0 )
-      IS_MTPO = ( IDTMTPO > 0 )
+      ! Reset POAEMISS
+      POAEMISS = 0.0d0
+ 
+      ! Get pointer to HEMCO state object
+      CALL GetHcoState ( HcoState )
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         RETURN
+      ENDIF
 
-      ! semivolpoa2: initialize POAEMISS (hotp 2/27/09)
-      POAEMISS = 0d0
+      ! Eventually get HEMCO ID of species SESQ 
+      IF ( SESQID == -999 ) THEN
+         SESQID = GetHcoID( 'SESQ' )
+      ENDIF
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      ! Get HEMCO ID of tracer POA1 and POG1
+      HCOPOA1 = GetHcoID( TrcID=IDTPOA1 )
+      HCOPOG1 = GetHcoID( TrcID=IDTPOG1 )
 
-      ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
-      ! (units: kg) (Lin, 06/09/08) 
-
-      IF ( LNLPBL ) THEN
-
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-   
-            IF ( IS_BCPI ) EMIS_SAVE(I,J,IDTBCPI) = BCSRC(I,J,1)
-            IF ( IS_OCPI ) EMIS_SAVE(I,J,IDTOCPI) = OCSRC(I,J,1)
-            IF ( IS_BCPO ) EMIS_SAVE(I,J,IDTBCPO) = BCSRC(I,J,2)
-            IF ( IS_OCPO ) EMIS_SAVE(I,J,IDTOCPO) = OCSRC(I,J,2)
-            ! update for new mtp (hotp 7/28/10)
-            ! TERP and ALCO no longer used
-            IF ( IS_LIMO ) EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
-            IF ( IS_MTPA ) EMIS_SAVE(I,J,IDTMTPA) = BIOG_MTPA(I,J)
-            IF ( IS_MTPO ) EMIS_SAVE(I,J,IDTMTPO) = BIOG_MTPO(I,J)
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-         ! Fix for species without tracers 
-         ! species whose emissions are not added to STT in this routine
-         ! (hotp 7/28/10)
-         ! Just use old PBL mixing to prevent all emissions from going into 
-         ! into surface layer for now
-
-         ! Maximum extent of PBL [model levels]
-         PBL_MAX = GET_PBL_MAX_L()
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_OF_PBL )
-         DO L = 1, PBL_MAX
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-            F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
-
-            IF ( IS_LIMO ) THEN
-               ! Sesquiterpenes. BIOG_SESQ is calculated in HEMCO. Units
-               ! are kgC/m2/s, convert to kgC/box here.
-               TMPFLX = BIOG_SESQ(I,J,1) * GET_TS_EMIS()   * 
-     &                  60.0d0           * GET_AREA_M2(I,J,1)
-               ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-     &                            ( F_OF_PBL * TMPFLX )
-            ENDIF
-
-            ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
-            ! Note that POA emissions do not go directly into the STT array
-            ! Semivolatile POA emissions are based on OCPI+OCPO with
-            !  a scaling factor (POAEMISSSCALE)
-            ! Emiss added to STT in SOA_CHEMISTRY via CHEM_NVOC
-            IF ( IS_POA ) THEN
-               POAEMISS(I,J,L,1) = F_OF_PBL*OCSRC(I,J,1)*POAEMISSSCALE
-               POAEMISS(I,J,L,2) = F_OF_PBL*OCSRC(I,J,2)*POAEMISSSCALE
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-         RETURN ! we don't need to use below
-
-      ENDIF ! LNLPBL
+      ! Check if POA emission arrays are indeed defined
+      IF ( HCOPOA1 > 0 ) THEN
+         IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOA1)%Emis%Val) ) THEN
+            HCOPOA1 = -1
+         ENDIF
+      ENDIF
+      IF ( HCOPOG1 > 0 ) THEN
+         IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
+            HCOPOG1 = -1
+         ENDIF
+      ENDIF
 
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
 
-      !=================================================================
-      ! Partition emissions throughout the boundary layer
-      !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_OF_PBL )
+!$OMP+PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis, FOUND )
       DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
+ 
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
          F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
 
-         ! Hydrophilic BLACK CARBON
-         IF ( IS_BCPI ) THEN
-            STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) + 
-     &                           ( F_OF_PBL * BCSRC(I,J,1) )
+         IF ( SESQID > 0 ) THEN
+            ! Sesquiterpenes emissions are caluclated in HEMCO. 
+            ! Units are kgC/m2/s, convert to kgC/box here.
+            ! We assume all SESQ emissions are placed in surface
+            ! level.
+            CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis=EMIS )
+            IF ( FOUND ) THEN
+               TMPFLX = EMIS    * GET_TS_EMIS()   * 
+     &                  60.0d0  * GET_AREA_M2(I,J,1)
+               ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L) + 
+     &                            ( F_OF_PBL * TMPFLX )
+            ENDIF
          ENDIF
 
-         ! Hydrophilic ORGANIC CARBON
-         IF ( IS_OCPI ) THEN
-            STT(I,J,L,IDTOCPI) = STT(I,J,L,IDTOCPI) + 
-     &                           ( F_OF_PBL * OCSRC(I,J,1) )
-         ENDIF
-            
-         ! Hydrophobic BLACK CARBON
-         IF ( IS_BCPO ) THEN
-            STT(I,J,L,IDTBCPO) = STT(I,J,L,IDTBCPO) + 
-     &                           ( F_OF_PBL * BCSRC(I,J,2) )
-         ENDIF
-
-         ! Hydrophobic ORGANIC CARBON
-         IF ( IS_OCPO ) THEN
-            STT(I,J,L,IDTOCPO) = STT(I,J,L,IDTOCPO) + 
-     &                           ( F_OF_PBL * OCSRC(I,J,2) )
-         ENDIF
-
-         ! Lumped MTPA (hotp 5/20/10) new mtp
-         IF ( IS_MTPA ) THEN
-            STT(I,J,L,IDTMTPA) = STT(I,J,L,IDTMTPA) + 
-     &                           ( F_OF_PBL * BIOG_MTPA(I,J) )
-         ENDIF
-
-         ! Limonene (no change)
-         IF ( IS_LIMO ) THEN
-            STT(I,J,L,IDTLIMO) = STT(I,J,L,IDTLIMO) + 
-     &                           ( F_OF_PBL * BIOG_LIMO(I,J) )
-         ENDIF
-
-         ! Lumped MTPO (hotp 5/20/10) new mtp
-         IF ( IS_MTPO ) THEN
-            STT(I,J,L,IDTMTPO) = STT(I,J,L,IDTMTPO) + 
-     &                           ( F_OF_PBL * BIOG_MTPO(I,J) )
-
-            ! Sesquiterpenes. BIOG_SESQ is calculated in HEMCO. Units
-            ! are kgC/m2/s, convert to kgC/box here.
-            TMPFLX = BIOG_SESQ(I,J,1) * GET_TS_EMIS()   * 
-     &               60.0d0           * GET_AREA_M2(I,J,1)
-            ORVC_SESQ(I,J,L)   = ORVC_SESQ(I,J,L) + 
-     &                           ( F_OF_PBL * TMPFLX ) 
-         ENDIF
-
-         ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
-         ! note that POA emissions do not go directly into the STT array
-         IF ( IS_POA ) THEN
-            ! semivolpoa2: store emission of OC into 
-            ! POAEMISS array for use in CHEM_NVOC (hotp 2/27/09)
-            ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
-            ! add POAEMISSSCALE here (hotp 9/22/09)
-            POAEMISS(I,J,L,1) = F_OF_PBL * OCSRC(I,J,1) * POAEMISSSCALE
-            POAEMISS(I,J,L,2) = F_OF_PBL * OCSRC(I,J,2) * POAEMISSSCALE
-         ENDIF
-
+         ! For POA, add emissions to POAEMISS array. Mix entire
+         ! column emissions evenly in the PBL.
+         IF ( HCOPOA1 > 0 ) THEN
+            TMPFLX = SUM(HcoState%Spc(HCOPOA1)%Emis%Val(I,J,:))
+            POAEMISS(I,J,L,1) = F_OF_PBL * TMPFLX
+         ENDIF 
+         IF ( HCOPOG1 > 0 ) THEN
+            TMPFLX = SUM(HcoState%Spc(HCOPOG1)%Emis%Val(I,J,:))
+            POAEMISS(I,J,L,2) = F_OF_PBL * TMPFLX
+         ENDIF 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Free pointer
-      NULLIFY( STT )
+      ! Reset POA emissions to zero to make sure that they are
+      ! not double-counted (when doing PBL mixing) 
+      IF ( HCOPOA1>0) HcoState%Spc(HCOPOA1)%Emis%Val = 0.0d0
+      IF ( HCOPOG1>0) HcoState%Spc(HCOPOG1)%Emis%Val = 0.0d0
 
-      ! Return to calling program
-      END SUBROUTINE EMITHIGH
+      ! Return w/ success
+      RC = GIGC_SUCCESS
+
+      END SUBROUTINE EMISSCARBON
+!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: emithigh
+!!
+!! !DESCRIPTION: Subroutine EMITHIGH mixes tracer completely from the surface to
+!!  the PBL top. (rjp, bmy, 4/2/04, 1/11/10)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE EMITHIGH( BCSRC, OCSRC, Input_Opt, State_Chm )
+!!
+!! !USES:
+!!
+!      USE CMN_SIZE_MOD
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
+!      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
+!      USE TRACERID_MOD,       ONLY : IDTMTPA, IDTLIMO, IDTMTPO ! hotp 5/20/10
+!      ! Add POA treatment (hotp 8/24/09)
+!      USE TRACERID_MOD,       ONLY : IDTPOA1
+!      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (Lin, 03/31/09)
+!      ! HEMCO update ( ckeller 05/19.2014)
+!      USE GRID_MOD,           ONLY : GET_AREA_M2
+!      USE TIME_MOD,           ONLY : GET_TS_EMIS
+!      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal
+!!
+!! !INPUT PARAMETERS:
+!!      
+!      REAL*8,         INTENT(IN)    :: BCSRC(IIPAR,JJPAR,2) ! Total BC [kg]
+!      REAL*8,         INTENT(IN)    :: OCSRC(IIPAR,JJPAR,2) ! Total OC [kg]
+!      TYPE(OptInput), INTENT(IN)    :: Input_Opt            ! Input Options
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!! 
+!! !REVISION HISTORY:
+!!  (1 ) Now also mix ALPH, LIMO, ALCO tracers (rjp, bmy, 7/8/04)
+!!  (2 ) Now reference STT from "tracer_mod.f" (bmy, 7/20/04)
+!!  (3 ) Remove references to "dao_mod.f", "pressure_mod.f", and "error_mod.f".
+!!        Rewrote for computational expediency using routines from
+!!        "pbl_mix_mod.f".  (bmy, 2/17/05)
+!!  (4 ) Add emis_save to save surface emissions for non-local PBL scheme. 
+!!        (lin, 5/29/09)
+!!  (5 ) Bug fix: EMIS_SAVE should be EMIS_SAVE(I,J,...) instead of
+!!        EMIS_SAVE(:,:,...) since we are in a parallel loop (bmy, 1/11/10)
+!!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, args
+!!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!!                              semivolatile POA simulations (H. Pye)
+!!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!!  19 May 2014 - C. Keller   - Updated SESQ emissions.
+!!  21 Oct 2014 - C. Keller   - Now use GetHcoVal for SESQ emissions.
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      LOGICAL         :: IS_BCPO, IS_OCPO, IS_BCPI, IS_OCPI
+!      LOGICAL         :: IS_MTPA, IS_LIMO, IS_MTPO ! hotp 5/20/10
+!      LOGICAL         :: IS_POA ! for poa (hotp 8/24/09)
+!      INTEGER         :: I,       J,       L,       PBL_MAX
+!      REAL*8          :: F_OF_PBL, TMPFLX
+!
+!      ! For fields from Input_Opt
+!      LOGICAL         :: LNLPBL
+!      REAL*8          :: POAEMISSSCALE
+!
+!      ! Pointers
+!      ! We need to define local arrays to hold corresponding values 
+!      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+!      REAL*8, POINTER :: STT(:,:,:,:)
+!
+!      !=================================================================
+!      ! EMITHIGH begins here!
+!      !=================================================================
+!
+!      ! Copy values from Input_Opt
+!      LNLPBL        = Input_Opt%LNLPBL
+!      POAEMISSSCALE = Input_Opt%POAEMISSSCALE
+!
+!      ! Define logical flags for expediency
+!      ! semivolpoa: no OCPI and OCPO tracers, replace with POA
+!      IS_BCPI = ( IDTBCPI > 0 )
+!      IS_OCPI = ( IDTOCPI > 0 ) 
+!      IS_BCPO = ( IDTBCPO > 0 )
+!      IS_OCPO = ( IDTOCPO > 0 )
+!      IS_POA  = ( IDTPOA1 > 0 )  ! hotp 8/24/09
+!      ! Update for new lumping (hotp 5/20/10)
+!      IS_MTPA = ( IDTMTPA > 0 )
+!      IS_LIMO = ( IDTLIMO > 0 )
+!      IS_MTPO = ( IDTMTPO > 0 )
+!
+!      ! semivolpoa2: initialize POAEMISS (hotp 2/27/09)
+!      POAEMISS = 0d0
+!
+!      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+!      ! (mpayer, 12/6/12)
+!      STT => State_Chm%Tracers
+!
+!      ! Eventually get HEMCO ID of species SESQ 
+!      IF ( SESQID == -999 ) THEN
+!         SESQID = GetHcoID( 'SESQ' )
+!      ENDIF
+!
+!      ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
+!      ! (units: kg) (Lin, 06/09/08) 
+!
+!      IF ( LNLPBL ) THEN
+!
+!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!   
+!            IF ( IS_BCPI ) EMIS_SAVE(I,J,IDTBCPI) = BCSRC(I,J,1)
+!            IF ( IS_OCPI ) EMIS_SAVE(I,J,IDTOCPI) = OCSRC(I,J,1)
+!            IF ( IS_BCPO ) EMIS_SAVE(I,J,IDTBCPO) = BCSRC(I,J,2)
+!            IF ( IS_OCPO ) EMIS_SAVE(I,J,IDTOCPO) = OCSRC(I,J,2)
+!            ! update for new mtp (hotp 7/28/10)
+!            ! TERP and ALCO no longer used
+!            IF ( IS_LIMO ) EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
+!            IF ( IS_MTPA ) EMIS_SAVE(I,J,IDTMTPA) = BIOG_MTPA(I,J)
+!            IF ( IS_MTPO ) EMIS_SAVE(I,J,IDTMTPO) = BIOG_MTPO(I,J)
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!
+!         ! Fix for species without tracers 
+!         ! species whose emissions are not added to STT in this routine
+!         ! (hotp 7/28/10)
+!         ! Just use old PBL mixing to prevent all emissions from going into 
+!         ! into surface layer for now
+!
+!         ! Maximum extent of PBL [model levels]
+!         PBL_MAX = GET_PBL_MAX_L()
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis, FOUND )
+!         DO L = 1, PBL_MAX
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!
+!            ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+!            F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
+!
+!            IF ( SESQID > 0 ) THEN
+!               ! Sesquiterpenes emissions are caluclated in HEMCO. 
+!               ! Units are kgC/m2/s, convert to kgC/box here.
+!               CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis=Emis )
+!               IF ( FOUND ) THEN
+!                  TMPFLX = Emis    * GET_TS_EMIS()   * 
+!     &                     60.0d0  * GET_AREA_M2(I,J,1)
+!                  ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L) + 
+!     &                               ( F_OF_PBL * TMPFLX )
+!               ENDIF
+!            ENDIF
+!
+!            ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
+!            ! Note that POA emissions do not go directly into the STT array
+!            ! Semivolatile POA emissions are based on OCPI+OCPO with
+!            !  a scaling factor (POAEMISSSCALE)
+!            ! Emiss added to STT in SOA_CHEMISTRY via CHEM_NVOC
+!            IF ( IS_POA ) THEN
+!               POAEMISS(I,J,L,1) = F_OF_PBL*OCSRC(I,J,1)*POAEMISSSCALE
+!               POAEMISS(I,J,L,2) = F_OF_PBL*OCSRC(I,J,2)*POAEMISSSCALE
+!            ENDIF
+!
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!
+!         RETURN ! we don't need to use below
+!
+!      ENDIF ! LNLPBL
+!
+!      ! Maximum extent of PBL [model levels]
+!      PBL_MAX = GET_PBL_MAX_L()
+!
+!      !=================================================================
+!      ! Partition emissions throughout the boundary layer
+!      !=================================================================
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis, FOUND )
+!      DO L = 1, PBL_MAX
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+!         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
+!
+!         ! Hydrophilic BLACK CARBON
+!         IF ( IS_BCPI ) THEN
+!            STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) + 
+!     &                           ( F_OF_PBL * BCSRC(I,J,1) )
+!         ENDIF
+!
+!         ! Hydrophilic ORGANIC CARBON
+!         IF ( IS_OCPI ) THEN
+!            STT(I,J,L,IDTOCPI) = STT(I,J,L,IDTOCPI) + 
+!     &                           ( F_OF_PBL * OCSRC(I,J,1) )
+!         ENDIF
+!            
+!         ! Hydrophobic BLACK CARBON
+!         IF ( IS_BCPO ) THEN
+!            STT(I,J,L,IDTBCPO) = STT(I,J,L,IDTBCPO) + 
+!     &                           ( F_OF_PBL * BCSRC(I,J,2) )
+!         ENDIF
+!
+!         ! Hydrophobic ORGANIC CARBON
+!         IF ( IS_OCPO ) THEN
+!            STT(I,J,L,IDTOCPO) = STT(I,J,L,IDTOCPO) + 
+!     &                           ( F_OF_PBL * OCSRC(I,J,2) )
+!         ENDIF
+!
+!         ! Lumped MTPA (hotp 5/20/10) new mtp
+!         IF ( IS_MTPA ) THEN
+!            STT(I,J,L,IDTMTPA) = STT(I,J,L,IDTMTPA) + 
+!     &                           ( F_OF_PBL * BIOG_MTPA(I,J) )
+!         ENDIF
+!
+!         ! Limonene (no change)
+!         IF ( IS_LIMO ) THEN
+!            STT(I,J,L,IDTLIMO) = STT(I,J,L,IDTLIMO) + 
+!     &                           ( F_OF_PBL * BIOG_LIMO(I,J) )
+!         ENDIF
+!
+!         ! Lumped MTPO (hotp 5/20/10) new mtp
+!         IF ( IS_MTPO ) THEN
+!            STT(I,J,L,IDTMTPO) = STT(I,J,L,IDTMTPO) + 
+!     &                           ( F_OF_PBL * BIOG_MTPO(I,J) )
+!         ENDIF
+!
+!         ! Sesquiterpenes emissions are caluclated in HEMCO. 
+!         ! Units are kgC/m2/s, convert to kgC/box here.
+!         IF ( SESQID > 0 ) THEN
+!            CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis=Emis )
+!            IF ( FOUND ) THEN
+!               TMPFLX = Emis    * GET_TS_EMIS()   * 
+!     &                  60.0d0  * GET_AREA_M2(I,J,1)
+!               ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L) + 
+!     &                            ( F_OF_PBL * TMPFLX )
+!            ENDIF
+!         ENDIF
+!
+!         ! semivolpoa: add OCSRC to POA tracer (hotp 2/16/09)
+!         ! note that POA emissions do not go directly into the STT array
+!         IF ( IS_POA ) THEN
+!            ! semivolpoa2: store emission of OC into 
+!            ! POAEMISS array for use in CHEM_NVOC (hotp 2/27/09)
+!            ! semivolpoa3: separate BB,BF from anth (hotp 3/13/09)
+!            ! add POAEMISSSCALE here (hotp 9/22/09)
+!            POAEMISS(I,J,L,1) = F_OF_PBL * OCSRC(I,J,1) * POAEMISSSCALE
+!            POAEMISS(I,J,L,2) = F_OF_PBL * OCSRC(I,J,2) * POAEMISSSCALE
+!         ENDIF
+!
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      ! Free pointer
+!      NULLIFY( STT )
+!
+!      ! Return to calling program
+!      END SUBROUTINE EMITHIGH
 !EOC
 #if defined( TOMAS )
 !------------------------------------------------------------------------------
@@ -9147,33 +9332,33 @@ ccc
          CALL ERROR_STOP('Too many NOx levels','carbon_mod.f')
       ENDIF
 
-      ALLOCATE( ANTH_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ANTH_BLKC' )
-      ANTH_BLKC = 0d0
+!      ALLOCATE( ANTH_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ANTH_BLKC' )
+!      ANTH_BLKC = 0d0
+!
+!      ALLOCATE( ANTH_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ANTH_ORGC' )
+!      ANTH_ORGC = 0d0
+!
+!      ALLOCATE( BIOB_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOB_BLKC' )
+!      BIOB_BLKC = 0d0
 
-      ALLOCATE( ANTH_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ANTH_ORGC' )
-      ANTH_ORGC = 0d0
-
-      ALLOCATE( BIOB_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOB_BLKC' )
-      BIOB_BLKC = 0d0
-
-      ALLOCATE( BIOB_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOB_ORGC' )
-      BIOB_ORGC = 0d0
-
-      ALLOCATE( BIOF_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOF_BLKC' )
-      BIOF_BLKC = 0d0
-
-      ALLOCATE( BIOF_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOF_ORGC' )
-      BIOF_ORGC = 0d0
-
-      ALLOCATE( TERP_ORGC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TERP_ORGC' )
-      TERP_ORGC = 0d0
+!      ALLOCATE( BIOB_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOB_ORGC' )
+!      BIOB_ORGC = 0d0
+!
+!      ALLOCATE( BIOF_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOF_BLKC' )
+!      BIOF_BLKC = 0d0
+!
+!      ALLOCATE( BIOF_ORGC( IIPAR, JJPAR, 2 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOF_ORGC' )
+!      BIOF_ORGC = 0d0
+!
+!      ALLOCATE( TERP_ORGC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TERP_ORGC' )
+!      TERP_ORGC = 0d0
 
       ALLOCATE( BCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONV' )
@@ -9193,47 +9378,47 @@ ccc
       ! These only have to be allocated if we are
       ! reading in monthly/8-day/3-hr mean biomass burning
       !=================================================================
-      IF ( .not. USE_BOND_BIOBURN ) THEN
-
-         ALLOCATE( EF_BLKC( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EF_BLKC' )
-         EF_BLKC = 0d0
-
-         ALLOCATE( EF_ORGC( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EF_ORGC' )
-         EF_ORGC = 0d0
-
-      ENDIF
+!      IF ( .not. USE_BOND_BIOBURN ) THEN
+!
+!         ALLOCATE( EF_BLKC( IIPAR, JJPAR ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EF_BLKC' )
+!         EF_BLKC = 0d0
+!
+!         ALLOCATE( EF_ORGC( IIPAR, JJPAR ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EF_ORGC' )
+!         EF_ORGC = 0d0
+!
+!      ENDIF
 
       !=================================================================
       ! SOA arrays only have to be allocated if LSOA = T
       !=================================================================
       IF ( Input_Opt%LSOA ) THEN
       
-         ! MTPA, LIMO, MTPO update for new mtp lumping (hotp 5/20/10)
-         ALLOCATE( BIOG_MTPA( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPA' )
-         BIOG_MTPA = 0d0
-
-         ALLOCATE( BIOG_LIMO( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_LIMO' )
-         BIOG_LIMO = 0d0
-
-         ALLOCATE( BIOG_MTPO( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPO' )
-         BIOG_MTPO = 0d0
-
-         ALLOCATE( BIOG_SESQ( IIPAR, JJPAR, 1 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_SESQ' )
-         BIOG_SESQ = 0d0
-
-         ALLOCATE( DIUR_ORVC( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DIUR_ORVC' )
-         DIUR_ORVC = 0d0
-
-         ALLOCATE( GEIA_ORVC( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GEIA_ORVC' )
-         GEIA_ORVC = 0d0
+!         ! MTPA, LIMO, MTPO update for new mtp lumping (hotp 5/20/10)
+!         ALLOCATE( BIOG_MTPA( IIPAR, JJPAR ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPA' )
+!         BIOG_MTPA = 0d0
+!
+!         ALLOCATE( BIOG_LIMO( IIPAR, JJPAR ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_LIMO' )
+!         BIOG_LIMO = 0d0
+!
+!         ALLOCATE( BIOG_MTPO( IIPAR, JJPAR ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_MTPO' )
+!         BIOG_MTPO = 0d0
+!
+!         ALLOCATE( BIOG_SESQ( IIPAR, JJPAR, 1 ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_SESQ' )
+!         BIOG_SESQ = 0d0
+!
+!         ALLOCATE( DIUR_ORVC( IIPAR, JJPAR ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DIUR_ORVC' )
+!         DIUR_ORVC = 0d0
+!
+!         ALLOCATE( GEIA_ORVC( IIPAR, JJPAR ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GEIA_ORVC' )
+!         GEIA_ORVC = 0d0
 
          ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
@@ -9521,23 +9706,23 @@ ccc
       !=================================================================
       ! CLEANUP_CARBON begins here!
       !=================================================================
-      IF ( ALLOCATED( ANTH_BLKC     ) ) DEALLOCATE( ANTH_BLKC     )
-      IF ( ALLOCATED( ANTH_ORGC     ) ) DEALLOCATE( ANTH_ORGC     )
-      IF ( ALLOCATED( BIOB_BLKC     ) ) DEALLOCATE( BIOB_BLKC     )
-      IF ( ALLOCATED( BIOB_ORGC     ) ) DEALLOCATE( BIOB_ORGC     )
-      IF ( ALLOCATED( BIOF_BLKC     ) ) DEALLOCATE( BIOF_BLKC     )
-      IF ( ALLOCATED( BIOF_ORGC     ) ) DEALLOCATE( BIOF_ORGC     )
-      IF ( ALLOCATED( TERP_ORGC     ) ) DEALLOCATE( TERP_ORGC     )
+!      IF ( ALLOCATED( ANTH_BLKC     ) ) DEALLOCATE( ANTH_BLKC     )
+!      IF ( ALLOCATED( ANTH_ORGC     ) ) DEALLOCATE( ANTH_ORGC     )
+!      IF ( ALLOCATED( BIOB_BLKC     ) ) DEALLOCATE( BIOB_BLKC     )
+!      IF ( ALLOCATED( BIOB_ORGC     ) ) DEALLOCATE( BIOB_ORGC     )
+!      IF ( ALLOCATED( BIOF_BLKC     ) ) DEALLOCATE( BIOF_BLKC     )
+!      IF ( ALLOCATED( BIOF_ORGC     ) ) DEALLOCATE( BIOF_ORGC     )
+!      IF ( ALLOCATED( TERP_ORGC     ) ) DEALLOCATE( TERP_ORGC     )
       IF ( ALLOCATED( BCCONV        ) ) DEALLOCATE( BCCONV        )
       IF ( ALLOCATED( OCCONV        ) ) DEALLOCATE( OCCONV        )
-      IF ( ALLOCATED( EF_BLKC       ) ) DEALLOCATE( EF_BLKC       )
-      IF ( ALLOCATED( EF_ORGC       ) ) DEALLOCATE( EF_ORGC       )
-      IF ( ALLOCATED( BIOG_MTPA     ) ) DEALLOCATE( BIOG_MTPA     )
-      IF ( ALLOCATED( BIOG_LIMO     ) ) DEALLOCATE( BIOG_LIMO     )
-      IF ( ALLOCATED( BIOG_MTPO     ) ) DEALLOCATE( BIOG_MTPO     )
-      IF ( ALLOCATED( BIOG_SESQ     ) ) DEALLOCATE( BIOG_SESQ     )
-      IF ( ALLOCATED( DIUR_ORVC     ) ) DEALLOCATE( DIUR_ORVC     )
-      IF ( ALLOCATED( GEIA_ORVC     ) ) DEALLOCATE( GEIA_ORVC     )
+!      IF ( ALLOCATED( EF_BLKC       ) ) DEALLOCATE( EF_BLKC       )
+!      IF ( ALLOCATED( EF_ORGC       ) ) DEALLOCATE( EF_ORGC       )
+!      IF ( ALLOCATED( BIOG_MTPA     ) ) DEALLOCATE( BIOG_MTPA     )
+!      IF ( ALLOCATED( BIOG_LIMO     ) ) DEALLOCATE( BIOG_LIMO     )
+!      IF ( ALLOCATED( BIOG_MTPO     ) ) DEALLOCATE( BIOG_MTPO     )
+!      IF ( ALLOCATED( BIOG_SESQ     ) ) DEALLOCATE( BIOG_SESQ     )
+!      IF ( ALLOCATED( DIUR_ORVC     ) ) DEALLOCATE( DIUR_ORVC     )
+!      IF ( ALLOCATED( GEIA_ORVC     ) ) DEALLOCATE( GEIA_ORVC     )
       IF ( ALLOCATED( TCOSZ         ) ) DEALLOCATE( TCOSZ         )
       IF ( ALLOCATED( ORVC_SESQ     ) ) DEALLOCATE( ORVC_SESQ     )
       IF ( ALLOCATED( VCLDF         ) ) DEALLOCATE( VCLDF         )

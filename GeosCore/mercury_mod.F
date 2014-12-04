@@ -286,6 +286,11 @@
       REAL*8,  ALLOCATABLE :: ZERO_DVEL(:,:)
       REAL*8,  ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) 
       REAL*8,  ALLOCATABLE :: JNO2(:,:,:) 
+
+      ! For now, we need an emission array for the HG simulation
+      ! that can be passed to vdiff_mod.F90 since Trac_Tend does 
+      ! not exist anymore (ckeller, 10/21/2014).
+      REAL*8,  ALLOCATABLE, PUBLIC :: HG_EMIS(:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1374,6 +1379,19 @@
 !  emissions.
 !\\
 !\\
+! NOTE/TODO: The mercury simulation is the only GEOS-Chem emission code that
+! is not yet fully compatible with HEMCO. So far, only the anthropogenic 
+! emissions are included in HEMCO. For all other sources, the original
+! mercury code is used.
+!\\
+!\\
+! For the non-local PBL mixing, all emissions are written into module array
+! HG\_EMIS (in kg m-2 s-1). These values are then used by vdiff\_mod.F90.
+! This is just a workaround to ensure backwards compatibility of the mercury
+! code. Once we have added all mercury emissions to HEMCO, HG\_EMIS is not
+! used any more (ckeller, 10/21/2014). 
+!\\
+!\\
 ! !INTERFACE:
 !
       SUBROUTINE EMISSMERCURY( am_I_Root, Input_Opt,
@@ -1569,9 +1587,9 @@
       
       ! If we are using the non-local PBL mixing,
       ! we need to initialize the EMIS_SAVE array (cdh, 08/27/09)
-      ! EMIS_SAVE is now trac_tend array (ckeller, 09/23/2014)
+      ! EMIS_SAVE is now HG_EMIS (ckeller, 10/21/2014)
 !      IF (LNLPBL) EMIS_SAVE = 0d0
-      IF ( LNLPBL ) State_Chm%Trac_Tend(:,:,:,:) = 0.0d0
+      IF ( LNLPBL ) HG_EMIS = 0.0d0
 
       ! Add Hg(0) source into State_Chm%TRACERS [kg]
       CALL SRCHg0( am_I_Root, Input_Opt, State_Chm, RC )
@@ -1655,14 +1673,15 @@
       ! Make sure that emitted mass is non-negative
       ! This is hear only for consistency with old code which warned of
       ! underflow error (cdh, 08/27/09)
-      ! EMIS_SAVE is now trac_tend array. Convert kg to kg/m2/s
+      ! EMIS_SAVE is now HG_EMIS array. Convert kg to kg/m2/s
       ! (ckeller, 09/23/2014)
       IF ( LNLPBL ) THEN
 !         EMIS_SAVE(I,J,ID) = EMIS_SAVE(I,J,ID) + MAX( E_HG, 0D0 )
           AM2 = GET_AREA_M2(I,J,1)
           TS  = GET_TS_EMIS() * 60.0d0
-          State_Chm%Trac_Tend(I,J,1,ID) = State_Chm%Trac_Tend(I,J,1,ID)
-     &                                  + ( MAX(E_HG,0d0) / AM2 / TS )
+!          State_Chm%Trac_Tend(I,J,1,ID) = State_Chm%Trac_Tend(I,J,1,ID)
+          HG_EMIS(I,J,ID) = HG_EMIS(I,J,ID) 
+     &                    + ( MAX(E_HG,0d0) / AM2 / TS )
       ELSE
 
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -3200,13 +3219,10 @@
       !
       ! NOTE: the current implementation is a hybrid version between
       ! HEMCO and the old mercury code, primarily to make sure that
-      ! all the diagnostics based on EHgX_xy still work. Because of
+      ! all the diagnostics based on EHg* still work. Because of
       ! that, we convert all emissions from kg/m2/s to kg/s and then
-      ! back to kg/m2/s when we pass them to State_Chm%Trac_Tend (in
-      ! SRCHg0 and SRCHg2). Also, all HEMCO emissions become already
-      ! written to Trac_Tend by HEMCO, but we erase those values and
-      ! refill Trac_Tend using the EHgX_xy arrays.
-      !
+      ! back to kg/m2/s when we pass them to HG_EMIS (via SRCHg0 and
+      ! SRCHg2). HG_EMIS is used for the non-local PBL mixing scheme.
       ! (ckeller, 09/24/2014) 
       !=================================================================
 
@@ -3275,7 +3291,7 @@
       HcoState => NULL()
 
 !===========================================================================
-! ORIG emissions code follows below. Keep here for debugging
+! Orig emissions code follows below. Keep for now for testing/debugging
 ! (ckeller, 09/24/2014)
 !===========================================================================
 
@@ -7802,6 +7818,11 @@
 
       ENDIF
 
+      ! HG_EMIS is needed for non-local PBL mixing 
+      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, N_TRACERS ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG_EMIS' )
+      HG_EMIS = 0d0
+
       !=================================================================
       ! Settings
       !=================================================================
@@ -7975,6 +7996,7 @@
       IF ( ALLOCATED( HG2_SEASALT_LOSSRATE ) ) 
      &     DEALLOCATE( HG2_SEASALT_LOSSRATE   ) 
       IF ( ALLOCATED( JNO2      ) ) DEALLOCATE( JNO2      ) 
+      IF ( ALLOCATED( HG_EMIS   ) ) DEALLOCATE( HG_EMIS   ) 
   
       END SUBROUTINE CLEANUP_MERCURY
 !EOC

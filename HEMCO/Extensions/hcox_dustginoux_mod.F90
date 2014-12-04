@@ -190,6 +190,7 @@ CONTAINS
     REAL*8            :: SRCE_P, REYNOL, ALPHA,  BETA
     REAL*8            :: GAMMA,  CW,     DTSRCE, A_M2,  G
     REAL              :: DSRC
+    CHARACTER(LEN=63) :: MSG
 
     ! Arrays
     REAL(hp), TARGET  :: FLUX(HcoState%NX,HcoState%NY,NBINS)
@@ -348,7 +349,11 @@ CONTAINS
 
           ! Add flux to emission array
           CALL HCO_EmisAdd( HcoState, FLUX(:,:,N), HcoIDs(N), RC)
-          IF ( RC /= HCO_SUCCESS ) RETURN 
+          IF ( RC /= HCO_SUCCESS ) THEN
+             WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
+             CALL HCO_ERROR( MSG, RC )
+             RETURN 
+          ENDIF
 
           ! Eventually update diagnostics
           IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -384,7 +389,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_ExtList_Mod, ONLY : GetExtNr
+    USE HCO_ExtList_Mod, ONLY : GetExtNr, GetExtOpt
     USE HCO_State_Mod,   ONLY : HCO_GetExtHcoID
 !
 ! !INPUT PARAMETERS:
@@ -411,8 +416,8 @@ CONTAINS
     ! Scalars
     INTEGER                        :: N, nSpc
     CHARACTER(LEN=255)             :: MSG
-    LOGICAL                        :: verb
-    REAL(dp)                       :: Mp, Rp
+    REAL(dp)                       :: Mp, Rp, TmpScal
+    LOGICAL                        :: FOUND
 
     ! Arrays
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
@@ -445,11 +450,28 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Get global mass flux tuning factor
-    CH_DUST = HcoX_DustGinoux_GetCHDust()
+    ! Set scale factor: first try to read from configuration file. If
+    ! not specified, call wrapper function which sets teh scale factor
+    ! based upon compiler switches.
+    CALL GetExtOpt ( ExtNr, 'Mass tuning factor', &
+                     OptValDp=TmpScal, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Set parameter FLX_MSS_FDG_FCT to specified tuning factor. Get from
+    ! wrapper routine if not defined in configuration file
+    IF ( FOUND ) THEN
+       CH_DUST = TmpScal
+    ELSE
+       ! Get global mass flux tuning factor
+       CH_DUST = HcoX_DustGinoux_GetCHDust()
+       IF ( CH_DUST < 0.0_dp ) THEN
+          RC = HCO_FAIL
+          RETURN
+       ENDIF
+    ENDIF
 
     ! Verbose mode
-    IF ( verb ) THEN
+    IF ( am_I_Root ) THEN
        MSG = 'Use Ginoux dust emissions (extension module)'
        CALL HCO_MSG( MSG )
 

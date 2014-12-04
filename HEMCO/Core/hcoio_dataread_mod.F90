@@ -89,18 +89,20 @@ CONTAINS
     INTEGER                    :: II, JJ, LL, TT
     INTEGER                    :: I, J, L, T
     INTEGER                    :: STAT
-    REAL(hp),         POINTER  :: Ptr3D(:,:,:)   => NULL() 
-    REAL(hp),         POINTER  :: Ptr2D(:,:)     => NULL() 
+    REAL,             POINTER  :: Ptr3D(:,:,:)   => NULL() 
+    REAL,             POINTER  :: Ptr2D(:,:)     => NULL() 
     TYPE(ESMF_State), POINTER  :: IMPORT         => NULL()
     LOGICAL                    :: verb
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
+    CHARACTER(LEN=ESMF_MAXSTR) :: Iam
 
     !=================================================================
     ! HCOIO_DATAREAD begins here
     !=================================================================
 
     ! For error handling
+    Iam = LOC
     CALL HCO_ENTER ( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -124,7 +126,7 @@ CONTAINS
                              TRIM(Lct%Dct%Dta%ncFile), RC=STAT )
 
        ! Check for MAPL error
-       IF( MAPL_VRFY(STAT,LOC,1) ) THEN
+       IF( STAT /= ESMF_SUCCESS ) THEN 
           MSG = 'Cannot get xyz pointer: ' // TRIM(Lct%Dct%Dta%ncFile)
           CALL HCO_ERROR ( MSG, RC ) 
           RETURN
@@ -160,7 +162,7 @@ CONTAINS
                              TRIM(Lct%Dct%Dta%ncFile), RC=STAT )
 
        ! Check for MAPL error 
-       IF( MAPL_VRFY(STAT,LOC,2) ) THEN
+       IF( STAT /= ESMF_SUCCESS ) THEN 
           MSG = 'Cannot get xy pointer: ' // TRIM(Lct%Dct%Dta%ncFile)
           CALL HCO_ERROR ( MSG, RC ) 
           RETURN
@@ -413,55 +415,45 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Try to extract level midpoints
-    LevName = 'lev'
-    CALL NC_READ_VAR ( ncLun, LevName, nlev, LevUnit, LevMid, NCRC )
-    IF ( NCRC /= 0 ) THEN
-       CALL HCO_ERROR( 'NC_READ_LEV', RC )
-       RETURN 
-    ENDIF
-    IF ( nlev == 0 ) THEN
-       LevName = 'height'
+    ! Get level index if we are dealing with 3D data
+    IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
+
+       ! Try to extract level midpoints
+       LevName = 'lev'
        CALL NC_READ_VAR ( ncLun, LevName, nlev, LevUnit, LevMid, NCRC )
        IF ( NCRC /= 0 ) THEN
           CALL HCO_ERROR( 'NC_READ_LEV', RC )
           RETURN 
        ENDIF
-    ENDIF
+       IF ( nlev == 0 ) THEN
+          LevName = 'height'
+          CALL NC_READ_VAR ( ncLun, LevName, nlev, LevUnit, LevMid, NCRC )
+          IF ( NCRC /= 0 ) THEN
+             CALL HCO_ERROR( 'NC_READ_LEV', RC )
+             RETURN 
+          ENDIF
+       ENDIF
 
-    ! Sanity check of vertical dimensions
-    ! ==> numbers of vertical levels must not exceed HEMCO state
-    ! levels (only horizontal regridding supported so far!)
-    ! Also check if dimensionality agrees with settings in input
-    ! file!
-!    IF ( nlev > HcoState%NZ ) THEN
-!       MSG = 'Too many vert. levels in ' // TRIM(srcFile)
-!       CALL HCO_ERROR ( MSG, RC )
-!       RETURN 
-!    ENDIF
+       ! Error check
+       IF ( nlev == 0 ) THEN
+          MSG = 'Source data of '//TRIM(Lct%Dct%cName)//' is not 3D: '//&
+                TRIM(srcFile)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ENDIF
 
-    ! Set level indeces to be read
-    ! NOTE: for now, always read all levels. Edit here to read
-    ! only particular levels.
-    ! Also do sanity check whether or not vertical dimension does 
-    ! agree with space dimension specified in configuration file.
-    IF ( nlev > 0 ) THEN
+       ! Set level indeces to be read
+       ! NOTE: for now, always read all levels. Edit here to read
+       ! only particular levels.
        lev1 = 1
        lev2 = nlev
-       IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-          MSG = 'Found 3D data, but space dim is not set to 3: ' // &
-                TRIM(srcFile)
-          CALL HCO_ERROR ( MSG, RC )
-          RETURN
-       ENDIF
-    ELSE
+
+    ! For 2D data, set lev1 and lev2 to zero. This will ignore
+    ! the level dimension in the netCDF reading call that follows.
+    ELSE 
+       nlev = 0 
        lev1 = 0
        lev2 = 0
-       IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
-          MSG = 'Could not find level coordinate: ' // TRIM(srcFile)
-          CALL HCO_ERROR ( MSG, RC )
-          RETURN
-       ENDIF
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -1558,7 +1550,8 @@ CONTAINS
        IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) .OR. & 
             Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
             Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
-          MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
+          MSG = 'Data must not have more than one time dimension: ' // &
+                 TRIM(Lct%Dct%cName)
           CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
@@ -1827,28 +1820,12 @@ CONTAINS
 ! with the intendend characters. The parsed file name is returned in string
 ! srcFile, while the original file name is retained in Lct.
 !
-!\\
-!\\
-! At the moment, the following tokens are searched and replaced:
-!\begin{itemize}
-!\item \$ROOT: will be replaced by the root path specified in the settings
-! section of the configuration file.
-!\item \$YYYY: will be replaced by the (4-digit) year according to the 
-! source time settings set in the configuration file.
-!\item \$MM: will be replaced by the (2-digit) month according to the
-! source time settings set in the configuration file.
-!\item \$DD: will be replaced by the (2-digit) day according to the
-! source time settings set in the configuration file.
-!\item \$HH: will be replaced by the (2-digit) hour according to the
-! source time settings set in the configuration file.
-!\end{itemize}
-! !INTERFACE:
-!
   SUBROUTINE SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, RC )
 !
 ! !USES:
 !
     USE HCO_TIDX_MOD,         ONLY : HCO_GetPrefTimeAttr
+    USE HCO_CHARTOOLS_MOD,    ONLY : HCO_CharParse
 !
 ! !INPUT PARAMETERS:
 !
@@ -1872,13 +1849,7 @@ CONTAINS
 ! 
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)  :: MSG
-    CHARACTER(LEN=255)  :: LOC = 'SrcFile_Parse (HCOIO_DataRead_Mod.F90)'
-    CHARACTER(LEN=2047) :: TMPSTR, BEFORE, AFTER
-    INTEGER             :: LN, IDX, OFF
-    INTEGER             :: prefYr, prefMt, prefDy, prefHr
-    CHARACTER(LEN=4)    :: YYYY
-    CHARACTER(LEN=2)    :: MM, DD, HH
+    INTEGER :: prefYr, prefMt, prefDy, prefHr
 
     !=================================================================
     ! SrcFile_Parse
@@ -1887,142 +1858,13 @@ CONTAINS
     ! Initialize to input string
     srcFile = Lct%Dct%Dta%ncFile
 
-    ! Get preferred dates just in case we need them below
+    ! Get preferred dates (to be passed to parser
     CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Check for root token
-    !-------------------------------------------------------------------
-    IDX = INDEX( srcFile, '$ROOT' )
-    IF ( IDX > 0 ) THEN
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 5
-       AFTER = srcFile((IDX+OFF):LN)
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(HCO_ROOT()) // TRIM(AFTER)
-    ENDIF
-
-    ! Check for year token
-    !-------------------------------------------------------------------
-    DO 
-       IDX = INDEX( srcFile, '$YYYY' )
-       IF ( IDX <= 0 ) EXIT
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 5
-       AFTER = srcFile((IDX+OFF):LN)
-
-       WRITE(YYYY,'(i4.4)') prefYr
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(YYYY) // TRIM(AFTER)
-    ENDDO
-
-    ! Check for month token
-    !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( srcFile, '$MM' )
-       IF ( IDX <= 0 ) EXIT 
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 3
-       AFTER = srcFile((IDX+OFF):LN)
-
-       WRITE(MM,'(i2.2)') prefMt
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(MM) // TRIM(AFTER)
-    ENDDO
-
-    ! Check for day token
-    !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( srcFile, '$DD' )
-       IF ( IDX <= 0 ) EXIT 
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 3
-       AFTER = srcFile((IDX+OFF):LN)
-
-       WRITE(DD,'(i2.2)') prefDy
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(DD) // TRIM(AFTER)
-    ENDDO
-
-    ! Check for hour token
-    !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( srcFile, '$HH' )
-       IF ( IDX <= 0 ) EXIT 
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 3
-       AFTER = srcFile((IDX+OFF):LN)
-
-       WRITE(HH,'(i2.2)') prefHr
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(HH) // TRIM(AFTER)
-    ENDDO
-
-    ! Check for met. model token 
-    !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( srcFile, '$MET' )
-       IF ( IDX <= 0 ) EXIT 
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 4
-       AFTER = srcFile((IDX+OFF):LN)
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(HcoState%TOKEN_MET) // TRIM(AFTER)
-    ENDDO
-
-    ! Check for met. resolution token 
-    !-------------------------------------------------------------------
-    DO
-       IDX = INDEX( srcFile, '$RES' )
-       IF ( IDX <= 0 ) EXIT 
-       LN = LEN(srcFile)
-       IF ( IDX > 1 ) THEN
-          BEFORE = srcFile(1:(IDX-1))
-       ELSE
-          BEFORE = ''
-       ENDIF
-       OFF   = 4
-       AFTER = srcFile((IDX+OFF):LN)
-
-       ! Updated string
-       srcFile = TRIM(BEFORE) // TRIM(HcoState%TOKEN_RES) // TRIM(AFTER)
-    ENDDO
+    ! Call the parser
+    CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
     RC = HCO_SUCCESS

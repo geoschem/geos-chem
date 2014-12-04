@@ -44,6 +44,7 @@
 #  25 Aug 2011 - R. Yantosca - Remove -fp-model source flag here, as this is
 #                              now added to FFLAGS in Makefile_header.mk
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  21 Nov 2014 - R. Yantosca - Compile w/o includes for ESMF, MAPL, FVdycore
 #EOP
 #------------------------------------------------------------------------------
 #BOC

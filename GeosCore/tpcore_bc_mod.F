@@ -53,7 +53,9 @@
       PRIVATE :: CLEAN_WINDOW_TPCORE_BC
       PRIVATE :: READ_WINDOW_TPCORE_BC
       PRIVATE :: GET_4x5_BC
+      PRIVATE :: GET_4x5_BC_INIT
       PRIVATE :: GET_2x25_BC
+      PRIVATE :: GET_2x25_BC_INIT
       PRIVATE :: ITS_TIME_FOR_BC
       PRIVATE :: CLEANUP_TPCORE_BC
 !
@@ -827,6 +829,10 @@
 
       IF ( .not. LWINDO2x25 ) THEN
 
+         ! On first call, initialize 4x5 to 1x1 mapping indeces. Do this now
+         ! outside of do loop (ckeller, 11/10/2014)
+         IF ( FIRST ) CALL GET_4x5_BC_INIT
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -864,7 +870,12 @@
          ENDDO
 !$OMP END PARALLEL DO
 
+
       ELSE
+
+         ! On first call, initialize 4x5 to 1x1 mapping indeces. Do this now
+         ! outside of do loop (ckeller, 11/10/2014)
+         IF ( FIRST ) CALL GET_2x25_BC_INIT
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -904,6 +915,9 @@
 !$OMP END PARALLEL DO
 
       ENDIF
+
+      ! Update first flag
+      FIRST = .FALSE.
 
       ! Free pointer
       NULLIFY( STT )
@@ -1159,6 +1173,153 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_4x5_bc_init
+!
+! !DESCRIPTION: Function GET\_4x5\_BC\_INIT initializes the MAP1x1 arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_4x5_BC_INIT
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE GRID_MOD,      ONLY : GET_XMID, GET_YMID
+!
+! !REMARKS:
+!  NOTE: This routine was originally written for the 1 x 1 nested grid,
+!  but this now works for the GEOS-5 0.5 x 0.666 nested grid data.  Keep
+!  variable names I_1x1, J_1x1, etc. unchanged for the present.
+!                                                                             .
+!  For now we will assume that we have saved tracer concentrations from 
+!  a  4x5 window which overlays the corresponding 1x1 WINDOW REGION.  
+!  These 4x5 tracer concentrations are used as boundary conditions for 
+!  TPCORE.  
+! 
+! !REVISION HISTORY: 
+!  07 Mar 2003 - Y. Wang, R. Yantosca - Initial version
+!  (1 ) Rename arguments to avoid conflict w/ I1x1, J1x1 parameters in 
+!        CMN_SIZE. (bmy, 10/24/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  10 Nov 2014 - C. Keller   - Split off from GET_4x5_BC
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      !clb
+      INTEGER       :: I, II, J, JJ
+      REAL*8        :: X, Y
+      REAL*8        :: XE4x5(73), YE4x5(47)
+
+      !=================================================================
+      ! GET_4x5_BC_INIT begins here!
+      !=================================================================
+
+      !==============================================================
+      ! Define lon & lat edges of the 4x5 grid -- we need to 
+      ! use these to do the mapping from 1x1 --> 4x5 
+      !==============================================================
+
+      ! Lon edges
+      DO I = 1, 73
+         XE4x5(I) = -182.5d0 + 5 * ( I - 1 )
+      ENDDO
+
+      ! Lat edges
+      DO J = 2, 46
+         YE4x5(J) = -92d0 + 4 * ( J - 1 ) 
+      ENDDO
+
+      ! Polar lats
+      YE4x5(1)  = -90d0
+      YE4x5(47) = +90d0
+
+      !==============================================================
+      ! Locate the 4x5 box(es) to which each 1x1 box belongs
+      ! X, Y are lon & lat centers of the 1x1 boxes in degrees
+      ! Save in the MAP1x1 array for future reference
+      !==============================================================
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         X = GET_XMID( I, J, 1 )
+         Y = GET_YMID( I, J, 1 )  
+
+         ! Loop over 4x5 longitudes
+         DO II = 1, 72
+
+            ! If the 1x1 center lon lies w/in the 4x5 lon edges
+            ! then we have found the proper 4x5 box!
+            IF ( X > XE4x5(II) .and. X < XE4x5(II+1) ) THEN
+               MAP1x1(I,J,1) = II
+               MAP1x1(I,J,2) = 0
+               EXIT
+            ! Bug fix for 4x5 BCs (clb, 5/29/12)
+            ELSE IF ( X == XE4x5(II) .and. I == 1) THEN
+               MAP1x1(I,J,1) = II
+               MAP1x1(I,J,2) = 0
+               EXIT
+            ELSE IF ( X == XE4x5(II) .and. I .ne. 1) THEN
+               MAP1x1(I,J,1) = II - 1
+               MAP1x1(I,J,2) = II
+               EXIT
+            ELSE IF ( X == XE4x5(II+1) ) THEN
+               MAP1x1(I,J,1) = II
+               MAP1x1(I,J,2) = II + 1
+               EXIT
+            ENDIF
+
+         ENDDO
+
+         ! Loop over 4x5 latitudes
+         DO JJ = 1, 46
+         
+            ! If the 1x1 lat center lies between the 4x5 lat
+            ! edges, we have found the proper 4x5 box!
+            IF ( Y > YE4x5(JJ) .and. Y < YE4x5(JJ+1) ) THEN
+               MAP1x1(I,J,3) = JJ
+               MAP1x1(I,J,4) = 0
+               EXIT
+               
+            ! If the 1x1 lat center equals the 4x5 lower lat
+            ! edge, then we need to average this 4x5 box and
+            ! the box just south of it
+            ! Bug fix for 4x5 BCs (clb, 5/29/12)
+            ELSE IF ( Y == YE4x5(JJ) .and. J == 1) THEN
+               MAP1x1(I,J,3) = JJ
+               MAP1x1(I,J,4) = 0
+               EXIT
+
+            ELSE IF ( Y == YE4x5(JJ) .and. J .ne. 1) THEN
+               MAP1x1(I,J,3) = JJ-1
+               MAP1x1(I,J,4) = JJ
+               EXIT
+
+            ! If the 1x1 lat center equals the 4x5 lower lat
+            ! edge, then we need to average this 4x5 box and
+            ! the box just north of it              
+            ELSE IF ( Y == YE4x5(JJ+1) ) THEN
+               MAP1x1(I,J,3) = JJ
+               MAP1x1(I,J,4) = JJ+1
+               EXIT
+
+            ENDIF
+         ENDDO
+      ENDDO
+      ENDDO
+
+      END SUBROUTINE GET_4x5_BC_INIT
+!EOC
+!------------------------------------------------------------------------------
+!               GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_4x5_bc
 !
 ! !DESCRIPTION: Function GET\_4x5\_BC returns a value from the 4x5 BC 
@@ -1171,8 +1332,6 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE GRID_MOD,      ONLY : GET_XMID, GET_YMID
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1202,122 +1361,19 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  10 Nov 2014 - C. Keller   - Now initialize MAP1x1 array in separate routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
       !clb
-      INTEGER       :: I, II, II1, J, JJ, JJ1
-      REAL*8        :: X,         Y
-      REAL*8,  SAVE :: XE4x5(73), YE4x5(47)
+      INTEGER       :: II, II1, JJ, JJ1
 
       !=================================================================
       ! GET_4x5_BC begins here!
       !=================================================================
-
-      ! First-time initialization
-      IF ( FIRST ) THEN
-
-         !==============================================================
-         ! Define lon & lat edges of the 4x5 grid -- we need to 
-         ! use these to do the mapping from 1x1 --> 4x5 
-         !==============================================================
-
-         ! Lon edges
-         DO I = 1, 73
-            XE4x5(I) = -182.5d0 + 5 * ( I - 1 )
-         ENDDO
-
-         ! Lat edges
-         DO J = 2, 46
-            YE4x5(J) = -92d0 + 4 * ( J - 1 ) 
-         ENDDO
-
-         ! Polar lats
-         YE4x5(1)  = -90d0
-         YE4x5(47) = +90d0
-
-         !==============================================================
-         ! Locate the 4x5 box(es) to which each 1x1 box belongs
-         ! X, Y are lon & lat centers of the 1x1 boxes in degrees
-         ! Save in the MAP1x1 array for future reference
-         !==============================================================
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            X = GET_XMID( I, J, 1 )
-            Y = GET_YMID( I, J, 1 )  
-
-            ! Loop over 4x5 longitudes
-            DO II = 1, 72
-
-               ! If the 1x1 center lon lies w/in the 4x5 lon edges
-               ! then we have found the proper 4x5 box!
-               IF ( X > XE4x5(II) .and. X < XE4x5(II+1) ) THEN
-                  MAP1x1(I,J,1) = II
-                  MAP1x1(I,J,2) = 0
-                  EXIT
-               ! Bug fix for 4x5 BCs (clb, 5/29/12)
-               ELSE IF ( X == XE4x5(II) .and. I == 1) THEN
-                  MAP1x1(I,J,1) = II
-                  MAP1x1(I,J,2) = 0
-                  EXIT
-               ELSE IF ( X == XE4x5(II) .and. I .ne. 1) THEN
-                  MAP1x1(I,J,1) = II - 1
-                  MAP1x1(I,J,2) = II
-                  EXIT
-               ELSE IF ( X == XE4x5(II+1) ) THEN
-                  MAP1x1(I,J,1) = II
-                  MAP1x1(I,J,2) = II + 1
-                  EXIT
-               ENDIF
-
-            ENDDO
-
-            ! Loop over 4x5 latitudes
-            DO JJ = 1, 46
-            
-               ! If the 1x1 lat center lies between the 4x5 lat
-               ! edges, we have found the proper 4x5 box!
-               IF ( Y > YE4x5(JJ) .and. Y < YE4x5(JJ+1) ) THEN
-                  MAP1x1(I,J,3) = JJ
-                  MAP1x1(I,J,4) = 0
-                  EXIT
-                  
-               ! If the 1x1 lat center equals the 4x5 lower lat
-               ! edge, then we need to average this 4x5 box and
-               ! the box just south of it
-               ! Bug fix for 4x5 BCs (clb, 5/29/12)
-               ELSE IF ( Y == YE4x5(JJ) .and. J == 1) THEN
-                  MAP1x1(I,J,3) = JJ
-                  MAP1x1(I,J,4) = 0
-                  EXIT
-
-               ELSE IF ( Y == YE4x5(JJ) .and. J .ne. 1) THEN
-                  MAP1x1(I,J,3) = JJ-1
-                  MAP1x1(I,J,4) = JJ
-                  EXIT
-
-               ! If the 1x1 lat center equals the 4x5 lower lat
-               ! edge, then we need to average this 4x5 box and
-               ! the box just north of it              
-   
-               ELSE IF ( Y == YE4x5(JJ+1) ) THEN
-                  MAP1x1(I,J,3) = JJ
-                  MAP1x1(I,J,4) = JJ+1
-                  EXIT
-
-               ENDIF
-            ENDDO
-         ENDDO
-         ENDDO
-
-         ! Reset first-time flag
-         FIRST = .FALSE.
-      ENDIF
 
       !=============================================================
       ! Locate the tracer concentration at the 4x5 box which 
@@ -1352,6 +1408,156 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_2x25_bc_init
+!
+! !DESCRIPTION: Function GET\_2x25\_BC\_INIT initializes the 2x25 mapping
+!  values.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_2x25_BC_INIT
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
+!
+! !INPUT PARAMETERS: 
+!
+!
+! !RETURN VALUE:
+!
+!
+! !REMARKS:
+!  NOTE: This routine was originally written for the 1 x 1 nested grid,
+!  but this now works for the GEOS-5 0.5 x 0.666 nested grid data.  Keep
+!  variable names I_1x1, J_1x1, etc. unchanged for the present.
+!                                                                             .
+!  For now we will assume that we have saved tracer concentrations from 
+!  a 2 x 2.5 window which overlays the corresponding NESTED WINDOW REGION.  
+!  These 2 x 2.5 tracer concentrations are used as boundary conditions
+!  for TPCORE.
+! 
+! !REVISION HISTORY: 
+!  18 Dec 2009 - A. van Donkeelar - Initial version
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  10 Nov 2014 - C. Keller   - Split off from GET_2x25_BC. Now account 
+!                              for high-res midpoints on edges.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER       :: I, II, J, JJ
+      REAL*8        :: X, Y
+      REAL*8        :: XE2x25(145), YE2x25(92)
+
+      !=================================================================
+      ! GET_2x25_BC_INIT begins here!
+      !=================================================================
+
+      !==============================================================
+      ! Define lon & lat edges of the 2x25 grid -- we need to
+      ! use these to do the mapping from 1x1 --> 2x25
+      !==============================================================
+
+      ! Lon edges
+      DO I = 1, 145
+         XE2x25(I) = -181.25d0 + 2.5 * ( I - 1 )
+      ENDDO
+
+      ! Lat edges
+      DO J = 2, 91
+         YE2x25(J) = -91d0 + 2 * ( J - 1 )
+      ENDDO
+
+      ! Polar lats
+      YE2x25(1)  = -90d0
+      YE2x25(92) = +90d0
+
+      !==============================================================
+      ! Locate the 2x25 box(es) to which each 1x1 box belongs
+      ! X, Y are lon & lat centers of the 1x1 boxes in degrees
+      ! Save in the MAP1x1 array for future reference
+      !==============================================================
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Grid box longitude and latitude [degrees]
+         X = GET_XMID( I, J, 1 )
+         Y = GET_YMID( I, J, 1 )
+
+         ! Loop over 2x25 longitudes
+         DO II = 1, 144
+
+            ! If the 1x1 center lon lies w/in the 2x25 lon edges
+            ! then we have found the proper 2x25 box!
+            IF ( X > XE2x25(II) .and. X < XE2x25(II+1) ) THEN
+               MAP1x1(I,J,1) = II
+               MAP1x1(I,J,2) = 0
+               EXIT
+
+            ! If the 1x1 lat center equals the 2x25 left lon
+            ! edge, then we need to average this 2x25 box and
+            ! the box just west of it
+            ELSE IF ( X == XE2x25(II) ) THEN
+               MAP1x1(I,J,1) = II-1
+               MAP1x1(I,J,2) = II 
+               EXIT
+
+            ! If the 1x1 lat center equals the 2x25 right lon
+            ! edge, then we need to average this 2x25 box and
+            ! the box just east of it
+            ELSE IF ( X == XE2x25(II+1) ) THEN
+               MAP1x1(I,J,1) = II
+               MAP1x1(I,J,2) = II+1
+               EXIT
+
+            ENDIF
+         ENDDO
+
+         ! Loop over 2x25 latitudes
+         DO JJ = 1, 91
+
+            ! If the 1x1 lat center lies between the 2x25 lat
+            ! edges, we have found the proper 2x25 box!
+            IF ( Y > YE2x25(JJ) .and. Y < YE2x25(JJ+1) ) THEN
+               MAP1x1(I,J,3) = JJ
+               MAP1x1(I,J,4) = 0
+               EXIT
+
+            ! If the 1x1 lat center equals the 2x25 lower lat
+            ! edge, then we need to average this 2x25 box and
+            ! the box just south of it
+            ELSE IF ( Y == YE2x25(JJ) ) THEN
+               MAP1x1(I,J,3) = JJ-1
+               MAP1x1(I,J,4) = JJ
+               EXIT
+
+            ! If the 1x1 lat center equals the 2x25 upper lat
+            ! edge, then we need to average this 2x25 box and
+            ! the box just north of it
+            ELSE IF ( Y == YE2x25(JJ+1) ) THEN
+               MAP1x1(I,J,3) = JJ
+               MAP1x1(I,J,4) = JJ+1
+               EXIT
+
+            ENDIF
+         ENDDO
+      ENDDO
+      ENDDO
+
+      END SUBROUTINE GET_2x25_BC_INIT
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_2x25_bc
 !
 ! !DESCRIPTION: Function GET\_2x25\_BC returns a value from the 2 x 2.5 
@@ -1364,8 +1570,6 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1393,100 +1597,19 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  10 Nov 2014 - C. Keller   - Now initialize MAP1x1 array in separate routine
+!                              Also account for high-res midpoint on edges. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, II, J, JJ, JJ1
-      REAL*8        :: X,         Y
-      REAL*8,  SAVE :: XE2x25(145), YE2x25(92)
+      INTEGER       :: II, II1, JJ, JJ1
 
       !=================================================================
       ! GET_2x25_BC begins here!
       !=================================================================
-
-      ! First-time initialization
-      IF ( FIRST ) THEN
-
-         !==============================================================
-         ! Define lon & lat edges of the 2x25 grid -- we need to
-         ! use these to do the mapping from 1x1 --> 2x25
-         !==============================================================
-
-         ! Lon edges
-         DO I = 1, 145
-            XE2x25(I) = -181.25d0 + 2.5 * ( I - 1 )
-         ENDDO
-
-         ! Lat edges
-         DO J = 2, 91
-            YE2x25(J) = -91d0 + 2 * ( J - 1 )
-         ENDDO
-
-         ! Polar lats
-         YE2x25(1)  = -90d0
-         YE2x25(92) = +90d0
-
-         !==============================================================
-         ! Locate the 2x25 box(es) to which each 1x1 box belongs
-         ! X, Y are lon & lat centers of the 1x1 boxes in degrees
-         ! Save in the MAP1x1 array for future reference
-         !==============================================================
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Grid box longitude and latitude [degrees]
-            X = GET_XMID( I, J, 1 )
-            Y = GET_YMID( I, J, 1 )
-
-            ! Loop over 2x25 longitudes
-            DO II = 1, 144
-
-               ! If the 1x1 center lon lies w/in the 2x25 lon edges
-               ! then we have found the proper 2x25 box!
-               IF ( X > XE2x25(II) .and. X < XE2x25(II+1) ) THEN
-                  MAP1x1(I,J,1) = II
-                  EXIT
-               ENDIF
-            ENDDO
-
-            ! Loop over 2x25 latitudes
-            DO JJ = 1, 91
-
-               ! If the 1x1 lat center lies between the 2x25 lat
-               ! edges, we have found the proper 2x25 box!
-               IF ( Y > YE2x25(JJ) .and. Y < YE2x25(JJ+1) ) THEN
-                  MAP1x1(I,J,2) = JJ
-                  MAP1x1(I,J,3) = 0
-                  EXIT
-
-               ! If the 1x1 lat center equals the 2x25 lower lat
-               ! edge, then we need to average this 2x25 box and
-               ! the box just south of it
-               ELSE IF ( Y == YE2x25(JJ) ) THEN
-                  MAP1x1(I,J,2) = JJ-1
-                  MAP1x1(I,J,3) = JJ
-                  EXIT
-
-               ! If the 1x1 lat center equals the 2x25 lower lat
-               ! edge, then we need to average this 2x25 box and
-               ! the box just north of it
-               ELSE IF ( Y == YE2x25(JJ+1) ) THEN
-                  MAP1x1(I,J,2) = JJ
-                  MAP1x1(I,J,3) = JJ+1
-                  EXIT
-
-               ENDIF
-            ENDDO
-         ENDDO
-         ENDDO
-
-         ! Reset first-time flag
-         FIRST = .FALSE.
-      ENDIF
 
       !=============================================================
       ! Locate the tracer concentration at the 4x5 box which
@@ -1495,15 +1618,21 @@
 
       ! Get lon indices
       II  = MAP1x1( I_1x1, J_1x1, 1 ) - I0_BC
+      II1 = MAP1x1( I_1x1, J_1x1, 2 ) - I0_BC
 
       ! Get lat indices
-      JJ  = MAP1x1( I_1x1, J_1x1, 2 ) - J0_BC
-      JJ1 = MAP1x1( I_1x1, J_1x1, 3 ) - J0_BC
+      JJ  = MAP1x1( I_1x1, J_1x1, 3 ) - J0_BC
+      JJ1 = MAP1x1( I_1x1, J_1x1, 4 ) - J0_BC
 
       ! Locate the 2x25 box(es) corresponding to the 1x1 box
-      ! If our 1x1 box straddles 2 2x25 boxes, average the 2x25 values
-      IF ( MAP1x1( I_1x1, J_1x1, 3 ) > 0 ) THEN
-         VALUE = 0.5 * ( BC(II,JJ,L_1x1,N_1x1) + BC(II,JJ1,L_1x1,N_1x1))
+      ! If our 1x1 box straddles multiple boxes, average the 2x25 values
+      IF (MAP1x1(I_1x1,J_1x1,2)>0 .and. MAP1x1(I_1x1,J_1x1,4)>0) THEN
+         VALUE = 0.25 * (BC(II,JJ,L_1x1,N_1x1) + BC(II,JJ1,L_1x1,N_1x1)
+     &               + BC(II1,JJ,L_1x1,N_1x1)+ BC(II1,JJ1,L_1x1,N_1x1))
+      ELSE IF (MAP1x1(I_1x1,J_1x1,2)>0 ) THEN
+         VALUE = 0.5 *( BC(II,JJ,L_1x1,N_1x1) + BC(II1,JJ,L_1x1,N_1x1))
+      ELSE IF (MAP1x1(I_1x1,J_1x1,4)>0 ) THEN
+         VALUE = 0.5 *( BC(II,JJ,L_1x1,N_1x1) + BC(II,JJ1,L_1x1,N_1x1))
       ELSE
          VALUE = BC(II,JJ,L_1x1,N_1x1)
       ENDIF

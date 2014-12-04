@@ -117,11 +117,27 @@ MODULE HCOX_GFED3_MOD
   !              emission factor type. The filename of the emissions
   !              emissions factor table is specified in the HEMCO
   !              configuration file. All scale factors in kg/kgDM.
-  ! COScale    : CO scale factor to account for porduction from 
+  ! COScale    : CO scale factor to account for production from 
   !              VOCs. Read from HEMCO configuration file.
+  ! OCPIfrac   : Fraction of OC that converts into hydrophilic OC.
+  !              Can be set in HEMCO configuration file (default=0.5)
+  ! BCPIfrac   : Fraction of BC that converts into hydrophilic BC.
+  !              Can be set in HEMCO configuration file (default=0.2)
+  ! POASCALE  : Scale factor for POA. If tracer POA1 is specified, 
+  !             emissions are calculated from OC, multiplied by a
+  !             POA scale factor that must be specified in the HEMCO
+  !             configuration file (POA scale).
+  ! NAPSCALE  : Scale factor for NAP. If tracer NAP is specified, 
+  !             emissions are calculated from CO, multiplied by a
+  !             NAP scale factor that must be specified in the HEMCO
+  !             configuration file (NAP scale).
   !=================================================================
   REAL(hp),          ALLOCATABLE :: GFED3_EMFAC(:,:)
   REAL(sp)                       :: COScale
+  REAL(sp)                       :: OCPIfrac 
+  REAL(sp)                       :: BCPIfrac
+  REAL(sp)                       :: POASCALE
+  REAL(sp)                       :: NAPSCALE
 
   !=================================================================
   ! DATA ARRAY POINTERS 
@@ -179,11 +195,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL             :: IsCO 
     LOGICAL, SAVE       :: FIRST = .TRUE.
     INTEGER             :: N, M
     REAL(hp), POINTER   :: Arr2D (:,:) => NULL()
     REAL(hp), POINTER   :: TMPPTR(:,:) => NULL()
+    CHARACTER(LEN=63)   :: MSG
 
     REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
@@ -247,13 +263,6 @@ CONTAINS
        ! species. TypArr are the emissions from a given source type. 
        SpcArr = 0.0_hp
 
-       ! Is this CO?
-       IF ( TRIM(SpcNames(N)) == "CO" ) THEN
-          IsCO = .TRUE.
-       ELSE
-          IsCO = .FALSE.
-       ENDIF
-
        ! Calculate emissions for all source types
        DO M = 1, N_EMFAC
          
@@ -295,9 +304,6 @@ CONTAINS
           IF ( DoDay ) TypArr = TypArr * DAYSCAL
           IF ( Do3Hr ) TypArr = TypArr * HRSCAL
 
-          ! For CO, multiply with CO scale factor
-          IF ( IsCo ) TypArr = TypArr * COScale        
-
           ! Add to output array
           SpcArr = SpcArr + TypArr
 
@@ -306,9 +312,31 @@ CONTAINS
 
        ENDDO !M
 
+       ! Apply species specific scale factors
+       SELECT CASE ( SpcNames(N) ) 
+          CASE ( 'CO' )
+             SpcArr = SpcArr * COScale        
+          CASE ( 'OCPI' )
+             SpcArr = SpcArr * OCPIfrac
+          CASE ( 'OCPO' )
+             SpcArr = SpcArr * (1.0_sp - OCPIfrac)
+          CASE ( 'BCPI' )
+             SpcArr = SpcArr * BCPIfrac
+          CASE ( 'BCPO' )
+             SpcArr = SpcArr * (1.0_sp - BCPIfrac)
+          CASE ( 'POA1' )
+             SpcArr = POASCALE * SpcArr
+          CASE ( 'NAP' )
+             SpcArr = NAPSCALE * SpcArr
+       END SELECT
+
        ! Add flux to HEMCO emission array
        CALL HCO_EmisAdd( HcoState, SpcArr, HcoIDs(N), RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoIDs(N))%SpcName)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN 
+       ENDIF
 
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
@@ -319,6 +347,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
           Arr2D => NULL()
        ENDIF
+
     ENDDO !N
 
     ! Nullify pointers for safety's sake
@@ -367,6 +396,7 @@ CONTAINS
 !  15 Dec 2013 - C. Keller   - Initial version
 !  08 Aug 2014 - R. Yantosca - Now include hcox_gfed3_include.H, which defines
 !                              GFED3_SPEC_NAME and GFED3_EMFAC arrays
+!  11 Nov 2014 - C. Keller   - Now get hydrophilic fractions through config file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -379,7 +409,8 @@ CONTAINS
     INTEGER            :: N, M, NDUM
     CHARACTER(LEN=31)  :: tmpName
     CHARACTER(LEN=31)  :: SpcName
-    LOGICAL            :: Matched
+    LOGICAL            :: FOUND, Matched
+    REAL(sp)           :: ValSp
 
     !=================================================================
     ! HCOX_GFED3_Init begins here!
@@ -394,13 +425,59 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ---------------------------------------------------------------------- 
-    ! Get settings 
+    ! Get settings
+    ! The CO scale factor (to account for oxidation from VOCs) as well as 
+    ! the speciation of carbon aerosols into hydrophilic and hydrophobic
+    ! fractions can be specified in the configuration file, e.g.:
+    ! 100     GFED3           : on    NO/CO/OCPI/OCPO/BCPI/BCPO
+    !     --> CO scale factor :       1.05
+    !     --> hydrophilic BC  :       0.2
+    !     --> hydrophilic OC  :       0.5
+    !
+    ! Setting these values is optional and default values are applied if 
+    ! they are not specified. The values only take effect if the
+    ! corresponding species (CO, BCPI/BCPO, OCPI/OCPO) are listed as species
+    ! to be used.
     ! ---------------------------------------------------------------------- 
  
-    ! Get CO scale factor 
+    ! Try to read CO scale factor. Defaults to 1.0
     CALL GetExtOpt ( ExtNr, 'CO scale factor', &
-                     OptValSp=COScale, RC=RC )
+                     OptValSp=ValSp, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) THEN
+       COScale = 1.0
+    ELSE
+       COScale = ValSp
+    ENDIF
+
+    ! Try to read hydrophilic fractions of BC. Defaults to 0.2.
+    CALL GetExtOpt ( ExtNr, 'hydrophilic BC', &
+                     OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) THEN
+       BCPIfrac = 0.2
+    ELSE
+       BCPIfrac = ValSp
+    ENDIF
+
+    ! Try to read hydrophilic fractions of OC. Defaults to 0.5.
+    CALL GetExtOpt ( ExtNr, 'hydrophilic OC', &
+                     OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) THEN
+       OCPIfrac = 0.5
+    ELSE
+       OCPIfrac = ValSp
+    ENDIF
+
+    ! Error check: OCPIfrac and BCPI frac must be between 0 and 1
+    IF ( OCPIfrac < 0.0_sp .OR. OCPIfrac > 1.0_sp .OR. &
+         BCPIfrac < 0.0_sp .OR. BCPIfrac > 1.0_sp     ) THEN
+       WRITE(MSG,*) 'hydrophilic fractions must be between 0-1: ', &
+          OCPIfrac, BCPIfrac
+       CALL HCO_ERROR( MSG, RC )
+       RETURN
+    ENDIF
 
     ! Use daily scale factors?
     tmpName = TRIM(ExtName) // "_daily"
@@ -455,6 +532,10 @@ CONTAINS
        CALL HCO_MSG( MSG )
        WRITE(MSG,*) '   - CO scale factor         : ', COScale
        CALL HCO_MSG( MSG )
+       WRITE(MSG,*) '   - Hydrophilic OC fraction : ', OCPIfrac
+       CALL HCO_MSG( MSG )
+       WRITE(MSG,*) '   - Hydrophilic BC fraction : ', BCPIfrac
+       CALL HCO_MSG( MSG )
     ENDIF
 
     ! Get HEMCO species IDs of all species specified in configuration file
@@ -486,6 +567,12 @@ CONTAINS
              SpcName = 'CO2'
           CASE ( 'CH4_bb', 'CH4_tot' )
              SpcName = 'CH4'
+          CASE ( 'BC', 'BCPI', 'BCPO' )
+             SpcName = 'BC'
+          CASE ( 'OC', 'OCPI', 'OCPO', 'POA1' )
+             SpcName = 'OC'
+          CASE ( 'NAP' )
+             SpcName = 'CO'
        END SELECT
 
        ! Search for matching GFED3 species by name
@@ -509,7 +596,38 @@ CONTAINS
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ENDIF
-    ENDDO
+
+       ! For tracer POA1, the POA scale factor must be defined in the HEMCO 
+       ! configuration file. This is the factor by which OC emissions will
+       ! be scaled.
+       IF ( TRIM(SpcNames(N)) == 'POA1' ) THEN
+          CALL GetExtOpt ( ExtNr, 'POA scale', &
+                           OptValSp=ValSp, FOUND=FOUND, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( .NOT. FOUND ) THEN
+             MSG = 'You must specify a POA scale factor for species POA1'
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+          POASCALE = ValSp
+       ENDIF
+
+       ! For tracer NAP, the NAP scale factor must be defined in the HEMCO 
+       ! configuration file. This is the factor by which CO emissions will
+       ! be scaled.
+       IF ( TRIM(SpcNames(N)) == 'NAP' ) THEN
+          CALL GetExtOpt ( ExtNr, 'NAP scale', &
+                           OptValSp=ValSp, FOUND=FOUND, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( .NOT. FOUND ) THEN
+             MSG = 'You must specify a NAP scale factor for species NAP'
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+          NAPSCALE = ValSp
+       ENDIF
+
+    ENDDO !N
 
     ! Enable module
     ExtState%GFED3 = .TRUE.

@@ -232,11 +232,13 @@
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
 !  23 Jul 2014 - R. Yantosca - Disable obsolete ND27 diagnostic
 !  02 Aug 2014 - C. Keller   - Connect to HEMCO diagnostics
-!  06 Aug 2014 - C. Keller   - Added wrapper subroutine for HEMCO diagnostics. 
+!  06 Aug 2014 - C. Keller   - Added wrapper subroutine for HEMCO diagnostics
 !  14 Aug 2014 - R. Yantosca - Corrected units for several diagnostic outputs
 !  26 Aug 2014 - M. Sulprizio- Now get ND53 POPs emissions from HEMCO
 !  03 Sep 2014 - R. Yantosca - Units of AD01_Rn_SOURCE and AD01_Be7_SOURCE are
 !                              now defined as kg/s in hcoi_gc_diagn_mod.F90 
+!  15 Oct 2014 - C. Keller   - Updated ND37 diagnostics to write out all specs
+!  24 Nov 2014 - R. Yantosca - Bug fix for ND28 BC/OC: Don't multiply by area
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -294,7 +296,7 @@
       ! Interface w/ HEMCO diagnostics
       INTEGER                   :: FLAG
       INTEGER                   :: AFill
-      CHARACTER(LEN= 63)        :: DiagnName
+      CHARACTER(LEN= 63)        :: DiagnName, SrcName, SpcName, FullName
       CHARACTER(LEN=255)        :: MSG
       TYPE(DiagnCont), POINTER  :: DiagnCnt => NULL() 
       TYPE(HCO_State), POINTER  :: HcoState => NULL()
@@ -608,45 +610,132 @@
          !UNIT = 'kg' 
          ! UNITS WERE CONFUSING -> everything in kgC (see latter)
          UNIT   = 'kgC' ! SOAupdate (hotp 7/29/10)
+         FACTOR = SECONDS 
     
          !--------------------------------------------------------------
-         ! Black carbon (BC) diagnostics
+         ! Emission diagnostics (OCPI,OCPO,BCPI,BCPO).
+         ! All carbon diagnostics are now in kgC/m2/s. Convert to kgC
+         ! here. Also, HEMCO writes out diagnostics for hydrophilic and
+         ! hydrophobic fractions individually. Add them together here.
+         ! If the POA simulation is used, we need to replace OCPI/OCPO
+         ! by POA1/POG1 because this is how those diagnostics become
+         ! defined in hcoi_gc_diagn_mod.F
          !--------------------------------------------------------------
 
-         !%%%%% Anthorpogenic BC %%%%%
-         DiagnName    = 'AD07_OC_ANTHRO'
-         CATEGORY     = 'BC-ANTH'
-         UNIT         = 'kgC'
-         N            = IDTBCPI
-         FACTOR       = 1d0
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ! Do for BC and OC
+         DO J = 1, 2
 
-         !%%%%% Biomass BC (convert kg/m2/s --> kg) %%%%%
-         DiagnName    = 'BIOMASS_BC'
-         CATEGORY     = 'BC-BIOB'
-         UNIT         = 'kg/m2/s'
-         N            = IDTBCPI
-         FACTOR       = SECONDS
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1)
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-            
-         !%%%%% Biofuel BC %%%%%
-         DiagnName    = 'AD07_BC_BIOFUEL'
-         CATEGORY     = 'BC-BIOF'
-         UNIT         = 'kgC'
-         N            = IDTBCPI
-         FACTOR       = 1.0d0
+            ! Select species index and name. The species name is also
+            ! used to define the bpch category, so keep it OC for POA.
+            IF ( J==1 ) THEN
+               N       = IDTBCPI
+               SpcName = 'BC'
+            ELSEIF ( J==2 ) THEN
+               N = IDTOCPI
+               IF ( IDTPOA1 > 0 ) N = IDTPOA1
+               SpcName = 'OC'
+            ENDIF
+  
+            ! Do for all sources 
+            DO I = 1, 3
+               SELECT CASE ( I )
+                  CASE ( 1 ) 
+                     CATEGORY = TRIM(SpcName)//'-ANTH'
+                     SRCNAME  = 'ANTHRO'
+                  CASE ( 2 ) 
+                     CATEGORY = TRIM(SpcName)//'-BIOF'
+                     SRCNAME  = 'BIOFUEL'
+                  CASE ( 3 ) 
+                     CATEGORY = TRIM(SpcName)//'-BIOB'
+                     SRCNAME  = 'BIOMASS'
+               END SELECT
+   
+               !----- (1) Hydrophilic -----
+               ! Get the fullname. This is the name used in the
+               ! HEMCO diagnostics.
+               FullName = TRIM(SpcName)//'PI'
+               IF ( N == IDTPOA1 ) FullName = 'POA1'
 
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+               ! Get diagnostics name
+               IF ( I == 3 ) THEN
+                  DiagnName='BIOMASS_'//TRIM(FullName)
+               ELSE
+                  DiagnName='AD07_'//TRIM(FullName)//'_'//TRIM(SRCNAME)
+               ENDIF
+  
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+      
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
+     &                         * FACTOR * HcoState%Grid%AREA_M2%Val(:,:)
+               ELSE
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+      
+               !----- (2) Add hydrophobic part -----
+
+               ! Get the fullname. This is the name used in the
+               ! HEMCO diagnostics.
+               FullName = TRIM(SpcName)//'PO'
+               IF ( N == IDTPOA1 ) FullName = 'POG1'
+          
+               ! Get diagnostics name
+               IF ( I == 3 ) THEN
+                  DiagnName='BIOMASS_'//TRIM(FullName)
+               ELSE
+                  DiagnName='AD07_'//TRIM(FullName)//'_'//TRIM(SRCNAME)
+               ENDIF
+   
+               ! Get diagnostics from HEMCO
+               DiagnCnt  => NULL()
+               CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+      
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = ARRAY(:,:,1) 
+     &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+     &                         *   HcoState%Grid%AREA_M2%Val(:,:) ) 
+               ELSE
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+      
+               ! Write combined diagnostics to disk
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, N,
+     &                     UNIT ,     DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     1,        IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+      
+               ! Free pointer
+               DiagnCnt => NULL()
+            ENDDO !I
+         ENDDO !J
+
+
+         !--------------------------------------------------------------
+         ! Other BC diagnostics
+         !--------------------------------------------------------------
 
          !%%%%% Hydrophilic BC from Hydrophobic BC %%%%%
          CATEGORY     = 'PL-BC=$'
-         UNIT         = 'kgC'
          N            = IDTBCPI
 
          DO L = 1, LD07
@@ -659,58 +748,27 @@
      &               IIPAR,     JJPAR,     LD07,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
 
+
          !--------------------------------------------------------------
-         ! Organic carbon (OC) diagnostics
+         ! Other OC diagnostics
          !--------------------------------------------------------------
 
-         !%%%%% Anthropogenic OC %%%%%
-         DiagnName    = 'AD07_OC_ANTHRO'
-         CATEGORY     = 'OC-ANTH'
-         UNIT         = 'kgC'
-         FACTOR       = 1.0d0
-
-         ! SOAupdate (hotp 5/27/09)
-         ! semivolpoa: now use POA or OCPI (hotp 2/17/09)
-         IF ( IDTOCPI > 0 ) N = IDTOCPI
-         IF ( IDTPOA1 > 0 ) N = IDTPOA1
-
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .TRUE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
-         !%%%%% Biomass OC (convert kg/m2/s --> kg) %%%%%
-         DiagnName = 'BIOMASS_OC'
-         CATEGORY  = 'OC-BIOB'
-         UNIT      = 'kg/m2/s'
-         FACTOR    = SECONDS
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &           UNIT, N, 1, -1, .FALSE., FACTOR, RC, AreaScal=1 )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
-         !%%%%% Biofuel OC %%%%%
-         DiagnName = 'AD07_OC_BIOFUEL'
-         CATEGORY  = 'OC-BIOF'
-         UNIT      = 'kgC'
-         FACTOR    = 1.0d0
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, N, 1, -1, .FALSE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
-! turn off for now, we seem to get no diagnostics returned
-! will investigate further (bmy, 8/18/14)
-!         !%%%%% Biogenic OC (kg/m2/s --> kg) %%%%%         
-!         DiagnName = 'BIOGENIC_OC'
-!         CATEGORY  = 'OC-BIOG'
-!         UNIT      = 'kg/m2/s'
-!         FACTOR    = SECONDS
-!         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-!     &                 UNIT, N, 1, -1, .FALSE., FACTOR, RC, AreaScal=1 )
-!         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
-         !%%%%% Hydrophilic OC from hydrophobic OC %%%%%
+         ! These only exist with OCPI/OCPO
          IF ( IDTOCPI > 0 ) THEN
+            UNIT      = 'kgC'
+            N         = IDTOCPI
+
+            !%%%%% Biogenic OC (kg/m2/s --> kg) %%%%%
+            CATEGORY  = 'OC-BIOG'
+            DiagnName = 'BIOGENIC_OCPI'
+            FACTOR    = SECONDS
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                 UNIT, N, 1, -1, .FALSE., FACTOR, RC, AreaScal=1 )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         
+            !%%%%% Hydrophilic OC from hydrophobic OC %%%%%
             CATEGORY     = 'PL-OC=$'
-            N            = IDTOCPI
 
             DO L = 1, LD07
                ARRAY(:,:,L) = AD07_OC(:,:,L) 
@@ -2044,29 +2102,132 @@
          ENDIF
 
          !%%%%% BC %%%%%
-         IF ( IDTBCPI > 0 ) THEN
-            DiagnName = 'BIOMASS_BC'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTBCPI
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+         ! Save all as BCPI
+         UNIT      = 'atoms C/cm2/s'
+         N         = IDTBCPI
+         FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+
+         ! Get BIOMASS_BCPI 
+         DiagnName = 'BIOMASS_BCPI'
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                   FLAG, RC,   cName=TRIM(DiagnName), 
+     &                   AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+      
+         ! Save into ARRAY. Convert to units
+         IF ( FLAG == HCO_SUCCESS ) THEN
+            ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
+     &                   * FACTOR 
+         ELSE
+            MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+            MSG = TRIM(MSG) // ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+         ENDIF
+      
+         ! Get BIOMASS_BCPO 
+         DiagnName = 'BIOMASS_BCPO'
+         DiagnCnt  => NULL()
+         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                      FLAG, RC,   cName=TRIM(DiagnName), 
+     &                      AutoFill=1, InclManual=.TRUE. )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+      
+         ! Save into ARRAY. Convert to units
+         IF ( FLAG == HCO_SUCCESS ) THEN
+            ARRAY(:,:,1) = ARRAY(:,:,1) 
+     &                   + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+         ELSE
+            MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+            MSG = TRIM(MSG) // ' - will write zeros!'
+            CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
          ENDIF
 
-         !%%%%% OC %%%%%
-         IF ( IDTOCPI > 0 .or. IDTPOA1 > 0 ) THEN
-            DiagnName = 'BIOMASS_OC'
+         ! Write combined diagnostics to disk
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT ,     DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+      
+         ! Free pointer
+         DiagnCnt => NULL()
+
+         !%%%%% POA simulation %%%%%
+         IF ( IDTPOA1 > 0 ) THEN
+            DiagnName = 'BIOMASS_POA1'
             UNIT      = 'atoms C/cm2/s'
-            IF ( IDTPOA1 /= 0 ) THEN
-               N = IDTPOA1
-            ELSE
-               N = IDTOCPI
-            ENDIF
+            N         = IDTPOA1
             FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+
+         !%%%%% OC %%%%%
+         ELSE
+
+            ! Save all as OCPI
+            UNIT      = 'atoms C/cm2/s'
+            N         = IDTOCPI
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+   
+            ! Get BIOMASS_OCPI 
+            DiagnName = 'BIOMASS_OCPI'
+            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                      FLAG, RC,   cName=TRIM(DiagnName), 
+     &                      AutoFill=1, InclManual=.TRUE. )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
+         
+            ! Save into ARRAY. Convert to units
+            IF ( FLAG == HCO_SUCCESS ) THEN
+               ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
+     &                      * FACTOR
+            ELSE
+               MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+               MSG = TRIM(MSG) // ' - will write zeros!'
+               CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ENDIF
+         
+            ! Get BIOMASS_OCPO 
+            DiagnName = 'BIOMASS_OCPO'
+            DiagnCnt  => NULL()
+            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
+         
+            ! Save into ARRAY. Convert to units
+            IF ( FLAG == HCO_SUCCESS ) THEN
+               ARRAY(:,:,1) = ARRAY(:,:,1) 
+     &                      + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+            ELSE
+               MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+               MSG = TRIM(MSG) // ' - will write zeros!'
+               CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ENDIF
+   
+            ! Write combined diagnostics to disk
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         
+            ! Free pointer
+            DiagnCnt => NULL()
+   
          ENDIF
       ENDIF
 !
@@ -2630,80 +2791,92 @@
          !%%% (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! Get variables needed for HEMCO diagnostics
-         IF ( IDTNO > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_NO'
-            UNIT      = 'molec/cm2/s'
-            N         = IDTNO
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+         ! Now loop over all species and write out every defined
+         ! diagnostics (ckeller, 10/15/2014) 
+         DO I = 1, Input_Opt%N_TRACERS
 
-         ELSE IF ( IDTCO > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_CO'
-            UNIT      = 'molec/cm2/s'
-            N         = IDTCO
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            
-         ELSE IF ( IDTALK4 > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_ALK4'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTALK4
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-       
-         ELSE IF ( IDTACET > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_ACET'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTACET
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-                   
-         ELSE IF ( IDTMEK > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_MEK'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTMEK
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+            ! Init
+            N = 0
 
-         ELSE IF ( IDTALD2 > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_ALD2'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTALD2
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+            ! Get variables needed for HEMCO diagnostics
+            IF ( I == IDTNO ) THEN
+               DiagnName = 'ANTHROPOGENIC_NO'
+               UNIT      = 'molec/cm2/s'
+               N         = IDTNO
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+   
+            ELSE IF ( I == IDTCO ) THEN
+               DiagnName = 'ANTHROPOGENIC_CO'
+               UNIT      = 'molec/cm2/s'
+               N         = IDTCO
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               
+            ELSE IF ( I == IDTALK4 ) THEN
+               DiagnName = 'ANTHROPOGENIC_ALK4'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTALK4
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+          
+            ELSE IF ( I == IDTACET ) THEN
+               DiagnName = 'ANTHROPOGENIC_ACET'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTACET
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+                      
+            ELSE IF ( I == IDTMEK ) THEN
+               DiagnName = 'ANTHROPOGENIC_MEK'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTMEK
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+   
+            ELSE IF ( I == IDTALD2 ) THEN
+               DiagnName = 'ANTHROPOGENIC_ALD2'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTALD2
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+   
+            ELSE IF ( I == IDTPRPE ) THEN
+               DiagnName = 'ANTHROPOGENIC_PRPE'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTPRPE
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+   
+            ELSE IF ( I == IDTC3H8 ) THEN
+               DiagnName = 'ANTHROPOGENIC_C3H8'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTC3H8
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+   
+            ELSE IF ( I == IDTCH2O ) THEN
+               DiagnName = 'ANTHROPOGENIC_CH2O'
+               UNIT      = 'molec/cm2/s'
+               N         = IDTCH2O
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+   
+            ELSE IF ( I == IDTC2H6 ) THEN
+               DiagnName = 'ANTHROPOGENIC_C2H6'
+               UNIT      = 'atoms C/cm2/s'
+               N         = IDTC2H6 
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+               FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
 
-         ELSE IF ( IDTPRPE > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_PRPE'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTPRPE
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+            ENDIF
 
-         ELSE IF ( IDTC3H8 > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_C3H8'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTC3H8
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+            ! Call only if defined!
+            IF ( N > 0 ) THEN
+               ! kg/m2/s to molec/cm2/s 
+               CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                         UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+               IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+            ENDIF
 
-         ELSE IF ( IDTCH2O > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_CH2O'
-            UNIT      = 'molec/cm2/s'
-            N         = IDTCH2O
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-
-         ELSE IF ( IDTC2H6 > 0 ) THEN
-            DiagnName = 'ANTHROPOGENIC_C2H6'
-            UNIT      = 'atoms C/cm2/s'
-            N         = IDTC2H6 
-            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
-
-         ENDIF
-
-         ! kg/m2/s to molec/cm2/s 
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT, NN, 1, -1, .TRUE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDDO ! I
       ENDIF
 !
 !******************************************************************************
@@ -3492,7 +3665,7 @@
                CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
             ENDIF
 
-            ! Write combined ANTHROPOGENIC NO + SHIP NO to disk
+            ! Write combined BIOGENIC ACET and OCEAN ACET to disk
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   

@@ -36,11 +36,12 @@
 ! data (netCDF) file.
 !\\
 !\\
-! Specifically, spatial uniform data (i.e. nx = ny = 1) is always 
-! assigned the local time cycle intervals (hourly, weekdaily, or 
-! monthly), while for gridded data, it's assumed that local-time
-! effects are already taken into account and the gridded cycle intervals
-! are thus applied.
+! Spatial uniform data (i.e. nx = ny = 1) is always assigned the local 
+! time cycle intervals (hourly, weekdaily, or monthly), e.g. the local
+! time is used at every grid box when picking the time slice at a given
+! time. For gridded data, it's assumed that local-time effects are already 
+! taken into account and UTC time is used at all locations to select the
+! currently valid time slice.
 !\\
 !\\
 ! Structure AlltIDx organizes the indexing of the vector arrays. It
@@ -58,7 +59,7 @@ MODULE HCO_tIdx_Mod
 ! !USES:
 !
   USE HCO_Error_Mod
-  USE HCO_fileData_Mod,  ONLY : TimeIdx
+  USE HCO_FileData_Mod,  ONLY : TimeIdx
 
   IMPLICIT NONE
   PRIVATE
@@ -66,23 +67,28 @@ MODULE HCO_tIdx_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: tIDx_Assign
-  PUBLIC :: tIDx_Update
   PUBLIC :: tIDx_Init
   PUBLIC :: tIDx_GetIndx
-  PUBLIC :: tIDx_GetIndxVec
   PUBLIC :: tIDx_Cleanup
   PUBLIC :: HCO_GetPrefTimeAttr
   PUBLIC :: HCO_ExtractTime
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PRIVATE :: tIDx_Get 
 !
 ! !REMARKS: 
 !  The current local time implementation assumes a regular grid,
 !  i.e. local time does not change with latitude! 
 !
 ! !REVISION HISTORY:
-!  29 Dec 2012 - C. Keller - Initialization
-!  22 Aug 2013 - C. Keller - Some time slice updates. 
+!  29 Dec 2012 - C. Keller   - Initialization
+!  22 Aug 2013 - C. Keller   - Some time slice updates. 
 !  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  03 Dec 2014 - C. Keller   - Major update: now calculate the time slice
+!                              indeces on the fly instead of storing them in
+!                              precalculated vectors.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,7 +98,6 @@ MODULE HCO_tIdx_Mod
   ! The TimeIdxCollection derived type contains the pointers with the
   ! current valid vector indeces for all defined cycling intervals.
   TYPE ::  TimeIdxCollection
-     INTEGER                :: nx           ! # of lons 
      TYPE(TimeIdx), POINTER :: CONSTANT
      TYPE(TimeIdx), POINTER :: HOURLY
      TYPE(TimeIdx), POINTER :: HOURLY_GRID 
@@ -147,7 +152,6 @@ CONTAINS
 
     ! Allocate collection of time indeces 
     ALLOCATE ( AlltIDx ) 
-    AlltIDx%nx = HcoState%NX
 
     ! Initialize the vectors holding the currently valid time slice 
     ! indices for the various cycle intervals. Only create longitude- 
@@ -160,11 +164,6 @@ CONTAINS
     ALLOCATE ( AlltIDx%CONSTANT )
     AlltIDx%CONSTANT%TypeID       = 0 
     AlltIDx%CONSTANT%TempRes      = "Constant"
-    AlltIDx%CONSTANT%LonDependent = .FALSE.
-    
-    ALLOCATE( AlltIDx%CONSTANT%CurrIDx(1) )
-    AlltIDx%CONSTANT%CurrIDx(:) = 1
-
 
     ! ----------------------------------------------------------------
     ! "HOURLY" => changes every hour, longitude-dependent
@@ -172,10 +171,6 @@ CONTAINS
     ALLOCATE ( AlltIDx%HOURLY )
     AlltIDx%HOURLY%TypeID       = 24
     AlltIDx%HOURLY%TempRes      = "Hourly"
-    AlltIDx%HOURLY%LonDependent = .TRUE.
-
-    ALLOCATE( AlltIDx%HOURLY%CurrIDx(AlltIDx%NX) )
-    AlltIDx%HOURLY%CurrIDx(:)   = 1
 
     ! ----------------------------------------------------------------
     ! "HOURLY_GRID" => changes every hour, longitude-independent
@@ -183,10 +178,6 @@ CONTAINS
     ALLOCATE ( AlltIDx%HOURLY_GRID )
     AlltIDx%HOURLY_GRID%TypeID       = 241
     AlltIDx%HOURLY_GRID%TempRes      = "Hourly_Grid"
-    AlltIDx%HOURLY_GRID%LonDependent = .FALSE.
-
-    ALLOCATE( AlltIDx%HOURLY_GRID%CurrIDx(1) )
-    AlltIDx%HOURLY_GRID%CurrIDx(:)   = 1
 
     ! ----------------------------------------------------------------
     ! "WEEKDAY" => changes every weekday, longitude-dependent
@@ -194,10 +185,6 @@ CONTAINS
     ALLOCATE ( AlltIDx%WEEKDAY )
     AlltIDx%WEEKDAY%TypeID       = 7
     AlltIDx%WEEKDAY%TempRes      = "Weekday"
-    AlltIDx%WEEKDAY%LonDependent = .TRUE.
-
-    ALLOCATE( AlltIDx%WEEKDAY%CurrIDx(AlltIDx%NX) )
-    AlltIDx%WEEKDAY%CurrIDx(:)   = 1
 
     ! ----------------------------------------------------------------
     ! "WEEKDAY_GRID" => changes every weekday, longitude-independent
@@ -205,10 +192,6 @@ CONTAINS
     ALLOCATE ( AlltIDx%WEEKDAY_GRID )
     AlltIDx%WEEKDAY_GRID%TypeID       = 71
     AlltIDx%WEEKDAY_GRID%TempRes      = "Weekday_Grid"
-    AlltIDx%WEEKDAY_GRID%LonDependent = .FALSE.
-
-    ALLOCATE( AlltIDx%WEEKDAY_GRID%CurrIDx(1) )
-    AlltIDx%WEEKDAY_GRID%CurrIDx(:)   = 1
 
     ! ----------------------------------------------------------------
     ! "MONTHLY" => changes every month, longitude-dependent
@@ -216,10 +199,6 @@ CONTAINS
     ALLOCATE ( AlltIDx%MONTHLY )
     AlltIDx%MONTHLY%TypeID       = 12
     AlltIDx%MONTHLY%TempRes      = "Monthly"
-    AlltIDx%MONTHLY%LonDependent = .TRUE.
-
-    ALLOCATE( AlltIDx%MONTHLY%CurrIDx(AlltIDx%NX) )
-    AlltIDx%MONTHLY%CurrIDx(:)   = 1
 
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
@@ -321,38 +300,26 @@ CONTAINS
     IF ( ASSOCIATED( AlltIDx ) ) THEN
        
        IF ( ASSOCIATED(AlltIDx%CONSTANT) ) THEN
-          IF(ASSOCIATED(AlltIDx%CONSTANT%CurrIDx)) &
-               DEALLOCATE(AlltIDx%CONSTANT%CurrIDx) 
           DEALLOCATE(AlltIDx%CONSTANT) 
        ENDIF
 
        IF ( ASSOCIATED(AlltIDx%HOURLY) ) THEN
-          IF(ASSOCIATED(AlltIDx%HOURLY%CurrIDx)) &
-               DEALLOCATE(AlltIDx%HOURLY%CurrIDx) 
           DEALLOCATE(AlltIDx%HOURLY) 
        ENDIF
 
        IF ( ASSOCIATED(AlltIDx%HOURLY_GRID) ) THEN
-          IF(ASSOCIATED(AlltIDx%HOURLY_GRID%CurrIDx)) &
-               DEALLOCATE(AlltIDx%HOURLY_GRID%CurrIDx) 
           DEALLOCATE(AlltIDx%HOURLY_GRID) 
        ENDIF
 
        IF ( ASSOCIATED(AlltIDx%WEEKDAY) ) THEN
-          IF(ASSOCIATED(AlltIDx%WEEKDAY%CurrIDx)) &
-               DEALLOCATE(AlltIDx%WEEKDAY%CurrIDx) 
           DEALLOCATE(AlltIDx%WEEKDAY) 
        ENDIF
 
        IF ( ASSOCIATED(AlltIDx%WEEKDAY_GRID) ) THEN
-          IF(ASSOCIATED(AlltIDx%WEEKDAY_GRID%CurrIDx)) &
-               DEALLOCATE(AlltIDx%WEEKDAY_GRID%CurrIDx) 
           DEALLOCATE(AlltIDx%WEEKDAY_GRID) 
        ENDIF
   
        IF ( ASSOCIATED(AlltIDx%MONTHLY) ) THEN
-          IF(ASSOCIATED(AlltIDx%MONTHLY%CurrIDx)) &
-               DEALLOCATE(AlltIDx%MONTHLY%CurrIDx) 
           DEALLOCATE(AlltIDx%MONTHLY) 
        ENDIF
   
@@ -368,120 +335,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: tIDx_Update
-!
-! !DESCRIPTION: Subroutine tIDx\_Update updates the current valid 
-! index values for every time slice type.
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE tIDx_Update( am_I_Root, RC )
-!
-! !USES:
-!
-    USE HCO_CLOCK_MOD, ONLY : HcoClock_Get, HcoClock_GetLocal
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN   ) :: am_I_Root
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(INOUT) :: RC 
-!
-! !REVISION HISTORY:
-!  29 Dec 2012 - C. Keller - Initialization
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER            :: I, HH, WD, iMM, iWD
-    REAL(sp)           :: iHH
-    CHARACTER(LEN=255) :: MSG, LOC
-
-    ! testing only
-    LOGICAL, SAVE      :: FIRST = .TRUE.
-
-    !======================================================================
-    ! tIDx_Update begins here!
-    !======================================================================
-
-    ! Enter
-    LOC = 'tIDx_Update (HCO_TIDX_MOD.F90)'
-
-    ! ----------------------------------------------------------------
-    ! Set longitude independent indeces
-    ! ----------------------------------------------------------------
-
-    ! Get current times
-    CALL HcoClock_Get( cH = HH, cWeekday = WD, RC=RC )
-    IF ( RC/= HCO_SUCCESS ) RETURN
-
-    ! CONSTANT:
-    ! --> nothing to be done
-
-    ! HOURLY_GRID:
-    ! Gridded hourly data is assumed to be already adjusted for
-    ! local time effects, hence just point to the time slice
-    ! of current UTC time. Add one since hour starts at 0.
-    AlltIDx%HOURLY_GRID%CurrIDx(1) = HH + 1
-
-    ! WEEKDAY_GRID:
-    ! For gridded weekday factors, just use the UTC slice. Add
-    ! one since weekday start at 0.
-    AlltIDx%WEEKDAY_GRID%CurrIDx(1) = WD + 1
-
-    ! ----------------------------------------------------------------
-    ! Set longitude dependent time indeces 
-    ! ----------------------------------------------------------------
-    DO I = 1, AlltIDx%NX
-
-       ! Get local times
-       CALL HcoClock_GetLocal( I, cMM=iMM, cH=iHH, cWeekday=iWD, RC=RC ) 
-       IF ( RC/= HCO_SUCCESS ) RETURN
-
-       ! HOURLY:
-       ! These are the pointers to the hourly indices. Hourly points
-       ! to the hourly time slice representative for the LOCAL time at
-       ! longitude ii.
-       AlltIDx%HOURLY%CurrIDx(I) = FLOOR(iHH) + 1
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!          TEMPORARY FIX FOR CONSISTENCY W/ FORMER VERSION
-!
-       ! WEEKDAY:
-       ! For non-gridded factors, take into account local time:
-!       AlltIDx%WEEKDAY%CurrIDx(I) = iWD + 1
-       AlltIDx%WEEKDAY%CurrIDx(I) = WD + 1
-       AlltIDx%WEEKDAY%LonDependent = .FALSE.
-       IF ( FIRST .AND. I == 1 .AND. am_I_Root ) THEN
-          MSG =  'Constant weekday used, needs to be fixed!'
-          CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
-       ENDIF
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-       ! MONTHLY data
-
-       ! Set month index accordingly
-       AlltIDx%MONTHLY%CurrIDx(I) = iMM 
-
-    ENDDO !I
-
-    ! Adjust first flag
-    FIRST = .FALSE. 
-
-    ! Leave w/ success
-    RC = HCO_SUCCESS 
-
-  END SUBROUTINE tIDx_Update
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: tIDx_GetIndx 
 !
 ! !DESCRIPTION: Function tIDx\_GetIndx returns the current active time 
@@ -490,16 +343,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION tIDx_GetIndx( Dta, LonIndx ) RESULT ( Indx )
+  FUNCTION tIDx_GetIndx( HcoState, Dta, I, J ) RESULT ( Indx )
 !
 ! !USES:
 !
+    USE HCO_State_Mod,    ONLY : HCO_State
     USE HCO_FileData_Mod, ONLY : FileData 
 !
 ! !INPUT PARAMETERS: 
 !
-    TYPE(FileData), POINTER    :: Dta     ! File data object 
-    INTEGER,        INTENT(IN) :: LonIndx ! Longitude index 
+    TYPE(HCO_State), POINTER    :: HcoState  ! Hemco state 
+    TYPE(FileData),  POINTER    :: Dta     ! File data object 
+    INTEGER,         INTENT(IN) :: I       ! Longitude index 
+    INTEGER,         INTENT(IN) :: J       ! Longitude index 
 !
 ! !RETURN VALUE:
 !
@@ -513,31 +369,18 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(dp)     :: frac
+    REAL(hp)     :: ThisLon, ThisLat
 
     !-----------------------------------
     ! tIDx_GetIndx begins here! 
     !-----------------------------------
 
-    ! For longitude dependent time slices, point to time index
-    ! corresponding to the given longitude. 
-    IF ( Dta%tIDx%LonDependent ) THEN 
-       indx = Dta%tIDx%CurrIDx(LonIndx)
+    ! Get the longitude at this location
+    ThisLon = HcoState%Grid%XMID%Val(I,J)
+    ThisLat = HcoState%Grid%YMID%Val(I,J)
 
-    ! Time independent time slices: there is only one index.
-    ELSE
-       indx = Dta%tIDx%CurrIDx(1) 
-    ENDIF
-
-    ! For hourly data with less than 24 time slices, i.e. time
-    ! intervals of more than 1 hour, map 24 hour index onto the
-    ! reduced time slice. 
-    ! For example, for 3-hourly data (8 vector elements), this will 
-    ! return index 1 for hours 0-2am, index 2 for 3-5am, etc.
-    IF ( Dta%DeltaT > 1 .AND. Dta%DeltaT < 24 ) THEN
-       frac = DBLE(indx) / DBLE(Dta%DeltaT) 
-       indx = CEILING( frac )
-    ENDIF
+    ! Get time slice index for this file data and longitude
+    Indx = tIDx_Get( Dta, ThisLon, ThisLat )
 
   END FUNCTION tIDx_GetIndx
 !EOC
@@ -546,57 +389,130 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: tIDx_GetIndxVec 
+! !ROUTINE: tIDx_Get
 !
-! !DESCRIPTION: Function tIDx\_GetIndxVec returns a vector with the 
-! current active time slice indeces for every longitude. 
-!\\
+! !DESCRIPTION: Subroutine tIDx\_Get calculates the current valid 
+! index values for the given file data time slice type and longitude
+! location 
 !\\
 ! !INTERFACE:
 !
-  FUNCTION tIDx_GetIndxVec( Dta, nI ) RESULT ( IndxVec )
+  FUNCTION tIDx_Get ( Dta, Lon, Lat ) RESULT ( Indx )
 !
 ! !USES:
 !
-    USE HCO_FileData_Mod, ONLY : FileData
+    USE HCO_FileData_Mod, ONLY : FileData 
+    USE HCO_CLOCK_MOD,    ONLY : HcoClock_Get, HcoClock_GetLocal
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-    TYPE(FileData), POINTER    :: Dta    ! List container 
-    INTEGER,        INTENT(IN) :: nI         ! # of lons 
+    TYPE(FileData),  POINTER    :: Dta     ! File data object 
+    REAL(hp),        INTENT(IN) :: Lon     ! Longitude of interest
+    REAL(hp),        INTENT(IN) :: Lat     ! Latitude  of interest
 !
-! !RETURN VALUE:
- !
-    INTEGER                    :: IndxVec(nI)
+! !INPUT/OUTPUT PARAMETERS:
 !
-! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
+    INTEGER                     :: Indx    ! Index 
+!
+! !REVISION HISTORY:
+!  02 Dec 2014 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I 
+    INTEGER            :: HH, WD, MM, RC
+    REAL(sp)           :: LonHH
+    REAL(dp)           :: frac
 
-    !-----------------------------------
-    ! tIDx_GetIndxVec begins here! 
-    !-----------------------------------
+    !======================================================================
+    ! tIDx_Get begins here!
+    !======================================================================
 
-    ! For longitude dependent time slices, get index for every longitude 
-    IF ( Dta%tIDx%LonDependent ) THEN 
-       DO I = 1, nI
-          IndxVec(I) = tIDx_GetIndx( Dta, I )
-       ENDDO
+    ! ----------------------------------------------------------------
+    ! Set longitude independent indeces
+    ! ----------------------------------------------------------------
 
-    ! For longitude independent data: all indeces are the same, so just
-    ! use first one.
-    ELSE
-       I          = tIDx_GetIndx( Dta, 1 )
-       IndxVec(:) = I   
+    ! Get current times
+
+    ! Default value (=> This will cause the code to crash!)
+    Indx = -1
+
+    ! ----------------------------------------------------------------
+    ! Calculate time slice index for the given time slice type 
+    ! ----------------------------------------------------------------
+    SELECT CASE ( Dta%tIDx%TypeID )
+
+       ! Constant: there is only one time slice
+       CASE ( 1 ) 
+          Indx = 1
+
+       ! Hourly data (local time)   
+       ! Indx returns the time slice representative for the LOCAL time
+       ! at longitude Lon.
+       CASE ( 24 )
+          CALL HcoClock_GetLocal( Lon, Lat, cH=LonHH, RC=RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Indx = FLOOR(LonHH) + 1
+
+       ! Hourly data (already gridded)
+       ! Gridded hourly data is assumed to be already adjusted for
+       ! local time effects, hence just point to the time slice
+       ! of current UTC time. Add one since hour starts at 0.
+       CASE ( 241 )
+          CALL HcoClock_Get( cH = HH, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Indx = HH + 1
+
+       ! Weekday data (local time)
+       ! Indx returns the time slice representative for the LOCAL
+       ! weekday at longitude Lon.
+       CASE ( 7 )
+
+          CALL HcoClock_GetLocal( Lon, Lat, cWeekday=WD, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Indx = WD + 1
+
+       ! Weekday data (already gridded)
+       ! For gridded weekday factors, just use the UTC slice. Add
+       ! one since weekday start at 0.
+       CASE ( 71 )
+          CALL HcoClock_Get( cWeekday = WD, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Indx = WD + 1
+
+       ! Monthly data (local time)
+       ! Monthly data is always in local time.
+       ! For gridded monthly data, only the current valid time slice
+       ! is kept in memory (and updated whenever a new month is entered).
+       CASE ( 12 )
+          CALL HcoClock_GetLocal( Lon, Lat, cMM = MM, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Indx = MM
+
+       ! Default: assume it's constant
+       CASE DEFAULT
+          Indx = 1
+
+    END SELECT
+
+    ! For hourly data with less than 24 time slices, i.e. time
+    ! intervals of more than 1 hour, map 24 hour index onto the
+    ! reduced time slice. 
+    ! For example, for 3-hourly data (8 vector elements), this will 
+    ! return index 1 for hours 0-2am, index 2 for 3-5am, etc.
+    ! Dta%DeltaT denotes the time difference between between two time
+    ! slices (in hours).
+    IF ( Dta%DeltaT > 1 .AND. Dta%DeltaT < 24 ) THEN
+       frac = DBLE(Indx) / DBLE(Dta%DeltaT) 
+       Indx = CEILING( frac )
     ENDIF
 
-  END FUNCTION tIDx_GetIndxVec
+    ! Sanity check: index must not exceed time dimension
+    IF ( Indx > Dta%nt ) Indx = -1
+
+  END FUNCTION tIDx_Get
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -931,8 +847,14 @@ CONTAINS
 ! \begin{enumerate}
 ! \item Range of values, separated by - sign: e.g. 2000-2010.
 ! \item Single value: 2000
-! \item Asterisk as wildcard character: *
-! \item Placeholder for start date, i.e. YYYY, MM, DD, HH.
+! \item Wildcard character (default = *). In this case, the data interval
+!  is determined automatically by HEMCO based on the number of time slices
+!  found in the data set.
+! \item Time tokens: $YYYY, $MM, $DD, $HH. When reading the data, these values
+!  will be substituted by the current simulation date.
+! \item String 'WD'. Denotes that the data contains weekday data. Weekdaily data
+!  is always completely read into array (e.g. all seven data arrays) and it is
+!  expected that the first slice represents Sunday.
 ! \end{enumerate}
 !
 ! The extracted time stamp is written into the arrays ncYrs, ncMts,
@@ -1001,14 +923,23 @@ CONTAINS
        IF ( TRIM(SUBSTR(I)) == TRIM(HCO_WCD() ) ) THEN
           TimeVec(I0:I1) = -1 
 
-       ELSEIF ( TRIM(SUBSTR(I)) == 'YYYY' .OR. &
-                TRIM(SUBSTR(I)) == 'MM'   .OR. &
-                TRIM(SUBSTR(I)) == 'DD'   .OR. &
-                TRIM(SUBSTR(I)) == 'HH'         ) THEN
+       ! Characters YYYY, MM, DD, and/or HH can be used to ensure that
+       ! the current simulation time is being used.
+       ELSEIF ( INDEX( TRIM(SUBSTR(I)), 'YYYY' ) > 0 .OR. &
+                INDEX( TRIM(SUBSTR(I)), 'MM'   ) > 0 .OR. &
+                INDEX( TRIM(SUBSTR(I)), 'DD'   ) > 0 .OR. &
+                INDEX( TRIM(SUBSTR(I)), 'HH'   ) > 0       ) THEN 
           TimeVec(I0:I1) = -999
 
-       ! Otherwise, check if date range if given and set lower and
-       ! upper bound accordingly.
+       ! For the daily index, value 'WD' is also supported. This 
+       ! indicates weekdays (Sun-Sat). Weekday data is always read
+       ! entirely (e.g. all seven arrays) and we can set the time limits
+       ! to -1.
+       ELSEIF ( I==3 .AND. INDEX( TRIM(SUBSTR(I)), 'WD' ) > 0 ) THEN
+          TimeVec(I0:I1) = -1 
+
+       ! Otherwise, check for date range and set lower and upper bound
+       ! accordingly.
        ELSE
           CALL STRSPLIT( SUBSTR(I), '-', DATERNG, N )
 

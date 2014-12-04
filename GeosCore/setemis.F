@@ -35,6 +35,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
 !
 ! !ARGUMENTS:
 !
@@ -48,6 +49,7 @@
 !  13 Apr 2012 - C. Keller - Initial Version
 !  31 Jan 2013 - C. Keller - Now pass chemistry and met state as argument
 !  22 Aug 2013 - C. Keller - Now pass Trac_Tend2 to REMIS
+!  21 Oct 2014 - C. Keller - Now use GetHcoVal instead of Trac_Tend
 !
 !EOP
 !------------------------------------------------------------------------------
@@ -59,7 +61,8 @@
       INTEGER :: L, L1, LL, N, NN,  NBB, NBF
       INTEGER :: N_TRACERS
       REAL*8  :: COEF1, COEF2
-      LOGICAL :: LNLPBL
+      LOGICAL :: LNLPBL, Fnd
+      REAL*8  :: Emis 
 
       !=================================================================
       ! SETEMIS begins here!
@@ -107,6 +110,9 @@
 
          ! Loop over all tropospheric grid boxes
          ! --> Stratospheric emissions are ignored!
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, L1, JLOOP, Fnd, Emis )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
@@ -129,16 +135,16 @@
                ! kg(tracer)/m2/s to molec(species)/cm3/s.
                JLOOP = JLOP(I,J,L)
                IF ( JLOOP /= 0 ) THEN
-                  REMIS(JLOOP,N) = State_Chm%Trac_Tend(I,J,L,NN)
-     &                           / COEF1 * COEF2 
-     &                           / ( State_Met%BXHEIGHT(I,J,L) * 1d2 )
+                  CALL GetHcoVal( NN, I, J, L, Fnd, Emis=Emis )
+                  IF ( Fnd ) THEN
+                     REMIS(JLOOP,N) = Emis / COEF1 * COEF2 
+     &                              / ( State_Met%BXHEIGHT(I,J,L) * 1d2)
+                  ENDIF
                ENDIF
             ENDDO !L
          ENDDO
          ENDDO
-
-         ! testing only
-!         write(*,*) 'total REMIS of tracer ', NN , ': ', SUM(REMIS(:,N))
+!$OMP END PARALLEL DO
 
       ENDDO ! N
 

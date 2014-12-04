@@ -397,6 +397,7 @@ CONTAINS
           ELSE
              CALL HCOIO_DATAREAD ( am_I_Root, HcoState, Lct, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
+
           ENDIF
 
        ENDIF

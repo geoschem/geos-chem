@@ -175,6 +175,7 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
 !
 ! !INPUT PARAMETERS:
 !
@@ -249,6 +250,7 @@
 !  10 Apr 2014 - R. Yantosca - Now use pointers to fields in State_Met
 !  10 Apr 2014 - R. Yantosca - Bug fix: DTSRCE should be DTCHEM
 !  27 Aug 2014 - R. Yantosca - Bug fix: pass Input_Opt to GET_GLOBAL_CH4
+!  21 Oct 2014 - C. Keller   - Now use GetHcoVal instead ot Trac_Tend array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -290,6 +292,10 @@
       REAL*8,  POINTER       :: AIRVOL(:,:,:  )
       REAL*8,  POINTER       :: STT   (:,:,:,:)
       REAL*8,  POINTER       :: T     (:,:,:  )
+
+      ! To get HEMCO values
+      REAL*8                 :: Emis
+      LOGICAL                :: FOUND
 !
 ! !DEFINED PARAMETERS:
 !
@@ -370,7 +376,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
+!$OMP+PRIVATE( I, J, L, N, FOUND, Emis )
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -387,10 +393,13 @@
 
          ! Add emissions into the tracer array
          ! Convert from [kg/m2/s] to [kg]
+         ! Now use GetHcoVal (ckeller, 10/21/2014)
+         CALL GetHcoVal( N, I, J, L, FOUND, Emis=Emis )
+         IF ( .NOT. FOUND ) CYCLE
          State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
-     &                              + ( State_Chm%TRAC_TEND(I,J,L,N) 
-     &                              *   State_Met%AREA_M2  (I,J,L  )
-     &                              *   DTCHEM                       )
+     &                              + ( Emis
+     &                              *   State_Met%AREA_M2(I,J,L)
+     &                              *   DTCHEM                  )
 
       ENDDO
       ENDDO

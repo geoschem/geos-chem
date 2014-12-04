@@ -258,6 +258,7 @@ CONTAINS
 !  06 Jun 2013 - M. Payer    - Add fix to compute sine of last latitude edge
 !                              for MAP_A2A regridding (C. Keller)
 !  19 May 2014 - C. Keller   - Renamed from Compute_grid to DoGridComputation.
+!  06 Nov 2014 - C. Keller   - Now use LBOUND to get leftmost index of YMDRW.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -265,7 +266,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     ! Scalars
-    INTEGER :: I,     J,     L,        IG, JG
+    INTEGER :: I,     J,     L,        IG, JG, LBND
     REAL*8  :: SIN_N, SIN_S, SIN_DIFF, TMP
 
     ! Arrays
@@ -285,6 +286,11 @@ CONTAINS
     DO J = J1, J2+1
        IND_Y(J) = ( ( J + JOFF - 1 ) * 1d0 ) + ( J_LO - 1 )
     ENDDO
+
+    ! Left bound of YMDRW. Since we now pass YMID_R_W as an argument to 
+    ! this routine, we cannot know for sure that the 2nd subscript starts
+    ! at index 0 (ckeller, 11/06/14).
+    LBND = LBOUND(YMDRW,2)
 
     !======================================================================
     ! Compute longitude and latitude arrays
@@ -390,15 +396,15 @@ CONTAINS
              !-------------------------------------------------------------
 
              ! Lat centers (radians), for nested grid window array
-             YMDRW(I,J,L) = YMDR(I,J,L)
+             YMDRW(I,LBND+J,L) = YMDR(I,J,L)
 
              ! Compute YMID_R_W at edges of nested region
              IF ( J == J1 ) THEN
                 !YMID_R_W(I,J1-1,1) = YMID_R(I,J1,L) - ( DLAT(I,J1,L) * PI_180 )
-                YMDRW(I,J-1,1) = YMDR(I,J,L) - ( DLAT(I,J,L) * PI_180 )
+                YMDRW(I,LBND+J-1,1) = YMDR(I,J,L) - ( DLAT(I,J,L) * PI_180 )
              ELSE IF ( J == J2 ) THEN
                 !YMID_R_W(I,J2+1,1) = YMID_R(I,J2,L) + ( DLAT(I,J2,L) * PI_180 )
-                YMDRW(I,J+1,1) = YMDR(I,J,L) + ( DLAT(I,J,L) * PI_180 )
+                YMDRW(I,LBND+J2+1,1) = YMDR(I,J,L) + ( DLAT(I,J,L) * PI_180 )
              ENDIF
                     
 #endif

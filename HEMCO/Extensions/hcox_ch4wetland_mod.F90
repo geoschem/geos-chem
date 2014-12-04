@@ -232,7 +232,10 @@ CONTAINS
 
     ! Set flux in HEMCO object [kg/m2/s]
     CALL HCO_EmisAdd ( HcoState, CH4wtl, IDTtot, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR( 'HCO_EmisAdd error: CH4wtl', RC )
+       RETURN 
+    ENDIF
       
     ! Eventually update diagnostics
     IF ( Diagn_AutoFillLevelDefined(2) ) THEN

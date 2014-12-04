@@ -68,7 +68,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_Calc_Mod,     ONLY : HCO_CalcEmis
-    USE HCO_tIdx_Mod,     ONLY : tIDx_Update
+!    USE HCO_tIdx_Mod,     ONLY : tIDx_Update
     USE HCO_ReadList_Mod, ONLY : ReadList_Read 
     USE HCO_ReadList_Mod, ONLY : ReadList_to_EmisList 
 !
@@ -99,13 +99,13 @@ CONTAINS
     CALL HCO_ENTER( 'HCO_RUN (hco_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    !--------------------------------------------------------------
-    ! 1. Update the time slice indeces
-    ! This is to make sure that the correct time slices will be
-    ! used for all emission fields. See also hco\_tidx\_mod.F90. 
-    !--------------------------------------------------------------
-    CALL tIDx_Update( am_I_Root, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+!    !--------------------------------------------------------------
+!    ! 1. Update the time slice indeces
+!    ! This is to make sure that the correct time slices will be
+!    ! used for all emission fields. See also hco\_tidx\_mod.F90. 
+!    !--------------------------------------------------------------
+!    CALL tIDx_Update( am_I_Root, RC )
+!    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !--------------------------------------------------------------
     ! 2. Read/update data

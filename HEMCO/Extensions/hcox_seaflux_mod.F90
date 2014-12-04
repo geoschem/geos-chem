@@ -181,7 +181,7 @@ CONTAINS
 
        ! Skip this species if it has no corresponding HEMCO and/or
        ! model species 
-       IF ( HcoID                         < 0 ) CYCLE
+       IF ( HcoID                     < 0 ) CYCLE
        IF ( HcoState%Spc(HcoID)%ModID < 0 ) CYCLE
 
        IF ( verbose ) THEN
@@ -207,6 +207,11 @@ CONTAINS
 
        ! Set flux in HEMCO object [kg/m2/s]
        CALL HCO_EmisAdd ( HcoState, SOURCE, HcoID, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'HCO_EmisAdd error: ' // TRIM(OcSpecs(OcID)%OcSpcName)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN 
+       ENDIF
        IF ( RC /= HCO_SUCCESS ) RETURN
       
        ! Set deposition velocity in HEMCO object [1/s]
@@ -335,7 +340,6 @@ CONTAINS
     ! Init
     SOURCE(:,:) = 0d0
     SINK  (:,:) = 0d0
-    WARN        = .FALSE.
 
     ! Extract Henry coefficients
     K0  = HcoState%Spc(HcoID)%HenryK0

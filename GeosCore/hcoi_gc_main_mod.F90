@@ -15,13 +15,6 @@
 ! \begin{itemize}
 ! \item HEMCO is used to calculate all emission fields. The emission tendencies
 !  are passed to GEOS-Chem through the Trac\_Tend array of State\_Chm.
-! \item Carbon aerosols are treated in HEMCO as black carbon (BC) and organic 
-!  carbon (OC). The speciation into hydrophobic and hydrophilic carbon is 
-!  done when passing HEMCO emissions to GEOS-Chem (MAP\_HCO2GC). Speciation
-!  factors are defined below.
-! \item Dust aerosol emissions become directly added to the Tracers array 
-!  instead of Trac\_Tend. This is to avoid unrealistic vertical mixing of dust
-!  particles.
 ! \item Most meteorological fields needed by the HEMCO extensions are provided
 !  through the GEOS-Chem meteorological state object Met\_State. Few fields 
 !  such as the pressure edges or J-values are defined and updated explicitly 
@@ -46,12 +39,12 @@ MODULE HCOI_GC_Main_Mod
   PUBLIC  :: HCOI_GC_Run
   PUBLIC  :: HCOI_GC_Final
   PUBLIC  :: GetHcoState
+  PUBLIC  :: GetHcoVal
+  PUBLIC  :: GetHcoID
   PUBLIC  :: GetHcoDiagn
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: Map_HCO2GC
-  PRIVATE :: Regrid_Emis2Sim
   PRIVATE :: Set_Current_Time
   PRIVATE :: ExtState_SetPointers
   PRIVATE :: ExtState_UpdtPointers
@@ -70,10 +63,11 @@ MODULE HCOI_GC_Main_Mod
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  30 Jul 2014 - C. Keller   - Added GetHcoState 
-!  01 Aug 2014 - C. Keller   - Now use only OC and BC within HEMCO. 
 !  20 Aug 2014 - M. Sulprizio- Modify for POPs simulation
 !  21 Aug 2014 - R. Yantosca - Added routine EmissRnPbBe; cosmetic changes
 !  06 Oct 2014 - C. Keller   - Removed PCENTER. Now calculate from pressure edges
+!  21 Oct 2014 - C. Keller   - Removed obsolete routines MAP_HCO2GC and 
+!                              Regrid_Emis2Sim. Added wrapper routine GetHcoID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,21 +113,18 @@ MODULE HCOI_GC_Main_Mod
 
   ! Sigma coordinate (temporary)
   REAL(hp), ALLOCATABLE, TARGET :: ZSIGMA(:,:,:)
+
+  !--------------------------
+  ! %%% Module types %%%
+  !--------------------------
+  TYPE, PRIVATE  :: Mod2HcoID
+     INTEGER                    :: ID
+  END TYPE
+
+  TYPE(Mod2HcoID), POINTER      :: M2HID(:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Hydrophilic and hydrophobic fraction of black carbon
-  REAL(dp),           PARAMETER :: BC2BCPI = 0.2_dp  ! hydrophilic
-  REAL(dp),           PARAMETER :: BC2BCPO = 0.8_dp  ! hydrophobic
-
-  ! Hydrophilic and hydrophobic fraction of organic carbon
-  REAL(dp),           PARAMETER :: OC2OCPI = 0.5_dp  ! hydrophilic
-  REAL(dp),           PARAMETER :: OC2OCPO = 0.5_dp  ! hydrophobic
-
-  ! Logical switch that determines if species arrays in HEMCO state
-  ! can be pointing to corresponding arrays in State_Chm.
-  LOGICAL                       :: UsePtrs2GC = .TRUE.
-
   ! Temporary toggle for diagnostics
   LOGICAL,            PARAMETER :: DoDiagn = .TRUE.
 
@@ -173,7 +164,7 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HcoState_Init
     USE HCO_Driver_Mod,     ONLY : HCO_Init
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
-    USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_DIagn_Init
+    USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_Diagn_Init
     USE HCOX_Driver_Mod,    ONLY : HCOX_Init
     USE HCOX_State_Mod,     ONLY : ExtStateInit
 
@@ -248,7 +239,7 @@ CONTAINS
     ! the HEMCO configuration file and GEOS-Chem. However, additional
     ! species can be defined, e.g. those not transported in GEOS-Chem
     ! (e.g. SESQ) or tagged species (e.g. specialty simulations).
-    CALL Get_nHcoSpc( Input_Opt, nHcoSpc, HMRC )
+    CALL Get_nHcoSpc( am_I_Root, Input_Opt, nHcoSpc, HMRC )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'Get_nHcoSpc', LOC )
 
     !-----------------------------------------------------------------
@@ -375,7 +366,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Define diagnostics
     !-----------------------------------------------------------------
-    IF ( DoDiagn ) THEN
+    IF ( DoDiagn ) THEN 
 
        ! Set up traditional GEOS-Chem NDxx diagnostics for emissions
        CALL HCOI_GC_DIAGN_INIT                                &
@@ -565,11 +556,6 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Translate emissions array from HCO state onto GC arrays
-    !=======================================================================
-    CALL MAP_HCO2GC( HcoState, Input_Opt, State_Met, State_Chm, RC )
-
-    !=======================================================================
     ! Reset the accumulated nitrogen dry and wet deposition to zero. Will
     ! be re-filled in drydep and wetdep.
     !=======================================================================
@@ -668,308 +654,9 @@ CONTAINS
     IF ( ALLOCATED  ( HCO_SZAFACT     ) ) DEALLOCATE ( HCO_SZAFACT     )
     IF ( ALLOCATED  ( JNO2            ) ) DEALLOCATE ( JNO2            )
     IF ( ALLOCATED  ( JO1D            ) ) DEALLOCATE ( JO1D            )
+    IF ( ASSOCIATED ( M2HID           ) ) DEALLOCATE ( M2HID           )
 
   END SUBROUTINE HCOI_GC_Final
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Map_Hco2Gc
-!
-! !DESCRIPTION: Function MAP\_Hco2Gc fills the GEOS-Chem tracer
-! tendency array (in chemistry state) with the corresponding emission
-! values of the HCO state object. Regridding is performed if
-! necessary. Emissions are kept in units of kg/m2/s. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Map_Hco2Gc( HcoState, Input_Opt, State_Met, State_Chm, RC )
-!
-! !USES:
-!
-    USE CMN_SIZE_Mod,          ONLY : IIPAR,  JJPAR,  LLPAR
-    USE Error_Mod,             ONLY : ERROR_STOP
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
-    USE GIGC_State_Met_Mod,    ONLY : MetState
-    USE Tracerid_Mod 
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(HCO_State), POINTER        :: HcoState    ! HCO state
-    TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
-    TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
-    INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
-!
-! !REMARKS:
-!  For a detailed discussion of how emissions get added from HEMCO into
-!  GEOS-Chem (and how emissions are distributed throughout the boundary
-!  layer), please see this wiki page:
-!  http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
-!  
-! !REVISION HISTORY:
-!  01 May 2012 - C. Keller   - Initial Version
-!  20 Aug 2013 - C. Keller   - Now pass from HEMOC state to chemistry state
-!  14 Sep 2013 - C. Keller   - Now keep in units of kg/m2/s.
-!  22 Aug 2014 - R. Yantosca - Now get surface area from State_Met%AREA_M2
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-!
-    INTEGER                  :: N, nSpc, trcID
-    CHARACTER(LEN=255)       :: MSG, LOC
-
-    !=======================================================================
-    ! MAP_HCO2GC begins here
-    !=======================================================================
-
-    ! For error handling
-    LOC = 'Map_HCO2GC (hcoi_gc_main_mod.F90)'
-
-    ! Assume success until otherwise
-    RC = GIGC_SUCCESS
-
-    ! Number of HEMCO species
-    nSpc = HcoState%nSpc
-
-    ! Loop over all specified tracers 
-    DO N = 1, nSpc 
-
-       ! GC tracer ID
-       trcID = HcoState%Spc(N)%ModID
-
-       ! Skip if tracer ID is not defined
-       IF ( trcID <= 0 ) CYCLE
-
-       ! testing only
-       IF ( ASSOCIATED(HcoState%Spc(N)%Conc%Val) ) THEN
-          write(*,*) 'HEMCO concentrations found for GC tracer ', trcID
-          write(*,*) 'total conc: ', SUM(HcoState%Spc(N)%Conc%Val)
-       ENDIF
-
-       ! Skip if no emissions defined
-       IF ( .NOT. ASSOCIATED(HcoState%Spc(N)%Emis%Val) ) CYCLE
-
-       ! If simulation grid and emission grid are equal, the 
-       ! HEMCO state emission array already points to
-       ! State_Chm%Trac_Tend and there is nothing to do here. 
-       IF ( ( HcoState%NX == IIPAR ) .AND.       &
-            ( HcoState%NY == JJPAR ) .AND.       &
-            ( HcoState%NZ == LLPAR )       ) THEN
-
-          ! ... nothing to do here        
- 
-       ! For different grids, regrid emissions onto simulation
-       ! grid
-       ! TODO: needs testing
-       ELSE
-          ! Do regridding
-          CALL REGRID_EMIS2SIM( HcoState, N, State_Chm, trcID, Input_Opt ) 
-       ENDIF
-
-       !----------------------------------------------------------------------
-       ! HEMCO holds total OC and BC. Those have GEOS-Chem species IDs of 
-       ! OCPI and BCPI (see Model_SetSpecies). Split here into hydrophobic
-       ! and hydrophilic fractions
-       !----------------------------------------------------------------------
-       IF ( trcID == IDTBCPI ) THEN
-          State_Chm%Trac_Tend(:,:,:,IDTBCPO) = &
-             State_Chm%Trac_Tend(:,:,:,IDTBCPI) * BC2BCPO
-          State_Chm%Trac_Tend(:,:,:,IDTBCPI) = &
-             State_Chm%Trac_Tend(:,:,:,IDTBCPI) * BC2BCPI
-
-       ELSEIF ( trcID == IDTOCPI ) THEN
-          State_Chm%Trac_Tend(:,:,:,IDTOCPO) = &
-             State_Chm%Trac_Tend(:,:,:,IDTOCPI) * OC2OCPO
-          State_Chm%Trac_Tend(:,:,:,IDTOCPI) = &
-             State_Chm%Trac_Tend(:,:,:,IDTOCPI) * OC2OCPI
-       ENDIF
-
-       !----------------------------------------------------------------------
-       ! Dust emissions shall be directly added to the tracer array instead 
-       ! of Trac_Tend. This is to avoid unrealistic vertical mixing of dust
-       ! particles.
-       !----------------------------------------------------------------------
-       IF ( trcID == IDTDST1 .OR. trcID == IDTDST2 .OR. &
-            trcID == IDTDST3 .OR. trcID == IDTDST4       ) THEN
-          State_Chm%Tracers(:,:,1,trcID) = State_Chm%Tracers  (:,:,1,trcID) &
-                                         + State_Chm%Trac_Tend(:,:,1,trcID) &
-                                         * State_Met%AREA_M2(:,:,1)         &
-                                         * HcoState%TS_EMIS
-          State_Chm%Trac_Tend(:,:,:,trcID) = 0.0d0
-       ENDIF
-
-    ENDDO !N 
-
-  END SUBROUTINE Map_HCO2GC
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Regrid_Emis2Sim
-!
-! !DESCRIPTION: Function REGRID\_Emis2Sim regrids the original emission
-!  field onto the simulation grid. Emissions are in kg/m2/s, i.e. no
-!  area adjustment is applied.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Regrid_Emis2Sim( HcoState, hcoID, State_Chm, trcID, Input_Opt ) 
-!
-! !USES:
-!
-    USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
-    USE HCO_STATE_MOD,         ONLY : HCO_State 
-    USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR
-    USE ERROR_MOD,             ONLY : ERROR_STOP
-    USE REGRID_A2A_MOD,        ONLY : MAP_A2A
-    USE GRID_MOD,              ONLY : XEDGE, YSIN
-    USE DRYDEP_MOD,            ONLY : NUMDEP, NTRAIND
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(HCO_State), POINTER        :: HcoState
-    INTEGER,         INTENT(IN   )  :: hcoID 
-    INTEGER,         INTENT(IN   )  :: trcID 
-    TYPE(OptInput),  INTENT(IN   )  :: Input_Opt  ! Input options
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState),  INTENT(INOUT)  :: State_Chm        ! Chemistry state 
-!
-! !REVISION HISTORY:
-!  23 Oct 2012 - C. Keller - Initial Version
-!  23 Jan 2013 - C. Keller - Now call MAP_A2A instead of DO_REGRID_A2A
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-!
-    INTEGER            :: II, JJ, LL
-    INTEGER            :: NX, NY
-    INTEGER            :: NN, DepIdx
-    INTEGER            :: nLevIn, nLevOut
-    REAL*8, POINTER    :: ORIG_2D(:,:) => NULL()
-    REAL*8, POINTER    :: REGR_2D(:,:) => NULL()
-    REAL*8, POINTER    :: InArr(:,:,:) => NULL()
-    REAL*8, POINTER    :: OutArr(:,:,:) => NULL()
-    CHARACTER(LEN=255) :: LOC
-    REAL*8                   :: XEDGE_IN ( HcoState%NX+1)
-    REAL*8                   :: YSIN_IN  ( HcoState%NY+1)
-    REAL*8                   :: XEDGE_OUT( IIPAR+1)
-    REAL*8                   :: YSIN_OUT ( JJPAR+1)
-
-    !=================================================================
-    ! REGRID_EMIS2SIM begins here
-    !=================================================================
-
-    ! For error handling
-    LOC = 'Regrid_Emis2Sim ("hcoi_gc_main_mod.F90")'
-
-    ! Pass horizontal emission grid dimensions
-    NX = HcoState%NX
-    NY = HcoState%NY
-
-    ! Get grid edges on input grid
-    XEDGE_IN(:) = HcoState%Grid%XEDGE%Val(:,1)
-    YSIN_IN (:) = HcoState%Grid%YSIN%Val (1,:)
-
-    ! Get grid edges on output grid
-    XEDGE_OUT(:) = XEDGE(:,1,1)
-    YSIN_OUT (:) = YSIN (1,:,1)
-
-    ! Point to tracer tendency slice
-    InArr  => HcoState%Spc(hcoID)%Emis%Val
-    OutArr => State_Chm%Trac_Tend(:,:,:,trcID) 
-
-    ! Only do for existing (i.e. associated) emission arrays
-    IF ( ASSOCIATED( InArr ) ) THEN
-   
-       ! Get vertical levels
-       nLevIn  = SIZE(InArr,3)
-       nLevOut = SIZE(OutArr,3)
-   
-       ! Output array must not have less vertical levels than input
-       ! array.
-       IF ( nLevOut < nLevIn ) THEN
-          CALL ERROR_STOP ( 'nLevIn < nLevOut', LOC )
-       ENDIF
-   
-       ! Loop over all vertical levels of the input array
-       DO LL = 1, nLevIn
-   
-          ! No need to regrid if all emissions in this
-          ! layer and for this tracer are zero!
-          IF ( SUM(InArr(:,:,LL)) == 0d0 ) THEN
-             CYCLE
-          ENDIF
-          
-          ! Point to 2D slice to be regridded
-          ORIG_2D => InArr (:,:,LL)
-          REGR_2D => OutArr(:,:,LL)
-
-          ! Do the regridding
-          CALL MAP_A2A( NX, NY, XEDGE_IN, YSIN_IN,  ORIG_2D, &
-                        IIPAR, JJPAR, XEDGE_OUT,YSIN_OUT, REGR_2D, &
-                        0, 0 )
-
-          ! Clear pointers 
-          ORIG_2D => NULL()
-          REGR_2D => NULL()
-
-       ENDDO !LL
-    ENDIF
-
-    ! Free pointer
-    InArr  => NULL()               
-    OutArr => NULL()
-
-    ! Eventually also regrid deposition array
-    ! --> deposition is in m/s, i.e. no mass-conservative regridding is required.
-    IF ( Input_Opt%LDRYD ) THEN
-       ORIG_2D => HcoState%Spc(hcoID)%Depv%Val
-       IF ( ASSOCIATED(ORIG_2D) ) THEN
-   
-          ! Find drydep index
-          DepIdx = -1
-          DO NN = 1, NUMDEP
-             IF ( NTRAIND(NN) == trcID ) THEN
-                DepIdx = NN
-                EXIT
-             ENDIF
-          ENDDO
-   
-          IF ( DepIdx > 0 ) THEN
-             REGR_2D => State_Chm%DepSav(:,:,DepIdx)
-   
-             ! Do the regridding
-             CALL MAP_A2A( NX, NY, XEDGE_IN, YSIN_IN,  ORIG_2D, &
-                           IIPAR, JJPAR, XEDGE_OUT,YSIN_OUT, REGR_2D, &
-                           0, 0 )
-          ENDIF
-   
-          ! Clear pointers 
-          ORIG_2D => NULL()
-          REGR_2D => NULL()
-       ENDIF
-    ENDIF
-
-  END SUBROUTINE  Regrid_Emis2Sim
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1083,9 +770,11 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
-!  23 Oct 2012 - C. Keller   - Initial Version
-!  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
-!  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
+!  23 Oct 2012 - C. Keller    - Initial Version
+!  20 Aug 2014 - M. Sulprizio - Add PBL_MAX and FRAC_OF_PBL for POPs simulation
+!  02 Oct 2014 - C. Keller    - PEDGE is now in HcoState%Grid
+!  16 Oct 2014 - C. Keller    - Removed SUNCOSmid5. This is now calculated
+!                               internally in Paranox.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1187,9 +876,6 @@ CONTAINS
     ENDIF
     IF ( ExtState%SUNCOSmid%DoUse ) THEN
        ExtState%SUNCOSmid%Arr%Val => State_Met%SUNCOSmid
-    ENDIF
-    IF ( ExtState%SUNCOSmid5%DoUse ) THEN
-       ExtState%SUNCOSmid5%Arr%Val => State_Met%SUNCOSmid5
     ENDIF
     IF ( ExtState%PARDR%DoUse ) THEN
        ExtState%PARDR%Arr%Val => State_Met%PARDR
@@ -1599,16 +1285,8 @@ CONTAINS
        DO N = 1, Input_Opt%N_TRACERS 
    
           ! Get species names
-          ! ==> Treat BCPI as BC and OCPI as OC. Will be split into
-          !     hydrophobic and hydrophilic fraction lateron!
-          IF ( TRIM(Input_Opt%TRACER_NAME(N)) == 'BCPI' ) THEN
-             ModelSpecNames(N) = 'BC' 
-          ELSEIF ( TRIM(Input_Opt%TRACER_NAME(N)) == 'OCPI' ) THEN
-             ModelSpecNames(N) = 'OC' 
-          ELSE 
-             ModelSpecNames(N) = Input_Opt%TRACER_NAME(N)
-          ENDIF
-          
+          ModelSpecNames(N) = Input_Opt%TRACER_NAME(N)
+ 
           ! Species ID
           ModelSpecIDs(N)   = Input_Opt%ID_TRACER(N)
    
@@ -1634,7 +1312,7 @@ CONTAINS
        ! Eventually add SESQ
        IF ( IDTLIMO > 0 ) THEN
           N                      = nModelSpec
-          ModelSpecIDs(N)        = -1
+          ModelSpecIDs(N)        = Input_Opt%N_TRACERS + 1 ! Assign 'fake' model ID
           ModelSpecNames(N)      = 'SESQ'
           ModelSpecEmMW(N)       = 150.0_hp
           ModelSpecMW(N)         = 150.0_hp
@@ -1646,18 +1324,15 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! CO2 specialty simulation 
+    ! For the CO2 specialty simulation, define here all tagged 
+    ! tracer. This will let HEMCO calculate emissions for each
+    ! tagged tracer individually. The emissions will be passed
+    ! to the CO2 arrays in co2_mod.F 
     !-----------------------------------------------------------------
     ELSEIF ( Input_Opt%ITS_A_CO2_SIM ) THEN
 
-       !--------------------------------------------------------------
-       ! For the CO2 specialty simulation, define here all tagged 
-       ! tracer. This will let HEMCO calculate emissions for each
-       ! tagged tracer individually. The emissions will be passed
-       ! to the CO2 arrays in co2_mod.F 
-       !--------------------------------------------------------------
-
-       ! There are up to 10 tracers
-       nModelSpec = 10 
+       ! There are up to 11 tracers
+       nModelSpec = 11 
    
        ! Allocate model species variables
        CALL ModelSpec_Allocate ( nModelSpec, RC )
@@ -1673,29 +1348,31 @@ CONTAINS
           ! used in the HEMCO configuration file!
           SELECT CASE ( N )
 
-             CASE ( 1  ) 
-                ThisName = 'CO2ff'
+             CASE ( 1  )
+                ThisName = 'CO2'
              CASE ( 2  ) 
-                ThisName = 'CO2oc'
+                ThisName = 'CO2ff'
              CASE ( 3  ) 
-                ThisName = 'CO2bal'
+                ThisName = 'CO2oc'
              CASE ( 4  ) 
-                ThisName = 'CO2bb'
+                ThisName = 'CO2bal'
              CASE ( 5  ) 
-                ThisName = 'CO2bf'
+                ThisName = 'CO2bb'
              CASE ( 6  ) 
-                ThisName = 'CO2nte'
+                ThisName = 'CO2bf'
              CASE ( 7  ) 
-                ThisName = 'CO2se'
+                ThisName = 'CO2nte'
              CASE ( 8  ) 
-                ThisName = 'CO2av'
+                ThisName = 'CO2se'
              CASE ( 9  ) 
-                ThisName = 'CO2ch'
+                ThisName = 'CO2av'
              CASE ( 10 ) 
+                ThisName = 'CO2ch'
+             CASE ( 11 ) 
                 ThisName = 'CO2corr'
 
              CASE DEFAULT
-                MSG = 'Only 10 species defined for CO2 simulation!'
+                MSG = 'Only 11 species defined for CO2 simulation!'
                 CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
                 RETURN
 
@@ -1704,9 +1381,8 @@ CONTAINS
           ! Species name 
           ModelSpecNames(N)      = ThisName 
           
-          ! Species ID. Tracer 1 is total CO2, thus add one to get 
-          ! emission tracer ID.
-          ModelSpecIDs(N)        = N + 1
+          ! Species ID.
+          ModelSpecIDs(N)        = N
    
           ! Molecular weights and molecule ratio
           ModelSpecMW(N)         = Input_Opt%Tracer_MW_G(N)
@@ -1717,9 +1393,6 @@ CONTAINS
           ModelSpecK0(N)         = K0
           ModelSpecCR(N)         = CR
           ModelSpecPKA(N)        = PKA
-
-          ! For CO2 sim, never set pointers to Trac_Tend arrays
-          UsePtrs2GC = .FALSE.
 
        ENDDO
 
@@ -1830,7 +1503,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_nHcoSpc( Input_Opt, nHcoSpec, RC ) 
+  SUBROUTINE Get_nHcoSpc( am_I_Root, Input_Opt, nHcoSpec, RC ) 
 !
 ! !USES:
 !
@@ -1841,6 +1514,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
+    LOGICAL,        INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input Options object
     INTEGER,        INTENT(INOUT)  :: RC         ! Success or fialure
 !
@@ -1852,13 +1526,17 @@ CONTAINS
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller   - Initial Version
 !  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  27 Oct 2014 - C. Keller   - Now allocate M2HID also if there are no
+!                              species in the HEMCO config file (to prevent 
+!                              out-of-bounds error lateron).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER            :: nConfigSpec, nModelSpec, AS
+    INTEGER            :: nConfigSpec, nModelSpec
+    INTEGER            :: I, AS
     CHARACTER(LEN=255) :: LOC = 'Get_nHcoSpc (hcoi_gc_main_mod.F90)'
     CHARACTER(LEN=255) :: MSG
 
@@ -1869,10 +1547,17 @@ CONTAINS
     ! Extract number of species found in the HEMCO config. file.
     nConfigSpec = Config_GetnSpecies ( )
 
-    ! If at least one species is set in the configuration file, try
-    ! to match those species against the GEOS-Chem species.
+    ! If there is no species in the HEMCO configuration file, there
+    ! are no matching species!
     IF ( nConfigSpec == 0 ) THEN
        nHcoSpec = 0
+
+       ! To prevent out of bounds error
+       CALL M2HID_Allocate( Input_Opt%N_TRACERS, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If at least one species is set in the configuration file, try
+    ! to match those species against the GEOS-Chem species.
     ELSE
 
        ! Get list of all species names found in the HEMCO config file.
@@ -1898,7 +1583,7 @@ CONTAINS
                            MatchIDx,       nHcoSpec        )
     ENDIF
 
-    IF ( nHcoSpec == 0 ) THEN
+    IF ( nHcoSpec == 0 .AND. am_I_Root ) THEN
        MSG = 'No matching species between HEMCO and the model!'
        CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
     ENDIF
@@ -1916,7 +1601,8 @@ CONTAINS
 ! !IROUTINE: Register_Species 
 !
 ! !DESCRIPTION: Subroutine Register\_Species registers all emissions
-!  species in the HEMCO state object. 
+!  species in the HEMCO state object and creates the mapping vector that
+!  relates the GEOS-Chem tracer IDs to the HEMCO IDs.
 !\\
 !\\
 ! !INTERFACE:
@@ -1929,9 +1615,6 @@ CONTAINS
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
-
-    ! For SOA mechanism
-    USE CARBON_MOD,         ONLY : BIOG_SESQ
 !
 ! !INPUT ARGUMENTS:
 !
@@ -1953,7 +1636,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER     :: CNT, I, IDX
+    INTEGER     :: CNT, I, IDX, AS
 
     !=================================================================
     ! REGISTER_SPECIES begins here
@@ -1988,49 +1671,16 @@ CONTAINS
           HcoState%Spc(cnt)%HenryK0    = ModelSpecK0(IDX)
           HcoState%Spc(cnt)%HenryCR    = ModelSpecCR(IDX)
           HcoState%Spc(cnt)%HenryPKA   = ModelSpecPKA(IDX)
-   
-          !----------------------------------------------------------------------
-          ! Set pointer to trac_tend
-          !
-          ! As long as the HEMCO grid is equal to the GEOS-Chem grid, the 
-          ! HEMCO emission arrays can directly point to the tracer tendency 
-          ! arrays (trac_tend) in the GEOS-Chem chemistry state. The same 
-          ! applies to the deposition array.
-          ! 
-          ! SESQ emissions are not transported and hence don't have a Trac_Tend 
-          ! array. Point them to the BIOG_SESQ array of CARBON_MOD instead.
-          ! 
-          ! For the CO2 simulation, don't link the HEMCO emissions to Trac_Tend
-          ! because PBL mixing is not applied. Instead, we will add emissions to
-          ! the surface layer in co2_mod.F. To enable PBL mixing for the CO2
-          ! simulation, just remove the logical switch below as well as the
-          ! corresponding code in co2_mod.F.
-          !----------------------------------------------------------------------
-          IF ( UsePtrs2GC ) THEN
-   
-             ! Only if HEMCO and GEOS-Chem are on the same grid...
-             IF ( ( HcoState%NX == IIPAR ) .AND.      &
-                  ( HcoState%NY == JJPAR ) .AND.      &
-                  ( HcoState%NZ == LLPAR )      ) THEN 
-      
-                IF ( TRIM(HcoState%Spc(cnt)%SpcName) == 'SESQ' ) THEN
-                   HcoState%Spc(cnt)%Emis%Val => BIOG_SESQ 
-                   HcoState%Spc(cnt)%Depv%Val => NULL()
-                ELSE
-                   HcoState%Spc(cnt)%Emis%Val => State_Chm%Trac_Tend(:,:,:,IDX)
-                   HcoState%Spc(cnt)%Depv%Val => State_Chm%DepSav(:,:,IDX)
-                ENDIF
-   
-             ELSE
-                UsePtrs2GC = .FALSE.
-             ENDIF ! Same grid
-          ENDIF 
+
+          ! Set mapping vector. This returns the HEMCO ID of species X at 
+          ! position X.
+          M2HID(ModelSpecIDs(IDX))%ID  = CNT
    
           ! Write to logfile
-          CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
+          IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
    
        ENDDO !I
-       CALL HCO_MSG(SEP1='-')
+       IF ( am_I_Root ) CALL HCO_MSG(SEP1='-')
 
     ENDIF 
 
@@ -2072,6 +1722,129 @@ CONTAINS
     HcoStatePtr => HcoState
 
   END SUBROUTINE GetHcoState
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetHcoVal
+!
+! !DESCRIPTION: Subroutine GetHcoVal is a wrapper routine to return an 
+! emission (kg/m2/s) or deposition (1/s) value from the HEMCO state object
+! for a given GEOS-Chem tracer at position I, J, L.
+! A value of zero is returned if no HEMCO species is defined for the given
+! tracer, and the output parameter Found is set to false.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetHcoVal ( TrcID, I, J, L, Found, Emis, Dep ) 
+!
+! !USES
+!
+    USE TRACERID_MOD
+!
+! !INPUT ARGUMENTS:
+!
+    INTEGER,            INTENT(IN   )  :: TrcID   ! GEOS-Chem tracer ID
+    INTEGER,            INTENT(IN   )  :: I, J, L ! Position 
+!
+! !OUTPUT ARGUMENTS:
+!
+    LOGICAL,            INTENT(  OUT)  :: FOUND   ! Was this tracer ID found?
+    REAL(dp), OPTIONAL, INTENT(  OUT)  :: Emis    ! Emissions  [kg/m2/s]
+    REAL(dp), OPTIONAL, INTENT(  OUT)  :: Dep     ! Deposition [1/s] 
+!
+! !REVISION HISTORY:
+!  20 Oct 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER   :: HcoID, tID
+
+    !=================================================================
+    ! GetHcoVal begins here
+    !=================================================================
+
+    ! Init
+    FOUND = .FALSE.
+    IF ( PRESENT(Emis) ) Emis = 0.0_dp
+    IF ( PRESENT(Dep ) ) Dep  = 0.0_dp
+
+    ! Define tracer ID to be used. This is only different from the
+    ! passed tracer ID if some species mapping occurs at this level.
+    tID = TrcID
+
+    ! HEMCO species ID corresponding to this GEOS-Chem tracer
+    IF ( tID > 0 ) HcoID = M2HID(tID)%ID
+
+    ! If HEMCO species exists, get value from HEMCO state
+    IF ( HcoID > 0 ) THEN
+       IF ( PRESENT(Emis) ) THEN
+          IF ( ASSOCIATED(HcoState%Spc(HcoID)%Emis%Val) ) THEN
+             Emis  = HcoState%Spc(HcoID)%Emis%Val(I,J,L)
+             FOUND = .TRUE.
+          ENDIF
+       ENDIF
+       IF ( PRESENT(Dep) ) THEN
+          IF ( ASSOCIATED(HcoState%Spc(HcoID)%Depv%Val) ) THEN
+             Dep   = HcoState%Spc(HcoID)%Depv%Val(I,J)
+             FOUND = .TRUE.
+          ENDIF
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE GetHcoVal
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetHcoID
+!
+! !DESCRIPTION: Function GetHcoID is a convenience wrapper function to
+! return the HEMCO ID by name or by GC tracer ID.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION GetHcoID( name, TrcID ) RESULT ( HcoID )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD, ONLY : HCO_GetHcoID
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: Name  ! Tracer name 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: TrcID ! Tracer ID 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER                                   :: HcoID 
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  21 Oct 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Init
+    HcoID = -1
+
+    ! To get HEMCO ID by tracer ID
+    IF ( PRESENT(TrcID) ) THEN
+       IF ( TrcID > 0 ) HcoID = M2HID(TrcID)%ID
+    ENDIF
+    IF ( PRESENT(name) ) THEN
+       HcoID = HCO_GetHcoID( name, HcoState )
+    ENDIF
+
+  END FUNCTION GetHcoID
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -2223,7 +1996,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    INTEGER            :: AS
+    INTEGER            :: I, AS
     CHARACTER(LEN=255) :: LOC = 'ModelSpec_Allocate (hcoi_gc_main_mod.F90)'
 
     !=================================================================
@@ -2233,43 +2006,103 @@ CONTAINS
     ALLOCATE(ModelSpecNames     (N), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR ( 'Allocation error: ModelSpecNames', RC, THISLOC=LOC )
+       RETURN
     ENDIF
 
     ALLOCATE(ModelSpecIDs       (N), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR ( 'Allocation error: ModelSpecIDs', RC, THISLOC=LOC )
+       RETURN
     ENDIF
 
     ALLOCATE(ModelSpecMW        (N), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR ( 'Allocation error: ModelSpecMW', RC, THISLOC=LOC )
+       RETURN
     ENDIF
 
     ALLOCATE(ModelSpecEmMW      (N), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR ( 'Allocation error: ModelSpecEmMW', RC, THISLOC=LOC )
+       RETURN
     ENDIF
 
     ALLOCATE(ModelSpecMolecRatio(N), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR ( 'Allocation error: ModelSpecMolecRatio', RC, THISLOC=LOC )
+       RETURN
     ENDIF
 
     ALLOCATE(ModelSpecK0        (N), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR ( 'Allocation error: ModelSpecK0', RC, THISLOC=LOC )
+       RETURN
     ENDIF
 
     ALLOCATE(ModelSpecCR        (N), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR ( 'Allocation error: ModelSpecCR', RC, THISLOC=LOC )
+       RETURN
     ENDIF
 
     ALLOCATE(ModelSpecPKA       (N), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR ( 'Allocation error: ModelSpecPKA', RC, THISLOC=LOC )
+       RETURN
     ENDIF
 
+    ! Also allocate M2HID
+    CALL M2HID_Allocate( N, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
   END SUBROUTINE ModelSpec_Allocate
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: M2HID_Allocate 
+!
+! !DESCRIPTION: Subroutine M2HID\_Allocate allocates the M2HID derived type.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE M2HID_Allocate ( N, RC )
+!
+! !INPUT/OUTPUT ARGUMENTS:
+!
+    INTEGER, INTENT(IN   ) :: N     ! Array size
+    INTEGER, INTENT(INOUT) :: RC    ! Return code 
+!
+! !REVISION HISTORY:
+!  27 Oct 2014 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER            :: I, AS
+    CHARACTER(LEN=255) :: LOC = 'M2HID_Allocate (hcoi_gc_main_mod.F90)'
+
+    !=================================================================
+    ! M2HID_Allocate begins here
+    !=================================================================
+
+    ! Initialize mapping vector. 
+    ALLOCATE( M2HID(N), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'Allocation error: M2HID', RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    DO I = 1, N
+       M2HID(I)%ID = -1
+    ENDDO
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE M2HID_Allocate
 !EOC
 END MODULE HCOI_GC_MAIN_MOD
