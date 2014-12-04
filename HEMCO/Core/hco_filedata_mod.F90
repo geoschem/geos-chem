@@ -135,8 +135,6 @@ MODULE HCO_FileData_Mod
   TYPE, PUBLIC :: TimeIdx
      INTEGER                     :: TypeID
      CHARACTER(LEN=31)           :: TempRes
-     LOGICAL                     :: LonDependent
-     INTEGER,            POINTER :: CurrIDx(:)
   END TYPE TimeIdx
 !
 ! !INTERFACES:

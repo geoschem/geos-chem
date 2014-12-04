@@ -583,7 +583,7 @@
 !                  write(*,*) ' '
 !                  write(*,*) 'do HEMCO MEGAN @i,j ', i,j
 !                  write(*,*) 'SUNCOSmid:             ', SUNCOS
-!                  write(*,*) 'TEMPERATURE:',ExtState%TSURFK%Arr%Val(I,J)
+!                  write(*,*) 'TEMPERATURE:',ExtState%T2M%Arr%Val(I,J)
 !                  write(*,*) 'Q_DIR: ', Q_DIR_2 / WM2_TO_UMOLM2S
 !                  write(*,*) 'Q_DIFF:', Q_DIFF_2 / WM2_TO_UMOLM2S
 !                  write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J)
@@ -1613,7 +1613,7 @@
       MISOLAI  = ISOLAI
 !      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
 !      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-      TS       = ExtState%TSURFK%Arr%Val(I,J)
+      TS       = ExtState%T2M%Arr%Val(I,J)
       SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
 
 
@@ -1762,7 +1762,7 @@
       MISOLAI = ISOLAI
 !      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
 !      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-      TS       = ExtState%TSURFK%Arr%Val(I,J)
+      TS       = ExtState%T2M%Arr%Val(I,J)
       SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
 
 
@@ -1901,7 +1901,7 @@
       MISOLAI = ISOLAI
 !      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
 !      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-      TS       = ExtState%TSURFK%Arr%Val(I,J)
+      TS       = ExtState%T2M%Arr%Val(I,J)
 
 
       ! Number of days between MISOLAI and PMISOLAI
@@ -2105,7 +2105,7 @@
       MISOLAI = ISOLAI
 !      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
 !      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-      TS       = ExtState%TSURFK%Arr%Val(I,J)
+      TS       = ExtState%T2M%Arr%Val(I,J)
       SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
 
 
@@ -2327,15 +2327,16 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8  :: LAT 
-      REAL*8  :: mmHCOPARDR_DAILY
-      REAL*8  :: mmHCOPARDF_DAILY
-      REAL*8  :: PAC_DAILY, PAC_INSTANT, C_PPFD
-      REAL*8  :: PTOA, PHI
-      REAL*8  :: BETA,   SINbeta 
-      INTEGER :: DOY, RC 
-      REAL*8  :: AAA, BBB
-      REAL*4  :: LocalHour
+      REAL(hp) :: LON
+      REAL*8   :: LAT 
+      REAL*8   :: mmHCOPARDR_DAILY
+      REAL*8   :: mmHCOPARDF_DAILY
+      REAL*8   :: PAC_DAILY, PAC_INSTANT, C_PPFD
+      REAL*8   :: PTOA, PHI
+      REAL*8   :: BETA,   SINbeta 
+      INTEGER  :: DOY, RC 
+      REAL*8   :: AAA, BBB
+      REAL*4   :: LocalHour
 
       !-----------------------------------------------------------------
       ! Compute GAMMA_P_PECCA
@@ -2355,9 +2356,10 @@
 
       ! Get day of year, local-time and latitude
       ! TODO: Evaluate RC?
-      CALL HcoClock_Get ( cDOY = DOY, RC=RC )
-      CALL HcoClock_GetLocal ( I, cH = LocalHour, RC=RC )
+      LON = HcoState%Grid%XMID%Val( I, J )
       LAT = HcoState%Grid%YMID%Val( I, J )
+      CALL HcoClock_Get ( cDOY = DOY, RC=RC )
+      CALL HcoClock_GetLocal ( LON, LAT, cH = LocalHour, RC=RC )
 
       ! Get solar elevation angle
       SINbeta      =  SOLAR_ANGLE( HcoState, DOY , LocalHour, LAT )
@@ -3134,11 +3136,11 @@
       ! On first call, set all memory values to current value
       ! Also fill the 15 day values with current values... 
       IF ( FIRST ) THEN
-         HCOT_DAY(I,J,:)     = ExtState%TSURFK%Arr%Val(I,J)
+         HCOT_DAY(I,J,:)     = ExtState%T2M%Arr%Val(I,J)
          HCOPARDR_DAY(I,J,:) = ExtState%PARDR%Arr%Val(I,J)
          HCOPARDF_DAY(I,J,:) = ExtState%PARDF%Arr%Val(I,J)
 
-         HCOT_15(I,J,:)      = ExtState%TSURFK%Arr%Val(I,J)
+         HCOT_15(I,J,:)      = ExtState%T2M%Arr%Val(I,J)
          HCOPARDR_15(I,J,:)  = ExtState%PARDR%Arr%Val(I,J) 
          HCOPARDF_15(I,J,:)  = ExtState%PARDF%Arr%Val(I,J)
       ELSE
@@ -3152,7 +3154,7 @@
          ENDDO
          
          ! Store 
-         HCOT_DAY(I,J,1)     = ExtState%TSURFK%Arr%Val(I,J)
+         HCOT_DAY(I,J,1)     = ExtState%T2M%Arr%Val(I,J)
          HCOPARDF_DAY(I,J,1) = ExtState%PARDF%Arr%Val(I,J)
          HCOPARDR_DAY(I,J,1) = ExtState%PARDR%Arr%Val(I,J)
       ENDIF
@@ -3725,7 +3727,7 @@
             IF ( am_I_Root ) THEN
                MSG = 'SOA option is turned on - '// 
      &               'no OCPI emissions will be calculated'
-               CALL HCO_MSG(MSG)
+               CALL HCO_WARNING(MSG,RC)
             ENDIF
          ENDIF
       ENDIF
@@ -3863,7 +3865,7 @@
       RAD2D  = 1.0d0 / PI_180       ! Radians to degrees
 
       ! Enable met. fields
-      ExtState%TSURFK%DoUse    = .TRUE.
+      ExtState%T2M%DoUse       = .TRUE.
       ExtState%SUNCOSmid%DoUse = .TRUE.
       ExtState%PARDR%DoUse     = .TRUE.
       ExtState%PARDF%DoUse     = .TRUE.

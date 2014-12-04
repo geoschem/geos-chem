@@ -95,17 +95,20 @@ CONTAINS
     LOGICAL                    :: verb
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
+    CHARACTER(LEN=ESMF_MAXSTR) :: Iam
 
     !=================================================================
     ! HCOIO_DATAREAD begins here
     !=================================================================
 
     ! For error handling
+    Iam = LOC
     CALL HCO_ENTER ( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Point to ESMF IMPORT object
     IMPORT => HcoState%IMPORT
+    ASSERT_(ASSOCIATED(IMPORT))
 
     ! Verbose?
     verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
@@ -124,7 +127,7 @@ CONTAINS
                              TRIM(Lct%Dct%Dta%ncFile), RC=STAT )
 
        ! Check for MAPL error
-       IF( MAPL_VRFY(STAT,LOC,1) ) THEN
+       IF( STAT /= ESMF_SUCCESS ) THEN 
           MSG = 'Cannot get xyz pointer: ' // TRIM(Lct%Dct%Dta%ncFile)
           CALL HCO_ERROR ( MSG, RC ) 
           RETURN
@@ -160,7 +163,7 @@ CONTAINS
                              TRIM(Lct%Dct%Dta%ncFile), RC=STAT )
 
        ! Check for MAPL error 
-       IF( MAPL_VRFY(STAT,LOC,2) ) THEN
+       IF( STAT /= ESMF_SUCCESS ) THEN 
           MSG = 'Cannot get xy pointer: ' // TRIM(Lct%Dct%Dta%ncFile)
           CALL HCO_ERROR ( MSG, RC ) 
           RETURN

@@ -770,7 +770,7 @@ CONTAINS
     ! ---------------------------------------------------------------------- 
 
     ! Activate required met fields
-    ExtState%TSURFK%DoUse    = .TRUE. 
+    ExtState%T2M%DoUse       = .TRUE. 
     ExtState%GWETTOP%DoUse   = .TRUE. 
     ExtState%SUNCOSmid%DoUse = .TRUE. 
     ExtState%U10M%DoUse      = .TRUE. 
@@ -968,7 +968,7 @@ CONTAINS
     FERTDIAG       = 0d0
 
     ! Surface temperature [C]
-    TC             = ExtState%TSURFK%Arr%Val(I,J) - 273.15d0
+    TC             = ExtState%T2M%Arr%Val(I,J) - 273.15d0
 
     ! Surface wind speed, squared
     WINDSQR        = ExtState%U10M%Arr%Val(I,J)**2 + &
@@ -1126,8 +1126,8 @@ CONTAINS
     DO I = 1, HcoState%NX
 
        ! Surface temperature [K] and [C]
-       TEMPK = ExtState%TSURFK%Arr%Val(I,J)
-       TEMPC = ExtState%TSURFK%Arr%Val(I,J) - 273.15d0
+       TEMPK = ExtState%T2M%Arr%Val(I,J)
+       TEMPC = ExtState%T2M%Arr%Val(I,J) - 273.15d0
 
        ! Compute bulk surface resistance for gases.    
        !                                  
