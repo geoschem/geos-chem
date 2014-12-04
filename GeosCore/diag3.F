@@ -763,7 +763,7 @@
             DiagnName = 'BIOGENIC_OCPI'
             FACTOR    = SECONDS
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                 UNIT, N, 1, -1, .FALSE., FACTOR, RC, AreaScal=1 )
+     &                 UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          
