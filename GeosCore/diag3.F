@@ -241,6 +241,7 @@
 !  15 Oct 2014 - C. Keller   - Updated ND37 diagnostics to write out all specs
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  24 Nov 2014 - R. Yantosca - Bug fix for ND28 BC/OC: Don't multiply by area
+!  04 Dec 2014 - R. Yantosca - No longer crashes if BIOGENIC_OCPI=0 everywhere
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -764,7 +765,7 @@
             DiagnName = 'BIOGENIC_OCPI'
             FACTOR    = SECONDS
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                 UNIT, N, 1, -1, .FALSE., FACTOR, RC, AreaScal=1 )
+     &                 UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          
