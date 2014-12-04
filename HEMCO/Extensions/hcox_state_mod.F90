@@ -108,7 +108,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: V10M        ! N/S 10m wind speed [m/s]
      TYPE(ExtDat_2R),  POINTER :: ALBD        ! Surface albedo [-] 
      TYPE(ExtDat_2R),  POINTER :: WLI         ! 0=water, 1=land, 2=ice
-     TYPE(ExtDat_2R),  POINTER :: TSURFK      ! 2m Sfce temperature [K] 
+     TYPE(ExtDat_2R),  POINTER :: T2M         ! 2m Sfce temperature [K] 
      TYPE(ExtDat_2R),  POINTER :: TSKIN       ! Surface skin temperature [K]
      TYPE(ExtDat_2R),  POINTER :: GWETTOP     ! Top soil moisture [-]
      TYPE(ExtDat_2R),  POINTER :: SNOWHGT     ! Snow height [mm H2O] 
@@ -280,7 +280,7 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%WLI , RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL ExtDat_Init ( ExtState%TSURFK, RC ) 
+    CALL ExtDat_Init ( ExtState%T2M, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%TSKIN, RC ) 
@@ -426,7 +426,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%V10M       )
        CALL ExtDat_Cleanup( ExtState%ALBD       )
        CALL ExtDat_Cleanup( ExtState%WLI        )
-       CALL ExtDat_Cleanup( ExtState%TSURFK     )
+       CALL ExtDat_Cleanup( ExtState%T2M        )
        CALL ExtDat_Cleanup( ExtState%TSKIN      )
        CALL ExtDat_Cleanup( ExtState%GWETTOP    )
        CALL ExtDat_Cleanup( ExtState%SNOWHGT    )

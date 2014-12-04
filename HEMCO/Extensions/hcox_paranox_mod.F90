@@ -413,7 +413,7 @@ CONTAINS
        NOmolec    = ExtState%NO%Arr%Val(I,J,1)  / MW_NO
        NO2molec   = ExtState%NO2%Arr%Val(I,J,1) / MW_NO2
        AIRmolec   = ExtState%AIR%Arr%Val(I,J,1) / MW_AIR
-       TS         = ExtState%TSURFK%Arr%Val(I,J)
+       TS         = ExtState%T2M%Arr%Val(I,J)
        SUNCOSmid5 = SC5(I,J,SC5ID)
        SUNCOSmid  = ExtState%SUNCOSmid%Arr%Val(I,J)
 
@@ -848,7 +848,7 @@ CONTAINS
    ExtState%NO%DoUse         = .TRUE.
    ExtState%AIR%DoUse        = .TRUE.
    ExtState%SUNCOSmid%DoUse  = .TRUE.
-   ExtState%TSURFK%DoUse     = .TRUE.
+   ExtState%T2M%DoUse        = .TRUE.
    IF ( IDTHNO3 > 0 ) THEN
       ExtState%HNO3%DoUse    = .TRUE.
    ENDIF
