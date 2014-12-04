@@ -264,18 +264,18 @@ CONTAINS
     INTEGER, INTENT(IN)  :: iv
 
     ! Longitude edges (degrees) of INPUT and OUTPUT grids
-    REAL(fp),  INTENT(IN)  :: lon1(im+1), lon2(in+1)
+    REAL*8,  INTENT(IN)  :: lon1(im+1), lon2(in+1)
 
     ! Sine of Latitude Edges (radians) of INPUT and OUTPUT grids
-    REAL(fp),  INTENT(IN)  :: sin1(jm+1), sin2(jn+1)
+    REAL*8,  INTENT(IN)  :: sin1(jm+1), sin2(jn+1)
 
     ! Quantity on INPUT grid
-    REAL(fp),  INTENT(IN)  :: q1(im,jm)
+    REAL*8,  INTENT(IN)  :: q1(im,jm)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Regridded quantity on OUTPUT grid
-    REAL(fp),  INTENT(OUT) :: q2(in,jn)
+    REAL*8,  INTENT(OUT) :: q2(in,jn)
 !
 ! !REMARKS:
 !  This routine is overloaded by the MAP_A2A interface.
@@ -294,7 +294,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: i,j,k
-    REAL(fp)  :: qtmp(in,jm)
+    REAL*8  :: qtmp(in,jm)
 
     !===================================================================
     ! E-W regridding
@@ -508,7 +508,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Regridded quantity on OUTPUT grid
-    REAL(fp),  INTENT(OUT) :: q2(in,jn)
+    REAL*8,  INTENT(OUT) :: q2(in,jn)
 !
 ! !REMARKS:
 !  This routine is overloaded by the MAP_A2A interface.
@@ -527,7 +527,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: i,j,k
-    REAL(fp)  :: qtmp(in,jm)
+    REAL*8  :: qtmp(in,jm)
 
     !===================================================================
     ! E-W regridding
@@ -615,18 +615,18 @@ CONTAINS
     INTEGER, INTENT(IN)  :: iv            
   
     ! Original southern edge of the cell sin(lat1)  
-    REAL(fp),  INTENT(IN)  :: sin1(jm+1-ig) 
+    REAL*8,  INTENT(IN)  :: sin1(jm+1-ig) 
     
     ! Original data at center of the cell
-    REAL(fp),  INTENT(IN)  :: q1(im,jm)      
+    REAL*8,  INTENT(IN)  :: q1(im,jm)      
     
     ! Target cell's southern edge sin(lat2)
-    REAL(fp),  INTENT(IN)  :: sin2(jn+1-ig) 
+    REAL*8,  INTENT(IN)  :: sin2(jn+1-ig) 
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL(fp),  INTENT(OUT) :: q2(im,jn)     
+    REAL*8,  INTENT(OUT) :: q2(im,jn)     
 !
 ! !REMARKS:
 !
@@ -651,9 +651,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: i, j0, m, mm, j
-    REAL(fp)               :: dy1(jm)
-    REAL(fp)               :: dy
-    REAL(fp)               :: qsum, sum
+    REAL*8               :: dy1(jm)
+    REAL*8               :: dy
+    REAL*8               :: qsum, sum
     
     ! YMAP begins here!
     do j=1,jm-ig
@@ -784,7 +784,7 @@ CONTAINS
     REAL*4,  INTENT(IN)  :: sin1(jm+1-ig) 
     
     ! Original data at center of the cell
-    REAL(fp),  INTENT(IN)  :: q1(im,jm)      
+    REAL*8,  INTENT(IN)  :: q1(im,jm)      
     
     ! Target cell's southern edge sin(lat2)
     REAL*4,  INTENT(IN)  :: sin2(jn+1-ig) 
@@ -792,7 +792,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL(fp),  INTENT(OUT) :: q2(im,jn)     
+    REAL*8,  INTENT(OUT) :: q2(im,jn)     
 !
 ! !REMARKS:
 !
@@ -817,9 +817,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: i, j0, m, mm, j
-    REAL(fp)               :: dy1(jm)
-    REAL(fp)               :: dy
-    REAL(fp)               :: qsum, sum
+    REAL*8               :: dy1(jm)
+    REAL*8               :: dy
+    REAL*8               :: qsum, sum
     
     ! YMAP begins here!
     do j=1,jm-ig
@@ -1108,18 +1108,18 @@ CONTAINS
     INTEGER, INTENT(IN)  :: jm           
   
     ! Original western edge of the cell
-    REAL(fp),  INTENT(IN)  :: lon1(im+1)   
+    REAL*8,  INTENT(IN)  :: lon1(im+1)   
   
     ! Original data at center of the cell
-    REAL(fp),  INTENT(IN)  :: q1(im,jm)    
+    REAL*8,  INTENT(IN)  :: q1(im,jm)    
   
     ! Target cell's western edge
-    REAL(fp),  INTENT(IN)  :: lon2(in+1)   
+    REAL*8,  INTENT(IN)  :: lon2(in+1)   
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL(fp),  INTENT(OUT) :: q2(in,jm)    
+    REAL*8,  INTENT(OUT) :: q2(in,jm)    
 !
 ! !REMARKS:
 !   lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
@@ -1141,11 +1141,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: i1, i2, i, i0, m, mm, j
-    REAL(fp)               :: qtmp(-im:im+im)
-    REAL(fp)               :: x1(-im:im+im+1)
-    REAL(fp)               :: dx1(-im:im+im)
-    REAL(fp)               :: dx
-    REAL(fp)               :: qsum
+    REAL*8               :: qtmp(-im:im+im)
+    REAL*8               :: x1(-im:im+im+1)
+    REAL*8               :: dx1(-im:im+im)
+    REAL*8               :: dx
+    REAL*8               :: qsum
     LOGICAL              :: found
 
     ! XMAP begins here!
@@ -1517,7 +1517,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL(fp),  INTENT(OUT) :: q2(in,jm)    
+    REAL*8,  INTENT(OUT) :: q2(in,jm)    
 !
 ! !REMARKS:
 !   lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
@@ -1539,11 +1539,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: i1, i2, i, i0, m, mm, j
-    REAL(fp)               :: qtmp(-im:im+im)
-    REAL(fp)               :: x1(-im:im+im+1)
-    REAL(fp)               :: dx1(-im:im+im)
-    REAL(fp)               :: dx
-    REAL(fp)               :: qsum
+    REAL*8               :: qtmp(-im:im+im)
+    REAL*8               :: x1(-im:im+im+1)
+    REAL*8               :: dx1(-im:im+im)
+    REAL*8               :: dx
+    REAL*8               :: qsum
     LOGICAL              :: found
 
     ! XMAP begins here!

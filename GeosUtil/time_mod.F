@@ -395,7 +395,7 @@
 #endif
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
-      CALL CALDATE( JD1, NYMD, NHMS )
+      CALL CALDATE( DBLE(JD1), NYMD, NHMS )
 
       ! Extract current year, month, day from NYMD
       CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
@@ -446,7 +446,7 @@
      &              ( DBLE( SECOND ) / 3600e+0_fp )
 
       ! Days elapsed in this year (0-366)
-      DAY_OF_YEAR = JD1 - JULDAY( YEAR, 1, 0e+0_fp )
+      DAY_OF_YEAR = JD1 - JULDAY( YEAR, 1, 0d0 ) ! has to be REAL*8
 
       ! TAU value (# of hours since 1 Jan 1985)
       ! NOTE: TMP is REAL*4 to prevent precision problems
@@ -471,10 +471,10 @@
       !=================================================================
 
       ! Get fractional GMT day
-      THISDAY     = DAY + ( GMT / 24e+0_fp )
+      THISDAY     = DAY + ( GMT / 24d0 ) ! real*8
 
       ! Get current Julian date 
-      JD          = JULDAY( YEAR, MONTH, THISDAY )
+      JD          = JULDAY( YEAR, MONTH, DBLE(THISDAY) ) ! real*8
 
       ! Add 1.5 to JD and divide by 7
       A           = ( JD + 1.5e+0_fp ) / 7e+0_fp
@@ -1265,7 +1265,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: Y, M, D, H, MI, S
-      REAL(fp)  :: DAY
+      REAL*8  :: DAY
 
       !=================================================================
       ! GET_JD begins here!
@@ -1278,9 +1278,9 @@
       CALL YMD_EXTRACT( THISNHMS, H, MI, S )      
 
       ! Decimal day (including fractional part) 
-      DAY  = DBLE( D ) + ( DBLE( H  ) / 24e+0_fp    ) + 
-     &                   ( DBLE( MI ) / 1440e+0_fp  ) +
-     &                   ( DBLE( S  ) / 86400e+0_fp ) 
+      DAY  = DBLE( D ) + ( DBLE( H  ) / 24d0    ) + 
+     &                   ( DBLE( MI ) / 1440d0  ) +
+     &                   ( DBLE( S  ) / 86400d0 ) 
      
       ! Compute astronomical Julian day at start of run
       THISJD = JULDAY( Y, M, DAY )
@@ -1599,7 +1599,7 @@
       JD = GET_JD( NYMD, NHMS ) + ( N_MINS / 1440e+0_fp )
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
-      CALL CALDATE( JD, DATE(1), DATE(2) )
+      CALL CALDATE( DBLE(JD), DATE(1), DATE(2) )
 
       ! Check to see if HHMMSS is 240000.  This may occur due to a
       ! roundoff error in CALDATE.  If this is the case, then add 1 
@@ -1615,7 +1615,7 @@
          JD  = GET_JD( TMP, 000000 ) + 1
 
          ! Convert to YYYY/MM/DD and hh:mm:ss
-         CALL CALDATE( JD, DATE(1), DATE(2) )
+         CALL CALDATE( DBLE(JD), DATE(1), DATE(2) )
       ENDIF
 
 #if   defined( GCAP )

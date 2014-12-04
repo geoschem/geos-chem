@@ -1602,6 +1602,7 @@
 !  27 Nov 2012 - R. Yantosca - Now pass State_Met to COSSZA so that the
 !                              SUNCOS fields may be updated
 !  28 Nov 2012 - R. Yantosca - Removed references to 1-D SUNCOS arrays
+!  04 Dec 2014 - M. Yannetti - REAL*8 needs to stay *8 due to JULDAY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1610,7 +1611,7 @@
 !
       ! Scalars
       INTEGER :: DOY,  DOY5, YEAR, MONTH,  DAY, HOUR, HOUR5, MINUTE
-      REAL(fp)  :: DDAY, JD,   JD5,  JDJan0, GMT, GMT5
+      REAL*8  :: DDAY, JD,   JD5,  JDJan0, GMT, GMT5
 
       !=================================================================
       ! Get cosine(SZA) at the current time (SUNCOS) and at the
@@ -1628,7 +1629,7 @@
       HOUR   = GET_HOUR()                              ! Current GMT hour
       MINUTE = GET_MINUTE()                            ! Current GMT minutes
       GMT    = GET_GMT()                               ! Current GMT
-      DDAY   = DAY + ( HOUR/24e+0_fp ) + ( MINUTE/1440e+0_fp ) ! Current decimal day
+      DDAY   = DAY + ( HOUR/24d0 ) + ( MINUTE/1440d0 ) ! Current decimal day
       JD     = JULDAY( YEAR, MONTH, DDAY )             ! Current Julian date
 
       ! Compute cosine(SZA) quantities for the current time
@@ -1640,10 +1641,10 @@
       !=================================================================
 
       ! Time 5h ago
-      JDJan0 = JULDAY( YEAR, 1, 0e+0_fp )                  ! Julian date on Jan 0
-      JD5    = JD  - ( 5e+0_fp / 24e+0_fp )                    ! Julian date 5h ago
+      JDJan0 = JULDAY( YEAR, 1, 0d0 )                  ! Julian date on Jan 0
+      JD5    = JD  - ( 5d0 / 24d0 )                    ! Julian date 5h ago
       DOY5   = JD5 - JDJan0                            ! Day of year 5h ago
-      GMT5   = GMT - 5e+0_fp                               ! GMT 5h ago
+      GMT5   = GMT - 5d0                               ! GMT 5h ago
       HOUR5  = INT( GMT5 )
 
       ! Compute cosine(SZA) quantities for 5h ago

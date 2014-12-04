@@ -6819,7 +6819,7 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_M
-      USE RNPBBE_MOD,         ONLY : SLQ
+!      USE RNPBBE_MOD,         ONLY : SLQ
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6835,6 +6835,7 @@
 ! !REVISION HISTORY: 
 !  25 Nov 2009 - C. Holmes   - Initial version
 !  25 Jul 2014 - R. Yantosca - Remove reference to function SFCWINDSQR
+!  04 Dec 2014 - M. Yannetti - Remove reference to RNPBE_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC

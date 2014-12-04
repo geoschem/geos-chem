@@ -245,7 +245,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(IN) :: VALUE        ! Value to be tested for NaN
+      REAL*8, INTENT(IN) :: VALUE        ! Value to be tested for NaN
 !
 ! !RETURN VALUE:
 !
@@ -433,7 +433,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(IN) :: VALUE           ! Value to be tested for infinity
+      REAL*8, INTENT(IN) :: VALUE           ! Value to be tested for infinity
 !
 ! !RETURN VALUE:
 !
@@ -589,7 +589,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp),             INTENT(IN) :: VALUE        ! Value to be checked
+      REAL*8,             INTENT(IN) :: VALUE        ! Value to be checked
       CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
       CHARACTER(LEN=255), INTENT(IN) :: MESSAGE      ! Short descriptive msg
       INTEGER,            INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices

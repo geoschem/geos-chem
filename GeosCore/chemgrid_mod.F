@@ -406,7 +406,7 @@
 
       ! Annual mean tropopause is tracer #1  
       CALL READ_BPCH2( FILENAME, 'TR-PAUSE', 1, 
-     &                 0d0,       IIPAR,     JJPAR,     
+     &                 0e+0_fp,       IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Copy from REAL*4 to INTEGER and resize to (IIPAR,JJPAR)

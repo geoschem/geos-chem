@@ -87,13 +87,13 @@
 !
 ! !INPUT ARGUMENTS:
 !
-      REAL(fp),  INTENT(IN)         :: thisK0     ! [M/atm] 
-      REAL(fp),  INTENT(IN)         :: thisCR     ! [-d ln kH / d(1/T) ]
-      REAL(fp),  INTENT(IN)         :: TK         ! Temperature [K]
+      REAL*8,  INTENT(IN)         :: thisK0     ! [M/atm] 
+      REAL*8,  INTENT(IN)         :: thisCR     ! [-d ln kH / d(1/T) ]
+      REAL*8,  INTENT(IN)         :: TK         ! Temperature [K]
 !
 ! !OUTPUT ARGUMENTS:
 !
-      REAL(fp),  INTENT(OUT)        :: KH      ! Henry liquid over gas constant [-]
+      REAL*8,  INTENT(OUT)        :: KH      ! Henry liquid over gas constant [-]
       INTEGER, INTENT(INOUT)      :: RC      ! Error handling 
 !
 ! !REVISION HISTORY:
@@ -111,7 +111,7 @@
       RC = 0
 
       ! Error if not defined
-      IF ( thisK0 == 0e+0_fp ) THEN
+      IF ( thisK0 == 0d0 ) THEN
          RC = -999
          KH = -999
          RETURN
@@ -168,13 +168,13 @@
 !
 ! !INPUT ARGUMENTS:
 !
-      REAL(fp),  INTENT(IN)         :: thispKa    ! pKa value [-] 
-      REAL(fp),  INTENT(IN)         :: PH         ! PH value [-] 
-      REAL(fp),  INTENT(IN)         :: KH         ! gas/aq Henry constant [-] 
+      REAL*8,  INTENT(IN)         :: thispKa    ! pKa value [-] 
+      REAL*8,  INTENT(IN)         :: PH         ! PH value [-] 
+      REAL*8,  INTENT(IN)         :: KH         ! gas/aq Henry constant [-] 
 !
 ! !OUTPUT ARGUMENTS:
 !
-      REAL(fp),  INTENT(OUT)        :: HEFF  ! effective gas/aq constant [-] 
+      REAL*8,  INTENT(OUT)        :: HEFF  ! effective gas/aq constant [-] 
       INTEGER, INTENT(INOUT)      :: RC    ! for error handling 
 !
 ! !REMARKS:
@@ -204,8 +204,8 @@
       RC = 0
 
       ! Calculate correction term.
-      IF ( thispKa > 0e+0_fp ) THEN
-         HEFF = KH * ( 1e+0_fp + 10e+0_fp**( pH - thispKa ) )
+      IF ( thispKa > 0d0 ) THEN
+         HEFF = KH * ( 1d0 + 10d0**( pH - thispKa ) )
       ELSE
          HEFF = KH
       ENDIF
