@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -26,10 +26,7 @@ MODULE Modis_Lai_Mod
 ! !USES:
 !
   USE CMN_SIZE_Mod                                ! Size parameters
-  USE CMN_DEP_Mod                                 ! IREG, ILAND, IUSE, FRCLND
-  USE Directory_Mod                               ! Disk directory paths   
   USE Error_Mod                                   ! Error checking routines
-  USE Logical_Mod                                 ! Logical switches
   USE Mapping_Mod                                 ! Mapping weights & areas
   USE Time_Mod                                    ! EXPAND_DATE
 
@@ -38,11 +35,11 @@ MODULE Modis_Lai_Mod
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  INTEGER, PUBLIC              :: DAYS_BTW_MON    ! Days btw LAI midmonths
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
-  REAL*8,  PUBLIC, ALLOCATABLE :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
+!  INTEGER, PUBLIC,              TARGET :: DAYS_BTW_MON    ! Days btw LAI midmonths
+   REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
+!  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
+!  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
+!  REAL*8,  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -117,19 +114,29 @@ MODULE Modis_Lai_Mod
 !  (2) At the present time, we have not yet disabled the RDISOLAI function.  
 !      We will do so in the future, and will validate this with a separate 
 !      benchmark.
+!  (3) As of December 2012, XLAI and XLAI2 have been moved out of obsolete
+!      module Headers/CMN_DEP_mod.F and are now carried as part of the 
+!      Meteorology State object (State_Met).  This modification was made
+!      to facilitate the Grid-Independent GEOS-Chem (GIGC) project.
+!      
+!      -- Bob Yantosca (geos-chem-support@as.harvard.edu), 13 Dec 2012
 !
-!      -- Bob Yantosca (geos-chem-support@as.harvard.edu), 09 Apr 2012
+!  (4) The previous, current, and next month LAI values (GC_LAI_PM,
+!      GC_LAI_CM, GC_LAI_NM) were only used for MEGAN. In the HEMCO 
+!      implementation, MEGAN only needs GC_LAI as input, so all the
+!      other GC_LAI arrays were removed. This also makes MODIS_LAI_PM
+!      obsolete (ckeller, 10/9/2014).
 !                                                                             .
 !                                                                             .
 !  LAI arrays and where they are (or will be) used in GEOS-Chem:
 !  ===========================================================================
-!  (1) XLAI      --> Used in Soil NOx module
-!  (2) XLAI2     --> Used to compute XLAI
-!  (3) XYLAI     --> %%% OBSOLETE: REMOVED, NOW REPLACED BY XLAI %%%
-!  (4) GC_LAI    --> Intended replacement for ISOLAI   (from lai_mod.F)
-!  (5) GC_LAI_PM --> Intended replacement for PMISOLAI (from lai_mod.F)
-!  (6) GC_LAI_CM --> Intended replacement for MISOLAI  (from lai_mod.F)
-!  (7) GC_LAI_NM --> Intended replacement for NMISOLAI (from lai_mod.F)
+!  (1) State_Met%XLAI  --> Used in dry deposition routine DEPVEL
+!  (2) State_Met%XLAI2 --> Used to compute XLAI
+!  (3) XYLAI           --> %%% OBSOLETE: REMOVED, NOW REPLACED BY XLAI %%%
+!  (4) GC_LAI          --> Intended replacement for ISOLAI   (from lai_mod.F)
+!  (5) GC_LAI_PM       --> Intended replacement for PMISOLAI (from lai_mod.F)
+!  (6) GC_LAI_CM       --> Intended replacement for MISOLAI  (from lai_mod.F)
+!  (7) GC_LAI_NM       --> Intended replacement for NMISOLAI (from lai_mod.F)
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
@@ -139,6 +146,11 @@ MODULE Modis_Lai_Mod
 !  09 Apr 2012 - R. Yantosca - Changed variables to REAL*8
 !  09 Apr 2012 - R. Yantosca - Now set MODIS_START and MODIS_END depending
 !                              on which version of MODIS LAI we are using
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F;
+!                              XLAI, XLAI2 now are carried in State_Met
+!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
+!  09 Oct 2014 - C. Keller   - Removed GC_LAI_PM, GC_LAI_CM, GC_LAI_NM and
+!                              MODIS_LAI_PM.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -153,7 +165,7 @@ MODULE Modis_Lai_Mod
                                               
   ! Arrays                                    
   REAL*4,  ALLOCATABLE :: MODIS_LAI   (:,:)   ! Daily LAI on the MODIS grid
-  REAL*4,  ALLOCATABLE :: MODIS_LAI_PM(:,:)   ! MODIS LAI for previous month 
+!  REAL*4,  ALLOCATABLE :: MODIS_LAI_PM(:,:)   ! MODIS LAI for previous month 
   REAL*4,  ALLOCATABLE :: MODIS_LAI_CM(:,:)   ! MODIS LAI for current month 
   REAL*4,  ALLOCATABLE :: MODIS_LAI_NM(:,:)   ! MODIS LAI for next month 
 
@@ -165,7 +177,7 @@ MODULE Modis_Lai_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -180,14 +192,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Modis_Lai( doy, mm, mapping, wasModisRead )
+  SUBROUTINE Compute_Modis_Lai( am_I_Root,    Input_Opt, State_Met,  &
+                                doy,          mm,        mapping,    &
+                                wasModisRead, RC                    )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,         INTENT(IN) :: doy           ! Day of year
-    INTEGER,         INTENT(IN) :: mm            ! Month for LAI data
-    TYPE(MapWeight), POINTER    :: mapping(:,:)  ! "fine" -> "coarse" grid map
-    LOGICAL,         INTENT(IN) :: wasModisRead  ! Was LAI data just read in?
+    LOGICAL,         INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+    TYPE(OptInput),  INTENT(IN)  :: Input_Opt     ! Input Options object
+    TYPE(MetState),  INTENT(IN)  :: State_Met     ! Meteorology State object
+    INTEGER,         INTENT(IN)  :: doy           ! Day of year
+    INTEGER,         INTENT(IN)  :: mm            ! Month for LAI data
+    TYPE(MapWeight), POINTER     :: mapping(:,:)  ! "fine" -> "coarse" grid map
+    LOGICAL,         INTENT(IN)  :: wasModisRead  ! Was LAI data just read in?
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(OUT) :: RC            ! Success or failure?
 !
 ! !REMARKS:
 !  Uses same algorithm as RDISOLAI in the existing lai_mod.F.
@@ -202,6 +229,12 @@ CONTAINS
 !                              these are now obsolete
 !  17 Apr 2012 - R. Yantosca - Now rename "map" object to "mapping" to avoid
 !                              name confusion w/ an F90 intrinsic function
+!  13 Dec 2012 - R. Yantosca - Add am_I_Root, State_Met, RC arguments
+!  13 Dec 2012 - R. Yantosca - XLAI, XLAI2 are now carried in State_Met
+!                              instead of in obsolete Headers/CMN_DEP_mod.F
+!  23 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  09 Oct 2014 - C. Keller   - Removed GC_LAI_PM, GC_LAI_CM, GC_LAI_NM and
+!                              MODIS_LAI_PM.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,6 +259,9 @@ CONTAINS
     ! Use same algorithm as in routines RDISOLAI (in lai_mod.F)
     !======================================================================
     
+    ! Assume success
+    RC                = GIGC_SUCCESS
+
     ! IMUL is days since midmonth
     ! ITD  is days between midmonths
     IF ( doy < startDay(1) ) THEN
@@ -236,8 +272,8 @@ CONTAINS
        ITD            = startDay(mm+1) - startDay(mm)
     ENDIF
 
-    ! Archive the days between midmonths in the LAI data
-    DAYS_BTW_MON      = ITD
+!    ! Archive the days between midmonths in the LAI data
+!    DAYS_BTW_MON      = ITD
 
     ! Cast ITD, IMUL to REAL*8
     DITD              = DBLE( ITD  )
@@ -282,11 +318,11 @@ CONTAINS
 
        ! If a new month of MODIS LAI data was just read from disk,
        ! then also initialize the appropriate data arrays here.
-       IF ( wasModisRead ) THEN
-          GC_LAI_PM(I,J)    = 0d0
-          GC_LAI_CM(I,J)    = 0d0
-          GC_LAI_NM(I,J)    = 0d0
-       ENDIF
+!       IF ( wasModisRead ) THEN
+!          GC_LAI_PM(I,J)    = 0d0
+!          GC_LAI_CM(I,J)    = 0d0
+!          GC_LAI_NM(I,J)    = 0d0
+!       ENDIF
 
        !-------------------------------------------------------------------
        ! Sum up the leaf area indices from all of the the "fine" grid 
@@ -311,16 +347,16 @@ CONTAINS
 
           ! Compute the total leaf area in "coarse" GEOS-Chem
           ! grid box (I,J), irrespective of Olson land type
-          GC_LAI(I,J)       = GC_LAI(I,J)     + ( MODIS_LAI(II,JJ)    * area )
+          GC_LAI(I,J) = GC_LAI(I,J) + ( MODIS_LAI(II,JJ) * area )
 
-          ! If a new month of MODIS LAI data was just read from disk,
-          ! then also compute the corresponding total leaf areas in the 
-          ! "coarse" GEOS-Chem grid box (I,J).
-          IF ( wasModisRead ) THEN
-             GC_LAI_PM(I,J) = GC_LAI_PM(I,J)  + ( MODIS_LAI_PM(II,JJ) * area )
-             GC_LAI_CM(I,J) = GC_LAI_CM(I,J)  + ( MODIS_LAI_CM(II,JJ) * area )
-             GC_LAI_NM(I,J) = GC_LAI_NM(I,J)  + ( MODIS_LAI_NM(II,JJ) * area )
-          ENDIF
+!          ! If a new month of MODIS LAI data was just read from disk,
+!          ! then also compute the corresponding total leaf areas in the 
+!          ! "coarse" GEOS-Chem grid box (I,J).
+!          IF ( wasModisRead ) THEN
+!             GC_LAI_PM(I,J) = GC_LAI_PM(I,J)  + ( MODIS_LAI_PM(II,JJ) * area )
+!             GC_LAI_CM(I,J) = GC_LAI_CM(I,J)  + ( MODIS_LAI_CM(II,JJ) * area )
+!             GC_LAI_NM(I,J) = GC_LAI_NM(I,J)  + ( MODIS_LAI_NM(II,JJ) * area )
+!          ENDIF
        ENDDO
 
        !-------------------------------------------------------------------
@@ -331,16 +367,16 @@ CONTAINS
 
        ! Convert leaf area [cm2 leaf] to LAI [cm2 leaf/cm2 grid box]
        ! grid box (I,J), irrespective of Olson land type
-       GC_LAI(I,J)       = GC_LAI(I,J)    / sumArea
+       GC_LAI(I,J) = GC_LAI(I,J) / sumArea
 
-       ! If a new month of MODIS LAI data was just read from disk,
-       ! then also convert the appropriate arrays to leaf area index
-       ! [cm2 leaf/cm2 grid box].
-       IF ( wasModisRead ) THEN 
-          GC_LAI_PM(I,J) = GC_LAI_PM(I,J) / sumArea
-          GC_LAI_CM(I,J) = GC_LAI_CM(I,J) / sumArea
-          GC_LAI_NM(I,J) = GC_LAI_NM(I,J) / sumArea 
-       ENDIF
+!       ! If a new month of MODIS LAI data was just read from disk,
+!       ! then also convert the appropriate arrays to leaf area index
+!       ! [cm2 leaf/cm2 grid box].
+!       IF ( wasModisRead ) THEN 
+!          GC_LAI_PM(I,J) = GC_LAI_PM(I,J) / sumArea
+!          GC_LAI_CM(I,J) = GC_LAI_CM(I,J) / sumArea
+!          GC_LAI_NM(I,J) = GC_LAI_NM(I,J) / sumArea 
+!       ENDIF
 
        !-------------------------------------------------------------------
        ! Compute the LAI for each Olson land type at GEOS-Chem grid box
@@ -378,9 +414,14 @@ CONTAINS
                 !     ([ next month - this month ] / # of days in month)
                 ! (4) XLAI is incremented by the amount 
                 !      ( Delta-LAI ) * # of days since start of month
+                ! 
+                ! NOTE: As of Dec 2012, XLAI and XLAI2 are now part of 
+                ! the Meteorology State object (bmy, 12/13/12)
                 !----------------------------------------------------------
-                XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C) ) / DITD
-                XLAI (I,J,K) = ( tempLaiCm(C) ) + ( XLAI2(I,J,K) * DIMUL )
+                State_Met%XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C)    ) &
+                                       / ( DITD                           )
+                State_Met%XLAI (I,J,K) = ( tempLaiCm(C)                   ) & 
+                                       + ( State_Met%XLAI2(I,J,K) * DIMUL )
 
              ELSE
 
@@ -394,8 +435,9 @@ CONTAINS
                    ! (2) XLAI2 is computed as the Delta-LAI this month
                    !     (i.e. [next month - this month ] / # of days
                    !----------------------------------------------------------
-                   XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C) ) / DITD
-                   XLAI (I,J,K) = ( tempLaiCm(C)                )
+                   State_Met%XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C) ) &
+                                          / ( DITD                        )
+                   State_Met%XLAI (I,J,K) = ( tempLaiCm(C)                )
  
                 ELSE
                 
@@ -405,7 +447,8 @@ CONTAINS
                    ! Follow original algorithm in the old rdland.F
                    ! (1) Increment LAI by the this month's Delta-LAI
                    !----------------------------------------------------------
-                   XLAI(I,J,K)  = XLAI(I,J,K) + XLAI2(I,J,K)
+                   State_Met%XLAI(I,J,K)  = State_Met%XLAI (I,J,K) &
+                                          + State_Met%XLAI2(I,J,K)
 
                 ENDIF
              ENDIF
@@ -421,7 +464,7 @@ CONTAINS
   END SUBROUTINE Compute_Modis_Lai
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -433,29 +476,37 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Read_Modis_Lai( yyyy, mm, wasModisRead )
+  SUBROUTINE Read_Modis_Lai( am_I_Root, Input_Opt, yyyy, mm, wasModisRead, RC )
 !
 ! !USES:
 !
-    USE m_netcdf_io_open                       ! netCDF file open
-    USE m_netcdf_io_read                       ! netCDF read
-    USE m_netcdf_io_readattr                   ! netCDF attribute reads
-    USE m_netcdf_io_close                      ! netCDF file close
-    
-#   include "netcdf.inc"                       ! netCDF settings & parameters
+    USE m_netcdf_io_open                         ! netCDF file open
+    USE m_netcdf_io_read                         ! netCDF read
+    USE m_netcdf_io_readattr                     ! netCDF attribute reads
+    USE m_netcdf_io_close                        ! netCDF file close
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput 
+   
+#   include "netcdf.inc"                         ! netCDF settings & parameters
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN)  :: yyyy               ! Year for LAI data
-    INTEGER, INTENT(IN)  :: mm                 ! Month for LAI data
+    LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
+    INTEGER,        INTENT(IN)  :: yyyy          ! Year for LAI data
+    INTEGER,        INTENT(IN)  :: mm            ! Month for LAI data
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL, INTENT(OUT) :: wasModisRead       ! Was LAI data just read in?
+    LOGICAL,        INTENT(OUT) :: wasModisRead  ! Was LAI data just read in?
+    INTEGER,        INTENT(OUT) :: RC            ! Success or failure?   
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
 !  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
+!  05 Jun 2013 - R. Yantosca - Bug fix, use "mm" for current month index
+!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  09 Oct 2014 - C. Keller   - MODIS_LAI_PM not needed anymore.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -489,6 +540,9 @@ CONTAINS
     ! Test if it is time to read data
     !======================================================================
 
+    ! Assume success
+    RC = GIGC_SUCCESS
+
     ! If we enter a new LAI month, then read MODIS LAI from disk
     ! Otherwise, just exit, since it is not time to read data yet
     IF ( mm /= mmLast ) THEN
@@ -506,14 +560,14 @@ CONTAINS
     !======================================================================
 
     ! Filename template 
-    IF ( USE_OLSON_2001 ) THEN
+    IF ( Input_Opt%USE_OLSON_2001 ) THEN
        nc_tmpl = 'For_Olson_2001/MODIS.LAIv.V5.generic.025x025.YYYY.nc'
     ELSE
        nc_tmpl = 'For_Olson_1992/MODIS.LAIv.V5.generic.05x05.YYYY.nc'   
     ENDIF
 
     ! Construct file path from directory & file name
-    nc_dir  = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_201204/'
+    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'MODIS_LAI_201204/'
 
     !======================================================================
     ! Read current month's LAI
@@ -531,14 +585,14 @@ CONTAINS
 
        ! Here, yyyy lies outside the MODIS data timespan,
        ! so we have to read data from a different year.
-       IF ( USE_OLSON_2001 ) THEN
+       IF ( Input_Opt%USE_OLSON_2001 ) THEN
           IF ( yyyy > MODIS_END ) THEN                    !%%% OLSON 2001 %%%
-             yyyymmdd = MODIS_END*10000   + Pmm*100 + 01  ! Use final year
+             yyyymmdd = MODIS_END*10000   + mm*100 + 01   ! Use final year
           ELSE IF ( yyyy < MODIS_START ) THEN             !
-             yyyymmdd = MODIS_START*10000 + Pmm*100 + 01  ! Use 1st year
+             yyyymmdd = MODIS_START*10000 + mm*100 + 01   ! Use 1st year
           ENDIF
        ELSE                                               !%%% OLSON 1992 %%%
-          yyyymmdd = 19850001 + Pmm*100                   ! Use climatology
+          yyyymmdd = 19850001 + mm*100                    ! Use climatology
        ENDIF
 
        ! Expand date tokens in filename
@@ -577,79 +631,79 @@ CONTAINS
     ! Echo info to stdout
     WRITE( 6, 140 )
 
-    !======================================================================
-    ! Read previous month's LAI
-    !======================================================================
+!    !======================================================================
+!    ! Read previous month's LAI
+!    !======================================================================
+!
+!    ! Previous LAI month
+!    Pmm = mm - 1
+!
+!    ! Year corresponding to previous LAI month (readjust for January)
+!    IF ( Pmm == 0 ) THEN
+!       Pmm   = 12
+!       Pyyyy = yyyy - 1
+!    ELSE
+!       Pyyyy = yyyy
+!    ENDIF
+!
+!    ! Test if Pyyy is w/in the valid range of MODIS data
+!    IF ( Pyyyy >= MODIS_START .and. Pyyyy <= MODIS_END ) THEN
+!
+!       ! Here, Pyyyy lies w/in the MODIS data timespan
+!       nc_file  = nc_tmpl
+!       yyyymmdd = Pyyyy*10000 + Pmm*100 + 01
+!       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+!
+!    ELSE
+!
+!       ! Here, yyyy lies outside the MODIS data timespan,
+!       ! so we have to read data from a different year.
+!       IF ( Input_Opt%USE_OLSON_2001 ) THEN
+!          IF ( Pyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
+!             yyyymmdd = MODIS_END*10000   + Pmm*100 + 01  ! Use final year
+!          ELSE IF ( Pyyyy < MODIS_START ) THEN            !
+!             yyyymmdd = MODIS_START*10000 + Pmm*100 + 01  ! Use 1st year
+!          ENDIF
+!       ELSE                                               !%%% OLSON 1992 %%%
+!          yyyymmdd = 19850001 + Pmm*100                   ! Use climatology
+!       ENDIF
+!
+!       ! Expand date tokens in filename
+!       nc_file  = nc_tmpl
+!       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+!          
+!    ENDIF
 
-    ! Previous LAI month
-    Pmm = mm - 1
-
-    ! Year corresponding to previous LAI month (readjust for January)
-    IF ( Pmm == 0 ) THEN
-       Pmm   = 12
-       Pyyyy = yyyy - 1
-    ELSE
-       Pyyyy = yyyy
-    ENDIF
-
-    ! Test if Pyyy is w/in the valid range of MODIS data
-    IF ( Pyyyy >= MODIS_START .and. Pyyyy <= MODIS_END ) THEN
-
-       ! Here, Pyyyy lies w/in the MODIS data timespan
-       nc_file  = nc_tmpl
-       yyyymmdd = Pyyyy*10000 + Pmm*100 + 01
-       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
-
-    ELSE
-
-       ! Here, yyyy lies outside the MODIS data timespan,
-       ! so we have to read data from a different year.
-       IF ( USE_OLSON_2001 ) THEN
-          IF ( Pyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
-             yyyymmdd = MODIS_END*10000   + Pmm*100 + 01  ! Use final year
-          ELSE IF ( Pyyyy < MODIS_START ) THEN            !
-             yyyymmdd = MODIS_START*10000 + Pmm*100 + 01  ! Use 1st year
-          ENDIF
-       ELSE                                               !%%% OLSON 1992 %%%
-          yyyymmdd = 19850001 + Pmm*100                   ! Use climatology
-       ENDIF
-
-       ! Expand date tokens in filename
-       nc_file  = nc_tmpl
-       CALL Expand_Date( nc_file, yyyymmdd, 000000 )
-          
-    ENDIF
-
-    ! Open file for read
-    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
-    CALL Ncop_Rd( fId, TRIM(nc_path) )
-     
-    ! Echo info to stdout
-    WRITE( 6, 100 ) REPEAT( '%', 79 )
-    WRITE( 6, 110 ) TRIM(nc_file)
-    WRITE( 6, 120 ) TRIM(nc_dir)
-
-    ! Variable name
-    v_name = "MODIS"
+!    ! Open file for read
+!    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
+!    CALL Ncop_Rd( fId, TRIM(nc_path) )
+!     
+!    ! Echo info to stdout
+!    WRITE( 6, 100 ) REPEAT( '%', 79 )
+!    WRITE( 6, 110 ) TRIM(nc_file)
+!    WRITE( 6, 120 ) TRIM(nc_dir)
+!
+!    ! Variable name
+!    v_name = "MODIS"
     
-    ! Read OLSON from file
-    st3d   = (/ 1,       1,       Pmm /)
-    ct3d   = (/ I_MODIS, J_MODIS, 1   /)
-    CALL NcRd( MODIS_LAI_PM, fId, TRIM(v_name), st3d, ct3d )
+!    ! Read OLSON from file
+!    st3d   = (/ 1,       1,       Pmm /)
+!    ct3d   = (/ I_MODIS, J_MODIS, 1   /)
+!    CALL NcRd( MODIS_LAI_PM, fId, TRIM(v_name), st3d, ct3d )
+!
+!    ! Read the OLSON:units attribute
+!    a_name = "units"
+!    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+!    
+!    ! Echo info to stdout
+!    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val), Pmm
 
-    ! Read the OLSON:units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-    
-    ! Echo info to stdout
-    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val), Pmm
-
-    ! Close netCDF file
-    CALL NcCl( fId )
-    
-    ! Echo info to stdout
-    WRITE( 6, 140 )
-
+!    ! Close netCDF file
+!    CALL NcCl( fId )
+!    
+!    ! Echo info to stdout
+!    WRITE( 6, 140 )
+ 
     !======================================================================
     ! Read next month's LAI
     !======================================================================
@@ -677,7 +731,7 @@ CONTAINS
 
        ! Here, yyyy lies outside the MODIS data timespan,
        ! so we have to read data from a different year.
-       IF ( USE_OLSON_2001 ) THEN
+       IF ( Input_Opt%USE_OLSON_2001 ) THEN
           IF ( Nyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
              yyyymmdd = MODIS_END*10000   + Nmm*100 + 01  ! Use final year
           ELSE IF ( Nyyyy < MODIS_START ) THEN            !
@@ -734,7 +788,7 @@ CONTAINS
   END SUBROUTINE Read_Modis_Lai
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -794,7 +848,7 @@ CONTAINS
   END SUBROUTINE Find_Lai_Month
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -856,7 +910,7 @@ CONTAINS
   END FUNCTION RoundOff
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -868,45 +922,62 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Modis_Lai()
+  SUBROUTINE Init_Modis_Lai( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
+!  03 Feb 2014 - M. Sulprizio- Force last year of MODIS data to 2008. There is
+!                              a large difference in the 2009 file that still
+!                              needs to be investigated (skim, 1/29/14)
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: as
-
     !======================================================================
     ! Allocate arrays on the "coarse" GEOS-Chem grid
     !======================================================================
-    ALLOCATE( GC_LAI( IIPAR, JJPAR ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'GC_LAI' )
+    ALLOCATE( GC_LAI( IIPAR, JJPAR ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI' )
     GC_LAI = 0d0
 
-    ALLOCATE( GC_LAI_PM( IIPAR, JJPAR ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'GC_LAI_PM' )
-    GC_LAI_PM = 0d0
-
-    ALLOCATE( GC_LAI_CM( IIPAR, JJPAR ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'GC_LAI_CM' )
-    GC_LAI_CM = 0d0
-
-    ALLOCATE( GC_LAI_NM( IIPAR, JJPAR ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'GC_LAI_NM' )
-    GC_LAI_NM = 0d0
+!    ALLOCATE( GC_LAI_PM( IIPAR, JJPAR ), STAT=RC ) 
+!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_PM' )
+!    GC_LAI_PM = 0d0
+!
+!    ALLOCATE( GC_LAI_CM( IIPAR, JJPAR ), STAT=RC ) 
+!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_CM' )
+!    GC_LAI_CM = 0d0
+!
+!    ALLOCATE( GC_LAI_NM( IIPAR, JJPAR ), STAT=RC ) 
+!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'GC_LAI_NM' )
+!    GC_LAI_NM = 0d0
 
     !======================================================================
     ! Allocate arrays on the "fine" MODIS grid grid
     !======================================================================
-    IF ( USE_OLSON_2001 ) THEN
+    IF ( Input_Opt%USE_OLSON_2001 ) THEN
        I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
        J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
        MODIS_START = 2005             ! First year of MODIS data  
-       MODIS_END   = 2009             ! Last  year of MODIS data
+       MODIS_END   = 2008             ! Force to 2008 (skim, 1/29/14)
+!      MODIS_END   = 2009             ! Last  year of MODIS data
     ELSE
        I_MODIS     = 720              ! For Olson 1992, use MODIS LAI
        J_MODIS     = 360              ! on the 0.5 x 0.5 native grid
@@ -914,26 +985,26 @@ CONTAINS
        MODIS_END   = 2008             ! Last  year of MODIS data
     ENDIF
 
-    ALLOCATE( MODIS_LAI( I_MODIS, J_MODIS ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI' )
+    ALLOCATE( MODIS_LAI( I_MODIS, J_MODIS ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI' )
     MODIS_LAI = 0d0
 
-    ALLOCATE( MODIS_LAI_PM( I_MODIS, J_MODIS ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_PM' )
-    MODIS_LAI_PM = 0d0
+!    ALLOCATE( MODIS_LAI_PM( I_MODIS, J_MODIS ), STAT=RC ) 
+!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_PM' )
+!    MODIS_LAI_PM = 0d0
 
-    ALLOCATE( MODIS_LAI_CM( I_MODIS, J_MODIS ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_CM' )
+    ALLOCATE( MODIS_LAI_CM( I_MODIS, J_MODIS ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_CM' )
     MODIS_LAI_CM = 0d0
 
-    ALLOCATE( MODIS_LAI_NM( I_MODIS, J_MODIS ), STAT=as ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_NM' )
+    ALLOCATE( MODIS_LAI_NM( I_MODIS, J_MODIS ), STAT=RC ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'MODIS_LAI_NM' )
     MODIS_LAI_NM = 0d0
 
   END SUBROUTINE Init_Modis_Lai
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -953,11 +1024,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     IF ( ALLOCATED( GC_LAI       ) ) DEALLOCATE( GC_LAI       )
-    IF ( ALLOCATED( GC_LAI_PM    ) ) DEALLOCATE( GC_LAI_PM    )
-    IF ( ALLOCATED( GC_LAI_CM    ) ) DEALLOCATE( GC_LAI_CM    )
-    IF ( ALLOCATED( GC_LAI_NM    ) ) DEALLOCATE( GC_LAI_NM    )
+!    IF ( ALLOCATED( GC_LAI_PM    ) ) DEALLOCATE( GC_LAI_PM    )
+!    IF ( ALLOCATED( GC_LAI_CM    ) ) DEALLOCATE( GC_LAI_CM    )
+!    IF ( ALLOCATED( GC_LAI_NM    ) ) DEALLOCATE( GC_LAI_NM    )
     IF ( ALLOCATED( MODIS_LAI    ) ) DEALLOCATE( MODIS_LAI    )
-    IF ( ALLOCATED( MODIS_LAI_PM ) ) DEALLOCATE( MODIS_LAI_PM )
+!    IF ( ALLOCATED( MODIS_LAI_PM ) ) DEALLOCATE( MODIS_LAI_PM )
     IF ( ALLOCATED( MODIS_LAI_CM ) ) DEALLOCATE( MODIS_LAI_CM )
     IF ( ALLOCATED( MODIS_LAI_NM ) ) DEALLOCATE( MODIS_LAI_NM )
 

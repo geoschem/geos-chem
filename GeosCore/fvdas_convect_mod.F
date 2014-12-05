@@ -50,10 +50,11 @@
 !  (10) Bug fix in CONVTRAN to avoid div potential div by zero.  Make SMALLEST
 !        = 1d-60 to avoid problems (bmy, 12/19/06)
 !  01 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  28 Oct 2013 - R. Yantosca - Now avoid array temporaries
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
       
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -90,7 +91,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_FVDAS_CONVECT
+      SUBROUTINE INIT_FVDAS_CONVECT( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine INIT_FVDAS_CONVECT initializes the HACK and 
@@ -105,10 +106,15 @@
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
       USE CMN_SIZE_MOD  ! Size parameters
-      
-      ! Local variables
-      INTEGER            :: I, J, L, L2
-      REAL*8             :: HYPI(LLPAR+1)
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I, J, L, L2
+      REAL*8              :: HYPI(LLPAR+1)
 
       !=================================================================
       ! INIT_FVDAS_CONVECT begins here!
@@ -147,10 +153,11 @@
       !=================================================================
       ! Echo output
       !=================================================================
-
-      WRITE( 6, 100 )  LIMCNV, HYPI(LIMCNV) 
- 100  FORMAT( '     - GEOS-4 convection is capped at L = ', i3, 
-     &       ', or approx ', f6.1, ' hPa' )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 )  LIMCNV, HYPI(LIMCNV) 
+ 100     FORMAT( '     - GEOS-4 convection is capped at L = ', i3, 
+     &          ', or approx ', f6.1, ' hPa' )
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE INIT_FVDAS_CONVECT
@@ -159,7 +166,8 @@
 
       SUBROUTINE FVDAS_CONVECT( TDT,   NTRACE, Q,     RPDEL, ETA, 
      &                          BETA,  MU,     MD,    EU,    DP,    
-     &                          NSTEP, FRACIS, TCVV,  INDEXSOL )
+     &                          NSTEP, FRACIS, TCVV,  INDEXSOL,
+     &                          Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine FVDAS_CONVECT is the convection driver routine for GEOS-4/fvDAS
@@ -214,37 +222,51 @@
 !  (4 ) Rewrote parallel loops so that we pass entire arrays to the various
 !        subroutines instead of array slices such as (:,J,:).  This can cause
 !        problems with OpenMP for some compilers. (bmy, 12/13/05)
+!  28 Oct 2013 - R. Yantosca - Now accept pointer-valued arguments into this
+!                              routine via assumed-shape dummy arguments.
+!                              This will eliminate array temporaries.
 !******************************************************************************
-
-      USE CMN_SIZE_MOD      ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: NSTEP, NTRACE             
-      INTEGER, INTENT(IN)    :: INDEXSOL(NTRACE) 
-      REAL*8,  INTENT(IN)    :: TDT                
-      REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
-      REAL*8,  INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)  
-      REAL*8,  INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)    
-      REAL*8,  INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)   
-      REAL*8,  INTENT(IN)    :: MU(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: MD(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: EU(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
-      REAL*8,  INTENT(IN)    :: TCVV(NTRACE)
-
-      ! Local variables
-      INTEGER                :: I, J, L, N, LENGATH, ISTEP
-      INTEGER                :: JT(IIPAR)
-      INTEGER                :: MX(IIPAR)
-      INTEGER                :: IDEEP(IIPAR)
-      REAL*8                 :: DSUBCLD(IIPAR)
-      REAL*8                 :: DPG(IIPAR,LLPAR)
-      REAL*8                 :: DUG(IIPAR,LLPAR)
-      REAL*8                 :: EDG(IIPAR,LLPAR)
-      REAL*8                 :: EUG(IIPAR,LLPAR)
-      REAL*8                 :: MDG(IIPAR,LLPAR)
-      REAL*8                 :: MUG(IIPAR,LLPAR)
+!
+! !USES
+!
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,        INTENT(IN)    :: NSTEP, NTRACE             
+      INTEGER,        INTENT(IN)    :: INDEXSOL(NTRACE) 
+      REAL*8,         INTENT(IN)    :: TDT                
+      REAL*8,         INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)  
+      REAL*8,         INTENT(IN)    :: ETA (:,:,:)
+      REAL*8,         INTENT(IN)    :: BETA(:,:,:)
+      REAL*8,         INTENT(IN)    :: MU  (:,:,:)
+      REAL*8,         INTENT(IN)    :: MD  (:,:,:)
+      REAL*8,         INTENT(IN)    :: EU  (:,:,:)
+      REAL*8,         INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
+      REAL*8,         INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
+      REAL*8,         INTENT(IN)    :: TCVV(NTRACE)
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*8,         INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                       :: I, J, L, N, LENGATH, ISTEP
+      INTEGER                       :: JT(IIPAR)
+      INTEGER                       :: MX(IIPAR)
+      INTEGER                       :: IDEEP(IIPAR)
+      REAL*8                        :: DSUBCLD(IIPAR)
+      REAL*8                        :: DPG(IIPAR,LLPAR)
+      REAL*8                        :: DUG(IIPAR,LLPAR)
+      REAL*8                        :: EDG(IIPAR,LLPAR)
+      REAL*8                        :: EUG(IIPAR,LLPAR)
+      REAL*8                        :: MDG(IIPAR,LLPAR)
+      REAL*8                        :: MUG(IIPAR,LLPAR)
 
       !=================================================================
       ! FVDAS_CONVECT begins here!
@@ -279,7 +301,8 @@
                CALL CONVTRAN( J,     NTRACE,    Q,      MUG,  MDG,      
      &                        DUG,   EUG,       EDG,    DPG,  DSUBCLD,  
      &                        JT,    MX,        IDEEP,  1,    LENGATH, 
-     &                        NSTEP, 0.5D0*TDT, FRACIS, TCVV, INDEXSOL )
+     &                        NSTEP, 0.5D0*TDT, FRACIS, TCVV, INDEXSOL,
+     &                        Input_Opt, State_Met )
             ENDIF
 
             !-----------------------------------
@@ -351,8 +374,8 @@
       INTEGER, INTENT(IN)    :: J, NTRACE
       REAL*8,  INTENT(IN)    :: TDT
       REAL*8,  INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)
+      REAL*8,  INTENT(IN)    :: ETA (:,:,:)
+      REAL*8,  INTENT(IN)    :: BETA(:,:,:)
       REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
 
       ! Local variables
@@ -539,6 +562,7 @@
 !        the argument list. (bmy, 12/13/05)
 !  (3 ) Now treat "negative detrainment" as entrainment, which will better 
 !        conserve mixing ratio (swu, bmy, 6/27/06)
+!  28 Oct 2013 - R. Yantosca - Eliminate array temporaries
 !******************************************************************************
 !
       USE CMN_SIZE_MOD    ! Size parameters
@@ -546,9 +570,9 @@
       ! Arguments
       INTEGER, INTENT(IN)  :: J 
       REAL*8,  INTENT(IN)  :: DP(IIPAR,JJPAR,LLPAR) 
-      REAL*8,  INTENT(IN)  :: MU(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: MD(IIPAR,JJPAR,LLPAR) 
-      REAL*8,  INTENT(IN)  :: EU(IIPAR,JJPAR,LLPAR) 
+      REAL*8,  INTENT(IN)  :: MU (:,:,:)
+      REAL*8,  INTENT(IN)  :: MD (:,:,:)
+      REAL*8,  INTENT(IN)  :: EU (:,:,:)
       REAL*8,  INTENT(OUT) :: MUG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: MDG(IIPAR,LLPAR)
       REAL*8,  INTENT(OUT) :: DUG(IIPAR,LLPAR)      
@@ -680,7 +704,8 @@
       SUBROUTINE CONVTRAN( J,     NTRACE, Q,      MU,   MD,       
      &                     DU,    EU,     ED,     DP,   DSUBCLD,  
      &                     JT,    MX,     IDEEP,  IL1G, IL2G,     
-     &                     NSTEP, DELT,   FRACIS, TCVV, INDEXSOL )
+     &                     NSTEP, DELT,   FRACIS, TCVV, INDEXSOL,
+     &                     Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
@@ -753,43 +778,46 @@
 !  (8 ) Bug fix: avoid div by zero in formula for CHAT (bmy, 12/19/06)
 !  (9 ) Updates for mercury simulation (ccc, 5/6/10)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  23 Jun 2014 - R. Yantosca - Now accept Input_Opt
+!  23 Jun 2014 - R. Yantosca - Now remove references to logical_mod.F
+!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,          ONLY : AD38, CONVFLUP 
-      USE GRID_MOD,          ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LGTMM
-!      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_WD, ADD_HgP_WD !eck/eds
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP !eck/eds
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
-      USE DAO_MOD,           ONLY : SNOMAS, SNOW 
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD, ADD_HgP_WD !eck/eds
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK !CDH
+      USE DIAG_MOD,           ONLY : AD38, CONVFLUP 
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE TRACERID_MOD,       ONLY : IS_Hg2, IS_HgP !eck/eds
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_DIAG_MOD          ! ND38, LD38, ND14, LD14
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND38, LD38, ND14, LD14
 
       ! Arguments
-      INTEGER, INTENT(IN)        :: J
-      INTEGER, INTENT(IN)        :: NTRACE  
-      REAL*8,  INTENT(INOUT)     :: Q(IIPAR,JJPAR,LLPAR,NTRACE)  
-      REAL*8,  INTENT(IN)        :: MU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: MD(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: DU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: EU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: ED(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: DP(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: DSUBCLD(IIPAR)      
-      INTEGER, INTENT(IN)        :: JT(IIPAR)          
-      INTEGER, INTENT(IN)        :: MX(IIPAR)          
-      INTEGER, INTENT(IN)        :: IDEEP(IIPAR)       
-      INTEGER, INTENT(IN)        :: IL1G               
-      INTEGER, INTENT(IN)        :: IL2G 
-      INTEGER, INTENT(IN)        :: NSTEP               
-      REAL*8,  INTENT(IN)        :: DELT                
-      REAL*8,  INTENT(IN)        :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
-      REAL*8,  INTENT(IN)        :: TCVV(NTRACE)
-      INTEGER, INTENT(IN)        :: INDEXSOL(NTRACE)
+      INTEGER,        INTENT(IN)    :: J
+      INTEGER,        INTENT(IN)    :: NTRACE  
+      REAL*8,         INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)  
+      REAL*8,         INTENT(IN)    :: MU(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: MD(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: DU(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: EU(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: ED(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: DP(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: DSUBCLD(IIPAR)      
+      INTEGER,        INTENT(IN)    :: JT(IIPAR)          
+      INTEGER,        INTENT(IN)    :: MX(IIPAR)          
+      INTEGER,        INTENT(IN)    :: IDEEP(IIPAR)       
+      INTEGER,        INTENT(IN)    :: IL1G               
+      INTEGER,        INTENT(IN)    :: IL2G 
+      INTEGER,        INTENT(IN)    :: NSTEP               
+      REAL*8,         INTENT(IN)    :: DELT                
+      REAL*8,         INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
+      REAL*8,         INTENT(IN)    :: TCVV(NTRACE)
+      INTEGER,        INTENT(IN)    :: INDEXSOL(NTRACE)
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
       ! Local variables
       LOGICAL                    :: IS_Hg
@@ -814,7 +842,8 @@
       !=================================================================
 
       ! Is this a mercury simulation with dynamic ocean model?
-      IS_Hg   = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
+      IS_Hg   = ( Input_Opt%ITS_A_MERCURY_SIM .and. 
+     &            Input_Opt%LDYNOCEAN               )
 
       ! A small number
       SMALL   = 1.d-36
@@ -1142,7 +1171,8 @@
 
                ! Only save to ND38 if it's turned on, if there are soluble 
                ! tracers, and if we are below the LD38 level limit
-               IF ( ( ND38 > 0 .or. LGTMM ) .and. NN > 0 ) THEN
+               IF ( ( ND38 > 0 .or. Input_Opt%LGTMM ) .and. 
+     &              NN > 0 ) THEN
 
                   ! GEOS-CHEM lon, lat, alt indices
                   II = IDEEP(I)
@@ -1196,7 +1226,8 @@
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
-                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2 )
+                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2, 
+     &                                      State_Met )
                   ENDIF
                   !eck/eds
                   IF ( IS_HgP( M ) ) THEN
@@ -1215,7 +1246,8 @@
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_HgP_WD( II, J, M, WET_HgP )
-                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP )
+                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP,
+     &                                      State_Met )
                   ENDIF
                ENDIF
 

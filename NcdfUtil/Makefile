@@ -1,6 +1,5 @@
-#EOC
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -12,7 +11,7 @@
 # !REMARKS:
 # To build the program, call "make" with the following syntax:
 #
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #
 # To display a complete list of options, type "make help".
 #
@@ -40,50 +39,79 @@
 #  05 Apr 2012 - R. Yantosca - Change BL_LIB_NETCDF to LIB_NETCDF
 #  05 Apr 2012 - R. Yantosca - Change BL_LIB_HDF5   to LIB_HDF5
 #  11 May 2012 - R. Yantosca - Now use exported NCL from Makefile_header.mk
-
+#  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  10 Jul 2014 - R. Yantosca - Now compile ncdf_mod.F90
+#  02 Dec 2014 - R. Yantosca - Now use NC_LINK_CMD variable instead of NCL
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-#==============================================================================
-# Initialization
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
 
-# Define variables
-BIN     := ../bin
-DOC     := ../doc
-HDR     := ../Headers
-EXE     := TestNcdfUtil.x
-LIB     := ../lib
-MOD     := ../mod
+# Directories
+ROOT   :=..
+BIN    :=$(ROOT)/bin
+DOC    :=$(ROOT)/doc
+LIB    :=$(ROOT)/lib
+MOD    :=$(ROOT)/mod
 
-# Include header file.  This returns variables F90, LD, LINK_NC
+# Executables
+EXE    :=TestNcdfUtil.x
+
+# Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-include ../Makefile_header.mk
+include $(ROOT)/Makefile_header.mk
 
-#==============================================================================
-# Filename section
-#
-# NOTES:
-# (1) The function $(wildcard m_*.F90) returns all files matching m_*.F90, etc.
-# (2) The syntax $(SRC:.F90=.o) is a shorthand for the "patsubst" function. 
-#==============================================================================
+# Include these files in the library libNcUtils.a
+OBJlib :=                  \
+m_do_err_out.o             \
+m_netcdf_io_checks.o	   \
+m_netcdf_io_close.o	   \
+m_netcdf_io_create.o	   \
+m_netcdf_io_define.o	   \
+m_netcdf_io_get_dimlen.o   \
+m_netcdf_io_handle_err.o   \
+m_netcdf_io_open.o	   \
+m_netcdf_io_read.o	   \
+m_netcdf_io_readattr.o	   \
+m_netcdf_io_write.o        \
+ncdf_mod.o
 
-#-----------------
-# Objects
-#-----------------
-
-# Files for library build (code & objects)
-SRC  = $(wildcard m_*.F90)
-OBJ  = $(SRC:.F90=.o)
-MOD  = $(SRC:.F90=.mod)
+# But compile all of these files.  The modules charpak_mod.F and julday_mod.F
+# are needed to build ncdf_mod.F90, but don't need to be added into library
+# libNcUtils.a.  These modules already get packaged into libGeosUtil.a.
+OBJ    :=charpak_mod.o julday_mod.o $(OBJlib)
 
 # Files for standalone test driver (code, object, exe)
-OBJx = $(EXE:.x=.o)
+OBJx   :=$(EXE:.x=.o)
 
-#-----------------
-# Dependencies
-#-----------------
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
+
+charpak_mod.o            : charpak_mod.F
+
+julday_mod.o             : julday_mod.F
+
 m_do_err_out.o           : m_do_err_out.F90
 
 m_netcdf_io_checks.o     : m_netcdf_io_checks.F90
@@ -115,6 +143,20 @@ m_netcdf_io_readattr.o   : m_netcdf_io_readattr.F90     \
 m_netcdf_io_write.o      : m_netcdf_io_write.F90        \
                            m_do_err_out.o
 
+ncdf_mod.o               : ncdf_mod.F90                 \
+                           charpak_mod.F                \
+                           julday_mod.F                 \
+                           m_netcdf_io_checks.o         \
+                           m_netcdf_io_close.o          \
+                           m_netcdf_io_create.o	        \
+                           m_netcdf_io_define.o         \
+                           m_netcdf_io_get_dimlen.o     \
+                           m_netcdf_io_handle_err.o     \
+                           m_netcdf_io_open.o           \
+                           m_netcdf_io_read.o           \
+                           m_netcdf_io_readattr.o       \
+                           m_netcdf_io_write.o
+
 TestNcdfUtil.o           : TestNcdfUtil.F90             \
                            m_do_err_out.o               \
                            m_netcdf_io_create.o         \
@@ -127,31 +169,38 @@ TestNcdfUtil.o           : TestNcdfUtil.F90             \
                            m_netcdf_io_read.o           \
                            m_netcdf_io_readattr.o
 
-#==============================================================================
-# Makefile targets
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
 
-.PHONY: clean help test
+.PHONY: clean help libnc ncdfcheck test
 
-lib: $(OBJ)
-	$(AR) crs libNcUtils.a $(OBJ)
+libnc: $(OBJ)
+	$(AR) crs libNcUtils.a $(OBJlib)
 	mv libNcUtils.a $(LIB)
 
-check: $(OBJx)
-	$(LD) $(OBJx) -L$(LIB) -lNcUtils $(NCL) -o $(EXE)
-	$(EXE) 
+lib: libnc
+
+ncdfcheck: $(OBJx)
+	$(LD) $(OBJx) -L$(LIB) -lNcUtils $(NC_LINK_CMD) -o $(EXE)
+	./$(EXE) 
+
+check: ncdfcheck
+test: ncdfcheck
 
 clean:
 	rm -f *.a *.mod *.o *.nc *.x 
 
-test: check
-
 print:
 	@echo $(LINK)
 
-#==============================================================================
-# HELP Screen
-#==============================================================================
+###############################################################################
+###                                                                         ###
+###  Help screen                                                            ###
+###                                                                         ###
+###############################################################################
 
 help:
 	@echo 'Usage: make TARGET [ OPTIONAL-FLAGS ]'

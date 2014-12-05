@@ -7,9 +7,9 @@
 !
 !  NOTES:
 !  (1 ) Now force double-precision with the "D" exponent (bmy, 4/18/03)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
-#     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
@@ -99,7 +99,7 @@
        JC            = IRMC(NKN)
        NH            = NKN + NALLR
        DO 100 K      = 1, KTLOOP
-        TRATE(K,NKN) = RRATE(K,NKN)*CNEW(K,JA)*CNEW(K,JB)*CNEW(K,JC) 
+        TRATE(K,NKN) = RRATE(K,NKN)*CNEW(K,JA)*CNEW(K,JB)*CNEW(K,JC)
         TRATE(K,NH) = -TRATE(K,NKN) 
  100   CONTINUE
  102  CONTINUE

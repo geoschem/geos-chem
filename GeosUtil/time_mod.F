@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,8 +16,9 @@
 ! !USES:
 !
       IMPLICIT NONE
-
-#     include "define.h"
+!
+! !PRIVATE TYPES:
+!
       PRIVATE
       PRIVATE :: HG2_DIAG !hma, 25 Oct 2011
 !
@@ -122,6 +123,8 @@
       PUBLIC  :: ITS_A_NEW_MONTH
       PUBLIC  :: ITS_MIDMONTH
       PUBLIC  :: ITS_A_NEW_DAY
+      ! Add for FLAMBE compatibility (skim, 6/21/13)
+      PUBLIC  :: ITS_A_NEW_HOUR
       PUBLIC  :: ITS_A_NEW_SEASON
       PUBLIC  :: PRINT_CURRENT_TIME
       PUBLIC  :: TIMESTAMP_STRING
@@ -140,6 +143,20 @@
 #if   defined( APM )
       PUBLIC  :: ITS_TIME_FOR_A6UPDATE
 #endif
+
+#if defined( ESMF_ )
+      PUBLIC  :: Accept_External_Date_Time
+#endif
+!
+! !REMARKS:
+!  References:
+!  ---------------------------------------------------------------------------
+!  (1) "Practical Astronomy with Your Calculator", 3rd Ed.
+!        Peter Duffett-Smith, Cambridge UP, 1992, p9.
+!  (2) Rounding algorithm from: Hultquist, P.F, "Numerical Methods for
+!        Engineers and Computer Scientists", Benjamin/Cummings, Menlo Park CA,
+!        1988, p. 20.
+!  (3) Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
 !
 ! !REVISION HISTORY:
 !  21 Jun 2000 - R. Yantosca - Initial version
@@ -211,46 +228,99 @@
 !  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - GET_LOCALTIME now takes (I,J,L,GMT) as args
+!  14 Jun 2013 - R. Yantosca - Now compute day of week in SET_CURRENT_TIME
+!  14 Jun 2013 - R. Yantosca - Added comments to module variable declarations
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Date and time variables
-      INTEGER           :: NYMDb,      NHMSb,       NYMDe   
-      INTEGER           :: NHMSe,      NYMD,        NHMS
-      INTEGER           :: NYMD_DIAG
-      INTEGER           :: MONTH,      DAY,         YEAR
-      INTEGER           :: HOUR,       MINUTE,      SECOND
-      INTEGER           :: NSEASON,    DAY_OF_YEAR, ELAPSED_MIN
-      INTEGER           :: NDIAGTIME, DAY_OF_WEEK    ! Day of week (0=Sun,1=Mon,.., 6=Sat)
-![eml
-      INTEGER           :: HISTYRA
-!eml]
-      REAL*8            :: TAU,        TAUb,        TAUe  
-      REAL*8            :: GMT,        DIAGb,       DIAGe
+!
+! !PRIVATE TYPES:
+!
+      !---------------------------------
+      ! GMT dates @ start & end of run
+      !---------------------------------
+      INTEGER           :: NYMDb          ! YYYY/MM/DD on which to start run
+      INTEGER           :: NHMSb          ! hh:mm:ss   on which to start run
+      REAL*8            :: TAUb           ! Hours since 1/1/1985 @ start of run
+      INTEGER           :: NYMDe          ! YYYY/MM/DD on which to end run
+      INTEGER           :: NHMSe          ! hh:mm:ss   on which to end run
+      REAL*8            :: TAUe           ! Hours since 1/1/1985 @ end of run
 
-      ! Timesteps
-      INTEGER           :: TS_CHEM,    TS_CONV,     TS_DIAG
-      INTEGER           :: TS_DYN,     TS_EMIS,     TS_UNIT
-      INTEGER           :: TS_RAD
+      !---------------------------------
+      ! Current GMT date/time values
+      !---------------------------------
+      INTEGER           :: NYMD           ! YYYY/MM/DD date
+      INTEGER           :: NHMS           ! hh:mm:ss time
+      INTEGER           :: MONTH          ! Month (1-12)
+      INTEGER           :: DAY            ! Day of month (1-31)
+      INTEGER           :: YEAR           ! Year (YYYY format)
+      INTEGER           :: HOUR           ! hour (0-23)
+      INTEGER           :: MINUTE         ! Minutes (0-59)
+      INTEGER           :: SECOND         ! Seconds (0-59)
+      INTEGER           :: NSEASON        ! Season (1=DJF,2=MAM,3=JJA,4=SON)
+      INTEGER           :: DAY_OF_YEAR    ! Day of year (0-365 or 0-366 if LY)
+      INTEGER           :: DAY_OF_WEEK    ! Day of week (0=Sun,1=Mon,.., 6=Sat)
+      REAL*8            :: TAU            ! Hours since 1/1/1985
+      REAL*8            :: GMT            ! Current GMT time [decimal hours]
 
-      ! Timestep counters
-      INTEGER           :: CT_CHEM,    CT_CONV,     CT_DYN    
-      INTEGER           :: CT_EMIS,    CT_RAD
-      INTEGER           :: CT_A3,      CT_A6
-      INTEGER           :: CT_I3,      CT_I6,       CT_XTRA    
-      INTEGER           :: CT_DIAG,    CT_A1
-      INTEGER           :: Hg2_DIAG
+      !---------------------------------
+      ! Elapsed time values
+      !---------------------------------
+      INTEGER           :: ELAPSED_MIN    ! # of minutes into the run
+      REAL*8            :: LEAP_YEAR_DAYS ! # of leap years since start of run
 
-      ! Number of leap years we have encountered since start of simulation
-      REAL*8            :: LEAP_YEAR_DAYS
+      !---------------------------------
+      ! Diagnostic date/time values
+      !---------------------------------
+      INTEGER           :: NDIAGTIME      ! Hour of day to write diag output
+      INTEGER           :: NYMD_DIAG      ! Diagnostic date for output
+      REAL*8            :: DIAGb          ! Start of diag averaging interval
+      REAL*8            :: DIAGe          ! End   of diag averaging interval
 
+      !---------------------------------
+      ! Timestep values
+      !---------------------------------
+      INTEGER           :: TS_CHEM        ! Chemistry timestep       [min]
+      INTEGER           :: TS_CONV        ! Convection timestep      [min]
+      INTEGER           :: TS_DIAG        ! Diagnostic timestep      [min]
+      INTEGER           :: TS_DYN         ! Dynamic timestep         [min]
+      INTEGER           :: TS_EMIS        ! Emissions timestep       [min]
+      INTEGER           :: TS_UNIT        ! Unit conversion timestep [min]
+      INTEGER           :: TS_RAD         ! Radiation timestep       [min]
+
+      !---------------------------------
+      ! Counter values
+      !---------------------------------
+      INTEGER           :: CT_CHEM        ! # of elapsed chemistry timesteps
+      INTEGER           :: CT_CONV        ! # of elapsed convection timesteps
+      INTEGER           :: CT_DYN         ! # of elapsed dynamic timesteps
+      INTEGER           :: CT_EMIS        ! # of elapsed emission timesteps
+      INTEGER           :: CT_RAD         ! # of elapsed radiation timesteps
+      INTEGER           :: CT_A1          ! # of elapsed A1 met field reads
+      INTEGER           :: CT_A3          ! # of elapsed A3 met field reads
+      INTEGER           :: CT_A6          ! # of elapsed I6 met field reads
+      INTEGER           :: CT_I3          ! # of elapsed I3 met field reads
+      INTEGER           :: CT_I6          ! # of elapsed I6 met field reads
+      INTEGER           :: CT_XTRA        ! # of elapsed XTRA met field reads
+      INTEGER           :: CT_DIAG        ! # of elapsed diagnostic timesteps
+      INTEGER           :: Hg2_DIAG       ! # of elapsed Hg2 diag outputs
+
+      !---------------------------------
+      ! For historical emissions
+      !---------------------------------
+      INTEGER           :: HISTYRA        ! Year for historical emissions
+!
+! !DEFINED PARAMETERS:
+!
       ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
       REAL*8, PARAMETER :: JD85 = 2446066.5d0
 
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -258,7 +328,8 @@
 !
 ! !DESCRIPTION: Subroutine SET\_CURRENT\_TIME takes in the elapsed time in 
 !  minutes since the start of a GEOS-Chem simulation and sets the GEOS-Chem 
-!  time variables accordingly.
+!  time variables accordingly.  NOTE: All time variables are returned
+!  w/r/t Greenwich Mean Time (aka Universal Time).
 !\\
 !\\
 ! !INTERFACE:
@@ -268,8 +339,6 @@
 ! !USES:
 !
       USE JULDAY_MOD, ONLY : JULDAY, CALDATE
-
-#     include "define.h"
 !
 ! !REMARKS:
 !  The GEOS met fields are assimilated data, and therefore contain data on
@@ -292,6 +361,8 @@
 !  29 Jul 2011 - R. Yantosca - Bug fix: For GCAP, we need to skip over the
 !                              # of leap-year-days that have already occurred
 !                              when going from Julian date to Y/M/D date
+!  14 Jun 2013 - R. Yantosca - Now move the day of week computation here
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -406,7 +477,7 @@
       ! Get fractional GMT day
       THISDAY     = DAY + ( GMT / 24d0 )
 
-      ! Get current Julian date
+      ! Get current Julian date 
       JD          = JULDAY( YEAR, MONTH, THISDAY )
 
       ! Add 1.5 to JD and divide by 7
@@ -426,7 +497,7 @@
       END SUBROUTINE SET_CURRENT_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -495,7 +566,7 @@
       END SUBROUTINE SET_BEGIN_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -561,7 +632,7 @@
       END SUBROUTINE SET_END_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -590,7 +661,7 @@
       END SUBROUTINE SET_NDIAGTIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -619,7 +690,7 @@
       END SUBROUTINE SET_DIAGb
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -648,7 +719,7 @@
       END SUBROUTINE SET_DIAGe
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -675,7 +746,7 @@
       INTEGER, INTENT(IN) :: EMISSION     ! Emission   timestep [min]
       INTEGER, INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [min]
       INTEGER, INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [min]
-      INTEGER, INTENT(IN) :: RADIATION    ! Diagnostic timestep [min]
+      INTEGER, INTENT(IN) :: RADIATION    ! Radiation  timestep [min]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -726,11 +797,11 @@
        WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
        WRITE( 6, '(''Radiation  Timestep [min] : '', i4 )' ) TS_RAD
       ENDIF
-      ! Return to calling program
+
       END SUBROUTINE SET_TIMESTEPS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -764,14 +835,13 @@
       END SUBROUTINE SET_CT_CHEM
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
-!          !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_ct_chem
+! !IROUTINE: set_ct_rad
 !
-! !DESCRIPTION: Subroutine SET\_CT\_RAD increments CT\_CHEM, the
+! !DESCRIPTION: Subroutine SET\_CT\_RAD increments CT\_RAD, the
 ! counter of radiation timesteps executed thus far.
 !\\
 !\\
@@ -785,8 +855,7 @@
       LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
 !
 ! !REVISION HISTORY:
-!  21 Mar 2009 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  06 Oct 2012 - D. Ridley   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -797,10 +866,9 @@
       ENDIF
 
       END SUBROUTINE SET_CT_RAD
-
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -835,7 +903,7 @@
 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -869,7 +937,7 @@
       END SUBROUTINE SET_CT_CONV
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -903,7 +971,7 @@
       END SUBROUTINE SET_CT_DYN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -937,7 +1005,7 @@
       END SUBROUTINE SET_CT_EMIS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -971,7 +1039,7 @@
       END SUBROUTINE SET_CT_DIAG
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1004,7 +1072,7 @@
       END SUBROUTINE SET_CT_A1
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1038,7 +1106,7 @@
       END SUBROUTINE SET_CT_A3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1072,7 +1140,7 @@
       END SUBROUTINE SET_CT_A6
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1105,7 +1173,7 @@
       END SUBROUTINE SET_CT_I3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1139,7 +1207,7 @@
       END SUBROUTINE SET_CT_I6
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1173,7 +1241,7 @@
       END SUBROUTINE SET_CT_XTRA
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1198,7 +1266,7 @@
       END SUBROUTINE SET_ELAPSED_MIN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1260,7 +1328,7 @@
       END FUNCTION GET_JD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1289,7 +1357,7 @@
       END FUNCTION GET_ELAPSED_MIN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1318,7 +1386,7 @@
       END FUNCTION GET_ELAPSED_SEC
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1347,7 +1415,7 @@
       END FUNCTION GET_NYMDb
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1376,7 +1444,7 @@
       END FUNCTION GET_NHMSb
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1405,7 +1473,7 @@
       END FUNCTION GET_NYMDe
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1434,7 +1502,7 @@
       END FUNCTION GET_NHMSe
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1462,7 +1530,7 @@
       END FUNCTION GET_NYMD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1490,7 +1558,7 @@
       END FUNCTION GET_NHMS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1520,7 +1588,7 @@
       END FUNCTION GET_NDIAGTIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1538,8 +1606,6 @@
 ! !USES:
 !
       USE JULDAY_MOD, ONLY : CALDATE
-
-#     include "define.h"   ! C-preprocessor flags
 !
 ! !INPUT PARAMETERS:
 !
@@ -1554,6 +1620,7 @@
 !  (1 ) Bug fix for GCAP leap year case (phs, bmy, 12/8/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  17 Dec 2010 - R. Yantosca - Added fix in case HHMMSS is returned as 240000
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1611,7 +1678,7 @@
       END FUNCTION GET_TIME_AHEAD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1639,7 +1706,7 @@
       END FUNCTION GET_MONTH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1667,7 +1734,7 @@
       END FUNCTION GET_DAY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1695,7 +1762,7 @@
       END FUNCTION GET_YEAR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1724,7 +1791,7 @@
       END SUBROUTINE SET_HISTYR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1753,7 +1820,7 @@
       END FUNCTION GET_HISTYR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1781,7 +1848,7 @@
       END FUNCTION GET_HOUR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1809,7 +1876,7 @@
       END FUNCTION GET_MINUTE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1838,7 +1905,7 @@
       END FUNCTION GET_SECOND
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1867,14 +1934,15 @@
       END FUNCTION GET_DAY_OF_YEAR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: get_day_of_week
 !
-! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK returns the day of the week as a 
-!  number: Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
+! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK returns the day of the week (with
+!  respect to GREENWICH MEAN TIME) as a number: Sun=0, Mon=1, Tue=2, Wed=3,
+!  Thu=4, Fri=5, Sat=6.
 !\\
 !\\
 ! !INTERFACE:
@@ -1889,57 +1957,31 @@
 !
       INTEGER :: DAY_NUM   ! Day number of week
 ! 
-! !REMARKS:
-!  Reference:
-!  ----------
-!  "Practical Astronomy with Your Calculator", 3rd Ed.  Peter Duffett-Smith,
-!    Cambridge UP, 1992, p9.
-!
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  14 Jun 2013 - R. Yantosca - Now move computation to SET_CURRENT_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      REAL*8  :: A, B, JD, THISDAY
+      ! Return the day of week w/r/t GMT date
+      ! (stored in module variable DAY_OF_WEEK)
+      DAY_NUM = DAY_OF_WEEK
 
-      !=================================================================
-      ! GET_DAY_OF_WEEK begins here!
-      !=================================================================
-
-      ! Get fractional day
-      THISDAY = DAY                 + ( HOUR   / 24d0    ) + 
-     &          ( MINUTE / 1440d0 ) + ( SECOND / 86400d0 )
-
-      ! Get current Julian date 
-      JD      = JULDAY( YEAR, MONTH, THISDAY )
-
-      ! Add 1.5 to JD and divide by 7
-      A       = ( JD + 1.5d0 ) / 7d0 
-
-      ! Take fractional part and multiply by 7
-      B       = ( A - INT( A ) ) * 7d0
-
-      ! Round to nearest integer -- this is the day number!
-      DAY_NUM = INT( B + 0.5d0 )
-      
       END FUNCTION GET_DAY_OF_WEEK
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
-!          !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: get_day_of_week_lt
 !
-! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK\_LT returns the day of the
-! week
-!  (with repect to the SOLAR LOCAL TIME AT GRID BOX [I,J,L]) as a
-!  number:
+! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK\_LT returns the day of the week
+!  (with repect to the SOLAR LOCAL TIME AT GRID BOX [I,J,L]) as a number:
 !  Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
 !\\
 !\\
@@ -1960,13 +2002,12 @@
 ! !RETURN VALUE:
 !
       INTEGER             :: DAY_NUM   ! Day of week, w/r/t local time
-!
+! 
 ! !REMARKS:
-!  This routine is used by various emissions routines, in order to
-!  determine
+!  This routine is used by various emissions routines, in order to determine
 !  whether weekday or weekend emissions need to be applied.
 !
-! !REVISION HISTORY:
+! !REVISION HISTORY: 
 !  13 Jun 2013 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -1983,8 +2024,9 @@
       ! Get the local time [hrs] at grid box (I,J,L),
       ! but do not force it into the range of [0..24] hours.
       LOCAL_TIME = GMT + ( GET_XMID( I, J, L ) / 15d0 )
-      ! Add the local fraction of day elapsed to the day of week
-      ! obtained w/r/t the GREENWICH MEAN TIME.  This accounts for
+
+      ! Add the local fraction of day elapsed to the day of week 
+      ! obtained w/r/t the GREENWICH MEAN TIME.  This accounts for 
       ! the distance of grid box (I,J,L) from the Greenwich meridian.
       DOW_LOCAL  = DBLE( DAY_OF_WEEK ) + ( LOCAL_TIME / 24d0 )
 
@@ -1995,18 +2037,17 @@
          DOW_LOCAL = DOW_LOCAL + 7d0
       ENDIF
 
-      ! Force the day of week w/r/t LOCAL TIME to fall
+      ! Force the day of week w/r/t LOCAL TIME to fall 
       ! within the range 0 (Sunday) thru 6 (Saturday).
-      DOW_LOCAL  = MOD( DOW_LOCAL, 7d0 )
+      DOW_LOCAL  = MOD( DOW_LOCAL, 7d0 ) 
 
       ! Cast to integer and return result
       DAY_NUM    = INT( DOW_LOCAL )
-
+    
       END FUNCTION GET_DAY_OF_WEEK_LT
-
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2036,7 +2077,7 @@
       END FUNCTION GET_GMT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2065,7 +2106,7 @@
       END FUNCTION GET_TAU
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2094,7 +2135,7 @@
       END FUNCTION GET_TAUb
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2123,7 +2164,7 @@
       END FUNCTION GET_TAUe
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2139,11 +2180,12 @@
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISDIAGb   ! DIAGb [hrs sincd 1/1/1985]
+      REAL*8 :: THISDIAGb   ! DIAGb [hrs sincd 1/1/1985]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGb needs to be REAL*8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2152,7 +2194,7 @@
       END FUNCTION GET_DIAGb
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2168,11 +2210,12 @@
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISDIAGe   ! DIAGe [hrs sincd 1/1/1985]
+      REAL*8 :: THISDIAGe   ! DIAGe [hrs sincd 1/1/1985]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGe needs to be REAL*8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2181,7 +2224,7 @@
       END FUNCTION GET_DIAGe
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2251,7 +2294,7 @@
       END FUNCTION GET_LOCALTIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2280,7 +2323,7 @@
       END FUNCTION GET_SEASON
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2309,14 +2352,13 @@
       END FUNCTION GET_TS_CHEM
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
-!          !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: get_ts_rad
 !
-! !DESCRIPTION: Function GET\_TS\_RAD returns the chemistry timestep in
+! !DESCRIPTION: Function GET\_TS\_RAD returns the radiation timestep in
 !  minutes.
 !\\
 !\\
@@ -2329,7 +2371,7 @@
       INTEGER :: THIS_TS_RAD   ! ! Radiation timestep [min]
 !
 ! !REVISION HISTORY:
-!  06 Oct 2012 - D. Ridley
+!  06 Oct 2012 - D. Ridley   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2337,9 +2379,8 @@
 
       END FUNCTION GET_TS_RAD
 !EOC
-
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2368,7 +2409,7 @@
       END FUNCTION GET_TS_CONV
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2397,7 +2438,7 @@
       END FUNCTION GET_TS_DIAG
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2426,7 +2467,7 @@
       END FUNCTION GET_TS_DYN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2455,7 +2496,7 @@
       END FUNCTION GET_TS_EMIS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2484,7 +2525,7 @@
       END FUNCTION GET_TS_UNIT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2513,15 +2554,13 @@
       END FUNCTION GET_CT_CHEM
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
-!          !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: get_ct_rad
 !
-! !DESCRIPTION: Function GET\_CT\_RAD returns the chemistry timestep
-! counter
+! !DESCRIPTION: Function GET\_CT\_RAD returns the radiation timestep counter
 !  to the calling program.
 !\\
 !\\
@@ -2534,18 +2573,16 @@
       INTEGER :: THIS_CT_RAD
 !
 ! !REVISION HISTORY:
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  06 Oct 2012 - D. Ridley   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THIS_CT_RAD = CT_RAD
 
       END FUNCTION GET_CT_RAD
-
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2574,7 +2611,7 @@
       END FUNCTION GET_CT_CONV
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2603,7 +2640,7 @@
       END FUNCTION GET_CT_DYN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2633,7 +2670,7 @@
       END FUNCTION GET_CT_EMIS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2662,7 +2699,7 @@
       END FUNCTION GET_CT_A1
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2692,7 +2729,7 @@
       END FUNCTION GET_CT_A3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2721,7 +2758,7 @@
       END FUNCTION GET_CT_A6
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2749,7 +2786,7 @@
       END FUNCTION GET_CT_I3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2778,7 +2815,7 @@
       END FUNCTION GET_CT_I6
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2807,7 +2844,7 @@
       END FUNCTION GET_CT_XTRA
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2836,7 +2873,7 @@
       END FUNCTION GET_CT_DIAG
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2865,7 +2902,7 @@
       END FUNCTION GET_Hg2_DIAG
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2879,10 +2916,6 @@
 !
       FUNCTION GET_A1_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
@@ -2890,11 +2923,13 @@
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_FP )
 
       ! MERRA and GEOS-5.7.x met fields are 1-hour time-averages, timestamped 
       ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
@@ -2910,7 +2945,7 @@
       END FUNCTION GET_A1_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2924,10 +2959,6 @@
 !
       FUNCTION GET_A3_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
@@ -2940,6 +2971,7 @@
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2952,7 +2984,7 @@
       END FUNCTION GET_A3_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2995,7 +3027,7 @@
       END FUNCTION GET_A6_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3068,7 +3100,7 @@
       END FUNCTION GET_I3_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3159,7 +3191,7 @@
       END FUNCTION GET_I6_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3173,10 +3205,6 @@
 !
       FUNCTION GET_FIRST_A1_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
@@ -3186,6 +3214,7 @@
 !  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3196,7 +3225,7 @@
       END FUNCTION GET_FIRST_A1_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3210,10 +3239,6 @@
 !
       FUNCTION GET_FIRST_A3_TIME() RESULT( DATE )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
@@ -3225,6 +3250,7 @@
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3253,7 +3279,7 @@
       END FUNCTION GET_FIRST_A3_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3267,10 +3293,6 @@
 !
       FUNCTION GET_FIRST_A6_TIME() RESULT( DATE )
 !
-! !USES:
-! 
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
@@ -3281,6 +3303,7 @@
 !  (2 ) Modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3328,7 +3351,7 @@
       END FUNCTION GET_FIRST_A6_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3375,7 +3398,7 @@
       END FUNCTION GET_FIRST_I3_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3422,7 +3445,7 @@
       END FUNCTION GET_FIRST_I6_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3471,15 +3494,13 @@
       END FUNCTION ITS_TIME_FOR_CHEM
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
-!          !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: its_time_for_rt
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_RT returns TRUE if it is time
-! to do
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_RT returns TRUE if it is time to do
 !  radiative transfer calculations, or FALSE otherwise.
 !\\
 !\\
@@ -3512,19 +3533,16 @@
       FLAG = ( MOD( ELAPSED_MIN, TS_RAD ) == M )
 
       END FUNCTION ITS_TIME_FOR_RT
-
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group
-!          !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: its_time_for_surface_rad
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_SURFACE\_RAD 
-!  returns TRUE if it is time to read surface albedo
-!  and emissivity fields, or FALSE otherwise.
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_SURFACE\_RAD returns TRUE if it is
+!  time to read surface albedo and emissivity fields, or FALSE otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -3556,10 +3574,9 @@
       FLAG = ( MOD( M, 8 ) == 1 )
 
       END FUNCTION ITS_TIME_FOR_SURFACE_RAD
-
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3589,7 +3606,7 @@
       END FUNCTION ITS_TIME_FOR_CONV
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3619,7 +3636,7 @@
       END FUNCTION ITS_TIME_FOR_DYN
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3670,7 +3687,7 @@
       END FUNCTION ITS_TIME_FOR_EMIS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3701,7 +3718,7 @@
       END FUNCTION ITS_TIME_FOR_UNIT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3732,7 +3749,7 @@
       END FUNCTION ITS_TIME_FOR_DIAG
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3761,7 +3778,7 @@
       END FUNCTION ITS_TIME_FOR_A1
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3791,7 +3808,7 @@
       END FUNCTION ITS_TIME_FOR_A3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3805,10 +3822,6 @@
 !
       FUNCTION ITS_TIME_FOR_A6() RESULT( FLAG )
 !
-! !USES:
-!
-#     include "define.h"
-!
 ! !RETURN VALUE:
 !
       LOGICAL :: FLAG 
@@ -3820,6 +3833,7 @@
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3871,7 +3885,7 @@
 !EOC
 #if   defined( APM )
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3885,9 +3899,6 @@
 ! !INTERFACE:
 !
       FUNCTION ITS_TIME_FOR_A6UPDATE() RESULT( FLAG )
-!
-! !USES:
-#     include "define.h"
 !
 ! !RETURN VALUE:
 !
@@ -3903,6 +3914,7 @@
 !  (2 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3944,7 +3956,7 @@
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3980,7 +3992,7 @@
       END FUNCTION ITS_TIME_FOR_I3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4017,7 +4029,7 @@
       END FUNCTION ITS_TIME_FOR_I6
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4055,7 +4067,7 @@
       END FUNCTION ITS_TIME_FOR_UNZIP     
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4094,7 +4106,7 @@
       END FUNCTION ITS_TIME_FOR_DEL
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4125,7 +4137,7 @@
       END FUNCTION ITS_TIME_FOR_EXIT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4189,7 +4201,7 @@
       END FUNCTION ITS_TIME_FOR_BPCH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4289,7 +4301,7 @@
       END FUNCTION ITS_A_LEAPYEAR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4429,7 +4441,7 @@
       END FUNCTION ITS_A_NEW_YEAR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4568,7 +4580,7 @@
       END FUNCTION ITS_A_NEW_MONTH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4600,7 +4612,7 @@
       END FUNCTION ITS_MIDMONTH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4728,10 +4740,61 @@
       ENDIF
 
       END FUNCTION ITS_A_NEW_DAY
-
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_new_hour
+!
+! !DESCRIPTION: Function ITS\_A\_NEW\_HOUR returns TRUE if it's the first
+!  timestep of a new hour (it also returns TRUE on the first timestep of the
+!  run).  This is useful for setting flags for reading in data. (bmy, 4/1/04)
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_A_NEW_HOUR( ) RESULT( IS_NEW_HOUR )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: IS_NEW_HOUR
+!
+! !REVISION HISTORY: 
+!  01 Apr 2004 - R. Yantosca - Initial Version
+!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      !=================================================================
+      ! ITS_A_NEW_HOUR begins here!
+      !=================================================================
+      IF ( MOD( NHMS, 10000 ) == 0 ) THEN
+
+         ! Test if it's 0 GMT
+         IS_NEW_HOUR = .TRUE.
+
+      ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
+
+         ! Also return TRUE if it's the start of the run
+         ! (since files will need to be read in from disk)
+         IS_NEW_HOUR = .TRUE.
+
+      ELSE
+
+         ! Otherwise, it's not a new year
+         IS_NEW_HOUR = .FALSE.
+         
+      ENDIF
+
+      END FUNCTION ITS_A_NEW_HOUR
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4771,7 +4834,7 @@
       END FUNCTION ITS_A_NEW_SEASON
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4809,7 +4872,7 @@
       END SUBROUTINE PRINT_CURRENT_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4824,10 +4887,6 @@
 ! !INTERFACE:
 !
       FUNCTION TIMESTAMP_STRING( YYYYMMDD, HHMMSS ) RESULT( TIME_STR )
-!
-! !USES:
-!
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4844,6 +4903,7 @@
 !  (2 ) Now add optional arguments YYYYMMDD and HHMMSS (bmy, 10/27/03)
 !  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4893,7 +4953,7 @@
       END FUNCTION TIMESTAMP_STRING
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4942,7 +5002,7 @@
       END SUBROUTINE YMD_EXTRACT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4959,8 +5019,6 @@
 ! !USES:
 !
       USE CHARPAK_MOD, ONLY : STRREPL
-
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4980,6 +5038,7 @@
 !  (4 ) Now do not replace "ss" with seconds, as the smallest GEOS-Chem
 !        timestep is in minutes. (bmy, 7/20/04)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5040,7 +5099,7 @@
       END SUBROUTINE EXPAND_DATE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5097,7 +5156,7 @@
       END SUBROUTINE SYSTEM_DATE_TIME
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5139,7 +5198,7 @@
       END FUNCTION SYSTEM_TIMESTAMP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5167,7 +5226,7 @@
       END SUBROUTINE TIMESTAMP_DIAG
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -5196,6 +5255,161 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
+#if defined( ESMF_ )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: accept_external_date_time
+!
+! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_DATE\_TIME sets the date and
+!  time variables in time\_mod.F with the values obtained from an external
+!  GCM (such as NASA's GEOS-5 GCM).  The various date \& time values from 
+!  the GCM are passed as arguments.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Accept_External_Date_Time( 
+     &   am_I_Root,    value_NYMDb,    value_NYMDe,   value_NYMD,
+     &   value_NHMSb,  value_NHMSe,    value_NHMS,    value_YEAR,
+     &   value_MONTH,  value_DAY,      value_DAYOFYR, value_HOUR,
+     &   value_MINUTE, value_SECOND,   value_UTC,     value_HELAPSED,
+     &   value_TS_CHEM, value_TS_CONV, value_TS_DYN,  value_TS_EMIS,
+     &   RC                                                           )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE JULDAY_MOD,       ONLY : JULDAY
+      USE JULDAY_MOD,       ONLY : CALDATE
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
+      INTEGER, OPTIONAL    :: value_NYMDb     ! YYYY/MM/DD @ start of run
+      INTEGER, OPTIONAL    :: value_NYMDe     ! YYYY/MM/DD @ end of run
+      INTEGER, OPTIONAL    :: value_NYMD      ! YYYY/MM/DD @ current time
+      INTEGER, OPTIONAL    :: value_NHMSb     ! hh:mm:ss   @ start of run
+      INTEGER, OPTIONAL    :: value_NHMSe     ! hh:mm:ss   @ end of run
+      INTEGER, OPTIONAL    :: value_NHMS      ! hh:mm:ss   @ current time
+      INTEGER, OPTIONAL    :: value_YEAR      ! UTC year 
+      INTEGER, OPTIONAL    :: value_MONTH     ! UTC month
+      INTEGER, OPTIONAL    :: value_DAY       ! UTC day
+      INTEGER, OPTIONAL    :: value_DAYOFYR   ! UTC day of year
+      INTEGER, OPTIONAL    :: value_HOUR      ! UTC hour
+      INTEGER, OPTIONAL    :: value_MINUTE    ! UTC minute
+      INTEGER, OPTIONAL    :: value_SECOND    ! UTC second
+      REAL*4,  OPTIONAL    :: value_UTC       ! UTC time [hrs]
+      REAL*4,  OPTIONAL    :: value_HELAPSED  ! Elapsed hours
+      INTEGER, OPTIONAL    :: value_TS_CHEM   ! Chemistry  timestep [min]
+      INTEGER, OPTIONAL    :: value_TS_CONV   ! Convection timestep [min]
+      INTEGER, OPTIONAL    :: value_TS_DYN    ! Dynamic    timestep [min]
+      INTEGER, OPTIONAL    :: value_TS_EMIS   ! Emissions  timestep [min]
+!
+! !OUTPUT ARGUMENTS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  The date and time values are obtained via the Extract_ subroutine in 
+!  module file GEOSCHEMchem_GridCompMod.F90.      
+! 
+! !REVISION HISTORY: 
+!  06 Dec 2012 - Initial version
+!  11 Dec 2012 - R. Yantosca - Renamed to ACCEPT_EXTERNAL_DATE_TIME
+!  18 Jun 2013 - R. Yantosca - Now compute day of week w/r/t GMT, which is
+!                              the same modification made in SET_CURRENT_TIME
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8 :: A, B, JD, THISDAY, TMP
+
+      !=================================================================
+      ! Set time/date values of time_mod.F from the ESMF inputs 
+      !=================================================================
+      IF ( PRESENT( value_NYMDb    ) ) NYMDb       = value_NYMdb
+      IF ( PRESENT( value_NYMDe    ) ) NYMDe       = value_NYMDe
+      IF ( PRESENT( value_NYMD     ) ) NYMD        = value_NYMD
+      IF ( PRESENT( value_NHMSb    ) ) NHMSb       = value_NHMSb 
+      IF ( PRESENT( value_NHMSe    ) ) NHMSe       = value_NHMSe
+      IF ( PRESENT( value_NHMS     ) ) NHMS        = value_NHMS 
+      IF ( PRESENT( value_YEAR     ) ) YEAR        = value_YEAR 
+      IF ( PRESENT( value_MONTH    ) ) MONTH       = value_MONTH
+      IF ( PRESENT( value_DAY      ) ) DAY         = value_DAY 
+      IF ( PRESENT( value_DAYOFYR  ) ) DAY_OF_YEAR = value_DAYOFYR
+      IF ( PRESENT( value_HOUR     ) ) HOUR        = value_HOUR
+      IF ( PRESENT( value_MINUTE   ) ) MINUTE      = value_MINUTE
+      IF ( PRESENT( value_SECOND   ) ) SECOND      = value_SECOND
+      IF ( PRESENT( value_TS_CHEM  ) ) TS_CHEM     = value_TS_CHEM
+      IF ( PRESENT( value_TS_CONV  ) ) TS_CONV     = value_TS_CONV
+      IF ( PRESENT( value_TS_DYN   ) ) TS_DYN      = value_TS_DYN
+      IF ( PRESENT( value_TS_EMIS  ) ) TS_EMIS     = value_TS_EMIS
+
+      ! Special handling for GMT to avoid roundoff error
+      IF ( PRESENT( value_UTC  ) ) THEN 
+         TMP = value_UTC
+         GMT = TMP
+      ENDIF
+
+      !=================================================================
+      ! Compute various other derived time/date values
+      !=================================================================
+      
+      ! Elapsed minutes since the start of the run
+      IF ( PRESENT( value_HELAPSED ) ) THEN
+         ELAPSED_MIN = ( value_HELAPSED * 60 )
+      ENDIF
+
+      ! TAUb (hours since 0 UTC on 01 Jan 1985) @ start of simulation
+      IF ( PRESENT( value_NYMDb ) .and. PRESENT( value_NHMSb ) ) THEN
+         TMP  = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e0
+         TAUb = DBLE( TMP )
+      ENDIF
+
+      ! TAUe (hours since 0 UTC on 01 Jan 1985) @ end of simulation
+      IF ( PRESENT( value_NYMDe ) .and. PRESENT( value_NHMSe ) ) THEN
+         TMP  = ( GET_JD( NYMDe, NHMSe ) - JD85 ) * 24e0
+         TAUe = DBLE( TMP )
+      ENDIF
+
+      ! TAU value ( hours since 0 UTC on 01 Jan 1985)
+      IF ( PRESENT( value_NYMD ) .and. PRESENT( value_NHMS ) ) THEN
+         TMP  = ( GET_JD( NYMD, NHMS ) - JD85 ) * 24e0
+         TAU  = DBLE( TMP )
+      ENDIF
+
+      ! Season index (1=DJF, 2=MAM, 3=JJA, 4=SON)
+      SELECT CASE ( MONTH )
+         CASE ( 12, 1, 2 )
+            NSEASON = 1
+         CASE ( 3, 4, 5 )
+            NSEASON = 2
+         CASE ( 6, 7, 8 )
+            NSEASON = 3
+         CASE ( 9, 10, 11 )
+            NSEASON = 4
+      END SELECT
+
+      ! Day of week w/r/t the GMT date  
+      ! Use same algorithm as in routine SET_CURRENT_TIME
+      THISDAY     = DAY + ( GMT / 24d0 )
+      JD          = JULDAY( YEAR, MONTH, THISDAY )
+      A           = ( JD + 1.5d0 ) / 7d0
+      B           = ( A - INT( A ) ) * 7d0
+      B           = INT( NINT( B*1d5 + SIGN( 5d0, B ) ) / 10d0 ) / 1d4
+      DAY_OF_WEEK = INT( B )
+
+      ! Return successfully
+      RC = GIGC_SUCCESS
+
+      END SUBROUTINE Accept_External_Date_Time
+!EOC
+#endif
       END MODULE TIME_MOD
 
 

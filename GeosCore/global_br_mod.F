@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -41,17 +40,28 @@
       PUBLIC :: GET_GLOBAL_Br   
       PUBLIC :: INIT_GLOBAL_Br
       PUBLIC :: CLEANUP_GLOBAL_Br
+
+! !REFERENCES
+!  (1 ) Holmes, C. D., et al. (2006), Global lifetime of elemental mercury
+!       against oxidation by atomic bromine in the free troposphere, Geophys.
+!       Res. Lett., 33(20).
+!  (2 ) Holmes, C.D., et al. (2010) Global atmospheric model for mercury 
+!       including oxidation by bromine atoms, AC&P, 10, 12,037-12,057. 
+!  (3 ) Parrella, J. et al. (2012), Tropospheric bromine chemistry:     
+!       implications for present and pre-industrial ozone and mercury, ACP.
 !
 ! !REVISION HISTORY:
 !  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  19 Apr 2012 - E.S. Corbitt - Added LGCBROMINE to use GEOS-Chem bromine.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -64,32 +74,40 @@
 !\\
 ! !INTERFACE:
 !
-      ! Rename to GET_GLOBAL_Br
-      !SUBROUTINE GET_GLOBAL_Br_NEW( THISMONTH )
-      SUBROUTINE GET_GLOBAL_Br( THISMONTH )
+      SUBROUTINE GET_GLOBAL_Br( am_I_Root, Input_Opt, 
+     &                          State_Met, THISMONTH, RC )
 !
 ! !USES:
 !
-      !USE LOGICAL_MOD,    ONLY : LVARTROP     ! Comment this out for now
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,      ONLY : GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0
-      USE BPCH2_MOD,      ONLY : READ_BPCH2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR ! cdh
-      USE TRANSFER_MOD,   ONLY : TRANSFER_3D
-      USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
-      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
-
-      USE CMN_SIZE_MOD                 ! Size parameters
-
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE BPCH2_MOD,          ONLY : READ_BPCH2
+      USE CMN_SIZE_MOD
+      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D_TROP
+      USE OCEAN_MERCURY_MOD,  ONLY : LGCBROMINE     !eds 4/19/12
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  THIS IS A NEW VERSION OF THIS SUBROUTINE WHICH COMBINES Br CONCENTRATIONS
 !  FROM MULTIPLE DATA SOURCES
+!                                                                             .
+!  NOTE: The bpch file input will eventually be replaced by netCDF input.
 ! 
 ! !REVISION HISTORY: 
 !  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
@@ -97,6 +115,7 @@
 !        all CTM levels.  Contact Bob Yantosca (bmy@io.harvard.edu) for IDL
 !        regridding code which will produce the appropriate BR files.
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -105,7 +124,7 @@
 !
       INTEGER                      :: I, J, L
       REAL*4                       :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL*4                       :: ARRAY2(IIPAR,JJPAR,LLTROP)
+      REAL*4                       :: ARRAY2(IIPAR,JJPAR,LLCHEM)
       REAL*8                       :: XTAU
 !      REAL*4                       :: TPAUSE(IIPAR,JJPAR)
       CHARACTER(LEN=255)           :: FILENAME
@@ -121,59 +140,137 @@
       ! GET_GLOBAL_BR begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Allocate BR array, if this is the first call
       IF ( FIRST ) THEN
          CALL INIT_GLOBAL_BR
          FIRST = .FALSE.
       ENDIF
 
-      ! Get the TAU0 value for the start of the given month
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 ) !eds;  cdh-is this OK?
+      ! EDS NOTE (4/19/12): need to move Br to directory, note the years used,
+      ! and regrid for other resolutions
+      BR_DIR = TRIM( Input_Opt%DATA_DIR ) // 'mercury_201007/'
 
-      BR_DIR = TRIM( DATA_DIR ) // 'mercury_201007/'
+      IF ( LGCBROMINE ) THEN
 
-      !-----------------------------------------------------------------
-      ! Read Br from pTOMCAT biogenic bromocarbons
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! Read Br from GEOS-Chem
+         !-----------------------------------------------------------------
+         
+         ! Filename
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+         ! Need to read emission file at nested-resolution
+         FILENAME = TRIM( Input_Opt%DATA_DIR )   // 
+     &              'mercury_201203/BrOx.GC.'    //
+     &              GET_NAME_EXT()               // '.' // GET_RES_EXT()
+#else
+         FILENAME = TRIM( BR_DIR ) // 'BrOx.GC.' //
+     &              GET_NAME_EXT() // '.'        // GET_RES_EXT()
+#endif
+   
+         ! Get the TAU0 value for the start of the given month
+         XTAU = GET_TAU0( THISMONTH, 1, 2007 ) 
+   
+         ! Echo some information to the standard output
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 120 ) TRIM( FILENAME )
+ 120        FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
+         ENDIF
+            
+         CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 45,
+     &                    XTAU,	    IIPAR,      JJPAR,
+     &                    LGLOB,    ARRAY,      QUIET=.FALSE. )
+   
+         ! Assign data from ARRAY to the module variable BR
+         CALL TRANSFER_3D( ARRAY, BR_TROP )
+   
+         ! Convert	ppbv ->	pptv
+         BR_TROP  = BR_TROP * 1D3                         
+   
+         !-----------------------------------------------------------------
+         ! Read BrO from GEOS-Chem
+         !-----------------------------------------------------------------
+   
+         CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 46,
+     &                    XTAU,	    IIPAR,      JJPAR,
+     &                    LGLOB,    ARRAY,      QUIET=.TRUE. )
+   
+         ! Assign data from ARRAY to the module variable BRO
+         CALL TRANSFER_3D( ARRAY, BRO_TROP )
+       
+         ! Convert ppbv -> pptv
+         BRO_TROP  = BRO_TROP * 1D3 
 
-      ! Filename
-      FILENAME = TRIM( BR_DIR ) // 'BrOx.TOMCAT_org.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() 
+      ELSE
 
-      ! Echo some information to the standard output
-      WRITE( 6, 120 ) TRIM( FILENAME )
- 120  FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
+         !-----------------------------------------------------------------
+         ! Read Br from pTOMCAT biogenic bromocarbons
+         !-----------------------------------------------------------------
 
-      ! Read BR data from the binary punch file
-      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 6,     
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
+         ! Filename
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( Input_Opt%DATA_DIR )             //
+     &              'mercury_201203/BrOx.TOMCAT_org.'      //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()
+#else
+         FILENAME = TRIM( BR_DIR ) // 'BrOx.TOMCAT_org.'   //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT() 
+#endif
+         
+         ! Get the TAU0 value for the start of the given month
+         XTAU = GET_TAU0( THISMONTH, 1, 1985 ) 
+         
+         ! Echo some information to the standard output
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 130 ) TRIM( FILENAME )
+ 130        FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
+         ENDIF
 
-      ! Assign data from ARRAY to the module variable BR
-      CALL TRANSFER_3D( ARRAY, BR_TROP )
+         ! Read BR data from the binary punch file
+         CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 6,     
+     &                    XTAU,      IIPAR,     JJPAR,      
+     &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
+         
+         ! Assign data from ARRAY to the module variable BR
+         CALL TRANSFER_3D( ARRAY, BR_TROP )
+         
+         !-----------------------------------------------------------------
+         ! Read BrO from pTOMCAT biogenic bromocarbons
+         !-----------------------------------------------------------------
+         
+         ! Read BRO data from the binary punch file
+         CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 7,     
+     &                    XTAU,      IIPAR,     JJPAR,      
+     &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
+         
+         ! Assign data from ARRAY to the module variable BRO
+         CALL TRANSFER_3D( ARRAY, BRO_TROP )
 
-      !-----------------------------------------------------------------
-      ! Read BrO from pTOMCAT biogenic bromocarbons
-      !-----------------------------------------------------------------
-
-      ! Read BRO data from the binary punch file
-      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 7,     
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable BRO
-      CALL TRANSFER_3D( ARRAY, BRO_TROP )
+      ENDIF
 
       !-----------------------------------------------------------------
       ! Read Br from GMI for stratosphere
       !-----------------------------------------------------------------
 
       ! Filename
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      FILENAME = TRIM( Input_Opt%DATA_DIR )    //
+     &           'mercury_201203/BrOx.GMI.'    //
+     &           GET_NAME_EXT() // '.'         // GET_RES_EXT()
+#else
       FILENAME = TRIM( BR_DIR ) // 'BrOx.GMI.' //
      &           GET_NAME_EXT() // '.'         // GET_RES_EXT()
+#endif
+
+      ! Get the TAU0 value for the start of the given month
+      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
       ! Echo some information to the standard output
-      WRITE( 6, 120 ) TRIM( FILENAME )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 120 ) TRIM( FILENAME )
+      ENDIF
 
       ! Read BR data from the binary punch file
       CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 6,     
@@ -196,10 +293,11 @@
       CALL TRANSFER_3D( ARRAY, BRO_STRAT )
 
       !-----------------------------------------------------------------
-      ! Use pTOMCAT exclusively in the troposphere.
+      ! Use pTOMCAT or GEOS-Chem exclusively in the troposphere.
       ! In the stratosphere, use the greater value from either COMBO or
-      ! pTOMCAT. COMBO source gases include CH3Br and halons, while pTOMCAT 
-      ! includes CH3Br and shorter-lived gases.
+      ! the tropospheric model. COMBO source gases include CH3Br and 
+      ! halons, while pTOMCAT and GEOS-Chem includes CH3Br and 
+      ! shorter-lived gases.
       !-----------------------------------------------------------------
 
       BR_MERGE  = BR_TROP
@@ -212,7 +310,7 @@
       DO J=1, JJPAR      
          
          ! First layer in the stratosphere
-         TPL = GET_TPAUSE_LEVEL(I,J)
+         TPL = GET_TPAUSE_LEVEL( I, J, State_Met )
 
          BR_MERGE(I,J,TPL:LLPAR) = MERGE(
      &        BR_STRAT(I,J,TPL:LLPAR), 
@@ -287,111 +385,32 @@
       XTAU = GET_TAU0( THISMONTH, 1, 2002 )
 
       ! Filename
-      FILENAME = TRIM( BR_DIR ) // 'jBrO.daytime.' //
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      FILENAME = TRIM( Input_Opt%DATA_DIR )             //
+     &           'mercury_201203/jBrO.daytime.'         //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+#else
+      FILENAME = TRIM( BR_DIR ) // 'jBrO.daytime.'      //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT() 
+#endif
 
       ! Echo some information to the standard output
-      WRITE( 6, 120 ) TRIM( FILENAME )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 120 ) TRIM( FILENAME )
+      ENDIF
 
       ! Read BR data from the binary punch file
       CALL READ_BPCH2( FILENAME, 'LIFE-T=$', 19,     
      &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LLTROP,    ARRAY2,    QUIET=.TRUE. )
+     &                 LLCHEM,    ARRAY2,    QUIET=.TRUE. )
 
       ! Assign data from ARRAY2 to the module variable BR
       CALL TRANSFER_3D_TROP( ARRAY2, J_BrO )
 
       END SUBROUTINE GET_GLOBAL_Br
 !EOC
-! This routine is now obsolete
-!!!!------------------------------------------------------------------------------
-!!!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!!!------------------------------------------------------------------------------
-!!!!BOP
-!!!!
-!!!! !IROUTINE: get_global_Br
-!!!!
-!!!! !DESCRIPTION: Subroutine GET\_GLOBAL\_Br reads global Br from binary 
-!!!!  punch files stored in the /data/ctm/GEOS\_MEAN directory.  This Br data 
-!!!!  is needed as oxidant for mercury chemistry.
-!!!!\\
-!!!!\\
-!!!! !INTERFACE:
-!!!!
-!!!      SUBROUTINE GET_GLOBAL_Br( THISMONTH )
-!!!!
-!!!! !USES:
-!!!!
-!!!      USE BPCH2_MOD,    ONLY : GET_NAME_EXT
-!!!      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-!!!      USE BPCH2_MOD,    ONLY : GET_TAU0
-!!!      USE BPCH2_MOD,    ONLY : READ_BPCH2
-!!!      USE TRANSFER_MOD, ONLY : TRANSFER_3D
-!!!
-!!!#     include "CMN_SIZE"                 ! Size parameters
-!!!
-!!!!
-!!!! !INPUT PARAMETERS: 
-!!!!
-!!!      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
-!!!! 
-!!!! !REVISION HISTORY: 
-!!!!  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
-!!!!  (1 ) GET_GLOBAL_BR assumes that we are reading global Br data that occupies
-!!!!        all CTM levels.  Contact Bob Yantosca (bmy@io.harvard.edu) for IDL
-!!!!        regridding code which will produce the appropriate Br files.
-!!!!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
-!!!!EOP
-!!!!------------------------------------------------------------------------------
-!!!!BOC
-!!!!
-!!!! !LOCAL VARIABLES:
-!!!!
-!!!      INTEGER                      :: I, J, L
-!!!      REAL*4                       :: ARRAY(IGLOB,JGLOB,LGLOB)
-!!!      REAL*8                       :: XTAU
-!!!      CHARACTER(LEN=255)           :: FILENAME
-!!!
-!!!      ! Location of archived Br
-!!!      CHARACTER(LEN=30), PARAMETER :: BR_DIR = 
-!!!     &                                '/home/cdh/GC/Archived-Br/'
-!!!
-!!!      ! First time flag
-!!!      LOGICAL,           SAVE      :: FIRST = .TRUE. 
-!!!
-!!!      !=================================================================
-!!!      ! GET_GLOBAL_BR begins here!
-!!!      !=================================================================
-!!!
-!!!      ! Allocate BR array, if this is the first call
-!!!      IF ( FIRST ) THEN
-!!!         CALL INIT_GLOBAL_BR
-!!!         FIRST = .FALSE.
-!!!      ENDIF
-!!!
-!!!      ! Filename
-!!!      FILENAME = TRIM( BR_DIR ) // 'Br_3Dglobal.' 
-!!!     &           // GET_NAME_EXT() // '.' // GET_RES_EXT()
-!!!
-!!!      ! Echo some information to the standard output
-!!!      WRITE( 6, 110 ) TRIM( FILENAME )
-!!! 110  FORMAT( '     - GET_GLOBAL_BR: Reading Br, BrO from: ', a )
-!!!
-!!!      ! Time stamp for data
-!!!      XTAU = GET_TAU0( THISMONTH, 1, 1985 ) 
-!!!
-!!!      ! Read BR data from the binary punch file
-!!!      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 6,     
-!!!     &                 XTAU,      IGLOB,     JGLOB,      
-!!!     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
-!!!
-!!!      ! Assign data from ARRAY to the module variable BR
-!!!      CALL TRANSFER_3D( ARRAY, BR_MERGE )
-!!!
-!!!      END SUBROUTINE GET_GLOBAL_Br
-!!!!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -451,7 +470,7 @@
       !-------------------------------------
 
       ! Allocate J_BrO array
-      ALLOCATE( J_BrO( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( J_BrO( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'J_BrO' )
       J_BrO = 0d0
 
@@ -473,7 +492,7 @@
       END SUBROUTINE INIT_GLOBAL_BR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

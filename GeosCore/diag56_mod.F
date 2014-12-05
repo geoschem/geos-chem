@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -16,7 +16,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -41,13 +40,14 @@
 !        (bmy, 9/5/06)
 !  (2 ) Now divide AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC    
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -79,7 +79,7 @@
       END SUBROUTINE ZERO_DIAG56
 !EOC    
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -117,6 +117,7 @@
 !        (bmy, 9/5/06)
 !  (2 ) Now scale AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -135,7 +136,7 @@
       ! WRITE_DIAG56 begins here!
       !=================================================================
 
-      ! Exit if ND03 is turned off
+      ! Exit if ND56 is turned off
       IF ( ND56 == 0 ) RETURN
 
       ! Initialize
@@ -152,7 +153,7 @@
       RESERVED  = ''
 #if   defined( MERRA )
       SCALE     = DBLE( GET_CT_A3() ) + 1d-32
-#elif defined( GEOS_57 )
+#elif defined( GEOS_FP )
       SCALE     = DBLE( GET_CT_I3() ) + 1d-32
 #else
       SCALE     = DBLE( GET_CT_A6() ) + 1d-32
@@ -162,7 +163,7 @@
       ! Write data to the bpch file
       !=================================================================
 
-      ! Loop over ND03 diagnostic tracers
+      ! Loop over ND56 diagnostic tracers
       DO M = 1, TMAX(56)
 
          ! Define quantities
@@ -182,7 +183,7 @@
       END SUBROUTINE WRITE_DIAG56
 !EOC    
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -229,7 +230,7 @@
       END SUBROUTINE INIT_DIAG56
 !EOC    
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

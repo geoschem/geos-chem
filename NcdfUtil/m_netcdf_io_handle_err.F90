@@ -1,20 +1,20 @@
-! $Id: m_netcdf_io_handle_err.F90,v 1.1 2009/08/04 14:52:04 bmy Exp $
-!-------------------------------------------------------------------------
-!  NASA/GFSC, SIVO, Code 610.3
-!-------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE:  m_netcdf_io_handle_err
+! !MODULE:  m_netcdf_io_handle_err.F90
 !
 ! !INTERFACE:
 !
-      module m_netcdf_io_handle_err
+module m_netcdf_io_handle_err
 !
-      implicit none
+  implicit none
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      public  Nchandle_Err
+  public  Nchandle_Err
 !
 ! !DESCRIPTION: Provides a routine to handle error messages.
 !\\
@@ -23,33 +23,37 @@
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  Initial code.
+!  10 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  10 Jul 2014 - R. Yantosca - Cosmetic chagnes in ProTeX headers
 !
 !EOP
-!-------------------------------------------------------------------------
-
+!-----------------------------------------------------------------------------
+!BOC
 CONTAINS
-
-!-------------------------------------------------------------------------
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: Nchandle_Err
 !
 ! !INTERFACE:
 !
-      subroutine Nchandle_Err (ierr)
+  subroutine Nchandle_Err (ierr)
 !
 ! !USES:
 !
-      use m_do_err_out
+    use m_do_err_out
 !
-      implicit none
+    implicit none
 !
-      include "netcdf.inc"
+    include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
-!     ierr : netCDF error number
-      integer, intent (in)   :: ierr
+!   ierr : netCDF error number
+    integer, intent (in)   :: ierr
 !
 ! !DESCRIPTION: Handles netCDF errors. Prints out a message and then exit. 
 !\\
@@ -65,16 +69,15 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+    character (len=128) :: err_msg
 !
-      err_msg = 'In Nchandle_Err:  ' // Nf_Strerror (ierr)
+    err_msg = 'In Nchandle_Err:  ' // Nf_Strerror (ierr)
 
-      call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
+    call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
 
-      return
+    return
 
-      end subroutine Nchandle_Err
+  end subroutine Nchandle_Err
 !EOC
-!------------------------------------------------------------------------
 end module m_netcdf_io_handle_err
 

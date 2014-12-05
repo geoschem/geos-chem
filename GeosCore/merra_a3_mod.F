@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -18,7 +18,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -38,6 +37,8 @@
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -50,7 +51,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -116,7 +117,7 @@
       END FUNCTION DO_OPEN_A3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -128,28 +129,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_A3_FIELDS( NYMD, NHMS )
+      SUBROUTINE OPEN_MERRA_A3_FIELDS( NYMD, NHMS, Input_Opt )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE CMN_SIZE_MOD              ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD and
-      INTEGER, INTENT(IN) :: NHMS   !  hhmmss to test for A3 file open
+      INTEGER,        INTENT(IN) :: NYMD        ! YYYYMMDD and hhmmss
+      INTEGER,        INTENT(IN) :: NHMS        !  to test for A3 file open
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A3 locally
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -176,7 +178,7 @@
          !---------------------------
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( MERRA_DIR )
+         GEOS_DIR = TRIM( Input_Opt%MERRA_DIR )
          A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
          ! Replace date tokens
@@ -184,8 +186,9 @@
          CALL EXPAND_DATE( A3_FILE,  NYMD, NHMS )
 
          ! Full file path
-         PATH = TRIM( DATA_DIR ) // 
-     &          TRIM( GEOS_DIR ) // TRIM( A3_FILE )
+         PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &          TRIM( GEOS_DIR           ) // 
+     &          TRIM( A3_FILE            )
 
          ! Close previously opened A-3 file
 	 INQUIRE( IU_A3, OPENED=IS_OPEN )
@@ -237,7 +240,7 @@
       END SUBROUTINE OPEN_MERRA_A3_FIELDS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -249,27 +252,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS, Input_Opt, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : CLDF,    CLDTOPS,  CMFMC,    DQRCU
-      USE DAO_MOD, ONLY : DQRLSAN, DQIDTMST, DQLDTMST, DQVDTMST
-      USE DAO_MOD, ONLY : DTRAIN,  MOISTQ,   OPTDEP,   PFICU
-      USE DAO_MOD, ONLY : PFILSAN, PFLCU,    PFLLSAN,  QI
-      USE DAO_MOD, ONLY : QL,      SPHU,     REEVAPCN, REEVAPLS
-      USE DAO_MOD, ONLY : T,       TAUCLI,   TAUCLW,   UWND
-      USE DAO_MOD, ONLY : VWND
-
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD
+      USE DAO_MOD,            ONLY : T_FULLGRID
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD and
-      INTEGER, INTENT(IN) :: NHMS   !  hhmmss of desired data fields
+      INTEGER,        INTENT(IN)    :: NYMD        ! YYYYMMDD and
+      INTEGER,        INTENT(IN)    :: NHMS        !  hhmmss of desired data
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_met
+!  23 Oct 2013 - R. Yantosca - Now accept Input_Opt as an argument
+!  23 Oct 2013 - R. Yantosca - Now read T_FULLGRID for specialty (offline) sims
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -294,33 +302,79 @@
       !=================================================================      
       ! Read data from disk
       !=================================================================
-      CALL READ_A3( NYMD     = NYMD,          
-     &              NHMS     = NHMS,       
-     &              CLOUD    = CLDF,          
-     &              CLDTOPS  = CLDTOPS, 
-     &              CMFMC    = CMFMC, 
-     &              DQRCU    = DQRCU, 
-     &              DQRLSAN  = DQRLSAN,       
-     &              DQIDTMST = DQIDTMST, 
-     &              DQLDTMST = DQLDTMST,  
-     &              DQVDTMST = DQVDTMST,  
-     &              DTRAIN   = DTRAIN,     
-     &              MOISTQ   = MOISTQ,     
-     &              OPTDEPTH = OPTDEP, 
-     &              PFICU    = PFICU,             
-     &              PFILSAN  = PFILSAN,             
-     &              PFLCU    = PFLCU,
-     &              PFLLSAN  = PFLLSAN,
-     &              QI       = QI,             
-     &              QL       = QL,             
-     &              QV       = SPHU,
-     &              REEVAPCN = REEVAPCN,
-     &              REEVAPLS = REEVAPLS,
-     &              T        = T,               
-     &              TAUCLI   = TAUCLI,     
-     &              TAUCLW   = TAUCLW,     
-     &              U        = UWND,            
-     &              V        = VWND      )   
+      IF ( Input_Opt%ITS_A_SPECIALTY_SIM ) THEN
+
+         !--------------------------------------------------------------
+         ! SPECIALTY SIMULATIONS: Make sure to read T_FULLGRID
+         !--------------------------------------------------------------
+         CALL READ_A3( NYMD       = NYMD,          
+     &                 NHMS       = NHMS, 
+     &                 Input_Opt  = Input_Opt,
+     &                 CLOUD      = State_Met%CLDF,          
+     &                 CLDTOPS    = State_Met%CLDTOPS, 
+     &                 CMFMC      = State_Met%CMFMC, 
+     &                 DQRCU      = State_Met%DQRCU, 
+     &                 DQRLSAN    = State_Met%DQRLSAN,       
+     &                 DQIDTMST   = State_Met%DQIDTMST, 
+     &                 DQLDTMST   = State_Met%DQLDTMST,  
+     &                 DQVDTMST   = State_Met%DQVDTMST,  
+     &                 DTRAIN     = State_Met%DTRAIN,     
+     &                 MOISTQ     = State_Met%MOISTQ,     
+     &                 OPTDEPTH   = State_Met%OPTDEP, 
+     &                 PFICU      = State_Met%PFICU,             
+     &                 PFILSAN    = State_Met%PFILSAN,             
+     &                 PFLCU      = State_Met%PFLCU,
+     &                 PFLLSAN    = State_Met%PFLLSAN,
+     &                 QI         = State_Met%QI,             
+     &                 QL         = State_Met%QL,             
+     &                 QV         = State_Met%SPHU,
+     &                 REEVAPCN   = State_Met%REEVAPCN,
+     &                 REEVAPLS   = State_Met%REEVAPLS,
+     &                 T          = State_Met%T,               
+     &                 TAUCLI     = State_Met%TAUCLI,     
+     &                 TAUCLW     = State_Met%TAUCLW,     
+     &                 U          = State_Met%U,            
+     &                 V          = State_Met%V,
+     &                 T_FULLGRID = T_FULLGRID         )  
+
+      ELSE
+
+         !--------------------------------------------------------------
+         ! FULL-CHEMISTRY SIMULATIONS: Do not read T_FULLGRID
+         !
+         ! NOTE: If you are running GEOS-Chem in an ESMF environment,
+         ! then we will avoid reading T_FULLGRID. (bmy, 10/28/13)
+         !--------------------------------------------------------------
+         CALL READ_A3( NYMD       = NYMD,          
+     &                 NHMS       = NHMS,   
+     &                 Input_Opt  = Input_Opt,    
+     &                 CLOUD      = State_Met%CLDF,          
+     &                 CLDTOPS    = State_Met%CLDTOPS, 
+     &                 CMFMC      = State_Met%CMFMC, 
+     &                 DQRCU      = State_Met%DQRCU, 
+     &                 DQRLSAN    = State_Met%DQRLSAN,       
+     &                 DQIDTMST   = State_Met%DQIDTMST, 
+     &                 DQLDTMST   = State_Met%DQLDTMST,  
+     &                 DQVDTMST   = State_Met%DQVDTMST,  
+     &                 DTRAIN     = State_Met%DTRAIN,     
+     &                 MOISTQ     = State_Met%MOISTQ,     
+     &                 OPTDEPTH   = State_Met%OPTDEP, 
+     &                 PFICU      = State_Met%PFICU,             
+     &                 PFILSAN    = State_Met%PFILSAN,             
+     &                 PFLCU      = State_Met%PFLCU,
+     &                 PFLLSAN    = State_Met%PFLLSAN,
+     &                 QI         = State_Met%QI,             
+     &                 QL         = State_Met%QL,             
+     &                 QV         = State_Met%SPHU,
+     &                 REEVAPCN   = State_Met%REEVAPCN,
+     &                 REEVAPLS   = State_Met%REEVAPLS,
+     &                 T          = State_Met%T,               
+     &                 TAUCLI     = State_Met%TAUCLI,     
+     &                 TAUCLW     = State_Met%TAUCLW,     
+     &                 U          = State_Met%U,            
+     &                 V          = State_Met%V        )   
+
+      ENDIF
 
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD
@@ -329,7 +383,7 @@
       END SUBROUTINE GET_MERRA_A3_FIELDS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -341,73 +395,81 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_A3( NYMD,     NHMS,
-     &                    CLOUD,    CLDTOPS,  CMFMC,    DQRCU,    
-     &                    DQRLSAN,  DQIDTMST, DQLDTMST, DQVDTMST, 
-     &                    DTRAIN,   MOISTQ,   OPTDEPTH, PFICU,    
-     &                    PFILSAN,  PFLCU,    PFLLSAN,  QI,       
-     &                    QL,       QV,       REEVAPCN, REEVAPLS, 
-     &                    T,        TAUCLI,   TAUCLW,   U,        
-     &                    V                                       )
+      SUBROUTINE READ_A3( NYMD,     NHMS,      Input_Opt,
+     &                    CLOUD,    CLDTOPS,   CMFMC,    DQRCU,
+     &                    DQRLSAN,  DQIDTMST,  DQLDTMST, DQVDTMST,
+     &                    DTRAIN,   MOISTQ,    OPTDEPTH, PFICU,
+     &                    PFILSAN,  PFLCU,     PFLLSAN,  QI,
+     &                    QL,       QV,        REEVAPCN, REEVAPLS,
+     &                    T,        TAUCLI,    TAUCLW,   U,
+     &                    V,        T_FULLGRID                     )
 !
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD66
-      USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : SET_CT_A3
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_A6
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D_Lp1
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D
-      USE TRANSFER_MOD, ONLY : TRANSFER_G5_PLE
-
-      USE CMN_SIZE_MOD                                    ! Size parameters
-      USE CMN_DIAG_MOD                                    ! ND66, LD66, ND67
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD66
+      USE DIAG_MOD,           ONLY : AD67
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_A3
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_A6
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Lp1
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+      USE TRANSFER_MOD,       ONLY : TRANSFER_G5_PLE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: NYMD                          ! YYYYMMDD & hhmmss
-      INTEGER, INTENT(IN)  :: NHMS                          !  of desired data
+      INTEGER,        INTENT(IN) :: NYMD        ! YYYYMMDD & hhmmss
+      INTEGER,        INTENT(IN) :: NHMS        !  of desired data
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
       ! Fields dimensioed as (I,J)
-      INTEGER, INTENT(OUT) :: CLDTOPS (IIPAR,JJPAR        )   
+      INTEGER, INTENT(OUT) :: CLDTOPS   (IIPAR,JJPAR        )
 
       ! Fields dimensioned as (I,J,L)
-      REAL*8,  INTENT(OUT) :: CMFMC   (IIPAR,JJPAR,LLPAR+1)
-      REAL*8,  INTENT(OUT) :: DQRCU   (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: DQRLSAN (IIPAR,JJPAR,LLPAR  )     
-      REAL*8,  INTENT(OUT) :: DQIDTMST(IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: DQLDTMST(IIPAR,JJPAR,LLPAR  ) 
-      REAL*8,  INTENT(OUT) :: DQVDTMST(IIPAR,JJPAR,LLPAR  ) 
-      REAL*8,  INTENT(OUT) :: DTRAIN  (IIPAR,JJPAR,LLPAR  )  
-      REAL*8,  INTENT(OUT) :: PFICU   (IIPAR,JJPAR,LLPAR  )         
-      REAL*8,  INTENT(OUT) :: PFILSAN (IIPAR,JJPAR,LLPAR  )           
-      REAL*8,  INTENT(OUT) :: PFLCU   (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: PFLLSAN (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: QI      (IIPAR,JJPAR,LLPAR  )      
-      REAL*8,  INTENT(OUT) :: QL      (IIPAR,JJPAR,LLPAR  )      
-      REAL*8,  INTENT(OUT) :: QV      (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: REEVAPCN(IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: REEVAPLS(IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: T       (IIPAR,JJPAR,LLPAR  )          
-      REAL*8,  INTENT(OUT) :: TAUCLI  (IIPAR,JJPAR,LLPAR  )  
-      REAL*8,  INTENT(OUT) :: TAUCLW  (IIPAR,JJPAR,LLPAR  )  
-      REAL*8,  INTENT(OUT) :: U       (IIPAR,JJPAR,LLPAR  )       
-      REAL*8,  INTENT(OUT) :: V       (IIPAR,JJPAR,LLPAR  )   
+      REAL*8,  INTENT(OUT) :: CMFMC     (IIPAR,JJPAR,LLPAR+1)
+      REAL*8,  INTENT(OUT) :: DQRCU     (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: DQRLSAN   (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: DQIDTMST  (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: DQLDTMST  (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: DQVDTMST  (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: DTRAIN    (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: PFICU     (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: PFILSAN   (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: PFLCU     (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: PFLLSAN   (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: QI        (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: QL        (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: QV        (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: REEVAPCN  (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: REEVAPLS  (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: T         (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: TAUCLI    (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: TAUCLW    (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: U         (IIPAR,JJPAR,LLPAR  )
+      REAL*8,  INTENT(OUT) :: V         (IIPAR,JJPAR,LLPAR  )
 
       ! Fields dimensioned as (L,I,J)
-      REAL*8,  INTENT(OUT) :: CLOUD   (LLPAR,IIPAR,JJPAR  )       
-      REAL*8,  INTENT(OUT) :: MOISTQ  (LLPAR,IIPAR,JJPAR  )    
-      REAL*8,  INTENT(OUT) :: OPTDEPTH(LLPAR,IIPAR,JJPAR  )  
+      REAL*8,  INTENT(OUT) :: CLOUD     (LLPAR,IIPAR,JJPAR  )
+      REAL*8,  INTENT(OUT) :: MOISTQ    (LLPAR,IIPAR,JJPAR  )
+      REAL*8,  INTENT(OUT) :: OPTDEPTH  (LLPAR,IIPAR,JJPAR  )
+
+      ! Optional arguments
+      REAL*8,  OPTIONAL    :: T_FULLGRID(IIPAR,JJPAR,LGLOB  )
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  20 Aug 2010 - R. Yantosca - Now save CLDTOPS to ND67 diagnostic
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  05 Sep 2013 - R. Yantosca - Set negatives in QI, QL to zero
+!  28 Oct 2013 - R. Yantosca - Add optional T_FULLGRID argument for the
+!                              offline "specialty" simulations
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -697,6 +759,12 @@
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_3D( D, T )
                   NFOUND = NFOUND + 1 
+
+                  ! For specialty simulations, make sure to also archive
+                  ! temperature on the full vertical grid (bmy, 10/28/13)
+                  IF ( PRESENT( T_FULLGRID ) ) THEN
+                     T_FULLGRID = D
+                  ENDIF
                ENDIF
 
             !------------------------------------------------
@@ -798,6 +866,10 @@
       ! [kg H2O/kg air/s].  (bmy, 4/5/99)
       MOISTQ = -MOISTQ / 8.64d7
 
+      ! Reset negatives to zero in QI, QL fields (bmy, 9/5/13)
+      WHERE( QI < 0d0 ) QI = 0d0
+      WHERE( QL < 0d0 ) QL = 0d0
+
       !=================================================================
       !          %%%%% ND66 diagnostic: 3-D met fields %%%%%
       !
@@ -834,7 +906,7 @@
       END SUBROUTINE READ_A3
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

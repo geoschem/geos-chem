@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -10,47 +10,51 @@
 ! \begin{itemize}
 ! \item LTJV: J-values (ND22)
 ! \item LTOH: OH concentrations  (ND43)
-! \item LTNO: NO concentrations  (ND43)
-! \item LTNO2: NO2 concentrations (ND43)
 ! \item LTHO2: HO2 concentrations (ND43)
 ! \item LTOTH: used for tracers (ND45)
-! \item LTO3: for O3 (ND45)
 ! \end{itemize}
 !
 !  These arrays are either 1 (if it is within a certain time interval)   
 !  or 0 (if it is not within a certain time interval).  The limits of
 !  the time intervals for CTOTH and CTJV are now defined in input.geos
-!  The arrays CTOTH, CTOH, CTNO, CTJV count the number of times the 
+!  The arrays CTOTH, CTOH, CTJV count the number of times the 
 !  diagnostics are accumulated for each grid box (i.e LTOTH is 1)
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG_2PM
+      SUBROUTINE DIAG_2PM( State_Met )
 !
 ! !USES:
 !
-      USE DIAG_MOD,       ONLY : LTJV,  CTJV,  LTNO,  CTNO,  CTO3
-      USE DIAG_MOD,       ONLY : LTOH,  CTOH,  LTOTH, CTOTH, LTNO2
-      USE DIAG_MOD,       ONLY : CTNO2, LTHO2, CTHO2, LTNO3, CTNO3
-      USE DIAG_MOD,       ONLY : CTO3_24h, LTO3
-      USE DIAG_MOD,       ONLY : LTLBRO2H, LTLBRO2N
-      USE DIAG_MOD,       ONLY : LTLTRO2H, LTLTRO2N
-      USE DIAG_MOD,       ONLY : LTLXRO2H, LTLXRO2N
-      USE DIAG_MOD,       ONLY : CTLBRO2H, CTLBRO2N
-      USE DIAG_MOD,       ONLY : CTLTRO2H, CTLTRO2N
-      USE DIAG_MOD,       ONLY : CTLXRO2H, CTLXRO2N
-      USE TIME_MOD,       ONLY : GET_LOCALTIME
-      USE TIME_MOD,       ONLY : ITS_TIME_FOR_DIAG, ITS_TIME_FOR_CHEM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE TIME_MOD,       ONLY : GET_ELAPSED_MIN
-      USE TIME_MOD,       ONLY : GET_TS_DIAG
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE DIAG_MOD,           ONLY : LTJV,  CTJV
+      USE DIAG_MOD,           ONLY : LTOH,  CTOH,  LTOTH, CTOTH
+      USE DIAG_MOD,           ONLY : LTHO2, CTHO2
+      USE DIAG_MOD,           ONLY : CTO3_24h
+      USE DIAG_MOD,           ONLY : CTO1D,    LTO1D
+      USE DIAG_MOD,           ONLY : CTO3P,    LTO3P
+      USE DIAG_MOD,           ONLY : LTLBRO2H, LTLBRO2N
+      USE DIAG_MOD,           ONLY : LTLTRO2H, LTLTRO2N
+      USE DIAG_MOD,           ONLY : LTLXRO2H, LTLXRO2N
+      USE DIAG_MOD,           ONLY : CTLBRO2H, CTLBRO2N
+      USE DIAG_MOD,           ONLY : CTLTRO2H, CTLTRO2N
+      USE DIAG_MOD,           ONLY : CTLXRO2H, CTLXRO2N
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
+      USE TIME_MOD,           ONLY : ITS_TIME_FOR_DIAG
+      USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,           ONLY : GET_TS_DIAG
 
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! HR_OH1, HR_OH2, etc.
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! HR_OH1, HR_OH2, etc.
 
       IMPLICIT NONE
-#     include "define.h"
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
@@ -75,6 +79,12 @@
 !  (8 ) Add LTO3 to accumulate O3 in ND45 at the same place as the
 !        chemistry (ccc, 7/17/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
+!  02 Apr 2013 - M. Payer    - Remove code for LTNO, LTNO2, and LTNO3. These
+!                              are no longer needed because NO, NO2, and NO3
+!                              are now tracers.
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  08 Nov 2013 - M. Sulprizio- Removed CTO3 and LTO3. They are no longer used
+!                              because O3 is now a tracer.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -129,11 +139,6 @@
                LTOTH(I,J) = 0
             ENDIF
 
-            ! Reinitialise LTO3 at each chemistry step
-            IF ( IS_CHEM ) THEN
-               LTO3(I,J)  = 0
-            ENDIF
-
             ! Archive if we fall w/in the local time limits
             IF ( LT(I) >= HR1_OTH .and. LT(I) <= HR2_OTH ) THEN
 
@@ -144,17 +149,7 @@
                   CTOTH(I,J) = CTOTH(I,J) + 1
 	       ENDIF
                LTOTH(I,J) = 1
-               
-               ! Counter for # of O3 boxes in the troposphere 
-               ! (phs, 1/24/07)
-               IF ( IS_CHEM ) THEN
-                  LTO3(I,J) = 1
-                  DO L = 1, LD45
-                     IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
-                        CTO3(I,J,L) = CTO3(I,J,L) + 1
-                     ENDIF
-                  ENDDO
-               ENDIF
+
             ENDIF
          ENDIF
 
@@ -163,9 +158,10 @@
          !-----------------------------
          IF ( IS_ND47 .OR. IS_ND65 ) THEN
 
-               ! Counter for # of O3 boxes in the troposphere (phs, 11/17/08)
+               ! Counter for # of O3 boxes in the chemgrid (phs, 11/17/08)
                DO L = 1, MAX( LD47, LD65 )
-                  IF ( IS_CHEM .and. ITS_IN_THE_TROP( I, J, L )) THEN
+                 IF ( IS_CHEM .and.
+     &                ITS_IN_THE_CHEMGRID( I, J, L, State_Met )) THEN
                      CTO3_24h(I,J,L) = CTO3_24h(I,J,L) + 1
                   ENDIF
                ENDDO
@@ -187,61 +183,30 @@
          ENDIF
 
          !-----------------------------
-         ! ND43 -- OH, NO, NO2, HO2
+         ! ND43 -- OH, HO2
          !-----------------------------
          IF ( IS_ND43 ) THEN
 
-            ! LTNO denotes where LT is between HR1_NO and HR2_NO
-            ! CTNO counts the times when LT was between HR1_NO and HR2_NO
-            ! Now set LTNO2, CTNO2 based on the NO times (rvm, bmy, 2/27/02)
-            IF ( LT(I) >= HR1_NO .and. LT(I) <= HR2_NO ) THEN 
-               LTNO(I,J)  = 1
-               LTNO2(I,J) = 1
-               
-               ! update for arom (dkh, 06/22/07)  
-               LTLBRO2N(I,J) = 1
-               LTLTRO2N(I,J) = 1
-               LTLXRO2N(I,J) = 1               
-
-               ! Counters for # of NO, NO2 boxes in the trop (phs, 1/24/07)
-               DO L = 1, LD43
-                  IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
-                     CTNO(I,J,L)  = CTNO(I,J,L)  + 1
-                     CTNO2(I,J,L) = CTNO2(I,J,L) + 1
-                     ! update for arom (dkh, 06/22/07)  
-                     CTLBRO2N(I,J,L) = CTLBRO2N(I,J,L) + 1
-                     CTLTRO2N(I,J,L) = CTLTRO2N(I,J,L) + 1
-                     CTLXRO2N(I,J,L) = CTLXRO2N(I,J,L) + 1
-                  ENDIF
-               ENDDO
-
-            ELSE
-               LTNO(I,J)  = 0
-               LTNO2(I,J) = 0
-               ! update for arom (dkh, 06/22/07)  
-               LTLBRO2N(I,J) = 0
-               LTLTRO2N(I,J) = 0
-               LTLXRO2N(I,J) = 0 
-            ENDIF
-
-            ! LTNO denotes where LT is between HR1_OH and HR2_OH
-            ! CTNO counts the times when LT was between HR1_OH and HR2_OH
+            ! LTOH denotes where LT is between HR1_OH and HR2_OH
+            ! CTOH counts the times when LT was between HR1_OH and HR2_OH
             ! Now set LTHO2, CTHO2 based on the OH times (rvm, bmy, 2/27/02)
             IF ( LT(I) >= HR1_OH .and. LT(I) <= HR2_OH ) THEN  
                LTOH(I,J)  = 1
                LTHO2(I,J) = 1
-               LTNO3(I,J) = 1
+               LTO1D(I,J) = 1
+               LTO3P(I,J) = 1
                ! update for arom (dkh, 06/22/07)  
                LTLBRO2H(I,J) = 1
                LTLTRO2H(I,J) = 1
                LTLXRO2H(I,J) = 1
 
-               ! Counters for # of OH,HO2,NO3 boxes in the trop (phs, 1/24/07)
+               ! Counters for # of OH, HO2 boxes in the chemgrid (phs, 1/24/07)
                DO L = 1, LD43 
-                  IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+                  IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                      CTOH(I,J,L)  = CTOH(I,J,L)  + 1
                      CTHO2(I,J,L) = CTHO2(I,J,L) + 1
-                     CTNO3(I,J,L) = CTNO3(I,J,L) + 1
+                     CTO1D(I,J,L) = CTO1D(I,J,L) + 1
+                     CTO3P(I,J,L) = CTO3P(I,J,L) + 1
                      ! update for arom (dkh, 06/22/07)  
                      CTLBRO2H(I,J,L) = CTLBRO2H(I,J,L) + 1
                      CTLTRO2H(I,J,L) = CTLTRO2H(I,J,L) + 1
@@ -252,7 +217,8 @@
             ELSE
                LTOH(I,J)  = 0
                LTHO2(I,J) = 0
-               LTNO3(I,J) = 0
+               LTO1D(I,J) = 0
+               LTO3P(I,J) = 0
                ! update for arom (dkh, 06/22/07)  
                LTLBRO2H(I,J) = 0
                LTLTRO2H(I,J) = 0

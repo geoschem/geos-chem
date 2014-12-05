@@ -90,10 +90,10 @@
 !  ============================================================================
 !
 !  NOTES:
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -181,7 +181,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_FUTURE_EMISSIONS( THIS_YEAR, THIS_SCEN )
+      SUBROUTINE DO_FUTURE_EMISSIONS
+     &     ( am_I_Root, Input_Opt, THIS_YEAR, THIS_SCEN, RC )
 !
 !******************************************************************************
 !  Subroutine DO_FUTURE_EMISSIONS reads future emission growth factors
@@ -194,14 +195,28 @@
 !  (2 ) THIS_SCEN (CHARACTER) : Emissions scenario (e.g. "A1", "B1", etc.)
 !
 !  NOTES:
+!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC via arg list
 !******************************************************************************
 !
-      ! Arguments
-      INTEGER,          INTENT(IN) :: THIS_YEAR
-      CHARACTER(LEN=*), INTENT(IN) :: THIS_SCEN
-
-      ! Local variables
-      LOGICAL                      :: FIRST = .TRUE.
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,          INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,          INTENT(IN)  :: THIS_YEAR
+      CHARACTER(LEN=*), INTENT(IN)  :: THIS_SCEN
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,          INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL                       :: FIRST = .TRUE.
 
       !=================================================================
       ! DO_FUTURE_EMISSIONS begins here!
@@ -222,110 +237,113 @@
       !----------------------
 
       ! ALK4
-      CALL READ_GROWTH_FACTORS( 'ALK4FF', 5,  ALK4ff )  
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'ALK4FF', 5,  ALK4ff )  
 
       ! BC
-      CALL READ_GROWTH_FACTORS( 'BCBB',   34, BCbb   ) 
-      CALL READ_GROWTH_FACTORS( 'BCBF',   34, BCbf   ) 
-      CALL READ_GROWTH_FACTORS( 'BCFF',   34, BCff   ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'BCBB',   34, BCbb   ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'BCBF',   34, BCbf   ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'BCFF',   34, BCff   ) 
 
       ! C2H6
-      CALL READ_GROWTH_FACTORS( 'C2H6FF', 21, C2H6ff ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'C2H6FF', 21, C2H6ff ) 
 
       ! C3H8
-      CALL READ_GROWTH_FACTORS( 'C3H8FF', 19, C3H8ff ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'C3H8FF', 19, C3H8ff ) 
 
       ! CO
-      CALL READ_GROWTH_FACTORS( 'COBB',   4,  CObb   ) 
-      CALL READ_GROWTH_FACTORS( 'COBF',   4,  CObf   ) 
-      CALL READ_GROWTH_FACTORS( 'COFF',   4,  COff   ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'COBB',   4,  CObb   ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'COBF',   4,  CObf   ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'COFF',   4,  COff   ) 
 
       ! NH3
-      CALL READ_GROWTH_FACTORS( 'NH3AN',  30, NH3an  )
-      CALL READ_GROWTH_FACTORS( 'NH3BB',  30, NH3bb  )
-      CALL READ_GROWTH_FACTORS( 'NH3BF',  30, NH3bf  )
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'NH3AN',  30, NH3an  )
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'NH3BB',  30, NH3bb  )
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'NH3BF',  30, NH3bf  )
 
       ! NOx
-      CALL READ_GROWTH_FACTORS( 'NOxBB',  1,  NOxbb  )
-      CALL READ_GROWTH_FACTORS( 'NOxBF',  1,  NOxbf  )
-      CALL READ_GROWTH_FACTORS( 'NOxFF',  1,  NOxff  )
-      CALL READ_GROWTH_FACTORS( 'NOxFT',  1,  NOxft  )
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'NOxBB',  1,  NOxbb  )
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'NOxBF',  1,  NOxbf  )
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'NOxFF',  1,  NOxff  )
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'NOxFT',  1,  NOxft  )
 
       ! OC
-      CALL READ_GROWTH_FACTORS( 'OCBB',   35, OCbb   ) 
-      CALL READ_GROWTH_FACTORS( 'OCBF',   35, OCbf   ) 
-      CALL READ_GROWTH_FACTORS( 'OCFF',   35, OCff   ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'OCBB',   35, OCbb   ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'OCBF',   35, OCbf   ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'OCFF',   35, OCff   ) 
 
       ! PRPE
-      CALL READ_GROWTH_FACTORS( 'PRPEFF', 18, PRPEff )
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'PRPEFF', 18, PRPEff )
 
       ! TONE (Ketones > C3; use for ACET, MEK)
-      CALL READ_GROWTH_FACTORS( 'TONEFF', 9,  TONEff ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'TONEFF', 9,  TONEff ) 
 
       ! SO2
-      CALL READ_GROWTH_FACTORS( 'SO2BB',  26, SO2bb  )
-      CALL READ_GROWTH_FACTORS( 'SO2BF',  26, SO2bf  )
-      CALL READ_GROWTH_FACTORS( 'SO2FF',  26, SO2ff  )
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'SO2BB',  26, SO2bb  )
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'SO2BF',  26, SO2bf  )
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'SO2FF',  26, SO2ff  )
 
       ! VOC
-      CALL READ_GROWTH_FACTORS( 'VOCBB',  90, VOCbb  ) 
-      CALL READ_GROWTH_FACTORS( 'VOCBF',  90, VOCbf  ) 
-      CALL READ_GROWTH_FACTORS( 'VOCFF',  90, VOCff  ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'VOCBB',  90, VOCbb  ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'VOCBF',  90, VOCbf  ) 
+      CALL READ_GROWTH_FACTORS( Input_Opt, 'VOCFF',  90, VOCff  ) 
 
       !----------------------
       ! Print ranges 
       !----------------------
 
       ! Write header
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      WRITE( 6, '(a,/)' ) 'F U T U R E   E M I S S I O N   ' //
-     &                  'G R O W T H   F A C T O R S'
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+         WRITE( 6, '(a,/)' ) 'F U T U R E   E M I S S I O N   ' //
+     &                       'G R O W T H   F A C T O R S'
       
-      ! Write year and scenario
-      WRITE( 6, 100 ) FUTURE_YEAR, SCENARIO
+         ! Write year and scenario
+         WRITE( 6, 100 ) FUTURE_YEAR, SCENARIO
 
-      ! Write totals
-      WRITE( 6, 110 ) 'ALK4ff', MINVAL( ALK4ff ), MAXVAL( ALK4ff )
-      WRITE( 6, 110 ) 'BCbb',   MINVAL( BCbb   ), MAXVAL( BCbb   )
-      WRITE( 6, 110 ) 'BCbf',   MINVAL( BCbf   ), MAXVAL( BCbf   )
-      WRITE( 6, 110 ) 'BCff',   MINVAL( BCff   ), MAXVAL( BCff   )
-      WRITE( 6, 110 ) 'C2H6ff', MINVAL( C2H6ff ), MAXVAL( C2H6ff )
-      WRITE( 6, 110 ) 'C3H8ff', MINVAL( C3H8ff ), MAXVAL( C3H8ff )
-      WRITE( 6, 110 ) 'CObb',   MINVAL( CObb   ), MAXVAL( CObb   )
-      WRITE( 6, 110 ) 'CObf',   MINVAL( CObf   ), MAXVAL( CObf   )
-      WRITE( 6, 110 ) 'COff',   MINVAL( COff   ), MAXVAL( COff   )
-      WRITE( 6, 110 ) 'NH3an',  MINVAL( NH3an  ), MAXVAL( NH3an  )
-      WRITE( 6, 110 ) 'NH3bb',  MINVAL( NH3bb  ), MAXVAL( NH3bb  )
-      WRITE( 6, 110 ) 'NH3bf',  MINVAL( NH3bf  ), MAXVAL( NH3bf  )
-      WRITE( 6, 110 ) 'NOxbb',  MINVAL( NOxbb  ), MAXVAL( NOxbb  )
-      WRITE( 6, 110 ) 'NOxbf',  MINVAL( NOxbf  ), MAXVAL( NOxbf  )
-      WRITE( 6, 110 ) 'NOxff',  MINVAL( NOxff  ), MAXVAL( NOxff  )
-      WRITE( 6, 110 ) 'NOxft',  MINVAL( NOxft  ), MAXVAL( NOxft  )
-      WRITE( 6, 110 ) 'OCbb',   MINVAL( OCbb   ), MAXVAL( OCbb   )
-      WRITE( 6, 110 ) 'OCbf',   MINVAL( OCbf   ), MAXVAL( OCbf   )
-      WRITE( 6, 110 ) 'OCff',   MINVAL( OCff   ), MAXVAL( OCff   )
-      WRITE( 6, 110 ) 'PRPEff', MINVAL( PRPEff ), MAXVAL( PRPEff )
-      WRITE( 6, 110 ) 'TONEff', MINVAL( TONEff ), MAXVAL( TONEff )
-      WRITE( 6, 110 ) 'SO2bb',  MINVAL( SO2bb  ), MAXVAL( SO2bb  )
-      WRITE( 6, 110 ) 'SO2bf',  MINVAL( SO2bf  ), MAXVAL( SO2bf  )
-      WRITE( 6, 110 ) 'SO2ff',  MINVAL( SO2ff  ), MAXVAL( SO2ff  )
-      WRITE( 6, 110 ) 'VOCbb',  MINVAL( VOCbb  ), MAXVAL( VOCbb  )
-      WRITE( 6, 110 ) 'VOCbf',  MINVAL( VOCbf  ), MAXVAL( VOCbf  )
-      WRITE( 6, 110 ) 'VOCff',  MINVAL( VOCff  ), MAXVAL( VOCff  )
+         ! Write totals
+         WRITE( 6, 110 ) 'ALK4ff', MINVAL( ALK4ff ), MAXVAL( ALK4ff )
+         WRITE( 6, 110 ) 'BCbb',   MINVAL( BCbb   ), MAXVAL( BCbb   )
+         WRITE( 6, 110 ) 'BCbf',   MINVAL( BCbf   ), MAXVAL( BCbf   )
+         WRITE( 6, 110 ) 'BCff',   MINVAL( BCff   ), MAXVAL( BCff   )
+         WRITE( 6, 110 ) 'C2H6ff', MINVAL( C2H6ff ), MAXVAL( C2H6ff )
+         WRITE( 6, 110 ) 'C3H8ff', MINVAL( C3H8ff ), MAXVAL( C3H8ff )
+         WRITE( 6, 110 ) 'CObb',   MINVAL( CObb   ), MAXVAL( CObb   )
+         WRITE( 6, 110 ) 'CObf',   MINVAL( CObf   ), MAXVAL( CObf   )
+         WRITE( 6, 110 ) 'COff',   MINVAL( COff   ), MAXVAL( COff   )
+         WRITE( 6, 110 ) 'NH3an',  MINVAL( NH3an  ), MAXVAL( NH3an  )
+         WRITE( 6, 110 ) 'NH3bb',  MINVAL( NH3bb  ), MAXVAL( NH3bb  )
+         WRITE( 6, 110 ) 'NH3bf',  MINVAL( NH3bf  ), MAXVAL( NH3bf  )
+         WRITE( 6, 110 ) 'NOxbb',  MINVAL( NOxbb  ), MAXVAL( NOxbb  )
+         WRITE( 6, 110 ) 'NOxbf',  MINVAL( NOxbf  ), MAXVAL( NOxbf  )
+         WRITE( 6, 110 ) 'NOxff',  MINVAL( NOxff  ), MAXVAL( NOxff  )
+         WRITE( 6, 110 ) 'NOxft',  MINVAL( NOxft  ), MAXVAL( NOxft  )
+         WRITE( 6, 110 ) 'OCbb',   MINVAL( OCbb   ), MAXVAL( OCbb   )
+         WRITE( 6, 110 ) 'OCbf',   MINVAL( OCbf   ), MAXVAL( OCbf   )
+         WRITE( 6, 110 ) 'OCff',   MINVAL( OCff   ), MAXVAL( OCff   )
+         WRITE( 6, 110 ) 'PRPEff', MINVAL( PRPEff ), MAXVAL( PRPEff )
+         WRITE( 6, 110 ) 'TONEff', MINVAL( TONEff ), MAXVAL( TONEff )
+         WRITE( 6, 110 ) 'SO2bb',  MINVAL( SO2bb  ), MAXVAL( SO2bb  )
+         WRITE( 6, 110 ) 'SO2bf',  MINVAL( SO2bf  ), MAXVAL( SO2bf  )
+         WRITE( 6, 110 ) 'SO2ff',  MINVAL( SO2ff  ), MAXVAL( SO2ff  )
+         WRITE( 6, 110 ) 'VOCbb',  MINVAL( VOCbb  ), MAXVAL( VOCbb  )
+         WRITE( 6, 110 ) 'VOCbf',  MINVAL( VOCbf  ), MAXVAL( VOCbf  )
+         WRITE( 6, 110 ) 'VOCff',  MINVAL( VOCff  ), MAXVAL( VOCff  )
 
-      ! Write footer
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+          ! Write footer
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
 
-      ! FORMAT statements
- 100  FORMAT( 'for year ', i4, ' and emissions scenario ', a2, / )
- 110  FORMAT( a6, ' growth factors range from ', f8.3, ' to ', f8.3 )
+         ! FORMAT statements
+ 100     FORMAT( 'for year ', i4, ' and emissions scenario ', a2, / )
+ 110     FORMAT( a6, ' growth factors range from ', f8.3, ' to ', f8.3 )
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE DO_FUTURE_EMISSIONS
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_GROWTH_FACTORS( SPECIES, TRACER, GRFACTORS )
+      SUBROUTINE READ_GROWTH_FACTORS( Input_Opt, SPECIES, 
+     &                                TRACER,    GRFACTORS )
 !
 !******************************************************************************
 !  Subroutine READ_GROWTH_FACTORS reads the future growth factors for one
@@ -349,22 +367,30 @@
 !  (3 ) GRFACTORS (REAL*8   ) : Array of growth factors
 !
 !  NOTES:
+!  20 Jun 2014 - R. Yantosca - Now accept Input_Opt via the argument list
 !******************************************************************************
 !
-      ! References to F90 modules
+! !USES:
+!
       USE BPCH2_MOD,            ONLY : GET_RES_EXT, GET_NAME_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,    READ_BPCH2
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE FILE_MOD,             ONLY : FILE_EXISTS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE CMN_SIZE_MOD             ! Size parameters
-
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
       INTEGER,          INTENT(IN)  :: TRACER
       CHARACTER(LEN=*), INTENT(IN)  :: SPECIES
+!
+! !OUTPUT PARAMETERS:
+!
       REAL*8,           INTENT(OUT) :: GRFACTORS(IIPAR,JJPAR)
-
-      ! Local variables
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                       :: IOS, IUNIT
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: TAU0
@@ -382,7 +408,7 @@
       WRITE( YSTR, '(i4)' ) FUTURE_YEAR
 
       ! File name
-      FILENAME = TRIM( DATA_DIR )           // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
      &           'future_emissions_200605/' // YSTR           //
      &           '/'                        // SCENARIO       //
      &           '/'                        // SPECIES        // 

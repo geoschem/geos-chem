@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -45,13 +44,14 @@
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -63,23 +63,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_O3( THISMONTH )
+      SUBROUTINE GET_GLOBAL_O3( am_I_Root, Input_Opt, THISMONTH, RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-
       USE CMN_SIZE_MOD                      ! Size parameters
-      IMPLICIT NONE
-#     include "define.h"
-
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)  :: THISMONTH       ! Current month
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This will be made obsolete with the implementation of HEMCO.
 !
 ! !REVISION HISTORY: 
 !  23 Mar 2003 - R. Yantosca - Initial version
@@ -99,6 +105,10 @@
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  19 Aug 2010 - R. Yantosca - Removed hardwiring of data directory
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  20 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod
+!  05 Sep 2014 - R. Yantosca - Add hack to read GCAP met field, for unit tests
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -123,7 +133,7 @@
          FIRST = .FALSE.
       ENDIF
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !----------------------------------------------------------------
       ! GEOS-5 or MERRA
@@ -131,19 +141,33 @@
 #if   defined( GRIDREDUCED )
 
       ! Filename for 47-level model
-      FILENAME = TRIM( DATA_DIR )                           // 
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to handle the nested-resolution file, Y. Zhang 11/1/2011
+      FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
+     &           'mercury_201203/MERGE.O3.47L.'             //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+#else
+      FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
      &           'sulfate_sim_200508/offline/MERGE.O3.47L.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+#endif
 
 #else
 
       ! Filename for 72-level model
-      FILENAME = TRIM( DATA_DIR )                           // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
      &           'sulfate_sim_200508/offline/MERGE.O3.'     //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
 #endif
 
+#elif defined( GCAP )
+
+      !----------------------------------------------------------------
+      ! GCAP
+      !----------------------------------------------------------------
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) //  
+     &           'POPs_201209/MERGE.O3.gcap.4x5'
 
 #else
 
@@ -153,7 +177,7 @@
 #if   defined( GRIDREDUCED )
 
       ! Filename for 30-level model
-      FILENAME = TRIM( DATA_DIR )                           // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
      &           'sulfate_sim_200508/offline/MERGE.O3.30L.' // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
@@ -161,13 +185,15 @@
 #else
 
       ! Filename for full vertical grid
-      FILENAME = TRIM( DATA_DIR )                           // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
      &           'sulfate_sim_200508/offline/MERGE.O3.'     // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
 #endif
 
 #endif
+
+
 
 
       ! Echo some information to the standard output
@@ -206,7 +232,7 @@
       END SUBROUTINE GET_GLOBAL_O3
 !EOC      
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -250,7 +276,7 @@
       END SUBROUTINE INIT_GLOBAL_O3
 !EOC      
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

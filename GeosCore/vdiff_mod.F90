@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -15,19 +15,14 @@ MODULE VDIFF_MOD
 ! 
 ! !USES:
 !
-  USE TRACER_MOD,    ONLY : pcnst => N_TRACERS
-  USE LOGICAL_MOD,   ONLY : LPRT
-  USE ERROR_MOD,     ONLY : DEBUG_MSG
-#if defined( DEVEL )
-  USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR
-  USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR
-#else
-  USE VDIFF_PRE_MOD, ONLY : LLPAR
-#endif  
+  USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR    ! Grid dimensions
+  USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
+  USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR         ! # of levels
+  USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
+  USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
+  USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
 
   IMPLICIT NONE
-#     include "define.h"
-  
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -39,11 +34,7 @@ MODULE VDIFF_MOD
   save
   
 
-#if defined( DEVEL ) 
   integer :: plevp
-#else  
-  integer, parameter :: plev = LLPAR, plevp = plev + 1
-#endif
   
   real*8, parameter ::          &
        rearth = 6.37122d6,      & ! radius earth (m)
@@ -90,11 +81,7 @@ MODULE VDIFF_MOD
 !-----------------------------------------------------------------------
   real*8 :: &
        zkmin            ! minimum kneutral*f(ri)
-#if defined( DEVEL )
   real*8, allocatable :: ml2(:)   ! mixing lengths squaredB
-#else
-  real*8 :: ml2(plevp)   ! mixing lengths squared
-#endif
   real*8, allocatable :: qmincg(:)   ! min. constituent concentration 
                                      !  counter-gradient term
   
@@ -115,6 +102,14 @@ MODULE VDIFF_MOD
                                                    !-- useless when 
                                                    !   pbl_mean_drydep=.false.
 !
+! !REMARKS:
+!  The non-local PBL mixing routine VDIFF modifies the specific humidity,
+!  (State_Met%SPHU) field.  Therefore, we must pass State_Met as an argument
+!  to DO_PBL_MIX_2 and VDIFFDR with INTENT(INOUT).
+!                                                                             .
+!  Because logical_mod.F and tracer_mod.F have been superseded by Input_Opt,
+!  we now use VDIFF_PRE_MOD to supply values 
+!
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
 !  07 Oct 2009 - R. Yantosca - Added CVS Id Tag
@@ -127,13 +122,15 @@ MODULE VDIFF_MOD
 !  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  24 Jun 2014 - R. Yantosca - Now get PCNST from vdiff_pre_mod.F90
 !EOP
 !------------------------------------------------------------------------------
-
+!BOC
 contains
-
+!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -168,12 +165,9 @@ contains
 !-----------------------------------------------------------------------
 ! 	... basic constants
 !-----------------------------------------------------------------------
-#if defined( DEVEL )
     plevp = plev+1
-#endif
-
-    g    = gravx
-    onet = 1d0/3.d0
+    g     = gravx
+    onet  = 1d0/3.d0
     
 !-----------------------------------------------------------------------
 ! 	... derived constants
@@ -185,8 +179,9 @@ contains
   end subroutine pbinti
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
+!BOP
 !
 ! !IROUTINE: vdiff
 !
@@ -197,19 +192,21 @@ contains
 !\\
 ! !INTERFACE:
 !
-  subroutine vdiff( lat, ip, uwnd, vwnd, tadv, &
-                    pmid, pint, rpdel_arg, rpdeli_arg, ztodt, &
-                    zm_arg, shflx_arg, sflx, &
-                    thp_arg, as2, pblh_arg, kvh_arg, &
-                    kvm_arg, tpert_arg, qpert_arg, cgs_arg, shp, &
-                    wvflx_arg, plonl, taux_arg, tauy_arg, ustar_arg)
+  subroutine vdiff( lat,        ip,        uwnd,       vwnd,        &
+                    tadv,       pmid,      pint,       rpdel_arg,   &
+                    rpdeli_arg, ztodt,     zm_arg,     shflx_arg,   &
+                    sflx,       thp_arg,   as2,        pblh_arg,    &
+                    kvh_arg,    kvm_arg,   tpert_arg,  qpert_arg,   &
+                    cgs_arg,    shp,       wvflx_arg,  plonl,       &
+                    Input_Opt,  State_Met, taux_arg,   tauy_arg,    &
+                    ustar_arg )
 !
 ! !USES:
 !
-    USE DIAG_MOD,     ONLY : TURBFLUP
-    USE VDIFF_PRE_MOD, ONLY : ND15
-    USE TRACER_MOD,   ONLY : TCVV
-    USE DAO_MOD,      ONLY : AD
+    USE DIAG_MOD,           ONLY : TURBFLUP
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE VDIFF_PRE_MOD,      ONLY : ND15
 
     implicit none
 !
@@ -217,41 +214,43 @@ contains
 !
     integer, intent(in) :: lat, ip ! latitude index, long tile index
     integer, intent(in) :: plonl   ! number of local longitudes
-    real*8, intent(in) :: &
+    real*8,  intent(in) ::   &
          ztodt                     ! 2 delta-t
-    real*8, intent(in) :: &
-         uwnd(:,:,:), &        ! u wind input
-         vwnd(:,:,:), &        ! v wind input
-         tadv(:,:,:), &        ! temperature input
-         pmid(:,:,:), &     ! midpoint pressures
-         pint(:,:,:), &    ! interface pressures
-         rpdel_arg(:,:,:), &      ! 1./pdel  (thickness bet interfaces)
-         rpdeli_arg(:,:,:), &     ! 1./pdeli (thickness bet midpoints)
-         zm_arg(:,:,:), &         ! midpoint geoptl height above sfc
-         shflx_arg(:,:), &           ! surface sensible heat flux (w/m2)
-         sflx(:,:,:), &      ! surface constituent flux (kg/m2/s)
-         wvflx_arg(:,:)              ! water vapor flux (kg/m2/s)
+    real*8,  intent(in) ::   &
+         uwnd(:,:,:),        &     ! u wind input
+         vwnd(:,:,:),        &     ! v wind input
+         tadv(:,:,:),        &     ! temperature input
+         pmid(:,:,:),        &     ! midpoint pressures
+         pint(:,:,:),        &     ! interface pressures
+         rpdel_arg(:,:,:),   &     ! 1./pdel  (thickness bet interfaces)
+         rpdeli_arg(:,:,:),  &     ! 1./pdeli (thickness bet midpoints)
+         zm_arg(:,:,:),      &     ! midpoint geoptl height above sfc
+         shflx_arg(:,:),     &     ! surface sensible heat flux (w/m2)
+         sflx(:,:,:),        &     ! surface constituent flux (kg/m2/s)
+         wvflx_arg(:,:)            ! water vapor flux (kg/m2/s)
+    TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     real*8, intent(inout) :: &
-         as2(:,:,:,:), &  ! moist, tracers after vert. diff
-         shp(:,:,:), &       ! specific humidity (kg/kg)
-         thp_arg(:,:,:)           ! pot temp after vert. diffusion
+         as2(:,:,:,:),       &     ! moist, tracers after vert. diff
+         shp(:,:,:),         &     ! specific humidity (kg/kg)
+         thp_arg(:,:,:)            ! pot temp after vert. diffusion
 !
 ! !OUTPUT PARAMETERS: 
 !
-    real*8, intent(out) :: &
-         kvh_arg(:,:,:), &       ! coefficient for heat and tracers
-         kvm_arg(:,:,:), &       ! coefficient for momentum
-         tpert_arg(:,:), &           ! convective temperature excess
-         qpert_arg(:,:), &           ! convective humidity excess
-         cgs_arg(:,:,:)          ! counter-grad star (cg/flux)
+    real*8, intent(out) ::   &
+         kvh_arg(:,:,:),     &     ! coefficient for heat and tracers
+         kvm_arg(:,:,:),     &     ! coefficient for momentum
+         tpert_arg(:,:),     &     ! convective temperature excess
+         qpert_arg(:,:),     &     ! convective humidity excess
+         cgs_arg(:,:,:)            ! counter-grad star (cg/flux)
 
     real*8, optional, intent(inout) :: &
-         taux_arg(:,:), &            ! x surface stress (n)
-         tauy_arg(:,:), &            ! y surface stress (n)
-         ustar_arg(:,:)              ! surface friction velocity
+         taux_arg(:,:),      &     ! x surface stress (n)
+         tauy_arg(:,:),      &     ! y surface stress (n)
+         ustar_arg(:,:)            ! surface friction velocity
 
     real*8, intent(inout) :: pblh_arg(:,:) ! boundary-layer height [m]
 
@@ -278,6 +277,10 @@ contains
 !                              Modified to account for all mixing processes.
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -749,8 +752,9 @@ contains
           K = plev - L + 1
           ! qp1 and qp0 are volume mixing ratio
           TURBFLUP(I,lat,k,M) = TURBFLUP(I,lat,k,M) &
-                              + (qp1(I,L,M) - qp0(I,L,M)) * AD(I,lat,k) &
-                              / ( TCVV(M) * ztodt )
+                              + (qp1(I,L,M) - qp0(I,L,M)) &
+                              * State_Met%AD(I,lat,k) &
+                              / ( Input_Opt%TCVV(M) * ztodt )
        enddo
        enddo
        ENDDO
@@ -760,7 +764,7 @@ contains
   end subroutine vdiff
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1221,7 +1225,7 @@ contains
   end subroutine pbldif
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1331,7 +1335,7 @@ contains
   end subroutine qvdiff
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1570,7 +1574,7 @@ contains
   END SUBROUTINE VDIFFAR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1651,7 +1655,7 @@ contains
   END SUBROUTINE PBLDIFAR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1686,23 +1690,14 @@ contains
                m
     
     integer :: AS
-    
-#if defined( DEVEL )
-    real*8, allocatable :: ref_pmid(:)
-#else
-    real*8 :: ref_pmid(LLPAR)
-#endif
+    real*8  :: ref_pmid(LLPAR)
 
     !=================================================================
     ! vdinti begins here!
     !=================================================================
 
-#if defined( DEVEL )
-    ALLOCATE( ref_pmid(LLPAR), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'ref_pmid' )
     ref_pmid = 0.d0
     plevp = plev+1
-#endif
 !-----------------------------------------------------------------------
 ! 	... hard-wired numbers.
 !           zkmin = minimum k = kneutral*f(ri)
@@ -1742,10 +1737,8 @@ contains
 !-----------------------------------------------------------------------
 ! 	... set the square of the mixing lengths
 !-----------------------------------------------------------------------
-#if defined( DEVEL )
     ALLOCATE( ml2(plevp), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'ml2' )
-#endif
 
     ml2(1) = 0.d0
     do k = 2,plev
@@ -1772,7 +1765,7 @@ contains
   END SUBROUTINE VDINTI
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1792,62 +1785,63 @@ contains
 !
 ! !INTERFACE:
 !
-  SUBROUTINE VDIFFDR(as2)
+  SUBROUTINE VDIFFDR( as2, Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 ! 
-    USE TRACER_MOD,   ONLY : N_TRACERS,  TRACER_MW_KG, TCVV, &
-                             ID_EMITTED, TRACER_COEFF, TRACER_COEFF, &
-                             TRACER_NAME
-    USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM, ITS_A_TAGCO_SIM
-    USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM
-    USE DAO_MOD,      ONLY : um1 => UWND, vm1 => VWND, tadv => T, &
-                             hflx => HFLUX, eflux => EFLUX, &
-                             USTAR, BXHEIGHT, shp => SPHU, PS => PSC2, &
-                             AD,PBL
-    USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-    USE TIME_MOD,     ONLY : GET_TS_CONV, GET_TS_EMIS
-    USE COMODE_MOD,   ONLY : JLOP,      REMIS,   VOLUME
-    USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV
-    USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
-                             GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
-
-!    USE VDIFF_PRE_MOD, ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND15, ND44, &
-!                              NDRYDEP, emis_save
-!
-!    USE DIAG_MOD,     ONLY : TURBFLUP, AD44
-    USE VDIFF_PRE_MOD, ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
-                              NDRYDEP, emis_save
-
-    USE DIAG_MOD,     ONLY : AD44
-    USE GRID_MOD,     ONLY : GET_AREA_M2
-
-    USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM ! (cdh 8/28/09)
-    USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_DD, ADD_HgP_DD
-    USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK
-    USE TRACERID_MOD, ONLY : IS_Hg0, IS_Hg2, IS_HgP
-    USE LOGICAL_MOD,  ONLY : LDYNOCEAN, LGTMM !cdh
-    USE DAO_MOD,      ONLY : LWI, IS_ICE, IS_LAND, SNOMAS, SNOW !cdh
-    USE DAO_MOD,      ONLY : FRSNO, FRLANDIC, FROCEAN ! jaf
+    USE COMODE_MOD,         ONLY : JLOP,      REMIS,   VOLUME
+    USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
+    USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
+    USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+    USE DIAG_MOD,           ONLY : AD44
+    USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV
+!                                   SHIPO3DEP
+    USE DRYDEP_MOD,         ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
+    USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GRID_MOD,           ONLY : GET_AREA_M2
+    USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
-    USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
-    USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
-    USE OCEAN_MERCURY_MOD, ONLY : Fp, Fg !hma
-
-#   include "define.h"
+    USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
+                                   GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
+    USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
+    USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
+    USE TRACERID_MOD
+    USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
+                                   NDRYDEP, emis_save
+    USE MERCURY_MOD,        ONLY : HG_EMIS
+    USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
+    ! HEMCO update
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
 
     implicit none
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    real*8, intent(inout), TARGET :: as2(IIPAR,JJPAR,LLPAR,N_TRACERS) ! advected species
+    ! Input options object
+    TYPE(OptInput), INTENT(IN)            :: Input_Opt
+    
+    ! Meteorology State object
+    TYPE(MetState), INTENT(INOUT)         :: State_Met   
 
-!    REAL*8                :: SNOW_HT !cdh - obsolete
-    REAL*8                :: FRAC_NO_HG0_DEP !jaf 
-    LOGICAL               :: ZERO_HG0_DEP !jaf 
+    ! Chemistry State object
+    TYPE(ChmState), INTENT(INOUT)         :: State_Chm
+
+    ! Advected species
+    REAL*8,         intent(inout), TARGET :: as2(IIPAR,JJPAR,LLPAR,&
+                                                 Input_Opt%N_TRACERS) 
+!
+! !REMARKS:
+!  Need to declare the Meteorology State object (State_MET) with
+!  INTENT(INOUT).  This is because VDIFF will modify the specific
+!  humidity field. (bmy, 11/21/12)
+!                                                                            .
+!  VDIFF also archives drydep fluxes to the soil NOx emissions module
+!  (by calling routine SOIL_DRYDEP) and to the ND44 diagnostic.
 !
 ! !REVISION HISTORY:
-!
 ! (1 ) Calls to vdiff and vdiffar are now done with full arrays as arguments.
 !       (ccc, 11/19/09)
 !  04 Jun 2010 - C. Carouge  - Updates for mercury simulations with GTMM 
@@ -1866,6 +1860,19 @@ contains
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  18 Jun 2013 - M. Payer    - Add emissions for offline aerosol simulation
+!  01 Aug 2013 - R. Yantosca - Now pass Input_Opt via the arg list
+!  01 Aug 2013 - J. Lin      - Modified for Rn-Pb-Be simulation
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  06 Jun 2014 - R. Yantosca - Fix parallelization error in the HEMCO
+!                              modifications: Hold TOPMIX, TEMPBL private
+!  06 Jun 2014 - R. Yantosca - Wrap some debug printout in #if defined(DEBUG)
+!  25 Jun 2014 - R. Yantosca - Now get N_MEMBERS from input_mod.F
+!  16 Oct 2014 - C. Keller   - Bug fix: now add deposition rates instead of
+!                              overwriting them.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1874,36 +1881,40 @@ contains
 !
     integer :: I,J,L,JLOOP,N,NN
 
+!    REAL*8                :: SNOW_HT !cdh - obsolete
+    REAL*8                :: FRAC_NO_HG0_DEP !jaf 
+    LOGICAL               :: ZERO_HG0_DEP !jaf 
+
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: pmid, rpdel, rpdeli, zm
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: pint
-    real*8, TARGET, dimension(IIPAR,JJPAR,N_TRACERS) :: sflx
-    real*8, TARGET, dimension(IIPAR,JJPAR,N_TRACERS) :: eflx, dflx ! surface flux
+    real*8, TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: sflx
+    real*8, TARGET, dimension(IIPAR,JJPAR,Input_Opt%N_TRACERS) :: eflx, dflx ! surface flux
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: cgs, kvh, kvm
     real*8, TARGET, dimension(IIPAR,JJPAR) :: pblh, tpert, qpert
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: thp         ! potential temperature
     real*8, TARGET, dimension(IIPAR,JJPAR) :: shflx    ! water vapor flux
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: t1
-    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR,N_TRACERS) :: as ! save tracer MR 
+    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) :: as ! save tracer MR 
                                                          ! before vdiffdr
     real*8 :: vtemp
     real*8 :: p0 = 1.d5
     real*8 :: dtime
     real*8 :: wk1, wk2
+    real*8 :: soilflux
     integer :: pbl_top
       
     REAL*8  :: DEP_KG !(cdh, 8/28/09)
 
     ! Array to store a single level of the AS2 array,
     ! so as not to blow up the parallelization (ccc, 12/22.10)
-    REAL*8, dimension(IIPAR, JJPAR, N_TRACERS)  :: as2_scal
-
-    ! Add flags
-    LOGICAL :: IS_CH4, IS_FULLCHEM, IS_Hg, IS_TAGOx, IS_TAGCO
+    REAL*8, dimension(IIPAR, JJPAR, Input_Opt%N_TRACERS)  :: as2_scal
 
     ! Pointers 
     REAL*8,  POINTER :: p_um1   (:,:,:  )
     REAL*8,  POINTER :: p_vm1   (:,:,:  )
     REAL*8,  POINTER :: p_tadv  (:,:,:  )
+    REAL*8,  POINTER :: p_hflux (:,:    )
+    REAL*8,  POINTER :: p_ustar (:,:    )
     REAL*8,  POINTER :: p_pmid  (:,:,:  )
     REAL*8,  POINTER :: p_pint  (:,:,:  )
     REAL*8,  POINTER :: p_rpdel (:,:,:  ) 
@@ -1916,6 +1927,22 @@ contains
     REAL*8,  POINTER :: p_shp   (:,:,:  )
     REAL*8,  POINTER :: p_t1    (:,:,:  )
     REAL*8,  POINTER :: p_as2   (:,:,:,:)
+
+    ! For values from Input_Opt
+    LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg,     IS_TAGOx
+    LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
+    LOGICAL            :: LGTMM,     LSOILNOX
+    INTEGER            :: N_TRACERS, N_MEMBERS 
+    INTEGER            :: ID_EMITTED  (Input_Opt%N_TRACERS)
+    REAL*8             :: TRACER_COEFF(Input_Opt%N_TRACERS, Input_Opt%MAX_MEMB)
+    REAL*8             :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+    CHARACTER(LEN=255) :: TRACER_NAME (Input_Opt%N_TRACERS)
+    REAL*8             :: TCVV        (Input_Opt%N_TRACERS)
+
+    ! HEMCO update
+    LOGICAL            :: FND
+    REAL*8             :: TMPFLX, EMIS, DEP
+    INTEGER            :: TOPMIX
 
     !=================================================================
     ! vdiffdr begins here!
@@ -1933,6 +1960,7 @@ contains
     sflx    = 0d0
     eflx    = 0d0
     dflx    = 0d0
+    soilflux = 0d0
     cgs     = 0d0
     kvh     = 0d0
     kvm     = 0d0
@@ -1944,17 +1972,28 @@ contains
     t1      = 0d0
     as2_scal= 0d0
 
-    ! Test for different types of simulations and save in local variables/
-    ! These are used in the parallel DO loops below (bmy, 12/21/10)
-    IS_CH4      = ITS_A_CH4_SIM()
-    IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
-    IS_Hg       = ITS_A_MERCURY_SIM()
-    IS_TAGCO    = ITS_A_TAGCO_SIM()
-    IS_TAGOX    = ITS_A_TAGOX_SIM()
+    ! Copy values from Input_Opt (bmy, 8/1/13)
+    IS_CH4       = Input_Opt%ITS_A_CH4_SIM
+!    IS_FULLCHEM  = Input_Opt%ITS_A_FULLCHEM_SIM
+    IS_Hg        = Input_Opt%ITS_A_MERCURY_SIM
+!    IS_TAGCO     = Input_Opt%ITS_A_TAGCO_SIM
+    IS_TAGOX     = Input_Opt%ITS_A_TAGOX_SIM
+    IS_AEROSOL   = Input_Opt%ITS_AN_AEROSOL_SIM
+!    IS_RnPbBe    = Input_Opt%ITS_A_RnPbBe_SIM
+    LDYNOCEAN    = Input_Opt%LDYNOCEAN
+    LGTMM        = Input_Opt%LGTMM
+    LSOILNOX     = Input_Opt%LSOILNOX
+    N_TRACERS    = Input_Opt%N_TRACERS
+    N_MEMBERS    = Input_Opt%MAX_MEMB
+    ID_EMITTED   = Input_Opt%ID_EMITTED  (1:N_TRACERS             )
+    TRACER_COEFF = Input_Opt%TRACER_COEFF(1:N_TRACERS, 1:N_MEMBERS)
+    TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS             )
+    TRACER_NAME  = Input_Opt%TRACER_NAME (1:N_TRACERS             )
+    TCVV         = Input_Opt%TCVV        (1:N_TRACERS             )
 
     dtime = GET_TS_CONV()*60d0 ! min -> second
     
-    shflx = eflux / latvap ! latent heat -> water vapor flux
+    shflx = State_Met%EFLUX / latvap ! latent heat -> water vapor flux
 
 ! (Turn off parallelization for now, skim 6/20/12)
     
@@ -1967,7 +2006,7 @@ contains
        pmid(I,J,L) = GET_PCENTER(I,J,L)*100.d0 ! hPa -> Pa
        pint(I,J,L) = GET_PEDGE(I,J,L)*100.d0   ! hPa -> Pa
        ! calculate potential temperature
-       thp(I,J,L) = tadv(I,J,L)*(p0/pmid(I,J,L))**cappa
+       thp(I,J,L) = State_Met%T(I,J,L)*(p0/pmid(I,J,L))**cappa
     enddo
     pint(I,J,LLPAR+1) = GET_PEDGE(I,J,LLPAR+1)
     
@@ -1983,8 +2022,9 @@ contains
     ! Use temperature instead of virtual temperature to be consistent with 
     ! the calculation of BXHEIGHT. (lin, 06/02/08)
     !zm(I,J,L) = sum(BXHEIGHT(I,J,1:L))
-       zm(I,J,L) = sum(BXHEIGHT(I,J,1:L)) &
-                   - log(pmid(I,J,L)/pint(I,J,L+1)) * r_g * tadv(I,J,L)
+       zm(I,J,L) = sum( State_Met%BXHEIGHT(I,J,1:L)) &
+                 - log( pmid(I,J,L)/pint(I,J,L+1) )  &
+                 * r_g * State_Met%T(I,J,L)
     enddo
     enddo
     enddo
@@ -2015,106 +2055,136 @@ contains
     ! (ccc, bmy, 12/20/10)
     as2_scal = as2(:,:,1,:)
 
-!$OMP PARALLEL DO       &
-!$OMP DEFAULT( SHARED ) &
-!$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top, DEP_KG ) &
-!!$OMP PRIVATE( SNOW_HT ) &
-!$OMP PRIVATE( FRAC_NO_HG0_DEP, ZERO_HG0_DEP )
+!$OMP PARALLEL DO                                                     &
+!$OMP DEFAULT( SHARED )                                               &
+!$OMP PRIVATE( I,      J,               L,           N,      NN     ) &
+!$OMP PRIVATE( WK1,    WK2,             PBL_TOP,     DEP_KG, TOPMIX ) &
+!$OMP PRIVATE( fnd,    emis,            dep                         ) &
+!$OMP PRIVATE( TMPFLX, FRAC_NO_HG0_DEP, ZERO_HG0_DEP                )
     do J = 1, JJPAR
     do I = 1, IIPAR
 
-       !----------------------------------------------------------------
-       ! Add emissions for full-chemistry simulation
-       !----------------------------------------------------------------
-       IF ( IS_FULLCHEM .and. NCS > 0 ) THEN
-
-          do N = 1, NEMIS(NCS)
-             NN = IDEMS(N)
-
-             ! for emissions in the lowest model layer only
-             IF ( NN > 0 ) THEN
-                JLOOP = JLOP(I,J,1)
-                eflx(I,J,NN) = REMIS(JLOOP,N) * TRACER_MW_KG(NN)
-             ENDIF
-
-          enddo
-
-          ! additional step to convert from molec spec/cm3/s to kg/m2/s
-          eflx(I,J,:) = eflx(I,J,:) * BXHEIGHT(I,J,1) / 6.022d23 * 1.d6
-
-          !add the tracer coef. (i.e., one ISOP molecule has five carbon atoms)
-          ! (lin, 06/07/08) 
-          do N = 1, N_TRACERS
-             if ( ID_EMITTED(N) .le. 0 ) cycle
-             eflx(I,J,N) = eflx(I,J,N) * TRACER_COEFF(N,ID_EMITTED(N))
-          enddo
-
-          ! add surface emis of aerosols 
-          ! (after converting kg/box/timestep to kg/m2/s)
-          ! Should NOT use ID_EMITTED here, since it is only for gases 
-          ! for SMVGEAR. (Lin, 06/10/08)
-          do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
-                                       / GET_AREA_M2( I, J, 1 ) &
-                                       / GET_TS_EMIS() / 60.d0
-          enddo
-
-       ENDIF
+       ! PBL top level [integral model levels]
+       topmix      = State_Met%PBL_TOP_L(I,J)
 
        !----------------------------------------------------------------
-       ! Zero emissions for tagged CO simulation
+       ! Add emissions & deposition values calculated in HEMCO.
+       ! Here we only consider emissions below the PBL top.
        !
-       ! CO emis are considered in tagged_co_mod.f.  This over-
-       ! simplified treatment may be inconsistent with the full 
-       ! chemistry simulation. Hopefully this simplification wouldn't 
-       ! cause too much problem, since the std. tagged_co simulation 
-       ! is also approximate, anyway. (Lin, 06/20/09) 
+       ! For the full-chemistry simulations, emissions above the PBL
+       ! top will be applied in routine SETEMIS, which occurs just
+       ! before the SMVGEAR/KPP solvers are invoked.
+       !
+       ! For the specialty simulations, emissions above the PBL top
+       ! will be applied in the chemistry routines for each
+       ! specialty simulation. 
+       !
+       ! For more information, please see this wiki page:
+       ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
        !----------------------------------------------------------------
-       IF ( IS_TAGCO ) THEN
-          eflx(I,J,:) = 0d0 
-       ENDIF
+       DO N = 1, N_TRACERS
 
+          ! Add total emissions in the PBL to the EFLX array
+          ! which tracks emission fluxes.  Units are [kg/m2/s].
+          tmpflx = 0.0d0
+          DO L = 1, TOPMIX
+             CALL GetHcoVal ( N, I, J, L, fnd, emis=emis )
+             IF ( .NOT. fnd ) EXIT
+             tmpflx = tmpflx + emis
+          ENDDO
+          eflx(I,J,N) = eflx(I,J,N) + tmpflx
+
+          ! Also add drydep frequencies calculated by HEMCO to the DFLX
+          ! array. These values are stored in 1/s. They are added in the 
+          ! same manner as the DEPSAV values from drydep_mod.F.
+          ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
+          CALL GetHcoVal ( N, I, J, 1, fnd, dep=dep )
+          IF ( fnd ) THEN
+             dflx(I,J,N) = dflx(I,J,N) + ( dep * as2_scal(I,J,N) / TCVV(N) )
+          ENDIF
+       ENDDO
+       
+!       !----------------------------------------------------------------
+!       ! Add emissions for offline aerosol simulation
+!       !----------------------------------------------------------------
+!       IF ( IS_AEROSOL ) THEN
+!
+!          ! add surface emis of aerosols 
+!          ! (after converting kg/box/timestep to kg/m2/s)
+!          ! Should NOT use ID_EMITTED here, since it is only for gases 
+!          ! for SMVGEAR. (Lin, 06/10/08)
+!          do N = 1, N_TRACERS
+!             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
+!                                       / GET_AREA_M2( I, J, 1 ) &
+!                                       / GET_TS_EMIS() / 60.d0
+!          enddo
+!
+!       ENDIF
+!
+!       !----------------------------------------------------------------
+!       ! Zero emissions for tagged CO simulation
+!       !
+!       ! CO emis are considered in tagged_co_mod.f.  This over-
+!       ! simplified treatment may be inconsistent with the full 
+!       ! chemistry simulation. Hopefully this simplification wouldn't 
+!       ! cause too much problem, since the std. tagged_co simulation 
+!       ! is also approximate, anyway. (Lin, 06/20/09) 
+!       !----------------------------------------------------------------
+!       IF ( IS_TAGCO ) THEN
+!          eflx(I,J,:) = 0d0 
+!       ENDIF
+!
        !----------------------------------------------------------------
-       ! Add emissions for offline CH4 simulation
+       ! Overwrite emissions for offline CH4 simulation.
+       ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F.
+       ! We use CH4_EMIS here instead of the HEMCO internal emissions
+       ! only to make sure that total CH4 emissions are properly defined
+       ! in a multi-tracer CH4 simulation. For a single-tracer simulation
+       ! and/or all other source types, we could use the HEMCO internal
+       ! values set above and would not need the code below.
+       ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
        !----------------------------------------------------------------
        IF ( IS_CH4 ) THEN
-          ! add surface emis
-          ! (after converting kg/box/timestep to kg/m2/s)
-          ! Should NOT use ID_EMITTED here, since it is only for gases 
-          ! for SMVGEAR. (Lin, 06/10/08)
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) &
-                         / GET_AREA_M2( I, J, 1 )         &
-                         / GET_TS_EMIS() / 60.d0
+             eflx(I,J,N) = CH4_EMIS(I,J,Input_Opt%ID_TRACER(N))
           enddo
-       endif
+       ENDIF
 
        !----------------------------------------------------------------
-       ! Add emissions for offline mercury simulation
+       ! Overwrite emissions for offline mercury simulation
+       ! HG emissions become stored in HG_EMIS in mercury_mod.F.
+       ! This is a workaround to ensure backwards compatibility.
+       ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
        !----------------------------------------------------------------
        IF ( IS_Hg ) THEN
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) & 
-                         / GET_AREA_M2( I, J, 1 )         &
-                         / GET_TS_EMIS() / 60.d0
+             eflx(I,J,N) = HG_EMIS(I,J,N) 
           enddo
        ENDIF
 
        !----------------------------------------------------------------
        ! Apply dry deposition frequencies
+       ! These are the frequencies calculated in drydep_mod.F
+       ! The HEMCO drydep frequencies (from air-sea exchange and 
+       ! PARANOX) were already added above.
        !----------------------------------------------------------------
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
-          ! Now include sea salt dry deposition (jaegle 5/11/11)
-          IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST2'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST3'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST4') CYCLE
-              !TRIM( DEPNAME(N) ) == 'SALA'.OR. &
-              !TRIM( DEPNAME(N) ) == 'SALC') CYCLE
-
           ! gases + aerosols for full chemistry 
           NN   = NTRAIND(N)
           if (NN == 0) CYCLE
+
+          ! Now include sea salt dry deposition (jaegle 5/11/11)
+          IF ( NN == IDTDST1 .OR. &
+               NN == IDTDST2 .OR. &
+               NN == IDTDST3 .OR. &
+               NN == IDTDST4       ) CYCLE
+
+!          IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
+!              TRIM( DEPNAME(N) ) == 'DST2'.OR. &
+!              TRIM( DEPNAME(N) ) == 'DST3'.OR. &
+!              TRIM( DEPNAME(N) ) == 'DST4') CYCLE
+!              !TRIM( DEPNAME(N) ) == 'SALA'.OR. &
+!              !TRIM( DEPNAME(N) ) == 'SALC') CYCLE
 
           ! adding the backward consistency with previous GEOS-Chem drydep 
           ! calculation. (Lin, 06/04/2008) 
@@ -2129,20 +2199,36 @@ contains
              pbl_top = GET_PBL_MAX_L() ! the highest layer the PBL reaches, 
              ! globally
              do L = 1, pbl_top
-                wk1 = wk1 + as2(I,J,L,NN)*AD(I,J,L)* &
+                wk1 = wk1 + as2(I,J,L,NN) * State_Met%AD(I,J,L)* &
                       GET_FRAC_UNDER_PBLTOP(I,J,L)
-                wk2 = wk2 + AD(I,J,L)*GET_FRAC_UNDER_PBLTOP(I,J,L)
+                wk2 = wk2 + State_Met%AD(I,J,L) * &
+                      GET_FRAC_UNDER_PBLTOP(I,J,L)
              enddo
              ! since we only use the ratio of wk1 / wk2, there should not be
              ! a problem even if the PBL top is lower than the top of the 
              ! first (lowest) model layer
              ! given that as2 is in v/v
-             dflx(I,J,NN) = DEPSAV(I,J,N) * (wk1/(wk2+1.d-30)) / TCVV(NN)
-             
+             ! Now add to existing dflx (ckeller, 10/16/2014).
+             dflx(I,J,NN) = dflx(I,J,NN) &
+                          + DEPSAV(I,J,N) * (wk1/(wk2+1.d-30)) / TCVV(NN)
+
+             ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
+             ! when there is O3 destruction in subgrid ship plume 
+             ! parameterization. This is roughly equivalent to negative
+             ! emissions, which were used previously by PARANOX,
+             ! but caused instability in the chemical solver
+             ! (cdh, 3/21/2013)
+             ! Now done through HEMCO (ckeller, 5/19/14).
+!             IF (TRIM( DEPNAME(N) ) == 'O3') THEN
+!                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * (wk1/(wk2+1.d-30)) / TCVV(NN)
+!             ENDIF
+
              ! consistency with the standard GEOS-Chem setup (Lin, 07/14/08)
              if (drydep_back_cons) then 
-                dflx(I,J,NN) = dflx(I,J,NN) * (wk2+1.d-30) / AD(I,J,1) * &
-                               BXHEIGHT(I,J,1) / GET_PBL_TOP_m(I,J)
+                dflx(I,J,NN) = dflx(I,J,NN) * (wk2+1.d-30) / &
+                               State_Met%AD(I,J,1)         * &
+                               State_Met%BXHEIGHT(I,J,1)   / &
+                               GET_PBL_TOP_m(I,J)
              endif
           else
 
@@ -2150,7 +2236,20 @@ contains
              ! given that as2 is in v/v
              ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-             dflx(I,J,NN) = DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
+             ! Now add to existing dflx (ckeller, 10/16/2014).
+             dflx(I,J,NN) = dflx(I,J,NN) &
+                          + DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
+
+             ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
+             ! when there is O3 destruction in subgrid ship plume 
+             ! parameterization. This is roughly equivalent to negative
+             ! emissions, which were used previously by PARANOX,
+             ! but caused instability in the chemical solver
+             ! (cdh, 3/21/2013)
+             ! Now done through HEMCO (ckeller, 5/19/14).
+!             IF ( (TRIM( DEPNAME(N) ) == 'O3') .and. (SHIPO3DEP(I,J) > 0d0) ) THEN
+!                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * as2_scal(I,J,NN) / TCVV(NN)
+!             ENDIF
 
              !------------------------------------------------------------------
              !Prior to 25 Oct 2011, H Amos
@@ -2166,25 +2265,26 @@ contains
              !   
              !ENDIF
              !
-             IF ( IS_HG2(NN) ) THEN
-
-                IF ( LHG2HALFAEROSOL ) THEN
-                   ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
-                   ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-
-                   ! partition Hg2 50/50 gas/particle
-                   dflx(I,J,NN) =  &
-                        ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
-                        as2_scal(I,J,NN) / TCVV(NN) 
-                ELSE
-                   
-                   ! temperature-dependent Hg2 partitioning
-                   dflx(I,J,NN) = ( DEPSAV(I,J,DRYHg2)*Fg(I,J,1) + &
-                                    DEPSAV(I,J,DRYHgP)*Fp(I,J,1) ) * &
-                                    as2_scal(I,J,NN) / TCVV(NN) 
-                ENDIF
-                   
-             ENDIF
+!!$ No longer needed since Hg(II) is already partitioned between gas and aerosol. (cdh, 28-Mar-2013)
+!!$             IF ( IS_HG2(NN) ) THEN
+!!$
+!!$                IF ( LHG2HALFAEROSOL ) THEN
+!!$                   ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+!!$                   ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
+!!$
+!!$                   ! partition Hg2 50/50 gas/particle
+!!$                   dflx(I,J,NN) =  &
+!!$                        ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
+!!$                        as2_scal(I,J,NN) / TCVV(NN) 
+!!$                ELSE
+!!$                   
+!!$                   ! temperature-dependent Hg2 partitioning
+!!$                   dflx(I,J,NN) = ( DEPSAV(I,J,DRYHg2)*Fg(I,J,1) + &
+!!$                                    DEPSAV(I,J,DRYHgP)*Fp(I,J,1) ) * &
+!!$                                    as2_scal(I,J,NN) / TCVV(NN) 
+!!$                ENDIF
+!!$                   
+!!$             ENDIF
              !------------------------------------------------------------------
           endif
           
@@ -2229,21 +2329,27 @@ contains
           ! Except in MERRA, we assume entire grid box is water or ice
           ! if conditions are met (jaf, 4/26/11)
           FRAC_NO_HG0_DEP = 1d0
-#if   defined( MERRA ) || defined( GEOS_57 )
-          FRAC_NO_HG0_DEP = &
-               MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0)
-          ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
+
+#if   defined( MERRA ) || defined( GEOS_FP )
+          FRAC_NO_HG0_DEP = MIN( State_Met%FROCEAN(I,J) + &
+                                 State_Met%FRSNO(I,J)   + &
+                                 State_Met%FRLANDIC(I,J), 1d0)
+          ZERO_HG0_DEP    = ( FRAC_NO_HG0_DEP > 0d0 )
+
 #elif defined( GEOS_5 )
           ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
-                          (IS_ICE(I,J)) .OR.   &
-                          (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
+          ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0      )  .OR.  &
+                          ( IS_ICE ( I, J, State_Met     )) .OR.  &
+                          ( IS_LAND( I, J, State_Met     )  .AND. &
+                            State_Met%SNOMAS(I,J) > 10d0 ))
+
 #else
           ! GEOS1-4 snow heigt (water equivalent) in mm
-          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
-                          (IS_ICE(I,J)) .OR.   &
-                          (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
-#endif 
+          ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0      )  .OR.  &
+                          ( IS_ICE ( I, J, State_Met     )) .OR.  &
+                          ( IS_LAND( I, J, State_Met     )  .AND. &
+                            State_Met%SNOW(I,J)   > 10d0 ))
+#endif
           
           IF ( IS_Hg .AND. IS_HG0(NN) ) THEN
              IF ( ZERO_HG0_DEP ) THEN
@@ -2268,9 +2374,10 @@ contains
                 pbl_top = GET_PBL_MAX_L() ! the highest layer the PBL reaches,
                                           ! globally
                 do L = 1, pbl_top
-                   wk1 = wk1 + as2(I,J,L,N)*AD(I,J,L)* &
+                   wk1 = wk1 + as2(I,J,L,N) * State_Met%AD(I,J,L) * &
                                GET_FRAC_UNDER_PBLTOP(I,J,L)
-                   wk2 = wk2 + AD(I,J,L)*GET_FRAC_UNDER_PBLTOP(I,J,L)
+                   wk2 = wk2 + State_Met%AD(I,J,L) * &
+                               GET_FRAC_UNDER_PBLTOP(I,J,L)
                 enddo
                 ! since we only use the ratio of wk1 / wk2, there should not be
                 ! a problem even if the PBL top is lower than the top of the 
@@ -2280,15 +2387,19 @@ contains
 
                 ! Consistent with the standard GEOS-Chem setup.(Lin, 07/14/08) 
                 if (drydep_back_cons) then 
-                   dflx(I,J,N) = dflx(I,J,N) * (wk2+1.d-30) / AD(I,J,1) * &
-                                 BXHEIGHT(I,J,1) / GET_PBL_TOP_m(I,J)
+                   dflx(I,J,N) = dflx(I,J,N) * (wk2+1.d-30) / &
+                                 State_Met%AD(I,J,1)        * &
+                                 State_Met%BXHEIGHT(I,J,1)  / &
+                                 GET_PBL_TOP_m(I,J)
                 endif
              else 
                 ! only use the lowest model layer for calculating drydep fluxes
                 ! given that as2 is in v/v
                 ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
                 ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-                dflx(I,J,N) = DEPSAV(I,J,1) * as2_scal(I,J,N) / TCVV(1) 
+                ! Now add to existing dflx (ckeller, 10/16/2014).
+                dflx(I,J,N) = dflx(I,J,N) &
+                            + DEPSAV(I,J,1) * as2_scal(I,J,N) / TCVV(1) 
              endif
           enddo
        endif
@@ -2298,11 +2409,11 @@ contains
        ! for deposition: additional step to convert from s-1 to kg/m2/s
        ! dflx(I,J,:) = dflx(I,J,:) * pmid(I,J,1) / rair / vtemp * BXHEIGHT(I,J,1)
        ! alternate method to convert from s-1 to kg/m2/s
-       dflx(I,J,:) = dflx(I,J,:) * AD(I,J,1) / GET_AREA_M2( I, J, 1 ) 
+       dflx(I,J,:) = dflx(I,J,:) * State_Met%AD(I,J,1) / &
+                     GET_AREA_M2( I, J, 1 ) 
 
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
-
 
        !----------------------------------------------------------------
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
@@ -2322,12 +2433,12 @@ contains
              IF ( IS_Hg2(NN) ) THEN 
                 
                 CALL ADD_HG2_DD( I, J, NN, DEP_KG )
-                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG )
+                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, State_Met )
 
              ELSE IF ( IS_HgP( NN ) ) THEN
                 
                 CALL ADD_HGP_DD( I, J, NN, DEP_KG )
-                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG )
+                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, State_Met )
 
              ENDIF
 
@@ -2338,30 +2449,66 @@ contains
     enddo
 !$OMP END PARALLEL DO
 
+#if defined( DEBUG )
+    write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
+    do N=1,N_TRACERS
+       write(*,*) 'eflx TRACER ', N, ': ', SUM(eflx(:,:,N))
+       write(*,*) 'dflx TRACER ', N, ': ', SUM(dflx(:,:,N))
+!       write(*,*) 'eflx TRACER ', N, ': ', MINVAL(eflx(:,:,N)), MAXVAL(eflx(:,:,N))
+    enddo
+#endif
+
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
     ! for aerosols -- 
-    if (ND44 > 0 .or. LGTMM ) then 
+    if (ND44 > 0 .or. LGTMM .or. LSOILNOX) then
 
        do N = 1, NUMDEP
-          SELECT CASE ( DEPNAME(N) )
+
+!          SELECT CASE ( NN )
              ! non gases + aerosols for fully chemistry 
              !CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
              !       'SALC' )
 	     ! now include sea salt dry deposition (jaegle 5/11/11)
-             CASE ( 'DST1', 'DST2', 'DST3', 'DST4')
-                CYCLE
-             CASE DEFAULT
-                ! Locate position of each tracer in DEPSAV
-                NN   = NTRAIND(N)
-                if (NN == 0) CYCLE
+!             CASE ( 'DST1', 'DST2', 'DST3', 'DST4')
+!             CASE ( IDTDST1, IDTDST2, IDTDST3, IDTDST4 )
+!                CYCLE
+!             CASE DEFAULT
+
+          ! Locate position of each tracer in DEPSAV
+          NN = NTRAIND(N)
+          IF (NN == 0 .OR.       &
+              NN == IDTDST1 .OR. & 
+              NN == IDTDST2 .OR. &
+              NN == IDTDST3 .OR. &
+              NN == IDTDST4       ) CYCLE
+
                 ! only for the lowest model layer
                 ! Convert : kg/m2/s -> molec/cm2/s
                 ! consider timestep difference between convection and emissions
-                AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,NN) &
+		IF(ND44 > 0 .or. LGTMM) THEN                
+		AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,NN) &
                                 / TRACER_MW_KG(NN) * 6.022d23 * 1.d-4 &
                                 * GET_TS_CONV() / GET_TS_EMIS() 
-          END SELECT
+		ENDIF
+
+                ! If Soil NOx is turned on, then call SOIL_DRYDEP to
+                ! archive dry deposition fluxes for nitrogen species
+                ! (SOIL_DRYDEP will exit if it can't find a match.)
+		IF ( LSOILNOX ) THEN
+                   soilflux = 0d0
+                   DO J = 1, JJPAR
+                   DO I = 1, IIPAR
+                      soilflux = dflx(I,J,NN) &
+		               / TRACER_MW_KG(NN) * 6.022d23 * 1.d-4 &
+                               * GET_TS_CONV() / GET_TS_EMIS()
+
+                      CALL SOIL_DRYDEP ( I, J, 1, NN, soilflux)
+                   ENDDO
+                   ENDDO
+		ENDIF
+
+!          END SELECT
        enddo
 
        ! Add ITS_A_TAGOX_SIM (Lin, 06/21/08)
@@ -2379,6 +2526,8 @@ contains
 
 
     endif
+
+	!Maasa, Add SoilNOx deposition to allow SN code to work with NLPBL on.
 
     !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
@@ -2398,21 +2547,23 @@ contains
        !-------------------------------------------------------------------
 
        ! 3-D fields on level centers
-       p_um1              => um1   ( :, :, LLPAR  :1:-1    )   
-       p_vm1              => vm1   ( :, :, LLPAR  :1:-1    )
-       p_tadv             => tadv  ( :, :, LLPAR  :1:-1    )
-       p_pmid             => pmid  ( :, :, LLPAR  :1:-1    )
-       p_rpdel            => rpdel ( :, :, LLPAR  :1:-1    )
-       p_rpdeli           => rpdeli( :, :, LLPAR  :1:-1    )
-       p_zm               => zm    ( :, :, LLPAR  :1:-1    )
-       p_thp              => thp   ( :, :, LLPAR  :1:-1    )
-       p_shp              => shp   ( :, :, LLPAR  :1:-1    )
+       p_um1              => State_Met%U    ( :, :, LLPAR  :1:-1    )   
+       p_vm1              => State_Met%V    ( :, :, LLPAR  :1:-1    )
+       p_tadv             => State_Met%T    ( :, :, LLPAR  :1:-1    )
+       p_hflux            => State_Met%HFLUX
+       p_ustar            => State_Met%USTAR
+       p_pmid             => pmid           ( :, :, LLPAR  :1:-1    )
+       p_rpdel            => rpdel          ( :, :, LLPAR  :1:-1    )
+       p_rpdeli           => rpdeli         ( :, :, LLPAR  :1:-1    )
+       p_zm               => zm             ( :, :, LLPAR  :1:-1    )
+       p_thp              => thp            ( :, :, LLPAR  :1:-1    )
+       p_shp              => State_Met%SPHU ( :, :, LLPAR  :1:-1    )
 
        ! 3-D fields on level edges
-       p_pint             => pint  ( :, :, LLPAR+1:1:-1    )
-       p_kvh              => kvh   ( :, :, LLPAR+1:1:-1    )
-       p_kvm              => kvm   ( :, :, LLPAR+1:1:-1    )
-       p_cgs              => cgs   ( :, :, LLPAR+1:1:-1    )
+       p_pint             => pint           ( :, :, LLPAR+1:1:-1    )
+       p_kvh              => kvh            ( :, :, LLPAR+1:1:-1    )
+       p_kvm              => kvm            ( :, :, LLPAR+1:1:-1    )
+       p_cgs              => cgs            ( :, :, LLPAR+1:1:-1    )
 
        ! Tracer concentration fields
        p_as2              => as2   ( :, :, LLPAR  :1:-1, : )
@@ -2431,12 +2582,13 @@ contains
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
 !$OMP PRIVATE( J )     
        do J = 1, JJPAR
-          call vdiff( J,      1,      p_um1,   p_vm1,    p_tadv,          &
-                      p_pmid, p_pint, p_rpdel, p_rpdeli, dtime,           &
-                      p_zm,   hflx,   sflx,    p_thp,    p_as2,           &
-                      pblh,   p_kvh,  p_kvm,   tpert,    qpert,           &
-                      p_cgs,  p_shp,  shflx,   IIPAR,    ustar_arg=ustar )
-
+          call vdiff( J,         1,         p_um1,  p_vm1,     &
+                      p_tadv,    p_pmid,    p_pint, p_rpdel,   &
+                      p_rpdeli,  dtime,     p_zm,   p_hflux,   &
+                      sflx,      p_thp,     p_as2,  pblh,      &
+                      p_kvh,     p_kvm,     tpert,  qpert,     &
+                      p_cgs,     p_shp,     shflx,  IIPAR,     &
+                      Input_Opt, State_Met, ustar_arg=p_ustar )
        enddo
 !$OMP END PARALLEL DO
 
@@ -2454,7 +2606,7 @@ contains
        ! Free pointers
        NULLIFY( p_um1,   p_vm1,    p_tadv, p_pmid, p_pint )
        NULLIFY( p_rpdel, p_rpdeli, p_zm,   p_thp,  p_cgs  )
-       NULLIFY( p_kvh,   p_kvm,    p_shp,  p_as2          )
+       NULLIFY( p_kvh,   p_kvm,    p_shp,  p_as2,  p_hflux)
 
     else if( arvdiff ) then
 !-----------------------------------------------------------------------
@@ -2469,18 +2621,18 @@ contains
        !-------------------------------------------------------------------
 
        ! INPUTS: 3-D fields on level centers
-       p_tadv   => tadv  ( :, :, LLPAR  :1:-1   )
-       p_pmid   => pmid  ( :, :, LLPAR  :1:-1   )
-       p_rpdel  => rpdel ( :, :, LLPAR  :1:-1   )
-       p_rpdeli => rpdeli( :, :, LLPAR  :1:-1   )
+       p_tadv   => State_Met%T( :, :, LLPAR  :1:-1   )
+       p_pmid   => pmid       ( :, :, LLPAR  :1:-1   )
+       p_rpdel  => rpdel      ( :, :, LLPAR  :1:-1   )
+       p_rpdeli => rpdeli     ( :, :, LLPAR  :1:-1   )
 
        ! INPUTS: 3-D fields on level edges
-       p_pint   => pint  ( :, :, LLPAR+1:1:-1   )
-       p_kvh    => kvh   ( :, :, LLPAR+1:1:-1   )
-       p_cgs    => cgs   ( :, :, LLPAR+1:1:-1   )
+       p_pint   => pint       ( :, :, LLPAR+1:1:-1   )
+       p_kvh    => kvh        ( :, :, LLPAR+1:1:-1   )
+       p_cgs    => cgs        ( :, :, LLPAR+1:1:-1   )
 
        ! INPUTS: Tracer concentration fields
-       p_as2    => as2   ( :, :, LLPAR:1:-1,  : )
+       p_as2    => as2        ( :, :, LLPAR:1:-1,  : )
 
        ! Convert from v/v -> m/m (i.e., kg/kg)
        do N = 1, N_TRACERS
@@ -2518,9 +2670,9 @@ contains
     if (.not. pblh_ar) then
 
        ! PBL is in m 
-       PBL = pblh 
+       State_Met%PBLH = pblh 
 
-       CALL COMPUTE_PBL_HEIGHT
+       CALL COMPUTE_PBL_HEIGHT( State_Met )
     endif
 
 !      !### Debug
@@ -2529,7 +2681,7 @@ contains
   END SUBROUTINE VDIFFDR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2543,30 +2695,49 @@ contains
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_PBL_MIX_2( DO_TURBDAY )
+  SUBROUTINE DO_PBL_MIX_2( am_I_Root, DO_VDIFF,  Input_Opt,  &
+                           State_Met, State_Chm, RC         )
 !
 ! !USES:
 !
-    USE LOGICAL_MOD,   ONLY : LTURB, LPRT
-    USE TRACER_MOD,    ONLY : N_TRACERS, STT, TCVV, ITS_A_FULLCHEM_SIM
-    USE PBL_MIX_MOD,   ONLY : INIT_PBL_MIX, COMPUTE_PBL_HEIGHT 
-
-    USE VDIFF_PRE_MOD, ONLY : EMISRR, EMISRRN
-    USE ERROR_MOD,     ONLY : DEBUG_MSG
-    USE TIME_MOD,      ONLY : ITS_TIME_FOR_EMIS
+    USE ERROR_MOD,          ONLY : DEBUG_MSG
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX
+    USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
+    USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
 
     IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: DO_TURBDAY  ! Switch which turns on PBL mixing of 
-                                       ! tracers
+    LOGICAL,        INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+    LOGICAL,        INTENT(IN)    :: DO_VDIFF     ! Switch which turns on PBL
+                                                  !  mixing of tracers
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
 !  21 Dec 2010 - R. Yantosca - Now only call SETEMIS for fullchem simulations
 !  22 Dec 2010 - R. Yantosca - Bug fix: print debug output only if LPRT=T
+!  05 Mar 2013 - R. Yantosca - Add am_I_root, Input_Opt, RC arguments
+!  05 Mar 2013 - R. Yantosca - Now call SETEMIS with am_I_Root, Input_Opt, RC
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_A_FULLCHEM_SIM
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  01 Aug 2013 - R. Yantosca - Now pass the Input_Opt object to VDIFFDR
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  22 Aug 2014 - R. Yantosca - Renamed DO_TURBDAY to DO_VDIFF for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2575,48 +2746,43 @@ contains
 !
     LOGICAL, SAVE :: FIRST = .TRUE.
 
+      ! Pointers
+    ! We need to define local arrays to hold corresponding values 
+    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+    REAL*8, POINTER :: STT(:,:,:,:)
+
     !=================================================================
-    ! DO_PBL_MIX2 begins here!
+    ! DO_PBL_MIX_2 begins here!
     !=================================================================
-    !call flush(6)
     
+    ! Assume success
+    RC  =  GIGC_SUCCESS
+
+    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! (mpayer, 12/6/12)
+    STT => State_Chm%Tracers
+
     ! First-time initialization
+    ! NOTE: Should really move this into the init stage
     IF ( FIRST ) THEN
-       CALL INIT_PBL_MIX
-       call vdinti
+       CALL INIT_PBL_MIX()
+       call vdinti()
        FIRST = .FALSE.
     ENDIF
 
     ! Compute PBL height and related quantities
-    CALL COMPUTE_PBL_HEIGHT
-
-    !=================================================================
-    ! For full-chemistry simulations, call routine SETEMIS
-    ! which sets up the emission rates array REMIS
-    !=================================================================
-    IF ( ITS_A_FULLCHEM_SIM() ) THEN
-
-       ! If it's time to do emissions, call SETEMIS
-       IF ( ITS_TIME_FOR_EMIS() ) THEN 
-!-------------------------------------------------------------------------------
-! Prior to 10/2/12:
-! Need to also pass a value to the am_I_Root argument of setemis.F
-! (mpayer, bmy, 10/2/12)
-!          CALL SETEMIS( EMISRR, EMISRRN )
-!-------------------------------------------------------------------------------
-          CALL SETEMIS( EMISRR, EMISRRN, .TRUE. )
-
-          IF ( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
-       ENDIF
-
-    ENDIF
+    CALL COMPUTE_PBL_HEIGHT( State_Met )
 
     ! Do mixing of tracers in the PBL (if necessary)
-    IF ( DO_TURBDAY ) THEN 
-       CALL VDIFFDR( STT )
-       IF( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
+    IF ( DO_VDIFF ) THEN
+       CALL VDIFFDR( STT, Input_Opt, State_Met, State_Chm )
+       IF( LPRT .and. am_I_Root ) THEN
+          CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
+       ENDIF
     ENDIF
 
+    ! Free pointer
+    NULLIFY( STT )
 
   END SUBROUTINE DO_PBL_MIX_2
 !EOC  

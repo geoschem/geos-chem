@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -17,7 +17,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -54,6 +53,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,7 +93,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -107,38 +107,61 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_PBL_MIX( DO_TURBDAY )
+      SUBROUTINE DO_PBL_MIX( DO_TURBDAY, Input_Opt, 
+     &                       State_Met,  State_Chm  )
 !
 ! !USES:
 !
-      USE LOGICAL_MOD, ONLY : LTURB
-      USE TRACER_MOD,  ONLY : N_TRACERS, STT, TCVV 
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 #if   defined( APM ) 
-      USE TRACER_MOD,  ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
-
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN) :: DO_TURBDAY   ! =T means call TURBDAY 
-                                          !    for full PBL mixing
+      LOGICAL,        INTENT(IN)    :: DO_TURBDAY  ! =T means call TURBDAY 
+                                                   !    for full PBL mixing
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
-!  07 Sep 2011 - G. Luo    - Add modifications for APM
+!  07 Sep 2011 - G. Luo      - Add modifications for APM
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  22 Aug 2014 - R. Yantosca - Now declare State_Met INTENT(INOUT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: N_TOT_TRC
+      ! Scalars
+      LOGICAL, SAVE  :: FIRST = .TRUE.
+      INTEGER        :: N_TOT_TRC
+      INTEGER        :: N_TRACERS
+
+      ! Arrays
+      REAL*8         :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_PBL_MIX begins here!
       !=================================================================
+
+      ! Get fields from the Input_OPt object
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers
 #if   defined( APM )  
@@ -147,6 +170,10 @@
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
 #endif
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! First-time initialization
       IF ( FIRST ) THEN
          CALL INIT_PBL_MIX
@@ -154,15 +181,18 @@
       ENDIF
          
       ! Compute PBL height and related quantities
-      CALL COMPUTE_PBL_HEIGHT
+      CALL COMPUTE_PBL_HEIGHT( State_Met )
 
       ! Do complete mixing of tracers in the PBL (if necessary)
-      IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV )
+      IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV, State_Met )
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE DO_PBL_MIX
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -174,16 +204,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_PBL_HEIGHT
+      SUBROUTINE COMPUTE_PBL_HEIGHT( State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : BXHEIGHT, PBL
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_GCTM_MOD       ! Scale height
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_GCTM_MOD             ! Scale height
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -194,6 +228,9 @@
 !  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  22 Aug 2014 - R. Yantosca - Now declare State_Met INTENT(INOUT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -231,7 +268,7 @@
 
          ! BLTOP = pressure at PBL top [hPa]
          ! Use barometric law since PBL is in [m]
-         BLTOP  = P(0) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+         BLTOP  = P(0) * EXP( -State_Met%PBLH(I,J) / SCALE_HEIGHT )
 
          ! BLTHIK is PBL thickness [hPa]
          BLTHIK = P(0) - BLTOP
@@ -258,28 +295,33 @@
 
          ! IMIX(I,J)   is the level where the PBL top occurs at (I,J)
          ! IMIX(I,J)-1 is the number of whole levels below the PBL top
-         IMIX(I,J)        = LTOP 
+         IMIX(I,J)                = LTOP 
 
          ! Fraction of the IMIXth level underneath the PBL top
-         FPBL(I,J)        = 1d0 - ( BLTOP     - P(LTOP) ) / 
-     &                            ( P(LTOP-1) - P(LTOP) ) 
+         FPBL(I,J)                = 1d0 - ( BLTOP     - P(LTOP) ) / 
+     &                                    ( P(LTOP-1) - P(LTOP) ) 
 
          ! PBL top [model layers]
-         PBL_TOP_L(I,J)   = FLOAT( IMIX(I,J) - 1 ) + FPBL(I,J)
+         PBL_TOP_L(I,J)           = FLOAT( IMIX(I,J) - 1 ) + FPBL(I,J)
+
+         ! PBL top level [integral model layers]
+         ! This is needed by the non-local PBL mixing scheme to
+         ! apply emissions in the boundary layer (bmy, 8/22/14)
+         State_Met%PBL_TOP_L(I,J) = MAX( 1, FLOOR( PBL_TOP_L(I,J) ) )
 
          ! PBL top [hPa]
-         PBL_TOP_hPa(I,J) = BLTOP
+         PBL_TOP_hPa(I,J)         = BLTOP
 
          ! Zero PBL top [m] -- compute below
-         PBL_TOP_m(I,J)   = 0d0
+         PBL_TOP_m(I,J)           = 0d0
 
          ! PBL thickness [hPa]
-         PBL_THICK(I,J)   = BLTHIK
+         PBL_THICK(I,J)           = BLTHIK
 
          !==============================================================
-         ! Loop up to the maximum tropopause level
+         ! Loop up to edge of chemically-active grid
          !==============================================================
-         DO L = 1, LLTROP
+         DO L = 1, LLCHEM
 
             ! Thickness of grid box (I,J,L) [hPa]
             DELP = P(L-1) - P(L)
@@ -297,7 +339,8 @@
                F_UNDER_TOP(I,J,L) = 1d0
 
                ! PBL height [m]
-               PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + BXHEIGHT(I,J,L)
+               PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) +
+     &                              State_Met%BXHEIGHT(I,J,L)
 
             ELSE IF ( L == IMIX(I,J) ) THEN
 
@@ -313,7 +356,8 @@
                
                ! PBL height [m] 
                PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + 
-     &                              ( BXHEIGHT(I,J,L) * FPBL(I,J) )
+     &                            ( State_Met%BXHEIGHT(I,J,L) *
+     &                              FPBL(I,J) )
 
             ELSE
 
@@ -370,7 +414,7 @@
       END SUBROUTINE COMPUTE_PBL_HEIGHT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -382,29 +426,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TURBDAY( NTRC, TC, TCVV )              
+      SUBROUTINE TURBDAY( NTRC, TC, TCVV, State_Met )              
 !
 ! !USES:
 !
-      USE DAO_MOD,     ONLY : AD
-      USE DIAG_MOD,    ONLY : TURBFLUP
-      USE TIME_MOD,    ONLY : GET_TS_CONV
+      USE DIAG_MOD,           ONLY : TURBFLUP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CONV
 
-      USE CMN_SIZE_MOD      ! Size parameters    
-      USE CMN_DIAG_MOD      ! ND15
+      USE CMN_SIZE_MOD             ! Size parameters    
+      USE CMN_DIAG_MOD             ! ND15
 !
 ! !INPUT PARAMETERS: 
 !
       ! Number of tracers used in computation
-      INTEGER,  INTENT(IN)    :: NTRC             
+      INTEGER,        INTENT(IN)    :: NTRC             
 
       ! MW air (g/mol) / MW tracer (g/mol)     [ unitless ]
-      REAL*8,   INTENT(IN)    :: TCVV(NTRC)
+      REAL*8,         INTENT(IN)    :: TCVV(NTRC)
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       ! Tracer concentration [v/v]
-      REAL*8,   INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NTRC) 
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NTRC) 
 ! 
 ! !REMARKS:
 !  Original subroutine by Dale Allen, Univ of MD.
@@ -466,6 +513,8 @@
 !        (bmy, 2/15/05)
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
 !   2 Mar 2012 - R. Yantosca - Remove reference to GET_AREA_M2
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -477,6 +526,9 @@
       REAL*8        :: AA, CC, CC_AA, AREA_M2, DTCONV
       REAL*8        :: A(IIPAR,JJPAR)
       REAL*8        :: DTC(IIPAR,JJPAR,LLPAR,NTRC)  
+
+      ! Pointers
+      REAL*8, POINTER :: AD(:,:,:)
 
       !=================================================================
       ! TURBDAY begins here!          
@@ -499,6 +551,9 @@
       !=================================================================
       ! Do the boundary layer mixing
       !=================================================================
+
+      ! Initialize pointers
+      AD    => State_Met%AD
 
       ! Convection timestep [s]
       DTCONV = GET_TS_CONV() * 60d0
@@ -561,20 +616,20 @@
 
             ! For grid boxes (I,J,L) which lie below the PBL top
             DO L = 1, IMIX(I,J)-1 
-               DTC(I,J,L,N) = ( A(I,J) * CC_AA       * AD(I,J,L) -
+               DTC(I,J,L,N) = ( A(I,J) * CC_AA       * AD(I,J,L)  -
      &                          A(I,J) * TC(I,J,L,N) * AD(I,J,L) ) 
 
-               TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N)/AD(I,J,L)
+               TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / AD(I,J,L)
             ENDDO 
 
             ! For grid boxes (I,J,L) which straddle the PBL top
             L = IMIX(I,J) 
 
             DTC(I,J,L,N)  = 
-     &           ( A(I,J) * FPBL(I,J) * CC_AA       * AD(I,J,L) - 
-     &             A(I,J) * FPBL(I,J) * TC(I,J,L,N) * AD(I,J,L) ) 
+     &           ( A(I,J) * FPBL(I,J)  * CC_AA       * AD(I,J,L) - 
+     &             A(I,J) * FPBL(I,J)  * TC(I,J,L,N) * AD(I,J,L) ) 
                
-            TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N)/AD(I,J,L)
+            TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / AD(I,J,L)
 
             !=======================================================
             ! ND15 Diagnostic: 
@@ -605,10 +660,13 @@
 !     &                TC(I,J,L,N)   * AIRMAS(I,J,L) ) / AIRMAS(I,J,L) 
 !-----------------------------------------------------------------------------
 
+      ! Free pointers
+      NULLIFY( AD )
+
       END SUBROUTINE TURBDAY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -644,7 +702,7 @@
       !=================================================================
       ! GET_FRAC_OF_PBL begins here!
       !=================================================================
-      IF ( L <= LLTROP ) THEN
+      IF ( L <= LLCHEM ) THEN
          FRAC = F_OF_PBL(I,J,L)
       ELSE
          FRAC = 0d0
@@ -652,9 +710,9 @@
 
       ! Return to calling program
       END FUNCTION GET_FRAC_OF_PBL
-   !EOC
+!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -686,7 +744,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( L <= LLTROP ) THEN
+      IF ( L <= LLCHEM ) THEN
          FRAC = F_UNDER_TOP(I,J,L)
       ELSE
          FRAC = 0d0
@@ -695,7 +753,7 @@
       END FUNCTION GET_FRAC_UNDER_PBLTOP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -724,7 +782,7 @@
       END FUNCTION GET_PBL_MAX_L
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -757,7 +815,7 @@
       END FUNCTION GET_PBL_TOP_hPa
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -794,7 +852,7 @@
       END FUNCTION GET_PBL_TOP_L
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -827,7 +885,7 @@
       END FUNCTION GET_PBL_TOP_m
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -860,7 +918,7 @@
       END FUNCTION GET_PBL_THICK
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -881,6 +939,8 @@
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!  14 Nov 2014 - C. Keller   - Added error trap to prevent second allocation 
+!                              attempt in ESMF environment.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -892,6 +952,11 @@
       !=================================================================
       ! INIT_PBL_MIX begins here!
       !=================================================================
+
+      ! Error trap: in an ESMF environment, it is possible that this
+      ! routine is called twice. No need to allocate arrays if already
+      ! done so.
+      IF ( ALLOCATED(IMIX) ) RETURN
 
       ! Scalars
       PBL_MAX_L = 0
@@ -905,11 +970,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FPBL' )
       FPBL = 0d0
 
-      ALLOCATE( F_OF_PBL( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( F_OF_PBL( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'F_OF_PBL' )
       F_OF_PBL = 0d0
 
-      ALLOCATE( F_UNDER_TOP( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( F_UNDER_TOP( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'F_UNDER_TOP' )
       F_UNDER_TOP = 0d0
 
@@ -932,7 +997,7 @@
       END SUBROUTINE INIT_PBL_MIX
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

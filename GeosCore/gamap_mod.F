@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -21,7 +21,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 
 !
@@ -73,6 +72,7 @@
 !  (21) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
 !        nm from 400 nm.  Add additional dust AOD bins.  Output values to 
 !        hdf_mod. (amv, bmy, 12/1/09)
+!  (22) Increase MAXTRACER from 120 to 325 (win, 6/25/09) 
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2010 - R. Yantosca - Now move the #include "CMN_SIZE" and
 !                              #include "CMN_DIAG" to the top of module
@@ -80,8 +80,13 @@
 !  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
 !  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO
 !  09 Dec 2010 - C. Carouge  - Modify MAXTRACER definition to account for 
+!  07 Feb 2012 - E. Corbitt  - Added diagnostic info for tagged Hg simulation.
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  09 Apr 2014 - R. Yantosca - Increase MAXCAT to 160 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -89,7 +94,8 @@
 ! !PRIVATE TYPES:
 !
       ! For "diaginfo.dat"
-      INTEGER,           PARAMETER   :: MAXCAT    = 150
+!      INTEGER,           PARAMETER   :: MAXCAT    = 150
+      INTEGER,           PARAMETER   :: MAXCAT    = 160
       INTEGER,           PARAMETER   :: SPACING   = 1000
       INTEGER                        :: NCATS
       INTEGER,           ALLOCATABLE :: OFFSET(:)
@@ -113,6 +119,7 @@
       ! Other variables
       CHARACTER(LEN=16)              :: STAMP
       CHARACTER(LEN=40)              :: SIM_NAME
+
       ! Used for ND71
       CHARACTER(LEN=40)              :: NAME0, NAME1
       CHARACTER(LEN=40)              :: FNAME0
@@ -120,7 +127,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -132,21 +139,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GAMAP( DIAGINFO, TRACERINFO )  
+      SUBROUTINE DO_GAMAP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE TIME_MOD,   ONLY : SYSTEM_TIMESTAMP
-      USE TRACER_MOD, ONLY : GET_SIM_NAME 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO    ! Path of "diaginfo.dat"
-      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO  ! Path of "tracerinfo.dat"
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  03 May 2005 - R. Yantosca - Initial version
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  25 Jun 2014 - R. Yantosca - Now get SIM_NAME from Input_Opt
+!  25 Jun 2014 - R. Yantosca - Remove all references to tracer_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -154,20 +169,23 @@
       ! DO_GAMAP begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Allocate and initialize variables
-      CALL INIT_GAMAP( DIAGINFO, TRACERINFO )
+      CALL INIT_GAMAP( am_I_Root, Input_Opt, RC )
 
       ! Create a timestamp with the system date & time
       STAMP    = SYSTEM_TIMESTAMP()
 
       ! Get simulation name
-      SIM_NAME = GET_SIM_NAME()
+      SIM_NAME = Input_Opt%SIM_NAME
 
       ! Write "diaginfo.dat" file
-      CALL CREATE_DINFO
+      CALL CREATE_DINFO()
 
       ! Write "tracerinfo.dat" file
-      CALL CREATE_TINFO
+      CALL CREATE_TINFO( am_I_Root, Input_Opt, RC )
 
       ! Deallocate variables
       CALL CLEANUP_GAMAP
@@ -175,7 +193,7 @@
       END SUBROUTINE DO_GAMAP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -273,7 +291,7 @@
       END SUBROUTINE CREATE_DINFO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -285,12 +303,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CREATE_TINFO
+      SUBROUTINE CREATE_TINFO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE FILE_MOD,    ONLY : IOERROR
-      USE LOGICAL_MOD, ONLY : LSOA
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  21 Apr 2005 - R. Yantosca - Initial version
@@ -299,6 +327,8 @@
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  31 Oct 2012 - R. Yantosca - Now save out info about soil NOx restart file
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -309,11 +339,14 @@
       INTEGER           :: IU_FILE
       REAL*4            :: SCALE_NEW
       CHARACTER(LEN=2)  :: C
-      CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW
+      CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW, FNAME_NEW
 
       !=================================================================
       ! CREATE_TINFO begins here!
       !=================================================================
+
+      ! Assume success
+      RC      =  GIGC_SUCCESS
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -358,9 +391,9 @@
      &        ' to unit given below'                                   )
  155  FORMAT( '# UNIT     (A40  )  Unit string',                 /,'#' )
 
-      !-----------------------------------
+      !-------------------------------------
       ! 0: Tracers [ppbv]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( IU_FILE, 0 )
@@ -376,9 +409,9 @@
      &                     MOLC(T,45), SCALE(T,45), UNIT(T,45), N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*1: Tracers [molec/cm2/s]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( IU_FILE, 100 )
@@ -404,9 +437,9 @@
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*2: Tracers [molec/cm2]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( IU_FILE, 200 )
@@ -432,9 +465,9 @@
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*3: Tracers [kg/s]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( IU_FILE, 300 )
@@ -460,9 +493,9 @@
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*4: Tracers [kg]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( IU_FILE, 400 )
@@ -517,44 +550,101 @@
 !     &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
 !      ENDDO
 
-      !-----------------------------------
-      ! SPACING*6: GPROD & APROD [kg/kg]
-      !-----------------------------------
-      IF ( LSOA ) THEN
-
-         ! Write separator line
-         CALL WRITE_SEPARATOR( IU_FILE, 600 )
-
-         ! Loop over tracers
-         ! New tracers for SOA simulation
+!     !-------------------------------------
+!     ! SPACING*6: GPROD & APROD [kg/kg]
+!     !-------------------------------------
+!     IF ( Input_Opt%LSOA ) THEN
+!
+!        ! Write separator line
+!        CALL WRITE_SEPARATOR( IU_FILE, 600 )
+!
+!        ! Loop over tracers
+!        ! New tracers for SOA simulation
 !--- Previous (ccc, 3/17/10)
 !         DO T = 1, 18
-         DO T = 1, 28
-            
-            ! GAMAP tracer number
-            N = ( SPACING * 6 ) + T
-            
-            ! Make a character 
-            WRITE( C, '(i2.2)' ) T
+!        DO T = 1, 28
+!           
+!           ! GAMAP tracer number
+!           N = ( SPACING * 6 ) + T
+!           
+!           ! Make a character 
+!           WRITE( C, '(i2.2)' ) T
+!
+!           ! Tracer name
+!           NAME_NEW = 'PROD' // C
+!           
+!           ! Write tracers [kg] to "tracerinfo.dat"
+!           CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,
+!    &           REAL(1e0,4), 1, REAL(1e0,4), 'kg/kg', N )
+!        ENDDO
+!
+!     ENDIF
 
-            ! Tracer name
-            NAME_NEW = 'PROD' // C
-            
-            ! Write tracers [kg] to "tracerinfo.dat"
-#if defined( DEVEL )
-            CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,
-     &           REAL(1e0,4), 1, REAL(1e0,4), 'kg/kg', N )
-#else
-            CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,  1e0,
-     &                        1,        1e0,      'kg/kg', N )
-#endif
-         ENDDO
+      !-------------------------------------      
+      ! SPACING*60: Soil NOx restart file
+      !-------------------------------------   
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+         
+         ! Write separator line
+         CALL WRITE_SEPARATOR( IU_FILE, 999 )
+
+         ! Dry period [h]
+         NAME_NEW  = 'P_DRY'
+         FNAME_NEW = 'Dry period'
+         UNIT_NEW  = 'hours'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      FNAME_NEW,   REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60001  )
+
+         ! Pulse factor [unitless]
+         NAME_NEW  = 'PFACTOR'
+         FNAME_NEW = 'Pulsing factor'
+         UNIT_NEW  = 'unitless'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      FNAME_NEW,   REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60002  )
+
+         ! GWET from previous timestep [unitless]
+         NAME_NEW  = 'GWET_PRV'
+         FNAME_NEW = 'Soil moisture'
+         UNIT_NEW  = 'unitless'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      FNAME_NEW,   REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60003  )
+
+         ! Reservoir of deposited N [ng N/m2]
+         NAME_NEW  = 'N_RESVR'
+         FNAME_NEW = 'N reservoir'
+         UNIT_NEW  = 'ng N/m2'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      FNAME_NEW,   REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60004  )
 
       ENDIF
 
-      !------------------------------
+#if defined( UCX)
+      !-------------------------------------      
+      ! SPACING*55: PSC restart file
+      !-------------------------------------   
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+         
+         ! Write separator line
+         CALL WRITE_SEPARATOR( IU_FILE, 999 )
+
+         ! Instantaneous PSC state [unitless]
+         NAME_NEW  = 'STATEPSC'
+         FNAME_NEW = 'Instantaneous PSC state'
+         UNIT_NEW  = 'unitless'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      FNAME_NEW,   REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    55001  )
+
+      ENDIF
+#endif
+
+      !-------------------------------------
       ! All other diagnostics 
-      !------------------------------
+      !-------------------------------------
       DO D = 1, MAXDIAG
 
          ! If tracers are defined then...
@@ -578,7 +668,7 @@
       END SUBROUTINE CREATE_TINFO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -637,7 +727,7 @@
       END SUBROUTINE WRITE_TINFO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -665,6 +755,7 @@
 !  03 May 2005 - R. Yantosca - Initial version
 !  06 Feb 2007 - R. Yantosca - Added new header for GPROD & APROD info
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  31 Oct 2012 - R. Yantosca - Add write statement for soil NOx restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -701,8 +792,12 @@
             WRITE( IU_FILE, 150, IOSTAT=IOS )
          CASE( 600 ) 
             WRITE( IU_FILE, 160, IOSTAT=IOS )
+         CASE( 700 )          !(win, 7/9/09)
+            WRITE( IU_FILE, 190, IOSTAT=IOS ) !sfarina - this can stay
+         CASE( 999 ) 
+            WRITE( IU_FILE, 170, IOSTAT=IOS )
          CASE DEFAULT
-            WRITE( IU_FILE, 170, IOSTAT=IOS ) DIAG
+            WRITE( IU_FILE, 180, IOSTAT=IOS ) DIAG
       END SELECT
 
       ! Error check
@@ -713,19 +808,21 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'write_separator:3' )
 
       ! FORMAT strings
- 100  FORMAT( '# GEOS-CHEM tracers [ppbv]'           )
- 110  FORMAT( '# GEOS-CHEM tracers [molec/cm2/s]'    )
- 120  FORMAT( '# GEOS-CHEM tracers [molec/cm2]'      )
- 130  FORMAT( '# GEOS-CHEM tracers [kg/s]'           )
- 140  FORMAT( '# GEOS-CHEM tracers [kg]'             )
- 150  FORMAT( '# GEOS-CHEM tracers [ug/m3]'          )
- 160  FORMAT( '# SOA GPROD & APROD [kg/kg]'          )
- 170  FORMAT( '# ND', i2.2, ' diagnostic quantities' )
+ 100  FORMAT( '# GEOS-CHEM tracers [ppbv]'             )
+ 110  FORMAT( '# GEOS-CHEM tracers [molec/cm2/s]'      )
+ 120  FORMAT( '# GEOS-CHEM tracers [molec/cm2]'        )
+ 130  FORMAT( '# GEOS-CHEM tracers [kg/s]'             )
+ 140  FORMAT( '# GEOS-CHEM tracers [kg]'               )
+ 150  FORMAT( '# GEOS-CHEM tracers [ug/m3]'            )
+ 160  FORMAT( '# SOA GPROD & APROD [kg/kg]'            )
+ 170  FORMAT( '# Quantities for Soil NOx restart file' )
+ 180  FORMAT( '# ND', i2.2, ' diagnostic quantities'   )
+ 190  FORMAT( '# TOMAS aerosol rate [cm-3 s-1]'      )   !(win, 7/9/09)
       
       END SUBROUTINE WRITE_SEPARATOR
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -759,6 +856,14 @@
 !                              TURBMC-$, EW-FLX-$, NS-FLX-$, UP-FLX-$
 !  21 Oct 2010 - R. Yantosca - Bug fix: MC-FRC-$ should have an offset of 
 !                              SPACING*3 since it has units of kg/s.
+!  31 Oct 2012 - R. Yantosca - Save soil NOx restart quantities as SPACING*60
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
+!  03 Sep 2013 - R. Yantosca - Restored PS-PTOP to avoid issues when using
+!                              diaginfo.dat, tracerinfo.dat w/ REGRIDH_RESTART
+!  30 Jan 2014 - R. Yantosca - Add ND60 TOMAS diagnostic catetories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -787,6 +892,11 @@
       OFFSET(N)   = SPACING * 0
 
       N           = N + 1
+      CATEGORY(N) = 'IJ-MAX-$'
+      DESCRIPT(N) = 'Surface peak concentration'
+      OFFSET(N)   = SPACING * 0
+
+      N           = N + 1
       CATEGORY(N) = 'ANTHSRCE'
       DESCRIPT(N) = 'Anthropogenic emissions'
       OFFSET(N)   = SPACING * 1
@@ -797,45 +907,45 @@
       OFFSET(N)   = SPACING * 1
 
       N           = N + 1
-      CATEGORY(N) = 'NOX-AC-$'
-      DESCRIPT(N) = 'Aircraft NOx'
+      CATEGORY(N) = 'NO-AC-$'
+      DESCRIPT(N) = 'Aircraft NO'
       OFFSET(N)   = SPACING * 1
 
       N           = N + 1
-      CATEGORY(N) = 'NOX-AN-$'
-      DESCRIPT(N) = 'Anthropogenic NOx'
+      CATEGORY(N) = 'NO-AN-$'
+      DESCRIPT(N) = 'Anthropogenic NO'
       OFFSET(N)   = SPACING * 1
 
       N           = N + 1
-      CATEGORY(N) = 'NOX-BIOB'
-      DESCRIPT(N) = 'Biomass NOx'
+      CATEGORY(N) = 'NO-BIOB'
+      DESCRIPT(N) = 'Biomass NO'
       OFFSET(N)   = SPACING * 1
 
       N           = N + 1
-      CATEGORY(N) = 'NOX-BIOF'
-      DESCRIPT(N) = 'Biofuel NOx'
+      CATEGORY(N) = 'NO-BIOF'
+      DESCRIPT(N) = 'Biofuel NO'
       OFFSET(N)   = SPACING * 1
 
       N           = N + 1
-      CATEGORY(N) = 'NOX-LI-$'
-      DESCRIPT(N) = 'Lightning NOx'      
+      CATEGORY(N) = 'NO-LI-$'
+      DESCRIPT(N) = 'Lightning NO'      
       OFFSET(N)   = SPACING * 1
 
       N           = N + 1
-      CATEGORY(N) = 'NOX-SOIL'
-      DESCRIPT(N) = 'Soil NOx'
+      CATEGORY(N) = 'NO-SOIL'
+      DESCRIPT(N) = 'Soil NO'
       OFFSET(N)   = SPACING * 1
 
       N           = N + 1
-      CATEGORY(N) = 'NOX-FERT'
-      DESCRIPT(N) = 'Fertilizer NOx'
+      CATEGORY(N) = 'NO-FERT'
+      DESCRIPT(N) = 'Fertilizer NO'
       OFFSET(N)   = SPACING * 1
 
       N           = N + 1
-      CATEGORY(N) = 'NOX-STRT'
-      DESCRIPT(N) = 'Stratopsheric NOx'
-      OFFSET(N)   = SPACING * 1
- 
+      CATEGORY(N) = 'NO-STRT'
+      DESCRIPT(N) = 'Stratopsheric NO'
+      OFFSET(N)   = SPACING * 1 
+
       N           = N + 1
       CATEGORY(N) = 'INST_COL'
       DESCRIPT(N) = 'Instantaneous columns'
@@ -981,6 +1091,49 @@
       DESCRIPT(N) = 'Biofuel NH3 emissions'
       OFFSET(N)   = SPACING * 4
 
+#if   defined( TOMAS )
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'NK-EMISS'
+      DESCRIPT(N) = 'Size-res aerosol number emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'SF-EMISS'
+      DESCRIPT(N) = 'Size-res sulfate mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'SS-EMISS'
+      DESCRIPT(N) = 'Size-res sea-salt mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'ECIL-SRC'
+      DESCRIPT(N) = 'Size-res H-phillic EC mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'ECOB-SRC'
+      DESCRIPT(N) = 'Size-res H-phobic EC mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'OCIL-SRC'
+      DESCRIPT(N) = 'Size-res H-phillic OC mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'OCOB-SRC'
+      DESCRIPT(N) = 'Size-res H-phobic OC mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'DUST-SRC'
+      DESCRIPT(N) = 'Size-res dust mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+#endif
+
       N           = N + 1
       CATEGORY(N) = 'TROPO-AV'
       DESCRIPT(N) = 'Trop avg''d tracer'
@@ -991,19 +1144,52 @@
       DESCRIPT(N) = 'Tracer mass (kg)'
       OFFSET(N)   = SPACING * 4
 
+#if   defined( TOMAS ) 
+
       N           = N + 1
-      CATEGORY(N) = 'SOAGPROD'
-      DESCRIPT(N) = 'SOA GPROD restart'
+      CATEGORY(N) = 'TMS-COND'
+      DESCRIPT(N) = 'Condensation rate'
       OFFSET(N)   = SPACING * 6
 
       N           = N + 1
-      CATEGORY(N) = 'SOAAPROD'
-      DESCRIPT(N) = 'SOA APROD restart'
+      CATEGORY(N) = 'TMS-COAG'
+      DESCRIPT(N) = 'Condensation rate'
       OFFSET(N)   = SPACING * 6
+
+      N           = N + 1
+      CATEGORY(N) = 'TMS-NUCL'
+      DESCRIPT(N) = 'Condensation rate'
+      OFFSET(N)   = SPACING * 6
+
+      N           = N + 1
+      CATEGORY(N) = 'TMS-AQOX'
+      DESCRIPT(N) = 'Condensation rate'
+      OFFSET(N)   = SPACING * 6
+
+      N           = N + 1
+      CATEGORY(N) = 'AERO-FIX'
+      DESCRIPT(N) = 'Condensation rate'
+      OFFSET(N)   = SPACING * 6
+
+      N           = N + 1
+      CATEGORY(N) = 'TMS-SOA'
+      DESCRIPT(N) = 'Condensation rate'
+      OFFSET(N)   = SPACING * 6
+
+      N           = N + 1           !(win, 7/9/09)
+      CATEGORY(N) = 'TOMAS-3D'
+      DESCRIPT(N) = '3-D aerosol rate of a selected microphysics'
+      OFFSET(N)   = SPACING * 7
+#endif
 
       N           = N + 1
       CATEGORY(N) = 'PEDGE-$'
       DESCRIPT(N) = 'Pressure at level edges'
+      OFFSET(N)   = SPACING * 10 
+
+      N           = N + 1
+      CATEGORY(N) = 'PS-PTOP'
+      DESCRIPT(N) = 'Pressure level edges'
       OFFSET(N)   = SPACING * 10 
 
       N           = N + 1
@@ -1161,9 +1347,10 @@
       DESCRIPT(N) = 'Biogenic OC emission'
       OFFSET(N)   = SPACING * 33
 
+      ! SOAupdate: update for new mtp (hotp 5/25/10)
       N           = N + 1
-      CATEGORY(N) = 'OC-ALPH'
-      DESCRIPT(N) = 'Biogenic ALPH emission'
+      CATEGORY(N) = 'OC-MTPA'
+      DESCRIPT(N) = 'Biogenic MTPA emission'
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
@@ -1171,14 +1358,10 @@
       DESCRIPT(N) = 'Biogenic ALPH emission'
       OFFSET(N)   = SPACING * 33
 
+      ! SOAupdate: update for new mtp (hotp 5/25/10)
       N           = N + 1
-      CATEGORY(N) = 'OC-TERP'
-      DESCRIPT(N) = 'Biogenic TERP emission'
-      OFFSET(N)   = SPACING * 33
-
-      N           = N + 1
-      CATEGORY(N) = 'OC-ALCO'
-      DESCRIPT(N) = 'Biogenic ALCO emission'
+      CATEGORY(N) = 'OC-MTPO'
+      DESCRIPT(N) = 'Biogenic MTPO emission'
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
@@ -1193,7 +1376,10 @@
 
       N           = N + 1
       CATEGORY(N) = 'PL-OC=$'
-      DESCRIPT(N) = 'H-philic from H-phobic OC'
+      ! SOAupdate (hotp 5/25/09)
+      ! updated name for SOA (hotp 7/31/08)
+      !DESCRIPT(N) = 'H-philic from H-phobic OC'
+      DESCRIPT(N) = 'Philic OC prod/SOA prod'
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
@@ -1216,10 +1402,133 @@
       DESCRIPT(N) = 'Dicarbonyl SOA production'
       OFFSET(N)   = SPACING * 33
 
+!- eds 9/1/10 ----------------------------------------------
       N           = N + 1
       CATEGORY(N) = 'HG-SRCE'
       DESCRIPT(N) = 'Hg emissions'
       OFFSET(N)   = SPACING * 34
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-ANTH'
+      DESCRIPT(N) = 'Hg(0) Anthro Emissions'
+      OFFSET(N)   = SPACING * 61
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-AQUA'
+      DESCRIPT(N) = 'Hg(0) Ocean Mass'
+      OFFSET(N)   = SPACING * 62
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-RECY'
+      DESCRIPT(N) = 'Hg(0) Land Prompt Recycling'
+      OFFSET(N)   = SPACING * 63
+
+      N           = N + 1
+      CATEGORY(N) = 'HGNET-OC'
+      DESCRIPT(N) = 'Hg(0) Net Ocean Emissions'
+      OFFSET(N)   = SPACING * 64
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-GEOG'
+      DESCRIPT(N) = 'Hg(0) Geogenic Emissions'
+      OFFSET(N)   = SPACING * 65
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-ANTH'
+      DESCRIPT(N) = 'Hg(II) Anthro Emissions'
+      OFFSET(N)   = SPACING * 66
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-AQUA'
+      DESCRIPT(N) = 'Hg(II) Ocean Mass'
+      OFFSET(N)   = SPACING * 67
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-SINK'
+      DESCRIPT(N) = 'Hg(II) Sinking'
+      OFFSET(N)   = SPACING * 68
+
+      N           = N + 1
+      CATEGORY(N) = 'HGP-ANTH'
+      DESCRIPT(N) = 'Hg(P) Anthro Emissions'
+      OFFSET(N)   = SPACING * 69
+
+      N           = N + 1
+      CATEGORY(N) = 'HGT-AQUA'
+      DESCRIPT(N) = 'Hg Total Ocean Mass'
+      OFFSET(N)   = SPACING * 70
+
+      N           = N + 1
+      CATEGORY(N) = 'HGP-AQUA'
+      DESCRIPT(N) = 'Hg(P) Ocean Mass'
+      OFFSET(N)   = SPACING * 71
+
+      N           = N + 1
+      CATEGORY(N) = 'HGP-CONV'
+      DESCRIPT(N) = 'Hg(II) Aqeous Conversion to Particle'
+      OFFSET(N)   = SPACING * 72
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-BURN'
+      DESCRIPT(N) = 'Hg(0) Biomass Burning Emissions'
+      OFFSET(N)   = SPACING * 73
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-VEGT'
+      DESCRIPT(N) = 'Hg(0) Veg Transp. Emissions'
+      OFFSET(N)   = SPACING * 74
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-SOIL'
+      DESCRIPT(N) = 'Hg(0) Soil Emissions'
+      OFFSET(N)   = SPACING * 75
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-FXUP'
+      DESCRIPT(N) = 'Hg(0) Gross Ocean Up Flux'
+      OFFSET(N)   = SPACING * 76
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-FXDN'
+      DESCRIPT(N) = 'Hg(0) Gross Ocean Down Flux'
+      OFFSET(N)   = SPACING * 77
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-SNOW'
+      DESCRIPT(N) = 'Hg(0) Snow Emissions'
+      OFFSET(N)   = SPACING * 78
+
+      N           = N + 1
+      CATEGORY(N) = 'HG-NETOX'
+      DESCRIPT(N) = 'Hg(0) to Hg(II) Net Oxidation'
+      OFFSET(N)   = SPACING * 79
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-OXOH'
+      DESCRIPT(N) = 'Hg(0) Oxidation to Hg(II) by OH'
+      OFFSET(N)   = SPACING * 80
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-OXO3'
+      DESCRIPT(N) = 'Hg(0) Oxidation to Hg(II) by O3'
+      OFFSET(N)   = SPACING * 81
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-SALT'
+      DESCRIPT(N) = 'Hg(II) Loss by Sea Salt'
+      OFFSET(N)   = SPACING * 82
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-SSRX'
+      DESCRIPT(N) = 'Hg(0) Sea Salt Reaction Rate'
+      OFFSET(N)   = SPACING * 83
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-OXBR'
+      DESCRIPT(N) = 'Hg(0) Oxidation to Hg(II) by Br'
+      OFFSET(N)   = SPACING * 84
+
+!---------------------------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'PL-HG2-$'
@@ -1325,6 +1634,32 @@
       OFFSET(N)   = SPACING * 59
 
       N           = N + 1
+      CATEGORY(N) = 'RST-SOIL'
+      DESCRIPT(N) = 'Soil NOx restart file'
+      OFFSET(N)   = SPACING * 60
+
+      ! Added for POPs (clf, 3/2/2011)
+      N           = N + 1
+      CATEGORY(N) = 'PG-SRCE'
+      DESCRIPT(N) = 'POPs Emissions'
+      OFFSET(N)   = SPACING * 52
+
+      N           = N + 1
+      CATEGORY(N) = 'PG-PP-$'
+      DESCRIPT(N) = 'POP partitioning/oxidation'
+      OFFSET(N)   = SPACING * 53
+
+      N           = N + 1
+      CATEGORY(N) = 'FJX-FLUX-$'
+      DESCRIPT(N) = 'Radiative flux from FAST-JX'
+      OFFSET(N)   = SPACING * 54
+
+      N           = N + 1
+      CATEGORY(N) = 'IJ-PSC-$'
+      DESCRIPT(N) = 'PSC restart file'
+      OFFSET(N)   = SPACING * 55
+
+      N           = N + 1
       CATEGORY(N) = 'RADMAP-$'
       DESCRIPT(N) = 'Radiative diagnostics'
       OFFSET(N)   = SPACING * 71
@@ -1342,7 +1677,7 @@
       END SUBROUTINE INIT_DIAGINFO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1355,56 +1690,45 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TRACERINFO
+      SUBROUTINE INIT_TRACERINFO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE DIAG03_MOD,   ONLY : ND03, PD03, PD03_PL
-      USE DIAG04_MOD,   ONLY : ND04
-      USE DIAG41_MOD,   ONLY : ND41
-      USE DIAG42_MOD,   ONLY : ND42
-      USE DIAG48_MOD,   ONLY : DO_SAVE_DIAG48
-      USE DIAG49_MOD,   ONLY : DO_SAVE_DIAG49
-      USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
-      USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
-      USE DIAG51b_MOD,  ONLY : DO_SAVE_DIAG51b
-      USE DIAG56_MOD,   ONLY : ND56
-      USE DIAG63_MOD,   ONLY:  DO_SAVE_DIAG63
-      USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
-      USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
-      USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
-      USE LOGICAL_MOD,  ONLY : LSOA
-      USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM,    ITS_A_H2HD_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM,   ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_HCN_SIM,    ITS_A_MERCURY_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM, ITS_A_TAGOX_SIM
-      USE TRACER_MOD,   ONLY : N_TRACERS,        TRACER_COEFF
-      USE TRACER_MOD,   ONLY : TRACER_MW_KG,     TRACER_NAME
-      USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI, IDTALPH, IDTLIMO
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, NEMANTHRO
-      !(hotp, 7/31/08)
-      USE TRACERID_MOD, ONLY : IDTSOA4, IDTSOAM, IDTSOAG, IDTSOA5
-      USE TRACERID_MOD, ONLY : IDTGLYX, IDTMGLY, IDTC2H4, IDTC2H2
-      USE TRACERID_MOD, ONLY : IDTGLYC, IDTHAC
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
-      !(FP, 6/2009) To remove hard-wired for biomass burning
-      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET
-      USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
-      USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
-      USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3
-      USE TRACERID_MOD, ONLY : IDBBC,   IDBOC
-      USE TRACERID_MOD, ONLY : IDBXYLE, IDBBENZ, IDBTOLU
-      USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4, IDBC2H2
-      USE TRACERID_MOD, ONLY : IDBGLYC, IDBHAC
-      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTACET
-      USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6
-      USE TRACERID_MOD, ONLY : IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
-      USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
-      USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
-      USE CMN_DIAG_MOD, ONLY : PD71R
-      USE JV_CMN_MOD,   ONLY : NSPECRADMENU, STRWVSELECT
+      USE CMN_DIAG_MOD,       ONLY : PD64
+      USE CMN_DIAG_MOD,       ONLY : PD71R
+      USE CMN_FJX_MOD,        ONLY : NSPECRADMENU, STRWVSELECT
+      USE DIAG03_MOD,         ONLY : ND03, PD03, PD03_PL
+      USE DIAG04_MOD,         ONLY : ND04
+      USE DIAG41_MOD,         ONLY : ND41
+      USE DIAG42_MOD,         ONLY : ND42
+      USE DIAG48_MOD,         ONLY : DO_SAVE_DIAG48
+      USE DIAG49_MOD,         ONLY : DO_SAVE_DIAG49
+      USE DIAG50_MOD,         ONLY : DO_SAVE_DIAG50
+      USE DIAG51_MOD,         ONLY : DO_SAVE_DIAG51
+      USE DIAG51b_MOD,        ONLY : DO_SAVE_DIAG51b
+      USE DIAG53_MOD,         ONLY : ND53, PD53
+      USE DIAG56_MOD,         ONLY : ND56
+      USE DIAG63_MOD,         ONLY:  DO_SAVE_DIAG63
+      USE DIAG_PL_MOD,        ONLY : DO_SAVE_PL,  GET_NFAM
+      USE DIAG_PL_MOD,        ONLY : GET_FAM_MWT, GET_FAM_NAME
+      USE DRYDEP_MOD,         ONLY : DEPNAME,     NUMDEP,    NTRAIND
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD
+      USE WETSCAV_MOD,        ONLY : GET_WETDEP_IDWETD
+      USE WETSCAV_MOD,        ONLY : GET_WETDEP_NSOL
+#if   defined( TOMAS )
+      USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
+#endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
@@ -1423,6 +1747,11 @@
 !  (7 ) Previous bug fix was erroneous; now corrected (dkh, bmy, 11/19/09)
 !  (8 ) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
 !        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
+!  (9 ) Add iniformation for ND61 (win, 7/9/09)
+!  (10) Manually add info for ND44 when TOMAS aerosols dry deposition because
+!        only numbers are real drydep species while the mass species just 
+!        tag along but we need them to show up in diagnostic too.  Reference  
+!        to TOMAS_MOD and use IDTNK1 from TRACERID_MOD (win, 7/14/09)
 !  20 Jul 2010 - C. Carouge  - Modifications to ND03 for mercury.
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
@@ -1432,6 +1761,7 @@
 !  09-Dec-2010 - H. Amos     - fix spacing and #s for PL-HG2-$ diagnostics
 !  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
 !                              tracerinfo.dat for the timeseries diagnostics
+!  22 Mar 2011 - C. Friedman - Added POPs
 !  24 Jan 2012 - M. Payer    - Change scale factors for Rn-Pb-Be simulation so
 !                              units are in mBq/SCM
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
@@ -1439,6 +1769,21 @@
 !                              Acetone from dry leaf matter and grasses is now
 !                              included in the direct emissions (ACETbg).
 !                              (E. Fischer)
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO and O3 as part of
+!                              removal of NOx-Ox partitioning. Removed code for
+!                              storing pure O3 as N_TRACERS+1.
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
+!  04 Sep 2013 - R. Yantosca - Fix ND44 tracer listing
+!  04 Sep 2013 - R. Yantosca - Now also reference everything in tracerid_mod.F
+!  04 Sep 2013 - R. Yantosca - Bug fix: # of ND46 tracers should be 20
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  31 Jan 2014 - R. Yantosca - Now save out tracerinfo.dat properly for TOMAS
+!  25 Apr 2014 - M. Sulprizio- Now include J-values for ACET in ND22
+!  27 May 2014 - M. Sulprizio- Now include J-values for ALD2, MVK, MACR, HAC,
+!                              and GLYC in ND22
+!  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to GET_FAM_MWT function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1448,10 +1793,17 @@
       INTEGER :: N, NN, NYMDb, NHMSb, T, T0, T1
       LOGICAL :: DO_TIMESERIES
 
+      REAL*8,     SAVE      :: POP_XMW
+      REAL*8                :: DUM
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      RC = GIGC_SUCCESS
+
+      DUM = 1.0
 
       ! Set a flag if any timeseries diagnostics are turned on
       DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
@@ -1461,31 +1813,15 @@
       !----------------------------------
       ! General tracer information
       !----------------------------------
-
-!hma,20120323
-      !Do not print HgP in the IJ-AVG-$ field.
-      !HgP is now emitted and treated as Hg2, so all HgP IJ-AVG-$
-      !  fields are just zeroes
-      IF ( ITS_A_MERCURY_SIM() ) THEN
-         N_TRACERS = N_TRACERS - 1
-      ENDIF
-
-      DO T = 1, N_TRACERS
+      DO T = 1, Input_Opt%N_TRACERS
 
          ! Store quantities for each tracer
-         NAME (T,45) = TRACER_NAME(T)
+         NAME (T,45) = Input_Opt%TRACER_NAME(T)
          FNAME(T,45) = TRIM( NAME(T,45) ) // ' tracer'
-         MOLC (T,45) = INT( TRACER_COEFF(T,1) )
+         MOLC (T,45) = INT( Input_Opt%TRACER_COEFF(T,1) )
          SCALE(T,45) = 1.0e+9
          INDEX(T,45) = T   !changed from N (phs, 3/19/03)
-
-         ! We usually report NOx as Tg N
-         IF ( TRIM( NAME(T,45) ) == 'NOx'  .or. 
-     &        TRIM( NAME(T,45) ) == 'NOX' ) THEN
-            MWT(T,45) = 14e-3
-         ELSE
-            MWT(T,45) = TRACER_MW_KG(T) 
-         ENDIF
+         MWT  (T,45) = Input_Opt%TRACER_MW_KG(T) 
 
          ! Special handling for hydrocarbons
          IF ( MOLC(T,45) > 1 ) THEN
@@ -1495,7 +1831,7 @@
          ENDIF
 
          ! Special handling for Rn-Pb-Be simulation (bmy, 5/11/05)
-         IF ( ITS_A_RnPbBe_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
             SELECT CASE( T ) 
                CASE( 1 )
                   UNIT (T,45) = 'mBq/SCM'
@@ -1512,30 +1848,14 @@
          ENDIF
 
          ! For mercury, print as pptv (bmy, 1/24/06)
-         IF ( ITS_A_MERCURY_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
             UNIT(T,45)  = 'pptv'
             SCALE(T,45) = 1.0e+12
          ENDIF
       ENDDO
 
       ! Number of ND45 tracers 
-      NTRAC(45) = N_TRACERS
-
-      !-------------------------------------
-      ! FULL-CHEMISTRY RUNS ONLY: 
-      ! Pure O3 is stored as N_TRACERS+1
-      !-------------------------------------
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
-         NTRAC(45)   = N_TRACERS + 1
-         T           = N_TRACERS + 1
-         NAME (T,45) = 'O3'
-         FNAME(T,45) = 'Pure O3 tracer'
-         UNIT (T,45) = 'ppbv'
-         MWT  (T,45) = TRACER_MW_KG(2)           ! Ox is tracer 2
-         MOLC (T,45) = INT( TRACER_COEFF(2,1) )  ! Ox is tracer 2
-         SCALE(T,45) = 1.0e+9
-         INDEX(T,45) = T
-      ENDIF
+      NTRAC(45) = Input_Opt%N_TRACERS
 
       !-------------------------------------
       ! Hg source, production & loss (ND03)
@@ -1545,7 +1865,11 @@
       ! Modified to avoid over-sized arrays.
       ! (ccc, 7/20/10)
       !-------------------------------------
-      IF ( ND03 > 0 ) THEN
+
+      !=====================================
+      ! Standard Hg simulation
+      !=====================================
+      IF ( (ND03 > 0) .AND. .NOT. (Input_Opt%LSPLIT) ) THEN !eds 9/7/10
          
          ! Number of tracers:
          ! PD03     = max # of tracers for HG-SRCE
@@ -1710,7 +2034,7 @@
          ENDDO
 
          ! Loop over tracers for OCEAN-HG
-         DO N = 1, N_TRACERS
+         DO N = 1, Input_Opt%N_TRACERS
          
             T = N + PD03 + PD03_PL
 
@@ -1721,7 +2045,7 @@
             SCALE(T,03) = 1e0
 
 
-            NAME (T,03) = TRACER_NAME(N) 
+            NAME (T,03) = Input_Opt%TRACER_NAME(N) 
 
 !--- Keep HgP for tracer 3 in the ocean now on. (ccc, 7/20/10)
 !                  ! Tracer 3 should be "HgC" instead of "HgP"
@@ -1736,7 +2060,7 @@
          ! Loop over tracers for SNOW-HG
          DO N = 1, 1
          
-            T = N + PD03 + PD03_PL + N_TRACERS
+            T = N + PD03 + PD03_PL + Input_Opt%N_TRACERS
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -1754,6 +2078,2309 @@
          NTRAC(03) = T
          
       ENDIF
+
+      !=====================================
+      ! Tagged Hg simulation
+      !=====================================
+      IF ( (ND03 > 0) .AND. (Input_Opt%LSPLIT) ) THEN !eds 9/7/10
+
+         ! Define quantities
+         UNIT (T,03) = 'kg'
+         MOLC (T,03) = 1
+         MWT  (T,03) = 201e-3
+         SCALE(T,03) = 1e0
+
+       	 !-------------! 
+         ! HG0-ANTH    !
+       	 !-------------! 
+
+         T = 1
+         SELECT CASE( T )
+           CASE( 1 )
+               NAME (T,03) = 'Hg0'
+               FNAME(T,03) = 'Hg0'
+               INDEX(T,03) = T + ( SPACING * 61 )  !eds 9/4/10
+         END SELECT  
+
+
+         ! Number of tracers
+!         NTRAC(03) = N_Hg_CATS
+         NTRAC(03) =  480
+
+       	 !-------------! 
+         ! HG0-AQUA    !
+       	 !-------------! 
+
+         ! Loop over tracers
+!         DO N = 1, NTRAC(03)
+         DO N = 1, N_Hg_CATS
+
+         T = N + 1
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 2 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 62 )  !eds 9/3/10 
+              CASE( 3 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+       	       	  INDEX(T,03) =	N + ( SPACING *	62 )  
+              CASE( 4 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 62 ) 
+              CASE( 5 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 62 )  
+              CASE( 6 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 7 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 8 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 9 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 10 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 11 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 12 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 13 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 14 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 15 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 16 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 17 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 18 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 19 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 20 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 21 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 22 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 23 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 24 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 25 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 26 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 27 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 28 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 29 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 30 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+         !-------------!
+         ! HG0-RECY    !
+         !-------------!
+
+         ! Loop over tracers
+!         DO N = 1, NTRAC(03)
+         DO N = 1, N_Hg_CATS
+
+         T = N + 1 + N_Hg_CATS
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 31 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 63 ) 
+              CASE( 32 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 33 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 63 ) 
+              CASE( 34 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 63 )  
+              CASE( 35 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 36 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 37 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 38 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 39 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 40 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 41 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 42 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 43 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 44 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 45 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 46 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 47 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 48 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 49 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 50 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 51 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 52 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 53 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 54 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 55 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 56 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 57 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 58 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 59 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+         !-------------!
+         ! HGNET-OC    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 1 + (2d0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 60 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 64 ) 
+              CASE( 61 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 62 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 64 ) 
+              CASE( 63 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 64 )  
+              CASE( 64 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 65 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 66 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 67 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 68 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 69 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 70 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 71 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 72 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 73 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 74 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 75 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 76 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 77 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 78 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 79 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 80 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 81 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 82 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 83 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 84 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 85 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 86 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 87 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 88 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+        
+
+         !-------------!
+         ! HG0-GEOG    !
+         !-------------!
+
+         T = 89
+         SELECT CASE( T )
+           CASE( 89 )
+               NAME (T,03) = 'Hg0'
+               FNAME(T,03) = 'Hg0'
+               INDEX(T,03) = 1 + ( SPACING * 65 )          
+         END SELECT
+
+
+         !-------------!
+         ! HG2-ANTH    !
+         !-------------!
+
+         T = 90
+         N = 1
+         SELECT CASE( T )
+           CASE( 90 )
+               NAME (T,03) = 'Hg2'
+               FNAME(T,03) = 'Hg2'
+               INDEX(T,03) = N + ( SPACING * 66 )    
+         END SELECT
+
+
+         !-------------!
+         ! HG2-AQUA    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 3 + (3D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 91 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 67 ) 
+              CASE( 92 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 93 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 67 ) 
+              CASE( 94 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 67 )  
+              CASE( 95 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 96 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 97 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 98 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 99 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 100 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 101 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 102 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 103 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 104 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 105 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 106 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 107 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 108 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 109 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 110 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 111 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 112 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 113 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 114 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 115 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 116 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 117 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 118 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 119 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG2-SINK    !
+         !-------------!
+
+         T = 120
+         N = 1
+         SELECT CASE( T )
+           CASE( 120 )
+               NAME (T,03) = 'Hg2'
+               FNAME(T,03) = 'Hg2'
+               INDEX(T,03) = N + ( SPACING * 68 )          
+         END SELECT
+
+
+         !-------------!
+         ! HGP-ANTH    !
+         !-------------!
+
+         T = 121
+         N = 1
+         SELECT CASE( T )
+           CASE( 121 )
+               NAME (T,03) = 'HgP'
+               FNAME(T,03) = 'HgP'
+               INDEX(T,03) = N + ( SPACING * 69 )          
+         END SELECT
+
+
+         !-------------!
+         ! HGT-AQUA    !
+         !-------------!
+
+         T = 122
+         N = 1
+         SELECT CASE( T )
+           CASE( 122 )
+               NAME (T,03) = 'HgTOT'
+               FNAME(T,03) = 'Hg Total'
+               INDEX(T,03) = N + ( SPACING * 70 )          
+         END SELECT
+
+
+
+         !-------------!
+         ! HGP-AQUA    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 6 + (4D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 123 )
+                  NAME (T,03) = 'HgP'
+                  FNAME(T,03) = 'HgP'
+                  INDEX(T,03) = N + ( SPACING * 71 ) 
+              CASE( 124 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 125 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 71 ) 
+              CASE( 126 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 71 )  
+              CASE( 127 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 128 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 129 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 130 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 131 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 132 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 133 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 134 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 135 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 136 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 137 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 138 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 139 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 140 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 141 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 142 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 143 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 144 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 145 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 146 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 147 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 148 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 149 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 150 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 151 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HGP-CONV    !
+         !-------------!
+
+         T = 152
+         N = 1
+         SELECT CASE( T )
+           CASE( 152 )
+               NAME (T,03) = 'HgP'
+               FNAME(T,03) = 'HgP'
+               INDEX(T,03) = N + ( SPACING * 72 )          
+         END SELECT
+
+
+         !-------------!
+         ! HG0-BURN    !
+         !-------------!
+
+         T = 153
+         N = 1
+         SELECT CASE( T )
+           CASE( 153 )
+               NAME (T,03) = 'Hg0'
+               FNAME(T,03) = 'Hg0'
+               INDEX(T,03) = N + ( SPACING * 73 )          
+         END SELECT
+
+
+         !-------------!
+         ! HG0-VEGT    !
+         !-------------!
+
+         T = 154
+         N = 1
+         SELECT CASE( T )
+           CASE( 154 )
+               NAME (T,03) = 'Hg0'
+               FNAME(T,03) = 'Hg0'
+               INDEX(T,03) = N + ( SPACING * 74 )          
+         END SELECT
+
+
+         !-------------!
+         ! HG0-SOIL    !
+         !-------------!
+
+         T = 155
+         N = 1
+         SELECT CASE( T )
+           CASE( 155 )
+               NAME (T,03) = 'Hg0'
+               FNAME(T,03) = 'Hg0'
+               INDEX(T,03) = N + ( SPACING * 75 )          
+         END SELECT
+
+
+         !-------------!
+         ! HG0-FXUP    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 10 + (5D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 156 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 76 ) 
+              CASE( 157 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 158 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 76 ) 
+              CASE( 159 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 76 )  
+              CASE( 160 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 161 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 162 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 163 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 164 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 165 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 166 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 167 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 168 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 169 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 170 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 171 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 172 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 173 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 174 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 175 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 176 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 177 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 178 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 179 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 180 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 181 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 182 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 183 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 184 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG0-FXDN    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 10 + (6D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 185 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 77 ) 
+              CASE( 186 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 187 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 77 ) 
+              CASE( 188 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 77 )  
+              CASE( 189 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 190 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 191 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 192 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 193 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 194 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 195 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 196 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 197 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 198 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 199 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 200 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 201 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 202 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 203 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 204 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 205 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 206 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 207 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 208 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 209 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 210 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 211 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 212 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 213 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG0-SNOW    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 10 + (7D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 214 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 78 ) 
+              CASE( 215 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 216 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 78 ) 
+              CASE( 217 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 78 )  
+              CASE( 218 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 219 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 220 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 221 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 222 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 223 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 224 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 225 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 226 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 227 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 228 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 229 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 230 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 231 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 232 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 233 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 234 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 235 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 236 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 237 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 238 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 239 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 240 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 241 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 242 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG-NETOX    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 10 + (8D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 243 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 79 ) 
+              CASE( 244 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 245 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 79 ) 
+              CASE( 246 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 79 )  
+              CASE( 247 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 248 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 249 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 250 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 251 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 252 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 253 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 254 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 255 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 256 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 257 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 258 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 259 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 260 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 261 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 262 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 263 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 264 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 265 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 266 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 267 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 268 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 269 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 270 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 271 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG2-OXOH    !
+         !-------------!
+
+         T = 272
+         N = 1
+         SELECT CASE( T )
+           CASE( 272 )
+               NAME (T,03) = 'Hg2'
+               FNAME(T,03) = 'Hg2'
+               INDEX(T,03) = N + ( SPACING * 80 )          
+         END SELECT
+
+
+
+         !-------------!
+         ! HG2-OXO3    !
+         !-------------!
+
+         T = 273
+         N = 1
+         SELECT CASE( T )
+           CASE( 273 )
+               NAME (T,03) = 'Hg2'
+               FNAME(T,03) = 'Hg2'
+               INDEX(T,03) = N + ( SPACING * 81 )          
+         END SELECT
+
+
+
+         !-------------!
+         ! HG2-SALT    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 12 + (9D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 274 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 82 ) 
+              CASE( 275 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 276 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 82 ) 
+              CASE( 277 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 82 )  
+              CASE( 278 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 279 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 280 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 281 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 282 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 283 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 284 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 285 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 286 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 287 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 288 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 289 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 290 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 291 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 292 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 293 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 294 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 295 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 296 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 297 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 298 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 299 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 300 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 301 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 302 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG2-SSRX    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 12 + (10D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 303 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 83 ) 
+              CASE( 304 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 305 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 83 ) 
+              CASE( 306 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 83 )  
+              CASE( 307 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 308 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 309 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 310 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 311 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 312 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 313 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 314 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 315 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 316 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 317 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 318 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 319 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 320 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 321 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 322 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 323 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 324 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 325 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 326 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 327 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 328 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 329 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 330 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 331 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG2-OXBR    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 12 + (11D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 332 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 84 ) 
+              CASE( 333 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 334 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 84 ) 
+              CASE( 335 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 84 )  
+              CASE( 336 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 337 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 338 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 339 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 340 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 341 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 342 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 343 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 344 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 345 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 346 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 347 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 348 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 349 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 350 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 351 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 352 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 353 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 354 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 355 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 356 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 357 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 358 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 359 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 360 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! PL-HG2-$    !
+         !-------------!
+
+         T = 361
+         N = 1
+         SELECT CASE( T )
+           CASE( 361 )
+               NAME (T,03) = 'Br'
+               FNAME(T,03) = 'Br Concentration'
+               INDEX(T,03) = N + ( SPACING * 35 )
+         END SELECT
+
+
+         !-------------!
+         ! PL-HG2-$    !
+         !-------------!
+
+         T = 362
+         N = 2
+         SELECT CASE( T )
+           CASE( 362 )
+               NAME (T,03) = 'BrO'
+               FNAME(T,03) = 'BrO Concentration'
+               INDEX(T,03) = N + ( SPACING * 35 )
+         END SELECT
+
+
+       	 !-------------! 
+         ! OCEAN-HG    !
+       	 !-------------! 
+
+         ! Loop over tracers
+         DO N = 1, 87
+
+         T = N + 14 + (12D0 * N_HG_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 363 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 41 )  !eds 9/9/10 
+              CASE( 364 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 365 )
+                  NAME (T,03) = 'HgP'
+                  FNAME(T,03) = 'HgP'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 366 )
+                  NAME (T,03) = 'Hg0_can'
+                  FNAME(T,03) = 'Hg0 Canada'
+       	       	  INDEX(T,03) =	N + ( SPACING *	41 )  
+              CASE( 367 )
+                  NAME (T,03) = 'Hg0_usa'
+                  FNAME(T,03) = 'Hg0 USA'
+                  INDEX(T,03) = N + ( SPACING * 41 ) 
+              CASE( 368 )
+                  NAME (T,03) = 'Hg0_cam'
+                  FNAME(T,03) = 'Hg0 Central America'
+                  INDEX(T,03) = N + ( SPACING * 41 )  
+              CASE( 369 )
+                  NAME (T,03) = 'Hg0_sam'
+                  FNAME(T,03) = 'Hg0 South American'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 370 )
+                  NAME (T,03) = 'Hg0_waf'
+                  FNAME(T,03) = 'Hg0 West Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 371 )
+                  NAME (T,03) = 'Hg0_eaf'
+                  FNAME(T,03) = 'Hg0 East Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 372 )
+                  NAME (T,03) = 'Hg0_saf'
+                  FNAME(T,03) = 'Hg0 South Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 373 )
+                  NAME (T,03) = 'Hg0_naf'
+                  FNAME(T,03) = 'Hg0 North Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 374 )
+                  NAME (T,03) = 'Hg0_eur'
+                  FNAME(T,03) = 'Hg0 OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 375 )
+                  NAME (T,03) = 'Hg0_eeu'
+                  FNAME(T,03) = 'Hg0 Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 376 )
+                  NAME (T,03) = 'Hg0_sov'
+                  FNAME(T,03) = 'Hg0 Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 377 )
+                  NAME (T,03) = 'Hg0_mde'
+                  FNAME(T,03) = 'Hg0 Middle East'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 378 )
+                  NAME (T,03) = 'Hg0_sas'
+                  FNAME(T,03) = 'Hg0 South Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 379 )
+                  NAME (T,03) = 'Hg0_eas'
+                  FNAME(T,03) = 'Hg0 East Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 380 )
+                  NAME (T,03) = 'Hg0_sea'
+                  FNAME(T,03) = 'Hg0 Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 381 )
+                  NAME (T,03) = 'Hg0_jpn'
+                  FNAME(T,03) = 'Hg0 Japan'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 382 )
+                  NAME (T,03) = 'Hg0_ocn'
+                  FNAME(T,03) = 'Hg0 Oceania'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 383 )
+                  NAME (T,03) = 'Hg0_so'
+                  FNAME(T,03) = 'Hg0 Soil'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 384 )
+                  NAME (T,03) = 'Hg0_bb'
+                  FNAME(T,03) = 'Hg0 Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 385 )
+                  NAME (T,03) = 'Hg0_geo'
+                  FNAME(T,03) = 'Hg0 Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 386 )
+                  NAME (T,03) = 'Hg0_atl'
+                  FNAME(T,03) = 'Hg0 Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 387 )
+                  NAME (T,03) = 'Hg0_nat'
+                  FNAME(T,03) = 'Hg0 North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 388 )
+                  NAME (T,03) = 'Hg0_sat'
+                  FNAME(T,03) = 'Hg0 South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 389 )
+                  NAME (T,03) = 'Hg0_npa'
+                  FNAME(T,03) = 'Hg0 North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 390 )
+                  NAME (T,03) = 'Hg0_arc'
+                  FNAME(T,03) = 'Hg0 Arctic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 391 )
+                  NAME (T,03) = 'Hg0_ant'
+                  FNAME(T,03) = 'Hg0 Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 392 )
+                  NAME (T,03) = 'Hg0_ocn'
+                  FNAME(T,03) = 'Hg0 Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 393 )
+                  NAME (T,03) = 'Hg0_str'
+                  FNAME(T,03) = 'Hg0 Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 394 )
+                  NAME (T,03) = 'Hg2_can'
+                  FNAME(T,03) = 'Hg2 Canada'
+       	       	  INDEX(T,03) =	N + ( SPACING *	41 )  
+              CASE( 395 )
+                  NAME (T,03) = 'Hg2_usa'
+                  FNAME(T,03) = 'Hg2 USA'
+                  INDEX(T,03) = N + ( SPACING * 41 ) 
+              CASE( 396 )
+                  NAME (T,03) = 'Hg2_cam'
+                  FNAME(T,03) = 'Hg2 Central America'
+                  INDEX(T,03) = N + ( SPACING * 41 )  
+              CASE( 397 )
+                  NAME (T,03) = 'Hg2_sam'
+                  FNAME(T,03) = 'Hg2 South American'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 398 )
+                  NAME (T,03) = 'Hg2_waf'
+                  FNAME(T,03) = 'Hg2 West Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 399 )
+                  NAME (T,03) = 'Hg2_eaf'
+                  FNAME(T,03) = 'Hg2 East Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 400 )
+                  NAME (T,03) = 'Hg2_saf'
+                  FNAME(T,03) = 'Hg2 South Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 401 )
+                  NAME (T,03) = 'Hg2_naf'
+                  FNAME(T,03) = 'Hg2 North Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 402 )
+                  NAME (T,03) = 'Hg2_eur'
+                  FNAME(T,03) = 'Hg2 OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 403 )
+                  NAME (T,03) = 'Hg2_eeu'
+                  FNAME(T,03) = 'Hg2 Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 404 )
+                  NAME (T,03) = 'Hg2_sov'
+                  FNAME(T,03) = 'Hg2 Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 405 )
+                  NAME (T,03) = 'Hg2_mde'
+                  FNAME(T,03) = 'Hg2 Middle East'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 406 )
+                  NAME (T,03) = 'Hg2_sas'
+                  FNAME(T,03) = 'Hg2 South Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 407 )
+                  NAME (T,03) = 'Hg2_eas'
+                  FNAME(T,03) = 'Hg2 East Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 408 )
+                  NAME (T,03) = 'Hg2_sea'
+                  FNAME(T,03) = 'Hg2 Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 409 )
+                  NAME (T,03) = 'Hg2_jpn'
+                  FNAME(T,03) = 'Hg2 Japan'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 410 )
+                  NAME (T,03) = 'Hg2_ocn'
+                  FNAME(T,03) = 'Hg2 Oceania'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 411 )
+                  NAME (T,03) = 'Hg2_so'
+                  FNAME(T,03) = 'Hg2 Soil'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 412 )
+                  NAME (T,03) = 'Hg2_bb'
+                  FNAME(T,03) = 'Hg2 Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 413 )
+                  NAME (T,03) = 'Hg2_geo'
+                  FNAME(T,03) = 'Hg2 Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 414 )
+                  NAME (T,03) = 'Hg2_atl'
+                  FNAME(T,03) = 'Hg2 Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 415 )
+                  NAME (T,03) = 'Hg2_nat'
+                  FNAME(T,03) = 'Hg2 North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 416 )
+                  NAME (T,03) = 'Hg2_sat'
+                  FNAME(T,03) = 'Hg2 South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 417 )
+                  NAME (T,03) = 'Hg2_npa'
+                  FNAME(T,03) = 'Hg2 North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 418 )
+                  NAME (T,03) = 'Hg2_arc'
+                  FNAME(T,03) = 'Hg2 Arctic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 419 )
+                  NAME (T,03) = 'Hg2_ant'
+                  FNAME(T,03) = 'Hg2 Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 420 )
+                  NAME (T,03) = 'Hg2_ocn'
+                  FNAME(T,03) = 'Hg2 Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 421 )
+                  NAME (T,03) = 'Hg2_str'
+                  FNAME(T,03) = 'Hg2 Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 422 )
+                  NAME (T,03) = 'HgP_can'
+                  FNAME(T,03) = 'HgP Canada'
+       	       	  INDEX(T,03) =	N + ( SPACING *	41 )  
+              CASE( 423 )
+                  NAME (T,03) = 'HgP_usa'
+                  FNAME(T,03) = 'HgP USA'
+                  INDEX(T,03) = N + ( SPACING * 41 ) 
+              CASE( 424 )
+                  NAME (T,03) = 'HgP_cam'
+                  FNAME(T,03) = 'HgP Central America'
+                  INDEX(T,03) = N + ( SPACING * 41 )  
+              CASE( 425 )
+                  NAME (T,03) = 'HgP_sam'
+                  FNAME(T,03) = 'HgP South American'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 426 )
+                  NAME (T,03) = 'HgP_waf'
+                  FNAME(T,03) = 'HgP West Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 427 )
+                  NAME (T,03) = 'HgP_eaf'
+                  FNAME(T,03) = 'HgP East Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 428 )
+                  NAME (T,03) = 'HgP_saf'
+                  FNAME(T,03) = 'HgP South Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 429 )
+                  NAME (T,03) = 'HgP_naf'
+                  FNAME(T,03) = 'HgP North Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 430 )
+                  NAME (T,03) = 'HgP_eur'
+                  FNAME(T,03) = 'HgP OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 431 )
+                  NAME (T,03) = 'HgP_eeu'
+                  FNAME(T,03) = 'HgP Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 432 )
+                  NAME (T,03) = 'HgP_sov'
+                  FNAME(T,03) = 'HgP Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 433 )
+                  NAME (T,03) = 'HgP_mde'
+                  FNAME(T,03) = 'HgP Middle East'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 434 )
+                  NAME (T,03) = 'HgP_sas'
+                  FNAME(T,03) = 'HgP South Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 435 )
+                  NAME (T,03) = 'HgP_eas'
+                  FNAME(T,03) = 'HgP East Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 436 )
+                  NAME (T,03) = 'HgP_sea'
+                  FNAME(T,03) = 'HgP Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 437 )
+                  NAME (T,03) = 'HgP_jpn'
+                  FNAME(T,03) = 'HgP Japan'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 438 )
+                  NAME (T,03) = 'HgP_ocn'
+                  FNAME(T,03) = 'HgP Oceania'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 439 )
+                  NAME (T,03) = 'HgP_so'
+                  FNAME(T,03) = 'HgP Soil'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 440 )
+                  NAME (T,03) = 'HgP_bb'
+                  FNAME(T,03) = 'HgP Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 441 )
+                  NAME (T,03) = 'HgP_geo'
+                  FNAME(T,03) = 'HgP Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 442 )
+                  NAME (T,03) = 'HgP_atl'
+                  FNAME(T,03) = 'HgP Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 443 )
+                  NAME (T,03) = 'HgP_nat'
+                  FNAME(T,03) = 'HgP North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 444 )
+                  NAME (T,03) = 'HgP_sat'
+                  FNAME(T,03) = 'HgP South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 445 )
+                  NAME (T,03) = 'HgP_npa'
+                  FNAME(T,03) = 'HgP North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 446 )
+                  NAME (T,03) = 'HgP_arc'
+                  FNAME(T,03) = 'HgP Arctic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 447 )
+                  NAME (T,03) = 'HgP_ant'
+                  FNAME(T,03) = 'HgP Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 448 )
+                  NAME (T,03) = 'HgP_ocn'
+                  FNAME(T,03) = 'HgP Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 449 )
+                  NAME (T,03) = 'HgP_str'
+                  FNAME(T,03) = 'HgP Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+       	 !-------------! 
+         ! SNOW-HG     !
+       	 !-------------! 
+
+         ! Loop over tracers
+         DO N = 1, 31
+
+         T = N + 14 + (15D0 * N_HG_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 450 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 49 )  !eds 9/9/10 
+              CASE( 451 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 452 )
+                  NAME (T,03) = 'HgP'
+                  FNAME(T,03) = 'HgP'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 453 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+       	       	  INDEX(T,03) =	N + ( SPACING *	49 )  
+              CASE( 454 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 49 ) 
+              CASE( 455 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 49 )  
+              CASE( 456 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 457 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 458 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 459 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 460 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 461 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 462 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 463 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 464 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 465 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 466 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 467 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 468 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 469 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 470 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 471 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 472 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 473 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 474 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 475 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 476 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 477 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 478 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 479 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 480 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+      ENDIF ! LSPLIT
+
 
       !-------------------------------------
       ! CO2 sources & fluxes
@@ -1896,11 +4523,11 @@
       !-------------------------------------
       IF ( ND07 > 0 ) THEN
 
+
          ! Number of tracers
-         IF ( LSOA ) THEN
-            !Add SOA5. (ccc, 2/4/10)
-            !NTRAC(07) = 15
-            NTRAC(07) = 16
+         IF ( Input_Opt%LSOA ) THEN
+            ! hotp updated for SOA (7/31/08)
+            NTRAC(07) = 15
          ELSE
             NTRAC(07) = 2
          ENDIF
@@ -1913,85 +4540,89 @@
             MOLC (T,07) = 1
             MWT  (T,07) = 12e-3
             SCALE(T,07) = 1e0
+
             ! Get name, long-name, tracern umber
             SELECT CASE( T )
                CASE( 1 )
                   NAME (T,07) = 'BLKC'
                   FNAME(T,07) = 'Black (Elemental) Carbon'
                   INDEX(T,07) = IDTBCPI + ( SPACING * 33 )
+                  UNIT (T,07) = 'kgC' ! SOAupdate (hotp 7/29/10)
                CASE( 2 )
                   NAME (T,07) = 'ORGC'
                   FNAME(T,07) = 'Organic Carbon'
-                  INDEX(T,07) = IDTOCPI + ( SPACING * 33 )
-               CASE( 3 )
-                  NAME (T,07) = 'ALPH'
-                  FNAME(T,07) = 'Alpha-Pinene'
+                  UNIT (T,07) = 'kgC' ! SOAupdate (hotp 7/29/10)
+                  ! SOAupdate: semivolpoa: replace OCPI with POA (hotp 2/17/09)
+                  IF ( IDTOCPI > 0 )
+     &               INDEX(T,07) = IDTOCPI + ( SPACING * 33 )
+                  IF ( IDTPOA1  > 0 )
+     &               INDEX(T,07) = IDTPOA1 + ( SPACING * 33 )
+               CASE( 3 ) ! SOAupdate (hotp 7/29/10)
+                  NAME (T,07) = 'MTPA'
+                  FNAME(T,07) = 'lumped ALPH'
+                  INDEX(T,07) = IDTMTPA + ( SPACING * 33 )
                   MWT  (T,07) = 136e-3
-                  INDEX(T,07) = IDTALPH + ( SPACING * 33 )
                CASE( 4 )
                   NAME (T,07) = 'LIMO'
                   FNAME(T,07) = 'Limonene'
                   MWT  (T,07) = 136e-3
                   INDEX(T,07) = IDTLIMO + ( SPACING * 33 )
-               CASE( 5 )
-                  NAME (T,07) = 'TERP'
-                  FNAME(T,07) = 'Terpenes'
+               CASE( 5 ) ! SOAupdate (hotp 7/29/10)
+                  NAME (T,07) = 'MTPO'
+                  FNAME(T,07) = 'lumped other mtp'
+                  INDEX(T,07) = IDTMTPO + ( SPACING * 33 )
                   MWT  (T,07) = 136e-3
-                  INDEX(T,07) = IDTLIMO + 1 + ( SPACING * 33 )
-               CASE( 6 )
-                  NAME (T,07) = 'ALCO'
-                  FNAME(T,07) = 'Alcohols'
-                  MWT  (T,07) = 142e-3     ! Actually carbon_mod.f uses 154.25
-                  INDEX(T,07) = IDTLIMO + 2 + ( SPACING * 33 )
-               CASE( 7 )
+               CASE( 6 ) ! SOAupdate hotp
                   NAME (T,07) = 'SESQ'
                   FNAME(T,07) = 'Sesqterpene'
                   MWT  (T,07) = 204e-3
                   INDEX(T,07) = IDTLIMO + 3 + ( SPACING * 33 )
-               CASE( 8 )
-                  NAME (T,07) = 'SOA1'
-                  FNAME(T,07) = 'Aer prods of ALPH+LIMO+TERP ox'
-                  MWT  (T,07) = 150e-3
-                  INDEX(T,07) = IDTSOA1 + ( SPACING * 33 )
-               CASE( 9 )
-                  NAME (T,07) = 'SOA2'
-                  FNAME(T,07) = 'Aerosol prod of ALCO ox'
-                  MWT  (T,07) = 160e-3
-                  INDEX(T,07) = IDTSOA2 + ( SPACING * 33 )
-               CASE( 10 )
-                  NAME (T,07) = 'SOA3'
-                  FNAME(T,07) = 'Aerosol prod of SESQ ox'
-                  MWT  (T,07) = 220e-3
-                  INDEX(T,07) = IDTSOA3 + ( SPACING * 33 )
-
-               CASE( 11 )
-                  NAME (T,07) = 'SOA4'
-                  FNAME(T,07) = 'Aerosol prod of ISOP ox'
-                  MWT  (T,07) = 130e-3
-                  INDEX(T,07) = IDTSOA4 + ( SPACING * 33 )
+               CASE( 7 ) ! SOAupdate hotp
+                  NAME (T,07) = 'TSOA'
+                  FNAME(T,07) = 'mono+sesq aerosol'
+                  INDEX(T,07) = IDTTSOA1 + ( SPACING * 33 )
+               CASE( 8 ) ! SOAupdate hotp
+                  NAME (T,07) = 'ISOA'
+                  FNAME(T,07) = 'isoprene aerosol'
+                  INDEX(T,07) = IDTISOA1 + ( SPACING * 33 )
+               CASE( 9 ) ! SOAupdate hotp
+                  NAME (T,07) = 'ASOA'
+                  FNAME(T,07) = 'BTX + IVOC aerosol'
+                  INDEX(T,07) = IDTASOA1 + ( SPACING * 33 )
+               CASE( 10 ) ! SOAupdate update 5/27/10 hotp
+                  NAME (T,07) = 'OPOA'
+                  FNAME(T,07) = 'OPOA production'
+                  IF ( IDTOPOA1 > 0 ) THEN ! hotp 6/8/10
+                     INDEX(T,07) = IDTOPOA1 + ( SPACING * 33 )
+                  ELSE
+                     INDEX(T,07) = 80 + (SPACING * 33 )
+                  ENDIF
+                  UNIT (T,07) = 'kgC'
+               CASE( 11 ) ! SOAupdate update 5/27/10 hotp
+                  NAME (T,07) = 'OPOG'
+                  FNAME(T,07) = 'POG + OH reaction'
+                  UNIT (T,07) = 'kgC'
+                  IF ( IDTOPOA1 > 0 ) THEN ! hotp 6/8/10
+                     INDEX(T,07) = IDTOPOG1 + ( SPACING * 33 )
+                  ELSE
+                     INDEX(T,07) = 81 + (SPACING * 33 )
+                  ENDIF
                CASE( 12 )
-                  NAME (T,07) = 'SOA5'
-                  FNAME(T,07) = 'Aerosol prod of AROM ox'
-                  INDEX(T,07) = IDTSOA5 + ( SPACING * 33 )
-               CASE( 13 )
                   NAME (T,07) = 'SOAG'
                   FNAME(T,07) = 'SOAG production in aq. aerosol'
                   MWT  (T,07) = 58e-3
                   INDEX(T,07) = IDTSOAG + ( SPACING * 33 )
-
-               CASE( 14 )
+               CASE( 13 )
                   NAME (T,07) = 'SOAM'
                   FNAME(T,07) = 'SOAM production in aq. aerosol'
                   MWT  (T,07) = 72e-3
                   INDEX(T,07) = IDTSOAM + ( SPACING * 33 )
-
-               CASE( 15 )
+               CASE( 14 )
                   NAME (T,07) = 'SOAG'
                   FNAME(T,07) = 'SOAG production in clouds'
                   MWT  (T,07) = 58e-3
                   INDEX(T,07) = 91 + ( SPACING * 33 )
-
-               CASE( 16 )
+               CASE( 15 )
                   NAME (T,07) = 'SOAM'
                   FNAME(T,07) = 'SOAM production in clouds'
                   MWT  (T,07) = 72e-3
@@ -2010,16 +4641,17 @@
       IF ( ND09 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(09) = N_TRACERS + 6
+         NTRAC(09) = Input_Opt%N_TRACERS + 6
 
          ! Loop over tracers: HCN-PL-$
          DO T = 1, NTRAC(09)-6
-            NAME (T,09) = TRACER_NAME(T)
-            FNAME(T,09) = TRIM( TRACER_NAME(T) ) // ' lost via OH rxn'
+            NAME (T,09) = Input_Opt%TRACER_NAME(T)
+            FNAME(T,09) = TRIM( Input_Opt%TRACER_NAME(T) ) 
+     &                    // ' lost via OH rxn'
             UNIT (T,09) = 'kg'
             INDEX(T,09) = T + ( SPACING * 38 )
             MOLC (T,09) = 1
-            MWT  (T,09) = TRACER_MW_KG(T)
+            MWT  (T,09) = Input_Opt%TRACER_MW_KG(T)
             SCALE(T,09) = 1e0
          ENDDO
 
@@ -2027,33 +4659,33 @@
          DO T = NTRAC(09)-6+1, NTRAC(09)
 
             ! Get tracer number, C number, scale factor, unit
-            INDEX(T,09) = ( T - N_TRACERS ) + ( SPACING * 39 )
+            INDEX(T,09) = ( T - Input_Opt%N_TRACERS ) + ( SPACING * 39 )
             MOLC (T,09) = 1
             SCALE(T,09) = 1e0
             UNIT (T,09) = 'molec/cm2/s'
               
             ! Get name, longname, unit, mwt
-            IF ( T == N_TRACERS+1 ) THEN
+            IF ( T == Input_Opt%N_TRACERS+1 ) THEN
                NAME (T,09) = 'HCNbb'
                FNAME(T,09) = 'HCN biomass emissions'
                MWT  (T,09) = 27d-3
-            ELSE IF ( T == N_TRACERS+2 ) THEN
+            ELSE IF ( T == Input_Opt%N_TRACERS+2 ) THEN
                NAME (T,09) = 'CH3CNbb'
                FNAME(T,09) = 'CH3CN biomass emissions'
                MWT  (T,09) = 41d-3
-            ELSE IF ( T == N_TRACERS+3 ) THEN
+            ELSE IF ( T == Input_Opt%N_TRACERS+3 ) THEN
                NAME (T,09) = 'HCNdf'
                FNAME(T,09) = 'HCN domestic FF emiss'
                MWT  (T,09) = 27d-3
-            ELSE IF ( T == N_TRACERS+4 ) THEN
+            ELSE IF ( T == Input_Opt%N_TRACERS+4 ) THEN
                NAME (T,09) = 'CH3CNdf'
                FNAME(T,09) = 'CH3CN domestic FF emiss'
                MWT  (T,09) = 41d-3
-            ELSE IF ( T == N_TRACERS+5 ) THEN
+            ELSE IF ( T == Input_Opt%N_TRACERS+5 ) THEN
                NAME (T,09) = 'HCNoc'
                FNAME(T,09) = 'HCN ocean uptake'
                MWT  (T,09) = 27d-3
-            ELSE IF ( T == N_TRACERS+6 ) THEN
+            ELSE IF ( T == Input_Opt%N_TRACERS+6 ) THEN
                NAME (T,09) = 'CH3CNoc'
                FNAME(T,09) = 'CH3CN ocean uptake'
                MWT  (T,09) = 41d-3
@@ -2299,12 +4931,13 @@
             T = GET_WETDEP_IDWETD(N)
           
             ! Define quantities
-            NAME (N,17) = 'Ff_' // TRIM( TRACER_NAME(T) )
-            FNAME(N,17) = 'F/f ratio for ' // TRIM( TRACER_NAME(T) )
+            NAME (N,17) = 'Ff_' // TRIM( Input_Opt%TRACER_NAME(T) )
+            FNAME(N,17) = 'F/f ratio for ' // 
+     &                     TRIM( Input_Opt%TRACER_NAME(T) )
             UNIT (N,17) = 'unitless'
             INDEX(N,17) = T + ( SPACING * 29 )
-            MWT  (N,17) = TRACER_MW_KG(T)
-            MOLC (N,17) = INT( TRACER_COEFF(T,1) )
+            MWT  (N,17) = Input_Opt%TRACER_MW_KG(T)
+            MOLC (N,17) = INT( Input_Opt%TRACER_COEFF(T,1) )
             SCALE(N,17) = 1e0
          ENDDO
       ENDIF
@@ -2335,7 +4968,7 @@
       IF ( ND21 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(21) = 51
+         NTRAC(21) = 57
 
          ! Loop over tracers
          DO T = 1, NTRAC(21)
@@ -2543,6 +5176,30 @@
                   FNAME(T,21) = 'Dust bin 7 AOD ('
      &                           // STRWVSELECT(3) // 'nm)'
 
+               ! For the UCX simualtion
+               CASE( 52 )
+                  NAME (T,21) = 'ODSLA'
+                  FNAME(T,21) = 'SLA AOD (600 nm)'
+               CASE( 53 )
+                  NAME (T,21) = 'SASLA'
+                  FNAME(T,21) = 'SLA surface area'
+                  UNIT (T,21) = 'cm2/cm3'
+               CASE( 54 )
+                  NAME (T,21) = 'NDSLA'
+                  FNAME(T,21) = 'SLA number density'
+                  UNIT (T,21) = 'num/cm3'
+               CASE( 55 )
+                  NAME (T,21) = 'ODSPA'
+                  FNAME(T,21) = 'PSC type 1a/2 AOD (600 nm)'
+               CASE( 56 )
+                  NAME (T,21) = 'SASPA'
+                  FNAME(T,21) = 'PSC type 1a/2 surface area'
+                  UNIT (T,21) = 'cm2/cm3'
+               CASE( 57 )
+                  NAME (T,21) = 'NDSPA'
+                  FNAME(T,21) = 'SPA number density'
+                  UNIT (T,21) = 'num/cm3'
+
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2550,18 +5207,18 @@
       ENDIF
 
       !-------------------------------------      
-      ! Optical depths (ND22)
+      ! J-Values (ND22)
       !-------------------------------------
       IF ( ND22 > 0 ) THEN
 
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN 
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 
             !------------------
             ! Full-chem run
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 14 ! Increase for bromine (jpp, mpayer, 12/28/11)
+            NTRAC(22) = 28
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -2576,10 +5233,17 @@
                      NAME(T,22) = 'JH2O2'
                   CASE( 4  )
                      NAME(T,22) = 'JCH2O'
+#if defined( UCX )
+                  CASE( 5  )
+                     NAME(T,22) = 'JO3_O1D'
+                  CASE( 6  )
+                     NAME(T,22) = 'JO3_O3P'
+#else
                   CASE( 5  )
                      NAME(T,22) = 'JO3'
                   CASE( 6  )
                      NAME(T,22) = 'POH'
+#endif
                   CASE( 7  )
                      NAME(T,22) = 'JGLYX'
                   CASE( 8  )
@@ -2596,6 +5260,34 @@
                      NAME(T,22) = 'JCHBr3'
                   CASE( 14 )
                      NAME(T,22) = 'JBr2'
+                  CASE( 15 )
+                     NAME(T,22) = 'JO2'
+                  CASE( 16 )
+                     NAME(T,22) = 'JN2O'
+                  CASE( 17 )
+                     NAME(T,22) = 'JNO'
+                  CASE( 18 )
+                     NAME(T,22) = 'JNO3'
+                  CASE( 19 )
+                     NAME(T,22) = 'JCFC11'
+                  CASE( 20 )
+                     NAME(T,22) = 'JCFC12'
+                  CASE( 21 )
+                     NAME(T,22) = 'JCCl4'
+                  CASE( 22 )
+                     NAME(T,22) = 'JCH3Cl'
+                  CASE( 23 )
+                     NAME(T,22) = 'JACET'
+                  CASE( 24 )
+                     NAME(T,22) = 'JALD2'
+                  CASE( 25 )
+                     NAME(T,22) = 'JMVK'
+                  CASE( 26 )
+                     NAME(T,22) = 'JMACR'
+                  CASE( 27 )
+                     NAME(T,22) = 'JHAC'
+                  CASE( 28 )
+                     NAME(T,22) = 'JGLYC'
                  CASE DEFAULT
                   ! Nothing
                END SELECT
@@ -2609,7 +5301,7 @@
                SCALE(T,22) = 1e0
             ENDDO
          
-         ELSE IF ( ITS_A_CH3I_SIM() ) THEN
+         ELSE IF ( Input_Opt%ITS_A_CH3I_SIM ) THEN
 
             !------------------
             ! CH3I run
@@ -2623,7 +5315,7 @@
             MWT  (T,22) = 0e0
             SCALE(T,22) = 1e0            
 
-         ELSE IF ( ITS_A_HCN_SIM() ) THEN
+         ELSE IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
 
             !------------------
             ! HCN run
@@ -2645,16 +5337,16 @@
       !-------------------------------------
       IF ( ND28 > 0 ) THEN
 
-         IF ( ITS_A_CO2_SIM() ) THEN
-
-            !---------------------------
-            ! CO2 simulation only
-            !---------------------------
-
-            ! Number of tracers
-            NTRAC(28) = 1
-            
-            ! Define quantities
+         ! Initialize
+         T         = 0
+         NTRAC(28) = 0
+         
+         !-----------------------------------------------
+         ! Biomass species for CO2 simulation
+         !-----------------------------------------------
+         IF ( Input_Opt%ITS_A_CO2_SIM ) THEN 
+            T           = T + 1
+            NTRAC(28)   = NTRAC(28) + 1
             NAME (T,28) = 'CO2'
             FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
             INDEX(T,28) = 1 + ( SPACING * 45 )
@@ -2662,197 +5354,290 @@
             MOLC (T,28) = 1
             UNIT (T,28) = 'molec/cm2/s'
             SCALE(T,28) = 1e0
+         ENDIF
 
-         ELSE
-
-            !---------------------------
-            ! Full-chemistry simulation
-            !---------------------------
-
-            ! Number of tracers
-            ! Add GLYX, MGLY, GLYC, HAC, C2H2,BENZ, TOLU, XYLE, C2H4
-            !-----------------------------------------------------------------
-            ! Bug fix: omit SOA tracers if not needed. (bmy, 9/2/10)
-            !NTRAC(28) = 23
-            !-----------------------------------------------------------------
-            IF ( LSOA ) THEN
-               NTRAC(28) = 23    ! SOA simulation
-            ELSE
-               NTRAC(28) = 14    ! Standard simulation
+         !-----------------------------------------------
+         ! Biomass species for fullchem/SOA simulations
+         !-----------------------------------------------
+         IF ( IDTNO > 0 ) THEN
+            T           = T + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'NO'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTNO + ( SPACING * 45 )
+            MWT  (T,28) = 14e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTCO > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'CO'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTCO + ( SPACING * 45 )
+            MWT  (T,28) = 28e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTALK4 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'ALK4'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTALK4 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 4
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTACET > 0  ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'ACET'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTACET + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 3
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTMEK > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'MEK'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTMEK + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 4
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTALD2 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'ALD2'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTALD2 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 3
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTPRPE > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'PRPE'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTPRPE + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 3
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTC3H8 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'C3H8'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTC3H8 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 3
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTCH2O > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'CH2O'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTCH2O + ( SPACING * 45 )
+            MWT  (T,28) = 30e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTC2H6 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'C2H6'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTC2H6 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 2
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTSO2 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'SO2'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTSO2 + ( SPACING * 45 )
+            MWT  (T,28) = 32e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'atoms S/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTNH3 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'NH3'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTNH3 + ( SPACING * 45 )
+            MWT  (T,28) = 17e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTBCPI > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'BC'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTBCPI + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTOCPI > 0 .or. IDTPOA1 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'OC'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            ! SOAupdate: allow non-vol or semi-vol POA (hotp 8/24/09)
+            IF ( IDTOCPI > 0 ) THEN
+               INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
+            ELSE IF ( IDTPOA1  > 0 ) THEN
+               INDEX(T,28) = IDTPOA1 + ( SPACING * 45 )
             ENDIF
-
-            ! Loop over tracers
-            DO T = 1, NTRAC(28)
-
-               ! removed hardwires (fp, 6/2009)
-               ! Case statement
-               IF ( T == IDBNOX ) THEN
-                  NAME (T,28) = 'NOx'
-                  INDEX(T,28) = IDTNOX + ( SPACING * 45 )
-                  MWT  (T,28) = 14e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-                  
-               ELSE IF ( T == IDBCO ) THEN
-                  NAME (T,28) = 'CO'
-                  INDEX(T,28) = IDTCO + ( SPACING * 45 )
-                  MWT  (T,28) = 28e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBALK4 ) THEN
-                  NAME (T,28) = 'ALK4'
-                  INDEX(T,28) = IDTALK4 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 4
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBACET ) THEN
-                  NAME (T,28) = 'ACET'
-                  INDEX(T,28) = IDTACET + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBMEK ) THEN
-                  NAME (T,28) = 'MEK'
-                  INDEX(T,28) = IDTMEK + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 4
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBALD2 ) THEN
-                  NAME (T,28) = 'ALD2'
-                  INDEX(T,28) = IDTALD2 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBPRPE ) THEN
-                  NAME (T,28) = 'PRPE'
-                  INDEX(T,28) = IDTPRPE + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBC3H8 ) THEN
-                  NAME (T,28) = 'C3H8'
-                  INDEX(T,28) = IDTC3H8 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 3
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBCH2O ) THEN
-                  NAME (T,28) = 'CH2O'
-                  INDEX(T,28) = IDTCH2O + ( SPACING * 45 )
-                  MWT  (T,28) = 30e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBC2H6 ) THEN
-                  NAME (T,28) = 'C2H6'
-                  INDEX(T,28) = IDTC2H6 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 2
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBSO2 ) THEN
-                  NAME (T,28) = 'SO2'
-                  INDEX(T,28) = IDTSO2 + ( SPACING * 45 )
-                  MWT  (T,28) = 32e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'atoms S/cm2/s'
-
-               ELSE IF ( T == IDBNH3 ) THEN
-                  NAME (T,28) = 'NH3'
-                  INDEX(T,28) = IDTNH3 + ( SPACING * 45 )
-                  MWT  (T,28) = 17e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBBC ) THEN
-                  NAME (T,28) = 'BC'
-                  INDEX(T,28) = IDTBCPI + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBOC ) THEN
-                  NAME (T,28) = 'OC'
-                  INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBGLYX ) THEN
-                  NAME (T,28) = 'GLYX'
-                  INDEX(T,28) = IDTGLYX + ( SPACING * 45 )
-                  MWT  (T,28) = 58e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBMGLY ) THEN
-                  NAME (T,28) = 'MGLY'
-                  INDEX(T,28) = IDTMGLY + ( SPACING * 45 )
-                  MWT  (T,28) = 72e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBBENZ ) THEN
-                  NAME (T,28) = 'BENZ'
-                  INDEX(T,28) = IDTBENZ + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 6
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBTOLU ) THEN
-                  NAME (T,28) = 'TOLU'
-                  INDEX(T,28) = IDTTOLU + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 7
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBXYLE ) THEN
-                  NAME (T,28) = 'XYLE'
-                  INDEX(T,28) = IDTXYLE + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 8
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBC2H4 ) THEN
-                  NAME (T,28) = 'C2H4'
-                  INDEX(T,28) = IDTC2H4 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 2
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBC2H2 ) THEN
-                  NAME (T,28) = 'C2H2'
-                  INDEX(T,28) = IDTC2H2 + ( SPACING * 45 )
-                  MWT  (T,28) = 12e-3
-                  MOLC (T,28) = 2
-                  UNIT (T,28) = 'atoms C/cm2/s'
-
-               ELSE IF ( T == IDBGLYC ) THEN
-                  NAME (T,28) = 'GLYC'
-                  INDEX(T,28) = IDTGLYC + ( SPACING * 45 )
-                  MWT  (T,28) = 60e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBHAC ) THEN
-                  NAME (T,28) = 'HAC'
-                  INDEX(T,28) = IDTHAC + ( SPACING * 45 )
-                  MWT  (T,28) = 74e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ENDIF
-
-               ! Define other quantities
-               FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
-               SCALE(T,28) = 1e0
-            ENDDO
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTCH4 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'CH4'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTCH4 + ( SPACING * 45 )
+            MWT  (T,28) = 16e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTGLYX > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'GLYX'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTGLYX + ( SPACING * 45 )
+            MWT  (T,28) = 58e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTMGLY > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'MGLY'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTMGLY + ( SPACING * 45 )
+            MWT  (T,28) = 72e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTBENZ > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'BENZ'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTBENZ + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 6
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTTOLU > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'TOLU'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTTOLU + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 7
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTXYLE > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'XYLE'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTXYLE + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 8
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTC2H4 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'C2H4'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTC2H4 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 2
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTC2H2 > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'C2H2'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTC2H2 + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 2
+            UNIT (T,28) = 'atoms C/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTGLYC > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'GLYC'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTGLYC + ( SPACING * 45 )
+            MWT  (T,28) = 60e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF ( IDTHAC > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'HAC'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTHAC + ( SPACING * 45 )
+            MWT  (T,28) = 74e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
+         IF( IDTNAP > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'NAP'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = IDTNAP + ( SPACING * 45 )
+            MWT  (T,28) = 12e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'atoms C/cm2/s' 
+            SCALE(T,28) = 1e0
          ENDIF
       ENDIF
 
@@ -2929,38 +5714,42 @@
          SCALE(T,31) = 1e0
       ENDIF
 
-      !-------------------------------------      
-      ! CH3I emissions sources (ND36)
-      !-------------------------------------      
-      IF ( ND36 > 0 .and. ITS_A_CH3I_SIM() ) THEN
-
-         ! Number of tracers
-         NTRAC(36) = NEMANTHRO
-
-         ! The first few are tracers
-         DO T = 1, NTRAC(36)
-            IF ( T <= N_TRACERS ) THEN
-               NAME (T,36) = TRACER_NAME(T)
-               FNAME(T,36) = TRIM( NAME(T,36) ) // ' tracer'
-            ELSE IF ( T == 6 ) THEN
-               NAME (T,36) = 'CH3Iof'
-               FNAME(T,36) = 'CH3I ocean flux??'
-            ELSE IF ( T == 7 ) THEN
-               NAME (T,36) = 'CH3Igf'
-               FNAME(T,36) = 'CH3I gas flux??'
-            ELSE IF ( T == 8 ) THEN
-               NAME (T,36) = 'CH3Itf'
-               FNAME(T,36) = 'CH3I total flux??'
-            ENDIF
-
-            ! Define other quantities
-            MOLC (T,36) = 1
-            SCALE(T,36) = 1e0
-            INDEX(T,36) = T + ( SPACING * 44 )
-            MWT  (T,36) = 141.9e-3
-            UNIT (T,36) = 'ng/m2/s'
-         ENDDO
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/18/14:
+! The CH3I simulation is obsolete, so comment out for now (bmy, 8/25/14)
+!      !-------------------------------------      
+!      ! CH3I emissions sources (ND36)
+!      !-------------------------------------      
+!      IF ( ND36 > 0 .and. Input_Opt%ITS_A_CH3I_SIM ) THEN
+!
+!         ! Number of tracers
+!         NTRAC(36) = NEMANTHRO
+!
+!         ! The first few are tracers
+!         DO T = 1, NTRAC(36)
+!            IF ( T <= Input_Opt%N_TRACERS ) THEN
+!               NAME (T,36) = Input_Opt%TRACER_NAME(T)
+!               FNAME(T,36) = TRIM( NAME(T,36) ) // ' tracer'
+!            ELSE IF ( T == 6 ) THEN
+!               NAME (T,36) = 'CH3Iof'
+!               FNAME(T,36) = 'CH3I ocean flux??'
+!            ELSE IF ( T == 7 ) THEN
+!               NAME (T,36) = 'CH3Igf'
+!               FNAME(T,36) = 'CH3I gas flux??'
+!            ELSE IF ( T == 8 ) THEN
+!               NAME (T,36) = 'CH3Itf'
+!               FNAME(T,36) = 'CH3I total flux??'
+!            ENDIF
+!
+!            ! Define other quantities
+!            MOLC (T,36) = 1
+!            SCALE(T,36) = 1e0
+!            INDEX(T,36) = T + ( SPACING * 44 )
+!            MWT  (T,36) = 141.9e-3
+!            UNIT (T,36) = 'ng/m2/s'
+!         ENDDO
+!      ENDIF
+!------------------------------------------------------------------------------
 
       !-------------------------------------      
       ! Afternoon-average boundary 
@@ -3010,62 +5799,63 @@
 
             ! Get name, long name, unit, and mol wt for each field
             SELECT CASE( T )
+               ! SOAupdate: updated (hotp 7/28/10)
                CASE( 1 )
-                  NAME (T,42) = 'SOA1'
-                  FNAME(T,42) = 'Aer prods of ALPH+LIMO+TERP ox'
+                  NAME (T,42) = 'TSOA'
+                  FNAME(T,42) = 'Aer prods of terpene ox'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 150e-3
                CASE( 2 )
-                  NAME (T,42) = 'SOA2'
-                  FNAME(T,42) = 'Aerosol prod of ALCO ox'
+                  NAME (T,42) = 'ISOA'
+                  FNAME(T,42) = 'Aer prods of isoprene ox'
                   UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 160e-3
+                  MWT  (T,42) = 150e-3
                CASE( 3 )
-                  NAME (T,42) = 'SOA3'
-                  FNAME(T,42) = 'Aerosol prod of SESQ ox'
+                  NAME (T,42) = 'ASOA'
+                  FNAME(T,42) = 'Aer prods of arom+IVOC ox'
                   UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 220e-3
+                  MWT  (T,42) = 150e-3
                CASE( 4 )
-                  NAME (T,42) = 'SOA4'
-                  FNAME(T,42) = 'Aerosol prod of ISOP ox'
+                  NAME (T,42) = 'POA'
+                  FNAME(T,42) = 'Aer from SVOCs'
                   UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 130e-3
-               ! Add SOA5 (ccc, 2/4/10)
-               CASE( 5 )
-                  NAME (T,42) = 'SOA5'
-                  FNAME(T,42) = 'Aerosol prod of AROM ox'
-                  UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 150d-3
-               CASE( 6 )
-                  NAME (T,42) = 'SOA1-3'
-                  FNAME(T,42) = 'SOA1 + SOA2 + SOA3'
-                  UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 177d-3
-               CASE( 7 )
-                  NAME (T,42) = 'SOA1-4'
-                  FNAME(T,42) = 'SOA1 + SOA2 + SOA3 + SOA4'
-                  UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 165e-3
-               CASE( 8 )
-                  NAME (T,42) = 'SOA1-5'
-                  FNAME(T,42) = 'SOA1 + SOA2 + SOA3 + SOA4 + SOA5'
-                  UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 162e-3
-               CASE( 9 )
-                  NAME (T,42) = 'sumOC'
-                  FNAME(T,42) = 'Sum of organic carbon'
-                  UNIT (T,42) = 'ug C/m3'
                   MWT  (T,42) = 12e-3
+               CASE( 5 )
+                  NAME (T,42) = 'OPOA'
+                  FNAME(T,42) = 'Aer prods of pog ox'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 12e-3
+               CASE( 6 )
+                  NAME (T,42) = 'sumOA'
+                  FNAME(T,42) = 'all organic aerosol'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 150e-3
+               CASE( 7 )
+                  NAME (T,42) = 'sumOC'
+                  FNAME(T,42) = 'all organic carbon'
+                  UNIT (T,42) = 'ugC/m3'
+                  MWT  (T,42) = 12e-3
+               CASE( 8 )
+                  NAME (T,42) = 'biogOA'
+                  FNAME(T,42) = 'all biogenic OA'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 1e-6
+               CASE( 9 )
+                  NAME (T,42) = 'BNO'
+                  FNAME(T,42) = 'NO branching ratio: betaNO'
+                  UNIT (T,42) = 'dimless'
+                  MWT  (T,42) = 1e-6
                CASE( 10 )
-                  NAME (T,42) = 'sumOCstp'
-                  FNAME(T,42) = 'Sum of organic carbon @ STP'
-                  UNIT (T,42) = 'ug C/sm3'
+                  NAME (T,42) = 'POA'
+                  FNAME(T,42) = 'Aer from SVOCs'
+                  UNIT (T,42) = 'ugC/m3'
                   MWT  (T,42) = 12e-3
                CASE( 11 )
-                  NAME (T,42) = 'sumOA'
-                  FNAME(T,42) = 'Sum of organic aerosol'
-                  UNIT (T,42) = 'ug/sm3'
-                  MWT  (T,42) = 1e-6
+                  NAME (T,42) = 'OPOA'
+                  FNAME(T,42) = 'Aer prods of pog ox'
+                  UNIT (T,42) = 'ugC/m3'
+                  MWT  (T,42) = 12e-3
+               ! end hotp
                CASE( 12 )
                   NAME (T,42) = 'OC'
                   FNAME(T,42) = 'OCPI + OCPO'
@@ -3096,11 +5886,6 @@
                   FNAME(T,42) = 'SALA + SALC'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 36e-3
-               CASE( 18 )
-                  NAME (T,42) = 'TotalPM'
-                  FNAME(T,42) = 'OC + BC + SOA + NH4 + NIT + SO4'
-                  UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 1e-6
                CASE( 19 )
                   NAME (T,42) = 'SOAG'
                   FNAME(T,42) = 'SOAG'
@@ -3111,27 +5896,6 @@
                   FNAME(T,42) = 'SOAM'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 1e-6
-               CASE( 21 )
-                  NAME (T,42) = 'SOAS'
-                  FNAME(T,42) = 'SOA1-4 + SOAM + SOAG'
-                  UNIT (T,42) = 'ug/m3'
-                  MWT  (T,42) = 1e-6
-               CASE( 22 )
-                  NAME (T,42) = 'SOAS-C'
-                  FNAME(T,42) = 'SOA1-4 + SOAM + SOAG (in carbon)'
-                  UNIT (T,42) = 'ug C/m3'
-                  MWT  (T,42) = 1e-6
-               CASE( 23 )
-                  NAME (T,42) = 'SOASstp'
-                  FNAME(T,42) = 'SOA1-4 + SOAM + SOAG at STP'
-                  UNIT (T,42) = 'ug/sm3'
-                  MWT  (T,42) = 1e-6
-               CASE( 24 )
-                  NAME (T,42) = 'SOAS-Cstp'
-                  FNAME(T,42) = 'SOA1-4 + SOAM + SOAG at STP'
-                  UNIT (T,42) = 'ug C/m3'
-                  MWT  (T,42) = 1e-6
-                  
                   
                CASE DEFAULT
                   ! Nothing
@@ -3147,7 +5911,7 @@
       !-------------------------------------      
       ! Chemically-produced OH, etc (ND43)
       !-------------------------------------      
-      IF ( ND43 > 0 ) THEN 
+      IF ( ND43 > 0 .or. DO_TIMESERIES ) THEN 
 
          ! Number of tracers
          ! update for arom (dkh, 06/22/07)  
@@ -3163,22 +5927,20 @@
                   NAME(T,43) = 'OH'
                   UNIT(T,43) = 'molec/cm3'
                   MWT (T,43) = 17e-3
-               CASE( 2 )
-                  NAME(T,43) = 'NO'
-                  UNIT(T,43) = 'v/v'
-                  MWT (T,43) = 30e-3
                CASE( 3 )
                   NAME(T,43) = 'HO2'
                   UNIT(T,43) = 'v/v'
                   MWT (T,43) = 33e-3
+#if defined( UCX )
                CASE( 4 )
-                  NAME(T,43) = 'NO2'
-                  UNIT(T,43) = 'v/v'
-                  MWT (T,43) = 46e-3
+                  NAME(T,43) = 'O1D'
+                  UNIT(T,43) = 'molec/cm3'
+                  MWT (T,43) = 16e-3
                CASE( 5 )
-                  NAME(T,43) = 'NO3'
-                  UNIT(T,43) = 'v/v'
-                  MWT (T,43) = 62e-3
+                  NAME(T,43) = 'O'
+                  UNIT(T,43) = 'molec/cm3'
+                  MWT (T,43) = 16e-3
+#endif
                ! update for arom (dkh, 06/22/07)  
                CASE( 6 )
                   NAME(T,43) = 'LBRO2H'
@@ -3223,21 +5985,25 @@
       IF ( ND44 > 0 ) THEN
 
          ! Special handling for tagged simulations
-         IF ( ITS_A_TAGOX_SIM()   .or. 
-     &        ITS_A_MERCURY_SIM() .or. ITS_A_H2HD_SIM()  ) THEN
+         IF ( Input_Opt%ITS_A_TAGOX_SIM   .or. 
+     &        Input_Opt%ITS_A_MERCURY_SIM .or. 
+     &        Input_Opt%ITS_A_H2HD_SIM  ) THEN
 
-            !----------------------------------------------------
-            ! Tagged runs: Save drydep flux for all tracers
-            ! but drydep velocity for only NUMDEP species
-            !----------------------------------------------------
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%             FOR TAGGED SIMULATIONS ONLY             %%%
+            !%%%                                                     %%%
+            !%%%          Save drydep flux for all tracers           %%%
+            !%%%     but drydep velocity for only NUMDEP species     %%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Drydep flux (all tracers)
-            DO T = 1, N_TRACERS
-               NAME (T,44)  = TRIM( TRACER_NAME(T) ) // 'df'        
-               FNAME(T,44)  = TRIM( TRACER_NAME(T) ) // ' drydep flux'
+            DO T = 1, Input_Opt%N_TRACERS
+               NAME (T,44)  = TRIM( Input_Opt%TRACER_NAME(T) ) // 'df'        
+               FNAME(T,44)  = TRIM( Input_Opt%TRACER_NAME(T) ) // 
+     &                        ' drydep flux'
                UNIT (T,44)  = 'molec/cm2/s'
-               MWT  (T,44)  = TRACER_MW_KG(T) 
-               MOLC (T,44)  = INT( TRACER_COEFF(T,1) )
+               MWT  (T,44)  = Input_Opt%TRACER_MW_KG(T) 
+               MOLC (T,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
                SCALE(T,44)  = 1.0e0
                INDEX(T,44)  = T + ( SPACING * 36 )
                NTRAC(44)    = NTRAC(44) + 1
@@ -3246,12 +6012,13 @@
             ! Drydep velocity (only deposited species)
             DO N = 1, NUMDEP
                T            = NTRAIND(N)
-               NN           = N + N_TRACERS
+               NN           = N + Input_Opt%N_TRACERS
                NAME (NN,44) = TRIM( DEPNAME(N) ) // 'dv'        
-               FNAME(NN,44) = TRIM( DEPNAME(N) ) // ' drydep velocity'
+               FNAME(NN,44) = TRIM( DEPNAME(N) ) // 
+     &                        ' drydep velocity'
                UNIT (NN,44) = 'cm/s'
-               MWT  (NN,44) = TRACER_MW_KG(T) 
-               MOLC (NN,44) = INT( TRACER_COEFF(T,1) )
+               MWT  (NN,44) = Input_Opt%TRACER_MW_KG(T) 
+               MOLC (NN,44) = INT( Input_Opt%TRACER_COEFF(T,1) )
                SCALE(NN,44) = 1.0e0
                INDEX(NN,44) = T + ( SPACING * 37 )
                NTRAC(44)    = NTRAC(44) + 1
@@ -3259,62 +6026,303 @@
 
          ELSE
 
-            !----------------------------------------------------
-            ! Otherwise save drydep flux for NUMDEP species only
-            !----------------------------------------------------
+#if   defined( TOMAS )
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%        FOR TOMAS MICROPHYSICS SIMULATIONS           %%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            ! Loop over drydep species
-            DO N = 1, NUMDEP
+            ! Loop over # of dry depositing species
+            DO N = 1, NUMDEP + (ICOMP-IDIAG)* IBINS
                
-               ! GEOS-CHEM tracer #
-               T            = NTRAIND(N)         
+               IF ( N <= NUMDEP ) THEN 
 
-               ! Drydep flux (deposited species only)
-               NAME (N,44)  = TRIM( DEPNAME(N) ) // 'df'        
-               FNAME(N,44)  = TRIM( DEPNAME(N) ) // ' drydep flux'
-               UNIT (N,44)  = 'molec/cm2/s'
-               MWT  (N,44)  = TRACER_MW_KG(T) 
-               MOLC (N,44)  = INT( TRACER_COEFF(T,1) )
-               SCALE(N,44)  = 1.0e0
-               !To allow several compounds in a same tracer to deposit
-               !(fp, 06/09)
-               INDEX(N,44)  = T + ( SPACING * 36 )
-               IF ( DEPNAME(N) == 'ISOPNB' ) 
-     &              INDEX(N,44)  = NNPAR + 1 + ( SPACING * 36 )
-               IF ( DEPNAME(N) == 'MVKN' )
-     &              INDEX(N,44)  = NNPAR + 2 + ( SPACING * 36 )
-               NTRAC(44)    = NTRAC(44) + 1
+                  ! Handle drydep flux first
+                  SELECT CASE( TRIM( Input_Opt%DEPNAME(N) ) )
 
-               ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
-               IF ( ITS_A_RnPbBe_SIM() ) UNIT(N,44) = 'kg/s'
+                     CASE( 'ISOPNB' )
 
-               ! Drydep velocity (deposited species only)
-               NN           = N + NUMDEP
-               NAME (NN,44) = TRIM( DEPNAME(N) ) // 'dv'        
-               FNAME(NN,44) = TRIM( DEPNAME(N) ) // ' drydep velocity'
-               UNIT (NN,44) = 'cm/s'
-               MWT  (NN,44) = TRACER_MW_KG(T) 
-               MOLC (NN,44) = INT( TRACER_COEFF(T,1) )
-               SCALE(NN,44) = 1.0e0
-               !To allow several compounds in a same tracer to deposit
-               !(fp, 06/09)
-               INDEX(NN,44) = T + ( SPACING * 37 )
-               IF ( DEPNAME(N) == 'ISOPNB' ) 
-     &              INDEX(NN,44)  = NNPAR + 1 + ( SPACING * 37 )
-               IF ( DEPNAME(N) == 'MVKN' )
-     &              INDEX(NN,44)  = NNPAR + 2 + ( SPACING * 37 )
-               NTRAC(44)    = NTRAC(44) + 1
+                        !-----------------------------------------------
+                        ! Drydep flux: ISOPNB.  Use the same info as
+                        ! for ISOPND but save as w/ index N_TRACERS+1.
+                        !-----------------------------------------------
+                        T             = IDTISOPN
+                        NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                                  'df'
+                        FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                                  ' drydep flux'
+                        MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
+                        MOLC (N,44)   = INT(Input_Opt%TRACER_COEFF(T,1))
+                        SCALE(N,44)   = 1.0e0
+                        UNIT (N,44)   = 'molec/cm2/s'
+                        INDEX(N,44)   = ( Input_Opt%N_TRACERS + 1  )
+     &                                + ( SPACING             * 36 )
+                        NTRAC(44)     = NTRAC(44) + 1
+
+                        !-----------------------------------------------
+                        ! Drydep velocity: ISOPNB.  Use the same info as
+                        ! for ISOPND but save as w/ index N_TRACERS+1.
+                        !-----------------------------------------------
+                        T             = IDTISOPN
+                        NN            = N + Input_Opt%NUMDEP
+                        NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                                 'dv'
+                        FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                                  ' drydep velocity'
+                        MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
+                        MOLC (NN,44)  = INT(Input_Opt%TRACER_COEFF(T,1))
+                        SCALE(NN,44)  = 1.0e0
+                        UNIT (NN,44)  = 'cm/s'
+                        INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 1  )
+     &                                + ( SPACING             * 37 )
+                        NTRAC(44)     = NTRAC(44) + 1
+
+                     CASE( 'MVKN' )
+
+                        !-----------------------------------------------
+                        ! Drydep flux: MVKN.  Use the same info as
+                        ! for MMN but save as w/ index N_TRACERS+2.
+                        !-----------------------------------------------
+                        T             = IDTMMN
+                        NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                       'df'
+                        FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                       ' drydep flux'
+                        MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
+                        MOLC (N,44)   = INT(Input_Opt%TRACER_COEFF(T,1))
+                        SCALE(N,44)   = 1.0e0
+                        UNIT (N,44)   = 'molec/cm2/s'
+                        INDEX(N,44)   = ( Input_Opt%N_TRACERS + 2  )
+     &                                + ( SPACING             * 36 )
+                        NTRAC(44)     = NTRAC(44) + 1
+                        
+                        !--------------------------------------------------
+                        ! Drydep velocity: MVKN.  Use the same info as
+                        ! for MMN but save as w/ index N_TRACERS+2.
+                        !--------------------------------------------------
+                        T             = IDTMMN
+                        NN            = N + Input_Opt%NUMDEP
+                        NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                                  'dv'
+                        FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                                  ' drydep flux'
+                        MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
+                        MOLC (NN,44)  = INT(Input_Opt%TRACER_COEFF(T,1))
+                        SCALE(NN,44)  = 1.0e0
+                        UNIT (NN,44)  = 'cm/s'
+                        INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 2  )
+     &                                + ( SPACING             * 37 )
+                        NTRAC(44)     = NTRAC(44) + 1
+
+                     CASE DEFAULT
+
+                        !-----------------------------------------------
+                        ! Drydep flux: all other G-C tracers
+                        !-----------------------------------------------
+                        T             = NTRAIND(N)         
+                        NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                                  'df'
+                        FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                                 ' drydep flux'
+                        MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
+                        MOLC (N,44)   = INT(Input_Opt%TRACER_COEFF(T,1))
+                        SCALE(N,44)   = 1.0e0
+                        INDEX(N,44)   = T + ( SPACING * 36 )
+                        NTRAC(44)     = NTRAC(44) + 1
+
+                        ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
+                        IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+                           UNIT(N,44) = 'kg/s'
+                        ELSE
+                           UNIT(N,44) = 'molec/cm2/s'
+                        ENDIF
+
+                        !-----------------------------------------------
+                        ! Drydep velocity all other G-C tracers
+                        !-----------------------------------------------
+                        NN            = N + NUMDEP  +(ICOMP-IDIAG)*IBINS
+                        NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
+                        FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
+     &                                  ' drydep velocity'
+                        MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
+                        MOLC (NN,44)  = INT(Input_Opt%TRACER_COEFF(T,1))
+                        UNIT (NN,44)  = 'cm/s'                     
+                        SCALE(NN,44)  = 1.0e0
+                        INDEX(NN,44)  = T + ( SPACING * 37 )
+                        NTRAC(44)     = NTRAC(44) + 1
+
+                  END SELECT
+
+               ELSE
+
+                  !-----------------------------------------------
+                  ! Drydep flux: TOMAS aerosol tracers
+                  !-----------------------------------------------
+                  T = IDTNK1 + IBINS - 1 + ( N - NUMDEP )
+
+                  ! Drydep flux (extended deposited species)
+                  NAME (N,44)  = TRIM( Input_Opt%TRACER_NAME(T) ) // 
+     &                          'df'
+                  FNAME(N,44)  = TRIM( Input_Opt%TRACER_NAME(T) ) // 
+     &                          ' drydep flux'
+                  UNIT (N,44)  = 'molec/cm2/s'
+                  MWT  (N,44)  = Input_Opt%TRACER_MW_KG(T) 
+                  MOLC (N,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
+                  SCALE(N,44)  = 1.0e0
+                  INDEX(N,44)  = T + ( SPACING * 36 )
+                  NTRAC(44)    = NTRAC(44) + 1
+                  
+                  !-----------------------------------------------
+                  ! Drydep velocity all other G-C tracers
+                  !-----------------------------------------------
+                  NN            = N + NUMDEP + (ICOMP-IDIAG)* IBINS
+                  NAME (NN,44)  = TRIM( Input_Opt%TRACER_NAME(T) ) // 
+     &                            'dv'        
+                  FNAME(NN,44)  = TRIM( Input_Opt%TRACER_NAME(T) ) //
+     &                           ' drydep velocity'
+                  MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
+                  MOLC (NN,44)  = INT(Input_Opt%TRACER_COEFF(T,1))
+                  UNIT (NN,44)  = 'cm/s'                     
+                  SCALE(NN,44)  = 1.0e0
+                  INDEX(NN,44)  = T + ( SPACING * 37 )
+                  NTRAC(44)     = NTRAC(44) + 1
+
+               ENDIF
             ENDDO
+#else
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%       FOR REGULAR FULL-CHEMISTRY SIMULATIONS        %%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            ! Loop over # of depositing species
+            DO N = 1, Input_Opt%NUMDEP
+
+               ! Handle drydep flux first
+               SELECT CASE( TRIM( Input_Opt%DEPNAME(N) ) )
+
+                  CASE( 'ISOPNB' )
+
+                     !--------------------------------------------------
+                     ! Drydep flux: ISOPNB.  Use the same info as
+                     ! for ISOPND but save as w/ index N_TRACERS+1.
+                     !--------------------------------------------------
+                     T             = IDTISOPN
+                     NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                               'df'
+                     FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                               ' drydep flux'
+                     MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
+                     MOLC (N,44)   = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     SCALE(N,44)   = 1.0e0
+                     UNIT (N,44)   = 'molec/cm2/s'
+                     INDEX(N,44)   = ( Input_Opt%N_TRACERS + 1  )
+     &                             + ( SPACING             * 36 )
+                     NTRAC(44)     = NTRAC(44) + 1
+
+                     !--------------------------------------------------
+                     ! Drydep velocity: ISOPNB.  Use the same info as
+                     ! for ISOPND but save as w/ index N_TRACERS+1.
+                     !--------------------------------------------------
+                     T             = IDTISOPN
+                     NN            = N + Input_Opt%NUMDEP
+                     NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                              'dv'
+                     FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                             ' drydep velocity'
+                     MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
+                     MOLC (NN,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     SCALE(NN,44)  = 1.0e0
+                     UNIT (NN,44)  = 'cm/s'
+                     INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 1  )
+     &                             + ( SPACING             * 37 )
+                     NTRAC(44)     = NTRAC(44) + 1
+
+                  CASE( 'MVKN' )
+
+                     !--------------------------------------------------
+                     ! Drydep flux: MVKN.  Use the same info as
+                     ! for MMN but save as w/ index N_TRACERS+2.
+                     !--------------------------------------------------
+                     T             = IDTMMN
+                     NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                               'df'
+                     FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                              ' drydep flux'
+                     MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
+                     MOLC (N,44)   = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     SCALE(N,44)   = 1.0e0
+                     UNIT (N,44)   = 'molec/cm2/s'
+                     INDEX(N,44)   = ( Input_Opt%N_TRACERS + 2  )
+     &                             + ( SPACING             * 36 )
+                     NTRAC(44)     = NTRAC(44) + 1
+                    
+                     !--------------------------------------------------
+                     ! Drydep velocity: MVKN.  Use the same info as
+                     ! for MMN but save as w/ index N_TRACERS+2.
+                     !--------------------------------------------------
+                     T             = IDTMMN
+                     NN            = N + Input_Opt%NUMDEP
+                     NAME (NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                              'dv'
+                     FNAME(NN,44)  = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                             ' drydep velocity'
+                     MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
+                     MOLC (NN,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     SCALE(NN,44)  = 1.0e0
+                     UNIT (NN,44)  = 'cm/s'
+                     INDEX(NN,44)  = ( Input_Opt%N_TRACERS + 2  )
+     &                             + ( SPACING             * 37 )
+                     NTRAC(44)     = NTRAC(44) + 1
+
+                  CASE DEFAULT
+
+                     !--------------------------------------------------
+                     ! Drydep flux: all other G-C tracers
+                     !--------------------------------------------------
+                     T             = NTRAIND(N)         
+                     NAME (N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                               'df'
+                     FNAME(N,44)   = TRIM( Input_Opt%DEPNAME(N) ) // 
+     &                              ' drydep flux'
+                     MWT  (N,44)   = Input_Opt%TRACER_MW_KG(T) 
+                     MOLC (N,44)   = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     SCALE(N,44)   = 1.0e0
+                     INDEX(N,44)   = T + ( SPACING * 36 )
+                     NTRAC(44)     = NTRAC(44) + 1
+
+                     ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
+                     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+                        UNIT(N,44) = 'kg/s'
+                     ELSE
+                        UNIT(N,44) = 'molec/cm2/s'
+                     ENDIF
+
+                     !--------------------------------------------------
+                     ! Drydep velocity all other G-C tracers
+                     !--------------------------------------------------
+                     NN            = N + Input_Opt%NUMDEP
+                     NAME (NN,44)  = TRIM( DEPNAME(N) ) // 'dv'        
+                     FNAME(NN,44)  = TRIM( DEPNAME(N) ) // 
+     &                               ' drydep velocity'
+                     MWT  (NN,44)  = Input_Opt%TRACER_MW_KG(T) 
+                     MOLC (NN,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
+                     UNIT (NN,44)  = 'cm/s'                     
+                     SCALE(NN,44)  = 1.0e0
+                     INDEX(NN,44)  = T + ( SPACING * 37 )
+                     NTRAC(44)     = NTRAC(44) + 1
+
+               END SELECT
+
+            ENDDO
+#endif
          ENDIF
       ENDIF
 
       !-------------------------------------      
       ! Biogenic emissions (ND46)
       !-------------------------------------      
-      IF ( ND46 > 0 ) THEN 
+      IF ( ND46 > 0 .or. DO_TIMESERIES ) THEN 
 
-         ! Number of tracers
-         NTRAC(46) = 16 ! Increase for bromine (jpp, mpayer, 12/28/11)
+         NTRAC(46) = 21  
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -3360,27 +6368,49 @@
                CASE( 13)
                   NAME(T,46) = 'OCIMN'
                   MOLC(T,46) = 10
+               ! SOAupdate: Biogenic emissions from sesq hotp 3/1/10
+               ! MOLC is #C/molecule (10 for mono, 15 for sesq) hotp 5/10/10
+               CASE( 14)
+                  NAME(T,46) = 'FARN'
+                  MOLC(T,46) = 15 ! [C/molecule]
+               CASE( 15)              
+                  NAME(T,46) = 'BCAR'
+                  MOLC(T,46) = 15 ! [C/molecule]
+               CASE( 16)              
+                  NAME(T,46) = 'OSQT'
+                  MOLC(T,46) = 15 ! [C/molecule]
+               CASE( 17)              
+                  NAME(T,46) = 'OMTP'
+                  MOLC(T,46) = 10 ! [C/molecule]
                !jpp, 9/6/07
-               CASE( 14 )
+               CASE( 18 )
                   INDEX(T,46)  = T + ( SPACING * 21 )
                   NAME  (T,46) = 'CHBr3'
                   FNAME (T,46) = 'Ocean bromoform emissions'
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 2.53e-1   !in [kg/mol]
                   SCALE(T,46) = 1e0
-               CASE( 15 )
+               CASE( 19 )
                   INDEX (T,46)  = T + ( SPACING * 21 )
                   NAME  (T,46) = 'CH2Br2'
                   FNAME (T,46) = 'Ocean dibromomethane emissions'
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 1.74e-1   !in [kg/mol]
                   SCALE (T,46) = 1e0
-               CASE( 16 )
+               CASE( 20 )
                   INDEX (T,46)  = T + ( SPACING * 21 )
                   NAME  (T,46) = 'SSBr2'
                   FNAME (T,46) = 'sea-salt Br2 emissions'
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 1.60e-1   !in [kg/mol]
+                  SCALE (T,46) = 1e0
+               CASE( 21 )
+                  INDEX (T,46) = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'CH4'
+                  FNAME (T,46) = 'CH4 emissions'
+                  UNIT  (T,46) = 'molec/cm2/s'
+                  MWT   (T,46) = 16e-3
+                  MOLC  (T,46) = 1
                   SCALE (T,46) = 1e0
                CASE DEFAULT
                   ! Nothing
@@ -3388,7 +6418,7 @@
 
             !jpp, 9/6/07: preventing these default quantities
             !             from overwriting CHBr3's info.
-            IF ( T < 14 ) THEN
+            IF ( T < 18 ) THEN
                ! Define the rest of the quantities
                INDEX(T,46) = T + ( SPACING * 21 )
                FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
@@ -3406,7 +6436,7 @@
 
          ! Number of tracers
          ! Increased from 26 to 32 (mpb,2009)
-         NTRAC(48) = 32
+         NTRAC(48) = 14
 
          ! Loop over tracers
          DO T = 1, NTRAC(48)
@@ -3420,150 +6450,64 @@
             ! Get name, long-name (and others where necessary)
             SELECT CASE( T )
                CASE( 1  )
-                  NAME (T,48) = 'O3'
-                  FNAME(T,48) = 'O3 time series'
-                  UNIT (T,48) = 'ppbv'
-                  MWT  (T,48) = 48e-3
-                  SCALE(T,48) = 1.0e+9
-               CASE( 2  )
                   NAME (T,48) = 'OH'
                   FNAME(T,48) = 'OH time series'
                   UNIT (T,48) = 'molec/cm3'
-               CASE( 3  )
+               CASE( 2  )
                   NAME (T,48) = 'NOy'
                   FNAME(T,48) = 'NOy time series'
                   UNIT (T,48) = 'ppbv'
                   SCALE(T,48) = 1.0e+9
-               CASE( 4  )
-                  NAME (T,48) = 'NO2dv'
-                  FNAME(T,48) = 'NO2 drydep vel'
-                  UNIT (T,48) = 'cm/s'
-               CASE( 5  )
-                  NAME (T,48) = 'O3dv'
-                  FNAME(T,48) = 'O3 drydep vel'
-                  UNIT (T,48) = 'cm/s'
-               CASE( 6  )
-                  NAME (T,48) = 'PANdv'
-                  FNAME(T,48) = 'PAN drydep vel'
-                  UNIT (T,48) = 'cm/s'
-               CASE( 7  )
-                  NAME (T,48) = 'HNO3dv'
-                  FNAME(T,48) = 'HNO3 drydep vel'
-                  UNIT (T,48) = 'cm/s'
-               CASE( 8  )
-                  NAME (T,48) = 'H2O2dv'
-                  FNAME(T,48) = 'H2O2 drydep vel'
-                  UNIT (T,48) = 'cm/s'
-               CASE( 9  )
-                  NAME (T,48) = 'NO'
-                  FNAME(T,48) = 'NO time series'
-                  UNIT (T,48) = 'ppbv'
-                  MWT  (T,48) = 30e-3
-                  SCALE(T,48) = 1.0e+9
-               CASE( 10  )
-                  NAME (T,48) = 'PBLTOP'
-                  FNAME(T,48) = 'PBL top pressure'
-                  UNIT (T,48) = 'hPa'
-               CASE( 11  )
-                  NAME (T,48) = 'LT'
-                  FNAME(T,48) = 'Station local time'
-                  UNIT (T,48) = 'h'
-               CASE( 12 )
-                  NAME (T,48) = 'ISOPf'
-                  FNAME(T,48) = 'ISOP emission flux'
-                  UNIT (T,48) = 'molec/cm2/s'
-                  MWT  (T,48) = 12e-3
-               CASE( 13 )
-                  NAME (T,48) = 'MOLEN'
-                  FNAME(T,48) = 'Monin-Obhukov length'
-                  UNIT (T,48) = 'm'
-               CASE( 14 )
-                  NAME (T,48) = 'NO3'
-                  FNAME(T,48) = 'NO3 time series'
-                  UNIT (T,48) = 'ppbv'
-                  MWT  (T,48) = 62e-3
-                  SCALE(T,48) = 1.0e+9
-               CASE( 15 )
-                  NAME (T,48) = 'PS'
-                  FNAME(T,48) = 'Surface pressure'
-                  UNIT (T,48) = 'hPa'
-               CASE( 16 )
-                  NAME (T,48) = 'AVGW'
-                  FNAME(T,48) = 'Water vapor mixing ratio'
-                  UNIT (T,48) = 'ppbv'
-                  MWT  (T,48) = 33e-3
-                  SCALE(T,48) = 1.0e+9
-               CASE( 17 )
+               CASE( 3  )
                   NAME (T,48) = 'RH'
                   FNAME(T,48) = 'Relative humidity'
                   UNIT (T,48) = '%'
-               CASE( 18 )
-                  NAME (T,48) = 'HCNcol'
-                  FNAME(T,48) = 'HCN column density'
-                  UNIT (T,48) = 'molec/cm2'
-               CASE( 19 )
+               CASE( 4  )
                   NAME (T,48) = 'CF'
                   FNAME(T,48) = 'Cloud fraction'
                   UNIT (T,48) = 'unitless'
-               CASE( 20 )
+               CASE( 5  )
                   NAME (T,48) = 'ODCOL'
                   FNAME(T,48) = 'Cloud optical depth'
                   UNIT (T,48) = 'unitless'
-               CASE( 21 )
+               CASE( 6  )
                   NAME (T,48) = 'CThgt'
                   FNAME(T,48) = 'Cloud top height'
                   UNIT (T,48) = 'hPa'
-               CASE( 22 )
+               CASE( 7  )
                   NAME (T,48) = 'AIRDEN'
                   FNAME(T,48) = 'Air density'
                   UNIT (T,48) = 'molec/cm3'
-               CASE( 23 )
-                  NAME (T,48) = 'TOTDUST'
-                  FNAME(T,48) = 'Total dust opt depth'
-                  UNIT (T,48) = 'unitless'
-               CASE( 24 )
+               CASE( 8  )
                   NAME (T,48) = 'TOTSALT'
                   FNAME(T,48) = 'Total seasalt tracer'
                   UNIT (T,48) = 'ppbv'
                   MWT  (T,48) = 36e-3
                   SCALE(T,48) = 1.0e+9
-               CASE( 25 )
-                  NAME (T,48) = 'NO2'
-                  FNAME(T,48) = 'NO2 concentration'
-                  UNIT (T,48) = 'ppbv'
-                  MWT  (T,48) = 46e-3
-                  SCALE(T,48) = 1.0e+9                  
-               CASE( 26 )
-                  NAME (T,48) = 'TOTAOD'
-                  FNAME(T,48) = 'Total aerosol opt depth'
-                  UNIT (T,48) = 'unitless'
-                  ! +++++++++++++++++++++++++++++++++++++
-                  ! Add in gamma factors (mpb,2008)
-                  ! +++++++++++++++++++++++++++++++++++++
-               CASE( 27 )
-                  NAME (T,48) = 'G_T'
-                  FNAME(T,48) = 'Temperature activity factor'
-                  UNIT (T,48) = 'unitless'
-               CASE( 28 )
-                  NAME (T,48) = 'G_PAR'
-                  FNAME(T,48) = 'Light activity factor'
-                  UNIT (T,48) = 'unitless'
-               CASE( 29 )              
-                  NAME (T,48) = 'G_AGE'
-                  FNAME(T,48) = 'Leaf-age activity factor'
-                  UNIT (T,48) = 'unitless'
-               CASE( 30 )
-                  NAME (T,48) = 'G_LAI'
-                  FNAME(T,48) = 'LAI activity factor'
-                  UNIT (T,48) = 'unitless'
-               CASE( 31 )
-                  NAME (T,48) = 'G_SM'
-                  FNAME(T,48) = 'Soil-moisture activity factor'
-                  UNIT (T,48) = 'unitless'
-               CASE( 32 )
+               CASE( 9  )
                   NAME (T,48) = 'D_LAI'
                   FNAME(T,48) = 'Daily LAI'
                   UNIT (T,48) = 'm2/m2'
+               CASE( 10 )
+                  NAME (T,48) = 'NO-SOIL'
+                  FNAME(T,48) = 'Soil NO'
+                  UNIT (T,48) = 'molec/cm2/s'
+               CASE( 11 )
+                  NAME (T,48) = 'NO-FERT'
+                  FNAME(T,48) = 'Fertilizer NO'
+                  UNIT (T,48) = 'molec/cm2/s'
+               CASE( 12 )
+                  NAME (T,48) = 'P_DRY'
+                  FNAME(T,48) = 'Dry period'
+                  UNIT (T,48) = 'hours'
+               CASE( 13 )
+                  NAME (T,48) = 'PFACTOR'
+                  FNAME(T,48) = 'Pulsing factor'
+                  UNIT (T,48) = 'unitless'
+               CASE( 14 )
+                  NAME (T,48) = 'GWET_PRV'
+                  FNAME(T,48) = 'Soil moisture'
+                  UNIT (T,48) = 'unitless'
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -3585,6 +6529,72 @@
          MOLC (T,52) = 1
          MWT  (T,52) = 0e0
          SCALE(T,52) = 1e0
+      ENDIF
+
+
+      !-----------------------------------
+      ! POPS (ND53) clf (03/22/11)
+      !-----------------------------------
+      IF ( ND53 > 0 ) THEN
+         NTRAC(53)  = PD53
+
+         ! Loop over tracers
+         DO T = 1, PD53
+
+            ! Define quantities
+            UNIT (T,53) = 'kg'
+            MOLC (T,53) = 1
+            MWT  (T,53) = Input_Opt%POP_XMW
+            SCALE(T,53) = 1e0
+
+            ! Get name, long-name, index, and new units
+            SELECT CASE( T )
+               CASE( 1  )
+                  NAME (T,53) = 'POPT'
+                  FNAME(T,53) = 'POP total emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 2  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'POPPOC emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 3  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'POPPBC emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 4  )
+                  NAME (T,53) = 'POPG'
+                  FNAME(T,53) = 'POPG emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 5  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'Gross POPPOC lost to gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 6  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'Gross POPPOC formed from gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 7  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'Gross POPPBC lost to gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 8  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'Gross POPPBC formed from gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 9  )
+                  NAME (T,53) = 'POPG'
+                  FNAME(T,53) = 'POPG oxidized by OH'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 10  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'POPPOC oxidized by O3'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 11  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'POPPBC oxidized by O3'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+            END SELECT
+         ENDDO
       ENDIF
 
       !-------------------------------------      
@@ -3754,6 +6764,69 @@
          ENDDO
       ENDIF
 
+#if   defined( TOMAS )
+
+      !-------------------------------------
+      ! TOMAS 3-D rate (ND60)
+      !-------------------------------------
+      IF ( ND60 > 0 ) THEN
+         
+         ! # of tracers 
+         NTRAC(60) = TMAX(60) 
+         
+         ! Loop over tracers
+         DO T = 1, NTRAC(60)
+
+            IF ( ( T .ge. IDTNK1 )       .and. 
+     &           ( T .lt. IDTNK1+IBINS )      ) THEN
+               UNIT(T,60) = 'no.'
+            ELSE
+               UNIT(T,60) = 'kg'
+            ENDIF
+
+            ! Define the rest of the quantities
+            NAME (T,60) = Input_Opt%TRACER_NAME(T)
+            FNAME(T,60) = 'Rates from ND60 TOMAS diagnostic'
+            INDEX(T,60) = T + ( SPACING * 6 )
+            MOLC (T,60) = 1
+            MWT  (T,60) = 1e0
+            SCALE(T,60) = 1e0
+         ENDDO
+
+      ENDIF
+
+      !-------------------------------------
+      ! TOMAS 3-D rate (ND61)                !(win, 7/9/09)
+      !-------------------------------------
+      IF ( ND61 > 0 ) THEN
+         NTRAC(61) = 2
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(61)
+            
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+               CASE( 1 )
+                  NAME (T,61) = 'NUC10NM'
+                  FNAME(T,61) = 'Particle Dp>10nm formation rate'
+               CASE( 2 )
+                  NAME (T,61) = 'NUC-1NM'
+                  FNAME(T,61) = 'Nucleation rate (cluster size)'
+               CASE DEFAULT
+                  !Nothing
+            END SELECT
+
+            ! Define the rest of the quantities
+            UNIT (T,61) = 'cm-3s-1'
+            INDEX(T,61) = T + ( SPACING * 7 )
+            MOLC (T,61) = 1
+            MWT  (T,61) = 1e0
+            SCALE(T,61) = 1e0
+         ENDDO
+      ENDIF
+
+#else
+
       !-------------------------------------      
       ! Wetland Fraction (ND60)
       !-------------------------------------      
@@ -3771,6 +6844,8 @@
          SCALE(T,60) = 1e0
          UNIT(T,60)  = 'unitless'
       ENDIF
+
+#endif
 
       !-------------------------------------      
       ! SHIP DIAGNOSTICS (ND63)
@@ -3793,27 +6868,66 @@
             ! Get name, long-name (and others where necessary)
             SELECT CASE( T )
                CASE( 1  )
-                  NAME (T,63) = 'Frac_NOx'
+                  NAME (T,63) = 'FracNOx'
                   FNAME(T,63) = 'Fraction of NOx remaining'
                CASE( 2  )
                   NAME (T,63) = 'IntOPE'
                   FNAME(T,63) = 'Integrated OPE'
                CASE( 3  )
-                  NAME (T,63) = 'Frac_NOx*SHIP'
-                  FNAME(T,63) = 'Integrated OPE'
-                  UNIT (T,63) = 'kg/box/timestep'
+                  NAME (T,63) = 'PlumeNOx'
+                  FNAME(T,63) = 'Ship plume NOx remaining'
+                  UNIT (T,63) = 'molec/cm2/s'
                CASE( 4  )
-                  NAME (T,63) = 'IntOPE*(1-Frac_NOx)*SHIP'
-                  FNAME(T,63) = 'Integrated OPE'
-                  UNIT (T,63) = 'kg/box/timestep'
+                  NAME (T,63) = 'PlumeO3'
+                  FNAME(T,63) = 'Ship plume Ox production'
+                  UNIT (T,63) = 'molec/cm2/s'
                CASE( 5  )
-                  NAME (T,63) = 'Ship_emissions'
-                  FNAME(T,63) = 'Ship emissions'
-                  UNIT (T,63) = 'kg/box/timestep'
+                  NAME (T,63) = 'ShipNOx'
+                  FNAME(T,63) = 'Ship NOx emissions'
+                  UNIT (T,63) = 'molec/cm2/s'
                CASE DEFAULT
                   ! Nothing
             END SELECT
 
+         ENDDO
+      ENDIF
+
+      !-------------------------------------      
+      ! Radiative flux (ND63) (SDE 2013-10-25)
+      !-------------------------------------
+      IF ( ND64 > 0 ) THEN
+
+         ! Number of tracers
+         NTRAC(64) = PD64*3 ! Number of wavelength bins
+         NN = 0
+         N = 1
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(64)
+            NN = NN + 1
+            IF (NN .gt. PD64) THEN
+                NN = 1
+                N = N + 1
+            ENDIF
+            ! Define quantities
+            IF (N .eq. 1) THEN
+                WRITE(NAME(T,64),'(a,I02)') 'NETWL', NN
+                WRITE(FNAME(T,64),'(a,I2)') 
+     &                'Net UV flux in bin ', NN
+            ELSEIF (N .eq. 2) THEN
+                WRITE(NAME(T,64),'(a,I02)') 'DIRWL', NN
+                WRITE(FNAME(T,64),'(a,I2)') 
+     &                'Direct UV flux in bin ', NN
+            ELSEIF (N .eq. 3) THEN
+                WRITE(NAME(T,64),'(a,I02)') 'DIFWL', NN
+                WRITE(FNAME(T,64),'(a,I2)') 
+     &                'Diffuse UV flux in bin ', NN
+            ENDIF
+            UNIT (T,64) = 'Wm-2'
+            INDEX(T,64) = T + ( SPACING * 54 )
+            MOLC (T,64) = 1
+            MWT  (T,64) = 0e0
+            SCALE(T,64) = 1e0
          ENDDO
       ENDIF
 
@@ -3831,15 +6945,37 @@
             FNAME(T,65) = TRIM( NAME(T,65) ) // ' P/L family'
             INDEX(T,65) = T + ( SPACING * 17 )
             MOLC (T,65) = 1 
-            MWT  (T,65) = GET_FAM_MWT( T )
+            MWT  (T,65) = GET_FAM_MWT( T, Input_Opt )
             SCALE(T,65) = 1e0
             
             ! Unit for Tag Ox is kg/s, otherwise molec/cm3/s 
-            IF ( ITS_A_TAGOX_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
                UNIT(T,65) = 'kg/s'
             ELSE
                UNIT(T,65) = 'molec/cm3/s'
             ENDIF
+
+
+#if   defined( TOMAS )
+            ! For sulfur tracking species, use 'kg S' unit and
+            ! give a descriptive FNAME. (win, 8/9/09)
+            IF ( NAME(T,65) == 'PSO21' ) THEN
+               FNAME(T,65) = 'P(SO2) from DMS+OH (Online)'
+               UNIT(T,65)  = 'kg S'
+               MWT(T,65)   = 64e-3
+            ELSE IF ( NAME(T,65) == 'PSO22' ) THEN
+               FNAME(T,65) = 'P(SO2) from DMS+NO3 (Online)'
+               UNIT(T,65)  = 'kg S'
+               MWT(T,65)   = 64e-3
+            ELSE IF ( NAME(T,65) == 'PSO4' ) THEN
+               FNAME(T,65) = 'P(H2SO4) from SO2+OH (Online)'
+               UNIT(T,65)  = 'kg S'
+            ELSE IF ( NAME(T,65) == 'PMSA' ) THEN
+               FNAME(T,65) = 'P(MSA) from DMS (Online)'
+               UNIT(T,65) = 'kg S'
+            ENDIF
+#endif
+
          ENDDO
       ENDIF
 
@@ -3873,7 +7009,7 @@
 #if   defined( GEOS_4 )
                   NAME(T,66) = 'ZMMU'
                   UNIT(T,66) = 'Pa/s'
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
                   NAME(T,66) = 'CMFMC'
                   UNIT(T,66) = 'kg/m2/s'
 #else
@@ -4200,7 +7336,7 @@
       END SUBROUTINE INIT_TRACERINFO
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4212,13 +7348,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GAMAP( DIAGINFO, TRACERINFO )
+      SUBROUTINE INIT_GAMAP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
-      USE LOGICAL_MOD, ONLY : LND50_HDF,   LND51_HDF, LND51b_HDF
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE HDF_MOD,     ONLY : INIT_HDF
       USE HDF_MOD,     ONLY : HDFCATEGORY
       USE HDF_MOD,     ONLY : HDFDESCRIPT
@@ -4229,10 +7366,14 @@
       USE HDF_MOD,     ONLY : HDFMWT
       USE HDF_MOD,     ONLY : HDFSCALE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO    ! Path for "diaginfo.dat"
-      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO  ! Path for "tracerinfo.dat"
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  22 Apr 2005 - R. Yantosca - Initial version 
@@ -4257,6 +7398,7 @@
 !  (11) Split into INIT_DIAGINFO, INIT_TRACERINFO for clarity (bmy, 9/28/06)
 !  (12) Save output to HDF_MOD (amv, bmy, 12/18/09)
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4264,14 +7406,15 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS, NYMDb, NHMSb
+      INTEGER :: MAXTRACER_HG
 
       !=================================================================
       ! INIT_GAMAP begins here!
       !=================================================================
 
       ! Save from arguments to module variables
-      DFILE = DIAGINFO
-      TFILE = TRACERINFO
+      DFILE = Input_Opt%GAMAP_DIAGINFO
+      TFILE = Input_Opt%GAMAP_TRACERINFO
 
       ! Get starting date & time
       NYMDb = GET_NYMDb()
@@ -4301,33 +7444,69 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NTRAC' )
       NTRAC = 0
 
-      ALLOCATE( INDEX( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )      
-      INDEX = 0
+      IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LSPLIT) THEN
 
-      ALLOCATE( MOLC( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLC' )      
-      MOLC = 0
+         MAXTRACER_HG = 480
 
-      ALLOCATE( MWT( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )      
-      MWT = 0.0
+         ALLOCATE( INDEX( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )      
+         INDEX = 0
 
-      ALLOCATE( SCALE( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )      
-      SCALE = 0.0
+         ALLOCATE( MOLC( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLC' )      
+         MOLC = 0
 
-      ALLOCATE( NAME( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )      
-      NAME = ''
+         ALLOCATE( MWT( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )      
+         MWT = 0.0
 
-      ALLOCATE( FNAME( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )      
-      FNAME = ''
+         ALLOCATE( SCALE( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )      
+         SCALE = 0.0
 
-      ALLOCATE( UNIT( MAXTRACER, MAXDIAG ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )      
-      UNIT = ''
+         ALLOCATE( NAME( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )      
+         NAME = ''
+
+         ALLOCATE( FNAME( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )      
+         FNAME = ''
+
+         ALLOCATE( UNIT( MAXTRACER_HG, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )      
+         UNIT = ''
+
+      ELSE
+
+         ALLOCATE( INDEX( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )      
+         INDEX = 0
+
+         ALLOCATE( MOLC( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLC' )      
+         MOLC = 0
+
+         ALLOCATE( MWT( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )      
+         MWT = 0.0
+
+         ALLOCATE( SCALE( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )      
+         SCALE = 0.0
+
+         ALLOCATE( NAME( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )      
+         NAME = ''
+
+         ALLOCATE( FNAME( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )      
+         FNAME = ''
+
+         ALLOCATE( UNIT( MAXTRACER, MAXDIAG ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )      
+         UNIT = ''
+
+      ENDIF
 
       !=================================================================
       ! Initialize arrays for "diaginfo.dat" & "tracerinfo.dat" files
@@ -4337,10 +7516,12 @@
       CALL INIT_DIAGINFO
 
       ! Initialize arrays for "tracerinfo.dat"
-      CALL INIT_TRACERINFO
+      CALL INIT_TRACERINFO( am_I_Root, Input_Opt, RC )
 
       ! Store values for hdf output
-      IF ( LND50_HDF .or. LND51_HDF .or. LND51b_HDF ) THEN
+      IF ( Input_Opt%LND50_HDF    .or. 
+     &     Input_Opt%LND51_HDF    .or. 
+     &     Input_Opt%LND51b_HDF ) THEN
 
          CALL INIT_HDF(MAXCAT, MAXTRACER, MAXDIAG)
 
@@ -4358,7 +7539,7 @@
       END SUBROUTINE INIT_GAMAP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

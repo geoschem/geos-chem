@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -11,36 +11,36 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLDICE_HBrHOBr_RXN( DENAIR, airvol, TEMP, QI,
-     &                               CLDF,   AD,     hbr,  hobr,
-     &                               k_hbr,  k_hobr, AREA  )
+      SUBROUTINE CLDICE_HBrHOBr_RXN( I,      J,      L,    DENAIR, 
+     &                               QI,     hbr,    hobr,
+     &                               k_hbr,  k_hobr, AREA, State_Met )
 ! 
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : IS_SAFE_DIV, IT_IS_NAN
-      USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : IS_SAFE_DIV, IT_IS_NAN
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       IMPLICIT NONE
-#include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8,  INTENT(IN)  :: DENAIR   ! Density of air             [#/cm3]
-      REAL*8,  INTENT(IN)  :: AIRVOL   ! Volume of air in a box     [m3]
-      REAL*8,  INTENT(IN)  :: TEMP     ! Temperature in a given box [K]
-      REAL*8,  INTENT(IN)  :: QI       ! Cloud ice mixing ratio     [kg/kg]
-      REAL*8,  INTENT(IN)  :: CLDF     ! 3D cloud fraction          [unitless]
-      REAL*8,  INTENT(IN)  :: AD       ! Dry air mass               [kg]
-      REAL*8,  INTENT(IN)  :: hbr      ! Concentration of HBr       [#/cm3]
-      REAL*8,  INTENT(IN)  :: hobr     ! Concentration of HOBr      [#/cm3]
+      INTEGER,        INTENT(IN)  :: I         ! Longitude index
+      INTEGER,        INTENT(IN)  :: J         ! Latitude  index
+      INTEGER,        INTENT(IN)  :: L         ! Altitude  index
+      REAL*8,         INTENT(IN)  :: DENAIR    ! Density of air         [#/cm3]
+      REAL*8,         INTENT(IN)  :: QI        ! Cloud ice mixing ratio [kg/kg]
+      REAL*8,         INTENT(IN)  :: hbr       ! Concentration of HBr   [#/cm3]
+      REAL*8,         INTENT(IN)  :: hobr      ! Concentration of HOBr  [#/cm3]
+      TYPE(MetState), INTENT(IN)  :: State_Met ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: k_hbr    ! Rate constant for HBr  + ice
-                                       !   pseudo-rxn [cm3/s]
-      REAL*8,  INTENT(OUT) :: k_hobr   ! Rate constant for HOBr + ice
-                                       !   pseudo-rxn [cm3/s]
-      REAL*8,  INTENT(OUT) :: AREA     ! Surface area [cm2/cm3]
+      REAL*8,         INTENT(OUT) :: k_hbr     ! Rate constant for HBr  + ice
+                                               !   pseudo-rxn [cm3/s]
+      REAL*8,         INTENT(OUT) :: k_hobr    ! Rate constant for HOBr + ice
+                                               !   pseudo-rxn [cm3/s]
+      REAL*8,         INTENT(OUT) :: AREA      ! Surface area [cm2/cm3]
 !
 ! !REMARKS:
 !  The rate constant is calculated assuming:
@@ -65,6 +65,13 @@
 !  16 Jun 2011 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  26 Sep 2012 - R. Yantosca - For now, comment out debug print statements
+!  23 Oct 2012 - R. Yantosca - Add better error checks to prevent div-by-zero
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  05 Sep 2013 - R. Yantosca - Now exit if IWC <= 0, this will cause the
+!                              logarithm to choke
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -97,9 +104,21 @@
       LOGICAL           :: yn_nan
       LOGICAL           :: yn_stop
 
+      ! Pointers
+      REAL*8, POINTER   :: AD(:,:,:)
+      REAL*8, POINTER   :: AIRVOL(:,:,:)
+      REAL*8, POINTER   :: CLDF(:,:,:)
+      REAL*8, POINTER   :: T(:,:,:)
+
       !=================================================================
       ! CLDICE_HBrHOBr_RXN begins here!
       !=================================================================
+
+      ! Initialize pointers
+      AD     => State_Met%AD
+      AIRVOL => State_Met%AIRVOL
+      CLDF   => State_Met%CLDF
+      T      => State_Met%T
 
       ! ----------------------------------------------
       ! 1.
@@ -112,14 +131,23 @@
       ! ----------------------------------------------
 
       ! IWC in [g/cm3]
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-      iwc = CLDF * QI * AD / AIRVOL
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+      iwc = CLDF(L,I,J) * QI * AD(I,J,L) / AIRVOL(I,J,L)
       iwc = iwc / 1.d3
 #else
       ! Convert cm3/cm3 to g/cm3
       ! (cm3 ice * 0.92 g ice/cm3 H2O ) / cm3 air
-      iwc = CLDF * ( QI * 1d3 * dens_ice )
+      iwc = CLDF(L,I,J) * ( QI * 1d3 * dens_ice )
 #endif
+
+      !%%% ERROR CHECK!  Do not let IWC<=0 because it will cause the
+      !%%% LOG10 statement in the upcoming section (bmy, 10/23/12)
+      IF ( .not. ( IWC > 0d0 ) ) THEN
+         gamma  = 0.d0
+         k_hbr  = 0.d0
+         k_hobr = 0.d0
+         RETURN
+      ENDIF
 
       ! ----------------------------------------------
       ! calculate the temperature dependent reactive
@@ -132,7 +160,7 @@
       !
       !  ** using g = 0.1 for cold and mixed clouds
       ! ----------------------------------------------
-      IF ( (temp >= 180.d0) .and. (temp <= 268.d0) ) THEN
+      IF ( ( T(I,J,L) >= 180.d0) .and. ( T(I,J,L) <= 268.d0) ) THEN
          gamma = 0.1d0
       ELSE
          ! if temperature moves above 228K, then
@@ -150,7 +178,6 @@
       !    instead of recycling.
       gamma_hobr = 0.003d0
       gamma_hbr  = 0.03d0
-
       ! ----------------------------------------------
       ! 2.
       !   calculate the surface area of cloud droplets
@@ -209,7 +236,7 @@
       ! Wyser [1998]. (jpp, 6/15/2011)
 
       ! a. B = equation 14 in Wyser [1998]
-      b_param = -2.d0 + 1.d-3 * (273.d0 - temp)**(1.5d0) *
+      b_param = -2.d0 + 1.d-3 * (273.d0 - T(I,J,L))**(1.5d0) *
      &     log10(iwc/50.d0)
 
       ! radius is parameterized in [um]
@@ -220,11 +247,23 @@
       ! now convert radius to [cm]
       RADIUS = RADIUS * 1.d-4
 
-      ! make sure there's enough ice in the box we're
-      ! looking at to do chemistry:
-      IF ( (iwc == 0.0) .or. (QI == 0.0) .or.
-     &     (it_is_nan( log10(iwc/50.0))) .or.
-     &     (CLDF == 0.0) .or. (RADIUS <= 0.0) ) THEN
+!------------------------------------------------------------------------------
+!      ! make sure there's enough ice in the box we're
+!      ! looking at to do chemistry:
+!      IF ( (iwc == 0.0) .or. (QI == 0.0) .or.
+!     &     (it_is_nan( log10(iwc/50.0))) .or.
+!     &     (CLDF == 0.0) .or. (RADIUS <= 0.0) ) THEN
+!         gamma  = 0.d0
+!         k_hbr  = 0.d0
+!         k_hobr = 0.d0
+!         RETURN
+!      ENDIF
+!------------------------------------------------------------------------------
+      !%%% ERROR CHECK!  Do not let RADIUS=0 because it will cause the
+      !%%% LOG10 statement in the upcoming section (bmy, 10/23/12)
+      IF ( (              RADIUS   < 0     )        .or.
+     &     ( .not. ( ABS( RADIUS ) > 0d0 ) )        .or.
+     &     ( .not. ( ABS( CLDF(L,I,J) ) > 0d0 ) ) ) THEN
          gamma  = 0.d0
          k_hbr  = 0.d0
          k_hobr = 0.d0
@@ -232,11 +271,11 @@
       ENDIF
 
       ! store the volume of air [cm3]
-      XAIRCM3 = AIRVOL * (100.d0)**3
+      XAIRCM3 = AIRVOL(I,J,L) * (100.d0)**3
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       ! get the volume of cloud ice [cm3]
-      Vc = CLDF * QI * AD / dens_ice
+      Vc = CLDF(L,I,J) * QI * AD(I,J,L) / dens_ice
 #else
       ! Doesn't matter, Vc is not used.
 #endif
@@ -267,9 +306,9 @@
       !
       !   (b) calculate the hydrolysis rxn rate.
       ! ----------------------------------------------------
-      SQM_hbr  = sqrt(mw_hbr  * 1.d3) ! square root of molar mass [g/mole]
-      SQM_hobr = sqrt(mw_hobr * 1.d3) ! square root of molar mass [g/mole]
-      STK = sqrt(temp)                ! square root of temperature [K]
+      SQM_hbr  = sqrt(mw_hbr  * 1.d3)      ! square root of molar mass [g/mole]
+      SQM_hobr = sqrt(mw_hobr * 1.d3)      ! square root of molar mass [g/mole]
+      STK      = sqrt(T(I,J,L)      )      ! square root of temperature [K]
 
       ! ----------------------
       ! i.) Deal with HBr
@@ -367,6 +406,12 @@
 !         read(*,*) yn_stop
          CALL GEOS_CHEM_STOP
       ENDIF
+
+      ! Free pointers
+      NULLIFY( AD     )
+      NULLIFY( AIRVOL )
+      NULLIFY( CLDF   )
+      NULLIFY( T      )
 
       RETURN
 !EOC

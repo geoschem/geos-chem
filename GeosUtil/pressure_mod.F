@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: pressure_mod.f
+! !MODULE: pressure_mod
 !
 ! !DESCRIPTION: Module PRESSURE\_MOD contains variables and routines which 
 !  specify the grid box pressures for both hybrid or pure-sigma models.  
@@ -18,21 +18,20 @@
 ! !USES:
 !
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: CLEANUP_PRESSURE           
-      PUBLIC :: GET_AP
-      PUBLIC :: GET_BP
-      PUBLIC :: GET_PCENTER           
-      PUBLIC :: GET_PEDGE
-      PUBLIC :: GET_PEDGE_FULLGRID             
-      PUBLIC :: INIT_PRESSURE         
-      PUBLIC :: SET_FLOATING_PRESSURE 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      PUBLIC :: EXTERNAL_PEDGE
+      PUBLIC  :: CLEANUP_PRESSURE
+      PUBLIC  :: GET_AP
+      PUBLIC  :: GET_BP
+      PUBLIC  :: GET_PCENTER
+      PUBLIC  :: GET_PEDGE
+      PUBLIC  :: GET_PEDGE_FULLGRID
+      PUBLIC  :: INIT_PRESSURE
+      PUBLIC  :: SET_FLOATING_PRESSURE
+#if defined( ESMF_ )
+      PUBLIC  :: Accept_External_Pedge
 #endif
 !
 ! !REMARKS:
@@ -97,22 +96,31 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !  10 Aug 2012 - R. Yantosca - Remove DEVEL from #ifdef for EXTERNAL_PEDGE
+!  11 Dec 2012 - R. Yantosca - Now make EXTERNAL_PEDGE private
+!  11 Dec 2012 - R. Yantosca - Add new routine ACCEPT_PEDGE_FROM_ESMF to set
+!                              EXTERNAL_PEDGE from the ESMF environment
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
       ! Module variables
-      REAL*8, ALLOCATABLE :: AP(:)      ! "A" term for hybrid ETA coordinate
-      REAL*8, ALLOCATABLE :: BP(:)      ! "B" term for hybrid ETA coordinate
-      REAL*8, ALLOCATABLE :: PFLT(:,:)  ! "Floating" surface pressure field
-      REAL*8, ALLOCATABLE :: AP_FULLGRID(:) ! "A" term for unreduced ETA
-      REAL*8, ALLOCATABLE :: BP_FULLGRID(:) ! "B" term for unreduced ETA
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)
+      REAL*8, ALLOCATABLE :: AP(:)                  ! "A" term for hybrid grid
+      REAL*8, ALLOCATABLE :: BP(:)                  ! "B" term for hybrid grid
+      REAL*8, ALLOCATABLE :: PFLT(:,:)              ! "Floating" sfc pressure
+      REAL*8, ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
+      REAL*8, ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
+#if defined( ESMF_ )
+      REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
+                                                    !  external grid
 #endif
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -150,7 +158,7 @@
       END FUNCTION GET_AP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -188,7 +196,7 @@
       END FUNCTION GET_BP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -212,20 +220,23 @@
 ! !INPUT PARAMETERS: 
 !
       ! Array containing pressure with which to initialize PFLT [hPa]
-      REAL*8, INTENT(IN) :: PS(IIPAR,JJPAR)  
+      REAL*8, INTENT(IN) :: PS(:,:)  
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, B. Field,  R. Yantosca - Initial version  
 !  (1 ) Now check PFLT for NaN or Infinities (bmy, 8/27/02)
 !  (2 ) Added parallel DO-loop (bmy, 4/14/04)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
+!  04 Nov 2013 - M. Sulprizio- Eliminate array temporary by accepting assumed-
+!                              shape dummy argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER :: I, J
+      INTEGER            :: I, J
       INTEGER            :: ERR_LOC(4)
       CHARACTER(LEN=255) :: ERR_VAR
       CHARACTER(LEN=255) :: ERR_MSG
@@ -233,16 +244,18 @@
       !=================================================================
       ! SET_FLOATING_PRESSURE begins here!
       !=================================================================
+
+      ! Define quantities for CHECK_VALUE
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Assign into PFLT array
-         PFLT(I,J) = PS(I,J) 
+         PFLT(I,J) = PS(I,J)
 
-            ! Check for NaN or Infinities
+         ! Check for NaN or Infinities
          ERR_LOC = (/ I, J, 0, 0 /)
          ERR_VAR = 'PFLT'
          ERR_MSG = 'set_floating_pressure:1'
@@ -256,7 +269,7 @@
       END SUBROUTINE SET_FLOATING_PRESSURE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -297,17 +310,18 @@
 !                              EXTERNAL_FORCING to use the GCM pressures.
 !                              This prevents problems when compiling G-C with
 !                              the DEVEL tag when using traditional main.F.
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
       !-----------------------------
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -323,7 +337,7 @@
       ! GEOS-3 & GCAP met fields
       !-----------------------------
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -338,7 +352,7 @@
       END FUNCTION GET_PEDGE 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -370,6 +384,7 @@
 ! !REVISION HISTORY:
 !  (1 ) Modified from GET_PEDGE (cdh, 1/22/09)
 !  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -377,7 +392,7 @@
       ! GET_PEDGE_FULLGRID begins here!
       !=================================================================
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -401,7 +416,7 @@
       END FUNCTION GET_PEDGE_FULLGRID
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -445,7 +460,7 @@
       END FUNCTION GET_PCENTER
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -494,6 +509,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -529,13 +545,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0d0
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       ALLOCATE( EXTERNAL_PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
       EXTERNAL_PEDGE = 0d0
 #endif
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
       !=================================================================
       ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)
@@ -849,12 +865,12 @@
      &              -0.1796822548d0, -0.1798187047d0, -0.1798536479d0 /)
 
       ! Convert SIGMA to AP and BP coordinates
-      DO  L = 1, LLTROP
+      DO  L = 1, LLCHEM
          AP(L) = 150d0 + ( SIGE_GCAP(L) * ( PTOP - 150d0 ) )
          BP(L) = SIGE_GCAP(L)
       ENDDO
 
-      DO L = LLTROP+1, LLPAR+1  
+      DO L = LLCHEM+1, LLPAR+1  
          AP(L) = 150d0 + ( SIGE_GCAP(L) * ( 984d0 - 150d0 ) )
          BP(L) = 0d0
       ENDDO
@@ -864,7 +880,8 @@
 
 #endif
       
-      ! Echo info to std output
+#if !defined( ESMF_ ) 
+      ! Echo info to std output (skip if using ESMF interface to GEOS-5 GCM)
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
          WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
@@ -874,11 +891,12 @@
          WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR+1)
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       ENDIF
+#endif
 
       END SUBROUTINE INIT_PRESSURE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -903,10 +921,64 @@
       IF ( ALLOCATED( AP_FULLGRID ) ) DEALLOCATE( AP_FULLGRID )
       IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
       IF ( ALLOCATED( PFLT        ) ) DEALLOCATE( PFLT        )
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
       IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
 #endif
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( ESMF_ )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: accept_external_pedge
+!
+! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_PEDGE sets the GEOS-Chem
+!  pressure edge variable with the values obtained from an external GCM
+!  (such as the NASA GEOS-5 GCM).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Accept_External_Pedge( am_I_Root, State_Met, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!     
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
+!
+! !OUTPUT ARGUMENTS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine is a setter for EXTERNAL_PEDGE.  It allows us to keep the 
+!  EXTERNAL_PEDGE array PRIVATE to this module, which is good programming
+!  practice.
+! 
+! !REVISION HISTORY: 
+!  06 Dec 2012 - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      ! Set EXTERNAL_PEDGE to the pressure edges [hPa] carried in the
+      ! State_Met object, which were obtained from the external GCM
+      EXTERNAL_PEDGE = State_Met%PEDGE
+
+      ! Return successfully
+      RC             = GIGC_SUCCESS
+      
+      END SUBROUTINE Accept_External_Pedge
+!EOC
+#endif
       END MODULE PRESSURE_MOD
+

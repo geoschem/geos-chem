@@ -1,5 +1,4 @@
-! $Id: readchem.f,v 1.2 2010/03/15 19:33:21 ccarouge Exp $
-      SUBROUTINE READCHEM( am_I_Root )
+      SUBROUTINE READCHEM( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine READCHEM reads species 2names, chemical rxns, and photolysis 
@@ -43,28 +42,45 @@
 !                              called from the traditional driver "main.F"
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
+!                              ".rc" to input.geos (instead of ___.rc)
+!  14 May 2013 - S.D. Eastham- Now setting O1D, O3P, H and N as inactive
+!                                species but determining steady-state so
+!                                need to identify relevant elements here
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
+!                              semivolatile POA simulations (H. Pye)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  28 May 2014 - M. Sulprizio- Changed HOC2H4O reaction flag from 'F' to 'FF'
+!                              to avoid conflict with HAC + OH reaction. Now
+!                              initialize NKHAC, NKMCO3, NKGLYC. (S.D. Eastham)
 !******************************************************************************
-!
 !
 ! !USES:
 !
-#     include "define.h"
+      USE DRYDEP_MOD,         ONLY : MAXDEP
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE DIAG_PL_MOD,        ONLY : SETJFAM, SETPL
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE inquireMod,         ONLY : findFreeLUN
 
-      ! References to F90 modules
-      USE DRYDEP_MOD,  ONLY : MAXDEP
-      USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
-      USE DIAG_PL_MOD, ONLY : SETJFAM, SETPL
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE CMN_SIZE_MOD                         ! Size parameters
-      USE COMODE_LOOP_MOD                      ! SMVGEAR II arrays
-      USE inquireMod,  ONLY : findFreeLUN
+!#if defined( DEVEL ) || defined ( ESMF_ )
+!      USE GIGC_MPI_WRAP
+!endif
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root         ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1990-4)    ************
@@ -152,33 +168,81 @@
 
       ! ININT used to be defined w/in "comode.h", but it is only ever used
       ! w/in "readchem.f".  Declare here as a local variable. (bmy, 7/16/03)
-      INTEGER :: ININT(10)  
+      INTEGER            :: ININT(10)  
 
       CHARACTER(LEN=255) :: FILENAME
+      LOGICAL            :: LPRT
+
+      INTEGER             :: IU_CHEMDAT ! GLOBCHEM.DAT LUN
+
+!#if defined( DEVEL )
+!      INTEGER, ALLOCATABLE :: INTVAL(:)
+!#endif
 
       !=================================================================
       ! READCHEM begins here!
       !=================================================================
-      NINAC          = 0
-      NACTIVE        = 0 
-      NSDEAD         = 0 
-      NOTHGS         = 0 
-      NPHOTALL       = 0 
-      IDOPHOT        = 0
+
+      ! Assume success
+      RC                 = GIGC_SUCCESS
+
+      ! Copy logical fields from INPUT_OPT to local variables for use below
+      LPRT               = Input_Opt%LPRT
+
+      NINAC              = 0
+      NACTIVE            = 0 
+      NSDEAD             = 0 
+      NOTHGS             = 0 
+      NPHOTALL           = 0 
+      IDOPHOT            = 0
 !
-      NAMEGAS(0)     = ' '
+      NAMEGAS(0)         = ' '
 !
       ! Initialize flag for N2O5 hydrolysis rxn (bmy, 8/7/03)
-      NKN2O5         = 0
+      NKN2O5             = 0
 
       ! Initialize flag for HO2 hydrolysis rxn (jaegle, 02/26/09)
-      NKHO2          = 0
+      NKHO2              = 0
 
       ! Initialize flag for BrNO3 hydrolysis rxn (jpp, 5/4/10)
-      NKBrNO3        = 0
+      NKBrNO3            = 0
       ! Initialize flags for HOBr + HBr het. pseudo-rxns (jpp, 3/22/11)
-      NKHOBr         = 0
-      NK1HBr         = 0
+      NKHOBr             = 0
+      NK1HBr             = 0
+
+      ! Initialize flags for PSC reactions (SDE 04/17/13)
+      NKPSC(:,:)         = 0
+
+      ! Initialize flags for VOC photolysis (sde, mps, 5/28/14)
+      NKHAC(:,:)         = 0
+      NKMCO3(:,:)        = 0
+      NKGLYC(:,:)        = 0
+
+      ! Initialize rest of flags for safety (sde, mps, 6/2/14)
+      NNADDA(:)          = 0
+      NKSPECA(:,:)       = 0
+      NNADDB(:)          = 0
+      NKSPECB(:,:)       = 0
+      NNADDC(:)          = 0
+      NKSPECC(:,:)       = 0
+      NNADDD(:)          = 0
+      NKSPECD(:,:)       = 0
+      NNADDF(:)          = 0
+      NKSPECF(:,:)       = 0
+      NNADDG(:)          = 0
+      NKSPECG(:,:)       = 0
+      NNADDH(:)          = 0
+      NKSPECH(:,:)       = 0
+      NNADDK(:)          = 0
+      NKSPECK(:,:)       = 0
+      NNADDV (:)         = 0
+      NNRO2HO2(:)        = 0
+      NKSPECRO2HO2(:,:)  = 0
+      NKHNO4(:)          = 0
+      NKHOROI(:)         = 0
+      NKHOROJ(:)         = 0
+      NK2HOBr            = 0
+      NK2HBr             = 0
 
       DO 44 I            = 1, NMDEAD
        NAMD(I)           = ' '
@@ -201,11 +265,38 @@
  48   CONTINUE
 !
       DO 49 I            = 1, IPHOT
-       DEFPRAT(I,:)        = 0.d0
+       DEFPRAT(I,:)      = 0.d0
  49   CONTINUE
+!
+!
+! *********************************************************************
+!                            OPEN GLOBCHEM
+!      MSL - 01-Feb-13 : Transferred from READER.F
+! *********************************************************************
 !
       !IF ( am_I_Root ) PRINT *,"READCHEM: KGLC=",KGLC
       !IF ( am_I_Root ) PRINT *,"READCHEM: IO93=",IO93
+      ! Find a free file LUN
+      IU_CHEMDAT = findFreeLUN()
+
+      ! Name of file to open
+      FILENAME   ='globchem.dat' 
+
+#if defined( ESMF_ ) 
+      ! We need to add the ".rc" extension to the "globchem.dat" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME   = TRIM( FILENAME ) // '.rc'
+#endif
+      KGLC       = IU_CHEMDAT
+
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 301 ) TRIM( FILENAME ), KGLC
+ 301     FORMAT( 'GEOSCHEM::READER: Opening ', a, ' on unit ', i4  )
+      ENDIF
+
+      ! Open chemistry mechanism file
+      OPEN( KGLC, FILE=TRIM( FILENAME ) )
+
       READ(KGLC,21)  HEADING 
       !WRITE(6,21) HEADING 
  13   READ(KGLC,21)  HEADING 
@@ -220,6 +311,20 @@
       READ(KGLC,59) (RINP(I), I = 1, NMBGAS)  
       READ(KGLC,61) (SINP(I), I = 1, NMBGAS)   
 !
+!#if defined( ESMF_ )
+!
+!      ALLOCATE(INTVAL(1))
+!      INTVAL(1)  = NMASBAL
+!      CALL GIGC_BCAST_CHAR( RINP,   14*NMBGAS,  RC )
+!      CALL GIGC_BCAST_CHAR( NAMEMB, 14*IMASBAL, RC )
+!      CALL GIGC_BCAST_INT( INTVAL, 1, RC )
+!      NMASBAL = INTVAL(1)
+!      INTVAL(1)  = NCSURBAN
+!      CALL GIGC_BCAST_INT( INTVAL, 1, RC )
+!      NCSURBAN = INTVAL(1)
+!      DEALLOCATE(INTVAL)
+!#endif
+
       DO 36 I         = 1, NMBGAS
        MBTRACE(I)     = 0 
        IF (SINP(I).EQ.'A') THEN 
@@ -461,19 +566,30 @@
       IH2O     = 0
       ICH4     = 0
       ILISOPOH = 0
+      ILISOPNO3= 0 ! SOAupdate hotp 6/11/10
       ! add these as well (dkh, 10/06/06)  
-      ILBRO2H = 0
-      ILBRO2N = 0
-      ILTRO2H = 0
-      ILTRO2N = 0
-      ILXRO2H = 0
-      ILXRO2N = 0
+      ILBRO2H  = 0
+      ILBRO2N  = 0
+      ILTRO2H  = 0
+      ILTRO2N  = 0
+      ILXRO2H  = 0
+      ILXRO2N  = 0
       ! and for the new VSL index holders (jpp, 4/15/10)
       ICH2Br2  = 0
       ICHBr3   = 0
+      ! SOAupdate: add NAP (hotp 6/25/09)
+      ILNRO2H  = 0 
+      ILNRO2N  = 0 
+      ! SDE 05/14/13: For UCX
+      IO1D     = 0
+      IO3P     = 0
+      INATOM   = 0
+      IHATOM   = 0
+      INO      = 0
 
       ! Locate positions of O2, H2O, CH4, LISOPOH in CSPEC array
       DO I = 1, NTSPECGAS
+
          SELECT CASE ( TRIM( NAMEGAS(I) ) )
             CASE( 'O2'      )
                IOXYGEN  = I
@@ -483,6 +599,8 @@
                ICH4     = I
             CASE( 'LISOPOH' )
                ILISOPOH = I
+            CASE( 'LISOPNO3' )  ! SOAupdate: hotp 6/11/10
+               ILISOPNO3= I
             ! Add definitions (dkh, 10/06/06)  
             CASE( 'LBRO2H' )
                ILBRO2H = I
@@ -500,9 +618,25 @@
                ICHBr3   = I
             CASE( 'CH2Br2'  ) ! adding selection of CH2Br2
                ICH2Br2  = I
+            ! SOAupdate: add NAP (hotp 6/25/09)
+            CASE( 'LNRO2H' )
+               ILNRO2H   = I
+            CASE( 'LNRO2N' )
+               ILNRO2N   = I
+            CASE( 'O'       )
+               IO3P     = I
+            CASE( 'O1D'     )
+               IO1D     = I
+            CASE( 'N'       )
+               INATOM   = I
+            CASE( 'H'       )
+               IHATOM   = I
+            CASE( 'NO'      ) 
+               INO      = I
             CASE DEFAULT
                ! Nothing
          END SELECT
+
       ENDDO
 !
 ! *********************************************************************
@@ -587,10 +721,12 @@
 
 !FP_ISOP - for debug (6/2009)
 
-      IF ( LPRT .and. am_I_Root ) THEN
-         WRITE(*,*) DINP,IORD,ARRT(1),BRRT(1),KCRRT(1),NCOF,SPECL(1),
-     &              FCVT(1),FCT1T(1),FCT2T(1),COMMENT
-      ENDIF
+!#if !defined( ESMF_ )
+!     IF ( LPRT .and. am_I_Root ) THEN
+!         WRITE(*,*) DINP,IORD,ARRT(1),BRRT(1),KCRRT(1),NCOF,SPECL(1),
+!     &              FCVT(1),FCT1T(1),FCT2T(1),COMMENT
+!      ENDIF
+!#endif
 
       IF (NCOF+1.GT.MXCOF) THEN
        IF ( am_I_Root ) WRITE(6,155) NCOF+1, MXCOF, IORD
@@ -638,6 +774,11 @@
       ELSEIF (DINP.EQ.'D') THEN
        GOTO 310 
       ENDIF
+
+!#if defined( DEVEL ) || defined ( ESMF_ ) 
+!      CALL GIGC_READCHEM_BCAST( C1,    CSTRAT, CTROPL, CTROPS, CURBAN, 
+!    &                       ININT, IORD,   NCOF,   RC              )
+!#endif
 !
 ! *********************************************************************
 ! *      UPDATE REACTION NUMBER FOR REACTIONS THAT ARE USED           *
@@ -835,19 +976,31 @@
          ENDIF
 
 ! bdf smv2 use Q to flag O3 photolysis, code is not confused by 'A''s
+! SDE 04/11/13: Do the same for H2SO4 photolysis
          IF (NOUSE(NCS) .EQ. 0) THEN
             NK                 = NRATCUR(NCS)
             IF (SPECL(1).EQ.'Q') NKO3PHOT(NCS)=NK !Flag O3 photolysis
+            IF (SPECL(1).EQ.'QB') NKO3PHOTH2(NCS)=NK !Flag O3 photolysis (bhh, jmao, eam, 7/18/11)
             IF (SPECL(1).EQ.'T') NKHNO4(NCS)  =NK !Flag HNO4 photolysis (gcc)
             IF (SPECL(1).EQ.'I') NKHOROI(NCS) = NK !Flag CH2O-producing branch in EP photolysis
             IF (SPECL(1).EQ.'J') NKHOROJ(NCS) = NK !Flag GLYC-producing branch in EP photolysis
+            IF (SPECL(1).EQ.'R') NKO2PHOT(NCS) = NK !Flag O2 photolysis
+            IF (trim(adjustl(comment)) == 'sf') THEN
+               NKSO4PHOT(NCS) = NK
+            ENDIF
+            IF (TRIM(ADJUSTL(COMMENT)) == 'qn') THEN
+               NKNOPHOT = NK
+            ENDIF
+            IF (TRIM(ADJUSTL(COMMENT)) == 'qq') THEN
+               NKO3PPHOT = NK
+            ENDIF
 
 !FLAG HACET AND GLYC reaction to modify yield according to temperature
 ! (fp, 8/09)
-            IF (SPECL(1).EQ.'N') NKGLYC(NCS,1)=NK !Flag GLYC 
-            IF (SPECL(1).EQ.'O') NKGLYC(NCS,2)=NK !Flag GLYC 
-            IF (SPECL(1).EQ.'F') NKHAC(NCS,1)  =NK !Flag HAC photolysis
-            IF (SPECL(1).EQ.'L') NKHAC(NCS,2)  =NK !Flag HAC photolysis
+            IF (SPECL(1).EQ.'N') NKGLYC(NCS,1)=NK  !Flag GLYC + OH
+            IF (SPECL(1).EQ.'O') NKGLYC(NCS,2)=NK  !Flag GLYC + OH
+            IF (SPECL(1).EQ.'F') NKHAC(NCS,1)  =NK !Flag HAC  + OH
+            IF (SPECL(1).EQ.'L') NKHAC(NCS,2)  =NK !Flag HAC  + OH
 
 !FP_ISOP FLAG FOR MCO3
             IF (SPECL(1).EQ.'DA') NKMCO3(NCS,1)=NK 
@@ -937,7 +1090,13 @@
 
                   ! Also denote N2O5 hydrolysis rxn (mje, bmy, 8/7/03)
                   IF ( XINP(1) == 'N2O5' ) THEN
-                     NKN2O5 = NK
+                     IF (trim(adjustl(comment)) == 'pb') THEN
+                        ! PSC reaction N2O5 + HCl
+                        NKPSC(NCS,2) = NK
+                     ELSE
+                        NKPSC(NCS,1) = NK
+                        NKN2O5 = NK
+                     ENDIF
                   ENDIF
 
                   ! Same for HO2 hydrolysis rxn (jaegle, 02/26/09)
@@ -947,39 +1106,59 @@
 
                   ! Same for BrNO3 hydrolysis rxn (jpp, 5/4/10)
                   IF ( XINP(1) == 'BrNO3' ) THEN
-                     NKBrNO3 = NK
+                     IF (trim(adjustl(comment)) == 'pg') THEN
+                        NKPSC(NCS,7) = NK
+                     ELSE
+                        NKPSC(NCS,6) = NK
+                        NKBrNO3 = NK
+                     ENDIF
                   ENDIF
 
-                  ! Same for HOBr psuedo-rxn (jpp, 03/22/11)
-                  !   ( HOBr + HBr ---het---> Br2 + H2O )
-                  IF ( (XINP(1) == 'HOBr') .and. 
-     &                 (trim(adjustl(comment)) == 'h1') ) THEN
-                     NKHOBr = NK
+                  ! Same for HOBr reactions (jpp, 03/22/11)
+                  IF (XINP(1) == 'HOBr') THEN
+                     IF (trim(adjustl(comment)) == 'h1') THEN
+                        NKHOBr = NK
+                        NKPSC(NCS,11) = NK
+                     ELSEIF (trim(adjustl(comment)) == 'h2') THEN
+                        NK2HOBr = NK
+                     ELSEIF (trim(adjustl(comment)) == 'pj') THEN
+                        NKPSC(NCS,10) = NK
+                     ENDIF
                   ENDIF
 
-                  ! Same for 1st HBr psuedo-rxn (jpp, 03/22/11)
-                  !   ( HOBr + HBr ---het---> Br2 + H2O )
-                  IF ( XINP(1) == 'HBr' .and. 
-     &                 (trim(adjustl(comment)) == 'h1') ) THEN
-                     NK1HBr = NK
+                  ! Same for HBr reactions (jpp, 03/22/11)
+                  IF ( XINP(1) == 'HBr' ) THEN
+                     IF (trim(adjustl(comment)) == 'h1') THEN
+                        NK1HBr = NK
+                     ELSEIF (trim(adjustl(comment)) == 'h2') THEn
+                        NK2HBr = NK
+                     ENDIF
                   ENDIF
 
-                  ! Now the HOBr ice psuedo-rxn (jpp, 06/16/11)
-                  !   ( HOBr + HBr ---ice---> Br2 + H2O )
-                  IF ( (XINP(1) == 'HOBr') .and. 
-     &                 (trim(adjustl(comment)) == 'h2') ) THEN
-                     NK2HOBr = NK
-                  ENDIF
-
-                  ! Now the HOBr ice psuedo-rxn (jpp, 06/16/11)
-                  !   ( HOBr + HBr ---ice---> Br2 + H2O )
-                  IF ( (XINP(1) == 'HBr') .and. 
-     &                 (trim(adjustl(comment)) == 'h2') ) THEN
-                     NK2HBr = NK
+                  ! Flag remaining PSC reactions (SDE 04/17/13)
+                  IF (XINP(1) == 'ClNO3') THEN
+                     IF (trim(adjustl(comment)) == 'pc') THEN
+                        NKPSC(NCS,3) = NK
+                     ELSEIF (trim(adjustl(comment)) == 'pd') THEN
+                        NKPSC(NCS,4) = NK
+                     ELSEIF (trim(adjustl(comment)) == 'pe') THEN
+                        NKPSC(NCS,5) = NK
+                     ENDIF
+                  ELSEIF (XINP(1) == 'HOCl') THEN
+                     IF (trim(adjustl(comment)) == 'ph') THEN
+                        NKPSC(NCS,8) = NK
+                     ELSEIF (trim(adjustl(comment)) == 'pi') THEN
+                        NKPSC(NCS,9) = NK
+                     ENDIF
                   ENDIF
 
                ENDIF
 !
+
+               IF (SPECL(1).EQ.'HR')  THEN    !modification of the rate for HO2+RO2
+                  NNRO2HO2(NCS)               = NNRO2HO2(NCS) + 1
+                  NKSPECRO2HO2( NNRO2HO2(NCS),NCS) = NK
+               ENDIF
 
                ! DA, DB, and DC are now in use by FP
                ! This part applies only to 'D' (hotp 8/1/09)
@@ -1005,7 +1184,9 @@
                ENDIF
 
                ! F: HOC2H4O ------> HO2 + 2CH2O
-               IF (SPECL(1).EQ.'F') THEN
+               ! Now use FF to avoid conflict with HAC + OH reaction
+               !  (sde, mps, 5/28/14)
+               IF (SPECL(1).EQ.'FF') THEN
                    NNADDF(NCS)               = NNADDF(NCS) + 1
                    NKSPECF( NNADDF(NCS),NCS) = NK
                ENDIF
@@ -1216,6 +1397,11 @@
  700   CONTINUE 
  702  CONTINUE 
 
+!#if defined( ESMF_ )
+!      CALL GIGC_BCAST_INT(NSPEC, ICS, RC)
+!      CALL GIGC_BCAST_INT(NTSPEC, ICS, RC)
+!!      CALL GIGC_BCAST_REAL8(NTSPEC, ICS, RC)
+!#endif
 !---smv2-s
 ! Update (gcc)
 ! bdf smv2, put this in here for now.
@@ -1237,9 +1423,10 @@
       ! Name of file to open
       FILENAME = 'chemga.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! When connecting to GEOS-5 GCM via ESMF, add '___.rc' extension
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+#if defined( ESMF_)
+      ! We need to add the ".rc" extension to the "chemga.dat" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       IF ( am_I_Root ) THEN
@@ -1268,7 +1455,7 @@
 !
       ! Call SETPL to setup ND65 prod/loss diagnostic
       ! SETPL must be called before JSPARSE (ljm, bmy, 5/9/03)
-      IF ( LFAMILY ) CALL SETPL( am_I_Root )
+      IF ( LFAMILY ) CALL SETPL( am_I_Root, Input_Opt, RC )
 
       ! IFSOLVE = 1 means we are calling the chemistry solver
       IF ( IFSOLVE .EQ. 1 ) THEN
@@ -1344,6 +1531,20 @@
                      ENDIF
                   ENDIF
 
+                  ! SOAupdate: add NAP (hotp 6/25/09)
+                  IF ( ILNRO2H > 0 ) THEN 
+                     IF ( J == MAPPL(ILNRO2H,NCS) ) THEN
+                        ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                        EXIT
+                     ENDIF
+                  ENDIF
+
+                  IF ( ILNRO2N > 0 ) THEN 
+                     IF ( J == MAPPL(ILNRO2N,NCS) ) THEN
+                        ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                        EXIT
+                     ENDIF
+                  ENDIF
 
                ENDDO  
             ENDDO
@@ -1360,7 +1561,6 @@
 ! *********************************************************************
 ! *******************   END OF SUBROUTINE READCHEM   ****************** 
 ! *********************************************************************
-!     
-
+!
       RETURN
       END SUBROUTINE READCHEM

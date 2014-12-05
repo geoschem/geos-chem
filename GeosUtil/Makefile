@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  #
 #------------------------------------------------------------------------------
 #BOP
 #
@@ -24,7 +24,7 @@
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
-#   make TARGET [ OPTIONAL-FLAGS ]
+#   make -jN TARGET REQUIRED-FLAGS [ OPTIONAL-FLAGS ]
 #                                                                             .
 # To display a complete list of options, type "make help".
 #                                                                             .
@@ -57,49 +57,56 @@
 #                              facilitate work on the GI model
 #  03 Apr 2012 - M. Payer    - Add new module regrid_a2a_mod.F90 (M. Cooper)
 #  03 Aug 2012 - R. Yantosca - Add dependency for inquireMod.F90
+#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
+#  20 Jun 2014 - R. Yantosca - Removed unix_cmds_mod.F; it's now obsolete
+#  20 Jun 2014 - R. Yantosca - Removed directory_mod.F; it's now obsolete
+#  10 Jul 2014 - R. Yantosca - Now compile ncdf_mod.F90 in NcdfUtil/ subdir
+#  21 Jul 2014 - R. Yantosca - regrid_a2a_mod.F90 no longer relies on other
+#                              files in GeosUtil
+#  21 Jul 2014 - R. Yantosca - Removed regrid_1x1_mod.F; it's obsolete
+#  23 Jul 2014 - R. Yantosca - Removed global_grid_mod.F90; it's obsolete
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
+###############################################################################
+###                                                                         ###
+###  Initialization section                                                 ###
+###                                                                         ###
+###############################################################################
+
 # Define variables
-ROOTDIR := ..
-HDR     := $(ROOTDIR)/Headers
-HELP    := $(ROOTDIR)/help
-LIB     := $(ROOTDIR)/lib
-MOD     := $(ROOTDIR)/mod
+ROOT := ..
+HELP := $(ROOT)/help
+LIB  := $(ROOT)/lib
+MOD  := $(ROOT)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-include $(ROOTDIR)/Makefile_header.mk
+include $(ROOT)/Makefile_header.mk
 
-#=============================================================================
-# List of files to compile.  Here the order is not important,
-# as we will explicity define the dependencies listing below.
-#=============================================================================
-
-# List of source files
-SRC := $(wildcard *.F) $(wildcard *.F90)
-
-# Skip these files (activate if necessary)
-#SRC := $(filter-out grid_mod.F,$(SRC))
+# List of source files: everything ending in .F and .F90
+SRC  := $(wildcard *.F) $(wildcard *.F90)
 
 # Replace .f and .f90 extensions with *.o
-TMP := $(SRC:.F=.o)
-OBJ := $(TMP:.F90=.o)
+TMP  := $(SRC:.F=.o)
+OBJ  := $(TMP:.F90=.o)
 
 # Special files just for IFORT
 ifeq ($(COMPILER),ifort) 
-OBJ += ifort_errmsg.o
+OBJ  += ifort_errmsg.o
 endif
 
 # Special files just for PGI
 ifeq ($(COMPILER),pgi) 
-OBJ += linux_err.o
+OBJ  += linux_err.o
 endif
 
-#=============================================================================
-# Makefile targets: type "make help" for a complete listing!
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Makefile targets: type "make help" for a complete listing!             ###
+###                                                                         ###
+###############################################################################
 
 .PHONY: clean help
 
@@ -113,44 +120,73 @@ clean:
 help:
 	@$(MAKE) -C $(HELP)
 
-#=============================================================================
-# Dependencies listing (grep "USE " to get the list of module references!)
-#
-# From this list of dependencies, the "make" utility will figure out the
-# correct order of compilation (so we don't have to do that ourselves).
-# This also allows us to compile on multiple processors with "make -j".
-#
-# NOTES:
-# (1) Only specify object-file dependencies that are within this directory.  
-#      Object files in other directories will be referenced at link-time.
-# (2) For "make -j" to work, all files in this directory must have a 
-#      listed dependency.
-#=============================================================================
+###############################################################################
+###                                                                         ###
+###  Dependencies listing                                                   ###
+###  (grep "USE " to get the list of module references!)                    ###
+###                                                                         ###
+###  From this list of dependencies, the "make" utility will figure out     ###
+###  correct order of compilation (so we don't have to do that ourselves).  ###
+###  This also allows us to compile on multiple processors with "make -j".  ###
+###                                                                         ###
+###  NOTES:                                                                 ###
+###  (1) Only specify object-file dependencies that are within this         ###
+###       directory.  Object files in other directories will be referenced  ### 
+###       at link-time.                                                     ###
+###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
+###       in this directory must have a listed dependency.                  ###
+###                                                                         ###
+###############################################################################
 
-bpch2_mod.o       : bpch2_mod.F         error_mod.o    file_mod.o   \
-                                        julday_mod.o   inquireMod.o
+bpch2_mod.o       : bpch2_mod.F           \
+                    error_mod.o           \
+                    file_mod.o            \
+                    julday_mod.o          \
+                    inquireMod.o
+
 charpak_mod.o     : charpak_mod.F
-directory_mod.o   : directory_mod.F
-error_mod.o       : error_mod.F
-file_mod.o        : file_mod.F          error_mod.o
-global_grid_mod.o : global_grid_mod.F90 error_mod.o    grid_mod.o
-grid_mod.o        : grid_mod.F90        error_mod.o
-ifort_errmsg.o    : ifort_errmsg.F
-inquireMod.o      : inquireMod.F90
-julday_mod.o      : julday_mod.F
-linux_err.o       : linux_err.c
-pressure_mod.o    : pressure_mod.F      error_mod.o
-regrid_1x1_mod.o  : regrid_1x1_mod.F    charpak_mod.o  error_mod.o  \
-                                        grid_mod.o
-regrid_a2a_mod.o  : regrid_a2a_mod.F90  file_mod.o     grid_mod.o
-time_mod.o        : time_mod.F          charpak_mod.o  error_mod.o  \
-                                        grid_mod.o     julday_mod.o 
-transfer_mod.o    : transfer_mod.F      error_mod.o
-unix_cmds_mod.o   : unix_cmds_mod.F
 
+error_mod.o       : error_mod.F
+
+file_mod.o        : file_mod.F            \
+                    error_mod.o
+
+grid_mod.o        : grid_mod.F90          \
+                    error_mod.o
+
+henry_mod.o       : henry_mod.F
+
+henry_coeffs.o    : henry_coeffs.F
+
+ifort_errmsg.o    : ifort_errmsg.F
+
+inquireMod.o      : inquireMod.F90
+
+julday_mod.o      : julday_mod.F
+
+linux_err.o       : linux_err.c
+
+pressure_mod.o    : pressure_mod.F        \
+                    error_mod.o
+
+regrid_a2a_mod.o  : regrid_a2a_mod.F90
+
+time_mod.o        : time_mod.F            \
+                    charpak_mod.o         \
+                    error_mod.o           \
+                    grid_mod.o            \
+                    julday_mod.o 
+
+transfer_mod.o    : transfer_mod.F        \
+                    error_mod.o
+
+#%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 
 # in the HDF5 include path (bmy, 12/21/09)
-hdf_mod.o        : hdf_mod.F            error_mod.o    grid_mod.o
+hdf_mod.o         : hdf_mod.F             \
+                    error_mod.o           \
+                    grid_mod.o
+
 ifeq ($(HDF5),yes)
 	$(F90) -DUSE_HDF5 -I$(HDF_INC) -c $<
 endif

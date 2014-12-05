@@ -36353,7 +36353,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCK1 (P1)
-#     include "isrpia.inc"y
+#     include "isrpia.inc"
       !DOUBLE PRECISION LAMDA, KAPA
       ! modified by hotp 8/2/07
       ! explicitly declared all variables in CASEK

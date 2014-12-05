@@ -32,10 +32,10 @@
 !  (5 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !  (6 ) Bug fix for GCAP grid in READ_UVALBEDO (bmy, 8/16/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 
       !=================================================================
       ! MODULE VARIABLES
@@ -51,7 +51,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_UVALBEDO( MONTH )
+      SUBROUTINE READ_UVALBEDO( am_I_Root, Input_Opt, 
+     &                          MONTH,     State_Met, RC )
 !
 !******************************************************************************
 !  Subroutine READ_UVALBEDO reads in UV albedo data from a binary punch
@@ -95,18 +96,32 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)    :: MONTH       ! Current month
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
-      USE CMN_SIZE_MOD   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: MONTH
-      
-      ! Local Variables
+!
+! !LOCAL VARIABLES:
+!      
       LOGICAL              :: FIRST = .TRUE.
       INTEGER              :: AS
       REAL*4               :: ARRAY(IIPAR,JJPAR,1)
@@ -115,7 +130,12 @@
 
       !=================================================================
       ! READ_UVALBEDO begins here!
-      !
+      !=================================================================
+
+      ! Assume success
+      RC  =  GIGC_SUCCESS
+
+      !=================================================================
       ! Allocate UVALBEDO array on the first call
       !=================================================================
       IF ( FIRST ) THEN
@@ -135,14 +155,19 @@
       ! Read UVALBEDO data from disk
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Create filename
-      FILENAME = TRIM( DATA_DIR )            // 
+      FILENAME = TRIM( Input_Opt%DATA_DIR )  // 
      &           'uvalbedo_200111/uvalbedo.' // GET_NAME_EXT_2D() //
      &           '.'                         // GET_RES_EXT()
 
       ! Echo filename
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( '     - READ_UVALBEDO: Reading ', a )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 110 ) TRIM( FILENAME )
+ 110     FORMAT( '     - READ_UVALBEDO: Reading ', a )
+      ENDIF
 
       ! Get TAU0 value for first day of the MONTH -- use generic year 1985
       XTAU = GET_TAU0( MONTH, 1, 1985 )
@@ -155,6 +180,9 @@
       ! Transfer data from REAL*4 to REAL*8 and to size (IIPAR,JJPAR)
       CALL TRANSFER_2D( ARRAY(:,:,1), UVALBEDO )
       
+      ! Copy met field to State_Met
+      State_Met%UVALBEDO = UVALBEDO
+
       ! Return to calling program
       END SUBROUTINE READ_UVALBEDO
 

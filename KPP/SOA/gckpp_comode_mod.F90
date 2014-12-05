@@ -1,6 +1,5 @@
-!$ID$
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -32,11 +31,11 @@ MODULE GCKPP_COMODE_MOD
 !                               (use RRATE_FOR_KPP instead)
 !EOP
 !------------------------------------------------------------------------------
-    
+!BOC
 CONTAINS
-  
+!EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -48,13 +47,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !  
-  SUBROUTINE INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP, & 
+  SUBROUTINE INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLCHEM, & 
                                 ITLOOP,    NMTRATE, IGAS,  RC )
 !
 ! !INPUT PARAMETERS:
 !    
     LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-    INTEGER, INTENT(IN) :: IIPAR, JJPAR, LLTROP, ITLOOP, NMTRATE, IGAS
+    INTEGER, INTENT(IN) :: IIPAR, JJPAR, LLCHEM, ITLOOP, NMTRATE, IGAS
 !
 ! !OUTPUT PARAMETERS:
 !    
@@ -92,7 +91,7 @@ CONTAINS
 !    ENDIF
 !    R_KPP = 0d0
 
-    ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLTROP ), STAT=AS )
+    ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLCHEM ), STAT=AS )
     IF ( AS /= 0 ) THEN
        RC=1
        RETURN
@@ -110,9 +109,8 @@ CONTAINS
     ! Return to calling program
   END SUBROUTINE INIT_GCKPP_COMODE
 !EOC
-!  
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

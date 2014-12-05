@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -12,29 +12,45 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PHYSPROC( SUNCOS, am_I_Root )
+      SUBROUTINE PHYSPROC( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-#     include "define.h"
-
-      USE COMODE_MOD,      ONLY : ABSHUM, AIRDENS,  CSPEC,   CSUMA,  
-     &                            CSUMC,  ERRMX2,  IXSAVE, 
-     &                            IYSAVE, T3
-      USE LOGICAL_MOD,     ONLY : LKPP
-      USE TIME_MOD,        ONLY : TIMESTAMP_STRING
-      USE CHEMISTRY_MOD,   ONLY : GCKPP_DRIVER
-      USE GCKPP_GLOBAL,    ONLY : NTT
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : ABSHUM
+      USE COMODE_MOD,         ONLY : AIRDENS
+      USE COMODE_MOD,         ONLY : CSPEC
+      USE COMODE_MOD,         ONLY : CSUMA
+      USE COMODE_MOD,         ONLY : CSUMC
+      USE COMODE_MOD,         ONLY : ERRMX2
+      USE COMODE_MOD,         ONLY : IXSAVE
+      USE COMODE_MOD,         ONLY : IYSAVE
+      USE COMODE_MOD,         ONLY : T3
+      USE COMODE_LOOP_MOD
+      USE CHEMISTRY_MOD,      ONLY : GCKPP_DRIVER
+      USE GCKPP_GLOBAL,       ONLY : NTT
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)   ! Cosine of solar zenith angle
-      LOGICAL, INTENT(IN) :: am_I_Root       ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !
@@ -91,6 +107,9 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid
+!  01 Mar 2013 - R. Yantosca - Now set RC to GIGC_SUCCESS for default
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -117,9 +136,20 @@
       CHARACTER(LEN=16) :: STAMP
 
       REAL :: START,FINISH
+
+      LOGICAL :: LKPP
+
       !=================================================================
       ! PHYSPROC begins here!
       !=================================================================
+
+      ! Assume success
+      RC      = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt to local variables
+      LKPP    = Input_Opt%LKPP
+
+      ! Initialize
       IRCHEM  = IRCHEM + 1
       TIME    = TIME        + CHEMINTV
       TSPMIDC = MOD(TSPMIDC + CHEMINTV,SCDAY) 
@@ -320,8 +350,8 @@
 ! *              CALCULATE REACTION RATE COEFFICIENTS                 *
 ! *********************************************************************
 !
-
-          CALL CALCRATE(SUNCOS)
+          CALL CALCRATE( am_I_Root, Input_Opt, 
+     &                   State_Met, State_Chm, RC )
 !
 ! *********************************************************************
 ! *                        SOLVE CHEMICAL ODES                        *
@@ -336,7 +366,7 @@
              CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
 
           ELSE
-             CALL SMVGEAR
+             CALL SMVGEAR( am_I_Root, Input_Opt, RC )
           call CPU_TIME(finish)
 
 !
@@ -398,8 +428,8 @@
 !               IY        = IYSAVE(JLOOPC)
 !               IJWINDOW  = (IY-1)*IIPAR + IX
 !
-!               IF( SUNCOS(IJWINDOW) .GT. -.25 .AND.
-!     &             SUNCOS(IJWINDOW) .LT. .25 ) THEN
+!               IF( State_Met%SUNCOSmid(IX,IY) .GT. -.25 .AND.
+!     &             State_Met%SUNCOSmid(IX,IY) .LT. .25 ) THEN
 !                  ITWO(JLOOP)  = 1
 !                  NSUNRISE     = NSUNRISE + 1
 !                  CSUMA(JLOOP) = SUNCOS(IJWINDOW) - 

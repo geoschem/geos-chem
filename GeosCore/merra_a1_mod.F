@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -18,7 +18,6 @@
       USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -39,8 +38,9 @@
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now make IU_A1 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
-
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -52,7 +52,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -129,7 +129,7 @@
       END FUNCTION DO_OPEN_A1
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -141,33 +141,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD, NHMS, RESET, IUNIT )
+      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD,  NHMS, Input_Opt, 
+     &                                 RESET, IUNIT            )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)            :: NYMD    ! YYYYMMDD date
-      INTEGER, INTENT(IN)            :: NHMS    ! hhmmss time
-      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time A1 flag?
+      INTEGER,        INTENT(IN)            :: NYMD      ! YYYYMMDD date
+      INTEGER,        INTENT(IN)            :: NHMS      ! hhmmss time
+      TYPE(OptInput), INTENT(IN)            :: Input_Opt ! Input Options
+      LOGICAL,        INTENT(IN),  OPTIONAL :: RESET     ! Reset first A1 flag?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT), OPTIONAL :: IUNIT   ! Returns IU_A1 to caller
+      INTEGER,        INTENT(OUT), OPTIONAL :: IUNIT     ! Returns IU_A1
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A1 locally
 !  06 Aug 2012 - R. Yantosca - Add optional IUNIT to pass LUN to calling routine
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -202,7 +204,7 @@
          !---------------------------
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( MERRA_DIR )
+         GEOS_DIR = TRIM( Input_Opt%MERRA_DIR )
          A1_FILE  = 'YYYYMMDD.a1.' // GET_RES_EXT()
 
          ! Replace date tokens
@@ -210,8 +212,9 @@
          CALL EXPAND_DATE( GEOS_DIR, NYMD, NHMS )
 
          ! Full file path
-         PATH = TRIM( DATA_DIR ) // 
-     &          TRIM( GEOS_DIR ) // TRIM( A1_FILE )
+         PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &          TRIM( GEOS_DIR           ) // 
+     &          TRIM( A1_FILE            )
 
          ! Close previously opened A-1 file
 	 INQUIRE( IU_A1, OPENED=IS_OPEN )
@@ -269,7 +272,7 @@
       END SUBROUTINE OPEN_MERRA_A1_FIELDS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -281,32 +284,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS, Input_Opt, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : ALBD,     CLDFRC,   EFLUX,    EVAP    
-      USE DAO_MOD, ONLY : FRSEAICE, FRSNO,    GRN,      GWETROOT  
-      USE DAO_MOD, ONLY : GWETTOP,  HFLUX,    LAI,      LWI
-      USE DAO_MOD, ONLY : PARDF,    PARDR,    PBL,      PREANV
-      USE DAO_MOD, ONLY : PREACC,   PRECON,   PRELSC,   PRECSNO
-      USE DAO_MOD, ONLY : RADLWG,   RADSWG,   SEAICE00, SEAICE10 
-      USE DAO_MOD, ONLY : SEAICE20, SEAICE30, SEAICE40, SEAICE50
-      USE DAO_MOD, ONLY : SEAICE60, SEAICE70, SEAICE80, SEAICE90
-      USE DAO_MOD, ONLY : SLP,      SNODP,    SNOMAS,   TROPP
-      USE DAO_MOD, ONLY : TS,       TSKIN,    U10M,     USTAR
-      USE DAO_MOD, ONLY : V10M,     Z0 
-
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss of data to read from disk
+      INTEGER,        INTENT(IN)    :: NYMD        ! YYYYMMDD and 
+      INTEGER,        INTENT(IN)    :: NHMS        !  hhmmss of data to read
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  25 Aug 2010 - R. Yantosca - Now pass LWI down to READ_A1
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Remove reference to dao_mod.F module arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -331,50 +332,51 @@
       !=================================================================      
       ! Read data from disk
       !=================================================================
-      CALL READ_A1( NYMD     = NYMD, 
-     &              NHMS     = NHMS,
-     &              ALBEDO   = ALBD,
-     &              CLDTOT   = CLDFRC,   
-     &              EFLUX    = EFLUX,    
-     &              EVAP     = EVAP,
-     &              FRSEAICE = FRSEAICE,
-     &              FRSNO    = FRSNO, 
-     &              GRN      = GRN,      
-     &              GWETROOT = GWETROOT,
-     &              GWETTOP  = GWETTOP, 
-     &              HFLUX    = HFLUX,  
-     &              LAI      = LAI,
-     &              LWI      = LWI,
-     &              LWGNT    = RADLWG,
-     &              PARDF    = PARDF,
-     &              PARDR    = PARDR,
-     &              PBLH     = PBL,
-     &              PRECANV  = PREANV,   
-     &              PRECTOT  = PREACC,  
-     &              PRECCON  = PRECON, 
-     &              PRECLSC  = PRELSC,   
-     &              PRECSNO  = PRECSNO,
-     &              SEAICE00 = SEAICE00,
-     &              SEAICE10 = SEAICE10,
-     &              SEAICE20 = SEAICE20,
-     &              SEAICE30 = SEAICE30,
-     &              SEAICE40 = SEAICE40,
-     &              SEAICE50 = SEAICE50,
-     &              SEAICE60 = SEAICE60,
-     &              SEAICE70 = SEAICE70,
-     &              SEAICE80 = SEAICE80,
-     &              SEAICE90 = SEAICE90,
-     &              SLP      = SLP,
-     &              SNODP    = SNODP,
-     &              SNOMAS   = SNOMAS,
-     &              SWGNT    = RADSWG,
-     &              TROPPT   = TROPP,
-     &              T2M      = TS,
-     &              TS       = TSKIN, 
-     &              U10M     = U10M,
-     &              USTAR    = USTAR,
-     &              V10M     = V10M,
-     &              Z0M      = Z0        )
+      CALL READ_A1( NYMD      = NYMD, 
+     &              NHMS      = NHMS,
+     &              Input_Opt = Input_Opt,
+     &              ALBEDO    = State_Met%ALBD,
+     &              CLDTOT    = State_Met%CLDFRC,   
+     &              EFLUX     = State_Met%EFLUX,    
+     &              EVAP      = State_Met%EVAP,
+     &              FRSEAICE  = State_Met%FRSEAICE,
+     &              FRSNO     = State_Met%FRSNO, 
+     &              GRN       = State_Met%GRN,      
+     &              GWETROOT  = State_Met%GWETROOT,
+     &              GWETTOP   = State_Met%GWETTOP, 
+     &              HFLUX     = State_Met%HFLUX,  
+     &              LAI       = State_Met%LAI,
+     &              LWI       = State_Met%LWI,
+     &              LWGNT     = State_Met%RADLWG,
+     &              PARDF     = State_Met%PARDF,
+     &              PARDR     = State_Met%PARDR,
+     &              PBLH      = State_Met%PBLH,
+     &              PRECANV   = State_Met%PRECANV,   
+     &              PRECTOT   = State_Met%PRECTOT,  
+     &              PRECCON   = State_Met%PRECCON, 
+     &              PRECLSC   = State_Met%PRECLSC,   
+     &              PRECSNO   = State_Met%PRECSNO,
+     &              SEAICE00  = State_Met%SEAICE00,
+     &              SEAICE10  = State_Met%SEAICE10,
+     &              SEAICE20  = State_Met%SEAICE20,
+     &              SEAICE30  = State_Met%SEAICE30,
+     &              SEAICE40  = State_Met%SEAICE40,
+     &              SEAICE50  = State_Met%SEAICE50,
+     &              SEAICE60  = State_Met%SEAICE60,
+     &              SEAICE70  = State_Met%SEAICE70,
+     &              SEAICE80  = State_Met%SEAICE80,
+     &              SEAICE90  = State_Met%SEAICE90,
+     &              SLP       = State_Met%SLP,
+     &              SNODP     = State_Met%SNODP,
+     &              SNOMAS    = State_Met%SNOMAS,
+     &              SWGNT     = State_Met%RADSWG,
+     &              TROPPT    = State_Met%TROPP,
+     &              T2M       = State_Met%TS,
+     &              TS        = State_Met%TSKIN, 
+     &              U10M      = State_Met%U10M,
+     &              USTAR     = State_Met%USTAR,
+     &              V10M      = State_Met%V10M,
+     &              Z0M       = State_Met%Z0        )
 
       ! Save NYMD, NHMS for next call
       LASTNYMD = NYMD
@@ -383,7 +385,7 @@
       END SUBROUTINE GET_MERRA_A1_FIELDS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -395,7 +397,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_A1( NYMD,     NHMS, 
+      SUBROUTINE READ_A1( NYMD,     NHMS,     Input_Opt,
      &                    ALBEDO,   CLDTOT,   EFLUX,    EVAP,    
      &                    FRSEAICE, FRSNO,    GRN,      GWETROOT, 
      &                    GWETTOP,  HFLUX,    LAI,      LWGNT,   
@@ -410,20 +412,21 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR
-      USE TIME_MOD,     ONLY : SET_CT_A1
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
-      USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
-
-      USE CMN_SIZE_MOD                             ! Size parameters
-      USE CMN_DIAG_MOD                             ! ND67 flag
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD67
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_A1
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE TRANSFER_MOD,       ONLY : TRANSFER_TO_1D
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: NYMD                   ! YYYYMMDD and hhmmss     
-      INTEGER, INTENT(IN)  :: NHMS                   !  of data to read
+      INTEGER,        INTENT(IN)  :: NYMD            ! YYYYMMDD and hhmmss     
+      INTEGER,        INTENT(IN)  :: NHMS            !  of data to read
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt       ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -475,8 +478,10 @@
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) from disk
 !  15 Aug 2011 - R. Yantosca - Now save SWGDN in 2nd slot of ND67 diagnostic
 !  25 Mar 2011 - R. Yantosca - Bug fix: make local SWGDN array for ND67 diag
+!  08 Jun 2012 - S. Philip   - Correction for MERRA boundary layer height
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A1 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1102,6 +1107,16 @@
       PRECLSC = PRECLSC * 86400d0
       PRECTOT = PRECTOT * 86400d0
 
+      ! Correction for MERRA PBLH:
+      ! PBLH must be greater than a minimum mechanical mixing depth,
+      ! defined as 700*friction velocity
+      ! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PBLH(I,J) = max( PBLH(I,J), 700d0*USTAR(I,J) )
+      ENDDO
+      ENDDO
+
       !=================================================================
       ! ND67 diagnostic: A1 surface fields
       !=================================================================
@@ -1138,7 +1153,7 @@
       END SUBROUTINE READ_A1
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

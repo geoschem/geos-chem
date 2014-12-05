@@ -1,12 +1,12 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !MODULE: global_ch4_mod
 !
 ! !DESCRIPTION: Module GLOBAL\_CH4\_MOD contains variables and routines for
-!  simulating CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01,10/1/09)
+!  simulating CH4 chemistry in the troposphere.
 !\\
 !\\
 ! !INTERFACE: 
@@ -15,11 +15,18 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
+      USE HCO_ERROR_MOD   ! For real precisions (hp)
 
       IMPLICIT NONE
-#     include "define.h"
       PRIVATE
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Normally we will not save out the CH4_BUDGET diagnostics (esp. when
+!%%% using the nested grid simulations) in order to save memory.  If you
+!%%% want to use CH4_BUDGET, then uncomment the following line of code:
+!%%% (kjw, bmy, 2/12/14)
+!#define USE_CH4_BUDGET_DIAG 1
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -32,9 +39,16 @@
 ! !PUBLIC DATA MEMBERS:
 !
       REAL*8, PARAMETER,   PUBLIC :: XNUMOL_CH4 = 6.0221d23 / 16d-3
+
+#if defined( USE_CH4_BUDGET_DIAG )
       REAL*8, ALLOCATABLE, PUBLIC :: TCH4(:,:,:,:)
+#endif
+
+      ! Make CH4_EMIS now public so that it can be used by vdiff_mod.F90
+      REAL*8,  ALLOCATABLE, PUBLIC :: CH4_EMIS(:,:,:)
 ! 
 ! !REVISION HISTORY: 
+!  17 Jan 2001- J. Wang, B. Duncan, R. Yantosca -- Initial version
 !  (1 ) Merged routines from jsw's CH4 code  into "global_ch4_mod.f" 
 !        (bmy, 1/16/01)
 !  (2 ) XNUMOL_CH4 and TCH4 have to be public - all other variables can
@@ -72,7 +86,17 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!EOP
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  12 Feb 2014 - K. Wecht    - Add modifications for 0.25 x 0.3125 NA grid
+!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
+!                              code out with #ifdef blocks so it can be used)
+!  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
+!  09 Sep 2014 - C. Keller   - Implemented HEMCO for emissions. 
+!  16 Sep 2014 - C. Keller   - Now also get chemical fields (OH and CH4 prod)
+!                              through HEMCO. Removed READ_COPROD and 
+!                              READ_CH4LOSS (now obsolete)
+!  16 Sep 2014 - C. Keller   - Removed all references to Clarisa's OH clima-
+!                              tology (not used anywhere)
 !------------------------------------------------------------------------------
 !BOC
 !     
@@ -82,58 +106,44 @@
       ! Module Variables:
       ! N_CH4      : Number of budget items in TCH4
       ! BAIRDENS   : Array for air density                      [molec/cm3]
-      ! BOH        : Array for OH values                        [molec/cm3]
+      ! BOH        : Array for OH values                        [kg/m3]
       ! COPROD     : Array for zonal mean P(CO)                 [v/v/s]
       ! CH4LOSS    : Array for monthly average CH4 loss freq    [1/s]
       ! PAVG       : Array for 24-h avg surface pressure        [mb]
       ! TAVG       : Array for 24-h avg temperature             [K]
       ! TCH4       : Array for CH4 budget (N_CH4 items)         [molec/box]
-      ! NCMSALTS   : # of altitudes for CMS climatological OH
-      ! NCMSLATS   : # of latitudes for CMS climatological OH
-      ! CMSALTS    : Altitude values for CMS climatological OH
-      ! CMSLATS    : Latitude values for CMS climatological OH
-      ! AVGOH      : Array for CMS climatological OH            [molec/cm3]
       ! FMOL_CH4   : Molecular weight of CH4                    [kg/mole]
       ! XNUMOL_CH4 : Molecules CH4 / kg CH4                     [molec/kg]
-      ! CH4_EMIS   : Array for CH4 Emissions                    [molec/cm2/s]
+      ! CH4_EMIS   : Array for CH4 Emissions                    [kg/m2/s]
       !========================================================================
 
       ! Number of CH4 budget types 
       INTEGER, PARAMETER   :: N_CH4    = 12
-      ! For Clarisa's Climatological OH
-      INTEGER, PARAMETER   :: NSEAS    = 4
-      INTEGER, PARAMETER   :: NCMSALTS = 7
-      INTEGER, PARAMETER   :: NCMSLATS = 24
-      REAL*8,  PARAMETER   :: FMOL_CH4 = 16d-3
+
+      REAL*8, PARAMETER    :: XNUMOL_OH  = 6.0221d23 / 17d-3  ! molec OH / kg OH
+      REAL*8, PARAMETER    :: CM3PERM3   = 1.d6
 !
 ! !LOCAL VARIABLES:
 !
       ! Various arrays      
-      REAL*8,  ALLOCATABLE :: BAIRDENS(:,:,:)
-      REAL*8,  ALLOCATABLE :: BOH(:,:,:,:)
-      REAL*8,  ALLOCATABLE :: COPROD(:,:,:)
-      REAL*8,  ALLOCATABLE :: CH4LOSS(:,:,:,:)
-      REAL*8,  ALLOCATABLE :: PAVG(:,:,:)
-      REAL*8,  ALLOCATABLE :: TAVG(:,:,:)
-      REAL*8,  ALLOCATABLE :: CH4_EMIS(:,:,:)
-      REAL*8,  ALLOCATABLE :: AVGOH(:,:,:)
+      REAL*8,  ALLOCATABLE         :: BAIRDENS(:,:,:)
+      REAL*8,  ALLOCATABLE         :: PAVG(:,:,:)
+      REAL*8,  ALLOCATABLE         :: TAVG(:,:,:)
 
-      ! For Clarisa's Climatological OH      
-      REAL*8               :: CMSALTS(NCMSALTS) =
-     &    (/ 1000d0, 900d0, 800d0, 700d0, 500d0, 300d0, 200d0 /)
+      ! HEMCO pointers
+      REAL(hp), POINTER            :: BOH    (:,:,:) => NULL() ! Get from HEMCO
+      REAL(hp), POINTER            :: CH4LOSS(:,:,:) => NULL() ! Get from HEMCO
 
-      REAL*8               :: CMSLATS(NCMSLATS) =
-     &    (/ 90d0,  84d0,  76d0,  68d0,  60d0,  52d0,  44d0,  36d0, 
-     &       28d0,  20d0,  12d0,   4d0,  -4d0, -12d0, -20d0, -28d0,
-     &      -36d0, -44d0, -52d0, -60d0, -68d0, -76d0, -84d0, -90d0 /)
+      ! Online CH4 only
+      REAL*8,  ALLOCATABLE         :: SUMANTHRO(:,:)
+      REAL*8,  ALLOCATABLE         :: SUMBIOG(:,:)
 
-      REAL*8               :: TROPOCH4
-      REAL*8               :: STRATOCH4
+      REAL*8                       :: TROPOCH4
 
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -146,16 +156,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_AVGTP
+      SUBROUTINE CH4_AVGTP( State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : T
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_TS_DYN, GET_TS_CHEM, GET_ELAPSED_MIN
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CHEM
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry and
@@ -176,6 +191,9 @@
 !        GET_TS_CHEM, and GET_ELAPSED_MIN from "time_mod.f" (bmy, 3/27/03)
 !  (9 ) Remove reference to CMN, it's not needed (bmy, 7/20/04)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  17 Sep 2014 - C. Keller   - Removed legacy code (unused variables).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,9 +201,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER               :: NTDT, NMIN
-      INTEGER               :: I, J, L, NTIMES, MNDT, K, M, N
+      INTEGER               :: I, J, L, NTIMES, MNDT
       INTEGER               :: NNEW, NNCOUNT 
-      REAL*8                :: Ptemp(IIPAR,JJPAR,LLPAR)
       
       !=================================================================
       ! CH4_AVGTP begins here!
@@ -204,7 +221,7 @@
       IF ( NMIN == 0 ) THEN
 
          ! Initialize NNEW
-	 NNEW = 0
+         NNEW = 0
 
          ! No longer true (kjw, 11/17/11).
          !! Error check --  NCHEM has to be 1440 min
@@ -251,8 +268,8 @@
       IF ( NNEW == 0 ) THEN 
          Pavg(:,:,:) = 0d0
          Tavg(:,:,:) = 0d0
-	 NNEW        = 1
-	 NNCOUNT     = 0
+         NNEW        = 1
+         NNCOUNT     = 0
       ENDIF
 
       !=================================================================
@@ -260,7 +277,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PTEMP )
+!$OMP+PRIVATE( I, J, L )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -269,7 +286,7 @@
          Pavg(I,J,L) = Pavg(I,J,L) + GET_PCENTER(I,J,L)
 
          ! Archive temperature
-         Tavg(I,J,L) = Tavg(I,J,L) + T(I,J,L)
+         Tavg(I,J,L) = Tavg(I,J,L) + State_Met%T(I,J,L)
       ENDDO
       ENDDO
       ENDDO
@@ -279,7 +296,7 @@
       ! Keep track to see if at end of NCHEM time step.
       ! If so, divide PAVG & TAVG by the number of times archived.
       !=================================================================
-	
+
       NNCOUNT = NNCOUNT + 1
 
       IF ( NNCOUNT == NTIMES ) THEN
@@ -291,7 +308,7 @@
       END SUBROUTINE CH4_AVGTP
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -303,28 +320,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSCH4
+      SUBROUTINE EMISSCH4( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR 
-      USE TIME_MOD,      ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE GRID_MOD,      ONLY : GET_AREA_CM2,    GET_XOFFSET
-      USE GRID_MOD,      ONLY : GET_YOFFSET 
-      USE TRACER_MOD,    ONLY : STT
-      USE LOGICAL_MOD,   ONLY : LSPLIT
-      USE DIAG_MOD,      ONLY : AD58
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP,  IT_IS_NAN
-      USE TRACER_MOD,    ONLY : N_TRACERS, ID_TRACER
-      USE LOGICAL_MOD,   ONLY : LWETL,           LBMCH4,       LRICE
-      USE LOGICAL_MOD,   ONLY : LBFCH4
-      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (ccc, 08/31/09)
-      USE LOGICAL_MOD,   ONLY : LNLPBL    ! (ccc, 08/31/09)
-      
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE DIAG_MOD,           ONLY : AD58
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! Diagnostic switches
+      ! HEMCO update
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, GetHcoDiagn
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  WARNING: Soil absorption has to be the 11th field in CH4_EMIS
@@ -358,120 +385,235 @@
 !  (13) Add non-local PBL capability (ccc, 8/31/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  11 Apr 2014 - R. Yantosca - Remove call to INIT_GLOBAL_CH4
+!  09 Sep 2014 - C. Keller   - Implemented HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, I0, IREF, J, J0, JREF, N
-      REAL*8                 :: DTSRCE,       AREA_CM2
+      INTEGER             :: I, I0, IREF, J, J0, JREF, N
+      REAL*8              :: DTSRCE,       AREA_M2
+      REAL*8,DIMENSION(7) :: DBGANTHRO
+      REAL*8,DIMENSION(3) :: DBGBIO
+
+      ! For fields from Input_Opt
+      LOGICAL             :: ITS_A_CH4_SIM
+      LOGICAL             :: ITS_A_FULLCHEM_SIM
+      INTEGER             :: N_TRACERS
+      INTEGER             :: ID_TRACER(Input_Opt%N_TRACERS)
+
+      INTEGER                   :: FLAG, ERR
+      CHARACTER(LEN= 63)        :: DgnName
+      TYPE(HCO_STATE), POINTER  :: HcoState   => NULL()
+      REAL(hp), POINTER         :: Ptr2D(:,:) => NULL()
+
+      CHARACTER(LEN=255)        :: MSG
+      CHARACTER(LEN=255)        :: LOC = 'EMISSCH4 (global_ch4_mod.F)'
 
       !=================================================================
       ! EMISSCH4 begins here!
       !=================================================================
 
+      ! Assume success
+      RC                  = GIGC_SUCCESS
+
       ! Get nested-grid offsets
-      I0  = GET_XOFFSET()
-      J0  = GET_YOFFSET()
+      I0                  = GET_XOFFSET()
+      J0                  = GET_YOFFSET()
 
+      ! Copy values from Input_Opt
+      N_TRACERS           = Input_Opt%N_TRACERS
+      ID_TRACER           = Input_Opt%ID_TRACER(1:N_TRACERS)
+      ITS_A_CH4_SIM       = Input_Opt%ITS_A_CH4_SIM
+      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
 
-      !===================================================================
-      ! Emissions are read or calculated at the first of every:
-      !   1) Emission time step - Natural Wetlands (from J Kaplan)
-      !   2) Month              - Biomass Burning and Rice
-      !   3) Year               - All other sources
-      !
-      ! Emissions are stored at each time step in a 3D array:
-      !   EMIS_CH4(IIPAR,JJPAR,N).
-      !     Where N = 1:12
-      !       1. Total Emissions (including soil absorption, counted neg.)
-      !       2. Oil and Gas Processing
-      !       3. Coal Mining
-      !       4. Livestock
-      !       5. Waste
-      !       6. Biofuel
-      !       7. Rice
-      !       8. Other Anthropogenic
-      !       9. Biomass Burning
-      !       10. Wetlands
-      !       11. Soil Absorption
-      !       12. Other Natural
-      !
-      ! Emissions are added to STT array and AD58 (emission diagnostic)
-      !   at every time step.
-      !                                                      (kjw, 6/4/09)
-      !===================================================================
-
-
-      print*,'BEGIN SUBROUTINE: EMISSCH4'
-
-
-      ! ==================================================================
-      ! 1)  Get Wetland Emissions
-      !     NOTES:                                          (kjw, 5/28/09)
-      !        Emissions calculated online every timestep in WETLAND_EMIS.
-      !        WETLAND_EMIS adapted to GEOS-Chem by Jerome Drevet (3/06)
-      !        from a wetland methane scheme provided by Jed O. Kaplan
-      !        See subroutine WETLAND_EMIS for more information
-      ! ==================================================================
-
-      print*, '% EMISSCH4 --- Calculating wetland emissions'
-      CALL FLUSH(6)
-
-      !4.1 Wetland emissions
-      IF ( LWETL ) THEN
-         CALL WETLAND_EMIS 
+      ! Import emissions from HEMCO (through HEMCO state)
+      CALL GetHcoState( HcoState )
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         CALL ERROR_STOP ( 'HcoState not defined!', LOC )
       ENDIF
 
-      ! ==================================================================
-      ! 2)  Get Monthly Varying CH4 Emissions
-      !     NOTES:                                          (kjw, 5/28/09)
-      !        Biomass burning emissions from GFED2 or GFED3
-      !        Biomass burning available from 1997-2007 (5/28/09)
-      !        Rice emissions from EDGAR v4, modified by GEOS soil wetness
-      ! ==================================================================
-      IF ( ITS_A_NEW_MONTH() ) THEN
+      ! Emission timestep
+      DTSRCE = HcoState%TS_EMIS
 
-         !4.2 Biomass Burning emissions (CH4_BBN, #9)
-         IF ( LBMCH4 ) THEN
-            CALL BIOBURN_EMIS
-         ENDIF
-
-         !4.3 Rice emissions (CH4_RIC, #7)
-         IF ( LRICE ) THEN
-            CALL RICE_EMIS
-         ENDIF
+      IF ( ITS_A_CH4_SIM ) THEN
+         print*,'BEGIN SUBROUTINE: EMISSCH4' 
       ENDIF
 
+      ! =================================================================
+      ! --> All emission calculations are now done through HEMCO
+      ! HEMCO stores emissions of all tracers internally in the HEMCO
+      ! state object. Here, we pass these emissions into module array 
+      ! CH4_EMIS. These values are then either added to the tracers 
+      ! array (full mixing scheme) or used lateron in vdiff_mod.F90 if 
+      ! the non-local PBL mixing scheme is used.
+      ! The CH4_EMIS array is mostly used for backwards compatibility
+      ! (especially the diagnostics). It is also used to ensure that 
+      ! in a multi-tracer simulation, tracer 1 (total CH4) is properly
+      ! defined. 
+      !                                              (ckeller, 9/12/2013)
+      ! =================================================================
+      CH4_EMIS(:,:,:) = 0d0
 
-      ! ==================================================================
-      ! 3)  Get Aseasonal CH4 Emissions
-      !     NOTES:                                      (kjw, 5/28/09)
-      !        Anthropogenic emissions from EDGAR v4 except biofuel
-      !        emissions which are from Yevich and Logan 2003.
-      !        Soil absorption from Fung et. al. 1991.
-      !        Other natural emissions include:
-      !            termites from Fung et. al. 1991
-      ! ==================================================================
+      ! =================================================================
+      ! Pass emissions from HEMCO state to CH4_EMIS via HEMCO
+      ! diagnostics. Keep units in kg/m2/s.
+      ! 
+      ! NOTE: the ND60 diagnostics (wetland fraction) is currently not
+      ! written. To support this diagnostics, create a manual diagnostics
+      ! in the wetland extension (HEMCO/Extensions/hcox_ch4wetland_mod.F90),
+      ! activate it in hcoi\_gc\_diagn\_mod.F90 and import it here.
+      !                                              (ckeller, 9/12/2013)
+      ! =================================================================
 
-      IF ( ITS_A_NEW_YEAR() ) THEN
-
-        !4.5 Aseasonal Anthropogenic emissions
-        ! (CH4_OAG, #2; CH4_COL, #3; CH4_LIV, #4; CH4_WST, #5; 
-        !  CH4_BFL, #6; CH4_OTA, #8)
-        CALL ASEASONAL_ANTHRO_EMIS
-
-        !4.6 Aseasonal Natural emissions (CH4_SAB, #11; CH4_OTN, #12)
-        CALL ASEASONAL_NATURAL_EMIS
-
+      ! Gas and oil
+      DgnName = 'CH4_GAS'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,2) =  Ptr2D(:,:)
       ENDIF
+      Ptr2D => NULL()
 
+      ! Coal 
+      DgnName = 'CH4_COAL'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,3) =  Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! Livestock
+      DgnName = 'CH4_LIVESTOCK'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,4) =  Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! Waste 
+      DgnName = 'CH4_WASTE'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,5) =  Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! Biofuel 
+      DgnName = 'CH4_BIOFUEL'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,6) =  Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! Rice 
+      DgnName = 'CH4_RICE'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,7) =  Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! Other anthropogenic 
+      DgnName = 'CH4_ANTHROTHER'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,8) =  Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! Biomass burning 
+      DgnName = 'CH4_BIOMASS'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,9) =  Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! Wetland 
+      DgnName = 'CH4_WETLAND'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,10) =  Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+      ! Soil absorption (those are negative!) 
+      DgnName = 'CH4_SOILABSORB'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,11) =  Ptr2D(:,:) * -1.0_hp
+      ENDIF
+      Ptr2D => NULL()
+
+      ! Other natural 
+      DgnName = 'CH4_OTHERNATUR'
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
+      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+      ELSE
+         CH4_EMIS(:,:,12) =  Ptr2D(:,:)
+      ENDIF
+      Ptr2D => NULL()
+
+
+      ! =================================================================
       ! Total emission: sum of all emissions - (2*soil absorption)
       ! We have to substract soil absorption twice because it is added 
       ! to other emissions in the SUM function. (ccc, 7/23/09)
-      CH4_EMIS(:,:,1) = 0d0
+      ! =================================================================
       CH4_EMIS(:,:,1) = SUM(CH4_EMIS, 3) - (2 * CH4_EMIS(:,:,11))
+
+      ! testing only
+      write(*,*) 'CH4_EMIS (kg/m2/s):'
+      write(*,*) '1 : ', SUM(CH4_EMIS(:,:,1))
+      write(*,*) '2 : ', SUM(CH4_EMIS(:,:,2))
+      write(*,*) '3 : ', SUM(CH4_EMIS(:,:,3))
+      write(*,*) '4 : ', SUM(CH4_EMIS(:,:,4))
+      write(*,*) '5 : ', SUM(CH4_EMIS(:,:,5))
+      write(*,*) '6 : ', SUM(CH4_EMIS(:,:,6))
+      write(*,*) '7 : ', SUM(CH4_EMIS(:,:,7))
+      write(*,*) '8 : ', SUM(CH4_EMIS(:,:,8))
+      write(*,*) '9 : ', SUM(CH4_EMIS(:,:,9))
+      write(*,*) '10: ', SUM(CH4_EMIS(:,:,10))
+      write(*,*) '11: ', SUM(CH4_EMIS(:,:,11))
+      write(*,*) '12: ', SUM(CH4_EMIS(:,:,12))
+!      write(*,*) 'rice 55,29: ',ch4_emis(55,29,7)
+!      write(*,*) 'wetl 55,29: ',ch4_emis(55,29,10)
 
       ! =================================================================
       ! Modify the STT with emissions rates.               (kjw, 5/29/09)
@@ -491,12 +633,11 @@
       !  11. Soil Absorption
       !  12. Other Natural
       ! =================================================================
-
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to STT array.'
-
-      ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60d0   !timestep in s.
+ 
+      ! Only added to SST for offline CH4 simulations.
+      IF ( ITS_A_CH4_SIM ) THEN
+       WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to STT array.'
+      ENDIF
 
       ! J0 and I0 are global variables, both set = 0.
       DO J = 1, JJPAR
@@ -505,1040 +646,202 @@
       DO I = 1, IIPAR
          IREF = I + I0
 
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+         ! Grid box surface area [m2]
+         AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
-         IF ( .NOT. LNLPBL ) THEN
-            DO N = 1, N_TRACERS
-               STT(IREF,JREF,1,N) = STT(IREF,JREF,1,N) + 
-     &            CH4_EMIS(IREF,JREF,ID_TRACER(N))
-     &            / XNUMOL_CH4 * DTSRCE * AREA_CM2
-            ENDDO
+         ! Offline CH4 only
+         ! Convert kg/m2/s to kg.
+         IF ( ITS_A_CH4_SIM ) THEN
+
+            ! Pass directly to tracers array (surface level) if
+            ! non-local scheme is not used.
+            ! For the non-local PBL scheme, CH4_EMIS will
+            ! be used directly in vdiff_mod.F90
+            IF ( .NOT. Input_Opt%LNLPBL ) THEN
+               DO N = 1, N_TRACERS
+                  State_Chm%Tracers(IREF,JREF,1,N)
+     &            = State_Chm%Tracers(IREF,JREF,1,N)
+     &            + CH4_EMIS(IREF,JREF,ID_TRACER(N))
+     &            * DTSRCE * AREA_M2
+               ENDDO
+            ENDIF
          ENDIF
 
-         ! Save emissions in the EMIS_SAVE array to use the non-local 
-         ! PBL scheme to propagate emissions (ccc, 8/31/09)
-         IF ( LNLPBL ) THEN
-            DO N = 1, N_TRACERS
-               EMIS_SAVE(IREF,JREF,N) = CH4_EMIS(IREF,JREF,ID_TRACER(N))
-     &                                  / XNUMOL_CH4 * DTSRCE * AREA_CM2
-            ENDDO
-         ENDIF
-
+         ! Update diagnostics
          IF ( ND58 > 0 ) THEN
 
             ! All emission sources excluding soil absorption
             AD58(IREF,JREF,1) = AD58(IREF,JREF,1) + 
      &         ( CH4_EMIS(IREF,JREF,1) + CH4_EMIS(IREF,JREF,11) )
-     &         / XNUMOL_CH4 * DTSRCE * AREA_CM2 
+     &           * DTSRCE * AREA_M2 
 
             DO N = 2, PD58
                AD58(IREF,JREF,N) = AD58(IREF,JREF,N) + 
-     &            CH4_EMIS(IREF,JREF,N) 
-     &            / XNUMOL_CH4 * DTSRCE * AREA_CM2
+     &            CH4_EMIS(IREF,JREF,N) * DTSRCE * AREA_M2
             ENDDO
          ENDIF
 
       ENDDO
       ENDDO
 
+      IF ( ITS_A_CH4_SIM ) THEN
 
-      !===============================================================
-      ! Sum up CH4 budgets
-      !
-      ! TCH4 - # molecules emitted from different sources
-      !===============================================================
+#if defined( USE_CH4_BUDGET_DIAG )
+         !===============================================================
+         ! Sum up CH4 budgets
+         !
+         ! TCH4      - # molecules emitted from different sources
+         !===============================================================
 
+         DO J = 1,JJPAR
+            JREF = J + J0
 
-      DO J = 1,JJPAR
-         JREF = J + J0
+         DO I = 1,IIPAR
+            IREF = I + I0
 
-      DO I = 1,IIPAR
-         IREF = I + I0
+            ! Grid box surface area [m2]
+            AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-         ! Gas, oil, mine
-         TCH4(I,J,1,5) = TCH4(I,J,1,5) +
-     &        ( ( CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) ) * 
-     &                          AREA_CM2 * DTSRCE )
+            ! Gas, oil, mine
+            TCH4(I,J,1,5) = TCH4(I,J,1,5) +
+     &           ( ( CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) ) * 
+     &              * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+               
+            ! agriculture (rice, animals, waste)
+            TCH4(I,J,1,6) = TCH4(I,J,1,6) +
+     &           ( ( CH4_EMIS(I,J,4) + CH4_EMIS(I,J,7) + 
+     &               CH4_EMIS(I,J,5) ) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
             
-         ! agriculture (rice, animals, waste)
-         TCH4(I,J,1,6) = TCH4(I,J,1,6) +
-     &        ( ( CH4_EMIS(I,J,4) + CH4_EMIS(I,J,7) + 
-     &            CH4_EMIS(I,J,5) ) * AREA_CM2 * DTSRCE )
+            ! Biomass burning (and biofuel?)
+            TCH4(I,J,1,7) = TCH4(I,J,1,7)+
+     &           ( ( CH4_EMIS(I,J,9) + CH4_EMIS(I,J,6) ) *
+     &               * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+
+            ! Termites
+            TCH4(I,J,1,8) = TCH4(I,J,1,8)+
+     &           ( CH4_EMIS(I,J,12) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+
+            ! Wetlands
+            TCH4(I,J,1,9) = TCH4(I,J,1,9)+
+     &           ( CH4_EMIS(I,J,10) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+
+            ! Soil Absorption
+            TCH4(I,J,1,10) = TCH4(I,J,1,10)+
+     &           ( CH4_EMIS(I,J,11) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+
+
+            TCH4(I,J,1,4) = TCH4(I,J,1,4) + 
+     &          ( CH4_EMIS(I,J,1)  + ( 2 * CH4_EMIS(IREF,JREF,11) ))
+     &          * XNUMOL_CH4 * AREA_M2 * DTSRCE
+
+         ENDDO
+         ENDDO
+#endif
+
+      ELSEIF ( ITS_A_FULLCHEM_SIM ) THEN
+
+         !===============================================================
+         ! Sum up CH4 emissions
+         !
+         ! SUMANTHRO - Total anthropogenic emissions [molec/cm2/s]
+         ! SUMBIOG   - Total biogenic      emissions [molec/cm2/s]
+         !===============================================================
+
+         ! Debug counters
+         DBGANTHRO = 0d0
+         DBGBIO    = 0d0
+
+         DO J = 1,JJPAR
+            JREF = J + J0
+
+         DO I = 1,IIPAR
+            IREF = I + I0
+
+            ! Grid box surface area [m2]
+            AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J) 
+
+            ! Total anthropogenic emissions
+            ! Gas & oil, mining, livestock, waste, biofuel, rice, other
+            SUMANTHRO(I,J) = CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) +
+     &                     + CH4_EMIS(I,J,4) + CH4_EMIS(I,J,5) +
+     &                     + CH4_EMIS(I,J,6) + CH4_EMIS(I,J,7) +
+     &                     + CH4_EMIS(I,J,8)
+
+            ! kg/s
+            DO N=1,7
+                DBGANTHRO(N) = DBGANTHRO(N) + 
+     &                         (CH4_EMIS(I,J,N+1)*AREA_M2)
+            ENDDO
+
+            ! Total biogenic emissions
+            ! Wetlands, other natural, (-)soil absorption
+            SUMBIOG(I,J) = CH4_EMIS(I,J,10) + CH4_EMIS(I,J,12)
+     &                   - CH4_EMIS(I,J,11)
+
+            ! kg/s
+            DO N=1,3
+                DBGBIO(N) = DBGBIO(N) + 
+     &                      (CH4_EMIS(I,J,N+9)*AREA_M2)
+            ENDDO
+
+         ENDDO
+         ENDDO
+
+         ! Convert from kg/s to kg/yr
+         DBGBIO(2)    = DBGBIO(2)*-1d0 ! Soil absorption
+         DBGANTHRO(:) = DBGANTHRO(:)*(3600.d-9*24d0*365.25d0)
+         DBGBIO(:)    = DBGBIO(:)*(3600.d-9*24d0*365.25d0)
+
+         ! SDE - Output projected annual emissions based on last output
+         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 anthrop. emissions rate:',
+     &            SUM(DBGANTHRO), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Gas & oil             :',
+     &            DBGANTHRO(1), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Mining                :',
+     &            DBGANTHRO(2), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Livestock             :',
+     &            DBGANTHRO(3), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Waste                 :',
+     &            DBGANTHRO(4), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Biofuel               :',
+     &            DBGANTHRO(5), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Rice                  :',
+     &            DBGANTHRO(6), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Other                 :',
+     &            DBGANTHRO(7), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 biogen. emissions rate: ',
+     &            SUM(DBGBIO), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Wetlands              :',
+     &            DBGBIO(1), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Other natural         :',
+     &            DBGBIO(3), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') ' --> Soil absorption       :',
+     &            DBGBIO(2), 'Tg/yr'
+
+         WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 total emissions rate:   ',
+     &            (SUM(DBGBIO)+SUM(DBGANTHRO)), 'Tg/yr'
          
-         ! Biomass burning (and biofuel?)
-         TCH4(I,J,1,7) = TCH4(I,J,1,7)+
-     &        ( ( CH4_EMIS(I,J,9) + CH4_EMIS(I,J,6) ) *
-     &                          AREA_CM2 * DTSRCE )
+      ENDIF
 
-         ! Termites
-         TCH4(I,J,1,8) = TCH4(I,J,1,8)+
-     &        ( CH4_EMIS(I,J,12) * AREA_CM2 * DTSRCE )
-
-         ! Wetlands
-         TCH4(I,J,1,9) = TCH4(I,J,1,9)+
-     &        ( CH4_EMIS(I,J,10) * AREA_CM2 * DTSRCE )
-
-         ! Soil Absorption
-         TCH4(I,J,1,10) = TCH4(I,J,1,10)+
-     &        ( CH4_EMIS(I,J,11) * AREA_CM2 * DTSRCE )
-
-
-         TCH4(I,J,1,4) = TCH4(I,J,1,4) + 
-     &       ( CH4_EMIS(I,J,1)  + ( 2 * CH4_EMIS(IREF,JREF,11) ))
-     &       * AREA_CM2 * DTSRCE
-
-      ENDDO
-      ENDDO
-
-      print*,'END SUBROUTINE: EMISSCH4'
+      IF ( ITS_A_CH4_SIM ) THEN
+         print*,'END SUBROUTINE: EMISSCH4'
+      ENDIF
 
       END SUBROUTINE EMISSCH4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: wetland_emis
-!
-! !DESCRIPTION: Subroutine WETLAND\_EMIS calculates emissions of CH4 [kg] by
-!  Wetland. For a description of the GEOS-Chem wetland CH4 emission routine,
-!  see a paper titled, "Magnitude and trends of wetland methane emissions from 
-!  the Hudson Bay Lowlands (Canada)" by C. Pickett-Heaps
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE WETLAND_EMIS
-!
-! !USES:
-!
-      USE DAO_MOD,       ONLY : GWETTOP,      LWI
-      USE DAO_MOD,       ONLY : TSKIN,        TS
-      USE DAO_MOD,       ONLY : FRLAND,       FRLAKE
-      USE DAO_MOD,       ONLY : FROCEAN,      FRLANDIC
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IOERROR
-      USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE TIME_MOD,      ONLY : GET_MONTH,    GET_YEAR,    GET_TS_EMIS
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE DIAG_MOD,      ONLY : AD60, AD58
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! Diagnostic switches
-! 
-! !REVISION HISTORY:
-!  (1 ) Adapted by Jérôme Drevet (3/06) from the BIOME-TG Wetland-Methane
-!       scheme provided by Jed O. Kaplan.
-!  (2 ) CH4 Emissions from Wetland depend on:
-!		a - Soil Carbon content.
-!		b - Vegetation type
-!		c - Wetland area (%)
-!		d - Soil moisture.
-!       a, b, c are taken from the LPJ, a vegetation model. Data are provided 
-!	by J.O.Kaplan. Soil moisture is read from GEOS Met input files.  
-!  (3 ) Corrected order of DO loops (bmy, 10/1/09)
-!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER                :: I, J, L      
-      INTEGER                :: GM, YEAR      
-      REAL*4                 :: ARRAY(IIPAR,JJPAR)
-      REAL*8                 :: WETFRAC(IIPAR,JJPAR)
-      REAL*8                 :: REALWET(IIPAR,JJPAR)
-      REAL*8                 :: EFF_GWET(IIPAR,JJPAR)
-      REAL*8                 :: SOIL_C(IIPAR,JJPAR) 
-      REAL*8                 :: LITTER_C(IIPAR,JJPAR) 
-      REAL*8                 :: litterfast 
-      REAL*8                 :: litterslow 
-      REAL*8                 :: soilfast 
-      REAL*8                 :: soilslow 
-      REAL*8                 :: HETEROR 
-      REAL*8                 :: F_TEMP 
-      REAL*8                 :: MEAN_T(IIPAR,JJPAR)  
-      REAL*8                 :: METHANE_OUT(IIPAR,JJPAR)   
-      REAL*8                 :: XTAU
-      REAL*8                 :: TROPICNESS
-      REAL*8                 :: EMIT_TROPIC
-      REAL*8                 :: EMIT_TEMPER
-      REAL*8                 :: MOIST_SCALE
-      REAL*8                 :: EMIT_FACT
-      INTEGER                :: MONTHDATES(12) = (/ 31, 28, 31, 30,
-     &                                              31, 30, 31, 31,
-     &                                              30, 31, 30, 31 /)
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=4)       :: CYEAR
-      LOGICAL, SAVE          :: FIRST
-
-      !=================================================================
-      ! WETLAND_CH4 begins here!
-      !=================================================================
-
-      !4.10 Wetland emissions
-
-      !===================================================================
-      ! Get wetland fraction data 
-      !===================================================================
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN WETLAND_EMIS'
-
-
-      ! Read Wetland fraction only if first call of simulation
-      !IF ( FIRST ) THEN
-         FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/wetlands/' //
-     &              'Wetfrac.'        // GET_RES_EXT()          // 
-     &              '.bpch'
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/wetlands/' //
-     &              'Wetfrac.'        // GET_RES_EXT()          //
-     &              '_NA.bpch'
-#endif
-
-         WRITE( 6, 91 ) TRIM ( FILENAME )
- 91      FORMAT( '     - WL_CH4: Reading WET-FRAC: ', a )
-         CALL FLUSH( 6 )
-
-         XTAU = GET_TAU0( 1, 1, 2000 )
-
-         CALL READ_BPCH2( FILENAME, 'WET-FRAC',     1,      
-     &                    XTAU,     IIPAR,          JJPAR,      
-     &                    1,        ARRAY,          QUIET=.TRUE.)
-         
-         CALL TRANSFER_2D( ARRAY(:,:), WETFRAC(:,:) )
-
-         ! WETFRAC is maximum inundatable area in a box
-         WETFRAC =  WETFRAC / 100d0
-
-         ! Reset FIRST = FALSE
-         !FIRST = .FALSE.
-
-      !ENDIF
-
-
-      !===================================================================
-      ! Calculate inundated fraction
-      !
-      ! REALWET calculation is based on maximum inundatable area (WETFRAC)
-      ! and top soil moisture information
-      !
-      ! NOTE: LWI (land/water/ice flag) definition has changed between
-      !   GEOS4 and GEOS5.  This contributes to the variance between GEOS4
-      !   and GEOS5 wetland emissions.  Below is Jerome Drevet's and Jed
-      !   Kaplan's original calculation of REALWET using GEOS4 and a
-      !   modified calculation using GEOS5.
-      !                                                     (kjw, 6/10/09)
-      !===================================================================
-
-      ! REALWET is the actual inundated fraction of a box
-      REALWET(:,:) = 0d0
-
-      ! GEOS4 calculation of inundated fraction
-#if   defined( GEOS_4 )
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, I )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-	 ! We don't want emissions in frozen regions
-	 IF (TSKIN(I,J) > 273d0) THEN
-         ! We want emissions from land boxes only
-         IF (LWI(I,J) == 1) THEN 
-	    ! If wetness>0.1, the wetland fraction is equal
-            ! to the maximal potential wetland fraction
-            IF (GWETTOP(I,J) > 0.1d0) THEN
-		REALWET(I,J) = WETFRAC(I,J)
-            ELSE
-		REALWET(I,J) = 0.d0
-            ENDIF
-	 ENDIF
-	 ENDIF	
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! GEOS5 Calculation of inundated fraction
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, I )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-	 ! We don't want emissions in frozen regions
-	 IF (TSKIN(I,J) > 273d0) THEN
-         ! We want emissions from any box that contains some land
-         ! FRLAND is fraction of grid box that is land
-         IF (FRLAND(I,J) > 0) THEN 
-            ! Actual wetness of land /= GWETTOP because GWETTOP includes
-            ! wetness in lakes, ocean, and ice.  Below is a scheme to
-            ! calculate effective GWETTOP of the land fraction
-            EFF_GWET(I,J) = ( GWETTOP(I,J) - 
-     &           ( FROCEAN(I,J) + FRLAKE(I,J) + FRLANDIC(I,J) ) ) 
-     &                       / FRLAND(I,J)
-
-            ! Catch for negative EFF_GWET
-            IF ( EFF_GWET(I,J) < 0d0 ) THEN
-               EFF_GWET(I,J) = 0d0
-            ENDIF
-
-	    ! If wetness>0.1, the wetland fraction is equal
-            ! to the maximal potential wetland fraction
-            IF (EFF_GWET(I,J) > 0.1d0) THEN
-		REALWET(I,J) = WETFRAC(I,J)
-            ELSE
-		REALWET(I,J) = 0.d0
-            ENDIF
-	 ENDIF
-	 ENDIF	
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
-
-      ! Update Wetland Fraction Diagnostic
-      GM = GET_MONTH()
-      IF ( ND60 > 0 ) THEN
-	 AD60(:,:) = AD60(:,:) + REALWET(:,:)/(24d0*MONTHDATES(GM))
-      ENDIF
-
-
-      !===================================================================
-      ! Get litter carbon and soil carbon from LPJ DGVM (in gC/m2). 
-      !===================================================================
-
-      ! Only read Carbon and tskin information at beginning of each month
-      !IF ( ITS_A_NEW_MONTH() ) THEN
-
-         ! Carbon litter and carbon soil files both have tau date of
-         ! Jan. 1, 2000
-         
-         XTAU = GET_TAU0( 1, 1, 2000 )
-
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_litter.' // GET_RES_EXT()          // 
-     &              '.bpch'
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_litter.' // GET_RES_EXT()          //
-     &              '_NA.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CO--SRCE',   1,      
-     &                    XTAU,      IIPAR,       JJPAR,      
-     &                    1,         ARRAY,       QUIET=.TRUE.)
-
-         CALL TRANSFER_2D( ARRAY, LITTER_C )
-
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_soil.'   // GET_RES_EXT()          // 
-     &              '.bpch'
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_soil.'   // GET_RES_EXT()          // 
-     &              '_NA.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CO--SRCE',   1,      
-     &                    XTAU,     IIPAR,        JJPAR,      
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-
-         CALL TRANSFER_2D( ARRAY, SOIL_C )
-
-
-         !===================================================================
-         ! Get annual mean skin temperature. 
-         !===================================================================
-
-         ! No TSKIN data for years before 2000 or after 2009
-         YEAR = GET_YEAR()
-
-#if   defined( GEOS_5 )
-         IF ( YEAR .LT. 2004 ) YEAR  = 2004
-         IF ( YEAR .GT. 2011 ) YEAR  = 2011
-         WRITE( CYEAR, '(i4)' ) YEAR
-
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'TSKIN.'         // GET_NAME_EXT()         // 
-     &              '.'              // GET_RES_EXT()          //
-     &              '.'              // CYEAR                  // 
-     &              '.bpch'
-
-#elif defined( GEOS_4 )
-         IF ( YEAR .LT. 2000 ) YEAR  = 2000
-         IF ( YEAR .GT. 2009 ) YEAR  = 2009
-         WRITE( CYEAR, '(i4)' ) YEAR
-
-         FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/wetlands/' //
-     &              'TSKIN.'          // CYEAR                  // 
-     &              '.'               // GET_NAME_EXT()         // 
-     &              '.'               // GET_RES_EXT()
-#endif
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         YEAR    = 2004
-         WRITE( CYEAR, '(i4)' ) YEAR
-
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'TSKIN.'         // GET_NAME_EXT()         //
-     &              '.'              // GET_RES_EXT()          //
-     &              '_NA.'           // CYEAR                  //
-     &              '.bpch' 
-#endif
-
-         XTAU = GET_TAU0( 1, 1, YEAR )
-      
-         CALL READ_BPCH2( FILENAME,  'GMAO-2D',    2,
-     &                    XTAU,      IIPAR,        JJPAR,      
-     &                    1,         ARRAY,        QUIET=.TRUE.)
-
-         CALL TRANSFER_2D( ARRAY, MEAN_T )
-         print*,'done skin temp'
-
-      !ENDIF   ! End if its_a_new_month
-
-
-      !===================================================================
-      ! Calculate CH4 emissions!
-      !===================================================================
-
-      METHANE_OUT = 0d0	
-
-      ! Comments from Jed Kaplan and Jerome Drevet below:
-      !    (moist_scale can be between 0.07 and 0.14)
-      !    (emit_fact can be between 0.001 and 0.005)
-      ! Jerome's paper uses MOIST_SCALE = 0.19 (kjw, 6/9/09)
-      !
-      ! Jed and Jerome tune parameter values to the wetland emission
-      !    routine using GEOS-4 met variables. I have tuned the model
-      !    using GEOS-5 met variables and found that EMIT_FACT=.01 
-      !    and MOIST_SCALE=.1 give a reasonable balance between
-      !    extratropical and tropical emissions, kjw (7/20/10).
-      ! 
-      ! UPDATE 12/13/2011
-      !    Carbon litter and soil maps used prior to GC v9-01-03 were
-      !    incorrect. Carbon litter had wrong spatial distribution, and
-      !    carbon soil values were too high and may also have had the 
-      !    wrong spatial distribution.
-      !    Updated carbon litter, carbon soil, and wetland fraction maps
-      !    are included in v9-01-03. MOIST_SCALE and EMIT_FACT have been 
-      !    tuned to maintain annual global average methane emissions 
-      !    ~ 166.8 Tg/y. Boreal wetland emissions are ~ 28.9 Tg/y, 
-      !    consistent with estimates described in Pickett-Heaps 2011,
-      !    3rd pararaph of introduction. New parameter values:
-      !      MOIST_SCALE = 0.19
-      !      EMIT_FACT   = 0.023
-      !    (kjw, 12/13/2011)
-      MOIST_SCALE=0.19d0
-      EMIT_FACT = .023d0
-
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, I, litterfast, litterslow, soilfast, soilslow       )
-!$OMP+PRIVATE(HETEROR, F_TEMP,   TROPICNESS, EMIT_TROPIC, EMIT_TEMPER )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-        
-	 IF ( tskin(I,J) < 233.d0 ) THEN
-	    F_TEMP = 0d0
-	 ELSE
-	    F_TEMP = exp(308.56d0*(1.0d0/56.02d0-
-     &           1.0d0/(tskin(I,J)-227.13d0))) !Lloyd & Taylor 1994	
-	 ENDIF
-
-         ! Calculate Heterotrophic respiration
-         litterfast = 0.985d0 * LITTER_C(i,j)
-         litterslow = 0.015d0 * LITTER_C(i,j)
-         soilfast =  0.985d0 * SOIL_C(i,j)
-         soilslow =  0.015d0 * SOIL_C(i,j)
-
-	 HETEROR = 1d3* F_TEMP *( litterfast*0.3d0
-     &                          + litterslow*0.05d0
-     &                          + soilfast*0.03d0
-     &                          + soilslow*0.001d0 ) * 0.34d0 / 12d0
-
-
-         ! Calculate "tropicness" of each box
-       	 TROPICNESS = exp((MEAN_T(I,J) - 303.15d0) / 8d0)
-	 IF ( TROPICNESS < 0d0 ) THEN
-            TROPICNESS = 0d0
-	 ENDIF
-	 IF ( TROPICNESS > 1d0 ) THEN
-            TROPICNESS = 1d0
-	 ENDIF
-
-         
-         EMIT_TROPIC = 0.0d0
-         EMIT_TEMPER = 0.0d0
-
-!         EMIT_TROPIC = EMIT_TROPIC + HETEROR * MOIST_SCALE 
-!     &                * REALWET(I,J) 
-!
-!         EMIT_TEMPER = EMIT_TEMPER + HETEROR * EMIT_FACT 
-!     &                * REALWET(I,J) 
-
-         EMIT_TROPIC = HETEROR * MOIST_SCALE * REALWET(I,J) 
-
-         EMIT_TEMPER = HETEROR * EMIT_FACT   * REALWET(I,J) 
-
-
-	 METHANE_OUT(I,J) = TROPICNESS      * EMIT_TROPIC +
-     &                     (1 - TROPICNESS) * EMIT_TEMPER  !gCH4/m2/mth	  
-
-	
-	 IF (METHANE_OUT(I,J) < 0d0 ) THEN
-            METHANE_OUT(I,J)=0d0
-         ENDIF
-
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-
-      ! METHANE_OUT:  g/m2/y --> molec/cm2/s
-      METHANE_OUT = METHANE_OUT/16d0/1d4/(24d0*MONTHDATES(GM)*3.6d3)
-     &              * 6.023d23 
-
-      ! Add to emission array
-      CH4_EMIS(:,:,10) = METHANE_OUT
-
-      print*,'END SUBROUTINE WETLAND_EMIS'
-
-      END SUBROUTINE WETLAND_EMIS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: bioburn_emis
-!
-! !DESCRIPTION: Subroutine BIOBURN\_EMIS calculates CH4 emissions from GFED2 or
-!  GFED3 biomass burning. (kjw, 6/03/09) 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE BIOBURN_EMIS
-!
-! !USES:
-!
-      USE BIOMASS_MOD,      ONLY : BIOMASS
-      USE LOGICAL_MOD,      ONLY : LGFED2BB,      LGFED3BB
-      USE TRACERID_MOD,     ONLY : IDBCH4
-      USE CMN_SIZE_MOD,     ONLY : IIPAR, JJPAR
-! 
-! !REVISION HISTORY:
-!  03 Jun 2009 - K. Wecht    - The code used to read, scale & regrid emissions
-!                              is from SUBROUTINE GFED2_COMPUTE_BIOMASS in
-!                              gfed2_biomass_mod.f
-!  14 Feb 2012 - M. Payer    - Now obtain emissions from BIOMASS array. Also
-!                              update for GFED3 (K. Wecht)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8                    :: E_CH4
-      INTEGER                   :: I, J
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN BIOBURN_EMIS'
-
-      !=================================================================
-      ! BIOBURN_EMIS begins here!
-      !=================================================================
-
-      !4.9 Biomass Burning emissions. Calculate emissions from monthly 
-      !     GFED-2 or GFED-3.
-      IF ( LGFED2BB .OR. LGFED3BB ) THEN
-         DO I=1,IIPAR
-         DO J=1,JJPAR
-            ! Biomass burning emissions [molec/cm2/s]
-            E_CH4 = BIOMASS( I,J,IDBCH4 )
-
-            ! Place into CH4_EMIS array
-            CH4_EMIS(I,J,9) = E_CH4
-
-         ENDDO
-         ENDDO
-      ENDIF
-
-      END SUBROUTINE BIOBURN_EMIS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: rice_emis
-!
-! !DESCRIPTION: Subroutine RICE\_EMIS calculates CH4 emissions from rice and
-!  places CH4 [kg] into the STT array. (kjw, 6/03/09)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE RICE_EMIS
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE GRID_MOD,      ONLY : GET_AREA_CM2
-      USE TIME_MOD,      ONLY : GET_MONTH,    GET_YEAR
-      USE LOGICAL_MOD,   ONLY : LSPLIT
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! Diagnostic switches
-! 
-! !REMARKS:
-!  Rice Emissions are scaled to GEOS soil wetness.  Scaling sceme developed
-!     and implemented by Jerome Drevet.
-!  Wetland emissions are modified by the presence of rice emissions.  Sceme
-!     developed by Jerome Drevet.
-! 
-! !REVISION HISTORY:
-!  (1 ) CH4 emissions from rice calculated with a routine created by Jerome
-!       Drevet.  Adapted as its own subroutine by Kevin Wecht (6/03/09)
-!  (2 ) Corrected ordering of DO loops (bmy, 10/1/09)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER                :: I,J,YEAR
-      REAL*4                 :: ARRAY(IIPAR,JJPAR)      
-      REAL*8                 :: DTSRCE,       AREA_CM2
-      REAL*8                 :: MEAN_GWETTOP(IIPAR,JJPAR)
-      REAL*8                 :: MONTH_GWETTOP(IIPAR,JJPAR)
-      REAL*8                 :: wet_ratio
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=4  )     :: CYEAR
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN RICE_EMIS'
-
-      !=================================================================
-      ! RICE_EMIS begins here!
-      !=================================================================
-
-      !4.7 Rice Emissions
-      ! For now, we only have emissions from 2004 in DATA_DIR.
-      ! Tau date of bpch emission files is Jan 1 of that year
-      CYEAR='2004'
-      XTAU = GET_TAU0( 1, 1, 2004 )
-      ! When DATA_DIR updated with more emission files, use:
-      !      WRITE( CYEAR, '(i4)' ) GET_YEAR()
-      !      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
-
-      ! Read Rice Emissions
-      FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'      //
-     &           'rice.'          // CYEAR             // 
-     &           '.'              // GET_NAME_EXT_2D() // 
-     &           '.'              // GET_RES_EXT()
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &           'rice.'          // GET_RES_EXT()     //
-     &           '_NA.'           // CYEAR             //
-     &           '.bpch'
-#endif
-
-      CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
-     &                 XTAU,      IIPAR,     JJPAR,
-     &                 1,         ARRAY,     QUIET=.TRUE.)
-
-      CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,7) )
-
-      ! Get annual and monthly mean soil wetness from GEOS
-      ! One file contains both monthly and annual mean GWETTOP
-      YEAR = GET_YEAR()
-#if   defined( GEOS_5 )
-      IF ( YEAR .LT. 2004 ) YEAR  = 2004
-      IF ( YEAR .GT. 2011 ) YEAR  = 2011
-      WRITE( CYEAR, '(i4)' ) YEAR
-
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/GWETTOP/'  //
-     &           'GWETTOP.'        // GET_NAME_EXT()         // 
-     &           '.'               // GET_RES_EXT()          // 
-     &           '.'               // CYEAR                  // 
-     &           '.bpch'
-
-#elif defined( GEOS_4 )
-      IF ( YEAR .LT. 2000 ) YEAR  = 2000
-      IF ( YEAR .GT. 2009 ) YEAR  = 2009
-      WRITE( CYEAR, '(i4)' ) YEAR
-
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/GWETTOP/'  //
-     &           'GWETTOP.'        // CYEAR                  // 
-     &           '.'               // GET_NAME_EXT()         // 
-     &           '.'               // GET_RES_EXT()
-#endif
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-      YEAR = 2004
-      WRITE( CYEAR, '(i4)' ) YEAR
-
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/GWETTOP/'  //
-     &           'GWETTOP.'        // GET_NAME_EXT()         // 
-     &           '.'               // GET_RES_EXT()          // 
-     &           '_NA.'            // CYEAR                  //
-     &           '.bpch' 
-#endif
-
-      ! Annual mean GWETTOP
-      XTAU = GET_TAU0( 1, 1, YEAR )
-      CALL READ_BPCH2( FILENAME, 'GMAO-2D',  2,      
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                    1,      ARRAY,     QUIET=.TRUE.)
-      CALL TRANSFER_2D( ARRAY, MEAN_GWETTOP )
-
-      ! Monthly mean GWETTOP
-      XTAU = GET_TAU0( GET_MONTH(), 1, YEAR )
-      CALL READ_BPCH2( FILENAME, 'GMAO-2D',  1,      
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                    1,      ARRAY,     QUIET=.TRUE.)
-      CALL TRANSFER_2D( ARRAY, MONTH_GWETTOP )
-
-      !scale rice emissions (by Jerome Drevet)
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-	 wet_ratio = MONTH_GWETTOP(I,J)/MEAN_GWETTOP(I,J)-1
-         wet_ratio = wet_ratio * 2.
-         wet_ratio = wet_ratio +1.
-	 IF (wet_ratio < 0) wet_ratio = 0
-         CH4_EMIS(I,J,7)=CH4_EMIS(I,J,7)*wet_ratio
-      ENDDO
-      ENDDO
-
-      ! Subtract rice emissions from natural wetlands to prevent double
-      ! counting of emissions from the same source.
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         IF (CH4_EMIS(I,J,7) > 0) THEN   ! If rice > 0
-         IF (CH4_EMIS(I,J,10) > 0) THEN  ! If wtl  > 0
-         IF (CH4_EMIS(I,J,10) > CH4_EMIS(I,J,7)) THEN
-             CH4_EMIS(I,J,10) = CH4_EMIS(I,J,10) - CH4_EMIS(I,J,7)
-         ENDIF
-         ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-
-      END SUBROUTINE RICE_EMIS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: aseasonal_anthro_emis
-!
-! !DESCRIPTION: Subroutine ASEASONAL\_ANTHRO\_EMIS reads CH4 emissions from
-!  anthropogenic sources. (kjw, 6/03/09)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE ASEASONAL_ANTHRO_EMIS
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_YEAR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE LOGICAL_MOD,   ONLY : LGAO,         LCOL,         LLIV
-      USE LOGICAL_MOD,   ONLY : LWAST,        LOTANT, LBFCH4
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! Diagnostic switches
-! 
-! !REMARKS:
-!  Aseasonal anthropogenic emissions currently include EDGAR v4 categories
-!  that are not called in their own subroutines.  Current emission categories
-!  read in this subroutine are: gas & oil, coal, livestock, waste, and other
-!  anthropogenic sources.
-!
-! !REVISION HISTORY:
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*4                 :: ARRAY(IIPAR,JJPAR)      
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=4  )     :: CYEAR
-
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN ASEASONAL_ANTHRO_EMIS'
-
-      !=================================================================
-      ! ASEASONAL_ANTHRO_EMIS begins here!
-      !=================================================================
-
-
-      ! For now, we only have emissions from 2004 in DATA_DIR.
-      ! Tau date of bpch emission files is Jan 1 of that year
-      CYEAR='2004'
-      XTAU = GET_TAU0( 1, 1, 2004 )
-      ! When DATA_DIR updated with more emission files, use:
-      !      WRITE( CYEAR, '(i4)' ) GET_YEAR()
-      !      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
-
-
-      !4.2 Gas and Oil emissions
-      IF ( LGAO ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'gas_oil.'       // CYEAR             // 
-     &              '.'              // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'gas_oil.'       // GET_RES_EXT()     // 
-     &              '_NA.'           // CYEAR             // 
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                    XTAU,     IIPAR,        JJPAR,
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,2) ) 
-      ENDIF
-
-
-      !4.3 Coal Mine emissions
-      IF ( LCOL ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'coal.'          // CYEAR             // 
-     &              '.'              // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'coal.'          // GET_RES_EXT()     // 
-     &              '_NA.'           // CYEAR             // 
-     &              '.bpch'
-#endif 
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                    XTAU,     IIPAR,        JJPAR,
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,3) )
-      ENDIF
-
-      !4.4 Livestock emissions
-      IF ( LLIV ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'livestock.'     // CYEAR             // 
-     &              '.'              // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'livestock.'     // GET_RES_EXT()     // 
-     &              '_NA.'           // CYEAR             //
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                    XTAU,     IIPAR,        JJPAR,
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,4) )
-      ENDIF
-
-      !4.6 Biofuel emissions
-      IF ( LBFCH4 ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'resident.'      // GET_RES_EXT()     // 
-     &              '.'              // CYEAR             //
-     &              '.bpch'
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'resident.'      // GET_RES_EXT()     //
-     &              '_NA.'           // CYEAR             //
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( TRIM(FILENAME), 'CH4-EMIS',   1,
-     &                    XTAU,           IIPAR,        JJPAR,
-     &                    1,              ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,6) ) 
-      ENDIF
-	
-      !4.5 Waste emissions
-      IF ( LWAST ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'waste.'         // CYEAR             // 
-     &              '.'              // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'waste.'         // GET_RES_EXT()     //
-     &              '_NA.'           // CYEAR             //
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                    XTAU,     IIPAR,        JJPAR,
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,5) )
-      ENDIF
-
-      !4.8 Other Anthropogenic Emissions
-      IF ( LOTANT ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'other.'         // CYEAR             // 
-     &              '.'              // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'other.'         // GET_RES_EXT()     //
-     &              '_NA.'           // CYEAR             //
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                    XTAU,     IIPAR,        JJPAR,
-     &                    1,        ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,8) )
-      ENDIF
-
-      END SUBROUTINE ASEASONAL_ANTHRO_EMIS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: aseasonal_natural_emis
-!
-! !DESCRIPTION: Subroutine ASEASONAL\_NATURAL\_EMIS reads CH4 emissions from
-!  natural sources. (kjw, 6/03/09)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE ASEASONAL_NATURAL_EMIS
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT,    GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,     ONLY : GET_TAU0,       READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_YEAR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE LOGICAL_MOD,   ONLY : LSOABS,         LOTNAT
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! Diagnostic switches
-! 
-! !REMARKS:
-!  Aseasonal natural emissions currently include termites (Fung et. al. 1991)
-!  and soil absorption (Fung et. al. 1991).  Future additions may include 
-!  emissions from permafrost, clathrates, thermokarst lakes, or 
-!  geothermal vents.
-! 
-! !REVISION HISTORY:
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*4                 :: ARRAY(IIPAR,JJPAR)      
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=4  )     :: CYEAR
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN ASEASONAL_NATURAL_EMIS'
-
-      !=================================================================
-      ! ASEASONAL_NATURAL_EMIS begins here!
-      !=================================================================
-
-
-      ! We only have one year of soil absorption and other natural
-      ! CH4 emissions.  These have the date Jan . 1, 1985
-
-      XTAU = GET_TAU0( 1, 1, 1985 )
-
-
-      !4.11 Soil Absorption
-      IF ( LSOABS ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'soilabs.'       // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'soilabs.'       // GET_RES_EXT()     // 
-     &              '_NA.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
-     &                    XTAU,     IIPAR,      JJPAR,
-     &                    1,        ARRAY,      QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,11) )
-      ENDIF
-
-      !4.12 Other Natural Emissions
-      IF ( LOTNAT ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'termites.'      // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'termites.'      // GET_RES_EXT()     //
-     &              '_NA.bpch'
-#endif
-
-         CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
-     &                     XTAU,     IIPAR,     JJPAR,
-     &                     1,        ARRAY,     QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,12) )
-      ENDIF
-
-      END SUBROUTINE ASEASONAL_NATURAL_EMIS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1550,27 +853,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMCH4
+      SUBROUTINE CHEMCH4( am_I_Root, Input_Opt,
+     &                    State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : AD
-      USE DIAG_MOD,      ONLY : AD43
-      USE DIRECTORY_MOD, ONLY : DATA_DIR, OH_DIR
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP, IT_IS_NAN, IT_IS_FINITE
-      USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH, OH
-      USE TIME_MOD,      ONLY : GET_DAY, GET_MONTH, GET_NYMDb, GET_NYMDe
-      USE TIME_MOD,      ONLY : GET_TAU, GET_YEAR
-      USE BPCH2_MOD,     ONLY : GET_TAU0, READ_BPCH2, GET_MODELNAME
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE TRACER_MOD,    ONLY : STT
-      USE LOGICAL_MOD,   ONLY : LSPLIT, LCH4BUD
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD43
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND43, AD43
-      USE CMN_MOD             ! LPAUSE
+      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  CH4 SOURCES
@@ -1611,6 +925,16 @@
 !  (8 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (9 ) Remove reference to BPCH2_MOD, it's not needed (bmy, 10/3/05)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
+!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
+!                              code out with #ifdef blocks so it can be used)
+!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
+!  23 Jul 2014 - R. Yantosca - Reference ITS_IN_THE_CHEMGRID (chemgrid_mod.F)
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  17 Sep 2014 - C. Keller   - Now use HEMCO to get CH4 loss and OH conc. field.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1624,31 +948,43 @@
 !
       LOGICAL                :: FIRSTCHEM = .TRUE.
       INTEGER                :: I, J, L, K, M, N
-      INTEGER                :: IJ, JJ, NPART, III, JJJ
-      INTEGER                :: NOHDO
-      INTEGER, SAVE          :: NTALDT
+      INTEGER                :: NPART
 
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=4)       :: CYEAR
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,LLPAR)
-      INTEGER                :: TROPP
-      REAL*8                 :: XTAU            	      
-      INTEGER                :: LMN
       REAL*8                 :: PREVCH4(IIPAR, JJPAR, LLPAR)
+      REAL*8                 :: BOXVL  
 
       ! Number of days per month
       INTEGER                :: NODAYS(12) = (/ 31, 28, 31, 30, 
      &                                          31, 30, 31, 31, 
      &                                          30, 31, 30, 31 /)
-!
-! !EXTERNAL FUNCTIONS:
-!
-      REAL*8 , EXTERNAL      :: BOXVL  
+
+      ! For fields from Input_Opt
+      LOGICAL                :: LSPLIT
+      LOGICAL                :: LCH4BUD
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: STT(:,:,:,:)
+
+      ! For error messages
+      CHARACTER(LEN=255)    :: LOC = 'CHEMCH4 (global_ch4_mod.F)'
 
       !=================================================================
       ! CHEMCH4 begins here!
       !=================================================================
       WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
+
+      ! testing only
+      write(*,*)'Total tracer before chemistry: ',SUM(State_Chm%Tracers)
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+!      N_TRACERS = Input_Opt%N_TRACERS
+      LSPLIT    = Input_Opt%LSPLIT
+      LCH4BUD   = Input_Opt%LCH4BUD
 
       !=================================================================
       ! (0) Calculate each box's air density [molec/cm3]
@@ -1658,103 +994,66 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         BAIRDENS(I,J,L) = AD(I,J,L) * 1000d0   / BOXVL(I,J,L) * 
-     &                                 6.023D23 / WTAIR
+
+         ! Grid box volume [cm3]
+         BOXVL           = State_Met%AIRVOL(I,J,L) * 1d6
+
+         ! Air density [molec/cm3]
+         BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1000d0   /
+     &                     BOXVL               * 6.023D23 / WTAIR
       ENDDO
       ENDDO
       ENDDO
 
-      !=================================================================
-      ! (1) If the first time step ...
-      !        Read monthly average ch4 loss frequencies for strat chem
-      !=================================================================
+      !================================================================
+      ! (1) Get CH4 loss rates from HEMCO. the target is automatically 
+      ! updated by HEMCO (ckeller, 9/16/2014)
+      !================================================================
       IF ( FIRSTCHEM ) THEN
 
-         ! Counter for total number of timesteps per month for CO budget.
-         NTALDT = 1
+         ! Import CH4 loss frequencies from HEMCO. The target will be 
+         ! updated automatically by HEMCO (ckeller, 9/16/2014)
+         CALL HCO_GetPtr( am_I_Root, 'CH4_LOSS', CH4LOSS, RC )
+         IF ( RC /= HCO_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to CH4_LOSS', LOC )
 
-         ! Now read CH4 loss frequencies instead of CO production
-         ! (kjw, 11/19/11)
-         ! Zero CO Production array
-         !COPROD(:,:,:) = 0d0
-         !print*,'READ_COPROD'
-         ! Read zonally-averaged CO production [v/v/s]
-         !CALL READ_COPROD
-         !print*,'READ_COPROD DONE'
-         CH4LOSS(:,:,:,:) = 0d0
-         CALL READ_CH4LOSS
-
+#if defined( USE_CH4_BUDGET_DIAG )
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+         
          ! Initialize the CH4 burden TCH4 [molec/box], (ccc, 7/23/09)
          TCH4(:,:,:,1) = STT(:,:,:,1) * XNUMOL_CH4 
+         
+         ! Free pointer
+         NULLIFY( STT )
+#endif
       ENDIF
 
-      ! Initialize current month
-      LMN = GET_MONTH()
-
-      ! Increment counter of timesteps
-      NTALDT = NTALDT + 1
-
-
       !================================================================
-      ! (2) get parameterized OH fields or monthly mean fields.
-      !
-      ! Variables of note:
-      ! ---------------------------------------------------------------
-      ! (1) BOH = storage array for OH fields.
-      !
-      ! (2) NOHDO = switch
-      !       ONLY CASE 1 available as of 7/20/10 (kjw)
-      !       = 1 : Get GEOS-Chem OH (v5-07-08) (kjw, 5/28/08)
-      !
+      ! (2) Get OH field from HEMCO. The target will be updated 
+      ! automatically by HEMCO (ckeller, 9/16/2014)
       !================================================================
-
-
-      ! Change value of NOHDO as listed above
-      NOHDO = 1
-
-      SELECT CASE ( NOHDO )
-
-         ! NOHDO = 1: GEOS-Chem OH v5-07-08
-         CASE ( 1 )
-
-            ! If first of month, read monthly mean OH
-            IF ( FIRSTCHEM ) THEN
-
-               ! 3D OH Field
-               BOH(:,:,:,:) = 0d0
-
-               ! Loop over each month, reading OH
-               DO M=1,12
-
-                  ! Global OH 
-                  CALL GET_GLOBAL_OH( M )
-
-                  ! Assign to module variable BOH
-                  BOH(:,:,:,M) = OH(:,:,:)
-
-               ENDDO
-
-            ENDIF
-
-         ! Default.  GEOS_CHEM_STOP
-         CASE DEFAULT
-
-            WRITE( 6, '(a)' ) 'Invalid selection for NOHDO!'
-            WRITE( 6, '(a)' ) 'Halting execution in CHEMCH4!'
-            CALL GEOS_CHEM_STOP
-            
-      END SELECT
+      IF ( FIRSTCHEM ) THEN
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', BOH, RC )
+         IF ( RC /= HCO_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+      ENDIF
 
       !=================================================================
       ! (3.1) ND43 diagnostics...save [OH] in molecules/cm3
+      ! BOH is in kg/m3 (from HEMCO), convert to molecules/cm3 
+      ! (ckeller, 9/16/2014)
       !=================================================================
 
       IF ( ND43 > 0 ) THEN
          DO L = 1, LD43
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( L < LPAUSE(I,J) ) THEN
-               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
+            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+!               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
+               AD43(I,J,L,1) = AD43(I,J,L,1) + 
+     &                       ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
             ENDIF
          ENDDO
          ENDDO
@@ -1765,15 +1064,18 @@
       ! (4) Save OH concentrations for printing of global mean [OH] and
       !     CH3CCLl3 at end of simulation.
       !=================================================================
-      print*, 'START CH4_OHSAVE'
-      CALL CH4_OHSAVE
-      print*, 'END   CH4_OHSAVE'
+      CALL CH4_OHSAVE( State_Met, State_Chm )
 
       !=================================================================
       ! (5) If multi-CH4 tracers, we store the CH4 total conc. to
       !     distribute the sink after the chemistry. (ccc, 2/10/09)
       !================================================================= 
       IF ( LSPLIT ) THEN
+
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -1785,26 +1087,30 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
+
+         ! Free pointer
+         NULLIFY( STT )
       ENDIF
 
       !=================================================================
       ! (6) calculate rate of decay of CH4 by OH oxidation.
       !=================================================================
-      CALL CH4_DECAY
+      CALL CH4_DECAY( State_Met, State_Chm )
 
       !=================================================================
       ! (7) calculate CH4 chemistry in layers above tropopause.
       !=================================================================
-      CALL CH4_STRAT
+      CALL CH4_STRAT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       !=================================================================
       ! (8) distribute the chemistry sink from total CH4 to other CH4 
       !     tracers. (ccc, 2/10/09)
       !=================================================================
       IF ( LSPLIT ) THEN
-         CALL CH4_DISTRIB(PREVCH4)
+         CALL CH4_DISTRIB( PREVCH4, Input_Opt, State_Chm )
       ENDIF
 
+#if defined( USE_CH4_BUDGET_DIAG )
       !=================================================================
       ! (9) write budget (i.e., monthly average fields).
       !
@@ -1834,16 +1140,21 @@
          print*,'CALL CH4_BUDGET'
          CALL FLUSH ( 6 )
      
-         CALL CH4_BUDGET
+         ! Disable CH4 budget for SEAC4RS code to save memory
+         !   kjw, 2/3/2014
+         CALL CH4_BUDGET( State_Chm )
 
-	 NTALDT  = 0
          print*,'END CH4_BUDGET'
          call flush(6)
      
       ENDIF
+#endif
 
       print*,'END CHEMCH4'
       call flush(6)
+
+      ! testing only
+      write(*,*)'Total tracer after chemistry: ',SUM(State_Chm%Tracers)
 
       ! Set FIRSTCHEM to FALSE
       FIRSTCHEM = .FALSE.
@@ -1851,218 +1162,7 @@
       END SUBROUTINE CHEMCH4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_coprod
-!
-! !DESCRIPTION: Subroutine READ\_COPROD reads production and destruction rates
-!  for CO in the stratosphere. CO destruction rate is assumed equal to CH4
-!  production rate for the GEOS-Chem CH4 simulation. (bnd, bmy, 1/17/01,
-!  10/3/05)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_COPROD
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT,    GET_MODELNAME
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
-        
-      USE CMN_SIZE_MOD        ! Size parameters
-
-      IMPLICIT NONE
-#     include "define.h"
-! 
-! !REVISION HISTORY:
-!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
-!        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
-!        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) READ_COPROD is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) ARRAY needs to be dimensioned (1,JJPAR,LGLOB) (bmy, 9/26/01)
-!  (4 ) Remove obsolete code from 9/01 (bmy, 10/24/01)
-!  (5 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (6 ) Now reads data for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (8 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
-!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER                :: I, J, L, M
-      REAL*4                 :: ARRAY(1,JJPAR,LGLOB)
-      REAL*4                 :: DUMMY_IN(JJPAR,LGLOB)
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=255)     :: FILENAME
-      REAL*8                 :: DUMMY_OUT(JJPAR,LGLOB)
-
-      !=================================================================
-      ! READ_COPROD begins here!
-      ! 
-      ! Read P(CO) for all 12 months
-      !=================================================================
-
-      DO M = 1, 12 
-
-         ! TAU value at the start of month M -- Use "generic" year 1985
-         XTAU = GET_TAU0( M, 1, 1985 )
-
-         ! Construct filename
-         FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/' //
-     &   'COprod.' // GET_NAME_EXT() // '.' // GET_RES_EXT()
-
-
-         WRITE( 6, 93 ) TRIM ( FILENAME )
- 93      FORMAT( '     - READ_COPROD: Reading COprod: ', a )
-	 CALL FLUSH( 6 )
-
-
-         ! Read P(CO) in units of [v/v/s].  drevet.
-         CALL READ_BPCH2( FILENAME, 'PORL-L=$', 9,     
-     &                    XTAU,      1,         JJPAR,     
-     &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
-
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
-!%%% since the SCHEM data are saved at the reduced resolution.  This will
-!%%% be fixed in a subsequent version. (ltm, bmy, 6/2/10)
-!%%%-----------------------------------------------------------------------
-!%%% Original code here:
-!%%%         ! use 2D arrays for TRANSFER ZONAL
-!%%%         DUMMY_IN(:,:) = ARRAY(1,:,:)
-!%%%
-!%%%         ! Copy REAL*4 to REAL*8 data, and resize from (JJPAR,LGLOB) 
-!%%%         ! to (JJPAR,LLPAR) -- vertically regrid if necessary
-!%%%         CALL TRANSFER_ZONAL( DUMMY_IN, DUMMY_OUT )
-!%%%
-!%%%         COPROD(:,:,M) = DUMMY_OUT(:,:)
-!%%%-----------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-         ! Cast from REAL*4 to REAL*8
-         COPROD(:,:,M) = ARRAY(1,:,:)
-#else
-         ! use 2D arrays for TRANSFER ZONAL
-         DUMMY_IN(:,:) = ARRAY(1,:,:)
-
-         ! Copy REAL*4 to REAL*8 data, and resize from (JJPAR,LGLOB) 
-         ! to (JJPAR,LLPAR) -- vertically regrid if necessary
-         CALL TRANSFER_ZONAL( DUMMY_IN, DUMMY_OUT )
-
-         COPROD(:,:,M) = DUMMY_OUT(:,:)
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ENDDO
-
-      END SUBROUTINE READ_COPROD
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_ch4loss
-!
-! !DESCRIPTION: Subroutine READ\_CH4LOSS reads CH4 loss frequencies in the
-!  stratosphere. These values constitute a linearized stratospheric CH4
-!  chemistry scheme. Loss frequencies from 4x5 degree output from the GMI 
-!  model. Thanks to Lee Murray for the ch4 loss frequencies. (kjw, 11/19/2011)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_CH4LOSS
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT,    GET_MODELNAME
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-        
-      USE CMN_SIZE_MOD        ! Size parameters
-
-      IMPLICIT NONE
-#     include "define.h"
-! 
-! !REVISION HISTORY:!
-!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
-!        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
-!        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) READ_CH4LOSS is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) ARRAY needs to be dimensioned (1,JJPAR,LGLOB) (bmy, 9/26/01)
-!  (4 ) Remove obsolete code from 9/01 (bmy, 10/24/01)
-!  (5 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (6 ) Now reads data for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (8 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER                :: I, J, L, M
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=255)     :: FILENAME
-
-
-      !=================================================================
-      ! READ_CH4LOSS begins here!
-      ! 
-      ! Read P(CO) for all 12 months
-      !=================================================================
-
-      ! Construct filename
-      FILENAME = TRIM( DATA_DIR )         // 'CH4_201203/' //
-     &           'gmi.ch4loss.geos5_47L.' // GET_RES_EXT() // 
-     &           '.bpch'
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( DATA_DIR )         // 'CH4_201203/' //
-     &           'gmi.ch4loss.geos5_47L.' // GET_RES_EXT() //
-     &           '_NA.bpch'
-#endif
-
-      WRITE( 6, 93 ) TRIM ( FILENAME )
- 93   FORMAT( '     - READ_CH4LOSS: Reading Ch4loss: ', a )
-      CALL FLUSH( 6 )
-
-      ! Read data for each month
-      DO M = 1, 12 
-
-         ! TAU value at the start of month M -- Use "generic" year 1985
-         XTAU = GET_TAU0( M, 1, 1985 )
-
-         ! Read Loss frequencies in units of [1/s].  drevet.
-         CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 1,     
-     &                    XTAU,      IIPAR,     JJPAR,     
-     &                    LLPAR,     ARRAY,     QUIET=.TRUE. )
-
-         ! Place array into CH4LOSS module variable
-         CH4LOSS(:,:,:,M) = ARRAY(:,:,:)
-
-      ENDDO
-
-      END SUBROUTINE READ_CH4LOSS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2075,28 +1175,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_DECAY
+      SUBROUTINE CH4_DECAY( State_Met, State_Chm )
 !
 ! !USES:
 !
-      USE DAO_MOD,    ONLY : AIRVOL, T
-      USE TIME_MOD,   ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR, GET_MONTH
-      USE TRACER_MOD, ONLY : STT
-      USE DIAG_MOD,   ONLY : AD19   	      
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND19
-      USE CMN_MOD          ! STT, LPAUSE
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE DIAG_MOD,           ONLY : AD19   	      
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REMARKS:
-!  The annual mean tropopause is stored in the LPAUSE array 
-!  (from header file "CMN").  LPAUSE is defined such that: 
-!                                                                             .
-!  Levels            1 <= L <= LPAUSE(I,J) - 1 are tropospheric
-!          LPAUSE(I,J) <= L <= LLPAR           are stratospheric
-!                                                                             .
-!  We now use LPAUSE instead of NSKIPL to denote the strat/trop boundary. 
-!  (bmy, 4/18/00)  
+!  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
+!  if box (I,J,L) is in the troposphere or stratosphere.
 !                                                                             .
 !  Monthly loss of CH4 is summed in TCH4(3)
 !     TCH4(3)  = CH4 sink by OH
@@ -2110,19 +1212,26 @@
 !  (3 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
+!                              code out with #ifdef blocks so it can be used)
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL             :: FIRST_DECAY=.TRUE.
-      INTEGER             :: I, J, L, M, N, MM, LMN
+      INTEGER             :: I, J, L
       REAL*8              :: DT, GCH4, STT2GCH4, KRATE
-!
-! !EXTERNAL FUNCTIONS:   
-!
-      REAL*8, EXTERNAL    :: BOXVL
+      REAL*8              :: BOXVL
+      REAL*8              :: C_OH
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER     :: STT(:,:,:,:)
 
       !=================================================================
       ! CH4_DECAY begins here!
@@ -2130,9 +1239,6 @@
 
       ! Chemistry timestep in seconds
       DT = GET_TS_CHEM() * 60d0
-
-      ! Current month
-      LMN = GET_MONTH()
 
       !=================================================================
       ! Compute decay of CH4 by OH in the troposphere
@@ -2144,50 +1250,61 @@
       ! This is from JPL '97.
       ! JPL '00 & '06 do not revise '97 value. (jsw, kjw)
       !=================================================================
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
-      MM = MAXVAL( LPAUSE )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( L, J, I, KRATE, STT2GCH4, GCH4 )
+!$OMP+PRIVATE( L, J, I, KRATE, STT2GCH4, GCH4, BOXVL, C_OH )
 !$OMP+REDUCTION( +:TROPOCH4 )
-      DO L = 1, MM !MAXVAL( LPAUSE )
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Only consider tropospheric boxes
-         IF ( L < LPAUSE(I,J) ) THEN 
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
             ! Use 24-hr avg temperature to calc. rate coeff.
             ! citation needed
-            KRATE = 2.45d-12 * EXP( -1775d0 / T(I,J,L) )  
+            KRATE = 2.45d-12 * EXP( -1775d0 / State_Met%T(I,J,L) )  
 
             ! Conversion from [kg/box] --> [molec/cm3]
             ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
-            STT2GCH4 = 1d0 / AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4 
+            STT2GCH4 = 1d0 / State_Met%AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4 
 
             ! CH4 in [molec/cm3]
             GCH4 = STT(I,J,L,1) * STT2GCH4
-	
-            ! Sum loss in TCH4(3) (molecules/box)
-            TCH4(I,J,L,3) = TCH4(I,J,L,3)+ 
-     &           ( GCH4 * BOXVL(I,J,L) * KRATE * BOH(I,J,L,LMN) * DT)
 
-            TROPOCH4=TROPOCH4 + GCH4 * KRATE * BOH(I,J,L,LMN) * DT / 
-     &               STT2GCH4
+            ! OH in [molec/cm3]. BOH is imported from HEMCO in units of
+            ! kg/m3, convert here to molec/cm3 (ckeller, 9/16/2014)
+            C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3
+
+#if defined( USE_CH4_BUDGET_DIAG )
+            ! Grid box volume [cm3]
+            BOXVL         = State_Met%AIRVOL(I,J,L) * 1d6
+
+            ! Sum loss in TCH4(3) (molecules/box)
+            TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
+     &                      ( GCH4  * BOXVL          *
+     &                        KRATE * C_OH * DT )
+#endif
+
+            TROPOCH4=TROPOCH4 + GCH4 * KRATE * C_OH * DT / STT2GCH4
 
             ! Modify AD19 Diagnostic
             ! How much CH4 (kg) is lost by reaction with OH
-	    IF ( ND19 > 0 ) THEN  ! --> [kg/box]
+            IF ( ND19 > 0 ) THEN  ! --> [kg/box]
                IF ( L <= LD19 ) THEN
 !	    	AD19(I,J,12) = AD19(I,J,12) + 
                   AD19(I,J,L) = AD19(I,J,L) + 
-     &                 ( GCH4 * KRATE * BOH(I,J,L,LMN) * DT ) / STT2GCH4
+     &                 ( GCH4 * KRATE * C_OH * DT ) / STT2GCH4
                ENDIF
-	    ENDIF
+            ENDIF
 
             ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt) 
-            GCH4 = GCH4 * ( 1d0 - KRATE * BOH(I,J,L,LMN) * DT )
-		
+            GCH4 = GCH4 * ( 1d0 - KRATE * C_OH * DT )
+
             ! Convert back from [molec/cm3] --> [kg/box]
             STT(I,J,L,1) = GCH4 / STT2GCH4
 
@@ -2197,6 +1314,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
       print*,'Trop decay should be over 1Tg per day globally'
       print*,'    ~ 500Tg/365d ~ 1.37/d'
@@ -2204,7 +1324,7 @@
       END SUBROUTINE CH4_DECAY
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2216,24 +1336,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_OHSAVE
+      SUBROUTINE CH4_OHSAVE( State_Met, State_Chm )
 !
 ! !USES:
 !
-      ! References to F90 modules
-      USE DIAG_OH_MOD, ONLY : DO_DIAG_OH_CH4
-      USE TIME_MOD,    ONLY : GET_MONTH
-      USE DAO_MOD,     ONLY : T
-
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_MOD           ! LPAUSE
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CMN_SIZE_MOD
+      USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE TIME_MOD,           ONLY : GET_MONTH
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 ! 
 ! !REMARKS:
-!  The annual mean tropopause is stored in the LPAUSE array 
-!  (from header file "CMN").  LPAUSE is defined such that: 
-!                                                                             .
-!  Levels            1 <= L <= LPAUSE(I,J) - 1 are tropospheric
-!          LPAUSE(I,J) <= L <= LLPAR           are stratospheric
+!  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
+!  if box (I,J,L) is in the troposphere or stratosphere.
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
@@ -2244,18 +1366,25 @@
 !  (3 ) Now call DO_DIAG_OH_CH4 to pass OH diagnostic info to the
 !        "diag_oh_mod.f" (bmy, 7/20/04)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: I, J, L, LMN
-      REAL*8               :: KCLO, LOSS, OHMASS, MASST
-!
-! !EXTERNAL FUNCTIONS:   
-!
-      REAL*8, EXTERNAL     :: BOXVL
+      INTEGER              :: I, J, L
+      REAL*8               :: MASST,   AREA_CM2
+      REAL*8               :: KCLO,    LOSS,       OHMASS  
+      REAL*8               :: KCH4,    CH4LOSE,    CH4MASS
+      REAL*8               :: CH4EMIS, CH4TROPMASS
+      REAL*8               :: BOXVL
+      REAL*8               :: C_OH 
+
+      ! Pointers
+      REAL*8, POINTER      :: STT(:,:,:,:)
 
       !=================================================================
       ! CH4_OHSAVE begins here!
@@ -2264,45 +1393,93 @@
       ! (2) ND59: Diagnostic for CH3CCl3 calculation
       !=================================================================
 
-      ! Current month
-      LMN = GET_MONTH()
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT => State_Chm%Tracers
 
       ! 1. Calculate OH mass and total air mass
-      DO L = 1, MAXVAL( LPAUSE )
+      DO L = 1, LLPAR
       DO J = 1, JJPAR 
       DO I = 1, IIPAR 
+
          ! Only process tropospheric boxes (bmy, 4/17/00)
-         IF ( L < LPAUSE(I,J) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+
+            ! Grid box volume [cm3]
+            BOXVL  = State_Met%AIRVOL(I,J,L) * 1d6
+
+            ! OH concentration in molec/cm3. BOH is imported
+            ! from HEMCO in kg/m3 (ckeller, 9/16/2014)
+            C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3
 
             ! Calculate OH mass [molec / box]
-            OHMASS = BOH(I,J,L,LMN) * BAIRDENS(I,J,L) * BOXVL(I,J,L)
+            OHMASS = C_OH * BAIRDENS(I,J,L) * BOXVL
 
             ! Calculate total air mass [molec / box]
-            MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L)
+            MASST  = BAIRDENS(I,J,L) * BOXVL
 
             ! Calculate CH3CCl3 + OH rate constant from JPL '06
             ! [cm3 / molec / s]
-            KCLO   = 1.64d-12 * EXP( -1520.d0 / T(I,J,L) )
+            KCLO   = 1.64d-12 * EXP( -1520.d0 / State_Met%T(I,J,L) )
 
             ! Calculate Loss term [molec / box / s]
-            LOSS   = KCLO            * BOH(I,J,L,LMN)  *
-     &               BAIRDENS(I,J,L) * BOXVL(I,J,L)
+            LOSS   = KCLO            * C_OH  *
+     &               BAIRDENS(I,J,L) * BOXVL
 
 
-            ! Pass OH mass, total mass, and loss to "diag_oh_mod.f",
-            ! which calculates mass-weighted mean [OH] and CH3CCl3
-            ! lifetime.
-            CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST, LOSS )
+            ! Calculate CH4 + OH rate constant from JPL '06
+            ! [cm3 / molec / s]
+            KCH4   = 2.45d-12 * EXP( -1775d0 / State_Met%T(I,J,L) )
+
+            ! Calculate CH4 mass [molec / box] from [kg / box]
+            CH4TROPMASS = STT(I,J,L,1) * XNUMOL_CH4 
+            CH4MASS     = STT(I,J,L,1) * XNUMOL_CH4 
+
+            ! Calculate loss term  [molec /box / s]
+            CH4LOSE = KCH4            * C_OH  *
+     &                BAIRDENS(I,J,L) * BOXVL
+
+            ! Calculate CH4 emissions [molec / box / s]
+            !   Only for surface level
+            ! Grid box surface area [cm2]
+            ! HEMCO update: CH4_EMIS now in kg/m2/s (ckeller, 9/12/2014)
+            IF ( L .GT. 1 ) THEN 
+               CH4EMIS = 0d0
+            ELSE
+               AREA_CM2 = GET_AREA_CM2( I, J, L ) / 10000.0d0         ! now in m2!!
+               CH4EMIS  = SUM(CH4_EMIS(I,J,2:10)) + CH4_EMIS(I,J,12)
+               CH4EMIS  = CH4EMIS * AREA_CM2                          ! [kg/m2/s]  --> [kg/box/s]
+               CH4EMIS  = CH4EMIS * XNUMOL_CH4                        ! [kg/box/s] --> [molec/box/s]
+            ENDIF
+
+         ELSE
+
+            OHMASS      = 0d0
+            MASST       = 0d0
+            LOSS        = 0d0
+            CH4LOSE     = 0d0
+            CH4TROPMASS = 0d0
+            CH4EMIS     = 0d0
+            CH4MASS     = STT(I,J,L,1) * XNUMOL_CH4 
 
          ENDIF
+
+         ! Pass OH mass, total mass, and loss to "diag_oh_mod.f",
+         ! which calculates mass-weighted mean [OH] and CH3CCl3
+         ! lifetime.
+         CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST, LOSS, 
+     &        CH4LOSE, CH4TROPMASS, CH4EMIS, CH4MASS )
+
       ENDDO
       ENDDO
       ENDDO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE CH4_OHSAVE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2315,26 +1492,42 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_STRAT
+      SUBROUTINE CH4_STRAT( am_I_Root, Input_Opt, 
+     &                      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,    ONLY : AIRVOL
-      USE TIME_MOD,   ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD, ONLY : STT, CHECK_STT
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_MOD          ! STT, LPAUSE
+      USE CMN_SIZE_MOD
+      USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : CHECK_STT
+      USE TRACERID_MOD,       ONLY : IDTCH4
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  Production (mixing ratio/sec) rate provided by Dylan Jones.  
 !  Only production by CH4 + OH is considered.
 !                                                                             .
-!  The annual mean tropopause is stored in the LPAUSE array 
-!  (from header file "CMN").  LPAUSE is defined such that: 
-!                                                                             .
-!  Levels           1 <= L <= LPAUSE(I,J) - 1 are tropospheric
-!         LPAUSE(I,J) <= L <= LLPAR           are stratospheric (bmy, 4/18/00)
+!  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
+!  if box (I,J,L) is in the troposphere or stratosphere.
 !
 ! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
@@ -2346,86 +1539,163 @@
 !        functions GET_MONTH and GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root and RC
+!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS:
+!
+      ! Weight of air (taken from "comode.h") 
+      REAL*8, PARAMETER   :: WTAIR = 28.966d0
+!
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L, LMN
+      INTEGER             :: I, J, L, BASELEV
       REAL*8              :: DT, GCH4, STT2GCH4, LRATE
-      CHARACTER*20        :: STT_TEST
-      CHARACTER*20        :: STT2GCH4_CHAR
-!
-! !EXTERNAL FUNCTIONS:   
-!
-      REAL*8, EXTERNAL    :: BOXVL
+      REAL*8              :: BOXVL
+
+      ! Local variables for quantities from Input_Opt
+      LOGICAL             :: LUCX
+      LOGICAL             :: ITS_A_FULLCHEM_SIM
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER     :: STT(:,:,:,:)
+
+!      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
 
       !=================================================================
       ! CH4_STRAT begins here!
       !=================================================================
 
-      ! Chemistry timestep [s]
-      DT  = GET_TS_CHEM() * 60d0
+      ! Assume success
+      RC                  =  GIGC_SUCCESS
 
-      ! Current month
-      LMN = GET_MONTH()
+      ! Copy fields from INPUT_OPT
+      LUCX                = Input_Opt%LUCX
+      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
 
-      !=================================================================
-      ! Loop over stratospheric boxes only
-      !=================================================================
-      DO L = MINVAL( LPAUSE ), LLPAR 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         IF ( L >= LPAUSE(I,J) ) THEN
+      ! If unified chemistry is active, ignore all of this
+      IF ( .not. LUCX ) THEN
 
-            ! Conversion factor [kg/box] --> [molec/cm3]
-            ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
-            STT2GCH4 = 1d0 / AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4
+         ! Chemistry timestep [s]
+         DT  = GET_TS_CHEM() * 60d0
 
-            ! CH4 in [molec/cm3]
-            GCH4 = STT(I,J,L,1) * STT2GCH4
+         IF ( ITS_A_FULLCHEM_SIM ) THEN
+            
+            !=============================================================
+            ! (0) Calculate each box's air density [molec/cm3]
+            !=============================================================
 
-            ! Loss rate [molec/cm3/s]
-            LRATE = GCH4 * CH4LOSS( I,J,L,LMN )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
-            ! Update Methane concentration in this grid box [molec/cm3]
-            GCH4 = GCH4 - ( LRATE * DT )
+               ! Grid box volume [cm3]
+               BOXVL           = State_Met%AIRVOL(I,J,L) * 1d6
+
+               ! Air density [molec/cm3]
+               BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1d3      / 
+     &                           BOXVL               * 6.023d23 /
+     &                           WTAIR
+            ENDDO
+            ENDDO
+            ENDDO
+
+            !=============================================================
+            ! (1) If the first time step...
+            ! COPROD doesn't seem to be used anymore at all. Comment out
+            ! for now, may be completely removed later. If necessary, we
+            ! can also read the COPROD array through HEMCO (as CH4LOSS). 
+            ! (ckeller, 9/15/2014)
+            !=============================================================
+!            IF ( FIRSTCHEM ) THEN
+!               ! Zero CO production array
+!               COPROD(:,:,:) = 0d0
+!               !print*,'READ_COPROD'
+!               ! Read zonally-averaged CO production [v/v/s]
+!               CALL READ_COPROD( am_I_Root, Input_Opt, RC )
+!               !print*,'READ_COPROD DONE'
+!            ENDIF
+         ENDIF
+
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+
+         !=================================================================
+         ! Loop over stratospheric boxes only
+         !=================================================================
+         BASELEV = GET_MIN_TPAUSE_LEVEL()
+         DO L = BASELEV, LLPAR 
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met) ) THEN
+
+               ! Conversion factor [kg/box] --> [molec/cm3]
+               ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
+               STT2GCH4 = 1d0 / State_Met%AIRVOL(I,J,L) / 1d6 *
+     &                    XNUMOL_CH4
+
+               ! CH4 in [molec/cm3]
+               GCH4 = STT(I,J,L,1) * STT2GCH4
+
+               ! Loss rate [molec/cm3/s]
+!               LRATE = GCH4 * CH4LOSS( I,J,L,LMN )
+               LRATE = GCH4 * CH4LOSS( I,J,L )
+
+               ! Update Methane concentration in this grid box [molec/cm3]
+               GCH4 = GCH4 - ( LRATE * DT )
 
 ! Update stratospheric chem to use linearized CH4 loss frequencies
 !  (kjw, 11/19/11)
-!            ! Sum loss in TCH4(3) [molec CH4/box] in the stratosphere
-!            ! [molec/cm3] * [v/v/s] * [s] * [cm3/box] = [molec CH4/box]
-!            TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
-!     &                      ( BAIRDENS(I,J,L) * COPROD(J,L,LMN) *
-!     &                        DT              * BOXVL(I,J,L)    )
+!               BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
 !
-!            ! Calculate new CH4 value [molec CH4/cm3] in the stratosphere
-!            ! [v/v/s] * [s] * [molec/cm3] = [molec CH4/cm3] 
-!            GCH4 = GCH4 - ( COPROD(J,L,LMN) * DT * BAIRDENS(I,J,L) )
+!               ! Sum loss in TCH4(3) [molec CH4/box] in the stratosphere
+!               ! [molec/cm3] * [v/v/s] * [s] * [cm3/box] = [molec CH4/box]
+!               TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
+!        &                      ( BAIRDENS(I,J,L) * COPROD(J,L,LMN) *
+!        &                        DT              * BOXVL  )    )
+!
+!               ! Calculate new CH4 value [molec CH4/cm3] in the stratosphere
+!               ! [v/v/s] * [s] * [molec/cm3] = [molec CH4/cm3] 
+!               GCH4 = GCH4 - ( COPROD(J,L,LMN) * DT * BAIRDENS(I,J,L) )
 
-            ! Convert back from [molec CH4/cm3] --> [kg/box] 
-            STT(I,J,L,1) = GCH4 / STT2GCH4
+               ! Convert back from [molec CH4/cm3] --> [kg/box] 
+               STT(I,J,L,1) = GCH4 / STT2GCH4
 
 ! With new linearized chemistry, STT should never be negative
 !  (kjw, 11/19/11)
-!            ! Prevent negative values in STT
-!	    IF ( STT(I,J,L,1) < 0 ) THEN
-!		STT(I,J,L,1)=0
-!	    ENDIF
+!               ! Prevent negative values in STT
+!              IF ( STT(I,J,L,1) < 0 ) THEN
+!          	STT(I,J,L,1)=0
+!              ENDIF
 
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
+            ENDIF
+         ENDDO
+         ENDDO
+         ENDDO
+
+      ENDIF ! LUCX (SDE 03/25/13)
+
+!      FIRSTCHEM = .FALSE.
 
       ! Check STT for negatives and NaN
-      CALL CHECK_STT( 'IN global_ch4_mod.F: CH4_STRAT' )
+      CALL CHECK_STT( State_Chm, 'IN global_ch4_mod.F: CH4_STRAT' )
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE CH4_STRAT
 !EOC
+#if defined( USE_CH4_BUDGET_DIAG )
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2435,11 +1705,14 @@
 !  only works for monthly averages, so be sure to start on the first of the
 !  month and run to another first of the month! (jsw, bnd, bmy, 1/16/01,
 !  10/3/05)
+!
+!  Disable CH4 Budget for SEAC4RS code to save memory
+!     kjw, 2/3/2014
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_BUDGET
+      SUBROUTINE CH4_BUDGET( State_Chm )
 !
 ! !USES:
 !
@@ -2447,10 +1720,13 @@
       USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,   ONLY : GET_MONTH,   GET_YEAR
       USE TIME_MOD,   ONLY : GET_DIAGb,   GET_CT_DYN
-      USE TRACER_MOD, ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 
       USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_MOD          ! STT, LPAUSE
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 ! 
 ! !REMARKS:
 !  Store the sources/sinks of CH4 in TCH4 in total molecules
@@ -2491,58 +1767,55 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, K, L, M, NERROR, UD, LMN
+      INTEGER             :: I, J, K, L, M, NERROR, UD
 
       REAL*8              :: STTCONV, TGS, SCALEDYN
       REAL*8              :: NTP, NTQ, NTP2, NTQ2 
       REAL*8              :: SOURCES, SINKS
 
       CHARACTER(LEN=17)   :: MERGE
-      CHARACTER(LEN=13)   :: MERGE2
 
       ! For binary punch file, v. 2.0
-      REAL*4              :: ARRAY(IIPAR, JJPAR, LLPAR)
-      REAL*4              :: LONRES, LATRES
-
-      INTEGER             :: IFIRST, JFIRST, LFIRST
-      INTEGER, PARAMETER  :: HALFPOLAR = 1
-      INTEGER, PARAMETER  :: CENTER180 = 1
-
-      CHARACTER (LEN=20)  :: MODELNAME 
-      CHARACTER (LEN=40)  :: UNIT
-      CHARACTER (LEN=40)  :: RESERVED = ''
-      CHARACTER (LEN=40)  :: CATEGORY 
-      CHARACTER (LEN=80)  :: LABEL
+!      REAL*4              :: ARRAY(IIPAR, JJPAR, LLPAR)
+!      REAL*4              :: LONRES, LATRES
 !
-! !EXTERNAL FUNCTIONS:   
+!      INTEGER             :: IFIRST, JFIRST, LFIRST
+!      INTEGER, PARAMETER  :: HALFPOLAR = 1
+!      INTEGER, PARAMETER  :: CENTER180 = 1
 !
-      REAL*8, EXTERNAL    :: BOXVL 
+!      CHARACTER (LEN=20)  :: MODELNAME 
+!      CHARACTER (LEN=40)  :: UNIT
+!      CHARACTER (LEN=40)  :: RESERVED = ''
+!      CHARACTER (LEN=40)  :: CATEGORY 
+!      CHARACTER (LEN=80)  :: LABEL
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CH4_BUDGET begins here!
       !
       ! Initialize quantities 
       !=================================================================
-      IFIRST    = GET_XOFFSET() + 1
-      JFIRST    = GET_YOFFSET() + 1
-      LFIRST    = 1
-      LONRES    = DISIZE
-      LATRES    = DJSIZE
+!      IFIRST    = GET_XOFFSET() + 1
+!      JFIRST    = GET_YOFFSET() + 1
+!      LFIRST    = 1
+!      LONRES    = DISIZE
+!      LATRES    = DJSIZE
+!
+!      ! Make up a category name for GAMAP (use 8 characters)
+!      CATEGORY  = 'CH4BUDT'
 
-      ! Current month
-      LMN       = GET_MONTH()
+!      ! Get the proper model name for the binary punch file
+!      MODELNAME = GET_MODELNAME()
 
-      ! Make up a category name for GAMAP (use 8 characters)
-      CATEGORY  = 'CH4BUDT'
+!      ! Descriptor string
+!      LABEL    = 'GEOS-CHEM -- CH4 Budget output (jsw, bmy, 1/16/01)'
 
-      ! Get the proper model name for the binary punch file
-      MODELNAME = GET_MODELNAME()
-
-      ! Descriptor string
-      LABEL    = 'GEOS-CHEM -- CH4 Budget output (jsw, bmy, 1/16/01)'
-
-      ! Unit of quantity being saved
-      UNIT      = 'Tg'  !(NOTE: check w/ bnd to get the right units!!!)
+!      ! Unit of quantity being saved
+!      UNIT      = 'Tg'  !(NOTE: check w/ bnd to get the right units!!!)
 
       ! Scale factor for dynamic time steps
       SCALEDYN  = FLOAT( GET_CT_DYN() ) + 1D-20
@@ -2551,8 +1824,15 @@
       ! Store the final burden of CH4 in TCH4(2) 
       ! Convert kg CH4/box to molecules/box.
       !=================================================================
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       TCH4(:,:,:,2) = 0d0
       TCH4(:,:,:,2) = STT(:,:,:,1) * XNUMOL_CH4
+
+      ! Free pointer
+      NULLIFY( STT )
 
       !=================================================================
       ! Write GLOBAL AVERAGES for all layers to ASCII file
@@ -2584,28 +1864,28 @@
       WRITE(189,1990)
  1990 FORMAT('Tropospheric Burden')
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1,State_Met)
       WRITE(189,20)NTP,NTP/STTCONV
 
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1,State_Met)
       WRITE(189,21)NTP2,NTP2/STTCONV
 
       WRITE(189,18)
       WRITE(189,1991)
  1991 FORMAT('Stratospheric Burden')
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0,State_Met)
       WRITE(189,20) NTP,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0,State_Met)
       WRITE(189,21) NTP,NTP/STTCONV
       
       WRITE(189,18)
       WRITE(189,31)
 
       ! Sinks   jsw has checked correctness of code for sinks.
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,1)
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,1,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,0,State_Met)
       SINKS=NTP+NTQ
 
       WRITE(189,22) NTP,NTP/SINKS*100.D0,NTP/STTCONV
@@ -2616,26 +1896,26 @@
       WRITE(189,30)
 
       ! Sources
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,4,4,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,4,4,1,State_Met)
       SOURCES=NTP
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,5,5,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,5,5,1,State_Met)
       WRITE(189,24) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,9,9,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,9,9,1,State_Met)
       WRITE(189,27) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,6,6,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,6,6,1,State_Met)
       WRITE(189,39) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,7,7,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,7,7,1,State_Met)
       WRITE(189,25) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,8,8,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,8,8,1,State_Met)
       WRITE(189,26) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
       !jsw Following lines added by jsw.
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,10,10,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,10,10,1,State_Met)
       WRITE(189,35) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
       SINKS=SINKS-NTP  !Minus sign because soil absorption is negative.
@@ -2644,10 +1924,10 @@
       WRITE(189,28) SOURCES,SOURCES/STTCONV
       WRITE(189,18)
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1)
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1)
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0,State_Met)
       WRITE(189,18)
       WRITE(189,288) NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS,
      *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/STTCONV
@@ -2670,31 +1950,31 @@
       WRITE(189,19)
       WRITE(189,1990)
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1,State_Met)
       WRITE(189,20) NTP,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1,State_Met)
       WRITE(189,21) NTP,NTP/STTCONV
 
       WRITE(189,18)
       WRITE(189,1991)
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0,State_Met)
       WRITE(189,20) NTP,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0,State_Met)
       WRITE(189,21) NTP,NTP/STTCONV
       WRITE(189,18)
       WRITE(189,31)
 
       ! Sinks
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF( NTP > 0d0) SINKS = SINKS + NTP
 
-      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF( NTP2 > 0d0 ) SINKS = SINKS + NTP2      
 
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,State_Met)
       SINKS=SINKS+NTQ+NTQ2
       WRITE(189,22) NTQ,NTQ/SINKS*100.D0,NTQ/STTCONV
       WRITE(189,220) NTQ2,NTQ2/SINKS*100.D0,NTQ2/STTCONV
@@ -2713,47 +1993,47 @@
       WRITE(189,30)
       
       ! Sources
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,5,9,1)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,5,9,1,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0,State_Met)
       SOURCES=NTQ+NTQ2
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.LT.0.D0) THEN
          SOURCES=SOURCES-NTP
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF(NTP.LT.0.D0) THEN
          SOURCES=SOURCES-NTP
       ENDIF
       
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,1)
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0)
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,5,5,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,1,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,5,5,1,State_Met)
       WRITE(189,24) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,6,6,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,6,6,1,State_Met)
       WRITE(189,39) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,7,7,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,7,7,1,State_Met)
       WRITE(189,25) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,8,8,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,8,8,1,State_Met)
       WRITE(189,26) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,9,9,1)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,9,9,1,State_Met)
       WRITE(189,27) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.LT.0.D0) THEN
          WRITE(189,270) -NTP,-NTP/SOURCES*100.D0,-NTP/STTCONV
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
-      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF( NTP2 > 0d0 ) SINKS = SINKS + NTP2      
 
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,State_Met)
       SINKS=SINKS+NTQ+NTQ2
       WRITE(189,22) NTQ,NTQ/SINKS*100.D0,NTQ/STTCONV
 
@@ -2765,10 +2045,10 @@
       WRITE(189,28) SOURCES,SOURCES/STTCONV
       WRITE(189,18)
       
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1)
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1)
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0,State_Met)
       WRITE(189,18)
       WRITE(189,288) (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS),
      *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/STTCONV
@@ -2791,33 +2071,33 @@
       WRITE(189,19)
       WRITE(189,1990)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1,State_Met)
       WRITE(189,20) NTP,NTP/STTCONV
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1,State_Met)
       WRITE(189,21) NTP,NTP/STTCONV
       
       WRITE(189,18)
       WRITE(189,1991)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0,State_Met)
       WRITE(189,20) NTP,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0,State_Met)
       WRITE(189,21) NTP,NTP/STTCONV
       
       WRITE(189,18)
       WRITE(189,31)
 
       ! Sinks
-      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,1)
-      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,0)
+      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,1,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,0,State_Met)
       SINKS=NTQ+NTQ2
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.LT.0.D0) THEN
          SINKS=SINKS-NTP
       ENDIF
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF(NTP.LT.0.D0) THEN
          SINKS=SINKS-NTP
       ENDIF
@@ -2825,12 +2105,12 @@
       WRITE(189,22) NTQ,NTQ/SINKS*100.D0,NTQ/STTCONV
       WRITE(189,220) NTQ2,NTQ2/SINKS*100.D0,NTQ2/STTCONV
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.LT.0.D0) THEN
          WRITE(189,270) -NTP,-NTP/SINKS*100.D0,-NTP/STTCONV
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF(NTP.LT.0.D0) THEN
          WRITE(189,2700) -NTP,-NTP/SINKS*100.D0,-NTP/STTCONV
       ENDIF
@@ -2841,44 +2121,44 @@
       WRITE(189,30)
 
       ! Sources
-      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,5,9,1)
-      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0)
+      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,5,9,1,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0,State_Met)
       SOURCES=NTQ+NTQ2
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.GE.0.D0) THEN
          SOURCES=SOURCES+NTP
       ENDIF
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,,State_Met0)
       IF(NTP.GE.0.D0) THEN
          SOURCES=SOURCES+NTP
       ENDIF
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,1,State_Met)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0,State_Met)
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,5,5,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,5,5,1,State_Met)
       WRITE(189,24) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,6,6,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,6,6,1,State_Met)
       WRITE(189,39) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,7,7,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,7,7,1,State_Met)
       WRITE(189,25) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,8,8,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,8,8,1,State_Met)
       WRITE(189,26) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,9,9,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,9,9,1,State_Met)
       WRITE(189,27) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
       IF(NTP.GE.0.D0) THEN
          WRITE(189,270) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF(NTP.GE.0.D0) THEN
          WRITE(189,2700) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
       ENDIF
@@ -2887,10 +2167,10 @@
       WRITE(189,28) SOURCES,SOURCES/STTCONV
       WRITE(189,18)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1)
-      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1)
-      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0)
-      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0,State_Met)
       WRITE(189,18)
       WRITE(189,288) (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS),
      *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/STTCONV
@@ -2959,7 +2239,7 @@
       END SUBROUTINE CH4_BUDGET
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2968,16 +2248,22 @@
 ! !DESCRIPTION: Function SUM\_CH4 sums a section of the TCH4 array bounded by
 !  the input variables I1, I2, J1, J2, L1, L2, K1, K2.  SUM\_CH4 is called by
 !  module subroutine CH4\_BUDGET. (jsw, bnd, bmy, 1/16/01)
+!
+!  Disable CH4 Budget for SEAC4RS code to save memory
+!     kjw, 2/3/2014
 !\\
 !\\
 ! !INTERFACE:
 !
-      REAL*8 FUNCTION SUM_CH4( I1, I2, J1, J2, L1, L2, K1, K2, UPDOWN )
+      REAL*8 FUNCTION SUM_CH4( I1, I2, J1, J2, L1, L2, K1, K2, UPDOWN,
+     &                         State_Met )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_MOD          ! LPAUSE
+      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_CHEMGRID
+      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_NOCHEMGRID
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Met_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2986,6 +2272,9 @@
       INTEGER, INTENT(IN) :: L1, L2 ! Min/max altitude  indices of TCH4 to sum
       INTEGER, INTENT(IN) :: K1, K2 ! Min/max tracer    indices of TCH4 to sum
       INTEGER, INTENT(IN) :: UPDOWN ! Sum in trop (=1) or in strat (=0)
+
+      ! Also need to pass the State_Met for the CHEMGRID functons
+      TYPE(MetState), INTENT(IN) :: State_Met
 !
 ! !REMARKS:
 !  Store the sources/sinks of CH4 in TCH4 in total molecules
@@ -3015,23 +2304,19 @@
 !        (bmy, 1/16/01)
 !  (3 ) Updated comments (jsw, bmy, 2/12/01)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  23 Jul 2014 - R. Yantosca - Now pass the State_Met for chemgrid functions
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, K, L
-      INTEGER             :: LPAUSE_MIN, LPAUSE_MAX
+      INTEGER :: I, J, K, L
 
       !=================================================================
       ! SUM_CH4 begins here!
       !=================================================================
-
-      ! Compute the minimum value of LPAUSE once for use in
-      ! the DO-loops below (bmy, 4/18/00)
-      LPAUSE_MIN = MINVAL( LPAUSE )
-      LPAUSE_MAX = MAXVAL( LPAUSE )
 
       !### Debug
       !print*,'LPAUSE MIN/MAX=',LPAUSE_MIN,LPAUSE_MAX  
@@ -3047,10 +2332,10 @@
          ! UPDOWN = 1: Sum up from the surface to the tropopause
          !=============================================================
          DO K = K1, K2
-         DO L = L1, LPAUSE_MAX
+         DO L = 1,  LLPAR
          DO J = J1, J2
          DO I = I1, I2
-            IF ( L < LPAUSE(I,J) ) THEN 
+            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF
          ENDDO
@@ -3063,11 +2348,11 @@
          !=============================================================
          ! UPDOWN = 0: Sum up from the tropopause to the atm top
          !=============================================================
-         DO K = K1,         K2
-         DO L = LPAUSE_MIN, L2
-         DO J = J1,         J2
-         DO I = I1,         I2
-            IF ( L >= LPAUSE(I,J) ) THEN 
+         DO K = K1, K2
+         DO L = 1,  LLPAR
+         DO J = J1, J2
+         DO I = I1, I2
+            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF            
          ENDDO
@@ -3078,8 +2363,9 @@
       
       END FUNCTION SUM_CH4
 !EOC
+#endif
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3091,35 +2377,55 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_DISTRIB(PREVCH4)
+      SUBROUTINE CH4_DISTRIB( PREVCH4, Input_Opt, State_Chm )
 !
 ! !USES:
 !
-      USE TRACER_MOD,    ONLY : STT, N_TRACERS
-      USE ERROR_MOD,     ONLY : SAFE_DIV
-
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ERROR_MOD,          ONLY : SAFE_DIV
    
       IMPLICIT NONE
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8                 :: PREVCH4(IIPAR, JJPAR, LLPAR) ! CH4 before chem
+      REAL*8                        :: PREVCH4(IIPAR,JJPAR,LLPAR)! CH4 bef chem
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY:
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm args
+!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: N, I, J, L
+      ! Scalars
+      INTEGER         :: N_TRACERS
+      INTEGER         :: N, I, J, L
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !========================================================================
       ! CH4_DISTRIB begins here
       !========================================================================
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       DO N=2,N_TRACERS
 
@@ -3138,33 +2444,170 @@
 
       ENDDO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE CH4_DISTRIB
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ch4_anthro
+!
+! !DESCRIPTION: Function GET\_CH4\_ANTHRO returns the monthly average CH4
+!  emissions at GEOS-Chem grid box (I,J).  Data will be returned in units
+!  of [atoms C/cm2/s].
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_CH4_ANTHRO( I, J, N, Input_Opt ) RESULT( CH4_ANTHRO )
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTCH4
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN) :: I           ! GEOS-Chem longitude index
+      INTEGER,        INTENT(IN) :: J           ! GEOS-Chem latitude index
+      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem tracer index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options!
+!
+! !RETURN VALUE:
+!
+      REAL*8 :: CH4_ANTHRO   ! Anthro CH4 emissions [molec/cm2/s]
+! 
+! !REVISION HISTORY: 
+!  24 Jan 2012 - M. Payer    - Initial version adapted from GET_RETRO_ANTHRO
+!  25 Mar 2013 - S.D. Eastham- Adapted for unified simulations
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LCH4EMIS
+
+      !=================================================================
+      !  GET_CH4_ANTHRO begins here
+      !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LCH4EMIS = Input_Opt%LCH4EMIS
+
+      IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
+         CH4_ANTHRO = SUMANTHRO(I,J)
+      ELSE
+         CH4_ANTHRO = -1d0
+      ENDIF
+
+      END FUNCTION GET_CH4_ANTHRO
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ch4_biog
+!
+! !DESCRIPTION: Function GET\_CH4\_BIOG returns annual average biogenic
+!  CH4 emissions at GEOS-Chem grid-box (I,J). Data will be returned in
+!  units of [atoms C/cm2/s].
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_CH4_BIOG( I, J, N, Input_Opt ) RESULT( CH4_BIOG )
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTCH4
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN) :: I           ! GEOS-Chem longitude index
+      INTEGER,        INTENT(IN) :: J           ! GEOS-Chem latitude index
+      INTEGER,        INTENT(IN) :: N           ! GEOS-Chem tracer index
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options!
+!
+! !RETURN VALUE:
+!
+      REAL*8  :: CH4_BIOG   ! Biogenic CH4 emissions [molec/cm2/s]
+! 
+! !REVISION HISTORY: 
+!  24 Jan 2012 - M. Payer    - Initial version adapted from GET_RETRO_ANTHRO
+!  25 Mar 2013 - S.D. Eastham- Adapted for unified simulations
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LCH4EMIS
+
+      !=================================================================
+      !  GET_CH4_BIOG begins here
+      !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LCH4EMIS = Input_Opt%LCH4EMIS
+
+      IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
+         CH4_BIOG = SUMBIOG(I,J)
+      ELSE
+         CH4_BIOG = -1d0
+      ENDIF
+
+      END FUNCTION GET_CH4_BIOG
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: init_global_ch4
 !
 ! !DESCRIPTION: Subroutine INIT\_GLOBAL\_CH4 allocates and zeroes module 
-!  arrays. (bmy, 1/16/01, 10/15/02)
+!  arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GLOBAL_CH4
+      SUBROUTINE INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine is called from GIGC_INIT_EXTRA (in GeosCore/input_mod.f)
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
+!                              code out with #ifdef blocks so it can be used
+!  11 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3177,25 +2620,29 @@
       ! INIT_GLOBAL_CH4 begins here!
       !=================================================================
 
-      ALLOCATE( AVGOH( NSEAS, NCMSLATS, NCMSALTS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGOH' )
-      AVGOH = 0d0
+      ! Assume Success
+      RC = GIGC_SUCCESS
+
+!      ALLOCATE( AVGOH( NSEAS, NCMSLATS, NCMSALTS ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGOH' )
+!      AVGOH = 0d0
 
       ALLOCATE( BAIRDENS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BAIRDENS' )
       BAIRDENS = 0d0
 
-      ALLOCATE( BOH( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BOH' )
-      BOH = 0d0
+!      ALLOCATE( BOH( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BOH' )
+!      BOH = 0d0
 
-      ALLOCATE( COPROD( JJPAR, LLPAR, 12 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COPROD' )
-      COPROD = 0d0
+!      ALLOCATE( COPROD( JJPAR, LLPAR, 12 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COPROD' )
+!      COPROD = 0d0
 
-      ALLOCATE( CH4LOSS( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4LOSS' )
-      CH4LOSS = 0d0
+!      ALLOCATE( CH4LOSS( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
+!      ALLOCATE( CH4LOSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4LOSS' )
+!      CH4LOSS = 0d0
 
       ALLOCATE( PAVG( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PAVG' )
@@ -3205,13 +2652,23 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAVG' )
       TAVG = 0d0
 
+#if defined( USE_CH4_BUDGET_DIAG )
       ALLOCATE( TCH4( IIPAR, JJPAR, LLPAR, N_CH4 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCH4' )
       TCH4 = 0d0      
+#endif
 
       ALLOCATE( CH4_EMIS( IIPAR, JJPAR, PD58), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
       CH4_EMIS = 0d0
+
+      ALLOCATE( SUMANTHRO( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMANTHRO' )
+      SUMANTHRO = 0d0
+
+      ALLOCATE( SUMBIOG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMBIOG' )
+      SUMBIOG = 0d0
 
       ! Initialize tropoch4 (counts total decay of CH4 due to OH)
       TROPOCH4 = 0d0
@@ -3219,7 +2676,7 @@
       END SUBROUTINE INIT_GLOBAL_CH4
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3236,6 +2693,8 @@
 ! !REVISION HISTORY:
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
+!                              code out with #ifdef blocks so it can be used)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3245,11 +2704,17 @@
       !=================================================================
 
       IF ( ALLOCATED( BAIRDENS  ) ) DEALLOCATE( BAIRDENS  )
-      IF ( ALLOCATED( BOH       ) ) DEALLOCATE( BOH       )
-      IF ( ALLOCATED( COPROD    ) ) DEALLOCATE( COPROD    )
-      IF ( ALLOCATED( CH4LOSS   ) ) DEALLOCATE( CH4LOSS   )
+!      IF ( ALLOCATED( BOH       ) ) DEALLOCATE( BOH       )
+!      IF ( ALLOCATED( COPROD    ) ) DEALLOCATE( COPROD    )
+!      IF ( ALLOCATED( CH4LOSS   ) ) DEALLOCATE( CH4LOSS   )
+      IF ( ASSOCIATED( BOH      ) ) BOH     => NULL()
+      IF ( ASSOCIATED( CH4LOSS  ) ) CH4LOSS => NULL()
+#if defined( USE_CH4_BUDGET_DIAG )
       IF ( ALLOCATED( TCH4      ) ) DEALLOCATE( TCH4      )
+#endif
       IF ( ALLOCATED( CH4_EMIS  ) ) DEALLOCATE( CH4_EMIS  )
+      IF ( ALLOCATED( SUMANTHRO ) ) DEALLOCATE( SUMANTHRO )
+      IF ( ALLOCATED( SUMBIOG   ) ) DEALLOCATE( SUMBIOG   )
 
       END SUBROUTINE CLEANUP_GLOBAL_CH4
 !EOC
