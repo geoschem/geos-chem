@@ -620,6 +620,7 @@ ifeq ($(HPC),yes)
     $(error $(ERR_GIGC))
   endif
   endif
+  #FFLAGS             += -double-size 32 -real-size 32 -r4
 endif
 
 ###############################################################################

@@ -344,7 +344,11 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
+#if defined( ESMF_ )
+         AREA_M2                   = State_Met%AREA_M2(I,J,L)
+#else
          AREA_M2                   = GET_AREA_M2( I, J, L )
+#endif
   
          ! Pressure at bottom edge of grid box [hPa]
          P1                        = GET_PEDGE( I, J, L )

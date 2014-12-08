@@ -97,6 +97,8 @@
                ! Rxn # for Nth emission species in "globchem.dat"
                NK = NKEMIS(N,NCS)
 
+               IF (NK == 0) CYCLE
+
                ! Match "chem.dat" rxn number w/ GEOS-CHEM tracer number
                ! IRM is the species # for the first product of the NKth rxn
                ! IDTRMB is the species # of the GEOS-CHEM tracer which emits

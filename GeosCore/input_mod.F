@@ -1051,8 +1051,8 @@
       DLON          = 5.0d0              ! Delta-longitude array [degrees]
       DLAT          = 4.0d0              ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-      DLAT(:,JSP,:) = 2.0d0              !  Half-sized S Pole boxes
-      DLAT(:,JNP,:) = 2.0d0              !  Half-sized N Pole boxes
+!<<>>      DLAT(:,JSP,:) = 2.0d0              !  Half-sized S Pole boxes
+!<<>>      DLAT(:,JNP,:) = 2.0d0              !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID2x25 )
@@ -2626,7 +2626,7 @@
       ! Input_Opt%TS_EMIS is set externally in ESMF environment!
       !=================================================================
       Input_Opt%LEMIS          = LEMIS
-#if !defined( ESMF_ ) && !defined( EXTERNAL_FORCING )
+#if !defined( EXTERNAL_FORCING )
       Input_Opt%TS_EMIS        = TS_EMIS
 #endif
       Input_Opt%HcoConfigFile  = HcoConfigFile
@@ -3377,7 +3377,7 @@
      &        TRIM( SPEC_RST_FILE )
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
          WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', LO3FJX
-         WRITE( 6, 100     ) 'GAMMA HO2                   : ',
+         WRITE( 6, 140     ) 'GAMMA HO2                   : ',
      &      Input_Opt%GAMMA_HO2
       ENDIF
 
@@ -3386,6 +3386,7 @@
  110  FORMAT( A, I5  )
  120  FORMAT( A, 2I5 )
  130  FORMAT( A, A   )
+ 140  FORMAT( A, F4.2 )
 
       END SUBROUTINE READ_CHEMISTRY_MENU  
 !EOC
