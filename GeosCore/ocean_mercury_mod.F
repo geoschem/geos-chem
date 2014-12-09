@@ -3668,13 +3668,13 @@
 
       ! Set up concentrations of Hg(0), Hg(II), Hg(C) in deep ocean REDALERT
       IF ( Input_Opt%LPREINDHG) THEN
-         CDEEP    = (/ 2d-11, 1.67e-10_fpp, 1.67e-10_fpp /)
-         CDEEPATL = (/ 2d-11, 1.67e-10_fpp, 1.67e-10_fpp /)
-         CDEEPNAT = (/ 2d-11, 1.67e-10_fpp, 1.67e-10_fpp /)
-         CDEEPSAT = (/ 2d-11, 1.67e-10_fpp, 1.67e-10_fpp /)         
-         CDEEPANT = (/ 2d-11, 1.67e-10_fpp, 1.67e-10_fpp /)
-         CDEEPARC = (/ 2d-11, 1.67e-10_fpp, 1.67e-10_fpp /)
-         CDEEPNPA = (/ 2d-11, 1.67e-10_fpp, 1.67e-10_fpp /)
+         CDEEP    = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
+         CDEEPATL = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
+         CDEEPNAT = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
+         CDEEPSAT = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)         
+         CDEEPANT = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
+         CDEEPARC = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
+         CDEEPNPA = (/ 2e-11_fpp, 1.67e-10_fpp, 1.67e-10_fpp /)
       ELSE
          CDEEP    = (/ 1.0e-10_fpp, 4.0e-10_fpp, 4.0e-10_fpp /)
          CDEEPATL = (/ 1.4e-10_fpp, 9.3e-10_fpp, 9.3e-10_fpp /)  

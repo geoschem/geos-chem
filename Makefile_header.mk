@@ -855,6 +855,7 @@ export SHELL
 export NCL
 export NC_LINK_CMD
 export HPC
+export PRECISION
 
 #EOC
 
