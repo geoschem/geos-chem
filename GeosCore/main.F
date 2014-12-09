@@ -1947,7 +1947,6 @@
 !
       ! Convenience variable for date & time
       INTEGER :: D(2)
-      LOGICAL :: LSUBGRIDWINDS
 
       !=================================================================
       !    *****  R E A D   G E O S -- F P   F I E L D S    *****
@@ -1955,9 +1954,6 @@
       !
       !    Handle GEOS-FP met fields separately from other met 
       !=================================================================
-
-      ! set whether to read the subgrid wind data or not (DAR)  
-      LSUBGRIDWINDS = .FALSE. !sub-grid winds usage flag
 
 #if   defined( GEOS_FP )
 
@@ -1997,10 +1993,6 @@
       D = GET_FIRST_A1_TIME()
       CALL OPEN_MERRA_A1_FIELDS ( D(1), D(2), Input_Opt, RESET=.TRUE. )
       CALL GET_MERRA_A1_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
-      IF (LSUBGRIDWINDS .EQ. .TRUE.) THEN
-       ! READ IN AUX WIND DATA (DAR)
-       CALL GET_W1_FIELDS(DATE(1), DATE(2) )
-      ENDIF
       IF ( LPRT ) THEN
          CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
       ENDIF
@@ -2080,10 +2072,6 @@
       D = GET_FIRST_A3_TIME()
       CALL OPEN_A3_FIELDS ( D(1), D(2), Input_Opt, RESET=.TRUE. )
       CALL GET_A3_FIELDS  ( D(1), D(2), Input_Opt, State_Met    )
-      IF (LSUBGRIDWINDS .EQ. .TRUE.) THEN
-       ! READ IN AUX WIND DATA (DAR)
-       CALL GET_W1_FIELDS(DATE(1), DATE(2) )
-      ENDIF
       IF ( LPRT ) THEN
          CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
       ENDIF
@@ -2228,10 +2216,6 @@
          ! Open & read A-3 fields
          CALL OPEN_MERRA_A1_FIELDS ( D(1), D(2), Input_Opt            )
          CALL GET_MERRA_A1_FIELDS  ( D(1), D(2), Input_Opt, State_Met )
-         IF (LSUBGRIDWINDS .EQ. .TRUE.) THEN
-          ! READ IN AUX WIND DATA (DAR)
-          CALL GET_W1_FIELDS(DATE(1), DATE(2) )
-         ENDIF
       ENDIf
 
       !==============================================================
@@ -2328,10 +2312,6 @@
          ! Open & read A-3 fields
          CALL OPEN_A3_FIELDS( D(1), D(2), Input_Opt            ) 
          CALL GET_A3_FIELDS ( D(1), D(2), Input_Opt, State_Met )
-         IF (LSUBGRIDWINDS .EQ. .TRUE.) THEN 
-          ! READ IN AUX WIND DATA (DAR)
-          CALL GET_W1_FIELDS(DATE(1), DATE(2) )
-         ENDIF
 
       ENDIF
 

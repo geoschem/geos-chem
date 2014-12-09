@@ -43,15 +43,6 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      !GEOS-5.7.2 10-m wind statistics
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: W10M    (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: W10ML   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: W10MO   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: W10M3   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: W10M341 (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: W10MLSD (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: W10MOSD (:,:)
-
       ! Arrays AIRDEN_FULLGRID and T_FULLGRID are used to correct vertical
       ! regridding of OH for offline simulations (mpayer, 3/14/13)
       REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
@@ -2237,41 +2228,6 @@
 
 #endif
 
-      ! 10m U-wind from GEOS-5
-      ALLOCATE( W10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'W10M' )
-      W10M = 0d0
-
-      ! 10m U-wind from GEOS-5
-      ALLOCATE( W10ML( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'W10ML' )
-      W10ML = 0d0
-
-      ! 10m U-wind from GEOS-5
-      ALLOCATE( W10MO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'W10MO' )
-      W10MO = 0d0
-
-      ! 10m V-wind from GEOS-5
-      ALLOCATE( W10M3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'W10M3' )
-      W10M3 = 0d0
-
-      ! 10m U-wind from GEOS-5
-      ALLOCATE( W10M341( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'W10M341' )
-      W10M341 = 0d0
-
-      ! 10m V-wind from GEOS-5
-      ALLOCATE( W10MLSD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'W10MLSD' )
-      W10MLSD = 0d0
-
-      ! 10m V-wind from GEOS-5
-      ALLOCATE( W10MOSD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'W10MOSD' )
-      W10MOSD = 0d0
-
       ENDIF
 
       END SUBROUTINE INIT_DAO
@@ -2330,13 +2286,6 @@
       IF ( ALLOCATED( T_FULLGRID      ) ) DEALLOCATE( T_FULLGRID      )
       IF ( ALLOCATED( T_FULLGRID_1    ) ) DEALLOCATE( T_FULLGRID_1    )
       IF ( ALLOCATED( T_FULLGRID_2    ) ) DEALLOCATE( T_FULLGRID_2    )
-      IF ( ALLOCATED( W10M            ) ) DEALLOCATE( W10M            )
-      IF ( ALLOCATED( W10ML           ) ) DEALLOCATE( W10ML           )
-      IF ( ALLOCATED( W10MO           ) ) DEALLOCATE( W10MO           )
-      IF ( ALLOCATED( W10M3           ) ) DEALLOCATE( W10M3           )
-      IF ( ALLOCATED( W10M341         ) ) DEALLOCATE( W10M341         )
-      IF ( ALLOCATED( W10MLSD         ) ) DEALLOCATE( W10MLSD         )
-      IF ( ALLOCATED( W10MOSD         ) ) DEALLOCATE( W10MOSD         )
 
       END SUBROUTINE CLEANUP_DAO
 !EOC
