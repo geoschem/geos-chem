@@ -31,6 +31,12 @@ MODULE GIGC_Input_Opt_Mod
   TYPE, PUBLIC :: OptInput
 
      !----------------------------------------
+     ! General Runtime & Distributed Comp Info
+     !----------------------------------------
+     INTEGER                     :: NPES      ! Number of MPI procs
+     INTEGER                     :: myPet     ! Handle for local PET
+
+     !----------------------------------------
      ! SIZE PARAMETER fields
      !----------------------------------------
      INTEGER                     :: MAX_DIAG

@@ -364,10 +364,8 @@
           call CPU_TIME(start)
           IF ( LKPP ) THEN
              CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
-
           ELSE
              CALL SMVGEAR( am_I_Root, Input_Opt, RC )
-          call CPU_TIME(finish)
 
 !
 ! *********************************************************************
@@ -390,9 +388,11 @@
  620            CONTINUE
              ENDIF
           ENDIF
+          call CPU_TIME(finish)
 !
           
  640      CONTINUE
+      
 !$OMP END PARALLEL DO
 
 !------------------------------------------------------------------------------

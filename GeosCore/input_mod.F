@@ -1051,8 +1051,8 @@
       DLON          = 5.0d0              ! Delta-longitude array [degrees]
       DLAT          = 4.0d0              ! Delta-latitude array [degrees]
 # if !defined( GCAP )
-!<<>>      DLAT(:,JSP,:) = 2.0d0              !  Half-sized S Pole boxes
-!<<>>      DLAT(:,JNP,:) = 2.0d0              !  Half-sized N Pole boxes
+      DLAT(:,JSP,:) = 2.0d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 2.0d0              !  Half-sized N Pole boxes
 # endif
 
 #elif defined( GRID2x25 )
