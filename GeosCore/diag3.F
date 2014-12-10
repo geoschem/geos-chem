@@ -5141,7 +5141,7 @@
 !******************************************************************************
 !
       !check that RRTMG is actually switched on
-      IF (LRAD) THEN
+      IF ( Input_Opt%LRAD ) THEN
       IF ( ND71 > 0 ) THEN
          CATEGORY = 'RADMAP-$'
          write(6,*) 'NWVSELECT',NWVSELECT

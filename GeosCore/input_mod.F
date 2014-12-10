@@ -3418,6 +3418,7 @@
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D. Ridley   - Initial version
 !  03 Dec 2014 - M. Sulprizio- Now save fields to the Input_Opt object
+!  10 Dec 2014 - M. Sulprizio- Add error checks for RRTMG switches
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3491,6 +3492,41 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:11' )
+
+      !=================================================================
+      ! Error check settings
+      !=================================================================       
+
+      ! Use of RRTMG necessitates recompilation 
+#if !defined( RRTMG )
+      IF ( LRAD ) THEN
+         MSG = 'LRAD=T but RRTMG not defined at compile time!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+#else
+      IF ( .not. LRAD ) THEN
+         MSG = 'LRAD=F but RRTMG defined at compile time!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+#endif
+
+      ! Make sure radiation switches are turned off if RRTMG is off
+      IF ( ( .not. LRAD ) .and. LLWRAD ) THEN
+         MSG = 'Cannot have LW fluxes turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSWRAD ) THEN
+         MSG = 'Cannot have SW fluxes turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSKYRAD(1) ) THEN
+         MSG = 'Cannot have clear-sky flux turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSKYRAD(2) ) THEN
+         MSG = 'Cannot have all-sky flux turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
 
       !=================================================================
       ! Set fields of Input Options object

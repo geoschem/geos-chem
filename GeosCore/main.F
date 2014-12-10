@@ -1426,7 +1426,7 @@
 
                !clear-sky is output with all-sky, so we just need to run once 
                !regardless of whether both are required or just one
-               IF (LSKYRAD(2)) THEN
+               IF ( Input_Opt%LSKYRAD(2) ) THEN
                   !Determine if we are doing CLEAR-SKY (1) or ALL-SKY (2)
                   ICLD=1
                ELSE
@@ -1437,7 +1437,8 @@
                CALL SET_SPECMASK(0)
 
                !First call for baseline (all aerosol and ozone)
-               CALL DO_RRTMG_RAD_TRANSFER( DAY, MONTH, ICLD, 0, ISEED)
+               CALL DO_RRTMG_RAD_TRANSFER( DAY, MONTH, ICLD, 0, ISEED,
+     &                                     Input_Opt, State_Met )
 
                !Second call with aerosols or ozone if requested
                DO N = 1, NSPECRADMENU
@@ -1445,12 +1446,19 @@
                      !generate mask for species in RT
                      CALL SET_SPECMASK(N)
                      CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD,
-     &                                          N,   ISEED  )
+     &                                          N,   ISEED, Input_Opt,
+     &                                          State_Met )
                   ENDIF
                ENDDO
 
                ! Increment radiation timestep counter
                CALL SET_CT_RAD( INCREMENT=.TRUE. )
+
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
+               ENDIF
+
             ENDIF
          ENDIF
 #endif

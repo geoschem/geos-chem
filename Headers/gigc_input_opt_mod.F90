@@ -262,6 +262,15 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LO3FJX
 
      !----------------------------------------
+     ! RADIATION MENU fields
+     !----------------------------------------
+     LOGICAL                     :: LRAD
+     LOGICAL                     :: LLWRAD
+     LOGICAL                     :: LSWRAD
+     LOGICAL, POINTER            :: LSKYRAD(:)
+     INTEGER                     :: TS_RAD
+
+     !----------------------------------------
      ! TRANSPORT MENU fields
      !----------------------------------------
      LOGICAL                     :: LTRAN
@@ -653,6 +662,7 @@ MODULE GIGC_Input_Opt_Mod
 !  23 Jun 2014 - R. Yantosca - Add POP_EMISDIR field for POPs simlulation
 !  25 Jun 2014 - R. Yantosca - Now add Input_Opt%SIM_TYPE field
 !  29 Sep 2014 - R. Yantosca - Now add Input_Opt%N_DUST_BINS field
+!  03 Dec 2014 - M. Sulprizio- Add fields for Radiation Menu
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -972,6 +982,17 @@ CONTAINS
     Input_Opt%LCH4CHEM               = .FALSE.
     Input_Opt%LACTIVEH2O             = .FALSE.
     Input_Opt%LO3FJX                 = .FALSE.
+
+    !----------------------------------------
+    ! RADIATION MENU fields
+    !----------------------------------------
+    ALLOCATE( Input_Opt%LSKYRAD( 2 ), STAT=RC )
+
+    Input_Opt%LRAD                   = .FALSE.
+    Input_Opt%LLWRAD                 = .FALSE.
+    Input_Opt%LSWRAD                 = .FALSE.
+    Input_Opt%LSKYRAD                = .FALSE.
+    Input_Opt%TS_RAD                 = 0
 
     !----------------------------------------
     ! TRANSPORT MENU fields

@@ -77,8 +77,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RRTMG_RAD_TRANSFER( THISDAY, THISMONTH, ICLD, 
-     &                        ISPECMENU, ISEED)
+      SUBROUTINE DO_RRTMG_RAD_TRANSFER( THISDAY,   THISMONTH, ICLD, 
+     &                                  ISPECMENU, ISEED,     Input_Opt,
+     &                                  State_Met  )
 !
 ! !USES:
 !
@@ -97,9 +98,6 @@
       USE PRESSURE_MOD,   ONLY : GET_PCENTER,      GET_PEDGE
       USE COMODE_MOD,   ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_LOOP_MOD,   ONLY : ICH4, AVG, WTAIR
-      USE DAO_MOD,      ONLY : BXHEIGHT, QI, QL, TAUCLI, TAUCLW
-      USE DAO_MOD,      ONLY : CLDF, SUNCOS, AVGW, TSKIN, T, ALBD
-      USE DAO_MOD,      ONLY : AIRVOL, AIRDEN
       USE TIME_MOD,     ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TRACERID_MOD, ONLY : IDO3
       USE DIAG_MOD,     ONLY : AD71
@@ -109,11 +107,12 @@
       USE JV_CMN_MOD,   ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE JV_CMN_MOD,   ONLY : WVAA, NWVAA
       USE JV_CMN_MOD,   ONLY : NWVAA0,DO3
-      USE LOGICAL_MOD,  ONLY : LLWRAD,LSWRAD,LSKYRAD
 
       USE TOMS_MOD,     ONLY: GET_OVERHEAD_O3
       USE GRID_MOD,     ONLY : GET_YMID
 
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
   
       INTEGER, PARAMETER  :: NWV=37
 !
@@ -125,6 +124,10 @@
                                           ! NEEDED FOR OUTPUT PURPOSES
       INTEGER, INTENT(IN) :: ISEED  
       !LOGICAL, INTENT(IN) :: SPECMASK(NSPECRAD) ! MASK FOR NUMBER OF SPECIES CONSIDERED 
+
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+
       LOGICAL             :: DOAERAD      ! INCLUDE AEROSOL DETERMINED FROM SPECMASK
       LOGICAL             :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
       INTEGER             :: NAD71        ! NUMBER OF OUTPUTS PER FIELD
@@ -423,11 +426,11 @@
       DO L = 1, LLPAR
          PCENTER(IJLOOP,L) = GET_PCENTER( I, J, L )
          PEDGE  (IJLOOP,L) = GET_PEDGE  ( I, J, L )
-         H2OVMR (IJLOOP,L) = AVGW(I,J,L)
-         TLAY   (IJLOOP,L) = T(I,J,L)
-         INTROP (IJLOOP,L) = ITS_IN_THE_TROP( I, J, L )
+         H2OVMR (IJLOOP,L) = State_Met%AVGW(I,J,L)
+         TLAY   (IJLOOP,L) = State_Met%T(I,J,L)
+         INTROP (IJLOOP,L) = ITS_IN_THE_TROP( I, J, L, State_Met )
       ENDDO
-      TSFC   (IJLOOP)   = TSKIN(I,J)
+      TSFC   (IJLOOP)   = State_Met%TSKIN(I,J)
 
       ENDDO
       ENDDO
@@ -438,7 +441,7 @@
 !OMP+SCHEDULE( DYNAMIC )
       DO I = 1, IIPAR
       DO J = 1, JJPAR
-       ALBVIS(IJLOOP)   = ALBD(I,J)
+       ALBVIS(IJLOOP)   = State_Met%ALBD(I,J)
       DO L = 1, LLPAR
        
        ! 1-D INDEX
@@ -452,13 +455,15 @@
 
             IF (ICLD.NE.0) THEN
              ! LIQUID
-             CLIQWP(IJLOOP,L) = 0.667*TAUCLW(I,J,L)*RHOLIQ*REL_DEF
+             CLIQWP(IJLOOP,L) = 0.667*State_Met%TAUCLW(I,J,L)*
+     &                          RHOLIQ*REL_DEF
              RELIQ(IJLOOP,L) = REL_DEF
              ! ICE
-             CICEWP(IJLOOP,L) = 0.667*TAUCLI(I,J,L)*RHOICE*REI_DEF
+             CICEWP(IJLOOP,L) = 0.667*State_Met%TAUCLI(I,J,L)*
+     &                          RHOICE*REI_DEF
              REICE(IJLOOP,L) = REI_DEF
              !TAUCLD DERIVED IN MCICA SUB, NOT NEEDED
-             CLDFR(IJLOOP,L)   = CLDF(L,I,J)
+             CLDFR(IJLOOP,L)   = State_Met%CLDF(L,I,J)
             ENDIF !CLOUDS
 
        IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN 
@@ -495,11 +500,13 @@
            !-----------------------------
 
            !! DENSITY OF AIR IN G/CM2
-           AIR_TMP = AIRDEN(L,I,J)*BXHEIGHT(I,J,L)*1.0E-1
+           AIR_TMP = State_Met%AIRDEN(L,I,J)*
+     &               State_Met%BXHEIGHT(I,J,L)*1.0E-1
            !! DENSITY OF AIR IN MOLEC/CM2
            AIR_TMP = AVG*AIR_TMP/WTAIR
            O3COL = GET_OVERHEAD_O3(I,J)
-           CALL SET_PROF_O3 (I,J,YLAT,THISMONTH,THISDAY,T(I,J,:),O3COL)
+           CALL SET_PROF_O3 (I,J,YLAT,THISMONTH,THISDAY,
+     &                       State_Met%T(I,J,:),O3COL)
            O3VMR(IJLOOP,L) = DO3(L)/AIR_TMP
 
             !GET SCALINGS IF THIS IS THE FIRST LEVEL IN THE STRAT
@@ -744,7 +751,7 @@
 !$OMP+PRIVATE( TAUCMCL_SW0, SSACMCL0,ASMCMCL0, FSFCMCL0)
 !$OMP+SCHEDULE( DYNAMIC )
        DO IL=1, NCOL
-        IF (LLWRAD) THEN
+        IF (Input_Opt%LLWRAD) THEN
          CALL MCICA_SUBCOL_LW(ONECOL,LLPAR,ICLDMCL,
      &        SEEDLW,IRNG,PCENTER(IL,:),
      &        CLDFR(IL,:),CICEWP(IL,:),CLIQWP(IL,:),
@@ -757,7 +764,7 @@
          CLWPMCL_LW(:,IL,:)   = CLWPMCL_LW0(:,1,:)
          TAUCMCL_LW(:,IL,:)   = TAUCMCL_LW0(:,1,:)
         ENDIF
-        IF (LSWRAD) THEN
+        IF (Input_Opt%LSWRAD) THEN
          CALL MCICA_SUBCOL_SW(ONECOL, LLPAR, ICLDMCL,
      &        SEEDSW, IRNG,PCENTER(IL,:),
      &        CLDFR(IL,:), CICEWP(IL,:), CLIQWP(IL,:),
@@ -790,7 +797,7 @@
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO IL=1, NCOL
  
-      IF (LLWRAD) THEN
+      IF (Input_Opt%LLWRAD) THEN
         
         CALL RRTMG_LW 
      &       (ONECOL,LLPAR,ICLDMCL,IDRV, 
@@ -810,7 +817,7 @@
         LW_UFLUXC(IL,:) = UFLXC(1,:)
         LW_DFLUXC(IL,:) = DFLXC(1,:)
       ENDIF !LW
-      IF (LSWRAD) THEN
+      IF (Input_Opt%LSWRAD) THEN
 
         CALL RRTMG_SW 
      &       (ONECOL    ,LLPAR    ,ICLDMCL , 
@@ -820,7 +827,7 @@
      &        CH4VMR(IL,:)  ,N2OVMR(IL,:)  ,O2VMR(IL,:), 
      &        ALBDIRVIS(IL) ,ALBDIFVIS(IL) ,
      &        ALBDIRNIR(IL) ,ALBDIFNIR(IL) , 
-     &        SUNCOS(IL)   ,ADJES   ,DOY  ,SCON    , 
+     &        State_Met%SUNCOS(IL) ,ADJES   ,DOY  ,SCON    , 
      &        INFLGSW ,ICEFLGSW,LIQFLGSW,
      &        CLDFMCL_SW(:,IL,:),TAUCMCL_SW(:,IL,:),
      &        SSACMCL(:,IL,:),ASMCMCL(:,IL,:),FSFCMCL(:,IL,:), 
@@ -848,7 +855,7 @@
 
       !FIRST CHECK IF WE HAVE ALREADY OUTPUT AEROSOL DIAGNOSTICS
       !(I.E. IF BOTH ALL-SKY AND CLEAR-SKY ARE SWITCHED ON)
-      IF ((LSKYRAD(1)).AND.(LSKYRAD(2))) THEN
+      IF ((Input_Opt%LSKYRAD(1)).AND.(Input_Opt%LSKYRAD(2))) THEN
       !WE ONLY NEED TO OUTPUT DURING ONE OF THESE, SO DONT WHEN ICLD=0
        IF (ICLD.EQ.0) THEN
         LOUTPUTAERO=.FALSE.
