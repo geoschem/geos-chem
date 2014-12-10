@@ -1348,9 +1348,6 @@
          RETURN
       ENDIF
 
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
-     
       !=================================================================
       ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt
       !=================================================================
