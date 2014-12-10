@@ -78,7 +78,6 @@ MODULE HCOX_ParaNOx_MOD
   REAL*8                        :: MW_O3
   REAL*8                        :: MW_NO
   REAL*8                        :: MW_NO2
-  REAL*8                        :: MW_HNO3
   REAL*8                        :: MW_AIR
 
   ! Arrays
@@ -449,8 +448,8 @@ CONTAINS
           ! Of the total ship NOx, the fraction 1-FRACTION_NOX
           ! is converted to HNO3 during plume dilution and chemistry. 
           ! Unit: kg/m2/s 
-          FLUXHNO3(I,J) = ShipNoEmis(I,J,1) * ( 1d0 - FRACTION_NOx ) &
-                        * ( MW_HNO3 / MW_NO )
+          FLUXHNO3(I,J) = ShipNoEmis(I,J,1) * ( 1d0 - FRACTION_NOx )
+
        ENDIF
 
        !---------------------------
@@ -462,8 +461,7 @@ CONTAINS
           ! (1-FRACTION_NOX)*INT_OPE is converted to O3 during 
           ! plume dilution and chemistry. 
           ! Unit: kg/m2/s 
-          iFlx = ShipNoEmis(I,J,1) * (1d0-FRACTION_NOx) * INT_OPE &
-               * ( MW_O3 / MW_NO )
+          iFlx = ShipNoEmis(I,J,1) * (1d0-FRACTION_NOx) * INT_OPE
 
           ! For positive fluxes, add to emission flux array 
           IF ( iFlx >= 0.0_hp ) THEN
@@ -474,7 +472,7 @@ CONTAINS
           ! array
           ELSE
 
-             ! Calculate deposition velocity (1/s) from flux
+             ! Calculate deposition velocity (m/s) from flux
              ! NOTE: the calculated deposition flux is in kg/m2/s,
              ! which has to be converted to 1/s. Use here the O3 conc.
              ! [kg] of the lowest model box.
@@ -728,16 +726,18 @@ CONTAINS
       MSG = 'Species NO not defined - needed by ParaNOx!' 
       CALL HCO_ERROR ( MSG, RC )
       RETURN
+   ELSE
+      MW_NO = HcoState%Spc(IDTNO)%MW_g
    ENDIF
-   MW_NO = HcoState%Spc(IDTNO)%MW_g
 
    IDTO3 = HCO_GetHcoID('O3',   HcoState )
    IF ( IDTO3 <= 0 ) THEN
       MSG = 'Species O3 not defined - needed by ParaNOx!' 
       CALL HCO_ERROR ( MSG, RC )
       RETURN
+   ELSE
+      MW_O3 = HcoState%Spc(IDTO3)%MW_g
    ENDIF
-   MW_O3 = HcoState%Spc(IDTO3)%MW_g
 
    IDTHNO3 = HCO_GetHcoID('HNO3', HcoState )
    IF ( IDTHNO3 <= 0 ) THEN
@@ -745,8 +745,6 @@ CONTAINS
          MSG = 'Species HNO3 not defined - not used by ParaNOx!' 
          CALL HCO_WARNING ( MSG, RC )
       ENDIF
-   ELSE
-      MW_HNO3 = HcoState%Spc(IDTHNO3)%MW_g
    ENDIF
 
    IDTNO2  = HCO_GetHcoID('NO2',  HcoState )
@@ -754,8 +752,9 @@ CONTAINS
       MSG = 'Species NO2 not defined - needed by ParaNOx!' 
       CALL HCO_ERROR ( MSG, RC )
       RETURN
+   ELSE
+      MW_NO2 = HcoState%Spc(IDTNO2)%MW_g
    ENDIF
-   MW_NO2 = HcoState%Spc(IDTNO2)%MW_g
 
    ! Verbose mode
    IF ( am_I_Root ) THEN

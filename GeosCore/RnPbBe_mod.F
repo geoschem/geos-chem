@@ -228,6 +228,17 @@
 
          ! Reset FIRSTCHEM flag
          FIRSTCHEM = .FALSE.
+
+         ! testing only 
+         IF(am_I_Root) THEN
+            write(*,*) ''
+            write(*,*) '### GEOS-Chem Radon simulation ###'
+            write(*,*) '    Timestep (secs)   : ', DTCHEM
+            write(*,*) '    Rn lifetime (days): ', RnTau
+            write(*,*) '    Rn decadence      : ', EXP_Rn
+            write(*,*) ''
+         ENDIF
+
       ENDIF
 
       !=================================================================

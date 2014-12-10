@@ -92,6 +92,7 @@ CONTAINS
     REAL,             POINTER  :: Ptr3D(:,:,:)   => NULL() 
     REAL,             POINTER  :: Ptr2D(:,:)     => NULL() 
     TYPE(ESMF_State), POINTER  :: IMPORT         => NULL()
+    TYPE(ESMF_State), POINTER  :: EXPORT         => NULL()
     LOGICAL                    :: verb
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
@@ -106,6 +107,7 @@ CONTAINS
 
     ! Point to ESMF IMPORT object
     IMPORT => HcoState%IMPORT
+    EXPORT => HcoState%EXPORT
 
     ! Verbose?
     verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
@@ -413,45 +415,55 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Get level index if we are dealing with 3D data
-    IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
-
-       ! Try to extract level midpoints
-       LevName = 'lev'
+    ! Try to extract level midpoints
+    LevName = 'lev'
+    CALL NC_READ_VAR ( ncLun, LevName, nlev, LevUnit, LevMid, NCRC )
+    IF ( NCRC /= 0 ) THEN
+       CALL HCO_ERROR( 'NC_READ_LEV', RC )
+       RETURN 
+    ENDIF
+    IF ( nlev == 0 ) THEN
+       LevName = 'height'
        CALL NC_READ_VAR ( ncLun, LevName, nlev, LevUnit, LevMid, NCRC )
        IF ( NCRC /= 0 ) THEN
           CALL HCO_ERROR( 'NC_READ_LEV', RC )
           RETURN 
        ENDIF
-       IF ( nlev == 0 ) THEN
-          LevName = 'height'
-          CALL NC_READ_VAR ( ncLun, LevName, nlev, LevUnit, LevMid, NCRC )
-          IF ( NCRC /= 0 ) THEN
-             CALL HCO_ERROR( 'NC_READ_LEV', RC )
-             RETURN 
-          ENDIF
-       ENDIF
+    ENDIF
 
-       ! Error check
-       IF ( nlev == 0 ) THEN
-          MSG = 'Source data of '//TRIM(Lct%Dct%cName)//' is not 3D: '//&
-                TRIM(srcFile)
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ENDIF
+    ! Sanity check of vertical dimensions
+    ! ==> numbers of vertical levels must not exceed HEMCO state
+    ! levels (only horizontal regridding supported so far!)
+    ! Also check if dimensionality agrees with settings in input
+    ! file!
+!    IF ( nlev > HcoState%NZ ) THEN
+!       MSG = 'Too many vert. levels in ' // TRIM(srcFile)
+!       CALL HCO_ERROR ( MSG, RC )
+!       RETURN 
+!    ENDIF
 
-       ! Set level indeces to be read
-       ! NOTE: for now, always read all levels. Edit here to read
-       ! only particular levels.
+    ! Set level indeces to be read
+    ! NOTE: for now, always read all levels. Edit here to read
+    ! only particular levels.
+    ! Also do sanity check whether or not vertical dimension does 
+    ! agree with space dimension specified in configuration file.
+    IF ( nlev > 0 ) THEN
        lev1 = 1
        lev2 = nlev
-
-    ! For 2D data, set lev1 and lev2 to zero. This will ignore
-    ! the level dimension in the netCDF reading call that follows.
-    ELSE 
-       nlev = 0 
+       IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
+          MSG = 'Found 3D data, but space dim is not set to 3: ' // &
+                TRIM(srcFile)
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
+       ENDIF
+    ELSE
        lev1 = 0
        lev2 = 0
+       IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
+          MSG = 'Could not find level coordinate: ' // TRIM(srcFile)
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
+       ENDIF
     ENDIF
 
     ! ----------------------------------------------------------------

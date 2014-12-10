@@ -3946,6 +3946,7 @@ c  Ensure all 'AN_' types are valid selections
       !
       ! Make sure that we have taken the proper reaction! 
       !=================================================================
+
       N = RINDEX(NREAC)
 
       IF ( (N > NRATJ ) .or. (N .eq. 0) ) THEN

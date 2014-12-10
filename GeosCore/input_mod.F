@@ -1347,6 +1347,9 @@
          RC = GIGC_FAILURE
          RETURN
       ENDIF
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
      
       !=================================================================
       ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt
@@ -1381,10 +1384,10 @@
   
             ! Number of species in this family
             Input_Opt%TRACER_N_CONST(T) = N-3
-               
+              
             ! Loop over substrings
             DO C = 1, N-3
-         
+        
                ! Trim the name
                NAME = TRIM( SUBSTRS(C+3) )
          
@@ -1509,7 +1512,7 @@
             WRITE( 6, 100 ) Input_Opt%ID_TRACER(T), 
      &                      Input_Opt%TRACER_NAME(T), 
      &                      Input_Opt%TRACER_MW_G(T)
-              
+            
             ! If a family tracer (or just a tracer w/ emission)
             ! then also print info about species
             IF ( Input_Opt%TRACER_N_CONST(T) > 1 .or. 
@@ -2624,15 +2627,10 @@
 
       !=================================================================
       ! Set fields of Input Options object
+      ! Input_Opt%TS_EMIS is set externally in ESMF environment!
       !=================================================================
       Input_Opt%LEMIS          = LEMIS
-#if defined( ESMF_ ) && defined( EXTERNAL_FORCING )
-      ! In an ESMF environment, all time steps must become defined 
-      ! externally previous to the READ_INPUT_FILE call!
-      ! (ckeller, 11/24/14)
-      !-----------------------------------------------------------------
-      TS_EMIS                  = Input_Opt%TS_EMIS ! For printing below
-#else
+#if !defined( EXTERNAL_FORCING )
       Input_Opt%TS_EMIS        = TS_EMIS
 #endif
       Input_Opt%HcoConfigFile  = HcoConfigFile
@@ -2673,7 +2671,8 @@
         WRITE( 6, '(/,a)' ) 'EMISSIONS MENU'
         WRITE( 6, '(  a)' ) '--------------'
         WRITE( 6, 100 ) 'Turn on emissions?          : ', LEMIS
-        WRITE( 6, 110 ) 'Emissions timestep [min]    : ', TS_EMIS
+        WRITE( 6, 110 ) 'Emissions timestep [min]    : ', 
+     &                    Input_Opt%TS_EMIS
         WRITE( 6, 130 ) 'HEMCO Configuration file    : ',
      &                    TRIM( HcoConfigFile )
         WRITE( 6, 100 ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
@@ -3371,13 +3370,14 @@
          WRITE( 6, 100     ) 'Enable UCX?                 : ', LUCX
          WRITE( 6, 100     ) 'Online CH4 chemistry?       : ', LCH4CHEM
          WRITE( 6, 100     ) 'Online strat. H2O?          : ',LACTIVEH2O
-         WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
+         WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', 
+     &        Input_Opt%TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
          WRITE( 6, 130     ) ' => CSPEC restart file?     : ', 
      &        TRIM( SPEC_RST_FILE )
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
          WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', LO3FJX
-         WRITE( 6, 100     ) 'GAMMA HO2                   : ',
+         WRITE( 6, 140     ) 'GAMMA HO2                   : ',
      &      Input_Opt%GAMMA_HO2
       ENDIF
 
@@ -3386,6 +3386,7 @@
  110  FORMAT( A, I5  )
  120  FORMAT( A, 2I5 )
  130  FORMAT( A, A   )
+ 140  FORMAT( A, F4.2 )
 
       END SUBROUTINE READ_CHEMISTRY_MENU  
 !EOC
@@ -3516,12 +3517,6 @@
       MAX_DYN = 60
 #endif
 
-      ! If TS_DYN is greater than MAX_DYN, then stop w/ error
-      IF ( TS_DYN > MAX_DYN .and. LTRAN ) THEN
-         MSG = 'Transport timestep is too big!'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ENDIF
-
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -3580,6 +3575,12 @@
 
 #endif
 
+      ! If TS_DYN is greater than MAX_DYN, then stop w/ error
+      IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
+         MSG = 'Transport timestep is too big!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
       ! Return success
       RC = GIGC_SUCCESS
 
@@ -3593,7 +3594,8 @@
          WRITE( 6, 100     ) 'Let TPCORE Fill negatives?  : ', LFILL
          WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
      &                                                   JORD, KORD
-         WRITE( 6, 120     ) 'Transport timestep [min]    : ', TS_DYN
+         WRITE( 6, 120     ) 'Transport timestep [min]    : ', 
+     &      Input_Opt%TS_DYN
       ENDIF
 
       ! FORMAT statements
@@ -3734,13 +3736,14 @@
       ! externally previous to the READ_INPUT_FILE call!
       ! (ckeller, 11/24/14)
       !-----------------------------------------------------------------
-      
+
       ! Set TS_CONV from Input_Opt%TS_DYN
       TS_CONV           = Input_Opt%TS_CONV
 #else
       Input_Opt%TS_CONV = TS_CONV
 #endif
 
+#endif
       ! Return success
       RC = GIGC_SUCCESS
 
@@ -3753,7 +3756,8 @@
          WRITE( 6, 100     ) 'Turn on cloud convection?   : ', LCONV
          WRITE( 6, 100     ) 'Turn on PBL mixing?         : ', LTURB
          WRITE( 6, 100     ) 'Turn on non-local PBL?      : ', LNLPBL
-         WRITE( 6, 110     ) 'Convection timestep [min]   : ', TS_CONV
+         WRITE( 6, 110     ) 'Convection timestep [min]   : ', 
+     &      Input_Opt%TS_CONV
       ENDIF
 
       ! FORMAT statements
@@ -7896,7 +7900,7 @@
       INTEGER :: I,     J,           K 
       INTEGER :: L,     TS_SMALLEST, TS_DIAG
       INTEGER :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN, TS_UNIT
-      
+
       !=================================================================
       ! CHECK_TIME_STEPS begins here!
       !=================================================================
