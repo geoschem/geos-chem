@@ -3743,7 +3743,6 @@
       Input_Opt%TS_CONV = TS_CONV
 #endif
 
-#endif
       ! Return success
       RC = GIGC_SUCCESS
 
