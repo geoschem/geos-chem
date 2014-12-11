@@ -44,16 +44,17 @@ MODULE GIGC_State_Chm_Mod
      INTEGER,           POINTER :: Trac_Id    (:      )  ! Tracer ID #'s
      CHARACTER(LEN=14), POINTER :: Trac_Name  (:      )  ! Tracer names
      REAL*8,            POINTER :: Tracers    (:,:,:,:)  ! Tracer conc [kg]
-     REAL*8,            POINTER :: Trac_Tend  (:,:,:,:)  ! Tracer tendency [kg/m2/s]
 
      ! Chemical species
      INTEGER,           POINTER :: Spec_Id    (:      )  ! Species ID # 
      CHARACTER(LEN=14), POINTER :: Spec_Name  (:      )  ! Species names
      REAL*8,            POINTER :: Species    (:,:,:,:)  ! Species [molec/cm3]
 
+#if defined( ESMF_ )
      ! Chemical rates & rate parameters
-     REAL*8,            POINTER :: DepSav     (:,:,:  )  ! Drydep freq [1/s]
-     INTEGER,           POINTER :: JLOP(:,:,:), JLOP_PREV(:,:,:)
+     INTEGER,           POINTER :: JLOP       (:,:,:  )  ! 1-D SMVGEAR index
+     INTEGER,           POINTER :: JLOP_PREV  (:,:,:  )  ! JLOP, prev timestep
+#endif
 
      ! Stratospheric chemistry 
      INTEGER,           POINTER :: Schm_Id    (:      )  ! Strat Chem ID #'s
@@ -148,6 +149,7 @@ MODULE GIGC_State_Chm_Mod
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 May 2014 - C. Keller   - Removed Trac_Btend. DepSav array covers now
 !                              all species.
+!  11 Dec 2014 - R. Yantosca - Keep JLOP and JLOP_PREV for ESMF runs only
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,6 +384,8 @@ CONTAINS
 !                              and nSchmBry=0 (i.e. strat chem is turned off)
 !  26 Feb 2013 - M. Long     - Now pass Input_Opt via the argument list
 !  26 Feb 2013 - M. Long     - Now allocate the State_Chm%DEPSAV field
+!  11 Dec 2014 - R. Yantosca - Remove TRAC_TEND and DEPSAV fields
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -406,9 +410,6 @@ CONTAINS
     ALLOCATE( State_Chm%Tracers       ( IM, JM, LM, nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Trac_Tend     ( IM, JM, LM, nTracers+1 ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
     !=====================================================================
     ! Allocate chemical species fields
     !=====================================================================
@@ -422,21 +423,21 @@ CONTAINS
     ALLOCATE( State_Chm%Species       ( IM, JM, LM, nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
+#if defined( ESMF_ )
     !=====================================================================
     ! Allocate chemical rate fields
     !=====================================================================
 
-    ! DEPSAV is allocated in drydep_mod
-    ALLOCATE( State_Chm%DEPSAV        ( IM, JM,     nSpecies   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
+    ! Keep this here for now -- FLEXCHEM will remove this (bmy, 12/11/14)
     ALLOCATE( State_Chm%JLOP( ILONG, ILAT, IPVERT ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%JLOP = 0
-
+    
+    ! Keep this here for now -- FLEXCHEM will remove this (bmy, 12/11/14)
     ALLOCATE( State_Chm%JLOP_PREV( ILONG, ILAT, IPVERT ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Chm%JLOP_PREV = 0
+#endif
 
 ! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
 !    !=====================================================================
@@ -485,10 +486,6 @@ CONTAINS
     State_Chm%Trac_Id     = 0
     State_Chm%Trac_name   = ''
     State_Chm%Tracers     = 0d0
-    State_Chm%Trac_Tend   = 0d0
-
-    ! Dry deposition
-    State_Chm%DepSav      = 0d0
 
     ! Chemical species
     State_Chm%Spec_Id     = 0
@@ -551,6 +548,7 @@ CONTAINS
 !  15 Oct 2012 - R. Yantosca - Initial version
 !  26 Oct 2012 - R. Yantosca - Now deallocate Strat_P, Strat_k fields
 !  26 Feb 2013 - M. Long     - Now deallocate State_Chm%DEPSAV
+!  11 Dec 2014 - R. Yantosca - Remove TRAC_TEND and DEPSAV fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -563,10 +561,14 @@ CONTAINS
     IF ( ASSOCIATED(State_Chm%Trac_Name  ) ) DEALLOCATE(State_Chm%Trac_Name  )
     IF ( ASSOCIATED(State_Chm%Spec_Id    ) ) DEALLOCATE(State_Chm%Spec_Id    )
     IF ( ASSOCIATED(State_Chm%Spec_Name  ) ) DEALLOCATE(State_Chm%Spec_Name  )
-    IF ( ASSOCIATED(State_Chm%Trac_Tend  ) ) DEALLOCATE(State_Chm%Trac_Tend  )
     IF ( ASSOCIATED(State_Chm%Tracers    ) ) DEALLOCATE(State_Chm%Tracers    )
     IF ( ASSOCIATED(State_Chm%Species    ) ) DEALLOCATE(State_Chm%Species    )
-    IF ( ASSOCIATED(State_Chm%DepSav     ) ) DEALLOCATE(State_Chm%DepSav     )
+
+#if defined( ESMF_ )
+    ! Keep these here for now, FLEXCHEM will remove these (bmy, 12/11/14)
+    IF ( ASSOCIATED(State_Chm%JLOP       ) ) DEALLOCATE(State_Chm%JLOP       )
+    IF ( ASSOCIATED(State_Chm%JLOP_PREV  ) ) DEALLOCATE(State_Chm%JLOP_PREV  )
+#endif    
 
     ! NOTE: Comment out for now, leave for future expansion (bmy, 11/26/12)
     !IF ( ASSOCIATED(State_Chm%Schm_Id    ) ) DEALLOCATE(State_Chm%Schm_Id    )
