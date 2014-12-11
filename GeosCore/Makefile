@@ -634,7 +634,7 @@ hcn_ch3cn_mod.o             : hcn_ch3cn_mod.F                                \
 hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
                               hcoi_gc_diagn_include.H                        \
                               diag_mod.o              diag53_mod.o           \
-                              diag56_mod.o
+                              diag56_mod.o            tracerid_mod.o
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               global_oh_mod.o         tracerid_mod.o         \
