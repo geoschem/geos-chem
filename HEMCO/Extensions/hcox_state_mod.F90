@@ -154,7 +154,7 @@ MODULE HCOX_STATE_MOD
      !----------------------------------------------------------------------
      TYPE(ExtDat_2R),  POINTER :: DRY_TOTN    ! Dry deposited N   [molec/cm2/s] 
      TYPE(ExtDat_2R),  POINTER :: WET_TOTN    ! Wet deposited N   [kg N/s] 
-     REAL(dp),         POINTER :: DRYCOEFF(:) ! Baldocci drydep coeff.
+     REAL(hp),         POINTER :: DRYCOEFF(:) ! Baldocci drydep coeff.
      
      !----------------------------------------------------------------------
      ! Constants for POPs emissions module
@@ -177,6 +177,7 @@ MODULE HCOX_STATE_MOD
 !  28 Jul 2014 - C. Keller   - Added J-Values for NO2 and O3 to state obj. 
 !  20 Aug 2014 - M. Sulprizio- Modified for GEOS-Chem POPs emissions module
 !  01 Oct 2014 - R. Yantosca - Modified for TOMAS sea salt emissions module
+!  11 Dec 2014 - M. Yannetti - Updated DRYCOEFF to REAL(hp)
 !EOP
 !-----------------------------------------------------------------------------
 !BOC

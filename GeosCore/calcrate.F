@@ -58,6 +58,10 @@
       ! Geos-Chem Flexible Precision
       USE PRECISION_MOD
 
+      ! HEMCO Precision
+      USE HCO_Error_Mod,      ONLY : hp
+
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -172,6 +176,7 @@
 !                              if non-local PBL scheme is used since those are
 !                              already applied in vdiff_mod.F90
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 Dec 2014 - M. Yannetti - Updated HEMCO variable Dep from REAL*8 to REAL(hp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -291,7 +296,7 @@
 
       ! For HEMCO drydep values (ckeller, 10/13/14)
       INTEGER :: TRCID
-      REAL*8  :: Dep 
+      REAL(hp)  :: Dep 
       LOGICAL :: Fnd
 
       ! Pointers

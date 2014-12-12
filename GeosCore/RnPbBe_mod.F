@@ -118,6 +118,7 @@
       USE TRACERID_MOD,       ONLY : IDTBe7    
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+      USE HCO_Error_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -160,6 +161,7 @@
 !  22 Aug 2014 - R. Yantosca - Cosmetic changes, for clarity
 !  04 Sep 2014 - R. Yantosca - Add minor changes for efficiency
 !  04 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp) 
+!  12 Dec 2014 - M. Yannetti - Changed Hemco REAL*8 to REAL(hp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,7 +186,7 @@
       REAL(fp)            :: Decay
 
       ! To get HEMCO values
-      REAL*8              :: Emis
+      REAL(hp)              :: Emis
       LOGICAL             :: FOUND
 !
 ! !DEFINED PARAMETERS

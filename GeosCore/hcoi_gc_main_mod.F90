@@ -1753,11 +1753,12 @@ CONTAINS
 ! !OUTPUT ARGUMENTS:
 !
     LOGICAL,            INTENT(  OUT)  :: FOUND   ! Was this tracer ID found?
-    REAL(dp), OPTIONAL, INTENT(  OUT)  :: Emis    ! Emissions  [kg/m2/s]
-    REAL(dp), OPTIONAL, INTENT(  OUT)  :: Dep     ! Deposition [1/s] 
+    REAL(hp), OPTIONAL, INTENT(  OUT)  :: Emis    ! Emissions  [kg/m2/s]
+    REAL(hp), OPTIONAL, INTENT(  OUT)  :: Dep     ! Deposition [1/s] 
 !
 ! !REVISION HISTORY:
 !  20 Oct 2014 - C. Keller - Initial Version
+!  12 Dec 2014 - M. Yannetti - Changed real(dp) to real(hp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1769,8 +1770,8 @@ CONTAINS
 
     ! Init
     FOUND = .FALSE.
-    IF ( PRESENT(Emis) ) Emis = 0.0_dp
-    IF ( PRESENT(Dep ) ) Dep  = 0.0_dp
+    IF ( PRESENT(Emis) ) Emis = 0.0_hp
+    IF ( PRESENT(Dep ) ) Dep  = 0.0_hp
 
     ! Define tracer ID to be used. This is only different from the
     ! passed tracer ID if some species mapping occurs at this level.

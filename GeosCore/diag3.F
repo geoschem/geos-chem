@@ -240,6 +240,7 @@
 !                              now defined as kg/s in hcoi_gc_diagn_mod.F90 
 !  15 Oct 2014 - C. Keller   - Updated ND37 diagnostics to write out all specs
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 Dec 2014 - M. Yannetti - Converted HEMCO Precision updates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -301,13 +302,13 @@
       CHARACTER(LEN=255)        :: MSG
       TYPE(DiagnCont), POINTER  :: DiagnCnt => NULL() 
       TYPE(HCO_State), POINTER  :: HcoState => NULL()
-      REAL*8                    :: FACTOR
-      REAL*8, PARAMETER         :: GPERKG   = 1000d0
-      REAL*8, PARAMETER         :: MWC      = 12d0
-      REAL*8, PARAMETER         :: CM2PERM2 = 10000d0
-      REAL*8, PARAMETER         :: S_DMS    = 32d0 / 62d0
-      REAL*8, PARAMETER         :: S_SO2    = 32d0 / 64d0
-      REAL*8, PARAMETER         :: S_SO4    = 32d0 / 96d0
+      REAL(hp)                    :: FACTOR
+      REAL(hp), PARAMETER         :: GPERKG   = 1000e+0_hp
+      REAL(hp), PARAMETER         :: MWC      = 12e+0_hp
+      REAL(hp), PARAMETER         :: CM2PERM2 = 10000e+0_hp
+      REAL(hp), PARAMETER         :: S_DMS    = 32e+0_hp / 62e+0_hp
+      REAL(hp), PARAMETER         :: S_SO2    = 32e+0_hp / 64e+0_hp
+      REAL(hp), PARAMETER         :: S_SO4    = 32e+0_hp / 96e+0_hp
 
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
 !
@@ -404,7 +405,7 @@
          IF ( IDTRn > 0 ) THEN
             DiagnName    = 'AD01_Rn_SOURCE'
             N            = IDTRn
-            FACTOR       = 1.0e+0_fp
+            FACTOR       = 1.0e+0_hp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,     N, 1, -1, .TRUE., FACTOR, RC    )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -545,7 +546,7 @@
          ! Category & unit string
          UNIT     = 'kg'
          CATEGORY = 'DUSTSRCE'
-         FACTOR   = 1.0e+0_fp
+         FACTOR   = 1.0e+0_hp
 
          ! Loop over # of dust bins
          DO N = 1, Input_Opt%N_DUST_BINS
@@ -1022,7 +1023,7 @@
          UNIT     = 'atoms C/cm2/s'
 
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-         FACTOR   = 3e+0_fp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+         FACTOR   = 3e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
      &              CM2PERM2
 
          ! Loop over all four emission sources
@@ -1191,7 +1192,7 @@
          DiagnName = 'AD13_NH3_ANTHROPOGENIC'
          UNIT      = 'kg'
          CATEGORY  = 'NH3-ANTH'
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = 1.0e+0_hp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -1199,7 +1200,7 @@
          !%%%%%  Natural source NH3 %%%%%
          DiagnName = 'AD13_NH3_NATURAL'
          CATEGORY  = 'NH3-NATU'
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = 1.0e+0_hp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
@@ -1215,7 +1216,7 @@
          !%%%%% Biofuel NH3 %%%%%
          DiagnName = 'AD13_NH3_BIOFUEL'
          CATEGORY  = 'NH3-BIOF'
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = 1.0e+0_hp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTNH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )

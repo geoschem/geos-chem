@@ -1162,11 +1162,11 @@
 
          ! Calculate reaction rates
          ! 1:  NO2 + O -> NO + O2
-         RRATE(1)  = 5.1d-12*dexp(210.e+0_fp*TINV)
+         RRATE(1)  = 5.1e-12_fp*exp(210.e+0_fp*TINV)
          ! 2:  NO + O3 -> NO2 + O2
-         RRATE(2)  = 3.0d-12*dexp(-1500.e+0_fp*TINV)
+         RRATE(2)  = 3.0e-12_fp*exp(-1500.e+0_fp*TINV)
          ! 3:  NO2 + O3 -> NO3 + O2
-         RRATE(3)  = 1.2d-13*dexp(-2450.e+0_fp*TINV)
+         RRATE(3)  = 1.2e-13_fp*exp(-2450.e+0_fp*TINV)
          ! 4:  NO2 + hv -> NO + O1D
          RRATE(k_JNO2) = NOX_J(I,J,L,JNO2IDX)*DAYFRAC
          ! 5:  NO3 + hv -> NO2 + O
@@ -1174,15 +1174,15 @@
          ! 6:  NO + hv -> N + O
          RRATE(k_JNO ) = NOX_J(I,J,L,JNOIDX)*DAYFRAC
          ! 7:  N + NO2 -> N2O + O
-         RRATE(7)  = 5.8d-12*dexp(220.e+0_fp*TINV)
+         RRATE(7)  = 5.8e-12_fp*exp(220.e+0_fp*TINV)
          ! 8:  N + NO -> N2 + O
-         RRATE(8)  = 2.1d-11*dexp(100.e+0_fp*TINV)
+         RRATE(8)  = 2.1e-11_fp*exp(100.e+0_fp*TINV)
          ! 9:  N + O2 -> NO + O
-         RRATE(9)  = 1.5d-11*dexp(-3600.e+0_fp*TINV)
+         RRATE(9)  = 1.5e-11_fp*exp(-3600.e+0_fp*TINV)
          ! 10:  N2O + O1D -> N2 + O2
-         RRATE(10) = 4.63d-11*dexp(20.e+0_fp*TINV)
+         RRATE(10) = 4.63e-11_fp*exp(20.e+0_fp*TINV)
          ! 11:  N2O + O1D -> 2NO
-         RRATE(11) = 7.25d-11*dexp(20.e+0_fp*TINV)
+         RRATE(11) = 7.25e-11_fp*exp(20.e+0_fp*TINV)
          ! 12:  N2O + hv -> N2 + O1D
          RRATE(k_JN2O) = NOX_J(I,J,L,JN2OIDX)*DAYFRAC
 
@@ -4861,7 +4861,6 @@
       ! Debug variables
       INTEGER              :: I
       CHARACTER(LEN=255)   :: DBGMSG
-
       !=================================================================
       ! CALC_SLA_GAMMA begins here!
       !=================================================================
@@ -4979,7 +4978,7 @@
 
       ! Reaction 8. HOCl + HCl
       IF (HClOK) THEN
-         c_HOCl    =  MOLEC_SPEED(T,52.46D0)
+         c_HOCl    =  MOLEC_SPEED(T,52.46e+0_fp)
          SHOCl     =  0.0776e+0_fp+59.18e+0_fp/T
          HHOCl     =  1.91e-6_fp*EXP(5862.4e+0_fp/T)*EXP(-SHOCl*M_H2SO4)
          DHOCl     =  6.4e-8_fp*T/H

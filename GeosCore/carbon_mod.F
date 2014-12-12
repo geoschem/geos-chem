@@ -4123,6 +4123,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  12 Dec 2014 - M. Yannetti - Changed DEXP to EXP for compatability
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4226,7 +4227,7 @@
             RK          = KO3(JHC)*TTO3 + KOH(JHC)*OHMC
      &                  + KNO3(JHC)*TTNO3
             CHANGE(JHC) = NMVOC(JHC) * ( 1.e+0_fp - 
-     &                    DEXP( -RK * DTCHEM ) )
+     &                    EXP( -RK * DTCHEM ) ) !changed to EXP (myan, 12/14)
 
             ! In case that the biogenic hydrocarbon is the limiting reactant
             IF ( CHANGE(JHC) >= NMVOC(JHC) ) CHANGE(JHC) = NMVOC(JHC)
@@ -4404,7 +4405,7 @@
             DO NOX = 1, NNOX(JSV)
                ! compute loss of POG due to conversion to OPOG
                DOH = GM0(IPR,IDSV(PARENTPOA)) *
-     &                (1.e+0_fp - DEXP( -RK * DTCHEM) )
+     &                (1.e+0_fp - EXP( -RK * DTCHEM) )
                DOH = MAX( DOH, 1.e-32_fp )
 
                ! add OPOG mass and update GM0 (ALPHA=1)
