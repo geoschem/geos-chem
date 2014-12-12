@@ -1361,6 +1361,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL              :: PoleMid
     INTEGER              :: I, AS
     CHARACTER(LEN=255)   :: ncVar, ThisUnit
 
@@ -1419,18 +1420,35 @@ CONTAINS
        IF ( Edge(1) < -90.0 .AND. AXIS == 2 ) THEN
           Edge(1) = -90.0
        ENDIF
+
+       ! Calculate second edge. We need to catch the case where the first 
+       ! latitude mid-point is -90 (this is the case for GEOS-5 generic 
+       ! grids...). In that case, the second edge is put in the middle of
+       ! the first two mid points (e.g. between -90 and -89). In all other
+       ! case, we calculate it from the previously calculated left edge.
+       IF ( Mid(1) == Edge(1) ) THEN
+          Edge(2) = Mid(1) + ( Mid(2) - Mid(1) ) / 2.0
+          PoleMid = .TRUE.
+       ELSE
+          Edge(2) = Mid(1) + Mid(1) - Edge(1)
+          PoleMid = .FALSE.
+       ENDIF
  
        ! Sequentially calculate the right edge from the previously 
        ! calculated left edge.
-       DO I = 1, nMid
+       DO I = 2, nMid
           Edge(I+1) = Mid(I) + Mid(I) - Edge(I)
        ENDDO
 
        ! Error check: max. lat edge must not exceed +90!
-       IF ( Edge(nMId+1) > 90.01 .AND. AXIS == 2 ) THEN
-          PRINT *, 'Uppermost latitude edge above 90 deg north!'
-          PRINT *, Edge
-          RC = -999; RETURN
+       IF ( Edge(nMid+1) > 90.01 .AND. AXIS == 2 ) THEN
+          IF ( PoleMid ) THEN
+             Edge(nMid+1) = 90.0
+          ELSE
+             PRINT *, 'Uppermost latitude edge above 90 deg north!'
+             PRINT *, Edge
+             RC = -999; RETURN
+          ENDIF
        ENDIF
 
     ENDIF
@@ -1485,6 +1503,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL              :: PoleMid
     INTEGER              :: I, AS
     CHARACTER(LEN=255)   :: ncVar, ThisUnit
 
@@ -1543,18 +1562,35 @@ CONTAINS
        IF ( Edge(1) < -90.0d0 .AND. AXIS == 2 ) THEN
           Edge(1) = -90.0d0
        ENDIF
+
+       ! Calculate second edge. We need to catch the case where the first 
+       ! latitude mid-point is -90 (this is the case for GEOS-5 generic 
+       ! grids...). In that case, the second edge is put in the middle of
+       ! the first two mid points (e.g. between -90 and -89). In all other
+       ! case, we calculate it from the previously calculated left edge.
+       IF ( Mid(1) == Edge(1) ) THEN
+          Edge(2) = Mid(1) + ( Mid(2) - Mid(1) ) / 2.0d0
+          PoleMid = .TRUE.
+       ELSE
+          Edge(2) = Mid(1) + Mid(1) - Edge(1)
+          PoleMid = .FALSE.
+       ENDIF
  
        ! Sequentially calculate the right edge from the previously 
        ! calculated left edge.
-       DO I = 1, nMid
+       DO I = 2, nMid
           Edge(I+1) = Mid(I) + Mid(I) - Edge(I)
        ENDDO
 
        ! Error check: max. lat edge must not exceed +90!
        IF ( Edge(nMId+1) > 90.01d0 .AND. AXIS == 2 ) THEN
-          PRINT *, 'Uppermost latitude edge above 90 deg north!'
-          PRINT *, Edge
-          RC = -999; RETURN
+          IF ( PoleMid ) THEN
+             Edge(nMid+1) = 90.0d0
+          ELSE
+             PRINT *, 'Uppermost latitude edge above 90 deg north!'
+             PRINT *, Edge
+             RC = -999; RETURN
+          ENDIF
        ENDIF
 
     ENDIF
