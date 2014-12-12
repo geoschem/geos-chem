@@ -45,6 +45,7 @@ MODULE NCDF_MOD
   PUBLIC  :: NC_GET_GRID_EDGES
   PUBLIC  :: NC_GET_SIGMA_LEVELS
   PUBLIC  :: NC_WRITE
+  PUBLIC  :: NC_ISMODELLEVEL
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -60,6 +61,7 @@ MODULE NCDF_MOD
   PRIVATE :: NC_READ_VAR_DP
   PRIVATE :: NC_GET_GRID_EDGES_SP
   PRIVATE :: NC_GET_GRID_EDGES_DP
+  PRIVATE :: NC_GET_GRID_EDGES_C
   PRIVATE :: NC_GET_SIGMA_LEVELS_SP
   PRIVATE :: NC_GET_SIGMA_LEVELS_DP
   PRIVATE :: NC_GET_SIGMA_LEVELS_C
@@ -71,6 +73,7 @@ MODULE NCDF_MOD
 !  13 Jun 2014 - R. Yantosca - Now use F90 free-format indentation
 !  13 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  10 Jul 2014 - R. Yantosca - Add GET_TAU0 as a PRIVATE local routine
+!  12 Dec 2014 - C. Keller   - Added NC_ISMODELLEVEL 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -439,10 +442,17 @@ CONTAINS
        CALL NcRd( VarVecDp, fID, TRIM(v_name), st1d, ct1d )
     ENDIF
 
-    ! Read units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fID,          TRIM(v_name), &
-                               TRIM(a_name), varUnit     )
+    ! Read units attribute. If unit attribute does not exist, return
+    ! empty string (dimensionless vertical coordinates do not require
+    ! a units attribute).
+    a_name  = "units"
+    hasVar  = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) )
+    IF ( .NOT. hasVar ) THEN
+       varUnit = ''
+    ELSE 
+       CALL NcGet_Var_Attributes( fID,          TRIM(v_name), &
+                                  TRIM(a_name), varUnit     )
+    ENDIF
 
   END SUBROUTINE NC_READ_VAR_CORE
 !EOC
@@ -1337,8 +1347,6 @@ CONTAINS
 ! !USES:
 !
     IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1358,103 +1366,13 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    LOGICAL              :: PoleMid
-    INTEGER              :: I, AS
-    CHARACTER(LEN=255)   :: ncVar, ThisUnit
 
     !======================================================================
     ! NC_GET_GRID_EDGES_SP begins here
     !======================================================================
 
-    ! Try to read edges from ncdf file
-    IF ( AXIS == 1 ) THEN
-       ncVar = 'lon_edge'
-    ELSEIF ( AXIS == 2 ) THEN
-       ncVar = 'lat_edge'
-    ELSE
-       PRINT *, 'AXIS must be 1 or 2: in NC_GET_LON_EDGES (ncdf_mod.F90)'
-       RC = -999; RETURN
-    ENDIF
-
-    CALL NC_READ_VAR( fID, TRIM(ncVar), nEdge, ThisUnit, Edge, RC )
-    IF ( RC /= 0 ) RETURN
-
-    ! Also try 'XXX_edges'
-    IF ( nEdge == 0 ) THEN
-       IF ( AXIS == 1 ) THEN
-          ncVar = 'lon_edges'
-       ELSEIF ( AXIS == 2 ) THEN
-          ncVar = 'lat_edges'
-       ENDIF
-       CALL NC_READ_VAR( fID, 'lon_edges', nEdge, ThisUnit, Edge, RC )
-       IF ( RC /= 0 ) RETURN
-    ENDIF
-
-    ! Sanity check if edges are read from files: dimension must be nlon + 1!
-    IF ( nEdge > 0 ) THEN
-       IF ( nEdge /= (nMid + 1) ) THEN
-          PRINT *, 'Edge has incorrect length!'
-          RC = -999; RETURN
-       ENDIF
-
-    ! If not read from file, calculate from provided lon midpoints.
-    ELSE
-
-       nEdge = nMid + 1
-       IF ( ASSOCIATED ( Edge ) ) DEALLOCATE( Edge )
-       ALLOCATE ( Edge(nEdge), STAT=AS )
-
-       IF ( AS /= 0 ) THEN 
-          PRINT *, 'Edge alloc. error in NC_GET_LON_EDGES (ncdf_mod.F90)'
-          RC = -999; RETURN
-       ENDIF
-       Edge = 0.0
-
-       ! Get leftmost edge by extrapolating from first two midpoints.
-       Edge(1) = Mid(1) - ( (Mid(2) - Mid(1) ) / 2.0 )
-      
-       ! Error trap: for latitude axis, first edge must not be below -90!
-       IF ( Edge(1) < -90.0 .AND. AXIS == 2 ) THEN
-          Edge(1) = -90.0
-       ENDIF
-
-       ! Calculate second edge. We need to catch the case where the first 
-       ! latitude mid-point is -90 (this is the case for GEOS-5 generic 
-       ! grids...). In that case, the second edge is put in the middle of
-       ! the first two mid points (e.g. between -90 and -89). In all other
-       ! case, we calculate it from the previously calculated left edge.
-       IF ( Mid(1) == Edge(1) ) THEN
-          Edge(2) = Mid(1) + ( Mid(2) - Mid(1) ) / 2.0
-          PoleMid = .TRUE.
-       ELSE
-          Edge(2) = Mid(1) + Mid(1) - Edge(1)
-          PoleMid = .FALSE.
-       ENDIF
- 
-       ! Sequentially calculate the right edge from the previously 
-       ! calculated left edge.
-       DO I = 2, nMid
-          Edge(I+1) = Mid(I) + Mid(I) - Edge(I)
-       ENDDO
-
-       ! Error check: max. lat edge must not exceed +90!
-       IF ( Edge(nMid+1) > 90.01 .AND. AXIS == 2 ) THEN
-          IF ( PoleMid ) THEN
-             Edge(nMid+1) = 90.0
-          ELSE
-             PRINT *, 'Uppermost latitude edge above 90 deg north!'
-             PRINT *, Edge
-             RC = -999; RETURN
-          ENDIF
-       ENDIF
-
-    ENDIF
-
-    ! Return w/ success
-    RC = 0 
+    CALL NC_GET_GRID_EDGES_C( fID, AXIS, NMID, NEDGE, RC, &
+                              MID4=MID,  EDGE4=EDGE )
 
   END SUBROUTINE NC_GET_GRID_EDGES_SP 
 !EOC
@@ -1479,8 +1397,6 @@ CONTAINS
 ! !USES:
 !
     IMPLICIT NONE
-
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -1500,6 +1416,61 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+    !======================================================================
+    ! NC_GET_GRID_EDGES_DP begins here
+    !======================================================================
+
+    CALL NC_GET_GRID_EDGES_C( fID, AXIS, NMID, NEDGE, RC, &
+                              MID8=MID,  EDGE8=EDGE )
+
+  END SUBROUTINE NC_GET_GRID_EDGES_DP 
+!EOC
+!------------------------------------------------------------------------------
+!       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
+!                      and NASA/GSFC, SIVO, Code 610.3                        !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nc_get_grid_edges_c 
+!
+! !DESCRIPTION: Routine to get the longitude or latitude edges. If the edge 
+! cannot be read from the netCDF file, they are calculated from the provided
+! grid midpoints. Use the axis input argument to discern between longitude
+! (axis 1) and latitude (axis 2).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_GET_GRID_EDGES_C( fID, AXIS, NMID, NEDGE, RC, &
+                                  MID4, MID8, EDGE4, EDGE8 )
+!
+! !USES:
+!
+    IMPLICIT NONE
+
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN   ) :: fID             ! Ncdf File ID 
+    INTEGER,          INTENT(IN   ) :: AXIS            ! 1=lon, 2=lat 
+    REAL*4, OPTIONAL, INTENT(IN   ) :: MID4(NMID)       ! midpoints
+    REAL*8, OPTIONAL, INTENT(IN   ) :: MID8(NMID)       ! midpoints
+    INTEGER,          INTENT(IN   ) :: NMID            ! # of midpoints
+!
+! !INPUT/OUTPUT PARAMETERS:
+!   
+    REAL*4, OPTIONAL, POINTER       :: EDGE4(:)         ! edges 
+    REAL*8, OPTIONAL, POINTER       :: EDGE8(:)         ! edges 
+    INTEGER,          INTENT(INOUT) :: NEDGE           ! # of edges
+    INTEGER,          INTENT(INOUT) :: RC              ! Return code
+!
+! !REVISION HISTORY:
+!  16 Jul 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -1511,17 +1482,37 @@ CONTAINS
     ! NC_GET_GRID_EDGES_DP begins here
     !======================================================================
 
+    ! Error trap: edge and mid must be same kind
+    IF ( PRESENT(EDGE4) ) THEN
+       IF ( .NOT. PRESENT(MID4) ) THEN
+          PRINT *, 'If you provide EDGE4, you must also provide MID4'
+          RC = -999
+          RETURN
+       ENDIF
+    ELSEIF ( PRESENT(EDGE8) ) THEN
+       IF ( .NOT. PRESENT(MID8) ) THEN
+          PRINT *, 'If you provide EDGE8, you must also provide MID8'
+          RC = -999
+          RETURN
+       ENDIF
+    ELSE
+       PRINT *, 'EDGE4 or EDGE8 must be given'
+       RC = -999
+       RETURN
+    ENDIF
+
     ! Try to read edges from ncdf file
     IF ( AXIS == 1 ) THEN
        ncVar = 'lon_edge'
     ELSEIF ( AXIS == 2 ) THEN
        ncVar = 'lat_edge'
-    ELSE
-       PRINT *, 'AXIS must be 1 or 2: in NC_GET_LON_EDGES (ncdf_mod.F90)'
-       RC = -999; RETURN
     ENDIF
 
-    CALL NC_READ_VAR( fID, TRIM(ncVar), nEdge, ThisUnit, Edge, RC )
+    IF ( PRESENT(EDGE4) ) THEN
+       CALL NC_READ_VAR( fID, TRIM(ncVar), nEdge, ThisUnit, Edge4, RC )
+    ELSE
+       CALL NC_READ_VAR( fID, TRIM(ncVar), nEdge, ThisUnit, Edge8, RC )
+    ENDIF
     IF ( RC /= 0 ) RETURN
 
     ! Also try 'XXX_edges'
@@ -1531,7 +1522,11 @@ CONTAINS
        ELSEIF ( AXIS == 2 ) THEN
           ncVar = 'lat_edges'
        ENDIF
-       CALL NC_READ_VAR( fID, 'lon_edges', nEdge, ThisUnit, Edge, RC )
+       IF ( PRESENT(EDGE4) ) THEN
+          CALL NC_READ_VAR( fID, 'lon_edges', nEdge, ThisUnit, Edge4, RC )
+       ELSE
+          CALL NC_READ_VAR( fID, 'lon_edges', nEdge, ThisUnit, Edge8, RC )
+       ENDIF
        IF ( RC /= 0 ) RETURN
     ENDIF
 
@@ -1546,59 +1541,98 @@ CONTAINS
     ELSE
 
        nEdge = nMid + 1
-       IF ( ASSOCIATED ( Edge ) ) DEALLOCATE( Edge )
-       ALLOCATE ( Edge(nEdge), STAT=AS )
-
-       IF ( AS /= 0 ) THEN 
-          PRINT *, 'Edge alloc. error in NC_GET_LON_EDGES (ncdf_mod.F90)'
-          RC = -999; RETURN
+       IF ( PRESENT(EDGE4) ) THEN
+          IF ( ASSOCIATED ( Edge4 ) ) DEALLOCATE( Edge4 )
+          ALLOCATE ( Edge4(nEdge), STAT=AS )
+          IF ( AS /= 0 ) THEN 
+             PRINT *, 'Edge alloc. error in NC_GET_LON_EDGES (ncdf_mod.F90)'
+             RC = -999; RETURN
+          ENDIF
+          Edge4 = 0.0
+       ELSE
+          IF ( ASSOCIATED ( Edge8 ) ) DEALLOCATE( Edge8 )
+          ALLOCATE ( Edge8(nEdge), STAT=AS )
+          IF ( AS /= 0 ) THEN 
+             PRINT *, 'Edge alloc. error in NC_GET_LON_EDGES (ncdf_mod.F90)'
+             RC = -999; RETURN
+          ENDIF
+          Edge8 = 0.0d0
        ENDIF
-       Edge = 0.0
 
        ! Get leftmost edge by extrapolating from first two midpoints.
-       Edge(1) = Mid(1) - ( (Mid(2) - Mid(1) ) / 2.0d0 )
-      
        ! Error trap: for latitude axis, first edge must not be below -90!
-       IF ( Edge(1) < -90.0d0 .AND. AXIS == 2 ) THEN
-          Edge(1) = -90.0d0
-       ENDIF
+       IF ( PRESENT(EDGE4) ) THEN
+          Edge4(1) = Mid4(1) - ( (Mid4(2) - Mid4(1) ) / 2.0 )
+          IF ( Edge4(1) < -90.0 .AND. AXIS == 2 ) Edge4(1) = -90.0
+       ELSE
+          Edge8(1) = Mid8(1) - ( (Mid8(2) - Mid8(1) ) / 2.0d0 )
+          IF ( Edge8(1) < -90.0d0 .AND. AXIS == 2 ) Edge8(1) = -90.0d0
+       ENDIF      
 
        ! Calculate second edge. We need to catch the case where the first 
        ! latitude mid-point is -90 (this is the case for GEOS-5 generic 
        ! grids...). In that case, the second edge is put in the middle of
        ! the first two mid points (e.g. between -90 and -89). In all other
        ! case, we calculate it from the previously calculated left edge.
-       IF ( Mid(1) == Edge(1) ) THEN
-          Edge(2) = Mid(1) + ( Mid(2) - Mid(1) ) / 2.0d0
-          PoleMid = .TRUE.
-       ELSE
-          Edge(2) = Mid(1) + Mid(1) - Edge(1)
-          PoleMid = .FALSE.
-       ENDIF
- 
-       ! Sequentially calculate the right edge from the previously 
-       ! calculated left edge.
-       DO I = 2, nMid
-          Edge(I+1) = Mid(I) + Mid(I) - Edge(I)
-       ENDDO
-
-       ! Error check: max. lat edge must not exceed +90!
-       IF ( Edge(nMId+1) > 90.01d0 .AND. AXIS == 2 ) THEN
-          IF ( PoleMid ) THEN
-             Edge(nMid+1) = 90.0d0
+       IF ( PRESENT(EDGE4) ) THEN
+          IF ( Mid4(1) == Edge4(1) ) THEN
+             Edge4(2) = Mid4(1) + ( Mid4(2) - Mid4(1) ) / 2.0
+             PoleMid  = .TRUE.
           ELSE
-             PRINT *, 'Uppermost latitude edge above 90 deg north!'
-             PRINT *, Edge
-             RC = -999; RETURN
+             Edge4(2) = Mid4(1) + Mid4(1) - Edge4(1)
+             PoleMid  = .FALSE.
+          ENDIF
+   
+          ! Sequentially calculate the right edge from the previously 
+          ! calculated left edge.
+          DO I = 2, nMid
+             Edge4(I+1) = Mid4(I) + Mid4(I) - Edge4(I)
+          ENDDO
+   
+          ! Error check: max. lat edge must not exceed +90!
+          IF ( Edge4(nMId+1) > 90.01 .AND. AXIS == 2 ) THEN
+             IF ( PoleMid ) THEN
+                Edge4(nMid+1) = 90.0
+             ELSE
+                PRINT *, 'Uppermost latitude edge above 90 deg north!'
+                PRINT *, Edge4
+                RC = -999; RETURN
+             ENDIF
+          ENDIF
+
+       ! Real8
+       ELSE
+          IF ( Mid8(1) == Edge8(1) ) THEN
+             Edge8(2) = Mid8(1) + ( Mid8(2) - Mid8(1) ) / 2.0d0
+             PoleMid  = .TRUE.
+          ELSE
+             Edge8(2) = Mid8(1) + Mid8(1) - Edge8(1)
+             PoleMid  = .FALSE.
+          ENDIF
+   
+          ! Sequentially calculate the right edge from the previously 
+          ! calculated left edge.
+          DO I = 2, nMid
+             Edge8(I+1) = Mid8(I) + Mid8(I) - Edge8(I)
+          ENDDO
+   
+          ! Error check: max. lat edge must not exceed +90!
+          IF ( Edge8(nMId+1) > 90.01d0 .AND. AXIS == 2 ) THEN
+             IF ( PoleMid ) THEN
+                Edge8(nMid+1) = 90.0d0
+             ELSE
+                PRINT *, 'Uppermost latitude edge above 90 deg north!'
+                PRINT *, Edge8
+                RC = -999; RETURN
+             ENDIF
           ENDIF
        ENDIF
-
     ENDIF
 
     ! Return w/ success
     RC = 0 
 
-  END SUBROUTINE NC_GET_GRID_EDGES_DP 
+  END SUBROUTINE NC_GET_GRID_EDGES_C
 !EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
@@ -3432,5 +3466,68 @@ CONTAINS
                 ( TMP_MIN   / 60d0 ) + ( TMP_SEC / 3600d0 )
 
   END FUNCTION GET_TAU0
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nc_ismodellevels 
+!
+! !DESCRIPTION: Function NC\_ISMODELLEVELS returns true if (and only if) the 
+!  long name of the level variable name of the given file ID contains the 
+!  character "GEOS-Chem level". 
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION NC_ISMODELLEVEL( fID, lev_name ) RESULT ( IsModelLevel ) 
+!
+! !USES:
+!
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,          INTENT(IN) :: fID        ! file ID 
+    CHARACTER(LEN=*), INTENT(IN) :: lev_name   ! level variable name
+!
+! !RETURN VALUE:
+!
+    LOGICAL                      :: IsModelLevel 
+!
+! !REVISION HISTORY:
+!  12 Dec 2014 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL                :: HasLngN
+    CHARACTER(LEN=255)     :: a_name, LngName
+
+    !=======================================================================
+    ! NC_ISMODELLEVEL begins here!
+    !=======================================================================
+
+    ! Init
+    IsModelLevel = .FALSE.
+
+    ! Check if there is a long_name attribute 
+    a_name = "long_name"
+    HasLngN = Ncdoes_Attr_Exist ( fId, TRIM(lev_name), TRIM(a_name) )
+
+    ! Only if attribute exists...
+    IF ( HasLngN ) THEN
+       ! Read attribute
+       CALL NcGet_Var_Attributes( fID, TRIM(lev_name), TRIM(a_name), LngName )
+
+       ! See if this is a GEOS-Chem model level
+       IF ( INDEX(TRIM(LngName),"GEOS-Chem level") > 0 ) THEN
+          IsModelLevel = .TRUE.
+       ENDIF
+    ENDIF
+
+  END FUNCTION NC_ISMODELLEVEL 
 !EOC
 END MODULE NCDF_MOD

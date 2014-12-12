@@ -148,10 +148,18 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
-       ! Pointer to data. HEMCO expected data to have surface level at
-       ! index 1 ('up'), so revert ESMF levels (which are 'down').
-       !Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
-       Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
+       ! Pointer to data. HEMCO expects data to have surface level at
+       ! index 1 ('up').
+       ! Assume here that the input data has upwards direction if it 
+       ! does not span the entire atmosphere, and downwards direction
+       ! otherwards. 
+       IF ( LL == HcoState%NZ ) THEN
+          !Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
+          Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
+       ELSE
+          !Lct%Dct%Dta%V3(1)%Val => Ptr3D
+          Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,1:LL)
+       ENDIF
 
     !-----------------------------------------------------------------
     ! Read 2D data from ESMF 
@@ -213,12 +221,14 @@ CONTAINS
 ! routines.
 !\\
 !\\
-! For 3D data, vertical regridding is perfored if (and only if) the number of
-! vertical levels of the input file does not correspond to the number of
-! levels on the simulation grid. Vertical regridding is performed on the sigma
-! interface levels. In order to calculate these levels correctly, the netCDF
-! vertical coordinate description must adhere to the CF - conventions. See
-! routine NC\_Get\_Sigma\_Levels in Ncdf\_Mod for more details.
+! For 3D data, vertical regridding is not performed if (a) the number of 
+! vertical levels of the input file corresponds to the number of levels
+! on the simulation grid, (b) the vertical level variable name (long_name)
+! contains the word "GEOS-Chem level".\\ 
+! Vertical regridding is performed on the sigma interface levels. In order 
+! to calculate these levels correctly, the netCDF vertical coordinate 
+! description must adhere to the CF - conventions. See routine 
+! NC\_Get\_Sigma\_Levels in Ncdf\_Mod for more details.
 !\\
 !\\
 ! !INTERFACE:
@@ -233,6 +243,7 @@ CONTAINS
     USE Ncdf_Mod,           ONLY : NC_Read_Arr
     USE Ncdf_Mod,           ONLY : NC_Get_Grid_Edges
     USE Ncdf_Mod,           ONLY : NC_Get_Sigma_Levels
+    USE Ncdf_Mod,           ONLY : NC_ISMODELLEVEL
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_Change
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
     USE HCO_Unit_Mod,       ONLY : HCO_IsUnitless
@@ -259,6 +270,8 @@ CONTAINS
 !  27 Aug 2014 - R. Yantosca - Err msg now displays hcoio_dataread_mod.F90
 !  01 Oct 2014 - C. Keller   - Added file name parser
 !  03 Oct 2014 - C. Keller   - Added vertical regridding capability
+!  12 Dec 2014 - C. Keller   - Don't do vertical regridding if data is already
+!                              on GEOS-Chem levels. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -292,6 +305,7 @@ CONTAINS
     REAL(sp)                      :: LonEdgeO(HcoState%NX+1) 
     REAL(sp)                      :: LatEdgeO(HcoState%NY+1)
     LOGICAL                       :: verb
+    LOGICAL                       :: IsModelLevel
     REAL(dp)                      :: PI_180
     REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
     INTEGER                       :: UnitTolerance
@@ -443,18 +457,31 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! Are these model levels? This will only return true if the long
+       ! name of the level variable contains "GEOS-Chem level".
+       IsModelLevel = NC_ISMODELLEVEL( ncLun, LevName )
+
        ! Set level indeces to be read
-       ! NOTE: for now, always read all levels. Edit here to read
-       ! only particular levels.
+       ! NOTE: for now, always read all existing levels. Edit here to
+       ! read only particular levels.
        lev1 = 1
        lev2 = nlev
+
+       ! If # of levels are exactly # of simulation levels, assume that 
+       ! they are on model levels. 
+       ! This should probably be removed eventually, as it's better to 
+       ! to explicitly state model levels via the level long name 
+       ! "GEOS-Chem level" (see above)!
+       ! (ckeller, 12/12/14).
+       IF ( nlev == HcoState%NZ ) IsModelLevel = .TRUE.
 
     ! For 2D data, set lev1 and lev2 to zero. This will ignore
     ! the level dimension in the netCDF reading call that follows.
     ELSE 
-       nlev = 0 
-       lev1 = 0
-       lev2 = 0
+       nlev        = 0 
+       lev1        = 0
+       lev2        = 0
+       IsModelLevel = .FALSE.
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -666,17 +693,22 @@ CONTAINS
     ! MESSy only for index-based values (e.g. land types) or if we need 
     ! to regrid vertical levels. For all other fields, use the much
     ! faster map_a2a.
-    ! Assume that no vertical regridding is required if the number of
-    ! levels of the input file matches the number of levels on the 
-    ! simulation grid. This also assumes that the input data is point-
-    ! ing 'upwards', i.e. the first level is the surface level! 
+    ! Perform no vertical regridding if the vertical levels are model
+    ! levels. Model levels are assumed to start at the surface, i.e.
+    ! the first input level must correspond to the surface level. The 
+    ! total number of vertical levels must not match the number of 
+    ! vertical levels on the simulation grid. Data is not extrapolated
+    ! beyond the existing levels.
+    ! Vertical regridding based on NCREGRID will always map the input 
+    ! data onto the entire simulation grid (no extrapolation beyond
+    ! the vertical input coordinates).
     !-----------------------------------------------------------------
 
     UseMESSy = .FALSE.
     IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) ) THEN
        UseMESSy = .TRUE.
     ENDIF
-    IF ( nlev > 1 .AND. nlev /= HcoState%NZ ) THEN 
+    IF ( nlev > 1 .AND. .NOT. IsModelLevel ) THEN 
        UseMESSy = .TRUE.
     ENDIF
 
@@ -785,6 +817,11 @@ CONTAINS
        nlev  = size(ncArr,3)
        ntime = size(ncArr,4)
   
+       ! testing only
+       if( nlev>1 ) then
+          write(*,*) 'use map_a2a on ', nlev, 'levels: ', TRIM(srcFile)
+       endif
+
        ! Allocate output array if not yet defined
        IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
           CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, ntime, RC ) 
