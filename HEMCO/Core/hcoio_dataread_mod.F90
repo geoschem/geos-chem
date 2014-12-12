@@ -150,16 +150,8 @@ CONTAINS
 
        ! Pointer to data. HEMCO expects data to have surface level at
        ! index 1 ('up').
-       ! Assume here that the input data has upwards direction if it 
-       ! does not span the entire atmosphere, and downwards direction
-       ! otherwards. 
-       IF ( LL == HcoState%NZ ) THEN
-          !Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
-          Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
-       ELSE
-          !Lct%Dct%Dta%V3(1)%Val => Ptr3D
-          Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,1:LL)
-       ENDIF
+       !Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
+       Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
 
     !-----------------------------------------------------------------
     ! Read 2D data from ESMF 
