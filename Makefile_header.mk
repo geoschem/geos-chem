@@ -178,6 +178,9 @@ ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se"
 # Error message for bad GIGC config
 ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
 
+# Error message for bad GIGC config
+ERR_GIGC       :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
+
 ###############################################################################
 ###                                                                         ###
 ###  Set C-preprocessor switches representing user options.  These are not  ###
@@ -615,15 +618,15 @@ LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
 # If we are building w/ the HPC target, then include GIGC.mk as well
 # Determine if we are building with the hpc target
 ifeq ($(HPC),yes)
-  ifneq ("$(wildcard $(CURDIR)/../GIGC/GIGC.mk)","")
-    include $(CURDIR)/../GIGC/GIGC.mk
-  else
-  ifneq ("$(wildcard $(CURDIR)/../../GIGC/GIGC.mk)","")
-    include $(CURDIR)/../../GIGC/GIGC.mk
-  else
-    $(error $(ERR_GIGC))
-  endif
-  endif
+ifneq ("$(wildcard $(CURDIR)/../GIGC/GIGC.mk)","")
+include $(CURDIR)/../GIGC/GIGC.mk
+else
+ifneq ("$(wildcard $(CURDIR)/../../GIGC/GIGC.mk)","")
+include $(CURDIR)/../../GIGC/GIGC.mk
+else
+$(error $(ERR_GIGC))
+endif
+endif
 endif
 
 ###############################################################################

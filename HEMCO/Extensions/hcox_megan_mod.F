@@ -3564,7 +3564,7 @@
       IDTPRPE = -1
       IDTC2H4 = -1
       DO I = 1, nSpc
-         SELECT CASE ( SpcNames(I) )
+         SELECT CASE ( TRIM(SpcNames(I)) )
             CASE( 'ISOP' )
                IDTISOP = HcoIDs(I)
                WRITE(MSG,*) '   Isoprene   = ',TRIM(SpcNames(I)),IDTISOP
@@ -3613,7 +3613,7 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
     
          DO I = 1, nSpc
-            SELECT CASE ( SpcNames(I) )
+            SELECT CASE ( TRIM(SpcNames(I)) )
                CASE( 'CO' )
                   IDTCO = HcoIDs(I)
                   WRITE(MSG,*) '   CO         = ',
@@ -3685,7 +3685,7 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
 
          DO I = 1, nSpc
-            SELECT CASE ( SpcNames(I) )
+            SELECT CASE ( TRIM(SpcNames(I)) )
                CASE( 'MTPA' )
                   IDTMTPA = HcoIDs(I)
                   WRITE(MSG,*) '     a-,b-pinene    = ',

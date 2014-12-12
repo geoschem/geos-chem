@@ -1,0 +1,2 @@
+rm GIGC/FVdycoreCubed_GridComp/fvdycore.install
+rm GIGC/Shared/mapl.install

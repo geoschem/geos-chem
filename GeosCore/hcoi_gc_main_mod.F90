@@ -1891,6 +1891,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+#if !defined(ESMF_)
     INTEGER                   :: FLAG, ERR, LevIDx
     TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
 
@@ -1964,6 +1965,7 @@ CONTAINS
     ! Free pointer
     DgnCont  => NULL()
 
+#endif
     ! Leave with success 
     RC = HCO_SUCCESS
 
