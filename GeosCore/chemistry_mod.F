@@ -24,7 +24,9 @@
 !
       PUBLIC :: INIT_CHEMISTRY
       PUBLIC :: DO_CHEMISTRY
+#IF DEFINED ( KPP )
       PUBLIC :: GCKPP_DRIVER
+#ENDIF
       PUBLIC :: RECOMPUTE_OD
 !
 ! !REVISION HISTORY: 
@@ -55,6 +57,7 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm to several routines
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 May 2014 - C. Keller   - Added INIT_CHEMISTRY
+!  15 Dec 2014 - M. Yannetti - KPP code is commented out unless compiling KPP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -627,6 +630,7 @@
 
       END SUBROUTINE DO_CHEMISTRY
 !EOC
+#IF DEFINED ( KPP )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -953,6 +957,7 @@
 
       ! Return to calling program
       END SUBROUTINE GCKPP_DRIVER
+#ENDIF
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

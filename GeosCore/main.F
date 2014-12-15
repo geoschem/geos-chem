@@ -35,6 +35,7 @@
       USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
       USE TRACER_MOD            ! For error-checking the tracer array
       USE REGRID_A2A_MOD        ! For horizontal regridding
+      USE PRECISION_MOD, ONLY : fpp => fp       ! For GEOS-CHEM Precision (fpp)
       
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
@@ -236,6 +237,7 @@
 !                              break dependencies for the HEMCO implementation.
 !  25 Jul 2014 - R. Yantosca - Remove reference to commsoil_mod.F90
 !  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
+!  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -256,7 +258,7 @@
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
       INTEGER                  :: laiYYYY,       laiMM
-      REAL*8                   :: TAU,           TAUb         
+      REAL(fpp)                 :: TAU,           TAUb         
       CHARACTER(LEN=255)       :: ZTYPE
 
       ! Arrays
@@ -303,7 +305,7 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       !
-      REAL*8,  POINTER         :: STT(:,:,:,:)
+      REAL(fpp),  POINTER       :: STT(:,:,:,:)
       !
       ! Define shadow variables for fields in Input_Opt (bmy, 6/25/14)
       LOGICAL                  :: ITS_A_FULLCHEM_SIM 
@@ -339,7 +341,7 @@
       LOGICAL                  :: LWINDO
       LOGICAL                  :: USE_OLSON_2001
       INTEGER                  :: N_TRACERS 
-      REAL*8,  POINTER         :: TCVV(:)
+      REAL(fpp),  POINTER       :: TCVV(:)
       !-----------------------------------------------------------------
 
       !=================================================================
@@ -705,7 +707,7 @@
       NSECb  = ( HOUR * 3600 ) + ( MINUTE * 60 )
 
       ! Get dynamic timestep in seconds
-      N_DYN  = 60d0 * GET_TS_DYN()
+      N_DYN  = 60e+0_fpp * GET_TS_DYN()
 
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
@@ -2354,9 +2356,9 @@
       CHARACTER(LEN=255) :: DIR
 
       ! Arrays
-      REAL*8             :: LONEDG(IIPAR+1       ) ! W longitude edges [deg]
-      REAL*8             :: LATSIN(       JJPAR+1) ! SIN(Lat edges)    [1  ]
-      REAL*8             :: AREAS (IIPAR, JJPAR  ) ! Surface Areas     [m2 ]
+      REAL(fpp)             :: LONEDG(IIPAR+1       ) ! W longitude edges [deg]
+      REAL(fpp)             :: LATSIN(       JJPAR+1) ! SIN(Lat edges)    [1  ]
+      REAL(fpp)             :: AREAS (IIPAR, JJPAR  ) ! Surface Areas     [m2 ]
 
       !================================================================
       ! Initialize_Regridding begins here!

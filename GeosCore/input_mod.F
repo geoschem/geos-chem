@@ -8090,7 +8090,7 @@
       JD = JULDAY( Y, M, DBLE( D ) )
 
       ! Astronomical Julian Day corresponding to the 1st of the year
-      JD0 = JULDAY( Y, 1, 0e+0_fp )
+      JD0 = JULDAY( Y, 1, 0d0 )
 
       ! LASTDAY is the day of year corresponding to NYMDe      
       LASTDAY = JD - JD0
