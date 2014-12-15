@@ -120,7 +120,7 @@
       CHARACTER(LEN=16)              :: STAMP
       CHARACTER(LEN=40)              :: SIM_NAME
 
-      ! Used for ND71
+      ! Used for ND72
       CHARACTER(LEN=40)              :: NAME0, NAME1
       CHARACTER(LEN=40)              :: FNAME0
 
@@ -1662,7 +1662,7 @@
       N           = N + 1
       CATEGORY(N) = 'RADMAP-$'
       DESCRIPT(N) = 'Radiative diagnostics'
-      OFFSET(N)   = SPACING * 71
+      OFFSET(N)   = SPACING * 72
 
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
@@ -1695,7 +1695,7 @@
 ! !USES:
 !
       USE CMN_DIAG_MOD,       ONLY : PD64
-      USE CMN_DIAG_MOD,       ONLY : PD71R
+      USE CMN_DIAG_MOD,       ONLY : PD72R
       USE CMN_FJX_MOD,        ONLY : NSPECRADMENU, STRWVSELECT
       USE DIAG03_MOD,         ONLY : ND03, PD03, PD03_PL
       USE DIAG04_MOD,         ONLY : ND04
@@ -1784,6 +1784,8 @@
 !  27 May 2014 - M. Sulprizio- Now include J-values for ALD2, MVK, MACR, HAC,
 !                              and GLYC in ND22
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to GET_FAM_MWT function
+!  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
+!                              avoid conflicts with hourly max ppbv diagnostic.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7191,18 +7193,18 @@
 
 #if defined ( RRTMG )
       !-------------------------------------
-      ! Radiation outputs (ND71)
+      ! Radiation outputs (ND72)
       !-------------------------------------
-      IF ( ND71 > 0 .or. DO_TIMESERIES ) THEN
+      IF ( ND72 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(71) = (NSPECRADMENU+1)*PD71R
+         NTRAC(72) = (NSPECRADMENU+1)*PD72R
 
          ! Loop over tracers
-         DO T = 1, NTRAC(71)
+         DO T = 1, NTRAC(72)
 
             ! Define quantities
-            INDEX(T,71) = T + ( SPACING * 71 )
+            INDEX(T,72) = T + ( SPACING * 72 )
             MOLC (T,21) = 1
             MWT  (T,21) = 0e0
             SCALE(T,21) = 1e0
@@ -7283,49 +7285,49 @@
             T1=MOD((T-1),(NSPECRADMENU+1))+1
             SELECT CASE( T1 )
                CASE( 1  )
-                  NAME (T,71) = TRIM(NAME0) // 'BA' // TRIM(NAME1)
-                  FNAME(T,71) = 'Clear ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
+                  NAME (T,72) = TRIM(NAME0) // 'BA' // TRIM(NAME1)
+                  FNAME(T,72) = 'Clear ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                CASE( 2  )
-                  NAME (T,71) = TRIM(NAME0) // 'O3' // TRIM(NAME1)
-                  FNAME(T,71) = 'Ozone ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
+                  NAME (T,72) = TRIM(NAME0) // 'O3' // TRIM(NAME1)
+                  FNAME(T,72) = 'Ozone ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                CASE( 3  )
-                  NAME (T,71) = TRIM(NAME0) // 'CH' // TRIM(NAME1)
-                  FNAME(T,71) = 'Methane ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
+                  NAME (T,72) = TRIM(NAME0) // 'CH' // TRIM(NAME1)
+                  FNAME(T,72) = 'Methane ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                CASE( 4  )
-                  NAME (T,71) = TRIM(NAME0) // 'SU' // TRIM(NAME1)
-                  FNAME(T,71) = 'Sulfate ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
+                  NAME (T,72) = TRIM(NAME0) // 'SU' // TRIM(NAME1)
+                  FNAME(T,72) = 'Sulfate ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                CASE( 5  )
-                  NAME (T,71) = TRIM(NAME0) // 'NI' // TRIM(NAME1)
-                  FNAME(T,71) = 'Nitrate ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
+                  NAME (T,72) = TRIM(NAME0) // 'NI' // TRIM(NAME1)
+                  FNAME(T,72) = 'Nitrate ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                CASE( 6  )
-                  NAME (T,71) = TRIM(NAME0) // 'AM' // TRIM(NAME1)
-                  FNAME(T,71) = 'Ammon. ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
+                  NAME (T,72) = TRIM(NAME0) // 'AM' // TRIM(NAME1)
+                  FNAME(T,72) = 'Ammon. ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                CASE( 7  )
-                  NAME (T,71) = TRIM(NAME0) // 'BC' // TRIM(NAME1)
-                  FNAME(T,71) = 'BC ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
+                  NAME (T,72) = TRIM(NAME0) // 'BC' // TRIM(NAME1)
+                  FNAME(T,72) = 'BC ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                CASE( 8  )
-                  NAME (T,71) = TRIM(NAME0) // 'OA' // TRIM(NAME1)
-                  FNAME(T,71) = 'Organic ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
+                  NAME (T,72) = TRIM(NAME0) // 'OA' // TRIM(NAME1)
+                  FNAME(T,72) = 'Organic ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                CASE( 9  )
-                  NAME (T,71) = TRIM(NAME0) // 'SS' // TRIM(NAME1)
-                  FNAME(T,71) = 'Sea salt ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
+                  NAME (T,72) = TRIM(NAME0) // 'SS' // TRIM(NAME1)
+                  FNAME(T,72) = 'Sea salt ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                CASE( 10 )
-                  NAME (T,71) = TRIM(NAME0) // 'DU' // TRIM(NAME1)
-                  FNAME(T,71) = 'Dust ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
+                  NAME (T,72) = TRIM(NAME0) // 'DU' // TRIM(NAME1)
+                  FNAME(T,72) = 'Dust ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                CASE( 11 )
-                  NAME (T,71) = TRIM(NAME0) // 'PM' // TRIM(NAME1)
-                  FNAME(T,71) = 'All aerosol ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
+                  NAME (T,72) = TRIM(NAME0) // 'PM' // TRIM(NAME1)
+                  FNAME(T,72) = 'All aerosol ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                END SELECT
 
 

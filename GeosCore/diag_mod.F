@@ -225,8 +225,8 @@
       INTEGER, ALLOCATABLE :: AD71_LHR
       INTEGER, ALLOCATABLE :: AD71_LDAY
 
-      ! For ND71 -- Radiation output diagnostic
-      REAL*4,  ALLOCATABLE :: AD71(:,:,:)
+      ! For ND72 -- Radiation output diagnostic
+      REAL*4,  ALLOCATABLE :: AD72(:,:,:)
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - A. Fiore - Initial version
@@ -408,6 +408,7 @@
       IF ( ALLOCATED( AD71_HRCT   ) ) DEALLOCATE( AD71_HRCT   )
       IF ( ALLOCATED( AD71_LDAY   ) ) DEALLOCATE( AD71_LDAY   )
       IF ( ALLOCATED( AD71_LHR    ) ) DEALLOCATE( AD71_LHR    )
+      IF ( ALLOCATED( AD72        ) ) DEALLOCATE( AD72        )
       IF ( ALLOCATED( CONVFLUP    ) ) DEALLOCATE( CONVFLUP    )
       IF ( ALLOCATED( CT16        ) ) DEALLOCATE( CT16        )
       IF ( ALLOCATED( CT17        ) ) DEALLOCATE( CT17        )

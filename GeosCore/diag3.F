@@ -242,6 +242,8 @@
 !                              now defined as kg/s in hcoi_gc_diagn_mod.F90 
 !  15 Oct 2014 - C. Keller   - Updated ND37 diagnostics to write out all specs
 !  24 Nov 2014 - R. Yantosca - Bug fix for ND28 BC/OC: Don't multiply by area
+!  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
+!                              avoid conflicts with hourly max ppbv diagnostic.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5122,7 +5124,7 @@
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
 !
 !******************************************************************************
-!  ND71: RRTMG radiation fields
+!  ND72: RRTMG radiation fields
 !
 !   # : Field  : Description                      : Units    : Scale
 !   factor
@@ -5140,22 +5142,23 @@
 !
       !check that RRTMG is actually switched on
       IF ( Input_Opt%LRAD ) THEN
-      IF ( ND71 > 0 ) THEN
+      IF ( ND72 > 0 ) THEN
          CATEGORY = 'RADMAP-$'
          write(6,*) 'NWVSELECT',NWVSELECT
-         ! ND71 is updated every rad timestep
+         ! ND72 is updated every rad timestep
          SCALEX = SCALERAD
          NSPECOUT=NSPECRADMENU+1 !number of output species plus baseline
-         DO M = 1, TMAX(71)
-            N  = TINDEX(71,M)
+         DO M = 1, TMAX(72)
+            N  = TINDEX(72,M)
             
-            IF ( N > PD71R ) CYCLE
+            IF ( N > PD72R ) CYCLE
              !only output clear-sky and all-sky if they are switched on
              !or if we're doing the optics
              !but only output 2nd and 3rd sets of optics if they're
              !requested by user in input.geos.rad
-             IF (((N.LE.4).AND.(LSKYRAD(2).EQ..TRUE.)).OR.
-     &           ((N.GT.4).AND.(N.LE.8).AND.(LSKYRAD(1).EQ..TRUE.)).OR.
+             IF (((N.LE.4).AND.(Input_Opt%LSKYRAD(2).EQ..TRUE.)).OR.
+     &           ((N.GT.4).AND.(N.LE.8).AND.
+     &                         (Input_Opt%LSKYRAD(1).EQ..TRUE.)).OR.
      &           ((N.GT.8).AND.(N.LE.11)).OR.                         !1st set of optics
      &           ((N.GT.11).AND.(N.LE.14).AND.(NWVSELECT.GT.1)).OR.   !2nd set of optics
      &           ((N.GT.14).AND.(N.LE.17).AND.(NWVSELECT.GT.2))) THEN !3rd set of optics
@@ -5171,7 +5174,7 @@
              ! each case is for different output type, within each
              ! of those are the values for each species in the RAD input
              ! menu. Only output species that are switched on for each
-           ! output type selected in the ND71 menu
+           ! output type selected in the ND72 menu
            DO IS=1,NSPECOUT
             NN=(N-1)*NSPECOUT+IS
 
@@ -5179,7 +5182,7 @@
             IF (N.LE.8) THEN
              !always output the baseline flux
              IF (IS.EQ.1) THEN
-              ARRAY(:,:,1) = AD71(:,:,NN) / SCALEX
+              ARRAY(:,:,1) = AD72(:,:,NN) / SCALEX
               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                   HALFPOLAR, CENTER180, CATEGORY, NN,
      &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -5190,8 +5193,8 @@
               DO I=1,IIPAR
                DO J=1,JJPAR
                 !store as difference in flux from baseline
-                ARRAY(I,J,1) = (AD71(I,J,(N-1)*NSPECOUT+1) - 
-     &                          AD71(I,J,NN))/SCALEX
+                ARRAY(I,J,1) = (AD72(I,J,(N-1)*NSPECOUT+1) - 
+     &                          AD72(I,J,NN))/SCALEX
                ENDDO
               ENDDO
              
@@ -5206,7 +5209,7 @@
             ! i.e. skip IS=2 and IS=3
             ELSE IF ((IS.GE.4).AND.(LSPECRADMENU(IS-1).EQ.1)) THEN
              !output optics
-              ARRAY(:,:,1) = AD71(:,:,NN) / SCALEX
+              ARRAY(:,:,1) = AD72(:,:,NN) / SCALEX
               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                   HALFPOLAR, CENTER180, CATEGORY, NN,
      &                   UNIT,      DIAGb,     DIAGe,    RESERVED,

@@ -200,7 +200,7 @@
          IF ( ND67 > 0 ) AD67     = 0e0
          IF ( ND68 > 0 ) AD68     = 0e0
          IF ( ND69 > 0 ) AD69     = 0e0
-         IF ( ND71 > 0 ) AD71     = 0e0
+         IF ( ND72 > 0 ) AD72     = 0e0
 
          ! Daily max mean hourly surface v/v
          IF ( ND71 > 0 ) THEN

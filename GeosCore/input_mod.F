@@ -343,7 +343,7 @@
             CALL READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )             
 
          ELSE IF ( INDEX( LINE, 'RADIATION MENU'   ) > 0 ) THEN
-            CALL READ_RADIATION_MENU( am_I_Root )
+            CALL READ_RADIATION_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
             CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
@@ -3403,15 +3403,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_RADIATION_MENU( am_I_Root )
+      SUBROUTINE READ_RADIATION_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE TIME_MOD,    ONLY : SET_CT_RAD
-      USE TRACER_MOD,  ONLY : N_TRACERS
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_FJX_MOD       ! Fast-JX flux diagnostics
+      USE CMN_FJX_MOD              ! Fast-JX flux diagnostics
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_RAD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D. Ridley   - Initial version
@@ -3420,20 +3432,23 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !LOCAL VARIABLES:
 !
       LOGICAL            :: LRAD, LLWRAD, LSWRAD, LSKYRAD(2)
       INTEGER            :: N
       INTEGER            :: TS_RAD
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255) :: MSG, LOCATION
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
       !=================================================================
       ! READ_RADIATION_MENU begins here!
       !=================================================================
+
+      ! Location for err msg
+      LOCATION = 'READ_RADIATION_MENU ("input_mod.f")'
 
       ! Error check
       IF ( CT1 /= 2 ) THEN
@@ -3534,6 +3549,7 @@
       Input_Opt%LSWRAD     = LSWRAD
       Input_Opt%LSKYRAD(1) = LSKYRAD(1)
       Input_Opt%LSKYRAD(2) = LSKYRAD(2)
+      Input_Opt%TS_RAD     = TS_RAD
 
       !=================================================================
       ! Print to screen
@@ -4403,6 +4419,8 @@
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt, RC to INIT_DIAG_OH
 !  24 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
+!                              avoid conflicts with hourly max ppbv diagnostic.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4926,20 +4944,20 @@
      &                 71, ND71, SUBSTRS(2:N), N-1, N_TRACERS )
 
       !--------------------------
-      ! ND71: Radiation output
+      ! ND72: Radiation output
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:70' )
-      READ( SUBSTRS(1), * ) ND71
+      READ( SUBSTRS(1), * ) ND72
 
       !output fields are nspecies*nradfields but user can only specify
       !rad fields (e.g. SW TOA ALL-SKY) so we set the max to the total
-      !divided by number of allowed species (PD71R)
-      CALL SET_TINDEX( am_I_Root, 71, ND71, SUBSTRS(2:N), N-1, PD71R )
+      !divided by number of allowed species (PD72R)
+      CALL SET_TINDEX( am_I_Root, 72, ND72, SUBSTRS(2:N), N-1, PD72R )
 
-      !If LRAD is on then ND71 must be on (so the diagnostic is
+      !If LRAD is on then ND72 must be on (so the diagnostic is
       !available to write into). Check for this
-      IF ((Input_Opt%LRAD.eq..TRUE.).AND.(ND71.EQ.0)) THEN
-       MSG = 'If LRAD is true then ND71 diagnostic must be switched on'
+      IF ((Input_Opt%LRAD.eq..TRUE.).AND.(ND72.EQ.0)) THEN
+       MSG = 'If LRAD is true then ND72 diagnostic must be switched on'
        CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
       ENDIF
 
@@ -5019,6 +5037,7 @@
       Input_Opt%ND69               = ND69
       Input_Opt%ND70               = ND70
       Input_Opt%ND71               = ND71
+      Input_Opt%ND72               = ND72
       Input_Opt%LPRT               = ( ND70 > 0 )
 
       ! Loop over # of diagnostics
@@ -8084,7 +8103,7 @@
       LOGICAL :: LEMIS, LTRAN,       LTURB 
       INTEGER :: I,     J,           K 
       INTEGER :: L,     TS_SMALLEST, TS_DIAG
-      INTEGER :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN, TS_UNIT
+      INTEGER :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN, TS_UNIT, TS_RAD
       
       !=================================================================
       ! CHECK_TIME_STEPS begins here!
@@ -8102,6 +8121,7 @@
       TS_EMIS = Input_Opt%TS_EMIS
       TS_CONV = Input_Opt%TS_CONV
       TS_DYN  = Input_Opt%TS_DYN 
+      TS_RAD  = Input_Opt%TS_RAD
  
       ! NUNIT is time step in minutes for unit conversion
       TS_UNIT = -1

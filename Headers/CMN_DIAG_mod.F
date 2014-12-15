@@ -155,13 +155,13 @@
 
       !number of rad flux and optics output types
       !8 flux and 3*3=9 optics
-      INTEGER, PARAMETER :: PD71R=17
+      INTEGER, PARAMETER :: PD72R=17
       !total number of possible rad outputs (types*specs)
       !there are 11 possible flux output 'species' but
       !only 8 possible optics output 'species'
       !for simplicity we take the largest and put up with
       !some redundancy (should be 88+72=160)
-      INTEGER, PARAMETER :: PD71=187 ! Radiation (Ridley 10/2012)
+      INTEGER, PARAMETER :: PD72=187 ! Radiation (Ridley 10/2012)
 
       !=================================================================
       ! Variables for printing out selected tracers in diagnostic output
@@ -282,6 +282,8 @@
 !  08 Nov 2013 - M. Sulprizio- Remove HR1_NO and HR2_NO. They are no longer
 !                              needed for ND43 because NO, NO2, and NO3 are now
 !                              tracers.
+!  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND72 to ND72 to
+!                              avoid conflicts with hourly max ppbv diagnostic.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -1175,14 +1175,14 @@
       ENDIF
 
       !=================================================================
-      ! ND71: Radiative output diagnostics (TOASW, SRFSW, TOALW, SRFLW,
+      ! ND72: Radiative output diagnostics (TOASW, SRFSW, TOALW, SRFLW,
       !       GTOASW, GSRFSW, GTOALW, GSRFLW, ATOASW, ASRFSW, ATOALW,
       !       ASRFLW) for both clear and all sky (prefix CLR and ALL)
-      !       --> uses AD69 array (allocatable)
+      !       --> uses AD72 array (allocatable)
       !=================================================================
-      IF ( ND71 > 0 ) THEN
-         ALLOCATE( AD71( IIPAR, JJPAR, PD71 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71' )
+      IF ( ND72 > 0 ) THEN
+         ALLOCATE( AD72( IIPAR, JJPAR, PD72 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD72' )
       ENDIF
 
       ! Save LD* fields back into the Input_Opt object (bmy, 11/9/12)
