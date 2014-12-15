@@ -123,7 +123,7 @@
      &                                  READ_STRAT_CLIM,
      &                                  INIT_MCICA_CLOUDS,
      &                                  SET_SPECMASK
-      USE JV_CMN_MOD,             ONLY: NSPECRADMENU,
+      USE CMN_FJX_MOD,            ONLY: NSPECRADMENU,
      &                                  LSPECRADMENU
       USE rrtmg_lw_init,  ONLY : rrtmg_lw_ini
       USE rrtmg_sw_init,  ONLY : rrtmg_sw_ini

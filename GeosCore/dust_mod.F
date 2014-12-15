@@ -1121,8 +1121,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,        ONLY : ODMDUST, IND999, NDUST
-      USE CMN_FJX_MOD,        ONLY : QAA, QAA_AOD, RAA, RAA_AOD
+      USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE 
@@ -1253,7 +1252,7 @@
             ! but add on any others required
                IF (IIWV.LE.NWVAART) THEN
                   !index of RRTMG wavelengths starts after the standard NWVAA0
-                  !(currently NWVAA0=11, set in jv_cmn_mod based on the .dat
+                  !(currently NWVAA0=11, set in CMN_FJX_mod based on the .dat
                   !LUT)
                   IWV = IIWV+NWVAA0
                ELSE
@@ -1276,7 +1275,7 @@
          DO I = 1, IIPAR
 
             ! dust stored in the 6th species bin of LUT variables
-            ODMDUST(I,J,L,IWV,N) = 0.75d0 * BXHEIGHT(I,J,L) * 
+            ODMDUST(I,J,L,IWV,N) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
      &                             DUST(I,J,L,N) * QQAA(IWV,N,6)  / 
      &                           ( MSDENS(N) * RDAA(N,6) * 1.0D-6 )
 
@@ -1470,8 +1469,7 @@
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
-      USE CMN_FJX_MOD,        ONLY : IND999
-      USE CMN_FJX_MOD,        ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
+      USE CMN_FJX_MOD
       USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE
       USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
@@ -1687,7 +1685,7 @@
                ! but add on any others required
                IF (IIWV.LE.30) THEN
                   !index of RRTMG wavelengths starts after the standard NWVAA0
-                  !(currently NWVAA0=12, set in jv_cmn_mod based on the .dat
+                  !(currently NWVAA0=11, set in CMN_FJX_mod based on the .dat
                   !LUT)
                   IWV = IIWV+NWVAA0
                ELSE
@@ -1709,7 +1707,7 @@
          DO I = 1, IIPAR
 
             ! dust stored in the 6th species bin of LUT variables
-            ODMDUST(I,J,L,IWV,N) = 0.75d0 * BXHEIGHT(I,J,L) *
+            ODMDUST(I,J,L,IWV,N) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) *
      &                             DUST(I,J,L,N) * QQAA(IWV,N,6)  /
      &                           ( MSDENS(N) * RDAA(N,6) * 1.0D-6 )
 

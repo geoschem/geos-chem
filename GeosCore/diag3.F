@@ -19,13 +19,11 @@
       USE CMN_SIZE_MOD                       ! Size parameters
       USE CMN_O3_MOD                         ! FMOL, XNUMOL
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
-      USE CMN_FJX_MOD,        ONLY : W_      ! Fast-JX flux diagnostics
+      USE CMN_FJX_MOD                        ! Fast-JX flux diagnostics
       USE COMODE_LOOP_MOD                    ! IDEMS
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE JV_CMN_MOD,         ONLY : LSPECRADMENU, NSPECRADMENU
-      USE JV_CMN_MOD,         ONLY : NWVSELECT
 
       ! Modules from GeosUtil directory
       USE ERROR_MOD,          ONLY : ERROR_STOP

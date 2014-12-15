@@ -16,29 +16,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_PROF_O3( NLON,    NLAT,   YLAT, MONTH,   
-     &                     DAY,     T,  O3COL )
+      SUBROUTINE SET_PROF_O3( YLAT,     MONTH,   DAY,      T_CTM,
+     &                        P_CTM,    O3_CTM,  O3_TOMS,  T_CLIM,
+     &                        O3_CLIM,  Z_CLIM,  AIR_CLIM, Input_Opt )
 
 !
 ! !USES:
 !
-#     include "define.h"
-
-      USE CMN_SIZE_MOD,  ONLY : LLPAR
-      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ  
-      USE JV_CMN_MOD            
+      USE CMN_FJX_MOD            
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       IMPLICIT NONE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: NLON                   ! Grid box lon index
-      INTEGER, INTENT(IN)    :: NLAT                   ! Grid box lat index 
-      REAL*8,  INTENT(IN)    :: YLAT                   ! Latitude [degrees]
-      INTEGER, INTENT(IN)    :: MONTH                  ! Current month
-      INTEGER, INTENT(IN)    :: DAY                    ! Day of month
-      REAL*8,  INTENT(IN)    :: T(LLPAR)               ! Temperature [K]
-      REAL*8,  INTENT(IN)    :: O3COL                  ! Overhd O3 column [DU]
+      REAL*8, INTENT(IN)         :: YLAT              ! Latitude (degrees)
+      INTEGER,INTENT(IN)         :: MONTH             ! Month
+      INTEGER,INTENT(IN)         :: DAY               ! Day *of month*
+      REAL*8, INTENT(IN)         :: T_CTM(L1_)        ! CTM temperatures (K)
+      REAL*8, INTENT(IN)         :: O3_TOMS           ! O3 column (DU)
+      REAL*8, INTENT(IN)         :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
+      REAL*8, INTENT(IN)         :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
+!
+! !OUTPUT VARIABLES:
+!
+      REAL*8, INTENT(OUT)        :: T_CLIM(L1_)       ! Clim. temperatures (K)
+      REAL*8, INTENT(OUT)        :: Z_CLIM(L1_+1)     ! Edge altitudes (cm)
+      REAL*8, INTENT(OUT)        :: O3_CLIM(L1_)      ! O3 column depth (#/cm2)
+      REAL*8, INTENT(OUT)        :: AIR_CLIM(L1_)     ! O3 column depth (#/cm2)
 !
 !
 ! !AUTHOR:
@@ -80,20 +86,29 @@
 !  (6 ) Modified to use GEOS-5 O3 columns when TOMS/SBUV data don't exist,
 !        i.e. after 2008. (ccc, 7/13/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  15 Dec 2014 - M. Sulprizio- Modified for Fast-JX. Now consistent with
+!                              subroutine RD_AOD in fast_jx_mod.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, K, L, M, N
-      REAL*8  :: DLOGP,F0,T0,B0,PB,PC,XC,MASFAC,SCALEH
-      REAL*8  :: PSTD(52),OREF2(51),TREF2(51)
-      REAL*8  :: PROFCOL, DAYTOMS
+      INTEGER                :: I, K, L, M, N, LCTM
+      REAL*8                 :: DLOGP,F0,T0,B0,PB,PC,XC,MASFAC,SCALEH
+      REAL*8                 :: PSTD(52),OREF2(51),TREF2(51)
+      REAL*8                 :: PROFCOL
+      REAL*8, PARAMETER      :: ODMAX = 200.0d0
+
+      ! Local variables for quantities from Input_Opt
+      LOGICAL :: LO3FJX
 
       !=================================================================
-      ! SET_PROF begins here!
+      ! SET_PROF_O3 begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LO3FJX = Input_Opt%LO3FJX
 
       !=================================================================      
       ! Set up pressure levels for O3/T climatology - assume that value
@@ -102,16 +117,16 @@
       ! values at 1000 mb are assumed to extend down to the actual 
       ! P(nslon,nslat).
       !=================================================================      
-      PSTD(1) = MAX( PJ(1), 1000.D0 )
-      PSTD(2) = 1000.D0 * 10.D0**( -1.D0/16.D0 )
-      DLOGP   = 10.D0**( -2.D0/16.D0 )
-      DO I = 3, 51
+      PSTD(1)  = MAX(P_CTM(1),1000.d0)
+      PSTD(2)  = 1000.d0 * 10.d0 ** (-1.d0/16.d0)
+      DLOGP    = 10.d0**(-2.d0/16.d0)
+      DO I=3,51
          PSTD(I) = PSTD(I-1) * DLOGP
       ENDDO
-      PSTD(52) = 0.D0
+      PSTD(52) = 0.d0
 
       ! Mass factor - delta-Pressure [hPa] to delta-Column [molec/cm2]
-      MASFAC = 100.D0 * 6.022D+23 / ( 28.97D0 * 9.8D0 * 10.D0 )
+      MASFAC = 100.d0 * 6.022d+23 / ( 28.97d0 * 9.8d0 * 10.d0 )
 
       ! Select appropriate monthly and latitudinal profiles
       ! Now use YLAT instead of Oliver's YDGRD(NSLAT) (bmy, 9/13/99) 
@@ -120,77 +135,71 @@
 
       ! Temporary arrays for climatology data
       DO I = 1, 51
-	 OREF2(I) = OREF(I,L,M)
-	 TREF2(I) = TREF(I,L,M)
+          OREF2(I) = OREF(I,L,M)
+          TREF2(I) = TREF(I,L,M)
       ENDDO
-
+ 
       ! Apportion O3 and T on supplied climatology z* levels onto CTM levels 
       ! with mass (pressure) weighting, assuming constant mixing ratio and
       ! temperature half a layer on either side of the point supplied.
-      DO I = 1, NB
+
+      DO I = 1, L1_  
          F0 = 0.D0
          T0 = 0.D0
-         B0 = 0.D0
          DO K = 1, 51
-            PC = MIN( PJ(I),   PSTD(K)   )
-            PB = MAX( PJ(I+1), PSTD(K+1) )
+            PC = MIN( P_CTM(I),   PSTD(K)   )
+            PB = MAX( P_CTM(I+1), PSTD(K+1) )
             IF ( PC .GT. PB ) THEN
-               XC = ( PC - PB ) / ( PJ(I) - PJ(I+1) )
+               XC = ( PC - PB ) / ( P_CTM(I) - P_CTM(I+1) )
                F0 = F0 + OREF2(K)*XC
                T0 = T0 + TREF2(K)*XC
             ENDIF
          ENDDO
-         TJ(I)  = T0
-         DO3(I) = F0 * 1.D-6
+         T_CLIM(I)  = T0
+         O3_CLIM(I) = F0 * 1.D-6
       ENDDO
-      
-      !=================================================================
-      ! Insert model values here to replace or supplement climatology.
-      ! Note that CTM temperature is always used in x-section 
-      ! calculations (see JRATET); TJ is used in actinic flux 
-      ! calculation only.
-      !=================================================================    
-      !DO I=1,LPAR
-      !   DO3(I) = MY_OZONE(i)       ! Volume Mixing Ratio
-      !   TJ(I)  = T(I)              ! Kelvin
-      !ENDDO
-      !DO3(LPAR+1) = MY_OZONE*EXP()  ! Above top of model (or use climatology)
-      !TJ(LPAR+1)  = MY_TEMP(LPAR)   ! Above top of model (or use climatology)
 
       !=================================================================
       ! Calculate effective altitudes using scale height at each level
       !=================================================================
-      Z(1) = 0.D0
-      DO I = 1, LLPAR
-         SCALEH = 1.3806D-19 * MASFAC * TJ(I)
-         Z(I+1) = Z(I) - ( LOG( PJ(I+1) / PJ(I) ) * SCALEH )
+      Z_CLIM(1) = 0.D0
+      DO I = 1, L_   
+         SCALEH = 1.3806D-19 * MASFAC * T_CLIM(I)
+         Z_CLIM(I+1) = Z_CLIM(I) - 
+     &        ( LOG( P_CTM(I+1) / P_CTM(I) ) * SCALEH )
       ENDDO
+      Z_CLIM(L1_+1)=Z_CLIM(L1_) + ZZHT
+
       !=================================================================
-      ! Calculate column quantities for RRTMG (which will only use
+      ! Calculate column quantities for for RRTMG (which will only use
       ! tropospheric values)
       !=================================================================
       PROFCOL = 0d0
 
-      DO I = 1, NB
+      DO I = 1, L1_   
 
          ! Monthly mean air Column [molec/cm2]
-         DM(I)  = ( PJ(I) - PJ(I+1) ) * MASFAC
+         AIR_CLIM(I)  = ( P_CTM(I) - P_CTM(I+1) ) * MASFAC
 
          ! Monthly mean O3 column [molec/cm2]
-         DO3(I) = DO3(I) * DM(I)
-
+         O3_CLIM(I) = O3_CLIM(I) * AIR_CLIM(I)
+    
          ! Monthly mean O3 column [DU] 
-         PROFCOL = PROFCOL + ( DO3(I) / 2.69d16 )
+         PROFCOL = PROFCOL + ( O3_CLIM(I) / 2.69d16 )
       ENDDO
 
+      !! Top values are special (do not exist in CTM data)
+      !AIR_CLIM(L1_)     = P_CTM(L1_) * MASFAC
+      !O3_CLIM(L1_) = O3_CLIM(L1_) * AIR_CLIM(L1_)
+      
       !=================================================================
       ! Now weight the O3 column by the observed monthly mean TOMS.
       ! Missing data is denoted by the flag -999. (mje, bmy, 7/15/03)
       ! 
-      ! TOMS/SBUV MERGED TOTAL OZONE DATA, Version 8, Revision 5.
+      ! TOMS/SBUV MERGED TOTAL OZONE DATA, Version 8, Revision 3.
       ! Resolution:  5 x 10 deg.
       !
-      ! Methodology (bmy, 3/7/12)
+      ! Methodology (bmy, 2/12/07)
       ! ----------------------------------------------------------------
       ! FAST-J comes with its own default O3 column climatology (from 
       ! McPeters 1992 & Nagatani 1991), which is stored in the input 
@@ -224,17 +233,31 @@
       ! latitudes.  At these latitudes, the code will revert to using 
       ! the "FAST-J default" O3 columns.
       !
-      ! As of March 2012, we have TOMS/SBUV data for 1979 thru 2008,
-      ! which are stored in the TOMS_200906 data directory.  We will
-      ! shortly update to the latest TOMS product.
+      ! As of February 2007, we have TOMS/SBUV data for 1979 thru 2005.  
+      ! 2006 TOMS/SBUV data is incomplete as of this writing.  For years
+      ! 2006 and onward, we use 2005 TOMS O3 columns.
+      !
+      ! This methodology was originally adopted by Mat Evans.  Symeon 
+      ! Koumoutsaris was responsible for creating the downloading and 
+      ! processing the TOMS O3 data files from 1979 thru 2005 in the 
+      ! TOMS_200701 directory.
       !=================================================================
 
+      ! Updated with UCX
+      ! Since we now have stratospheric ozone calculated online, use
+      ! this instead of archived profiles for all chemistry-grid cells
+      ! The variable O3_CTM is obtained from State_Met%Tracers, and will be 0
+      ! outside the chemgrid (in which case we use climatology)
+
       ! Scale monthly O3 profile to the daily O3 profile (if available)
-      IF ( O3COL > 0d0 ) THEN 
-         DO I = 1, NB
-            DO3(I) = DO3(I) * ( O3COL / PROFCOL )
-         ENDDO
-      ENDIF
+      DO I = 1, L1_
+         IF ((LO3FJX) .and. (I.le.LLCHEM) .and. (O3_CTM(I) > 0d0)) THEN
+            ! Convert from molec/cm3 to molec/cm2
+            O3_CLIM(I) = O3_CTM(I) * (Z_CLIM(I+1)-Z_CLIM(I))
+         ELSEIF (O3_TOMS > 0d0) THEN
+            O3_CLIM(I) = O3_CLIM(I) * ( O3_TOMS / PROFCOL )
+         ENDIF
+      ENDDO
 
       END SUBROUTINE SET_PROF_O3
 !EOC

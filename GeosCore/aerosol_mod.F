@@ -795,8 +795,7 @@
 ! !USES:
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_FJX_MOD,        ONLY : ODAER, IND999
-      USE CMN_FJX_MOD,        ONLY : QAA, RAA, QAA_AOD, RAA_AOD
+      USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE COMODE_LOOP_MOD
@@ -1353,7 +1352,7 @@
                ! but add on any others required 
                IF (IIWV.LE.30) THEN
                   !index of RRTMG wavelengths starts after the standard NWVAA0
-                  !(currently NWVAA0=12, set in jv_cmn_mod based on the .dat LUT)
+                  !(currently NWVAA0=11, set in CMN_FJX_mod based on the .dat LUT)
                   IWV = IIWV+NWVAA0
                ELSE
                   !now we calculate at wvs for the requested AOD

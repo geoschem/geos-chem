@@ -208,7 +208,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER, SAVE :: LASTMONTH = -1
-      INTEGER       :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
+      INTEGER       :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L, N
+      INTEGER       :: IOPT
       REAL*8        :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
       REAL*8        :: O3_CTM(LLPAR+1)
       REAL*8        :: T_CTM(LLPAR+1), OPTD(LLPAR)
@@ -280,6 +281,7 @@
 !$OMP+PRIVATE( NLAT,    NLON,   YLAT,      CSZA,   P_CTM   )
 !$OMP+PRIVATE( T_CTM,   SFCA,   O3_TOMS,   O3_CTM, OPTAER  )
 !$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                     )
+!$OMP+PRIVATE( N, IOPT                                     )
 #if defined( USE_MAXIMUM_RANDOM_OVERLAP )
 !$OMP+PRIVATE( FMAX,    KK,     NUMB,      L       KBOT    )
 !$OMP+PRIVATE( KTOP     ODNEW,  INDICATOR, INDIC           )
@@ -332,10 +334,31 @@
             O3_CTM(1:L)     = State_Chm%Tracers(NLON,NLAT,1:L,IDTO3)
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
-            OPTAER          = ODAER(NLON,NLAT,:,:)
+!------------------------------------------------------------------------------
+! Prior to 12/5/14:
+! Updates for RRTMG (dar, mps, 12/5/14)
+!            OPTAER          = ODAER(NLON,NLAT,:,:)
+!------------------------------------------------------------------------------
+            ! and at 1000nm, IWV1000 (DAR)
+            !OPTAER wants NAER*NRH values but ODAER is now NAER
+            !use IRHARR to map to correct OPTAER bin (DAR 08/13)
+            OPTAER(:,:)=0.0
+            DO N = 1, NAER
+            DO L = 1, LLPAR
+               IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
+               !WRITE(6,*) 'IOPT',N,IRHARR(NLON,NLAT,L),IOPT
+               OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,IWV1000,N)
+            ENDDO
+            ENDDO
 
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-            OPTDUST         = ODMDUST(NLON,NLAT,:,:)
+!------------------------------------------------------------------------------
+! Prior to 12/5/14:
+! Updates for RRTMG (dar, mps, 12/5/14)
+!            OPTDUST         = ODMDUST(NLON,NLAT,:,:)
+!------------------------------------------------------------------------------
+            ! and at 1000nm, IWV1000 (DAR)
+            OPTDUST(:,:)    = ODMDUST(NLON,NLAT,:,IWV1000,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD            = State_Met%OPTD(1:LLPAR,NLON,NLAT)
@@ -2153,19 +2176,22 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 !
 ! !REMARKS:
-!  The jv_spec_aod.dat file contains the optical properties for aerosols 
-!  at a single wavelength to be used in the online calculation of the aerosol 
-!  optical depth diagnostics.  The default properties are provided at 550 nm. 
+!  The .dat files for each species contain the optical properties
+!  at multiple wavelengths to be used in the online calculation of the aerosol 
+!  optical depth diagnostics. 
 !  These properties have been calculated using the same size and optical 
 !  properties as the jv_spec.dat file used for the FAST-J photolysis 
-!  calculations.  The user can exchange this set of properties with those at 
-!  another wavelength.  We recommend that the wavelength used be included 
-!  in the first line of the header for traceability (this line is output to 
-!  the GEOS-Chem log file during run time). A complete set of optical 
-!  properties from 250-2000 nm for aerosols is available at:  
+!  calculations (which is now redundant for aerosols, the values in the .dat 
+!  files here are now used). The file currently contains 11 wavelengths
+!  for Fast-J and other commonly used wavelengths for satellite and
+!  AERONET retrievals. 30 wavelengths follow that map onto RRTMG
+!  wavebands for radiaitive flux calculations (not used if RRTMG is off).  
+!  A complete set of optical properties from 250-2000 nm for aerosols is
+!  available at:  
 !  ftp://ftp.as.harvard.edu/geos-chem/data/aerosol_optics/hi_spectral_res
 !                                                                             .
 !     -- Colette L. Heald, 05/10/10)
+!     -- David A. Ridley, 05/10/13 (update for new optics files)
 !
 !  Important variables:
 !                                                                             .
@@ -2189,8 +2215,10 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER :: I, J, K, NAA2
-      INTEGER :: IOS
+      INTEGER :: I, J, K, N, NAA2, NWV, NR
+      INTEGER :: IOS, NSPEC
+      CHARACTER*30 :: SPECFIL(6)
+
       CHARACTER*78 TITLE0
       CHARACTER*20 TITLEA(NAA)   ! TITLEAA: Title for scattering data
 
@@ -2198,47 +2226,302 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! RD_AOD begins here!
       !================================================================
 
-      ! open file
-      OPEN( NJ1, FILE=TRIM( NAMFIL ), STATUS='OLD', IOSTAT=IOS )
+      ! aerosol_mod.f expects aerosol in this order now
+      DATA SPECFIL /"so4.dat","soot.dat","org.dat",
+     &              "ssa.dat","ssc.dat","dust.dat"/
+      !NWV=61 !number of wavelengths, maybe wants to be in common block
+      !NR=7   !number of aerosol size bins in LUT
+      !NSPEC = 6 !number of different species, in separate txt files
+      !array of filenames
+      DO k = 1, NSPAA
+       !get name of next species datafile
+       !NAMFIL=SPECFIL(k)
 
-      ! Error check
-      IF ( IOS /= 0 ) THEN
+       ! open file
+       OPEN( NJ1, FILE=TRIM( SPECFIL(k) ), STATUS='OLD', IOSTAT=IOS )
+
+       ! Error check
+       IF ( IOS /= 0 ) THEN
          IF ( am_I_Root ) THEN
-            WRITE(6,100) trim(NAMFIL)
- 100        FORMAT('Error opening filename=', a )
-            CALL FLUSH(6)
+          WRITE(6,100) trim(SPECFIL(k))
+ 100      FORMAT('Error opening filename=', a )
+          CALL FLUSH(6)
          ENDIF
          CALL IOERROR( IOS, NJ1, 'RD_AOD:1')
-      ENDIF
+       ENDIF
 
       
-      ! Read header lines
-      READ( NJ1,'(A)' ) TITLE0
-      IF  ( am_I_Root ) WRITE( 6, '(1X,A)' ) TITLE0
-      READ( NJ1,'(A)' ) TITLE0
+       ! Read header lines
+       READ(  NJ1,'(A)'    ) TITLE0
+       IF  ( am_I_Root ) WRITE( 6,  '(1X,A)' ) TITLE0
+       READ(  NJ1,'(A)'    ) TITLE0
+       !Second header line added for more info
+       IF  ( am_I_Root ) WRITE( 6,  '(1X,A)' ) TITLE0
+       READ(  NJ1,'(A)'    ) TITLE0
 
-      ! Read aerosol phase functions (one wavelength only):
-      READ( NJ1,'(A10,I5,/)' ) TITLE0,NAA2
-      DO J = 1, NAA
-         READ(NJ1,110) TITLEA(j)
- 110     FORMAT( 3x, a20 )
-         IF ( am_I_Root ) WRITE(6,*) TITLEA(j)
-         READ(NJ1,*) WAA_AOD(j),QAA_AOD(j),RAA_AOD(j),SAA_AOD(j),
-     &               (PAA_AOD(i,j),i=1,8)
+ 110     FORMAT( 3x, a20 ) 
+       DO i = 1, NRAA
+        DO j = 1, NWVAA
+         
+         READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k),
+     &               RDAA(i,k),RWAA(i,k),SGAA(i,k),QQAA(j,i,k),
+     &               ALPHAA(j,i,k),REAA(i,k),SSAA(j,i,k),
+     &               ASYMAA(j,i,k),(PHAA(j,i,k,n),n=1,8)
+         ! make note of where 1000nm is for FAST-J calcs
+         IF (WVAA(j,k).EQ.1000.0) IWV1000=J
+         
+        ENDDO
+       ENDDO
+       ! Echo info to stdout
+       IF ( am_I_Root ) THEN 
+       ENDIF
+       ! Close file
+       CLOSE( NJ1 )
       ENDDO
+      WRITE( 6, * ) 'Optics read for all wavelengths successfully'
 
-      ! Echo info to stdout
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(a)' ) 'Aerosol Qext for AOD calculations'
-         DO J=1,NAA
-            WRITE( 6, * ) TITLEA(J),J,'  Qext =',(QAA_AOD(J))
-         ENDDO
-      ENDIF
-
-      ! Close file
-      CLOSE( NJ1 )
+      !now calculate the required wavelengths in the LUT to calculate
+      !the requested AOD
+      CALL CALC_AOD()
 
       END SUBROUTINE RD_AOD
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_aod
+!
+! !DESCRIPTION: Subroutine CALC\_AOD works out the closest tie points
+! in the optics LUT wavelengths and the coefficients required to
+! calculate the angstrom exponent for interpolating optics to the requested
+! wavelength. If the wavelength requested matches a standard wavelength
+! in the LUT then we skip the interpolation (DAR 09/2013)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CALC_AOD()
+!
+! !USES:
+!
+      USE CMN_FJX_MOD, ONLY : NWVAA, NWVAA0, WVAA
+      USE CMN_FJX_MOD, ONLY : WVSELECT, IWVSELECT, NWVSELECT
+      USE CMN_FJX_MOD, ONLY : IRTWVSELECT
+      USE CMN_FJX_MOD, ONLY : ACOEF_WV, BCOEF_WV, CCOEF_WV
+      USE CMN_FJX_MOD, ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV
+      USE CMN_FJX_MOD, ONLY : NWVREQUIRED, IWVREQUIRED
+      USE CMN_FJX_MOD, ONLY : NRTWVREQUIRED, IRTWVREQUIRED
+#if defined( RRTMG ) 
+      USE PARRRTM,     ONLY : NBNDLW
+#endif
+!
+! !REMARKS:
+!  Now the user is able to select any 3 wavelengths for optics
+!  output in the input.geos file we need to be able to interpolate
+!  to those wavelengths based on what is available in the optics
+!  look-up table. 
+!                                                                             .
+!  The standard lookup table currently has values for
+!  11 common wavelengths followed by 30 that are required by RRTMG.
+!  Only those required to interpolate to user requested
+!  wavelengths are selected from the standard wavelengths. RRTMG
+!  wavelengths are not used in the interpolation for AOD output
+!  (DAR 10/2013)
+!                                                                             .
+!   UPDATE: because the RT optics output doesnt have access to the
+!   standard wavelengths we now calculate two sets of values: one
+!   for the ND21 and diag3 outputs that use the standard wavelengths
+!   and one for ND71 that interpolates the optics from RRTMG
+!   wavelengths. Perhaps a switch needs adding to switch off the RT
+!   optics output (and interpolation) if this ends up costing too
+!   much and is not used, but it is ideal to have an optics output
+!   that matches exactly what RRTMG uses to calculate the fluxes
+!
+! !REVISION HISTORY: 
+!  18 Jun 2013 - D. Ridley   - Initial version
+!  15 Dec 2014 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+      INTEGER             :: MINWV, MAXWV, N, N0, N1, W, NSTEP
+      REAL*8              :: WVDIF
+
+      !================================================================
+      ! CALC_AOD begins here!
+      !================================================================
+
+      !cycle over standard wavelengths
+      N0=1
+      N1=NWVAA0
+      NSTEP=1
+      NWVREQUIRED=0
+      DO W=1,NWVSELECT
+       MINWV     = -999
+       MAXWV     =  999
+       DO N=N0,N1,NSTEP
+        WVDIF = WVAA(N,1)-WVSELECT(W)
+        IF ((WVDIF.LE.0).AND.(WVDIF.GT.MINWV)) THEN
+         MINWV = WVDIF
+         IWVSELECT(1,W)=N
+        ENDIF
+        IF ((WVDIF.GE.0).AND.(WVDIF.LT.MAXWV)) THEN
+         MAXWV = WVDIF
+         IWVSELECT(2,W)=N
+        ENDIF
+       ENDDO
+        IF (IWVSELECT(2,W).EQ.IWVSELECT(1,W)) THEN
+         !we have a match!
+         MINWV=0
+         MAXWV=0
+         !add this wavelength to those for output
+         NWVREQUIRED=NWVREQUIRED+1
+         IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+        ELSE
+         !we are going to have to interpolate to the requested wavelength
+         NWVREQUIRED=NWVREQUIRED+1
+         IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+         NWVREQUIRED=NWVREQUIRED+1
+         IWVREQUIRED(NWVREQUIRED)=IWVSELECT(2,W)
+        ENDIF
+       !ENDDO
+      
+
+      !Error check - ensure we have a match or requested wavelength
+      !falls within two LUT tie points
+      IF (MINWV.EQ.-999) THEN
+       ! requested wavelength is shorter than min wv in LUT
+       ! set to min
+       write(6,*) 'ERROR requested wavelength is too short!!'
+       write(6,*) 'Defaulting to LUT min: ',WVAA(1,1)
+       IWVSELECT(1,W)=1
+       IWVSELECT(2,W)=1 !300nm
+       NWVREQUIRED=NWVREQUIRED-1
+       IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+      ENDIF
+      IF (MAXWV.EQ.999) THEN
+       ! requested wavelength is longer than min wv in LUT
+       ! set to max
+       write(6,*) 'ERROR requested wavelength is too long!!'
+       write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA0,1)
+       IWVSELECT(1,W)=NWVAA0
+       IWVSELECT(2,W)=NWVAA0 !1020nm
+       NWVREQUIRED=NWVREQUIRED-1
+       IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+      ENDIF
+      
+      !now calcualte the angstrom exponent coefs for interpolation -
+      !this is done here to save time and repetition in aerosol_mod.F
+      IF (IWVSELECT(1,W).NE.IWVSELECT(2,W)) THEN
+       ACOEF_WV(W) = WVAA(IWVSELECT(2,W),1)/WVSELECT(W)
+       BCOEF_WV(W) =1.0d0/(LOG(WVAA(IWVSELECT(2,W),1)/
+     &                         WVAA(IWVSELECT(1,W),1)))
+       !relative location of selected wavelength between tie points
+       !for interpolating SSA and ASYM for output in aerosol_mod.F and
+       !dust_mod.F
+       CCOEF_WV(W) =(WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/
+     &              (WVAA(IWVSELECT(2,W),1)-WVAA(IWVSELECT(1,W),1))
+      ENDIF
+      write(6,*) 'N WAVELENGTHS: ',NWVSELECT
+      write(6,*) 'WAVELENGTH REQUESTED:',WVSELECT(W)
+      write(6,*) 'WAVELENGTH REQUIRED:', NWVREQUIRED
+      !write(6,*) IWVSELECT(1,W),WVAA(IWVSELECT(1,W),1)
+      !write(6,*) IWVSELECT(2,W),WVAA(IWVSELECT(2,W),1)
+      !write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
+      write(6,*) '*********************************'
+      ENDDO !NWVSELECT
+#if defined( RRTMG )
+      !repeat for RRTMG wavelengths to get the closest wavelength
+      !indices and the interpolation coefficients
+      !Indices are relative to all wavelengths in the LUT i.e. the RRTMG
+      !wavelengths start at NWVAA0+1
+      N0=NWVAA0+1
+      N1=NWVAA
+      NSTEP=1
+      NRTWVREQUIRED=0
+      DO W=1,NWVSELECT
+       MINWV     = -999
+       MAXWV     =  999
+       DO N=N0,N1,NSTEP
+        WVDIF = WVAA(N,1)-WVSELECT(W)
+        IF ((WVDIF.LE.0).AND.(WVDIF.GT.MINWV)) THEN
+         MINWV = WVDIF
+         IRTWVSELECT(1,W)=N
+        ENDIF
+        IF ((WVDIF.GE.0).AND.(WVDIF.LT.MAXWV)) THEN
+         MAXWV = WVDIF
+         IRTWVSELECT(2,W)=N
+        ENDIF
+       ENDDO
+        IF (IRTWVSELECT(2,W).EQ.IRTWVSELECT(1,W)) THEN
+         !we have a match!
+         MINWV=0
+         MAXWV=0
+         !add this wavelength to those for output
+         NRTWVREQUIRED=NRTWVREQUIRED+1
+         IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+        ELSE
+         !we are going to have to interpolate to the requested
+         !wavelength
+         NRTWVREQUIRED=NRTWVREQUIRED+1
+         IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+         NRTWVREQUIRED=NRTWVREQUIRED+1
+         IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(2,W)
+        ENDIF
+
+      !Error check - ensure we have a match or requested wavelength
+      !falls within two LUT tie points
+      IF (MINWV.EQ.-999) THEN
+       ! requested wavelength is shorter than min wv in LUT
+       ! set to min
+       write(6,*) 'ERROR requested wavelength is too short!!'
+       write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA-1,1)
+       IRTWVSELECT(1,W)=NWVAA-1
+       IRTWVSELECT(2,W)=NWVAA-1 
+       NRTWVREQUIRED=NRTWVREQUIRED-1
+       IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+      ENDIF
+      IF (MAXWV.EQ.999) THEN
+       ! requested wavelength is longer than min wv in LUT
+       ! set to max
+       write(6,*) 'ERROR requested wavelength is too long!!'
+       write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA0+1,1)
+       IRTWVSELECT(1,W)=NWVAA0+1
+       IRTWVSELECT(2,W)=NWVAA0+1
+       NRTWVREQUIRED=NRTWVREQUIRED-1
+       IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+      ENDIF
+
+      !now calcualte the angstrom exponent coefs for interpolation -
+      !this is done here to save time and repetition in aerosol_mod.F
+      IF (IRTWVSELECT(1,W).NE.IRTWVSELECT(2,W)) THEN
+       ACOEF_RTWV(W) = WVAA(IRTWVSELECT(2,W),1)/WVSELECT(W)
+       BCOEF_RTWV(W) =1.0d0/(LOG(WVAA(IRTWVSELECT(2,W),1)/
+     &                         WVAA(IRTWVSELECT(1,W),1)))
+       !relative location of selected wavelength between tie points
+       !for interpolating SSA and ASYM for output in aerosol_mod.F and
+       !dust_mod.F
+       CCOEF_RTWV(W) =(WVSELECT(W)-WVAA(IRTWVSELECT(1,W),1))/
+     &              (WVAA(IRTWVSELECT(2,W),1)-WVAA(IRTWVSELECT(1,W),1))
+      ENDIF
+      !convert wavelength index to that required by rrtmg_rad_transfer
+      !i.e. without the standard and LW wavelengths
+      IRTWVSELECT(1,W) = IRTWVSELECT(1,W) - NWVAA0 - NBNDLW
+      IRTWVSELECT(2,W) = IRTWVSELECT(2,W) - NWVAA0 - NBNDLW
+      write(6,*) 'N RT WAVELENGTHS: ',NWVSELECT
+      write(6,*) 'RT WAVELENGTH REQUESTED:',WVSELECT(W)
+      write(6,*) 'RT WAVELENGTH REQUIRED:', NRTWVREQUIRED
+      write(6,*) IRTWVSELECT(1,W),WVAA(IRTWVSELECT(1,W)+NWVAA0+NBNDLW,1)
+      write(6,*) IRTWVSELECT(2,W),WVAA(IRTWVSELECT(2,W)+NWVAA0+NBNDLW,1)
+      write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
+      write(6,*) '*********************************'
+      ENDDO !NWVSELECT
+#endif
+      END SUBROUTINE CALC_AOD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

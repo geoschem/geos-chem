@@ -3410,10 +3410,8 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE TIME_MOD,    ONLY : SET_CT_RAD
       USE TRACER_MOD,  ONLY : N_TRACERS
-      USE JV_CMN_MOD,  ONLY : WVSELECT, NWVSELECT, STRWVSELECT
-      USE JV_CMN_MOD,  ONLY : NSPECRADMENU
-      USE JV_CMN_MOD,  ONLY : LSPECRADMENU
       USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_FJX_MOD       ! Fast-JX flux diagnostics
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D. Ridley   - Initial version

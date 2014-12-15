@@ -117,8 +117,7 @@ help:
 CMN_DIAG_mod.o       : CMN_DIAG_mod.F           \
                        CMN_SIZE_mod.o           \
                        CMN_FJX_MOD.o            \
-                       gigc_errcode_mod.o       \
-                       jv_cmn_mod.o
+                       gigc_errcode_mod.o
 
 CMN_GCTM_mod.o       : CMN_GCTM_mod.F
 

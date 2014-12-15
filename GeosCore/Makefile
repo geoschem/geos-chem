@@ -172,7 +172,7 @@ LIB   :=$(ROOT)/lib
 KPP   :=$(ROOT)/KPP
 MOD   :=$(ROOT)/mod
 NCDF  :=$(ROOT)/NcdfUtil
-RAD   :=$(ROOTDIR)/GeosRad
+RAD   :=$(ROOT)/GeosRad
 UTIL  :=$(ROOT)/GeosUtil
 
 # Executables
@@ -825,11 +825,9 @@ RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               hcoi_gc_main_mod.o
 
 rrtmg_rad_transfer_mod.o    : rrtmg_rad_transfer_mod.F                        \
-                              dao_mod.o               comode_mod.o            \
-                              toms_mod.o              tracerid_mod.o          \
-                              diag_mod.o              logical_mod.o           \
-                              tropopause_mod.o        tracer_mod.o            \
-                              set_prof_o3.o
+                              chemgrid_mod.o          comode_mod.o            \
+                              diag_mod.o              set_prof_o3.o           \
+                              toms_mod.o              tracerid_mod.o
 
 rpmares_mod.o               : rpmares_mod.F                                  \
                               chemgrid_mod.o                                 \

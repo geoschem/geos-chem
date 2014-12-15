@@ -1222,7 +1222,8 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD
+      USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
+      USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE COMODE_LOOP_MOD          ! CSPEC, etc.
       USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
@@ -1291,7 +1292,7 @@
       LOGICAL             :: PCHEM, LINTERP
       INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
       INTEGER             :: LL     !eds
-      INTEGER             :: LPLANE,IWV, ISPC, LL, K
+      INTEGER             :: LPLANE,IWV, ISPC, K
       REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL*8              :: VARI(NPVAR)
 
