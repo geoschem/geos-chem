@@ -363,6 +363,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm arguments
+!  16 Dec 2014 - M. Yannetti - Changed ZTAU0 and ZTAU1 to REAL*8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,7 +383,7 @@
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
       REAL*4              :: LONRES,    LATRES
-      REAL(fp)              :: ZTAU0,     ZTAU1
+      REAL*8              :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     
@@ -1155,6 +1156,7 @@
 !  22 Aug 2013 - R. Yantosca - Add Input_Opt, RC arguments
 !  22 Aug 2013 - R. Yantosca - Now get species restart filename from Input_Opt
 !  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
+!  16 Dec 2014 - M. Yannetti - Changed ZTAU0 and ZTAU1 to REAL*8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1175,7 +1177,7 @@
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
       REAL*4              :: LONRES,    LATRES
-      REAL(fp)              :: ZTAU0,     ZTAU1
+      REAL*8              :: ZTAU0,     ZTAU1  ! has to be REAL*8
       CHARACTER(LEN=20)   :: MODELNAME
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT     
