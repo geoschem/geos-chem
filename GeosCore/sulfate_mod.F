@@ -8028,9 +8028,10 @@
       ! Get alkalinity from HEMCO. This is just the current emissions,
       ! converted from kg/m2/s to kg. In the original seasalt code, the 
       ! alkalinity was set to the total surface flux for every layer within
-      ! the PBL, and to zero above. This is replicated below.
-      ! I'm not sure if it would make more sense to weight the alkalinity by
-      ! the fraction of PBL?
+      ! the PBL, and to zero above. This seems unrealistic, and in the code
+      ! below the alkalinity (and number density) are scaled by the fraction
+      ! of PBL. This approach ensures that the total number density and 
+      ! alkalinity is preserved.
       !                                                 (ckeller, 10/31/2014)
       !-----------------------------------------------------------------------
       ! [kg] use this when not transporting alk
@@ -8045,6 +8046,9 @@
 
          ! Fraction of the PBL spanned by box (I,J,L) [unitless]
          FEMIS = GET_FRAC_OF_PBL( I, J, L )
+         
+         ! Uncomment the following line to reproduce pre-HEMCO code.
+         ! FEMIS = 1.0d0
 
          ! Get ALK1 and ALK2 surface emissions from HEMCO. These are in 
          ! kg/m2/s. 

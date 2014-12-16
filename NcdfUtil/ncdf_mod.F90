@@ -1740,7 +1740,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ok = Ncdoes_Var_Exist( fID, TRIM(levName) ) 
     IF ( .NOT. ok ) THEN
-       WRITE(*,*) 'Cannot find variable ', TRIM(levName), ' in ', TRIM(ncFile), '!'
+       WRITE(*,*) 'Cannot find level variable ', TRIM(levName), ' in ', TRIM(ncFile), '!'
        RC = -999
        RETURN 
     ENDIF
@@ -1748,7 +1748,7 @@ CONTAINS
     ! Get standard name
     a_name = "standard_name"
     IF ( .NOT. NcDoes_Attr_Exist ( fID, TRIM(levName), TRIM(a_Name) ) ) THEN
-       WRITE(*,*) 'Cannot find attribute ', TRIM(a_name), ' in variable ', &
+       WRITE(*,*) 'Cannot find level attribute ', TRIM(a_name), ' in variable ', &
                   TRIM(levName), ' - File: ', TRIM(ncFile), '!'
        RC = -999
        RETURN 

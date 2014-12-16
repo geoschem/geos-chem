@@ -14,7 +14,7 @@
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
 !\\
-!\\
+!\\}
 ! References:
 ! \begin{itemize}
 ! \item Vinken, G. C. M., Boersma, K. F., Jacob, D. J., and Meijer, E. W.: 
@@ -78,6 +78,7 @@ MODULE HCOX_ParaNOx_MOD
   REAL*8                        :: MW_O3
   REAL*8                        :: MW_NO
   REAL*8                        :: MW_NO2
+  REAL*8                        :: MW_HNO3
   REAL*8                        :: MW_AIR
 
   ! Arrays
@@ -234,6 +235,9 @@ CONTAINS
 !  28 Jul 2014 - C. Keller   - Now get J-values through ExtState
 !  12 Aug 2014 - R. Yantosca - READ_PARANOX_LUT is now called from Init phase
 !  10 Nov 2014 - C. Keller   - Added div-zero error trap for O3 deposition.
+!  25 Nov 2014 - C. Keller   - Now convert NO fluxes to HNO3 and O3 using 
+!                              corresponding molecular weight ratios. Safe 
+!                              division check for O3 deposition calculation. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -246,7 +250,7 @@ CONTAINS
     REAL*8             :: JNO2, JO1D, TS, SUNCOSmid5, SUNCOSmid
     REAL*8             :: O3molec, NOmolec, NO2molec, AIRmolec
     REAL*4             :: FRACTION_NOx, INT_OPE
-    REAL(hp)           :: iFlx
+    REAL(hp)           :: iFlx, TMP
     CHARACTER(LEN=255) :: MSG
 
     ! Arrays
@@ -374,9 +378,9 @@ CONTAINS
 #if defined( NULL )
 !$OMP PARALLEL DO                                                   &
 !$OMP DEFAULT( SHARED )                                             &
-!$OMP PRIVATE( I, J, L, RC, iFlx, NK, SPECNAME, JNO2, JO1D        ) &
+!$OMP PRIVATE( I, J, L, RC, iFlx, NK, SPECNAME, JNO2, JO1D, TMP   ) &
 !$OMP PRIVATE( O3molec, NOmolec, NO2molec, AIRmolec, INT_OPE      ) &
-!$OMP PRIVATE( FRACTION_NOx, LMAX, TS, SUNCOSmid5, SUNCOSmid      ) &     
+!$OMP PRIVATE( FRACTION_NOx, LMAX, TS, SUNCOSmid5, SUNCOSmid, MSG ) &     
 !$OMP SCHEDULE( DYNAMIC )
 #endif
     DO J = 1, HcoState%NY
@@ -445,8 +449,8 @@ CONTAINS
           ! Of the total ship NOx, the fraction 1-FRACTION_NOX
           ! is converted to HNO3 during plume dilution and chemistry. 
           ! Unit: kg/m2/s 
-          FLUXHNO3(I,J) = ShipNoEmis(I,J,1) * ( 1d0 - FRACTION_NOx )
-
+          FLUXHNO3(I,J) = ShipNoEmis(I,J,1) * ( 1d0 - FRACTION_NOx ) &
+                        * ( MW_HNO3 / MW_NO )
        ENDIF
 
        !---------------------------
@@ -458,7 +462,8 @@ CONTAINS
           ! (1-FRACTION_NOX)*INT_OPE is converted to O3 during 
           ! plume dilution and chemistry. 
           ! Unit: kg/m2/s 
-          iFlx = ShipNoEmis(I,J,1) * (1d0-FRACTION_NOx) * INT_OPE
+          iFlx = ShipNoEmis(I,J,1) * (1d0-FRACTION_NOx) * INT_OPE &
+               * ( MW_O3 / MW_NO )
 
           ! For positive fluxes, add to emission flux array 
           IF ( iFlx >= 0.0_hp ) THEN
@@ -469,14 +474,29 @@ CONTAINS
           ! array
           ELSE
 
-             ! Calculate deposition velocity (m/s) from flux
+             ! Calculate deposition velocity (1/s) from flux
              ! NOTE: the calculated deposition flux is in kg/m2/s,
              ! which has to be converted to 1/s. Use here the O3 conc.
              ! [kg] of the lowest model box.
              ! Now avoid div-zero error (ckeller, 11/10/2014).
-             IF ( ExtState%O3%Arr%Val(I,J,1) > 0.0_dp ) THEN
-                DEPO3(I,J) = ABS(iFlx) / ExtState%O3%Arr%Val(I,J,1) &
-                           * HcoState%Grid%AREA_M2%Val(I,J)
+             IF ( ExtState%O3%Arr%Val(I,J,1) > 0.0_hp ) THEN
+                TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
+
+                ! Check if it's safe to do division
+                IF ( (EXPONENT(TMP)-EXPONENT(ExtState%O3%Arr%Val(I,J,1))) &
+                     < MAXEXPONENT(TMP) ) THEN
+                   DEPO3(I,J) = TMP / ExtState%O3%Arr%Val(I,J,1)
+                ENDIF
+
+                ! Sanity check: if deposition velocities are above one, 
+                ! something must have gone wrong (they are on the order
+                ! of <1e-9)
+                IF ( DEPO3(I,J) > 1.0_hp ) THEN
+                   DEPO3(I,J) = 0.0_hp
+                   WRITE(MSG,*) 'O3 deposition velocity > 1., set to zero', &
+                      I, J, DEPO3(I,J), ABS(iFlx), ExtState%O3%Arr%Val(I,J,1)
+                   CALL HCO_WARNING(MSG, RC)
+                ENDIF
              ENDIF
 
           ENDIF
@@ -708,18 +728,16 @@ CONTAINS
       MSG = 'Species NO not defined - needed by ParaNOx!' 
       CALL HCO_ERROR ( MSG, RC )
       RETURN
-   ELSE
-      MW_NO = HcoState%Spc(IDTNO)%MW_g
    ENDIF
+   MW_NO = HcoState%Spc(IDTNO)%MW_g
 
    IDTO3 = HCO_GetHcoID('O3',   HcoState )
    IF ( IDTO3 <= 0 ) THEN
       MSG = 'Species O3 not defined - needed by ParaNOx!' 
       CALL HCO_ERROR ( MSG, RC )
       RETURN
-   ELSE
-      MW_O3 = HcoState%Spc(IDTO3)%MW_g
    ENDIF
+   MW_O3 = HcoState%Spc(IDTO3)%MW_g
 
    IDTHNO3 = HCO_GetHcoID('HNO3', HcoState )
    IF ( IDTHNO3 <= 0 ) THEN
@@ -727,6 +745,8 @@ CONTAINS
          MSG = 'Species HNO3 not defined - not used by ParaNOx!' 
          CALL HCO_WARNING ( MSG, RC )
       ENDIF
+   ELSE
+      MW_HNO3 = HcoState%Spc(IDTHNO3)%MW_g
    ENDIF
 
    IDTNO2  = HCO_GetHcoID('NO2',  HcoState )
@@ -734,9 +754,8 @@ CONTAINS
       MSG = 'Species NO2 not defined - needed by ParaNOx!' 
       CALL HCO_ERROR ( MSG, RC )
       RETURN
-   ELSE
-      MW_NO2 = HcoState%Spc(IDTNO2)%MW_g
    ENDIF
+   MW_NO2 = HcoState%Spc(IDTNO2)%MW_g
 
    ! Verbose mode
    IF ( am_I_Root ) THEN

@@ -332,7 +332,7 @@ CONTAINS
 
     ALLOCATE( State_Met%ITY       ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%ITY      = 1d0
+    State_Met%ITY      = 1.d0
 
     ALLOCATE( State_Met%LWI       ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -922,7 +922,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%GWETTOP    )) DEALLOCATE( State_Met%GWETTOP    )
     IF ( ASSOCIATED( State_Met%HFLUX      )) DEALLOCATE( State_Met%HFLUX      )
     IF ( ASSOCIATED( State_Met%LAI        )) DEALLOCATE( State_Met%LAI        )
-    IF ( ASSOCIATED( State_Met%ITY        )) DEALLOCATE( State_Met%ITY        )
     IF ( ASSOCIATED( State_Met%LWI        )) DEALLOCATE( State_Met%LWI        )
     IF ( ASSOCIATED( State_Met%PARDR      )) DEALLOCATE( State_Met%PARDR      )
     IF ( ASSOCIATED( State_Met%PARDF      )) DEALLOCATE( State_Met%PARDF      )

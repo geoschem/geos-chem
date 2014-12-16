@@ -153,14 +153,15 @@ gigc_input_opt_mod.o : gigc_input_opt_mod.F90   \
                        CMN_SIZE_mod.o           \
                        precision_mod.o
 
-
 gigc_state_chm_mod.o : gigc_state_chm_mod.F90   \
                        gigc_errcode_mod.o       \
                        gigc_input_opt_mod.o     \
+		       comode_loop_mod.o        \
                        precision_mod.o
 
 gigc_state_met_mod.o : gigc_state_met_mod.F90   \
                        gigc_errcode_mod.o       \
-                       CMN_SIZE_mod.o
+                       CMN_SIZE_mod.o           \
+                       precision_mod.o
 
 #EOC

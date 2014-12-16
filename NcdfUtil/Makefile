@@ -42,6 +42,7 @@
 #  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
 #  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
 #  10 Jul 2014 - R. Yantosca - Now compile ncdf_mod.F90
+#  02 Dec 2014 - R. Yantosca - Now use NC_LINK_CMD variable instead of NCL
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -184,7 +185,7 @@ lib: libnc
 
 ncdfcheck: $(OBJx)
 	$(LD) $(OBJx) -L$(LIB) -lNcUtils $(NC_LINK_CMD) -o $(EXE)
-	$(EXE) 
+	./$(EXE) 
 
 check: ncdfcheck
 test: ncdfcheck

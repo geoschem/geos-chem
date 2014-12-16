@@ -1514,7 +1514,7 @@
             ! If the 1x1 lat center equals the 2x25 right lon
             ! edge, then we need to average this 2x25 box and
             ! the box just east of it
-            ELSE IF ( X == XE2x25(II) ) THEN
+            ELSE IF ( X == XE2x25(II+1) ) THEN
                MAP1x1(I,J,1) = II
                MAP1x1(I,J,2) = II+1
                EXIT

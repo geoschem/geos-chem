@@ -346,7 +346,7 @@
             ENDDO
             ENDDO
          ENDDO   
-!$OMP END PARALLEL DO 
+!$OMP END PARALLEL DO
       ENDIF
 
       !================================================================= 

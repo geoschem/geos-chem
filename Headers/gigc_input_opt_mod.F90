@@ -33,6 +33,12 @@ MODULE GIGC_Input_Opt_Mod
   TYPE, PUBLIC :: OptInput
 
      !----------------------------------------
+     ! General Runtime & Distributed Comp Info
+     !----------------------------------------
+     INTEGER                     :: NPES      ! Number of MPI procs
+     INTEGER                     :: myPet     ! Handle for local PET
+
+     !----------------------------------------
      ! SIZE PARAMETER fields
      !----------------------------------------
      INTEGER                     :: MAX_DIAG
@@ -74,13 +80,13 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: N_TRACERS          
      INTEGER,            POINTER :: ID_TRACER(:)       
      CHARACTER(LEN=255), POINTER :: TRACER_NAME(:)     
-     REAL(fp),             POINTER :: TRACER_MW_G(:)     
-     REAL(fp),             POINTER :: TRACER_MW_KG(:)    
-     REAL(fp),             POINTER :: TCVV(:)            
-     REAL(fp),             POINTER :: XNUMOL(:)          
+     REAL(fp),           POINTER :: TRACER_MW_G(:)     
+     REAL(fp),           POINTER :: TRACER_MW_KG(:)    
+     REAL(fp),           POINTER :: TCVV(:)            
+     REAL(fp),           POINTER :: XNUMOL(:)          
      INTEGER,            POINTER :: TRACER_N_CONST(:)  
      CHARACTER(LEN=255), POINTER :: TRACER_CONST(:,:)  
-     REAL(fp),             POINTER :: TRACER_COEFF(:,:)  
+     REAL(fp),           POINTER :: TRACER_COEFF(:,:)  
      INTEGER,            POINTER :: ID_EMITTED(:)  
      INTEGER                     :: SIM_TYPE
      CHARACTER(LEN=255)          :: SIM_NAME
@@ -109,20 +115,20 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCARB              
      LOGICAL                     :: LSOA               
      LOGICAL                     :: LSVPOA
-     REAL(fp)                      :: NAPEMISS
-     REAL(fp)                      :: POAEMISSSCALE
+     REAL(fp)                    :: NAPEMISS
+     REAL(fp)                    :: POAEMISSSCALE
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
      LOGICAL                     :: LDICARB            
-     REAL(fp),             POINTER :: SALA_REDGE_um(:)   
-     REAL(fp),             POINTER :: SALC_REDGE_um(:)   
+     REAL(fp),           POINTER :: SALA_REDGE_um(:)   
+     REAL(fp),           POINTER :: SALC_REDGE_um(:)   
      LOGICAL                     :: LGRAVSTRAT
      LOGICAL                     :: LSOLIDPSC
      CHARACTER(LEN=255)          :: PSC_RST_FILE
      LOGICAL                     :: LHOMNUCNAT
-     REAL(fp)                      :: T_NAT_SUPERCOOL
-     REAL(fp)                      :: P_ICE_SUPERSAT
+     REAL(fp)                    :: T_NAT_SUPERCOOL
+     REAL(fp)                    :: P_ICE_SUPERSAT
      LOGICAL                     :: LPSCCHEM
      LOGICAL                     :: LSTRATOD
 
@@ -157,7 +163,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LMEGAN
      LOGICAL                     :: LPECCA 
      LOGICAL                     :: LMEGANMONO
-     REAL(fp)                      :: ISOP_SCALING 
+     REAL(fp)                    :: ISOP_SCALING 
      LOGICAL                     :: LBIOMASS 
      LOGICAL                     :: LBBSEA
      LOGICAL                     :: LTOMSAI
@@ -174,7 +180,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSOILNOX
      CHARACTER(LEN=255)          :: SOIL_RST_FILE
      LOGICAL                     :: LFERTILIZERNOX
-     REAL(fp)                      :: NOx_SCALING
+     REAL(fp)                    :: NOx_SCALING
      LOGICAL                     :: LEDGARSHIP
      LOGICAL                     :: LICOADSSHIP
      LOGICAL                     :: LEMEPSHIP
@@ -186,7 +192,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LWARWICK_VSLS
      LOGICAL                     :: LSSABr2
      LOGICAL                     :: LFIX_PBL_BRO
-     REAL(fp)                      :: Br_SCALING
+     REAL(fp)                    :: Br_SCALING
      LOGICAL                     :: LEDGARNOx
      LOGICAL                     :: LEDGARCO
      LOGICAL                     :: LEDGARSOx
@@ -257,11 +263,12 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSVCSPEC
      CHARACTER(LEN=255)          :: SPEC_RST_FILE
      LOGICAL                     :: LKPP
-     REAL(fp)                      :: GAMMA_HO2
+     REAL(fp)                    :: GAMMA_HO2
      LOGICAL                     :: LUCX
      LOGICAL                     :: LCH4CHEM
      LOGICAL                     :: LACTIVEH2O
      LOGICAL                     :: LO3FJX
+     INTEGER, POINTER            :: NTLOOPNCS(:)
 
      !----------------------------------------
      ! TRANSPORT MENU fields
@@ -432,9 +439,9 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: ND51_FILE
      INTEGER                     :: LND51_HDF
      INTEGER,            POINTER :: ND51_TRACERS(:)
-     REAL(fp)                      :: ND51_HR_WRITE
-     REAL(fp)                      :: ND51_HR1
-     REAL(fp)                      :: ND51_HR2
+     REAL(fp)                    :: ND51_HR_WRITE
+     REAL(fp)                    :: ND51_HR1
+     REAL(fp)                    :: ND51_HR2
      INTEGER                     :: ND51_IMIN
      INTEGER                     :: ND51_IMAX
      INTEGER                     :: ND51_JMIN
@@ -449,9 +456,9 @@ MODULE GIGC_Input_Opt_Mod
      CHARACTER(LEN=255)          :: ND51b_FILE
      INTEGER                     :: LND51b_HDF
      INTEGER,            POINTER :: ND51b_TRACERS(:)
-     REAL(fp)                      :: ND51b_HR_WRITE
-     REAL(fp)                      :: ND51b_HR1
-     REAL(fp)                      :: ND51b_HR2
+     REAL(fp)                    :: ND51b_HR_WRITE
+     REAL(fp)                    :: ND51b_HR1
+     REAL(fp)                    :: ND51b_HR2
      INTEGER                     :: ND51b_IMIN
      INTEGER                     :: ND51b_IMAX
      INTEGER                     :: ND51b_JMIN
@@ -479,7 +486,7 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: ND65, LD65
      LOGICAL                     :: DO_SAVE_O3
      INTEGER                     :: NFAM
-     REAL(fp),             POINTER :: FAM_COEF(:,:)
+     REAL(fp),           POINTER :: FAM_COEF(:,:)
      CHARACTER(LEN=255), POINTER :: FAM_MEMB(:,:)
      CHARACTER(LEN=255), POINTER :: FAM_NAME(:  )
      INTEGER,            POINTER :: FAM_NMEM(:  )
@@ -569,22 +576,22 @@ MODULE GIGC_Input_Opt_Mod
      ! APM MENU fields
      !----------------------------------------  
      LOGICAL                     :: IFNUCL
-     REAL(fp)                      :: FE0
+     REAL(fp)                    :: FE0
 
      !----------------------------------------
      ! POPS MENU fields
      !----------------------------------------
      CHARACTER(LEN=3)            :: POP_TYPE
      LOGICAL                     :: CHEM_PROCESS
-     REAL(fp)                      :: POP_XMW
-     REAL(fp)                      :: POP_KOA
-     REAL(fp)                      :: POP_KBC
-     REAL(fp)                      :: POP_K_POPG_OH
-     REAL(fp)                      :: POP_K_POPP_O3A
-     REAL(fp)                      :: POP_K_POPP_O3B
-     REAL(fp)                      :: POP_HSTAR
-     REAL(fp)                      :: POP_DEL_H
-     REAL(fp)                      :: POP_DEL_Hw
+     REAL(fp)                    :: POP_XMW
+     REAL(fp)                    :: POP_KOA
+     REAL(fp)                    :: POP_KBC
+     REAL(fp)                    :: POP_K_POPG_OH
+     REAL(fp)                    :: POP_K_POPP_O3A
+     REAL(fp)                    :: POP_K_POPP_O3B
+     REAL(fp)                    :: POP_HSTAR
+     REAL(fp)                    :: POP_DEL_H
+     REAL(fp)                    :: POP_DEL_Hw
 
      !----------------------------------------
      ! Fields for drydep and dust.  These get
@@ -594,10 +601,17 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: N_DUST_BINS
      INTEGER                     :: NUMDEP
      INTEGER,            POINTER :: NDVZIND(:)
+     INTEGER,            POINTER :: NTRAIND(:)
      INTEGER,            POINTER :: IDDEP(:)
-     REAL(fp),             POINTER :: DUSTREFF(:)
-     REAL(fp),             POINTER :: DUSTDEN(:)
+     REAL(fp),           POINTER :: DUSTREFF(:)
+     REAL(fp),           POINTER :: DUSTDEN(:)
      CHARACTER(LEN=14),  POINTER :: DEPNAME(:)
+     REAL(fp),           POINTER :: F0(:)
+     REAL(fp),           POINTER :: HSTAR(:)
+     REAL(fp),           POINTER :: XMW(:)
+     REAL(fp),           POINTER :: A_RADI(:)
+     REAL(fp),           POINTER :: A_DEN(:)
+     LOGICAL,            POINTER :: AIROSOL(:)
 
      !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
@@ -612,14 +626,14 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: LINOZ_NLAT
      INTEGER                     :: LINOZ_NMONTHS
      INTEGER                     :: LINOZ_NFIELDS
-     REAL(fp),             POINTER :: LINOZ_TPARM(:,:,:,:)
+     REAL(fp),           POINTER :: LINOZ_TPARM(:,:,:,:)
 
      !----------------------------------------
      ! Fields for overhead O3
      ! This gets set in main.F based on met
      ! field and year (mpayer, 12/13/13)
      !----------------------------------------
-     LOGICAL                    :: USE_O3_FROM_MET
+     LOGICAL                     :: USE_O3_FROM_MET
 
   END TYPE OptInput
 !
@@ -656,6 +670,7 @@ MODULE GIGC_Input_Opt_Mod
 !  25 Jun 2014 - R. Yantosca - Now add Input_Opt%SIM_TYPE field
 !  29 Sep 2014 - R. Yantosca - Now add Input_Opt%N_DUST_BINS field
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  16 Dec 2014 - R. Yantosca - Removed JLOP, JLOP_PREV; these are in State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -728,6 +743,7 @@ CONTAINS
 !  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !  25 Jun 2014 - R. Yantosca - Now initialize Input_Opt%SIM_TYPE field
+!  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1410,6 +1426,13 @@ CONTAINS
     ALLOCATE( Input_Opt%IDDEP   ( NDSTBIN ), STAT=RC ) ! Dust_mod
     ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ), STAT=RC ) ! Dust_mod
     ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ), STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%NTRAIND ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%F0      ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%HSTAR   ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%AIROSOL ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%XMW     ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%A_RADI  ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%A_DEN   ( MAX_DEP ), STAT=RC ) ! Drydep
 
     Input_Opt%N_DUST_BINS            = NDSTBIN
     Input_Opt%NUMDEP                 = 0
@@ -1418,6 +1441,12 @@ CONTAINS
     Input_Opt%DUSTREFF               = 0e+0_fp
     Input_Opt%DUSTDEN                = 0e+0_fp
     Input_Opt%DEPNAME                = ''
+    Input_Opt%F0                     = 0d0
+    Input_Opt%HSTAR                  = 0d0
+    Input_Opt%AIROSOL                = 0
+    Input_Opt%XMW                    = 0d0
+    Input_Opt%A_RADI                 = 0d0
+    Input_Opt%A_DEN                  = 0d0
 
     !----------------------------------------
     ! Fields for interface to GEOS-5 GCM
@@ -1429,6 +1458,12 @@ CONTAINS
     !----------------------------------------
     ! Fields for LINOZ strat chem
     !----------------------------------------
+    Input_Opt%LINOZ_NLEVELS = 25
+    Input_Opt%LINOZ_NLAT    = 18
+    Input_Opt%LINOZ_NMONTHS = 12
+    Input_Opt%LINOZ_NFIELDS = 7
+
+
     ALLOCATE( Input_Opt%LINOZ_TPARM( Input_Opt%LINOZ_NLEVELS,            &
                                      Input_Opt%LINOZ_NLAT,               &
                                      Input_Opt%LINOZ_NMONTHS,            &

@@ -818,6 +818,7 @@
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  03 Dec 2014 - R. Yantosca - Bug fix: remove TRANSFER_2D from GEOS-4 block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1085,7 +1086,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_TP, 'read_i6:16' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TROPP ) ) CALL TRANSFER_2D( Q2, TROPP )
+                  IF ( PRESENT( TROPP ) ) TROPP = Q2
                   NFOUND = NFOUND + 1
                ENDIF
             

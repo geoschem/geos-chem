@@ -84,6 +84,25 @@
       ! For nested grids, then IIPAR<IGLOB, JJPAR<JGLOB, LLPAR<LGLOB.
       !=================================================================
 
+#if defined ( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( ESMF_ )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to make all of these be variables rather than 
+      ! parameters, so that they can be defined directly from the
+      ! ESMF interface. (bmy, 10/11/12)
+      !-----------------------------------------------------------------
+      INTEGER            :: IGLOB
+      INTEGER            :: JGLOB
+      INTEGER            :: LGLOB
+      INTEGER            :: IIPAR
+      INTEGER            :: JJPAR
+      INTEGER            :: LLPAR                
+      INTEGER            :: LLTROP_FIX
+      INTEGER            :: LLTROP
+      INTEGER            :: LLSTRAT
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+#else
 #if   defined( GCAP ) && defined( GRID4x5 )
 
       !-----------------------------------------------------------------
@@ -405,26 +424,8 @@
 #endif
       REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
-#elif defined ( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to make all of these be variables rather than 
-      ! parameters, so that they can be defined directly from the
-      ! ESMF interface. (bmy, 10/11/12)
-      !-----------------------------------------------------------------
-      INTEGER            :: IGLOB
-      INTEGER            :: JGLOB
-      INTEGER            :: LGLOB
-      INTEGER            :: IIPAR
-      INTEGER            :: JJPAR
-      INTEGER            :: LLPAR                
-      INTEGER            :: LLTROP_FIX
-      INTEGER            :: LLTROP
-      INTEGER            :: LLSTRAT
-      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 #endif
-
+#endif
       !-----------------------------------------------------------------
       ! For GEOS 1x1 files
       !-----------------------------------------------------------------
@@ -737,7 +738,7 @@
 !------------------------------------------------------------------------------
 !BOC      
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( ESMF_ )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -774,6 +775,7 @@
       ! Set values for the number of longitudes, latitudes, and 
       ! levels that will be processed by the current CPU. 
       !=================================================================
+
       IIPAR      = value_IM         ! # of longitudes on this CPU
       JJPAR      = value_JM         ! # of latitudes  on this CPU
       LLPAR      = value_LM         ! # of levels     on this CPU

@@ -358,11 +358,11 @@ CONTAINS
 ! !USES:
 !
     USE ESMF
-    USE MAPL_MOD 
+    USE MAPL_MOD
     USE HCO_State_Mod, ONLY : HCO_State
     USE HCO_Clock_Mod, ONLY : HcoClock_GetMinResetFlag
 
-#include "MAPL_Generic.h"
+# include "MAPL_Generic.h"
 !
 ! !INPUT PARAMETERS:
 !

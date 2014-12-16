@@ -148,6 +148,7 @@
 !  23 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
 !  23 Jun 2014 - R. Yantosca - Removed INIT_INPUT routine
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  24 Nov 2014 - C. Keller   - Updates on timestep handling in ESMF environment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,11 +159,6 @@
       INTEGER            :: IU_GEOS
       INTEGER, PARAMETER :: FIRSTCOL = 26
       INTEGER, PARAMETER :: MAXDIM   = 500
-      INTEGER            :: TS_CHEM
-      INTEGER            :: TS_DYN
-      INTEGER            :: TS_CONV
-      INTEGER            :: TS_EMIS
-      INTEGER            :: TS_UNIT
       INTEGER            :: CT1, CT2, CT3
       CHARACTER(LEN=255) :: FILENAME = 'input.geos'
       CHARACTER(LEN=255) :: TOPTITLE
@@ -180,7 +176,13 @@
 ! !IROUTINE: read_input_file
 !
 ! !DESCRIPTION: Subroutine READ\_INPUT\_FILE is the driver program for 
-!  reading the GEOS-Chem input file "input.geos" from disk. 
+!  reading the GEOS-Chem input file "input.geos" from disk.
+!\\
+!\\
+! In an ESMF environment, all time steps (chemistry, convection, emissions,
+! dynamics) must be specified externally before calling this routine. This is
+! done in routine GIGC\_Init\_Simulation (gigc\_initialization\_mod.F90).
+! The time steps specified in input.geos are ignored.
 !\\
 !\\
 ! !INTERFACE:
@@ -1336,13 +1338,16 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
-      ! NTRACE cannot exceed NNPAR
 
-      IF ( Input_Opt%N_TRACERS > NNPAR ) THEN
-         CALL ERROR_STOP( 'Error: N_TRACERS > NNPAR!', 
+      ! Input_Opt vectors are of length MAX_TRCS. Make sure that
+      ! # of tracers does not exceed length of these vectors.
+      IF ( Input_Opt%N_TRACERS > Input_Opt%MAX_TRCS ) THEN
+         CALL ERROR_STOP( 'Error: N_TRACERS > MAX_TRCS!', 
      &                    'read_tracer_menu (input_mod.f)' )
+         RC = GIGC_FAILURE
+         RETURN
       ENDIF
-     
+
       !=================================================================
       ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt
       !=================================================================
@@ -1376,10 +1381,10 @@
   
             ! Number of species in this family
             Input_Opt%TRACER_N_CONST(T) = N-3
-               
+              
             ! Loop over substrings
             DO C = 1, N-3
-         
+        
                ! Trim the name
                NAME = TRIM( SUBSTRS(C+3) )
          
@@ -1504,7 +1509,7 @@
             WRITE( 6, 100 ) Input_Opt%ID_TRACER(T), 
      &                      Input_Opt%TRACER_NAME(T), 
      &                      Input_Opt%TRACER_MW_G(T)
-              
+            
             ! If a family tracer (or just a tracer w/ emission)
             ! then also print info about species
             IF ( Input_Opt%TRACER_N_CONST(T) > 1 .or. 
@@ -2347,6 +2352,7 @@
       LOGICAL            :: LSETN2O,  LSETH2SO4,    LBASICEMIS
       LOGICAL            :: LCH4CHEM, LFUTURECFC
       INTEGER            :: N,       HISTYR
+      INTEGER            :: TS_EMIS 
       CHARACTER(LEN=255) :: MSG,     LOC
       CHARACTER(LEN=255) :: HcoConfigFile
 
@@ -2618,9 +2624,12 @@
 
       !=================================================================
       ! Set fields of Input Options object
+      ! Input_Opt%TS_EMIS is set externally in ESMF environment!
       !=================================================================
       Input_Opt%LEMIS          = LEMIS
+#if !defined( EXTERNAL_FORCING )
       Input_Opt%TS_EMIS        = TS_EMIS
+#endif
       Input_Opt%HcoConfigFile  = HcoConfigFile
       Input_Opt%LFIX_PBL_BRO   = LFIX_PBL_BRO
       Input_Opt%LCH4EMIS       = LCH4EMIS
@@ -2659,7 +2668,8 @@
         WRITE( 6, '(/,a)' ) 'EMISSIONS MENU'
         WRITE( 6, '(  a)' ) '--------------'
         WRITE( 6, 100 ) 'Turn on emissions?          : ', LEMIS
-        WRITE( 6, 110 ) 'Emissions timestep [min]    : ', TS_EMIS
+        WRITE( 6, 110 ) 'Emissions timestep [min]    : ', 
+     &                    Input_Opt%TS_EMIS
         WRITE( 6, 130 ) 'HEMCO Configuration file    : ',
      &                    TRIM( HcoConfigFile )
         WRITE( 6, 100 ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
@@ -3132,9 +3142,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_CHEM
       USE TRACERID_MOD,       ONLY : IDTCH4
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE TIME_MOD,           ONLY : Accept_External_Date_Time
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -3177,6 +3184,7 @@
       LOGICAL            :: LSVCSPEC, LKPP,     LUCX    
       LOGICAL            :: LO3FJX,   LCH4CHEM, LACTIVEH2O
       INTEGER            :: N
+      INTEGER            :: TS_CHEM
       CHARACTER(LEN=255) :: MSG, LOCATION
       CHARACTER(LEN=255) :: SPEC_RST_FILE
 
@@ -3312,17 +3320,16 @@
       ! both the input.geos file and the ESMF resource file, so that
       ! both files are consistent with each other.
       ! (bmy, 12/6/12)
+      ! 
+      ! Now avoid call to time_mod.F because this is already covered by
+      ! CHECK_TIME_STEPS lateron. In an ESMF environment, all time steps
+      ! must become defined externally previous to the READ_INPUT_FILE
+      ! call!
+      ! (ckeller, 11/24/14)
       !-----------------------------------------------------------------
       
       ! Save to local variables for printing below
       TS_CHEM                 = Input_Opt%TS_CHEM
-
-      ! Pass chemistry timestep to time_mod.F
-      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
-     &                                value_TS_CHEM = TS_CHEM,   
-     &                                RC            = RC         )
-     &                                 
-
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -3360,13 +3367,14 @@
          WRITE( 6, 100     ) 'Enable UCX?                 : ', LUCX
          WRITE( 6, 100     ) 'Online CH4 chemistry?       : ', LCH4CHEM
          WRITE( 6, 100     ) 'Online strat. H2O?          : ',LACTIVEH2O
-         WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
+         WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', 
+     &        Input_Opt%TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
          WRITE( 6, 130     ) ' => CSPEC restart file?     : ', 
      &        TRIM( SPEC_RST_FILE )
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
          WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', LO3FJX
-         WRITE( 6, 100     ) 'GAMMA HO2                   : ',
+         WRITE( 6, 140     ) 'GAMMA HO2                   : ',
      &      Input_Opt%GAMMA_HO2
       ENDIF
 
@@ -3375,6 +3383,7 @@
  110  FORMAT( A, I5  )
  120  FORMAT( A, 2I5 )
  130  FORMAT( A, A   )
+ 140  FORMAT( A, F4.2 )
 
       END SUBROUTINE READ_CHEMISTRY_MENU  
 !EOC
@@ -3398,9 +3407,6 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE TIME_MOD,           ONLY : Accept_External_Date_Time
-#endif
 #if !defined( ESMF_ )
       USE TRANSPORT_MOD,      ONLY : SET_TRANSPORT
 #endif
@@ -3449,6 +3455,7 @@
       LOGICAL            :: LFILL, LTRAN
       INTEGER            :: N,     IORD,    JORD,    KORD
       INTEGER            :: J1,    KS,      MAX_DYN
+      INTEGER            :: TS_DYN
       CHARACTER(LEN=255) :: MSG,   LOCATION
 
       ! Arrays
@@ -3507,12 +3514,6 @@
       MAX_DYN = 60
 #endif
 
-      ! If TS_DYN is greater than MAX_DYN, then stop w/ error
-      IF ( TS_DYN > MAX_DYN .and. LTRAN ) THEN
-         MSG = 'Transport timestep is too big!'
-         CALL ERROR_STOP( MSG, LOCATION )
-      ENDIF
-
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -3549,17 +3550,16 @@
       ! both the input.geos file and the ESMF resource file, so that
       ! both files are consistent with each other.
       ! (bmy, 12/6/12)
+      ! 
+      ! Now avoid call to time_mod.F because this is already covered by
+      ! CHECK_TIME_STEPS lateron. In an ESMF environment, all time steps
+      ! must become defined externally previous to the READ_INPUT_FILE
+      ! call!
+      ! (ckeller, 11/24/14)
       !-----------------------------------------------------------------
       
       ! Save to local variables for printing below
       TS_DYN                = Input_Opt%TS_DYN
-
-      ! Pass chemistry timestep to time_mod.F
-      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
-     &                                value_TS_DYN  = TS_DYN,
-     &                                RC            = RC         )
-     &                                 
-
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -3571,6 +3571,12 @@
       Input_Opt%TS_DYN      = TS_DYN
 
 #endif
+
+      ! If TS_DYN is greater than MAX_DYN, then stop w/ error
+      IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
+         MSG = 'Transport timestep is too big!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -3585,7 +3591,8 @@
          WRITE( 6, 100     ) 'Let TPCORE Fill negatives?  : ', LFILL
          WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
      &                                                   JORD, KORD
-         WRITE( 6, 120     ) 'Transport timestep [min]    : ', TS_DYN
+         WRITE( 6, 120     ) 'Transport timestep [min]    : ', 
+     &      Input_Opt%TS_DYN
       ENDIF
 
       ! FORMAT statements
@@ -3624,9 +3631,6 @@
       USE FVDAS_CONVECT_MOD,  ONLY : INIT_FVDAS_CONVECT
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE TIME_MOD,           ONLY : Accept_External_Date_Time
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -3662,7 +3666,7 @@
 !
       ! Scalars
       LOGICAL            :: LCONV, LTURB, LNLPBL
-      INTEGER            :: N
+      INTEGER            :: N,     TS_CONV
       CHARACTER(LEN=255) :: MSG
 
       ! Arrays
@@ -3725,24 +3729,16 @@
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! If we are connecting to the ESMF interface, we need to set
-      ! the convection timestep equal to the dynamic timestep in
-      ! order to avoid tripping an error message in the routine
-      ! CHECK_TIMESTEPS. (bmy, 3/1/13)
+      ! In an ESMF environment, all time steps must become defined 
+      ! externally previous to the READ_INPUT_FILE call!
+      ! (ckeller, 11/24/14)
       !-----------------------------------------------------------------
-      
+
       ! Set TS_CONV from Input_Opt%TS_DYN
-      TS_CONV           = Input_Opt%TS_DYN
-
-      ! Pass chemistry timestep to time_mod.F
-      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
-     &                                value_TS_CONV = TS_CONV,
-     &                                RC            = RC         )
-     &                                 
-#endif
-
+      TS_CONV           = Input_Opt%TS_CONV
+#else
       Input_Opt%TS_CONV = TS_CONV
+#endif
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -3756,7 +3752,8 @@
          WRITE( 6, 100     ) 'Turn on cloud convection?   : ', LCONV
          WRITE( 6, 100     ) 'Turn on PBL mixing?         : ', LTURB
          WRITE( 6, 100     ) 'Turn on non-local PBL?      : ', LNLPBL
-         WRITE( 6, 110     ) 'Convection timestep [min]   : ', TS_CONV
+         WRITE( 6, 110     ) 'Convection timestep [min]   : ', 
+     &      Input_Opt%TS_CONV
       ENDIF
 
       ! FORMAT statements
@@ -7898,7 +7895,8 @@
       LOGICAL :: LEMIS, LTRAN,       LTURB 
       INTEGER :: I,     J,           K 
       INTEGER :: L,     TS_SMALLEST, TS_DIAG
-      
+      INTEGER :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN, TS_UNIT
+
       !=================================================================
       ! CHECK_TIME_STEPS begins here!
       !=================================================================
@@ -7910,7 +7908,12 @@
       LEMIS = Input_Opt%LEMIS
       LTRAN = Input_Opt%LTRAN
       LTURB = Input_Opt%LTURB 
-      
+     
+      TS_CHEM = Input_Opt%TS_CHEM
+      TS_EMIS = Input_Opt%TS_EMIS
+      TS_CONV = Input_Opt%TS_CONV
+      TS_DYN  = Input_Opt%TS_DYN 
+ 
       ! NUNIT is time step in minutes for unit conversion
       TS_UNIT = -1
 

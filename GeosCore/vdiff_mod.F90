@@ -1825,7 +1825,7 @@ contains
                                    NDRYDEP, emis_save
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
-
+    ! HEMCO update
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
 
     implicit none
@@ -1946,15 +1946,15 @@ contains
     LOGICAL            :: LGTMM,     LSOILNOX
     INTEGER            :: N_TRACERS, N_MEMBERS 
     INTEGER            :: ID_EMITTED  (Input_Opt%N_TRACERS)
-    REAL(fp)             :: TRACER_COEFF(Input_Opt%N_TRACERS, Input_Opt%MAX_MEMB)
-    REAL(fp)             :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+    REAL(fp)           :: TRACER_COEFF(Input_Opt%N_TRACERS, Input_Opt%MAX_MEMB)
+    REAL(fp)           :: TRACER_MW_KG(Input_Opt%N_TRACERS)
     CHARACTER(LEN=255) :: TRACER_NAME (Input_Opt%N_TRACERS)
-    REAL(fp)             :: TCVV        (Input_Opt%N_TRACERS)
+    REAL(fp)           :: TCVV        (Input_Opt%N_TRACERS)
 
-    ! Total PBL emissions
-    INTEGER            :: topmix
-    REAL(fp)             :: tmpflx, emis, dep
-    LOGICAL            :: fnd
+    ! HEMCO update
+    LOGICAL            :: FND
+    REAL(fp)           :: TMPFLX, EMIS, DEP
+    INTEGER            :: TOPMIX
 
     !=================================================================
     ! vdiffdr begins here!
@@ -1986,12 +1986,9 @@ contains
 
     ! Copy values from Input_Opt (bmy, 8/1/13)
     IS_CH4       = Input_Opt%ITS_A_CH4_SIM
-!    IS_FULLCHEM  = Input_Opt%ITS_A_FULLCHEM_SIM
     IS_Hg        = Input_Opt%ITS_A_MERCURY_SIM
-!    IS_TAGCO     = Input_Opt%ITS_A_TAGCO_SIM
     IS_TAGOX     = Input_Opt%ITS_A_TAGOX_SIM
     IS_AEROSOL   = Input_Opt%ITS_AN_AEROSOL_SIM
-!    IS_RnPbBe    = Input_Opt%ITS_A_RnPbBe_SIM
     LDYNOCEAN    = Input_Opt%LDYNOCEAN
     LGTMM        = Input_Opt%LGTMM
     LSOILNOX     = Input_Opt%LSOILNOX
@@ -2114,9 +2111,8 @@ contains
           IF ( fnd ) THEN
              dflx(I,J,N) = dflx(I,J,N) + ( dep * as2_scal(I,J,N) / TCVV(N) )
           ENDIF
-
        ENDDO
-          
+       
 !       !----------------------------------------------------------------
 !       ! Add emissions for offline aerosol simulation
 !       !----------------------------------------------------------------
@@ -2462,7 +2458,6 @@ contains
     enddo
 !$OMP END PARALLEL DO
 
-    ! testing only: write out eflx
 #if defined( DEBUG )
     write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
     do N=1,N_TRACERS
@@ -2688,8 +2683,6 @@ contains
 
        CALL COMPUTE_PBL_HEIGHT( State_Met )
     endif
-
-
 
 !      !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )

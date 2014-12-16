@@ -31,6 +31,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE GCKPP_GLOBAL,       ONLY : IND
+      USE GCKPP_PARAMETERS,   ONLY : NREACT
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState

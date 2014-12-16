@@ -942,6 +942,8 @@
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!  14 Nov 2014 - C. Keller   - Added error trap to prevent second allocation 
+!                              attempt in ESMF environment.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -953,6 +955,11 @@
       !=================================================================
       ! INIT_PBL_MIX begins here!
       !=================================================================
+
+      ! Error trap: in an ESMF environment, it is possible that this
+      ! routine is called twice. No need to allocate arrays if already
+      ! done so.
+      IF ( ALLOCATED(IMIX) ) RETURN
 
       ! Scalars
       PBL_MAX_L = 0

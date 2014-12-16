@@ -375,7 +375,6 @@
           ELSE
 #ENDIF
              CALL SMVGEAR( am_I_Root, Input_Opt, RC )
-          call CPU_TIME(finish)
 
 !
 ! *********************************************************************
@@ -400,9 +399,11 @@
 #IF DEFINED ( KPP )
           ENDIF
 #ENDIF
+          call CPU_TIME(finish)
 !
           
  640      CONTINUE
+      
 !$OMP END PARALLEL DO
 
 !------------------------------------------------------------------------------
