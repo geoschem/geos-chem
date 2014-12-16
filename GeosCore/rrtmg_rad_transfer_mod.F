@@ -13,8 +13,9 @@
         IMPLICIT NONE
 !        PRIVATE
 
-
-        !PUBLIC MEMBER FUNCTIONS
+!
+! !PUBLIC MEMBER FUNCTIONS
+!
         PUBLIC  :: CLEANUP_SURFACE_RAD
         PUBLIC  :: INIT_SURFACE_RAD
         PUBLIC  :: READ_SURFACE_RAD
@@ -51,22 +52,25 @@
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FSFCMCL(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REICMCL(:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RELQMCL(:,:)
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8,  ALLOCATABLE  :: LW_UFLUX(:,:)
+      REAL*8,  ALLOCATABLE  :: LW_DFLUX(:,:)
+      REAL*8,  ALLOCATABLE  :: SW_UFLUX(:,:)
+      REAL*8,  ALLOCATABLE  :: SW_DFLUX(:,:)
+      REAL*8,  ALLOCATABLE  :: LW_UFLUXC(:,:)
+      REAL*8,  ALLOCATABLE  :: LW_DFLUXC(:,:)
+      REAL*8,  ALLOCATABLE  :: SW_UFLUXC(:,:)
+      REAL*8,  ALLOCATABLE  :: SW_DFLUXC(:,:)
 
+      REAL*8  :: RRTMG_LMB(NBNDLW+NBNDSW)
 
-        REAL*8  :: LW_UFLUX(IIPAR*JJPAR,LLPAR+1)
-        REAL*8  :: LW_DFLUX(IIPAR*JJPAR,LLPAR+1)
-        REAL*8  :: SW_UFLUX(IIPAR*JJPAR,LLPAR+1)
-        REAL*8  :: SW_DFLUX(IIPAR*JJPAR,LLPAR+1)
-        REAL*8  :: LW_UFLUXC(IIPAR*JJPAR,LLPAR+1)
-        REAL*8  :: LW_DFLUXC(IIPAR*JJPAR,LLPAR+1)
-        REAL*8  :: SW_UFLUXC(IIPAR*JJPAR,LLPAR+1)
-        REAL*8  :: SW_DFLUXC(IIPAR*JJPAR,LLPAR+1)
+      INTEGER :: ID_AER_LMB0 (NBNDLW+NBNDSW)
+      INTEGER :: ID_AER_LMB1 (NBNDLW+NBNDSW)
 
-        REAL*8   :: RRTMG_LMB(NBNDLW+NBNDSW)
+      CONTAINS
 
-        INTEGER  :: ID_AER_LMB0 (NBNDLW+NBNDSW)
-        INTEGER  :: ID_AER_LMB1 (NBNDLW+NBNDSW)
-        CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1042,7 +1046,7 @@
 
 !******************************************************************************
 
-      SUBROUTINE READ_SURFACE_RAD(FORCEREAD)
+      SUBROUTINE READ_SURFACE_RAD( Input_Opt, FORCEREAD )
 
 !
 !******************************************************************************
@@ -1057,17 +1061,20 @@
 !  DAR (10/2012)
 !******************************************************************************
       ! REFERENCES TO F90 MODULES
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_YEAR, GET_MONTH 
-      USE TIME_MOD,      ONLY : GET_DAY,  GET_DAY_OF_YEAR  
-      USE TIME_MOD,      ONLY : YMD_EXTRACT
-      USE JULDAY_MOD,    ONLY : JULDAY, CALDATE
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+      USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
+      USE TIME_MOD,           ONLY : GET_DAY,  GET_DAY_OF_YEAR  
+      USE TIME_MOD,           ONLY : YMD_EXTRACT
+      USE JULDAY_MOD,         ONLY : JULDAY, CALDATE
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
-      USE CMN_SIZE_MOD        ! SIZE PARAMETERS
+      USE CMN_SIZE_MOD             ! SIZE PARAMETERS
       USE CMN_FJX_MOD
-
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput),  INTENT(IN)   :: Input_Opt   ! Input options
       LOGICAL, INTENT(IN), OPTIONAL :: FORCEREAD   ! RESET FIRST-TIME FLAG?
 
       ! LOCAL VARIABLES
@@ -1131,7 +1138,7 @@
 
 
       ! FILENAME AND TIME
-      FILENAME  = TRIM( DATA_DIR )         //
+      FILENAME  = TRIM( Input_Opt%DATA_DIR )         //
      &            'modis_surf_201210/' //
 ! the 02-07 file contains our regridded and filled emissivity
 ! and albedo climatology for 2002-2007 direct from MODIS products
@@ -1226,7 +1233,7 @@
 
 !******************************************************************************
 
-      SUBROUTINE READ_STRAT_CLIM()
+      SUBROUTINE READ_STRAT_CLIM( Input_Opt )
 
 !
 !******************************************************************************
@@ -1241,16 +1248,19 @@
 !  DAR (12/2012)
 !******************************************************************************
       ! REFERENCES TO F90 MODULES
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_YEAR, GET_MONTH
-      USE TIME_MOD,      ONLY : GET_DAY,  GET_DAY_OF_YEAR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+      USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
+      USE TIME_MOD,           ONLY : GET_DAY,  GET_DAY_OF_YEAR
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
-      USE CMN_SIZE_MOD        ! SIZE PARAMETERS
+      USE CMN_SIZE_MOD             ! SIZE PARAMETERS
       USE CMN_FJX_MOD
-
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 
       ! LOCAL VARIABLES
       LOGICAL               :: DOREAD
@@ -1263,7 +1273,7 @@
       !=================================================================
 
       ! FILENAME AND TIME
-      FILENAME  = TRIM( DATA_DIR )         //
+      FILENAME  = TRIM( Input_Opt%DATA_DIR )         //
 !     &            'STRAT_CHEM_201206/' //
      &            'species_clim_profiles' //
      &            '.'// GET_RES_EXT()
@@ -1372,6 +1382,38 @@
       ALLOCATE( EMISS( IIPAR, JJPAR, NEMISS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS' )
       EMISS = 0D0
+
+      ALLOCATE( LW_UFLUX(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_UFLUX' )
+      LW_UFLUX = 0D0
+
+      ALLOCATE( LW_DFLUX(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_DFLUX' )
+      LW_DFLUX = 0D0
+
+      ALLOCATE( SW_UFLUX(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_UFLUX' )
+      SW_UFLUX = 0D0
+
+      ALLOCATE( SW_DFLUX(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_DFLUX' )
+      SW_DFLUX = 0D0
+
+      ALLOCATE( LW_UFLUXC(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_UFLUXC' )
+      LW_UFLUXC = 0D0
+
+      ALLOCATE( LW_DFLUXC(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_DFLUXC' )
+      LW_DFLUXC = 0D0
+
+      ALLOCATE( SW_UFLUXC(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_UFLUXC' )
+      SW_UFLUXC = 0D0
+
+      ALLOCATE( SW_DFLUXC(IIPAR*JJPAR,LLPAR+1), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_DFLUXC' )
+      SW_DFLUXC = 0D0
 
       ! RETURN TO CALLING PROGRAM
       END SUBROUTINE INIT_SURFACE_RAD
@@ -1517,6 +1559,15 @@
       IF ( ALLOCATED( ALBDIR          ) ) DEALLOCATE( ALBDIR          )
       IF ( ALLOCATED( ALBDIF          ) ) DEALLOCATE( ALBDIF          )
       IF ( ALLOCATED( EMISS           ) ) DEALLOCATE( EMISS           )
+      IF ( ALLOCATED( LW_UFLUX        ) ) DEALLOCATE( LW_UFLUX        )
+      IF ( ALLOCATED( LW_DFLUX        ) ) DEALLOCATE( LW_DFLUX        )
+      IF ( ALLOCATED( SW_UFLUX        ) ) DEALLOCATE( SW_UFLUX        )
+      IF ( ALLOCATED( SW_DFLUX        ) ) DEALLOCATE( SW_DFLUX        )
+      IF ( ALLOCATED( LW_UFLUXC       ) ) DEALLOCATE( LW_UFLUXC       )
+      IF ( ALLOCATED( LW_DFLUXC       ) ) DEALLOCATE( LW_DFLUXC       )
+      IF ( ALLOCATED( SW_UFLUXC       ) ) DEALLOCATE( SW_UFLUXC       )
+      IF ( ALLOCATED( SW_DFLUXC       ) ) DEALLOCATE( SW_DFLUXC       )
+
 
       END SUBROUTINE CLEANUP_SURFACE_RAD
 

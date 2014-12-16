@@ -556,7 +556,7 @@
       CALL INIT_SURFACE_RAD
       !WRITE(6,*) 'Calling INIT_STRAT_CLIM'
       CALL INIT_STRAT_CLIM
-      CALL READ_STRAT_CLIM
+      CALL READ_STRAT_CLIM( Input_Opt )
       CALL INIT_MCICA_CLOUDS
 
       ! Initialization
@@ -2129,7 +2129,7 @@
       !  Therefore we pass the init flag to ensure
       !  the closest date to the current day is read
       !  rather than nothing at all
-      CALL READ_SURFACE_RAD( FORCEREAD =.TRUE. )
+      CALL READ_SURFACE_RAD( Input_Opt, FORCEREAD =.TRUE. )
 #endif
 
       END SUBROUTINE READ_INITIAL_MET_FIELDS
@@ -2365,7 +2365,7 @@
       !  sure we dont re-read the same files
       IF ( ITS_TIME_FOR_SURFACE_RAD() ) THEN
 !         WRITE(6,*) 'ITS TIME FOR SURFACE RAD'
-         CALL READ_SURFACE_RAD
+         CALL READ_SURFACE_RAD( Input_Opt )
       ENDIF
 #endif
 
