@@ -6,7 +6,7 @@
 ! !MODULE: transfer_mod
 !
 ! !DESCRIPTION: Module TRANSFER\_MOD contains routines used to copy data 
-!  from REAL*4 to REAL*8 arrays after being read from disk.  Also, vertical 
+!  from REAL*4 to REAL(fp) arrays after being read from disk.  Also, vertical 
 !  levels will be collapsed in the stratosphere if necessary.  This will help 
 !  us to gain computational advantage. 
 !\\
@@ -20,6 +20,8 @@
       USE CMN_SIZE_MOD              
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+      USE PRECISION_MOD
+
 
       IMPLICIT NONE
 
@@ -151,6 +153,7 @@
 !  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_TO_1D function
 !  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_2D* functions
 !   6 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_3D_TROP function
+!  04 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,7 +166,7 @@
       INTEGER             :: L_COPY
 
       ! Arrays
-      REAL*8, ALLOCATABLE :: EDGE_IN(:)
+      REAL(fp), ALLOCATABLE :: EDGE_IN(:)
 
       CONTAINS
 !EOC
@@ -286,7 +289,7 @@
 ! !IROUTINE: transfer_3d_r8
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_R8 transfers 3-dimensional data from a 
-!  REAL*4  array to a REAL*8 array.  Vertical layers are collapsed (from LGLOB
+!  REAL*4  array to a REAL(fp) array.  Vertical layers are collapsed (from LGLOB
 !  to LLPAR) if necessary.
 !\\
 !\\
@@ -413,7 +416,7 @@
 ! !IROUTINE: transfer_3d_bry
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_Bry transfers 3-dimensional data 
-!  from a REAL*4 array to a REAL*8 array.  Vertical layers are collapsed 
+!  from a REAL*4 array to a REAL(fp) array.  Vertical layers are collapsed 
 !  (from LGLOB to LLPAR) if necessary.  This routine was specially created 
 !  for 2 x 2.5 Bry data in strat\_chem\_mod.F90.
 !\\
@@ -428,7 +431,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: OUT(144,91,LLPAR)   ! Output data
+      REAL(fp),  INTENT(OUT) :: OUT(144,91,LLPAR)   ! Output data
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2012 - R. Yantosca - Initial version, based on TRANSFER_3D
@@ -539,7 +542,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)   ! Output data
+      REAL(fp),  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)   ! Output data
 !
 ! !REVISION HISTORY: 
 !  08 Feb 2007 - R. Yantosca - Initial version
@@ -610,7 +613,7 @@
 ! !IROUTINE: transfer_3d_lp1
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_Lp1 transfers 3-D data from a REAL*4 
-!  array of dimension (IIPAR,JJPAR,LGLOB+1) to a REAL*8 array of dimension 
+!  array of dimension (IIPAR,JJPAR,LGLOB+1) to a REAL(fp) array of dimension 
 !  (IIPAR,JJPAR,LLPAR+1).  Regrid in the vertical if needed.
 !\\
 !\\
@@ -624,7 +627,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)   ! Output data
+      REAL(fp),  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)   ! Output data
 ! 
 ! !REVISION HISTORY: 
 !  08 Feb 2007 - R. Yantosca - Initial version
@@ -807,7 +810,7 @@
 ! !IROUTINE: lump_2_r8
 !
 ! !DESCRIPTION: Function LUMP\_2\_R8 lumps 2 sigma levels into one thick 
-!  level.  Input arguments must be REAL*8. 
+!  level.  Input arguments must be REAL(fp). 
 !\\
 !\\
 ! !INTERFACE:
@@ -1025,7 +1028,7 @@
 ! !IROUTINE: lump_4_r8
 !
 ! !DESCRIPTION: Function LUMP\_4\_R8 lumps 4 sigma levels into one thick 
-!  level.  Input arguments must be REAL*8.
+!  level.  Input arguments must be REAL(fp).
 !\\
 !\\
 ! !INTERFACE:
@@ -1224,7 +1227,7 @@
       ! Allocate the EDGE_IN array
       ALLOCATE( EDGE_IN( LGLOB + 1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
-      EDGE_IN = 0d0
+      EDGE_IN = 0e+0_fp
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
@@ -1237,27 +1240,45 @@
       ! Initialize EDGE_IN with the original 73 Ap values for GEOS-5.
       !-----------------------------------------------------------------
       EDGE_IN = (/ 
-     &        0.000000d+00, 4.804826d-02, 6.593752d+00, 1.313480d+01,
-     &        1.961311d+01, 2.609201d+01, 3.257081d+01, 3.898201d+01,
-     &        4.533901d+01, 5.169611d+01, 5.805321d+01, 6.436264d+01,
-     &        7.062198d+01, 7.883422d+01, 8.909992d+01, 9.936521d+01,
-     &        1.091817d+02, 1.189586d+02, 1.286959d+02, 1.429100d+02,
-     &        1.562600d+02, 1.696090d+02, 1.816190d+02, 1.930970d+02,
-     &        2.032590d+02, 2.121500d+02, 2.187760d+02, 2.238980d+02,
-     &        2.243630d+02, 2.168650d+02, 2.011920d+02, 
+     &  0.000000e+00_fp, 4.804826e-02_fp, 
+     &  6.593752e+00_fp, 1.313480e+01_fp,
+     &  1.961311e+01_fp, 2.609201e+01_fp, 
+     &  3.257081e+01_fp, 3.898201e+01_fp,
+     &  4.533901e+01_fp, 5.169611e+01_fp, 
+     &  5.805321e+01_fp, 6.436264e+01_fp,
+     &  7.062198e+01_fp, 7.883422e+01_fp, 
+     &  8.909992e+01_fp, 9.936521e+01_fp,
+     &  1.091817e+02_fp, 1.189586e+02_fp, 
+     &  1.286959e+02_fp, 1.429100e+02_fp,
+     &  1.562600e+02_fp, 1.696090e+02_fp, 
+     &  1.816190e+02_fp, 1.930970e+02_fp,
+     &  2.032590e+02_fp, 2.121500e+02_fp, 
+     &  2.187760e+02_fp, 2.238980e+02_fp,
+     &  2.243630e+02_fp, 2.168650e+02_fp, 
+     &  2.011920e+02_fp, 
 !------- EDGES OF GEOS-5 FIXED PRESSURE LEVELS OCCUR BELOW THIS LINE ------
-     &                                                  1.769300d+02,
-     &        1.503930d+02, 1.278370d+02, 1.086630d+02, 9.236572d+01,
-     &        7.851231d+01, 6.660341d+01, 5.638791d+01, 4.764391d+01,
-     &        4.017541d+01, 3.381001d+01, 2.836781d+01, 2.373041d+01,
-     &        1.979160d+01, 1.645710d+01, 1.364340d+01, 1.127690d+01,
-     &        9.292942d+00, 7.619842d+00, 6.216801d+00, 5.046801d+00,
-     &        4.076571d+00, 3.276431d+00, 2.620211d+00, 2.084970d+00,
-     &        1.650790d+00, 1.300510d+00, 1.019440d+00, 7.951341d-01,
-     &        6.167791d-01, 4.758061d-01, 3.650411d-01, 2.785261d-01,
-     &        2.113490d-01, 1.594950d-01, 1.197030d-01, 8.934502d-02,
-     &        6.600001d-02, 4.758501d-02, 3.270000d-02, 2.000000d-02,
-     &        1.000000d-02 /)
+     &  1.769300e+02_fp,
+     &  1.503930e+02_fp, 1.278370e+02_fp, 
+     &  1.086630e+02_fp, 9.236572e+01_fp,
+     &  7.851231e+01_fp, 6.660341e+01_fp, 
+     &  5.638791e+01_fp, 4.764391e+01_fp,
+     &  4.017541e+01_fp, 3.381001e+01_fp, 
+     &  2.836781e+01_fp, 2.373041e+01_fp,
+     &  1.979160e+01_fp, 1.645710e+01_fp, 
+     &  1.364340e+01_fp, 1.127690e+01_fp,
+     &  9.292942e+00_fp, 7.619842e+00_fp, 
+     &  6.216801e+00_fp, 5.046801e+00_fp,
+     &  4.076571e+00_fp, 3.276431e+00_fp, 
+     &  2.620211e+00_fp, 2.084970e+00_fp,
+     &  1.650790e+00_fp, 1.300510e+00_fp, 
+     &  1.019440e+00_fp, 7.951341e-01_fp,
+     &  6.167791e-01_fp, 4.758061e-01_fp, 
+     &  3.650411e-01_fp, 2.785261e-01_fp,
+     &  2.113490e-01_fp, 1.594950e-01_fp, 
+     &  1.197030e-01_fp, 8.934502e-02_fp,
+     &  6.600001e-02_fp, 4.758501e-02_fp, 
+     &  3.270000e-02_fp, 2.000000e-02_fp,
+     &  1.000000e-02_fp /)
 
 #elif defined( GEOS_4 )
 
@@ -1269,25 +1290,25 @@
       !
       ! Initialize EDGE_IN with the original 56 Ap values for GEOS-4.
       !-----------------------------------------------------------------
-      EDGE_IN = (/  0.000000d0,   0.000000d0,  12.704939d0,  
-     &             35.465965d0,  66.098427d0, 101.671654d0, 
-     &            138.744400d0, 173.403183d0, 198.737839d0, 
-     &            215.417526d0, 223.884689d0, 224.362869d0,
-     &            216.864929d0, 201.192093d0, 176.929993d0, 
-     &            150.393005d0, 127.837006d0, 108.663429d0,  
-     &             92.365662d0,  78.512299d0,  66.603378d0,  
-     &             56.387939d0,  47.643932d0,  40.175419d0, 
-     &             33.809956d0,  28.367815d0,  23.730362d0,  
-     &             19.791553d0,  16.457071d0,  13.643393d0,  
-     &             11.276889d0,   9.292943d0,   7.619839d0,   
-     &              6.216800d0,   5.046805d0,   4.076567d0, 
-     &              3.276433d0,   2.620212d0,   2.084972d0,   
-     &              1.650792d0,   1.300508d0,   1.019442d0,   
-     &              0.795134d0,   0.616779d0,   0.475806d0,   
-     &              0.365041d0,   0.278526d0,   0.211349d0, 
-     &              0.159495d0,   0.119703d0,   0.089345d0,   
-     &              0.066000d0,   0.047585d0,   0.032700d0,   
-     &              0.020000d0,   0.010000d0 /)
+      EDGE_IN = (/  0.000000e+0_fp,   0.000000e+0_fp,  12.704939e+0_fp,  
+     &             35.465965e+0_fp,  66.098427e+0_fp, 101.671654e+0_fp, 
+     &            138.744400e+0_fp, 173.403183e+0_fp, 198.737839e+0_fp, 
+     &            215.417526e+0_fp, 223.884689e+0_fp, 224.362869e+0_fp,
+     &            216.864929e+0_fp, 201.192093e+0_fp, 176.929993e+0_fp, 
+     &            150.393005e+0_fp, 127.837006e+0_fp, 108.663429e+0_fp,  
+     &             92.365662e+0_fp,  78.512299e+0_fp,  66.603378e+0_fp,  
+     &             56.387939e+0_fp,  47.643932e+0_fp,  40.175419e+0_fp, 
+     &             33.809956e+0_fp,  28.367815e+0_fp,  23.730362e+0_fp,  
+     &             19.791553e+0_fp,  16.457071e+0_fp,  13.643393e+0_fp,  
+     &             11.276889e+0_fp,   9.292943e+0_fp,   7.619839e+0_fp,   
+     &              6.216800e+0_fp,   5.046805e+0_fp,   4.076567e+0_fp, 
+     &              3.276433e+0_fp,   2.620212e+0_fp,   2.084972e+0_fp,   
+     &              1.650792e+0_fp,   1.300508e+0_fp,   1.019442e+0_fp,   
+     &              0.795134e+0_fp,   0.616779e+0_fp,   0.475806e+0_fp,   
+     &              0.365041e+0_fp,   0.278526e+0_fp,   0.211349e+0_fp, 
+     &              0.159495e+0_fp,   0.119703e+0_fp,   0.089345e+0_fp,   
+     &              0.066000e+0_fp,   0.047585e+0_fp,   0.032700e+0_fp,   
+     &              0.020000e+0_fp,   0.010000e+0_fp /)
 
 #endif
 

@@ -20,6 +20,8 @@ MODULE Grid_Mod
   USE CMN_GCTM_Mod             ! Physical constants
   USE Error_Mod                ! Error-handling routines
 
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -63,6 +65,7 @@ MODULE Grid_Mod
 !                              connecting GEOS-Chem to the GEOS-5 GCM
 !  19 May 2013 - C. Keller   - Added wrapper routine DoGridComputation so that
 !                              module can also be used by HEMCO.
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -89,16 +92,16 @@ MODULE Grid_Mod
   INTEGER              :: J0
 
   ! Arrays
-  REAL*8,  ALLOCATABLE, TARGET :: XMID     (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: XEDGE    (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YMID     (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YEDGE    (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YSIN     (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YMID_R   (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YEDGE_R  (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YMID_R_W (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YEDGE_R_W(:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: AREA_M2  (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: XMID     (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: XEDGE    (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YMID     (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YEDGE    (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YSIN     (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YMID_R   (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YEDGE_R  (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YMID_R_W (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YEDGE_R_W(:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: AREA_M2  (:,:,:)
 
 CONTAINS
 !EOC
@@ -132,8 +135,8 @@ CONTAINS
     INTEGER, INTENT(IN)  :: J1,  J2                       ! Local lat indices
     INTEGER, INTENT(IN)  :: JSP, JNP                      ! Polar lat indices
     INTEGER, INTENT(IN)  :: L1,  L2                       ! Local lev indices
-    REAL*8,  INTENT(IN)  :: DLON(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lon [deg]
-    REAL*8,  INTENT(IN)  :: DLAT(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lat [deg]
+    REAL(fp),  INTENT(IN)  :: DLON(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lon [deg]
+    REAL(fp),  INTENT(IN)  :: DLAT(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lat [deg]
 
     ! Variables with global CPU indices
     INTEGER, INTENT(IN)  :: I_LO                          ! Min global lon
@@ -206,8 +209,8 @@ CONTAINS
     INTEGER, INTENT(IN)  :: J1,  J2                       ! Local lat indices
     INTEGER, INTENT(IN)  :: JSP, JNP                      ! Polar lat indices
     INTEGER, INTENT(IN)  :: L1,  L2                       ! Local lev indices
-    REAL*8,  INTENT(IN)  :: DLON(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lon [deg]
-    REAL*8,  INTENT(IN)  :: DLAT(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lat [deg]
+    REAL(fp),  INTENT(IN)  :: DLON(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lon [deg]
+    REAL(fp),  INTENT(IN)  :: DLAT(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lat [deg]
 
     ! Variables with global CPU indices
     INTEGER, INTENT(IN)  :: I_LO                          ! Min global lon
@@ -218,16 +221,16 @@ CONTAINS
     INTEGER, INTENT(IN)  :: JOFF
 
     ! Arrays to be filled
-    REAL*8,  INTENT(OUT) :: XMD  (:,:,:) 
-    REAL*8,  INTENT(OUT) :: XDG  (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YMD  (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YDG  (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YSN  (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YMDR (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YDGR (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YMDRW(:,:,:) 
-    REAL*8,  INTENT(OUT) :: YDGRW(:,:,:) 
-    REAL*8,  INTENT(OUT) :: AM2  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: XMD  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: XDG  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YMD  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YDG  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YSN  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YMDR (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YDGR (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YMDRW(:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YDGRW(:,:,:) 
+    REAL(fp),  INTENT(OUT) :: AM2  (:,:,:) 
 !
 ! !OUTPUT PARAMETERS:
 !  
@@ -267,11 +270,11 @@ CONTAINS
 ! 
     ! Scalars
     INTEGER :: I,     J,     L,        IG, JG, LBND
-    REAL*8  :: SIN_N, SIN_S, SIN_DIFF, TMP
+    REAL(fp)  :: SIN_N, SIN_S, SIN_DIFF, TMP
 
     ! Arrays
-    REAL*8  :: IND_X( I1:I2+1 )
-    REAL*8  :: IND_Y( J1:J2+1 )
+    REAL(fp)  :: IND_X( I1:I2+1 )
+    REAL(fp)  :: IND_Y( J1:J2+1 )
 
     !======================================================================
     ! Initialization
@@ -279,12 +282,12 @@ CONTAINS
 
     ! Index array for longitudes
     DO I = I1, I2+1
-       IND_X(I) = ( ( I + IOFF - 1 ) * 1d0 ) + ( I_LO - 1 )
+       IND_X(I) = ( ( I + IOFF - 1 ) * 1e+0_fp ) + ( I_LO - 1 )
     ENDDO
 
     ! Index array for latitudes
     DO J = J1, J2+1
-       IND_Y(J) = ( ( J + JOFF - 1 ) * 1d0 ) + ( J_LO - 1 )
+       IND_Y(J) = ( ( J + JOFF - 1 ) * 1e+0_fp ) + ( J_LO - 1 )
     ENDDO
 
     ! Left bound of YMDRW. Since we now pass YMID_R_W as an argument to 
@@ -310,10 +313,10 @@ CONTAINS
           DO I = I1, I2
 
              ! Longitude centers
-             XMD(I,J,L)  = ( DLON(I,J,L) * IND_X(I) ) - 180d0
+             XMD(I,J,L)  = ( DLON(I,J,L) * IND_X(I) ) - 180e+0_fp
           
              ! Longitude edges
-             XDG(I,J,L) = XMD(I,J,L) - ( DLON(I,J,L) * 0.5d0 )
+             XDG(I,J,L) = XMD(I,J,L) - ( DLON(I,J,L) * 0.5e+0_fp )
 
              ! Compute the last longitude edge
              IF ( I == I2 ) THEN
@@ -341,7 +344,7 @@ CONTAINS
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !             ! Lat centers (degrees)
-!             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
+!             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90e+0_fp
           
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
              !-------------------------------------------------------------
@@ -361,7 +364,7 @@ CONTAINS
              !-------------------------------------------------------------
 
              ! Lat centers (degrees)
-             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 88d0
+             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 88e+0_fp
 
 #else
 
@@ -376,12 +379,12 @@ CONTAINS
              !-------------------------------------------------------------
 
              ! Lat centers (degrees)
-             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
+             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90e+0_fp
 
              IF ( JG == JSP ) THEN
-                YMD(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
+                YMD(I,J,L)  = -90e+0_fp + ( 0.5e+0_fp * DLAT(I,J,L) )   ! S pole
              ELSE IF ( JG == JNP ) THEN
-                YMD(I,J,L)  = +90d0 - ( 0.5d0 * DLAT(I,J,L) )   ! N pole
+                YMD(I,J,L)  = +90e+0_fp - ( 0.5e+0_fp * DLAT(I,J,L) )   ! N pole
              ENDIF
 
 # endif
@@ -414,7 +417,7 @@ CONTAINS
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
              ! Lat edges (degrees and radians)
-             YDG(I,J,L)    = YMD(I,J,L) - ( DLAT(I,J,L) * 0.5d0 )
+             YDG(I,J,L)    = YMD(I,J,L) - ( DLAT(I,J,L) * 0.5e+0_fp )
             
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
              !-----------------------------------------------------------
@@ -431,7 +434,7 @@ CONTAINS
              ! be -90 degrees latitude. (bmy, 3/21/13)
              !-----------------------------------------------------------
              IF ( JG == JSP ) THEN
-                YDG(I,J,L) = -90d0                             ! S pole
+                YDG(I,J,L) = -90e+0_fp                             ! S pole
              ENDIF
 #endif          
 
@@ -468,7 +471,7 @@ CONTAINS
              ! the northern edge of grid boxes along the NORTH POLE to
              ! be +90 degrees latitude. (bmy, 3/21/13)
              !-----------------------------------------------------------
-             YDG (I,J2+1,L)   = +90d0
+             YDG (I,J2+1,L)   = +90e+0_fp
 #endif
              YDGR(I,J2+1,L)   = YDG(I,J2+1,L) * PI_180
 
@@ -631,12 +634,12 @@ CONTAINS
 
              ! South pole kludge
              IF ( JG == JSP ) THEN
-                SIN_DIFF = 2d0 * ( SIN_N - ( -1d0 ) )
+                SIN_DIFF = 2e+0_fp * ( SIN_N - ( -1e+0_fp ) )
              ENDIF
 
              ! North pole kludge
              IF ( JG == JNP ) THEN
-                SIN_DIFF = 2d0 * ( 1d0 - SIN_S )
+                SIN_DIFF = 2e+0_fp * ( 1e+0_fp - SIN_S )
              ENDIF
 #endif
 
@@ -846,7 +849,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: X   ! Corresponding lon value @ grid box ctr
+    REAL(fp)              :: X   ! Corresponding lon value @ grid box ctr
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
@@ -880,7 +883,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: X   ! Corresponding lon value @ W edge of grid box
+    REAL(fp)              :: X   ! Corresponding lon value @ W edge of grid box
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
@@ -915,7 +918,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Latitude value at @ grid box ctr [degrees]
+    REAL(fp)              :: Y   ! Latitude value at @ grid box ctr [degrees]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
@@ -950,7 +953,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Latitude value @ S edge of grid box [degrees]
+    REAL(fp)              :: Y   ! Latitude value @ S edge of grid box [degrees]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
@@ -984,7 +987,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Latitude value at @ grid box ctr [radians]
+    REAL(fp)              :: Y   ! Latitude value at @ grid box ctr [radians]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
@@ -1018,7 +1021,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Latitude value at @ grid box ctr [radians]
+    REAL(fp)              :: Y   ! Latitude value at @ grid box ctr [radians]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
@@ -1036,7 +1039,7 @@ CONTAINS
 #else
 
     ! Otherwise return a fake value
-    Y = -1d0
+    Y = -1e+0_fp
 
 #endif
 
@@ -1065,7 +1068,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Latitude value @ S edge of grid box [radians]
+    REAL(fp)              :: Y   ! Latitude value @ S edge of grid box [radians]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
@@ -1100,7 +1103,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Sine of Latitude value @ S edge of grid box
+    REAL(fp)              :: Y   ! Sine of Latitude value @ S edge of grid box
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - M. Payer    -  Initial version (M. Cooper)
@@ -1135,7 +1138,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: A   ! Grid box surface area [m2]
+    REAL(fp)              :: A   ! Grid box surface area [m2]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
@@ -1169,14 +1172,14 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: A  ! Grid box surface area [cm2]
+    REAL(fp)              :: A  ! Grid box surface area [cm2]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    A = AREA_M2(I,J,L) * 1d4
+    A = AREA_M2(I,J,L) * 1e+4_fp
     
   END FUNCTION Get_Area_cm2
 !EOC
@@ -1201,7 +1204,7 @@ CONTAINS
     INTEGER, INTENT(IN)  :: I1, I2      ! Lon indices
     INTEGER, INTENT(IN)  :: J1, J2      ! Lat indices
     INTEGER, INTENT(IN)  :: L
-    REAL*8,  INTENT(IN)  :: COORDS(4)   ! (/LON_LL, LAT_LL, LON_UR, LAT_UR/)
+    REAL(fp),  INTENT(IN)  :: COORDS(4)   ! (/LON_LL, LAT_LL, LON_UR, LAT_UR/)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -1377,31 +1380,31 @@ CONTAINS
 !   !ALLOCATE( XEDGE( I1:I2+1, J1:J2, L1:L2 ), STAT=AS )
 !    ALLOCATE( XEDGE( I2-I1+2, J2-J1+1, L2-L1+1 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'XEDGE' )
-!    XEDGE = 0d0
+!    XEDGE = 0e+0_fp
 !    
 !    ALLOCATE( YMID( I1:I2, J1:J2, L1:L2 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID' )
-!    YMID = 0d0
+!    YMID = 0e+0_fp
 !    
 !    ALLOCATE( YEDGE( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
-!    YEDGE = 0d0
+!    YEDGE = 0e+0_fp
 !
 !    ALLOCATE( YSIN( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YSIN' )
-!    YSIN = 0d0
+!    YSIN = 0e+0_fp
 !
 !    ALLOCATE( YMID_R( I1:I2, J1:J2, L1:L2 ), STAT=AS )               
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
-!    YMID_R = 0d0
+!    YMID_R = 0e+0_fp
 !   
 !    ALLOCATE( YEDGE_R( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_R' )
-!    YEDGE_R = 0d0
+!    YEDGE_R = 0e+0_fp
 !
 !    ALLOCATE( AREA_M2( I1:I2, J1:J2, L1:L2 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
-!    AREA_M2 = 0d0
+!    AREA_M2 = 0e+0_fp
 !
 !#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
 !
@@ -1415,7 +1418,7 @@ CONTAINS
 !    ! Allocate nested-grid window array of lat centers (radians)
 !    ALLOCATE( YMID_R_W( I1:I2, 0:J2+1, L1:L2 ), STAT=AS ) 
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
-!    YMID_R_W = 0d0
+!    YMID_R_W = 0e+0_fp
 !
 !#endif
 !
@@ -1481,35 +1484,35 @@ CONTAINS
 
     ALLOCATE( XMID   ( IM,   JM,   LM ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'XMID' )
-    XMID    = 0d0
+    XMID    = 0e+0_fp
     
     ALLOCATE( XEDGE  ( IM+1, JM,   LM ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'XEDGE' )
-    XEDGE   = 0d0
+    XEDGE   = 0e+0_fp
     
     ALLOCATE( YMID   ( IM,   JM,   LM ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID' )
-    YMID    = 0d0
+    YMID    = 0e+0_fp
     
     ALLOCATE( YEDGE  ( IM,   JM+1, LM ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
-    YEDGE   = 0d0
+    YEDGE   = 0e+0_fp
 
     ALLOCATE( YSIN   ( IM,   JM+1, LM ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YSIN' )
-    YSIN    = 0d0
+    YSIN    = 0e+0_fp
 
     ALLOCATE( YMID_R ( IM,   JM,   LM ), STAT=RC )               
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
-    YMID_R  = 0d0
+    YMID_R  = 0e+0_fp
    
     ALLOCATE( YEDGE_R( IM,   JM+1, LM ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YEDGE_R' )
-    YEDGE_R = 0d0
+    YEDGE_R = 0e+0_fp
 
     ALLOCATE( AREA_M2( IM,   JM,   LM ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
-    AREA_M2 = 0d0
+    AREA_M2 = 0e+0_fp
 
 #if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
 
@@ -1523,7 +1526,7 @@ CONTAINS
     ! Allocate nested-grid window array of lat centers (radians)
     ALLOCATE( YMID_R_W( IM, 0:JM+1, LM ), STAT=AS ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
-    YMID_R_W = 0d0
+    YMID_R_W = 0e+0_fp
 
 #endif
 

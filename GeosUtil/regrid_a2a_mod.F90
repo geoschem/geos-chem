@@ -15,6 +15,8 @@ MODULE Regrid_A2A_Mod
 !
 ! !USES:
 !
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -62,6 +64,7 @@ MODULE Regrid_A2A_Mod
 !                              as module variables.  This helps us remove a
 !                              dependency for the HEMCO emissions package.
 !                              input/output.
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -76,9 +79,9 @@ MODULE Regrid_A2A_Mod
   CHARACTER(LEN=255)  :: NC_DIR        ! Directory w/ netCDF files
   INTEGER             :: IIPAR         ! # of longitudes (x-dimension) in grid
   INTEGER             :: JJPAR         ! # of latitudes  (y-dimension) in grid
-  REAL*8, ALLOCATABLE :: OUTLON (:  )  ! Longitude on output grid
-  REAL*8, ALLOCATABLE :: OUTSIN (:  )  ! Sines of latitudes on output grid
-  REAL*8, ALLOCATABLE :: OUTAREA(:,:)  ! Surface areas on output grid
+  REAL(fp), ALLOCATABLE :: OUTLON (:  )  ! Longitude on output grid
+  REAL(fp), ALLOCATABLE :: OUTSIN (:  )  ! Sines of latitudes on output grid
+  REAL(fp), ALLOCATABLE :: OUTAREA(:,:)  ! Surface areas on output grid
 !
 ! !DEFINED PARAMETERS:
 !
@@ -86,8 +89,8 @@ MODULE Regrid_A2A_Mod
   ! These were taken from CMN_GCTM_mod.F90.  This helps us to avoid depending 
   ! on GEOS-Chem modules in the core HEMCO modules.  (bmy, 7/14/14)
   !---------------------------------------------------------------------------
-  REAL*8, PARAMETER   :: PI =   3.14159265358979323d0   ! Pi
-  REAL*8, PARAMETER   :: Re =   6.375d6                 ! Earth radius [m]
+  REAL(fp), PARAMETER :: PI =   3.14159265358979323e+0_fp   ! Pi
+  REAL(fp), PARAMETER :: Re =   6.375d6                 ! Earth radius [m]
 
 CONTAINS
 !EOC
@@ -117,7 +120,7 @@ CONTAINS
     INTEGER,          INTENT(IN)    :: JM
 
     ! Data array on the input grid
-    REAL*8,           INTENT(IN)    :: INGRID(IM,JM)
+    REAL(fp),           INTENT(IN)    :: INGRID(IM,JM)
 
     ! IS_MASS=0 if data is units of concentration (molec/cm2/s, unitless, etc.)
     ! IS_MASS=1 if data is units of mass (kg/yr, etc.); we will need to convert
@@ -130,7 +133,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Data array on the OUTPUT GRID
-    REAL*8,           INTENT(OUT)   :: OUTGRID(IIPAR,JJPAR) 
+    REAL(fp),           INTENT(OUT)   :: OUTGRID(IIPAR,JJPAR) 
 !
 ! !REMARKS:
 !  The netCDF optional argument is now obsolete, because we now always read
@@ -164,15 +167,15 @@ CONTAINS
     INTEGER           :: I,        J
     INTEGER           :: IOS,      M
     INTEGER           :: IU_REGRID
-    REAL*8            :: INAREA,   RLAT
+    REAL(fp)            :: INAREA,   RLAT
     CHARACTER(LEN=15) :: HEADER1
     CHARACTER(LEN=20) :: FMT_LAT,  FMT_LON, FMT_LEN
     LOGICAL           :: USE_NETCDF
 
     ! Arrays
-    REAL*8            :: INLON  (IM+1    )  ! Lon edges        on INPUT GRID
-    REAL*8            :: INSIN  (    JM+1)  ! SIN( lat edges ) on INPUT GRID
-    REAL*8            :: IN_GRID(IM, JM  )  ! Shadow variable for INGRID
+    REAL(fp)            :: INLON  (IM+1    )  ! Lon edges        on INPUT GRID
+    REAL(fp)            :: INSIN  (    JM+1)  ! SIN( lat edges ) on INPUT GRID
+    REAL(fp)            :: IN_GRID(IM, JM  )  ! Shadow variable for INGRID
 
     !======================================================================
     ! Initialization
@@ -197,7 +200,7 @@ CONTAINS
        !$OMP PRIVATE( I, J, RLAT, INAREA )
        DO J = 1, JM
           RLAT   = INSIN(J+1) - INSIN(J)
-          INAREA = ( 2d0 * PI * Re * RLAT * 1d4 * Re ) / DBLE( IM )
+          INAREA = (2e+0_fp * PI * Re * RLAT * 1e+4_fp * Re) / DBLE(IM)
           DO I = 1, IM
              IN_GRID(I,J) = IN_GRID(I,J) / INAREA
           ENDDO
@@ -236,7 +239,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine MAP\_A2A\_R8R8 is a horizontal arbitrary grid to 
 !  arbitrary grid conservative high-order mapping regridding routine by S-J 
-!  Lin.  Both the input data and output data have REAL*8 precision.
+!  Lin.  Both the input data and output data have REAL(fp) precision.
 !\\
 !\\
 ! !INTERFACE:
@@ -469,7 +472,7 @@ CONTAINS
 ! !DESCRIPTION: Subroutine MAP\_A2A\_R4R8 is a horizontal arbitrary grid to 
 !  arbitrary grid conservative high-order mapping regridding routine by
 !  S-J Lin.  The input data has REAL*4 precision, but the output argument
-!  has REAL*8 precision.
+!  has REAL(fp) precision.
 !\\
 !\\
 ! !INTERFACE:
@@ -585,7 +588,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
 !  arbitrary resolution to another.  Both the input and output arguments
-!  have REAL*8 precision.
+!  have REAL(fp) precision.
 !\\
 !\\
 ! !INTERFACE:
@@ -639,7 +642,7 @@ CONTAINS
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL*8 to better
+!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
 !EOP
 !------------------------------------------------------------------------------
@@ -716,7 +719,7 @@ CONTAINS
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
          
         ! South pole
-        sum = 0.d0
+        sum = 0.e+0_fp
         do i=1,im
            sum = sum + q2(i,1)
         enddo
@@ -727,7 +730,7 @@ CONTAINS
         enddo
 
         ! North pole:
-        sum = 0.d0
+        sum = 0.e+0_fp
         do i=1,im
            sum = sum + q2(i,jn)
         enddo
@@ -750,7 +753,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
 !  arbitrary resolution to another.  The input argument has REAL*4 precision
-!  but the output argument has REAL*8 precision.
+!  but the output argument has REAL(fp) precision.
 !\\
 !\\
 ! !INTERFACE:
@@ -805,7 +808,7 @@ CONTAINS
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL*8 to better
+!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
 !EOP
 !------------------------------------------------------------------------------
@@ -882,7 +885,7 @@ CONTAINS
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
          
         ! South pole
-        sum = 0.d0
+        sum = 0.e+0_fp
         do i=1,im
            sum = sum + q2(i,1)
         enddo
@@ -893,7 +896,7 @@ CONTAINS
         enddo
 
         ! North pole:
-        sum = 0.d0
+        sum = 0.e+0_fp
         do i=1,im
            sum = sum + q2(i,jn)
         enddo
@@ -916,7 +919,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
 !  arbitrary resolution to another.  Both the input and output arguments
-!  have REAL*8 precision.
+!  have REAL(fp) precision.
 !\\
 !\\
 ! !INTERFACE:
@@ -971,7 +974,7 @@ CONTAINS
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL*8 to better
+!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
 !EOP
 !------------------------------------------------------------------------------
@@ -1048,7 +1051,7 @@ CONTAINS
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
          
         ! South pole
-        sum = 0.d0
+        sum = 0.e+0_fp
         do i=1,im
            sum = sum + q2(i,1)
         enddo
@@ -1059,7 +1062,7 @@ CONTAINS
         enddo
 
         ! North pole:
-        sum = 0.d0
+        sum = 0.e+0_fp
         do i=1,im
            sum = sum + q2(i,jn)
         enddo
@@ -1082,7 +1085,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
 !  arbitrary resolution to another.  Both the input and output arguments
-!  have REAL*8 precision.
+!  have REAL(fp) precision.
 !\\
 !\\
 !  Periodic domain will be assumed, i.e., the eastern wall bounding cell
@@ -1129,7 +1132,7 @@ CONTAINS
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL*8 to better
+!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
 !EOP
 !------------------------------------------------------------------------------
@@ -1328,7 +1331,7 @@ CONTAINS
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL*8 to better
+!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
 !EOP
 !------------------------------------------------------------------------------
@@ -1480,7 +1483,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
 !  arbitrary resolution to another.  The input argument has REAL*4 precision
-!  but the output argument has REAL*8 precision.
+!  but the output argument has REAL(fp) precision.
 !\\
 !\\
 !  Periodic domain will be assumed, i.e., the eastern wall bounding cell
@@ -1527,7 +1530,7 @@ CONTAINS
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL*8 to better
+!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
 !EOP
 !------------------------------------------------------------------------------
@@ -1707,8 +1710,8 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !   
-    REAL*8,           INTENT(OUT) :: lon_edges(IM+1)   ! Lon edges [degrees]
-    REAL*8,           INTENT(OUT) :: lat_sines(JM+1)   ! SIN( latitude edges )
+    REAL(fp),           INTENT(OUT) :: lon_edges(IM+1)   ! Lon edges [degrees]
+    REAL(fp),           INTENT(OUT) :: lat_sines(JM+1)   ! SIN( latitude edges )
 !
 ! !REMARKS:
 !  Created with the ncCodeRead script of the NcdfUtilities package,
@@ -1771,9 +1774,9 @@ CONTAINS
 !
     INTEGER,          INTENT(IN) :: NX             ! # of longitudes
     INTEGER,          INTENT(IN) :: NY             ! # of latitudes
-    REAL*8,           INTENT(IN) :: LONS (NX+1 )   ! Longitudes
-    REAL*8,           INTENT(IN) :: SINES(NY+1 )   ! Sines of latitudes
-    REAL*8,           INTENT(IN) :: AREAS(NX,NY)   ! Surface areas [m2]
+    REAL(fp),           INTENT(IN) :: LONS (NX+1 )   ! Longitudes
+    REAL(fp),           INTENT(IN) :: SINES(NY+1 )   ! Sines of latitudes
+    REAL(fp),           INTENT(IN) :: AREAS(NX,NY)   ! Surface areas [m2]
     CHARACTER(LEN=*), INTENT(IN) :: DIR            ! Dir for netCDF files w/ 
                                                    !  grid definitions
 !

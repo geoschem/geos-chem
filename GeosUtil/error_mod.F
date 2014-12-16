@@ -17,6 +17,8 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -119,6 +121,7 @@
 !  08 Jul 2014 - R. Yantosca - Added INIT_ERROR and CLEANUP_ERROR subroutines
 !  08 Jul 2014 - R. Yantosca - Add shadow variables for am_I_Root, Input_Opt
 !                              so that we can pass these to routine CLEANUP
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,7 +229,7 @@
 !
 ! !IROUTINE: nan_dble
 !
-! !DESCRIPTION: Function NAN\_DBLE returns TRUE if a REAL*8 number is equal 
+! !DESCRIPTION: Function NAN\_DBLE returns TRUE if a REAL(fp) number is equal 
 !  to the IEEE NaN (Not-a-Number) flag.  Returns FALSE otherwise.
 !\\
 !\\
@@ -414,7 +417,7 @@
 !
 ! !IROUTINE: finite_dble
 !
-! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL*8 number is 
+! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL(fp) number is 
 !  equal to the IEEE Infinity flag.  Returns TRUE otherwise.
 !\\
 !\\
@@ -892,18 +895,18 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,           INTENT(IN) :: N           ! Numerator
-      REAL*8,           INTENT(IN) :: D           ! Denominator
-      REAL*8,           INTENT(IN) :: ALT_NAN     ! Alternate value to be 
+      REAL(fp),           INTENT(IN) :: N           ! Numerator
+      REAL(fp),           INTENT(IN) :: D           ! Denominator
+      REAL(fp),           INTENT(IN) :: ALT_NAN     ! Alternate value to be 
                                                   !  returned if the division 
                                                   !  is either NAN (0/0) or 
                                                   !  leads to overflow (i.e., 
                                                   !  a too large number)
-      REAL*8, OPTIONAL, INTENT(IN) :: ALT_OVER    ! Alternate value to be 
+      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_OVER    ! Alternate value to be 
                                                   !  returned if the division
                                                   !  leads to overflow (default
                                                   !  is ALT_NAN)
-      REAL*8, OPTIONAL, INTENT(IN) :: ALT_UNDER   ! Alternate value to be 
+      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_UNDER   ! Alternate value to be 
                                                   !  returned if the division
                                                   !  leads to underflow 
                                                   !  (default is 0, but you 
@@ -912,7 +915,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                       :: Q           ! Output from the division
+      REAL(fp)                       :: Q           ! Output from the division
 
 !
 ! !REMARKS:
@@ -978,8 +981,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN)           :: N    ! Numerator
-      REAL*8,  INTENT(IN)           :: D    ! Denominator
+      REAL(fp),  INTENT(IN)           :: N    ! Numerator
+      REAL(fp),  INTENT(IN)           :: D    ! Denominator
       LOGICAL, INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits 
                                             !  of REAL*4 to define underflow
                                             !  or overflow.  Extra defensive.
@@ -1048,12 +1051,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: X      ! Argument of EXP
-      REAL*8, INTENT(IN) :: ALT    ! Alternate value to be returned
+      REAL(fp), INTENT(IN) :: X      ! Argument of EXP
+      REAL(fp), INTENT(IN) :: ALT    ! Alternate value to be returned
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: VALUE  ! Output from the exponential
+      REAL(fp)             :: VALUE  ! Output from the exponential
 !
 ! !REVISION HISTORY:
 !  04 Jan 2010 - R. Yantosca - Initial version
@@ -1086,7 +1089,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: X    ! Argument to the exponential function
+      REAL(fp), INTENT(IN) :: X    ! Argument to the exponential function
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1106,7 +1109,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8, PARAMETER :: CUTOFF = 600d0
+      REAL(fp), PARAMETER :: CUTOFF = 600e+0_fp
 
       ! If -CUTOFF < x < CUTOFF, then it is safe to take EXP( x )
       F = ( ABS( X ) < CUTOFF )
@@ -1132,12 +1135,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: X      ! Argument of LOG
-      REAL*8, INTENT(IN) :: ALT    ! Alternate value to be returned
+      REAL(fp), INTENT(IN) :: X      ! Argument of LOG
+      REAL(fp), INTENT(IN) :: ALT    ! Alternate value to be returned
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: VALUE  ! Output from the natural logarithm
+      REAL(fp)             :: VALUE  ! Output from the natural logarithm
 !
 ! !REVISION HISTORY:
 !  04 Jan 2010 - R. Yantosca - Initial version
@@ -1147,7 +1150,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      IF ( X > 0d0 ) THEN
+      IF ( X > 0e+0_fp ) THEN
          VALUE = LOG( X )          ! Take LOG(x) for positive-definite X
       ELSE 
          VALUE = ALT               ! Otherwise return alternate value
@@ -1174,12 +1177,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: X      ! Argument of LOG10
-      REAL*8, INTENT(IN) :: ALT    ! Alternate value to be returned
+      REAL(fp), INTENT(IN) :: X      ! Argument of LOG10
+      REAL(fp), INTENT(IN) :: ALT    ! Alternate value to be returned
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: VALUE  ! Output from the natural logarithm
+      REAL(fp)             :: VALUE  ! Output from the natural logarithm
 !
 ! !REVISION HISTORY:
 !  04 Jan 2010 - R. Yantosca - Initial version
@@ -1189,7 +1192,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      IF ( X > 0d0 ) THEN
+      IF ( X > 0e+0_fp ) THEN
          VALUE = LOG10( X )        ! Take LOG10(x) for positive-definite X
       ELSE 
          VALUE = ALT               ! Otherwise return alternate value

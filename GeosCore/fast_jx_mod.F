@@ -1353,6 +1353,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!  04 Dec 2014 - R. Yantosca   - Now use SQRT instead of DSQRT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1400,7 +1401,7 @@ c---calculate heights for edges of split CTM-layers
 
 c---shadow height for SZA > 90
       if (U0 .lt. 0.0e+0_fp)  then
-        SHADHT = RZ2(1)/dsqrt(1.0e+0_fp - U0**2)
+        SHADHT = RZ2(1)/sqrt(1.0e+0_fp - U0**2)
       else
         SHADHT = 0.e+0_fp
       endif
@@ -1416,7 +1417,7 @@ c  Air Mass Factors all zero if below the tangent height
 c  Ascend from layer J calculating AMF2s
         XMU1 = abs(U0)
         do I = J,2*L1U
-          XMU2     = dsqrt(1.0e+0_fp - RQ2(I)*(1.0e+0_fp-XMU1**2))
+          XMU2     = sqrt(1.0e+0_fp - RQ2(I)*(1.0e+0_fp-XMU1**2))
           XL       = RZ2(I+1)*XMU2 - RZ2(I)*XMU1
           AMF2(I,J) = XL / (RZ2(I+1)-RZ2(I))
           XMU1     = XMU2

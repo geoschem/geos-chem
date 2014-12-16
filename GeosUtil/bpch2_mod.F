@@ -18,6 +18,8 @@
       USE inquireMod, ONLY : findFreeLUN
       USE inquireMod, ONLY : I_Am_UnOPENed
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 !#     include "define.h"
       PRIVATE
@@ -87,6 +89,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  19 Jul 2012 - R. Yantosca - Bug fix in GET_NAME_EXT_2D
 !  03 Aug 2012 - R. Yantosca - Reference file LUN routines from inquireMod.F90
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -349,8 +352,8 @@
       CHARACTER(LEN=40), INTENT(IN) :: CATEGORY         ! Diag. category name
       INTEGER,           INTENT(IN) :: NTRACER          ! Tracer index #
       CHARACTER(LEN=40), INTENT(IN) :: UNIT             ! Unit string
-      REAL*8,            INTENT(IN) :: TAU0             ! TAU values @ start &
-      REAL*8,            INTENT(IN) :: TAU1             !  end of diag interval
+      REAL(fp),            INTENT(IN) :: TAU0             ! TAU values @ start &
+      REAL(fp),            INTENT(IN) :: TAU1             !  end of diag interval
       CHARACTER(LEN=40), INTENT(IN) :: RESERVED         ! Extra string
       INTEGER,           INTENT(IN) :: NI, NJ, NL       ! Dimensions of ARRAY
       INTEGER,           INTENT(IN) :: IFIRST           ! (I,J,L) indices of
@@ -439,7 +442,7 @@
       CHARACTER(LEN=*),  INTENT(IN)  :: FILENAME         ! Bpch file to read
       CHARACTER(LEN=*),  INTENT(IN)  :: CATEGORY_IN      ! Diag. category name
       INTEGER,           INTENT(IN)  :: TRACER_IN        ! Tracer index #
-      REAL*8,            INTENT(IN)  :: TAU0_IN          ! TAU timestamp 
+      REAL(fp),            INTENT(IN)  :: TAU0_IN          ! TAU timestamp 
       INTEGER,           INTENT(IN)  :: IX, JX, LX       ! Dimensions of ARRAY
       LOGICAL, OPTIONAL, INTENT(IN)  :: QUIET            ! Don't print output
 !
@@ -510,7 +513,7 @@
       INTEGER            :: NI,        NJ,        NL
       INTEGER            :: IFIRST,    JFIRST,    LFIRST
       REAL*4             :: LONRES,    LATRES
-      REAL*8             :: ZTAU0,     ZTAU1
+      REAL(fp)             :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT     
@@ -972,7 +975,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                        :: THIS_TAU0   ! TAU0 timestamp
+      REAL(fp)                        :: THIS_TAU0   ! TAU0 timestamp
 !
 ! !REMARKS:
 !  TAU0 is hours elapsed since 00:00 GMT on 01 Jan 1985.
@@ -993,7 +996,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                       :: TMP_HOUR, TMP_MIN, TMP_SEC
-      REAL*8                        :: DAYS
+      REAL(fp)                        :: DAYS
+
 
       ! Return value
       
@@ -1033,12 +1037,12 @@
       ENDIF 
 
       ! Number of days since midnight on 1/1/1985
-      THIS_TAU0 = JULDAY( YEAR, MONTH, DBLE( DAY ) ) - 2446066.5d0
+      THIS_TAU0 = JULDAY( YEAR, MONTH, DBLE( DAY ) ) - 2446066.5e+0_fp
 
       ! Multiply by 24 to get hours since 1/1/1985
       ! Also add in the hours elapsed since midnight on this date
-      THIS_TAU0 = ( THIS_TAU0 * 24d0 ) + ( TMP_HOUR         ) + 
-     &            ( TMP_MIN   / 60d0 ) + ( TMP_SEC / 3600d0 )
+      THIS_TAU0 = ( THIS_TAU0 * 24e+0_fp ) + ( TMP_HOUR         ) + 
+     &            ( TMP_MIN   / 60e+0_fp ) + ( TMP_SEC / 3600e+0_fp )
 
       ! Return to calling program
       END FUNCTION GET_TAU0_6A

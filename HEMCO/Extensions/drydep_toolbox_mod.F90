@@ -49,7 +49,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  REAL*8 FUNCTION BIOFIT( COEFF1, XLAI1, SUNCOS1, CFRAC1, NPOLY )
+  FUNCTION BIOFIT( COEFF1, XLAI1, SUNCOS1, CFRAC1, NPOLY ) RESULT ( BIO_FIT )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -58,6 +58,10 @@ CONTAINS
     REAL*8,  INTENT(IN) :: SUNCOS1         ! Cosine( Solar Zenith Angle )
     REAL*8,  INTENT(IN) :: CFRAC1          ! Cloud fraction [unitless]
     INTEGER, INTENT(IN) :: NPOLY           ! # of drydep coefficients
+!
+! !RETURN VALUE:
+!
+    REAL*8              :: BIO_FIT         ! Resultant light correction
 !
 ! !REMARKS:
 !  This routine is ancient code from Yuhang Wang.  It was part of the old
@@ -70,6 +74,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  13 Dec 2012 - R. Yantosca - Added ProTeX headers
+!  09 Dec 2014 - R. Yantosca - Now use BIO_FIT as the return value
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,11 +106,32 @@ CONTAINS
           END DO
        END DO
     END DO
-    BIOFIT=0
-    DO K=1,NPOLY
-       BIOFIT=BIOFIT+COEFF1(K)*REALTERM(K)
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%%%% KLUDGE: UNCOMMENT THIS CODE TO GET IDENTICAL RESULTS w/ v10-01e!
+!%%%%% (bmy, myannetti, 12/10/14)
+!%%%%%
+!%%%%% NOTE: This code did not use Fortran "d" exponents, so it was not
+!%%%%% forcing values to REAL*8 precision.  This was not as precise as it
+!%%%%% could have been, but this code was like this for many years.
+!%%%%%    BIO_FIT=0
+!%%%%%    DO K=1,NPOLY
+!%%%%%       BIO_FIT=BIO_FIT+COEFF1(K)*REALTERM(K)
+!%%%%%    END DO
+!%%%%%    IF (BIO_FIT .LT. 0.1 ) BIO_FIT=0.1
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     
+    ! Now explicitly use REAL*8 precision.  This will cause very small
+    ! differences at the level of numerical noise when comparing to 
+    ! prior states of the code like v10-01e.  But this is something that
+    ! we can live with.  Stick with REAL*8 precision for now, but we'll
+    ! try to implement flexible precision into this routine at a later 
+    ! point. (bmy, myannetti, 12/10/14)
+    BIO_FIT = 0d0
+    DO K = 1, NPOLY
+       BIO_FIT = BIO_FIT + COEFF1(K)*REALTERM(K)
     END DO
-    IF (BIOFIT.LT.0.1) BIOFIT=0.1
+    IF ( BIO_FIT .LT. 0.1d0 ) BIO_FIT=0.1d0
 
   END FUNCTION BioFit
 !EOC

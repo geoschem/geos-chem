@@ -1502,6 +1502,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1510,6 +1511,7 @@
 !
       INTEGER :: J, K, L, N_DYN
       REAL(fp)  :: YMID_R(JJPAR)
+      REAL(fp)  :: REAL_N_DYN
 
       ! For fields from Input_Opt
       LOGICAL :: LTRAN
@@ -1583,9 +1585,11 @@
          YMID_R(J) = GET_YMID_R( 1, J, 1 )
       ENDDO
 
+      REAL_N_DYN = N_DYN
+
       ! Call INIT routine from "tpcore_fvdas_mod.f" 
       CALL INIT_TPCORE( IIPAR,  JJPAR, LLPAR,  JFIRST, JLAST, 
-     &                  NG, MG, DBLE( N_DYN ), Re,     YMID_R )
+     &                  NG, MG, REAL_N_DYN, Re,     YMID_R )
 
       END SUBROUTINE INIT_TRANSPORT
 !EOC
@@ -1641,6 +1645,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1649,6 +1654,7 @@
 !
       INTEGER :: J, K, L, N_DYN
       REAL(fp)  :: YMID_R_W(0:JJPAR+1)
+      REAL(fp)  :: REAL_N_DYN
 
       ! For fields from Input_Opt
       LOGICAL :: LTRAN
@@ -1719,9 +1725,11 @@
          YMID_R_W(J) = GET_YMID_R_W( 1, J, 1 )
       ENDDO
 
+      REAL_N_DYN = N_DYN
+
       ! Call INIT routine from "tpcore_geos5_fvdas_window_mod.f"
       CALL INIT_GEOS5_WINDOW( IIPAR, JJPAR,    LLPAR, JFIRST, 
-     &                        JLAST, NG,       MG,    DBLE( N_DYN ), 
+     &                        JLAST, NG,       MG,    REAL_N_DYN , 
      &                        Re,    YMID_R_W )
 
       END SUBROUTINE INIT_GEOS5_WINDOW_TRANSPORT
@@ -1780,6 +1788,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  26 Sep 2013 - R. Yantosca - Renamed to INIT_GEOSFP_WINDOW_TRANSPORT
+!  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1788,6 +1797,7 @@
 !
       INTEGER :: J, K, L, N_DYN
       REAL(fp)  :: YMID_R_W(0:JJPAR+1)
+      REAL(fp)  :: REAL_N_DYN
 
       ! For fields from Input_Opt
       LOGICAL :: LTRAN
@@ -1858,10 +1868,12 @@
          YMID_R_W(J) = GET_YMID_R_W( 1, J, 1 )
       ENDDO
 
+      REAL_N_DYN = N_DYN
+
       ! Call INIT routine from "tpcore_geosfp_fvdas_window_mod.f"
       ! subroutine "init_geosfp_windows" is in "tpcore_geosfp_window_mod.F90"
       CALL INIT_GEOSFP_WINDOW( IIPAR, JJPAR,    LLPAR, JFIRST, 
-     &                         JLAST, NG,       MG,    DBLE( N_DYN ),
+     &                         JLAST, NG,       MG,    REAL_N_DYN ,
      &                         Re,    YMID_R_W )
 
       END SUBROUTINE INIT_GEOSFP_WINDOW_TRANSPORT

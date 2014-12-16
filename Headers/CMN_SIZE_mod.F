@@ -14,6 +14,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD, ONLY : fpp => fp    ! For GEOS-Chem Precision (fpp)
+
       IMPLICIT NONE
       PUBLIC
 !
@@ -24,26 +26,26 @@
       ! DJSIZE = size (in degrees) of a latitude  grid box
       !=================================================================
 #if   defined( GRID4x5 ) 
-      REAL*8, PARAMETER :: DISIZE = 5.0d0
-      REAL*8, PARAMETER :: DJSIZE = 4.0d0
+      REAL(fpp), PARAMETER :: DISIZE = 5.0e+0_fpp
+      REAL(fpp), PARAMETER :: DJSIZE = 4.0e+0_fpp
 #elif defined( GRID2x25 )
-      REAL*8, PARAMETER :: DISIZE = 2.5d0 
-      REAL*8, PARAMETER :: DJSIZE = 2.0d0
+      REAL(fpp), PARAMETER :: DISIZE = 2.5e+0_fpp 
+      REAL(fpp), PARAMETER :: DJSIZE = 2.0e+0_fpp
 #elif defined( GRID1x125 )
-      REAL*8, PARAMETER :: DISIZE = 1.25d0 
-      REAL*8, PARAMETER :: DJSIZE = 1.0d0
+      REAL(fpp), PARAMETER :: DISIZE = 1.25e+0_fpp 
+      REAL(fpp), PARAMETER :: DJSIZE = 1.0e+0_fpp
 #elif defined( GRID1x1 )
-      REAL*8, PARAMETER :: DISIZE = 1.0d0 
-      REAL*8, PARAMETER :: DJSIZE = 1.0d0
+      REAL(fpp), PARAMETER :: DISIZE = 1.0e+0_fpp 
+      REAL(fpp), PARAMETER :: DJSIZE = 1.0e+0_fpp
 #elif defined( GRID05x0666 )
-      REAL*8, PARAMETER :: DISIZE = 2d0/3d0
-      REAL*8, PARAMETER :: DJSIZE = 0.5d0
+      REAL(fpp), PARAMETER :: DISIZE = 2e+0_fpp/3e+0_fpp
+      REAL(fpp), PARAMETER :: DJSIZE = 0.5e+0_fpp
 #elif defined( GRID025x03125)
-      REAL*8, PARAMETER :: DISIZE = 0.3125d0
-      REAL*8, PARAMETER :: DJSIZE = 0.25d0
+      REAL(fpp), PARAMETER :: DISIZE = 0.3125e+0_fpp
+      REAL(fpp), PARAMETER :: DJSIZE = 0.25e+0_fpp
 #elif defined( EXTERNAL_GRID )
-      REAL*8            :: DISIZE
-      REAL*8            :: DJSIZE
+      REAL(fpp)            :: DISIZE
+      REAL(fpp)            :: DJSIZE
 #endif
 
       !=================================================================
@@ -56,8 +58,8 @@
       INTEGER             :: IM_WORLD     ! # of lons in the whole global grid
       INTEGER             :: JM_WORLD     ! # of lats in the whole global grid
       INTEGER             :: LM_WORLD     ! # of levs in the whole global grid
-      REAL*8, ALLOCATABLE :: DLON(:,:,:)  ! Array of delta-longitude [degrees]
-      REAL*8, ALLOCATABLE :: DLAT(:,:,:)  ! Array of delta-latitude  [degrees]
+      REAL(fpp), ALLOCATABLE :: DLON(:,:,:)  ! Array of delta-longitude [degrees]
+      REAL(fpp), ALLOCATABLE :: DLAT(:,:,:)  ! Array of delta-latitude  [degrees]
 
       !=================================================================
       ! GRID SETTINGS #2: Mostly historical declarations (keep for now)
@@ -115,7 +117,7 @@
       INTEGER, PARAMETER :: LLTROP     = 12   
       INTEGER, PARAMETER :: LLTROP_FIX = LLTROP     
       INTEGER, PARAMETER :: LLSTRAT    = 20
-      REAL*8,  PARAMETER :: PTOP       = 0.002d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.002e+0_fpp
 
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
 
@@ -137,7 +139,7 @@
       INTEGER, PARAMETER :: LLSTRAT    = 42
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( GEOS_4 ) && defined( GRID2x25 )
 
@@ -159,7 +161,7 @@
       INTEGER, PARAMETER :: LLSTRAT    = 42
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( GEOS_4 ) && defined( GRID1x125 )
 
@@ -181,7 +183,7 @@
       INTEGER, PARAMETER :: LLSTRAT    = 42
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( GEOS_5 ) && defined( GRID4x5 )
 
@@ -204,7 +206,7 @@
       INTEGER, PARAMETER :: LLTROP     = 40  
       INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
 
@@ -227,7 +229,7 @@
       INTEGER, PARAMETER :: LLTROP     = 40  
       INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( GEOS_5 ) && defined( GRID1x125 )
       !-----------------------------------------------------------------
@@ -249,7 +251,7 @@
       INTEGER, PARAMETER :: LLTROP     = 40
       INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 )
 
@@ -282,7 +284,7 @@
       INTEGER, PARAMETER :: LLTROP     = 40
       INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( MERRA ) && defined( GRID2x25 )
 
@@ -305,7 +307,7 @@
       INTEGER, PARAMETER :: LLTROP     = 40  
       INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( MERRA ) && defined( GRID4x5 )
 
@@ -328,7 +330,7 @@
       INTEGER, PARAMETER :: LLTROP     = 40  
       INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
 
@@ -351,7 +353,7 @@
       INTEGER, PARAMETER :: LLTROP     = 40  
       INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA)
 
@@ -374,7 +376,7 @@
       INTEGER, PARAMETER :: LLTROP     = 40
       INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
 
@@ -397,7 +399,7 @@
       INTEGER, PARAMETER :: LLTROP     = 40  
       INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #elif defined( GEOS_FP ) && defined( GRID4x5 )
 
@@ -420,7 +422,7 @@
       INTEGER, PARAMETER :: LLTROP     = 40  
       INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
-      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+      REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
 #endif
 #endif
@@ -472,7 +474,7 @@
       INTEGER, PARAMETER :: NNPAR   = 125   ! For non-TOMAS simulations
 #endif
 
-      ! Nempara increased to 26. (fp, 2/8/10)
+      ! Nempara increased to 26. (fpp, 2/8/10)
       ! new emissions HNO3 and O3 (phs)
       !  Add non-biogenic emission species:
       !  BENZ, TOLU, XYLE, C2H2, C2H4, GLYX, MGLY, GLYC, HAC. (tmf, 1/7/09)
@@ -561,7 +563,7 @@
       !NBIOMAX -- biomass burning
       ! increase NBIOMAX to 20 (hotp 7/31/09)
       ! increase NBIOMAX to 24 for dicarbonyls (ccc, 2/02/10)
-      ! increase NBIOMAX to 25 fpr CH4 (kjw)
+      ! increase NBIOMAX to 25 fppr CH4 (kjw)
       ! SOAupdate: add 1 for naphthalene, now 26 (hotp 7/21/10)
       INTEGER, PARAMETER :: NBIOMAX = 26
 
@@ -677,6 +679,7 @@
 !                              SOA + semivolatile POA simulations (H. Pye) 
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -869,12 +872,12 @@
       ! Delta-longitudes [degrees]
       ALLOCATE( DLON( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
-      DLON = 0d0
+      DLON = 0e+0_fpp
 
       ! Delta-latitudes [degrees]
       ALLOCATE( DLAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
-      DLON = 0d0
+      DLON = 0e+0_fpp
 
       ! Return w/ success
       RC = GIGC_SUCCESS
