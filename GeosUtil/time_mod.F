@@ -368,7 +368,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
-      REAL*4        :: TMP
+      REAL(f4)      :: TMP
       REAL(f8)      :: A, B, JD, JD0, JD1, THISDAY
 
       !=================================================================
@@ -444,7 +444,7 @@
 
       ! Current Greenwich Mean Time
       GMT         = ( DBLE( HOUR )                ) + 
-     &              ( DBLE( MINUTE ) / 60e+0_f8   ) + 
+     &              ( DBLE( MINUTE ) /   60e+0_f8 ) + 
      &              ( DBLE( SECOND ) / 3600e+0_f8 )
 
       ! Days elapsed in this year (0-366)
@@ -452,7 +452,7 @@
 
       ! TAU value (# of hours since 1 Jan 1985)
       ! NOTE: TMP is REAL*4 to prevent precision problems
-      TMP         = ( JD1 - JD85 ) * 24e+0_f8
+      TMP         = ( JD1 - JD85 ) * 24e+0_f4
       TAU         = DBLE( TMP )
 
       ! Season index (1=DJF, 2=MAM, 3=JJA, 4=SON)
@@ -473,7 +473,7 @@
       !=================================================================
 
       ! Get fractional GMT day
-      THISDAY     = DAY + ( GMT / 24d0 ) ! real*8
+      THISDAY     = DAY + ( GMT / 24e+0_f8 ) ! real*8
 
       ! Get current Julian date 
       JD          = JULDAY( YEAR, MONTH, DBLE(THISDAY) ) ! real*8
@@ -3954,11 +3954,6 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-      print*, '### ITFE: TAU  : ', TAU
-      print*, '### ITFE: TAUb : ', TAUb
-      print*, '### ITFE: TAUb : ', TAUe
-      call flush(6)
-
       ! Test if it's end of run
       FLAG = ( TAU >= TAUe )
 

@@ -21,9 +21,9 @@
       !-----------------------------------------------------------------
       ! Parameters to define floating-point variables
       !-----------------------------------------------------------------
-      USE PRECISION_MOD, ONLY : fpp => fp
-      USE PRECISION_MOD, ONLY : f4
-      USE PRECISION_MOD, ONLY : f8
+      USE PRECISION_MOD, ONLY : fpp => fp  ! Flexible precision
+      USE PRECISION_MOD, ONLY : f4         ! 4-byte floating point
+      USE PRECISION_MOD, ONLY : f8         ! 8-byte floating point
 
       !-----------------------------------------------------------------
       ! Basic GEOS-Chem modules
