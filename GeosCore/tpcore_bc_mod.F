@@ -508,6 +508,7 @@
 !  06 Aug 2012 - R. Yantosca - Now use file unit variables from this module
 !                              instead of from GeosUtil/file_mod.F
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -518,9 +519,9 @@
       INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180 =  1
       INTEGER            :: I, IOS, J, L, N, IC, N_TOT_TRC
-      REAL*4             :: LONRES, LATRES
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL(fp)             :: TAU
+      REAL(f4)           :: LONRES, LATRES
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f8)           :: TAU
       CHARACTER(LEN=16)  :: STAMP
       CHARACTER(LEN=20)  :: MODELNAME 
       CHARACTER(LEN=40)  :: CATEGORY  = 'IJ-AVG-$'

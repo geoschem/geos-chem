@@ -969,10 +969,10 @@
       REAL(fp) :: T3K, TINV
 
       ! Chemistry timestep in seconds
-      REAL(fp) :: DTCHEM
+      REAL(f8) :: DTCHEM
 
       ! Timestep in hours
-      REAL(fp) :: DTCHEM_HR
+      REAL(f8) :: DTCHEM_HR
 
       ! Timing information
       INTEGER       :: NDAY
@@ -987,7 +987,8 @@
       REAL(fp)             :: DAYFRAC
       REAL(fp)             :: SOL_ME, SOL_FE, SOL_LS, SOL_DEC
       REAL(fp)             :: SOL_ECC2, SOL_B, SOL_C, SOL_TEST
-      REAL(fp)             :: TSTART, TEND, TMIN, TMAX, GMTSTART
+      REAL(fp)             :: TSTART, TEND, TMIN, TMAX
+      REAL(f8)             :: GMTSTART
       REAL(fp), PARAMETER  :: SOL_ECC=0.016
       INTEGER            :: NDYEAR, AS
       LOGICAL            :: CYCLEBOX
@@ -1020,8 +1021,8 @@
       ENDIF
 
       ! Get chemistry step length in seconds
-      DTCHEM = GET_TS_CHEM()*60.e+0_fp
-      DTCHEM_HR = DTCHEM/3600.e+0_fp
+      DTCHEM = GET_TS_CHEM()*60.e+0_f8
+      DTCHEM_HR = DTCHEM/3600.e+0_f8
 
       IF (ITS_A_LEAPYEAR()) THEN
          NDYEAR = 366
@@ -1032,8 +1033,8 @@
       NDAY = GET_DAY_OF_YEAR()
 
       ! Calculate timestep start and end (GMT)
-      GMTSTART = REAL(GET_HOUR()) + (REAL(GET_MINUTE())/60.e+0_fp)
-      GMTSTART = GMTSTART - (DTCHEM_HR/2.e+0_fp)
+      GMTSTART = REAL(GET_HOUR()) + (REAL(GET_MINUTE())/60.e+0_f8)
+      GMTSTART = GMTSTART - (DTCHEM_HR/2.e+0_f8)
 
       ! Eccentricity^2
       SOL_ECC2 = SOL_ECC*SOL_ECC

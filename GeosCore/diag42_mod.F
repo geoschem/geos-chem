@@ -507,6 +507,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -518,9 +519,9 @@
       INTEGER           :: IFIRST,    JFIRST,    LFIRST        
       REAL*4            :: LONRES,    LATRES
       REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
-      !REAL(fp)            :: SCALE(IIPAR,JJPAR)
-      REAL(fp)            :: SCALE
-      REAL(fp)            :: DIAGb,     DIAGe
+      !REAL(fp)         :: SCALE(IIPAR,JJPAR)
+      REAL(fp)          :: SCALE
+      REAL(f8)          :: DIAGb,     DIAGe
       CHARACTER(LEN=20) :: MODELNAME 
       CHARACTER(LEN=40) :: CATEGORY
       CHARACTER(LEN=40) :: RESERVED

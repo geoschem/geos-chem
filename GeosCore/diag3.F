@@ -243,6 +243,7 @@
 !  24 Nov 2014 - R. Yantosca - Bug fix for ND28 BC/OC: Don't multiply by area
 !  04 Dec 2014 - R. Yantosca - No longer crashes if BIOGENIC_OCPI=0 everywhere
 !  12 Dec 2014 - M. Yannetti - Converted HEMCO Precision updates
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -256,19 +257,20 @@
       INTEGER            :: NN1    ! TOMAS tracers
       INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
 
-      REAL(fp)             :: SCALE_TMP(IIPAR,JJPAR)
-      REAL(fp)             :: SCALE_I6,   SCALE_A6,   SCALE_A3  
-      REAL(fp)             :: SCALE_A1,   SCALED,     SCALEDYN
-      REAL(fp)             :: SCALECONV,  SCALESRCE,  SCALECHEM  
-      REAL(fp)             :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
-      REAL(fp)             :: SCALEX,     SECONDS,    PMASS      
-      REAL(fp)             :: PRESSX,     FDTT,       AREA_M2
-      REAL(fp)             :: DIAGb,      DIAGe,      SCALE_I3
+      REAL(fp)           :: SCALE_TMP(IIPAR,JJPAR)
+      REAL(fp)           :: SCALE_I6,   SCALE_A6,   SCALE_A3  
+      REAL(fp)           :: SCALE_A1,   SCALED,     SCALEDYN
+      REAL(fp)           :: SCALECONV,  SCALESRCE,  SCALECHEM  
+      REAL(fp)           :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
+      REAL(fp)           :: SCALEX,     SECONDS,    PMASS      
+      REAL(fp)           :: PRESSX,     FDTT,       AREA_M2
+      REAL(fp)           :: SCALE_I3
+      REAL(f8)           :: DIAGb,      DIAGe
       
       ! For binary punch file, version 2.0
       CHARACTER (LEN=40) :: CATEGORY 
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR+1)
-      REAL*4             :: LONRES, LATRES
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLPAR+1)
+      REAL(f4)           :: LONRES, LATRES
       INTEGER            :: IFIRST, JFIRST, LFIRST
       INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180 = 1
@@ -285,7 +287,7 @@
       CHARACTER(LEN=2)   :: ISTR2
 
       ! For ND60 TOMAS diagnostic, avoids an array temporary (bmy, 1/28/14)
-      REAL*4             :: ARR2D(JJPAR,LLPAR)
+      REAL(f4)           :: ARR2D(JJPAR,LLPAR)
 #endif
 
       ! Define a local variable for dry depostion species name
@@ -295,22 +297,22 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: STT(:,:,:,:)
 
       ! Interface w/ HEMCO diagnostics
-      INTEGER                   :: FLAG
-      INTEGER                   :: AFill
-      CHARACTER(LEN= 63)        :: DiagnName, SrcName, SpcName, FullName
-      CHARACTER(LEN=255)        :: MSG
-      TYPE(DiagnCont), POINTER  :: DiagnCnt => NULL() 
-      TYPE(HCO_State), POINTER  :: HcoState => NULL()
-      REAL(hp)                    :: FACTOR
-      REAL(hp), PARAMETER         :: GPERKG   = 1000e+0_hp
-      REAL(hp), PARAMETER         :: MWC      = 12e+0_hp
-      REAL(hp), PARAMETER         :: CM2PERM2 = 10000e+0_hp
-      REAL(hp), PARAMETER         :: S_DMS    = 32e+0_hp / 62e+0_hp
-      REAL(hp), PARAMETER         :: S_SO2    = 32e+0_hp / 64e+0_hp
-      REAL(hp), PARAMETER         :: S_SO4    = 32e+0_hp / 96e+0_hp
+      INTEGER                  :: FLAG
+      INTEGER                  :: AFill
+      CHARACTER(LEN= 63)       :: DiagnName, SrcName, SpcName, FullName
+      CHARACTER(LEN=255)       :: MSG
+      TYPE(DiagnCont), POINTER :: DiagnCnt => NULL() 
+      TYPE(HCO_State), POINTER :: HcoState => NULL()
+      REAL(hp)                 :: FACTOR
+      REAL(hp), PARAMETER      :: GPERKG   = 1000e+0_hp
+      REAL(hp), PARAMETER      :: MWC      = 12e+0_hp
+      REAL(hp), PARAMETER      :: CM2PERM2 = 10000e+0_hp
+      REAL(hp), PARAMETER      :: S_DMS    = 32e+0_hp / 62e+0_hp
+      REAL(hp), PARAMETER      :: S_SO2    = 32e+0_hp / 64e+0_hp
+      REAL(hp), PARAMETER      :: S_SO4    = 32e+0_hp / 96e+0_hp
 
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
 !

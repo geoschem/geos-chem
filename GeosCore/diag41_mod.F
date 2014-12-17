@@ -155,6 +155,7 @@
 !  (3 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,9 +165,10 @@
       INTEGER            :: I,         J,           M,      N
       INTEGER            :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER            :: JFIRST,    LFIRST,      LMAX
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*4             :: LONRES,    LATRES,      EPS
-      REAL(fp)             :: DIAGb,     DIAGe,       SCALE
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)           :: LONRES,    LATRES,      EPS
+      REAL(f8)           :: DIAGb,     DIAGe
+      REAL(fp)           :: SCALE
       CHARACTER(LEN=20)  :: MODELNAME 
       CHARACTER(LEN=40)  :: CATEGORY,  RESERVED,    UNIT
 
@@ -190,7 +192,7 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      EPS       = 1e-32_fp
+      EPS       = 1e-32_f4
          
       !=================================================================
       ! Write data to the bpch file

@@ -373,6 +373,7 @@
 !                              done in the init stage
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -380,7 +381,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, J, COUNT
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,1)
       CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
@@ -406,7 +407,7 @@
 
       ! Annual mean tropopause is tracer #1  
       CALL READ_BPCH2( FILENAME, 'TR-PAUSE', 1, 
-     &                 0e+0_fp,       IIPAR,     JJPAR,     
+     &                 0e+0_f8,   IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Copy from REAL*4 to INTEGER and resize to (IIPAR,JJPAR)

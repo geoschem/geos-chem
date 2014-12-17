@@ -749,8 +749,7 @@ CONTAINS
 !  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
 !  12 Jun 2013 - R. Yantosca - Now pass st4d, ct4d arrays to NcRd routine.
 !                              This avoids array temporaries.
-!   3 Apr 2014 - R. Yantosca - Now use 
-
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -761,17 +760,17 @@ CONTAINS
     CHARACTER(LEN=255) :: FILENAME, DAYFILE, NIGHTFILE
     INTEGER            :: N,        M,       S
     INTEGER            :: F,        NN,      fileID
-    REAL(fp)             :: XTAU
+    REAL(f8)           :: XTAU
     INTEGER            :: N_TRACERS
 
     ! Arrays
     INTEGER            :: st4d(4)                        ! netCDF start
     INTEGER            :: ct4d(4)                        ! netCDF count
-    REAL*4             :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
+    REAL(f4)           :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
     CHARACTER(LEN=14)  :: TRACER_NAME(Input_Opt%N_TRACERS)
 
     ! Pointers
-    REAL*4,  POINTER   :: ptr_3D(:,:,:)
+    REAL(f4), POINTER  :: ptr_3D(:,:,:)
 
     !=================================================================
     ! GET_RATES begins here
@@ -1018,6 +1017,7 @@ CONTAINS
 !                              running with the traditional driver main.F
 !  26 Aug 2013 - R. Yantosca - Avoid array temporaries
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1029,7 +1029,7 @@ CONTAINS
     INTEGER            :: N,        M,       S 
     INTEGER            :: F,        I,       J
     INTEGER            :: NN,       fileID
-    REAL(fp)             :: XTAU
+    REAL(f8)           :: XTAU
 
     ! Index arrays
     INTEGER            :: II(1)
@@ -1038,21 +1038,21 @@ CONTAINS
     INTEGER            :: ct1d(1), ct4d(4)
 
     ! Arrays defined on the 2 x 2.5 grid
-    REAL*4             :: XMID_COARSE ( 144                    )
-    REAL*4             :: YMID_COARSE (        91              )
-    REAL*4             :: BryTemp     ( 144,   91,    LGLOB    )
-    REAL(fp)             :: BryDay2x25  ( 144,   91,    LLPAR, 6 )
-    REAL(fp)             :: BryNight2x25( 144,   91,    LLPAR, 6 )
+    REAL(f4)           :: XMID_COARSE ( 144                    )
+    REAL(f4)           :: YMID_COARSE (        91              )
+    REAL(f4)           :: BryTemp     ( 144,   91,    LGLOB    )
+    REAL(fp)           :: BryDay2x25  ( 144,   91,    LLPAR, 6 )
+    REAL(fp)           :: BryNight2x25( 144,   91,    LLPAR, 6 )
 
     ! Arrays defined on the nested grid
     ! "f2c" = fine to coarse mapping
     INTEGER            :: I_f2c       ( IIPAR                  )
     INTEGER            :: J_f2c       (        JJPAR           )
-    REAL*4             :: COLUMN      (               LGLOB    )
-    REAL*4             :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
+    REAL(f4)           :: COLUMN      (               LGLOB    )
+    REAL(f4)           :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
 
     ! Pointers
-    REAL*4, POINTER    :: ptr_3D(:,:,:)
+    REAL(f4), POINTER  :: ptr_3D(:,:,:)
 
     ! For values from Input_Opt
     INTEGER            :: N_TRACERS

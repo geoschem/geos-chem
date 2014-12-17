@@ -122,6 +122,8 @@
       USE inquireMod, ONLY : findFreeLUN
 
       USE PRECISION_MOD, ONLY : fpp => fp   ! For GEOS-Chem Precision (fpp)
+      USE PRECISION_MOD, ONLY : f4          !  Rename to avoid conflicts
+      USE PRECISION_MOD, ONLY : f8
 
       IMPLICIT NONE
 
@@ -329,6 +331,7 @@
 !  15 Apr 2014 - R. Yantosca - Eliminate array temporaries 
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !*****************************************************************************
 !
 ! !USES:
@@ -373,11 +376,11 @@
       REAL*4               :: ARRAYconc(IGLOB,JGLOB,LGLOB)  ! concentration
 
       ! Local variables
-      REAL(fpp)               :: XTAU
-      INTEGER              :: I, J, L, NN
-      CHARACTER(LEN=155)   :: FILENAME
-      CHARACTER(LEN=2)     :: MON                 ! for months 10-12
-      CHARACTER(LEN=1)     :: SMON                ! for months 1-9
+      REAL(f8)                :: XTAU
+      INTEGER                 :: I, J, L, NN
+      CHARACTER(LEN=155)      :: FILENAME
+      CHARACTER(LEN=2)        :: MON                 ! for months 10-12
+      CHARACTER(LEN=1)        :: SMON                ! for months 1-9
       REAL(fpp), PARAMETER    :: TINY  = 1e-16_fpp       ! to prevent NaN
       REAL(fpp), DIMENSION(5) :: AERO_MW             ! to hold aerosol molec weights 
       REAL(fpp)               :: AIR_MW = 2.897e-02_fpp  ! avg molecular weight of air 
@@ -1783,6 +1786,7 @@
 !  (1 ) Modified for S. Strode's latest ocean Hg code.  Now read files
 !        from DATA_DIR_1x1/mercury_200511. (sas, cdh, bmy, 3/28/06)
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
 ! !USES:
@@ -1810,7 +1814,7 @@
       ! Local Variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
       REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
-      REAL(fpp)                 :: TAU
+      REAL(f8)               :: TAU
       CHARACTER(LEN=255)     :: FILENAME
       ! Add time variables to get correct number of seconds per month
       ! and prevent negative flow later (jaf, 12/8/11)
@@ -2023,6 +2027,7 @@
 !  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
 !  (2 ) Now use actual number of days in given month (jaf, 7/6/11)
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2048,7 +2053,7 @@
 !
       INTEGER                :: I, J, NEXTMONTH
       REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
-      REAL(fpp)                 :: TAU
+      REAL(f8)               :: TAU
       CHARACTER(LEN=255)     :: FILENAME
       INTEGER                :: DAYS_IN_MONTH
       INTEGER                :: M(12) = (/ 31, 28, 31, 30, 31, 30,
@@ -2136,6 +2141,7 @@
 !  NOTES:
 !  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2159,7 +2165,7 @@
 !
       INTEGER            :: I, J, LASTMONTH
       REAL*4             :: ARRAY(IGLOB,JGLOB,1)
-      REAL(fpp)             :: TAU
+      REAL(f8)           :: TAU
       CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
@@ -2934,6 +2940,7 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  23 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod.F
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2950,7 +2957,7 @@
 
       ! Arguments           
       INTEGER,        INTENT(IN) :: NYMD, NHMS
-      REAL(fpp),         INTENT(IN) :: TAU
+      REAL(f8),       INTENT(IN) :: TAU
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 
       ! Local variables

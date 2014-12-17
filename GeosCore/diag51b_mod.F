@@ -116,6 +116,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,9 +175,9 @@
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180=1
       REAL*4               :: LONRES,         LATRES
-      REAL(fp)               :: TAU0,           TAU1
-      REAL(fp)               :: ND51_HR1,       ND51_HR2
-      REAL(fp)               :: ND51_HR_WRITE
+      REAL(f8)             :: TAU0,           TAU1
+      REAL(fp)             :: ND51_HR1,       ND51_HR2
+      REAL(fp)             :: ND51_HR_WRITE
       CHARACTER(LEN=20)    :: MODELNAME
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE

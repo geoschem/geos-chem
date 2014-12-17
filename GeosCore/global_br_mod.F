@@ -119,6 +119,7 @@
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_3D_TROP with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -128,7 +129,7 @@
       INTEGER                      :: I, J, L
       REAL*4                       :: ARRAY(IIPAR,JJPAR,LGLOB)
       REAL*4                       :: ARRAY2(IIPAR,JJPAR,LLCHEM)
-      REAL(fp)                       :: XTAU
+      REAL(f8)                       :: XTAU
 !      REAL*4                       :: TPAUSE(IIPAR,JJPAR)
       CHARACTER(LEN=255)           :: FILENAME
       INTEGER                      :: TPL

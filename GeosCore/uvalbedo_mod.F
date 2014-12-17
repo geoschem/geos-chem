@@ -34,18 +34,12 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
-!      ! Array for UV albedo data
-!     REAL(fp), ALLOCATABLE :: UVALBEDO(:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -96,6 +90,7 @@
 !  (12) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (13) Read proper filename for GCAP or GEOS grids (swu, bmy, 8/15/05) 
 !  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
       ! References to F90 modules
@@ -126,8 +121,8 @@
 !      
       LOGICAL              :: FIRST = .TRUE.
       INTEGER              :: AS
-      REAL*4               :: ARRAY(IIPAR,JJPAR,1)
-      REAL(fp)               :: XTAU
+      REAL(f4)             :: ARRAY(IIPAR,JJPAR,1)
+      REAL(f8)             :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
 
       !=================================================================
@@ -136,26 +131,6 @@
 
       ! Assume success
       RC  =  GIGC_SUCCESS
-
-!----------------------------------------------------------------------------
-! Prior to 11/6/14:
-!      UVALBEDO = AR
-!      !=================================================================
-!      ! Allocate UVALBEDO array on the first call
-!      !=================================================================
-!      IF ( FIRST ) THEN
-!
-!         ! Allocate UVALBEDO
-!         ALLOCATE( UVALBEDO( IIPAR, JJPAR ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UVALBEDO' )
-!         
-!         ! Zero UVALBEDO
-!         UVALBEDO(:,:) = 0e+0_fp
-!
-!         ! Reset FIRST flag
-!         FIRST = .FALSE.
-!      ENDIF
-!----------------------------------------------------------------------------
 
       !=================================================================
       ! Read UVALBEDO data from disk
@@ -184,13 +159,6 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )         
 
       ! Transfer data from REAL*4 to REAL(fp) and to size (IIPAR,JJPAR)
-!----------------------------------------------------------------------------
-! Prior to 11/6/14:
-!      UVALBEDO = ARRAY(:,:,1)
-!      
-!      ! Copy met field to State_Met
-!      State_Met%UVALBEDO = UVALBEDO
-!----------------------------------------------------------------------------
       State_Met%UVALBEDO = ARRAY(:,:,1)
 
       ! Return to calling program
