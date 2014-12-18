@@ -3061,7 +3061,6 @@
       REAL(fp),       INTENT(IN) :: RHB   ! Relative humidity (fraction)
       REAL(fp),       INTENT(IN) :: W10   ! 10 m windspeed [m/s]
       TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
-      integer,        intent(in) :: i,j
 !
 ! !RETURN VALUE:
 !
