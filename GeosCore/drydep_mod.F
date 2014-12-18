@@ -200,10 +200,10 @@
 ! !DEFINED PARAMETERS:
 !
       ! SOAupdate: 55 to 105 jje (8/19/2010)
-      INTEGER, PARAMETER :: MAXDEP    = 105     ! Max # of depositing species
-      REAL(fp),  PARAMETER :: XCKMAN    = 0.4e+0_fp   ! Von Karman's constant
-      INTEGER, PARAMETER :: NR_MAX    = 200     ! # of seasalt bins 
-      INTEGER, PARAMETER :: NDRYDTYPE = 11      ! # of drydep land types
+      INTEGER,  PARAMETER :: MAXDEP    = 105       ! Max # of depositing species
+      REAL(fp), PARAMETER :: XCKMAN    = 0.4e+0_fp ! Von Karman's constant
+      INTEGER,  PARAMETER :: NR_MAX    = 200       ! # of seasalt bins 
+      INTEGER,  PARAMETER :: NDRYDTYPE = 11        ! # of drydep land types
 !
 ! PRIVATE TYPES:
 !
@@ -248,52 +248,51 @@
       !========================================================================
 
       ! Scalars
-      INTEGER              :: NUMDEP,   NWATER
-      INTEGER              :: DRYDHNO3, DRYDNO2, DRYDPAN, DRYDH2O2
-      INTEGER              :: DRYHg0,   DRYHg2,  DryHgP
+      INTEGER               :: NUMDEP,   NWATER
+      INTEGER               :: DRYDHNO3, DRYDNO2, DRYDPAN, DRYDH2O2
+      INTEGER               :: DRYHg0,   DRYHg2,  DryHgP
       ! Additional variables for POPs sim (eck, 9/20/10)
-      INTEGER              :: DRYPOPP_OC
-      INTEGER              :: DRYPOPP_BC
-      INTEGER              :: DRYPOPG
+      INTEGER               :: DRYPOPP_OC
+      INTEGER               :: DRYPOPP_BC
+      INTEGER               :: DRYPOPG
 
       ! Arrays for Baldocchi drydep polynomial coefficients
-      REAL(fp), TARGET       :: DRYCOEFF(NPOLY    )
+      REAL(fp), TARGET      :: DRYCOEFF(NPOLY    )
 
       ! Arrays that hold information for each of the 74 Olson land types
-      INTEGER              :: INDOLSON(NVEGTYPE )
-      INTEGER              :: IDEP    (NVEGTYPE )
-      INTEGER              :: IZO     (NVEGTYPE )
-      INTEGER              :: IWATER  (NVEGTYPE )
+      INTEGER               :: INDOLSON(NVEGTYPE )
+      INTEGER               :: IDEP    (NVEGTYPE )
+      INTEGER               :: IZO     (NVEGTYPE )
+      INTEGER               :: IWATER  (NVEGTYPE )
 
       ! Arrays that hold information for each of the 11 drydep land types
-      INTEGER              :: IDRYDEP (NDRYDTYPE)
-      INTEGER              :: IRAC    (NDRYDTYPE)
-      INTEGER              :: IRCLO   (NDRYDTYPE)
-      INTEGER              :: IRCLS   (NDRYDTYPE)
-      INTEGER              :: IRGSS   (NDRYDTYPE)
-      INTEGER              :: IRGSO   (NDRYDTYPE)
-      INTEGER              :: IRI     (NDRYDTYPE)
-      INTEGER              :: IRLU    (NDRYDTYPE)
-      INTEGER              :: IVSMAX  (NDRYDTYPE)
+      INTEGER               :: IDRYDEP (NDRYDTYPE)
+      INTEGER               :: IRAC    (NDRYDTYPE)
+      INTEGER               :: IRCLO   (NDRYDTYPE)
+      INTEGER               :: IRCLS   (NDRYDTYPE)
+      INTEGER               :: IRGSS   (NDRYDTYPE)
+      INTEGER               :: IRGSO   (NDRYDTYPE)
+      INTEGER               :: IRI     (NDRYDTYPE)
+      INTEGER               :: IRLU    (NDRYDTYPE)
+      INTEGER               :: IVSMAX  (NDRYDTYPE)
 
       ! Arrays that hold information about the dry-depositing species
-      LOGICAL              :: AIROSOL (MAXDEP   )
-      INTEGER              :: NDVZIND (MAXDEP   )
-      INTEGER              :: NTRAIND (MAXDEP   )
-      REAL(fp)               :: HSTAR   (MAXDEP   )
-      REAL(fp)               :: KOA     (MAXDEP   )
-      REAL(fp)               :: F0      (MAXDEP   )
-      REAL(fp)               :: XMW     (MAXDEP   )
-      REAL(fp)               :: A_RADI  (MAXDEP   )
-      REAL(fp)               :: A_DEN   (MAXDEP   )
-      CHARACTER(LEN=14)    :: DEPNAME (MAXDEP   )
+      LOGICAL               :: AIROSOL (MAXDEP   )
+      INTEGER               :: NDVZIND (MAXDEP   )
+      INTEGER               :: NTRAIND (MAXDEP   )
+      REAL(fp)              :: HSTAR   (MAXDEP   )
+      REAL(fp)              :: KOA     (MAXDEP   )
+      REAL(fp)              :: F0      (MAXDEP   )
+      REAL(fp)              :: XMW     (MAXDEP   )
+      REAL(fp)              :: A_RADI  (MAXDEP   )
+      REAL(fp)              :: A_DEN   (MAXDEP   )
+      CHARACTER(LEN=14)     :: DEPNAME (MAXDEP   )
 
       ! Allocatable arrays
-      REAL(fp),  ALLOCATABLE :: DEPSAV  (:,:,:    )   ! Drydep frequencies
-      REAL(fp),  ALLOCATABLE :: DMID    (:        )   ! 
-      REAL(fp),  ALLOCATABLE :: SALT_V  (:        )
-!      REAL(fp),  ALLOCATABLE :: SHIPO3DEP(:,:)
-
+      REAL(fp), ALLOCATABLE :: DEPSAV  (:,:,:    )   ! Drydep frequencies
+      REAL(fp), ALLOCATABLE :: DMID    (:        )   ! 
+      REAL(fp), ALLOCATABLE :: SALT_V  (:        )
+      
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -406,31 +405,31 @@
 !
       ! Scalars
       INTEGER       :: I,   J,   L,  N, IJLOOP, NN, NDVZ
-      REAL(fp)        :: DVZ, THIK
+      REAL(fp)      :: DVZ, THIK
 
       ! Arrays
       LOGICAL       :: LSNOW (MAXIJ       )   ! Flag for snow/ice on the sfc.
-      REAL(fp)        :: CZ1   (MAXIJ       )   ! Midpt ht of 1st model level [m]
-      REAL(fp)        :: TC0   (MAXIJ       )   ! Grid box sfc temperature [K]
-      REAL(fp)        :: ZH    (MAXIJ       )   ! PBL height [m]
-      REAL(fp)        :: OBK   (MAXIJ       )   ! Monin-Obhukov Length [m]
-      REAL(fp)        :: CFRAC (MAXIJ       )   ! Column cloud frac [unitless]
-      REAL(fp)        :: RADIAT(MAXIJ       )   ! Solar radiation [W/m2]
-      REAL(fp)        :: USTAR (MAXIJ       )   ! Grid box friction velocity[m/s]
-      REAL(fp)        :: RHB   (MAXIJ       )   ! Relative humidity [unitless]
-      REAL(fp)        :: DVEL  (MAXIJ,MAXDEP)   ! Drydep velocities [m/s]
-      REAL(fp)        :: PRESSU(MAXIJ       )   ! Local surface pressure [Pa]
-      REAL(fp)        :: W10   (MAXIJ       )   ! 10m windspeed [m/s]
+      REAL(fp)      :: CZ1   (MAXIJ       )   ! Midpt ht of 1st model level [m]
+      REAL(fp)      :: TC0   (MAXIJ       )   ! Grid box sfc temperature [K]
+      REAL(fp)      :: ZH    (MAXIJ       )   ! PBL height [m]
+      REAL(fp)      :: OBK   (MAXIJ       )   ! Monin-Obhukov Length [m]
+      REAL(fp)      :: CFRAC (MAXIJ       )   ! Column cloud frac [unitless]
+      REAL(fp)      :: RADIAT(MAXIJ       )   ! Solar radiation [W/m2]
+      REAL(fp)      :: USTAR (MAXIJ       )   ! Grid box friction velocity[m/s]
+      REAL(fp)      :: RHB   (MAXIJ       )   ! Relative humidity [unitless]
+      REAL(fp)      :: DVEL  (MAXIJ,MAXDEP)   ! Drydep velocities [m/s]
+      REAL(fp)      :: PRESSU(MAXIJ       )   ! Local surface pressure [Pa]
+      REAL(fp)      :: W10   (MAXIJ       )   ! 10m windspeed [m/s]
 
       ! Now make SUNCOS_MID a local array (bmy, 11/28/12)
-      REAL(fp)        :: SUNCOS_MID(MAXIJ   )   ! COS(SZA) @ midpoint of the
+      REAL(fp)      :: SUNCOS_MID(MAXIJ   )   ! COS(SZA) @ midpoint of the
                                               !  current chemistry timestep
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
-      REAL(fp)        :: AZO   (NTYPE       )   ! Z0, per Olson land type
+      REAL(fp)      :: AZO   (NTYPE       )   ! Z0, per Olson land type
 #else
-      REAL(fp)        :: AZO   (MAXIJ       )   ! Z0, per (I,J) square
+      REAL(fp)      :: AZO   (MAXIJ       )   ! Z0, per (I,J) square
 #endif
 
       ! For ESMF, need to assign these from Input_Opt
@@ -540,13 +539,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-! Activate this shortly (bmy, 3/5/13)
-!      IF ( Input_Opt%LDRYD ) THEN
-!         DO N = 1, Input_Opt%NUMDEP
-!            State_Chm%DEPSAV(:,:,N) = DEPSAV(:,:,N)
-!         ENDDO
-!      ENDIF
-
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
          CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
@@ -572,13 +564,13 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: N      ! Tracer number
-      LOGICAL, INTENT(IN) :: LSNOW  ! Flag for denoting snow/ice
-      REAL(fp),  INTENT(IN) :: DVZ    ! Deposition velocity [cm/s]
+      INTEGER,  INTENT(IN) :: N      ! Tracer number
+      LOGICAL,  INTENT(IN) :: LSNOW  ! Flag for denoting snow/ice
+      REAL(fp), INTENT(IN) :: DVZ    ! Deposition velocity [cm/s]
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: NEWDVZ
+      REAL(fp)             :: NEWDVZ
 !
 ! !REVISION HISTORY: 
 !  (1 ) Don't put a min drydep value on H2O2 for offline run (rjp, bmy,3/31/03)
@@ -653,25 +645,25 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      LOGICAL, INTENT(OUT) :: LSNOW (MAXIJ)  ! Flag for denoting snow/ice
-      REAL(fp),  INTENT(OUT) :: CZ1   (MAXIJ)  ! Midpt ht of 1st model level [m]
-      REAL(fp),  INTENT(OUT) :: TC0   (MAXIJ)  ! Grid box sfc temperature [K]
-      REAL(fp),  INTENT(OUT) :: OBK   (MAXIJ)  ! Monin-Obhukov length [m]
-      REAL(fp),  INTENT(OUT) :: CFRAC (MAXIJ)  ! Column cloud fraction [unitless]
-      REAL(fp),  INTENT(OUT) :: RADIAT(MAXIJ)  ! Solar radiation @ ground [W/m2]
-      REAL(fp),  INTENT(OUT) :: RHB   (MAXIJ)  ! Rel humidity at sfc [unitless]
-      REAL(fp),  INTENT(OUT) :: USTR  (MAXIJ)  ! Friction velocity [m/s]
-      REAL(fp),  INTENT(OUT) :: ZH    (MAXIJ)  ! PBL height [m]
-      REAL(fp),  INTENT(OUT) :: PRESSU(MAXIJ)  ! Local surface pressure [Pa]
-      REAL(fp),  INTENT(OUT) :: W10   (MAXIJ)  ! 10 meter windspeed [m/s]
-      REAL(fp),  INTENT(OUT) :: SUNCOS_MID(MAXIJ)  ! COS(SZA) @ midpt of current
-                                                 !  chemistry timestep
+      LOGICAL,  INTENT(OUT) :: LSNOW (MAXIJ)  ! Flag for denoting snow/ice
+      REAL(fp), INTENT(OUT) :: CZ1   (MAXIJ)  ! Midpt ht of 1st model level [m]
+      REAL(fp), INTENT(OUT) :: TC0   (MAXIJ)  ! Grid box sfc temperature [K]
+      REAL(fp), INTENT(OUT) :: OBK   (MAXIJ)  ! Monin-Obhukov length [m]
+      REAL(fp), INTENT(OUT) :: CFRAC (MAXIJ)  ! Column cloud fraction [unitless]
+      REAL(fp), INTENT(OUT) :: RADIAT(MAXIJ)  ! Solar radiation @ ground [W/m2]
+      REAL(fp), INTENT(OUT) :: RHB   (MAXIJ)  ! Rel humidity at sfc [unitless]
+      REAL(fp), INTENT(OUT) :: USTR  (MAXIJ)  ! Friction velocity [m/s]
+      REAL(fp), INTENT(OUT) :: ZH    (MAXIJ)  ! PBL height [m]
+      REAL(fp), INTENT(OUT) :: PRESSU(MAXIJ)  ! Local surface pressure [Pa]
+      REAL(fp), INTENT(OUT) :: W10   (MAXIJ)  ! 10 meter windspeed [m/s]
+      REAL(fp), INTENT(OUT) :: SUNCOS_MID(MAXIJ)  ! COS(SZA) @ midpt of current
+                                                  !  chemistry timestep
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
-      REAL(fp), INTENT(OUT)  :: AZO(NTYPE)     ! Roughness heights, by landtype
+      REAL(fp), INTENT(OUT) :: AZO(NTYPE)     ! Roughness heights, by landtype
 #else
-      REAL(fp), INTENT(OUT)  :: AZO(MAXIJ)     ! Roughness heights, by grid box
+      REAL(fp), INTENT(OUT) :: AZO(MAXIJ)     ! Roughness heights, by grid box
 #endif
 !
 ! !REMARKS:
@@ -722,10 +714,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,  J,  IJLOOP
-      REAL(fp)  :: THIK
-      REAL(fp)  :: SP
-      REAL(fp)  :: SFCWINDSQR
+      INTEGER  :: I,  J,  IJLOOP
+      REAL(fp) :: THIK
+      REAL(fp) :: SP
+      REAL(fp) :: SFCWINDSQR
 
       !=================================================================
       ! METERO begins here!
@@ -889,8 +881,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
-      REAL(fp)  :: DTCHEM, PBL_MAX, TDRYFX, AREA_CM2
+      INTEGER  :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
+      REAL(fp) :: DTCHEM, PBL_MAX, TDRYFX, AREA_CM2
 
       !=================================================================
       ! DRYFLX begins here!
@@ -1052,8 +1044,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L, PBL_MAX, N, NN
-      REAL(fp)              :: DTCHEM, FRACLOST, F_UNDER_TOP, AMT_LOST
+      INTEGER           :: I, J, L, PBL_MAX, N, NN
+      REAL(fp)          :: DTCHEM, FRACLOST, F_UNDER_TOP, AMT_LOST
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -1464,23 +1456,23 @@
       TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology state object
 
-      INTEGER, INTENT(IN) :: NPTS             ! # of grid boxes = IIPAR*JJPAR
-      REAL(fp),  INTENT(IN) :: RADIAT (MAXIJ )  ! Solar radiation [W/m2]
-      REAL(fp),  INTENT(IN) :: TEMP   (MAXIJ )  ! Temperature [K]
-      REAL(fp),  INTENT(IN) :: SUNCOS (MAXIJ )  ! Cosine of solar zenith angle
-      LOGICAL, INTENT(IN) :: AIROSOL(MAXDEP)  ! =T denotes aerosol species
-      REAL(fp),  INTENT(IN) :: F0     (MAXDEP)  ! Reactivity factor for oxidation
-                                              !  of biological substances
-      REAL(fp),  INTENT(IN) :: HSTAR  (MAXDEP)  ! Henry's law constant
-      REAL(fp),  INTENT(IN) :: XMW    (MAXDEP)  ! Molecular weight [kg/mol]
-      REAL(fp),  INTENT(IN) :: USTAR  (MAXIJ )  ! Friction velocity [m/s]
-      REAL(fp),  INTENT(IN) :: CZ1    (MAXIJ )  ! Alt @ which Vd is computed [m]
-      REAL(fp),  INTENT(IN) :: OBK    (MAXIJ )  ! Monin-Obhukov length [m]
-      REAL(fp),  INTENT(IN) :: CFRAC  (MAXIJ )  ! Surface cloud fraction
-      REAL(fp),  INTENT(IN) :: ZH     (MAXIJ )  ! Roughness height [m]
-      REAL(fp),  INTENT(IN) :: RHB    (MAXIJ )  ! Relative humidity [%]
-      REAL(fp),  INTENT(IN) :: PRESSU (MAXIJ )  ! Surface pressure [hPa]
-      REAL(fp),  INTENT(IN) :: W10    (MAXIJ )  ! Wind speed @ 10m altitude [m/s]
+      INTEGER,  INTENT(IN) :: NPTS             ! # of grid boxes = IIPAR*JJPAR
+      REAL(fp), INTENT(IN) :: RADIAT (MAXIJ )  ! Solar radiation [W/m2]
+      REAL(fp), INTENT(IN) :: TEMP   (MAXIJ )  ! Temperature [K]
+      REAL(fp), INTENT(IN) :: SUNCOS (MAXIJ )  ! Cosine of solar zenith angle
+      LOGICAL,  INTENT(IN) :: AIROSOL(MAXDEP)  ! =T denotes aerosol species
+      REAL(fp), INTENT(IN) :: F0     (MAXDEP)  ! Reactivity factor for oxidation
+                                               !  of biological substances
+      REAL(fp), INTENT(IN) :: HSTAR  (MAXDEP)  ! Henry's law constant
+      REAL(fp), INTENT(IN) :: XMW    (MAXDEP)  ! Molecular weight [kg/mol]
+      REAL(fp), INTENT(IN) :: USTAR  (MAXIJ )  ! Friction velocity [m/s]
+      REAL(fp), INTENT(IN) :: CZ1    (MAXIJ )  ! Alt @ which Vd is computed [m]
+      REAL(fp), INTENT(IN) :: OBK    (MAXIJ )  ! Monin-Obhukov length [m]
+      REAL(fp), INTENT(IN) :: CFRAC  (MAXIJ )  ! Surface cloud fraction
+      REAL(fp), INTENT(IN) :: ZH     (MAXIJ )  ! Roughness height [m]
+      REAL(fp), INTENT(IN) :: RHB    (MAXIJ )  ! Relative humidity [%]
+      REAL(fp), INTENT(IN) :: PRESSU (MAXIJ )  ! Surface pressure [hPa]
+      REAL(fp), INTENT(IN) :: W10    (MAXIJ )  ! Wind speed @ 10m altitude [m/s]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1709,10 +1701,10 @@
       LOGICAL :: IS_POPS
 
       ! Pointers
-      INTEGER, POINTER :: IREG(:,:)
-      INTEGER, POINTER :: ILAND(:,:,:)
-      INTEGER, POINTER :: IUSE(:,:,:)
-      REAL(fp),  POINTER :: XLAI(:,:,:)
+      INTEGER,  POINTER :: IREG(:,:)
+      INTEGER,  POINTER :: ILAND(:,:,:)
+      INTEGER,  POINTER :: IUSE(:,:,:)
+      REAL(fp), POINTER :: XLAI(:,:,:)
 
       !=================================================================
       ! DEPVEL begins here!
@@ -1951,6 +1943,7 @@
 !*    are from equations (6)-(9) of Wesely [1989].
 !*
             DO 160  K = 1,NUMDEP
+
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
 
@@ -2500,10 +2493,6 @@
 !
       FUNCTION DIFFG( TK, PRESS, XM ) RESULT( DIFF_G )
 !
-! !USES:
-!
-
-!
 ! !INPUT PARAMETERS: 
 !
       REAL(fp), INTENT(IN) :: TK     ! Temperature [K]
@@ -2531,6 +2520,9 @@
 ! !LOCAL VARIABLES:
 !
       REAL(fp)             :: AIRDEN, Z, DIAM, FRPATH, SPEED, DIFF_G    
+!
+! !DEFINED PARAMETERS:
+!
       REAL(fp), PARAMETER  :: XMAIR  = 28.8e-3_fp 
       REAL(fp), PARAMETER  :: RADAIR = 1.2e-10_fp
       REAL(fp), PARAMETER  :: PI     = 3.1415926535897932e+0_fp
@@ -2624,24 +2616,24 @@
       ! IRCLO    : RCLO resistance for drydep
       ! IVSMAX   : Max drydep velocity (for aerosol) perr drydep land type
       !-----------------------------------------------------------------------
-      REAL(fp),  INTENT(OUT) :: DRYCOEFF(NPOLY    ) 
-      INTEGER, INTENT(OUT) :: IOLSON  (NVEGTYPE )       
-      INTEGER, INTENT(OUT) :: IDEP    (NVEGTYPE )      
-      INTEGER, INTENT(OUT) :: IWATER  (NVEGTYPE )    
-      INTEGER, INTENT(OUT) :: NWATER        
-      INTEGER, INTENT(OUT) :: IZO     (NVEGTYPE )       
-      INTEGER, INTENT(OUT) :: IDRYDEP (NDRYDTYPE)
-      INTEGER, INTENT(OUT) :: IRI     (NDRYDTYPE)
-      INTEGER, INTENT(OUT) :: IRLU    (NDRYDTYPE)
-      INTEGER, INTENT(OUT) :: IRAC    (NDRYDTYPE)
-      INTEGER, INTENT(OUT) :: IRGSS   (NDRYDTYPE)
-      INTEGER, INTENT(OUT) :: IRGSO   (NDRYDTYPE)
-      INTEGER, INTENT(OUT) :: IRCLS   (NDRYDTYPE)
-      INTEGER, INTENT(OUT) :: IRCLO   (NDRYDTYPE)
-      INTEGER, INTENT(OUT) :: IVSMAX  (NDRYDTYPE)
+      REAL(f8), INTENT(OUT) :: DRYCOEFF(NPOLY    ) 
+      INTEGER,  INTENT(OUT) :: IOLSON  (NVEGTYPE )       
+      INTEGER,  INTENT(OUT) :: IDEP    (NVEGTYPE )      
+      INTEGER,  INTENT(OUT) :: IWATER  (NVEGTYPE )    
+      INTEGER,  INTENT(OUT) :: NWATER        
+      INTEGER,  INTENT(OUT) :: IZO     (NVEGTYPE )       
+      INTEGER,  INTENT(OUT) :: IDRYDEP (NDRYDTYPE)
+      INTEGER,  INTENT(OUT) :: IRI     (NDRYDTYPE)
+      INTEGER,  INTENT(OUT) :: IRLU    (NDRYDTYPE)
+      INTEGER,  INTENT(OUT) :: IRAC    (NDRYDTYPE)
+      INTEGER,  INTENT(OUT) :: IRGSS   (NDRYDTYPE)
+      INTEGER,  INTENT(OUT) :: IRGSO   (NDRYDTYPE)
+      INTEGER,  INTENT(OUT) :: IRCLS   (NDRYDTYPE)
+      INTEGER,  INTENT(OUT) :: IRCLO   (NDRYDTYPE)
+      INTEGER,  INTENT(OUT) :: IVSMAX  (NDRYDTYPE)
 
       ! Success or failure flag
-      INTEGER, INTENT(OUT) :: RC
+      INTEGER,  INTENT(OUT) :: RC
 !
 ! !REMARKS:
 !  Routine READ_DRYDEP_INPUTS replaces routines MODIN (which read the ASCII 
@@ -3063,17 +3055,22 @@
 !
       INTEGER,        INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
       INTEGER,        INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
-      REAL(fp),         INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb=100 Pa=0.1 kPa)
-      REAL(fp),         INTENT(IN) :: TEMP  ! Temperature [K]   
-      REAL(fp),         INTENT(IN) :: USTAR ! Friction velocity [m/s]
-      REAL(fp),         INTENT(IN) :: RHB   ! Relative humidity (fraction)
-      REAL(fp),         INTENT(IN) :: W10   ! 10 m windspeed [m/s]
+      REAL(fp),       INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb=100 Pa=0.1 kPa)
+      REAL(fp),       INTENT(IN) :: TEMP  ! Temperature [K]   
+      REAL(fp),       INTENT(IN) :: USTAR ! Friction velocity [m/s]
+      REAL(fp),       INTENT(IN) :: RHB   ! Relative humidity (fraction)
+      REAL(fp),       INTENT(IN) :: W10   ! 10 m windspeed [m/s]
       TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
+      integer,        intent(in) :: i,j
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: RS    ! Surface resistance for particles [s/m]
+      REAL(fp)                   :: RS    ! Surface resistance for particles [s/m]
 ! 
+! !REMARKS:
+!  Do computations internally with REAL*8 (8-byte) floating-point precision,
+!  in order to avoid a loss of precision.
+!
 ! !REVISION HISTORY: 
 !  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
 !        (bmy, 4/1/04)
@@ -3087,7 +3084,6 @@
 !       11, 2011) (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  14 Jun 2013 - R. Yantosca - Now pass Input_Opt via the arg list
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3334,7 +3330,7 @@
       ! in micromenters and not cm. Replace RCM with RUM (jaegle 5/11/11)
       !RCM  = A_RADI(K) * 1.d2
       RUM  = A_RADI(K) * 1.e+6_fp
-      
+
       ! Exponential factors used for hygroscopic growth
       ! Replace RCM with RUM (jaegle 5/11/11)
       !FAC1 = C1 * ( RCM**C2 )
@@ -3388,6 +3384,7 @@
          ! in Tang et al., 1997 [kg/m3]
          DEN1   = ( 0.9971e+0_fp + (A1 * WTP) + (A2 * WTP**2) + 
      $               (A3 * WTP**3) + (A4 * WTP**4) ) * 1000.e+0_fp
+
          ! Now calculate new weight percent using above density calculation
          WTP    = 100.e+0_fp * A_DEN(K)/DEN1 * RATIO_R**3
          ! Now recalculate new wet density [kg/m3]
@@ -3400,7 +3397,7 @@
  
       ! Constant for settling velocity calculation       
       CONST = DEN * DIAM**2 * G0 / 18.e+0_fp
-       
+
       !=================================================================
       !   # air molecule number density
       !   num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
@@ -3553,23 +3550,24 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: N
-
-      REAL(fp)  :: SALT_MASS, SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW ! jaegle, for weighting the settling vel.
-      REAL(fp)  :: DEDGE
-      INTEGER :: ID,NR
-
+      REAL(fp)            :: SALT_MASS, SALT_MASS_TOTAL, VTS_WEIGHT
+      REAL(fp)            :: DEDGE
+      INTEGER             :: ID,NR
+!
+! !DEFINED PARAMETERS:
+!
       ! increment of radius for integration of settling velocity (um)
-      REAL(fp), PARAMETER      :: DR    = 5.e-2_fp
+      REAL(fp), PARAMETER :: DR    = 5.e-2_fp
 
       ! parameters for assumed size distribution of acc and coarse mode
       ! sea salt aerosols
       ! geometric dry mean diameters (microns)
-      REAL(fp),  PARAMETER     ::   RG_A = 0.085e+0_fp
-      REAL(fp),  PARAMETER     ::   RG_C = 0.4e+0_fp
+      REAL(fp), PARAMETER :: RG_A  = 0.085e+0_fp
+      REAL(fp), PARAMETER :: RG_C  = 0.4e+0_fp
       ! sigma of the size distribution
-      REAL(fp),  PARAMETER     ::   SIG_A = 1.5e+0_fp
-      REAL(fp),  PARAMETER     ::   SIG_C = 1.8e+0_fp
-      REAL(fp), PARAMETER   :: PI =3.14159e+0_fp
+      REAL(fp), PARAMETER :: SIG_A = 1.5e+0_fp
+      REAL(fp), PARAMETER :: SIG_C = 1.8e+0_fp
+      REAL(fp), PARAMETER :: PI    = 3.14159e+0_fp
 
 
       ! Number of bins between the lowest bound of of the accumulation mode
@@ -3633,15 +3631,15 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: K       ! Drydep species (range: 1-NUMDEP)
-      INTEGER, INTENT(IN) :: II      ! Surface type index of GEOS-CHEM
-      REAL(fp),  INTENT(IN) :: PRESS   ! Pressure [kPa]
-      REAL(fp),  INTENT(IN) :: TEMP    ! Temperature [K]    
-      REAL(fp),  INTENT(IN) :: USTAR   ! Friction velocity [m/s]
+      INTEGER,  INTENT(IN) :: K       ! Drydep species (range: 1-NUMDEP)
+      INTEGER,  INTENT(IN) :: II      ! Surface type index of GEOS-CHEM
+      REAL(fp), INTENT(IN) :: PRESS   ! Pressure [kPa]
+      REAL(fp), INTENT(IN) :: TEMP    ! Temperature [K]    
+      REAL(fp), INTENT(IN) :: USTAR   ! Friction velocity [m/s]
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: RS      ! Surface resistance for particles [s/m]
+      REAL(fp)             :: RS      ! Surface resistance for particles [s/m]
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
@@ -3655,10 +3653,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: N
+      INTEGER               :: N
       REAL(fp), PARAMETER   :: C1 = 0.7674e+0_fp,  C2 = 3.079e+0_fp, 
-     &                       C3 = 2.573e-11_fp, C4 = -1.424e+0_fp
-
+     &                         C3 = 2.573e-11_fp, C4 = -1.424e+0_fp
       REAL(fp), PARAMETER   :: G0 = 9.8e+0_fp
       REAL(fp), PARAMETER   :: BETA  = 2.e+0_fp
       REAL(fp), PARAMETER   :: BOLTZ = 1.381e-23_fp  ! Baltzmann constant (J/K)
@@ -3808,15 +3805,15 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
-      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
-      REAL(fp),  INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
-      REAL(fp),  INTENT(IN) :: TEMP  ! Temperature [K]    
-      REAL(fp),  INTENT(IN) :: USTAR ! Friction velocity [m/s]
+      INTEGER,  INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
+      INTEGER,  INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
+      REAL(fp), INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
+      REAL(fp), INTENT(IN) :: TEMP  ! Temperature [K]    
+      REAL(fp), INTENT(IN) :: USTAR ! Friction velocity [m/s]
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: RS    ! Surface resistance for particles [s/m]
+      REAL(fp)             :: RS    ! Surface resistance for particles [s/m]
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
@@ -3832,10 +3829,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: N
+      INTEGER               :: N
       REAL(fp), PARAMETER   :: C1 = 0.7674e+0_fp,  C2 = 3.079e+0_fp, 
-     &                       C3 = 2.573e-11_fp, C4 = -1.424e+0_fp
-
+     &                         C3 = 2.573e-11_fp, C4 = -1.424e+0_fp
       REAL(fp), PARAMETER   :: G0 = 9.8e+0_fp
       REAL(fp), PARAMETER   :: BETA  = 2.e+0_fp
       REAL(fp), PARAMETER   :: BOLTZ = 1.381e-23_fp  ! Boltzmann constant (J/K)
@@ -4091,17 +4087,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: K       ! Drydep tracer index (range: 1-NUMDEP)
-      INTEGER, INTENT(IN) :: II      ! Surface type index of GEOS-CHEM
-      REAL(fp),  INTENT(IN) :: PRESS   ! Pressure [kPa]
-      REAL(fp),  INTENT(IN) :: TEMP    ! Temperature [K]    
-      REAL(fp),  INTENT(IN) :: USTAR   ! Friction velocity [m/s]
-      REAL(fp),  INTENT(IN) :: DIAM    ! Particle diameter [m]
-      REAL(fp),  INTENT(IN) :: DEN     ! Particle density [kg/m3]
+      INTEGER,  INTENT(IN) :: K       ! Drydep tracer index (range: 1-NUMDEP)
+      INTEGER,  INTENT(IN) :: II      ! Surface type index of GEOS-CHEM
+      REAL(fp), INTENT(IN) :: PRESS   ! Pressure [kPa]
+      REAL(fp), INTENT(IN) :: TEMP    ! Temperature [K]    
+      REAL(fp), INTENT(IN) :: USTAR   ! Friction velocity [m/s]
+      REAL(fp), INTENT(IN) :: DIAM    ! Particle diameter [m]
+      REAL(fp), INTENT(IN) :: DEN     ! Particle density [kg/m3]
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: RS      ! Surface resistance for particles [s/m]
+      REAL(fp)             :: RS      ! Surface resistance for particles [s/m]
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
@@ -4118,10 +4114,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: N
+      INTEGER               :: N
       REAL(fp), PARAMETER   :: C1 = 0.7674e+0_fp,  C2 = 3.079e+0_fp, 
-     &                       C3 = 2.573e-11_fp, C4 = -1.424e+0_fp
-
+     &                         C3 = 2.573e-11_fp, C4 = -1.424e+0_fp
       REAL(fp), PARAMETER   :: G0 = 9.8e+0_fp
       REAL(fp), PARAMETER   :: BETA  = 2.e+0_fp
       REAL(fp), PARAMETER   :: BOLTZ = 1.381e-23_fp  ! Boltzmann constant (J/K)
@@ -6431,7 +6426,6 @@
       IF ( ALLOCATED( DEPSAV   ) ) DEALLOCATE( DEPSAV   )
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
-!      IF ( ALLOCATED( SHIPO3DEP) ) DEALLOCATE( SHIPO3DEP)
 
       END SUBROUTINE CLEANUP_DRYDEP
 !EOC
