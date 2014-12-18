@@ -94,7 +94,7 @@
       INTEGER, INTENT(IN)   :: J          ! J
       INTEGER, INTENT(IN)   :: L          ! Level
       INTEGER, INTENT(IN)   :: NN         ! Dry Dep Tracer # 
-      REAL(fp) , INTENT(IN)   :: TDRYFX     ! Dry dep flux [molec/cm2/s] 
+      REAL(fp), INTENT(IN)   :: TDRYFX     ! Dry dep flux [molec/cm2/s] 
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
