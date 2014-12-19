@@ -79,35 +79,35 @@ MODULE STRAT_CHEM_MOD
 ! !PRIVATE TYPES:
 !
   ! Scalars
-  REAL(fp)               :: dTchem          ! chemistry time step [s]
-  INTEGER              :: NSCHEM          ! Number of species upon which to 
+  REAL(fp)              :: dTchem          ! chemistry time step [s]
+  INTEGER               :: NSCHEM          ! Number of species upon which to 
                                           ! apply P's & k's in GEOS-Chem
   ! Arrays
   REAL*4,  ALLOCATABLE, TARGET :: PROD(:,:,:,:)   ! Production rate [v/v/s]
   REAL*4,  ALLOCATABLE, TARGET :: LOSS(:,:,:,:)   ! Loss frequency [s-1]
   REAL*4,  ALLOCATABLE, TARGET :: STRAT_OH(:,:,:) ! Monthly mean OH [v/v]
 
-  CHARACTER(LEN=16)    :: GMI_TrName(NTR_GMI)     ! Tracer names in GMI
-  INTEGER              :: Strat_TrID_GC(NTR_GMI)  ! Maps 1:NSCHEM to STT index
-  INTEGER              :: Strat_TrID_GMI(NTR_GMI) ! Maps 1:NSCHEM to GMI index
+  CHARACTER(LEN=16)     :: GMI_TrName(NTR_GMI)     ! Tracer names in GMI
+  INTEGER               :: Strat_TrID_GC(NTR_GMI)  ! Maps 1:NSCHEM to STT index
+  INTEGER               :: Strat_TrID_GMI(NTR_GMI) ! Maps 1:NSCHEM to GMI index
                      ! (At most NTR_GMI species could overlap between G-C & GMI)
 
   ! Variables for Br strat chemistry, moved here from SCHEM.f
-  REAL*4, ALLOCATABLE  :: Bry_temp(:,:,:) 
-  REAL(fp), ALLOCATABLE  :: Bry_day(:,:,:,:) 
-  REAL(fp), ALLOCATABLE  :: Bry_night(:,:,:,:)
+  REAL*4,   ALLOCATABLE :: Bry_temp(:,:,:) 
+  REAL(fp), ALLOCATABLE :: Bry_day(:,:,:,:) 
+  REAL(fp), ALLOCATABLE :: Bry_night(:,:,:,:)
 
   ! Tracer index of Bry species in GEOS-Chem STT (may differ from br_nos)
-  INTEGER              :: GC_Bry_TrID(6) 
+  INTEGER               :: GC_Bry_TrID(6) 
 
   ! Variables used to calculate the strat-trop exchange flux
-  REAL(fp)               :: TauInit             ! Initial time
-  INTEGER              :: NymdInit, NhmsInit  ! Initial date
-  REAL(fp)               :: TpauseL_Cnt         ! Tropopause counter
-  REAL(fp), ALLOCATABLE  :: TpauseL(:,:)        ! Tropopause level aggregator
-  REAL*4, ALLOCATABLE  :: MInit(:,:,:,:)      ! Init. atm. state for STE period
-  REAL*4, ALLOCATABLE  :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
-                                              !   (total P - L) [kg period-1]
+  REAL(fp)              :: TauInit             ! Initial time
+  INTEGER               :: NymdInit, NhmsInit  ! Initial date
+  REAL(fp)              :: TpauseL_Cnt         ! Tropopause counter
+  REAL(fp), ALLOCATABLE :: TpauseL(:,:)        ! Tropopause level aggregator
+  REAL*4,   ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
+  REAL*4,   ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
+                                               !   (total P - L) [kg period-1]
 
   !=================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -633,38 +633,42 @@ CONTAINS
                ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
        ENDDO
 
-    !======================================================================
-    ! H2-HD Simulation
-    !======================================================================
-    ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
-
-       ! H2/HD uses upbdflx_H2, which is a modified Synoz.
-
-       ! Intial conditions
-       STT0(:,:,:,:) = STT(:,:,:,:)
-
-       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
-       CALL UPBDFLX_HD( State_Met, State_Chm )
-       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
-
-       ! Add to tropopause level aggregator for later determining STE flux
-       TpauseL_CNT = TpauseL_CNT + 1e+0_fp
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J )
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
-       ! Aggregate chemical tendency [kg box-1]
-       DO N=1,NSCHEM
-          NN = Strat_TrID_GC(N)
-          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N) + &
-               ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
-       ENDDO
+!------------------------------------------------------------------------------
+! NOTE: This subroutine is obsolete.  You can restore it if you wish.
+! Leave commented out for now. (bmy, 12/19/14)
+!    !======================================================================
+!    ! H2-HD Simulation
+!    !======================================================================
+!    ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
+!
+!       ! H2/HD uses upbdflx_H2, which is a modified Synoz.
+!
+!       ! Intial conditions
+!       STT0(:,:,:,:) = STT(:,:,:,:)
+!
+!       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
+!       CALL UPBDFLX_HD( State_Met, State_Chm )
+!       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
+!
+!       ! Add to tropopause level aggregator for later determining STE flux
+!       TpauseL_CNT = TpauseL_CNT + 1e+0_fp
+!       !$OMP PARALLEL DO       &
+!       !$OMP DEFAULT( SHARED ) &
+!       !$OMP PRIVATE( I, J )
+!       DO J = 1, JJPAR
+!       DO I = 1, IIPAR
+!          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
+!       ENDDO
+!       ENDDO
+!       !$OMP END PARALLEL DO
+!
+!       ! Aggregate chemical tendency [kg box-1]
+!       DO N=1,NSCHEM
+!          NN = Strat_TrID_GC(N)
+!          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N) + &
+!               ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
+!       ENDDO
+!------------------------------------------------------------------------------
 
     ELSE
 
