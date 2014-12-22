@@ -283,9 +283,9 @@ CONTAINS
     LOGICAL           :: prtDebug
     CHARACTER(LEN=16) :: STAMP
     INTEGER           :: I,    J,      L,   N,   NN
-    REAL(fp)            :: dt,   P,      k,   M0,  RC,     M
-    REAL(fp)            :: TK,   RDLOSS, T1L, mOH, BryDay, BryNight
-    REAL(fp)            :: BOXVL
+    REAL(fp)          :: dt,   P,      k,   M0,  RC,     M
+    REAL(fp)          :: TK,   RDLOSS, T1L, mOH, BryDay, BryNight
+    REAL(fp)          :: BOXVL
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     LOGICAL           :: LBRGCCM
@@ -293,14 +293,14 @@ CONTAINS
     INTEGER           :: N_TRACERS
 
     ! Arrays
-    REAL(fp)            :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
-    REAL(fp)            :: BEFORE(IIPAR,JJPAR,LLPAR)
-    REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
+    REAL(fp)          :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
+    REAL(fp)          :: BEFORE(IIPAR,JJPAR,LLPAR)
+    REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
 
     ! Pointers
-    REAL(fp), POINTER   :: STT(:,:,:,:)
-    REAL(fp), POINTER   :: AD(:,:,:)
-    REAL(fp), POINTER   :: T(:,:,:)
+    REAL(fp), POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER :: AD(:,:,:)
+    REAL(fp), POINTER :: T(:,:,:)
 
     !===============================
     ! DO_STRAT_CHEM begins here!
@@ -1321,12 +1321,12 @@ CONTAINS
     ! Scalars
     CHARACTER(LEN=255) :: dateStart, dateEnd
     INTEGER            :: N,         I,      J,    L,      NN
-    REAL(fp)             :: dStrat,    STE,    Tend, tauEnd, dt
+    REAL(fp)           :: dStrat,    STE,    Tend, tauEnd, dt
 
     ! Arrays
     INTEGER            :: LTP(IIPAR,JJPAR      )
-    REAL(fp)             :: M1 (IIPAR,JJPAR,LLPAR)
-    REAL(fp)             :: M2 (IIPAR,JJPAR,LLPAR)
+    REAL(fp)           :: M1 (IIPAR,JJPAR,LLPAR)
+    REAL(fp)           :: M2 (IIPAR,JJPAR,LLPAR)
 
     ! For fields from Input_Opt
     INTEGER            :: N_TRACERS
@@ -1334,7 +1334,7 @@ CONTAINS
     ! Pointers
     ! We need to define local arrays to hold corresponding values 
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER  :: STT(:,:,:,:)
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! By simple mass balance, dStrat/dt = P - L - STE,

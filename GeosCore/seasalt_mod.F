@@ -323,7 +323,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp),         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
+      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -357,7 +357,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I,      J,     L,        N_TRACERS
+      INTEGER                  :: I,      J,     L,        N_TRACERS
       REAL(fp)                 :: DELZ,   DELZ1, REFF,     DEN
       REAL(fp)                 :: P,      DP,    PDP,      TEMP        
       REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
@@ -372,8 +372,8 @@
       REAL(fp)                 :: R0,       R1, NR, DEDGE, SALT_MASS
       REAL(fp)                 :: SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW
       REAL(fp)                 :: WTP, RHO1 
-      INTEGER                :: ID
-      LOGICAL, SAVE          :: FIRST = .TRUE.
+      INTEGER                  :: ID
+      LOGICAL, SAVE            :: FIRST = .TRUE.
 ! !DEFINED PARAMETERS:
 !      
       REAL(fp),  PARAMETER     :: C1 =  0.7674e+0_fp 
@@ -393,11 +393,11 @@
       ! parameters for assumed size distribution of acc and coarse mode
       ! sea salt aerosols (jaegle 5/11/11)
       ! geometric dry mean diameters (microns)
-      REAL(fp),  PARAMETER     ::   RG_A = 0.085e+0_fp
-      REAL(fp),  PARAMETER     ::   RG_C = 0.4e+0_fp
+      REAL(fp),  PARAMETER     :: RG_A = 0.085e+0_fp
+      REAL(fp),  PARAMETER     :: RG_C = 0.4e+0_fp
       ! sigma of the size distribution
-      REAL(fp),  PARAMETER     ::   SIG_A = 1.5e+0_fp
-      REAL(fp),  PARAMETER     ::   SIG_C = 1.8e+0_fp
+      REAL(fp),  PARAMETER     :: SIG_A = 1.5e+0_fp
+      REAL(fp),  PARAMETER     :: SIG_C = 1.8e+0_fp
 
       ! Local variables for Input_Opt quantities
       REAL(fp)                 :: SALA_REDGE_um(2)

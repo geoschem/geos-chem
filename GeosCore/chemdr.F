@@ -747,8 +747,6 @@
       ! Call SETEMIS which sets emission rates REMIS 
       !=================================================================
       CALL SETEMIS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!      CALL SETEMIS( EMISRR,    EMISRRN,   am_I_Root, 
-!     &              Input_Opt, State_Met, RC         )
       
       !### Debug
       IF ( prtDebug ) THEN
@@ -807,7 +805,7 @@
       !=================================================================
       ! Save quantities for computing mean OH lifetime
       !=================================================================
-      CALL DO_DIAG_OH
+      CALL DO_DIAG_OH()
       
       !### Debug
       IF ( prtDebug ) THEN
