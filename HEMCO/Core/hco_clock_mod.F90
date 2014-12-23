@@ -542,7 +542,7 @@ CONTAINS
     INTEGER,  INTENT(  OUT), OPTIONAL :: cYYYY     ! Current year   
     INTEGER,  INTENT(  OUT), OPTIONAL :: cMM       ! Current month 
     INTEGER,  INTENT(  OUT), OPTIONAL :: cDD       ! Current day     
-    REAL(sp), INTENT(  OUT), OPTIONAL :: cH        ! Current hour   
+    REAL(hp), INTENT(  OUT), OPTIONAL :: cH        ! Current hour   
     INTEGER,  INTENT(  OUT), OPTIONAL :: cWEEKDAY  ! Current weekday
 !
 ! !INPUT/OUTPUT PARAMETERS:

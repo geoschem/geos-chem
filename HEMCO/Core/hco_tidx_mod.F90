@@ -423,7 +423,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: HH, WD, MM, RC
-    REAL(sp)           :: LonHH
+    REAL(hp)           :: LonHH
     REAL(dp)           :: frac
 
     !======================================================================

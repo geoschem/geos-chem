@@ -689,7 +689,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   INTEGER                        :: AS, IDTNO2, nSpc
+   INTEGER                        :: AS, I, tmpID, IDTNO2, nSpc
    INTEGER,           ALLOCATABLE :: HcoIDs(:)
    CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
    CHARACTER(LEN=255)             :: MSG, LOC
@@ -712,64 +712,101 @@ CONTAINS
 
    ! Get HEMCO species IDs
    CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
-
    IF ( RC /= HCO_SUCCESS ) RETURN
-   IF ( nSpc /= 4 ) THEN
-      MSG = 'Four species (NO/NO2/O3/HNO3) expected for ParaNOx!'
-      CALL HCO_ERROR ( MSG, RC )
-      RETURN
-   ENDIF
-   IDTNO   = HcoIDs(1)
-   IDTNO2  = HcoIDs(2)
-   IDTO3   = HcoIDs(3)
-   IDTHNO3 = HcoIDs(4)
 
+   ! Init species ID
+   IDTNO   = -1
+   IDTNO2  = -1
+   IDTO3   = -1
+   IDTHNO3 = -1
+
+   ! Check for NO, NO2, O3, and HNO3
+   DO I = 1, nSpc
+      SELECT CASE ( TRIM(SpcNames(I)) )
+         CASE ( "NO" )
+            IDTNO = HcoIDs(I)
+         CASE ( "NO2" )
+            IDTNO2 = HcoIDs(I)
+         CASE ( "O3" )
+            IDTO3 = HcoIDs(I)
+         CASE ( "HNO3" )
+            IDTHNO3 = HcoIDs(I)
+         CASE DEFAULT
+            ! leave empty 
+      END SELECT
+   ENDDO
+
+   ! NO must be defined
    IF ( IDTNO <= 0 ) THEN
-      MSG = 'Species NO not defined - needed by ParaNOx!' 
+      MSG = 'Species NO not defined in PARANOX - this is unrealistic!' 
       CALL HCO_ERROR ( MSG, RC )
       RETURN
    ENDIF
    MW_NO = HcoState%Spc(IDTNO)%MW_g
 
-   IDTO3 = HCO_GetHcoID('O3',   HcoState )
+   ! Get MW of other three species. If species not set in the configuration
+   ! file (e.g. they are not being used by PARANOx), determine MW from 
+   ! default values.
+
+   ! O3
    IF ( IDTO3 <= 0 ) THEN
-      MSG = 'Species O3 not defined - needed by ParaNOx!' 
-      CALL HCO_ERROR ( MSG, RC )
-      RETURN
-   ENDIF
-   MW_O3 = HcoState%Spc(IDTO3)%MW_g
-
-   IDTHNO3 = HCO_GetHcoID('HNO3', HcoState )
-   IF ( IDTHNO3 <= 0 ) THEN
-      IF ( am_I_Root ) THEN
-         MSG = 'Species HNO3 not defined - not used by ParaNOx!' 
-         CALL HCO_WARNING ( MSG, RC )
-      ENDIF
+      tmpID = HCO_GetHcoID('O3', HcoState )
+      MSG = 'O3 not produced/removed in PARANOX'
+      CALL HCO_WARNING ( MSG, RC )
    ELSE
-      MW_HNO3 = HcoState%Spc(IDTHNO3)%MW_g
+      tmpID = IDTO3
    ENDIF
-
-   IDTNO2  = HCO_GetHcoID('NO2',  HcoState )
+   IF ( tmpID > 0 ) THEN
+      MW_O3 = HcoState%Spc(tmpID)%MW_g
+   ELSE
+      MSG = 'Use default O3 molecular weight of 48g/mol'
+      CALL HCO_WARNING ( MSG, RC )
+      MW_O3 = 48.0_dp
+   ENDIF
+   
+   ! NO2
    IF ( IDTNO2 <= 0 ) THEN
-      MSG = 'Species NO2 not defined - needed by ParaNOx!' 
-      CALL HCO_ERROR ( MSG, RC )
-      RETURN
+      tmpID = HCO_GetHcoID('NO2', HcoState )
+   ELSE
+      tmpID = IDTNO2
    ENDIF
-   MW_NO2 = HcoState%Spc(IDTNO2)%MW_g
+   IF ( tmpID > 0 ) THEN
+      MW_NO2 = HcoState%Spc(tmpID)%MW_g
+   ELSE
+      MSG = 'Use default NO2 molecular weight of 46g/mol'
+      CALL HCO_WARNING ( MSG, RC )
+      MW_NO2 = 46.0_dp
+   ENDIF
+   
+   ! HNO3
+   IF ( IDTHNO3 <= 0 ) THEN
+      tmpID = HCO_GetHcoID('HNO3', HcoState )
+      MSG = 'HNO3 not produced/removed in PARANOX'
+      CALL HCO_WARNING ( MSG, RC )
+   ELSE
+      tmpID = IDTHNO3
+   ENDIF
+   IF ( tmpID > 0 ) THEN
+      MW_HNO3 = HcoState%Spc(tmpID)%MW_g
+   ELSE
+      MSG = 'Use default HNO3 molecular weight of 63g/mol'
+      CALL HCO_WARNING ( MSG, RC )
+      MW_HNO3 = 63.0_dp
+   ENDIF
 
    ! Verbose mode
    IF ( am_I_Root ) THEN
       MSG = 'Use ParaNOx ship emissions (extension module)'
       CALL HCO_MSG( MSG, SEP1='-' )
-      MSG = '    - Use the following species: ' 
+      MSG = '    - Use the following species: (MW, emitted as HEMCO ID) ' 
       CALL HCO_MSG( MSG )
-      WRITE(MSG,*) '     NO  : ', TRIM(SpcNames(1)), IDTNO
+      WRITE(MSG,"(a,F5.2,I5)") '     NO  : ', MW_NO, IDTNO
       CALL HCO_MSG(MSG)
-      WRITE(MSG,*) '     NO2 : ', TRIM(SpcNames(2)), IDTNO2
+      WRITE(MSG,"(a,F5.2,I5)") '     O3  : ', MW_O3, IDTO3
       CALL HCO_MSG(MSG)
-      WRITE(MSG,*) '     O3  : ', TRIM(SpcNames(3)), IDTO3
+      WRITE(MSG,"(a,F5.2,I5)") '     HNO3: ', MW_HNO3, IDTHNO3
       CALL HCO_MSG(MSG)
-      WRITE(MSG,*) '     HNO3: ', TRIM(SpcNames(4)), IDTHNO3
+      WRITE(MSG,"(a,F5.2,a)" ) '     NO2 : ', MW_NO2, ' - '
       CALL HCO_MSG(MSG)
    ENDIF
 
@@ -837,7 +874,6 @@ CONTAINS
          CALL HCO_WARNING ( MSG, RC )
       ENDIF
    ENDIF
-
 
    ! Molecular weight of AIR
    MW_AIR = HcoState%Phys%AIRMW

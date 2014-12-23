@@ -288,42 +288,111 @@ CONTAINS
     ! This is for testing only. Only activate if needed.
     IF ( .FALSE. ) THEN
 
-    ! Total NO
-    I = HCO_GetHcoID( 'NO', HcoState )
-    IF ( I > 0 ) THEN
-       CALL Diagn_Create ( am_I_Root, &
-                           HcoState,  &
-                           cName    = 'NOtotal_monthly', &
-                           ExtNr    = -1, &
-                           Cat      = -1, &
-                           Hier     = -1, &
-                           HcoID    = I, &
-                           SpaceDim = 2, &
-                           LevIDx   = -1, &
-                           OutUnit  = 'kg/m2/s',   &
-                           WriteFreq = 'Monthly',  &
-                           AutoFill  = 1, &
-                           cID       = N, & 
-                           RC        = RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Hourly emissions
 
-       CALL Diagn_Create ( am_I_Root, &
-                           HcoState,  &
-                           cName    = 'NOtotal_daily', &
-                           ExtNr    = -1, &
-                           Cat      = -1, &
-                           Hier     = -1, &
-                           HcoID    = I, &
-                           SpaceDim = 2, &
-                           LevIDx   = -1, &
-                           OutUnit  = 'kg/m2/s',   &
-                           WriteFreq = 'Daily',  &
-                           AutoFill  = 1, &
-                           cID       = N, & 
-                           RC        = RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
- 
-    ENDIF
+       ! Do for all emission species
+       DO I = 1,37
+
+          ! Get species name
+          SELECT CASE ( I )
+             CASE ( 1 )
+                SpcName = 'NO'
+             CASE ( 2 )
+                SpcName = 'CO'
+             CASE ( 3 )
+                SpcName = 'NH3'
+             CASE ( 4 )
+                SpcName = 'SO2'
+             CASE ( 5 )
+                SpcName = 'SO4'
+             CASE ( 6 )
+                SpcName = 'GLYX'
+             CASE ( 7 )
+                SpcName = 'MGLY'
+             CASE ( 8 )
+                SpcName = 'C2H6'
+             CASE ( 9 )
+                SpcName = 'ALK4'
+             CASE ( 10 )
+                SpcName = 'ACET'
+             CASE ( 11 )
+                SpcName = 'MEK'
+             CASE ( 12 )
+                SpcName = 'ALD2'
+             CASE ( 13 )
+                SpcName = 'PRPE'
+             CASE ( 14 )
+                SpcName = 'C3H8'
+             CASE ( 15 )
+                SpcName = 'CH2O'
+             CASE ( 16 )
+                SpcName = 'BENZ'
+             CASE ( 17 )
+                SpcName = 'TOLU'
+             CASE ( 18 )
+                SpcName = 'XYLE'
+             CASE ( 19 )
+                SpcName = 'C2H4'
+             CASE ( 20 )
+                SpcName = 'C2H2'
+             CASE ( 21 )
+                SpcName = 'CHBr3'
+             CASE ( 22 )
+                SpcName = 'CH2Br2'
+             CASE ( 23 )
+                SpcName = 'BCPI'
+             CASE ( 24 )
+                SpcName = 'BCPO'
+             CASE ( 25 )
+                SpcName = 'OCPI'
+             CASE ( 26 )
+                SpcName = 'OCPO'
+             CASE ( 27 )
+                SpcName = 'RCHO'
+             CASE ( 28 )
+                SpcName = 'MACR'
+             CASE ( 29 )
+                SpcName = 'DMS'
+             CASE ( 30 )
+                SpcName = 'DST1'
+             CASE ( 31 )
+                SpcName = 'DST2'
+             CASE ( 32 )
+                SpcName = 'DST3'
+             CASE ( 33 )
+                SpcName = 'DST4'
+             CASE ( 34 )
+                SpcName = 'SALA'
+             CASE ( 35 )
+                SpcName = 'SALC'
+             CASE ( 36 )
+                SpcName = 'Br2'
+             CASE ( 37 )
+                SpcName = 'ISOP'
+             CASE DEFAULT
+                SpcName = 'DUMMY'
+          END SELECT
+
+          HcoID = HCO_GetHcoID( TRIM(SpcName), HcoState )
+          IF ( HcoID > 0 ) THEN
+             CALL Diagn_Create ( am_I_Root, &
+                                 HcoState,  &
+                                 cName    = TRIM(SpcName)//'_hourly', &
+                                 ExtNr    = -1, &
+                                 Cat      = -1, &
+                                 Hier     = -1, &
+                                 HcoID    = HcoID, &
+                                 SpaceDim = 2, &
+                                 LevIDx   = -1, &
+                                 OutUnit  = 'kg/m2/s',   &
+                                 WriteFreq = 'Hourly',  &
+                                 AutoFill  = 1, &
+                                 cID       = N, & 
+                                 RC        = RC ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF
+       ENDDO
+   
     ENDIF ! testing toggle
 
     ! Leave w/ success

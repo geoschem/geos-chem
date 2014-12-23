@@ -817,7 +817,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetPtr_2D( am_I_Root, DctName, Ptr2D, RC, TIDX )
+  SUBROUTINE HCO_GetPtr_2D( am_I_Root, DctName, Ptr2D, RC, TIDX, FOUND )
 !
 ! !USES:
 !
@@ -825,17 +825,18 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )        :: am_I_Root   ! root CPU?
-    CHARACTER(LEN=*), INTENT(IN   )        :: DctName     ! container name
-    INTEGER,          INTENT(IN), OPTIONAL :: TIDX        ! time index
-!                                                         ! (default=1)
+    LOGICAL,          INTENT(IN   )         :: am_I_Root   ! root CPU?
+    CHARACTER(LEN=*), INTENT(IN   )         :: DctName     ! container name
+    INTEGER,          INTENT(IN), OPTIONAL  :: TIDX        ! time index
+!                                                          ! (default=1)
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),         POINTER              :: Ptr2D(:,:)  ! output array
+    REAL(hp),         POINTER               :: Ptr2D(:,:)  ! output array
+    LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND          ! cont. found?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)        :: RC          ! Success/fail
+    INTEGER,          INTENT(INOUT)         :: RC          ! Success/fail
 !
 ! !REVISION HISTORY: 
 !  04 Sep 2013 - C. Keller    - Initialization
@@ -847,7 +848,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                    :: T
-    LOGICAL                    :: FOUND
+    LOGICAL                    :: FND
     CHARACTER(LEN=255)         :: MSG, LOC
 
     ! Pointers
@@ -868,13 +869,22 @@ CONTAINS
     ENDIF
  
     ! Search for container in emissions linked list
-    CALL ListCont_Find( EmisList, TRIM(DctName), FOUND, Lct )
+    CALL ListCont_Find( EmisList, TRIM(DctName), FND, Lct )
+    IF ( PRESENT(FOUND) ) FOUND = FND
 
-    ! Error check
-    IF ( .NOT. FOUND ) THEN
-       MSG = 'Container not found: ' // TRIM(DctName)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
+    ! Check if found. If optional argument FOUND is defined, don't 
+    ! return an error if container not found but only pass the FOUND
+    ! argument to the caller routine. Otherwise, exit with error. 
+    IF ( .NOT. FND ) THEN
+       IF ( PRESENT(FOUND) ) THEN
+          Ptr2D => NULL()
+          RC    = HCO_SUCCESS
+          RETURN
+       ELSE
+          MSG = 'Container not found: ' // TRIM(DctName)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
     ENDIF
 
     ! Check spatial dimension 

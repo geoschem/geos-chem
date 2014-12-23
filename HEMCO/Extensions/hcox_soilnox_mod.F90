@@ -715,7 +715,7 @@ CONTAINS
                         OutUnit    = 'unitless',  &
                         WriteFreq  = 'End',       &
                         AutoFill   = 0,           &
-                        Trgt2D     = PFACTOR, &
+                        Trgt2D     = PFACTOR,     &
                         cID        = II,          &
                         RC         = RC            )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -730,7 +730,7 @@ CONTAINS
                         OutUnit    = 'unitless',    &
                         WriteFreq  = 'End',         &
                         AutoFill   = 0,             &
-                        Trgt2D     = DRYPERIOD, &
+                        Trgt2D     = DRYPERIOD,     &
                         cID        = II,            &
                         RC         = RC              )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -745,7 +745,7 @@ CONTAINS
                         OutUnit    = 'unitless',    &
                         WriteFreq  = 'End',         &
                         AutoFill   = 0,             &
-                        Trgt2D     = GWET_PREV, &
+                        Trgt2D     = GWET_PREV,     &
                         cID        = II,            &
                         RC         = RC              )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -760,7 +760,7 @@ CONTAINS
                         OutUnit    = 'kg/m3',           &
                         WriteFreq  = 'End',             &
                         AutoFill   = 0,                 &
-                        Trgt2D     = DEP_RESERVOIR, &
+                        Trgt2D     = DEP_RESERVOIR,     &
                         cID        = II,                &
                         RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
