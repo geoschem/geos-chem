@@ -29,12 +29,12 @@ MODULE HCO_EMISLIST_MOD
 !
   PUBLIC  :: HCO_GetPtr
   PUBLIC  :: EmisList_Cleanup
-  PUBLIC  :: EmisList_Update
   PUBLIC  :: EmisList_NextCont
+  PUBLIC  :: EmisList_Pass
+!  PUBLIC  :: EmisList_Update
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: EmisList_Pass
   PRIVATE :: EmisList_Add
   PRIVATE :: Add2EmisList
 !
@@ -150,7 +150,7 @@ CONTAINS
     ! Add the new container to EmisList. The container will be placed
     ! according to data type, species ID, hierarchy, and category. 
     ! ----------------------------------------------------------------
-    CALL Add2EmisList ( Lct, RC )
+    CALL Add2EmisList ( am_I_Root, Lct, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -182,10 +182,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Add2EmisList( Lct, RC )
+  SUBROUTINE Add2EmisList( am_I_Root, Lct, RC )
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,        INTENT(IN   ) :: am_I_Root
     TYPE(ListCont), POINTER       :: Lct   
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -202,6 +203,8 @@ CONTAINS
 !
     ! Scalars
     INTEGER                   :: NEWCAT, NEWHIR, NEWSPC
+    LOGICAL                   :: verb
+    CHARACTER(LEN=255)        :: MSG
 
     ! Pointers
     TYPE(ListCont), POINTER   :: TmpLct => NULL()
@@ -214,8 +217,14 @@ CONTAINS
     CALL HCO_ENTER ( 'Add2EmisList', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Verbose
+    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+
     ! Update number of containers in EmisList 
     nnEmisCont = nnEmisCont + 1
+
+    ! Flag the content of this container as being used in EmisList
+    Lct%Dct%Dta%IsInList = .TRUE.
 
     ! If this is the first container, we can simply place it at the
     ! beginning of the list.
@@ -230,7 +239,7 @@ CONTAINS
     ! beginning no matter of its content! 
     IF ( EmisList%Dct%DctType > 1 ) THEN
        Lct%NextCont => EmisList 
-       EmisList        => Lct
+       EmisList     => Lct
        CALL HCO_LEAVE( RC )
        RETURN 
     ENDIF
@@ -377,84 +386,84 @@ CONTAINS
 
   END SUBROUTINE EmisList_Cleanup
 !EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: EmisList_Update
+!!
+!! !DESCRIPTION: Subroutine EmisList\_Update makes sure that all containers
+!! of the reading list ReadList are correctly referenced in emissions list
+!! EmisList. If a container of ReadList does not yet have a corresponding 
+!! container in EmisList, such a container is created. Also, additive data 
+!! arrays (i.e. targetID different than container ID) are added to their 
+!! target array during this call.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE EmisList_Update ( am_I_Root, HcoState, ReadList, RC )
+!!
+!! !USES:
+!!
+!    USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! Root CPU?  
+!    TYPE(HCO_State), POINTER       :: HcoState   ! Hemco state object
+!    TYPE(ListCont),  POINTER       :: ReadList   ! reading list
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    INTEGER,         INTENT(INOUT) :: RC         ! Return code
+!!
+!! !REVISION HISTORY:
+!!  20 Apr 2013 - C. Keller - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    ! Scalars
+!    INTEGER                     :: cID, iScalID
+!    INTEGER                     :: I
+!    CHARACTER(LEN=31)           :: ScalName
 !
-! !IROUTINE: EmisList_Update
+!    ! Pointers
+!    TYPE(ListCont), POINTER     :: TmpLct => NULL()
 !
-! !DESCRIPTION: Subroutine EmisList\_Update makes sure that all containers
-! of the reading list ReadList are correctly referenced in emissions list
-! EmisList. If a container of ReadList does not yet have a corresponding 
-! container in EmisList, such a container is created. Also, additive data 
-! arrays (i.e. targetID different than container ID) are added to their 
-! target array during this call.
-!\\
-!\\
-! !INTERFACE:
+!    ! ================================================================
+!    ! EmisList_Update begins here
+!    ! ================================================================
 !
-  SUBROUTINE EmisList_Update ( am_I_Root, HcoState, ReadList, RC )
+!    ! Enter
+!    CALL HCO_ENTER ( 'EmisList_Update', RC )
+!    IF ( RC /= HCO_SUCCESS ) RETURN
 !
-! !USES:
+!    ! Loop over all containers in ReadList
+!    TmpLct => ReadList
+!    DO WHILE ( ASSOCIATED( TmpLct ) )
 !
-    USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
+!       ! only if array is defined...
+!       IF ( FileData_ArrIsDefined(TmpLct%Dct%Dta) ) THEN
 !
-! !INPUT PARAMETERS:
+!          ! Pass container to EmisList 
+!          CALL EmisList_Pass( am_I_Root, HcoState, TmpLct, RC )
+!          IF ( RC /= HCO_SUCCESS ) RETURN
+!       ENDIF
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! Root CPU?  
-    TYPE(HCO_State), POINTER       :: HcoState   ! Hemco state object
-    TYPE(ListCont),  POINTER       :: ReadList   ! reading list
+!       ! Advance to next container in ReadList 
+!       TmpLct => TmpLct%NextCont
+!    ENDDO
 !
-! !INPUT/OUTPUT PARAMETERS:
+!    ! Leave w/ success
+!    CALL HCO_LEAVE ( RC )
 !
-    INTEGER,         INTENT(INOUT) :: RC         ! Return code
-!
-! !REVISION HISTORY:
-!  20 Apr 2013 - C. Keller - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER                     :: cID, iScalID
-    INTEGER                     :: I
-    CHARACTER(LEN=31)           :: ScalName
-
-    ! Pointers
-    TYPE(ListCont), POINTER     :: TmpLct => NULL()
-
-    ! ================================================================
-    ! EmisList_Update begins here
-    ! ================================================================
-
-    ! Enter
-    CALL HCO_ENTER ( 'EmisList_Update', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Loop over all containers in ReadList
-    TmpLct => ReadList
-    DO WHILE ( ASSOCIATED( TmpLct ) )
-
-       ! only if array is defined...
-       IF ( FileData_ArrIsDefined(TmpLct%Dct%Dta) ) THEN
-
-          ! Pass container to EmisList 
-          CALL EmisList_Pass( am_I_Root, HcoState, TmpLct, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF
-
-       ! Advance to next container in ReadList 
-       TmpLct => TmpLct%NextCont
-    ENDDO
-
-    ! Leave w/ success
-    CALL HCO_LEAVE ( RC )
-
-  END SUBROUTINE EmisList_Update
-!EOC
+!  END SUBROUTINE EmisList_Update
+!!EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -477,7 +486,7 @@ CONTAINS
 !
     USE HCO_DATACONT_MOD, ONLY : ListCont_Find
     USE HCO_FILEDATA_MOD, ONLY : FileData_ArrCheck
-    USE HCO_DATACONT_MOD, ONLY : DataCont_Cleanup
+!    USE HCO_DATACONT_MOD, ONLY : DataCont_Cleanup
 !
 ! !INPUT PARAMETERS:
 !
@@ -491,6 +500,12 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - C. Keller - Initial version
+!  22 Dec 2014 - C. Keller - Bug fix: pass container to EmisList if 
+!                            cID is not targetID but data cannot be
+!                            added to targetID because it's not the
+!                            home container.
+!  23 Dec 2014 - C. Keller - Don't cleanup container anymore. This is
+!                            now handled in ReadList_Read.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -502,7 +517,7 @@ CONTAINS
 
     ! Scalars
     INTEGER                   :: I, J, L, T
-    LOGICAL                   :: FOUND, verb
+    LOGICAL                   :: FOUND, verb, Add
     CHARACTER(LEN=255)        :: MSG
  
     ! ================================================================
@@ -515,6 +530,12 @@ CONTAINS
 
     ! Verbose mode
     verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+
+    ! Initialize Add flag. This fill only be set to FALSE
+    ! if the data of the current container is added to the data of 
+    ! an existing container in EmisList instead of adding the container
+    ! alltogether. 
+    Add = .TRUE.
 
     ! ----------------------------------------------------------------
     ! Add data arrays if required 
@@ -545,108 +566,120 @@ CONTAINS
           RETURN
        ENDIF
 
-       ! Check extension number 
-       IF ( Lct%Dct%ExtNr /= TargetLct%Dct%ExtNr ) THEN
-          MSG = 'Wrong ext. number: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ENDIF
-
-       ! Check data type 
-       IF ( Lct%Dct%DctType /= TargetLct%Dct%DctType ) THEN
-          MSG = 'Wrong data type: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ENDIF
-
-       ! Check species ID
-       IF ( Lct%Dct%HcoID /= TargetLct%Dct%HcoID ) THEN
-          MSG = 'Wrong species ID: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ENDIF
-
-       ! Check for array dimensions
-       IF ( Lct%Dct%Dta%SpaceDim /= TargetLct%Dct%Dta%SpaceDim ) THEN
-          MSG = 'Wrong space dimension: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ENDIF
-       IF ( Lct%Dct%Dta%nt /= TargetLct%Dct%Dta%nt ) THEN 
-          MSG = 'Wrong time dim: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ENDIF
-       IF ( Lct%Dct%Dta%SpaceDim <= 2) THEN
-          I = SIZE(Lct%Dct%Dta%V2(1)%Val,1)
-          J = SIZE(Lct%Dct%Dta%V2(1)%Val,2)
-          CALL FileData_ArrCheck( TargetLct%Dct%Dta, I, J, &
-                                  Lct%Dct%Dta%nt, RC )
-          IF ( RC /= 0 ) THEN
-             MSG = 'Wrong 2D array: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_MSG(MSG)
-             RETURN
-          ENDIF
-       ELSE
-          I = SIZE(Lct%Dct%Dta%V3(1)%Val,1)
-          J = SIZE(Lct%Dct%Dta%V3(1)%Val,2)
-          L = SIZE(Lct%Dct%Dta%V3(1)%Val,3)
-          CALL FileData_ArrCheck( TargetLct%Dct%Dta, I, J, L, &
-                                  Lct%Dct%Dta%nt, RC )
-          IF ( RC /= 0 ) THEN
-             MSG = 'Wrong 3D array: ' // TRIM(Lct%Dct%cName)
-             CALL HCO_MSG(MSG)
-             RETURN
-          ENDIF
-       ENDIF
-
-       ! Check operator 
-       IF ( Lct%Dct%Oper /= TargetLct%Dct%Oper ) THEN
-          MSG = 'Wrong operator: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ENDIF
-
-       ! Check category 
-       IF ( Lct%Dct%Cat /= TargetLct%Dct%Cat ) THEN
-          MSG = 'Wrong category: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR ( MSG, RC )
-          RETURN
-       ENDIF
-
-       ! Check hierarchy 
-       IF ( Lct%Dct%Hier /= TargetLct%Dct%Hier ) THEN
-          MSG = 'Wrong hierarchy: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ENDIF
-
-       ! Error check: cannot add masks if operator is 3
-       IF ( Lct%Dct%DctType == 3 .AND. Lct%Dct%Oper == 3 ) THEN
-          MSG = 'Cannot add masks if operator is 3: ' // &
-               TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR( MSG, RC )
-          RETURN
-       ENDIF
-
-       ! If all checks were successful, add current array to
-       ! target array. Don't do this if this is not the home 
-       ! data container for the linked file data object Dta!
-       ! Dta may be used by multiple containers, and only the
-       ! home container should modify its content!
+       ! Do not add data if the current data container is not the
+       ! 'home' container for the data object Dta. Dta may be used
+       ! by multiple containers, and only the home container should 
+       ! modify its content!
        IF ( Lct%Dct%DtaHome /= 1 ) THEN
          
           ! Verbose mode
           IF ( verb ) THEN
              WRITE(MSG,*) 'Do not add data of ', TRIM(Lct%Dct%cName), &
-                  'to ', TRIM(TargetLct%Dct%cName), ' because this is', &
-                  ' not the file data home container!'
+                  ' to ', TRIM(TargetLct%Dct%cName), ' because this', &
+                  ' is not the file data home container!'
              CALL HCO_MSG(MSG)
           ENDIF
 
-       ! Add to array
-       ELSE 
-    
+       ! Similarly, do not add data to target container if the target
+       ! container is being shared by multiple containers. 
+       ELSEIF ( TargetLct%Dct%Dta%DoShare ) THEN
+
+          ! Verbose mode
+          IF ( verb ) THEN
+             WRITE(MSG,*) 'Do not add data of ', TRIM(Lct%Dct%cName), &
+                  ' to ', TRIM(TargetLct%Dct%cName), ' because the', &
+                  ' target is being shared with other fields!'
+             CALL HCO_MSG(MSG)
+          ENDIF
+
+       ELSE
+
+          ! Check extension number 
+          IF ( Lct%Dct%ExtNr /= TargetLct%Dct%ExtNr ) THEN
+             MSG = 'Wrong ext. number: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+   
+          ! Check data type 
+          IF ( Lct%Dct%DctType /= TargetLct%Dct%DctType ) THEN
+             MSG = 'Wrong data type: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+   
+          ! Check species ID
+          IF ( Lct%Dct%HcoID /= TargetLct%Dct%HcoID ) THEN
+             MSG = 'Wrong species ID: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+   
+          ! Check for array dimensions
+          IF ( Lct%Dct%Dta%SpaceDim /= TargetLct%Dct%Dta%SpaceDim ) THEN
+             MSG = 'Wrong space dimension: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+          IF ( Lct%Dct%Dta%nt /= TargetLct%Dct%Dta%nt ) THEN 
+             MSG = 'Wrong time dim: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+          IF ( Lct%Dct%Dta%SpaceDim <= 2) THEN
+             I = SIZE(Lct%Dct%Dta%V2(1)%Val,1)
+             J = SIZE(Lct%Dct%Dta%V2(1)%Val,2)
+             CALL FileData_ArrCheck( TargetLct%Dct%Dta, I, J, &
+                                     Lct%Dct%Dta%nt, RC )
+             IF ( RC /= 0 ) THEN
+                MSG = 'Wrong 2D array: ' // TRIM(Lct%Dct%cName)
+                CALL HCO_MSG(MSG)
+                RETURN
+             ENDIF
+          ELSE
+             I = SIZE(Lct%Dct%Dta%V3(1)%Val,1)
+             J = SIZE(Lct%Dct%Dta%V3(1)%Val,2)
+             L = SIZE(Lct%Dct%Dta%V3(1)%Val,3)
+             CALL FileData_ArrCheck( TargetLct%Dct%Dta, I, J, L, &
+                                     Lct%Dct%Dta%nt, RC )
+             IF ( RC /= 0 ) THEN
+                MSG = 'Wrong 3D array: ' // TRIM(Lct%Dct%cName)
+                CALL HCO_MSG(MSG)
+                RETURN
+             ENDIF
+          ENDIF
+   
+          ! Check operator 
+          IF ( Lct%Dct%Oper /= TargetLct%Dct%Oper ) THEN
+             MSG = 'Wrong operator: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+   
+          ! Check category 
+          IF ( Lct%Dct%Cat /= TargetLct%Dct%Cat ) THEN
+             MSG = 'Wrong category: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR ( MSG, RC )
+             RETURN
+          ENDIF
+   
+          ! Check hierarchy 
+          IF ( Lct%Dct%Hier /= TargetLct%Dct%Hier ) THEN
+             MSG = 'Wrong hierarchy: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+   
+          ! Error check: cannot add masks if operator is 3
+          IF ( Lct%Dct%DctType == 3 .AND. Lct%Dct%Oper == 3 ) THEN
+             MSG = 'Cannot add masks if operator is 3: ' // &
+                  TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+   
+          ! If all checks were successful, add current array to
+          ! target array. 
           DO I = 1, TargetLct%Dct%Dta%nt
              IF ( TargetLct%Dct%Dta%SpaceDim <= 2 ) THEN
                 TargetLct%Dct%Dta%V2(I)%Val = &
@@ -662,27 +695,30 @@ CONTAINS
              CALL HCO_MSG(MSG)
           ENDIF
    
-          ! Added array is not used anymore and thus can be cleaned up.
-          ! Note: never clean up shared arrays!
-          IF ( .NOT. Lct%Dct%Dta%DoShare ) THEN
-             CALL DataCont_Cleanup( Lct%Dct, ArrOnly=.TRUE. ) 
-          ENDIF
+          ! This container does not need to be added to the emissions
+          ! list
+          Add = .FALSE.
 
        ENDIF
+    ENDIF ! cID /= targetID
 
     ! ----------------------------------------------------------------
     ! Add/update emissions linked list container.
-    ! Note: only add target containers, i.e. don't add containers 
-    ! whose content has been written to another container. Those 
+    ! Only add those containers that are effectively used in the
+    ! emissions list, i.e. ignore the containers whose content
+    ! has been added to another container (targetID /= cID). Those 
     ! containers are not needed for emission calculation since its
     ! content is now stored in another container.
+    ! The EmisList_Add call will set the IsInList flag of the given
+    ! file data object (Lct%Dct%Dta) to TRUE, denoting that this file
+    ! data object is used in EmisList. The data arrays of all file 
+    ! data objects that are not used in EmisList are removed in a 
+    ! second step of the ReadList_Read call. 
     ! ----------------------------------------------------------------
-
-    ELSE
+    IF ( Add ) THEN
        CALL EmisList_Add( am_I_Root, Lct%Dct, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ENDIF ! cID /= targetID
+    ENDIF
 
     ! ----------------------------------------------------------------
     ! Return 

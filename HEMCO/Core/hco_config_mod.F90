@@ -575,8 +575,7 @@ CONTAINS
        ! first time that data is read (in hco_readlist_mod.F90).
        ! Here, we only set the DtaHome flag to -1000 instead of the
        ! default value of -999 to be able to identify data objects 
-       ! used by multiple containers (at the moment, this is only
-       ! important for an ESMF environment).
+       ! used by multiple containers.
        ! -------------------------------------------------------------
        IF ( TRIM(srcFile) == '-' ) THEN
           IF ( .NOT. ASSOCIATED(Dta) ) THEN
@@ -1112,7 +1111,7 @@ CONTAINS
 
              ! Extract HEMCO species ID. This will return -1 for 
              ! undefined species and 0 for wildcard character.
-             ThisHcoID = HCO_GetHcoID( Lct%Dct%SpcName, HcoState)
+             ThisHcoID     = HCO_GetHcoID( Lct%Dct%SpcName, HcoState )
              Lct%Dct%HcoID = ThisHcoID
 
              ! verbose
@@ -1128,7 +1127,7 @@ CONTAINS
           ENDIF
 
        ! Calculate coverage for masks 
-       ELSE IF ( Lct%Dct%DctType  == 3    .AND. &
+       ELSE IF ( Lct%Dct%DctType   == 3    .AND. &
                  Lct%Dct%Dta%Cover == -999        ) THEN
 
           ! Get mask edges
@@ -1249,7 +1248,7 @@ CONTAINS
        ! base fields with invalid ExtNr's, so it is ok to check only
        ! for HcoID here. If data is used in one of the HEMCO extensions
        ! and has a species flag of '*' (= always read), its species ID
-       ! becomes set to 0 in registerPrepare. 
+       ! becomes set to 0 in RegisterPrepare. 
        HcoID = Lct%Dct%HcoID
        IF ( HcoID < 0 ) THEN
           Ignore = .TRUE.

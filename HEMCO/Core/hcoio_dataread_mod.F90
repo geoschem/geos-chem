@@ -5,10 +5,44 @@
 !
 ! !MODULE: hcoio_dataread_mod.F90 
 !
-! !DESCRIPTION: Module HCOIO\_DataRead\_Mod controls data processing (file
-! reading, unit conversion, regridding) for HEMCO.
+! !DESCRIPTION: Module HCOIO\_DataRead\_Mod controls data processing 
+! (file reading, unit conversion, regridding) for HEMCO.
 !\\
 !\\
+! Currently, HEMCO can read data from the following data sources:
+! \begin{itemize}
+! \item Gridded data from netCDF file. The netCDF file should adhere to
+!   the COARDS conventions and can hold data on resolutions different 
+!   than then simulation grid. Regridding is performed as part of the 
+!   data reading. Routine HCOIO\_DataRead is the driver routine to read
+!   data from netCDF file. In an ESMF environment, this routine simply
+!   calls down to the MAPL/ESMF - generic I/O routines. In a non-ESMF
+!   environment, the HEMCO generic reading and remapping algorithms are
+!   used. Those support vertical regridding, unit conversion, and more
+!   (see below).
+! \item Scalar data directly specified in the HEMCO configuration file.
+!   Scalar values can be set in the HEMCO configuration file directly.
+!   If multiple values - separated by the separator sign (/) - are 
+!   provided, they are interpreted as temporally changing values:
+!   7 values = Sun, Mon, ..., Sat; 12 values = Jan, Feb, ..., Dec;
+!   24 values = 0am, 1am, ..., 23pm (local time!).
+! \item Country-specific data specified in a separate ASCII file. This
+!   file must end with the suffix '.txt' and hold the country specific
+!   values listed by country ID. The IDs must correspond to the IDs of
+!   a corresponding (netCDF) mask file. The container name of this mask 
+!   file must be given in the first line of the file, and must be listed 
+!   HEMCO configuration file. ID 0 is reserved for the default values,
+!   applied to all countries with no specific values listed. The .txt 
+!   file must be structured as follows:
+!
+!   CountryMask
+!   # CountryName CountryID CountryValues
+!   DEFAULT 0 1.0/2.0/3.0/4.0/5.0/6.0/7.0
+!
+!   The CountryValues are interpreted the same way as scalar values, 
+!   except that they are applied to all grid boxes with the given 
+!   country ID. 
+! \end{itemize}
 ! !INTERFACE: 
 !
 MODULE HCOIO_DataRead_Mod
@@ -26,7 +60,7 @@ MODULE HCOIO_DataRead_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: HCOIO_DataRead
-  PUBLIC  :: HCOIO_ReadFromConfig
+  PUBLIC  :: HCOIO_ReadOther
 !
 ! !REVISION HISTORY:
 !  22 Aug 2013 - C. Keller   - Initial version
@@ -1455,7 +1489,267 @@ CONTAINS
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOIO_ReadOther
+!
+! !DESCRIPTION: Subroutine HCOIO\_ReadOther is a wrapper routine to
+! read data from sources other than netCDF.
+!\\
+!\\
+! If a file name is given (ending with '.txt'), the data are assumed
+! to hold country-specific values (e.g. diurnal scale factors). In all
+! other cases, the data is directly read from the configuration file
+! (scalars).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOIO_ReadOther ( am_I_Root, HcoState, Lct, RC ) 
+!
+! !USES:
+!
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,         INTENT(IN   )    :: am_I_Root
+    TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER         :: Lct
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !REVISION HISTORY:
+!  22 Dec 2014 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+    !======================================================================
+    ! HCOIO_ReadOther begins here
+    !======================================================================
+  
+    ! Read an ASCII file as country values
+    IF ( INDEX( TRIM(Lct%Dct%Dta%ncFile), '.txt' ) > 0 ) THEN
+       CALL HCOIO_ReadCountryValues ( am_I_Root, HcoState, Lct, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Directly read from configuration file otherwise
+    ELSE
+       CALL HCOIO_ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCOIO_ReadOther
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOIO_ReadCountryValues
+!
+! !DESCRIPTION: Subroutine HCOIO\_ReadCountryValues
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOIO_ReadCountryValues ( am_I_Root, HcoState, Lct, RC ) 
+!
+! !USES:
+!
+    USE inquireMod,         ONLY : findFreeLUN
+    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_CMT, HCO_SPC, NextCharPos
+    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,         INTENT(IN   )    :: am_I_Root
+    TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER         :: Lct
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !REVISION HISTORY:
+!  22 Dec 2014 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER               :: IUFILE, IOS
+    INTEGER               :: ID1, ID2, I, NT, CID, NLINE
+    REAL(hp), POINTER     :: CNTR(:,:) => NULL()
+    INTEGER,  ALLOCATABLE :: CIDS(:,:)
+    REAL(hp), POINTER     :: Vals(:) => NULL()
+    LOGICAL               :: Verb
+    CHARACTER(LEN=2047)   :: LINE
+    CHARACTER(LEN=255)    :: MSG, DUM, CNT
+    CHARACTER(LEN=255)    :: LOC = 'HCOIO_ReadCountryValues (hcoio_dataread_mod.F90)'
+
+    !======================================================================
+    ! HCOIO_ReadCountryValues begins here
+    !======================================================================
+   
+    ! verbose mode? 
+    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
+   
+    ! Verbose
+    IF ( Verb ) THEN
+       MSG = 'Use country-specific values for ' // TRIM(Lct%Dct%cName)
+       CALL HCO_MSG(MSG)
+       MSG = '- Source file: ' // TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_MSG(MSG)
+    ENDIF
+
+    ! Open file
+    IUFILE = FindFreeLun()
+    OPEN ( IUFILE, FILE=TRIM( Lct%Dct%Dta%ncFile ), STATUS='OLD', IOSTAT=IOS )
+    IF ( IOS /= 0 ) THEN
+       MSG = 'Cannot open ' // TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN 
+    ENDIF 
+
+    ! Repeat for every line
+    NLINE = 0
+    DO
+
+       ! Read line
+       READ( IUFILE, '(a)', IOSTAT=IOS ) LINE
+    
+       ! End of file?
+       IF ( IOS < 0 ) EXIT
+
+       ! Error?
+       IF ( IOS > 0 ) THEN
+          MSG = 'Error reading ' // TRIM(Lct%Dct%Dta%ncFile)
+          MSG = TRIM(MSG) // ' - last valid line: ' // TRIM(LINE)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Skip commented lines and/or empty lines
+       IF ( TRIM(LINE) == '' ) CYCLE
+       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
+
+       ! First (valid) line holds the name of the mask container
+       IF ( NLINE == 0 ) THEN
+
+          ! Get pointer to mask. Convert to integer
+          CALL HCO_GetPtr ( am_I_Root, TRIM(LINE), CNTR, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          ALLOCATE( CIDS(HcoState%NX, HcoState%NY), STAT=IOS )
+          IF ( IOS /= 0 ) THEN
+             CALL HCO_ERROR( 'Cannot allocate CIDS', RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          CIDS = NINT(CNTR)
+
+          ! Verbose
+          IF ( Verb ) THEN
+             MSG = '- Use ID mask ' // TRIM(LINE)
+             CALL HCO_MSG(MSG)
+          ENDIF
+
+          ! Go to next line
+          NLINE = NLINE + 1
+          CYCLE
+       ENDIF
+
+       ! Get first space character to skip country name.
+       ! We assume here that a country name is given right at the
+       ! beginning of the line, e.g. 'USA 744 1.05/1.02/...'
+       ID1 = NextCharPos( LINE, HCO_SPC() )
+       CNT = LINE(1:ID1)
+
+       ! Get country ID
+       DO I = ID1, LEN(LINE)
+          IF ( LINE(I:I) /= HCO_SPC() ) EXIT
+       ENDDO
+       ID1 = I
+       ID2 = NextCharPos( LINE, HCO_SPC(), START=ID1 )
+
+       IF ( ID2 >= LEN(LINE) .OR. ID2 < 0 ) THEN
+          MSG = 'Cannot extract country ID from: ' // TRIM(LINE)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       DUM = LINE(ID1:ID2)
+       READ( DUM, * ) CID
+
+       ! Extract data values
+       ID1  = ID2+1
+       ID2  = LEN(LINE)
+       LINE = LINE(ID1:ID2)
+       CALL GetDataVals( am_I_Root, HcoState, Lct, LINE, Vals, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Check data / array dimensions
+       NT = SIZE(Vals,1)
+       CALL FileData_ArrCheck( Lct%Dct%Dta, HcoState%NX, HcoState%NY, NT, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Pass to data array. If the country ID is larger than zero, fill 
+       ! only those grid boxes. Otherwise, fill all grid boxes that have 
+       ! not yet been filled. 
+       DO I = 1, NT
+          IF ( CID == 0 ) THEN
+             WHERE ( Lct%Dct%Dta%V2(I)%Val <= 0.0_hp )
+                Lct%Dct%Dta%V2(I)%Val = Vals(I)
+             ENDWHERE
+          ELSE
+             WHERE ( CIDS == CID )
+                Lct%Dct%Dta%V2(I)%Val = Vals(I)
+             ENDWHERE
+          ENDIF
+       ENDDO
+
+       ! Verbose
+       IF ( verb ) THEN
+          WRITE(MSG,*) '- Obtained values for ',TRIM(CNT),' ==> ID:', CID
+          CALL HCO_MSG(MSG)
+       ENDIF
+ 
+       ! Cleanup
+       IF ( ASSOCIATED(Vals) ) DEALLOCATE( Vals )
+       Vals => NULL()
+
+       ! Update # of read lines
+       NLINE = NLINE + 1
+    ENDDO
+
+    ! Close file
+    CLOSE ( IUFILE )
+
+    ! Data is 2D and in local time.
+    Lct%Dct%Dta%SpaceDim  = 2
+    Lct%Dct%Dta%IsLocTime = .TRUE.
+
+    ! Cleanup
+    Cntr => NULL()
+    IF ( ALLOCATED(CIDS) ) DEALLOCATE ( CIDS )
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCOIO_ReadCountryValues
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1508,20 +1802,107 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: I, NT
+    REAL(hp), POINTER  :: Vals(:) => NULL()
+    LOGICAL            :: Verb
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'HCOIO_ReadFromConfig (hcoio_dataread_mod.F90)'
+
+    !======================================================================
+    ! HCOIO_ReadFromConfig begins here
+    !======================================================================
+   
+    ! verbose mode? 
+    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
+   
+    ! Verbose
+    IF ( Verb ) THEN
+       WRITE(MSG, *) 'Read from config file: ', TRIM(Lct%Dct%cName)
+       CALL HCO_MSG(MSG)
+    ENDIF
+
+    ! Get data values for this time step.
+    CALL GetDataVals ( am_I_Root, HcoState, Lct, Lct%Dct%Dta%ncFile, Vals, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+    ! Copy data into array.
+    NT = SIZE(Vals,1)
+    CALL FileData_ArrCheck( Lct%Dct%Dta, 1, 1, NT, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    DO I = 1, NT
+       Lct%Dct%Dta%V2(I)%Val(1,1) = Vals(I)
+    ENDDO
+
+    ! Data is 1D and as such assumed to be in local time. 
+    Lct%Dct%Dta%SpaceDim  = 1
+    Lct%Dct%Dta%IsLocTime = .TRUE.
+
+    ! Cleanup
+    IF ( ASSOCIATED(Vals) ) DEALLOCATE(Vals)
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCOIO_ReadFromConfig 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetDataVals 
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetDataVals ( am_I_Root, HcoState, Lct, ValStr, Vals, RC ) 
+!
+! !USES:
+!
+    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_CharSplit
+    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_WCD, HCO_SEP
+    USE HCO_UNIT_MOD,       ONLY : HCO_Unit_Change
+    USE HCO_tIdx_Mod,       ONLY : HCO_GetPrefTimeAttr
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,          INTENT(IN   )   :: am_I_Root
+    TYPE(HCO_State),  POINTER         :: HcoState    ! HEMCO state
+    CHARACTER(LEN=*), INTENT(IN   )   :: ValStr
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER         :: Lct
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(hp),         POINTER         :: Vals(:)
+!
+! !REVISION HISTORY:
+!  22 Dec 2014 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     REAL(hp)           :: MW_g,  EmMW_g, MolecRatio
     INTEGER            :: HcoID
     INTEGER            :: I, N, NUSE, AS
     INTEGER            :: IDX1, IDX2
     INTEGER            :: AreaFlag, TimeFlag, Check
     INTEGER            :: prefYr, prefMt, prefDy, prefHr
-    REAL(sp)           :: FileVals(100)
-    REAL(sp), POINTER  :: FileArr(:,:,:,:) => NULL()
+    REAL(hp)           :: FileVals(100)
+    REAL(hp), POINTER  :: FileArr(:,:,:,:) => NULL()
     LOGICAL            :: Verb, IsPerArea
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'HCOIO_ReadFromConfig (hcoio_dataread_mod.F90)'
+    CHARACTER(LEN=255) :: LOC = 'GetDataVals (hcoio_dataread_mod.F90)'
 
     !======================================================================
-    ! HCOIO_ReadFromConfig begins here
+    ! GetDataVals begins here
     !======================================================================
    
     ! verbose mode? 
@@ -1540,21 +1921,14 @@ CONTAINS
        MolecRatio = -999.0_hp
     ENDIF
 
-    ! Verbose
-    IF ( Verb ) THEN
-       WRITE(MSG, *) 'Read from config file: ', TRIM(Lct%Dct%cName)
-       CALL HCO_MSG(MSG)
-    ENDIF
-
     ! Read data into array
-    CALL HCO_CharSplit ( Lct%Dct%Dta%ncFile,  HCO_SEP(), &
-                         HCO_WCD(), FileVals, N, RC       ) 
+    CALL HCO_CharSplit ( ValStr, HCO_SEP(), HCO_WCD(), FileVals, N, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ error if no scale factor defined
     IF ( N == 0 ) THEN
        MSG = 'Cannot read data: ' // TRIM(Lct%Dct%cName) // &
-             ': ' // TRIM(Lct%Dct%Dta%ncFile)
+             ': ' // TRIM(ValStr)
        CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
        RETURN 
     ENDIF
@@ -1696,17 +2070,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Copy data into array. Assume all data is temporal
-    ! dimension!
-    CALL FileData_ArrCheck( Lct%Dct%Dta, 1, 1, NUSE, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    DO I = 1, NUSE
-       Lct%Dct%Dta%V2(I)%Val(1,1) = FileArr(1,1,1,I)
-    ENDDO
-
-    ! Data is always 1D.
-    Lct%Dct%Dta%SpaceDim = 1
-
     ! Auto-detect delta t [in hours] between time slices.
     ! Scale factors can be:
     ! length 1 : constant
@@ -1728,6 +2091,16 @@ CONTAINS
        RETURN 
     ENDIF
 
+    ! Copy data into output array.
+    IF ( ASSOCIATED(Vals) ) DEALLOCATE( Vals )
+    ALLOCATE( Vals(NUSE), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       MSG = 'Cannot allocate Vals'
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    Vals(:) = FileArr(1,1,1,:)
+
     ! Cleanup
     IF ( ASSOCIATED(FileArr) ) DEALLOCATE(FileArr)
     FileArr => NULL()
@@ -1735,7 +2108,7 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCOIO_ReadFromConfig 
+  END SUBROUTINE GetDataVals 
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

@@ -620,9 +620,11 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Check if data is gridded or not, set TempRes attribute
-          ! accordingly.
-          IF ( nx == 1 .AND. ny == 1 ) THEN
+          ! Check if data is in local time or not, set TempRes attribute
+          ! accordingly. Data will only be in local time if data is
+          ! spatially uniform or country-specific data. The IsLocTime
+          ! flag is set in hcoio_dataread_mod.F90
+          IF ( Lct%Dct%Dta%IsLocTime ) THEN
              cTypeID = 7 
           ELSE
              cTypeID = 71 
@@ -669,9 +671,11 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Check if data is gridded or not, set TempRes attribute
-          ! accordingly.
-          IF ( nx == 1 .AND. ny == 1 ) THEN
+          ! Check if data is in local time or not, set TempRes attribute
+          ! accordingly. Data will only be in local time if data is
+          ! spatially uniform or country-specific data. The IsLocTime
+          ! flag is set in hcoio_dataread_mod.F90
+          IF ( Lct%Dct%Dta%IsLocTime ) THEN
              cTypeID = 24 
           ELSE
              cTypeID = 241 

@@ -363,7 +363,7 @@ CONTAINS
                 IF ( RC /= HCO_SUCCESS ) RETURN
                 Diag3D => NULL()
              ENDIF
- 
+
              ! Reset arrays and previous hierarchy. 
              SpcFlx(:,:,:)  =  0.0_hp
              PrevCat        =  -1
@@ -482,13 +482,6 @@ CONTAINS
           WHERE ( Mask == 1 )
              CatFlx = CatFlx + TmpFlx
           END WHERE
-
-!          ! testing only
-!          IF ( verb ) THEN
-!             write(lun,*) 'Field ', TRIM(Dct%cName),              &
-!                        ' added to emissions (tracer ', ThisSpc,     &
-!                        '; Category = ', ThisCat, ')' 
-!          ENDIF
  
        ! If hierarchy is larger than those of the previously used
        ! fields, overwrite CatFlx w/ new values. 
@@ -498,13 +491,6 @@ CONTAINS
           WHERE ( Mask == 1 )
              CatFlx = TmpFlx
           END WHERE
-
-!          ! testing only
-!          IF ( verb ) THEN
-!             write(lun,*) 'Field ', TRIM(Dct%cName),              &
-!                        ' replaced old emissions (tracer ', ThisSpc, &
-!                        '; Category = ', ThisCat, ')' 
-!          ENDIF
 
        ELSE
           MSG = 'Hierarchy error in calc_emis: ' // TRIM(Dct%cName)

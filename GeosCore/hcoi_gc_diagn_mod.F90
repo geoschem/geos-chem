@@ -286,7 +286,7 @@ CONTAINS
     !=======================================================================
 
     ! This is for testing only. Only activate if needed.
-    IF ( .FALSE. ) THEN
+    IF ( .TRUE. ) THEN
 
        ! Hourly emissions
 
