@@ -828,9 +828,14 @@ CONTAINS
                 TMPVAL = 1.0_hp - TMPVAL 
              ENDIF
 
-             ! Set mask to zero over this grid box if this mask value is
-             ! tiny. 
-             IF ( TMPVAL < HCO_TINY ) MASK(I,J,:) = 0
+             ! Set mask to zero over this grid box if this mask value is:
+             ! ... lower than 0.5:
+             ! ==> ignoring mask values lower than 0.5 avoids double
+             !     counting of grid boxes that straddle two mask regions.
+             IF ( TMPVAL < 0.5_hp ) MASK(I,J,:) = 0
+
+             ! ... tiny:
+             !IF ( TMPVAL < HCO_TINY ) MASK(I,J,:) = 0
 
              ! testing only
              IF ( verb .AND. I==1 .AND. J==1 ) THEN

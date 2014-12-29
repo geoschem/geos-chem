@@ -1802,7 +1802,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, NT
+    INTEGER            :: I, I1, I2, J1, J2, NT
     REAL(hp), POINTER  :: Vals(:) => NULL()
     LOGICAL            :: Verb
     CHARACTER(LEN=255) :: MSG
@@ -1821,21 +1821,48 @@ CONTAINS
        CALL HCO_MSG(MSG)
     ENDIF
 
+    !-------------------------------------------------------------------
     ! Get data values for this time step.
+    !-------------------------------------------------------------------
     CALL GetDataVals ( am_I_Root, HcoState, Lct, Lct%Dct%Dta%ncFile, Vals, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
+    !-------------------------------------------------------------------
     ! Copy data into array.
-    NT = SIZE(Vals,1)
-    CALL FileData_ArrCheck( Lct%Dct%Dta, 1, 1, NT, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    DO I = 1, NT
-       Lct%Dct%Dta%V2(I)%Val(1,1) = Vals(I)
-    ENDDO
+    !-------------------------------------------------------------------
 
-    ! Data is 1D and as such assumed to be in local time. 
-    Lct%Dct%Dta%SpaceDim  = 1
-    Lct%Dct%Dta%IsLocTime = .TRUE.
+    ! Number of values
+    NT = SIZE(Vals,1)
+
+    ! For masks, interpret data as mask corners (lon1/lat1/lon2/lat2) 
+    ! with no time dimension 
+    IF ( Lct%Dct%DctType == 3 ) THEN
+
+       ! Make sure data is allocated
+       CALL FileData_ArrCheck( Lct%Dct%Dta, HcoState%NX, HcoState%NY, 1, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Fill array: 1.0 within grid box, 0.0 outside. Data is already 
+       ! initialized to zero, so only need to fill box values.
+       CALL FillMaskBox ( am_I_Root, HcoState, Lct, Vals, RC )
+
+       ! Data is 2D
+       Lct%Dct%Dta%SpaceDim = 2
+
+    ! For base emissions and scale factors, interpret data as scalar 
+    ! values with a time dimension.
+    ELSE
+
+       CALL FileData_ArrCheck( Lct%Dct%Dta, 1, 1, NT, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       DO I = 1, NT
+          Lct%Dct%Dta%V2(I)%Val(1,1) = Vals(I)
+       ENDDO
+
+       ! Data is 1D and as such assumed to be in local time. 
+       Lct%Dct%Dta%SpaceDim  = 1
+       Lct%Dct%Dta%IsLocTime = .TRUE.
+    ENDIF
 
     ! Cleanup
     IF ( ASSOCIATED(Vals) ) DEALLOCATE(Vals)
@@ -1934,163 +1961,194 @@ CONTAINS
     ENDIF
 
     ! ---------------------------------------------------------------- 
-    ! Select time slices to be used at this time.
+    ! For masks, assume that values represent the corners of the mask
+    ! box, e.g. there must be four values. Masks are time-independent
+    ! and unitless
+    ! ---------------------------------------------------------------- 
+    IF ( Lct%Dct%DctType == 3 ) THEN
+
+       ! There must be exactly four values
+       IF ( N /= 4 ) THEN
+          MSG = 'Mask values are not lon1/lat1/lon2/lat2: ' // &
+                TRIM(ValStr) // ' --> ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Pass to FileArr array (will be used below)
+       NUSE = 4
+       ALLOCATE( FileArr(1,1,1,NUSE), STAT=AS )
+       IF ( AS /= 0 ) THEN
+          MSG = 'Cannot allocate FileArr'
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       FileArr(1,1,1,:) = FileVals(1:NUSE) 
+
+    ! ----------------------------------------------------------------
+    ! For non-masks, the data is interpreted as uniform values with
+    ! a time dimension. Need to select the time slices to be used at
+    ! this time (depending on the provided time attributes), as well
+    ! as to ensure that values are in the correct units.
     ! Use all time slices unless a time interval is provided in
     ! attribute srcTime of the configuration file.
     ! ---------------------------------------------------------------- 
-
-    ! Get the preferred times, i.e. the preferred year, month, day, 
-    ! or hour (as specified in the configuration file).
-    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Currently, data read directly from the configuration file can only
-    ! represent one time dimension, i.e. it can only be yearly, monthly,
-    ! daily (or hourly data, but this is read all at the same time). 
-
-    ! Annual data 
-    IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
-       ! Error check
-       IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) .OR. & 
-            Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
-            Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
-          MSG = 'Data must not have more than one time dimension: ' // &
-                 TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       CALL GetSliceIdx ( Lct, 1, prefYr, IDX1, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IDX2 = IDX1
-       NUSE = 1
-
-    ! Monthly data
-    ELSEIF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
-       ! Error check
-       IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
-            Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
-          MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       CALL GetSliceIdx ( Lct, 2, prefMt, IDX1, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IDX2 = IDX1
-       NUSE = 1
-
-    ! Daily data
-    ELSEIF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
-       ! Error check
-       IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
-          MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       CALL GetSliceIdx ( Lct, 3, prefDy, IDX1, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IDX2 = IDX1
-       NUSE = 1
-
-    ! All other cases (incl. hourly data): read all time slices).
     ELSE
-       IDX1 = 1
-       IDX2 = N
-       NUSE = N
-    ENDIF
 
-    ! ---------------------------------------------------------------- 
-    ! Read selected time slice(s) into data array
-    ! ----------------------------------------------------------------
-    IF ( IDX2 > N ) THEN
-       WRITE(MSG,*) 'Index ', IDX2, ' is larger than number of found values: ', &
+       ! Get the preferred times, i.e. the preferred year, month, day, 
+       ! or hour (as specified in the configuration file).
+       CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       ! Currently, data read directly from the configuration file can only
+       ! represent one time dimension, i.e. it can only be yearly, monthly,
+       ! daily (or hourly data, but this is read all at the same time). 
+   
+       ! Annual data 
+       IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
+          ! Error check
+          IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) .OR. & 
+               Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
+               Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
+             MSG = 'Data must not have more than one time dimension: ' // &
                     TRIM(Lct%Dct%cName)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+   
+          CALL GetSliceIdx ( Lct, 1, prefYr, IDX1, RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IDX2 = IDX1
+          NUSE = 1
+   
+       ! Monthly data
+       ELSEIF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
+          ! Error check
+          IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
+               Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
+             MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+   
+          CALL GetSliceIdx ( Lct, 2, prefMt, IDX1, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IDX2 = IDX1
+          NUSE = 1
+   
+       ! Daily data
+       ELSEIF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
+          ! Error check
+          IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
+             MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+   
+          CALL GetSliceIdx ( Lct, 3, prefDy, IDX1, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IDX2 = IDX1
+          NUSE = 1
+   
+       ! All other cases (incl. hourly data): read all time slices).
+       ELSE
+          IDX1 = 1
+          IDX2 = N
+          NUSE = N
+       ENDIF
+   
+       ! ---------------------------------------------------------------- 
+       ! Read selected time slice(s) into data array
+       ! ----------------------------------------------------------------
+       IF ( IDX2 > N ) THEN
+          WRITE(MSG,*) 'Index ', IDX2, ' is larger than number of found values: ', &
+                       TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
 
-    ALLOCATE( FileArr(1,1,1,NUSE), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       MSG = 'Cannot allocate FileArr'
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
- 
-    ! IDX1 becomes -1 for data that is outside of the valid range
-    ! (and no time cycling enabled). In this case, make sure that
-    ! scale factor is set to zero.
-    IF ( IDX1 < 0 ) THEN
-       FileArr(1,1,1,:) = 0.0_hp
-       MSG = 'Scale factor outside of range - set to zero: ' // &
-             TRIM(Lct%Dct%cName)
-       CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-    ELSE
-       FileArr(1,1,1,:) = FileVals(IDX1:IDX2)
-    ENDIF
-
-    ! ---------------------------------------------------------------- 
-    ! Convert data to HEMCO units 
-    ! ---------------------------------------------------------------- 
-    CALL HCO_Unit_Change( Array       = FileArr,                    &
-                          Units       = TRIM(Lct%Dct%Dta%OrigUnit), &
-                          MW_IN       = MW_g,                       &
-                          MW_OUT      = EmMW_g,                     &
-                          MOLEC_RATIO = MolecRatio,                 &
-                          YYYY        = -999,                       &
-                          MM          = -999,                       &
-                          AreaFlag    = AreaFlag,                   &
-                          TimeFlag    = TimeFlag,                   &
-                          RC          = RC                           )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Data must be ... 
-    ! ... concentration ...
-    IF ( AreaFlag == 3 .AND. TimeFlag == 0 ) THEN
-       Lct%Dct%Dta%IsConc = .TRUE.
-
-    ELSEIF ( AreaFlag == 3 .AND. TimeFlag == 1 ) THEN
-       Lct%Dct%Dta%IsConc = .TRUE.
-       FileArr = FileArr * HcoState%TS_EMIS
-       MSG = 'Data converted from kg/m3/s to kg/m3: ' // &
-             TRIM(Lct%Dct%cName) // ': ' // TRIM(Lct%Dct%Dta%OrigUnit)
-       CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-
-    ! ... emissions or unitless ...
-    ELSEIF ( (AreaFlag == -1 .AND. TimeFlag == -1) .OR. &
-             (AreaFlag ==  2 .AND. TimeFlag ==  1)       ) THEN
-       Lct%Dct%Dta%IsConc = .FALSE.
-
-    ! ... invalid otherwise:
-    ELSE
-       MSG = 'Unit must be unitless, emission or concentration: ' // &
-             TRIM(Lct%Dct%cName) // ': ' // TRIM(Lct%Dct%Dta%OrigUnit)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-
-    ! Auto-detect delta t [in hours] between time slices.
-    ! Scale factors can be:
-    ! length 1 : constant
-    ! length 7 : weekday factors: Sun, Mon, ..., Sat
-    ! length 12: monthly factors: Jan, Feb, ..., Dec
-    ! length 24: hourly  factors: 12am, 1am, ... 11pm
-    IF ( NUSE == 1 ) THEN
-       Lct%Dct%Dta%DeltaT = 0
-    ELSEIF ( NUSE == 7 ) THEN
-       Lct%Dct%Dta%DeltaT = 24
-    ELSEIF ( NUSE == 12 ) THEN
-       Lct%Dct%Dta%DeltaT = 720 
-    ELSEIF ( NUSE == 24 ) THEN
-       Lct%Dct%Dta%DeltaT = 1 
-    ELSE
-       MSG = 'Factor must be of length 1, 7, 12, or 24!' // &
-              TRIM(Lct%Dct%cName)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
-       RETURN 
-    ENDIF
-
+       ALLOCATE( FileArr(1,1,1,NUSE), STAT=AS )
+       IF ( AS /= 0 ) THEN
+          MSG = 'Cannot allocate FileArr'
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+    
+       ! IDX1 becomes -1 for data that is outside of the valid range
+       ! (and no time cycling enabled). In this case, make sure that
+       ! scale factor is set to zero.
+       IF ( IDX1 < 0 ) THEN
+          FileArr(1,1,1,:) = 0.0_hp
+          MSG = 'Scale factor outside of range - set to zero: ' // &
+                TRIM(Lct%Dct%cName)
+          CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+       ELSE
+          FileArr(1,1,1,:) = FileVals(IDX1:IDX2)
+       ENDIF
+   
+       ! ---------------------------------------------------------------- 
+       ! Convert data to HEMCO units 
+       ! ---------------------------------------------------------------- 
+       CALL HCO_Unit_Change( Array       = FileArr,                    &
+                             Units       = TRIM(Lct%Dct%Dta%OrigUnit), &
+                             MW_IN       = MW_g,                       &
+                             MW_OUT      = EmMW_g,                     &
+                             MOLEC_RATIO = MolecRatio,                 &
+                             YYYY        = -999,                       &
+                             MM          = -999,                       &
+                             AreaFlag    = AreaFlag,                   &
+                             TimeFlag    = TimeFlag,                   &
+                             RC          = RC                           )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       ! Data must be ... 
+       ! ... concentration ...
+       IF ( AreaFlag == 3 .AND. TimeFlag == 0 ) THEN
+          Lct%Dct%Dta%IsConc = .TRUE.
+   
+       ELSEIF ( AreaFlag == 3 .AND. TimeFlag == 1 ) THEN
+          Lct%Dct%Dta%IsConc = .TRUE.
+          FileArr = FileArr * HcoState%TS_EMIS
+          MSG = 'Data converted from kg/m3/s to kg/m3: ' // &
+                TRIM(Lct%Dct%cName) // ': ' // TRIM(Lct%Dct%Dta%OrigUnit)
+          CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+   
+       ! ... emissions or unitless ...
+       ELSEIF ( (AreaFlag == -1 .AND. TimeFlag == -1) .OR. &
+                (AreaFlag ==  2 .AND. TimeFlag ==  1)       ) THEN
+          Lct%Dct%Dta%IsConc = .FALSE.
+   
+       ! ... invalid otherwise:
+       ELSE
+          MSG = 'Unit must be unitless, emission or concentration: ' // &
+                TRIM(Lct%Dct%cName) // ': ' // TRIM(Lct%Dct%Dta%OrigUnit)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+   
+       ! Auto-detect delta t [in hours] between time slices.
+       ! Scale factors can be:
+       ! length 1 : constant
+       ! length 7 : weekday factors: Sun, Mon, ..., Sat
+       ! length 12: monthly factors: Jan, Feb, ..., Dec
+       ! length 24: hourly  factors: 12am, 1am, ... 11pm
+       IF ( NUSE == 1 ) THEN
+          Lct%Dct%Dta%DeltaT = 0
+       ELSEIF ( NUSE == 7 ) THEN
+          Lct%Dct%Dta%DeltaT = 24
+       ELSEIF ( NUSE == 12 ) THEN
+          Lct%Dct%Dta%DeltaT = 720 
+       ELSEIF ( NUSE == 24 ) THEN
+          Lct%Dct%Dta%DeltaT = 1 
+       ELSE
+          MSG = 'Factor must be of length 1, 7, 12, or 24!' // &
+                 TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
+          RETURN 
+       ENDIF
+   
+    ENDIF ! Masks vs. non-masks
+   
     ! Copy data into output array.
     IF ( ASSOCIATED(Vals) ) DEALLOCATE( Vals )
     ALLOCATE( Vals(NUSE), STAT=AS )
@@ -2109,6 +2167,87 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE GetDataVals 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FillMaskBox
+!
+! !DESCRIPTION: Subroutine FillMaskBox fills the data array of the passed list 
+! container Lct according to the mask region provided in Vals. Vals contains
+! the mask region of interest, denoted by the lower left and upper right grid
+! box corners: lon1, lat1, lon2, lat2. The data array of Lct is filled such 
+! that all grid boxes are set to 1 whose mid-point is inside of the given box 
+! range.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FillMaskBox ( am_I_Root, HcoState, Lct, Vals, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,          INTENT(IN   )   :: am_I_Root
+    TYPE(HCO_State),  POINTER         :: HcoState    ! HEMCO state
+    REAL(hp)        , POINTER         :: Vals(:)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER         :: Lct
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !REVISION HISTORY:
+!  29 Dec 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I, J
+    INTEGER            :: LON1, LON2, LAT1, LAT2
+    CHARACTER(LEN=255) :: LOC = 'FillMaskBox (HCOIO_DataRead_Mod.F90)'
+
+    !=================================================================
+    ! FillMaskBox begins here! 
+    !=================================================================
+
+    ! Extract lon1, lon2, lat1, lat2
+    LON1 = VALS(1)
+    LAT1 = VALS(2)
+    LON2 = VALS(3)
+    LAT2 = VALS(4)
+
+    ! Check for every grid box if mid point is within mask region. 
+    ! Set to 1.0 if this is the case.
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED )  &
+!$OMP PRIVATE( I, J )    &
+!$OMP SCHEDULE( DYNAMIC )
+    DO J = 1, HcoState%NY
+    DO I = 1, HcoState%NX
+    
+       IF ( HcoState%Grid%XMID%Val(I,J) >= LON1 .AND. &
+            HcoState%Grid%XMID%Val(I,J) <= LON2 .AND. &
+            HcoState%Grid%YMID%Val(I,J) >= LAT1 .AND. &
+            HcoState%Grid%YMID%Val(I,J) <= LAT2        ) THEN
+
+          Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_hp
+       ENDIF 
+
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE FillMaskBox
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
