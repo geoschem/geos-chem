@@ -191,17 +191,6 @@
       ! Close file
       CLOSE( IU_FILE )
 
-      ! testing only
-      write(*,*) 'READ_PARANOX_LUT - FRACNOX: ', FRACNOX(:,:,1,1,1,1,1)
-      write(*,*) 'READ_PARANOX_LUT -  INTOPE: ', INTOPE(:,:,1,1,1,1,1)
-
-      OPEN( IU_FILE, FILE="fracnox.txt", FORM="FORMATTED", IOSTAT=IOS ) 
-      WRITE( IU_FILE, "(E40.32)" ) FRACNOX
-      CLOSE( IU_FILE )
-      OPEN( IU_FILE, FILE="intope.txt", FORM="FORMATTED", IOSTAT=IOS ) 
-      WRITE( IU_FILE, "(E40.32)" ) INTOPE
-      CLOSE( IU_FILE )
-
       ! Return w/ success
       RC = HCO_SUCCESS
 

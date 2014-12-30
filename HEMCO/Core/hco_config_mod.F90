@@ -396,6 +396,9 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  03 Jan 2014 - C. Keller - Initial version 
+!  29 Dec 2014 - C. Keller - Added optional 11th element for scale factors. This
+!                            value will be interpreted as mask field (applied to
+!                            this scale factor only).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -459,7 +462,8 @@ CONTAINS
                                    srcDim,    7,      srcUnit,  8,  &
                                    SpcName,  -1,      Char1,   -1,  &
                                    Int1,      1,      Int2,     9,  &
-                                   Int3,     -1,      STAT           )
+                                   Int3,     10,      STAT,         &
+                                   optcl=10                          )
   
        ELSE IF ( DctType == 3 ) THEN
           CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
@@ -647,9 +651,19 @@ CONTAINS
              Dta%SpaceDim = 3
           ENDIF
 
-          ! For masks only: extract grid box edges. These will be used
-          ! lateron to determine if emissions have to be considered by
-          ! this CPU.
+          ! For scale factors: check if a mask is assigned to this scale
+          ! factor. In this case, pass mask ID to first slot of Scal_cID
+          ! vector. This value will be set to the container ID of the
+          ! corresponding mask field lateron.
+          IF ( DctType == 2 .AND. Int3 > 0 ) THEN
+             ALLOCATE ( Lct%Dct%Scal_cID(SclMax) )
+             Lct%Dct%Scal_cID(:) = -999
+             Lct%Dct%Scal_cID(1) = Int3
+          ENDIF 
+
+          ! For masks: extract grid box edges. These will be used later 
+          ! on to determine if emissions have to be considered by this
+          ! CPU.
           IF ( DctType == 3 ) THEN
                
              ! Extract grid box edges. Need to be four values.
@@ -1306,8 +1320,6 @@ CONTAINS
        ! Requirement is that these base emissions have same species
        ! ID, emission category and hierarchy, ext. number, scale 
        ! factors, and update frequency.
-       ! Note: this option is disabled in an ESMF environment and
-       ! the targetID will always be set to cID.
        CALL Get_targetID( am_I_Root, HcoState, Lct, targetID, RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1385,7 +1397,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
-!  18 Jun 2013 - C. Keller: Initialization
+!  18 Jun 2013 - C. Keller - Initialization
+!  29 Dec 2014 - C. Keller - Now check for masks assigned to scale factors. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1397,7 +1410,7 @@ CONTAINS
     TYPE(ScalIDCont), POINTER :: TmpScalIDCont => NULL() 
 
     ! Scalars
-    INTEGER                   :: FLAG
+    INTEGER                   :: cID, FLAG
     CHARACTER(LEN=255)        :: MSG
     CHARACTER(LEN=  5)        :: strID
     INTEGER                   :: ThisScalID
@@ -1423,7 +1436,7 @@ CONTAINS
        Lct => NULL()
        CALL GetNextCont ( Lct, FLAG )         
 
-       ! Loop over all lines in Input file and find the one with the
+       ! Loop over all lines in input file and find the one with the
        ! correct scale factor ID 
        DO WHILE ( FLAG == HCO_SUCCESS )  
 
@@ -1451,7 +1464,29 @@ CONTAINS
           CALL HCO_ERROR ( MSG, RC)
           RETURN 
        ENDIF
- 
+
+       ! Check if this scale factor has a mask field assigned to 
+       ! it, in which case we have to make sure that the mask field
+       ! becomes registered in the scale factor list ScalIDList.
+       ! We can do this while evaluating ScalIDList due to the dynamic 
+       ! structure of the linked list with new containers simply being
+       ! added to the end of the list.
+       IF ( ASSOCIATED(Lct%Dct%Scal_cID) ) THEN
+
+          CALL ScalID_Register ( Lct%Dct%Scal_cID, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Get container ID of mask and update cID value of the data
+          ! container accordingly.
+          CALL Get_cID ( Lct%Dct%Scal_cID(1), cID, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          Lct%Dct%Scal_cID(1) = cID
+
+          ! Vector Scal_cID of this container now points to cIDs
+          Lct%Dct%Scal_cID_Set = .TRUE.
+
+       ENDIF
+
        ! Register container in ReadList. Containers will be listed 
        ! in the reading lists sorted by cID.  
        CALL ReadList_Set( am_I_Root, HcoState, Lct%Dct, RC )
@@ -1882,6 +1917,17 @@ CONTAINS
 ! the parsed line. 
 !\\
 !\\
+! This routine splits the input line (or the next line of an open file with
+! ID IU_HCO), using the HEMCO separator (default: space) as separator. The
+! resulting elements are then passed to the specified output characters and
+! integers. For example, to pass the 5th element of a line to variable int1,
+! set int1cl to 5, etc. An error will be returned (STAT=100) if any of the
+! output columns exceeds the number of line elements. The optional argument 
+! optcl can be used to denote an optional value, e.g. no error is returned 
+! if the value at position optcl cannot be read. Only one optional value can 
+! be specified.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE ReadAndSplit_Line( AIR,     IU_HCO,  char1, chr1cl, &
@@ -1891,7 +1937,7 @@ CONTAINS
                                 char8,   chr8cl,  char9, chr9cl, &
                                 int1,    int1cl,  int2,  int2cl, &
                                 int3,    int3cl,  STAT,  inLine, &
-                                outLine                           )
+                                outLine, optcl                    )
 !
 ! !USES:
 !
@@ -1914,21 +1960,22 @@ CONTAINS
     INTEGER,            INTENT(IN   )           :: int2cl
     INTEGER,            INTENT(IN   )           :: int3cl
     CHARACTER(LEN=255), INTENT(IN   ), OPTIONAL :: inLINE
+    INTEGER,            INTENT(IN   ), OPTIONAL :: optcl 
 !
 ! !OUTPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),   INTENT(  OUT)           :: char1
-    CHARACTER(LEN=*),   INTENT(  OUT)           :: char2
-    CHARACTER(LEN=*),   INTENT(  OUT)           :: char3
-    CHARACTER(LEN=*),   INTENT(  OUT)           :: char4
-    CHARACTER(LEN=*),   INTENT(  OUT)           :: char5
-    CHARACTER(LEN=*),   INTENT(  OUT)           :: char6
-    CHARACTER(LEN=*),   INTENT(  OUT)           :: char7
-    CHARACTER(LEN=*),   INTENT(  OUT)           :: char8
-    CHARACTER(LEN=*),   INTENT(  OUT)           :: char9
-    INTEGER,            INTENT(  OUT)           :: int1
-    INTEGER,            INTENT(  OUT)           :: int2
-    INTEGER,            INTENT(  OUT)           :: int3
+    CHARACTER(LEN=*),   INTENT(INOUT)           :: char1
+    CHARACTER(LEN=*),   INTENT(INOUT)           :: char2
+    CHARACTER(LEN=*),   INTENT(INOUT)           :: char3
+    CHARACTER(LEN=*),   INTENT(INOUT)           :: char4
+    CHARACTER(LEN=*),   INTENT(INOUT)           :: char5
+    CHARACTER(LEN=*),   INTENT(INOUT)           :: char6
+    CHARACTER(LEN=*),   INTENT(INOUT)           :: char7
+    CHARACTER(LEN=*),   INTENT(INOUT)           :: char8
+    CHARACTER(LEN=*),   INTENT(INOUT)           :: char9
+    INTEGER,            INTENT(INOUT)           :: int1
+    INTEGER,            INTENT(INOUT)           :: int2
+    INTEGER,            INTENT(INOUT)           :: int3
     CHARACTER(LEN=255), INTENT(  OUT), OPTIONAL :: outLINE
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1936,15 +1983,17 @@ CONTAINS
     INTEGER,            INTENT(INOUT)           :: STAT
 !
 ! !REVISION HISTORY:
-!  28 Aug 2013 - C. Keller: Initial version
-!  11 Dec 2013 - C. Keller: Added optional arguments inLine and outLine 
+!  28 Aug 2013 - C. Keller - Initial version
+!  11 Dec 2013 - C. Keller - Added optional arguments inLine and outLine 
+!  29 Dec 2014 - C. Keller - Added optional argument optcl. Now use wrapper
+!                            routines READCHAR and READINT. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: N
+    INTEGER               :: N, OPT
     CHARACTER(LEN=255)    :: LINE
     CHARACTER(LEN=255)    :: SUBSTR(255) 
     LOGICAL               :: EOF
@@ -1994,147 +2043,148 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Are there any optional lines?
+    IF ( PRESENT(optcl) ) THEN
+       OPT = optcl
+    ELSE
+       OPT = -1
+    ENDIF
+
     ! ---------------------------------------------------------------------
     ! Read characters as specified and write them into given variables 
     ! ---------------------------------------------------------------------
 
-    ! Character 1 
-    IF ( chr1cl > 0 ) THEN
-       IF ( chr1cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
-       ELSE
-          READ( SUBSTR(chr1cl), '(a)' ) char1
-       ENDIF
-    ENDIF 
-
-    ! Character 2 
-    IF ( chr2cl > 0 ) THEN
-       IF ( chr2cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
-       ELSE
-          READ( SUBSTR(chr2cl), '(a)' ) char2
-       ENDIF
-    ENDIF 
-
-    ! Character 3 
-    IF ( chr3cl > 0 ) THEN
-       IF ( chr3cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
-       ELSE
-          READ( SUBSTR(chr3cl), '(a)' ) char3
-       ENDIF
-    ENDIF 
-
-    ! Character 4 
-    IF ( chr4cl > 0 ) THEN
-       IF ( chr4cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
-       ELSE
-          READ( SUBSTR(chr4cl), '(a)' ) char4
-       ENDIF
-    ENDIF 
-
-    ! Character 5 
-    IF ( chr5cl > 0 ) THEN
-       IF ( chr5cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
-       ELSE
-          READ( SUBSTR(chr5cl), '(a)' ) char5
-       ENDIF
-    ENDIF 
-
-    ! Character 6 
-    IF ( chr6cl > 0 ) THEN
-       IF ( chr6cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
-       ELSE
-          READ( SUBSTR(chr6cl), '(a)' ) char6
-       ENDIF
-    ENDIF 
-
-    ! Character 7 
-    IF ( chr7cl > 0 ) THEN
-       IF ( chr7cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
-       ELSE
-          READ( SUBSTR(chr7cl), '(a)' ) char7
-       ENDIF
-    ENDIF 
-
-    ! Character 8 
-    IF ( chr8cl > 0 ) THEN
-       IF ( chr8cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
-       ELSE
-          READ( SUBSTR(chr8cl), '(a)' ) char8
-       ENDIF
-    ENDIF 
-
-    ! Character 9 
-    IF ( chr9cl > 0 ) THEN
-       IF ( chr9cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
-       ELSE
-          READ( SUBSTR(chr9cl), '(a)' ) char9
-       ENDIF
-    ENDIF 
+    CALL READCHAR( LINE, SUBSTR, N, chr1cl, char1, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+    CALL READCHAR( LINE, SUBSTR, N, chr2cl, char2, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+    CALL READCHAR( LINE, SUBSTR, N, chr3cl, char3, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+    CALL READCHAR( LINE, SUBSTR, N, chr4cl, char4, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+    CALL READCHAR( LINE, SUBSTR, N, chr5cl, char5, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+    CALL READCHAR( LINE, SUBSTR, N, chr6cl, char6, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+    CALL READCHAR( LINE, SUBSTR, N, chr7cl, char7, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+    CALL READCHAR( LINE, SUBSTR, N, chr8cl, char8, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+    CALL READCHAR( LINE, SUBSTR, N, chr9cl, char9, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
 
     ! ---------------------------------------------------------------------
     ! Read integers as specified and write them into given variables 
     ! ---------------------------------------------------------------------
 
-    ! Integer 1 
-    IF ( int1cl > 0 ) THEN
-       IF ( int1cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
+    CALL READINT( LINE, SUBSTR, N, int1cl, int1, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+    CALL READINT( LINE, SUBSTR, N, int2cl, int2, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+    CALL READINT( LINE, SUBSTR, N, int3cl, int3, OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+
+  END SUBROUTINE ReadAndSplit_Line
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: READCHAR 
+!
+! !DESCRIPTION: Subroutine READCHAR is a helper routine to read character
+! values from the HEMCO configuration file. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE READCHAR ( LINE, SUBSTR, N, chrcl, charout, OPT, STAT )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=255), INTENT(IN   )    :: LINE 
+    CHARACTER(LEN=255), INTENT(IN   )    :: SUBSTR(255) 
+    INTEGER,            INTENT(IN   )    :: N
+    INTEGER,            INTENT(IN   )    :: chrcl
+    INTEGER,            INTENT(IN   )    :: OPT
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),   INTENT(INOUT)    :: charout
+    INTEGER,            INTENT(INOUT)    :: STAT
+!
+! !REVISION HISTORY: 
+!  29 Dec 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+    IF ( chrcl > 0 ) THEN
+       IF ( chrcl > N ) THEN
+          IF ( chrcl /= OPT ) THEN
+             WRITE(*,*) 'Not enough elements in: '//TRIM(LINE)
+             STAT = 100
+             RETURN
+          ELSE
+             charout = ''
+          ENDIF
        ELSE
-          READ( SUBSTR(int1cl), * ) int1 
+          READ( SUBSTR(chrcl), '(a)' ) charout
        ENDIF
     ENDIF 
 
-    ! Integer 2 
-    IF ( int2cl > 0 ) THEN
-       IF ( int2cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
+  END SUBROUTINE READCHAR 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: READINT
+!
+! !DESCRIPTION: Subroutine READINT is a helper routine to read integer
+! values from the HEMCO configuration file. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE READINT ( LINE, SUBSTR, N, intcl, intout, OPT, STAT )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=255), INTENT(IN   )    :: LINE 
+    CHARACTER(LEN=255), INTENT(IN   )    :: SUBSTR(255) 
+    INTEGER,            INTENT(IN   )    :: N
+    INTEGER,            INTENT(IN   )    :: intcl
+    INTEGER,            INTENT(IN   )    :: OPT
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,            INTENT(INOUT)    :: intout
+    INTEGER,            INTENT(INOUT)    :: STAT
+!
+! !REVISION HISTORY: 
+!  29 Dec 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+    IF ( intcl > 0 ) THEN
+       IF ( intcl > N ) THEN
+          IF ( intcl /= OPT ) THEN
+             WRITE(*,*) 'Not enough elements in: '//TRIM(LINE)
+             STAT = 100
+             RETURN
+          ELSE
+             intout = -999
+          ENDIF
        ELSE
-          READ( SUBSTR(int2cl), * ) int2
-       ENDIF
-    ENDIF 
-
-    ! Integer 3 
-    IF ( int3cl > 0 ) THEN
-       IF ( int3cl > N ) THEN
-          WRITE(*,*) TRIM(LINE)
-          STAT = 100
-          RETURN
-       ELSE
-          READ( SUBSTR(int3cl), * ) int3
+          READ( SUBSTR(intcl), * ) intout
        ENDIF
     ENDIF
 
-  END SUBROUTINE ReadAndSplit_Line
+  END SUBROUTINE READINT
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -2478,6 +2528,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Jan 2014 - C. Keller: Initialization (update)
+!  29 Dec 2014 - C. Keller: Now add new container to end of list to allow
+!                           list being updated while calling Register_Scal.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2487,6 +2539,7 @@ CONTAINS
     ! Pointers
     TYPE(ScalIDCont), POINTER  :: NewScalIDCont => NULL()
     TYPE(ScalIDCont), POINTER  :: TmpScalIDCont => NULL() 
+    TYPE(ScalIDCont), POINTER  :: PrvScalIDCont => NULL() 
 
     ! Scalars
     INTEGER                    :: N
@@ -2504,21 +2557,29 @@ CONTAINS
        ! Check if already in list 
        IsInList = .FALSE.
        TmpScalIDCont => ScalIDList
+       PrvScalIDCont => TmpScalIDCont
        DO WHILE ( ASSOCIATED(TmpScalIDCont) ) 
           IF ( TmpScalIDCont%ScalID == ScalIDs(N) ) THEN
              IsInList = .TRUE.
              EXIT
           ENDIF
+          PrvScalIDCont => TmpScalIDCont
           TmpScalIDCont => TmpScalIDCont%NEXT
        ENDDO
 
-       ! Add new container w/ this scal ID to (beginning) of list 
+       ! Add new container w/ this scal ID to (end of) list 
        IF ( .NOT. IsInList ) THEN
           ALLOCATE ( NewScalIDCont ) 
           NewScalIDCont%ScalID =  ScalIDs(N)
-          NewScalIDCont%NEXT   => ScalIDList
-          ScalIDList           => NewScalIDCont
-          NewScalIDCont        => NULL()
+          NewScalIDCont%NEXT   => NULL()
+          IF ( .NOT. ASSOCIATED(PrvScalIDCont) ) THEN
+             ScalIDList => NewScalIDCont
+          ELSE
+             PrvScalIDCont%NEXT => NewScalIDCont
+          ENDIF
+!          NewScalIDCont%NEXT   => ScalIDList
+!          ScalIDList           => NewScalIDCont
+!          NewScalIDCont        => NULL()
        ENDIF
   
        TmpScalIDCont => NULL()

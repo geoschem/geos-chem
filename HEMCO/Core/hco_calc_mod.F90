@@ -81,12 +81,21 @@ MODULE HCO_Calc_Mod
 !
   PRIVATE :: GET_CURRENT_EMISSIONS
 !
+! !PARAMETER
+!
+  ! Mask threshold. All mask values below this value will be evaluated 
+  ! as zero (= outside of mask), and all values including and above this 
+  ! value as inside the mask.
+  REAL(hp), PARAMETER  :: MASK_THRESHOLD = 0.5_hp
+!
 ! ============================================================================
 !
 ! !REVISION HISTORY:
 !  25 Aug 2012 - C. Keller   - Initial version.
 !  06 Jun 2014 - R. Yantosca - Add cosmetic changes in ProTeX headers
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  29 Dec 2014 - C. Keller   - Added MASK_THRESHOLD parameter. Added option to
+!                              apply scale factors only over masked area.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -625,6 +634,7 @@ CONTAINS
 !  07 Sep 2014 - C. Keller   -  Mask update. Now set mask to zero as soon as 
 !                               on of the applied masks is zero.
 !  03 Dec 2014 - C. Keller   -  Now calculate time slice index on-the-fly.
+!  29 Dec 2014 - C. Keller   -  Added scale factor masks.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -633,6 +643,7 @@ CONTAINS
 !
     ! Pointers
     TYPE(DataCont), POINTER :: ScalDct => NULL()
+    TYPE(DataCont), POINTER :: MaskDct => NULL()
 
     ! Scalars
     REAL(hp)                :: TMPVAL
@@ -784,6 +795,23 @@ CONTAINS
        ELSE
           ScalLL = SIZE(ScalDct%Dta%V3(1)%Val,3)
        ENDIF
+ 
+       ! Check if there is a mask field associated with this scale
+       ! factor. In this case, get a pointer to the corresponding
+       ! mask field and evaluate scale factors only inside the mask
+       ! region.
+       IF ( ASSOCIATED(ScalDct%Scal_cID) ) THEN
+          CALL Pnt2DataCont( ScalDct%Scal_cID(1), MaskDct, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+          ! Must be mask field
+          IF ( MaskDct%DctType /= 3 ) THEN
+             MSG = 'Invalid mask for scale factor: '//TRIM(ScalDct%cName)
+             MSG = TRIM(MSG) // '; mask: '//TRIM(MaskDct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+       ENDIF
 
        ! Reinitialize error flag. Will be set to 1 or 2 if error occurs,
        ! and to -1 if negative scale factor is ignored. 
@@ -796,6 +824,11 @@ CONTAINS
 !$OMP SCHEDULE( DYNAMIC )
        DO J = 1, nJ
        DO I = 1, nI
+
+          ! Check for mask region
+          IF ( ASSOCIATED(MaskDct) ) THEN
+             IF ( MaskDct%Dta%V2(1)%Val(I,J) < MASK_THRESHOLD ) CYCLE
+          ENDIF
 
           ! Get current time index for this container and at this location
           tIDx = tIDx_GetIndx( HcoState, ScalDct%Dta, I, J )
@@ -828,14 +861,9 @@ CONTAINS
                 TMPVAL = 1.0_hp - TMPVAL 
              ENDIF
 
-             ! Set mask to zero over this grid box if this mask value is:
-             ! ... lower than 0.5:
-             ! ==> ignoring mask values lower than 0.5 avoids double
-             !     counting of grid boxes that straddle two mask regions.
-             IF ( TMPVAL < 0.5_hp ) MASK(I,J,:) = 0
-
-             ! ... tiny:
-             !IF ( TMPVAL < HCO_TINY ) MASK(I,J,:) = 0
+             ! Set mask to zero over this grid box if this mask value is
+             ! below the defined mask threshold.
+             IF ( TMPVAL < MASK_THRESHOLD ) MASK(I,J,:) = 0
 
              ! testing only
              IF ( verb .AND. I==1 .AND. J==1 ) THEN
@@ -959,6 +987,9 @@ CONTAINS
           CALL HCO_WARNING( MSG, RC )
        ENDIF
 
+       ! Free pointer
+       MaskDct => NULL()
+
     ENDDO ! N
 
     ! ----------------------------
@@ -1040,6 +1071,7 @@ CONTAINS
 !
     ! Pointers
     TYPE(DataCont), POINTER :: ScalDct => NULL()
+    TYPE(DataCont), POINTER :: MaskDct => NULL()
     REAL(hp)                :: TMPVAL
     INTEGER                 :: tIdx, IDX
     INTEGER                 :: I, J, L, N
@@ -1200,6 +1232,30 @@ CONTAINS
              CYCLE
           ENDIF
 
+          ! Check if there is a mask field associated with this scale
+          ! factor. In this case, get a pointer to the corresponding
+          ! mask field and evaluate scale factors only inside the mask
+          ! region.
+          IF ( ASSOCIATED(ScalDct%Scal_cID) ) THEN
+             CALL Pnt2DataCont( ScalDct%Scal_cID(1), MaskDct, RC )
+             IF ( RC /= HCO_SUCCESS ) THEN
+                ERR = .TRUE.
+                EXIT
+             ENDIF 
+    
+             ! Must be mask field
+             IF ( MaskDct%DctType /= 3 ) THEN
+                MSG = 'Invalid mask for scale factor: '//TRIM(ScalDct%cName)
+                MSG = TRIM(MSG) // '; mask: '//TRIM(MaskDct%cName)
+                CALL HCO_ERROR( MSG, RC )
+                ERR = .TRUE.
+                EXIT
+             ENDIF
+
+             ! Check if we are within mask region
+             IF ( MaskDct%Dta%V2(1)%Val(I,J) < MASK_THRESHOLD ) CYCLE
+          ENDIF
+
           ! Get vertical extension of this scale factor array.
           IF( (ScalDct%Dta%SpaceDim<=2) ) THEN
              ScalLL = 1
@@ -1240,7 +1296,7 @@ CONTAINS
              ENDIF
 
              ! Add to mask and set mask flag to TRUE
-             IF ( TMPVAL < HCO_TINY ) MASK(I,J,:) = 0
+             IF ( TMPVAL < MASK_THRESHOLD ) MASK(I,J,:) = 0
 
              ! testing only
              if ( verb .and. i == ix .and. j == iy ) then

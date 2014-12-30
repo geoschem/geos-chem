@@ -21,11 +21,12 @@
 !   used. Those support vertical regridding, unit conversion, and more
 !   (see below).
 ! \item Scalar data directly specified in the HEMCO configuration file.
-!   Scalar values can be set in the HEMCO configuration file directly.
 !   If multiple values - separated by the separator sign (/) - are 
 !   provided, they are interpreted as temporally changing values:
 !   7 values = Sun, Mon, ..., Sat; 12 values = Jan, Feb, ..., Dec;
-!   24 values = 0am, 1am, ..., 23pm (local time!).
+!   24 values = 0am, 1am, ..., 23pm (local time!). For masks, exactly
+!   four values must be provided, interpreted as lower left and upper
+!   right mask box corners (lon1/lat1/lon2/lat2).
 ! \item Country-specific data specified in a separate ASCII file. This
 !   file must end with the suffix '.txt' and hold the country specific
 !   values listed by country ID. The IDs must correspond to the IDs of
@@ -35,9 +36,12 @@
 !   applied to all countries with no specific values listed. The .txt 
 !   file must be structured as follows:
 !
+!   # Country mask file name
 !   CountryMask
+!
 !   # CountryName CountryID CountryValues
-!   DEFAULT 0 1.0/2.0/3.0/4.0/5.0/6.0/7.0
+!   DEFAULT   0 1.0/1.0/1.0/1.0/1.0/1.0/1/0
+!   USA     840 0.8/0.9/1.0/1.1/1.2/1.1/0.9
 !
 !   The CountryValues are interpreted the same way as scalar values, 
 !   except that they are applied to all grid boxes with the given 
@@ -1842,8 +1846,7 @@ CONTAINS
        CALL FileData_ArrCheck( Lct%Dct%Dta, HcoState%NX, HcoState%NY, 1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Fill array: 1.0 within grid box, 0.0 outside. Data is already 
-       ! initialized to zero, so only need to fill box values.
+       ! Fill array: 1.0 within grid box, 0.0 outside.
        CALL FillMaskBox ( am_I_Root, HcoState, Lct, Vals, RC )
 
        ! Data is 2D
@@ -1879,7 +1882,11 @@ CONTAINS
 !
 ! !IROUTINE: GetDataVals 
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Subroutine GetDataVals extracts the data values from ValStr
+! and writes them into vector Vals. ValStr is typically a character string
+! read from an external ASCII file or directly from the HEMCO configuration
+! file. Depending on the time specifications provided in the configuration
+! file, Vals will be filled with only a subset of the values of ValStr.
 !\\
 !\\
 ! !INTERFACE:
