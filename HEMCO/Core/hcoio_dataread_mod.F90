@@ -251,14 +251,19 @@ CONTAINS
 ! routines.
 !\\
 !\\
-! For 3D data, vertical regridding is not performed if (a) the number of 
-! vertical levels of the input file corresponds to the number of levels
-! on the simulation grid, (b) the vertical level variable name (long_name)
-! contains the word "GEOS-Chem level".\\ 
-! Vertical regridding is performed on the sigma interface levels. In order 
-! to calculate these levels correctly, the netCDF vertical coordinate 
-! description must adhere to the CF - conventions. See routine 
-! NC\_Get\_Sigma\_Levels in Ncdf\_Mod for more details.
+! 3D data is vertically regridded onto the simulation grid on the sigma 
+! interface levels. In order to calculate these levels correctly, the netCDF 
+! vertical coordinate description must adhere to the CF - conventions. See 
+! routine NC\_Get\_Sigma\_Levels in Ncdf\_Mod for more details.
+!\\
+!\\
+! A simpler vertical interpolation scheme is used if (a) the number of 
+! vertical levels of the input data corresponds to the number of levels
+! on the simulation grid (direct mapping, no remapping), (b) the vertical
+! level variable name (long\_name) contains the word "GEOS-Chem level". In
+! the latter case, the vertical levels of the input data is interpreted as
+! GEOS vertical levels and mapped onto the simulation grid using routine
+! ModelLev\_Interpolate. 
 !\\
 !\\
 ! !INTERFACE:
@@ -284,6 +289,7 @@ CONTAINS
     USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
     USE HCO_FileData_Mod,   ONLY : FileData_Cleanup
     USE HCOIO_MESSY_MOD,    ONLY : HCO_MESSY_REGRID
+    USE HCO_INTERP_MOD,     ONLY : ModelLev_Interpolate 
 !
 ! !INPUT PARAMETERS:
 !
@@ -302,6 +308,8 @@ CONTAINS
 !  03 Oct 2014 - C. Keller   - Added vertical regridding capability
 !  12 Dec 2014 - C. Keller   - Don't do vertical regridding if data is already
 !                              on GEOS-Chem levels. 
+!  31 Dec 2014 - C. Keller   - Now call ModelLev_Interpolate for model remapping
+!                              of model levels.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -340,6 +348,12 @@ CONTAINS
     REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
     INTEGER                       :: UnitTolerance
     INTEGER                       :: AreaFlag, TimeFlag 
+
+    ! For vertical interpolation between native and reduced GEOS-5 levels
+    ! (47 vs. 72 levels)
+    INTEGER                       :: outlev
+    LOGICAL                       :: Inflate, Collapse
+    REAL(hp), POINTER             :: REGR_4D(:,:,:,:) => NULL()
 
     ! Use MESSy regridding routines?
     LOGICAL                       :: UseMESSy
@@ -500,7 +514,7 @@ CONTAINS
        ! If # of levels are exactly # of simulation levels, assume that 
        ! they are on model levels. 
        ! This should probably be removed eventually, as it's better to 
-       ! to explicitly state model levels via the level long name 
+       ! explicitly state model levels via the level long name 
        ! "GEOS-Chem level" (see above)!
        ! (ckeller, 12/12/14).
        IF ( nlev == HcoState%NZ ) IsModelLevel = .TRUE.
@@ -846,19 +860,25 @@ CONTAINS
        ! Reset nlev and ntime to effective array sizes
        nlev  = size(ncArr,3)
        ntime = size(ncArr,4)
-  
-       ! testing only
-       if( nlev>1 ) then
-          write(*,*) 'use map_a2a on ', nlev, 'levels: ', TRIM(srcFile)
-       endif
 
-       ! Allocate output array if not yet defined
+       ! Define array to put horizontally regridded data onto. If this
+       ! is 3D data, we first regrid all vertical levels horizontally
+       ! and then pass these data to the list container. In this second
+       ! step, levels may be deflated/collapsed.
+
+       ! 2D data is directly passed to the data container 
        IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
           CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, ntime, RC ) 
           IF ( RC /= 0 ) RETURN
+
+       ! 3D data is first written into a temporary array
        ELSE
-          CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nlev, ntime, RC ) 
-          IF ( RC /= 0 ) RETURN
+          ALLOCATE( REGR_4D(nx,ny,nlev,ntime), STAT=AS )
+          IF ( AS /= 0 ) THEN
+             CALL HCO_ERROR( 'alloc error REGR_4D', RC )
+             RETURN
+          ENDIF
+          REGR_4D = 0.0_hp
        ENDIF
    
        ! Do regridding
@@ -870,7 +890,7 @@ CONTAINS
           IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
              REGR_2D => Lct%Dct%Dta%V2(T)%Val(:,:)
           ELSE
-             REGR_2D => Lct%Dct%Dta%V3(T)%Val(:,:,L)
+             REGR_2D => REGR_4D(:,:,L,T)
           ENDIF
    
           ! Do the regridding
@@ -882,8 +902,16 @@ CONTAINS
    
        ENDDO !L
        ENDDO !T
-   
+  
+       ! Eventually inflate/collapse levels onto simulation levels.
+       IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
+          CALL ModelLev_Interpolate ( am_I_Root, HcoState, REGR_4D, Lct, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       ! Cleanup
        DEALLOCATE(LonEdgeI, LatEdgeI)
+       IF ( ASSOCIATED( REGR_4D ) ) DEALLOCATE( REGR_4D )
 
     ENDIF
 
