@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -31,7 +33,7 @@
 !
       INTEGER, PUBLIC, ALLOCATABLE :: BB_REGION(:,:)   ! BB CO regions
       INTEGER, PUBLIC, ALLOCATABLE :: FF_REGION(:,:)   ! FF CO regions
-      REAL*8,  PUBLIC, ALLOCATABLE :: EMACET(:,:)      ! Acetone emissions
+      REAL(fp),  PUBLIC, ALLOCATABLE :: EMACET(:,:)      ! Acetone emissions
 !
 ! !REMARKS:
 !  Tagged CO Tracers (you can modify these as needs be!)
@@ -109,6 +111,7 @@
 !  23 Oct 2012 - R. Yantosca - Update prod/loss for new GMI strat chem
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  10 Apr 2014 - R. Yantosca - Now change CO_PRODS and CO_LOSSS to REAL*4
+!  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -117,27 +120,27 @@
 !
       REAL*4,  ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
       REAL*4,  ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
-      REAL*8,  ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
-      REAL*8,  ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
-      REAL*8,  ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
-      REAL*8,  ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
+      REAL(fp),  ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
+      REAL(fp),  ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
+      REAL(fp),  ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
+      REAL(fp),  ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
 !
 ! !DEFINED PARAMETERS:
 !
       ! FMOL_CO     - kg CO / mole CO
       ! XNUMOL_CO   - molecules CO / kg CO
-      REAL*8,  PARAMETER   :: FMOL_CO     = 28d-3
-      REAL*8,  PARAMETER   :: XNUMOL_CO   = 6.022d+23/FMOL_CO
+      REAL(fp),  PARAMETER   :: FMOL_CO     = 28e-3_fp
+      REAL(fp),  PARAMETER   :: XNUMOL_CO   = 6.022e+23_fp/FMOL_CO
 
       ! FMOL_ISOP   - kg ISOP / mole ISOP
       ! XNUMOL_ISOP - molecules ISOP / kg ISOP
-      REAL*8,  PARAMETER   :: FMOL_ISOP   = 12d-3
-      REAL*8,  PARAMETER   :: XNUMOL_ISOP = 6.022d+23/FMOL_ISOP
+      REAL(fp),  PARAMETER   :: FMOL_ISOP   = 12e-3_fp
+      REAL(fp),  PARAMETER   :: XNUMOL_ISOP = 6.022e+23_fp/FMOL_ISOP
 
       ! FMOL_MONO   - kg MONO / mole MONO
       ! XNUMOL_MONO - molecules MONO / kg MONO
-      REAL*8,  PARAMETER   :: FMOL_MONO   = 12d-3
-      REAL*8,  PARAMETER   :: XNUMOL_MONO = 6.022d+23/FMOL_MONO
+      REAL(fp),  PARAMETER   :: FMOL_MONO   = 12e-3_fp
+      REAL(fp),  PARAMETER   :: XNUMOL_MONO = 6.022e+23_fp/FMOL_MONO
 
       CONTAINS
 !EOC
@@ -261,26 +264,26 @@
       INTEGER                :: N_TRACERS
       INTEGER                :: I,         J,          L
       INTEGER                :: N,         MONTH,      YEAR
-      REAL*8                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
-      REAL*8                 :: DTCHEM,    GCO,        PCO   
-      REAL*8                 :: STTCO,     KRATE,      CH4
-      REAL*8                 :: CO_CH4,    CO_ISOP,    CO_MONO
-      REAL*8                 :: CO_CH3OH,  CO_OH,      CO_ACET
-      REAL*8                 :: CH4RATE,   DENS,       ALPHA_ACET
-      REAL*8                 :: CORATE,    YMID
-      REAL*8                 :: BOXVL
+      REAL(fp)                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
+      REAL(fp)                 :: DTCHEM,    GCO,        PCO   
+      REAL(fp)                 :: STTCO,     KRATE,      CH4
+      REAL(fp)                 :: CO_CH4,    CO_ISOP,    CO_MONO
+      REAL(fp)                 :: CO_CH3OH,  CO_OH,      CO_ACET
+      REAL(fp)                 :: CH4RATE,   DENS,       ALPHA_ACET
+      REAL(fp)                 :: CORATE,    YMID
+      REAL(fp)                 :: BOXVL
 
       ! Variables for new JPL 2006 rate constants (jaf, jmao, 3/4/09)
-      REAL*8                 :: KHI1,      KLO1,       XYRAT1
-      REAL*8                 :: BLOG1,     FEXP1,      KHI2
-      REAL*8                 :: KLO2,      XYRAT2,     BLOG2
-      REAL*8                 :: FEXP2,     KCO1,       KCO2
+      REAL(fp)                 :: KHI1,      KLO1,       XYRAT1
+      REAL(fp)                 :: BLOG1,     FEXP1,      KHI2
+      REAL(fp)                 :: KLO2,      XYRAT2,     BLOG2
+      REAL(fp)                 :: FEXP2,     KCO1,       KCO2
 
       ! For storing CO sources (jaf, 3/10/09)
-      REAL*8                 :: AREA_CM2
+      REAL(fp)                 :: AREA_CM2
 
       ! For saving CH4 latitudinal gradient
-      REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
+      REAL(fp),  SAVE          :: A3090S, A0030S, A0030N, A3090N
 
       ! Avoid array temporaries in CHECK_VALUE
       INTEGER                :: ERR_LOC(4)
@@ -288,19 +291,19 @@
       CHARACTER(LEN=255)     :: ERR_MSG
 
       ! Pointers to fields in State_Met and State_Chm
-      REAL*8,  POINTER       :: AD    (:,:,:  )
-      REAL*8,  POINTER       :: AIRVOL(:,:,:  )
-      REAL*8,  POINTER       :: STT   (:,:,:,:)
-      REAL*8,  POINTER       :: T     (:,:,:  )
+      REAL(fp),  POINTER       :: AD    (:,:,:  )
+      REAL(fp),  POINTER       :: AIRVOL(:,:,:  )
+      REAL(fp),  POINTER       :: STT   (:,:,:,:)
+      REAL(fp),  POINTER       :: T     (:,:,:  )
 
       ! To get HEMCO values
-      REAL*8                 :: Emis
+      REAL(fp)                 :: Emis
       LOGICAL                :: FOUND
 !
 ! !DEFINED PARAMETERS:
 !
       ! WTAIR = molecular weight of air (g/mole)
-      REAL*8,  PARAMETER     :: WTAIR = 28.966d0
+      REAL(fp),  PARAMETER     :: WTAIR = 28.966e+0_fp
       
       ! Switch to scale yield of isoprene from NOx concentration or not
       LOGICAL, PARAMETER     :: ALPHA_ISOP_FROM_NOX = .FALSE.
@@ -319,7 +322,7 @@
       N_TRACERS = Input_Opt%N_TRACERS
 
       ! DTCHEM is the number of seconds per chemistry timestep
-      DTCHEM    = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
 
       ! Point to fields in the State_Met and State_Chm objects (bmy, 4/10/14)
       AD        => State_Met%AD
@@ -431,7 +434,7 @@
          AREA_CM2 = GET_AREA_CM2( I, J, L )
 
          ! Grid box volume [cm3]
-         BOXVL    = State_Met%AIRVOL(I,J,L) * 1d6
+         BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
          !==============================================================
          ! (0) Define useful quantities
@@ -439,22 +442,22 @@
 
          ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec CO/cm3]
          ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
-         STTCO = 1d0     / AIRVOL(I,J,L) / 1d6 /
-     &           FMOL_CO * 6.023d23
+         STTCO = 1e+0_fp     / AIRVOL(I,J,L) / 1e+6_fp /
+     &           FMOL_CO * 6.023e+23_fp
 
          ! GCO is CO concentration in [molec CO/cm3]
          GCO   = STT(I,J,L,1) * STTCO
          
          ! DENS is the number density of air [molec air/cm3]
-         DENS  = AD(I,J,L) * 1000.d0   /
-     &           BOXVL     * 6.023d23  / WTAIR
+         DENS  = AD(I,J,L) * 1000.e+0_fp   /
+     &           BOXVL     * 6.023e+23_fp  / WTAIR
 
          !==============================================================
          ! (1a) Production of CO by reaction with CH4
          !==============================================================
 
          ! Initialize
-         CO_CH4 = 0d0
+         CO_CH4 = 0e+0_fp
 
          ! Test level for stratosphere or troposphere
          IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
@@ -483,13 +486,13 @@
             IF ( YMID >=  30.0                   ) CH4 = A3090N
             
             ! Convert CH4 from [ppbv] to [molec CH4/cm3]
-            CH4 = CH4 * 1d-9 * DENS
+            CH4 = CH4 * 1e-9_fp * DENS
 
             ! Yield of CO from CH4: estimated to be 95-100% (acf)
-            ALPHA_CH4 = 1d0
+            ALPHA_CH4 = 1e+0_fp
 
             ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
-            KRATE = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) ) 
+            KRATE = 2.45e-12_fp * EXP( -1775.e+0_fp / T(I,J,L) ) 
 
             ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt 
             ! Units are [molec CO/cm3]
@@ -508,8 +511,8 @@
          !==============================================================
 
          ! Initialize
-         CO_ISOP  = 0d0
-         CO_CH3OH = 0d0
+         CO_ISOP  = 0e+0_fp
+         CO_CH3OH = 0e+0_fp
 
          ! Isoprene is emitted only into the surface layer 
          IF ( L == 1 ) THEN 
@@ -541,7 +544,7 @@
 
             ! Get CO yield from isoprene
             IF ( ALPHA_ISOP_FROM_NOX ) THEN
-               ALPHA_ISOP = GET_ALPHA_ISOP( .TRUE., BNOX(I,J,L) )         
+               ALPHA_ISOP = GET_ALPHA_ISOP( .TRUE., BNOX(I,J,L) )      
             ELSE
                ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
             ENDIF
@@ -556,17 +559,17 @@
             ! Units of ALPHA_ISOP are [molec CO/molec ISOP]
             ! Units of CO_ISOP are [molec CO/cm3]
             CO_ISOP = SUMISOPCO(I,J) / BOXVL      /
-     &                5.d0           * ALPHA_ISOP
+     &                5.e+0_fp           * ALPHA_ISOP
 
             ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
             ! Units are [molec CO/cm3]
             CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL ) * 
-     &                 ( 100d0          / 397d0 ) * 
-     &                 ( 12d0           / 28d0  )
+     &                 ( 100e+0_fp          / 397e+0_fp ) * 
+     &                 ( 12e+0_fp           / 28e+0_fp  )
  
             ! Zero SUMISOPCO and SUMCH3OHCO for the next emission step
-            SUMISOPCO(I,J)  = 0d0
-            SUMCH3OHCO(I,J) = 0d0
+            SUMISOPCO(I,J)  = 0e+0_fp
+            SUMCH3OHCO(I,J) = 0e+0_fp
 
             ! Check CO_ISOP for NaN or Infinity
             ERR_LOC = (/ I, J, L, 0 /)
@@ -586,7 +589,7 @@
          !==============================================================
 
          ! Initialize
-         CO_MONO = 0.d0
+         CO_MONO = 0.e+0_fp
 
          ! Monoterpenes are emitted only into the surface layer
          IF ( L == 1 ) THEN
@@ -622,7 +625,7 @@
             !===========================================================
 
             ! Yield of CO from MONOTERPENES: 20% (see above)
-            ALPHA_MONO = 0.20d0
+            ALPHA_MONO = 0.20e+0_fp
 
             ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
             ! Units are [molec CO/cm3]
@@ -630,7 +633,7 @@
      &                ALPHA_MONO
 
             ! Zero SUMMONOCO for the next emission step
-            SUMMONOCO(I,J) = 0d0
+            SUMMONOCO(I,J) = 0e+0_fp
 
             ! Check CO_MONO for NaN or Infinity
             ERR_LOC = (/ I, J, L, 0 /)
@@ -661,19 +664,19 @@
          !==============================================================
 
          ! Initialize
-         CO_ACET = 0.d0
+         CO_ACET = 0.e+0_fp
 
          ! Biogenic acetone sources are emitted only into the surface layer
          IF ( L == 1 ) THEN
 
             ! Yield of CO from ACETONE: 2/3 (see above)
-            ALPHA_ACET = 2.D0 / 3.D0
+            ALPHA_ACET = 2.e+0_fp / 3.e+0_fp
             
             ! Units are [molec CO/cc]
             CO_ACET = SUMACETCO(I,J) / BOXVL * ALPHA_ACET
 
             ! Zero SUMACETCO for the next emission step
-            SUMACETCO(I,J) = 0d0
+            SUMACETCO(I,J) = 0e+0_fp
 
             ! Check CO_ACET for NaN or Infinity
             ERR_LOC = (/ I, J, L, 0 /)
@@ -735,10 +738,10 @@
                DO N = 2, N_TRACERS
 
                   ! Loss
-                  STT(I,J,L,N) = STT(I,J,L,N) * ( 1d0 - CO_OH )
+                  STT(I,J,L,N) = STT(I,J,L,N) * ( 1e+0_fp - CO_OH )
 
                   ! STT shouldn't be less than zero
-                  IF ( STT(I,J,L,N) < 0d0 ) STT(I,J,L,N) = 0d0
+                  IF ( STT(I,J,L,N) < 0e+0_fp ) STT(I,J,L,N) = 0e+0_fp
 
                   ! Error check
                   ERR_LOC = (/ I, J, L, N /)
@@ -794,27 +797,27 @@
             !PCO = GET_PCENTER(I,J,L) / 1.01325d3
 
             ! Decay rate
-            !KRATE = ( 1.d0 + ( 0.6d0 * PCO ) ) * 1.5d-13
+            !KRATE = ( 1.e+0_fp + ( 0.6e+0_fp * PCO ) ) * 1.5d-13
 
             ! Decay rate - new JPL 2006 version (jaf, 3/4/09)
             ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO1   = 5.9D-33 * ( T(I,J,L) / 300 )**(-1.4D0)
+            KLO1   = 5.9e-33_fp * ( T(I,J,L) / 300 )**(-1.4e+0_fp)
             ! KHI1 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI1   = 1.1D-12 * ( T(I,J,L) / 300 )**(1.3D0)
+            KHI1   = 1.1e-12_fp * ( T(I,J,L) / 300 )**(1.3e+0_fp)
             XYRAT1 = KLO1 * DENS / KHI1
             BLOG1  = LOG10(XYRAT1)
-            FEXP1  = 1.D0 / ( 1.D0 + BLOG1 * BLOG1 )
+            FEXP1  = 1.e+0_fp / ( 1.e+0_fp + BLOG1 * BLOG1 )
             ! KCO1 = k_f([M],T) from JPL Data Eval (page 2-1)
-            KCO1   = KLO1 * DENS * 0.6**FEXP1 / ( 1.d0 + XYRAT1 )
+            KCO1   = KLO1 * DENS * 0.6**FEXP1 / ( 1.e+0_fp + XYRAT1 )
             ! KLO2 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO2   = 1.5D-13 * ( T(I,J,L) / 300 )**(0.6D0)
+            KLO2   = 1.5e-13_fp * ( T(I,J,L) / 300 )**(0.6e+0_fp)
             ! KHI2 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI2   = 2.1D09  * ( T(I,J,L) / 300 )**(6.1D0)
+            KHI2   = 2.1e+09_fp  * ( T(I,J,L) / 300 )**(6.1e+0_fp)
             XYRAT2 = KLO2 * DENS / KHI2
             BLOG2  = LOG10(XYRAT2)
-            FEXP2  = 1.D0 / ( 1.D0 + BLOG2 * BLOG2 )
+            FEXP2  = 1.e+0_fp / ( 1.e+0_fp + BLOG2 * BLOG2 )
             ! KCO2 = k_f^ca([M],T) from JPL Data Eval (page 2-2)
-            KCO2   = KLO2 * 0.6**FEXP2 / ( 1.d0 + XYRAT2 )
+            KCO2   = KLO2 * 0.6**FEXP2 / ( 1.e+0_fp + XYRAT2 )
 
             ! KRATE is the sum of the two.
             KRATE  = KCO1 + KCO2
@@ -830,7 +833,7 @@
 
                   ! Use tropospheric rate constant 
                   STT(I,J,L,N) = STT(I,J,L,N) *
-     &                 ( 1d0 - KRATE * OH(I,J,L) * DTCHEM )
+     &                 ( 1e+0_fp - KRATE * OH(I,J,L) * DTCHEM )
 
                   ! Error check
                   ERR_LOC = (/ I, J, L, N /)
@@ -926,11 +929,11 @@
       LOGICAL, INTENT(IN)           :: FROM_NOX    ! If =T, will take ALPHA_ISOP
                                                    ! as f(NOx).  If =F, will set
                                                    ! ALPHA_ISOP to a constant
-      REAL*8,  INTENT(IN), OPTIONAL :: NOX         ! NOx concentration [ppbv]
+      REAL(fp),  INTENT(IN), OPTIONAL :: NOX         ! NOx concentration [ppbv]
 !
 ! !RETURN VALUE:
 !
-      REAL*8                        :: ALPHA_ISOP  ! CO yield from ISOP
+      REAL(fp)                        :: ALPHA_ISOP  ! CO yield from ISOP
 ! 
 ! !REVISION HISTORY: 
 !  13 Jun 2001 - B. Duncan - Initial version
@@ -955,11 +958,11 @@
             ! (from group meeting (1-20-99).  Assumming linearity, 
             ! ALPHA=0.8*[NOx]+0.6, with an upper and lower limit of 2.1 
             ! and 0.8, respectively. [NOx] is concentration in ppbv !!
-            ALPHA_ISOP = ( 0.8d0 * NOX ) + 0.6D0
+            ALPHA_ISOP = ( 0.8e+0_fp * NOX ) + 0.6e+0_fp
 
             ! Force lower & upper limits
-            IF ( NOX < 0.5d0 ) ALPHA_ISOP = 0.8d0
-            IF ( NOX > 1.8d0 ) ALPHA_ISOP = 2.1d0
+            IF ( NOX < 0.5e+0_fp ) ALPHA_ISOP = 0.8e+0_fp
+            IF ( NOX > 1.8e+0_fp ) ALPHA_ISOP = 2.1e+0_fp
          
          ELSE
 
@@ -975,7 +978,7 @@
          ! They estimate globally 105 Tg C/yr of CO is produced
          ! from isoprene oxidation.
          ! ALPHA_ISOP = (0.3 molec CO/atoms C) x (5 atoms C/molec ISOP)
-         ALPHA_ISOP = 1.5d0
+         ALPHA_ISOP = 1.5e+0_fp
 
       ENDIF
       
@@ -1027,7 +1030,7 @@
 !  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
 !  (2 ) Added to module "tagged_co_mod.f" (bmy, 6/13/01)
 !  (3 ) ARRAY needs to be of size (IIPAR,JJPAR).  Use TRANSFER_ZONAL from
-!        "transfer_mod.f" to cast data from REAL*4 to REAL*8, and also to
+!        "transfer_mod.f" to cast data from REAL*4 to REAL(fp), and also to
 !        copy data to an array of size (JJPAR,LLPAR).  Use 3 arguments (M/D/Y)
 !        in call to GET_TAU0.  Use JJPAR,LGLOB in call to READ_BPCH2. 
 !        (bmy, 9/28/01)
@@ -1060,8 +1063,8 @@
 
       ! Initialize some variables
       ARRAY    = 0e0
-      CO_PRODS = 0d0
-      CO_LOSSS = 0d0
+      CO_PRODS = 0e+0_fp
+      CO_LOSSS = 0e+0_fp
 
       ! Construct filename and open file
       FILENAME = 'strat_chem_201206/gmi.clim.CO.' // 
@@ -1079,7 +1082,7 @@
      &           (/     1,     1,     1, THISMONTH /),   ! Start
      &           (/ IIPAR, JJPAR, LGLOB,         1 /)  ) ! Count
 
-      ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
+      ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR
       CALL TRANSFER_3D( ARRAY, CO_PRODS )
 
       !=================================================================
@@ -1091,7 +1094,7 @@
      &           (/     1,     1,     1, THISMONTH /),   ! Start
      &           (/ IIPAR, JJPAR, LGLOB,         1 /)  ) ! Count
 
-      ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
+      ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR
       CALL TRANSFER_3D( ARRAY, CO_LOSSS )
 
       ! Close file
@@ -1132,7 +1135,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8               :: RATE      ! CO prod [v/v/s] or loss [1/s]
+      REAL(fp)               :: RATE      ! CO prod [v/v/s] or loss [1/s]
 ! 
 ! !REVISION HISTORY: 
 !  13 Jun 2001 - B. Duncan - Initial version
@@ -1215,7 +1218,7 @@
 !!  (2 ) Added to "tagged_co_mod.f" (bmy, 6/14/01)
 !!  (3 ) Now read acetone file from DATA_DIR/tagged_CO_200106 (bmy, 6/19/01)
 !!  (4 ) ARRAY needs to be of size (IIPAR,JJPAR).  Use TRANSFER_2D from 
-!!        "transfer_mod.f" to cast data from REAL*4 to REAL*8, and also to 
+!!        "transfer_mod.f" to cast data from REAL*4 to REAL(fp), and also to 
 !!        copy data to an array of size (IIPAR,JJPAR).  Use 3 arguments (M/D/Y)
 !!        in call to GET_TAU0.  Use IIPAR,JJPAR in call to READ_BPCH2.
 !!        Added array TEMP(IIPAR,JJPAR).  Updated comments. (bmy, 9/28/01)
@@ -1233,8 +1236,8 @@
 !!
 !      INTEGER             :: I, J
 !      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-!      REAL*8              :: TEMP(IIPAR,JJPAR)
-!      REAL*8              :: XTAU
+!      REAL(fp)              :: TEMP(IIPAR,JJPAR)
+!      REAL(fp)              :: XTAU
 !      CHARACTER(LEN=255)  :: FILENAME
 !     
 !      !=================================================================
@@ -1252,7 +1255,7 @@
 !      ENDIF
 !
 !      !  Initialize some variables      
-!      EMACET   = 0d0
+!      EMACET   = 0e+0_fp
 !       
 !      ! TAU value at the beginning of this month for 1994
 !      XTAU = GET_TAU0( THISMONTH, 1, 1994 )
@@ -1268,7 +1271,7 @@
 !      CALL READ_BPCH2( FILENAME, 'EMISACET', 6, XTAU,
 !     &                 IIPAR,     JJPAR,     1, ARRAY )
 !
-!      ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
+!      ! Cast from REAL*4 to REAL(fp) and resize to (IIPAR,JJPAR)
 !      CALL TRANSFER_2D( ARRAY(:,:,1), EMACET )
 !
 !      !=================================================================
@@ -1282,7 +1285,7 @@
 !      CALL READ_BPCH2( FILENAME, 'EMISACET', 7, XTAU,
 !     &                 IIPAR,     JJPAR,     1, ARRAY )
 !
-!      ! Cast from REAL*4 to REAL*8 and add
+!      ! Cast from REAL*4 to REAL(fp) and add
 !      CALL TRANSFER_2D( ARRAY(:,:,1), TEMP )
 !
 !      ! Add acetone from grasslands to direct biogenic emissions
@@ -1356,18 +1359,18 @@
       ! Allocate SUMACETCO -- array for CO from isoprene
       ALLOCATE( EMACET( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMACET' )         
-      EMACET = 0d0 
+      EMACET = 0e+0_fp 
 
       ! Allocate and initialize IJLOOP_CO -- 1-D array index
       ALLOCATE( CO_PRODS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )    
-!      CO_PRODS = 0d0
+!      CO_PRODS = 0e+0_fp
       CO_PRODS = 0e0
 
       ! Allocate and initialize IJLOOP_CO -- 1-D array index
       ALLOCATE( CO_LOSSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_LOSSS' )    
-!      CO_LOSSS = 0d0
+!      CO_LOSSS = 0e+0_fp
       CO_PRODS = 0e0
 
       ! Allocate only what is needed
@@ -1386,22 +1389,22 @@
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMISOPCO' )         
-      SUMISOPCO = 0d0 
+      SUMISOPCO = 0e+0_fp 
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMMONOCO' )         
-      SUMMONOCO = 0d0 
+      SUMMONOCO = 0e+0_fp 
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMCH3OHCO' )         
-      SUMCH3OHCO = 0d0 
+      SUMCH3OHCO = 0e+0_fp 
 
       ! Allocate SUMACETCO -- array for CO from isoprene
       ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
-      SUMACETCO = 0d0 
+      SUMACETCO = 0e+0_fp 
 
 !      ! Define geographic regions for both fossil fuel & biomass burning
 !      CALL DEFINE_FF_CO_REGIONS( FF_REGION )         

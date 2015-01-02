@@ -887,6 +887,9 @@ CONTAINS
     ! GET_LASTDAYOFMONTH begins here! 
     !-----------------------------------
 
+    ! Set default value (MSL: 11/20/14)
+    LastDay = 31
+
     ! Select month
     SELECT CASE ( Month ) 
    

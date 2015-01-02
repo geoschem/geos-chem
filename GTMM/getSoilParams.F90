@@ -17,11 +17,14 @@ SUBROUTINE getSoilParams
   USE defineConstants
   USE loadCASAinput
   USE defineArrays
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
   
   IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - Parallelization
+!  09 Jul 2010 - C. Carouge  - Parallelization
+!  01 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -41,95 +44,95 @@ SUBROUTINE getSoilParams
 !$OMP DO PRIVATE(i)      
   DO i=1,n_veg
      IF (soiltext1(i,1) .eq. 1) THEN
-        clay(i,1)=0.200d0
-        silt(i,1)=0.200d0
-        sand(i,1)=0.600d0
+        clay(i,1)=0.200e+0_fp
+        silt(i,1)=0.200e+0_fp
+        sand(i,1)=0.600e+0_fp
      ELSE IF (soiltext1(i,1) .eq. 2) THEN
-        clay(i,1)=0.090d0
-        silt(i,1)=0.080d0
-        sand(i,1)=0.830d0
+        clay(i,1)=0.090e+0_fp
+        silt(i,1)=0.080e+0_fp
+        sand(i,1)=0.830e+0_fp
      ELSE IF (soiltext1(i,1) .eq. 3) THEN
-        clay(i,1)=0.200d0
-        silt(i,1)=0.200d0
-        sand(i,1)=0.600d0
+        clay(i,1)=0.200e+0_fp
+        silt(i,1)=0.200e+0_fp
+        sand(i,1)=0.600e+0_fp
      ELSE IF (soiltext1(i,1) .eq. 4) THEN
-        clay(i,1)=0.300d0
-        silt(i,1)=0.330d0
-        sand(i,1)=0.370d0
+        clay(i,1)=0.300e+0_fp
+        silt(i,1)=0.330e+0_fp
+        sand(i,1)=0.370e+0_fp
      ELSE IF (soiltext1(i,1) .eq. 5) THEN
-        clay(i,1)=0.480d0
-        silt(i,1)=0.250d0
-        sand(i,1)=0.270d0
+        clay(i,1)=0.480e+0_fp
+        silt(i,1)=0.250e+0_fp
+        sand(i,1)=0.270e+0_fp
      ELSE IF (soiltext1(i,1) .eq. 6) THEN
-        clay(i,1)=0.670d0
-        silt(i,1)=0.170d0
-        sand(i,1)=0.170d0
+        clay(i,1)=0.670e+0_fp
+        silt(i,1)=0.170e+0_fp
+        sand(i,1)=0.170e+0_fp
      ELSE IF (soiltext1(i,1) .eq. 7) THEN
-        clay(i,1)=0.200d0
-        silt(i,1)=0.200d0
-        sand(i,1)=0.600d0
+        clay(i,1)=0.200e+0_fp
+        silt(i,1)=0.200e+0_fp
+        sand(i,1)=0.600e+0_fp
      END IF
      
      IF (veg1(i,1) .eq. 1) THEN 
-        litcn(i,1) =40.000d0
-        lignin(i,1)=0.200d0
-        lrage(i,1)=1.000d0
-        woodage(i,1)=75.000d0
+        litcn(i,1) =40.000e+0_fp
+        lignin(i,1)=0.200e+0_fp
+        lrage(i,1)=1.000e+0_fp
+        woodage(i,1)=75.000e+0_fp
      ELSE IF (veg1(i,1) .eq. 2) THEN
-        litcn(i,1) =50.000d0
-        lignin(i,1)=0.200d0
-        lrage(i,1)=1.000d0
-        woodage(i,1)=75.00d0
+        litcn(i,1) =50.000e+0_fp
+        lignin(i,1)=0.200e+0_fp
+        lrage(i,1)=1.000e+0_fp
+        woodage(i,1)=75.00e+0_fp
      ELSE IF (veg1(i,1) .eq. 3) THEN
-        litcn(i,1) =65.000d0
-        lignin(i,1)=0.220d0
-        lrage(i,1)=1.000d0
-        woodage(i,1)=75.000d0
+        litcn(i,1) =65.000e+0_fp
+        lignin(i,1)=0.220e+0_fp
+        lrage(i,1)=1.000e+0_fp
+        woodage(i,1)=75.000e+0_fp
      ELSE IF (veg1(i,1) .eq. 4) THEN
-        litcn(i,1) =80.000d0
-        lignin(i,1)=0.250d0
-        lrage(i,1)=3.800d0
-        woodage(i,1)=75.000d0
+        litcn(i,1) =80.000e+0_fp
+        lignin(i,1)=0.250e+0_fp
+        lrage(i,1)=3.800e+0_fp
+        woodage(i,1)=75.000e+0_fp
      ELSE IF (veg1(i,1) .eq. 5) THEN
-        litcn(i,1) =50.000d0
-        lignin(i,1)=0.200d0
-        lrage(i,1)=1.000d0
-        woodage(i,1)=75.000d0
+        litcn(i,1) =50.000e+0_fp
+        lignin(i,1)=0.200e+0_fp
+        lrage(i,1)=1.000e+0_fp
+        woodage(i,1)=75.000e+0_fp
      ELSE IF (veg1(i,1) .eq. 6) THEN
-        litcn(i,1) =50.000d0
-        lignin(i,1)=0.150d0
-        lrage(i,1)=1.000d0
-        woodage(i,1)=50.000d0
+        litcn(i,1) =50.000e+0_fp
+        lignin(i,1)=0.150e+0_fp
+        lrage(i,1)=1.000e+0_fp
+        woodage(i,1)=50.000e+0_fp
      ELSE IF (veg1(i,1) .eq. 7) THEN
-        litcn(i,1) =50.000d0
-        lignin(i,1)=0.100d0
-        lrage(i,1)=1.000d0
-        woodage(i,1)=50.000d0
+        litcn(i,1) =50.000e+0_fp
+        lignin(i,1)=0.100e+0_fp
+        lrage(i,1)=1.000e+0_fp
+        woodage(i,1)=50.000e+0_fp
      ELSE IF (veg1(i,1) .eq. 8) THEN! these are made up
-        litcn(i,1) =50.000d0      ! there is no def in    
-        lignin(i,1)=0.200d0        ! guido's orig. code
-        lrage(i,1)=1.000d0         ! for veg=8
-        woodage(i,1)=75.000d0
+        litcn(i,1) =50.000e+0_fp      ! there is no def in    
+        lignin(i,1)=0.200e+0_fp        ! guido's orig. code
+        lrage(i,1)=1.000e+0_fp         ! for veg=8
+        woodage(i,1)=75.000e+0_fp
      ELSE IF (veg1(i,1) .eq. 9) THEN
-        litcn(i,1) =65.000d0
-        lignin(i,1)=0.200d0
-        lrage(i,1)=1.000d0
-        woodage(i,1)=50.000d0
+        litcn(i,1) =65.000e+0_fp
+        lignin(i,1)=0.200e+0_fp
+        lrage(i,1)=1.000e+0_fp
+        woodage(i,1)=50.000e+0_fp
      ELSE IF (veg1(i,1) .eq. 10) THEN
-        litcn(i,1) =50.000d0
-        lignin(i,1)=0.150d0
-        lrage(i,1)=1.000d0
-        woodage(i,1)=50.000d0
+        litcn(i,1) =50.000e+0_fp
+        lignin(i,1)=0.150e+0_fp
+        lrage(i,1)=1.000e+0_fp
+        woodage(i,1)=50.000e+0_fp
      ELSE IF (veg1(i,1) .eq. 11) THEN
-        litcn(i,1) =50.000d0
-        lignin(i,1)=0.150d0
-        lrage(i,1)=1.000d0
-        woodage(i,1)=50.000d0
+        litcn(i,1) =50.000e+0_fp
+        lignin(i,1)=0.150e+0_fp
+        lrage(i,1)=1.000e+0_fp
+        woodage(i,1)=50.000e+0_fp
      ELSE IF (veg1(i,1) .eq. 12) THEN
-        litcn(i,1) =40.000d0
-        lignin(i,1)=0.100d0
-        lrage(i,1)=1.000d0
-        woodage(i,1)=50.000d0
+        litcn(i,1) =40.000e+0_fp
+        lignin(i,1)=0.100e+0_fp
+        lrage(i,1)=1.000e+0_fp
+        woodage(i,1)=50.000e+0_fp
      END IF
   END DO
 !$OMP END DO
@@ -143,65 +146,65 @@ SUBROUTINE getSoilParams
   
 !$OMP WORKSHARE
   ! calculate lignin to nitrogen ratio
-  LtN(:,1)=(litcn(:,1) * lignin(:,1))/0.45000d0
+  LtN(:,1)=(litcn(:,1) * lignin(:,1))/0.45000e+0_fp
   
   ! calculate rate constants for each pool
-  annK_leaf(:,1)=1.000d0/lrage(:,1)
-  annK_wood(:,1)=1.000d0/woodage(:,1)
-  annK_froot(:,1)=1.000d0/lrage(:,1)
+  annK_leaf(:,1)=1.000e+0_fp/lrage(:,1)
+  annK_wood(:,1)=1.000e+0_fp/woodage(:,1)
+  annK_froot(:,1)=1.000e+0_fp/lrage(:,1)
   
   !Scale rate constants to monthly values
-  K_wood(:,1)=    1.000d0-((exp(-annK_wood(:,1)))**(.08333333d0))
-  K_froot(:,1)=   1.000d0-((exp(-annK_froot(:,1)))**(.08333333d0))
-  K_leaf(:,1)=    1.000d0-((exp(-annK_leaf(:,1)))**(.08333333d0))
-  K_hleaf=   1.000d0-((exp(-annK_hleaf))**(.08333333d0))
-  K_hfroot=  1.000d0-((exp(-annK_hfroot))**(.08333333d0))
-  K_surfmet= 1.000d0-((exp(-annK_surfmet))**(.08333333d0))
-  K_surfstr= 1.000d0-((exp(-annK_surfstr))**(.08333333d0))
-  K_soilmet= 1.000d0-((exp(-annK_soilmet))**(.08333333d0))
-  K_soilstr= 1.000d0-((exp(-annK_soilstr))**(.08333333d0))
-  K_cwd=     1.000d0-((exp(-annK_cwd))**(.08333333d0))
-  K_surfmic= 1.000d0-((exp(-annK_surfmic))**(.08333333d0))
-  K_soilmic= 1.000d0-((exp(-annK_soilmic))**(.08333333d0))
-  K_slow=    1.000d0-((exp(-annK_slow))**(.08333333d0))
-  K_armored= 1.000d0-((exp(-annK_armored))**(.08333333d0))
+  K_wood(:,1)=    1.000e+0_fp-((exp(-annK_wood(:,1)))**(.08333333e+0_fp))
+  K_froot(:,1)=   1.000e+0_fp-((exp(-annK_froot(:,1)))**(.08333333e+0_fp))
+  K_leaf(:,1)=    1.000e+0_fp-((exp(-annK_leaf(:,1)))**(.08333333e+0_fp))
+  K_hleaf=   1.000e+0_fp-((exp(-annK_hleaf))**(.08333333e+0_fp))
+  K_hfroot=  1.000e+0_fp-((exp(-annK_hfroot))**(.08333333e+0_fp))
+  K_surfmet= 1.000e+0_fp-((exp(-annK_surfmet))**(.08333333e+0_fp))
+  K_surfstr= 1.000e+0_fp-((exp(-annK_surfstr))**(.08333333e+0_fp))
+  K_soilmet= 1.000e+0_fp-((exp(-annK_soilmet))**(.08333333e+0_fp))
+  K_soilstr= 1.000e+0_fp-((exp(-annK_soilstr))**(.08333333e+0_fp))
+  K_cwd=     1.000e+0_fp-((exp(-annK_cwd))**(.08333333e+0_fp))
+  K_surfmic= 1.000e+0_fp-((exp(-annK_surfmic))**(.08333333e+0_fp))
+  K_soilmic= 1.000e+0_fp-((exp(-annK_soilmic))**(.08333333e+0_fp))
+  K_slow=    1.000e+0_fp-((exp(-annK_slow))**(.08333333e+0_fp))
+  K_armored= 1.000e+0_fp-((exp(-annK_armored))**(.08333333e+0_fp))
   
   !microbial efficiency for arrays (others defined in defineArrays)
-  eff_soilmic2slow(:,1)=0.85d0-(0.68d0*(silt(:,1)+clay(:,1)))
+  eff_soilmic2slow(:,1)=0.85e+0_fp-(0.68e+0_fp*(silt(:,1)+clay(:,1)))
   !determine what fraction of litter will be metabolic
-  metabfract(:,1)=0.85d0-(0.018d0*LtN(:,1))
+  metabfract(:,1)=0.85e+0_fp-(0.018e+0_fp*LtN(:,1))
 
-  WHERE (metabfract(:,1) < 0d0)
-     metabfract(:,1) = 0.00d0
+  WHERE (metabfract(:,1) < 0e+0_fp)
+     metabfract(:,1) = 0.00e+0_fp
   END WHERE
 
   !get the fraction of carbon in the structural litter pools that 
   !will be from lignin
-  structuralLignin(:,1)=((lignin(:,1)*0.650d0)/0.450d0)
-  structuralLignin(:,1)=structuralLignin(:,1)/(1d0-metabfract(:,1))
+  structuralLignin(:,1)=((lignin(:,1)*0.650e+0_fp)/0.450e+0_fp)
+  structuralLignin(:,1)=structuralLignin(:,1)/(1e+0_fp-metabfract(:,1))
   
-  lignineffect(:,1)=exp(-3.00d0*structuralLignin(:,1))
+  lignineffect(:,1)=exp(-3.00e+0_fp*structuralLignin(:,1))
   
   !calculate veg. dependent factors used in belowground model
-  soilmicDecayFactor(:,1)=(1d0-(0.750d0*(silt(:,1)+clay(:,1))))
-  slowDecayFactor(:,1)=1.00d0
-  armoredDecayFactor(:,1)=1.00d0
+  soilmicDecayFactor(:,1)=(1e+0_fp-(0.750e+0_fp*(silt(:,1)+clay(:,1))))
+  slowDecayFactor(:,1)=1.00e+0_fp
+  armoredDecayFactor(:,1)=1.00e+0_fp
 
   !decay is faster in agricultural gridcells
   WHERE (veg1(:,1) == 12)
-     soilmicDecayFactor(:,1)=soilmicDecayFactor(:,1)*1.25d0
-     slowDecayFactor(:,1)=slowDecayFactor(:,1)*1.5d0
-     armoredDecayFactor(:,1)=armoredDecayFactor(:,1)*1.5d0
+     soilmicDecayFactor(:,1)=soilmicDecayFactor(:,1)*1.25e+0_fp
+     slowDecayFactor(:,1)=slowDecayFactor(:,1)*1.5e+0_fp
+     armoredDecayFactor(:,1)=armoredDecayFactor(:,1)*1.5e+0_fp
   END WHERE
 
-  fid(:,1)=0.003d0-(0.009d0*clay(:,1))
+  fid(:,1)=0.003e+0_fp-(0.009e+0_fp*clay(:,1))
   decayClayFactor(:,1)=fid(:,1)
 
-  WHERE (fid(:,1) < 0d0)
-     decayClayFactor(:,1)=0.000d0
+  WHERE (fid(:,1) < 0e+0_fp)
+     decayClayFactor(:,1)=0.000e+0_fp
   END WHERE
-  WHERE (soilmicDecayFactor(:,1) > 1.0d0)
-     soilmicDecayFactor(:,1)=1.0d0
+  WHERE (soilmicDecayFactor(:,1) > 1.0e+0_fp)
+     soilmicDecayFactor(:,1)=1.0e+0_fp
   END WHERE
 !$OMP END WORKSHARE
 !$OMP END PARALLEL

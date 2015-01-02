@@ -31,6 +31,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE GCKPP_GLOBAL,       ONLY : IND
+      USE GCKPP_PARAMETERS,   ONLY : NREACT
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -54,6 +55,13 @@
 
       ! To get HEMCO deposition values
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+
+      ! Geos-Chem Flexible Precision
+      USE PRECISION_MOD
+
+      ! HEMCO Precision
+      USE HCO_Error_Mod,      ONLY : hp
+
 
       IMPLICIT NONE
 !
@@ -168,6 +176,8 @@
 !                              Further, exclude now SALA and SALC deposition
 !                              if non-local PBL scheme is used since those are
 !                              already applied in vdiff_mod.F90
+!  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 Dec 2014 - M. Yannetti - Updated HEMCO variable Dep from REAL*8 to REAL(hp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -175,7 +185,7 @@
 ! !LOCAL VARIABLES:
 !
       ! jpp, rate constant for BrNO3 cloud recycling
-      REAL*8 :: CLD_BrNO3_RC
+      REAL(fp) :: CLD_BrNO3_RC
 
       ! Local variables
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
@@ -185,54 +195,54 @@
       INTEGER :: PHOTVAL,KSUN
       INTEGER :: NKN_2, PHOTVAL_2
 
-      REAL*8  :: ARRNK,FCVNK,FCT1,FCT2,FCT,XYRAT,BLOG,FEXP,RATE3M
-      REAL*8  :: RO1D, RO1DplH2O, RO1DplH2   ! (bhh, jmao, eam, 7/18/11)
-!      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
+      REAL(fp)  :: ARRNK,FCVNK,FCT1,FCT2,FCT,XYRAT,BLOG,FEXP,RATE3M
+      REAL(fp)  :: RO1D, RO1DplH2O, RO1DplH2   ! (bhh, jmao, eam, 7/18/11)
+!      REAL(fp)  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
       ! CONSTC declared as a parameter by FP (hotp 7/31/09)
-      REAL*8  :: RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
-      REAL*8  :: PBEG,PFIN,PBEGNEW,PFINNEW,TOFDAYB,TOFDAYE,HOURANGB
-      REAL*8  :: HOURANGE,SINFUNCB,SINFUNCE,XAREA,XRADIUS,XSQM,RRATE2
-      REAL*8  :: XSTKCF,GMU,DUMMY(KBLOOP),XDENA,XSTK
-      REAL*8  :: DUMMYO3P(KBLOOP)
-      REAL*8  :: TK,     CONSEXP, VPRESH2O
+      REAL(fp)  :: RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
+      REAL(fp)  :: PBEG,PFIN,PBEGNEW,PFINNEW,TOFDAYB,TOFDAYE,HOURANGB
+      REAL(fp)  :: HOURANGE,SINFUNCB,SINFUNCE,XAREA,XRADIUS,XSQM,RRATE2
+      REAL(fp)  :: XSTKCF,GMU,DUMMY(KBLOOP),XDENA,XSTK
+      REAL(fp)  :: DUMMYO3P(KBLOOP)
+      REAL(fp)  :: TK,     CONSEXP, VPRESH2O
       ! New variables for new reations (jmao, 4/20/09)
-      REAL*8  :: KHI1,KLO1,XYRAT1,BLOG1,FEXP1,KHI2,KLO2,XYRAT2,BLOG2
-      REAL*8  :: FEXP2,KCO1,KCO2,KCO
+      REAL(fp)  :: KHI1,KLO1,XYRAT1,BLOG1,FEXP1,KHI2,KLO2,XYRAT2,BLOG2
+      REAL(fp)  :: FEXP2,KCO1,KCO2,KCO
       !FP_ISOP
       ! FP variables for isoprene chemistry (hotp 7/31/09)
-      REAL*8   :: HAC_FRAC      
-      REAL*8   :: GLYC_FRAC   
+      REAL(fp)   :: HAC_FRAC      
+      REAL(fp)   :: GLYC_FRAC   
 
       CHARACTER*8      :: SPECNAME
 
       ! Added for heterogeneous chemistry (bmy, 11/15/01, 8/7/03)
       LOGICAL          :: HETCHEM
       INTEGER          :: N
-      REAL*8           :: SUMAREA, TOTAREA, DUMMY2(KBLOOP)
+      REAL(fp)           :: SUMAREA, TOTAREA, DUMMY2(KBLOOP)
 
       ! Added for HO2 het uptake (jaegle, 2/26/09)
-      REAL*8           :: HO2_MOLEC_CM3, DUMMY3(KBLOOP)
+      REAL(fp)           :: HO2_MOLEC_CM3, DUMMY3(KBLOOP)
       INTEGER          :: CONTINENTAL_PBL
 
       ! For grid-box latitude (bnd, bmy, 7/1/03)
-      REAL*8           :: YLAT
+      REAL(fp)           :: YLAT
 
       ! Variables from "comode.h" which are only ever used in "calcrate.f"
       ! Remove them from "comode.h" and the THREADPRIVATE declarations
       ! (bmy, 7/28/03) 
-      REAL*8           :: ABSHUMK(KBLOOP), DENAIR(KBLOOP)
-      REAL*8           :: CONCO2(KBLOOP),  CONCN2(KBLOOP)
-      REAL*8           :: CONCH2(KBLOOP)     ! (bhh, jmao, eam, 7/18/11)
-      REAL*8           :: T3I(KBLOOP),     TEMP1(KBLOOP)
-      REAL*8           :: T3K(KBLOOP),     PRESSK(KBLOOP) 
+      REAL(fp)           :: ABSHUMK(KBLOOP), DENAIR(KBLOOP)
+      REAL(fp)           :: CONCO2(KBLOOP),  CONCN2(KBLOOP)
+      REAL(fp)           :: CONCH2(KBLOOP)     ! (bhh, jmao, eam, 7/18/11)
+      REAL(fp)           :: T3I(KBLOOP),     TEMP1(KBLOOP)
+      REAL(fp)           :: T3K(KBLOOP),     PRESSK(KBLOOP) 
 
 ! FP_ISOP
       ! Variables from Fabien (hotp 7/31/09)
-      REAL*8, PARAMETER :: ONE_SIXTY = 1d0 / 60d0
-      REAL*8, PARAMETER :: ONE_SEVENTYTHREE = 1d0 / 73d0
-      REAL*8, PARAMETER :: CONSTC= 9.871D-07
-      REAL*8 :: YA,YB,YC
-      REAL*8 :: PTEMP
+      REAL(fp), PARAMETER :: ONE_SIXTY = 1e+0_fp / 60e+0_fp
+      REAL(fp), PARAMETER :: ONE_SEVENTYTHREE = 1e+0_fp / 73e+0_fp
+      REAL(fp), PARAMETER :: CONSTC= 9.871e-07_fp
+      REAL(fp) :: YA,YB,YC
+      REAL(fp) :: PTEMP
   
       !%%% FOR BROMINE CHEMISTRY %%%
 
@@ -240,32 +250,32 @@
       ! psuedo-reactions that account for bromine heterogeneous
       ! chemistry involving 2 gas phase species. (jpp, 4/12/10)
       LOGICAL :: yn_nkhobr, yn_nk1hbr
-      REAL*8  :: br_aer1_rc ! temp storage for HBr+HOBr+aerosol rate constant
+      REAL(fp)  :: br_aer1_rc ! temp storage for HBr+HOBr+aerosol rate constant
 
-      REAL*8  :: hobr_rtemp, hbr_rtemp
-      REAL*8  :: ki_hobr, ki_hbr
-      REAL*8  :: darea ! dummy variable for ice surface area (jpp, 7/5/2011)
+      REAL(fp)  :: hobr_rtemp, hbr_rtemp
+      REAL(fp)  :: ki_hobr, ki_hbr
+      REAL(fp)  :: darea ! dummy variable for ice surface area (jpp, 7/5/2011)
       LOGICAL :: yn_div_safe
 
       ! Local variables for ice and water mixing ratios
-      REAL*8  :: QLIQ(KBLOOP)
-      REAL*8  :: QICE(KBLOOP)
+      REAL(fp)  :: QLIQ(KBLOOP)
+      REAL(fp)  :: QICE(KBLOOP)
 
       ! Add nitrate effect (lzh, 10/25/2011)
-      REAL*8           :: TMP1, TMP2
+      REAL(fp)           :: TMP1, TMP2
 
       ! SDE: Strat-chem
-      REAL*8  :: DUMMYO2(KBLOOP)
-      REAL*8  :: EDUCTCONC, LIMITCONC
+      REAL(fp)  :: DUMMYO2(KBLOOP)
+      REAL(fp)  :: EDUCTCONC, LIMITCONC
       INTEGER :: PSCIDX
-      REAL*8  :: PSCEDUCTCONC(11,2)
+      REAL(fp)  :: PSCEDUCTCONC(11,2)
       LOGICAL :: NATSURFACE
-      REAL*8  :: ADJUSTEDRATE
+      REAL(fp)  :: ADJUSTEDRATE
       LOGICAL :: KII_KI, PSCBOX, STRATBOX
-      REAL*8, PARAMETER  :: PSCMAXRATE=1.d-13
+      REAL(fp), PARAMETER  :: PSCMAXRATE=1.e-13_fp
 
       ! Minimum lifetime of a species for PSC heterogeneous chemistry
-      REAL*8, PARAMETER  :: PSCMINLIFE=1.d-3
+      REAL(fp), PARAMETER  :: PSCMINLIFE=1.e-3_fp
       CHARACTER(LEN=255) :: PSCMESSAGE
 
       ! Avoid array temporaries in CHECK_VALUE
@@ -283,20 +293,20 @@
       LOGICAL :: LVISTAS
       !LOGICAL :: LWARWICK_VSLS
       LOGICAL :: LDICARB
-      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! For HEMCO drydep values (ckeller, 10/13/14)
       INTEGER :: TRCID
-      REAL*8  :: Dep 
+      REAL(hp)  :: Dep 
       LOGICAL :: Fnd
 
       ! Pointers
-      REAL*8, POINTER :: STT(:,:,:,:)
-      REAL*8, POINTER :: FRCLND(:,:)
-      REAL*8, POINTER :: QI(:,:,:)
-      REAL*8, POINTER :: QL(:,:,:)
-      REAL*8, POINTER :: SUNCOSmid(:,:)
-      REAL*8, POINTER :: T(:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: FRCLND(:,:)
+      REAL(fp), POINTER :: QI(:,:,:)
+      REAL(fp), POINTER :: QL(:,:,:)
+      REAL(fp), POINTER :: SUNCOSmid(:,:)
+      REAL(fp), POINTER :: T(:,:,:)
 
       !=================================================================
       ! CALCRATE begins here!
@@ -319,28 +329,28 @@
       T            => State_Met%T
 
       ! Initialize
-      darea         = 0d0
+      darea         = 0e+0_fp
 
       ! initialize the true/false selectors (jpp, 4/12/10)
       yn_nkhobr     = .false.; yn_nk1hbr = .false.
-      br_aer1_rc    = 0.d0
+      br_aer1_rc    = 0.e+0_fp
 
       ! FAST-JX: Zero out the dummy arrays (bmy, 9/30/99)
-      DUMMY   = 0d0
-      DUMMYO3P= 0d0
-      DUMMYO2 = 0d0
+      DUMMY   = 0e+0_fp
+      DUMMYO3P= 0e+0_fp
+      DUMMYO2 = 0e+0_fp
 
       ! Zero rate arrays for this column, so that we don't have any
       ! "leftovers" from the last iteration.  This facilitates 
       ! comparing rates directly with the column code. (bmy, 5/22/09)
-      RRATE         = 0d0
-      TRATE         = 0d0
-      URATE         = 0d0
-      GLOSS         = 0d0
+      RRATE         = 0e+0_fp
+      TRATE         = 0e+0_fp
+      URATE         = 0e+0_fp
+      GLOSS         = 0e+0_fp
 
       ! Zero QICE, QLIQ arrays for safety's sake (bmy, 9/24/12)
-      QICE          = 0d0
-      QLIQ          = 0d0
+      QICE          = 0e+0_fp
+      QLIQ          = 0e+0_fp
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -404,15 +414,15 @@
      
             PRESSK(KLOOP)     = PRESS3(JLOOP)
             T3K(KLOOP)        = T3(JLOOP)
-            T3I(KLOOP)        = 1.d0/T3(JLOOP)
+            T3I(KLOOP)        = 1.e+0_fp/T3(JLOOP)
             ABSHUMK(KLOOP)    = ABSHUM(JLOOP)
-            TEMP1(KLOOP)      = 300.d0    / T3K(KLOOP)
-            CONCO2(KLOOP)     = 0.2095d0  * DENAIR(KLOOP)
-            CONCN2(KLOOP)     = 0.7808d0  * DENAIR(KLOOP)
+            TEMP1(KLOOP)      = 300.e+0_fp    / T3K(KLOOP)
+            CONCO2(KLOOP)     = 0.2095e+0_fp  * DENAIR(KLOOP)
+            CONCN2(KLOOP)     = 0.7808e+0_fp  * DENAIR(KLOOP)
             ! Added H2 concentration (bhh, jmao, eam, 7/18/11)
             ! Seasonal variability of H2 may be important, 
             ! but not included in this update (bhh, jmao, eam, 7/18/11)
-            CONCH2(KLOOP)     = 0.5000d-6 * DENAIR(KLOOP)
+            CONCH2(KLOOP)     = 0.5000e-6_fp * DENAIR(KLOOP)
 
             ! Check if sun is up anywhere in this block of grid-boxes.
             ! IFSUN gets used in CALCRATE
@@ -423,7 +433,7 @@
             IJWINDOW          = (IY-1)*IIPAR + IX
             !GMU               = SUNCOS(IJWINDOW)
             GMU               = SUNCOSmid(IX,IY)
-            IF(GMU .GT. 0.D0) KSUN = 1
+            IF(GMU .GT. 0.E+0_fp) KSUN = 1
 
             !==========================================================
             ! Updates for bromine chemistry.  Moved this section here 
@@ -448,17 +458,17 @@
 #else
 
             ! Otherwise, compute QLIQ as a function of temperature ...
-            IF ( T(IX,IY,IZ) .LE. 248d0 ) THEN
-               QLIQ(KLOOP)    = 0d0
-            ELSE IF ( T(IX,IY,IZ) .GE. 268d0 ) THEN
-               QLIQ(KLOOP)    = 1d-6
+            IF ( T(IX,IY,IZ) .LE. 248e+0_fp ) THEN
+               QLIQ(KLOOP)    = 0e+0_fp
+            ELSE IF ( T(IX,IY,IZ) .GE. 268e+0_fp ) THEN
+               QLIQ(KLOOP)    = 1e-6_fp
             ELSE
-               QLIQ(KLOOP)    = 1d-6 *
-     &                      ( ( T(IX,IY,IZ) - 248d0 ) / 20d0)
+               QLIQ(KLOOP)    = 1e-6_fp *
+     &                      ( ( T(IX,IY,IZ) - 248e+0_fp ) / 20e+0_fp)
             ENDIF
 
             ! ... and compute QICE from QLIQ (bmy, 9/24/12)
-            QICE(KLOOP)       = 1d-6 - QLIQ(KLOOP)
+            QICE(KLOOP)       = 1e-6_fp - QLIQ(KLOOP)
 
 #endif
  20      CONTINUE
@@ -469,8 +479,8 @@
       IF (IH2O.GT.NGAS) THEN
          DO KLOOP      = 1, KTLOOP 
             TK               = T3K(KLOOP) 
-            CONSEXP          = 17.2693882D0 * (TK - 273.16D0) / 
-     x           (TK - 35.86D0) 
+            CONSEXP          = 17.2693882E+0_fp * (TK - 273.16E+0_fp) / 
+     x           (TK - 35.86E+0_fp) 
             VPRESH2O         = CONSVAP * EXP(CONSEXP) * T3I(KLOOP) 
             CBLK(KLOOP,IH2O) = ABSHUMK(KLOOP) * VPRESH2O  
          ENDDO
@@ -504,18 +514,19 @@
             
             ! Pick the CH4 concentration [ppbv] for the proper lat bin
             ! CH4 values are read in "chemdr.f" (outside the parallel loop)
-            IF ( YLAT < -30d0 ) THEN
+            IF ( YLAT < -30e+0_fp ) THEN
                CBLK(KLOOP,ICH4) = C3090S
-            ELSE IF ( YLAT >= -30d0 .and. YLAT < 0d0  ) THEN
+            ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
                CBLK(KLOOP,ICH4) = C0030S
-            ELSE IF ( YLAT >=   0d0 .and. YLAT < 30d0 ) THEN
+            ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
                CBLK(KLOOP,ICH4) = C0030N
             ELSE
                CBLK(KLOOP,ICH4) = C3090N
             ENDIF
 
             ! Convert from [ppbv CH4] to [molec CH4/cm3]
-            CBLK(KLOOP,ICH4) = CBLK(KLOOP,ICH4) *1d-9 * AIRDENS(JLOOP)
+            CBLK(KLOOP,ICH4) = CBLK(KLOOP,ICH4) *1e-9_fp 
+     &                       * AIRDENS(JLOOP)
          ENDDO
       ENDIF
 
@@ -530,8 +541,8 @@
 !         IF ( .not. LWARWICK_VSLS ) THEN
 !            ! Loop over boxes per grid block
 !            DO KLOOP = 1, KTLOOP 
-!               CBLK(KLOOP, ICHBr3)  = 0.d0
-!               CBLK(KLOOP, ICH2Br2) = 0.d0
+!               CBLK(KLOOP, ICHBr3)  = 0.e+0_fp
+!               CBLK(KLOOP, ICH2Br2) = 0.e+0_fp
 !            ENDDO
 !         ENDIF
       ENDIF
@@ -595,8 +606,8 @@
             NK               = NRATES(NCS) + I
             NKN              = NKNPHOTRT(I,NCS)
             SPECNAME         = NAMEGAS(IRM(1,NK,NCS))
-            IFNC             = DEFPRAT(NK,NCS) + 0.01D0
-            IBRCH            = 10.D0*(DEFPRAT(NK,NCS)-IFNC) + 0.5D0
+            IFNC             = DEFPRAT(NK,NCS) + 0.01e+0_fp
+            IBRCH            = 10.E+0_fp*(DEFPRAT(NK,NCS)-IFNC) + 0.5E+0_fp
 
             DO KLOOP            = 1, KTLOOP 
                JLOOP            = LREORDER(KLOOP+JLOOPLO)
@@ -611,7 +622,7 @@
                GMU              = SUNCOSmid(IX,IY)
 
                ! For daylight boxes...
-               IF(GMU.GT. 0.D0) THEN
+               IF(GMU.GT. 0.E+0_fp) THEN
 
                   ! For FAST-JX, get photorates from fjfunc.f
                   RRATE(KLOOP,NKN)  = FJXFUNC(IX,IY,IZ,I,IBRCH,SPECNAME)
@@ -627,7 +638,7 @@
                ELSE
 
                   ! Nighttime: photorates are zero
-                  RRATE(KLOOP,NKN)  = 0.D0
+                  RRATE(KLOOP,NKN)  = 0.E+0_fp
 
                ENDIF
             ENDDO
@@ -696,23 +707,26 @@
      1                 + EXP(-FCT2       / T3K(KLOOP)) 
                   XYRAT          = RRATE(KLOOP,NK) / RRATE(KLOOP,NK+1) 
                   BLOG           = LOG10(XYRAT)
-                  FEXP           = 1.d0 / (1.d0 + BLOG * BLOG)
-                  RRATE(KLOOP,NK)= RRATE(KLOOP,NK)*FCT**FEXP/(1d0+XYRAT) 
+                  FEXP           = 1.e+0_fp / (1.e+0_fp + BLOG * BLOG)
+                  RRATE(KLOOP,NK)= RRATE(KLOOP,NK)*FCT**FEXP
+     &                           /(1e+0_fp+XYRAT) 
  150           CONTINUE
             ELSEIF (FCT1.NE.0.) THEN 
                DO 155 KLOOP     = 1, KTLOOP 
                   FCT            = EXP(-T3K(KLOOP) / FCT1)
                   XYRAT          = RRATE(KLOOP,NK) / RRATE(KLOOP,NK+1) 
                   BLOG           = LOG10(XYRAT)
-                  FEXP           = 1.d0 / (1.d0 + BLOG * BLOG)
-                  RRATE(KLOOP,NK)= RRATE(KLOOP,NK)*FCT**FEXP/(1d0+XYRAT)  
+                  FEXP           = 1.e+0_fp / (1.e+0_fp + BLOG * BLOG)
+                  RRATE(KLOOP,NK)= RRATE(KLOOP,NK)*FCT**FEXP
+     &                           /(1e+0_fp+XYRAT)  
  155           CONTINUE 
             ELSE
                DO 160 KLOOP     = 1, KTLOOP 
                   XYRAT          = RRATE(KLOOP,NK) / RRATE(KLOOP,NK+1) 
                   BLOG           = LOG10(XYRAT)
-                  FEXP           = 1.d0 / (1.d0 + BLOG * BLOG)
-                 RRATE(KLOOP,NK)=RRATE(KLOOP,NK)*FCVNK**FEXP/(1d0+XYRAT)  
+                  FEXP           = 1.e+0_fp / (1.e+0_fp + BLOG * BLOG)
+                 RRATE(KLOOP,NK)=RRATE(KLOOP,NK)*FCVNK**FEXP
+     &                          /(1e+0_fp+XYRAT)  
  160           CONTINUE
             ENDIF
  165     CONTINUE
@@ -789,7 +803,7 @@
             NK         = NKSPECB( I,NCS )
             DO KLOOP   = 1, KTLOOP
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) *
-     $              (1.D0 - FYRNO3(RRATE(KLOOP,NK+1), DENAIR(KLOOP), 
+     $              (1.E+0_fp - FYRNO3(RRATE(KLOOP,NK+1), DENAIR(KLOOP),
      $              T3K(KLOOP)))
             ENDDO
          ENDDO
@@ -799,7 +813,8 @@
             NK         = NKSPECC( I,NCS )
             DO KLOOP   = 1, KTLOOP
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * 
-     +              (CONCO2(KLOOP)+3.5D18)/(2.D0*CONCO2(KLOOP)+3.5D18)
+     +              (CONCO2(KLOOP)+3.5E+18_fp)/(2.E+0_fp*CONCO2(KLOOP)
+     +              +3.5E+18_fp)
             ENDDO
          ENDDO
 !
@@ -808,7 +823,7 @@
             NK         = NKSPECD( I,NCS )
             DO KLOOP   = 1, KTLOOP
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * 
-     +              (CONCO2(KLOOP))/(2.D0*CONCO2(KLOOP)+3.5D18)
+     +              (CONCO2(KLOOP))/(2.E+0*CONCO2(KLOOP)+3.5E+18)
             ENDDO
          ENDDO
 ! Add branching ratio for HOC2H4O for C2H4 oxidation (tmf, 12/14/06) 
@@ -818,7 +833,7 @@
             NK         = NKSPECF( I,NCS )
             DO KLOOP   = 1, KTLOOP
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) *
-     $              (1.D0 - FYHORO(DENAIR(KLOOP), T3K(KLOOP)))
+     $              (1.E+0_fp - FYHORO(DENAIR(KLOOP), T3K(KLOOP)))
             ENDDO
          ENDDO
 !
@@ -838,7 +853,7 @@
             DO KLOOP     = 1, KTLOOP
             RRATE2=RRATE(KLOOP,NK+2)*DENAIR(KLOOP)
             RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + RRATE2 /
-     1           (1.D0 + RRATE2 / RRATE(KLOOP,NK+1))    
+     1           (1.E+0_fp + RRATE2 / RRATE(KLOOP,NK+1))    
             ENDDO
          ENDIF
 !
@@ -852,21 +867,21 @@
                JLOOP           = LREORDER(JLOOPLO + KLOOP)
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) *
 !     1              (1.D0 + CONSTC*PRESS3(JLOOP))
-     1              (1.D0 + 0.6d0*CONSTC*PRESS3(JLOOP))
+     1              (1.E+0_fp + 0.6e+0_fp*CONSTC*PRESS3(JLOOP))
 c new OH+CO rate from JPL2006.
 ! Watch out! KCO1 and KCO2 have different form!!!!!!!!!!!!!!!(jmao,02/26/09)
-               KLO1=5.9D-33*(300*T3I(KLOOP))**(1.4D0) 
-               KHI1=1.1D-12*(300*T3I(KLOOP))**(-1.3D0)
+               KLO1=5.9E-33_fp*(300*T3I(KLOOP))**(1.4E+0_fp) 
+               KHI1=1.1E-12_fp*(300*T3I(KLOOP))**(-1.3E0_fp)
                XYRAT1=KLO1*DENAIR(KLOOP)/KHI1
                BLOG1=LOG10(XYRAT1)
-               FEXP1=1.D0/(1.D0+BLOG1*BLOG1)
-               KCO1=KLO1*DENAIR(KLOOP)*0.6**FEXP1/(1.d0+XYRAT1)
-               KLO2=1.5D-13*(300*T3I(KLOOP))**(-0.6D0)
-               KHI2=2.1D09 *(300*T3I(KLOOP))**(-6.1D0)
+               FEXP1=1.E+0_fp/(1.E+0_fp+BLOG1*BLOG1)
+               KCO1=KLO1*DENAIR(KLOOP)*0.6**FEXP1/(1.e+0_fp+XYRAT1)
+               KLO2=1.5E-13_fp*(300*T3I(KLOOP))**(-0.6E+0_fp)
+               KHI2=2.1e+09_fp *(300*T3I(KLOOP))**(-6.1E+0_fp)
                XYRAT2=KLO2*DENAIR(KLOOP)/KHI2
                BLOG2=LOG10(XYRAT2)
-               FEXP2=1.D0/(1.D0+BLOG2*BLOG2)
-               KCO2=KLO2*0.6**FEXP2/(1.d0+XYRAT2)
+               FEXP2=1.E+0_fp/(1.E+0_fp+BLOG2*BLOG2)
+               KCO2=KLO2*0.6**FEXP2/(1.e+0_fp+XYRAT2)
                KCO=KCO1+KCO2
                RRATE(KLOOP,NK)=KCO
             ENDDO
@@ -877,7 +892,8 @@ c new OH+CO rate from JPL2006.
          DO I          = 1,NNADDV(NCS)
             NK         = NKSPECV( I,NCS )
             DO KLOOP   = 1, KTLOOP
-               RRATE(KLOOP,NK)=RRATE(KLOOP,NK)/(1.d0+RRATE(KLOOP,NK+1))
+               RRATE(KLOOP,NK)=RRATE(KLOOP,NK)/(1.e+0_fp
+     &                        +RRATE(KLOOP,NK+1))
             ENDDO
          ENDDO
 !
@@ -885,10 +901,10 @@ c new OH+CO rate from JPL2006.
          DO I          = 1,NNADDG(NCS)
             NK         = NKSPECG( I,NCS )
             DO KLOOP   = 1, KTLOOP
-               ! Changed reaction rate calculation from concO2 to 0.2095d0
+               ! Changed reaction rate calculation from concO2 to 0.2095e+0_fp
                ! (bhh, jmao, eam, 7/18/11)
                RRATE(KLOOP,NK)=RRATE(KLOOP,NK)/
-     &              (1.d0+RRATE(KLOOP,NK+1)*0.2095d0)
+     &              (1.e+0_fp+RRATE(KLOOP,NK+1)*0.2095e+0_fp)
             ! SMVGEARII doesn't have structure to multiply rate(nk+1) by [O2]
             ENDDO
          ENDDO
@@ -902,11 +918,13 @@ c new OH+CO rate from JPL2006.
                JLOOP = LREORDER(JLOOPLO+KLOOP)
                RRATE(KLOOP,NK) =
      +          (RRATE(KLOOP,NK)+RRATE(KLOOP,NK+1)*DENAIR(KLOOP)) * 
-     +          (1.D0+1.4D-21*CSPEC(JLOOP,IH2O)*EXP(2200.D0/T3K(KLOOP)))
+     +          (1.D0+1.4E-21_fp*CSPEC(JLOOP,IH2O)*EXP(2200.E+0_fp
+     +          /T3K(KLOOP)))
 #else
                RRATE(KLOOP,NK) =
      +          (RRATE(KLOOP,NK)+RRATE(KLOOP,NK+1)*DENAIR(KLOOP)) * 
-     +          (1.D0+1.4D-21*CBLK(KLOOP,IH2O)*EXP(2200.D0/T3K(KLOOP)))
+     +          (1.D0+1.4E-21_fp*CBLK(KLOOP,IH2O)*EXP(2200.e+0_fp
+     +          /T3K(KLOOP)))
 #endif
             ENDDO
          ENDIF
@@ -919,14 +937,14 @@ c new OH+CO rate from JPL2006.
 
          IF (NKHAC(NCS,1) .GT. 0 .AND. NKHAC(NCS,2) .GT. 0) THEN
             DO KLOOP   = 1, KTLOOP
-               HAC_FRAC=1d0-23.7d0*EXP(-ONE_SIXTY*T3K(KLOOP)) !FRAC MGLY 
+               HAC_FRAC=1e+0_fp-23.7e+0_fp*EXP(-ONE_SIXTY*T3K(KLOOP)) !FRAC MGLY 
 
-               IF (HAC_FRAC<0d0) HAC_FRAC=0d0
+               IF (HAC_FRAC<0e+0_fp) HAC_FRAC=0e+0_fp
 
               RRATE(KLOOP,NKHAC(NCS,1))=RRATE(KLOOP,NKHAC(NCS,1))
      &                                  *HAC_FRAC
               RRATE(KLOOP,NKHAC(NCS,2))=RRATE(KLOOP,NKHAC(NCS,2))
-     &                                  *(1d0-HAC_FRAC)
+     &                                  *(1e+0_fp-HAC_FRAC)
 
             ENDDO
          ENDIF
@@ -939,17 +957,17 @@ c new OH+CO rate from JPL2006.
               JLOOP           = LREORDER(JLOOPLO + KLOOP)
               PTEMP=CONSTC*PRESS3(JLOOP)
 
-              YA=-4.262d-1*PTEMP**2.925d0+7.42d-1
-              YB=1.834d-1*PTEMP**1.396d0+5.069d-3
-              YC=1d0-YA-YB
+              YA=-4.262e-1_fp*PTEMP**2.925e+0_fp+7.42e-1_fp
+              YB=1.834e-1_fp*PTEMP**1.396e+0_fp+5.069e-3_fp
+              YC=1e+0_fp-YA-YB
 
               ! YA,YB, and YC capitalized (hotp 7/31/09)
-              IF (YA<0d0) YA=0d0
-              IF (YB<0d0) YB=0d0
-              IF (YC<0d0) YC=0d0
-              IF (YA>1d0) YA=1d0
-              IF (YB<0d0) YB=1d0
-              IF (YC<0d0) YC=1d0
+              IF (YA<0e+0_fp) YA=0e+0_fp
+              IF (YB<0e+0_fp) YB=0e+0_fp
+              IF (YC<0e+0_fp) YC=0e+0_fp
+              IF (YA>1e+0_fp) YA=1e+0_fp
+              IF (YB<0e+0_fp) YB=1e+0_fp
+              IF (YC<0e+0_fp) YC=1e+0_fp
 
               !WRITE(*,*) 'P=',PTEMP
               !WRITE(*,*) 'Ya=',Ya
@@ -969,14 +987,15 @@ c new OH+CO rate from JPL2006.
 
          IF (NKGLYC(NCS,1) .GT. 0 .AND. NKGLYC(NCS,2) .GT. 0) THEN
             DO KLOOP   = 1, KTLOOP
-               GLYC_FRAC=1d0-11.0729d0*EXP(-ONE_SEVENTYTHREE*T3K(KLOOP)) !FRAC HCOOH
+               GLYC_FRAC=1e+0_fp-11.0729e+0_fp*EXP(-ONE_SEVENTYTHREE
+     &                  *T3K(KLOOP)) !FRAC HCOOH
 
-              IF (GLYC_FRAC<0d0) GLYC_FRAC=0d0
+              IF (GLYC_FRAC<0e+0_fp) GLYC_FRAC=0e+0_fp
 
               RRATE(KLOOP,NKGLYC(NCS,1))=RRATE(KLOOP,NKGLYC(NCS,1))
      &                                  *GLYC_FRAC
               RRATE(KLOOP,NKGLYC(NCS,2))=RRATE(KLOOP,NKGLYC(NCS,2))
-     &                                  *(1d0-GLYC_FRAC)
+     &                                  *(1e+0_fp-GLYC_FRAC)
 
             ENDDO
          ENDIF
@@ -1025,16 +1044,16 @@ c new OH+CO rate from JPL2006.
                XSQM    = SQRT(ARR(NK,NCS))
 
                ! Initialize
-               RRATE(KLOOP,NK) = 0d0
-               DUMMY2(KLOOP)   = 0d0
+               RRATE(KLOOP,NK) = 0e+0_fp
+               DUMMY2(KLOOP)   = 0e+0_fp
                ! Initialize DUMMY3 (jaegle, 2/26/09)
-               DUMMY3(KLOOP)   = 0d0
+               DUMMY3(KLOOP)   = 0e+0_fp
 
                ! Sum up total surface area for all aerosol types
                ! so that we can use it for the planeflight diagnostic
                ! (mje, bmy, 8/7/03)
                IF ( NK == NKN2O5 .or. NK == NKHO2 ) THEN
-                  TOTAREA = 0.d0
+                  TOTAREA = 0.e+0_fp
                   DO N = 1, NDUST + NAER
                      TOTAREA = TOTAREA + TAREA(JLOOP,N)
                   ENDDO
@@ -1061,9 +1080,9 @@ c new OH+CO rate from JPL2006.
                      ! a function of aerosol type, temp, and RH
                      IF (N.eq.14) THEN
                         IF (NATSURFACE) THEN
-                           XSTKCF = 4.0d-4 ! NAT
+                           XSTKCF = 4.0e-4_fp ! NAT
                         ELSE
-                           XSTKCF = 0.02d0 ! Ice
+                           XSTKCF = 0.02e+0_fp ! Ice
                         ENDIF
                      ELSEIF (N.eq.13) THEN
                         ! Stratospheric aerosol
@@ -1081,7 +1100,8 @@ c new OH+CO rate from JPL2006.
      &                         State_Chm%Tracers(IX,IY,IZ,IDTNIT)
                         TMP2 = State_Chm%tracers(IX,IY,IZ,IDTNIT)
                         IF ( TMP1 .GT. 0.0 ) THEN
-                           XSTKCF = XSTKCF * ( 1.0d0 - 0.9d0*TMP2/TMP1 )
+                           XSTKCF = XSTKCF * ( 1.0e+0_fp - 0.9e+0_fp
+     &                            *TMP2/TMP1 )
                         ENDIF
                      ENDIF
 
@@ -1111,7 +1131,7 @@ c new OH+CO rate from JPL2006.
                      ENDIF
 
                      IF (N.gt.12) THEN
-                        XSTKCF = TINY(1d0)
+                        XSTKCF = TINY(1e+0_fp)
                      ELSE
                         XSTKCF = HO2( XRADIUS, T3K(KLOOP),    XDENA,
      &                                XSQM,    HO2_MOLEC_CM3, N,
@@ -1145,7 +1165,7 @@ c new OH+CO rate from JPL2006.
                      ! (jpp, 5/4/10)
                      IF ( N == 8 ) THEN
                         ! sulfate aerosol
-                        XSTKCF = 0.8d0
+                        XSTKCF = 0.8e+0_fp
                      ELSE IF ( (N == 11) .OR. ( N == 12) ) THEN
                         ! 2 modes of sea-salt
                         XSTKCF = BRR(NK,NCS)
@@ -1155,12 +1175,12 @@ c new OH+CO rate from JPL2006.
                      ELSE IF ( N == 14 ) THEN 
                         ! Ice/NAT PSC
                         IF (NATSURFACE) THEN 
-                           XSTKCF = 0.001d0
+                           XSTKCF = 0.001e+0_fp
                         ELSE
-                           XSTKCF = 0.3d0
+                           XSTKCF = 0.3e+0_fp
                         ENDIF
                      ELSE
-                        XSTKCF = 0d0
+                        XSTKCF = 0e+0_fp
                      ENDIF
 
                   ELSE IF ( NK == NKHOBr .OR. NK == NK1HBr) THEN
@@ -1177,9 +1197,9 @@ c new OH+CO rate from JPL2006.
                      ELSEIF ( N == 13 ) THEN
                         XSTKCF = KHETI_SLA(IX,IY,IZ,11)
                      ELSEIF ( N == 14 ) THEN
-                        XSTKCF = 0.1d0
+                        XSTKCF = 0.1e+0_fp
                      ELSE
-                        XSTKCF = 0d0
+                        XSTKCF = 0e+0_fp
                      ENDIF
 
                   ! Only consider PSC reactions in strat
@@ -1188,130 +1208,130 @@ c new OH+CO rate from JPL2006.
                         ! N2O5(g)    + HCl(l,s)
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
-                           XSTKCF = 0.1d-4 ! Sulfate
+                           XSTKCF = 0.1e-4_fp ! Sulfate
                         ELSEIF (N.eq.13) THEN
                            XSTKCF = KHETI_SLA(IX,IY,IZ,2)
                         ELSEIF (N.eq.14) THEN
                            IF (NATSURFACE) THEN
-                              XSTKCF = 0.003d0 ! NAT
+                              XSTKCF = 0.003e+0_fp ! NAT
                            ELSE
-                              XSTKCF = 0.03d0 ! Ice
+                              XSTKCF = 0.03e+0_fp ! Ice
                            ENDIF
                         ELSE
-                           XSTKCF = 0d0
+                           XSTKCF = 0e+0_fp
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,3 ) ) THEN
                         ! ClNO3(g)   + H2O(l,s)
                         KII_KI = .TRUE.
 
                         IF (N.eq.8) THEN
-                           XSTKCF = 0.1d-3 ! Sulfate
+                           XSTKCF = 0.1e-3_fp ! Sulfate
                         ELSEIF (N.eq.13) THEN
                            XSTKCF = KHETI_SLA(IX,IY,IZ,3)
                         ELSEIF (N.eq.14) THEN
                            IF (NATSURFACE) THEN
-                              XSTKCF = 0.004d0 ! NAT
+                              XSTKCF = 0.004e+0_fp ! NAT
                            ELSE
-                              XSTKCF = 0.3d0 ! Ice
+                              XSTKCF = 0.3e+0_fp ! Ice
                            ENDIF
                         ELSE
-                           XSTKCF = 0d0
+                           XSTKCF = 0e+0_fp
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,4 ) ) THEN
                         ! ClNO3(g)   + HCl(l,s)
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
-                           XSTKCF = 0.1d-4 ! Sulfate
+                           XSTKCF = 0.1e-4_fp ! Sulfate
                         ELSEIF (N.eq.13) THEN
                            XSTKCF = KHETI_SLA(IX,IY,IZ,4)
                         ELSEIF (N.eq.14) THEN
                            IF (NATSURFACE) THEN
-                              XSTKCF = 0.2d0 ! NAT
+                              XSTKCF = 0.2e+0_fp ! NAT
                            ELSE
-                              XSTKCF = 0.3d0 ! Ice
+                              XSTKCF = 0.3e+0_fp ! Ice
                            ENDIF
                         ELSE
-                           XSTKCF = 0d0
+                           XSTKCF = 0e+0_fp
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,5 ) ) THEN
                         ! ClNO3(g)   + HBr(l,s)
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
-                           XSTKCF = 0.d0 ! Sulfate
+                           XSTKCF = 0.e+0_fp ! Sulfate
                         ELSEIF (N.eq.13) THEN
                            XSTKCF = KHETI_SLA(IX,IY,IZ,5)
                         ELSEIF (N.eq.14) THEN
                            IF (NATSURFACE) THEN
-                              XSTKCF = 0.3d0 ! NAT
+                              XSTKCF = 0.3e+0_fp ! NAT
                            ELSE
-                              XSTKCF = 0.3d0 ! Ice
+                              XSTKCF = 0.3e+0_fp ! Ice
                            ENDIF
                         ELSE
-                           XSTKCF = 0d0
+                           XSTKCF = 0e+0_fp
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,7 ) ) THEN
                         ! BrNO3(g)   + HCl(l,s)
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
-                           XSTKCF = 0.9d0 ! Sulfate
+                           XSTKCF = 0.9e+0_fp ! Sulfate
                         ELSEIF (N.eq.13) THEN
                            XSTKCF = KHETI_SLA(IX,IY,IZ,7)
                         ELSEIF (N.eq.14) THEN
                            IF (NATSURFACE) THEN
-                              XSTKCF = 0.3d0 ! NAT
+                              XSTKCF = 0.3e+0_fp ! NAT
                            ELSE
-                              XSTKCF = 0.3d0 ! Ice
+                              XSTKCF = 0.3e+0_fp ! Ice
                            ENDIF
                         ELSE
-                           XSTKCF = 0d0
+                           XSTKCF = 0e+0_fp
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,8 ) ) THEN
                         ! HOCl(g)    + HCl(l,s)
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
-                           XSTKCF = 0.8d0 ! Sulfate
+                           XSTKCF = 0.8e+0_fp ! Sulfate
                         ELSEIF (N.eq.13) THEN
                            XSTKCF = KHETI_SLA(IX,IY,IZ,8)
                         ELSEIF (N.eq.14) THEN
                            IF (NATSURFACE) THEN
-                              XSTKCF = 0.1d0 ! NAT
+                              XSTKCF = 0.1e+0_fp ! NAT
                            ELSE
-                              XSTKCF = 0.2d0 ! Ice
+                              XSTKCF = 0.2e+0_fp ! Ice
                            ENDIF
                         ELSE
-                           XSTKCF = 0d0
+                           XSTKCF = 0e+0_fp
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,9 ) ) THEN
                         ! HOCl(g)    + HBr(l,s)
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
-                           XSTKCF = 0.8d0 ! Sulfate
+                           XSTKCF = 0.8e+0_fp ! Sulfate
                         ELSEIF (N.eq.13) THEN
                            XSTKCF = KHETI_SLA(IX,IY,IZ,9)
                         ELSEIF (N.eq.14) THEN
                            IF (NATSURFACE) THEN
-                              XSTKCF = 0.3d0 ! NAT
+                              XSTKCF = 0.3e+0_fp ! NAT
                            ELSE
-                              XSTKCF = 0.3d0 ! Ice
+                              XSTKCF = 0.3e+0_fp ! Ice
                            ENDIF
                         ELSE
-                           XSTKCF = 0d0
+                           XSTKCF = 0e+0_fp
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,10) ) THEN
                         ! HOBr(g)    + HCl(l,s)
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
-                           XSTKCF = 0.8d0 ! Sulfate
+                           XSTKCF = 0.8e+0_fp ! Sulfate
                         ELSEIF (N.eq.13) THEN
                            XSTKCF = KHETI_SLA(IX,IY,IZ,10)
                         ELSEIF (N.eq.14) THEN
                            IF (NATSURFACE) THEN
-                              XSTKCF = 0.1d0 ! NAT
+                              XSTKCF = 0.1e+0_fp ! NAT
                            ELSE
-                              XSTKCF = 0.3d0 ! Ice
+                              XSTKCF = 0.3e+0_fp ! Ice
                            ENDIF
                         ELSE
-                           XSTKCF = 0d0
+                           XSTKCF = 0e+0_fp
                         ENDIF
                      ENDIF
                   ELSE
@@ -1334,8 +1354,8 @@ c new OH+CO rate from JPL2006.
 
                   IF (KII_KI .and. N.gt.12) THEN
                      ! PSC reaction - prevent excessive reaction rate
-                     IF (ADJUSTEDRATE.gt.(1.d0/PSCMINLIFE)) THEN
-                        ADJUSTEDRATE = 1.d0/PSCMINLIFE
+                     IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                        ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
                      ENDIF
                   ENDIF
 
@@ -1395,8 +1415,8 @@ c new OH+CO rate from JPL2006.
                   ELSE
                      ! if not, then set rates really small...
                      ! b/c the largest contributor is very small.
-                     RRATE(KLOOP, NK1HBr) = TINY(1.d0)
-                     RRATE(KLOOP, NKHOBr) = TINY(1.d0)
+                     RRATE(KLOOP, NK1HBr) = TINY(1.e+0_fp)
+                     RRATE(KLOOP, NKHOBr) = TINY(1.e+0_fp)
                   ENDIF
 
                ! if HOBr rate is larger than HBr rate
@@ -1416,8 +1436,8 @@ c new OH+CO rate from JPL2006.
                   ELSE
                      ! if not, then set rates really small...
                      ! b/c the largest contributor is very small.
-                     RRATE(KLOOP, NK1HBr) = TINY(1.d0)
-                     RRATE(KLOOP, NKHOBr) = TINY(1.d0)
+                     RRATE(KLOOP, NK1HBr) = TINY(1.e+0_fp)
+                     RRATE(KLOOP, NKHOBr) = TINY(1.e+0_fp)
                   ENDIF
                ENDIF
             ENDIF
@@ -1455,8 +1475,8 @@ c new OH+CO rate from JPL2006.
                ELSE
                   ! For PSCs, het chem already accounted for in
                   ! aerosol code
-                  ki_hbr = 0d0
-                  ki_hobr = 0d0
+                  ki_hbr = 0e+0_fp
+                  ki_hobr = 0e+0_fp
                ENDIF
 
                RRATE(KLOOP, NK2HBr)  = ki_hbr
@@ -1549,17 +1569,17 @@ c new OH+CO rate from JPL2006.
                            ADJUSTEDRATE = LIMITCONC
                         ENDIF
                      ELSE
-                        ADJUSTEDRATE = 0d0
+                        ADJUSTEDRATE = 0e+0_fp
                      ENDIF
                      IF ((EDUCTCONC.gt.1.d2).and.
      &                      (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
                         ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
                      ELSE
-                        ADJUSTEDRATE = 0d0
+                        ADJUSTEDRATE = 0e+0_fp
                      ENDIF
                   ELSEIF (PSCIDX.ne.11) THEN
-                     IF (ADJUSTEDRATE.gt.(1.d0/PSCMINLIFE)) THEN
-                        ADJUSTEDRATE = 1.d0/PSCMINLIFE
+                     IF (ADJUSTEDRATE.gt.(1.e+0_fp/PSCMINLIFE)) THEN
+                        ADJUSTEDRATE = 1.e+0_fp/PSCMINLIFE
                      ENDIF
                      ! Convert from 1st-order to 2nd-order
                      IF (IS_SAFE_DIV(EDUCTCONC,LIMITCONC)) THEN
@@ -1569,13 +1589,13 @@ c new OH+CO rate from JPL2006.
                            ADJUSTEDRATE = LIMITCONC
                         ENDIF
                      ELSE
-                        ADJUSTEDRATE = 0d0
+                        ADJUSTEDRATE = 0e+0_fp
                      ENDIF
-                     IF ((EDUCTCONC.gt.1.d2).and.
+                     IF ((EDUCTCONC.gt.1.e+2_fp).and.
      &                      (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
                         ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
                      ELSE
-                        ADJUSTEDRATE = 0d0
+                        ADJUSTEDRATE = 0e+0_fp
                      ENDIF
                   ENDIF
                   RRATE(KLOOP,NK) = ADJUSTEDRATE
@@ -1634,7 +1654,7 @@ c new OH+CO rate from JPL2006.
 
                DO KLOOP=1,KTLOOP
                   RRATE(KLOOP,NKN)=RRATE(KLOOP,NKN) *
-     +               ( 1.D0-FYHORO(DENAIR(KLOOP), T3K(KLOOP)) )
+     +               ( 1.E+0_fp-FYHORO(DENAIR(KLOOP), T3K(KLOOP)) )
                ENDDO
             ENDIF
 
@@ -1773,12 +1793,14 @@ c new OH+CO rate from JPL2006.
                !          ([O1D]*[H2]+[O1D]*[H2O]+[O1D][N2]+[O1D][O2])
                ! (bhh, jmao, eam, 7/18/11)
                !========================================================
-               RO1DplH2O = 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) *
+               RO1DplH2O = 1.63e-10_fp * EXP( 60.e+0_fp*T3I(KLOOP)) *
      $                     CBLK(KLOOP,IH2O)
                RO1DplH2  = 1.2e-10 * CONCH2(KLOOP)
                RO1D      = (RO1DplH2O + RO1DplH2 +
-     $             2.15d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)   +
-     $             3.30d-11 * EXP( 55.d0*T3I(KLOOP)) * CONCO2(KLOOP))
+     $             2.15e-11_fp * EXP(110.e+0_fp*T3I(KLOOP)) 
+     $             * CONCN2(KLOOP)   +
+     $             3.30e-11_fp * EXP( 55.e+0_fp*T3I(KLOOP)) 
+     $             * CONCO2(KLOOP))
                IF (LJO1DH2O) THEN
                   RRATE(KLOOP,NKNH2O) = RRATE(KLOOP,NKNH2O) *
      $                                  RO1DplH2O / RO1D
@@ -1788,10 +1810,10 @@ c new OH+CO rate from JPL2006.
      $                                  RO1DplH2 / RO1D
                ENDIF
 !               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
-!     $            1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
-!     $          ( 1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
-!     $            2.14d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
-!     $            3.20d-11 * EXP( 70.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
+!     $            1.45d-10 * EXP( 89.e+0_fp*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
+!     $          ( 1.45d-10 * EXP( 89.e+0_fp*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
+!     $            2.14d-11 * EXP(110.e+0_fp*T3I(KLOOP)) * CONCN2(KLOOP)    +
+!     $            3.20d-11 * EXP( 70.e+0_fp*T3I(KLOOP)) * CONCO2(KLOOP)    )
 #endif
 
             ENDDO
@@ -1800,7 +1822,7 @@ c new OH+CO rate from JPL2006.
          DO I          = 1, JPHOTRAT(NCS)
             NKN        = NKNPHOTRT(I,NCS)
             DO KLOOP   = 1, KTLOOP
-               RRATE(KLOOP,NKN)  = 0.D0
+               RRATE(KLOOP,NKN)  = 0.E+0_fp
             ENDDO
          ENDDO
       ELSE
@@ -1945,7 +1967,7 @@ c new OH+CO rate from JPL2006.
                IF (NK.NE.0) THEN
                   DO KLOOP = 1,KTLOOP
                      JLOOP = LREORDER(KLOOP+JLOOPLO)
-                     RRATE(KLOOP,NK) = 0.d0
+                     RRATE(KLOOP,NK) = 0.e+0_fp
                      ! Surface emissions of gases are constrained to the 
                      ! lowest model layer, and are considered in the 
                      ! PBL mixing module vdiff_mod, not anymore in SMVGEAR.
@@ -1956,7 +1978,7 @@ c new OH+CO rate from JPL2006.
                      !RRATE(KLOOP,NK) = REMIS(JLOOP,I)
                      IZ    = IZSAVE(JLOOP)
                      if (IZ .EQ. 1) then
-                        RRATE(KLOOP,NK) = 0.D0
+                        RRATE(KLOOP,NK) = 0.E+0_fp
                      else
                         RRATE(KLOOP,NK) = REMIS(JLOOP,I)
                      endif
@@ -1975,7 +1997,7 @@ c new OH+CO rate from JPL2006.
                NK = NTEMIS(NN,NCS)
                IF (NK.NE.0) THEN
                   DO KLOOP = 1,KTLOOP
-                     RRATE(KLOOP,NK) = 0.d0
+                     RRATE(KLOOP,NK) = 0.e+0_fp
                      JLOOP = LREORDER(KLOOP+JLOOPLO)
                      RRATE(KLOOP,NK) = REMIS(JLOOP,I)
                   ENDDO
@@ -2013,7 +2035,7 @@ c new OH+CO rate from JPL2006.
                   ! constrain the dry deposition to the lowest model layer
                   ! (Lin, 04/28/08)
                   if (IZ .NE. 1) then
-                     RRATE(KLOOP,NK) = 0.D0 
+                     RRATE(KLOOP,NK) = 0.E+0_fp 
                   else
 
                      ! This used to include dust and sea salt aerosols,
@@ -2031,7 +2053,7 @@ c new OH+CO rate from JPL2006.
                            RRATE(KLOOP,NK) = DEPSAV(IX,IY,I)
                         CASE DEFAULT
                            ! gases + aerosols for full chemistry
-                           RRATE(KLOOP,NK) = 0.D0
+                           RRATE(KLOOP,NK) = 0.E+0_fp
                      END SELECT
                   endif
                ENDDO
@@ -2216,31 +2238,31 @@ c new OH+CO rate from JPL2006.
       ! Arguments as Input:
       ! ----------------------------------------------------------------
       ! (1 ) AEROTYPE (INTEGER) : # denoting aerosol type (cf FAST-J)
-      ! (2 ) TEMP     (REAL*8 ) : Temperature [K]
-      ! (3 ) RH       (REAL*8 ) : Relative Humidity [fraction]
+      ! (2 ) TEMP     (REAL(fp) ) : Temperature [K]
+      ! (3 ) RH       (REAL(fp) ) : Relative Humidity [fraction]
       !
       ! NOTES:
       !=================================================================
       
       ! Arguments
       INTEGER, INTENT(IN) :: AEROTYPE
-      REAL*8,  INTENT(IN) :: TEMP, RH
+      REAL(fp),  INTENT(IN) :: TEMP, RH
 
       ! Local variables
-      REAL*8              :: RH_P, FACT, TTEMP
+      REAL(fp)              :: RH_P, FACT, TTEMP
 
       ! Function return value
-      REAL*8              :: GAMMA
+      REAL(fp)              :: GAMMA
       
       !=================================================================
       ! N2O5 begins here!
       !=================================================================
 
       ! Convert RH to % (max = 100%)
-      RH_P  = MIN( RH * 100d0, 100d0 )
+      RH_P  = MIN( RH * 100e+0_fp, 100e0_fp )
 
       ! Default value
-      GAMMA = 0.01d0
+      GAMMA = 0.01e+0_fp
 
       ! Special handling for various aerosols
       SELECT CASE ( AEROTYPE )
@@ -2251,7 +2273,7 @@ c new OH+CO rate from JPL2006.
          CASE ( 1, 2, 3, 4, 5, 6, 7 )      
                                 
             ! Based on unpublished Crowley work
-            GAMMA = 0.01d0
+            GAMMA = 0.01e+0_fp
 
          !----------------
          ! Sulfate
@@ -2265,11 +2287,11 @@ c new OH+CO rate from JPL2006.
             !===========================================================
             ! No RH dependence above 50.0% (lzh, 10/26/2011)
             ! According to Bertram and Thornton, ACP, 9, 8351-8363, 2009
-            RH_P  = MIN( RH_P, 50d0 )
+            RH_P  = MIN( RH_P, 50e+0_fp )
 
-            GAMMA = 2.79d-4 + RH_P*(  1.30d-4 + 
-     &                        RH_P*( -3.43d-6 + 
-     &                        RH_P*(  7.52d-8 ) ) )
+            GAMMA = 2.79e-4_fp + RH_P*(  1.30e-4_fp + 
+     &                        RH_P*( -3.43e-6_fp + 
+     &                        RH_P*(  7.52e-8_fp ) ) )
 
             !===========================================================
             ! Temperature dependence factor (Cox et al, Cambridge UK) 
@@ -2284,8 +2306,9 @@ c new OH+CO rate from JPL2006.
             ! For computational speed, replace LOG10( 1e-2 ) with -2
             ! and replace 10^( LOG10( G294 ) ) with G294 
             !===========================================================
-            TTEMP = MAX( TEMP, 282d0 )
-            FACT  = 10.d0**( -2d0 - 4d-2*( TTEMP - 294.d0 ) ) / 1d-2
+            TTEMP = MAX( TEMP, 282e0_fp )
+            FACT  = 10.e0_fp**( -2e+0_fp - 4e-2_fp
+     &            *( TTEMP - 294.e+0_fp ) ) / 1e-2_fp
 
             ! Apply temperature dependence
             GAMMA = GAMMA * FACT
@@ -2296,7 +2319,7 @@ c new OH+CO rate from JPL2006.
          CASE ( 9 )  
 
              ! From IUPAC
-             GAMMA = 0.005d0
+             GAMMA = 0.005e+0_fp
 
          !----------------
          ! Organic Carbon
@@ -2308,10 +2331,10 @@ c new OH+CO rate from JPL2006.
             ! N2O5 hydrolysis on sub-micron organic aerosol: the effect
             ! of relative humidity, particle phase and particle size
             !===========================================================
-            IF ( RH_P >= 57d0 ) THEN
-               GAMMA = 0.03d0
+            IF ( RH_P >= 57e+0_fp ) THEN
+               GAMMA = 0.03e+0_fp
             ELSE
-               GAMMA = RH_P * 5.2d-4
+               GAMMA = RH_P * 5.2e-4_fp
             ENDIF
 
          !----------------
@@ -2322,9 +2345,9 @@ c new OH+CO rate from JPL2006.
           
             ! Based on IUPAC recomendation
             IF ( RH_P >= 62 ) THEN 
-               GAMMA = 0.03d0
+               GAMMA = 0.03e+0_fp
             ELSE
-               GAMMA = 0.005d0
+               GAMMA = 0.005e+0_fp
             ENDIF
 
          !----------------
@@ -2374,11 +2397,11 @@ c new OH+CO rate from JPL2006.
       ! 
       ! Arguments as Input:
       ! ----------------------------------------------------------------
-      ! (1 ) RADIUS   (REAL*8 ) : Aerosol radius [cm]
-      ! (2 ) TEMP     (REAL*8 ) : Temperature [K]
-      ! (3 ) DENAIR   (REAL*8 ) : Air Density [molec/cm3]
-      ! (4 ) HO2DENS  (REAL*8 ) : HO2 Number Density [molec/cm3]
-      ! (5 ) SQM      (REAL*8 ) : Square root of molecular weight [g/mole]
+      ! (1 ) RADIUS   (REAL(fp) ) : Aerosol radius [cm]
+      ! (2 ) TEMP     (REAL(fp) ) : Temperature [K]
+      ! (3 ) DENAIR   (REAL(fp) ) : Air Density [molec/cm3]
+      ! (4 ) HO2DENS  (REAL(fp) ) : HO2 Number Density [molec/cm3]
+      ! (5 ) SQM      (REAL(fp) ) : Square root of molecular weight [g/mole]
       ! (6 ) AEROTYPE (INTEGER) : # denoting aerosol type (cf FAST-J)
       ! (7 ) CONTINENTAL_PBL (INTEGER)  : Flag set to 1 if the
       !         box is located in the continenal boundary layer,
@@ -2410,36 +2433,36 @@ c new OH+CO rate from JPL2006.
       IMPLICIT NONE
 
       ! Arguments
-      REAL*8,  INTENT(IN) :: RADIUS, TEMP, DENAIR, HO2DENS, SQM
+      REAL(fp),  INTENT(IN) :: RADIUS, TEMP, DENAIR, HO2DENS, SQM
       INTEGER, INTENT(IN) :: AEROTYPE, CONTINENTAL_PBL
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 
       ! Local variables
-      REAL*8              :: ALPHA
-      REAL*8              :: delG, Keq, w, H_eff
-      REAL*8              :: A1, B1, k1, k2, A, B, C
-      REAL*8              :: kaq, kmt, o2_ss, fluxrxn, DFKG
-      REAL*8              :: TEST
+      REAL(fp)              :: ALPHA
+      REAL(fp)              :: delG, Keq, w, H_eff
+      REAL(fp)              :: A1, B1, k1, k2, A, B, C
+      REAL(fp)              :: kaq, kmt, o2_ss, fluxrxn, DFKG
+      REAL(fp)              :: TEST
 
 
       ! Avogadro's number
-      REAL*8,  PARAMETER   :: Na = 6.022d23
+      REAL(fp),  PARAMETER   :: Na = 6.022e+23_fp
 
       ! Ideal gas constant [atm cm3/mol/K], Raq
-      REAL*8,  PARAMETER   :: Raq=82.d0
+      REAL(fp),  PARAMETER   :: Raq=82.e+0_fp
 
       ! Function return value
-      REAL*8              :: GAMMA
+      REAL(fp)              :: GAMMA
       
       !=================================================================
       ! HO2 begins here!
       !=================================================================
 
       ! Default value
-      GAMMA = 0.0d0
+      GAMMA = 0.0e+0_fp
 
       ! Error check
-      IF (RADIUS.le.1d-30) THEN
+      IF (RADIUS.le.1e-30_fp) THEN
          RETURN
       ENDIF
 
@@ -2456,7 +2479,7 @@ c new OH+CO rate from JPL2006.
             ! for gamma(HO2) on dust aerosols. We assume the rate to
             ! be fast on dust aerosols as transition metal ion induced
             ! chemistry is likely to occur in a thin aqueous surface layer.
-            GAMMA = 0.1d0
+            GAMMA = 0.1e+0_fp
 
          !----------------
          ! For Sulfate(8), Black Carbon (9), Organic Carbon (10),
@@ -2485,66 +2508,66 @@ c new OH+CO rate from JPL2006.
          CASE ( 8, 9, 10, 11, 12, 13 )  
 
             ! Mean molecular speed [cm/s]
-            w = 14550.5d0 * sqrt(TEMP/(SQM*SQM))
+            w = 14550.5e+0_fp * sqrt(TEMP/(SQM*SQM))
 
             ! DFKG = Gas phase diffusion coeff [cm2/s]
-            DFKG  = 9.45D17/DENAIR * SQRT(TEMP) * 
-     &              SQRT(3.472D-2 + 1.D0/(SQM*SQM))
+            DFKG  = 9.45E+17_fp/DENAIR * SQRT(TEMP) * 
+     &              SQRT(3.472E-2_fp + 1.E+0_fp/(SQM*SQM))
 
             !calculate T-dependent solubility and aq. reaction rate constants
             ! hydronium ion concentration
             ! A1 = 1.+(Keq/hplus) 
             ! with Keq = 2.1d-5 [M], Equilibrium constant for 
             ! HO2aq = H+ + O2- (Jacob, 2000)
-            !      hplus=10.d0^(-pH), with pH = 5
+            !      hplus=10.e+0_fp^(-pH), with pH = 5
             ! B1 = Req * TEMP
             ! with Req = 1.987d-3 [kcal/K/mol], Ideal gas constant
             ! Note that we assume a constant pH of 5.
-            A1 = 1.+ (2.1d-5 / (10.d0**(-5) ) )
-            B1 = 1.987d-3 * TEMP
+            A1 = 1.+ (2.1e-5_fp / (10.e+0_fp**(-5) ) )
+            B1 = 1.987e-3_fp * TEMP
 
             ! Free energy change for solvation of HO2 (Hanson 1992, Golden 1991)
             ! in [kcal/mol]:
-            ! delG = -4.9-(TEMP-298d0)*delS
+            ! delG = -4.9-(TEMP-298e+0_fp)*delS
             ! with delS=-0.023  [kcal/mol/K],  Entropy change for solvation of HO2
-            delG  = -4.9d0 - (TEMP-298.d0) * (-0.023)
+            delG  = -4.9e+0_fp - (TEMP-298.e+0_fp) * (-0.023)
             H_eff = exp( -delG / B1 ) * A1
 
             ! Estimated temp dependent value for HO2 + O2- (k1) and 
             ! HO2+HO2 (see Jacob 1989)
-            k1  =   1.58d10 * exp( -3. / B1 )
-            k2  =   2.4d9   * exp( -4.7 / B1 )
-            kaq = ( k1 * (A1 - 1.d0) + k2) / (A1**2)
+            k1  =   1.58e+10_fp * exp( -3. / B1 )
+            k2  =   2.4e+9_fp   * exp( -4.7 / B1 )
+            kaq = ( k1 * (A1 - 1.e+0_fp) + k2) / (A1**2)
 
             ! Calculate the mass transfer rate constant and s.s. conc. of 
             ! total HO2 in the aqueous phase:
-            ! kmt = (RADIUS/DFKG + 4d0/w/alpha)^(-1)
+            ! kmt = (RADIUS/DFKG + 4e+0_fp/w/alpha)^(-1)
             ! with alpha = mass accomodation coefficient, assumed 
             ! to be 1 (Thornton et al.)
-            kmt = 1.d0/( RADIUS/DFKG + 4d0/w/1. )
+            kmt = 1.e+0_fp/( RADIUS/DFKG + 4e+0_fp/w/1. )
 
             !use quadratic formula to obtain [O2-] in particle of radius RADIUS
-            A = -2d0 * kaq
-            B = -3d0 * kmt / RADIUS / (H_eff * 0.082 * TEMP)
-            C =  3d0 * kmt * HO2DENS * 1000d0 / RADIUS / Na
+            A = -2e+0_fp * kaq
+            B = -3e+0_fp * kmt / RADIUS / (H_eff * 0.082 * TEMP)
+            C =  3e+0_fp * kmt * HO2DENS * 1000e+0_fp / RADIUS / Na
 
-            ! Error check that B^2-(4d0*A*C) is not negative
-            TEST= B**2-(4d0*A*C)
-            IF ( TEST < 0d0 ) THEN
-                GAMMA = 0d0
+            ! Error check that B^2-(4e+0_fp*A*C) is not negative
+            TEST= B**2-(4e+0_fp*A*C)
+            IF ( TEST < 0e+0_fp ) THEN
+                GAMMA = 0e+0_fp
             ELSE
                 ! Calculate the concentration of O2- in the aerosol
-                o2_ss= ( -B  -sqrt(B**2-(4d0*A*C)) )/(2d0*A)
+                o2_ss= ( -B  -sqrt(B**2-(4e+0_fp*A*C)) )/(2e+0_fp*A)
 
                 ! Calculate the reactive flux
                 fluxrxn = kmt*HO2DENS - o2_ss*Na*kmt/H_eff/Raq/TEMP
 
-                IF ( fluxrxn <= 0d0 ) THEN
-                   GAMMA = 0d0
+                IF ( fluxrxn <= 0e0_fp ) THEN
+                   GAMMA = 0e+0_fp
                 ELSE
                    ! Gamma for HO2 at TEMP, ho2, and RADIUS given
                    GAMMA = 1./( ( ( HO2DENS/fluxrxn ) - 
-     &                            ( RADIUS/DFKG ) ) * w / 4.d0 )
+     &                            ( RADIUS/DFKG ) ) * w / 4.e+0_fp )
                 ENDIF
             ENDIF
             ! For sulfate aerosols, check whether we are in
@@ -2563,7 +2586,7 @@ c new OH+CO rate from JPL2006.
          !----------------
          CASE ( 14 )
        
-            GAMMA = 0.d0
+            GAMMA = 0.e+0_fp
 
          !----------------
          ! Default
@@ -2577,7 +2600,7 @@ c new OH+CO rate from JPL2006.
       END SELECT
      
       ! If negative value is calculated, set it to zero
-      IF ( GAMMA  <= 0d0 ) GAMMA = 0d0
+      IF ( GAMMA  <= 0e+0_fp ) GAMMA = 0e+0_fp
 
       ! This is for the improved HO2 uptake (J. Mao)
       GAMMA = Input_Opt%GAMMA_HO2
@@ -2613,13 +2636,13 @@ c new OH+CO rate from JPL2006.
       INTEGER,        INTENT(IN) :: I         ! Longitude index
       INTEGER,        INTENT(IN) :: J         ! Latitude  index
       INTEGER,        INTENT(IN) :: L         ! Altitude  index
-      REAL*8,         INTENT(IN) :: DENAIR    ! Density of air [#/cm3]
-      REAL*8,         INTENT(IN) :: QL        ! Cloud water mixing ratio [kg/kg]
+      REAL(fp),         INTENT(IN) :: DENAIR    ! Density of air [#/cm3]
+      REAL(fp),         INTENT(IN) :: QL        ! Cloud water mixing ratio [kg/kg]
       TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: cld1k    ! Rate constant for heterogeneous cycling
+      REAL(fp)              :: cld1k    ! Rate constant for heterogeneous cycling
                                       ! of BrNO3 off of cloud particles
 !
 ! !REMARKS:
@@ -2648,6 +2671,7 @@ c new OH+CO rate from JPL2006.
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2655,36 +2679,36 @@ c new OH+CO rate from JPL2006.
 ! !DEFINED PARAMETERS:
 !
       ! Cloud droplet radius in continental warm clouds [cm]
-      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4
+      REAL(fp), PARAMETER :: XCLDR_CONT =  6.e-4_fp
 
       ! Cloud droplet radius in marine warm clouds [cm]
-      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4
+      REAL(fp), PARAMETER :: XCLDR_MARI = 10.e-4_fp
 
-      REAL*8, PARAMETER :: R = 8.314472                  ! [J/mol/K]
-      REAL*8, PARAMETER :: mw_brno3 = 0.142              ! [kg/mol]
-      rEAL*8, PARAMETER :: pi = 3.14159265358979323846d0 ! [unitless]
-      REAL*8, PARAMETER :: alpha = 0.3                   ! sticking coefficient
-      REAL*8, PARAMETER :: dens_h2o = 0.001d0            ! [kg/cm3]
+      REAL(fp), PARAMETER :: R = 8.314472                  ! [J/mol/K]
+      REAL(fp), PARAMETER :: mw_brno3 = 0.142              ! [kg/mol]
+      rEAL(fp), PARAMETER :: pi = 3.14159265358979323846e+0_fp ! [unitless]
+      REAL(fp), PARAMETER :: alpha = 0.3                   ! sticking coefficient
+      REAL(fp), PARAMETER :: dens_h2o = 0.001e+0_fp            ! [kg/cm3]
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8            :: nu         ! Mean molecular speed
-      REAL*8            :: RADIUS     ! Radius of cloud droplet      [cm]
-      REAL*8            :: SQM        ! Square root of molec. weight [g/mol]
-      REAL*8            :: STK        ! Square root of temperature   [K]
-      REAL*8            :: AREA       ! Surface area                 [m2]
-      REAL*8            :: DFKG       ! Gas diffusion coefficient    [cm2/s]
-      REAL*8            :: Vc         ! Volume of the cloud          [cm3]
-      REAL*8            :: XAIRM3     ! Volume of air                [m3]
+      REAL(fp)            :: nu         ! Mean molecular speed
+      REAL(fp)            :: RADIUS     ! Radius of cloud droplet      [cm]
+      REAL(fp)            :: SQM        ! Square root of molec. weight [g/mol]
+      REAL(fp)            :: STK        ! Square root of temperature   [K]
+      REAL(fp)            :: AREA       ! Surface area                 [m2]
+      REAL(fp)            :: DFKG       ! Gas diffusion coefficient    [cm2/s]
+      REAL(fp)            :: Vc         ! Volume of the cloud          [cm3]
+      REAL(fp)            :: XAIRM3     ! Volume of air                [m3]
       LOGICAL           :: yn_continue
    
       ! Pointers
-      REAL*8, POINTER   :: AD(:,:,:)
-      REAL*8, POINTER   :: AIRVOL(:,:,:)
-      REAL*8, POINTER   :: CLDF(:,:,:)
-      REAL*8, POINTER   :: FRLAND(:,:)
-      REAL*8, POINTER   :: FROCEAN(:,:)
-      REAL*8, POINTER   :: T(:,:,:)
+      REAL(fp), POINTER   :: AD(:,:,:)
+      REAL(fp), POINTER   :: AIRVOL(:,:,:)
+      REAL(fp), POINTER   :: CLDF(:,:,:)
+      REAL(fp), POINTER   :: FRLAND(:,:)
+      REAL(fp), POINTER   :: FROCEAN(:,:)
+      REAL(fp), POINTER   :: T(:,:,:)
 
       !=================================================================
       ! CLD1K_BrNO3 begins here!
@@ -2703,7 +2727,7 @@ c new OH+CO rate from JPL2006.
       !   calculate the mean molecular speed of the
       !   molecules given the temperature.
       ! ----------------------------------------------
-      nu   = sqrt( 8.d0 * R * T(I,J,L) / (mw_brno3 * pi) )
+      nu   = sqrt( 8.e+0_fp * R * T(I,J,L) / (mw_brno3 * pi) )
 
       ! ----------------------------------------------
       ! Test conditions to see if we want to continue
@@ -2720,7 +2744,7 @@ c new OH+CO rate from JPL2006.
      &   ( IS_ICE ( I, J, State_Met )) ) THEN
 #endif
          ! do we have clouds? and do we have warm temperatures?
-         IF ( ( CLDF(L,I,J) > 0    )   .and.
+         IF ( ( CLDF(I,J,L) > 0    )   .and.
      &        ( T(I,J,L)    > 258.0) ) THEN
             yn_continue = .TRUE.
          ELSE
@@ -2733,7 +2757,7 @@ c new OH+CO rate from JPL2006.
       ! test
       IF ( .not. yn_continue ) THEN
          ! nothing to calculate...
-         cld1k = 0.d0
+         cld1k = 0.e+0_fp
          RETURN
       ENDIF
 
@@ -2803,19 +2827,19 @@ c new OH+CO rate from JPL2006.
       ! store the volume of air [m3]
       XAIRM3 = AIRVOL(I,J,L)
       ! convert to [cm3]
-      XAIRM3 = XAIRM3 * (100.d0)**3
+      XAIRM3 = XAIRM3 * (100.e+0_fp)**3
 
       ! get the volume of cloud [cm3]
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
       ! QL is [g/g]
-      Vc = CLDF(L,I,J) * QL * AD(I,J,L) / dens_h2o
+      Vc = CLDF(I,J,L) * QL * AD(I,J,L) / dens_h2o
 #else
       ! QL is [cm3/cm3]
-      Vc = CLDF(L,I,J) * QL * XAIRM3
+      Vc = CLDF(I,J,L) * QL * XAIRM3
 #endif
 
       ! now calculate the cloud droplet surface area
-      AREA    = 3.d0 * (Vc/XAIRM3) / (RADIUS) ! keep Radius in [cm]
+      AREA    = 3.e+0_fp * (Vc/XAIRM3) / (RADIUS) ! keep Radius in [cm]
 
       ! ----------------------------------------------------
       ! 3.
@@ -2826,11 +2850,12 @@ c new OH+CO rate from JPL2006.
       !
       !   (b) calculate the hydrolysis rxn rate.
       ! ----------------------------------------------------
-      SQM = sqrt(mw_brno3 * 1.d3)    ! square root of molar mass [g/mole]
+      SQM = sqrt(mw_brno3 * 1.e+3_fp)    ! square root of molar mass [g/mole]
       STK = sqrt(T(I,J,L)) ! square root of temperature [K]
 
       ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-      DFKG  = 9.45D17/DENAIR * STK * SQRT(3.472D-2 + 1.D0/(SQM*SQM))
+      DFKG  = 9.45E+17_fp/DENAIR * STK * SQRT(3.472E-2_fp 
+     &     + 1.E+0_fp/(SQM*SQM))
 
       ! Compute ARSL1K according to the formula listed above
       cld1k = AREA / ( RADIUS/DFKG + 2.749064E-4 
@@ -2858,7 +2883,7 @@ c new OH+CO rate from JPL2006.
 !\\
 ! !INTERFACE:
 !
-      REAL*8 FUNCTION FCRO2HO2( XCARBN )
+      REAL(fp) FUNCTION FCRO2HO2( XCARBN )
 !
 ! !REVISION HISTORY:
 !  24 Jul 2014 - R. Yantosca - Now inlined to calcrate.F
@@ -2869,9 +2894,9 @@ c new OH+CO rate from JPL2006.
       IMPLICIT NONE
 
       ! Arguments
-      REAL*8, INTENT(IN) :: XCARBN
+      REAL(fp), INTENT(IN) :: XCARBN
 
-      FCRO2HO2 = 1D0-EXP(-0.245D0*XCARBN)
+      FCRO2HO2 = 1E+0_fp-EXP(-0.245E+0_fp*XCARBN)
      
       ! Return to calling program
       END FUNCTION FCRO2HO2
@@ -2902,7 +2927,7 @@ c new OH+CO rate from JPL2006.
 !\\
 ! !INTERFACE: 
 !
-      REAL*8 FUNCTION FYHORO( ZDNUM, TT )
+      REAL(fp) FUNCTION FYHORO( ZDNUM, TT )
 ! 
 ! !USES:
 !
@@ -2910,8 +2935,8 @@ c new OH+CO rate from JPL2006.
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: ZDNUM   ! Air density   [molec/cm3 ]
-      REAL*8, INTENT(IN) :: TT      ! Temperature   [K         ]
+      REAL(fp), INTENT(IN) :: ZDNUM   ! Air density   [molec/cm3 ]
+      REAL(fp), INTENT(IN) :: TT      ! Temperature   [K         ]
 !
 ! !REVISION HISTORY:
 !  (1 ) Branching ratio calculation (tmf, 2/6/05).
@@ -2923,14 +2948,14 @@ c new OH+CO rate from JPL2006.
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: K1, K2, O2DNUM
+      REAL(fp) :: K1, K2, O2DNUM
 
       !=================================================================
       ! FYHORO begins here!
       !=================================================================
-      O2DNUM = ZDNUM * 0.21D0
-      K1     = 6.0D-14 * EXP(-550.D0/TT) * O2DNUM
-      K2     = 9.5D+13 * EXP(-5988.D0/TT) 
+      O2DNUM = ZDNUM * 0.21E+0_fp
+      K1     = 6.0E-14_fp * EXP(-550.E+0_fp/TT) * O2DNUM
+      K2     = 9.5E+13_fp * EXP(-5988.E+0_fp/TT) 
 
       FYHORO = K1 / (K1 + K2)
      
@@ -2950,7 +2975,7 @@ c new OH+CO rate from JPL2006.
 !\\
 ! !INTERFACE:
 !
-      REAL*8 FUNCTION FYRNO3( XCARBN, ZDNUM, TT )
+      REAL(fp) FUNCTION FYRNO3( XCARBN, ZDNUM, TT )
 !
 ! !USES:
 !
@@ -2958,9 +2983,9 @@ c new OH+CO rate from JPL2006.
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: XCARBN   ! Number of C atoms in RO2
-      REAL*8, INTENT(IN) :: ZDNUM    ! Air density   [molec/cm3 ]
-      REAL*8, INTENT(IN) :: TT       ! Temperature   [K         ]
+      REAL(fp), INTENT(IN) :: XCARBN   ! Number of C atoms in RO2
+      REAL(fp), INTENT(IN) :: ZDNUM    ! Air density   [molec/cm3 ]
+      REAL(fp), INTENT(IN) :: TT       ! Temperature   [K         ]
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Original code from Larry Horowitz, Jinyou Liang, Gerry Gardner,
@@ -2978,8 +3003,8 @@ c new OH+CO rate from JPL2006.
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: YYYN, XXYN,  AAA,  RARB, ZZYN
-      REAL*8 :: XF,   ALPHA, Y300, BETA, XMINF, XM0
+      REAL(fp) :: YYYN, XXYN,  AAA,  RARB, ZZYN
+      REAL(fp) :: XF,   ALPHA, Y300, BETA, XMINF, XM0
 
       ! Initialize static variables
       DATA   Y300,ALPHA,BETA,XM0,XMINF,XF/.826,1.94E-22,.97,0.,8.1,.411/
@@ -3009,7 +3034,7 @@ c new OH+CO rate from JPL2006.
 !\\
 ! !INTERFACE:
 !
-      REAL*8 FUNCTION ARSL1K( AREA, RADIUS, DENAIR, STKCF, STK, SQM )
+      REAL(fp) FUNCTION ARSL1K( AREA, RADIUS, DENAIR, STKCF, STK, SQM )
 !
 ! !USES:
 !
@@ -3018,23 +3043,23 @@ c new OH+CO rate from JPL2006.
 ! !INPUT PARAMETERS: 
 !
       ! Surface  area of wet aerosols/volume of air [cm2/cm3]
-      REAL*8, INTENT(IN) :: AREA     
+      REAL(fp), INTENT(IN) :: AREA     
 
       ! Radius of wet aerosol [cm], order of 0.01-10 um;
       ! Note that radius here is Rd, not Ro
-      REAL*8, INTENT(IN) :: RADIUS 
+      REAL(fp), INTENT(IN) :: RADIUS 
   
       ! Density of air [#/cm3]
-      REAL*8, INTENT(IN) :: DENAIR  
+      REAL(fp), INTENT(IN) :: DENAIR  
  
       ! Sticking coefficient [unitless], order of 0.1
-      REAL*8, INTENT(IN) :: STKCF  
+      REAL(fp), INTENT(IN) :: STKCF  
   
       ! Square root of temperature [K]
-      REAL*8, INTENT(IN) :: STK  
+      REAL(fp), INTENT(IN) :: STK  
     
       ! Square root of molecular weight [g/mole]
-      REAL*8, INTENT(IN) :: SQM      
+      REAL(fp), INTENT(IN) :: SQM      
 !
 ! !REMARKS:
 !  The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
@@ -3060,23 +3085,26 @@ c new OH+CO rate from JPL2006.
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: DFKG
+      REAL(fp) :: DFKG
 
       !=================================================================
       ! ARSL1K begins here!
       !=================================================================
-      IF ( AREA < 0d0   .or. DENAIR < 1d-30 .or. RADIUS < 1d-30  .or.
-     &     SQM  < 1d-30 .or. STK    < 1d-30 .or. STKCF  < 1d-30 ) THEN
+      IF ( AREA < 0e0_fp   .or. DENAIR < 1e-30_fp .or. 
+     &     RADIUS < 1e-30_fp  .or.
+     &     SQM  < 1e-30_fp .or. STK    < 1e-30_fp .or. 
+     &     STKCF  < 1e-30_fp ) THEN
 
          ! Use default value if any of the above values are zero
          ! This will prevent div-by-zero errors in the eqns below
          ! Value changed from 1d-3 to 1d-30 (bhh, jmao, eam, 7/18/2011)
-         ARSL1K = 1.D-30
+         ARSL1K = 1.E-30_fp
 
       ELSE
 
          ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-         DFKG  = 9.45D17/DENAIR * STK * SQRT(3.472D-2 + 1.D0/(SQM*SQM))
+         DFKG  = 9.45E+17_fp/DENAIR * STK * SQRT(3.472E-2_fp + 1.E0_fp/
+     &    (SQM*SQM))
 
          ! Compute ARSL1K according to the formula listed above
          ARSL1K = AREA / ( RADIUS/DFKG + 2.749064E-4*SQM/(STKCF*STK) )

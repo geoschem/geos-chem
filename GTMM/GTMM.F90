@@ -29,6 +29,8 @@ PROGRAM GTMM
 
   USE      INPUT_GTMM_MOD
 
+  USE      PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
 !
 ! !AUTHOR:
@@ -63,13 +65,14 @@ PROGRAM GTMM
 ! ( 3) Main program for offline simulations. Added coupling to GEOS-Chem
 !      (see GTMM_coupled.f90) (ccc, 7/9/10)
 ! ( 4) Added capacity to restart runs. (ccc, 7/9/10)
+! 25 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-  REAL*8, DIMENSION(72, 46)  :: Hg0reemit    ! Dummy array. Used for coupling
+  REAL(fp), DIMENSION(72, 46)  :: Hg0reemit    ! Dummy array. Used for coupling
                                              ! with GC only
   INTEGER :: year, month, ageClass
   LOGICAL :: LCPLE=.FALSE.                   ! Logical to define if we run

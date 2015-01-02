@@ -636,7 +636,7 @@ hcn_ch3cn_mod.o             : hcn_ch3cn_mod.F                                \
 hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
                               hcoi_gc_diagn_include.H                        \
                               diag_mod.o              diag53_mod.o           \
-                              diag56_mod.o
+                              diag56_mod.o            tracerid_mod.o
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               global_oh_mod.o         tracerid_mod.o         \
@@ -888,10 +888,14 @@ tpcore_bc_mod.o             : tpcore_bc_mod.F                                \
                               tracer_mod.o
 
 tpcore_geos5_window_mod.o   : tpcore_geos5_window_mod.F90
+ifeq ($(PRECISION),8)
 	$(F90) -c $(FREEFORM) $(R8) $<
+endif
 
 tpcore_geosfp_window_mod.o  : tpcore_geosfp_window_mod.F90
+ifeq ($(PRECISION),8)
 	$(F90) -c $(FREEFORM) $(R8) $<
+endif
 
 tracer_mod.o                : tracer_mod.F
 

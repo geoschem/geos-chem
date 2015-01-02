@@ -18,6 +18,8 @@ SUBROUTINE doHerbivory
   USE defineConstants
   USE loadCASAinput
   USE defineArrays
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
   
   IMPLICIT NONE
 !
@@ -30,7 +32,8 @@ SUBROUTINE doHerbivory
 !  delivered to leaves)  units kJ/m2/yr
 !
 ! !REVISION HISTORY:
-!  09 July 2010 - C. Carouge  - Parallelization.
+!  09 Jul 2010 - C. Carouge  - Parallelization.
+!  25 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -38,7 +41,7 @@ SUBROUTINE doHerbivory
 ! !LOCAL VARIABLES:
 !
   INTEGER :: i
-  REAL*8  :: herb(n_veg, 1)
+  REAL(fp)  :: herb(n_veg, 1)
   character(len=f_len_output+4) :: filename3
   
   filename3(1:f_len_output)=outputpath
@@ -53,17 +56,19 @@ SUBROUTINE doHerbivory
   !! 1/35.5 = 0.028
   !
 
-  herb(:,1)=0.0d0
+  herb(:,1)=0.0e+0_fp
 !$OMP PARALLEL DO     &
 !$OMP DEFAULT(SHARED) &
 !$OMP PRIVATE(i)
   DO i=1, n_veg
-     herb(i,1)=0.028d0*(35.5d0*sum(NPP(i,1:12))/2d0)**2.04d0
-     herb(i,1)=herb(i,1)*(10d0**(-4.8d0))
+     herb(i,1)=0.028e+0_fp*(35.5e+0_fp*sum(NPP(i,1:12))/ &
+         2e+0_fp)**2.04e+0_fp
+     herb(i,1)=herb(i,1)*(10e+0_fp**(-4.8e+0_fp))
      grass_herbivory(i,1)=herb(i,1)
-     herb(i,1)=0.0d0
-     herb(i,1)=0.028d0*(35.5d0*sum(NPP(i,1:12))/3d0)**2.04d0
-     herb(i,1)=herb(i,1)*(10.00d0**(-4.8d0))
+     herb(i,1)=0.0e+0_fp
+     herb(i,1)=0.028e+0_fp*(35.5e+0_fp*sum(NPP(i,1:12))/ &
+         3e+0_fp)**2.04e+0_fp
+     herb(i,1)=herb(i,1)*(10.00e+0_fp**(-4.8e+0_fp))
      trees_herbivory(i,1)=herb(i,1)
   END DO
 !$OMP END PARALLEL DO
@@ -73,16 +78,16 @@ SUBROUTINE doHerbivory
   !intercept (33%) representing a minimum consumption limit
   !outside the growing season - scalar is equal for C3 and C4
   !NPP
-  herb(1,:)=0.0d0
+  herb(1,:)=0.0e+0_fp
 !$OMP PARALLEL DO     &
 !$OMP DEFAULT(SHARED) &
 !$OMP PRIVATE(i)
   DO i=1, n_veg
-     IF (sum(NPP(i,1:12)) .eq. 0d0) THEN
-        herb(i,1)=(0.08333333333d0)
+     IF (sum(NPP(i,1:12)) .eq. 0e+0_fp) THEN
+        herb(i,1)=(0.08333333333e+0_fp)
      ELSE
-        herb(i,1)=0.666667d0*(NPP(i,mo)/sum(NPP(i,1:12)))+ &
-             0.33333d0*0.08333d0
+        herb(i,1)=0.666667e+0_fp*(NPP(i,mo)/sum(NPP(i,1:12)))+ &
+             0.33333e+0_fp*0.08333e+0_fp
      END IF
   END DO
 !$OMP END PARALLEL DO

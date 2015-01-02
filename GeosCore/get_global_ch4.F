@@ -14,10 +14,10 @@
 !
 !  Arguments as Output:
 !  ===========================================================================
-!  (3 ) A3090S      (REAL*8 ) : CH4 concentration [ppbv], 90S - 30S lat
-!  (4 ) A0030S      (REAL*8 ) : CH4 concentration [ppbv], 30S - 00  lat
-!  (5 ) A0030N      (REAL*8 ) : CH4 concentration [ppbv], 00  - 30N lat
-!  (6 ) A3090N      (REAL*8 ) : CH4 concentration [ppbv], 30N - 90N lat
+!  (3 ) A3090S      (REAL(fp) ) : CH4 concentration [ppbv], 90S - 30S lat
+!  (4 ) A0030S      (REAL(fp) ) : CH4 concentration [ppbv], 30S - 00  lat
+!  (5 ) A0030N      (REAL(fp) ) : CH4 concentration [ppbv], 00  - 30N lat
+!  (6 ) A3090N      (REAL(fp) ) : CH4 concentration [ppbv], 30N - 90N lat
 !
 !  NOTES:
 !  (1 ) GET_GLOBAL_CH4 only has to be called at the start of the new year,
@@ -44,12 +44,15 @@
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LFUTURE instead of LFUTURE
 !                              from logical_mod.F
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
 ! !USES:
 !
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCENARIO
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !
@@ -62,7 +65,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,         INTENT(OUT) :: A3090S, A0030S, A0030N, A3090N
+      REAL(fp),         INTENT(OUT) :: A3090S, A0030S, A0030N, A3090N
 !
 ! !LOCAL VARIABLES:
 !
@@ -102,161 +105,161 @@
 
             ! Preindustrial years
             CASE ( :1750 )
-               A3090S = 700.0d0
-               A0030S = 700.0d0
-               A0030N = 700.0d0
-               A3090N = 700.0d0
+               A3090S = 700.0e+0_fp
+               A0030S = 700.0e+0_fp
+               A0030N = 700.0e+0_fp
+               A3090N = 700.0e+0_fp
                
             ! Modern-day years ...
             CASE( 1983 )
-               A3090S = 1583.48d0
-               A0030S = 1598.24d0
-               A0030N = 1644.37d0
-               A3090N = 1706.48d0
+               A3090S = 1583.48e+0_fp
+               A0030S = 1598.24e+0_fp
+               A0030N = 1644.37e+0_fp
+               A3090N = 1706.48e+0_fp
 
             CASE( 1984 )
-               A3090S = 1597.77d0
-               A0030S = 1606.66d0
-               A0030N = 1655.62d0
-               A3090N = 1723.63d0
+               A3090S = 1597.77e+0_fp
+               A0030S = 1606.66e+0_fp
+               A0030N = 1655.62e+0_fp
+               A3090N = 1723.63e+0_fp
 
             CASE( 1985 )
-               A3090S = 1608.08d0
-               A0030S = 1620.43d0
-               A0030N = 1668.11d0
-               A3090N = 1736.78d0
+               A3090S = 1608.08e+0_fp
+               A0030S = 1620.43e+0_fp
+               A0030N = 1668.11e+0_fp
+               A3090N = 1736.78e+0_fp
                
             CASE( 1986 )
-               A3090S = 1619.91d0  
-               A0030S = 1632.24d0  
-               A0030N = 1682.88d0  
-               A3090N = 1752.71d0
+               A3090S = 1619.91e+0_fp  
+               A0030S = 1632.24e+0_fp  
+               A0030N = 1682.88e+0_fp  
+               A3090N = 1752.71e+0_fp
 
             CASE( 1987 )
-               A3090S = 1630.54d0  
-               A0030S = 1640.54d0  
-               A0030N = 1702.05d0  
-               A3090N = 1763.03d0
+               A3090S = 1630.54e+0_fp  
+               A0030S = 1640.54e+0_fp  
+               A0030N = 1702.05e+0_fp  
+               A3090N = 1763.03e+0_fp
 
             CASE( 1988 )
-               A3090S = 1642.08d0  
-               A0030S = 1651.60d0  
-               A0030N = 1713.07d0  
-               A3090N = 1775.66d0
+               A3090S = 1642.08e+0_fp  
+               A0030S = 1651.60e+0_fp  
+               A0030N = 1713.07e+0_fp  
+               A3090N = 1775.66e+0_fp
 
             CASE( 1989 )
-               A3090S = 1654.03d0  
-               A0030S = 1666.12d0  
-               A0030N = 1720.53d0  
-               A3090N = 1781.83d0
+               A3090S = 1654.03e+0_fp  
+               A0030S = 1666.12e+0_fp  
+               A0030N = 1720.53e+0_fp  
+               A3090N = 1781.83e+0_fp
 
             CASE( 1990 )
-               A3090S = 1663.21d0  
-               A0030S = 1672.45d0  
-               A0030N = 1733.84d0  
-               A3090N = 1791.92d0
+               A3090S = 1663.21e+0_fp  
+               A0030S = 1672.45e+0_fp  
+               A0030N = 1733.84e+0_fp  
+               A3090N = 1791.92e+0_fp
 
             CASE( 1991 )
-               A3090S = 1673.52d0  
-               A0030S = 1683.87d0  
-               A0030N = 1750.68d0  
-               A3090N = 1800.90d0
+               A3090S = 1673.52e+0_fp  
+               A0030S = 1683.87e+0_fp  
+               A0030N = 1750.68e+0_fp  
+               A3090N = 1800.90e+0_fp
 
             CASE( 1992 )
-               A3090S = 1687.97d0  
-               A0030S = 1692.97d0  
-               A0030N = 1755.94d0  
-               A3090N = 1807.16d0
+               A3090S = 1687.97e+0_fp  
+               A0030S = 1692.97e+0_fp  
+               A0030N = 1755.94e+0_fp  
+               A3090N = 1807.16e+0_fp
 
             CASE( 1993 )
-               A3090S = 1687.83d0  
-               A0030S = 1696.48d0  
-               A0030N = 1758.86d0  
-               A3090N = 1810.99d0
+               A3090S = 1687.83e+0_fp  
+               A0030S = 1696.48e+0_fp  
+               A0030N = 1758.86e+0_fp  
+               A3090N = 1810.99e+0_fp
 
             CASE( 1994 )
-               A3090S = 1692.00d0  
-               A0030S = 1701.41d0  
-               A0030N = 1766.98d0  
-               A3090N = 1817.12d0
+               A3090S = 1692.00e+0_fp  
+               A0030S = 1701.41e+0_fp  
+               A0030N = 1766.98e+0_fp  
+               A3090N = 1817.12e+0_fp
 
             CASE( 1995 )
-               A3090S = 1701.04d0  
-               A0030S = 1709.07d0  
-               A0030N = 1778.25d0  
-               A3090N = 1822.04d0
+               A3090S = 1701.04e+0_fp  
+               A0030S = 1709.07e+0_fp  
+               A0030N = 1778.25e+0_fp  
+               A3090N = 1822.04e+0_fp
 
             CASE( 1996 )
-               A3090S = 1701.87d0  
-               A0030S = 1711.01d0  
-               A0030N = 1778.08d0  
-               A3090N = 1825.23d0
+               A3090S = 1701.87e+0_fp  
+               A0030S = 1711.01e+0_fp  
+               A0030N = 1778.08e+0_fp  
+               A3090N = 1825.23e+0_fp
             
             CASE( 1997 )
-               A3090S = 1708.01d0  
-               A0030S = 1713.91d0  
-               A0030N = 1781.43d0  
-               A3090N = 1825.15d0
+               A3090S = 1708.01e+0_fp  
+               A0030S = 1713.91e+0_fp  
+               A0030N = 1781.43e+0_fp  
+               A3090N = 1825.15e+0_fp
 
             CASE( 1998 )
-               A3090S = 1716.55d0  
-               A0030S = 1724.57d0  
-               A0030N = 1783.86d0  
-               A3090N = 1839.72d0
+               A3090S = 1716.55e+0_fp  
+               A0030S = 1724.57e+0_fp  
+               A0030N = 1783.86e+0_fp  
+               A3090N = 1839.72e+0_fp
 
             CASE( 1999 )
-               A3090S = 1725.70d0  
-               A0030S = 1734.06d0  
-               A0030N = 1791.50d0  
-               A3090N = 1842.59d0
+               A3090S = 1725.70e+0_fp  
+               A0030S = 1734.06e+0_fp  
+               A0030N = 1791.50e+0_fp  
+               A3090N = 1842.59e+0_fp
 
             CASE( 2000 )
-               A3090S = 1728.13d0  
-               A0030S = 1737.70d0  
-               A0030N = 1792.42d0  
-               A3090N = 1840.83d0
+               A3090S = 1728.13e+0_fp  
+               A0030S = 1737.70e+0_fp  
+               A0030N = 1792.42e+0_fp  
+               A3090N = 1840.83e+0_fp
 
             CASE( 2001 )
-               A3090S = 1726.92d0  
-               A0030S = 1730.72d0  
-               A0030N = 1789.11d0  
-               A3090N = 1841.85d0
+               A3090S = 1726.92e+0_fp  
+               A0030S = 1730.72e+0_fp  
+               A0030N = 1789.11e+0_fp  
+               A3090N = 1841.85e+0_fp
 
             CASE( 2002 )
-               A3090S = 1729.75d0
-               A0030S = 1735.28d0
-               A0030N = 1790.08d0
-               A3090N = 1842.36d0
+               A3090S = 1729.75e+0_fp
+               A0030S = 1735.28e+0_fp
+               A0030N = 1790.08e+0_fp
+               A3090N = 1842.36e+0_fp
 
             CASE( 2003 )
-               A3090S = 1729.64d0
-               A0030S = 1735.49d0
-               A0030N = 1795.89d0
-               A3090N = 1853.97d0
+               A3090S = 1729.64e+0_fp
+               A0030S = 1735.49e+0_fp
+               A0030N = 1795.89e+0_fp
+               A3090N = 1853.97e+0_fp
 
             CASE( 2004 )
-               A3090S = 1728.72d0
-               A0030S = 1738.54d0
-               A0030N = 1797.30d0
-               A3090N = 1849.58d0
+               A3090S = 1728.72e+0_fp
+               A0030S = 1738.54e+0_fp
+               A0030N = 1797.30e+0_fp
+               A3090N = 1849.58e+0_fp
 
             CASE( 2005 )
-               A3090S = 1727.10d0
-               A0030S = 1734.65d0
-               A0030N = 1795.73d0
-               A3090N = 1849.79d0
+               A3090S = 1727.10e+0_fp
+               A0030S = 1734.65e+0_fp
+               A0030N = 1795.73e+0_fp
+               A3090N = 1849.79e+0_fp
 
             CASE( 2006 )
-               A3090S = 1726.53d0
-               A0030S = 1735.17d0
-               A0030N = 1796.30d0
-               A3090N = 1848.20d0
+               A3090S = 1726.53e+0_fp
+               A0030S = 1735.17e+0_fp
+               A0030N = 1796.30e+0_fp
+               A3090N = 1848.20e+0_fp
 
             CASE( 2007 )
-               A3090S = 1732.52d0
-               A0030S = 1741.68d0
-               A0030N = 1801.38d0
-               A3090N = 1855.55d0
+               A3090S = 1732.52e+0_fp
+               A0030S = 1741.68e+0_fp
+               A0030N = 1801.38e+0_fp
+               A3090N = 1855.55e+0_fp
 
             ! Future year 2030
             CASE( 2025:2035 )
@@ -267,25 +270,25 @@
                ! concentrations. (havala, 1/25/08)
                SELECT CASE( FUTURE_SCENARIO )
                   CASE( 'A1' )
-                     A3090S = 2202.0d0 
-                     A0030S = 2202.0d0
-                     A0030N = 2202.0d0
-                     A3090N = 2202.0d0 
+                     A3090S = 2202.0e+0_fp 
+                     A0030S = 2202.0e+0_fp
+                     A0030N = 2202.0e+0_fp
+                     A3090N = 2202.0e+0_fp 
                   CASE( 'B1' )
-                     A3090S = 1927.0d0 
-                     A0030S = 1927.0d0
-                     A0030N = 1927.0d0
-                     A3090N = 1927.0d0 
+                     A3090S = 1927.0e+0_fp 
+                     A0030S = 1927.0e+0_fp
+                     A0030N = 1927.0e+0_fp
+                     A3090N = 1927.0e+0_fp 
                   CASE( 'A2' )
                      ! Not defined yet
                   CASE( 'B2' )
                      ! Not defined yet
                   CASE DEFAULT
                      ! 2007 is the default
-                     A3090S = 1732.52d0
-                     A0030S = 1741.68d0
-                     A0030N = 1801.38d0
-                     A3090N = 1855.55d0
+                     A3090S = 1732.52e+0_fp
+                     A0030S = 1741.68e+0_fp
+                     A0030N = 1801.38e+0_fp
+                     A3090N = 1855.55e+0_fp
                END SELECT
 
             ! Future year 2050
@@ -297,50 +300,50 @@
                ! concentrations. (havala, 1/25/08)
                SELECT CASE ( FUTURE_SCENARIO )
                   CASE ( 'A1' )
-                     A3090S = 2400.0d0 
-                     A0030S = 2400.0d0
-                     A0030N = 2400.0d0
-                     A3090N = 2400.0d0 
+                     A3090S = 2400.0e+0_fp 
+                     A0030S = 2400.0e+0_fp
+                     A0030N = 2400.0e+0_fp
+                     A3090N = 2400.0e+0_fp 
                   CASE ( 'B1' )
-                     A3090S = 1881.0d0 
-                     A0030S = 1881.0d0
-                     A0030N = 1881.0d0
-                     A3090N = 1881.0d0 
+                     A3090S = 1881.0e+0_fp 
+                     A0030S = 1881.0e+0_fp
+                     A0030N = 1881.0e+0_fp
+                     A3090N = 1881.0e+0_fp 
                   CASE ( 'A2' )
-                     A3090S = 2562.0d0 
-                     A0030S = 2562.0d0
-                     A0030N = 2562.0d0
-                     A3090N = 2562.0d0
+                     A3090S = 2562.0e+0_fp 
+                     A0030S = 2562.0e+0_fp
+                     A0030N = 2562.0e+0_fp
+                     A3090N = 2562.0e+0_fp
                   CASE ( 'B2' )
-                     A3090S = 2363.0d0 
-                     A0030S = 2363.0d0
-                     A0030N = 2363.0d0
-                     A3090N = 2363.0d0
+                     A3090S = 2363.0e+0_fp 
+                     A0030S = 2363.0e+0_fp
+                     A0030N = 2363.0e+0_fp
+                     A3090N = 2363.0e+0_fp
                   CASE DEFAULT
                      ! 2007 is the default
-                     A3090S = 1732.52d0
-                     A0030S = 1741.68d0
-                     A0030N = 1801.38d0
-                     A3090N = 1855.55d0
+                     A3090S = 1732.52e+0_fp
+                     A0030S = 1741.68e+0_fp
+                     A0030N = 1801.38e+0_fp
+                     A3090N = 1855.55e+0_fp
                END SELECT
 
             ! Default is to use 2007 data for other years
             ! for which we do not yet have data (jaf, 4/15/09)
             CASE DEFAULT
-               A3090S = 1732.52d0
-               A0030S = 1741.68d0
-               A0030N = 1801.38d0
-               A3090N = 1855.55d0
+               A3090S = 1732.52e+0_fp
+               A0030S = 1741.68e+0_fp
+               A0030N = 1801.38e+0_fp
+               A3090N = 1855.55e+0_fp
 
          END SELECT
 
       ELSE
          
          ! ...otherwise assume constant global CH4
-         A3090S = 1700.0d0
-         A0030S = 1700.0d0
-         A0030N = 1700.0d0
-         A3090N = 1700.0d0
+         A3090S = 1700.0e+0_fp
+         A0030S = 1700.0e+0_fp
+         A0030N = 1700.0e+0_fp
+         A3090N = 1700.0e+0_fp
          
       ENDIF
 

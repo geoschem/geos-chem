@@ -6,7 +6,7 @@
 ! !MODULE: transfer_mod
 !
 ! !DESCRIPTION: Module TRANSFER\_MOD contains routines used to copy data 
-!  from REAL*4 to REAL*8 arrays after being read from disk.  Also, vertical 
+!  from REAL*4 to REAL(fp) arrays after being read from disk.  Also, vertical 
 !  levels will be collapsed in the stratosphere if necessary.  This will help 
 !  us to gain computational advantage. 
 !\\
@@ -20,6 +20,8 @@
       USE CMN_SIZE_MOD              
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+      USE PRECISION_MOD
+
 
       IMPLICIT NONE
 
@@ -27,28 +29,12 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: TRANSFER_A6
-      PUBLIC  :: TRANSFER_2D
       PUBLIC  :: TRANSFER_3D
       PUBLIC  :: TRANSFER_3D_Bry
       PUBLIC  :: TRANSFER_3D_Lp1
-      PUBLIC  :: TRANSFER_3D_TROP
       PUBLIC  :: TRANSFER_G5_PLE
-      PUBLIC  :: TRANSFER_ZONAL
-      PUBLIC  :: TRANSFER_TO_1D
       PUBLIC  :: INIT_TRANSFER
       PUBLIC  :: CLEANUP_TRANSFER
-
-      INTERFACE TRANSFER_2D
-         MODULE PROCEDURE TRANSFER_2D_INT
-         MODULE PROCEDURE TRANSFER_2D_R4
-         MODULE PROCEDURE TRANSFER_2D_R8
-      END INTERFACE
-
-      INTERFACE TRANSFER_ZONAL
-         MODULE PROCEDURE TRANSFER_ZONAL_R4
-         MODULE PROCEDURE TRANSFER_ZONAL_R8
-      END INTERFACE
 
       INTERFACE TRANSFER_3D
          MODULE PROCEDURE TRANSFER_3D_R4
@@ -64,13 +50,8 @@
       PRIVATE :: LUMP_4
       PRIVATE :: LUMP_4_R4
       PRIVATE :: LUMP_4_R8
-      PRIVATE :: TRANSFER_2D_INT
-      PRIVATE :: TRANSFER_2D_R4
-      PRIVATE :: TRANSFER_2D_R8
       PRIVATE :: TRANSFER_3D_R4
       PRIVATE :: TRANSFER_3D_R8
-      PRIVATE :: TRANSFER_ZONAL_R4
-      PRIVATE :: TRANSFER_ZONAL_R8
 
       INTERFACE LUMP_2
          MODULE PROCEDURE LUMP_2_R4
@@ -167,6 +148,12 @@
 !                              instead do a direct cast assignment
 !  03 Apr 2014 - R. Yantosca - Add TRANSFER_3D_R4 and TRANSFER_3D_R8 routines
 !                              so that they can be overloaded w/ an interface
+!  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_A6 function
+!  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_ZONAL* functions
+!  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_TO_1D function
+!  06 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_2D* functions
+!   6 Nov 2014 - R. Yantosca - Remove obsolete TRANSFER_3D_TROP function
+!  04 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -179,148 +166,9 @@
       INTEGER             :: L_COPY
 
       ! Arrays
-      REAL*8, ALLOCATABLE :: EDGE_IN(:)
+      REAL(fp), ALLOCATABLE :: EDGE_IN(:)
 
       CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_a6
-!
-! !DESCRIPTION: Subroutine TRANSFER\_A6 transfers A-6 data from a REAL*4 
-!  array to a REAL*8 array.  Vertical layers are collapsed (from LGLOB to 
-!  LLPAR) if necessary.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_A6( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB)     ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,  INTENT(OUT) :: OUT(LLPAR,IIPAR,JJPAR)    ! Output data
-!
-! !REMARKS:
-! 
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - R. Yantosca - Initial version
-!  (1 ) A-6 fields are dimensioned (LLPAR,IIPAR,JJPAR) since for Fortran
-!        efficiency, since the code loops over vertical layers L in a column
-!        located above a certain surface location (I,J). (bmy, 9/21/01)
-!  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
-!  (3 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
-!        Now I0, J0 are local variables. (bmy, 3/11/03)
-!  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
-!  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
-!  (6 ) Rewritten for clarity (bmy, 2/8/07)
-!  (7 ) Now get nested-grid offsets (dan, bmy, 11/6/08)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
-!                              the vertical grids are identical
-!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I, J, L
-      REAL*4  :: INCOL(LGLOB)
-      
-      !================================================================
-      ! TRANSFER_A6 begins here!
-      !================================================================
-
-      ! Copy the first L_COPY levels
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-      DO L = 1, L_COPY
-         OUT(L,I,J) = IN(I+I0,J+J0,L)
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Exit if we are running at full vertical resolution
-      IF ( LLPAR == LGLOB ) RETURN
-
-      !=================================================================
-      ! Collapse levels in the stratosphere 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, INCOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Store vertical column at (IREF,JREF) in a 1-D vector
-         INCOL = IN( I+I0, J+J0, 1:LGLOB )
-            
-#if   defined( GEOS_4 )
-
-         !--------------------------------------------------------------
-         ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
-         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time
-         OUT(20,I,J) = LUMP_2( INCOL, LGLOB, 20 )
-         OUT(21,I,J) = LUMP_2( INCOL, LGLOB, 22 )
-         OUT(22,I,J) = LUMP_2( INCOL, LGLOB, 24 )
-         OUT(23,I,J) = LUMP_2( INCOL, LGLOB, 26 )
-
-         ! Lump 4 levels together at a time
-         OUT(24,I,J) = LUMP_4( INCOL, LGLOB, 28 )
-         OUT(25,I,J) = LUMP_4( INCOL, LGLOB, 32 )
-         OUT(26,I,J) = LUMP_4( INCOL, LGLOB, 36 ) 
-         OUT(27,I,J) = LUMP_4( INCOL, LGLOB, 40 ) 
-         OUT(28,I,J) = LUMP_4( INCOL, LGLOB, 44 ) 
-         OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 48 ) 
-         OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 52 ) 
-
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-
-         !--------------------------------------------------------------
-         ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
-         ! L=36.  Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time
-         OUT(37,I,J) = LUMP_2( INCOL, LGLOB, 37 )
-         OUT(38,I,J) = LUMP_2( INCOL, LGLOB, 39 )
-         OUT(39,I,J) = LUMP_2( INCOL, LGLOB, 41 )
-         OUT(40,I,J) = LUMP_2( INCOL, LGLOB, 43 )
-
-         ! Lump 4 levels together at a time
-         OUT(41,I,J) = LUMP_4( INCOL, LGLOB, 45 )
-         OUT(42,I,J) = LUMP_4( INCOL, LGLOB, 49 )
-         OUT(43,I,J) = LUMP_4( INCOL, LGLOB, 53 ) 
-         OUT(44,I,J) = LUMP_4( INCOL, LGLOB, 57 ) 
-         OUT(45,I,J) = LUMP_4( INCOL, LGLOB, 61 ) 
-         OUT(46,I,J) = LUMP_4( INCOL, LGLOB, 65 ) 
-         OUT(47,I,J) = LUMP_4( INCOL, LGLOB, 69 ) 
-
-#endif
-
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE TRANSFER_A6
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -441,7 +289,7 @@
 ! !IROUTINE: transfer_3d_r8
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_R8 transfers 3-dimensional data from a 
-!  REAL*4  array to a REAL*8 array.  Vertical layers are collapsed (from LGLOB
+!  REAL*4  array to a REAL(fp) array.  Vertical layers are collapsed (from LGLOB
 !  to LLPAR) if necessary.
 !\\
 !\\
@@ -568,7 +416,7 @@
 ! !IROUTINE: transfer_3d_bry
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_Bry transfers 3-dimensional data 
-!  from a REAL*4 array to a REAL*8 array.  Vertical layers are collapsed 
+!  from a REAL*4 array to a REAL(fp) array.  Vertical layers are collapsed 
 !  (from LGLOB to LLPAR) if necessary.  This routine was specially created 
 !  for 2 x 2.5 Bry data in strat\_chem\_mod.F90.
 !\\
@@ -583,7 +431,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: OUT(144,91,LLPAR)   ! Output data
+      REAL(fp),  INTENT(OUT) :: OUT(144,91,LLPAR)   ! Output data
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2012 - R. Yantosca - Initial version, based on TRANSFER_3D
@@ -694,7 +542,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)   ! Output data
+      REAL(fp),  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)   ! Output data
 !
 ! !REVISION HISTORY: 
 !  08 Feb 2007 - R. Yantosca - Initial version
@@ -765,7 +613,7 @@
 ! !IROUTINE: transfer_3d_lp1
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_Lp1 transfers 3-D data from a REAL*4 
-!  array of dimension (IIPAR,JJPAR,LGLOB+1) to a REAL*8 array of dimension 
+!  array of dimension (IIPAR,JJPAR,LGLOB+1) to a REAL(fp) array of dimension 
 !  (IIPAR,JJPAR,LLPAR+1).  Regrid in the vertical if needed.
 !\\
 !\\
@@ -779,7 +627,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)   ! Output data
+      REAL(fp),  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)   ! Output data
 ! 
 ! !REVISION HISTORY: 
 !  08 Feb 2007 - R. Yantosca - Initial version
@@ -849,482 +697,6 @@
 #endif
 
       END SUBROUTINE TRANSFER_3D_Lp1
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_3d_trop
-!
-! !DESCRIPTION: Subroutine TRANSFER\_3D\_TROP transfers tropospheric 3-D 
-!  data from a REAL*4  array to a REAL*8 array. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_3D_TROP( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LLCHEM_FIX)     ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLCHEM_FIX)    ! Output data
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - M. Evans    - Initial version
-!  08 Feb 2007 - R. Yantosca - Now use LLCHEM_FIX instead of LLCHEM, since 
-!                              most of the offline simulations use the annual 
-!                              mean tropopause
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: L
-     
-      !=================================================================
-      ! TRANSFER_3D_TROP begins here!
-      !=================================================================
-
-      ! Cast to REAL*8 and resize up to LLTROP
-      DO L = 1, LLCHEM_FIX
-         CALL TRANSFER_2D( IN(:,:,L), OUT(:,:,L) )
-      ENDDO
-      
-      END SUBROUTINE TRANSFER_3D_TROP 
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_zonal_r4
-!
-! !DESCRIPTION: Subroutine TRANSFER\_ZONAL\_R4 transfers zonal-mean data from 
-!  a REAL*4 array to a REAL*8 array.  Vertical levels are collapsed (from 
-!  LGLOB to LLPAR) if necessary. (mje, bmy, 9/21/01, 2/8/07)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_ZONAL_R4( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(JJPAR,LGLOB)     ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*4,  INTENT(OUT) :: OUT(JJPAR,LLPAR)    ! Output data
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - M. Evans    - Initial version
-!  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
-!        (bmy, 9/21/01)
-!  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
-!  (3 ) Now use function GET_YOFFSET from "grid_mod.f".  Now I0 and J0 are 
-!        local variables (bmy, 3/11/03)
-!  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
-!  (5 ) Rewritten for clarity (bmy, 2/8/07)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
-!                              the vertical grids are identical
-!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: J
-      REAL*4  :: INCOL(LGLOB)
-     
-      !================================================================
-      ! TRANSFER_ZONAL_R4 begins here!
-      !================================================================
-
-      ! Copy the first L_COPY levels
-      OUT(:,1:L_COPY) = IN( 1+J0:JJPAR+J0, 1:L_COPY )
-
-      ! Exit if we are running at full vertical resolution
-      IF ( LLPAR == LGLOB ) RETURN
-
-      !================================================================
-      ! Collapse levels in the stratosphere
-      !================================================================    
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, INCOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-
-         ! Store vertical column at (I,J) in a 1-D vector
-         INCOL = IN( J+J0, 1:LGLOB )
-
-#if   defined( GEOS_4 )
-      
-         !--------------------------------------------------------------
-         ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
-         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time
-         OUT(J,20) = LUMP_2( INCOL, LGLOB, 20 )
-         OUT(J,21) = LUMP_2( INCOL, LGLOB, 22 )
-         OUT(J,22) = LUMP_2( INCOL, LGLOB, 24 )
-         OUT(J,23) = LUMP_2( INCOL, LGLOB, 26 )
-
-         ! Lump 4 levels together at a time
-         OUT(J,24) = LUMP_4( INCOL, LGLOB, 28 )
-         OUT(J,25) = LUMP_4( INCOL, LGLOB, 32 )
-         OUT(J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
-         OUT(J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
-         OUT(J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
-         OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
-         OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
-
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-
-         !--------------------------------------------------------------
-         ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
-         ! L=36.  Lump levels in groups of 2, then 4.  
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time
-         OUT(J,37) = LUMP_2( INCOL, LGLOB, 37 )
-         OUT(J,38) = LUMP_2( INCOL, LGLOB, 39 )
-         OUT(J,39) = LUMP_2( INCOL, LGLOB, 41 )
-         OUT(J,40) = LUMP_2( INCOL, LGLOB, 43 )
-
-         ! Lump 4 levels together at a time
-         OUT(J,41) = LUMP_4( INCOL, LGLOB, 45 )
-         OUT(J,42) = LUMP_4( INCOL, LGLOB, 49 )
-         OUT(J,43) = LUMP_4( INCOL, LGLOB, 53 ) 
-         OUT(J,44) = LUMP_4( INCOL, LGLOB, 57 ) 
-         OUT(J,45) = LUMP_4( INCOL, LGLOB, 61 ) 
-         OUT(J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
-         OUT(J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
-
-#endif
-
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE TRANSFER_ZONAL_R4
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_zonal_r8
-!
-! !DESCRIPTION: Subroutine TRANSFER\_ZONAL\_R8 transfers zonal mean or lat-alt 
-!  data from a REAL*4 array of dimension (JJPAR,LGLOB) to a REAL*8 array of 
-!  dimension (JJPAR,LLPAR).   Regrid data in the vertical if necessary by
-!  lumping levels.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_ZONAL_R8( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(JJPAR,LGLOB)    ! Input data
-!
-! !OUTPUT PARAMETERS: 
-! 
-      REAL*8,  INTENT(OUT) :: OUT(JJPAR,LLPAR)   ! Output data
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - R. Yantosca - Initial version
-!  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
-!        (bmy, 9/21/01)
-!  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
-!  (3 ) Now use function GET_YOFFSET from "grid_mod.f".  Now I0 and J0 are 
-!        local variables (bmy, 3/11/03)
-!  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
-!  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
-!                              the vertical grids are identical
-!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: J
-      REAL*4  :: INCOL(LGLOB)
-     
-      !================================================================
-      ! TRANSFER_ZONAL_R8 begins here!
-      !================================================================
-
-      ! Copy the first L_COPY levels
-      OUT(:,1:L_COPY) = IN( 1+J0:JJPAR+J0, 1:L_COPY )
-
-      ! Exit if we are running at full vertical resolution
-      IF ( LLPAR == LGLOB ) RETURN
-
-      !================================================================
-      ! Collapse levels in the stratosphere
-      !================================================================    
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, INCOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-
-         ! Store vertical column at (I,J) in a 1-D vector
-         INCOL = IN( J+J0, 1:LGLOB )
-
-#if   defined( GEOS_4 )
-
-         !--------------------------------------------------------------
-         ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
-         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time
-         OUT(J,20) = LUMP_2( INCOL, LGLOB, 20 )
-         OUT(J,21) = LUMP_2( INCOL, LGLOB, 22 )
-         OUT(J,22) = LUMP_2( INCOL, LGLOB, 24 )
-         OUT(J,23) = LUMP_2( INCOL, LGLOB, 26 )
-
-         ! Lump 4 levels together at a time
-         OUT(J,24) = LUMP_4( INCOL, LGLOB, 28 )
-         OUT(J,25) = LUMP_4( INCOL, LGLOB, 32 )
-         OUT(J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
-         OUT(J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
-         OUT(J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
-         OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
-         OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
-
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-
-         !--------------------------------------------------------------
-         ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
-         ! L=36.  Lump levels in groups of 2, then 4.  
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time
-         OUT(J,37) = LUMP_2( INCOL, LGLOB, 37 )
-         OUT(J,38) = LUMP_2( INCOL, LGLOB, 39 )
-         OUT(J,39) = LUMP_2( INCOL, LGLOB, 41 )
-         OUT(J,40) = LUMP_2( INCOL, LGLOB, 43 )
-
-         ! Lump 4 levels together at a time
-         OUT(J,41) = LUMP_4( INCOL, LGLOB, 45 )
-         OUT(J,42) = LUMP_4( INCOL, LGLOB, 49 )
-         OUT(J,43) = LUMP_4( INCOL, LGLOB, 53 ) 
-         OUT(J,44) = LUMP_4( INCOL, LGLOB, 57 ) 
-         OUT(J,45) = LUMP_4( INCOL, LGLOB, 61 ) 
-         OUT(J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
-         OUT(J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
-#endif
-
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE TRANSFER_ZONAL_R8
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_2d_int
-!
-! !DESCRIPTION: Subroutine TRANSFER\_2D\_INT transfers 2-D data from a REAL*4 
-!  array of dimension (IIPAR,JJPAR) to an INTEGER array of dimension
-!  (IIPAR,JJPAR). 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_2D_INT( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR)    ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER, INTENT(OUT) :: OUT(IIPAR,JJPAR)   ! Output data
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - R. Yantosca - Initial version
-!  (1 ) Use parallel DO loops to speed things up (bmy, 9/21/01)!
-!  (2 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
-!        Now I0 and J0 are local variables. (bmy, 3/11/03)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! TRANSFER_2D_INT begins here!
-      !=================================================================
-
-      ! Copy and cast array
-      OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
-
-      END SUBROUTINE TRANSFER_2D_INT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_2d_r4
-!
-! !DESCRIPTION: Subroutine TRANSFER\_2D\_R4 transfers 2-D data from a REAL*4 
-!  array of dimension (IIPAR,JJPAR) to a REAL*4 array of dimension 
-!  (IIPAR,JJPAR). 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_2D_R4( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR)
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*4,  INTENT(OUT) :: OUT(IIPAR,JJPAR)
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - R. Yantosca - Initial version
-!  (1 ) Use parallel DO loops to speed things up (bmy, 9/21/01)
-!  (2 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f"
-!        Now I0 and J0 are local variables (bmy, 3/11/03)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! TRANSFER_2D_R4 begins here!
-      !=================================================================
-      
-      ! Copy and cast array
-      OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
-
-      END SUBROUTINE TRANSFER_2D_R4
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_2d_r8
-!
-! !DESCRIPTION: Subroutine TRANSFER\_2D\_R8 transfers 2-D data from a REAL*4 
-!  array of dimension (IIPAR,JJPAR) to a REAL*8 array of dimension
-!  (IIPAR,JJPAR). 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_2D_R8( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR)    ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR)   ! Output data
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - R. Yantosca - Initial version
-!  (1 ) Use parallel DO loops to speed things up (bmy, 9/21/01)
-!  (2 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f"
-!        Now I0 and J0 are local variables. (bmy, 3/11/03)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! TRANSFER_2D_R8 begins here!
-      !=================================================================
-
-      ! Copy and cast array
-      OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
-      
-      END SUBROUTINE TRANSFER_2D_R8
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: transfer_to_1d
-!
-! !DESCRIPTION: Subroutine TRANSFER\_TO\_1D transfers 2-D data from a REAL*4 
-!  array of dimension (IIPAR,JJPAR) to 1-D a REAL*8 array of dimension (MAXIJ),
-!  where MAXIJ = IIPAR * JJPAR.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_TO_1D( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR)    ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,  INTENT(OUT) :: OUT(MAXIJ)         ! Output data
-! 
-! !REVISION HISTORY: 
-!  19 Sep 2001 - R. Yantosca - Initial version
-!  (1 ) Use single-processor DO-loops for now (bmy, 9/21/01)
-!  (2 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
-!        Now I0 and J0 are local variables. (bmy, 3/11/03)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I, IREF, J, JREF, IJLOOP
-
-      !=================================================================
-      ! TRANSFER_TO_1D begins here!
-      !=================================================================
-
-      ! 1-D counter
-      IJLOOP = 0
-
-      ! IJLOOP = ( (J-1) * IIPAR ) + I
-
-      DO J = 1, JJPAR
-         JREF = J + J0
-         DO I = 1, IIPAR
-            IREF        = I + I0
-            IJLOOP      = IJLOOP + 1
-            OUT(IJLOOP) = IN(IREF,JREF)
-         ENDDO
-      ENDDO
-      
-      END SUBROUTINE TRANSFER_TO_1D
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1438,7 +810,7 @@
 ! !IROUTINE: lump_2_r8
 !
 ! !DESCRIPTION: Function LUMP\_2\_R8 lumps 2 sigma levels into one thick 
-!  level.  Input arguments must be REAL*8. 
+!  level.  Input arguments must be REAL(fp). 
 !\\
 !\\
 ! !INTERFACE:
@@ -1656,7 +1028,7 @@
 ! !IROUTINE: lump_4_r8
 !
 ! !DESCRIPTION: Function LUMP\_4\_R8 lumps 4 sigma levels into one thick 
-!  level.  Input arguments must be REAL*8.
+!  level.  Input arguments must be REAL(fp).
 !\\
 !\\
 ! !INTERFACE:
@@ -1855,7 +1227,7 @@
       ! Allocate the EDGE_IN array
       ALLOCATE( EDGE_IN( LGLOB + 1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
-      EDGE_IN = 0d0
+      EDGE_IN = 0e+0_fp
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
@@ -1868,27 +1240,45 @@
       ! Initialize EDGE_IN with the original 73 Ap values for GEOS-5.
       !-----------------------------------------------------------------
       EDGE_IN = (/ 
-     &        0.000000d+00, 4.804826d-02, 6.593752d+00, 1.313480d+01,
-     &        1.961311d+01, 2.609201d+01, 3.257081d+01, 3.898201d+01,
-     &        4.533901d+01, 5.169611d+01, 5.805321d+01, 6.436264d+01,
-     &        7.062198d+01, 7.883422d+01, 8.909992d+01, 9.936521d+01,
-     &        1.091817d+02, 1.189586d+02, 1.286959d+02, 1.429100d+02,
-     &        1.562600d+02, 1.696090d+02, 1.816190d+02, 1.930970d+02,
-     &        2.032590d+02, 2.121500d+02, 2.187760d+02, 2.238980d+02,
-     &        2.243630d+02, 2.168650d+02, 2.011920d+02, 
+     &  0.000000e+00_fp, 4.804826e-02_fp, 
+     &  6.593752e+00_fp, 1.313480e+01_fp,
+     &  1.961311e+01_fp, 2.609201e+01_fp, 
+     &  3.257081e+01_fp, 3.898201e+01_fp,
+     &  4.533901e+01_fp, 5.169611e+01_fp, 
+     &  5.805321e+01_fp, 6.436264e+01_fp,
+     &  7.062198e+01_fp, 7.883422e+01_fp, 
+     &  8.909992e+01_fp, 9.936521e+01_fp,
+     &  1.091817e+02_fp, 1.189586e+02_fp, 
+     &  1.286959e+02_fp, 1.429100e+02_fp,
+     &  1.562600e+02_fp, 1.696090e+02_fp, 
+     &  1.816190e+02_fp, 1.930970e+02_fp,
+     &  2.032590e+02_fp, 2.121500e+02_fp, 
+     &  2.187760e+02_fp, 2.238980e+02_fp,
+     &  2.243630e+02_fp, 2.168650e+02_fp, 
+     &  2.011920e+02_fp, 
 !------- EDGES OF GEOS-5 FIXED PRESSURE LEVELS OCCUR BELOW THIS LINE ------
-     &                                                  1.769300d+02,
-     &        1.503930d+02, 1.278370d+02, 1.086630d+02, 9.236572d+01,
-     &        7.851231d+01, 6.660341d+01, 5.638791d+01, 4.764391d+01,
-     &        4.017541d+01, 3.381001d+01, 2.836781d+01, 2.373041d+01,
-     &        1.979160d+01, 1.645710d+01, 1.364340d+01, 1.127690d+01,
-     &        9.292942d+00, 7.619842d+00, 6.216801d+00, 5.046801d+00,
-     &        4.076571d+00, 3.276431d+00, 2.620211d+00, 2.084970d+00,
-     &        1.650790d+00, 1.300510d+00, 1.019440d+00, 7.951341d-01,
-     &        6.167791d-01, 4.758061d-01, 3.650411d-01, 2.785261d-01,
-     &        2.113490d-01, 1.594950d-01, 1.197030d-01, 8.934502d-02,
-     &        6.600001d-02, 4.758501d-02, 3.270000d-02, 2.000000d-02,
-     &        1.000000d-02 /)
+     &  1.769300e+02_fp,
+     &  1.503930e+02_fp, 1.278370e+02_fp, 
+     &  1.086630e+02_fp, 9.236572e+01_fp,
+     &  7.851231e+01_fp, 6.660341e+01_fp, 
+     &  5.638791e+01_fp, 4.764391e+01_fp,
+     &  4.017541e+01_fp, 3.381001e+01_fp, 
+     &  2.836781e+01_fp, 2.373041e+01_fp,
+     &  1.979160e+01_fp, 1.645710e+01_fp, 
+     &  1.364340e+01_fp, 1.127690e+01_fp,
+     &  9.292942e+00_fp, 7.619842e+00_fp, 
+     &  6.216801e+00_fp, 5.046801e+00_fp,
+     &  4.076571e+00_fp, 3.276431e+00_fp, 
+     &  2.620211e+00_fp, 2.084970e+00_fp,
+     &  1.650790e+00_fp, 1.300510e+00_fp, 
+     &  1.019440e+00_fp, 7.951341e-01_fp,
+     &  6.167791e-01_fp, 4.758061e-01_fp, 
+     &  3.650411e-01_fp, 2.785261e-01_fp,
+     &  2.113490e-01_fp, 1.594950e-01_fp, 
+     &  1.197030e-01_fp, 8.934502e-02_fp,
+     &  6.600001e-02_fp, 4.758501e-02_fp, 
+     &  3.270000e-02_fp, 2.000000e-02_fp,
+     &  1.000000e-02_fp /)
 
 #elif defined( GEOS_4 )
 
@@ -1900,25 +1290,25 @@
       !
       ! Initialize EDGE_IN with the original 56 Ap values for GEOS-4.
       !-----------------------------------------------------------------
-      EDGE_IN = (/  0.000000d0,   0.000000d0,  12.704939d0,  
-     &             35.465965d0,  66.098427d0, 101.671654d0, 
-     &            138.744400d0, 173.403183d0, 198.737839d0, 
-     &            215.417526d0, 223.884689d0, 224.362869d0,
-     &            216.864929d0, 201.192093d0, 176.929993d0, 
-     &            150.393005d0, 127.837006d0, 108.663429d0,  
-     &             92.365662d0,  78.512299d0,  66.603378d0,  
-     &             56.387939d0,  47.643932d0,  40.175419d0, 
-     &             33.809956d0,  28.367815d0,  23.730362d0,  
-     &             19.791553d0,  16.457071d0,  13.643393d0,  
-     &             11.276889d0,   9.292943d0,   7.619839d0,   
-     &              6.216800d0,   5.046805d0,   4.076567d0, 
-     &              3.276433d0,   2.620212d0,   2.084972d0,   
-     &              1.650792d0,   1.300508d0,   1.019442d0,   
-     &              0.795134d0,   0.616779d0,   0.475806d0,   
-     &              0.365041d0,   0.278526d0,   0.211349d0, 
-     &              0.159495d0,   0.119703d0,   0.089345d0,   
-     &              0.066000d0,   0.047585d0,   0.032700d0,   
-     &              0.020000d0,   0.010000d0 /)
+      EDGE_IN = (/  0.000000e+0_fp,   0.000000e+0_fp,  12.704939e+0_fp,  
+     &             35.465965e+0_fp,  66.098427e+0_fp, 101.671654e+0_fp, 
+     &            138.744400e+0_fp, 173.403183e+0_fp, 198.737839e+0_fp, 
+     &            215.417526e+0_fp, 223.884689e+0_fp, 224.362869e+0_fp,
+     &            216.864929e+0_fp, 201.192093e+0_fp, 176.929993e+0_fp, 
+     &            150.393005e+0_fp, 127.837006e+0_fp, 108.663429e+0_fp,  
+     &             92.365662e+0_fp,  78.512299e+0_fp,  66.603378e+0_fp,  
+     &             56.387939e+0_fp,  47.643932e+0_fp,  40.175419e+0_fp, 
+     &             33.809956e+0_fp,  28.367815e+0_fp,  23.730362e+0_fp,  
+     &             19.791553e+0_fp,  16.457071e+0_fp,  13.643393e+0_fp,  
+     &             11.276889e+0_fp,   9.292943e+0_fp,   7.619839e+0_fp,   
+     &              6.216800e+0_fp,   5.046805e+0_fp,   4.076567e+0_fp, 
+     &              3.276433e+0_fp,   2.620212e+0_fp,   2.084972e+0_fp,   
+     &              1.650792e+0_fp,   1.300508e+0_fp,   1.019442e+0_fp,   
+     &              0.795134e+0_fp,   0.616779e+0_fp,   0.475806e+0_fp,   
+     &              0.365041e+0_fp,   0.278526e+0_fp,   0.211349e+0_fp, 
+     &              0.159495e+0_fp,   0.119703e+0_fp,   0.089345e+0_fp,   
+     &              0.066000e+0_fp,   0.047585e+0_fp,   0.032700e+0_fp,   
+     &              0.020000e+0_fp,   0.010000e+0_fp /)
 
 #endif
 

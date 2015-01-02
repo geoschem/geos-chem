@@ -91,8 +91,11 @@
 !
 !  NOTES:
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 
       !=================================================================
@@ -146,33 +149,33 @@
       CHARACTER(LEN=2)    :: SCENARIO
 
       ! Arrays
-      REAL*8, ALLOCATABLE :: ALK4ff(:,:)  
-      REAL*8, ALLOCATABLE :: BCbb(:,:) 
-      REAL*8, ALLOCATABLE :: BCbf(:,:) 
-      REAL*8, ALLOCATABLE :: BCff(:,:) 
-      REAL*8, ALLOCATABLE :: C2H6ff(:,:) 
-      REAL*8, ALLOCATABLE :: C3H8ff(:,:) 
-      REAL*8, ALLOCATABLE :: CObb(:,:) 
-      REAL*8, ALLOCATABLE :: CObf(:,:) 
-      REAL*8, ALLOCATABLE :: COff(:,:) 
-      REAL*8, ALLOCATABLE :: NH3an(:,:)
-      REAL*8, ALLOCATABLE :: NH3bb(:,:)
-      REAL*8, ALLOCATABLE :: NH3bf(:,:)
-      REAL*8, ALLOCATABLE :: NOxbb(:,:) 
-      REAL*8, ALLOCATABLE :: NOxbf(:,:) 
-      REAL*8, ALLOCATABLE :: NOxff(:,:) 
-      REAL*8, ALLOCATABLE :: NOxft(:,:) 
-      REAL*8, ALLOCATABLE :: OCbb(:,:) 
-      REAL*8, ALLOCATABLE :: OCbf(:,:) 
-      REAL*8, ALLOCATABLE :: OCff(:,:) 
-      REAL*8, ALLOCATABLE :: PRPEff(:,:)
-      REAL*8, ALLOCATABLE :: TONEff(:,:) 
-      REAL*8, ALLOCATABLE :: SO2bb(:,:)
-      REAL*8, ALLOCATABLE :: SO2bf(:,:)
-      REAL*8, ALLOCATABLE :: SO2ff(:,:)
-      REAL*8, ALLOCATABLE :: VOCbb(:,:) 
-      REAL*8, ALLOCATABLE :: VOCbf(:,:) 
-      REAL*8, ALLOCATABLE :: VOCff(:,:) 
+      REAL(fp), ALLOCATABLE :: ALK4ff(:,:)  
+      REAL(fp), ALLOCATABLE :: BCbb(:,:) 
+      REAL(fp), ALLOCATABLE :: BCbf(:,:) 
+      REAL(fp), ALLOCATABLE :: BCff(:,:) 
+      REAL(fp), ALLOCATABLE :: C2H6ff(:,:) 
+      REAL(fp), ALLOCATABLE :: C3H8ff(:,:) 
+      REAL(fp), ALLOCATABLE :: CObb(:,:) 
+      REAL(fp), ALLOCATABLE :: CObf(:,:) 
+      REAL(fp), ALLOCATABLE :: COff(:,:) 
+      REAL(fp), ALLOCATABLE :: NH3an(:,:)
+      REAL(fp), ALLOCATABLE :: NH3bb(:,:)
+      REAL(fp), ALLOCATABLE :: NH3bf(:,:)
+      REAL(fp), ALLOCATABLE :: NOxbb(:,:) 
+      REAL(fp), ALLOCATABLE :: NOxbf(:,:) 
+      REAL(fp), ALLOCATABLE :: NOxff(:,:) 
+      REAL(fp), ALLOCATABLE :: NOxft(:,:) 
+      REAL(fp), ALLOCATABLE :: OCbb(:,:) 
+      REAL(fp), ALLOCATABLE :: OCbf(:,:) 
+      REAL(fp), ALLOCATABLE :: OCff(:,:) 
+      REAL(fp), ALLOCATABLE :: PRPEff(:,:)
+      REAL(fp), ALLOCATABLE :: TONEff(:,:) 
+      REAL(fp), ALLOCATABLE :: SO2bb(:,:)
+      REAL(fp), ALLOCATABLE :: SO2bf(:,:)
+      REAL(fp), ALLOCATABLE :: SO2ff(:,:)
+      REAL(fp), ALLOCATABLE :: VOCbb(:,:) 
+      REAL(fp), ALLOCATABLE :: VOCbf(:,:) 
+      REAL(fp), ALLOCATABLE :: VOCff(:,:) 
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -364,10 +367,12 @@
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (3 ) GRFACTORS (REAL*8   ) : Array of growth factors
+!  (3 ) GRFACTORS (REAL(fp)   ) : Array of growth factors
 !
 !  NOTES:
 !  20 Jun 2014 - R. Yantosca - Now accept Input_Opt via the argument list
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
 ! !USES:
@@ -375,25 +380,24 @@
       USE BPCH2_MOD,            ONLY : GET_RES_EXT, GET_NAME_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,    READ_BPCH2
       USE FILE_MOD,             ONLY : FILE_EXISTS
-      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
       INTEGER,          INTENT(IN)  :: TRACER
       CHARACTER(LEN=*), INTENT(IN)  :: SPECIES
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,           INTENT(OUT) :: GRFACTORS(IIPAR,JJPAR)
+      REAL(fp),         INTENT(OUT) :: GRFACTORS(IIPAR,JJPAR)
 !
 ! !LOCAL VARIABLES:
 !
       INTEGER                       :: IOS, IUNIT
-      REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8                        :: TAU0
+      REAL(f4)                      :: ARRAY(IIPAR,JJPAR,1)
+      REAL(f8)                      :: TAU0
       CHARACTER(LEN=4)              :: YSTR
       CHARACTER(LEN=255)            :: FILENAME
 
@@ -428,8 +432,8 @@
      &                 TAU0,      IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
-      ! Cast to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), GRFACTORS )
+      ! Cast to REAL(fp)
+      GRFACTORS = ARRAY(:,:,1)
 
       ! Return to calling program
       END SUBROUTINE READ_GROWTH_FACTORS
@@ -446,7 +450,7 @@
 !******************************************************************************
 ! 
       ! Function value
-      REAL*8 :: THIS_YEAR
+      REAL(fp) :: THIS_YEAR
 
       !=================================================================
       ! GET_FUTURE_YEAR begins here!
@@ -499,7 +503,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_ALK4ff begins here!
@@ -529,7 +533,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_BCbb begins here!
@@ -559,7 +563,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_BCbf begins here!
@@ -589,7 +593,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_BCff begins here!
@@ -619,7 +623,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_C2H6ff begins here!
@@ -649,7 +653,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_C3H8ff begins here!
@@ -679,7 +683,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_CObb begins here!
@@ -709,7 +713,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_CObf begins here!
@@ -739,7 +743,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_COff begins here!
@@ -769,7 +773,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_NH3an begins here!
@@ -799,7 +803,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_NH3bb begins here!
@@ -829,7 +833,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_NH3bf begins here!
@@ -859,7 +863,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_NOxbb begins here!
@@ -889,7 +893,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_NOxbf begins here!
@@ -919,7 +923,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_NOxff begins here!
@@ -950,7 +954,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_NOxft begins here!
@@ -980,7 +984,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_OCbb begins here!
@@ -1010,7 +1014,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_OCbf begins here!
@@ -1040,7 +1044,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_OCff begins here!
@@ -1070,7 +1074,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_PRPEff begins here!
@@ -1101,7 +1105,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_TONEff begins here!
@@ -1131,7 +1135,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_SO2bb begins here!
@@ -1161,7 +1165,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_SO2bf begins here!
@@ -1191,7 +1195,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_SO2ff begins here!
@@ -1221,7 +1225,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_VOCbb begins here!
@@ -1251,7 +1255,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_VOCbf begins here!
@@ -1281,7 +1285,7 @@
       INTEGER, INTENT(IN) :: I, J
 
       ! Function variable
-      REAL*8              :: SCALEFAC
+      REAL(fp)              :: SCALEFAC
 
       !=================================================================
       ! GET_FUTURE_SCALE_VOCff begins here!
@@ -1316,111 +1320,111 @@
 
       ALLOCATE( ALK4ff( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'ALK4ff' )
-      ALK4ff = 1d0
+      ALK4ff = 1e+0_fp
 
       ALLOCATE( BCbb( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'BCbb' )
-      BCbb = 1d0
+      BCbb = 1e+0_fp
 
       ALLOCATE( BCbf( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( '' )
-      BCbf = 1d0
+      BCbf = 1e+0_fp
 
       ALLOCATE( BCff( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'BCff' )
-      BCff = 1d0
+      BCff = 1e+0_fp
 
       ALLOCATE( C2H6ff( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'C2H6ff' )
-      C2H6ff = 1d0
+      C2H6ff = 1e+0_fp
 
       ALLOCATE( C3H8ff( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'CH38ff' )
-      C3H8ff = 1d0
+      C3H8ff = 1e+0_fp
 
       ALLOCATE( CObb( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'CObb' )
-      CObb = 1d0
+      CObb = 1e+0_fp
 
       ALLOCATE( CObf( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'CObf' )
-      CObf = 1d0
+      CObf = 1e+0_fp
 
       ALLOCATE( COff( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'COff' )
-      COff = 1d0
+      COff = 1e+0_fp
 
       ALLOCATE( NH3an( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /=0 ) CALL ALLOC_ERR( 'NH3an' )
-      NH3an = 1d0
+      NH3an = 1e+0_fp
 
       ALLOCATE( NH3bb( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /=0 ) CALL ALLOC_ERR( 'NH3bb' )
-      NH3bb = 1d0
+      NH3bb = 1e+0_fp
 
       ALLOCATE( NH3bf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /=0 ) CALL ALLOC_ERR( 'NH3bf' )
-      NH3bf = 1d0
+      NH3bf = 1e+0_fp
 
       ALLOCATE( NOxbb( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'NOxbb' )
-      NOXbb = 1d0
+      NOXbb = 1e+0_fp
 
       ALLOCATE( NOxbf( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'NOxbf' )
-      NOxbf = 1d0
+      NOxbf = 1e+0_fp
 
       ALLOCATE( NOxff( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'NOxff' )
-      NOxff = 1d0
+      NOxff = 1e+0_fp
 
       ALLOCATE( NOxft ( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'NOxft' )
-      NOxft = 1d0
+      NOxft = 1e+0_fp
 
       ALLOCATE( OCbb( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'OCbb' )
-      OCbb = 1d0
+      OCbb = 1e+0_fp
 
       ALLOCATE( OCbf( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'OCbf' )
-      OCbf = 1d0
+      OCbf = 1e+0_fp
 
       ALLOCATE( OCff( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'OCff' )
-      OCff = 1d0
+      OCff = 1e+0_fp
 
       ALLOCATE( PRPEff( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /=0 ) CALL ALLOC_ERR( 'PRPEff' )
-      PRPEff = 1d0
+      PRPEff = 1e+0_fp
 
       ALLOCATE( TONEff( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'TONEff' )
-      TONEff = 1d0
+      TONEff = 1e+0_fp
 
       ALLOCATE( SO2bb( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /=0 ) CALL ALLOC_ERR( 'SO2bb' )
-      SO2bb = 1d0
+      SO2bb = 1e+0_fp
 
       ALLOCATE( SO2bf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /=0 ) CALL ALLOC_ERR( 'SO2bf' )
-      SO2bf = 1d0
+      SO2bf = 1e+0_fp
 
       ALLOCATE( SO2ff( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /=0 ) CALL ALLOC_ERR( 'SO2ff' )
-      SO2ff = 1d0
+      SO2ff = 1e+0_fp
 
       ALLOCATE( VOCbb( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'VOCbb' )
-      VOCbb = 1d0
+      VOCbb = 1e+0_fp
 
       ALLOCATE( VOCbf ( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'VOCbf' )
-      VOCbf = 1d0
+      VOCbf = 1e+0_fp
 
       ALLOCATE( VOCff ( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /=0 ) CALL ALLOC_ERR( 'VOCff' )
-      VOCff = 1d0
+      VOCff = 1e+0_fp
 
       ! Return to calling program
       END SUBROUTINE INIT_FUTURE_EMISSIONS

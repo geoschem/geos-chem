@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PUBLIC
 !
@@ -59,10 +61,10 @@
       REAL*4,  ALLOCATABLE :: AD12(:,:,:)
 
       ! For ND14 -- wet convection mass flux diagnostic
-      REAL*8,  ALLOCATABLE :: CONVFLUP(:,:,:,:)
+      REAL(fp),  ALLOCATABLE :: CONVFLUP(:,:,:,:)
 
       ! For ND15 -- BL mixing mass flux diagnostic
-      REAL*8,  ALLOCATABLE :: TURBFLUP(:,:,:,:)
+      REAL(fp),  ALLOCATABLE :: TURBFLUP(:,:,:,:)
 
       ! For ND16 -- Fraction of grid box that is precipitating
       REAL*4,  ALLOCATABLE :: AD16(:,:,:,:)  
@@ -86,16 +88,16 @@
       INTEGER, ALLOCATABLE :: CTJV(:,:) 
 
       ! For ND23 -- CH3CCl3 lifetime diagnostic
-      REAL*8,  ALLOCATABLE :: DIAGCHLORO(:,:,:,:)
+      REAL(fp),  ALLOCATABLE :: DIAGCHLORO(:,:,:,:)
 
       ! For ND24 -- E/W transport mass flux diagnostic
-      REAL*8,  ALLOCATABLE :: MASSFLEW(:,:,:,:)
+      REAL(fp),  ALLOCATABLE :: MASSFLEW(:,:,:,:)
 
       ! For ND25 -- N/S transport mass flux diagnostic
-      REAL*8,  ALLOCATABLE :: MASSFLNS(:,:,:,:)
+      REAL(fp),  ALLOCATABLE :: MASSFLNS(:,:,:,:)
 
       ! For ND26 -- UP/DOWN transport mass flux diagnostic
-      REAL*8,  ALLOCATABLE :: MASSFLUP(:,:,:,:)
+      REAL(fp),  ALLOCATABLE :: MASSFLUP(:,:,:,:)
 
       ! For ND30 -- land / water / ice flags
       REAL*4,  ALLOCATABLE :: AD30(:,:)
@@ -158,7 +160,7 @@
       INTEGER, ALLOCATABLE :: CTO3_24h(:,:,:)
 
       ! Dynamically allocatable array -- local only to DIAG50.F
-      REAL*8,  ALLOCATABLE :: STT_TEMPO2(:,:,:,:)
+      REAL(fp),  ALLOCATABLE :: STT_TEMPO2(:,:,:,:)
 
       ! For ND52 -- gamma HO2 diagnostic
       REAL*4,  ALLOCATABLE :: AD52(:,:,:)
@@ -293,6 +295,7 @@
 !                              because O3 is now a tracer.
 !  15 Aug 2014 - R. Yantosca - Remove diagnostics now tracked by HEMCO
 !  21 Aug 2014 - R. Yantosca - AD01 is now only a 3-D array (for Pb emissions)
+!  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC

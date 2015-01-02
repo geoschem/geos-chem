@@ -34,6 +34,7 @@
 !  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
 !                              ".rc" to input.geos (instead of ___.rc)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
@@ -42,6 +43,7 @@
       USE CMN_SIZE_MOD                       ! Size parameters
       USE COMODE_LOOP_MOD                    ! SMVGEAR II arrays
       USE CMN_GCTM_MOD                       ! Re, PI
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 
@@ -95,10 +97,10 @@
       INTEGER             :: IU_FILE
       INTEGER             :: IU_SMV2LOG
 
-      REAL*8              :: ERRMAXU, YLOWU, YHIU, HMAXDAYU
-      REAL*8              :: ERRMAXR, YLOWR, YHIR, HMAXDAYR
-      REAL*8              :: ERRMAXS, YLOWS, YHIS, HMAXDAYS
-      REAL*8              :: ABHI,    ABLO
+      REAL(fp)              :: ERRMAXU, YLOWU, YHIU, HMAXDAYU
+      REAL(fp)              :: ERRMAXR, YLOWR, YHIR, HMAXDAYR
+      REAL(fp)              :: ERRMAXS, YLOWS, YHIS, HMAXDAYS
+      REAL(fp)              :: ABHI,    ABLO
       CHARACTER(LEN=255)  :: FILENAME
 
 
@@ -207,7 +209,7 @@
       ! NOTE: Redefine CHEMINTV [s] to the value in "input.geos" so 
       ! that we don't have a discrepancy with the value in "mglob.dat" 
       ! (bmy, 5/10/05)
-      CHEMINTV = GET_TS_CHEM() * 60d0
+      CHEMINTV = GET_TS_CHEM() * 60e+0_fp
 !
 ! *********************************************************************
 ! *                     DEFINE SOME GRID PARAMETERS                   *
@@ -489,22 +491,22 @@
 ! ITESTGEAR = 2: GENERATE SMVGEAR ACCURATE SOLUTION AND WRITE TO compare.dat
 !
       IF (ITESTGEAR.EQ.2) THEN
-       ERRMAXU = 1.00d-09
-       ERRMAXR = 1.00d-09
-       ERRMAXS = 1.00d-09
+       ERRMAXU = 1.00e-09_fp
+       ERRMAXR = 1.00e-09_fp
+       ERRMAXS = 1.00e-09_fp
 !
-       YLOWU   = 1.00d-10  
-       YLOWR   = 1.00d-10  
-       YLOWS   = 1.00d-10   
+       YLOWU   = 1.00e-10_fp  
+       YLOWR   = 1.00e-10_fp
+       YLOWS   = 1.00e-10_fp
 !
-       YHIU    = 1.00d-10  
-       YHIR    = 1.00d-10  
-       YHIS    = 1.00d-10   
+       YHIU    = 1.00e-10_fp
+       YHIR    = 1.00e-10_fp
+       YHIS    = 1.00e-10_fp
       ENDIF 
 !
       DO 269 NCS     = 1, ICS
-       ABTOL(1,NCS)  = 0.d0
-       ABTOL(6,NCS)  = 0.d0
+       ABTOL(1,NCS)  = 0.e+0_fp
+       ABTOL(6,NCS)  = 0.e+0_fp
  269  CONTINUE 
 !
 ! URBAN / REGIONAL / STRATOSPHERIC CHEMISTRY TOGETHER
@@ -562,7 +564,7 @@
        ABTOL(1, NCS)  = YHIR   
        ABTOL(6, NCS)  = YLOWR   
        TIMEINTV(NCS)  = CHEMINTV 
-       ABST2(   NCS)  = 1.d0 / (CHEMINTV * CHEMINTV) 
+       ABST2(   NCS)  = 1.e+0_fp / (CHEMINTV * CHEMINTV) 
        HMAXUSE( NCS)  = HMAXDAYR     
        HMAXUSE(NCSP)  = HMAXNIT
       ENDIF 
@@ -577,7 +579,7 @@
        ABTOL(1, NCS)  = YHIS    
        ABTOL(6, NCS)  = YLOWS    
        TIMEINTV(NCS)  = CHEMINTV 
-       ABST2(   NCS)  = 1.d0 / (CHEMINTV * CHEMINTV) 
+       ABST2(   NCS)  = 1.e+0_fp / (CHEMINTV * CHEMINTV) 
        HMAXUSE( NCS)  = HMAXDAYS      
        HMAXUSE(NCSP)  = HMAXNIT
       ENDIF 
@@ -598,7 +600,8 @@
        ENDIF
 !
        DO 270 I       = 2, 5 
-        ABTOL(I,NCS)  = 10.d0**(ABLO + (ABHI - ABLO) *FLOAT(6-I) / 5.d0)
+        ABTOL(I,NCS)  = 10.e+0_fp**(ABLO + (ABHI - ABLO) *FLOAT(6-I) 
+     &                / 5.e+0_fp)
  270   CONTINUE 
  272  CONTINUE
 !
@@ -622,20 +625,20 @@
       LFAILTOT       = 0
       NFAILTOT       = 0
       NOCC           = 0
-      SUMAVGE        = 0.d0
-      SUMAVHI        = 0.d0
-      SUMRMSE        = 0.d0
-      SUMRMHI        = 0.d0
-      TOTSTEP        = 0.d0
-      TOTIT          = 0.d0
-      TELAPS         = 0.d0
-      RMSERR         = 0.d0
+      SUMAVGE        = 0.e+0_fp
+      SUMAVHI        = 0.e+0_fp
+      SUMRMSE        = 0.e+0_fp
+      SUMRMHI        = 0.e+0_fp
+      TOTSTEP        = 0.e+0_fp
+      TOTIT          = 0.e+0_fp
+      TELAPS         = 0.e+0_fp
+      RMSERR         = 0.e+0_fp
 !
       MB1            = 1 
       MB2            = 2 
       DO 660 I       = 1, IMASBAL
-       MBCOMP(I,MB1) = 0.d0
-       MBCOMP(I,MB2) = 0.d0
+       MBCOMP(I,MB1) = 0.e+0_fp
+       MBCOMP(I,MB2) = 0.e+0_fp
  660  CONTINUE
 !
       DO 705 NCS       = 1, ICS
@@ -682,7 +685,7 @@
       NKNOPHOT        = 0
 
       ! Zero out entire nkspecv array (bdf, 4/1/03)
-      NKSPECV = 0d0
+      NKSPECV = 0e+0_fp
 !
       DO 710 NCS       = 1, ICP 
        NOLOSP(   NCS) = 0  
@@ -734,8 +737,8 @@
       DO 735 NCS        = 1, ICS
        DO 734 I         = 1, MXGSAER 
         NAMENCS( I,NCS) = ' '
-        FRACGAIN(I,NCS) = 0.d0
-        QBKCHEM( I,NCS) = 0.d0
+        FRACGAIN(I,NCS) = 0.e+0_fp
+        QBKCHEM( I,NCS) = 0.e+0_fp
         NUMLOST( I,NCS) = 0        
         NUMGFRT( I,NCS) = 0 
         NUMGAINT(I,NCS) = 0
@@ -760,11 +763,11 @@
       DO 745 NCS        = 1, ICS
        DO 744 I         = 1, NMTRATE
         I1              = NMTRATE + I
-        ARR(     I,NCS) = 0.d0  
-        BRR(     I,NCS) = 0.d0
-        FCV(     I,NCS) = 0.d0
-        FCTEMP1( I,NCS) = 0.d0
-        FCTEMP2( I,NCS) = 0.d0
+        ARR(     I,NCS) = 0.e+0_fp  
+        BRR(     I,NCS) = 0.e+0_fp
+        FCV(     I,NCS) = 0.e+0_fp
+        FCTEMP1( I,NCS) = 0.e+0_fp
+        FCTEMP2( I,NCS) = 0.e+0_fp
         NKARR(   I,NCS) = 0
         NKABR(   I,NCS) = 0
         NKACR(   I,NCS) = 0
@@ -811,8 +814,8 @@
         DO 768 I         = 1, NMRPROD
          IRM(  I,NK,NCS) = 0
          IRM2( I,NK,NCS) = 0
-         FKOEF(I,NK,NCS) = 0.d0
-         FK2(  I,NK,NCS) = 0.d0
+         FKOEF(I,NK,NCS) = 0.e+0_fp
+         FK2(  I,NK,NCS) = 0.e+0_fp
  768    CONTINUE
  769   CONTINUE
  770  CONTINUE

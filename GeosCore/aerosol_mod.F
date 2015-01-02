@@ -17,6 +17,8 @@
 ! 
 ! !USES:
 !
+      USE PRECISION_MOD
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -62,6 +64,7 @@
 !  05 Mar 2013 - R. Yantosca - Now make INIT_AEROSOL a public routine
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
+!  05 Nov 2014 - M. Yannetti - PRECISION_MOD Changed REAL*8 to REAL(fp)
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -81,22 +84,22 @@
       ! SLA         : Stratospheric liquid aerosol       [kg/m3]
       ! SPA         : Stratospheric particulate aerosol  [kg/m3]
       !========================================================================
-      REAL*8, ALLOCATABLE :: BCPI(:,:,:)
-      REAL*8, ALLOCATABLE :: BCPO(:,:,:)
-      REAL*8, ALLOCATABLE :: OCPI(:,:,:)
-      REAL*8, ALLOCATABLE :: OCPO(:,:,:)
-      REAL*8, ALLOCATABLE :: SALA(:,:,:)
-      REAL*8, ALLOCATABLE :: SALC(:,:,:)
-      REAL*8, ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
-      REAL*8, ALLOCATABLE :: SOILDUST(:,:,:,:)
-      REAL*8, ALLOCATABLE :: SLA(:,:,:)
-      REAL*8, ALLOCATABLE :: SPA(:,:,:)
+      REAL(fp), ALLOCATABLE :: BCPI(:,:,:)
+      REAL(fp), ALLOCATABLE :: BCPO(:,:,:)
+      REAL(fp), ALLOCATABLE :: OCPI(:,:,:)
+      REAL(fp), ALLOCATABLE :: OCPO(:,:,:)
+      REAL(fp), ALLOCATABLE :: SALA(:,:,:)
+      REAL(fp), ALLOCATABLE :: SALC(:,:,:)
+      REAL(fp), ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
+      REAL(fp), ALLOCATABLE :: SOILDUST(:,:,:,:)
+      REAL(fp), ALLOCATABLE :: SLA(:,:,:)
+      REAL(fp), ALLOCATABLE :: SPA(:,:,:)
 
       ! Mass of hydrophobic aerosol from Mian Chin
-      REAL*8, ALLOCATABLE, SAVE   :: DAERSL(:,:,:,:)
+      REAL(fp), ALLOCATABLE, SAVE   :: DAERSL(:,:,:,:)
 
       ! Mass of hydrophilic aerosol from Mian Chin
-      REAL*8, ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
+      REAL(fp), ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -168,8 +171,8 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER, SAVE :: N_CHEM_BOXES
       INTEGER       :: I, J, L, JLOOP
-      REAL*8        :: CONSEXP, TK, VPRESH2O
-      REAL*8        :: BOXVL
+      REAL(fp)        :: CONSEXP, TK, VPRESH2O
+      REAL(fp)        :: BOXVL
       
       !=================================================================
       ! AEROSOL_RURALBOX begins here!
@@ -288,10 +291,10 @@
 
 
             ! Grid box volume [cm3]
-            BOXVL          = State_Met%AIRVOL(I,J,L) * 1d6
+            BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! Air density in [molec/cm3]
-            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.d0 / 
+            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
      &                       BOXVL               * AVG  / WTAIR
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
@@ -301,8 +304,8 @@
             ! using the same algorithm as in "gasconc.f"
             TK             = State_Met%T(I,J,L)
 
-            CONSEXP        = 17.2693882d0      * 
-     &                       ( TK - 273.16d0 ) / ( TK - 35.86d0 )
+            CONSEXP        = 17.2693882e0_fp      * 
+     &                     ( TK - 273.16e+0_fp ) / ( TK - 35.86e+0_fp )
             VPRESH2O       = CONSVAP * EXP( CONSEXP ) / TK
             ABSHUM(JLOOP) = ABSHUM(JLOOP) / VPRESH2O
 
@@ -406,20 +409,20 @@
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
-      !REAL*8,  PARAMETER :: OCF     = 2.1d0
+      !REAL(fp),  PARAMETER :: OCF     = 2.1d0
       ! SOAupdate: semivolpoa: reduce OCF to 1.4 for POA (hotp 2/17/09)
-      REAL*8,  PARAMETER :: OCF     = 1.4d0
+      REAL(fp),  PARAMETER :: OCF     = 1.4e+0_fp
 
       ! SOAupdate: semivolpoa4opoa: add OPOA mass (hotp 3/17/09)
-      REAL*8,  PARAMETER :: OCFOPOA = 2.1d0  ! = 1.4*1.5
+      REAL(fp),  PARAMETER :: OCFOPOA = 2.1e+0_fp  ! = 1.4*1.5
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL*8,  PARAMETER :: OCFG = 1.d0
+      REAL(fp),  PARAMETER :: OCFG = 1.e+0_fp
 
       ! For SOAM, assume the total aerosol mass/methylglyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL*8,  PARAMETER :: OCFM = 1.d0
+      REAL(fp),  PARAMETER :: OCFM = 1.e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -435,8 +438,8 @@
       LOGICAL            :: LSULF
 
       ! Pointers
-      REAL*8, POINTER    :: STT(:,:,:,:)
-      REAL*8, POINTER    :: AIRVOL(:,:,:)
+      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: AIRVOL(:,:,:)
 
       !=================================================================
       ! AEROSOL_CONC begins here!
@@ -495,11 +498,11 @@
      &                                STT(I,J,L,IDTNH4)   +
      &                                STT(I,J,L,IDTNIT) ) /
      &                                AIRVOL(I,J,L)
-               SLA(I,J,L) = 0d0
-               SPA(I,J,L) = 0d0
+               SLA(I,J,L) = 0e+0_fp
+               SPA(I,J,L) = 0e+0_fp
             ELSE
                ! Tropospheric sulfate is zero in stratosphere
-               SO4_NH4_NIT(I,J,L) = 0d0
+               SO4_NH4_NIT(I,J,L) = 0e+0_fp
                SLA(I,J,L) = KG_STRAT_AER(I,J,L,1) / AIRVOL(I,J,L)
                SPA(I,J,L) = KG_STRAT_AER(I,J,L,2) / AIRVOL(I,J,L)
             ENDIF
@@ -602,10 +605,10 @@
             ENDIF ! LSOA
 
             ! Now avoid division by zero (bmy, 4/20/04)
-            BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
-            OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
-            BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
-            OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
+            BCPI(I,J,L) = MAX( BCPI(I,J,L), 1e-35_fp )
+            OCPI(I,J,L) = MAX( OCPI(I,J,L), 1e-35_fp )
+            BCPO(I,J,L) = MAX( BCPO(I,J,L), 1e-35_fp )
+            OCPO(I,J,L) = MAX( OCPO(I,J,L), 1e-35_fp )
          
          ENDIF ! LCARB
             
@@ -639,44 +642,44 @@
          IF ( LDUST ) THEN
 
             ! Zero SOILDUST
-            SOILDUST(I,J,L,:) = 0.d0
+            SOILDUST(I,J,L,:) = 0.e0_fp
 
             ! Loop over the # of TOMAS dust bins
             DO K = 1, IBINS
 
                ! Bin #1
-               IF ( Input_Opt%DUSTREFF(K) < 0.2D-6 ) THEN
+               IF ( Input_Opt%DUSTREFF(K) < 0.2e-6_fp ) THEN
                   SOILDUST(I,J,L,1) = SOILDUST(I,J,L,1)
      &                              + STT(I,J,L,IDTDUST1+K-1)  
      &                              / AIRVOL(I,J,L)
 
 
                ! Bin #2
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.325D-6 ) THEN
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.325e-6_fp ) THEN
                   SOILDUST(I,J,L,2) = SOILDUST(I,J,L,2)
      &                              + STT(I,J,L,IDTDUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #3
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.6D-6 ) THEN
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.6e-6_fp ) THEN
                   SOILDUST(I,J,L,3) = SOILDUST(I,J,L,3)
      &                              + STT(I,J,L,IDTDUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #4
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 1.15D-6 ) THEN
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 1.15e-6_fp ) THEN
                   SOILDUST(I,J,L,4) = SOILDUST(I,J,L,4)
      &                              + STT(I,J,L,IDTDUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #5
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 2.0D-6 ) THEN
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 2.0e-6_fp ) THEN
                   SOILDUST(I,J,L,5) = SOILDUST(I,J,L,5)
      &                              + STT(I,J,L,IDTDUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #6
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 3.25D-6 ) THEN
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 3.25e-6_fp ) THEN
                   SOILDUST(I,J,L,6) = SOILDUST(I,J,L,6)
      &                              + STT(I,J,L,IDTDUST1+K-1) 
      &                              / AIRVOL(I,J,L)
@@ -700,13 +703,13 @@
 
             ! Lump 1st dust tracer for het chem
             SOILDUST(I,J,L,1) = 
-     &            0.06d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.06e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,2) =
-     &            0.12d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.12e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,3) =
-     &            0.24d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.24e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,4) =
-     &            0.58d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.58e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
 
             ! Other hetchem bins
             SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
@@ -731,8 +734,8 @@
             SALC(I,J,L) = STT(I,J,L,IDTSALC) / AIRVOL(I,J,L)
 
             ! Avoid division by zero
-            SALA(I,J,L) = MAX( SALA(I,J,L), 1d-35 )
-            SALC(I,J,L) = MAX( SALC(I,J,L), 1d-35 )
+            SALA(I,J,L) = MAX( SALA(I,J,L), 1e-35_fp )
+            SALC(I,J,L) = MAX( SALC(I,J,L), 1e-35_fp )
 
          ENDIF
 
@@ -860,6 +863,7 @@
 !                              derived type object
 !  27 Mar 2013 - S.D. Eastham- Upgraded from Fast-J to Fast-JX
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -874,38 +878,40 @@
       INTEGER             :: I, J, L, N, R, JLOOP, IRH, IRHN
       INTEGER, SAVE       :: MONTH_LAST = -999
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
-      REAL*8              :: TEMP2(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: MSDENS(NAER), XTAU, DRYAREA
+      REAL(fp)            :: TEMP2(IIPAR,JJPAR,LLPAR)
+      REAL(fp)            :: MSDENS(NAER), DRYAREA
+      REAL(f8)            :: XTAU
 
       ! Effective radius at RH bins read in from "jv_spec.dat"
-      REAL*8		  :: RW(NRH)	
+      REAL(fp)		  :: RW(NRH)	
 
       ! Effective radius at RH after interpolation
-      REAL*8		  :: REFF       
+      REAL(fp)		  :: REFF       
 
       ! Q at different RH bins read in from "jv_spec.dat"
-      REAL*8		  :: QW(NRH)	
+      REAL(fp)		  :: QW(NRH)	
  
       ! Used to interpolate between sizes
-      REAL*8		  :: FRAC       
+      REAL(fp)		  :: FRAC       
  
       ! Change in Q (extinction efficiency)
-      REAL*8		  :: SCALEQ     
+      REAL(fp)		  :: SCALEQ     
 
       ! Change in Radius with RH
-      REAL*8		  :: SCALER     
+      REAL(fp)		  :: SCALER     
 
       ! Chnge in Optical Depth vs RH
-      REAL*8		  :: SCALEOD(IIPAR,JJPAR,LLPAR,NRH) 
+      REAL(fp)		  :: SCALEOD(IIPAR,JJPAR,LLPAR,NRH) 
 
       ! Change in Vol vs RH 
-      REAL*8		  :: SCALEVOL(IIPAR,JJPAR,LLPAR)  
+      REAL(fp)		  :: SCALEVOL(IIPAR,JJPAR,LLPAR)  
 
       ! Relative Humidities
-      REAL*8,  SAVE       :: RH(NRH)   = (/0d0,0.5d0,0.7d0,0.8d0,0.9d0/)
+      REAL(fp),  SAVE       :: RH(NRH)   = (/0e+0_fp,0.5e+0_fp, 
+     &   0.7e+0_fp,0.8e+0_fp,0.9e+0_fp/)
 
       ! Temporary varaibles
-      REAL*8              :: RAER, SADSTRAT, RHOSTRAT, XSASTRAT
+      REAL(fp)              :: RAER, SADSTRAT, RHOSTRAT, XSASTRAT
       INTEGER             :: ISTRAT
 
       ! Index to aerosol types in jv_spec.dat
@@ -924,7 +930,7 @@
       LOGICAL             :: LSTRATOD
 
       ! Pointers
-      REAL*8, POINTER     :: BXHEIGHT(:,:,:)
+      REAL(fp), POINTER     :: BXHEIGHT(:,:,:)
 
       !=================================================================
       ! RDAER begins here!
@@ -1026,7 +1032,7 @@
      &                       XTAU,      IIPAR,     JJPAR,     
      &                       LGLOB,     TEMP,      QUIET=.TRUE. )
 
-            ! Cast to REAL*8 and resize
+            ! Cast to REAL(fp) and resize
             CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,1) )
          ENDIF
       ENDIF

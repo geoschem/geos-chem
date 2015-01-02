@@ -16,6 +16,7 @@
 ! !USES:
 !
       USE inquireMod, ONLY : findFreeLUN
+      USE PRECISION_MOD
 
       IMPLICIT NONE
       PRIVATE
@@ -59,6 +60,7 @@
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  05 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -757,7 +759,7 @@
 ! !INPUT PARAMETERS: 
 !
       ! GCAP 3-D cloud fraction field [unitless]
-      REAL*8, INTENT(IN)  :: CLDF(LLPAR,IIPAR,JJPAR)
+      REAL*8, INTENT(IN)  :: CLDF(IIPAR,JJPAR,LLPAR)
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -767,6 +769,7 @@
 ! !REVISION HISTORY: 
 !  25 May 2005 - R. Yantosca - Initial version
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  06 Nov 2014 - R. Yantosca - Now use CLDF(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -791,7 +794,7 @@
       DO I = 1, IIPAR
 
          ! Take max value
-         CLDFRC(I,J) = MAXVAL( CLDF(:,I,J) )
+         CLDFRC(I,J) = MAXVAL( CLDF(I,J,:) )
 
          ! Store in ND67 diagnostic if necessary
          IF ( IS_ND67 ) AD67(I,J,10) = AD67(I,J,10) + CLDFRC(I,J)
@@ -934,12 +937,15 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE CMN_GCTM_MOD
-      USE DIAG_MOD,           ONLY : AD66,        AD67
+      USE DIAG_MOD,           ONLY : AD66
+      USE DIAG_MOD,           ONLY : AD67
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TIME_MOD,           ONLY : SET_CT_A6,   TIMESTAMP_STRING
-      USE TRANSFER_MOD,       ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D, TRANSFER_G5_PLE
+      USE TIME_MOD,           ONLY : SET_CT_A6
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Lp1
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+      USE TRANSFER_MOD,       ONLY : TRANSFER_G5_PLE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -949,46 +955,45 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT), OPTIONAL :: CLDTOPS(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: CLDF(LLPAR,IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: CLDMAS(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: CMFMC(IIPAR,JJPAR,LLPAR+1)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DETRAINE(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DETRAINN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DNDE(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DNDN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DQIDTMST(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DQLDTMST(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DQRCON(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DQRLSC(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DQVDTMST(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: DTRAIN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: ENTRAIN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: HKBETA(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: HKETA(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: MFXC(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: MFYC(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: MFZ(IIPAR,JJPAR,LLPAR+1)
-      REAL*8,  INTENT(OUT), OPTIONAL :: MOISTQ(LLPAR,IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: OPTDEPTH(LLPAR,IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: PLE(IIPAR,JJPAR,LLPAR+1)
-      REAL*8,  INTENT(OUT), OPTIONAL :: PV(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: Q(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: QI(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: QL(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: RH(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: T(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: TAUCLI(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: TAUCLW(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: U(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: UPDE(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: UPDN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: V(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: ZMEU(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: ZMMU(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: T_FULLGRID(IIPAR,JJPAR,LGLOB)
-
+      INTEGER,  INTENT(OUT), OPTIONAL :: CLDTOPS(IIPAR,JJPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: CLDF(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: CLDMAS(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: CMFMC(IIPAR,JJPAR,LLPAR+1)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DETRAINE(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DETRAINN(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DNDE(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DNDN(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DQIDTMST(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DQLDTMST(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DQRCON(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DQRLSC(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DQVDTMST(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: DTRAIN(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: ENTRAIN(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: HKBETA(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: HKETA(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: MFXC(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: MFYC(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: MFZ(IIPAR,JJPAR,LLPAR+1)
+      REAL(fp), INTENT(OUT), OPTIONAL :: MOISTQ(IIPAR,JJPAR,LLPAR) 
+      REAL(fp), INTENT(OUT), OPTIONAL :: OPTDEPTH(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: PLE(IIPAR,JJPAR,LLPAR+1)
+      REAL(fp), INTENT(OUT), OPTIONAL :: PV(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: Q(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: QI(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: QL(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: RH(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: T(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: TAUCLI(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: TAUCLW(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: U(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: UPDE(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: UPDN(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: V(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: ZMEU(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: ZMMU(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(OUT), OPTIONAL :: T_FULLGRID(IIPAR,JJPAR,LGLOB)
 !
 ! !REMARKS:
 !  (3 ) CLDF     : (3-D) Total cloud fractions                 [unitless]
@@ -1059,6 +1064,9 @@
 !                              with zeroes.  NaN's have occured near t-pause.
 !  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  05 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
+!  06 Nov 2014 - R. Yantosca - All input arguments are now declared as (I,J,L) 
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1069,9 +1077,9 @@
       INTEGER                        :: IOS, NFOUND, N_A6
       REAL*4                         :: D(IIPAR,JJPAR,LGLOB)       
       REAL*4                         :: D1(IIPAR,JJPAR,LGLOB+1)       
-      REAL*8                         :: C1, C2
-      REAL*8                         :: TAUCLD(LLPAR,IIPAR,JJPAR)
-      REAL*8                         :: CLDTOT(LLPAR,IIPAR,JJPAR)
+      REAL(fp)                       :: C1, C2
+      REAL(fp)                       :: TAUCLD(IIPAR,JJPAR,LLPAR)
+      REAL(fp)                       :: CLDTOT(IIPAR,JJPAR,LLPAR)
       CHARACTER(LEN=8)               :: NAME
       CHARACTER(LEN=16)              :: STAMP
       INTEGER                        :: XYMD, XHMS
@@ -1133,7 +1141,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:3' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  CALL TRANSFER_A6( D, CLDTOT )
+!                  CALL TRANSFER_A6( D, CLDTOT )
+                  CALL TRANSFER_3D( D, CLDTOT )
                   NFOUND = NFOUND +1 
                ENDIF
 
@@ -1367,7 +1376,8 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:21' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( MOISTQ ) ) CALL TRANSFER_A6( D, MOISTQ )
+!                  IF ( PRESENT( MOISTQ ) ) CALL TRANSFER_A6( D, MOISTQ )
+                  IF ( PRESENT( MOISTQ ) ) CALL TRANSFER_3D( D, MOISTQ )
                   NFOUND = NFOUND + 1 
                ENDIF
 
@@ -1380,7 +1390,8 @@
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( OPTDEPTH ) ) THEN
-                     CALL TRANSFER_A6( D, OPTDEPTH )
+!                     CALL TRANSFER_A6( D, OPTDEPTH )
+                     CALL TRANSFER_3D( D, OPTDEPTH )
                   ENDIF
                   NFOUND = NFOUND + 1 
                ENDIF

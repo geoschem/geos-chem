@@ -17,6 +17,8 @@
 !
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -39,6 +41,7 @@
 !  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -414,7 +417,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_A3
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD,       ONLY : TRANSFER_A6
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Lp1
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
       USE TRANSFER_MOD,       ONLY : TRANSFER_G5_PLE
@@ -431,35 +433,33 @@
       INTEGER, INTENT(OUT) :: CLDTOPS   (IIPAR,JJPAR        )
 
       ! Fields dimensioned as (I,J,L)
-      REAL*8,  INTENT(OUT) :: CMFMC     (IIPAR,JJPAR,LLPAR+1)
-      REAL*8,  INTENT(OUT) :: DQRCU     (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: DQRLSAN   (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: DQIDTMST  (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: DQLDTMST  (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: DQVDTMST  (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: DTRAIN    (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: PFICU     (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: PFILSAN   (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: PFLCU     (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: PFLLSAN   (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: QI        (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: QL        (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: QV        (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: REEVAPCN  (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: REEVAPLS  (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: T         (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: TAUCLI    (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: TAUCLW    (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: U         (IIPAR,JJPAR,LLPAR  )
-      REAL*8,  INTENT(OUT) :: V         (IIPAR,JJPAR,LLPAR  )
-
-      ! Fields dimensioned as (L,I,J)
-      REAL*8,  INTENT(OUT) :: CLOUD     (LLPAR,IIPAR,JJPAR  )
-      REAL*8,  INTENT(OUT) :: MOISTQ    (LLPAR,IIPAR,JJPAR  )
-      REAL*8,  INTENT(OUT) :: OPTDEPTH  (LLPAR,IIPAR,JJPAR  )
+      REAL(fp),  INTENT(OUT) :: CMFMC     (IIPAR,JJPAR,LLPAR+1)
+      REAL(fp),  INTENT(OUT) :: DQRCU     (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: DQRLSAN   (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: DQIDTMST  (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: DQLDTMST  (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: DQVDTMST  (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: DTRAIN    (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: PFICU     (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: PFILSAN   (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: PFLCU     (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: PFLLSAN   (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: QI        (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: QL        (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: QV        (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: REEVAPCN  (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: REEVAPLS  (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: T         (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: TAUCLI    (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: TAUCLW    (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: U         (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: V         (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: CLOUD     (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: MOISTQ    (IIPAR,JJPAR,LLPAR  )
+      REAL(fp),  INTENT(OUT) :: OPTDEPTH  (IIPAR,JJPAR,LLPAR  )
 
       ! Optional arguments
-      REAL*8,  OPTIONAL    :: T_FULLGRID(IIPAR,JJPAR,LGLOB  )
+      REAL(fp),  OPTIONAL    :: T_FULLGRID(IIPAR,JJPAR,LGLOB  )
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
@@ -470,6 +470,8 @@
 !  28 Oct 2013 - R. Yantosca - Add optional T_FULLGRID argument for the
 !                              offline "specialty" simulations
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  06 Nov 2014 - R. Yantosca - All input arguments are declared as (I,J,L)
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -480,7 +482,7 @@
       INTEGER           :: I,   J,      K
       INTEGER           :: L,   XYMD,   XHMS
       INTEGER           :: IOS, NFOUND, N_A3
-      REAL*8            :: C1,  C2
+      REAL(fp)            :: C1,  C2
       CHARACTER(LEN=8)  :: NAME
       CHARACTER(LEN=16) :: STAMP
 
@@ -524,7 +526,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:2' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_A6( D, CLOUD )
+                  CALL TRANSFER_3D( D, CLOUD )
                   NFOUND = NFOUND + 1 
                ENDIF
 
@@ -620,7 +622,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:10' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_A6( D, MOISTQ )
+                  CALL TRANSFER_3D( D, MOISTQ )
                   NFOUND = NFOUND + 1 
                ENDIF
 
@@ -632,7 +634,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:11' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_A6( D, OPTDEPTH )
+                  CALL TRANSFER_3D( D, OPTDEPTH )
                   NFOUND = NFOUND + 1 
                ENDIF
 
@@ -722,7 +724,7 @@
                   ! NOTE: Now set negative Q to a small positive # 
                   ! instead of zero, so as not to blow up logarithms
                   ! (bmy, 9/8/06)
-                  WHERE ( QV < 0d0 ) QV = 1d-32
+                  WHERE ( QV < 0e+0_fp ) QV = 1e-32_fp
                ENDIF
 
             !------------------------------------------------
@@ -850,7 +852,7 @@
       DO I = 1, IIPAR
          CLDTOPS(I,J) = 1
          DO L = LLPAR, 1, -1
-            IF ( CMFMC(I,J,L) > 0d0 ) THEN
+            IF ( CMFMC(I,J,L) > 0e+0_fp ) THEN
                CLDTOPS(I,J) = L + 1
                EXIT
             ENDIF
@@ -859,16 +861,16 @@
       ENDDO
 
       ! Convert MERRA specific humidity from [kg/kg] to [g/kg]
-      QV = QV * 1000d0
+      QV = QV * 1000e+0_fp
 
       ! MOISTQ < 0 denotes precipitation.  Convert negative values to
       ! positives, and then divide by 8.64d7 to convert to units of
       ! [kg H2O/kg air/s].  (bmy, 4/5/99)
-      MOISTQ = -MOISTQ / 8.64d7
+      MOISTQ = -MOISTQ / 8.64e+7_fp
 
       ! Reset negatives to zero in QI, QL fields (bmy, 9/5/13)
-      WHERE( QI < 0d0 ) QI = 0d0
-      WHERE( QL < 0d0 ) QL = 0d0
+      WHERE( QI < 0e+0_fp ) QI = 0e+0_fp
+      WHERE( QL < 0e+0_fp ) QL = 0e+0_fp
 
       !=================================================================
       !          %%%%% ND66 diagnostic: 3-D met fields %%%%%

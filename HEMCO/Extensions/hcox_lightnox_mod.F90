@@ -1484,6 +1484,8 @@ CONTAINS
 !  02 Feb 2012 - R. Yantosca - Compute BETA for MERRA 2 x 2.5
 !  02 Feb 2012 - R. Yantosca - Compute BETA for GEOS-5.7.x
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
+!  04 Nov 2014 - Y. X. Wang  - Define BETA, ANN_AVG_FLASHRATE for the
+!                              GEOS-FP 025x03125 NESTED_CH grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1509,6 +1511,8 @@ CONTAINS
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.7549280d0
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
+#elif defined( GRID025x03125 ) && defined( NESTED_CH )
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.6591586d0
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
 #endif
@@ -1595,7 +1599,13 @@ CONTAINS
     ! GEOS-FP: Nested China simulation
     !---------------------------------------
 
-    ! ltm: Will need to be determined when met fields become available.
+    ! Constrained with simulated "climatology" for
+    ! Jan 2013 - Dec 2013. Will need to be updated as more
+    ! met fields become available (ltm, 10/22/14).
+    IF ( ( cYr .eq. 2013 .and. cMt .ge. 1  )   .or. &
+         ( cYr .eq. 2013 .and. cMt .le. 12 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 1052.6366d0
+    ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
 

@@ -18,6 +18,7 @@ MODULE VDIFF_PRE_MOD
   USE COMODE_LOOP_MOD                        ! IDEMS, NEMIS, NCS
   USE CMN_O3_MOD                             ! EMISRR, EMISRRN
   USE CMN_DIAG_MOD                           ! ND15
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
   
@@ -43,7 +44,7 @@ MODULE VDIFF_PRE_MOD
   INTEGER, PUBLIC      :: PCNST              ! Passes N_TRACERS to vdiff_mod
 
   ! Arrays
-  REAL*8,  ALLOCATABLE :: emis_save(:,:,:)   ! Emissions array
+  REAL(fp),  ALLOCATABLE :: emis_save(:,:,:)   ! Emissions array
 !
 ! !DEFINED PARAMETERS:
 !
@@ -58,6 +59,7 @@ MODULE VDIFF_PRE_MOD
 !                              pass N_TRACERS, LPRT, LTURB to vdiff_mod.F90
 !                              now that logical_mod.F, tracer_mod.F are gone.
 !  24 Jun 2014 - R. Yantosca - Renamed to vdiff_pre_mod.F90
+!  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,7 +114,7 @@ CONTAINS
     ENDIF
       
     ! Zero arrays
-    emis_save = 0.d0
+    emis_save = 0.e+0_fp
       
   END SUBROUTINE Init_VDIFF_PRE
 !EOC

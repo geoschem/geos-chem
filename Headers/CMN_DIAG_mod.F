@@ -18,6 +18,7 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_FJX_MOD, ONLY : W_
+      USE PRECISION_MOD, ONLY : fpp => fp    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PUBLIC
@@ -215,8 +216,8 @@
       ! Move this here for now (bmy, 7/20/04)
       ! Removed HR1_NO and HR2_NO (mpayer, 11/8/13)
       !=================================================================
-      REAL*8  :: HR1_JV, HR2_JV
-      REAL*8  :: HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
+      REAL(fpp)  :: HR1_JV, HR2_JV
+      REAL(fpp)  :: HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -268,6 +269,7 @@
 !  08 Nov 2013 - M. Sulprizio- Remove HR1_NO and HR2_NO. They are no longer
 !                              needed for ND43 because NO, NO2, and NO3 are now
 !                              tracers.
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC

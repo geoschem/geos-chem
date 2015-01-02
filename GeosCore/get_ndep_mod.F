@@ -25,14 +25,16 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
 !
       ! Soil NOx deposited N arrays
-      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: DRY_TOTN     (:,:) ! Drydep'd N
-      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: WET_TOTN     (:,:) ! Wetdep'd N
+      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: DRY_TOTN     (:,:) ! Drydep'd N
+      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: WET_TOTN     (:,:) ! Wetdep'd N
 ! 
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
@@ -51,16 +53,17 @@
 !  09 Oct 2014 - C. Keller   - Removed obsolete routines DEP_RESERVOIR, 
 !                              GET_DEP_N, SOURCE_DRYN, and SOURCE_WETN. These
 !                              are now handled in hcox_soilnox_mod.F90.
+!  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !  
-      REAL*8, PARAMETER :: CONVHNO3 = 0.222 ! MWN/MWHNO3
-      REAL*8, PARAMETER :: CONVNH4  = 0.777 ! MWN/MWNH4
-      REAL*8, PARAMETER :: CONVNH3  = 0.823 ! MWN/MWNH3
-      REAL*8, PARAMETER :: CONVNIT  = 0.226 ! MWN/MWNIT
+      REAL(fp), PARAMETER :: CONVHNO3 = 0.222 ! MWN/MWHNO3
+      REAL(fp), PARAMETER :: CONVNH4  = 0.777 ! MWN/MWNH4
+      REAL(fp), PARAMETER :: CONVNH3  = 0.823 ! MWN/MWNH3
+      REAL(fp), PARAMETER :: CONVNIT  = 0.226 ! MWN/MWNIT
 
       CONTAINS
 !EOC
@@ -91,7 +94,7 @@
       INTEGER, INTENT(IN)   :: J          ! J
       INTEGER, INTENT(IN)   :: L          ! Level
       INTEGER, INTENT(IN)   :: NN         ! Dry Dep Tracer # 
-      REAL*8 , INTENT(IN)   :: TDRYFX     ! Dry dep flux [molec/cm2/s] 
+      REAL(fp), INTENT(IN)   :: TDRYFX     ! Dry dep flux [molec/cm2/s] 
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -137,7 +140,7 @@
       INTEGER, INTENT(IN)   :: J          ! J
       INTEGER, INTENT(IN)   :: L          ! Level
       INTEGER, INTENT(IN)   :: NN         ! Wet Dep Tracer # 
-      REAL*8 , INTENT(IN)   :: TWETFX     ! Wet dep flux [kg/s] 
+      REAL(fp) , INTENT(IN)   :: TWETFX     ! Wet dep flux [kg/s] 
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -146,10 +149,10 @@
 !BOC
 !
       ! ckeller (14/04/02)
-      REAL*8        :: SCAL
+      REAL(fp)        :: SCAL
 
       ! ckeller (14/04/02)
-      SCAL = 0d0
+      SCAL = 0e+0_fp
       IF ( NN == IDTHNO3  ) SCAL = CONVHNO3 
       IF ( NN == IDTNH3   ) SCAL = CONVNH3
       IF ( NN == IDTNH4   ) SCAL = CONVNH4
@@ -157,7 +160,7 @@
       IF ( NN == IDTNIT   ) SCAL = CONVNIT
       IF ( NN == IDTNITs  ) SCAL = CONVNIT
 
-      IF ( SCAL > 0d0 ) THEN
+      IF ( SCAL > 0e+0_fp ) THEN
          WET_TOTN(I,J) = WET_TOTN(I,J) + ( TWETFX * SCAL )
       ENDIF
 
@@ -185,8 +188,8 @@
 !BOC
 
       ! Reset all variables
-      DRY_TOTN = 0d0
-      WET_TOTN = 0d0
+      DRY_TOTN = 0e+0_fp
+      WET_TOTN = 0e+0_fp
 
       END SUBROUTINE RESET_DEP_N
 !EOC
@@ -237,8 +240,8 @@
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
       ! Zero arrays
-      WET_TOTN      = 0d0
-      DRY_TOTN      = 0d0
+      WET_TOTN      = 0e+0_fp
+      DRY_TOTN      = 0e+0_fp
 
       END SUBROUTINE Init_Get_Ndep
 !EOC

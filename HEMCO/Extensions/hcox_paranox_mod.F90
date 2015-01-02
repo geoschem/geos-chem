@@ -14,7 +14,7 @@
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
 !\\
-!\\
+!\\}
 ! References:
 ! \begin{itemize}
 ! \item Vinken, G. C. M., Boersma, K. F., Jacob, D. J., and Meijer, E. W.: 

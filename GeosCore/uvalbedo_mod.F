@@ -8,7 +8,7 @@
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) UVALBEDO (REAL*8) : Array to hold UV Albedo data from disk
+!  (1 ) UVALBEDO (REAL(fp)) : Array to hold UV Albedo data from disk
 !
 !  Module Routines:
 !  ============================================================================
@@ -33,16 +33,13 @@
 !  (6 ) Bug fix for GCAP grid in READ_UVALBEDO (bmy, 8/16/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
-      ! Array for UV albedo data
-      REAL*8, ALLOCATABLE :: UVALBEDO(:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -61,7 +58,7 @@
 !  Arguments as Input:
 !  ==========================================================================
 !  (1 ) MONTH    (INTEGER) : Current month (1-12)
-!  (2 ) UVALBEDO (REAL*8 ) : Array with UV albedo data 
+!  (2 ) UVALBEDO (REAL(fp) ) : Array with UV albedo data 
 !
 !  Reference:
 !  ==========================================================================
@@ -93,6 +90,7 @@
 !  (12) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (13) Read proper filename for GCAP or GEOS grids (swu, bmy, 8/15/05) 
 !  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
       ! References to F90 modules
@@ -103,7 +101,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 !
 ! !INPUT PARAMETERS:
 !
@@ -124,8 +121,8 @@
 !      
       LOGICAL              :: FIRST = .TRUE.
       INTEGER              :: AS
-      REAL*4               :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8               :: XTAU
+      REAL(f4)             :: ARRAY(IIPAR,JJPAR,1)
+      REAL(f8)             :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
 
       !=================================================================
@@ -134,22 +131,6 @@
 
       ! Assume success
       RC  =  GIGC_SUCCESS
-
-      !=================================================================
-      ! Allocate UVALBEDO array on the first call
-      !=================================================================
-      IF ( FIRST ) THEN
-
-         ! Allocate UVALBEDO
-         ALLOCATE( UVALBEDO( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UVALBEDO' )
-         
-         ! Zero UVALBEDO
-         UVALBEDO(:,:) = 0d0
-
-         ! Reset FIRST flag
-         FIRST = .FALSE.
-      ENDIF
 
       !=================================================================
       ! Read UVALBEDO data from disk
@@ -177,11 +158,8 @@
      &                 XTAU,      IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. )         
 
-      ! Transfer data from REAL*4 to REAL*8 and to size (IIPAR,JJPAR)
-      CALL TRANSFER_2D( ARRAY(:,:,1), UVALBEDO )
-      
-      ! Copy met field to State_Met
-      State_Met%UVALBEDO = UVALBEDO
+      ! Transfer data from REAL*4 to REAL(fp) and to size (IIPAR,JJPAR)
+      State_Met%UVALBEDO = ARRAY(:,:,1)
 
       ! Return to calling program
       END SUBROUTINE READ_UVALBEDO
@@ -194,7 +172,10 @@
 !  Subroutine CLEANUP_UVALBEDO deallocates the UVALBEDO array (bmy, 1/15/02)
 !******************************************************************************
 !
-      IF ( ALLOCATED( UVALBEDO ) ) DEALLOCATE( UVALBEDO )
+!----------------------------------------------------------------------------
+! Prior to 11/6/14:
+!      IF ( ALLOCATED( UVALBEDO ) ) DEALLOCATE( UVALBEDO )
+!----------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_UVALBEDO

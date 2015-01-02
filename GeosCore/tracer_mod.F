@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -29,7 +31,8 @@
 ! !DEFINED PARAMETERS:
 !
       ! Conversion factor: molec air / kg air
-      REAL*8, PUBLIC, PARAMETER :: XNUMOLAIR = 6.022d+23 / 28.9644d-3
+      REAL(fp), PUBLIC, PARAMETER :: XNUMOLAIR = 
+     &                        6.022e+23_fp / 28.9644e-3_fp
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -59,6 +62,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
 !  04 Apr 2013 - R. Yantosca - Removed STT (now in State_Chm)
+!  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,7 +125,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHECK_STT begins here!
@@ -157,7 +161,7 @@
          !---------------------------
 !clb fill nega
          STT(I,J,L,N) = ABS(STT(I,J,L,N))
-         IF ( STT(I,J,L,N) < 0d0 ) THEN 
+         IF ( STT(I,J,L,N) < 0e+0_fp ) THEN 
 !$OMP CRITICAL
             LNEG = .TRUE.
             WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
@@ -254,7 +258,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHECK_STT_05x0666 begins here!
@@ -276,12 +280,12 @@
          !---------------------------
          ! Check for Negatives
          !---------------------------
-         IF ( STT(I,J,L,N) < 0d0 ) THEN 
+         IF ( STT(I,J,L,N) < 0e+0_fp ) THEN 
 !$OMP CRITICAL
             WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
             PRINT*, 'Neg STT ' // TRIM( LOCATION ) //
      &              '. SET STT TO BE ZERO.'
-            STT(I,J,L,N) = 0d0
+            STT(I,J,L,N) = 0e+0_fp
 !$OMP END CRITICAL
 
          !---------------------------
@@ -368,7 +372,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHECK_STT_05x0666 begins here!
@@ -391,12 +395,12 @@
          ! Check for Negatives
          !---------------------------
 !clb         STT (I,J,L,N)=ABS(STT(I,J,L,N))
-         IF ( STT(I,J,L,N) < 0d0 ) THEN
+         IF ( STT(I,J,L,N) < 0e+0_fp ) THEN
 !$OMP CRITICAL
             WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
             PRINT*, 'Neg STT ' // TRIM( LOCATION ) //
      &              '. SET STT TO BE ZERO.'
-            STT(I,J,L,N) = 0d0
+            STT(I,J,L,N) = 0e+0_fp
 !$OMP END CRITICAL
 
          !---------------------------

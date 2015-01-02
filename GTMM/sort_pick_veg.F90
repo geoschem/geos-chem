@@ -15,16 +15,19 @@ SUBROUTINE sort_pick_veg(arr, ind)
 ! !USES:
 !
   USE defineConstants
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
       
   implicit none
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-  REAL*8, dimension(n_veg, n_age_classes), intent(INOUT) :: ind
-  REAL*8, dimension(n_veg, n_age_classes), intent(INOUT) :: arr
+  REAL(fp), dimension(n_veg, n_age_classes), intent(INOUT) :: ind
+  REAL(fp), dimension(n_veg, n_age_classes), intent(INOUT) :: arr
 !
 ! !REVISION HISTORY:
 !  09 Jul 2010 - C. Carouge - Initial version
+!  01 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC

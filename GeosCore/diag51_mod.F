@@ -17,6 +17,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -116,6 +118,8 @@
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND51 a local module variable
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,9 +178,9 @@
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180=1
       REAL*4               :: LONRES,         LATRES
-      REAL*8               :: TAU0,           TAU1
-      REAL*8               :: ND51_HR1,       ND51_HR2
-      REAL*8               :: ND51_HR_WRITE
+      REAL(f8)             :: TAU0,           TAU1
+      REAL(fp)             :: ND51_HR1,       ND51_HR2
+      REAL(fp)             :: ND51_HR_WRITE
       CHARACTER(LEN=20)    :: MODELNAME
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE
@@ -195,7 +199,7 @@
       ! For emissions
       INTEGER, ALLOCATABLE :: GOOD_EMIS(:)
       INTEGER, ALLOCATABLE :: GOOD_CT_EMIS(:)
-      REAL*8,  ALLOCATABLE :: Q(:,:,:,:)
+      REAL(fp),  ALLOCATABLE :: Q(:,:,:,:)
 
       !=================================================================
       ! Original code from old DIAG51_MOD.  Leave here as a guide to 
@@ -208,8 +212,8 @@
       !! an entire day over the US grid (amf, bmy, 12/1/00)
       !!
       !INTEGER, PARAMETER   :: NHMS_WRITE = 120000
-      !REAL*8,  PARAMETER   :: HR1        = 13d0
-      !REAL*8,  PARAMETER   :: HR2        = 17d0
+      !REAL(fp),  PARAMETER   :: HR1        = 13d0
+      !REAL(fp),  PARAMETER   :: HR2        = 17d0
       !CHARACTER(LEN=255)   :: FILENAME   = 'ts1_4pm.bpch'
       !=================================================================
       ! For timeseries between 1000 and 1200 LT, uncomment this code:
@@ -223,8 +227,8 @@
       ! interested in the whole northern hemisphere (pip, 12/1/00)
       !
       !INTEGER, PARAMETER   :: NHMS_WRITE = 000000
-      !REAL*8,  PARAMETER   :: HR1        = 10d0
-      !REAL*8,  PARAMETER   :: HR2        = 12d0
+      !REAL(fp),  PARAMETER   :: HR1        = 10d0
+      !REAL(fp),  PARAMETER   :: HR2        = 12d0
       !CHARACTER(LEN=255)   :: FILENAME   ='ts10_12pm.bpch'
       !=================================================================
 
@@ -274,14 +278,14 @@
 !  (2 ) Added TAU_W as a local variable (bmy, 9/28/04)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: TAU_W
+      REAL(fp) :: TAU_W
 
       !=================================================================
       ! DIAG51 begins here!
@@ -343,7 +347,7 @@
 !  (3 ) Updated comments (rvm, bmy, 2/27/02)
 !  (4 ) Now uses function GET_LOCALTIME of "time_mod.f" (bmy, 3/27/03) 
 !  (5 ) Removed reference to CMN (bmy, 7/20/04)
-!  (6 ) Bug fix: LT should be REAL*8 and not INTEGER (ccarouge, 12/10/08)
+!  (6 ) Bug fix: LT should be REAL(fp) and not INTEGER (ccarouge, 12/10/08)
 !  (7 ) We need to substract TS_DYN to the time to get the local time at 
 !        the beginning of previous time step. (ccc, 8/11/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
@@ -355,19 +359,19 @@
 ! !LOCAL VARIABLES:
 !   
       INTEGER :: I
-      REAL*8  :: LT, TS_DYN
+      REAL(fp)  :: LT, TS_DYN
 
       !=================================================================
       ! GET_LOCAL_TIME begins here!
       !=================================================================
       TS_DYN = GET_TS_DYN()
-      TS_DYN = TS_DYN / 60d0
+      TS_DYN = TS_DYN / 60e+0_fp
 
       DO I = 1, IIPAR
 
          ! Get local time
          LT = GET_LOCALTIME( I, 1, 1 ) - TS_DYN
-         IF ( LT < 0  ) LT = LT + 24d0
+         IF ( LT < 0  ) LT = LT + 24e+0_fp
 
          ! GOOD indicates which boxes have local times between HR1 and HR2
          IF ( LT >= ND51_HR1 .and. LT <= ND51_HR2 ) THEN
@@ -466,6 +470,9 @@
 !                              derived type object
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
 !                              of removal of NOx-Ox partitioning
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -478,7 +485,7 @@
       LOGICAL           :: IS_CHEM,     IS_DIAG,   IS_EMIS
       INTEGER           :: H, I, J, K, L, M, N
       INTEGER           :: PBLINT,  R, X, Y, W, XMIN
-      REAL*8            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
+      REAL(fp)            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16) :: STAMP
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
@@ -486,11 +493,11 @@
 
       ! For fields from Input_Opt
       INTEGER           :: N_TRACERS
-      REAL*8            :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL*8, POINTER   :: STT(:,:,:,:)
-      REAL*8, POINTER   :: AD(:,:,:)
+      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: AD(:,:,:)
 
       !=================================================================
       ! ACCUMULATE_DIAG51 begins here!
@@ -658,7 +665,7 @@
                !--------------------------------------
   
                ! Temp variable for accumulation
-               TMP = 0d0
+               TMP = 0e+0_fp
             
                ! NO
                TMP = TMP + ( TCVV(IDTNO)         * GOOD(I) *
@@ -688,7 +695,7 @@
      &                       STT(I,J,L,IDTR4N2)  / AD(I,J,L) )
             
                ! N2O5
-               TMP = TMP + ( 2d0 * TCVV(IDTN2O5) * GOOD(I) *
+               TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) * GOOD(I) *
      &                       STT(I,J,L,IDTN2O5)  / AD(I,J,L) )
                         
                ! HNO4
@@ -711,7 +718,7 @@
                !--------------------------------------
                ! 3-D CLOUD FRACTIONS [unitless]
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%CLDF(L,I,J) *
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%CLDF(I,J,L) *
      &                      GOOD(I) )
 
             ELSE IF ( N == 155 .and. IS_OPTD ) THEN
@@ -719,7 +726,7 @@
                !--------------------------------------
                ! COLUMN OPTICAL DEPTHS [unitless]
                !--------------------------------------
-               Q(X,Y,1,W) = Q(X,Y,1,W) + ( State_Met%OPTD(L,I,J) *
+               Q(X,Y,1,W) = Q(X,Y,1,W) + ( State_Met%OPTD(I,J,L) *
      &                      GOOD(I) )
 
             ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN
@@ -737,8 +744,8 @@
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(L,I,J) *
-     &                      XNUMOLAIR  * 1d-6 * GOOD(I) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(I,J,L) *
+     &                      XNUMOLAIR  * 1e-6_fp * GOOD(I) )
 
             ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
 
@@ -1211,7 +1218,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8, INTENT(OUT) :: TAU_W   ! TAU at time of disk write
+      REAL(fp), INTENT(OUT) :: TAU_W   ! TAU at time of disk write
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1225,7 +1232,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: ITS_TIME
-      REAL*8  :: TAU, HOUR, DYN, TS_DIAG
+      REAL(fp)  :: TAU, HOUR, DYN, TS_DIAG
 
       !=================================================================
       ! ITS_TIME_FOR_WRITE_DIAG51 begins here!
@@ -1236,7 +1243,7 @@
 
       ! Add a check for the time to save. Must be a multiple of TS_DIAG
       ! (ccc, 7/21/09)
-      TS_DIAG = ( GET_TS_DIAG() / 60d0 )
+      TS_DIAG = ( GET_TS_DIAG() / 60e+0_fp )
       IF ( MOD(ND51_HR_WRITE, TS_DIAG) /= 0 ) THEN
          WRITE( 6, 100 ) 'ND51', ND51_HR_WRITE, TS_DIAG
  100     FORMAT( 'The ',a,' output frequency must be a multiple '
@@ -1246,15 +1253,15 @@
 
       ! Current TAU, Hour, and Dynamic Timestep [hrs]
       TAU      = GET_TAU()
-      HOUR     = ( GET_MINUTE() / 60d0 ) + GET_HOUR()
-      DYN      = ( GET_TS_DYN() / 60d0 )
+      HOUR     = ( GET_MINUTE() / 60e+0_fp ) + GET_HOUR()
+      DYN      = ( GET_TS_DYN() / 60e+0_fp )
 
       ! If first timestep, return FALSE
       IF ( TAU == GET_TAUb() ) RETURN
 
       ! If the next dyn timestep is the hour of day
       ! when we have to save to disk, return TRUE
-      IF ( MOD( HOUR, 24d0 ) == ND51_HR_WRITE ) THEN
+      IF ( MOD( HOUR, 24e+0_fp ) == ND51_HR_WRITE ) THEN
          ITS_TIME = .TRUE.
          TAU_W    = TAU + DYN
          RETURN
@@ -1317,7 +1324,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      REAL*8,         INTENT(IN)  :: TAU_W       ! TAU value at time of write
+      REAL(fp),         INTENT(IN)  :: TAU_W       ! TAU value at time of write
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1443,7 +1450,7 @@
                IF ( COUNT_CHEM3D(X,Y,K) > 0 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) / COUNT_CHEM3D(X,Y,K)
                ELSE
-                  Q(X,Y,K,W) = 0d0
+                  Q(X,Y,K,W) = 0e+0_fp
                ENDIF
 
             CASE( 84:89, 115:121 )
@@ -1455,7 +1462,7 @@
                IF ( GOOD_CT_CHEM(X) > 0 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT_CHEM(X) 
                ELSE
-                  Q(X,Y,K,W) = 0d0
+                  Q(X,Y,K,W) = 0e+0_fp
                ENDIF
 
             CASE( 105:114 )
@@ -1467,7 +1474,7 @@
                IF ( GOOD_CT_EMIS(X) > 0 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT_EMIS(X) 
                ELSE
-                  Q(X,Y,K,W) = 0d0
+                  Q(X,Y,K,W) = 0e+0_fp
                ENDIF
 
             CASE DEFAULT
@@ -1478,7 +1485,7 @@
                IF ( GOOD_CT(X) > 0 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT(X) 
                ELSE
-                  Q(X,Y,K,W) = 0d0
+                  Q(X,Y,K,W) = 0e+0_fp
                ENDIF
 
             END SELECT
@@ -1981,15 +1988,15 @@
       TAU0 = TAU_W
 
       ! Zero accumulating array for tracer
-      Q            = 0d0
+      Q            = 0e+0_fp
 
       ! Zero counter arrays
-      COUNT_CHEM3D = 0d0
-      GOOD_CT      = 0d0
-      GOOD_CHEM    = 0d0
-      GOOD_CT_CHEM = 0d0
-      GOOD_EMIS    = 0d0
-      GOOD_CT_EMIS = 0d0
+      COUNT_CHEM3D = 0e+0_fp
+      GOOD_CT      = 0e+0_fp
+      GOOD_CHEM    = 0e+0_fp
+      GOOD_CT_CHEM = 0e+0_fp
+      GOOD_EMIS    = 0e+0_fp
+      GOOD_CT_EMIS = 0e+0_fp
 
       END SUBROUTINE WRITE_DIAG51
 !EOC
@@ -2087,8 +2094,8 @@
       INTEGER,            INTENT(IN) :: IMIN,   IMAX 
       INTEGER,            INTENT(IN) :: JMIN,   JMAX      
       INTEGER,            INTENT(IN) :: LMIN,   LMAX 
-      REAL*8,             INTENT(IN) :: HR1,    HR2
-      REAL*8,             INTENT(IN) :: HR_WRITE
+      REAL(fp),             INTENT(IN) :: HR1,    HR2
+      REAL(fp),             INTENT(IN) :: HR_WRITE
       CHARACTER(LEN=255), INTENT(IN) :: FILE
 !
 ! !REVISION HISTORY: 
@@ -2137,7 +2144,7 @@
       ND51_OUTPUT_FILE       = TRIM( FILE )
 
       ! Make sure ND51_HR_WRITE is in the range 0-23.999 hrs
-      ND51_HR_WRITE = MOD( ND51_HR_WRITE, 24d0 )
+      ND51_HR_WRITE = MOD( ND51_HR_WRITE, 24e+0_fp )
 
       ! Exit if ND51 is turned off 
       IF ( .not. DO_SAVE_DIAG51 ) RETURN

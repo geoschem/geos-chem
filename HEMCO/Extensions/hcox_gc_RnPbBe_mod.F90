@@ -141,10 +141,11 @@ CONTAINS
     INTEGER           :: I,        J,          L,          N
     INTEGER           :: HcoID
     REAL*8            :: A_CM2,    ADD_Be,     ADD_Rn,     Rn_LAND
-    REAL*8            :: Rn_WATER, DTSRCE,     LAT_TMP,    P_TMP
-    REAL*8            :: Be_TMP,   Rn_TMP,     LAT,        F_LAND     
+    REAL*8            :: Rn_WATER, DTSRCE
+    REAL*8            :: Rn_TMP,     LAT,        F_LAND     
     REAL*8            :: F_WATER,  F_BELOW_70, F_BELOW_60, F_ABOVE_60
     REAL*8            :: DENOM
+    REAL(hp)          :: LAT_TMP,  P_TMP,      Be_TMP
 
     ! Pointers
     REAL(hp), POINTER :: Arr2D(:,:  ) => NULL()
@@ -363,7 +364,7 @@ CONTAINS
    
           ! Be_TMP = [stars/g air/s] * [0.045 atom/star] * 
           !          [kg air] * [1e3 g/kg] = 7Be emissions [atoms/s]
-          Be_TMP  = Be_TMP * 0.045d0 * ExtState%AIR%Arr%Val(I,J,L) * 1.d3 
+          Be_TMP  = Be_TMP * 0.045e+0_hp * ExtState%AIR%Arr%Val(I,J,L) * 1.e+3_hp 
                      
           ! ADD_Be = [atoms/s] / [atom/kg] / [m2] = 7Be emissions [kg/m2/s]
           ADD_Be  = ( Be_TMP / XNUMOL_Be ) / HcoState%Grid%AREA_M2%Val(I,J)
@@ -674,15 +675,15 @@ CONTAINS
 !
     INTEGER :: N        ! First dimension of Z
     INTEGER :: M        ! Second dimension of Z
-    REAL*8  :: X(N)     ! X-axis coordinate on original grid
-    REAL*8  :: Y(M)     ! Y-axis coordinate on original grid
-    REAL*8  :: Z(N,M)   ! Array of data on original grid
-    REAL*8  :: U        ! X-axis coordinate for desired interpolated value
-    REAL*8  :: V        ! Y-axis coordinate for desired interpolated value
+    REAL(hp)  :: X(N)     ! X-axis coordinate on original grid
+    REAL(hp)  :: Y(M)     ! Y-axis coordinate on original grid
+    REAL(hp)  :: Z(N,M)   ! Array of data on original grid
+    REAL(hp)  :: U        ! X-axis coordinate for desired interpolated value
+    REAL(hp)  :: V        ! Y-axis coordinate for desired interpolated value
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8  :: W        ! Interpolated value of Z array, at coords (U,V) 
+    REAL(hp)  :: W        ! Interpolated value of Z array, at coords (U,V) 
 !
 ! !REMARKS:
 !  This routine was taken from the old RnPbBe_mod.F.
@@ -693,13 +694,14 @@ CONTAINS
 !  (2 ) Removed duplicate definition of IQ.  Added comments. (bmy, 11/15/01)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !   7 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  04 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*8  :: B(3), HH
+    REAL(hp)  :: B(3), HH
     INTEGER :: NN,   IP, I, J, L, IQ, K, MM
 
     !=======================================================================

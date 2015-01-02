@@ -17,6 +17,8 @@ MODULE tomas_tpcore_mod
 !
 ! !USES:
 ! 
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
   PUBLIC
 !
@@ -26,6 +28,7 @@ MODULE tomas_tpcore_mod
 !
 ! !REVISION HISTORY:
 !  22 Jan 2010 - Win T.      - Modified for TOMAS
+!  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -117,12 +120,12 @@ CONTAINS
 !
     INTEGER  :: IM,JM,J1,J2, NL, IDFLUX
     INTEGER  :: DIR
-    REAL*8   :: DQ(IM,JM,NL)  ! DQ of aerosol mass tracers, i.e., SF1..SF30.
+    REAL(fp)   :: DQ(IM,JM,NL)  ! DQ of aerosol mass tracers, i.e., SF1..SF30.
 !
 ! !INPUT/OUTPUT PARAMETERS
 !  
-    REAL*8   :: FLUXNK(IM,JM,NL), FLUXM(IM,JM,NL)
-    REAL*8   :: DQNK(IM,JM,NL)! the original DQ of aerosol number
+    REAL(fp)   :: FLUXNK(IM,JM,NL), FLUXM(IM,JM,NL)
+    REAL(fp)   :: DQNK(IM,JM,NL)! the original DQ of aerosol number
 !
 ! !REVISION HISTORY: 
 !  24 Jul 2007 - Win T. - Initial version
@@ -193,21 +196,21 @@ CONTAINS
     INTEGER  :: J2            ! South edge of the North polar cap
     INTEGER  :: NL               ! Total number of vertical grid levels
     INTEGER  :: DIR           ! Direction chosen to calculate mass flux
-    REAL*8   :: DQ(IM,J1:J2,NL)  ! DQ of aerosol mass tracers, i.e., SF1..SF30.
-    REAL*8   :: DQNK(IM,J1:J2,NL)     ! Saved DQ of aerosol number
-    REAL*8   :: FLUXNK(IM,J1:J2,NL)   ! Saved flux of aerosol number
+    REAL(fp)   :: DQ(IM,J1:J2,NL)  ! DQ of aerosol mass tracers, i.e., SF1..SF30.
+    REAL(fp)   :: DQNK(IM,J1:J2,NL)     ! Saved DQ of aerosol number
+    REAL(fp)   :: FLUXNK(IM,J1:J2,NL)   ! Saved flux of aerosol number
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8   :: FLUXM(IM,J1:J2,NL)    ! Flux of aerosol mass to be calculated
+    REAL(fp)   :: FLUXM(IM,J1:J2,NL)    ! Flux of aerosol mass to be calculated
 !
 !  !REVISION HISTORY: 
 !  (1 ) About the size of fluxes array, the high-order fluxes eventually I want
 !       fx(im+1,jm,nl), fy(im,jm,nl) and fz(im,jm,nl+1). But here, let's just 
 !       use all fluxes array of(im,jm,nl).  I can add the extra strip later 
 !       fx(im+1,:,:)=fx(1,:,:)
-!       fz(:,:,nl+1)=0d0
-!       also fz(:,:,1)=0d0
+!       fz(:,:,nl+1)=0e+0_fp
+!       also fz(:,:,1)=0e+0_fp
 !  (2 ) dir = 1 for X-direction flux
 !           = 2 for Y-direction flux
 !  (3 ) Introduce the courant number to massflux for accurate reference of 
@@ -233,7 +236,7 @@ CONTAINS
     ! MASSFLUX begins here!
     !=======================================================================
     
-    FLUXM = 0d0          ! Initialize the output flux arrays as zeroes
+    FLUXM = 0e+0_fp          ! Initialize the output flux arrays as zeroes
 
     ! ## PART 1 -- x-direction fluxes ##
     IF ( DIR == 1 ) THEN
@@ -246,7 +249,7 @@ CONTAINS
        DO J = J1, J2
 
           !Start calculating flux for aerosol mass
-          IF ( FLUXNK(1,J,K) >= 0d0 ) THEN
+          IF ( FLUXNK(1,J,K) >= 0e+0_fp ) THEN
              FLUXM(1,J,K) = SAFE_DIV(FLUXNK(1,J,K)* DQ(IM,J,K),  &
                                      DQNK(IM,J,K), FLUXM(1,J,K))
           ELSE
@@ -255,7 +258,7 @@ CONTAINS
           ENDIF
 
           DO I = 2, IM
-             IF ( FLUXNK(I,J,K) >= 0d0 ) THEN
+             IF ( FLUXNK(I,J,K) >= 0e+0_fp ) THEN
                 FLUXM(I,J,K) = SAFE_DIV(FLUXNK(I,J,K)* DQ(I-1,J,K),  &
                                         DQNK(I-1,J,K), FLUXM(I,J,K))
              ELSE                  
@@ -281,7 +284,7 @@ CONTAINS
        DO K = 1,NL
        DO J = J1, J2+1
        DO I = 1, IM
-          IF ( FLUXNK(I,J,K) >= 0d0 ) THEN
+          IF ( FLUXNK(I,J,K) >= 0e+0_fp ) THEN
              FLUXM(I,J,K) = SAFE_DIV(FLUXNK(I,J,K)* DQ(I,J-1,K),  &
                                      DQNK(I,J-1,K), FLUXM(I,J,K))
           ELSE
@@ -306,7 +309,7 @@ CONTAINS
        DO K = 2, NL
        DO J = 1, JM
        DO I = 1, IM
-          IF ( FLUXNK(I,J,K) >= 0d0 ) THEN
+          IF ( FLUXNK(I,J,K) >= 0e+0_fp ) THEN
              FLUXM(I,J,K) = SAFE_DIV(FLUXNK(I,J,K)* DQ(I,J,K-1),  &
                                      DQNK(I,J,K-1), FLUXM(I,J,K))
           ELSE

@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD   ! For GEOS-Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -75,13 +77,14 @@
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (3 ) Add 2 extra diagnostics to ND03. Set PD03=15.  (cdh, bmy, 12/15/05)
 !  (4 ) Add loss of Hg2 by sea salt (eck, bmy, 4/6/06)
-!  (5 ) Replace TINY(1d0) w/ 1d-32 to avoid problems on SUN 4100 platform
+!  (5 ) Replace TINY(1e+0_fp) w/ 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  (6 ) Updates to mercury simulation (ccc, 5/17/10)
 !  (7 ) Added mercury tagged tracers (eds 9/2/10)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  07 Feb 2012 - E. Corbitt  - Added new diagnostics for tagged simulation.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -132,17 +135,17 @@
       IF ( ND03 == 0 ) RETURN
 
       ! Zero arrays
-      AD03         = 0D0
-      AD03_Hg2_Hg0 = 0D0
-      AD03_Hg2_Br  = 0D0 
-      AD03_Hg2_OH  = 0D0
-      AD03_Hg2_O3  = 0D0
-      AD03_Hg2_SS  = 0D0
-      AD03_Hg2_SSR = 0D0 
-      AD03_nat     = 0D0
-      AD03_Br      = 0D0  
-      AD03_RGM     = 0D0     
-      AD03_PBM     = 0D0
+      AD03         = 0e+0_fp
+      AD03_Hg2_Hg0 = 0e+0_fp
+      AD03_Hg2_Br  = 0e+0_fp 
+      AD03_Hg2_OH  = 0e+0_fp
+      AD03_Hg2_O3  = 0e+0_fp
+      AD03_Hg2_SS  = 0e+0_fp
+      AD03_Hg2_SSR = 0e+0_fp 
+      AD03_nat     = 0e+0_fp
+      AD03_Br      = 0e+0_fp  
+      AD03_RGM     = 0e+0_fp     
+      AD03_PBM     = 0e+0_fp
 
       END SUBROUTINE ZERO_DIAG03
 !EOC
@@ -230,12 +233,13 @@
 !  (3 ) Add HgC ocean mass and converted to colloidal to ND03 diagnostic.
 !        The units of the Kw and conversion terms in ND03 should be kg
 !        and not divided by the scale factor. (cdh, sas, bmy, 2/26/02)
-!  (4 ) Replace TINY(1d0) w/ 1d-32 to avoid problems on SUN 4100 platform
+!  (4 ) Replace TINY(1e+0_fp) w/ 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  (5 ) Fixed tracer numbers (NN) for 'PL-HG2-$' diagnostic quantities.
 !        (cdh, 8/13/08)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -247,16 +251,18 @@
       INTEGER           :: M,         N,           NN
 !- eds 9/1/10 ---------------------------------------------------------------
       INTEGER           :: NT
-      REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)          :: ARRAY(IIPAR,JJPAR,LLPAR)
 !      REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR,N_Hg_CATS) 
 !----------------------------------------------------------------------------
-      REAL*4            :: LONRES,    LATRES
-      REAL*8            :: DIAGb,     DIAGe,       SCALE
+      REAL(f4)          :: LONRES,    LATRES
+      REAL(fp)          :: SCALE
+      REAL(f8)          :: DIAGb,     DIAGe
       CHARACTER(LEN=20) :: MODELNAME 
       CHARACTER(LEN=40) :: CATEGORY,  RESERVED,    UNIT
-      REAL*8            :: NCHEMSTEP 
-      REAL*8            :: NDIAGSTEP       ! hma, for RGM and PBM
-      REAL*8            :: NDIAGSTEP_Hg2   ! hma, for Fg and Fp
+      REAL(fp)          :: NCHEMSTEP 
+      REAL(fp)          :: NDIAGSTEP       ! hma, for RGM and PBM
+      REAL(fp)          :: NDIAGSTEP_Hg2   ! hma, for Fg and Fp
+
       !=================================================================
       ! WRITE_DIAG03 begins here!
       !=================================================================
@@ -279,10 +285,10 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
-      NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1d0 ) !CDH for sea salt loss rat   
-      NDIAGSTEP = DBLE( GET_CT_DIAG() ) + TINY( 1d0 ) ! for RGM and PBM
-      NDIAGSTEP_Hg2 = DBLE ( GET_Hg2_DIAG() )+ TINY( 1d0 ) ! for Fg and Fp
+      SCALE     = DBLE( GET_CT_EMIS() ) + 1e-32_fp
+      NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1e+0_fp ) !CDH for sea salt loss rat   
+      NDIAGSTEP = DBLE( GET_CT_DIAG() ) + TINY( 1e+0_fp ) ! for RGM and PBM
+      NDIAGSTEP_Hg2 = DBLE ( GET_Hg2_DIAG() )+ TINY( 1e+0_fp ) ! for Fg and Fp
 
 
       !=================================================================

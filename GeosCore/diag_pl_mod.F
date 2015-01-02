@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -26,11 +28,11 @@
       INTEGER,           PUBLIC              :: TAGO3_PL_YEAR
 
       ! Arrays
-      REAL*4,            PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
-      REAL*8,            PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
+      REAL(f4),          PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
+      REAL(fp),          PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
       CHARACTER(LEN=14), PUBLIC, ALLOCATABLE :: FAM_NAME(:)
 #if   defined( TOMAS )
-      REAL*8,            PUBLIC, ALLOCATABLE :: H2SO4RATE(:,:,:) 
+      REAL(fp),          PUBLIC, ALLOCATABLE :: H2SO4RATE(:,:,:) 
 #endif
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -67,6 +69,8 @@
 !  (10) Make public FAM_NAME and H2SO4RATE (win, 1/25/10)  
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  06 Aug 2012 - R. Yantosca - Make IU_ND20 a local module variable
+!  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -78,13 +82,13 @@
       INTEGER                        :: IU_ND20
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD
-      REAL*8                         :: TAUb, TAUe, TAU0, TAU1
+      REAL(f8)                       :: TAUb, TAUe, TAU0, TAU1
       CHARACTER(LEN=255)             :: FILENAME
 
       ! Arrays
       INTEGER,           ALLOCATABLE :: FAM_NMEM(:), COUNT(:,:,:)
-      REAL*8,            ALLOCATABLE :: FAM_COEF(:,:)
-      REAL*8,            ALLOCATABLE :: PL24H(:,:,:,:)
+      REAL(fp),          ALLOCATABLE :: FAM_COEF(:,:)
+      REAL(fp),          ALLOCATABLE :: PL24H(:,:,:,:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:)
 
@@ -169,7 +173,7 @@
          JGAS              = NACTIVE
          NTSPEC(NCS)       = NACTIVE + IGAS - NINAC
          NAMEGAS(JGAS)     = FAM_NAME(F)
-         QBKCHEM(JGAS,NCS) = 0d0 
+         QBKCHEM(JGAS,NCS) = 0e+0_fp 
          NACTIVE           = NACTIVE + 1
 
       ENDDO
@@ -254,9 +258,9 @@
       INTEGER          :: NNPL(MAXFAM)
       INTEGER          :: NKPL(MAXPL,MAXFAM)
       INTEGER          :: IPLREAC(NMRPROD,MAXPL,MAXFAM)
-      REAL*8           :: PL
-      REAL*8           :: COEFMEM(MAXMEM,MAXFAM)
-      REAL*8           :: COEFPL(MAXPL,MAXFAM)
+      REAL(fp)           :: PL
+      REAL(fp)           :: COEFMEM(MAXMEM,MAXFAM)
+      REAL(fp)           :: COEFPL(MAXPL,MAXFAM)
       CHARACTER(LEN=5) :: EXTRACHAR
 
       !=================================================================
@@ -688,13 +692,14 @@
             ! Calculate H2SO4 production rate [kg s-1] in each time step 
             ! (win, 8/4/09)
             IF ( FAM_NAME(N) == 'PSO4' ) 
-     &           H2SO4RATE(I,J,L) = CSPEC(JLOOP,IFAM(N)) / 6.022d23  *
-     &                              98.d-3 * State_Met%AIRVOL(I,J,L) *
-     &                              1d6   / CHEMINTV
+     &           H2SO4RATE(I,J,L) = CSPEC(JLOOP,IFAM(N)) / 
+     &                          6.022e+23_fp  *
+     &                          98.e-3_fp * State_Met%AIRVOL(I,J,L) *
+     &                          1e+6_fp   / CHEMINTV
 #endif
 
             ! Zero each "fake" ND65 prod/loss family for next iteration
-            CSPEC(JLOOP,IFAM(N)) = 0.0d0
+            CSPEC(JLOOP,IFAM(N)) = 0.0e+0_fp
 
             ! Also save into the AD65 diagnostic array
             AD65(I,J,L,N)        = AD65(I,J,L,N) + FAM_PL(I,J,L,N)
@@ -702,7 +707,7 @@
          ELSE
             
             ! avoid surprises in DIAG20, which uses all FAM_PL boxes
-            FAM_PL(I,J,L,N)      = 0.0d0
+            FAM_PL(I,J,L,N)      = 0.0e+0_fp
 
          ENDIF
 
@@ -801,13 +806,13 @@
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N, JLOOP
-      REAL*8            :: P_Ox, L_Ox
+      REAL(fp)          :: P_Ox, L_Ox
       CHARACTER(LEN=16) :: STAMP 
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DIAG20 begins here!
@@ -940,7 +945,7 @@
 
          ! Zero arrays
          COUNT = 0
-         PL24H = 0d0
+         PL24H = 0e+0_fp
 
          ! Reset for the next day
          TAU0  = TAU1
@@ -992,8 +997,8 @@
       INTEGER            :: IFIRST, JFIRST, LFIRST
       INTEGER            :: HALFPOLAR 
       INTEGER, PARAMETER :: CENTER180 = 1 
-      REAL*4             :: LONRES, LATRES
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
+      REAL(f4)           :: LONRES, LATRES
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLCHEM)
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
@@ -1104,22 +1109,23 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(OUT) :: TAU_W      ! TAU value @ time of writing to disk
+      REAL(f8), INTENT(OUT) :: TAU_W      ! TAU value @ time of writing to disk
 !
 ! !RETURN VALUE:
 !
-      LOGICAL              :: ITS_TIME   ! =T if its time to write to disk
+      LOGICAL               :: ITS_TIME   ! =T if its time to write to disk
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: TAU, HOUR, CHEM, DYN
+      REAL(fp) :: TAU, HOUR, CHEM, DYN
 
       !=================================================================
       ! ITS_TIME_FOR_WRITE20 begins here!
@@ -1130,16 +1136,16 @@
 
       ! Current TAU, Hour, and Dynamic Timestep [hrs]
       TAU      = GET_TAU()
-      HOUR     = ( GET_MINUTE()  / 60d0 ) + GET_HOUR()
-      CHEM     = ( GET_TS_CHEM() / 60d0 )
-      DYN      = ( GET_TS_DYN()  / 60d0 )
+      HOUR     = ( GET_MINUTE()  / 60e+0_fp ) + GET_HOUR()
+      CHEM     = ( GET_TS_CHEM() / 60e+0_fp )
+      DYN      = ( GET_TS_DYN()  / 60e+0_fp )
 
       ! If first timestep, return FALSE
       IF ( TAU == GET_TAUb() ) RETURN
 
       ! If the next chemistry timestep is the hour of day
       ! when we have to save to disk, return TRUE
-      IF ( HOUR + CHEM >= 24d0 ) THEN
+      IF ( HOUR + CHEM >= 24e+0_fp ) THEN
          ITS_TIME = .TRUE.
          TAU_W    = TAU + CHEM
          RETURN
@@ -1267,7 +1273,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                      :: MWT         ! Molecular weight
+      REAL(fp)                      :: MWT         ! Molecular weight
 !
 ! !REVISION HISTORY:
 !  02 May 2005 - R. Yantosca - Initial version
@@ -1293,7 +1299,7 @@
       ENDIF
 
       ! Initialize the MWT
-      MWT     = 0d0
+      MWT     = 0e+0_fp
 
       ! Get name of this P/L family
       PL_NAME = TRIM( FAM_NAME( N ) )
@@ -1374,7 +1380,7 @@
       INTEGER,           INTENT(IN) :: NMEM(MAXFAM)
 
       ! Coefficients for each prod/loss family member
-      REAL*8,            INTENT(IN) :: COEF(MAXMEM,MAXFAM)
+      REAL(fp),            INTENT(IN) :: COEF(MAXMEM,MAXFAM)
 
       ! Prod/loss family name
       CHARACTER(LEN=14), INTENT(IN) :: NAME(MAXFAM)
@@ -1486,7 +1492,7 @@
       IF ( DO_SAVE_O3 ) THEN
          ALLOCATE( PL24H( IIPAR, JJPAR, LD65, 2 ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'PL24H' )
-         PL24H = 0d0
+         PL24H = 0e+0_fp
       ENDIF
 
       !=================================================================

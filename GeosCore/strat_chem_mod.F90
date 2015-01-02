@@ -31,6 +31,7 @@ MODULE STRAT_CHEM_MOD
 !
 ! for precisions
   USE HCO_ERROR_MOD  
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
   PRIVATE
@@ -65,6 +66,7 @@ MODULE STRAT_CHEM_MOD
 !  05 Oct 2012 - R. Yantosca - Add bug fix for IFORT 12 compiler in CALC_STE
 !  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
 !                              partitioning
+!  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  30 Dec 2014 - C. Keller   - Now read Bry data through HEMCO
 !EOP
 !------------------------------------------------------------------------------
@@ -98,35 +100,35 @@ MODULE STRAT_CHEM_MOD
 ! !PRIVATE TYPES:
 !
   ! Scalars
-  REAL*8               :: dTchem          ! chemistry time step [s]
-  INTEGER              :: NSCHEM          ! Number of species upon which to 
+  REAL(fp)              :: dTchem          ! chemistry time step [s]
+  INTEGER               :: NSCHEM          ! Number of species upon which to 
                                           ! apply P's & k's in GEOS-Chem
   ! Arrays
   REAL*4,  ALLOCATABLE, TARGET :: PROD(:,:,:,:)   ! Production rate [v/v/s]
   REAL*4,  ALLOCATABLE, TARGET :: LOSS(:,:,:,:)   ! Loss frequency [s-1]
   REAL*4,  ALLOCATABLE, TARGET :: STRAT_OH(:,:,:) ! Monthly mean OH [v/v]
 
-  CHARACTER(LEN=16)    :: GMI_TrName(NTR_GMI)     ! Tracer names in GMI
-  INTEGER              :: Strat_TrID_GC(NTR_GMI)  ! Maps 1:NSCHEM to STT index
-  INTEGER              :: Strat_TrID_GMI(NTR_GMI) ! Maps 1:NSCHEM to GMI index
+  CHARACTER(LEN=16)     :: GMI_TrName(NTR_GMI)     ! Tracer names in GMI
+  INTEGER               :: Strat_TrID_GC(NTR_GMI)  ! Maps 1:NSCHEM to STT index
+  INTEGER               :: Strat_TrID_GMI(NTR_GMI) ! Maps 1:NSCHEM to GMI index
                      ! (At most NTR_GMI species could overlap between G-C & GMI)
 
 !  ! Variables for Br strat chemistry, moved here from SCHEM.f
-!  REAL*4, ALLOCATABLE  :: Bry_temp(:,:,:) 
-!  REAL*8, ALLOCATABLE  :: Bry_day(:,:,:,:) 
-!  REAL*8, ALLOCATABLE  :: Bry_night(:,:,:,:)
+!  REAL*4,   ALLOCATABLE  :: Bry_temp(:,:,:) 
+!  REAL(fp), ALLOCATABLE  :: Bry_day(:,:,:,:) 
+!  REAL(fp), ALLOCATABLE  :: Bry_night(:,:,:,:)
 
   ! Tracer index of Bry species in GEOS-Chem STT (may differ from br_nos)
-  INTEGER              :: GC_Bry_TrID(6) 
+  INTEGER               :: GC_Bry_TrID(6) 
 
   ! Variables used to calculate the strat-trop exchange flux
-  REAL*8               :: TauInit             ! Initial time
-  INTEGER              :: NymdInit, NhmsInit  ! Initial date
-  REAL*8               :: TpauseL_Cnt         ! Tropopause counter
-  REAL*8, ALLOCATABLE  :: TpauseL(:,:)        ! Tropopause level aggregator
-  REAL*4, ALLOCATABLE  :: MInit(:,:,:,:)      ! Init. atm. state for STE period
-  REAL*4, ALLOCATABLE  :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
-                                              !   (total P - L) [kg period-1]
+  REAL(fp)              :: TauInit             ! Initial time
+  INTEGER               :: NymdInit, NhmsInit  ! Initial date
+  REAL(fp)              :: TpauseL_Cnt         ! Tropopause counter
+  REAL(fp), ALLOCATABLE :: TpauseL(:,:)        ! Tropopause level aggregator
+  REAL*4,   ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
+  REAL*4,   ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
+                                               !   (total P - L) [kg period-1]
 
   !=================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -303,24 +305,25 @@ CONTAINS
     LOGICAL           :: prtDebug
     CHARACTER(LEN=16) :: STAMP
     INTEGER           :: I,    J,      L,   N,   NN
-    REAL*8            :: dt,   P,      k,   M0,  RC,     M
-    REAL*8            :: TK,   RDLOSS, T1L, mOH, BryDay, BryNight
-    REAL*8            :: BOXVL
+    REAL(fp)          :: dt,   P,      k,   M0,  RC,     M
+    REAL(fp)          :: TK,   RDLOSS, T1L, mOH, BryTmp
+    REAL(fp)          :: BOXVL
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     LOGICAL           :: LBRGCCM
     LOGICAL           :: LRESET, LCYCLE
+    LOGICAL           :: ISBR2 
     INTEGER           :: N_TRACERS
 
     ! Arrays
-    REAL*8            :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
-    REAL*8            :: BEFORE(IIPAR,JJPAR,LLPAR)
-    REAL*8            :: TCVV(Input_Opt%N_TRACERS)
+    REAL(fp)          :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
+    REAL(fp)          :: BEFORE(IIPAR,JJPAR,LLPAR)
+    REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
 
     ! Pointers
-    REAL*8, POINTER   :: STT(:,:,:,:)
-    REAL*8, POINTER   :: AD(:,:,:)
-    REAL*8, POINTER   :: T(:,:,:)
+    REAL(fp), POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER :: AD(:,:,:)
+    REAL(fp), POINTER :: T(:,:,:)
 
     !===============================
     ! DO_STRAT_CHEM begins here!
@@ -398,7 +401,7 @@ CONTAINS
     IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
        ! Advance counter for number of times we've sampled the tropopause level
-       TpauseL_CNT = TpauseL_CNT + 1d0
+       TpauseL_CNT = TpauseL_CNT + 1e+0_fp
 
        !=============================================================
        ! Do chemical production and loss for non-ozone species for
@@ -433,11 +436,11 @@ CONTAINS
                    M0 = STT(I,J,L,NN)                       ! initial mass [kg]
 
                    ! No prod or loss at all
-                   IF ( k .eq. 0d0 .and. P .eq. 0d0 ) CYCLE
+                   IF ( k .eq. 0e+0_fp .and. P .eq. 0e+0_fp ) CYCLE
 
                    ! Simple analytic solution to dM/dt = P - kM over [0,t]
-                   IF ( k .gt. 0d0 ) then
-                      STT(I,J,L,NN) = M0 * EXP(-k*dt) + (P/k)*(1d0-EXP(-k*dt))
+                   IF ( k .gt. 0e+0_fp ) then
+                      STT(I,J,L,NN) = M0 * EXP(-k*dt) + (P/k)*(1e+0_fp-EXP(-k*dt))
                    ELSE
                       STT(I,J,L,NN) = M0 + P*dt
                    ENDIF
@@ -501,7 +504,7 @@ CONTAINS
                 IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) CYCLE
 
                 ! Grid box volume [cm3]
-                BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
+                BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
                 ! Density of air at grid box (I,J,L) in [molec cm-3]
                 M = AD(I,J,L) / BOXVL * XNUMOLAIR
@@ -516,8 +519,8 @@ CONTAINS
                 ! CH3Br + OH !
                 !============!
                 IF ( IDTCH3Br .gt. 0 ) THEN
-                   RC = 2.35d-12 * EXP ( - 1300.d0 / TK ) 
-                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
+                   RC = 2.35e-12_fp * EXP ( - 1300.e+0_fp / TK ) 
+                   RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = STT(I,J,L,IDTCH3Br) * RDLOSS
                    STT(I,J,L,IDTCH3Br) = STT(I,J,L,IDTCH3Br) - T1L
                    SCHEM_TEND(I,J,L,IDTCH3Br) = &
@@ -528,8 +531,8 @@ CONTAINS
                 ! CHBr3 + OH !
                 !============!
                 IF ( IDTCHBr3 .gt. 0 ) THEN
-                   RC = 1.35d-12 * EXP ( - 600.d0 / TK ) 
-                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
+                   RC = 1.35e-12_fp * EXP ( - 600.e+0_fp / TK ) 
+                   RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = STT(I,J,L,IDTCHBr3) * RDLOSS
                    STT(I,J,L,IDTCHBr3) = STT(I,J,L,IDTCHBr3) - T1L
                    SCHEM_TEND(I,J,L,IDTCHBr3) = &
@@ -540,8 +543,8 @@ CONTAINS
                 ! CH2Br2 + OH !
                 !=============!
                 IF ( IDTCH2Br2 .gt. 0 ) THEN
-                   RC = 2.00d-12 * EXP ( -  840.d0 / TK )
-                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
+                   RC = 2.00e-12_fp * EXP ( -  840.e+0_fp / TK )
+                   RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = STT(I,J,L,IDTCH2Br2) * RDLOSS
                    STT(I,J,L,IDTCH2Br2) = STT(I,J,L,IDTCH2Br2) - T1L
                    SCHEM_TEND(I,J,L,IDTCHBr3) = &
@@ -560,7 +563,7 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight ) &
+       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryTmp ) &
        !$OMP PRIVATE( LCYCLE )
        DO NN=1,6
 
@@ -571,6 +574,9 @@ CONTAINS
              ! it only has IJL scope, but the loop is over IJLN!
              ! (bmy, 8/7/12)
              BEFORE = STT(:,:,:,GC_Bry_TrID(NN))
+
+             ! Is this Br2?
+             ISBR2 = ( TRIM(Input_Opt%TRACER_NAME(Strat_TrID_GC(NN))) == 'Br2' )
 
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
              ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
@@ -586,40 +592,44 @@ CONTAINS
                 ENDIF
                 IF ( LCYCLE ) CYCLE
 
-!                IF ( State_Met%SUNCOS(I,J) > 0.d0 ) THEN
+!                IF ( State_Met%SUNCOS(I,J) > 0.e+0_fp ) THEN
 !                   ! daytime [ppt] -> [kg]
 !                   BryDay = bry_day(I,J,L,NN)     &
-!                          * 1.d-12                & ! convert from [ppt]
+!                          * 1.e-12_fp             & ! convert from [ppt]
 !                          * AD(I,J,L)             &
 !                          / TCVV(GC_Bry_TrID(NN))
 !                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
 !                ELSE
 !                   ! nighttime [ppt] -> [kg]
 !                   BryNight = bry_night(I,J,L,NN)   &
-!                            * 1.d-12                & ! convert from [ppt]
+!                            * 1.e-12_fp             & ! convert from [ppt]
 !                            * AD(I,J,L)             &
 !                            / TCVV(GC_Bry_TrID(NN))
 !                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
 !                ENDIF
 
                 ! Now get Br data through HEMCO pointers (ckeller, 12/30/14).    
-                IF ( State_Met%SUNCOS(I,J) > 0.d0 ) THEN
+                IF ( State_Met%SUNCOS(I,J) > 0.e+0_fp ) THEN
                    ! daytime [ppt] -> [kg]
-                   BryDay = BrPtrDay(NN)%MR(I,J,L)   &
-                          * 1.d-12                   & ! convert from [ppt]
+                   BryTmp = BrPtrDay(NN)%MR(I,J,L)   &
+                          * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
                           / TCVV(GC_Bry_TrID(NN))
 
                 ELSE
                    ! nighttime [ppt] -> [kg]
-                   BryDay = BrPtrNight(NN)%MR(I,J,L) &
-                          * 1.d-12                   & ! convert from [ppt]
+                   BryTmp = BrPtrNight(NN)%MR(I,J,L) &
+                          * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
                           / TCVV(GC_Bry_TrID(NN))
                 ENDIF
 
+                ! Special adjustment for G-C Br2 tracer, which is BrCl in the strat
+                ! (ckeller, 1/2/15)
+                IF ( ISBR2 ) BryTmp = BryTmp / 2.0_fp
+
                 ! Pass to STT array
-                STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
+                STT(I,J,L, GC_Bry_TrID(NN) ) = BryTmp
 
              ENDDO
              ENDDO
@@ -659,7 +669,7 @@ CONTAINS
        CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
 
        ! Add to tropopause level aggregator for later determining STE flux
-       TpauseL_CNT = TpauseL_CNT + 1d0
+       TpauseL_CNT = TpauseL_CNT + 1e+0_fp
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
@@ -678,38 +688,42 @@ CONTAINS
                ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
        ENDDO
 
-    !======================================================================
-    ! H2-HD Simulation
-    !======================================================================
-    ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
-
-       ! H2/HD uses upbdflx_H2, which is a modified Synoz.
-
-       ! Intial conditions
-       STT0(:,:,:,:) = STT(:,:,:,:)
-
-       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
-       CALL UPBDFLX_HD( State_Met, State_Chm )
-       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
-
-       ! Add to tropopause level aggregator for later determining STE flux
-       TpauseL_CNT = TpauseL_CNT + 1d0
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J )
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
-       ! Aggregate chemical tendency [kg box-1]
-       DO N=1,NSCHEM
-          NN = Strat_TrID_GC(N)
-          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N) + &
-               ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
-       ENDDO
+!------------------------------------------------------------------------------
+! NOTE: This subroutine is obsolete.  You can restore it if you wish.
+! Leave commented out for now. (bmy, 12/19/14)
+!    !======================================================================
+!    ! H2-HD Simulation
+!    !======================================================================
+!    ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
+!
+!       ! H2/HD uses upbdflx_H2, which is a modified Synoz.
+!
+!       ! Intial conditions
+!       STT0(:,:,:,:) = STT(:,:,:,:)
+!
+!       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
+!       CALL UPBDFLX_HD( State_Met, State_Chm )
+!       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
+!
+!       ! Add to tropopause level aggregator for later determining STE flux
+!       TpauseL_CNT = TpauseL_CNT + 1e+0_fp
+!       !$OMP PARALLEL DO       &
+!       !$OMP DEFAULT( SHARED ) &
+!       !$OMP PRIVATE( I, J )
+!       DO J = 1, JJPAR
+!       DO I = 1, IIPAR
+!          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
+!       ENDDO
+!       ENDDO
+!       !$OMP END PARALLEL DO
+!
+!       ! Aggregate chemical tendency [kg box-1]
+!       DO N=1,NSCHEM
+!          NN = Strat_TrID_GC(N)
+!          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N) + &
+!               ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
+!       ENDDO
+!------------------------------------------------------------------------------
 
     ELSE
 
@@ -794,8 +808,7 @@ CONTAINS
 !  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
 !  12 Jun 2013 - R. Yantosca - Now pass st4d, ct4d arrays to NcRd routine.
 !                              This avoids array temporaries.
-!   3 Apr 2014 - R. Yantosca - Now use 
-
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -806,17 +819,17 @@ CONTAINS
     CHARACTER(LEN=255) :: FILENAME ! , DAYFILE, NIGHTFILE
     INTEGER            :: N,        M,       S
     INTEGER            :: F,        NN,      fileID
-!    REAL*8             :: XTAU
+    !REAL(f8)           :: XTAU
     INTEGER            :: N_TRACERS
 
     ! Arrays
     INTEGER            :: st4d(4)                        ! netCDF start
     INTEGER            :: ct4d(4)                        ! netCDF count
-    REAL*4             :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
+    REAL(f4)           :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
     CHARACTER(LEN=14)  :: TRACER_NAME(Input_Opt%N_TRACERS)
 
     ! Pointers
-    REAL*4,  POINTER   :: ptr_3D(:,:,:)
+    REAL(f4), POINTER  :: ptr_3D(:,:,:)
 
     !=================================================================
     ! GET_RATES begins here
@@ -919,7 +932,7 @@ CONTAINS
 
        ! Special adjustment for G-C Br2 tracer, which is BrCl in the strat
        IF ( TRIM(TRACER_NAME(Strat_TrID_GC(N))) .eq. 'Br2' ) &
-            PROD(:,:,:,N) = PROD(:,:,:,N) / 2d0
+            PROD(:,:,:,N) = PROD(:,:,:,N) / 2e+0_fp
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Read loss frequencies [s^-1]
@@ -997,7 +1010,6 @@ CONTAINS
 !       CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
 ! 
 !    ENDDO
-
 #endif
 
   END SUBROUTINE GET_RATES
@@ -1066,6 +1078,7 @@ CONTAINS
 !                              running with the traditional driver main.F
 !  26 Aug 2013 - R. Yantosca - Avoid array temporaries
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1077,7 +1090,7 @@ CONTAINS
     INTEGER            :: N,        M,       S 
     INTEGER            :: F,        I,       J
     INTEGER            :: NN,       fileID
-!    REAL*8             :: XTAU
+!    REAL(f8)           :: XTAU
 
     ! Index arrays
     INTEGER            :: II(1)
@@ -1086,21 +1099,21 @@ CONTAINS
     INTEGER            :: ct1d(1), ct4d(4)
 
     ! Arrays defined on the 2 x 2.5 grid
-    REAL*4             :: XMID_COARSE ( 144                    )
-    REAL*4             :: YMID_COARSE (        91              )
-!    REAL*4             :: BryTemp     ( 144,   91,    LGLOB    )
-!    REAL*8             :: BryDay2x25  ( 144,   91,    LLPAR, 6 )
-!    REAL*8             :: BryNight2x25( 144,   91,    LLPAR, 6 )
+    REAL(f4)           :: XMID_COARSE ( 144                    )
+    REAL(f4)           :: YMID_COARSE (        91              )
+!    REAL(f4)           :: BryTemp     ( 144,   91,    LGLOB    )
+!    REAL(fp)           :: BryDay2x25  ( 144,   91,    LLPAR, 6 )
+!    REAL(fp)           :: BryNight2x25( 144,   91,    LLPAR, 6 )
 
     ! Arrays defined on the nested grid
     ! "f2c" = fine to coarse mapping
     INTEGER            :: I_f2c       ( IIPAR                  )
     INTEGER            :: J_f2c       (        JJPAR           )
-    REAL*4             :: COLUMN      (               LGLOB    )
-    REAL*4             :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
+    REAL(f4)           :: COLUMN      (               LGLOB    )
+    REAL(f4)           :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
 
     ! Pointers
-    REAL*4, POINTER    :: ptr_3D(:,:,:)
+    REAL(f4), POINTER  :: ptr_3D(:,:,:)
 
     ! For values from Input_Opt
     INTEGER            :: N_TRACERS
@@ -1115,8 +1128,8 @@ CONTAINS
     TRACER_NAME = Input_Opt%TRACER_NAME(1:N_TRACERS)
 
     ! Intialize arrays
-    LOSS = 0d0
-    PROD = 0d0
+    LOSS = 0e+0_fp
+    PROD = 0e+0_fp
 
     ! Path to input data, use 2 x 2.5 file
     FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() // '.2x25.nc'
@@ -1214,7 +1227,7 @@ CONTAINS
 !                        XTAU,    144,        91, &  
 !                        LGLOB,   BryTemp,   QUIET=.TRUE. )
 !       
-!       ! Cast from REAL*4 to REAL*8 and resize to LLPAR
+!       ! Cast from REAL*4 to REAL(fp) and resize to LLPAR
 !       CALL TRANSFER_3D_Bry( BryTemp, BryDay2x25(:,:,:,NN) )
 !       
 !       ! 2. Read nighttime data on the 2 x 2.5 grid
@@ -1222,7 +1235,7 @@ CONTAINS
 !                        XTAU,    144,        91, &   
 !                        LGLOB,   BryTemp,   QUIET=.TRUE. )
 !       
-!       ! Cast from REAL*4 to REAL*8 and resize to LLPAR 
+!       ! Cast from REAL*4 to REAL(fp) and resize to LLPAR 
 !       CALL TRANSFER_3D_Bry( BryTemp, BryNight2x25(:,:,:,NN) )
 !       
 !    ENDDO
@@ -1269,14 +1282,14 @@ CONTAINS
        ENDDO
        ENDDO
 
-       ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
+       ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR if necessary
        ptr_3D => PROD(:,:,:,N)
        call transfer_3D( array, ptr_3D )
        NULLIFY( ptr_3D )
 
        ! Special adjustment for Br2 tracer, which is BrCl in the strat
        IF ( TRIM(TRACER_NAME(Strat_TrID_GC(N))) .eq. 'Br2' ) &
-                                           PROD(:,:,:,N) = PROD(:,:,:,N) / 2d0
+                                  PROD(:,:,:,N) = PROD(:,:,:,N) / 2e+0_fp
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Read loss frequencies [s^-1]
@@ -1294,7 +1307,7 @@ CONTAINS
        ENDDO
        ENDDO
 
-       ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
+       ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR if necessary
        ptr_3d => LOSS(:,:,:,N)
        call transfer_3D( array, ptr_3D )
        NULLIFY( ptr_3D )
@@ -1355,13 +1368,20 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    CHARACTER(LEN=16)  :: ThisName
-    CHARACTER(LEN=255) :: PREFIX, FIELDNAME
-    INTEGER            :: N
+    CHARACTER(LEN=16)   :: ThisName
+    CHARACTER(LEN=255)  :: PREFIX, FIELDNAME
+    CHARACTER(LEN=1023) :: MSG
+    INTEGER             :: N
 
     !=================================================================
     ! Set_BryPointers begins here 
     !=================================================================
+
+    ! Construct error message
+    MSG = 'Cannot get pointer from HEMCO! Stratospheric Bry data ' // &
+          'is expected to be listed in the HEMCO configuration '   // &
+          'file and the GMI_StratChem extension must be enabled. ' // &
+          'This error occured when trying to get field'
 
     ! Do for every Bry species
     DO N = 1,6
@@ -1381,7 +1401,7 @@ CONTAINS
        FIELDNAME = TRIM(PREFIX) // '_DAY'
        CALL HCO_GetPtr( am_I_Root, FIELDNAME, BrPtrDay(N)%MR, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ( 'Cannot get '//TRIM(FIELDNAME), &
+          CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
                             'Set_BryPointers (start_chem_mod.F90)' )
        ENDIF
 
@@ -1389,7 +1409,7 @@ CONTAINS
        FIELDNAME = TRIM(PREFIX) // '_NIGHT'
        CALL HCO_GetPtr( am_I_Root, FIELDNAME, BrPtrNight(N)%MR, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ( 'Cannot get '//TRIM(FIELDNAME), &
+          CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
                             'Set_BryPointers (start_chem_mod.F90)' )
        ENDIF
 
@@ -1458,12 +1478,12 @@ CONTAINS
     ! Scalars
     CHARACTER(LEN=255) :: dateStart, dateEnd
     INTEGER            :: N,         I,      J,    L,      NN
-    REAL*8             :: dStrat,    STE,    Tend, tauEnd, dt
+    REAL(fp)           :: dStrat,    STE,    Tend, tauEnd, dt
 
     ! Arrays
     INTEGER            :: LTP(IIPAR,JJPAR      )
-    REAL*8             :: M1 (IIPAR,JJPAR,LLPAR)
-    REAL*8             :: M2 (IIPAR,JJPAR,LLPAR)
+    REAL(fp)           :: M1 (IIPAR,JJPAR,LLPAR)
+    REAL(fp)           :: M2 (IIPAR,JJPAR,LLPAR)
 
     ! For fields from Input_Opt
     INTEGER            :: N_TRACERS
@@ -1471,7 +1491,7 @@ CONTAINS
     ! Pointers
     ! We need to define local arrays to hold corresponding values 
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL*8, POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER  :: STT(:,:,:,:)
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! By simple mass balance, dStrat/dt = P - L - STE,
@@ -1515,7 +1535,7 @@ CONTAINS
 
     ! Period over which STE is being determined [a]
     tauEnd = GET_TAU() ! [h]
-    dt = ( tauEnd - tauInit ) / 24d0 / 365.25d0
+    dt = ( tauEnd - tauInit ) / 24e+0_fp / 365.25e+0_fp
 
     dateStart = 'YYYY-MM-DD hh:mm'
     CALL EXPAND_DATE(dateStart,NymdInit,NhmsInit)
@@ -1551,8 +1571,8 @@ CONTAINS
        !$OMP PRIVATE( I,  J  )
        DO J = 1, JJPAR  
        DO I = 1, IIPAR
-          M2(I,J,1:LTP(I,J)) = 0d0
-          M1(I,J,1:LTP(I,J)) = 0d0
+          M2(I,J,1:LTP(I,J)) = 0e+0_fp
+          M1(I,J,1:LTP(I,J)) = 0e+0_fp
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
@@ -1566,10 +1586,10 @@ CONTAINS
 
        ! Print to standard output
        IF ( am_I_Root ) THEN
-          WRITE(6,120) TRIM(Input_Opt%TRACER_NAME(N)),  &
-               STE/Input_Opt%TRACER_MW_KG(N),           & ! mol/a-1
-               Input_Opt%TRACER_MW_KG(N)*1d3,           & ! g/mol
-               STE*1d-9                                   ! Tg a-1
+          WRITE(6,120) TRIM(Input_Opt%TRACER_NAME(N)),      &
+               STE/Input_Opt%TRACER_MW_KG(N),               & ! mol/a-1
+               Input_Opt%TRACER_MW_KG(N)*1e+3_fp,           & ! g/mol
+               STE*1e-9_fp                                    ! Tg a-1
        ENDIF
 
     ENDDO
@@ -1586,9 +1606,9 @@ CONTAINS
     NymdInit             = GET_NYMD()
     NhmsInit             = GET_NHMS()
     TauInit              = GET_TAU()
-    TPauseL_Cnt          = 0d0
-    TPauseL(:,:)         = 0d0
-    SChem_tend(:,:,:,:)  = 0d0
+    TPauseL_Cnt          = 0e+0_fp
+    TPauseL(:,:)         = 0e+0_fp
+    SChem_tend(:,:,:,:)  = 0e+0_fp
     MInit(:,:,:,:)       = STT(:,:,:,:)
 
     ! Free pointer
@@ -1671,7 +1691,7 @@ CONTAINS
     ! Pointers
     ! We need to define local arrays to hold corresponding values 
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL*8, POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER :: STT(:,:,:,:)
 
     !=================================================================
     ! INIT_STRAT_CHEM begins here!
@@ -1693,7 +1713,7 @@ CONTAINS
     STT => State_Chm%Tracers
 
     ! Initialize counters, initial times, mapping arrays
-    TpauseL_Cnt              = 0.d0
+    TpauseL_Cnt              = 0.e+0_fp
     NSCHEM                   = 0
     TauInit                  = GET_TAU()
     NymdInit                 = GET_NYMD()
@@ -1702,7 +1722,7 @@ CONTAINS
     strat_trID_GMI(:)        = 0
 
     ! Initialize timestep for chemistry [s]
-    dTchem = GET_TS_CHEM() * 60d0
+    dTchem = GET_TS_CHEM() * 60e+0_fp
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! Determine the mapping for the GMI to the GC variables based on
@@ -1887,7 +1907,7 @@ CONTAINS
     ! for which STE is being estimated.
     ALLOCATE( TPAUSEL( IIPAR, JJPAR ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'TPAUSEL' )
-    TPAUSEL = 0d0
+    TPAUSEL = 0e+0_fp
 
     ! Array to aggregate the stratospheric chemical tendency [kg period-1]
     ALLOCATE( SCHEM_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS), STAT=AS )
@@ -2094,9 +2114,9 @@ CONTAINS
 !
     LOGICAL, SAVE        :: FIRST = .TRUE.
     INTEGER              :: I, J, L, L70mb
-    REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
-    REAL*8               :: DTCHEM, H70mb, PO3, PO3_vmr
-    REAL*8               :: STFLUX(IIPAR,JJPAR,LLPAR)
+    REAL(fp)               :: P1, P2, P3, T1, T2, DZ, ZUP
+    REAL(fp)               :: DTCHEM, H70mb, PO3, PO3_vmr
+    REAL(fp)               :: STFLUX(IIPAR,JJPAR,LLPAR)
 
     ! Select the grid boxes at the edges of the O3 release region, 
     ! for the proper model resolution (qli, bmy, 12/1/04)
@@ -2147,13 +2167,13 @@ CONTAINS
 #endif
 
     ! Lower pressure bound for O3 release (unit: mb)
-    ! REAL*8,  PARAMETER   :: P70mb = 70d0 !PHS
-    REAL*8  :: P70mb, PTP
+    ! REAL(fp),  PARAMETER   :: P70mb = 70e+0_fp !PHS
+    REAL(fp)  :: P70mb, PTP
 
     ! Pointers
     ! We need to define local arrays to hold corresponding values 
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL*8, POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER :: STT(:,:,:,:)
 
     !=================================================================
     ! Do_Synoz begins here!
@@ -2164,13 +2184,13 @@ CONTAINS
 
     ! Chemical timestep [s]
     ! Originally, Synoz was in transport code, and used dynamic dT.
-    DTCHEM = GET_TS_CHEM() * 60d0
+    DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
     ! For O3 flux printout
-    STFLUX = 0d0
+    STFLUX = 0e+0_fp
 
     ! lower pressure !PHS
-    P70mb = 70d0
+    P70mb = 70e+0_fp
 
     ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
     ! (mpayer, 12/6/12)
@@ -2192,43 +2212,43 @@ CONTAINS
     !  (2) IORD = 5, JORD = 5, KORD = 7 
     !=================================================================
 #if   defined( GEOS_4 )
-    PO3_vmr = 5.14d-14                                 ! 3,3,7
+    PO3_vmr = 5.14e-14_fp                                 ! 3,3,7
 
 #elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
     ! For now assume GEOS-5 has same PO3_vmr value 
     ! as GEOS-4; we can redefine later (bmy, 5/25/05)
-    PO3_vmr = 5.14d-14   
+    PO3_vmr = 5.14e-14_fp   
 
 #elif defined( GCAP )
 
     ! For GCAP, assuming 3,3,7 (swu, bmy, 5/25/05)
-    PO3_vmr = 5.0d-14 
+    PO3_vmr = 5.0e-14_fp
 
 #elif defined( GISS ) && defined( MODELE )
 
     ! For Model E, assuming 3,3,7 and 475 Tg N a-1
-    PO3_vmr = 4.84610e-14 !/ 2d0
+    PO3_vmr = 4.84610e-14 !/ 2e+0_fp
 
     ! Scale as necessary for PreIndustrial and Paleo Climates
     ! These values determined by Linoz simulations run for each climate
     if ( GET_YEAR() .ge. 2102 .and. GET_YEAR() .le. 2105 ) then
        ! PIH was 3% higher
-       PO3_vmr = PO3_vmr * 1.0273853d0
+       PO3_vmr = PO3_vmr * 1.0273853e+0_fp
     endif
     if ( GET_YEAR() .ge. 2202 .and. GET_YEAR() .le. 2205 ) then
        ! LGM Webb STE was 7% higher
-       PO3_vmr = PO3_vmr * 1.0723525d0
+       PO3_vmr = PO3_vmr * 1.0723525e+0_fp
     endif
     if ( GET_YEAR() .ge. 2302 .and. GET_YEAR() .le. 2305 ) then
        ! LGM CLIMAP STE was 3% higher
-       PO3_vmr = PO3_vmr * 1.0285232d0
+       PO3_vmr = PO3_vmr * 1.0285232e+0_fp
     endif
 
 #endif
 
     ! Only initialize on first time step
-    IF ( FIRST ) STFLUX = 0d0
+    IF ( FIRST ) STFLUX = 0e+0_fp
 
     ! Loop over latitude (30S -> 30N) and longitude
     !$OMP PARALLEL DO                               &
@@ -2290,7 +2310,7 @@ CONTAINS
           T2   = State_Met%T(I,J,L70mb  )
           T1   = State_Met%T(I,J,L70mb-1)
 
-          DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
+          DZ   = Rdg0 * ( (T1 + T2) / 2e+0_fp ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
 
           !==============================================================       
@@ -2321,7 +2341,7 @@ CONTAINS
              ! edged by 30S and 30N.  Therefore, if we are at the 30S
              ! or 30N grid boxes, divide the O3 flux by 2.
              IF ( J == J30S .or. J == J30N ) THEN
-                PO3 = PO3 / 2d0
+                PO3 = PO3 / 2e+0_fp
              ENDIF
 #endif
              ! If we are in the lower level, compute the fraction
@@ -2344,8 +2364,8 @@ CONTAINS
              ! Archive stratospheric O3 for printout in [Tg/yr]
              IF ( FIRST ) THEN
                 STFLUX(I,J,L) = STFLUX(I,J,L) + &
-                     PO3 * State_Met%AD(I,J,L) * 1000.d0 / 28.8d0 / &
-                     DTCHEM * 48.d0 * 365.25d0 * 86400d0 / 1e12
+                 PO3 * State_Met%AD(I,J,L) * 1000.e+0_fp / 28.8e+0_fp / &
+                 DTCHEM * 48.e+0_fp * 365.25e+0_fp * 86400e+0_fp / 1e12
              ENDIF
           ENDDO
        ENDDO
@@ -2444,9 +2464,9 @@ CONTAINS
 !
     INTEGER              :: I, J, L, L70mb
     INTEGER              :: NTRACER
-    REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
-    REAL*8               :: DTCHEM, H70mb, PO3_vmr!,PO3
-    REAL*8               :: PHD, PHD_vmr, SCALE_HD!, HD_AVG
+    REAL(fp)               :: P1, P2, P3, T1, T2, DZ, ZUP
+    REAL(fp)               :: DTCHEM, H70mb, PO3_vmr!,PO3
+    REAL(fp)               :: PHD, PHD_vmr, SCALE_HD!, HD_AVG
 
     ! Select the grid boxes at the edges of the HD release region, 
     ! for the proper model resolution 
@@ -2497,19 +2517,19 @@ CONTAINS
 #endif
 
     ! Lower pressure bound for HD release (unit: mb)
-    REAL*8,  PARAMETER   :: P70mb = 70d0
+    REAL(fp),  PARAMETER   :: P70mb = 70e+0_fp
 
     ! Pointers
     ! We need to define local arrays to hold corresponding values 
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL*8, POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER :: STT(:,:,:,:)
 
     !=================================================================
     ! UPBDFLX_HD begins here!
     !=================================================================
 
     ! Chemistry timestep [s]
-    DTCHEM = GET_TS_CHEM() * 60d0
+    DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
     ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
     ! (mpayer, 12/6/12)
@@ -2526,24 +2546,24 @@ CONTAINS
     !=================================================================
 #if   defined( GEOS_4 )
 
-    PO3_vmr = 5.14d-14                                 ! 3,3,7
+    PO3_vmr = 5.14e-14_fp                                 ! 3,3,7
 
 #elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
 
     ! For now assume GEOS-5 has same PO3_vmr value 
     ! as GEOS-4; we can redefine later (bmy, 5/25/05)
-    PO3_vmr = 5.14d-14   
+    PO3_vmr = 5.14e-14_fp   
 
 #elif defined( GCAP )
 
     ! For GCAP, assuming 3,3,7 (swu, bmy, 5/25/05)
-    PO3_vmr = 5.0d-14 
+    PO3_vmr = 5.0e-14_fp 
 
 #endif
 
     ! Define scaling factor for HD and scale PO3_vmr
     ! Standard:
-    SCALE_HD = 4.0d-5
+    SCALE_HD = 4.0e-5_fp
     PHD_vmr= PO3_vmr * SCALE_HD
 
     !=================================================================
@@ -2596,7 +2616,7 @@ CONTAINS
           T2   = State_Met%T(I,J,L70mb  )
           T1   = State_Met%T(I,J,L70mb-1)
 
-          DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
+          DZ   = Rdg0 * ( (T1 + T2) / 2e+0_fp ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
 
           !===========================================================       
@@ -2627,7 +2647,7 @@ CONTAINS
              ! edged by 30S and 30N.  Therefore, if we are at the 30S
              ! or 30N grid boxes, divide the O3 flux by 2.
              IF ( J == J30S .or. J == J30N ) THEN
-                PHD = PHD / 2d0
+                PHD = PHD / 2e+0_fp
              ENDIF
 #endif
              ! If we are in the lower level, compute the fraction
