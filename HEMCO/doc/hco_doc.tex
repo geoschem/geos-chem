@@ -1,0 +1,686 @@
+\documentclass[12pt,a4paper]{article} %
+\usepackage{pslatex}
+\usepackage[bookmarks,
+colorlinks=false, % set to false to draw a frame around it (good for plotting)
+linktocpage=true,
+citecolor=blue,
+linkcolor=red,
+plainpages=false,
+pdfpagelabels,
+pdftex,
+hyperfootnotes=false]{hyperref}
+\usepackage{pslatex}
+\usepackage{color}
+\usepackage[table]{xcolor}
+\usepackage{array}
+\usepackage{natbib}
+\usepackage[margin=1in]{geometry}
+
+\definecolor{gray}{gray}{0.7}
+\definecolor{lightgray}{gray}{0.9}
+
+\newcounter{rowcount}
+\setcounter{rowcount}{0}
+
+%\setlength\arraycolsep{2pt}
+\setlength\tabcolsep{2pt}
+
+\begin{document}
+%\thispagestyle{empty}
+
+\title{HEMCO user guide\\v1.0}
+\date{\today}
+\author{Christoph Keller (ckeller@seas.harvard.edu)}
+
+\maketitle
+\tableofcontents
+
+\section{Overview} \label{Overview}
+The Harvard-NASA Emissions Component (HEMCO) is a software component for computing (atmospheric) emissions from different sources, regions, and species on a user-defined grid. It can combine, overlay, and update a set of data inventories (‘base emissions’) and scale factors, as specified by the user through the HEMCO configuration file. Emissions that depend on environmental variables and non-linear parameterizations are calculated in separate HEMCO extensions. HEMCO can be run in standalone mode or coupled to an atmospheric model. It is included in the standard version of GEOS-Chem. A more detailed description of HEMCO is given in \cite{Keller_2014}.
+
+\section{Download and installation} \label{Installation}
+HEMCO is a collection of FORTRAN-90 routines that are freely available at \url{http://wiki.geos-chem.org/HEMCO}. Installation instructions are provided on the same page.\\
+Some basic knowledge of a Unix operating system is expected. To couple HEMCO to an atmospheric model, some working experience with FORTRAN is also required.\\
+HEMCO is already included in the standard distribution of GEOS-Chem (\url{http://wiki.geos-chem.org}).
+
+\section{Example simulations} \label{Examples}
+HEMCO includes a simple example of a HEMCO standalone simulation. It calculates emissions of carbon monoxide (CO) from the EDGAR inventory \citep{Janssens_EDGAR_2010} on January 1, 2008 on a global grid of 4x5 degrees.\\
+The full suite of emission inventories and extensions used by the chemical transport model GEOS-Chem are available at \url{ftp://ftp.as.harvard.edu/gcgrid/data/ExtData/HEMCO}, along with the corresponding configuration file.
+
+\section{Getting started} \label{Getting_started}
+All emission calculation settings are specified in the HEMCO configuration file. Modification of the HEMCO source code (and recompilation) is only required if new extensions are added, or to use HEMCO in a new model environent (see sections \ref{Extensions} and \ref{Interfaces}).\\
+
+Suppose monthly anthropogenic CO emissions from the MACCity inventory \citep{Lamarque_ACP_2010} are locally stored in \texttt{/data/MACCity.nc} and variable 'CO'. The following configuration file then simulates CO emissions with gridded hourly scale factors applied to it (the latter taken from variable 'factor' in file \texttt{/data/hourly.nc}):\\
+
+%\begin{scriptsize}
+%\colorbox{lightgray}{
+%   \begin{tabular}{llllllllllllll} 
+%    \textit{1} & \multicolumn{3}{l}{} & & & & & & & & & & \\
+%   \end{tabular}
+%}
+%\end{scriptsize}
+
+\hspace*{-1cm}
+\ifdefined\HCode
+   \begin{small}
+\else
+   \begin{scriptsize}
+\fi
+%\colorbox{lightgray}{%
+   \begin{tabular}{l|lllllllllllll}\hline
+    \textit{1} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION SETTINGS} & & & & & & & & & & \\
+    \textit{2} & \multicolumn{3}{l}{Logfile: HEMCO.log} & & & & & & & & & & \\
+    \textit{3} & \multicolumn{3}{l}{DiagnPrefix: HEMCO\_diagnostics} & & & & & & & & & & \\
+    \textit{4} & \multicolumn{3}{l}{Wildcard: *} & & & & & & & & & & \\
+    \textit{5} & \multicolumn{3}{l}{Separator: /} & & & & & & & & & & \\
+    \textit{6} & \multicolumn{3}{l}{Unit tolerance: 1} & & & & & & & & & & \\
+    \textit{7} & \multicolumn{3}{l}{Negative values: 0} & & & & & & & & & & \\
+    \textit{8} & \multicolumn{3}{l}{Verbose: false} & & & & & & & & & & \\
+    \textit{9} & \multicolumn{3}{l}{Track code: false} & & & & & & & & & & \\
+    \textit{10} & \multicolumn{3}{l}{Show warnings: true} & & & & & & & & & & \\
+    \textit{11} & \multicolumn{3}{l}{ROOT: /dir/to/data} & & & & & & & & & & \\
+    \textit{12} & \multicolumn{3}{l}{\#\#\# END SECTION SETTINGS} & & & & & & & & & & \\  
+    \textit{13} & & & & & & & & & & & & & \\
+    \textit{14} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION BASE EMISSIONS} & & & & & & & & & & \\
+    \textit{15} & ExtNr & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Species & ScalIDs & Cat & Hier \\
+    \textit{16} & 0 & MACCITY\_CO & /data/MACCity.nc & CO & 1980-2014/1-12/1/0 & C & xy & kg/m2/s & CO & 1 & 1 & 1 \\
+    \textit{17} & \multicolumn{3}{l}{\#\#\# END SECTION BASE EMISSIONS} & & & & & & & & & & \\  
+    \textit{18} & & & & & & & & & & & & &\\
+    \textit{19} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION SCALE FACTORS} & & & & & & & & & & \\ 
+    \textit{20} & ScalID & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Oper & & & \\ 
+    \textit{21} & 1 & HOURLY\_SCALFACT   & /data/hourly.nc & factor & 2000/1/1/0-23 & C & xy & unitless & 1 & & & \\
+    \textit{22} & \multicolumn{3}{l}{\#\#\# END SECTION SCALE FACTORS} \\
+    \textit{23} & & & & & & & & & & & & & \\
+    \textit{24} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION MASKS} & & & & & & & & & & \\
+    \textit{25} & \multicolumn{3}{l}{\#\#\# END SECTION MASKS} & & & & & & & & & & \\
+    \textit{26} & & & & & & & & & & & & & \\
+    \textit{27} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION EXTENSION SWITCHES} & & & & & & & & & & \\
+    \textit{28} & \multicolumn{3}{l}{\#\#\# END SECTION EXTENSION SWITCHES} & & & & & & & & & & \\
+    \textit{29} & & & & & & & & & & & & & \\
+    \textit{30} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION EXTENSION DATA} & & & & & & & & & & \\
+    \textit{31} & \multicolumn{3}{l}{\#\#\# END SECTION EXTENSION DATA} & & & & & & & & & & \\ \hline
+  \end{tabular}
+%}
+\ifdefined\HCode
+   \end{small}
+\else
+   \end{scriptsize}
+\fi
+\hspace*{-1cm}\\
+
+The various attributes are explained in more detail in sections \ref{Base_emissions} and \ref{Scale_factors}. The line numbers (first row) are not part of the HEMCO configuration file.\\
+\\
+To add regional monthly anthropogenic CO emissions from the EMEP inventory \citep{Vestreng_ACP_2009} (in \texttt{/data/EMEP.nc}) to the simulation, modify the configuration file as follows (changes are highlighted in bold face):
+
+\hspace*{-1cm}
+\ifdefined\HCode
+   \begin{small}
+\else
+   \begin{scriptsize}
+\fi
+%\colorbox{lightgray}{
+   \begin{tabular}{l|lllllllllllll} \hline
+    \textit{1} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION SETTINGS} & & & & & & & & & & \\
+    \textit{2} & \multicolumn{3}{l}{Logfile: HEMCO.log} & & & & & & & & & & \\
+    \textit{3} & \multicolumn{3}{l}{DiagnPrefix: HEMCO\_diagnostics} & & & & & & & & & & \\
+    \textit{4} & \multicolumn{3}{l}{Wildcard: *} & & & & & & & & & & \\
+    \textit{5} & \multicolumn{3}{l}{Separator: /} & & & & & & & & & & \\
+    \textit{6} & \multicolumn{3}{l}{Unit tolerance: 1} & & & & & & & & & & \\
+    \textit{7} & \multicolumn{3}{l}{Negative values: 0} & & & & & & & & & & \\
+    \textit{8} & \multicolumn{3}{l}{Verbose: false} & & & & & & & & & & \\
+    \textit{9} & \multicolumn{3}{l}{Track code: false} & & & & & & & & & & \\
+    \textit{10} & \multicolumn{3}{l}{Show warnings: true} & & & & & & & & & & \\
+    \textit{11} & \multicolumn{3}{l}{ROOT: /dir/to/data} & & & & & & & & & & \\
+    \textit{12} & \multicolumn{3}{l}{\#\#\# END SECTION SETTINGS} & & & & & & & & & & \\  
+    \textit{13} & & & & & & & & & & & & & \\
+    \textit{14} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION BASE EMISSIONS} & & & & & & & & & & \\
+    \textit{15} & ExtNr & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Species & ScalIDs & Cat & Hier \\
+    \textit{16} & 0 & MACCITY\_CO & /data/MACCity.nc & CO & 1980-2014/1-12/1/0 & C & xy & kg/m2/s & CO & 1 & 1 & 1 \\
+%    \rowcolor{gray}
+    \textit{\textbf{17}} & \textbf{0} & \textbf{EMEP\_CO} & \textbf{/data/EMEP.nc} & \textbf{CO} & \textbf{2000-2014/1-12/1/0} & \textbf{C} & \textbf{xy} & \textbf{kg/m2/s} & \textbf{CO} & \textbf{1/1001} & \textbf{1} & \textbf{2} \\
+    \textit{18} & \multicolumn{3}{l}{\#\#\# END SECTION BASE EMISSIONS} & & & & & & & & & & \\  
+    \textit{19} & & & & & & & & & & & & &\\
+    \textit{20} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION SCALE FACTORS} & & & & & & & & & & \\ 
+    \textit{21} & ScalID & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Oper & & & \\ 
+    \textit{22} & 1 & HOURLY\_SCALFACT   & /data/hourly.nc & factor & 2000/1/1/0-23 & C & xy & unitless & 1 & & & \\
+    \textit{23} & \multicolumn{3}{l}{\#\#\# END SECTION SCALE FACTORS} & & & & & & & & & & \\
+    \textit{24} & & & & & & & & & & & & & \\
+    \textit{25} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION MASKS} & & & & & & & & & & \\
+    \textit{26} & ScalID & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Oper & Box & & \\ 
+%    \rowcolor{gray}
+    \textit{\textbf{27}} & \textbf{1001} & \textbf{MASK\_EUROPE} & \textbf{/data/mask\_europe.nc} & \textbf{MASK} & \textbf{2000/1/1/0} & \textbf{C} & \textbf{xy} & \textbf{unitless} & \textbf{1} & \textbf{-30/30/45/70} & & \\
+    \textit{28} & \multicolumn{3}{l}{\#\#\# END SECTION MASKS} & & & & & & & & & & \\
+    \textit{29} & & & & & & & & & & & & & \\
+    \textit{30} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION EXTENSION SWITCHES} & & & & & & & & & & \\
+    \textit{31} & \multicolumn{3}{l}{\#\#\# END SECTION EXTENSION SWITCHES} & & & & & & & & & & \\
+    \textit{32} & & & & & & & & & & & & & \\
+    \textit{33} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION EXTENSION DATA} & & & & & & & & & & \\
+    \textit{34} & \multicolumn{3}{l}{\#\#\# END SECTION EXTENSION DATA} & & & & & & & & & & \\ \hline
+  \end{tabular}
+%}
+\ifdefined\HCode
+   \end{small}
+\else
+   \end{scriptsize}
+\fi
+\hspace*{-1cm}\\
+
+Note the increased hierarchy of the regional EMEP inventory compared to the global MACCITY emissions (column Hier).\\
+To add aircraft emissions from the AEIC inventory \citep{Stettler_AE_2011}, available in file \texttt{/data/AEIC.nc} add the following line to the base emission section of the configuration file:
+
+\hspace*{-1cm}
+\ifdefined\HCode
+   \begin{small}
+\else
+   \begin{scriptsize}
+\fi
+%\colorbox{lightgray}{%
+   \begin{tabular}{l|lllllllllllll} \hline
+    \textit{15} & ExtNr & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Species & ScalIDs & Cat & Hier \\
+    \textit{18} & 0 & AEIC\_CO & /data/AEIC.nc & CO & 2005/1-12/1/0 & C & xyz & kg/m2/s & CO & - & 2 & 1 \\ \hline
+  \end{tabular}
+%}
+\ifdefined\HCode
+   \end{small}
+\else
+   \end{scriptsize}
+\fi
+\hspace*{-1cm}\\
+
+Note the change in the emission category (column Cat) compared to the anthropogenic CO emissions.\\
+To add biomass burning emissions calculated by GFED3 \citep{VanDerWerf_ACP_2010}, modify section 'Extension switches' and 'Extension data' as follows:
+
+\hspace*{-1cm}
+\ifdefined\HCode
+   \begin{small}
+\else
+   \begin{scriptsize}
+\fi
+%\colorbox{lightgray}{%
+   \begin{tabular}{l|lllllllllllll} \hline
+    \textit{30} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION EXTENSION SWITCHES} & & & & & & & & & & \\
+    \textit{31} & ExtNr & ExtName & on/off & Species & & & & & & & & \\
+    \textit{32} & 111 & GFED3 & on & CO & & & & & & & & \\
+    \textit{33} & $\rightarrow$ & CO scale factor: & 1.05 & & & & & & & & & \\
+    \textit{34} & \multicolumn{3}{l}{\#\#\# END SECTION EXTENSION SWITCHES} & & & & & & & & & & \\
+    \textit{35} & & & & & & & & & & & & & \\
+    \textit{36} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION EXTENSION DATA} & & & & & & & & & & \\
+    \textit{37} & Ext & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Species & ScalIDs & Cat & Hier \\
+    \textit{38} & 111 & GFED3\_WDL & /data/GFED3.nc & WDL & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{39} & 111 & GFED3\_AGW & /data/GFED3.nc & AGW & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{40} & 111 & GFED3\_DEF & /data/GFED3.nc & DEF & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{41} & 111 & GFED3\_FOR & /data/GFED3.nc & FOR & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{42} & 111 & GFED3\_PET & /data/GFED3.nc & PET & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{43} & 111 & GFED3\_SAV & /data/GFED3.nc & SAV & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{44} & 111 & HUMTROP     & /data/GFED3\_humtrop.nc & humtrop & 2000/1/1/0 & C & xy & unitless & * & - & 1 & 1 \\
+    \textit{45} & \multicolumn{3}{l}{\#\#\# END SECTION EXTENSION DATA} & & & & & & & & & & \\ \hline
+  \end{tabular}
+%}
+\ifdefined\HCode
+   \end{small}
+\else
+   \end{scriptsize}
+\fi
+\hspace*{-1cm}\\
+\\
+
+The HEMCO configuration file can hold emission specifications of as many species as desired. For example, to add anthropogenic NO emissions from the MACCity inventory, add the following line to the configuration file:
+
+\hspace*{-1cm}
+\ifdefined\HCode
+   \begin{small}
+\else
+   \begin{scriptsize}
+\fi
+%\colorbox{lightgray}{%
+   \begin{tabular}{l|lllllllllllll} \hline
+    \textit{15} & ExtNr & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Species & ScalIDs & Cat & Hier \\
+    \textit{17} & 0 & MACCITY\_NO & /data/MACCity.nc & NO & 1980-2014/1-12/1/0 & C & xy & kg/m2/s & NO & 1 & 1 & 1 \\ \hline
+  \end{tabular}
+%}
+\ifdefined\HCode
+   \end{small}
+\else
+   \end{scriptsize}
+\fi
+\hspace*{-1cm}\\
+
+And to include NO to GFED3:
+\hspace*{-1cm}
+\ifdefined\HCode
+   \begin{small}
+\else
+   \begin{scriptsize}
+\fi
+%\colorbox{lightgray}{%
+   \begin{tabular}{l|lllllllllllll} \hline
+    \textit{31} & ExtNr & ExtName & on/off & Species & & & & & & & & \\
+    \textit{32} & 111 & GFED3 & on & CO/\bf{NO} & & & & & & & & \\ \hline
+  \end{tabular}
+%}
+\ifdefined\HCode
+   \end{small}
+\else
+   \end{scriptsize}
+\fi
+\hspace*{-1cm}\\
+
+Note that in order to include NO for emission simulation, it has to be added to the list of simulated species. This is described in more detail in section \ref{Interfaces}. The same section also describes how to change specifications of the emission grid and simulation dates and times.\\
+\\
+Finally, let's add sulfate emissions to the simulation. Emissions of SO$_4$ are approximated from the MACCity SO$_2$ data, assuming that SO$4$ constitutes 3.1\% of the SO$2$ emissions. The final configuration file then becomes:
+
+\hspace*{-1cm}
+\ifdefined\HCode
+   \begin{small}
+\else
+   \begin{scriptsize}
+\fi
+%\colorbox{lightgray}{%
+   \begin{tabular}{l|lllllllllllll} \hline
+    \textit{1} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION SETTINGS} & & & & & & & & & & \\
+    \textit{2} & \multicolumn{3}{l}{Logfile: HEMCO.log} & & & & & & & & & & \\
+    \textit{3} & \multicolumn{3}{l}{DiagnPrefix: HEMCO\_diagnostics} & & & & & & & & & & \\
+    \textit{4} & \multicolumn{3}{l}{Wildcard: *} & & & & & & & & & & \\
+    \textit{5} & \multicolumn{3}{l}{Separator: /} & & & & & & & & & & \\
+    \textit{6} & \multicolumn{3}{l}{Unit tolerance: 1} & & & & & & & & & & \\
+    \textit{7} & \multicolumn{3}{l}{Negative values: 0} & & & & & & & & & & \\
+    \textit{8} & \multicolumn{3}{l}{Verbose: false} & & & & & & & & & & \\
+    \textit{9} & \multicolumn{3}{l}{Track code: false} & & & & & & & & & & \\
+    \textit{10} & \multicolumn{3}{l}{Show warnings: true} & & & & & & & & & & \\
+    \textit{11} & \multicolumn{3}{l}{ROOT: /dir/to/data} & & & & & & & & & & \\
+    \textit{12} & \multicolumn{3}{l}{\#\#\# END SECTION SETTINGS} & & & & & & & & & & \\  
+    \textit{13} & & & & & & & & & & & & & \\
+    \textit{14} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION BASE EMISSIONS} & & & & & & & & & & \\
+    \textit{15} & ExtNr & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Species & ScalIDs & Cat & Hier \\
+    \textit{16} & 0 & MACCITY\_CO & /data/MACCity.nc & CO & 1980-2014/1-12/1/0 & C & xy & kg/m2/s & CO & 1 & 1 & 1 \\
+    \textit{17} & 0 & MACCITY\_NO & /data/MACCity.nc & NO & 1980-2014/1-12/1/0 & C & xy & kg/m2/s & NO & 1 & 1 & 1 \\
+%    \rowcolor{gray}
+    \textit{\textbf{18}} & \textbf{0} & \textbf{MACCITY\_SO2} & \textbf{/data/MACCity.nc} & \textbf{SO2} & \textbf{1980-2014/1-12/1/0} & \textbf{C} & \textbf{xy} & \textbf{kg/m2/s} & \textbf{SO2} & \textbf{-} & \textbf{1} & \textbf{1} \\
+%    \rowcolor{gray}
+    \textit{\textbf{19}} & \textbf{0} & \textbf{MACCITY\_SO4} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{SO4} & \textbf{2} & \textbf{1} & \textbf{1} \\
+    \textit{20} & 0 & AEIC\_CO & /data/AEIC.nc & CO & 2005/1-12/1/0 & C & xyz & kg/m2/s & CO & - & 2 & 1 \\
+    \textit{21} & 0 & EMEP\_CO & /data/EMEP.nc & CO & 2000-2014/1-12/1/0 & C & xy & kg/m2/s & CO & 1/1001 & 1 & 2 \\
+    \textit{22} & \multicolumn{3}{l}{\#\#\# END SECTION BASE EMISSIONS} & & & & & & & & & & \\  
+    \textit{23} & & & & & & & & & & & & &\\
+    \textit{24} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION SCALE FACTORS} & & & & & & & & & & \\ 
+    \textit{25} & ScalID & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Oper & & & \\ 
+    \textit{26} & 1 & HOURLY\_SCALFACT   & /data/hourly.nc & factor & 2000/1/1/0-23 & C & xy & unitless & 1 & & & \\
+%    \rowcolor{gray}
+    \textit{\textbf{27}} & \textbf{2} & \textbf{SO2toSO4} & \textbf{0.031} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{-} & \textbf{unitless} & \textbf{1} & & & \\
+    \textit{28} & \multicolumn{3}{l}{\#\#\# END SECTION SCALE FACTORS} & & & & & & & & & & \\
+    \textit{29} & & & & & & & & & & & & & \\
+    \textit{30} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION MASKS} & & & & & & & & & & \\
+    \textit{31} & ScalID & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Oper & Box & & \\ 
+    \textit{32} & 1001 & MASK\_EUROPE & /data/mask\_europe.nc & MASK & 2000/1/1/0 & C & xy & unitless & 1 & -30/30/45/70 & & \\
+    \textit{33} & \multicolumn{3}{l}{\#\#\# END SECTION MASKS} & & & & & & & & & & \\
+    \textit{34} & & & & & & & & & & & & & \\
+    \textit{35} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION EXTENSION SWITCHES} & & & & & & & & & & \\
+    \textit{36} & ExtNr & ExtName & on/off & Species & & & & & & & & \\
+    \textit{37} & 111 & GFED3 & on & CO/NO/SO2 & & & & & & & & \\
+    \textit{38} & $\rightarrow$ & CO scale factor: & 1.05 & & & & & & & & & \\
+    \textit{39} & \multicolumn{3}{l}{\#\#\# END SECTION EXTENSION SWITCHES} & & & & & & & & & & \\
+    \textit{40} & & & & & & & & & & & & & \\
+    \textit{41} & \multicolumn{3}{l}{\#\#\# BEGIN SECTION EXTENSION DATA} & & & & & & & & & & \\
+    \textit{42} & ExtNr & Name & srcFile & srcVar & srcTime & CRE & Dim & Unit & Species & ScalIDs & Cat & Hier \\
+    \textit{43} & 111 & GFED3\_WDL & /data/GFED3.nc & WDL & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{44} & 111 & GFED3\_AGW & /data/GFED3.nc & AGW & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{45} & 111 & GFED3\_DEF & /data/GFED3.nc & DEF & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{46} & 111 & GFED3\_FOR & /data/GFED3.nc & FOR & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{47} & 111 & GFED3\_PET & /data/GFED3.nc & PET & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{48} & 111 & GFED3\_SAV & /data/GFED3.nc & SAV & 1997-2011/1-12/1/0 & C & xy & kg/m2/s & * & - & 1 & 1 \\
+    \textit{49} & 111 & HUMTROP     & /data/GFED3\_humtrop.nc & humtrop & 2000/1/1/0 & C & xy & unitless & * & - & 1 & 1 \\
+    \textit{50} & \multicolumn{3}{l}{\#\#\# END SECTION EXTENSION DATA} & & & & & & & & & & \\ \hline
+  \end{tabular}
+%}
+\ifdefined\HCode
+   \end{small}
+\else
+   \end{scriptsize}
+\fi
+\hspace*{-1cm}\\
+
+\section{HEMCO settings} \label{Settings}
+Section settings of the configuration file defines a number of parameter and variables used by HEMCO. The order in which they appear in the configuration file is irrelevant. The settings are:
+\begin{description} \itemsep0pt
+\item [Logfile] Path and name of the output logfile. If set to the wildcard character, all output is written to standard output.
+\item [DiagnPrefix] Path and prefix of the hemco diagnostics output. All diagnostics will be written to DiagnPrefix\_YYYYMMDDHH.nc.
+\item [Wildcard] Wildcard character symbol. Defaults to '*'.
+\item [Separator] Separator character symbol. Defaults to '/'.
+\item [Unit tolerance] Integer value denoting the tolerance against differences between the units set in the configuration file and data units found in the source file (0 = no tolerance, 2 = high tolerance). See section \ref{Input_file_format} for details.
+\item [Negative values] Defines how negative values are handled. If set to 0, no negative values are allowed (default). If set to 1, all negative values are set to zero and a warning is prompted. If set to 2, negative values are kept as they are.
+\item [Verbose] If true, HEMCO is run in verbose mode.
+\item [Track code] If true, tracks the subroutine calling sequence in the logfile. For debugging purposes only.
+\item [Show warnings] If true, prompts all warnings to the logfile.
+\item [ROOT] The root directory. Can be used to specify the root directory of file data (see section \ref{Base_emissions}).
+\item [MODEL] Can be used to set the \$MODEL token (see section \ref{Base_emissions}). If omitted, this value is determined based on compiler switches
+\item [RES] Can be used to set the \$RES token (see section \ref{Base_emissions}). If omitted, this value is determined based on compiler switches
+\end{description}
+In standalone mode, the three simulation description files can also be specified (see also section \ref{Interfaces}):
+\begin{description} \itemsep0pt
+\item [GridFile] Path and name of the grid description file. Defaults to HEMCO\_sa\_Grid.rc.
+\item [SpecFile] Path and name of the species description file. Defaults to HEMCO\_sa\_Spec.rc.
+\item [TimeFile] Path and name of the time specification file. Defaults to HEMCO\_sa\_Time.rc.
+\end{description}
+
+\section{Base emissions} \label{Base_emissions}
+The base emission section lists all base emission fields and how they are linked to scale factors. For each base emissions, the following attributes need to be defined:
+\begin{description} \itemsep0pt
+\item [ExtNr] Extension number associated with this field. All base emissions should have extension number zero. The ExtNr of the data listed in section 'Extensions data' must match with the corresponding extension number (see section \ref{Extensions}).
+\item [Name] Descriptive field identification name. Two consecutive underscore characters ('\_') can be used to attach a 'tag' to a name. This is only of relevance if multiple base emission fields share the same species, category, hierarchy, and scale factors. In this case, emission calculation can be optimized by assigning field names that only differ by its tag to those fields (e.g. 'DATA\_\_SECTOR1', 'DATA\_\_SECTOR2', etc.).
+\item [sourceFile] Path and name of the input file. See section \ref{Input_file_format} for more details on the input file format requirements.\\
+Name tokens can be provided that become evaluated during runtime. For example, to use the root directory specified in the settings (see section \ref{Settings}), the token '\$ROOT' can be used. Similarly,
+the date tokens '\$YYYY', '\$MM', '\$DD', and '\$HH' can be used to refer to the current valid year, month, day, and hour, respectively. These values are determined from the current simulation datetime and the 'SrcUnit' specification for this entry. Finally, the data tokens '\$MODEL' and '\$RES' refer to the meteorological model and resolution.\\
+As an alternative to an input file, geospatial uniform values can directly be specified in the configuration file (see e.g. scale factor SO2toSO4 in the example of section \ref{Getting_started}). If multiple values are provided (separated by the separator character), they are interpreted as different time slices. In this case, the sourceTime attribute can be used to specify the times associated with the individual slices. If no time attribute is set, HEMCO attempts to determine the time slices from the number of data values: 7 values are interpreted as weekday (Sun, Mon, ... Sat); 12 values  as month (Jan, ..., Dec); 24 values as hour-of-day (12am, 1am, ..., 11pm).\\
+Country-specific data can be provided through an ASCII file (\*.txt). More details on this option is given in section \ref{Input_file_format}.\\
+If this entry is left empty ('-'), the filename from the preceding entry is taken, and the next 5 attributes will be ignored (see entry MACCITY\_SO4 in section \ref{Getting_started}).
+\item [sourceVar] Source file variable of interest. Leave empty ('-') if values are directly set through the sourceFile attribute or if sourceFile is empty.
+\item [sourceTime] Defines the time slices to be used, and as such the data update frequency. The format is year/month/day/hour. Accepted are discrete dates for time-independent data (e.g. 2000/1/1/0) and time ranges for temporally changing inventories (e.g. 1980-2007/1-12/1-31/0-23). It is also possible to use the tokens \$YYYY, \$MM, \$DD, and \$HH, which will automatically be replaced by the current simulation date. Week-daily data can be indicated by setting the day attribute to 'WD' (the wildcard character will work, too). Weekday data needs to consist of seven time slices, starting on Sunday.\\
+Data becomes automatically updated as soon as the simulation time enters a new time slice.\\
+For uniform values directly set in the configuration file, all time attributes but one must be fixed, e.g. valid entries are 1990-2007/1/1/0 or 2000/1-12/1/1, but not 1990-2007/1-12/1/1.\\
+\item [CRE] Defines the time slice cycling behavior. Allowed are 'C', 'R', and 'E'. If set to 'C', the data is interpreted as a climatology and recylced once the end of the last time slice is reached (e.g. if time slices are 2000/1-12/1/0, the same monthly data will be used every year). If set to 'R', data are only considered as long as the simulation time is within the time range specified in sourceTime. If set to 'E', an error is returned if none of the time slices specified in sourceTime matches the current simulation time.
+\item [SrcDim] Spatial dimension of input data. xy for horizontal data, xyz for 3-dimensional data.
+\item [SrcUnit] Units of input data. In combination with the unit tolerance parameter specified in the HEMCO settings (see section \ref{Settings}), this parameter is used by HEMCO for unit conversion and regridding. In general, HEMCO will attempt to convert all data to HEMCO standard units. The data units are determined from the source file. If unit tolerance is set to zero, HEMCO stops with an error if the SrcUnit attribute does not match with the unit string read from the source file (only a warning is issued for higher unit tolerances). For higher unit tolerances, SrcUnit can be set to '1' or 'count' to force HEMCO to perform no unit conversions. If unit tolerance is set to 1, this behavior is only accepted for data recognized by HEMCO as being unitless or in HEMCO units. Data with units of 'count' are assumed to represent index-based scalar fields (e.g. land types) and regridding is performed accordingly. For data directly specified in the configuration file, unit conversion is always performed based on SrcUnit. See section \ref{Input_file_format} for more details on data units.
+\item [Species] HEMCO emission species name. Emissions will be added to this species. All HEMCO emission species are defined at the beginning of the simulation (see section \ref{Interfaces}). If the species name does not match any of the HEMCO species, the field is ignored for emission calculation. The species name can be set to the wildcard character, in which case the field is always read by HEMCO but no species is assigned to it. This can be useful for extensions that import some (species-independent) fields by name.
+\item [ScalIDs] Identification numbers of all scale factors and masks that shall be applied to this base emission field. Multiple entires must be separated by the separator character. The ScalIDs must correspond to the ScalID numbers provided in section 'Scale factors' and 'Masks'.
+\item [Cat] Emission category. Used to distinguish different, independent emission sources. Emissions of different categories are always added.
+\item [Hier] Emission hierarchy. Used to prioritize emission fields within the same emission category. Emissions of higher hierarchy overwrite lower-hierarchy data. Fields are only considered within their defined domain, i.e. regional inventories are only considered within their mask boundaries.
+\end{description}
+
+\section{Scale factors} \label{Scale_factors}
+The scale factors section of the configuration file lists all scale factors applied to the base emission field. Scale factors that are not used by any of the base emission fields are ignored. Scale factors can represent (1) temporal emission variations including diurnal, seasonal, or interannual variability; (2) regional masks that restrict the applicability of the base inventory to a given region; or (3) species-specific scale factors, e.g., to split lumped organic compound emissions into individual species. Most attributes in this section are very similar to the base emissions, except for attributes 'ScalID' and 'Oper':
+
+\begin{description}
+\item [ScalID] Scale factor identification number. Used to link the scale factors to the base emissions through the corresponding ScalIDs attribute in the base emissions section.
+\item [Name] See section \ref{Base_emissions}.
+\item [sourceFile] See section \ref{Base_emissions}.
+\item [sourceVar] See section \ref{Base_emissions}.
+\item [sourceTime] See section \ref{Base_emissions}.
+\item [CRE] See section \ref{Base_emissions}.
+\item [SrcDim] See section \ref{Base_emissions}.
+\item [SrcUnit] as described in section \ref{Base_emissions}, with the exception that scale factors are assumed to be unitless and no automatic unit conversion is performed.
+\item [Oper] Scale factor operator. Determines the operation performed on the scale factor. Possible values are: 1 for multiplication ($Emission=Base \cdot Scale$); -1 for division ($E=B / S$); 2 for squared ($E=B \cdot S^2$).
+\item [MaskID (optional)] ScalID of a mask field. This optional value can be used if a scale factor shall only be used over a given region. The provided MaskID must have a corresponding entry in section Masks of the configuration file.
+\end{description}
+
+\section{Masks} \label{Masks}
+This section lists all masks used by HEMCO. Masks are binary scale factors (1 inside the mask region, 0 outside). If masks are regridded, the remapped mask values (1 and 0) are deterimend through regular rounding, i.e. a remapped mask value of 0.49 will be set to 0 while 0.5 will be set to 1.\\
+Required attributes for mask fields are:
+\begin{description}
+\item [ScalID] Mask identification number. See section \ref{Scale_factors}.
+\item [Name] See section \ref{Base_emissions}.
+\item [sourceFile] See section \ref{Base_emissions}. In addition to a netCDF input file, it is also possible to directly provide the lower left and upper right box coordinates, i.e. Lon1/Lat1/Lon2/Lat2.
+\item [sourceVar] See section \ref{Base_emissions}.
+\item [sourceTime] See section \ref{Base_emissions}.
+\item [Cycle] See section \ref{Base_emissions}.
+\item [SrcDim] See section \ref{Base_emissions}.
+\item [SrcUnit] See section \ref{Base_emissions}.
+\item [Oper] Data operator. As for scale factors, except that value 2 (squared) is not allowed. Instead, Oper can be set to 3, which will 'mirror' the mask, i.e. $Y=1-X$, where $Y$ and $X$ are the new and original mask value, respectively
+\item [Box] the approximate mask region grid box edges (Lon1/Lat1/Lon2/Lat2; lower left and upper right). This is only of relevance for regional emission grids or in a parallel computing environment (to exclude fields that have no coverage on the area covered by this CPU or within the specified emission region).
+\end{description}
+
+\section{Extensions} \label{Extensions}
+Emissions that depend on environmental parameter such as wind speed or air temperature - and/or that use non-linear parameterizations - are calculated through HEMCO extensions. A list of currently implemented extensions in HEMCO is given in \cite{Keller_2014}. To add additional extensions to HEMCO, modifications of the source code are required, as described further in section \ref{Behind_scenes}.
+
+\subsection{Extension switches}
+Extensions can be enabled or disabled (on/off) in section ‘Extension settings’ of the configuration file. For each extension, the following attributes need to be specified:
+\begin{description}
+\item [ExtNr] (Unique) extension number
+\item [ExtName] Extension name.
+\item [on/off] Extension toggle. Extension is only used if this attribute is set to 'on'.
+\item [Species] List of species to be used by this extension. Multiple species are separated by the separator symbol. All listed species must be supported by the given extension. For example, the soil NO emissions extension only supports one species (NO) and an error will be prompted if additional species are added.
+\end{description}
+Additional settings and non-netCDF input data, e.g. lookup tables in ASCII format, can also be specified in the 'Extensions settings' section (see also example in section \ref{Getting_started}). These settings must immediately follow the extension definition.
+
+\subsection{Extensions data} \label{Extensions_data}
+Extensions pose a special challenge because they need a multitude of gridded data, such as source factors (e.g. mass of carbon burned), or environmental parameters (e.g. wind speed, solar radiation). These data can either be passed from an atmospheric model or directly read from disk. To read data from disk, the corresponding information is listed in section ‘extensions data’. These data is only read if the corresponding extension is enabled. The attributes are as described in section ‘base emissions’. The provided number in column ExtNr must match with the corresponding extension number in section 'Extension settings'. Unlike the base emissions and scale factors, the specified field names are prescribed and must not be modified because the data is identified by the extensions by name.
+
+\section{Interfaces} \label{Interfaces}
+In order to perform an emission simulation, information on the simulation grid, species, dates and times must be provided to HEMCO. These information can be passed from an atmospheric model (e.g. GEOS-Chem) or from a suite of configuration files (for stand-alone applications). The emission fields calculated by HEMCO are either returned to the atmospheric model or written to disk.
+
+\subsection{Stand-alone interface}
+HEMCO can be employed as stand-alone model, in which case all simulation information is read from separate input files through the stand-alone interface, as described in detail in \texttt{hcoi\_standalone\_mod.F90}. For each species, total emissions per species are written to a netCDF file (via the HEMCO diagnostics).\\
+For the standalone version of HEMCO, all extensions input data has to be provided through input files, e.g. all required environmental data (wind speed, radiation, etc.) must be read from disk. These input files should be listed in section ‘extensions data’ of the configuration file.
+
+\subsection{Interfaces to atmospheric models}
+HEMCO can be coupled to an atmospheric model and all simulation specifications are obtained from that model through a model-specific interface. Currently, HEMCO is implemented in the NASA Goddard Earth Observing System (GEOS-5) Earth system model and the GEOS-Chem chemical transport model. The GEOS-5 interface is based on the Earth System Modeling Framework (ESMF) software environment and thus easily adoptable to other ESMF applications.\\
+The HEMCO-model interface provides the link between the atmospheric model and HEMCO. It invokes the calls to the HEMCO driver routines (see section \ref{Behind_scenes}).
+
+\section{Diagnostics} \label{Diagnostics}
+tbd
+
+\section{Input file format} \label{Input_file_format}
+Currently, HEMCO can read data from the following data sources:
+\begin{itemize}
+\item Gridded data from netCDF file. More detail on the netCDF file
+   are given below. In an ESMF environment, the MAPL/ESMF generic I/O
+   routines are used to read/remap the data. In a non-ESMF environment, 
+   the HEMCO generic reading and remapping algorithms are used. Those 
+   support vertical regridding, unit conversion, and more (see below).
+ \item Scalar data directly specified in the HEMCO configuration file.
+   Scalar values can be set in the HEMCO configuration file directly.
+   If multiple values - separated by the separator sign (/) - are 
+   provided, they are interpreted as temporally changing values:
+   7 values = Sun, Mon, ..., Sat; 12 values = Jan, Feb, ..., Dec;
+   24 values = 0am, 1am, ..., 23pm (local time!).\\
+   For masks, exactly four values must be provided, interpreted as 
+   lower left and upper right mask box corners (lon1/lat1/lon2/lat2).
+\item Country-specific data specified in a separate ASCII file. This
+   file must end with the suffix '.txt' and hold the country specific
+   values listed by country ID. The IDs must correspond to the IDs of
+   a corresponding (netCDF) mask file. The container name of this mask 
+   file must be given in the first line of the file, and must be listed 
+   HEMCO configuration file. ID 0 is reserved for the default values,
+   applied to all countries with no specific values listed. The .txt 
+   file must be structured as follows:\\
+   CountryMask\\
+   \# CountryName CountryID CountryValues\\
+   DEFAULT 0 1.0/2.0/3.0/4.0/5.0/6.0/7.0\\
+   The CountryValues are interpreted the same way as scalar values, 
+   except that they are applied to all grid boxes with the given 
+   country ID.
+\end{itemize}
+
+Gridded input files are expected to be in the Network Common Data Form (netCDF) format (\url{http://www.unidata.ucar.edu/software/netcdf/}) and must adhere to the COARDS metadata conventions (\url{http://ferret.wrc.noaa.gov/noaa_coop/coop_cdf_profile.html}). In particular, the following points must be fullfilled:
+\begin{description}
+\item [Latitude and Longitude dimension] At this stage of development, only rectilinear (lon-lat) grids are supported. The data is automatically regridded onto the simulation grid (see section \ref{Behind_scenes} for more details).
+\item [Vertical dimension] In a non-ESMF environment, 3D data is interpolated onto the simulation levels if (and only if) the number of vertical levels is greater than one and not equal to the number of vertical levels of the simulation grid. In all other cases, it is assumed that data is already on the simulation levels. In particular, this explicitly assumes that the vertical coordinate direction is upwards, i.e. the first level index corresponds to the surface layer. Currently, only hybrid sigma pressure coordinate systems are supported. In order to properly determine the vertical pressure levels of the input data, the file must contain the surface pressure values and the hybrid coefficients (a, b) of the coordinate system. Further, the 'level' variable must contain the attributes 'standard\_name' and 'formula\_terms' (the attribute 'positive' is recommended but not required). A header excerpt of a valid netCDF file is shown below:\\
+
+double lev(lev) ;\\
+       lev:standard\_name = "atmosphere\_hybrid\_sigma\_pressure\_coordinate" ;\\
+       lev:units = "level" ;\\
+       lev:positive = "down" ;\\
+       lev:formula\_terms = "ap: hyam b: hybm ps: PS" ;\\
+double hyam(nhym) ;\\
+       hyam:long\_name = "hybrid A coefficient at layer midpoints" ;\\
+       hyam:units = "hPa" ;\\
+double hybm(nhym) ;\\
+       hybm:long\_name = "hybrid B coefficient at layer midpoints" ;\\
+       hybm:units = "1" ;\\
+double time(time) ;\\
+       time:standard\_name = "time" ;\\
+       time:units = "days since 2000-01-01 00:00:00" ;\\
+       time:calendar = "standard" ;\\
+double PS(time, lat, lon) ;\\
+       PS:long\_name = "surface pressure" ;\\
+       PS:units = "hPa" ;\\
+double EMIS(time, lev, lat, lon) ;\\
+       EMIS:long\_name = "emissions" ;\\
+       EMIS:units = "kg m-2 s-1" ;\\
+\\
+Vertical regridding is currently not supported in an ESMF environment. 
+\item [Time] Times should be given as relative times, e.g. relative to a specified reference date. Accepted are 'days since yyyy-mm-dd', 'hours since yyyy-mm-dd hh:mm:ss', and 'minutes since yyyy-mm-dd hh:mm:ss'. There have been problems with some netCDF files with reference dates prior to 1901 (e.g. days since 1900-1-1) and reference years after 1900 should be used if possible.
+\item [Data units] It is recommended to store data in one of the HEMCO standard units: 'kg/m2/s' and 'kg(C)/m2/s' for fluxes; 'kg/m3' and 'kg(C)/m3' for concentrations; '1' for unitless data; and 'count' for index-based data, i.e. discrete distributions (for instance, land types represented as integer values between 1 and 28). HEMCO will attempt to convert all data to one of those units, unless otherwise specified via the 'srcUnit' attribute (see section \ref{Base_emissions}).\\
+Mass conversion (e.g. from molecules to kg) is performed based on the properties (e.g. molecular weight) of the species assigned to the given data set. It is also possible to convert between species-based and molecule-based units (e.g. kg vs. kg(C)). This conversion is based on the emitted molecular weight and the molecular ratio of the given species (see section \ref{bts_interfaces}). More details on unit conversion are given in module hco\_unit\_mod.F90.\\
+Index-based data is regridded in such a manner that every grid box on the new grid represents the index with the largest relative contribution from the overlapping boxes of the original grid. All other data are regridded as 'concentration' quantities, i.e. conserving the global weighted average.
+\end{description}
+
+\section{pyHEMCO GUI} \label{pyHEMCO_GUI}
+To facilitate the creation and modification of a HEMCO configuration file, a Graphical User Interface (GUI) is currently developed. The GUI contains the following features:
+\begin{itemize}
+\item Modification of existing configuration files.
+\item Creation of new configuration files, either from scratch or starting from an existing file.
+\item Direct execution of the stand-alone version of HEMCO
+\item Preview of emissions from individual inventories, extensions, or any combination of it.
+\end{itemize}
+The pyHEMCO GUI is written in Python and linked to the pyGC visualization and data analysis package developed for GEOS-Chem. The developer version of the pyHEMCO GUI can be found at \url{https://github.com/christophkeller}. This version is still under development and not yet operational.
+
+\section{Behind the scenes of HEMCO} \label{Behind_scenes}
+
+\subsection{Overview}
+This section provides a short description of the main principles of HEMCO. More details are provided in the source code, and references to the corresponding modules is given where appropriate.\\
+The HEMCO code can be broken up into three parts: \textbf{core code}, \textbf{extensions}, \textbf{interfaces}. The core code consists of all core modules that are essential for every HEMCO simulation. The extensions are a collection of emission parameterizations that can be optionally selected (e.g. dust emissions, air-sea exchange, etc.). Most of the extensions require meteorological variables (2D or 3D fields) passed from an atmospheric model or an external input file to HEMCO. The interfaces are top-level routines that are only required in a given model environment (e.g. in stand-alone mode or under an ESMF framework). The HEMCO-model interface routines are located outside of the HEMCO code structure, calling down to the HEMCO driver routines for both the HEMCO core and extensions.\\
+HEMCO stores all emission data (base emissions, scale factors, masks) in a generic data structure (a 'HEMCO data container'). Input data read from disk is translated into this data structure by the HEMCO input/output module (hcoio\_dataread\_mod.F90 in HEMCO core). This step includes unit conversion and regridding.
+
+\subsection{HEMCO data objects} \label{bts_data_objects}
+All emission data (base emissions, scale factors, masks) are internally stored in a data container. For each data element of the HEMCO configuration file, a separate data container object is created when reading the configuration file at the beginning of the simulation. The data container object is a FORTRAN derived type that holds information of one entry of the configuration file. All file data information such as filename, file variable, time slice options, etc. are stored in a 'FileData' derived type object (defined in hco\_filedata\_mod.F90). This object also holds a pointer to the data itself. All data is stored as 2 or 3 dimensional data arrays. HEMCO can keep multiple time slices in memory simultaneously, e.g. for diurnal scale factors, in which case a vector of data arrays is created. Data arrays are defined in module hco\_arr\_mod.F90.\\
+Data containers (and as such, emissions data) are accessed through three different linked lists: ConfigList, ReadList, EmisList. These lists all point to the same content (i.e. the same containers) but ordered in a manner that is most efficient for the intendend purpose: for example, ReadList contains sub-lists of all containers that need to be updated annually, monthly, daily, hourly, or never. Thus, if a new month is entered, only a few lists (monthly, daily and hourly) have to be scanned and updated instead of going through the whole list of data containers. Similarly, EmisList sorts the data containers by model species, emission category and hierarchy. This allows an efficient emission calculation since the EmisList has to be scanned only once. List containers and generic linked list routines are defined in hco\_datacont\_mod.F90. Specific routines for ConfigList, ReadList and EmisList are defined in hco\_config\_mod.F90, hco\_readlist\_mod.F90, and hco\_emislist\_mod.F90, respectively.
+
+\subsection{Core} \label{bts_core}
+HEMCO core consists of all routines and variables required to read, store, and update data used for emissions calculation. The driver routines to execute (initialize, run and finalize) a HEMCO core simulation are (see hco\_driver\_mod.F90: \texttt{HCO\_INIT}, \texttt{HCO\_RUN}, \texttt{HCO\_FINAL}. These are also the routines that are called at the interface level (see section \ref{bts_interfaces}). Each HEMCO simulation is defined by its \textbf{state object 'HcoState'}, which is a derived type that holds all simulation information, including a list of the defined HEMCO species, emission grid information, configuration file name, and additional run options. More details on the HEMCO state object can be found in hco\_state\_mod.F90. HcoState is defined at the interface level and then passed down to all HEMCO routines (see also section \ref{bts_interfaces}).\\
+
+\subsubsection{Initialize: HCO\_INIT}
+Before running HEMCO, all variables and objects have to be initialized properly. The initialization of HEMCO occurs in three steps:
+\begin{enumerate}
+\item Read the HEMCO configuration file (Config\_ReadFile in hco\_config\_mod.F90). This writes the content of the entire configuration file into buffer, and creates a data container for each data item (base emission, scale factor, mask) in ConfigList.
+\item Initialize HcoState. 
+\item Call HCO\_INIT, passing HcoState to it. This initializes the HEMCO clock object (see hco\_clock\_mod.F90) and creates the ReadList (hco\_readlist\_mod.F90). The ReadList links to the data containers in ConfigList, but sorted by data update frequency. Data that is not used at all (e.g. scale factors that are not used by any base emission, or regional emissions that are outside of the emission grid). The EmisList linked list is only created in the run call.
+\end{enumerate}
+Note that steps 1 and 2 occur at the interface level (see section \ref{bts_interfaces}).
+
+\subsubsection{Run: HCO\_RUN}
+This is the main function to run HEMCO. It can be repeated as often as necessary. Before calling this routine, the internal clock object has to be updated to the current simulation time (\texttt{HcoClock\_Set}, see hco\_clock\_mod.F90). HCO\_RUN performs the following steps:
+\begin{enumerate}
+\item Updates the time slice index pointers. This is to make sure that the correct time slices are used for every data container. For example, hourly scale factors can be stored in a data container holding 24 individual 2D fields. Module hco\_tidx\_mod.F90 organizes how to properly access these fields.
+\item Read/update the content of the data containers (\texttt{ReadList\_Read}). Checks if there are any fields that need to be read/updated (e.g. if this is a new month compared to the previous time step) and updates these fields if so by calling the data interface (see section \ref{bts_interfaces}).
+\item Creates/updates the EmisList object. Similar to ReadList, EmisList points to the data containers in ConfigList, but sorted according to species, emission hierarchy, emissions category. To optimize emission calculations, EmisList already combines base emission fields that share the same species, category, hierarchy, scale factors, and field name (without the field name tag, see section \ref{Base_emissions}).
+\item Calculate core emissions for the current simulation time. This is performed by subroutine \texttt{hco\_calcemis} (hco\_calc\_mod.F90). This routine walks through EmisList and calculates the emissions for every base emission field by applying the assigned scale factors to it. The (up to 10) container IDs of all scale factors connected to the given base emission field (as set in the HEMCO configuration file) are stored in the data container variable ScalIDs. A container ID index list is used to efficiently retrieve a pointer to each of those containers (see cIDList in hco\_datacont\_mod.F90).
+\end{enumerate}
+
+\subsubsection{Finalize: HCO\_FINAL}
+This routine cleans up all internal lists, variables, and objects. This does not clean up the HEMCO state object, which is removed at the interface level.
+
+\subsection{Extensions} \label{bts_extensions}
+HEMCO extensions are used to calculate emissions based on meteorological input variables and/or non-linear parameterizations. Each extension is provided in a separate FORTRAN module. Each module must contain a public subroutine to initialize, run and finalize the extension. Emissions calculated in the extensions are added to the HEMCO emission array using subroutine \texttt{HCO\_Emis\_Add} (HCO\_FluxArr\_mod.F90).\\
+Meteorological input data is passed to the individual extension routines through the \textbf{extension state object 'ExtState'}, which provides a pointer slot for all met fields used by any of the extension (see hcox\_state\_mod.F90). These pointers must be assigned at the interface level (see section \ref{bts_interfaces}).\\
+In analogy to the core module, the three main routines for the extensions are (in hcox\_driver\_mod.F90):
+\begin{itemize}
+\item \texttt{HCOX\_INIT}
+\item \texttt{HCOX\_RUN}
+\item \texttt{HCOX\_FINAL}
+\end{itemize}
+These subroutines invoke the corresponding calls of all (enabled) extensions and must be called at the interface level (after the core routines).\\
+Extension settings (as specified in the configuration file, see also section \ref{Extensions}) are automatically read by HEMCO. For any given extension, routines \texttt{GetExtNr} and \texttt{GetExtOpt} can be used to obtain the extension number and desired setting value, respectively. (see HCO\_ExtList\_Mod.F90). Routine \texttt{HCO\_GetExtHcoID} should be used to extract the HEMCO species IDs of all species registered for this extension.\\
+Gridded data associated to an extension (i.e. listed in section extension data of the configuration file) is automatically added to the EmisList, but ignored by the HEMCO core module during emissions calculation. Pointers to these data arrays can be obtained through routine EmisList\_GetDataArr (HCO\_EmisList\_Mod.F90). Note that this routine identifies the array based on its container name. It is therefore important that the container name set in the configuration file matches the names used by this routine!
+
+\subsection{Interfaces} \label{bts_interfaces}
+\subsubsection{HEMCO - model interface}
+The interface provides the link between HEMCO and the model environment. This may be a sophisticated Earth System model or a simple environment that allows the user to run HEMCO in standalone mode. The standalone interface is provided along with the HEMCO distribution (hcoi\_standalone\_mod.F90). The HEMCO-GEOS-Chem model interface is included in the GEOS-Chem source code (hcoi\_gc\_main\_mod.F90 in GeosCore). HEMCO has also been successfully employed as a stand-alone gridded component within an ESMF environment. Please contact Christoph Keller for more information on the ESMF implementation.\\
+The interface routines provide HEMCO with all the necessary information to perform the emission calculation. This includes the following tasks:\\
+\\
+\textbf{Initialization}:
+\begin{itemize}
+\item Read the configuration file (\texttt{Config\_ReadFile} in hco\_config\_mod.F90).
+\item Initialize HcoState object (\texttt{HcoState\_Init} in hco\_state\_mod.F90).
+\item Define the emission grid. Grid definitions are stored in HcoState\%Grid. The emission grid is defined by its horizontal mid points and edges (all 2D fields), the hybrid sigma coordinate edges (3D), the grid box areas (2D), and the grid box heights. The latter is only used by some extensions (DEAD dust emissions and lightning NOx) and may be left undefined if those are not used.
+\item Define emission species. Species definitions are stored in vector HcoState\%Spc(:) (one entry per species). For each species, the following parameter are required:
+	\begin{enumerate}
+	\item HEMCO species ID: unique integer index for species identification. For internal use only.
+	\item Model species ID: the integer index assigned to this species by the employed model.
+	\item Species name
+	\item Species molecular weight in g/mol.
+	\item Emitted species molecular weight in g/mol. This value can be different to the species molecular weight if species are emitted on a molecular basis, e.g. in mass carbon (in which case the emitted molecular weight becomes 12 g/mol).
+	\item Molecular ratio: molecules of emitted species per molecules of species. For example, if C$_3$H$_8$ is emitted as kg C, the molecular ratio becomes 3.
+	\item K0: Liquid over gas Henry constant in M/atm.
+	\item CR: Temperature dependency of K0 in K.
+	\item pKa: The species pKa, used for correction of the Henry constant.
+	\end{enumerate}
+The molecular weight - together with the molecular ratio - determine the mass scaling factors used for unit conversion in hco\_unit\_mod.F90. The Henry coefficients are only used by the air-sea exchange extension (and only for the specified species) and may be left undefined for other species and/or if the extension is not used.
+\item Define simulation time steps. The emission, chemical and dynamic time steps can be defined separately.
+\item Initialize HEMCO core (\texttt{HCO\_INIT} in hco\_driver\_mod.F90)
+\item Initialize HEMCO extensions (\texttt{HCOX\_INIT} in hcox\_driver\_mod.F90)
+\end{itemize}
+
+\textbf{Run}:
+\begin{itemize}
+\item Set current time (\texttt{HcoClock\_Set} in hco\_clock\_mod.F90)
+\item Reset all emission and deposition values (\texttt{hco\_FluxArrReset} in hco\_fluxarr\_mod.F90)
+\item Run HEMCO core to calculate emissions (\texttt{hco\_Run} in hco\_driver\_mod.F90)
+\item Link the (used) met. field objects of ExtState to desired data arrays (this step may also be done during initialization)
+\item Run HEMCO extensions to add extensions emissions (\texttt{hcox\_Run} in hcox\_driver\_mod.F90)
+\item Export HEMCO emissions into desired environment
+\end{itemize}
+
+\textbf{Finalization}:
+\begin{itemize}
+\item Finalize HEMCO extensions and extension state object ExtState (\texttt{hcox\_final} in hcox\_driver\_mod.F90).
+\item Finalize HEMCO core (\texttt{hco\_final} in hco\_driver\_mod.F90).
+\item Clean up HEMCO state object HcoState (\texttt{hcoState\_final} in hco\_state\_mod.F90).
+\end{itemize}
+
+\subsubsection{Data interface (reading and regridding)}
+The data interface (hcoi\_dataread\_mod.F90) organizes reading, unit conversion, and remapping of data from source files. Its public routine \texttt{HCOI\_DataRead} is only called by subroutine \texttt{ReadList\_Fill} in hco\_readlist\_mod.F90.\\
+Data processing is performed in three steps:
+\begin{enumerate}
+\item Read data from file using the source file information (file name, source variable, desired time stamp) provided in the configuraton file.
+\item Convert unit to HEMCO units based on the unit attribute read from disk and the srcUnit attribute set in the configuration file. See section \ref{Input_file_format} for more information.
+\item Remap original data onto the HEMCO emission grid. The grid dimensions of the input field are determined from the source file. If only horizontal regridding is required, e.g. for 2D data or if the number of vertical levels of the input data is equal to the number of vertical levels of the HEMCO grid, the horizontal interpolation routine used by GEOS-Chem is invoked. If vertical regridding is required or to interpolate index-based values (e.g. discrete integer values), the NcRegrid tool described in \cite{Joeckel_ACP_2006} is used.
+\end{enumerate}
+
+
+%References
+\begin{thebibliography}{}
+\bibliographystyle{natbib}
+
+\bibitem[{Janssens-Maenhout et~al.(2010)Janssens-Maenhout, Petrescu, Muntean,
+  and Blujdea}]{Janssens_EDGAR_2010}
+Janssens-Maenhout, A., Petrescu, A., Muntean, M., and Blujdea, V.: Verifying
+  Greenhouse Gas Emissions: Methods to Support International Climate
+  Agreements, The National Academies Press, Washington, DC., 2010.
+
+\bibitem[{Joeckel (2006)Joeckel}]{Joeckel_ACP_2006}
+Joeckel P: , Technical note: Recursive rediscretisation of geo-scientific data in the Modular Earth Submodel System (MESSy), Atmos. Chem. Phys., 6, 3557--3562, 2006.
+
+\bibitem[{Keller et~al.(2014)Keller, Long, Yantosca, DaSilva, Pawson, Jacob}]{Keller_2014}
+Keller, C. A., Long, M. S., Yantosca, R. M., Da Silva, A. M., Pawson, S., and Jacob D. J.: , HEMCO v1.0: a versatile, ESMF-compliant component for calculating emissions in atmospheric models, Geosci. Model Dev., 7, 1409--1417, 2014.
+
+\bibitem[{Lamarque et~al.(2010)Lamarque, Bond, Eyring, Granier, Heil, Klimont,
+  Lee, Liousse, Mieville, Owen, Schultz, Shindell, Smith, Stehfest,
+  Van~Aardenne, Cooper, Kainuma, Mahowald, McConnell, Naik, Riahi, and van
+  Vuuren}]{Lamarque_ACP_2010}
+Lamarque, J.-F., Bond, T.~C., Eyring, V., Granier, C., Heil, A., Klimont, Z.,
+  Lee, D., Liousse, C., Mieville, A., Owen, B., Schultz, M.~G., Shindell, D.,
+  Smith, S.~J., Stehfest, E., Van~Aardenne, J., Cooper, O.~R., Kainuma, M.,
+  Mahowald, N., McConnell, J.~R., Naik, V., Riahi, K., and van Vuuren, D.~P.:
+  Historical (1850--2000) gridded anthropogenic and biomass burning emissions
+  of reactive gases and aerosols: methodology and application, Atmospheric
+  Chemistry and Physics, 10, 7017--7039, 2010.
+
+\bibitem[{Stettler et~al.(2011)Stettler, Eastham, and
+  Barrett}]{Stettler_AE_2011}
+Stettler, M., Eastham, S., and Barrett, S.: Air quality and public health
+  impacts of UK airports. Part I: Emissions, Atmospheric Environment, 45,
+  5415 -- 5424, 2011.
+
+\bibitem[{Vestreng et~al.(2009)Vestreng, Ntziachristos, Semb, Reis, Isaksen,
+  and Tarras\'on}]{Vestreng_ACP_2009}
+Vestreng, V., Ntziachristos, L., Semb, A., Reis, S., Isaksen, I. S.~A., and
+  Tarras\'on, L.: Evolution of NO$_{x}$ emissions in Europe with focus on road
+  transport control measures, Atmospheric Chemistry and Physics, 9, 1503--1520, 2009.
+
+\bibitem[{van~der Werf et~al.(2010)van~der Werf, Randerson, Giglio, Collatz,
+  Mu, Kasibhatla, Morton, DeFries, Jin, and van Leeuwen}]{VanDerWerf_ACP_2010}
+van~der Werf, G.~R., Randerson, J.~T., Giglio, L., Collatz, G.~J., Mu, M.,
+  Kasibhatla, P.~S., Morton, D.~C., DeFries, R.~S., Jin, Y., and van Leeuwen,
+  T.~T.: Global fire emissions and the contribution of deforestation, savanna,
+  forest, agricultural, and peat fires (1997--2009), Atmospheric Chemistry and
+  Physics, 10, 11\,707--11\,735, 2010.
+
+\bibitem[{Wiedinmyer et~al.(2014)Wiedinmyer, Yokelson, Gullett}]{Wiedinmyer_EST_2014}
+Wiedinmyer, C., Yokelson, R. J., and Gullett, B. K.: Global Emissions of Trace Gases, Particulate Matter, and Hazardous Air Pollutants from Open Burning of Domestic Waste, Environmental Science \& Technology, 16, 9523--9530, 2014.
+
+\end{thebibliography}
+
+\end{document}
+
+
+
