@@ -835,7 +835,7 @@ CONTAINS
    ! NOTE: Currently these are read from binary file, which is incompatible
    ! with the ESMF/MAPL run environment.  We are currently working on a
    ! better implementation of this, stay tuned. (bmy, 8/13/14)
-   CALL READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE, RC )
+   CALL READ_PARANOX_LUT( am_I_Root, FracNOx_FILE, IntOPE_FILE, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    !------------------------------------------------------------------------

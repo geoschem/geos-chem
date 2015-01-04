@@ -2741,7 +2741,7 @@
 
       ! Cast from REAL*8 to flexible precision
       DRYCOEFF = DRYCOEFF_R8
-      print*, '### DRYCOEFF:', DRYCOEFF
+      !print*, '### DRYCOEFF:', DRYCOEFF
 
       !----------------------------------------
       ! VARIABLE: IOLSON

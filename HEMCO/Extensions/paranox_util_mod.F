@@ -71,10 +71,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE, RC )
+      SUBROUTINE READ_PARANOX_LUT( am_I_Root, FracNOx_FILE,
+     &                             IntOPE_FILE, RC )
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,          INTENT(IN)    :: am_I_Root
       CHARACTER(LEN=*), INTENT(IN)    :: FracNOx_FILE
       CHARACTER(LEN=*), INTENT(IN)    :: IntOPE_FILE
       INTEGER,          INTENT(INOUT) :: RC
@@ -110,9 +112,11 @@
       !=================================================================
 
       ! Echo info
-      WRITE( MSG, 100 ) TRIM( FracNOx_FILE )
+      IF ( am_I_ Root ) THEN
+         WRITE( MSG, 100 ) TRIM( FracNOx_FILE )
+         CALL HCO_MSG( MSG )
+      ENDIF
  100  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
-      CALL HCO_MSG( MSG )
  
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -154,9 +158,11 @@
       !=================================================================
 
       ! Echo info
-      WRITE( MSG, 101 ) TRIM( IntOPE_FILE )
+      IF ( am_I_Root ) THEN 
+         WRITE( MSG, 101 ) TRIM( IntOPE_FILE )
+         CALL HCO_MSG(MSG)
+      ENDIF
  101  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
-      CALL HCO_MSG(MSG)
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
