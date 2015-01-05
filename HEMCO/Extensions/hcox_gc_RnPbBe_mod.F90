@@ -298,7 +298,7 @@ CONTAINS
           ENDIF
    
           ! For boxes below freezing, reduce 222Rn emissions by 3x
-          IF ( ExtState%TSURFK%Arr%Val(I,J) < 273.15 ) THEN
+          IF ( ExtState%T2M%Arr%Val(I,J) < 273.15 ) THEN
              ADD_Rn = ADD_Rn / 3d0
           ENDIF
    
@@ -527,7 +527,7 @@ CONTAINS
 
     ! Activate met fields required by this extension
     ExtState%FRCLND%DoUse  = .TRUE. 
-    ExtState%TSURFK%DoUse  = .TRUE. 
+    ExtState%T2M%DoUse     = .TRUE. 
     ExtState%AIR%DoUse     = .TRUE. 
 #if defined( GCAP ) 
     ExtState%TROPP%DoUse   = .TRUE.

@@ -179,6 +179,9 @@ ERR_NEST             :="Select a nested grid: NEST=ch, NEST=eu, NEST=na NEST=se"
 # Error message for bad GIGC config
 ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
 
+# Error message for bad GIGC config
+ERR_GIGC       :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
+
 ###############################################################################
 ###                                                                         ###
 ###  Set C-preprocessor switches representing user options.  These are not  ###

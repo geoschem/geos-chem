@@ -173,6 +173,7 @@ KPP   :=$(ROOT)/KPP
 MOD   :=$(ROOT)/mod
 NCDF  :=$(ROOT)/NcdfUtil
 UTIL  :=$(ROOT)/GeosUtil
+DYN   := $(GIGC)/FVdycoreCubed_GridComp
 
 # Executables
 EXE   :=geos
@@ -241,6 +242,7 @@ lib:                                               # Build all G-C libraries
 libcore: $(OBJ)                                    # Build code in GeosCore/
 
 libgigc:
+	@$(MAKE) -C $(DYN) install
 	@$(MAKE) -C $(GIGC) lib
 
 libheaders:                                        # Build code in Headers/ 

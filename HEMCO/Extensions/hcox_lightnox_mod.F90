@@ -424,6 +424,8 @@ CONTAINS
           CALL HCO_GetPtr( am_I_Root, 'LIGHTNOX_OTDLIS', OTDLIS, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
+
+       ! Update first flag
        FIRST = .FALSE.
     ENDIF
 

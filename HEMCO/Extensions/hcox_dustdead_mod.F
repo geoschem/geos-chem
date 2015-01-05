@@ -772,7 +772,7 @@
       ExtState%TK%DoUse      = .TRUE.
       ExtState%U10M%DoUse    = .TRUE.
       ExtState%V10M%DoUse    = .TRUE.
-      ExtState%TSURFK%DoUse  = .TRUE.
+      ExtState%T2M%DoUse     = .TRUE.
       ExtState%GWETTOP%DoUse = .TRUE.
       ExtState%SNOWHGT%DoUse = .TRUE.
       ExtState%USTAR%DoUse   = .TRUE.
@@ -1152,7 +1152,7 @@
       CALL TPT_GND_SOI_GET(
      &    HcoState,              ! Hemco state object
      &    LAT_IDX,               ! I [idx] Latitude index!
-     &    ExtState%TSURFK%Arr%Val, ! I [K] Sfc temperature at 2m
+     &    ExtState%T2M%Arr%Val, ! I [K] Sfc temperature at 2m
      &    TPT_GND_SLICE,         ! O [K] Ground temperature
      &    TPT_SOI_SLICE )        ! O [K] Soil temperature
 

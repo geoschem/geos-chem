@@ -51,6 +51,13 @@ MODULE HCOI_GC_Diagn_Mod
 
   ! Get parameters that define the different categories
 #include "hcoi_gc_diagn_include.H"
+
+  ! Define default output frequency. In an ESMF mode, this must be 'Manual'
+#if defined(ESMF_)
+  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Manual"
+#else
+  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Hourly"
+#endif
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -80,64 +87,64 @@ MODULE HCOI_GC_Diagn_Mod
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-#if defined(ESMF_)
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
+!#if defined(ESMF_)
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: HCOI_GC_Diagn_Init
+!!
+!! !DESCRIPTION: Subroutine HCOI\_GC\_Diagn\_Init initializes the HEMCO 
+!! diagnostics in GEOS-Chem in an ESMF environment.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE HCOI_GC_Diagn_Init( am_I_Root, Input_Opt, HcoState, ExtState, RC ) 
+!!
+!! !USES:
+!!
+!    USE HCO_State_Mod,      ONLY : HCO_State
+!    USE HCOI_ESMF_MOD,      ONLY : HCOI_ESMF_DIAGNCREATE
+!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!    USE HCOX_State_Mod,     ONLY : Ext_State
+!!
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
+!    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
+!    TYPE(EXT_State),  POINTER        :: ExtState   ! Extensions state object 
+!    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!!
+!! !REMARKS:
+!!
+!! !REVISION HISTORY: 
+!!  11 Nov 2014 - C. Keller   - Initial version 
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!    CHARACTER(LEN=255) :: MSG
+!    CHARACTER(LEN=255) :: LOC = 'HCOI_GC_DIAGN_INIT (hcoi_gc_diagn_mod.F90)'
 !
-! !IROUTINE: HCOI_GC_Diagn_Init
+!    !=======================================================================
+!    ! HCOI_GC_DIAGN_INIT begins here!
+!    !=======================================================================
 !
-! !DESCRIPTION: Subroutine HCOI\_GC\_Diagn\_Init initializes the HEMCO 
-! diagnostics in GEOS-Chem in an ESMF environment.
-!\\
-!\\
-! !INTERFACE:
+!    CALL HCOI_ESMF_DIAGNCREATE( am_I_Root, HcoState, RC )
+!    IF ( RC /= HCO_SUCCESS ) RETURN
 !
-  SUBROUTINE HCOI_GC_Diagn_Init( am_I_Root, Input_Opt, HcoState, ExtState, RC ) 
+!    ! Leave w/ success
+!    RC = HCO_SUCCESS 
 !
-! !USES:
-!
-    USE HCO_State_Mod,      ONLY : HCO_State
-    USE HCOI_ESMF_MOD,      ONLY : HCOI_ESMF_DIAGNCREATE
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCOX_State_Mod,     ONLY : Ext_State
-!
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
-    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
-    TYPE(EXT_State),  POINTER        :: ExtState   ! Extensions state object 
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
-!
-! !REMARKS:
-!
-! !REVISION HISTORY: 
-!  11 Nov 2014 - C. Keller   - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'HCOI_GC_DIAGN_INIT (hcoi_gc_diagn_mod.F90)'
-
-    !=======================================================================
-    ! HCOI_GC_DIAGN_INIT begins here!
-    !=======================================================================
-
-    CALL HCOI_ESMF_DIAGNCREATE( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Leave w/ success
-    RC = HCO_SUCCESS 
-
-  END SUBROUTINE HCOI_GC_Diagn_Init
-!EOC
-#else
+!  END SUBROUTINE HCOI_GC_Diagn_Init
+!!EOC
+!#else
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -200,10 +207,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL            :: YesOrNo
-    INTEGER            :: I,     HcoID, N,    AS
+    INTEGER            :: I, J,  HcoID, N,    AS
     INTEGER            :: ExtNr, Cat, Hier
     CHARACTER(LEN=15)  :: SpcName
-    CHARACTER(LEN=31)  :: DiagnName 
+    CHARACTER(LEN=31)  :: DiagnName, WriteFreq
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'HCOI_GC_DIAGN_INIT (hcoi_gc_diagn_mod.F90)'
  
@@ -286,44 +293,169 @@ CONTAINS
     !=======================================================================
 
     ! This is for testing only. Only activate if needed.
-    IF ( .FALSE. ) THEN
+    IF ( .TRUE. ) THEN
 
-    ! Total NO
-    I = HCO_GetHcoID( 'NO', HcoState )
-    IF ( I > 0 ) THEN
-       CALL Diagn_Create ( am_I_Root, &
-                           HcoState,  &
-                           cName    = 'NOtotal_monthly', &
-                           ExtNr    = -1, &
-                           Cat      = -1, &
-                           Hier     = -1, &
-                           HcoID    = I, &
-                           SpaceDim = 2, &
-                           LevIDx   = -1, &
-                           OutUnit  = 'kg/m2/s',   &
-                           WriteFreq = 'Monthly',  &
-                           AutoFill  = 1, &
-                           cID       = N, & 
-                           RC        = RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Hourly emissions
 
-       CALL Diagn_Create ( am_I_Root, &
-                           HcoState,  &
-                           cName    = 'NOtotal_daily', &
-                           ExtNr    = -1, &
-                           Cat      = -1, &
-                           Hier     = -1, &
-                           HcoID    = I, &
-                           SpaceDim = 2, &
-                           LevIDx   = -1, &
-                           OutUnit  = 'kg/m2/s',   &
-                           WriteFreq = 'Daily',  &
-                           AutoFill  = 1, &
-                           cID       = N, & 
-                           RC        = RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       ! Do for all emission species
+       DO I = 1,37
+
+          ! Get species name
+          SELECT CASE ( I )
+             CASE ( 1 )
+                SpcName = 'NO'
+             CASE ( 2 )
+                SpcName = 'CO'
+             CASE ( 3 )
+                SpcName = 'NH3'
+             CASE ( 4 )
+                SpcName = 'SO2'
+             CASE ( 5 )
+                SpcName = 'SO4'
+             CASE ( 6 )
+                SpcName = 'GLYX'
+             CASE ( 7 )
+                SpcName = 'MGLY'
+             CASE ( 8 )
+                SpcName = 'C2H6'
+             CASE ( 9 )
+                SpcName = 'ALK4'
+             CASE ( 10 )
+                SpcName = 'ACET'
+             CASE ( 11 )
+                SpcName = 'MEK'
+             CASE ( 12 )
+                SpcName = 'ALD2'
+             CASE ( 13 )
+                SpcName = 'PRPE'
+             CASE ( 14 )
+                SpcName = 'C3H8'
+             CASE ( 15 )
+                SpcName = 'CH2O'
+             CASE ( 16 )
+                SpcName = 'BENZ'
+             CASE ( 17 )
+                SpcName = 'TOLU'
+             CASE ( 18 )
+                SpcName = 'XYLE'
+             CASE ( 19 )
+                SpcName = 'C2H4'
+             CASE ( 20 )
+                SpcName = 'C2H2'
+             CASE ( 21 )
+                SpcName = 'CHBr3'
+             CASE ( 22 )
+                SpcName = 'CH2Br2'
+             CASE ( 23 )
+                SpcName = 'BCPI'
+             CASE ( 24 )
+                SpcName = 'BCPO'
+             CASE ( 25 )
+                SpcName = 'OCPI'
+             CASE ( 26 )
+                SpcName = 'OCPO'
+             CASE ( 27 )
+                SpcName = 'RCHO'
+             CASE ( 28 )
+                SpcName = 'MACR'
+             CASE ( 29 )
+                SpcName = 'DMS'
+             CASE ( 30 )
+                SpcName = 'DST1'
+             CASE ( 31 )
+                SpcName = 'DST2'
+             CASE ( 32 )
+                SpcName = 'DST3'
+             CASE ( 33 )
+                SpcName = 'DST4'
+             CASE ( 34 )
+                SpcName = 'SALA'
+             CASE ( 35 )
+                SpcName = 'SALC'
+             CASE ( 36 )
+                SpcName = 'Br2'
+             CASE ( 37 )
+                SpcName = 'ISOP'
+             CASE DEFAULT
+                SpcName = 'DUMMY'
+          END SELECT
+
+          HcoID = HCO_GetHcoID( TRIM(SpcName), HcoState )
+          IF ( HcoID > 0 ) THEN
+             CALL Diagn_Create ( am_I_Root, &
+                                 HcoState,  &
+                                 cName    = 'EMIS_'//TRIM(SpcName), &
+                                 ExtNr    = -1, &
+                                 Cat      = -1, &
+                                 Hier     = -1, &
+                                 HcoID    = HcoID, &
+                                 SpaceDim = 2, &
+                                 LevIDx   = -1, &
+                                 OutUnit  = 'kg/m2/s',   &
+                                 WriteFreq = Default_WriteFreq,  &
+                                 AutoFill  = 1, &
+                                 cID       = N, & 
+                                 RC        = RC ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+          ENDIF
+
+          ! Emissions per category (NO only)
+          IF ( TRIM(SpcName) == 'NO' ) THEN
+
+             ! There are 3 different categories
+             DO J = 1, 6
+                SELECT CASE ( J )
+                   CASE ( 1 )
+                      DiagnName = 'EMIS_NO_ANTHRO'
+                      ExtNr     = 0
+                      Cat       = 1
+                   CASE ( 2 )
+                      DiagnName = 'EMIS_NO_AVIATION'
+                      ExtNr     = 0
+                      Cat       = 20
+                   CASE ( 3 )
+                      DiagnName = 'EMIS_NO_PARANOX'
+                      ExtNr     = 102
+                      Cat       = -1
+                   CASE ( 4 )
+                      DiagnName = 'EMIS_NO_LIGHTNING'
+                      ExtNr     = 103
+                      Cat       = -1
+                   CASE ( 5 )
+                      DiagnName = 'EMIS_NO_SOIL'
+                      ExtNr     = 104
+                      Cat       = -1
+                   CASE ( 6 )
+                      DiagnName = 'EMIS_NO_BIOMASS'
+                      ExtNr     = 111
+                      Cat       = -1
+                   CASE DEFAULT
+                      DiagnName = 'EMIS_NO_DUMMY'
+                      ExtNr     = 999
+                      Cat       = 999
+                END SELECT
+
+                CALL Diagn_Create ( am_I_Root, &
+                                    HcoState,  &
+                                    cName    = DiagnName, &
+                                    ExtNr    = ExtNr, &
+                                    Cat      = Cat, &
+                                    Hier     = -1, &
+                                    HcoID    = HcoID, &
+                                    SpaceDim = 2, &
+                                    LevIDx   = -1, &
+                                    OutUnit  = 'kg/m2/s', &
+                                    WriteFreq = Default_WriteFreq, &
+                                    AutoFill  = 1, &
+                                    cID       = N, & 
+                                    RC        = RC ) 
+                IF ( RC /= HCO_SUCCESS ) RETURN
  
-    ENDIF
+             ENDDO !N
+          ENDIF !NO
+
+       ENDDO !I
+   
     ENDIF ! testing toggle
 
     ! Leave w/ success
@@ -4289,7 +4421,7 @@ CONTAINS
 
   END SUBROUTINE Diagn_Hg
 !EOC
-#endif
+!#endif
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------

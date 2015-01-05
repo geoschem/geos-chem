@@ -47,9 +47,16 @@ MODULE Grid_Mod
   PUBLIC  :: Its_A_Nested_Grid
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
+  PUBLIC  :: SetGridFromCtr
+  PUBLIC  :: RoundOff
 
 ! Make some arrays public
   PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
+
+  INTERFACE RoundOff 
+     MODULE PROCEDURE RoundOff_F4
+     MODULE PROCEDURE RoundOff_F8 
+  END INTERFACE
 !
 ! Comment out for now (bmy, 12/11/12)
 !#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
@@ -300,7 +307,8 @@ CONTAINS
     !======================================================================
     
     ! Loop over levels
-    DO L = L1, L2
+!    DO L = L1, L2
+    L = 1
        
        !-------------------------------------------------------------------
        ! Longitude center and edge arrays
@@ -649,7 +657,7 @@ CONTAINS
           ENDDO
        ENDDO
 
-    ENDDO
+!    ENDDO !L
 
     ! Return successfully
     RC = GIGC_SUCCESS
@@ -675,7 +683,119 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE DoGridComputation 
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
+! !IROUTINE: SetGridFromCtr 
+!
+! !DESCRIPTION: Subroutine SetGridFromCtr sets the grid based upon the passed
+! mid-points. This routine is primarily intented to provide an interface to 
+! GEOS-5 in an ESMF-environment.
+!\\
+!\\
+! This routine does not update the grid box areas (AREA\_M2) of grid\_mod.F90.
+! These need to be updated manually. We cannot do this within this routine
+! since in GEOS-5, the grid box areas are not yet available during the 
+! initialization phase (they are imported from superdynamics).
+! !INTERFACE:
+!
+  SUBROUTINE SetGridFromCtr( am_I_Root, NX, NY, lonCtr, latCtr, RC ) 
+!
+! USES
+!
+    USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,  INTENT(IN)    :: am_I_Root      ! Root CPU?
+    INTEGER,  INTENT(IN)    :: NX             ! # of lons
+    INTEGER,  INTENT(IN)    :: NY             ! # of lats
+    REAL(f4), INTENT(IN)    :: lonCtr(NX,NY)  ! Lon ctrs [deg]
+    REAL(f4), INTENT(IN)    :: latCtr(NX,NY)  ! Lat ctrs [deg]
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT) :: RC 
+!
+! !REVISION HISTORY:
+!  02 Jan 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I, J, L
+    INTEGER            :: NI, NJ, NL
+
+    CHARACTER(LEN=255) :: MSG
+
+    !======================================================================
+    ! SetGridFromCtr begins here! 
+    !======================================================================
+
+    ! Get array size
+    NI = SIZE(XMID,1)
+    NJ = SIZE(XMID,2)
+    NL = SIZE(XMID,3)
+
+    ! Horizontal dimensions must agree
+    IF ( NX /= NI .OR. NY /= NJ ) THEN
+       WRITE(MSG,*) 'Grid dimension mismatch: ',NX,'/=',NI,' and/or ',NY,'/=',NJ
+       CALL ERROR_STOP ( MSG, 'SetGridFromCtr (grid_mod.F90)' )
+       RC = GIGC_FAILURE
+       RETURN
+    ENDIF
+
+    ! Loop over all grid boxes
+    DO L = 1, NL 
+    DO J = 1, NJ
+    DO I = 1, NI
+
+       ! Mid points: get directly from passed value
+       XMID(I,J,L)      = RoundOff( lonCtr(I,J) / PI_180, 4 )
+       YMID(I,J,L)      = RoundOff( latCtr(I,J) / PI_180, 4 )
+       YMID_R(I,J,L)    = latCtr(I,J)
+       IF ( ALLOCATED(YMID_R_W) ) THEN
+          YMID_R_W(I,J,L)  = YMID_R(I,J,L)
+       ENDIF
+
+       ! Edges: approximate from neighboring mid points.
+       IF ( I == 1 ) THEN
+          XEDGE(I,J,L) = XMID(I,J,L) - ( ( XMID(I+1,J,L) - XMID(I,J,L) ) / 2.0_f4 )
+       ELSE
+          XEDGE(I,J,L) = ( XMID(I,J,L) + XMID(I-1,J,L) ) / 2.0_f4
+       ENDIF
+
+       IF ( J == 1 ) THEN
+          YEDGE(I,J,L) = YMID(I,J,L) - ( ( YMID(I,J+1,L) - YMID(I,J,L) ) / 2.0_f4 )
+       ELSE
+          YEDGE(I,J,L) = ( YMID(I,J,L) + YMID(I,J-1,L) ) / 2.0_f4
+       ENDIF
+
+       ! Special treatment at uppermost edge
+       IF ( I == NI ) THEN
+          XEDGE(I+1,J,L) = XMID(I,J,L) + ( ( XMID(I,J,L) - XMID(I-1,J,L) ) / 2.0_f4 )
+       ENDIF
+       IF ( J == NJ ) THEN
+          YEDGE(I,J+1,L) = YMID(I,J,L) + ( ( YMID(I,J,L) - YMID(I,J-1,L) ) / 2.0_f4 )
+       ENDIF
+
+       ! Special quantities directly derived from YEDGE
+       YEDGE_R(I,J,L)   = YEDGE(I,J,L) * PI_180
+       YSIN(I,J,L)      = SIN( YEDGE_R(I,J,L) )
+
+    ENDDO
+    ENDDO
+    ENDDO 
+
+    ! Return w/ success
+    RC = GIGC_SUCCESS
+
+  END SUBROUTINE SetGridFromCtr
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -856,7 +976,8 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    X = XMID(I,J,L)
+    !X = XMID(I,J,L)
+    X = XMID(I,J,1)
 
   END FUNCTION Get_xMid
 !EOC
@@ -891,7 +1012,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    X = XEDGE(I,J,L)
+    !X = XEDGE(I,J,L)
+    X = XEDGE(I,J,1)
 
   END FUNCTION Get_xEdge
 !EOC
@@ -925,7 +1047,8 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    Y = YMID(I,J,L)
+    !Y = YMID(I,J,L)
+    Y = YMID(I,J,1)
       
   END FUNCTION Get_yMid
 !EOC
@@ -960,7 +1083,8 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    Y = YEDGE(I,J,L)
+    !Y = YEDGE(I,J,L)
+    Y = YEDGE(I,J,1)
 
   END FUNCTION Get_yEdge
 !EOC
@@ -994,7 +1118,8 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    Y = YMID_R(I,J,L)
+    !Y = YMID_R(I,J,L)
+    Y = YMID_R(I,J,1)
 
   END FUNCTION Get_yMid_R
 !EOC
@@ -1034,7 +1159,8 @@ CONTAINS
 
     ! For nested grids, return the latitude center of the window
     ! region (in radians)
-    Y = YMID_R_W(I,J,L)
+    !Y = YMID_R_W(I,J,L)
+    Y = YMID_R_W(I,J,1)
 
 #else
 
@@ -1076,7 +1202,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    Y = YEDGE_R(I,J,L)
+    !Y = YEDGE_R(I,J,L)
+    Y = YEDGE_R(I,J,1)
 
   END FUNCTION Get_yEdge_R
 !EOC
@@ -1111,7 +1238,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-      Y = YSIN(I,J,L)
+      !Y = YSIN(I,J,L)
+      Y = YSIN(I,J,1)
 
       END FUNCTION Get_ySin
 !EOC
@@ -1145,7 +1273,8 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    A = AREA_M2(I,J,L)
+    !A = AREA_M2(I,J,L)
+    A = AREA_M2(I,J,1)
 
   END FUNCTION Get_Area_m2
 !EOC
@@ -1179,7 +1308,8 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    A = AREA_M2(I,J,L) * 1e+4_fp
+    !A = AREA_M2(I,J,L) * 1e+4_fp
+    A = AREA_M2(I,J,1) * 1e+4_fp
     
   END FUNCTION Get_Area_cm2
 !EOC
@@ -1243,12 +1373,12 @@ CONTAINS
     DO I = I1, I2
 
        ! Locate index corresponding to the lower-left longitude
-       IF ( COORDS(1) >  XEDGE(I,  J,L)   .and.          &
-            COORDS(1) <= XEDGE(I+1,J,L) ) INDICES(1) = I
+       IF ( COORDS(1) >  XEDGE(I,  J,1)   .and.          &
+            COORDS(1) <= XEDGE(I+1,J,1) ) INDICES(1) = I
 
          ! Locate index corresponding to upper-right longitude
-       IF ( COORDS(3) >  XEDGE(I,  J,L)   .and.          &
-            COORDS(3) <= XEDGE(I+1,J,L) ) INDICES(3) = I
+       IF ( COORDS(3) >  XEDGE(I,  J,1)   .and.          &
+            COORDS(3) <= XEDGE(I+1,J,1) ) INDICES(3) = I
 
     ENDDO
     ENDDO
@@ -1270,12 +1400,12 @@ CONTAINS
     DO I = 1,  1
 
        ! Locate index corresponding to the lower-left latitude
-       IF ( COORDS(2) >  YEDGE(I,J,  L)   .and.          &
-            COORDS(2) <= YEDGE(I,J+1,L) ) INDICES(2) = J
+       IF ( COORDS(2) >  YEDGE(I,J,  1)   .and.          &
+            COORDS(2) <= YEDGE(I,J+1,1) ) INDICES(2) = J
 
        ! Locate index corresponding to the upper-right latitude
-       IF ( COORDS(4) >  YEDGE(I,J,  L)   .and.          &
-            COORDS(4) <= YEDGE(I,J+1,L) ) INDICES(4) = J
+       IF ( COORDS(4) >  YEDGE(I,J,  1)   .and.          &
+            COORDS(4) <= YEDGE(I,J+1,1) ) INDICES(4) = J
 
     ENDDO
     ENDDO
@@ -1470,7 +1600,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 ! 
-    INTEGER :: AS
+    INTEGER :: L, AS
 
     !======================================================================
     ! Initialize module variables
@@ -1482,35 +1612,39 @@ CONTAINS
     ! First assume that we are doing a global simulation
     IS_NESTED = .FALSE.
 
-    ALLOCATE( XMID   ( IM,   JM,   LM ), STAT=RC )
+    ! We only need one level (ckeller, 01/02/15).
+    !L = LM
+    L = 1
+
+    ALLOCATE( XMID   ( IM,   JM,   L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'XMID' )
     XMID    = 0e+0_fp
     
-    ALLOCATE( XEDGE  ( IM+1, JM,   LM ), STAT=RC )
+    ALLOCATE( XEDGE  ( IM+1, JM,   L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'XEDGE' )
     XEDGE   = 0e+0_fp
     
-    ALLOCATE( YMID   ( IM,   JM,   LM ), STAT=RC )
+    ALLOCATE( YMID   ( IM,   JM,   L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID' )
     YMID    = 0e+0_fp
     
-    ALLOCATE( YEDGE  ( IM,   JM+1, LM ), STAT=RC )
+    ALLOCATE( YEDGE  ( IM,   JM+1, L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
     YEDGE   = 0e+0_fp
 
-    ALLOCATE( YSIN   ( IM,   JM+1, LM ), STAT=RC )
+    ALLOCATE( YSIN   ( IM,   JM+1, L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YSIN' )
     YSIN    = 0e+0_fp
 
-    ALLOCATE( YMID_R ( IM,   JM,   LM ), STAT=RC )               
+    ALLOCATE( YMID_R ( IM,   JM,   L ), STAT=RC )               
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
     YMID_R  = 0e+0_fp
    
-    ALLOCATE( YEDGE_R( IM,   JM+1, LM ), STAT=RC )
+    ALLOCATE( YEDGE_R( IM,   JM+1, L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YEDGE_R' )
     YEDGE_R = 0e+0_fp
 
-    ALLOCATE( AREA_M2( IM,   JM,   LM ), STAT=RC )
+    ALLOCATE( AREA_M2( IM,   JM,   L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
     AREA_M2 = 0e+0_fp
 
@@ -1524,7 +1658,7 @@ CONTAINS
     IS_NESTED = .TRUE.
     
     ! Allocate nested-grid window array of lat centers (radians)
-    ALLOCATE( YMID_R_W( IM, 0:JM+1, LM ), STAT=AS ) 
+    ALLOCATE( YMID_R_W( IM, 0:JM+1, L ), STAT=AS ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
     YMID_R_W = 0e+0_fp
 
@@ -1562,5 +1696,109 @@ CONTAINS
     IF ( ALLOCATED( AREA_M2    ) ) DEALLOCATE( AREA_M2    )
     
   END SUBROUTINE Cleanup_Grid
+!EOC
+!------------------------------------------------------------------------------
+!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: RoundOff_f4
+!
+! !DESCRIPTION: Rounds a number X to N decimal places of precision.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION RoundOff_f4( X, N ) RESULT( Y )
+!
+! !INPUT PARAMETERS:
+! 
+    REAL(f4), INTENT(IN) :: X   ! Number to be rounded
+    INTEGER,  INTENT(IN) :: N   ! Number of decimal places to keep
+!
+! !RETURN VALUE:
+!
+    REAL(f4)             :: Y   ! Number rounded to N decimal places
+!
+! !REMARKS:
+!  The algorithm to round X to N decimal places is as follows:
+!  (1) Multiply X by 10**(N+1)
+!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
+!  (3) Round X to nearest integer
+!  (4) Divide X by 10**(N+1)
+!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
+!                                                                             .
+!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
+!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
+!                                                                             .
+!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
+!                                                                             .
+!  The two algorithms have been merged together for efficiency.
+!
+! !REVISION HISTORY:
+!  14 Jul 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    ! Round and truncate X to N decimal places
+    Y = INT( NINT( X*(10.0_f4**(N+1)) + SIGN( 5.0_f4, X ) ) / 10.0_f4 ) / (10.0_f4**N)
+
+  END FUNCTION RoundOff_f4
+!EOC
+!------------------------------------------------------------------------------
+!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: RoundOff_f8
+!
+! !DESCRIPTION: Rounds a number X to N decimal places of precision.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION RoundOff_f8( X, N ) RESULT( Y )
+!
+! !INPUT PARAMETERS:
+! 
+    REAL(f8), INTENT(IN) :: X   ! Number to be rounded
+    INTEGER,  INTENT(IN) :: N   ! Number of decimal places to keep
+!
+! !RETURN VALUE:
+!
+    REAL(f8)             :: Y   ! Number rounded to N decimal places
+!
+! !REMARKS:
+!  The algorithm to round X to N decimal places is as follows:
+!  (1) Multiply X by 10**(N+1)
+!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
+!  (3) Round X to nearest integer
+!  (4) Divide X by 10**(N+1)
+!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
+!                                                                             .
+!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
+!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
+!                                                                             .
+!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
+!                                                                             .
+!  The two algorithms have been merged together for efficiency.
+!
+! !REVISION HISTORY:
+!  14 Jul 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    ! Round and truncate X to N decimal places
+    Y = INT( NINT( X*(10.0_f8**(N+1)) + SIGN( 5.0_f8, X ) ) / 10.0_f8 ) / (10.0_f8**N)
+
+  END FUNCTION RoundOff_f8
 !EOC
 END MODULE Grid_Mod

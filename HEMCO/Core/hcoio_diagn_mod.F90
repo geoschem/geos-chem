@@ -43,6 +43,9 @@ MODULE HCOIO_DIAGN_MOD
 !
 ! !DEFINED PARAMETERS:
 !
+  ! Fill value used in HEMCO diagnostics netCDF files.
+  REAL(hp), PARAMETER :: FillValue = 1.e-31_hp
+
 CONTAINS
 !EOC
 # if !defined(ESMF_)
@@ -71,15 +74,15 @@ CONTAINS
 !
 ! !USES:
 !
-
-    USE Ncdf_Mod,      ONLY : NC_Create
-    USE Ncdf_Mod,      ONLY : NC_Close
-    USE Ncdf_Mod,      ONLY : NC_Var_Def
-    USE Ncdf_Mod,      ONLY : NC_Var_Write
-    USE HCO_State_Mod, ONLY : HCO_State
-    USE JulDay_Mod,    ONLY : JulDay
-    USE HCO_Clock_Mod, ONLY : HcoClock_Get
-    USE HCO_Clock_Mod, ONLY : HcoClock_GetMinResetFlag
+    USE m_netCDF_io_define
+    USE Ncdf_Mod,            ONLY : NC_Create
+    USE Ncdf_Mod,            ONLY : NC_Close
+    USE Ncdf_Mod,            ONLY : NC_Var_Def
+    USE Ncdf_Mod,            ONLY : NC_Var_Write
+    USE HCO_State_Mod,       ONLY : HCO_State
+    USE JulDay_Mod,          ONLY : JulDay
+    USE HCO_Clock_Mod,       ONLY : HcoClock_Get
+    USE HCO_Clock_Mod,       ONLY : HcoClock_GetMinResetFlag
 !
 ! !INPUT PARAMETERS:
 !
@@ -306,7 +309,13 @@ CONTAINS
        ENDIF
 
        CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
-            TRIM(myName), TRIM(myName), TRIM(myUnit), Prc, VarCt)
+            TRIM(myName), TRIM(myName), TRIM(myUnit), Prc, VarCt )
+
+       ! Additional tracer attributes: long_name and _FillValue
+       CALL NcBegin_Def( fID ) ! Reopen netCDF define mode
+       CALL NcDef_var_attributes( fID, VarCt, "long_name",  TRIM(myName) )
+       CALL NcDef_var_attributes( fID, VarCt, "_FillValue", FillValue    )
+       CALL NcEnd_Def( fID )   ! Close netCDF define mode
 
        ! Mirror data and write to file. The mirroring is required in
        ! order to add the time dimension. Otherwise, the data would

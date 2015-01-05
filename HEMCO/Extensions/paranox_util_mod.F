@@ -52,6 +52,7 @@
 !  23 Aug 2013 - C. Keller   - Renamed from paranox_mod to paranox_util_mod
 !  28 Jul 2014 - C. Keller   - Broke dependencies from GEOS-Chem code: Now
 !                              use HEMCO routines for error handling etc.
+!  18 Dec 2014 - C. Keller   - Added option to read LUT from ASCII files.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -70,10 +71,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE, RC )
+      SUBROUTINE READ_PARANOX_LUT( am_I_Root, FracNOx_FILE,
+     &                             IntOPE_FILE, RC )
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,          INTENT(IN)    :: am_I_Root
       CHARACTER(LEN=*), INTENT(IN)    :: FracNOx_FILE
       CHARACTER(LEN=*), INTENT(IN)    :: IntOPE_FILE
       INTEGER,          INTENT(INOUT) :: RC
@@ -93,7 +96,9 @@
 !
       INTEGER            :: IOS
       INTEGER            :: IU_FILE
+      LOGICAL            :: IsTxt
       CHARACTER(LEN=255) :: MSG
+      CHARACTER(LEN= 15), PARAMETER :: FMAT = "(E40.32)"
       CHARACTER(LEN= 63), PARAMETER ::
      &   LOC = 'READ_PARANOX_LUT (paranox_util_mod.F)'
 
@@ -107,23 +112,38 @@
       !=================================================================
 
       ! Echo info
-      WRITE( MSG, 100 ) TRIM( FracNOx_FILE )
+      IF ( am_I_ Root ) THEN
+         WRITE( MSG, 100 ) TRIM( FracNOx_FILE )
+         CALL HCO_MSG( MSG )
+      ENDIF
  100  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
-      CALL HCO_MSG( MSG )
  
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
 
-      ! Open file to read  
-      OPEN( IU_FILE, FILE=TRIM( FracNOx_FILE ), FORM="binary", 
-     &      IOSTAT=IOS )
+      ! Is this a .txt file?
+      IsTxt = ( INDEX( TRIM(FracNOx_FILE), '.txt' ) > 0 ) 
+
+      ! Open file to read 
+      IF ( IsTxt ) THEN
+         OPEN( IU_FILE, FILE=TRIM( FracNOx_FILE ), FORM="FORMATTED", 
+     &         IOSTAT=IOS )
+      ELSE 
+         OPEN( IU_FILE, FILE=TRIM( FracNOx_FILE ), FORM="binary", 
+     &         IOSTAT=IOS )
+      ENDIF
+
       IF ( IOS /= 0 ) THEN 
          CALL HCO_ERROR( 'read_paranox_lut:1', RC, THISLOC=LOC )
          RETURN
       ENDIF
 
       ! Read file
-      READ( IU_FILE, IOSTAT=IOS ) FRACNOX
+      IF ( IsTxt ) THEN
+         READ( IU_FILE, FMT=FMAT, IOSTAT=IOS ) FRACNOX
+      ELSE
+         READ( IU_FILE, IOSTAT=IOS ) FRACNOX
+      ENDIF
       IF ( IOS /= 0 ) THEN 
          CALL HCO_ERROR( 'read_paranox_lut:2', RC, THISLOC=LOC )
          RETURN
@@ -138,23 +158,37 @@
       !=================================================================
 
       ! Echo info
-      WRITE( MSG, 101 ) TRIM( IntOPE_FILE )
+      IF ( am_I_Root ) THEN 
+         WRITE( MSG, 101 ) TRIM( IntOPE_FILE )
+         CALL HCO_MSG(MSG)
+      ENDIF
  101  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
-      CALL HCO_MSG(MSG)
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
 
+      ! Is this a .txt file?
+      IsTxt = ( INDEX( TRIM(IntOPE_FILE), '.txt' ) > 0 ) 
+
       ! Open file to read
-      OPEN( IU_FILE, FILE=TRIM( IntOPE_FILE ), FORM="BINARY", 
-     &      IOSTAT=IOS )
+      IF ( IsTxt ) THEN
+         OPEN( IU_FILE, FILE=TRIM( IntOPE_FILE ), FORM="FORMATTED", 
+     &         IOSTAT=IOS )
+      ELSE
+         OPEN( IU_FILE, FILE=TRIM( IntOPE_FILE ), FORM="BINARY", 
+     &         IOSTAT=IOS )
+      ENDIF
       IF ( IOS /= 0 ) THEN 
          CALL HCO_ERROR( 'read_paranox_lut:3', RC, THISLOC=LOC )
          RETURN
       ENDIF
 
       ! Read file
-      READ( IU_FILE, IOSTAT=IOS ) INTOPE
+      IF ( IsTxt ) THEN
+         READ( IU_FILE, FMT=FMAT, IOSTAT=IOS ) INTOPE
+      ELSE
+         READ( IU_FILE, IOSTAT=IOS ) INTOPE
+      ENDIF
       IF ( IOS /= 0 ) THEN 
          CALL HCO_ERROR( 'read_paranox_lut:4', RC, THISLOC=LOC )
          RETURN

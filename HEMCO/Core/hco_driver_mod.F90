@@ -68,9 +68,9 @@ CONTAINS
 ! !USES:
 !
     USE HCO_Calc_Mod,     ONLY : HCO_CalcEmis
-    USE HCO_tIdx_Mod,     ONLY : tIDx_Update
     USE HCO_ReadList_Mod, ONLY : ReadList_Read 
-    USE HCO_ReadList_Mod, ONLY : ReadList_to_EmisList 
+!    USE HCO_tIdx_Mod,     ONLY : tIDx_Update
+!    USE HCO_ReadList_Mod, ONLY : ReadList_to_EmisList 
 !
 ! !INPUT PARAMETERS:
 !
@@ -84,6 +84,9 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  27 May 2012 - C. Keller   - Initialization
 !  16 Jul 2014 - R. Yantosca - Cosmetic changes
+!  23 Dec 2014 - C. Keller   - ReadList_to_EmisList is now obsolete. 
+!                              Containers are added to EmisList within
+!                              routine ReadList_Read.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -99,13 +102,13 @@ CONTAINS
     CALL HCO_ENTER( 'HCO_RUN (hco_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    !--------------------------------------------------------------
-    ! 1. Update the time slice indeces
-    ! This is to make sure that the correct time slices will be
-    ! used for all emission fields. See also hco\_tidx\_mod.F90. 
-    !--------------------------------------------------------------
-    CALL tIDx_Update( am_I_Root, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+!    !--------------------------------------------------------------
+!    ! 1. Update the time slice indeces
+!    ! This is to make sure that the correct time slices will be
+!    ! used for all emission fields. See also hco\_tidx\_mod.F90. 
+!    !--------------------------------------------------------------
+!    CALL tIDx_Update( am_I_Root, RC )
+!    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !--------------------------------------------------------------
     ! 2. Read/update data
@@ -114,15 +117,15 @@ CONTAINS
     ! month, year, etc. 
     !--------------------------------------------------------------
 
-    ! Read/update data, as specified in ReadList.
+    ! Update data, as specified in ReadList.
     CALL ReadList_Read( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Make sure that content of EmisList is up-to-date. This call
     ! primarily ensures that pre-calculation optimizations are
     ! correctly applied (e.g. to unify arrays with same properties). 
-    CALL ReadList_to_EmisList ( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+!    CALL ReadList_to_EmisList ( am_I_Root, HcoState, RC )
+!    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
     ! 3. Calculate the emissions for current time stamp based on the
@@ -165,6 +168,7 @@ CONTAINS
     USE HCO_tIdx_Mod,     ONLY : tIDx_Init
     USE HCO_Clock_Mod,    ONLY : HcoClock_Init
     USE HCO_ReadList_Mod, ONLY : ReadList_Init
+    USE HCO_ReadList_Mod, ONLY : ReadList_Read
     USE HCO_Config_Mod,   ONLY : SetReadList 
 !
 ! !INPUT PARAMETERS:

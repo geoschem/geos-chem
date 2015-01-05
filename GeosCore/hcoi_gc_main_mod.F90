@@ -856,8 +856,8 @@ CONTAINS
     IF ( ExtState%WLI%DoUse ) THEN
        ExtState%WLI%Arr%Val => State_Met%LWI
     ENDIF
-    IF ( ExtState%TSURFK%DoUse ) THEN
-       ExtState%TSURFK%Arr%Val => State_Met%TS
+    IF ( ExtState%T2M%DoUse ) THEN
+       ExtState%T2M%Arr%Val => State_Met%TS
     ENDIF
     IF ( ExtState%TSKIN%DoUse ) THEN
        ExtState%TSKIN%Arr%Val => State_Met%TSKIN

@@ -81,12 +81,21 @@ MODULE HCO_Calc_Mod
 !
   PRIVATE :: GET_CURRENT_EMISSIONS
 !
+! !PARAMETER
+!
+  ! Mask threshold. All mask values below this value will be evaluated 
+  ! as zero (= outside of mask), and all values including and above this 
+  ! value as inside the mask.
+  REAL(hp), PARAMETER  :: MASK_THRESHOLD = 0.5_hp
+!
 ! ============================================================================
 !
 ! !REVISION HISTORY:
 !  25 Aug 2012 - C. Keller   - Initial version.
 !  06 Jun 2014 - R. Yantosca - Add cosmetic changes in ProTeX headers
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
+!  29 Dec 2014 - C. Keller   - Added MASK_THRESHOLD parameter. Added option to
+!                              apply scale factors only over masked area.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -363,7 +372,7 @@ CONTAINS
                 IF ( RC /= HCO_SUCCESS ) RETURN
                 Diag3D => NULL()
              ENDIF
- 
+
              ! Reset arrays and previous hierarchy. 
              SpcFlx(:,:,:)  =  0.0_hp
              PrevCat        =  -1
@@ -482,13 +491,6 @@ CONTAINS
           WHERE ( Mask == 1 )
              CatFlx = CatFlx + TmpFlx
           END WHERE
-
-!          ! testing only
-!          IF ( verb ) THEN
-!             write(lun,*) 'Field ', TRIM(Dct%cName),              &
-!                        ' added to emissions (tracer ', ThisSpc,     &
-!                        '; Category = ', ThisCat, ')' 
-!          ENDIF
  
        ! If hierarchy is larger than those of the previously used
        ! fields, overwrite CatFlx w/ new values. 
@@ -498,13 +500,6 @@ CONTAINS
           WHERE ( Mask == 1 )
              CatFlx = TmpFlx
           END WHERE
-
-!          ! testing only
-!          IF ( verb ) THEN
-!             write(lun,*) 'Field ', TRIM(Dct%cName),              &
-!                        ' replaced old emissions (tracer ', ThisSpc, &
-!                        '; Category = ', ThisCat, ')' 
-!          ENDIF
 
        ELSE
           MSG = 'Hierarchy error in calc_emis: ' // TRIM(Dct%cName)
@@ -602,7 +597,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_State_Mod,    ONLY : HCO_State
-    USE HCO_tIdx_MOD,     ONLY : tIDx_GetIndxVec
+    USE HCO_tIdx_MOD,     ONLY : tIDx_GetIndx
     USE HCO_FileData_Mod, ONLY : FileData_ArrIsDefined
 !
 ! !INPUT PARAMETERS:
@@ -638,6 +633,8 @@ CONTAINS
 !  06 Jun 2014 - R. Yantosca -  Cosmetic changes in ProTeX headers
 !  07 Sep 2014 - C. Keller   -  Mask update. Now set mask to zero as soon as 
 !                               on of the applied masks is zero.
+!  03 Dec 2014 - C. Keller   -  Now calculate time slice index on-the-fly.
+!  29 Dec 2014 - C. Keller   -  Added scale factor masks.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -646,11 +643,11 @@ CONTAINS
 !
     ! Pointers
     TYPE(DataCont), POINTER :: ScalDct => NULL()
+    TYPE(DataCont), POINTER :: MaskDct => NULL()
 
     ! Scalars
     REAL(hp)                :: TMPVAL
-    INTEGER                 :: tIdxVec(nI), tIDx
-    INTEGER                 :: IDX
+    INTEGER                 :: tIDx, IDX
     INTEGER                 :: I, J, L, N
     INTEGER                 :: BaseLL, ScalLL, TmpLL
     INTEGER                 :: ERROR
@@ -707,13 +704,8 @@ CONTAINS
        BaseLL = 1
     ENDIF
 
-    ! Precalculate timeslice index. The data containers can 
-    ! carry 2D/3D arrays for multiple time steps (i.e. for 
-    ! every hour of the day), stored in a vector.
-    ! tIdxVec contains the vector index to be used at the current
-    ! datetime. This parameter may vary with longitude due to time
-    ! zone shifts! 
-    tIdxVec = tIDx_GetIndxVec( BaseDct%Dta, nI ) 
+    ! Initialize ERROR. Will be set to 1 if error occurs below
+    ERROR = 0
 
     ! Loop over all latitudes and longitudes
 !$OMP PARALLEL DO                                                      &
@@ -723,8 +715,14 @@ CONTAINS
     DO J = 1, nJ
     DO I = 1, nI
 
-       ! Time slice index for this lon
-       tIdx = tIdxVec(I)
+       ! Get current time index for this container and at this location
+       tIDx = tIDx_GetIndx( HcoState, BaseDct%Dta, I, J )
+       IF ( tIDx < 1 ) THEN
+          WRITE(MSG,*) 'Cannot get time slice index at location ',I,J,&
+                       ': ', TRIM(BaseDct%cName)
+          ERROR = 1
+          EXIT
+       ENDIF
 
        ! Loop over all levels
        DO L = 1, BaseLL
@@ -745,6 +743,12 @@ CONTAINS
     ENDDO !I
     ENDDO !J
 !$OMP END PARALLEL DO
+
+    ! Check for error
+    IF ( ERROR == 1 ) THEN
+       CALL HCO_ERROR( MSG, RC )
+       RETURN
+    ENDIF
 
     ! ----------------------------------------------------------------
     ! Apply scale factors
@@ -791,11 +795,25 @@ CONTAINS
        ELSE
           ScalLL = SIZE(ScalDct%Dta%V3(1)%Val,3)
        ENDIF
+ 
+       ! Check if there is a mask field associated with this scale
+       ! factor. In this case, get a pointer to the corresponding
+       ! mask field and evaluate scale factors only inside the mask
+       ! region.
+       IF ( ASSOCIATED(ScalDct%Scal_cID) ) THEN
+          CALL Pnt2DataCont( ScalDct%Scal_cID(1), MaskDct, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+          ! Must be mask field
+          IF ( MaskDct%DctType /= 3 ) THEN
+             MSG = 'Invalid mask for scale factor: '//TRIM(ScalDct%cName)
+             MSG = TRIM(MSG) // '; mask: '//TRIM(MaskDct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+          ENDIF
+       ENDIF
 
-       ! Get vector of time slice indeces
-       tIDxVec = tIDx_GetIndxVec( ScalDct%Dta, nI ) 
-
-       ! Initialize error flag. Will be set to 1 or 2 if error occurs,
+       ! Reinitialize error flag. Will be set to 1 or 2 if error occurs,
        ! and to -1 if negative scale factor is ignored. 
        ERROR = 0
 
@@ -807,9 +825,18 @@ CONTAINS
        DO J = 1, nJ
        DO I = 1, nI
 
-          ! Get current time index
-          tIdx = tIdxVec(I)
-            
+          ! Check for mask region
+          IF ( ASSOCIATED(MaskDct) ) THEN
+             IF ( MaskDct%Dta%V2(1)%Val(I,J) < MASK_THRESHOLD ) CYCLE
+          ENDIF
+
+          ! Get current time index for this container and at this location
+          tIDx = tIDx_GetIndx( HcoState, ScalDct%Dta, I, J )
+          IF ( tIDx < 1 ) THEN
+             ERROR = 1
+             EXIT
+          ENDIF
+
           ! ------------------------------------------------------------ 
           ! Check if this is a mask. If so, add mask values to the MASK
           ! array. For now, we assume masks to be binary, i.e. 0 or 1.
@@ -835,8 +862,8 @@ CONTAINS
              ENDIF
 
              ! Set mask to zero over this grid box if this mask value is
-             ! tiny. 
-             IF ( TMPVAL < HCO_TINY ) MASK(I,J,:) = 0
+             ! below the defined mask threshold.
+             IF ( TMPVAL < MASK_THRESHOLD ) MASK(I,J,:) = 0
 
              ! testing only
              IF ( verb .AND. I==1 .AND. J==1 ) THEN
@@ -960,6 +987,9 @@ CONTAINS
           CALL HCO_WARNING( MSG, RC )
        ENDIF
 
+       ! Free pointer
+       MaskDct => NULL()
+
     ENDDO ! N
 
     ! ----------------------------
@@ -1041,6 +1071,7 @@ CONTAINS
 !
     ! Pointers
     TYPE(DataCont), POINTER :: ScalDct => NULL()
+    TYPE(DataCont), POINTER :: MaskDct => NULL()
     REAL(hp)                :: TMPVAL
     INTEGER                 :: tIdx, IDX
     INTEGER                 :: I, J, L, N
@@ -1114,7 +1145,13 @@ CONTAINS
        ! tIdxVec contains the vector index to be used at the current
        ! datetime. This parameter may vary with longitude due to time
        ! zone shifts! 
-       tIdx = tIDx_GetIndx ( BaseDct%Dta, I )
+       tIDx = tIDx_GetIndx( HcoState, BaseDct%Dta, I, J )
+       IF ( tIDx < 0 ) THEN
+          write(MSG,*) 'Cannot get time slice index at location ',I,J,&
+                       ': ', TRIM(BaseDct%cName)
+          ERR = .TRUE.
+          EXIT
+       ENDIF
 
        ! # of levels w/ defined emissions 
        IJFILLED = 0
@@ -1195,6 +1232,30 @@ CONTAINS
              CYCLE
           ENDIF
 
+          ! Check if there is a mask field associated with this scale
+          ! factor. In this case, get a pointer to the corresponding
+          ! mask field and evaluate scale factors only inside the mask
+          ! region.
+          IF ( ASSOCIATED(ScalDct%Scal_cID) ) THEN
+             CALL Pnt2DataCont( ScalDct%Scal_cID(1), MaskDct, RC )
+             IF ( RC /= HCO_SUCCESS ) THEN
+                ERR = .TRUE.
+                EXIT
+             ENDIF 
+    
+             ! Must be mask field
+             IF ( MaskDct%DctType /= 3 ) THEN
+                MSG = 'Invalid mask for scale factor: '//TRIM(ScalDct%cName)
+                MSG = TRIM(MSG) // '; mask: '//TRIM(MaskDct%cName)
+                CALL HCO_ERROR( MSG, RC )
+                ERR = .TRUE.
+                EXIT
+             ENDIF
+
+             ! Check if we are within mask region
+             IF ( MaskDct%Dta%V2(1)%Val(I,J) < MASK_THRESHOLD ) CYCLE
+          ENDIF
+
           ! Get vertical extension of this scale factor array.
           IF( (ScalDct%Dta%SpaceDim<=2) ) THEN
              ScalLL = 1
@@ -1203,7 +1264,13 @@ CONTAINS
           ENDIF
    
           ! Get current time index
-          tIdx = tIDx_GetIndx ( ScalDct%Dta, I )
+          tIDx = tIDx_GetIndx( HcoState, ScalDct%Dta, I, J )
+          IF ( tIDx < 0 ) THEN
+             write(MSG,*) 'Cannot get time slice index at location ',I,J,&
+                          ': ', TRIM(ScalDct%cName)
+             ERR = .TRUE.
+             EXIT
+          ENDIF
             
           ! ------------------------------------------------------------ 
           ! Check if this is a mask. If so, add mask values to the MASK
@@ -1229,7 +1296,7 @@ CONTAINS
              ENDIF
 
              ! Add to mask and set mask flag to TRUE
-             IF ( TMPVAL < HCO_TINY ) MASK(I,J,:) = 0
+             IF ( TMPVAL < MASK_THRESHOLD ) MASK(I,J,:) = 0
 
              ! testing only
              if ( verb .and. i == ix .and. j == iy ) then
@@ -1323,7 +1390,7 @@ CONTAINS
 
     ! Check exit status
     IF ( ERR ) THEN
-       RC = HCO_FAIL
+       CALL HCO_ERROR ( MSG, RC )
        RETURN
     ENDIF
 

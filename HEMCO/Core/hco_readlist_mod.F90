@@ -42,7 +42,7 @@ MODULE HCO_ReadList_Mod
   PUBLIC  :: ReadList_Set
   PUBLIC  :: ReadList_Print
   PUBLIC  :: ReadList_Cleanup
-  PUBLIC  :: ReadList_to_EmisList
+!  PUBLIC  :: ReadList_to_EmisList
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -152,8 +152,6 @@ CONTAINS
     ! we hence need to update ReadList (and EmisList) every time!
     ! The only exception to this are the one-time lists, which don't
     ! need to be renewed at all!
-    ! Removed this. ESMF does only interpolate fields with an update
-    ! frequency of '0', which is not used by HEMCO (ckeller, 10/10/14)
 !    IF ( HcoState%isESMF ) THEN
 !       IF ( intv /= 5 ) THEN
 !          CALL DtCont_Add( ReadLists%Always, Dct )
@@ -200,22 +198,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Read( am_I_Root, HcoState, RC ) 
+  SUBROUTINE ReadList_Read( am_I_Root, HcoState, RC, ReadAll ) 
 !
 ! !USES:
 !
-    USE HCO_CLOCK_MOD, ONLY : HcoClock_First,    HcoClock_NewYear
-    USE HCO_CLOCK_MOD, ONLY : HcoClock_NewMonth, HcoClock_NewDay
+    USE HCO_CLOCK_MOD, ONLY : HcoClock_NewYear
+    USE HCO_CLOCK_MOD, ONLY : HcoClock_NewMonth
+    USE HCO_CLOCK_MOD, ONLY : HcoClock_NewDay
     USE HCO_CLOCK_MOD, ONLY : HcoClock_NewHour
+    USE HCO_CLOCK_MOD, ONLY : HcoClock_First
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
+    LOGICAL,           INTENT(IN   )  :: am_I_Root  ! root CPU?
+    LOGICAL, OPTIONAL, INTENT(IN   )  :: ReadAll    ! read all fields?
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    TYPE(HCO_State), POINTER        :: HcoState   ! HEMCO state object
-    INTEGER,         INTENT(INOUT)  :: RC         ! Success or failure?
+    TYPE(HCO_State),   POINTER        :: HcoState   ! HEMCO state object
+    INTEGER,           INTENT(INOUT)  :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -225,7 +226,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL            :: verb
+    LOGICAL            :: verb, RdAll
     CHARACTER(LEN=255) :: MSG
 
     ! ================================================================
@@ -239,8 +240,13 @@ CONTAINS
     ! Verbose mode
     verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
 
+    ! Read all fields?
+    RdAll = .FALSE.
+    IF ( PRESENT(ReadAll) ) RdAll = ReadAll
+    IF ( HcoClock_First() ) RdAll = .TRUE.
+
     ! Read content from one-time list on the first call 
-    IF ( HcoClock_First() ) THEN
+    IF ( RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading once list!'
           CALL HCO_MSG(MSG)
@@ -250,7 +256,7 @@ CONTAINS
     ENDIF
 
     ! Read content from year-list if it's a new year
-    IF ( HcoClock_NewYear() ) THEN
+    IF ( HcoClock_NewYear() .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading year list!'
           CALL HCO_MSG(MSG)
@@ -260,7 +266,7 @@ CONTAINS
     ENDIF
 
     ! Read content from month-list if it's a new month
-    IF ( HcoClock_NewMonth() ) THEN
+    IF ( HcoClock_NewMonth() .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading month list!'
           CALL HCO_MSG(MSG)
@@ -270,7 +276,7 @@ CONTAINS
     ENDIF
 
     ! Read content from day-list if it's a new day 
-    IF ( HcoClock_NewDay() ) THEN
+    IF ( HcoClock_NewDay() .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading day list!'
           CALL HCO_MSG(MSG)
@@ -280,7 +286,7 @@ CONTAINS
     ENDIF
 
     ! Read content from hour-list if it's a new hour 
-    IF ( HcoClock_NewHour() ) THEN
+    IF ( HcoClock_NewHour() .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading hour list!'
           CALL HCO_MSG(MSG)
@@ -313,10 +319,15 @@ CONTAINS
 ! containers of the passed ReadList. In a non-ESMF environment, this
 ! routine calls the HEMCO generic (netCDF) reading and remapping 
 ! routines. In an ESMF environment, the arrays are obtained through 
-! the ESMF/MAPL software framework.\\
-! This routine calls the HEMCO - data reading interface wrapper routine
-! for the current environment. See module HCOI\_DATAREAD\_MOD.F90 for
-! more details. 
+! the ESMF/MAPL software framework. ReadLIst\_Fill provides the
+! interface between HEMCO and the data reading interface. See module 
+! HCOI\_DATAREAD\_MOD.F90 for more details on data reading.
+!\\
+!\\
+! The ReadList containers are added to EmisList immediately after data
+! filling. This has the advantage that data arrays are immediately 
+! available through routine HCO\_GetPtr. This is required for country
+! mappings that depend on the country mask input field.
 !\\
 !\\
 ! !INTERFACE:
@@ -326,8 +337,10 @@ CONTAINS
 ! !USES:
 !
     USE HCOIO_DataRead_Mod, ONLY : HCOIO_DataRead
-    USE HCOIO_DataRead_Mod, ONLY : HCOIO_ReadFromConfig
+    USE HCOIO_DataRead_Mod, ONLY : HCOIO_ReadOther
     USE HCO_FileData_Mod,   ONLY : FileData_ArrIsDefined
+    USE HCO_EmisList_Mod,   ONLY : EmisList_Pass
+    USE HCO_DataCont_Mod,   ONLY : DataCont_Cleanup
 !
 ! !INPUT PARAMETERS:
 !
@@ -345,6 +358,9 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
+!  23 Dec 2014 - C. Keller - Now pass container to EmisList immediately after
+!                            reading the data. Added second loop to remove
+!                            data arrays that are not used in EmisList.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -352,6 +368,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     TYPE(ListCont), POINTER  :: Lct => NULL()
+    LOGICAL                  :: verb
+    CHARACTER(LEN=255)       :: MSG
 
     ! ================================================================
     ! ReadList_Fill begins here
@@ -360,6 +378,9 @@ CONTAINS
     ! For error handling
     CALL HCO_ENTER ('ReadList_Fill (hco_readlist_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Verbose mode?
+    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
 
     ! Loop over all containers
     Lct => ReadList
@@ -388,20 +409,47 @@ CONTAINS
        ! Read if this is the home container
        IF ( Lct%Dct%DtaHome == 1 ) THEN
 
-          ! Read from configuration file if it's not a netCDF file
+          ! Read from other source if it's not a netCDF file
           IF ( .NOT. Lct%Dct%Dta%NcRead ) THEN
-             CALL HCOIO_ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
+             CALL HCOIO_ReadOther ( am_I_Root, HcoState, Lct, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Read from netCDF file otherwise
           ELSE
              CALL HCOIO_DATAREAD ( am_I_Root, HcoState, Lct, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
-          ENDIF
 
+          ENDIF
        ENDIF
 
-       ! Point to next container
+       ! Pass container to EmisList (only if array is defined)
+       IF ( FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
+          CALL EmisList_Pass( am_I_Root, HcoState, Lct, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       ! Advance to next container
+       Lct => Lct%NextCont
+    ENDDO
+
+    ! Second loop to clean up all data that is not used in EmisList.
+    ! This cannot be done within EmisList_Pass since it is possible
+    ! that some container data is used by multiple containers.
+    Lct => ReadList
+    DO WHILE ( ASSOCIATED(Lct) )
+
+       ! Remove array if not used in the emissions list
+       IF ( .NOT. Lct%Dct%Dta%IsInList ) THEN
+          CALL DataCont_Cleanup( Lct%Dct, ArrOnly=.TRUE. )
+
+          ! Verbose mode
+          IF ( verb ) THEN
+             MSG = 'Remove data array of ' // TRIM(Lct%Dct%cName)
+             CALL HCO_MSG( MSG )
+          ENDIF 
+       ENDIF 
+
+       ! Advance in list
        Lct => Lct%NextCont
     ENDDO
 
@@ -667,92 +715,92 @@ CONTAINS
 
   END SUBROUTINE ReadList_Cleanup
 !EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: ReadList_to_EmisList 
+!!
+!! !DESCRIPTION: Subroutine ReadList\_to\_EmisList makes sure that the
+!! content of EmisList is up-to-date. Since ReadList and EmisList both
+!! point to the same data containers, this routine primarily makes sure
+!! that the data of containers with target IDs different that their 
+!! container IDs are properly set. See HCO\_EmisList\_MOD.F90 for more
+!! details.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE ReadList_to_EmisList( am_I_Root, HcoState, RC )
+!!
+!! !USES:
+!!
+!    USE HCO_Clock_Mod,    ONLY : HcoClock_First,    HcoClock_NewYear
+!    USE HCO_Clock_Mod,    ONLY : HcoClock_NewMonth, HcoClock_NewDay
+!    USE HCO_Clock_Mod,    ONLY : HcoClock_NewHour
+!    USE HCO_Emislist_Mod, ONLY : EmisList_Update
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    TYPE(HCO_State), POINTER        :: HcoState   ! Hemco state object
+!    INTEGER,         INTENT(INOUT)  :: RC         ! Return Code 
+!!
+!! !REVISION HISTORY:
+!!  09 Sep 2013 - C. Keller - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
 !
-! !IROUTINE: ReadList_to_EmisList 
+!    ! ================================================================
+!    ! ReadList_to_EmisList begins here
+!    ! ================================================================
 !
-! !DESCRIPTION: Subroutine ReadList\_to\_EmisList makes sure that the
-! content of EmisList is up-to-date. Since ReadList and EmisList both
-! point to the same data containers, this routine primarily makes sure
-! that the data of containers with target IDs different that their 
-! container IDs are properly set. See HCO\_EmisList\_MOD.F90 for more
-! details.
-!\\
-!\\
-! !INTERFACE:
+!    ! Enter
+!    CALL HCO_ENTER ('ReadList_to_EmisList (hco_readlist_mod.F90)', RC)
+!    IF ( RC /= HCO_SUCCESS ) RETURN
 !
-  SUBROUTINE ReadList_to_EmisList( am_I_Root, HcoState, RC )
+!    ! Always add/update content from always-to-read list
+!    CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Always, RC )
+!    IF ( RC /= HCO_SUCCESS ) RETURN
 !
-! !USES:
+!    ! Add content from one-time list on the first call 
+!    IF ( HcoClock_First() ) THEN
+!       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Once, RC )
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!    ENDIF
 !
-    USE HCO_Clock_Mod,    ONLY : HcoClock_First,    HcoClock_NewYear
-    USE HCO_Clock_Mod,    ONLY : HcoClock_NewMonth, HcoClock_NewDay
-    USE HCO_Clock_Mod,    ONLY : HcoClock_NewHour
-    USE HCO_Emislist_Mod, ONLY : EmisList_Update
+!    ! Add content from year-list if it's a new year
+!    IF ( HcoClock_NewYear() ) THEN
+!       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Year, RC )
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!    ENDIF
 !
-! !INPUT PARAMETERS:
+!    ! Add content from month-list if it's a new month
+!    IF ( HcoClock_NewMonth() ) THEN
+!       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Month, RC )
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!    ENDIF
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
+!    ! Add content from day-list if it's a new day
+!    IF ( HcoClock_NewDay() ) THEN
+!       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Day, RC )
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!    ENDIF
 !
-! !INPUT/OUTPUT PARAMETERS:
+!    ! Add content from hour-list if it's a new hour
+!    IF ( HcoClock_NewHour() ) THEN
+!       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Hour, RC )
+!       IF ( RC /= HCO_SUCCESS ) RETURN
+!    ENDIF
 !
-    TYPE(HCO_State), POINTER        :: HcoState   ! Hemco state object
-    INTEGER,         INTENT(INOUT)  :: RC         ! Return Code 
+!    ! Leave w/ success
+!    CALL HCO_LEAVE ( RC )
 !
-! !REVISION HISTORY:
-!  09 Sep 2013 - C. Keller - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! ================================================================
-    ! ReadList_to_EmisList begins here
-    ! ================================================================
-
-    ! Enter
-    CALL HCO_ENTER ('ReadList_to_EmisList (hco_readlist_mod.F90)', RC)
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Always add/update content from always-to-read list
-    CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Always, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Add content from one-time list on the first call 
-    IF ( HcoClock_First() ) THEN
-       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Once, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    ! Add content from year-list if it's a new year
-    IF ( HcoClock_NewYear() ) THEN
-       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Year, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    ! Add content from month-list if it's a new month
-    IF ( HcoClock_NewMonth() ) THEN
-       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Month, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    ! Add content from day-list if it's a new day
-    IF ( HcoClock_NewDay() ) THEN
-       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Day, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    ! Add content from hour-list if it's a new hour
-    IF ( HcoClock_NewHour() ) THEN
-       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Hour, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    ! Leave w/ success
-    CALL HCO_LEAVE ( RC )
-
-  END SUBROUTINE ReadList_to_EmisList
-!EOC
+!  END SUBROUTINE ReadList_to_EmisList
+!!EOC
 END MODULE HCO_ReadList_Mod

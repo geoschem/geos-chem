@@ -422,7 +422,7 @@
          IF ( .NOT. FOUND ) CYCLE
          State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
      &                              + ( Emis
-     &                              *   State_Met%AREA_M2(I,J,L)
+     &                              *   State_Met%AREA_M2(I,J,1)
      &                              *   DTCHEM                  )
 
       ENDDO

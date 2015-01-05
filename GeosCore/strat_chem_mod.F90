@@ -29,7 +29,10 @@ MODULE STRAT_CHEM_MOD
 !
 ! !USES:
 !
+! for precisions
+  USE HCO_ERROR_MOD  
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -42,6 +45,7 @@ MODULE STRAT_CHEM_MOD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+  PRIVATE :: Set_BryPointers
   PRIVATE :: Get_Rates
   PRIVATE :: Get_Rates_Interp
   PRIVATE :: Do_Synoz
@@ -63,6 +67,7 @@ MODULE STRAT_CHEM_MOD
 !  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
 !                              partitioning
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  30 Dec 2014 - C. Keller   - Now read Bry data through HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -71,7 +76,23 @@ MODULE STRAT_CHEM_MOD
 !
   ! Tracer index of Bry species in input files
   ! 1:6 = (Br2, Br, BrO, HOBr, HBr, BrNO3) for both
-  INTEGER, PARAMETER   :: br_nos(6) = (/44, 45, 46, 47, 48, 50/)
+  INTEGER,           PARAMETER :: br_nos(6)   = (/ 44, 45, 46, 47, 48, 50 /)
+
+  ! BrPointers is a simple derived type to hold pointers to the Bry 
+  ! day and night data.
+  TYPE :: BrPointers
+     REAL(hp), POINTER  :: MR(:,:,:) => NULL()
+  END TYPE BrPointers
+
+  ! Vectors holding the mixing ratios (MR) of day/night Bry data.
+  ! The mixing ratios will be read and interpolated by HEMCO. The
+  ! corresponding HEMCO fields must be specified in the HEMCO 
+  ! configuration file. The field names are assumed to be 
+  ! 'GEOSCCM_XY_DAY' and 'GEOSCCM_XY_NIGHT', respectively, where 
+  ! XY is the Bry species name. It is also assumed that the input
+  ! data is in ppt.
+  TYPE(BrPointers)      :: BrPtrDay(6) 
+  TYPE(BrPointers)      :: BrPtrNight(6) 
 
   ! Number of species from GMI model
   INTEGER, PARAMETER   :: NTR_GMI   = 120  
@@ -92,10 +113,10 @@ MODULE STRAT_CHEM_MOD
   INTEGER               :: Strat_TrID_GMI(NTR_GMI) ! Maps 1:NSCHEM to GMI index
                      ! (At most NTR_GMI species could overlap between G-C & GMI)
 
-  ! Variables for Br strat chemistry, moved here from SCHEM.f
-  REAL*4,   ALLOCATABLE :: Bry_temp(:,:,:) 
-  REAL(fp), ALLOCATABLE :: Bry_day(:,:,:,:) 
-  REAL(fp), ALLOCATABLE :: Bry_night(:,:,:,:)
+!  ! Variables for Br strat chemistry, moved here from SCHEM.f
+!  REAL*4,   ALLOCATABLE  :: Bry_temp(:,:,:) 
+!  REAL(fp), ALLOCATABLE  :: Bry_day(:,:,:,:) 
+!  REAL(fp), ALLOCATABLE  :: Bry_night(:,:,:,:)
 
   ! Tracer index of Bry species in GEOS-Chem STT (may differ from br_nos)
   INTEGER               :: GC_Bry_TrID(6) 
@@ -264,6 +285,7 @@ CONTAINS
 !  18 Mar 2013 - R. Yantosca - Now pass Input_Opt via the arg list
 !  19 Mar 2013 - R. Yantosca - Now only copy Input_Opt%TCVV(1:N_TRACERS)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  30 Dec 2014 - C. Keller   - Now get Bry data through HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -284,12 +306,13 @@ CONTAINS
     CHARACTER(LEN=16) :: STAMP
     INTEGER           :: I,    J,      L,   N,   NN
     REAL(fp)          :: dt,   P,      k,   M0,  RC,     M
-    REAL(fp)          :: TK,   RDLOSS, T1L, mOH, BryDay, BryNight
+    REAL(fp)          :: TK,   RDLOSS, T1L, mOH, BryTmp
     REAL(fp)          :: BOXVL
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     LOGICAL           :: LBRGCCM
     LOGICAL           :: LRESET, LCYCLE
+    LOGICAL           :: ISBR2 
     INTEGER           :: N_TRACERS
 
     ! Arrays
@@ -353,6 +376,12 @@ CONTAINS
 
        ! Save month for next iteration
        LASTMONTH = GET_MONTH()
+    ENDIF
+
+    ! On first call, establish pointers to Strat Bry data.
+    ! (ckeller, 12/30/2014)
+    IF ( FIRST ) THEN
+       CALL Set_BryPointers ( am_I_Root, Input_Opt, State_Chm, State_Met, errCode )
     ENDIF
 
     ! SDE 2014-01-14: Allow the user to overwrite stratospheric
@@ -534,7 +563,7 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight ) &
+       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryTmp ) &
        !$OMP PRIVATE( LCYCLE )
        DO NN=1,6
 
@@ -545,7 +574,10 @@ CONTAINS
              ! it only has IJL scope, but the loop is over IJLN!
              ! (bmy, 8/7/12)
              BEFORE = STT(:,:,:,GC_Bry_TrID(NN))
-          
+
+             ! Is this Br2?
+             ISBR2 = ( TRIM(Input_Opt%TRACER_NAME(Strat_TrID_GC(NN))) == 'Br2' )
+
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
              ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
              ! (bmy, 7/18/12)
@@ -559,23 +591,46 @@ CONTAINS
                    LCYCLE = ITS_IN_THE_CHEMGRID( I, J, L, State_Met )
                 ENDIF
                 IF ( LCYCLE ) CYCLE
-                   
+
+!                IF ( State_Met%SUNCOS(I,J) > 0.e+0_fp ) THEN
+!                   ! daytime [ppt] -> [kg]
+!                   BryDay = bry_day(I,J,L,NN)     &
+!                          * 1.e-12_fp             & ! convert from [ppt]
+!                          * AD(I,J,L)             &
+!                          / TCVV(GC_Bry_TrID(NN))
+!                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
+!                ELSE
+!                   ! nighttime [ppt] -> [kg]
+!                   BryNight = bry_night(I,J,L,NN)   &
+!                            * 1.e-12_fp             & ! convert from [ppt]
+!                            * AD(I,J,L)             &
+!                            / TCVV(GC_Bry_TrID(NN))
+!                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
+!                ENDIF
+
+                ! Now get Br data through HEMCO pointers (ckeller, 12/30/14).    
                 IF ( State_Met%SUNCOS(I,J) > 0.e+0_fp ) THEN
                    ! daytime [ppt] -> [kg]
-                   BryDay = bry_day(I,J,L,NN)        &
+                   BryTmp = BrPtrDay(NN)%MR(I,J,L)   &
                           * 1.e-12_fp                & ! convert from [ppt]
                           * AD(I,J,L)                &
                           / TCVV(GC_Bry_TrID(NN))
-                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
+
                 ELSE
                    ! nighttime [ppt] -> [kg]
-                   BryNight = bry_night(I,J,L,NN)      &
-                            * 1.e-12_fp                & ! convert from [ppt]
-                            * AD(I,J,L)                &
-                            / TCVV(GC_Bry_TrID(NN))
-                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
+                   BryTmp = BrPtrNight(NN)%MR(I,J,L) &
+                          * 1.e-12_fp                & ! convert from [ppt]
+                          * AD(I,J,L)                &
+                          / TCVV(GC_Bry_TrID(NN))
                 ENDIF
-                   
+
+                ! Special adjustment for G-C Br2 tracer, which is BrCl in the strat
+                ! (ckeller, 1/2/15)
+                IF ( ISBR2 ) BryTmp = BryTmp / 2.0_fp
+
+                ! Pass to STT array
+                STT(I,J,L, GC_Bry_TrID(NN) ) = BryTmp
+
              ENDDO
              ENDDO
              ENDDO
@@ -587,9 +642,9 @@ CONTAINS
           
           ENDIF
 
-       ENDDO
+       ENDDO ! NN
        !$OMP END PARALLEL DO
-       
+
     !======================================================================
     ! Tagged Ox simulation
     !======================================================================
@@ -714,13 +769,13 @@ CONTAINS
     ! GEOS-Chem routines
     USE BPCH2_MOD,          ONLY : GET_NAME_EXT
     USE BPCH2_MOD,          ONLY : GET_RES_EXT
-    USE BPCH2_MOD,          ONLY : GET_TAU0
-    USE BPCH2_MOD,          ONLY : READ_BPCH2
+!    USE BPCH2_MOD,          ONLY : GET_TAU0
+!    USE BPCH2_MOD,          ONLY : READ_BPCH2
     USE CMN_SIZE_MOD
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE TIME_MOD,           ONLY : GET_MONTH
+!    USE TIME_MOD,           ONLY : GET_MONTH
     USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
     ! netCDF routines
@@ -761,10 +816,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    CHARACTER(LEN=255) :: FILENAME, DAYFILE, NIGHTFILE
+    CHARACTER(LEN=255) :: FILENAME ! , DAYFILE, NIGHTFILE
     INTEGER            :: N,        M,       S
     INTEGER            :: F,        NN,      fileID
-    REAL(f8)           :: XTAU
+    !REAL(f8)           :: XTAU
     INTEGER            :: N_TRACERS
 
     ! Arrays
@@ -919,40 +974,42 @@ CONTAINS
     !==============================================================
     ! Read in stored Bry species concentrations for stratosphere.
     ! Stored by Q. Liang using the GEOS CCM. (jpp, 6/27/2011)
+    !
+    ! ==> Bry data is now read through HEMCO (ckeller, 12/30/2014)
     !==============================================================
 
-    ! TAU value at the beginning of this month
-    XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
-
-    ! the daytime concentrations
-    dayfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
-         'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
-         GET_NAME_EXT()   // '.' // GET_RES_EXT()
-
-    ! the nighttime concentrations
-    nightfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
-         'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
-         GET_NAME_EXT()   // '.' // GET_RES_EXT()
-    
-    DO NN = 1, 6
-       
-       ! 1. Read daytime data
-       CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN), &   
-            XTAU,    IGLOB,      JGLOB, &  
-            LGLOB,   Bry_temp,   QUIET=.TRUE. )
-       
-       ! Cast from REAL*4 to REAL(fp) and resize to (JJPAR,LLPAR) 
-       CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_day(:,:,:,NN) )
-       
-       ! 2. Read nighttime data
-       CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN), &
-            XTAU,      IGLOB,      JGLOB, &   
-            LGLOB,     Bry_temp,   QUIET=.TRUE. )
-       
-       ! Cast from REAL*4 to REAL(fp) and resize to (JJPAR,LLPAR) 
-       CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
-       
-    ENDDO
+!    ! TAU value at the beginning of this month
+!    XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
+!
+!    ! the daytime concentrations
+!    dayfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
+!         'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
+!         GET_NAME_EXT()   // '.' // GET_RES_EXT()
+!
+!    ! the nighttime concentrations
+!    nightfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
+!         'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
+!         GET_NAME_EXT()   // '.' // GET_RES_EXT()
+!    
+!    DO NN = 1, 6
+!       
+!       ! 1. Read daytime data
+!       CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN), &   
+!            XTAU,    IGLOB,      JGLOB, &  
+!            LGLOB,   Bry_temp,   QUIET=.TRUE. )
+!       
+!       ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+!       CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_day(:,:,:,NN) )
+!      
+!       ! 2. Read nighttime data
+!       CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN), &
+!            XTAU,      IGLOB,      JGLOB, &   
+!            LGLOB,     Bry_temp,   QUIET=.TRUE. )
+!       
+!       ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+!       CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
+! 
+!    ENDDO
 #endif
 
   END SUBROUTINE GET_RATES
@@ -979,16 +1036,16 @@ CONTAINS
     ! GEOS-Chem routines
     USE BPCH2_MOD,          ONLY : GET_NAME_EXT
     USE BPCH2_MOD,          ONLY : GET_RES_EXT
-    USE BPCH2_MOD,          ONLY : GET_TAU0
-    USE BPCH2_MOD,          ONLY : READ_BPCH2
+!    USE BPCH2_MOD,          ONLY : GET_TAU0
+!    USE BPCH2_MOD,          ONLY : READ_BPCH2
     USE CMN_SIZE_MOD
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GRID_MOD,           ONLY : GET_XMID
     USE GRID_MOD,           ONLY : GET_YMID
-    USE TIME_MOD,           ONLY : GET_MONTH
+!    USE TIME_MOD,           ONLY : GET_MONTH
     USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-    USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Bry
+!    USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Bry
 
     ! netCDF routines
     USE m_netcdf_io_open
@@ -1029,11 +1086,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    CHARACTER(LEN=255) :: FILENAME, DAYFILE, NIGHTFILE
+    CHARACTER(LEN=255) :: FILENAME !, DAYFILE, NIGHTFILE
     INTEGER            :: N,        M,       S 
     INTEGER            :: F,        I,       J
     INTEGER            :: NN,       fileID
-    REAL(f8)           :: XTAU
+!    REAL(f8)           :: XTAU
 
     ! Index arrays
     INTEGER            :: II(1)
@@ -1044,9 +1101,9 @@ CONTAINS
     ! Arrays defined on the 2 x 2.5 grid
     REAL(f4)           :: XMID_COARSE ( 144                    )
     REAL(f4)           :: YMID_COARSE (        91              )
-    REAL(f4)           :: BryTemp     ( 144,   91,    LGLOB    )
-    REAL(fp)           :: BryDay2x25  ( 144,   91,    LLPAR, 6 )
-    REAL(fp)           :: BryNight2x25( 144,   91,    LLPAR, 6 )
+!    REAL(f4)           :: BryTemp     ( 144,   91,    LGLOB    )
+!    REAL(fp)           :: BryDay2x25  ( 144,   91,    LLPAR, 6 )
+!    REAL(fp)           :: BryNight2x25( 144,   91,    LLPAR, 6 )
 
     ! Arrays defined on the nested grid
     ! "f2c" = fine to coarse mapping
@@ -1142,52 +1199,54 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! Get Bry concentrations [ppt]
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+   
     !==============================================================
     ! Read in stored Bry species concentrations for stratosphere.
     ! Stored by Q. Liang using the GEOS CCM. (jpp, 6/27/2011)
+    ! 
+    ! ==> Bry data is now read through HEMCO (ckeller, 12/30/2014)
     !==============================================================
 
-    ! TAU value at the beginning of this month
-    XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
-
-    ! the daytime concentrations
-    dayfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
-         'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
-         GET_NAME_EXT()   // '.2x25'
-    
-    ! the nighttime concentrations
-    nightfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
-         'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
-         GET_NAME_EXT()   // '.2x25'
-    
-    DO NN = 1, 6
-       
-       ! 1. Read daytime data on the 2 x 2.5 grid
-       CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN), &   
-                        XTAU,    144,        91, &  
-                        LGLOB,   BryTemp,   QUIET=.TRUE. )
-       
-       ! Cast from REAL*4 to REAL(fp) and resize to LLPAR
-       CALL TRANSFER_3D_Bry( BryTemp, BryDay2x25(:,:,:,NN) )
-       
-       ! 2. Read nighttime data on the 2 x 2.5 grid
-       CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN), &
-                        XTAU,    144,        91, &   
-                        LGLOB,   BryTemp,   QUIET=.TRUE. )
-       
-       ! Cast from REAL*4 to REAL(fp) and resize to LLPAR 
-       CALL TRANSFER_3D_Bry( BryTemp, BryNight2x25(:,:,:,NN) )
-       
-    ENDDO
-
-    ! Cast from global 2x2.5 to fine nested resolution
-    DO J = 1, JGLOB
-    DO I = 1, IGLOB
-       Bry_day  ( I, J, :, : ) = BryDay2x25  ( I_f2c(I), J_f2c(J), :, : )
-       Bry_night( I, J, :, : ) = BryNight2x25( I_f2c(I), J_f2c(J), :, : )
-    ENDDO
-    ENDDO
+!    ! TAU value at the beginning of this month
+!    XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
+!
+!    ! the daytime concentrations
+!    dayfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
+!         'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
+!         GET_NAME_EXT()   // '.2x25'
+!    
+!    ! the nighttime concentrations
+!    nightfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
+!         'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
+!         GET_NAME_EXT()   // '.2x25'
+!    
+!    DO NN = 1, 6
+!       
+!       ! 1. Read daytime data on the 2 x 2.5 grid
+!       CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN), &   
+!                        XTAU,    144,        91, &  
+!                        LGLOB,   BryTemp,   QUIET=.TRUE. )
+!       
+!       ! Cast from REAL*4 to REAL(fp) and resize to LLPAR
+!       CALL TRANSFER_3D_Bry( BryTemp, BryDay2x25(:,:,:,NN) )
+!       
+!       ! 2. Read nighttime data on the 2 x 2.5 grid
+!       CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN), &
+!                        XTAU,    144,        91, &   
+!                        LGLOB,   BryTemp,   QUIET=.TRUE. )
+!       
+!       ! Cast from REAL*4 to REAL(fp) and resize to LLPAR 
+!       CALL TRANSFER_3D_Bry( BryTemp, BryNight2x25(:,:,:,NN) )
+!       
+!    ENDDO
+!
+!    ! Cast from global 2x2.5 to fine nested resolution
+!    DO J = 1, JGLOB
+!    DO I = 1, IGLOB
+!       Bry_day  ( I, J, :, : ) = BryDay2x25  ( I_f2c(I), J_f2c(J), :, : )
+!       Bry_night( I, J, :, : ) = BryNight2x25( I_f2c(I), J_f2c(J), :, : )
+!    ENDDO
+!    ENDDO
 
     DO N=1,NSCHEM
        NN = Strat_TrID_GMI(N)
@@ -1262,6 +1321,104 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE GET_RATES_INTERP
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_BryPointers 
+!
+! !DESCRIPTION: Function SET\_BryPointers gets the Bry stratospheric data read
+! by HEMCO. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_BryPointers( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+
+    IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorological State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY: 
+!  30 Dec 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    CHARACTER(LEN=16)   :: ThisName
+    CHARACTER(LEN=255)  :: PREFIX, FIELDNAME
+    CHARACTER(LEN=1023) :: MSG
+    INTEGER             :: N
+
+    !=================================================================
+    ! Set_BryPointers begins here 
+    !=================================================================
+
+    ! Construct error message
+    MSG = 'Cannot get pointer from HEMCO! Stratospheric Bry data ' // &
+          'is expected to be listed in the HEMCO configuration '   // &
+          'file and the GMI_StratChem extension must be enabled. ' // &
+          'This error occured when trying to get field'
+
+    ! Do for every Bry species
+    DO N = 1,6
+
+       ! Skip if tracer is not defined    
+       IF ( GC_Bry_TrID(N) <= 0 ) CYCLE
+
+       ! Get Bry name
+       ThisName = Input_Opt%TRACER_NAME( GC_Bry_TrID(N) )
+
+       ! Construct field name using Bry name
+       PREFIX = 'GEOSCCM_'//TRIM(ThisName)
+
+       ! Get pointer to this field. These are the mixing ratios (pptv).
+
+       ! Day
+       FIELDNAME = TRIM(PREFIX) // '_DAY'
+       CALL HCO_GetPtr( am_I_Root, FIELDNAME, BrPtrDay(N)%MR, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
+                            'Set_BryPointers (start_chem_mod.F90)' )
+       ENDIF
+
+       ! Night
+       FIELDNAME = TRIM(PREFIX) // '_NIGHT'
+       CALL HCO_GetPtr( am_I_Root, FIELDNAME, BrPtrNight(N)%MR, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
+                            'Set_BryPointers (start_chem_mod.F90)' )
+       ENDIF
+
+    ENDDO !N
+
+    ! Return w/ success
+    RC = GIGC_SUCCESS
+
+  END SUBROUTINE Set_BryPointers 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1759,15 +1916,15 @@ CONTAINS
 
     ! Allocate and initialize bromine arrays
     GC_Bry_TrID(1:6) = (/IDTBr2,IDTBr,IDTBrO,IDTHOBr,IDTHBr,IDTBrNO3/)
-    ALLOCATE( Bry_temp( IIPAR, JJPAR, LGLOB ) )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'Bry_temp' )
-    Bry_temp = 0.
-    ALLOCATE( Bry_day( IIPAR, JJPAR, LLPAR, 6 ) )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'Bry_day' )
-    Bry_day = 0.
-    ALLOCATE( Bry_night( IIPAR, JJPAR, LLPAR, 6 ) )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'Bry_night' )
-    Bry_night = 0.
+!    ALLOCATE( Bry_temp( IIPAR, JJPAR, LGLOB ) )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'Bry_temp' )
+!    Bry_temp = 0.
+!    ALLOCATE( Bry_day( IIPAR, JJPAR, LLPAR, 6 ) )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'Bry_day' )
+!    Bry_day = 0.
+!    ALLOCATE( Bry_night( IIPAR, JJPAR, LLPAR, 6 ) )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'Bry_night' )
+!    Bry_night = 0.
 
     ! Free pointer
     NULLIFY( STT )
@@ -1798,6 +1955,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    INTEGER :: I
 
     IF ( ALLOCATED( PROD       ) ) DEALLOCATE( PROD       )
     IF ( ALLOCATED( LOSS       ) ) DEALLOCATE( LOSS       )
@@ -1805,6 +1963,10 @@ CONTAINS
     IF ( ALLOCATED( MInit      ) ) DEALLOCATE( MInit      )
     IF ( ALLOCATED( TPAUSEL    ) ) DEALLOCATE( TPAUSEL    )
     IF ( ALLOCATED( SCHEM_TEND ) ) DEALLOCATE( SCHEM_TEND )
+    DO I = 1,6
+       BrPtrDay(I)%MR   => NULL()
+       BrPtrNight(I)%MR => NULL()
+    ENDDO
 
   END SUBROUTINE CLEANUP_STRAT_CHEM
 !EOC
