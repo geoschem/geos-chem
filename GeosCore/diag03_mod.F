@@ -239,6 +239,7 @@
 !        (cdh, 8/13/08)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -250,16 +251,18 @@
       INTEGER           :: M,         N,           NN
 !- eds 9/1/10 ---------------------------------------------------------------
       INTEGER           :: NT
-      REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)          :: ARRAY(IIPAR,JJPAR,LLPAR)
 !      REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR,N_Hg_CATS) 
 !----------------------------------------------------------------------------
-      REAL*4            :: LONRES,    LATRES
-      REAL(fp)            :: DIAGb,     DIAGe,       SCALE
+      REAL(f4)          :: LONRES,    LATRES
+      REAL(fp)          :: SCALE
+      REAL(f8)          :: DIAGb,     DIAGe
       CHARACTER(LEN=20) :: MODELNAME 
       CHARACTER(LEN=40) :: CATEGORY,  RESERVED,    UNIT
-      REAL(fp)            :: NCHEMSTEP 
-      REAL(fp)            :: NDIAGSTEP       ! hma, for RGM and PBM
-      REAL(fp)            :: NDIAGSTEP_Hg2   ! hma, for Fg and Fp
+      REAL(fp)          :: NCHEMSTEP 
+      REAL(fp)          :: NDIAGSTEP       ! hma, for RGM and PBM
+      REAL(fp)          :: NDIAGSTEP_Hg2   ! hma, for Fg and Fp
+
       !=================================================================
       ! WRITE_DIAG03 begins here!
       !=================================================================

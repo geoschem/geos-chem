@@ -222,7 +222,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(IN)    :: DTCHEM      ! Time step [seconds]
+      REAL(fp),       INTENT(IN)    :: DTCHEM      ! Time step [seconds]
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -266,18 +266,18 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER :: IM,      JM,         LM,   N_TRACERS
-      INTEGER :: I,       J,          L,    N
-      INTEGER :: K,       M,          LBOT, L_OVERWRLD
-      INTEGER :: NTRACER, NUM_TRACER, LPOS, ITRC
-      REAL(fp)  :: CLIMO3,  CLIMPML,    DCO3, DERO3, DERTMP
-      REAL(fp)  :: DERCO3,  DMASS,      DTMP, SSO3
+      INTEGER  :: IM,      JM,         LM,   N_TRACERS
+      INTEGER  :: I,       J,          L,    N
+      INTEGER  :: K,       M,          LBOT, L_OVERWRLD
+      INTEGER  :: NTRACER, NUM_TRACER, LPOS, ITRC
+      REAL(fp) :: CLIMO3,  CLIMPML,    DCO3, DERO3, DERTMP
+      REAL(fp) :: DERCO3,  DMASS,      DTMP, SSO3
 
       ! Arrays
-      REAL(fp)  :: DCOLO3  (IIPAR,JJPAR,LLPAR                    )
-      REAL(fp)  :: COLO3   (IIPAR,JJPAR,LLPAR                    )
-      REAL(fp)  :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
-      REAL(fp)  :: TCVV    (                  Input_Opt%N_TRACERS)
+      REAL(fp) :: DCOLO3  (IIPAR,JJPAR,LLPAR                    )
+      REAL(fp) :: COLO3   (IIPAR,JJPAR,LLPAR                    )
+      REAL(fp) :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
+      REAL(fp) :: TCVV    (                  Input_Opt%N_TRACERS)
 
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)

@@ -195,6 +195,7 @@
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  23 Jun 2014 - R. Yantosca - Now use Input_Opt%DATA_DIR_1x1
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -203,14 +204,12 @@
 !
       LOGICAL            :: FIRST = .TRUE.
       INTEGER            :: YYYYMMDD, YEAR
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
-      REAL(fp)             :: XTAU
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,1)
+      REAL(f8)           :: XTAU
       CHARACTER(LEN=255) :: FILENAME
-
       CHARACTER(LEN=255) :: LLFILENAME
       REAL*4             :: ARRAY1x1(I1x1,J1x1,1)
-      REAL(fp)             :: INGRID (I1x1,J1x1)
-
+      REAL(fp)           :: INGRID (I1x1,J1x1)
 
       !=================================================================
       ! Initialization

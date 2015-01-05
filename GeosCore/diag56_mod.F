@@ -121,6 +121,7 @@
 !  (2 ) Now scale AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -129,9 +130,10 @@
 !
       INTEGER               :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER               :: JFIRST,    LFIRST,      M,      N         
-      REAL*4                :: ARRAY(IIPAR,JJPAR,1)
-      REAL*4                :: LONRES,    LATRES
-      REAL(fp)                :: DIAGb,     DIAGe,       SCALE
+      REAL(f4)              :: ARRAY(IIPAR,JJPAR,1)
+      REAL(f4)              :: LONRES,    LATRES
+      REAL(fp)              :: SCALE
+      REAL(f8)              :: DIAGb,     DIAGe
       CHARACTER(LEN=20)     :: MODELNAME 
       CHARACTER(LEN=40)     :: CATEGORY,  RESERVED,    UNIT
 

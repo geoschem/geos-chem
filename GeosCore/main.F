@@ -19,6 +19,13 @@
 ! !USES:
 !
       !-----------------------------------------------------------------
+      ! Parameters to define floating-point variables
+      !-----------------------------------------------------------------
+      USE PRECISION_MOD, ONLY : fpp => fp  ! Flexible precision
+      USE PRECISION_MOD, ONLY : f4         ! 4-byte floating point
+      USE PRECISION_MOD, ONLY : f8         ! 8-byte floating point
+
+      !-----------------------------------------------------------------
       ! Basic GEOS-Chem modules
       !-----------------------------------------------------------------
       USE CMN_SIZE_MOD          ! Size parameters
@@ -35,7 +42,6 @@
       USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
       USE TRACER_MOD            ! For error-checking the tracer array
       USE REGRID_A2A_MOD        ! For horizontal regridding
-      USE PRECISION_MOD, ONLY : fpp => fp       ! For GEOS-CHEM Precision (fpp)
       
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
@@ -258,7 +264,7 @@
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
       INTEGER                  :: laiYYYY,       laiMM
-      REAL(fpp)                 :: TAU,           TAUb         
+      REAL(f8)                 :: TAU,           TAUb         
       CHARACTER(LEN=255)       :: ZTYPE
 
       ! Arrays

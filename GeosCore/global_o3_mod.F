@@ -28,12 +28,12 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !            
-      PUBLIC              :: O3
+      PUBLIC                :: O3
       REAL(fp), ALLOCATABLE :: O3(:,:,:)        ! Global monthly mean OH field
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE             :: INIT_GLOBAL_O3
+      PRIVATE               :: INIT_GLOBAL_O3
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references "directory_mod.f" (bmy, 7/20/04)
@@ -118,9 +118,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4               :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL*4               :: ARRAY2(IIPAR,JJPAR,LLPAR)
-      REAL(fp)               :: XTAU
+      REAL(f4)             :: ARRAY(IIPAR,JJPAR,LGLOB)
+      REAL(f4)             :: ARRAY2(IIPAR,JJPAR,LLPAR)
+      REAL(f8)             :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
 
       ! First time flag

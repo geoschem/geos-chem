@@ -1754,13 +1754,13 @@
 !
 ! !LOCAL VARIABLES:
 !      
-      INTEGER            :: I,        IJLOOP,   J
-      INTEGER            :: MINUTE,   TS_SUN,   FACTOR
-      REAL(fp)             :: AHR,      GMT_CUR,  GMT_MID 
+      INTEGER              :: I,        IJLOOP,   J
+      INTEGER              :: MINUTE,   TS_SUN,   FACTOR
       REAL(fp)             :: TIMLOC,   DEC,      C_DEC
       REAL(fp)             :: S_DEC,    R,        YMID_R
       REAL(fp)             :: C_YMID_R, S_YMID_R
-      REAL(fp)             :: SUNCOS,   SUNCOS_MID
+      REAL(fp)             :: AHR,      SUNCOS,   SUNCOS_MID
+      REAL(f8)             :: GMT_CUR,  GMT_MID 
 !
 ! !DEFINED PARAMETERS:
 !

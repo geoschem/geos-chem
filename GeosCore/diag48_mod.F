@@ -168,6 +168,7 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
       ! References to F90 modules
@@ -213,7 +214,8 @@
       LOGICAL, SAVE      :: IS_FULLCHEM, IS_NOy
       LOGICAL, SAVE      :: FIRST = .TRUE.
       INTEGER            :: GMTRC, I, I0, J, J0, L, N, K, R, TMP, W
-      REAL(fp)             :: LT, TAU, Q(LLPAR), SCALEAODnm
+      REAL(fp)           :: LT, Q(LLPAR), SCALEAODnm
+      REAL(f8)           :: TAU
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
       CHARACTER(LEN=255) :: FILENAME

@@ -79,35 +79,35 @@ MODULE STRAT_CHEM_MOD
 ! !PRIVATE TYPES:
 !
   ! Scalars
-  REAL(fp)               :: dTchem          ! chemistry time step [s]
-  INTEGER              :: NSCHEM          ! Number of species upon which to 
+  REAL(fp)              :: dTchem          ! chemistry time step [s]
+  INTEGER               :: NSCHEM          ! Number of species upon which to 
                                           ! apply P's & k's in GEOS-Chem
   ! Arrays
   REAL*4,  ALLOCATABLE, TARGET :: PROD(:,:,:,:)   ! Production rate [v/v/s]
   REAL*4,  ALLOCATABLE, TARGET :: LOSS(:,:,:,:)   ! Loss frequency [s-1]
   REAL*4,  ALLOCATABLE, TARGET :: STRAT_OH(:,:,:) ! Monthly mean OH [v/v]
 
-  CHARACTER(LEN=16)    :: GMI_TrName(NTR_GMI)     ! Tracer names in GMI
-  INTEGER              :: Strat_TrID_GC(NTR_GMI)  ! Maps 1:NSCHEM to STT index
-  INTEGER              :: Strat_TrID_GMI(NTR_GMI) ! Maps 1:NSCHEM to GMI index
+  CHARACTER(LEN=16)     :: GMI_TrName(NTR_GMI)     ! Tracer names in GMI
+  INTEGER               :: Strat_TrID_GC(NTR_GMI)  ! Maps 1:NSCHEM to STT index
+  INTEGER               :: Strat_TrID_GMI(NTR_GMI) ! Maps 1:NSCHEM to GMI index
                      ! (At most NTR_GMI species could overlap between G-C & GMI)
 
   ! Variables for Br strat chemistry, moved here from SCHEM.f
-  REAL*4, ALLOCATABLE  :: Bry_temp(:,:,:) 
-  REAL(fp), ALLOCATABLE  :: Bry_day(:,:,:,:) 
-  REAL(fp), ALLOCATABLE  :: Bry_night(:,:,:,:)
+  REAL*4,   ALLOCATABLE :: Bry_temp(:,:,:) 
+  REAL(fp), ALLOCATABLE :: Bry_day(:,:,:,:) 
+  REAL(fp), ALLOCATABLE :: Bry_night(:,:,:,:)
 
   ! Tracer index of Bry species in GEOS-Chem STT (may differ from br_nos)
-  INTEGER              :: GC_Bry_TrID(6) 
+  INTEGER               :: GC_Bry_TrID(6) 
 
   ! Variables used to calculate the strat-trop exchange flux
-  REAL(fp)               :: TauInit             ! Initial time
-  INTEGER              :: NymdInit, NhmsInit  ! Initial date
-  REAL(fp)               :: TpauseL_Cnt         ! Tropopause counter
-  REAL(fp), ALLOCATABLE  :: TpauseL(:,:)        ! Tropopause level aggregator
-  REAL*4, ALLOCATABLE  :: MInit(:,:,:,:)      ! Init. atm. state for STE period
-  REAL*4, ALLOCATABLE  :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
-                                              !   (total P - L) [kg period-1]
+  REAL(fp)              :: TauInit             ! Initial time
+  INTEGER               :: NymdInit, NhmsInit  ! Initial date
+  REAL(fp)              :: TpauseL_Cnt         ! Tropopause counter
+  REAL(fp), ALLOCATABLE :: TpauseL(:,:)        ! Tropopause level aggregator
+  REAL*4,   ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
+  REAL*4,   ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
+                                               !   (total P - L) [kg period-1]
 
   !=================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -283,9 +283,9 @@ CONTAINS
     LOGICAL           :: prtDebug
     CHARACTER(LEN=16) :: STAMP
     INTEGER           :: I,    J,      L,   N,   NN
-    REAL(fp)            :: dt,   P,      k,   M0,  RC,     M
-    REAL(fp)            :: TK,   RDLOSS, T1L, mOH, BryDay, BryNight
-    REAL(fp)            :: BOXVL
+    REAL(fp)          :: dt,   P,      k,   M0,  RC,     M
+    REAL(fp)          :: TK,   RDLOSS, T1L, mOH, BryDay, BryNight
+    REAL(fp)          :: BOXVL
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     LOGICAL           :: LBRGCCM
@@ -293,14 +293,14 @@ CONTAINS
     INTEGER           :: N_TRACERS
 
     ! Arrays
-    REAL(fp)            :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
-    REAL(fp)            :: BEFORE(IIPAR,JJPAR,LLPAR)
-    REAL(fp)            :: TCVV(Input_Opt%N_TRACERS)
+    REAL(fp)          :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
+    REAL(fp)          :: BEFORE(IIPAR,JJPAR,LLPAR)
+    REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
 
     ! Pointers
-    REAL(fp), POINTER   :: STT(:,:,:,:)
-    REAL(fp), POINTER   :: AD(:,:,:)
-    REAL(fp), POINTER   :: T(:,:,:)
+    REAL(fp), POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER :: AD(:,:,:)
+    REAL(fp), POINTER :: T(:,:,:)
 
     !===============================
     ! DO_STRAT_CHEM begins here!
@@ -633,38 +633,42 @@ CONTAINS
                ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
        ENDDO
 
-    !======================================================================
-    ! H2-HD Simulation
-    !======================================================================
-    ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
-
-       ! H2/HD uses upbdflx_H2, which is a modified Synoz.
-
-       ! Intial conditions
-       STT0(:,:,:,:) = STT(:,:,:,:)
-
-       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
-       CALL UPBDFLX_HD( State_Met, State_Chm )
-       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
-
-       ! Add to tropopause level aggregator for later determining STE flux
-       TpauseL_CNT = TpauseL_CNT + 1e+0_fp
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J )
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
-       ! Aggregate chemical tendency [kg box-1]
-       DO N=1,NSCHEM
-          NN = Strat_TrID_GC(N)
-          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N) + &
-               ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
-       ENDDO
+!------------------------------------------------------------------------------
+! NOTE: This subroutine is obsolete.  You can restore it if you wish.
+! Leave commented out for now. (bmy, 12/19/14)
+!    !======================================================================
+!    ! H2-HD Simulation
+!    !======================================================================
+!    ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
+!
+!       ! H2/HD uses upbdflx_H2, which is a modified Synoz.
+!
+!       ! Intial conditions
+!       STT0(:,:,:,:) = STT(:,:,:,:)
+!
+!       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
+!       CALL UPBDFLX_HD( State_Met, State_Chm )
+!       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
+!
+!       ! Add to tropopause level aggregator for later determining STE flux
+!       TpauseL_CNT = TpauseL_CNT + 1e+0_fp
+!       !$OMP PARALLEL DO       &
+!       !$OMP DEFAULT( SHARED ) &
+!       !$OMP PRIVATE( I, J )
+!       DO J = 1, JJPAR
+!       DO I = 1, IIPAR
+!          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
+!       ENDDO
+!       ENDDO
+!       !$OMP END PARALLEL DO
+!
+!       ! Aggregate chemical tendency [kg box-1]
+!       DO N=1,NSCHEM
+!          NN = Strat_TrID_GC(N)
+!          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N) + &
+!               ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
+!       ENDDO
+!------------------------------------------------------------------------------
 
     ELSE
 
@@ -749,8 +753,7 @@ CONTAINS
 !  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
 !  12 Jun 2013 - R. Yantosca - Now pass st4d, ct4d arrays to NcRd routine.
 !                              This avoids array temporaries.
-!   3 Apr 2014 - R. Yantosca - Now use 
-
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -761,17 +764,17 @@ CONTAINS
     CHARACTER(LEN=255) :: FILENAME, DAYFILE, NIGHTFILE
     INTEGER            :: N,        M,       S
     INTEGER            :: F,        NN,      fileID
-    REAL(fp)             :: XTAU
+    REAL(f8)           :: XTAU
     INTEGER            :: N_TRACERS
 
     ! Arrays
     INTEGER            :: st4d(4)                        ! netCDF start
     INTEGER            :: ct4d(4)                        ! netCDF count
-    REAL*4             :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
+    REAL(f4)           :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
     CHARACTER(LEN=14)  :: TRACER_NAME(Input_Opt%N_TRACERS)
 
     ! Pointers
-    REAL*4,  POINTER   :: ptr_3D(:,:,:)
+    REAL(f4), POINTER  :: ptr_3D(:,:,:)
 
     !=================================================================
     ! GET_RATES begins here
@@ -1018,6 +1021,7 @@ CONTAINS
 !                              running with the traditional driver main.F
 !  26 Aug 2013 - R. Yantosca - Avoid array temporaries
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1029,7 +1033,7 @@ CONTAINS
     INTEGER            :: N,        M,       S 
     INTEGER            :: F,        I,       J
     INTEGER            :: NN,       fileID
-    REAL(fp)             :: XTAU
+    REAL(f8)           :: XTAU
 
     ! Index arrays
     INTEGER            :: II(1)
@@ -1038,21 +1042,21 @@ CONTAINS
     INTEGER            :: ct1d(1), ct4d(4)
 
     ! Arrays defined on the 2 x 2.5 grid
-    REAL*4             :: XMID_COARSE ( 144                    )
-    REAL*4             :: YMID_COARSE (        91              )
-    REAL*4             :: BryTemp     ( 144,   91,    LGLOB    )
-    REAL(fp)             :: BryDay2x25  ( 144,   91,    LLPAR, 6 )
-    REAL(fp)             :: BryNight2x25( 144,   91,    LLPAR, 6 )
+    REAL(f4)           :: XMID_COARSE ( 144                    )
+    REAL(f4)           :: YMID_COARSE (        91              )
+    REAL(f4)           :: BryTemp     ( 144,   91,    LGLOB    )
+    REAL(fp)           :: BryDay2x25  ( 144,   91,    LLPAR, 6 )
+    REAL(fp)           :: BryNight2x25( 144,   91,    LLPAR, 6 )
 
     ! Arrays defined on the nested grid
     ! "f2c" = fine to coarse mapping
     INTEGER            :: I_f2c       ( IIPAR                  )
     INTEGER            :: J_f2c       (        JJPAR           )
-    REAL*4             :: COLUMN      (               LGLOB    )
-    REAL*4             :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
+    REAL(f4)           :: COLUMN      (               LGLOB    )
+    REAL(f4)           :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
 
     ! Pointers
-    REAL*4, POINTER    :: ptr_3D(:,:,:)
+    REAL(f4), POINTER  :: ptr_3D(:,:,:)
 
     ! For values from Input_Opt
     INTEGER            :: N_TRACERS
@@ -1317,12 +1321,12 @@ CONTAINS
     ! Scalars
     CHARACTER(LEN=255) :: dateStart, dateEnd
     INTEGER            :: N,         I,      J,    L,      NN
-    REAL(fp)             :: dStrat,    STE,    Tend, tauEnd, dt
+    REAL(fp)           :: dStrat,    STE,    Tend, tauEnd, dt
 
     ! Arrays
     INTEGER            :: LTP(IIPAR,JJPAR      )
-    REAL(fp)             :: M1 (IIPAR,JJPAR,LLPAR)
-    REAL(fp)             :: M2 (IIPAR,JJPAR,LLPAR)
+    REAL(fp)           :: M1 (IIPAR,JJPAR,LLPAR)
+    REAL(fp)           :: M2 (IIPAR,JJPAR,LLPAR)
 
     ! For fields from Input_Opt
     INTEGER            :: N_TRACERS
@@ -1330,7 +1334,7 @@ CONTAINS
     ! Pointers
     ! We need to define local arrays to hold corresponding values 
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER :: STT(:,:,:,:)
+    REAL(fp), POINTER  :: STT(:,:,:,:)
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! By simple mass balance, dStrat/dt = P - L - STE,

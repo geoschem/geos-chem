@@ -1467,6 +1467,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1475,16 +1476,17 @@
 !
       INTEGER             :: I, J, JLOOP, L, N
       INTEGER, SAVE       :: MONTH_LAST = -999
-      REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
-      REAL(fp)              :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
-      REAL(fp)              :: MSDENS(NDUST), XTAU
+      REAL(f4)            :: TEMP(IIPAR,JJPAR,LGLOB)
+      REAL(fp)            :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
+      REAL(fp)            :: MSDENS(NDUST)
+      REAL(f8)            :: XTAU
       CHARACTER (LEN=255) :: FILENAME
 
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
       ! (tmf, 3/6/09)
-      REAL(fp)             :: XRH
-      REAL(fp)             :: CRITRH      ! Critical RH [%], above which 
-                                        !  heteorogeneous chem takes place
+      REAL(fp)            :: XRH
+      REAL(fp)            :: CRITRH      ! Critical RH [%], above which 
+                                         !  heteorogeneous chem takes place
 
       !=================================================================
       ! RDUST begins here!

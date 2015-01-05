@@ -6959,15 +6959,16 @@
 ! !REVISION HISTORY: 
 !  25 Nov 2009 - C. Holmes   - Initial version
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL*4             :: ARRAY2(IIPAR,JJPAR,LLPAR)
-      REAL(fp)             :: XTAU
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LGLOB)
+      REAL(f4)           :: ARRAY2(IIPAR,JJPAR,LLPAR)
+      REAL(f8)           :: XTAU
       CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
@@ -7360,25 +7361,26 @@
 !  11 Jan 2011 - Y. Zhang    - Initial version
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: NYMD, I, J
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
-      REAL(fp)             :: E_ELECTRICITY_Hg2(IIPAR,JJPAR)
-
-      REAL(fp)             :: XTAU, rFACTOR
-      REAL(fp)             :: E_plant
+      INTEGER             :: NYMD, I, J
+      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
+      REAL(fp)            :: E_ELECTRICITY_Hg2(IIPAR,JJPAR)
+      REAL(f8)            :: XTAU
+      REAL(fp)            :: rFACTOR
+      REAL(fp)            :: E_plant
 
       ! For filename
-      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=255)  :: FILENAME
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER :: SEC_PER_YR = 365.25e+0_fp * 86400e+0_fp
+      REAL(fp), PARAMETER :: SEC_PER_YR = 365.25e+0_fp * 86400e+0_fp
 
       !=================================================================
       ! DO_RED_INPLUME begins here!
@@ -7404,9 +7406,9 @@
       ENDIF
 
       ! Read data in [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                 XTAU,      IIPAR,     JJPAR,
-     &                 1,     ARRAY(:,:,1),     QUIET=.TRUE. )
+      CALL READ_BPCH2( FILENAME, 'HG-SRCE',     6,
+     &                 XTAU,      IIPAR,        JJPAR,
+     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
      
       ! Regrid to the current grid
       E_ELECTRICITY_Hg2 = ARRAY(:,:,1)

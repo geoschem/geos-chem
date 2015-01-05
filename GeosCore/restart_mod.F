@@ -119,7 +119,7 @@
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
       INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
-      REAL(fp),         INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
+      REAL(f8),       INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
@@ -170,12 +170,12 @@
       ! Local Variables      
       INTEGER              :: I,    I0, IOS, J,  J0, L, N
       INTEGER              :: YYYY, MM, DD,  HH, SS
-      REAL*4               :: TRACER(IIPAR,JJPAR,LLPAR)
+      REAL(f4)             :: TRACER(IIPAR,JJPAR,LLPAR)
       CHARACTER(LEN=255)   :: FILENAME
 
       ! For binary punch file, version 2.0
       INTEGER              :: IU_RST
-      REAL*4               :: LONRES, LATRES
+      REAL(f4)             :: LONRES, LATRES
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180 = 1
       
@@ -188,12 +188,12 @@
       ! For fields from Input_Opt
       LOGICAL              :: LPRT
       INTEGER              :: N_TRACERS
-      REAL(fp)               :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER      :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: STT(:,:,:,:)
 
       !=================================================================
       ! MAKE_RESTART_FILE begins here!
