@@ -347,7 +347,9 @@ CONTAINS
                 IF ( RC /= HCO_SUCCESS ) RETURN
              ENDIF
 
+             !-----------------------------------
              ! Emissions per category (NO only)
+             !-----------------------------------
              IF ( TRIM(SpcName) == 'NO' ) THEN
                 
                 ! There are 3 different categories
@@ -401,9 +403,8 @@ CONTAINS
 
                 ENDDO ! J
              ENDIF    ! NO
-          ENDIF       ! fullchem
-       ENDDO          !I
-
+          ENDDO       ! I
+       ENDIF          ! fullchem
     ENDIF             ! testing toggle
 
     ! Leave w/ success
