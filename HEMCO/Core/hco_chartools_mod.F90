@@ -980,8 +980,8 @@ CONTAINS
 ! !ROUTINE: HCO_METTOKEN
 !
 ! !DESCRIPTION: Function HCO\_METTOKEN returns the HEMCO met field character
-! (e.g. GEOS_FP) specified in the HEMCO configuration file settings (e.g. 
-! MET: GEOS_FP). If not set in the HEMCO config. file, a default value is 
+! (e.g. GEOS\_FP) specified in the HEMCO configuration file settings (e.g. 
+! MET: GEOS\_FP). If not set in the HEMCO config. file, a default value is 
 ! taken based on the compiler switches.
 !\\
 !\\

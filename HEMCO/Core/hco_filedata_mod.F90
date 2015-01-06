@@ -66,10 +66,10 @@
 ! \item nt: time dimension. length of vector V3 or V2. For internal use 
 !       only.
 ! \item DeltaT: time interval between time slices. For internal use only.
-      ! ID i (e.g. cIDList(3) points to data-container w/ cID = 3). 
+!       ID i (e.g. cIDList(3) points to data-container w/ cID = 3). 
 ! \item DoShare: will be set to True if this file data object is shared
 !       by multiple data containers. For internal use only. 
-! \itme IsInList: will be set to True if this file data object is part
+! \item IsInList: will be set to True if this file data object is part
 !       of the emissions list EmisList. For internal use only.
 ! \end{itemize}
 !

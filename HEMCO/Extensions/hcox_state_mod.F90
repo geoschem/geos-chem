@@ -402,6 +402,7 @@ CONTAINS
 !  pointer links (i.e. nullifies ExtDat\%Arr), but does not deallocate 
 !  the target array!
 !\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE ExtStateFinal( ExtState )

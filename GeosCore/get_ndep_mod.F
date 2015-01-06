@@ -12,7 +12,7 @@
 !\\
 ! This module is basically a simple wrapper module to save out the nitrogen
 ! dry and wet deposition rates and pass them to HEMCO for soil NOx emission 
-! calculation (via hcoi_gc_main_mod.F90).
+! calculation (via hcoi\_gc\_main\_mod.F90).
 !\\
 !\\
 ! IMPORTANT: Routine RESET\_DEP\_N resets the deposition arrays to zero. It

@@ -36,10 +36,10 @@
 !   applied to all countries with no specific values listed. The .txt 
 !   file must be structured as follows:
 !
-!   # Country mask file name
+!   \# Country mask file name
 !   CountryMask
 !
-!   # CountryName CountryID CountryValues
+!   \# CountryName CountryID CountryValues
 !   DEFAULT   0 1.0/1.0/1.0/1.0/1.0/1.0/1/0
 !   USA     840 0.8/0.9/1.0/1.1/1.2/1.1/0.9
 !
@@ -2396,6 +2396,9 @@ CONTAINS
 ! such as $ROOT, $YYYY, etc., within the file name and replaces those values 
 ! with the intendend characters. The parsed file name is returned in string
 ! srcFile, while the original file name is retained in Lct.
+!\\
+!\\
+! !INTERFACE:
 !
   SUBROUTINE SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, RC )
 !
