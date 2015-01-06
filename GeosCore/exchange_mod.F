@@ -174,7 +174,7 @@
       CALL DONE_LOCK_ME_UP()
       CALL WAIT_FOR_UNLOCK()
 
-      END SUBROUTINE EXCHANGE_GLOBAL_INIT()
+      END SUBROUTINE EXCHANGE_GLOBAL_INIT
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -200,7 +200,7 @@
       CALL DONE_LOCK_ME_UP()
       CALL WAIT_FOR_UNLOCK()
 
-      END SUBROUTINE EXCHANGE_NESTED_INIT()
+      END SUBROUTINE EXCHANGE_NESTED_INIT
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -224,7 +224,6 @@
       USE DAO_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
-      USE CMN_MOD               ! Size parameters
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -254,15 +253,17 @@
 !
 ! !LOCAL VARIABLES:
 !     
-      REAL*8,         POINTER       :: STT(:,:,:,:)
+      INTEGER         :: N_TRACERS
+      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       N_TRACERS =  Input_Opt%N_TRACERS
       TCVV      =  Input_Opt%TCVV(1:N_TRACERS)
       STT       => State_Chm%Tracers
 
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_GLOBAL_POST"
-      CALL DONE_LOCK_ME_UP
-      CALL WAIT_FOR_UNLOCK
+      CALL DONE_LOCK_ME_UP()
+      CALL WAIT_FOR_UNLOCK()
 
       IF ( IS_EXCHANGE ) THEN
 
@@ -322,7 +323,7 @@
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_NESTED_PRE"
       CALL WAIT_FOR_UNLOCK()
 
-      END SUBROUTINE EXCHANGE_NESTED_PRE()
+      END SUBROUTINE EXCHANGE_NESTED_PRE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -344,7 +345,6 @@
       USE DAO_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
-      USE CMN_MOD               ! Size parameters
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -376,7 +376,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8,         POINTER       :: STT(:,:,:,:)
+      INTEGER          :: N_TRACERS
+      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
+      REAL*8,  POINTER :: STT(:,:,:,:)
 
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV(1:N_TRACERS)
@@ -399,8 +401,8 @@
      &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
      &     2,ILONG,ILAT,IPVERT) !mol -> mol/cm3
 
-      CALL DONE_LOCK_ME_UP
-      CALL WAIT_FOR_UNLOCK
+      CALL DONE_LOCK_ME_UP()
+      CALL WAIT_FOR_UNLOCK()
 
       END SUBROUTINE EXCHANGE_NESTED_POST
 !EOC
@@ -471,8 +473,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-
-
       INTEGER                   :: ALLOCATE_RES
       REAL*8, ALLOCATABLE       :: REGRID_MAT_L_TRANS(:,:)
 
@@ -489,7 +489,7 @@
       NESTED_NA_NAME = 'NESTED_NA'
       NESTED_EU_NAME = 'NESTED_EU'
 
-      IF ( am_I_Root )
+      IF ( am_I_Root ) THEN
       WRITE ( LOAD_CH_CSPEC_FNAME, '(A, A, A, A)' )TRIM(EXCHANGE_DIR),
      &            '/dump.cspec.', TRIM(NESTED_CH_NAME), '.dump'
       WRITE ( LOAD_CH_TRACER_FNAME, '(A, A, A, A)' )TRIM(EXCHANGE_DIR),
@@ -522,7 +522,7 @@
 
 #endif
 
-      IF ( am_I_Root )
+      IF ( am_I_Root ) THEN
       WRITE ( DUMP_CSPEC_FNAME, '(A, A, A, A)' ) TRIM(EXCHANGE_DIR),
      &            '/dump.cspec.', TRIM(MY_NAME), '.dump'
       WRITE ( DUMP_TRACER_FNAME, '(A, A, A, A)' ) TRIM(EXCHANGE_DIR),
@@ -762,10 +762,8 @@
 !
       USE ERROR_MOD
       USE COMODE_MOD
-!      USE TRACER_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
-      USE CMN_MOD               ! Size parameters
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -794,11 +792,12 @@
 !
       REAL*8,         POINTER       :: STT(:,:,:,:)
       REAL*8,         POINTER       :: CSPEC_FULL(:,:,:,:)
-      INTEGER                       :: L, I
+      INTEGER                       :: L, I, N_TRACERS
       LOGICAL                       :: LPRT
 
       STT        => State_Chm%Tracers
       CSPEC_FULL => State_Chm%Species
+      N_TRACERS  =  Input_Opt%N_TRACERS
       LPRT       =  ( am_I_Root .and. Input_Opt%LPRT )
       IF ( am_I_Root ) THEN
          WRITE (*,*) "@@@@@@@@@@@@@@@@@@ EX_DUMP_FOR_GLOBAL"
@@ -861,7 +860,6 @@
       USE TRACER_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
-      USE CMN_MOD               ! Size parameters
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -894,11 +892,12 @@
 
       REAL*8,         POINTER       :: STT(:,:,:,:)
       REAL*8,         POINTER       :: CSPEC_FULL(:,:,:,:)
-      INTEGER                       :: L
+      INTEGER                       :: L, N_TRACERS
       LOGICAL                       :: LPRT
 
       STT        => State_Chm%Tracers
       CSPEC_FULL => State_Chm%Species
+      N_TRACERS  = Input_Opt%N_TRACERS
       LPRT       =  ( am_I_Root .and. Input_Opt%LPRT ) 
 
       IF ( LPRT ) THEN
@@ -1129,7 +1128,7 @@
       WRITE ( EXT_COMMAND, '(A, A)' ) "rm -f ", TRIM(UNLOCK_FNAME)
 
       DO
-         CALL ALERT_FOR_KILL_COMMAND
+         CALL ALERT_FOR_KILL_COMMAND()
          INQUIRE( FILE = TRIM(UNLOCK_FNAME), EXIST = RES )
          IF ( RES .EQV. .TRUE. ) THEN
             CALL SYSTEM( TRIM(EXT_COMMAND) )
@@ -1233,7 +1232,7 @@
          WRITE (*,*) "!!!!!!!!!!!!!!!! Got KILL Command : ",
      &               TRIM(KILL_FNAME), " , STOPPING everything."
          CALL SYSTEM( TRIM(EXT_COMMAND) )
-         CALL GEOS_CHEM_STOP
+         CALL GEOS_CHEM_STOP()
       ENDIF
 
       END SUBROUTINE ALERT_FOR_KILL_COMMAND

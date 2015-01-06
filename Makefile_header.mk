@@ -501,49 +501,49 @@ endif
 # %%%%% China (CH) and 4x5 %%%%%
 REGEXP               :=(^4.5[Cc][Hh]|^4\.0.5\.0[Cc][Hh])
 ifeq ($(shell [[ "$(COUPLECH)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DEXCHANGE_4x5_CH
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_4x5_CH
 endif
 
 # %%%%% Europe (EU) and 4x5 %%%%%
 REGEXP               :=(^4.5[Ee][Uu]|^4\.0.5\.0[Ee][Uu])
 ifeq ($(shell [[ "$(COUPLEEU)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DEXCHANGE_4x5_EU
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_4x5_EU
 endif
 
 # %%%%% North America (NA) and 4x5 %%%%%
 REGEXP               :=(^4.5[Nn][Aa]|^4\.0.5\.0[Nn][Aa])
 ifeq ($(shell [[ "$(COUPLENA)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DEXCHANGE_4x5_NA
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_4x5_NA
 endif
 
 # %%%%% SE Asia (SE) and 4x5 %%%%%
 REGEXP               :=(^4.5[Nn][Aa]|^4\.0.5\.0[Nn][Aa])
 ifeq ($(shell [[ "$(COUPLESE)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DEXCHANGE_4x5_SE
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_4x5_SE
 endif
 
 # %%%%% China (CH) and 2x2.5 %%%%%
 REGEXP               :=(^2.25[Cc][Hh]|^2.2\.5[Cc][Hh]|^2\.0.2\.5[Cc][Hh])
 ifeq ($(shell [[ "$(COUPLECH)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DEXCHANGE_2x25_CH
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_2x25_CH
 endif
 
 # %%%%% Europe (EU) and 2x2.5 %%%%%
 REGEXP               :=(^2.25[Ee][Uu]|^2.2\.5[Ee][Uu]|^2\.0.2\.5[Ee][Uu])
 ifeq ($(shell [[ "$(COUPLEEU)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DEXCHANGE_2x25_EU
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_2x25_EU
 endif
 
 # %%%%% North America (NA) and 2x2.5 %%%%%
 REGEXP               :=(^2.25[Nn][Aa]|^2.2\.5[Nn][Aa]|^2\.0.2\.5[Nn][Aa])
 ifeq ($(shell [[ "$(COUPLENA)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DEXCHANGE_2x25_NA
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_2x25_NA
 endif
 
 # %%%%% SE Asia (SE) and 2x2.5 %%%%%
 REGEXP               :=(^2.25[Nn][Aa]|^2.2\.5[Nn][Aa]|^2\.0.2\.5[Nn][Aa])
 ifeq ($(shell [[ "$(COUPLESE)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DEXCHANGE_2x25_SE
+  USER_DEFS          += -DEXCHANGE -DEXCHANGE_2x25_SE
 endif
 
 # %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
