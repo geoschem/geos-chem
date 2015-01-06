@@ -1979,7 +1979,7 @@ CONTAINS
   END SUBROUTINE DiagnCont_Link_3D
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
