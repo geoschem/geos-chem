@@ -114,6 +114,9 @@
       USE A3_READ_MOD           ! For reading A3 data (all other met)
       USE A6_READ_MOD           ! For reading A6 data (all other met)
       USE I6_READ_MOD           ! For reading I6 data (all other met)
+#if defined( EXCHANGE )
+      USE EXCHANGE_MOD          ! For two-way coupled simulations
+#endif
 
       !-----------------------------------------------------------------
       ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
@@ -244,6 +247,7 @@
 !  25 Jul 2014 - R. Yantosca - Remove reference to commsoil_mod.F90
 !  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
 !  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -680,6 +684,29 @@
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
       ENDIF
 
+!-----------------------------------------------------------------------------
+! TWO-WAY NESTING OPTION
+! This is only invoked when compiling GEOS-Chem with COUPLE=y
+!
+#if defined( EXCHANGE )
+
+      ! Initialize the two-way nesting.  This will only get done if you
+      ! compile GEOS-Chem with EXCHANGE=yes. (yanyy, 03/28/14)
+      CALL INIT_EXCHANGE( am_I_Root )
+
+# if defined( GRID4x5 ) || defined( GRID2x25 )
+
+      ! Initialize exchange of global boundary conditions
+      CALL EXCHANGE_GLOBAL_INIT()
+
+#elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_SE )
+      ! Initialize exchange of nested boundary conditions
+      CALL EXCHANGE_NESTED_INIT()
+
+# endif
+#endif
+!-----------------------------------------------------------------------------
+
       !=================================================================
       !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
       !=================================================================      
@@ -1089,7 +1116,31 @@
             IF ( LWINDO ) THEN
                CALL SAVE_GLOBAL_TPCORE_BC
      &            ( am_I_Root, Input_Opt, State_Chm, RC )
-               ENDIF
+            ENDIF
+
+!-----------------------------------------------------------------------------
+! TWO-WAY NESTING OPTION
+! This is only invoked when compiling GEOS-Chem with COUPLE=y
+!
+#if defined( EXCHANGE )
+# if defined( GRID4x5 ) || defined( GRID2x25 )
+
+            ! Exchange the position of POST (global simulations)
+            IF ( ITS_TIME_FOR_EXCHANGE() ) THEN 
+               CALL EXCHANGE_GLOBAL_POST
+     &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            ENDIF
+            
+ 8          # elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_SE )
+
+            ! Exchange the position of POST (nested-grid simulations)
+            IF ( ITS_TIME_FOR_EXCHANGE() ) THEN
+               CALL EXCHANGE_NESTED_POST
+     &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            ENDIF
+# endif
+#endif
+!-----------------------------------------------------------------------------
 
             ! Call the appropritate version of TPCORE
             IF ( LTRAN ) THEN 
@@ -1601,6 +1652,16 @@
 
       ! Deallocate the derived type object w/ mapping info
       CALL CLEANUP_MAPPING( mapping )
+
+!-----------------------------------------------------------------------------
+! TWO-WAY NESTING OPTION
+! This is only invoked when compiling GEOS-Chem with COUPLE=y
+!
+#if defined( EXCHANGE )
+      ! Finalize the two-way nesting
+      CALL CLEANUP_EXCHANGE( am_I_Root )
+#endif
+!-----------------------------------------------------------------------------
 
       ! Free the shadow variables in error_mod.F
       CALL CLEANUP_ERROR()
