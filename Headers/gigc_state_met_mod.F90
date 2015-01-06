@@ -118,7 +118,8 @@ MODULE GIGC_State_Met_Mod
      ! 3-D Fields                  
      !----------------------------------------------------------------------
      REAL(fp), POINTER :: AD        (:,:,:) ! Air mass [kg]
-     REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Air density [kg/m3]
+     REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
+     REAL(fp), POINTER :: MAIRDEN   (:,:,:) ! Moist air density [kg/m3]
      REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3]
      REAL(fp), POINTER :: AREA_M2   (:,:,:) ! Grid box surface area [cm2]
      REAL(fp), POINTER :: AVGW      (:,:,:) ! Mixing ratio of water vapor
@@ -594,6 +595,10 @@ CONTAINS
     ALLOCATE( State_Met%AIRDEN    ( IM, JM, LM   ), STAT=RC )  
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AIRDEN   = 0.0_fp
+    
+    ALLOCATE( State_Met%MAIRDEN    ( IM, JM, LM   ), STAT=RC )  
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%MAIRDEN   = 0.0_fp
                               
     ALLOCATE( State_Met%AIRVOL    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
@@ -956,6 +961,7 @@ CONTAINS
     ! 3-D fields
     IF ( ASSOCIATED( State_Met%AD         )) DEALLOCATE( State_Met%AD         )
     IF ( ASSOCIATED( State_Met%AIRDEN     )) DEALLOCATE( State_Met%AIRDEN     )
+    IF ( ASSOCIATED( State_Met%MAIRDEN    )) DEALLOCATE( State_Met%MAIRDEN    )
     IF ( ASSOCIATED( State_Met%AIRVOL     )) DEALLOCATE( State_Met%AIRVOL     )
     IF ( ASSOCIATED( State_Met%AREA_M2    )) DEALLOCATE( State_Met%AREA_M2    )
     IF ( ASSOCIATED( State_Met%AVGW       )) DEALLOCATE( State_Met%AVGW       )

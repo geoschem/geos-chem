@@ -251,9 +251,9 @@
 ! !IROUTINE: airqnt
 !
 ! !DESCRIPTION: Subroutine AIRQNT calculates the volume [m\^3 and cm\^3], mass 
-!  [kg], density, [kg/m\^3], and pressure thickness [hPa] of air for each grid 
-!  box (I,J,L).   The quantity (surface pressure - PTOP) [hPa] at each surface 
-!  grid box (I,J) is also computed. 
+!  [kg], dry air density [kg/m\^3], moist air density [kg/m\^3], and pressure 
+!  thickness [hPa] of air for each grid box (I,J,L).   The quantity (surface 
+!  pressure - PTOP) [hPa] at each surface grid box (I,J) is also computed. 
 !\\
 !\\
 ! !INTERFACE:
@@ -335,7 +335,7 @@
 !
 
       INTEGER :: I,  J,  L
-      REAL(fp)  :: P1, P2, AREA_M2
+      REAL(fp)  :: P1, P2, AREA_M2, Psat, Pv, Pd
 
       !=================================================================
       ! AIRQNT begins here! 
@@ -362,6 +362,19 @@
 
          ! Pressure difference between top & bottom edges [hPa]
          State_Met%DELP(I,J,L)     = P1 - P2
+
+         ! Empirical formulation for saturation pressure of water [Pa].
+         ! Temperature is converted to Kelvin, and hPa converted to Pa.
+         ! Parameters 7.5, 237.3, and 6.1078 are empirically-derived.
+         Psat = 10**( 7.5 * ( State_Met%T(I,J,L) - 274.15 )
+     &                / ( State_Met%T(I,J,L) - 274.14 + 237.3 ) )
+     &                * 6.1078 * 100         
+
+         ! Partial pressure of water vapor [Pa]
+         Pv = State_Met%RH(I,J,L) * Psat
+
+         ! Partial pressure of dry air [Pa]
+         Pd = State_Met%PMID(I,J,L) - Pv 
 
          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
@@ -412,10 +425,28 @@
      &                       * AREA_M2
 
          !===========================================================
-         ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
+         ! AIRDEN = dry density of air (AD / AIRVOL) in kg / m^3 
          !===========================================================
          State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L) 
      &                           / State_Met%AIRVOL(I,J,L)
+
+
+         !===========================================================
+         ! AIRDEN = moist density of air in kg / m^3,
+         ! given by:
+         !
+         !             Partial      Molec     Partial       Molec
+         !             pressure   * wt of   + pressure of * wt of 
+         !             of dry air   air       water vapor   water
+         ! Moist     (  [Pa]       [g/mol]     [Pa]       [g/mol] )
+         ! Air     =  -----------------------------------------------           
+         ! Density      Universal gas constant  * Temp * 1000 
+         !                     [J/K/mol]          [K]   [g/kg]
+         !
+         !===========================================================
+         State_Met%MAIRDEN(I,J,L) = ( Pd * AIRMW + Pv * H2OMW ) / 1000
+     &                            / RSTARTG / State_Met%T(I,J,L) 
+
 
       ENDDO
       ENDDO
