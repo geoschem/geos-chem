@@ -126,12 +126,11 @@
       REAL(fp), PARAMETER           :: R_UNIV = 8.31448e+0_fp
       INTEGER,  PARAMETER           :: INITMR_BASIS = 2005
 
+#if defined(ESMF_)
       ! Never use NETCDF in ESMF environment (ckeller, 12/05/14). 
-#if defined(UCX_)
       LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
 #else
-      !LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
-      LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
+      LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
 #endif
 
       ! OCS and H2 surface boundary conditions
