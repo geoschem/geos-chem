@@ -750,7 +750,7 @@
 !
 ! !IROUTINE: ex_dump_for_global
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: ?
 !\\
 !\\
 ! !INTERFACE:
@@ -846,7 +846,7 @@
 !
 ! !IROUTINE: ex_read_and_apply_feedback
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: ?
 !\\
 !\\
 ! !INTERFACE:
@@ -989,8 +989,8 @@
 !
 ! !IROUTINE: ex_regrid_up
 !
-! !DESCRIPTION:  This subroutine will be called within EX_DUMP_FOR_GLOBAL,
-!  Using module's global vars: REGRID_MAT_L, REGRID_MAT_R
+! !DESCRIPTION:  This subroutine will be called within EX\_DUMP\_FOR\_GLOBAL,
+!  Using module's global vars: REGRID\_MAT\_L, REGRID\_MAT\_R
 !\\
 !\\
 ! !INTERFACE:
@@ -1104,7 +1104,7 @@
 !
 ! !IROUTINE: wait_for_unlock
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Waits for MPI unlock.
 !\\
 !\\
 ! !INTERFACE:
@@ -1147,7 +1147,7 @@
 !
 ! !IROUTINE: done_lock_me_up
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: ?
 !\\
 !\\
 ! !INTERFACE:
@@ -1175,7 +1175,7 @@
 !
 ! !IROUTINE: no_more_lock
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: ?
 !\\
 !\\
 ! !INTERFACE:

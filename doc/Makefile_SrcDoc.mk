@@ -83,6 +83,7 @@
 #                              for Fast-J.
 #  08 Jul 2014 - R. Yantosca - Removed obsolete routines from the list
 #  06 Jan 2015 - M. Sulprizio- Remove additional routines made obsolete by HEMCO
+#  07 Jan 2015 - R. Yantosca - Added exchange_mod (i.e. 2-way nesting)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -130,6 +131,7 @@ $(CORE)/diag_oh_mod.F                 \
 $(CORE)/diag_mod.F                    \
 $(CORE)/drydep_mod.F                  \
 $(CORE)/dust_mod.F                    \
+$(CORE)/exchange_mod.F                \
 $(CORE)/fast_jx_mod.F                 \
 $(CORE)/gamap_mod.F                   \
 $(CORE)/gcap_read_mod.F               \
