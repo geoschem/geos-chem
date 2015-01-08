@@ -24,7 +24,7 @@
 !
       PUBLIC :: INIT_CHEMISTRY
       PUBLIC :: DO_CHEMISTRY
-#IF DEFINED ( KPP )
+#IF DEFINED ( USE_REAL8 )
       PUBLIC :: GCKPP_DRIVER
 #ENDIF
       PUBLIC :: RECOMPUTE_OD
@@ -58,6 +58,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 May 2014 - C. Keller   - Added INIT_CHEMISTRY
 !  15 Dec 2014 - M. Yannetti - KPP code is commented out unless compiling KPP
+!  08 Jan 2015 - M. Sulprizio- Now restrict KPP to REAL*8 to allow for KPP code
+!                              to compile properly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -631,7 +633,7 @@
 
       END SUBROUTINE DO_CHEMISTRY
 !EOC
-#IF DEFINED ( KPP )
+#IF DEFINED ( USE_REAL8 )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
