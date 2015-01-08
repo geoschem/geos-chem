@@ -911,6 +911,7 @@
 !  14 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -929,7 +930,7 @@
       REAL(fp),  PARAMETER     :: A2   = -4.28e-5_fp
       REAL(fp),  PARAMETER     :: A3   =  2.52e-6_fp
       REAL(fp),  PARAMETER     :: A4   = -2.35e-8_fp
-      REAL(fp),  PARAMETER     :: EPSI = 1.0e-4_fp 
+      REAL(f8),  PARAMETER     :: EPSI = 1.0e-4_f8 
 !
 ! !LOCAL VARIABLES:
 !
@@ -939,13 +940,13 @@
       REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
       REAL(fp)                 :: FAC2,   FLUX,  AREA_CM2, RHB
       ! replace RCM (radius in CM with RUM radius in microns) jaegle 5/11/11
-      REAL(fp)                 :: RUM,    RWET,  RATIO_R,  RHO 
+      REAL(fp)                 :: RUM,    RWET,  RATIO_R
       REAL(fp)                 :: TOT1,   TOT2
       REAL(fp)                 :: VTS(LLPAR)  
       REAL(fp)                 :: TC0(LLPAR)
       ! added variables for density calculation (jaegle, bec 5/11/11)
-      REAL(fp)                 :: RHO1, WTP
-      
+      REAL(f8)                 :: RHO1, WTP, RHO
+ 
       ! Arrays
       INTEGER                :: IDDEP(2)
       INTEGER                :: IDTRC(2)	
@@ -1054,25 +1055,25 @@
             ! (bec, jaegle 5/11/11)
             RATIO_R = ( REFF / RWET )
             ! Assume an initial density of 1000 kg/m3
-            RHO  = 1000.D0
-            RHO1 = 0.e+0_fp !initialize (bec, 6/21/10)
+            RHO  = 1000.e+0_f8
+            RHO1 = 0.e+0_f8 !initialize (bec, 6/21/10)
             DO WHILE ( ABS( RHO1-RHO ) .gt. EPSI )
                 ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet) 
-                WTP    = 100.e+0_fp * DEN/RHO * RATIO_R**3.e+0_fp
+                WTP    = 100.e+0_f8 * DEN/RHO * RATIO_R**3.e+0_f8
                 ! Then calculate density of wet aerosol using equation 5 
                 ! in Tang et al., 1997 [kg/m3]
-                RHO1   = ( 0.9971e+0_fp + (A1 * WTP) 
-     $          + (A2 * WTP**2.e+0_fp)
-     $          + (A3 * WTP**3.e+0_fp) 
-     $          + (A4 * WTP**4.e+0_fp) ) * 1000.e+0_fp
+                RHO1   = ( 0.9971e+0_f8 + (A1 * WTP) 
+     $          + (A2 * WTP**2.e+0_f8)
+     $          + (A3 * WTP**3.e+0_f8) 
+     $          + (A4 * WTP**4.e+0_f8) ) * 1000.e+0_f8
                 ! Now calculate new weight percent using above density
                 ! calculation
-                WTP    = 100.e+0_fp * DEN/RHO1 * RATIO_R**3.e+0_fp
+                WTP    = 100.e+0_f8 * DEN/RHO1 * RATIO_R**3.e+0_f8
                 ! Now recalculate new wet density [kg/m3]
-                RHO   = ( 0.9971e+0_fp + (A1 * WTP) 
-     $          + (A2 * WTP**2.e+0_fp)
-     $          + (A3 * WTP**3.e+0_fp) 
-     $          + (A4 * WTP**4.e+0_fp) ) * 1000.e+0_fp
+                RHO   = ( 0.9971e+0_f8 + (A1 * WTP) 
+     $          + (A2 * WTP**2.e+0_f8)
+     $          + (A3 * WTP**3.e+0_f8) 
+     $          + (A4 * WTP**4.e+0_f8) ) * 1000.e+0_f8
             ENDDO
 
             ! Dp = particle diameter [um]
@@ -3215,6 +3216,7 @@
 !            
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  06 Jan 2015 - M. Yannetti - Set some variables to f8 that required it
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3234,9 +3236,10 @@
       REAL(fp)                 :: kSO2p, kSO2p2
       REAL(fp)                 :: kHNO3p, kNH3p, kHClp
       INTEGER                :: count
-      REAL(fp)                 :: E, F, G, H, P, Q, R, A, B
-      REAL(fp)                 :: A2, A1, A0, X, Y
+      REAL(fp)                 :: E, F, G, H, P, Q, R
+      REAL(fp)                 :: X, Y
       REAL(fp)                 :: CRUTES( 3 ) ! Coeff and roots of cubic equation
+      REAL(f8)                 :: A, B, A1, A2, A0
       INTEGER                :: NR          ! Number of roots to cubic equation
 
       !=================================================================
@@ -3300,10 +3303,10 @@
 
 	 R = F/H
 
-	 A = (1.e+0_fp/3.e+0_fp)*((3.e+0_fp*Q)-(P*P))
+	 A = (1.e+0_f8/3.e+0_f8)*((3.e+0_f8*Q)-(P*P))
 
-  	 B = (1.e+0_fp/27.e+0_fp)*((2.0e+0_fp*P*P*P)
-     &        -(9.0e+0_fp*P*Q)+(27.0e+0_fp*R))
+  	 B = (1.e+0_f8/27.e+0_f8)*((2.0e+0_f8*P*P*P)
+     &        -(9.0e+0_f8*P*Q)+(27.0e+0_f8*R))
 
  	 A2 = 0.
  	 A1 = A
@@ -3813,7 +3816,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER           :: NR
-      REAL(fp)            :: A2, A1, A0
+      REAL(f8)            :: A2, A1, A0
       REAL(fp)            :: CRUTES(3)
 !
 ! !REMARKS:
@@ -3832,6 +3835,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  06 Jan 2015 - M. Yannetti - Manual changes of some variables to f8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3844,29 +3848,31 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)            :: QQ,    RR,    A2SQ,  THETA, DUM1, DUM2
-      REAL(fp)            :: PART1, PART2, PART3, RRSQ,  PHI,  YY1
+      REAL(fp)            :: A2SQ,  THETA 
+      REAL(f8)            :: PART1, PART2, PART3, YY1
       REAL(fp)            :: YY2,   YY3,   COSTH, SINTH
+      REAL(f8)            :: PHI,   DUM1,  DUM2,  RRSQ
+      REAL(f8)            :: QQ,    RR
 
       !=================================================================
       ! CUBIC begins here!
       !=================================================================
       A2SQ = A2 * A2
-      QQ   = ( A2SQ - 3.e+0_fp*A1 ) / 9.e+0_fp
-      RR   = ( A2*( 2.e+0_fp*A2SQ - 9.e+0_fp*A1 ) + 27.e+0_fp*A0 ) 
-     &       / 54.e+0_fp
+      QQ   = ( A2SQ - 3.e+0_f8 * A1 ) / 9.e+0_f8
+      RR   = ( A2*( 2.e+0_f8*A2SQ - 9.e+0_f8*A1 ) + 27.e+0_f8*A0 ) 
+     &       / 54.e+0_f8
 
       ! CASE 1 THREE REAL ROOTS or  CASE 2 ONLY ONE REAL ROOT
       DUM1 = QQ * QQ * QQ
       RRSQ = RR * RR
       DUM2 = DUM1 - RRSQ
 
-      IF ( DUM2 .GE. 0.e+0_fp ) THEN
+      IF ( DUM2 .GE. 0.e+0_f8 ) THEN
 
          ! Now we have three real roots
          PHI = SQRT( DUM1 )
 
-         IF ( ABS( PHI ) .LT. 1.e-20_fp ) THEN
+         IF ( ABS( PHI ) .LT. 1.e-20_f8 ) THEN
             CRUTES(1) = 0.0e+0_fp
             CRUTES(2) = 0.0e+0_fp
             CRUTES(3) = 0.0e+0_fp

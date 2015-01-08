@@ -16,6 +16,7 @@
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
 
       IMPLICIT NONE
       PRIVATE
@@ -282,10 +283,17 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: STT(:,:,:,:)
+
+      ! From Input_Opt
+      LOGICAL      :: LPRT
       
       !=================================================================
       ! LINOZ_CHEM3 begins here!
       !=================================================================
+
+      ! From Input_Opt
+      LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
+
 
       ! Assume success
       RC         = GIGC_SUCCESS
@@ -369,7 +377,11 @@
 
          ! Start at top layer and continue to lowest layer for strat. chem
          OUT_DATA = 0e+0_fp
-
+         !IF ( LPRT ) THEN
+         ! PRINT*, '### NUM_TRACER: ', NUM_TRACER
+         ! PRINT*, '### ITRC: ', ITRC, 'JM: ', JM , 'IM', IM
+         ! CALL FLUSH(6) 
+         !END IF
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L    )
@@ -377,12 +389,20 @@
 !$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS        )
          DO J = 1, JM
          DO I = 1, IM
+
+            !IF ( LPRT ) THEN
+            ! PRINT*, '### I: ', I, 'J: ', J
+            ! CALL FLUSH(6) 
+            !END IF
+
             LBOT = GET_CHEMGRID_LEVEL( I, J, State_Met )+1
             LPOS = 1
-            DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3e+0_fp)
+            DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3e+0_f8)
                LPOS = LPOS +1
             ENDDO
             LPOS = LPOS-1
+
+          !  IF (LPRT) CALL DEBUG_MSG('DONE GET_PEDGE')
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             !-----------------------------------------------------------
@@ -411,11 +431,18 @@
      &                STT(I,J,(L_OVERWRLD+1):LLPAR,1)
             ENDIF
 #endif
+           ! IF ( LPRT ) CALL DEBUG_MSG( '### LINOZ_CHEM3: at LM, LBOT')
+          ! IF (LPRT) CALL DEBUG_MSG('DONE TAGOX')
 
             ! Loop over levels
             DO L = LM, LBOT, -1
+            ! IF ( LPRT ) THEN
+            !   PRINT*, '### STT: ', STT(I,J,L,NTRACER)
+            !   CALL FLUSH(6) 
+            ! ENDIF
 
                ! Skip if tracer is negative
+               
                IF ( STT(I,J,L,NTRACER) .LE. 0.e+0_fp ) CYCLE
 
                ! calculate ozone column above box (and save)
@@ -469,7 +496,7 @@
                ! LINOX valid only up to 58 km, so do not use above 0.3 hPa
                ! dbj: impose exponential fall off of mixing ratio 
                ! between 0.3 and 0.01 hPa (with fall off of a scale height)
-               IF (GET_PEDGE(I,J,L) .LE. 0.3e+0_fp) THEN
+               IF (GET_PEDGE(I,J,L) .LE. 0.3e+0_f8) THEN
                   STT(I,J,L,NTRACER) = 
      &                (GET_PCENTER(I,J,L)/GET_PCENTER(I,J,LPOS-1)) * 
      &                STT(I,J,LPOS-1,NTRACER)
@@ -488,7 +515,7 @@
       !write(6,*) 'max of columns= ',maxval(out_data)
 
       ENDDO
-
+      IF (LPRT) CALL DEBUG_MSG('DONE LINOZ_CHEM3')
       ! Free pointer
       NULLIFY( STT )
 

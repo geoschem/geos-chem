@@ -223,19 +223,24 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Now remove references to tracer_mod.F
+!  08 Jan 2015 - M. Yannetti - Set variables to F8 as needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: SUM_OHMASS, SUM_MASS, SUM_OHLOSS, OHCONC, LIFETIME
-      REAL(fp) :: SUM_OHCH4LOSS, SUM_CH4MASS
-      REAL(fp) :: SUM_CH4EMIS, SUM_CH4TROPMASS
-     
+      REAL(f8) :: SUM_OHMASS, SUM_MASS, SUM_OHLOSS
+      REAL(f8) :: SUM_OHCH4LOSS, SUM_CH4MASS
+      REAL(f8) :: SUM_CH4EMIS, SUM_CH4TROPMASS
+      REAL(fp) :: OHCONC, LIFETIME
+      
+      LOGICAL  :: LPRT
       !=================================================================
       ! PRINT_DIAG_OH begins here!
       !=================================================================
+
+      LPRT = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! Assume success
       RC         = GIGC_SUCCESS
@@ -243,6 +248,11 @@
       ! Return if this diagnostic is turned off
       IF ( .not. DO_SAVE_OH ) RETURN
 
+
+      !IF ( LPRT ) THEN
+      ! PRINT*, "### OH_MASS: ", OH_MASS
+      ! FLUSH (6)
+      !END IF
       ! Total Mass-weighted OH [molec OH/cm3] * [molec air]
       SUM_OHMASS = SUM( OH_MASS )
 

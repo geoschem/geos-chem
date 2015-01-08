@@ -570,7 +570,7 @@
      &  CORIG(  KBLOOP,  MXGSAER)
 
       ! /DKBLOOP0/ needs to be held THREADPRIVATE
-      REAL(fp)  :: CC2(KBLOOP,0:MXARRAY)  
+      REAL(f8)  :: CC2(KBLOOP,0:MXARRAY)  
 
       INTEGER, ALLOCATABLE :: MLOP(:,:), JLOP_SMV(:,:,:)
 
