@@ -1814,7 +1814,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine DiagnCont\_Link\_2D links the data of container
 ! DgnCont to the 2D array Tgt2D. This will disable all time averaging, 
-! unit conversion, etc., i.e. the data will returned as is.
+! unit conversion, etc., i.e. the data will be returned as is.
 !\\
 !\\
 ! !INTERFACE:
@@ -1899,7 +1899,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine DiagnCont\_Link\_3D links the data of container
 ! DgnCont to the 3D array Tgt3D. This will disable all time averaging, 
-! unit conversion, etc., i.e. the data will returned as is.
+! unit conversion, etc., i.e. the data will be returned as is.
 !\\
 !\\
 ! !INTERFACE:
