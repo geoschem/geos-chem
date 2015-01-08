@@ -447,7 +447,7 @@
          !
          !===========================================================
          State_Met%MAIRDEN(I,J,L) = ( Pd * AIRMW + Pv * H2OMW ) / 1000
-     &                            / RSTARTG / State_Met%T(I,J,L) 
+     &                            / RSTARG / State_Met%T(I,J,L) 
 
 
       ENDDO

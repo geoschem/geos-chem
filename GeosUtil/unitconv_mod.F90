@@ -18,6 +18,7 @@ MODULE UnitConv_Mod
 ! !USES:
 !
   ! GEOS-Chem Modules
+  USE CMN_SIZE_MOD          ! Size parameters
   USE ERROR_MOD             ! Error-handling routines
   USE PRECISION_MOD         ! GEOS-Chem Flexible Precision (fp)
                     
@@ -32,7 +33,7 @@ MODULE UnitConv_Mod
   PUBLIC  :: Convert_MMR_to_KG     ! kg / kg       -> kg / grid box
   PUBLIC  :: Convert_MMR_to_VR     ! kg / kg       -> vol / vol
   PUBLIC  :: Convert_MMR_to_MND    ! kg / kg       -> molec / cm3
-  PUBLIC  :: Convert_KG_to MMR     ! kg / grid box -> kg / kg
+  PUBLIC  :: Convert_KG_to_MMR     ! kg / grid box -> kg / kg
   PUBLIC  :: Convert_VR_to_MMR     ! vol / vol     -> kg / kg
   PUBLIC  :: Convert_MND_to_MMR    ! molec / cm3   -> kg / kg
 !
@@ -69,23 +70,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Convert_MMR_to_KG( N_TRACERS, MAIRDEN, TCMW, STT ) 
+  SUBROUTINE Convert_MMR_to_KG( N_TRACERS, MAIRDEN, GBVOL, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Number of tracers
-      INTEGER, INTENT(IN)    :: N_TRACERS 
+    ! Number of tracers
+    INTEGER, INTENT(IN)    :: N_TRACERS 
 
-      ! Array containing grid box moist air density [kg/m3]
-      REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
+    ! Array containing grid box moist air density [kg/m3]
+    REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
 
-      ! Array containing molecule weight for tracers [kg/molecule]
-      REAL(fp),  INTENT(IN)    :: TCMW(N_TRACERS)
+    ! Array containing grid box volume [m3]
+    REAL(fp),  INTENT(IN)    :: GBVOL(IIPAR,JJPAR,LLPAR)
 !
 ! !OUTPUT PARAMETERS:
 !
-      ! Array containing tracer concentration [kg]
-      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    ! Array containing tracer concentration [kg]
+    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
 ! !REMARKS
 !
@@ -98,11 +99,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, N
+    INTEGER :: I, J, L, N
 
-      !=================================================================
-      ! Convert_MMR_to_KG begins here!
-      !=================================================================
+    !=================================================================
+    ! Convert_MMR_to_KG begins here!
+    !=================================================================
 
          !==============================================================
          !
@@ -129,22 +130,22 @@ CONTAINS
          !                   
          !==============================================================
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, N ) 
-            DO N = 1, N_TRACERS
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               STT(I,J,L,N) = STT(I,J,L,N) * MAIRDEN(I,J,L) * GBVOL(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        STT(I,J,L,N) = STT(I,J,L,N) * MAIRDEN(I,J,L) * GBVOL(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
-      END SUBROUTINE Convert_MMR_to_KG
+    ! Return to calling program
+    END SUBROUTINE Convert_MMR_to_KG
 !EOC
 
 
@@ -162,20 +163,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Convert_MMR_to_VR( N_TRACERS, TCVV, STT ) 
+    SUBROUTINE Convert_MMR_to_VR( N_TRACERS, TCVV, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Number of tracers
-      INTEGER, INTENT(IN)    :: N_TRACERS 
+    ! Number of tracers
+    INTEGER, INTENT(IN)    :: N_TRACERS 
 
-      ! Array containing ratio of air to tracer molecular weights
-      REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
+    ! Array containing ratio of air to tracer molecular weights
+    REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
 
 ! !OUTPUT PARAMETERS:
 !
-      ! Array containing tracer concentration [vol/vol]
-      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    ! Array containing tracer concentration [vol/vol]
+    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
 ! !REMARKS (edit this)
 !  The volume ratio is the same as the molar ratio [mol/mol] under the 
@@ -190,11 +191,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, N
+    INTEGER :: I, J, L, N
 
-      !=================================================================
-      ! Convert_MMR_to_VR begins here!
-      !=================================================================
+    !=================================================================
+    ! Convert_MMR_to_VR begins here!
+    !=================================================================
 
          !==============================================================
          !
@@ -221,23 +222,23 @@ CONTAINS
          !    = STT(I,J,L,N) [kg/kg] * TCVV(N)
          !                   
          !==============================================================
+ 
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        STT(I,J,L,N) = STT(I,J,L,N) * TCVV(N)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      !$OMP END PARALLEL DO
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, N ) 
-            DO N = 1, N_TRACERS
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               STT(I,J,L,N) = STT(I,J,L,N) * TCVV(N)
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-      ! Return to calling program
-      END SUBROUTINE Convert_MMR_to_VR
+    ! Return to calling program
+    END SUBROUTINE Convert_MMR_to_VR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -253,23 +254,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Convert_MMR_to_MND( N_TRACERS, MAIRDEN, TCMW, STT ) 
+    SUBROUTINE Convert_MMR_to_MND( N_TRACERS, MAIRDEN, TCMW, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Number of tracers
-      INTEGER, INTENT(IN)    :: N_TRACERS 
+    ! Number of tracers
+    INTEGER, INTENT(IN)    :: N_TRACERS 
 
-      ! Array containing grid box moist air density [kg/m3]
-      REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
+    ! Array containing grid box moist air density [kg/m3]
+    REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
 
-      ! Array containing molecule weight for tracers [kg/molecule]
-      REAL(fp),  INTENT(IN)    :: TCMW(N_TRACERS)
+    ! Array containing molecule weight for tracers [kg/molecule]
+    REAL(fp),  INTENT(IN)    :: TCMW(N_TRACERS)
 !
 ! !OUTPUT PARAMETERS:
 !
-      ! Array containing tracer concentration [molecules/cm3]
-      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    ! Array containing tracer concentration [molecules/cm3]
+    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
 ! !REMARKS
 !
@@ -282,11 +283,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, N
+    INTEGER :: I, J, L, N
 
-      !=================================================================
-      ! Convert_MMR_to_MND begins here!
-      !=================================================================
+    !=================================================================
+    ! Convert_MMR_to_MND begins here!
+    !=================================================================
 
          !==============================================================
          !
@@ -298,7 +299,7 @@ CONTAINS
          !
          !   = mass mixing ratio * air density / tracer molecular weight  
          !   
-         !   = moleculates per cm3
+         !   = molecules per cm3
          !
          ! Therefore, with:
          !
@@ -313,22 +314,22 @@ CONTAINS
          !                   
          !==============================================================
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, N ) 
-            DO N = 1, N_TRACERS
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               STT(I,J,L,N) = STT(I,J,L,N) * MAIRDEN(I,J,L) * 1E-6 / TCMW(N)
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        STT(I,J,L,N) = STT(I,J,L,N) * MAIRDEN(I,J,L) * 1E-6 / TCMW(N)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      !$OMP END PARALLEL DO
 
-      ! Return to calling program
-      END SUBROUTINE Convert_MMR_to_MND
+    ! Return to calling program
+    END SUBROUTINE Convert_MMR_to_MND
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -344,23 +345,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Convert_KG_to_MMR( N_TRACERS, MAIRDEN, TCMW, STT ) 
+    SUBROUTINE Convert_KG_to_MMR( N_TRACERS, MAIRDEN, GBVOL, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Number of tracers
-      INTEGER, INTENT(IN)    :: N_TRACERS 
+    ! Number of tracers
+    INTEGER, INTENT(IN)    :: N_TRACERS 
 
-      ! Array containing grid box moist air density [kg/m3]
-      REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
+    ! Array containing grid box moist air density [kg/m3]
+    REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
 
-      ! Array containing molecule weight for tracers [kg/molecule]
-      REAL(fp),  INTENT(IN)    :: TCMW(N_TRACERS)
+    ! Array containing grid box volume [m3]
+    REAL(fp),  INTENT(IN)    :: GBVOL(IIPAR,JJPAR,LLPAR)
 !
 ! !OUTPUT PARAMETERS:
 !
-      ! Array containing tracer concentration [kg/kg]
-      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    ! Array containing tracer concentration [kg/kg]
+    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
 ! !REMARKS
 !
@@ -373,11 +374,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, N
+    INTEGER :: I, J, L, N
 
-      !=================================================================
-      ! Convert_KG_to_MMR begins here!
-      !=================================================================
+    !=================================================================
+    ! Convert_KG_to_MMR begins here!
+    !=================================================================
 
          !==============================================================
          !
@@ -404,22 +405,22 @@ CONTAINS
          !                   
          !==============================================================
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, N ) 
-            DO N = 1, N_TRACERS
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               STT(I,J,L,N) = STT(I,J,L,N) / MAIRDEN(I,J,L) / GBVOL(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        STT(I,J,L,N) = STT(I,J,L,N) / MAIRDEN(I,J,L) / GBVOL(I,J,L)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      !$OMP END PARALLEL DO
 
-      ! Return to calling program
-      END SUBROUTINE Convert_KG_to_MMR
+    ! Return to calling program
+    END SUBROUTINE Convert_KG_to_MMR
 !EOC
 
 
@@ -437,20 +438,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Convert_VR_to_MMR( N_TRACERS, TCVV, STT ) 
+    SUBROUTINE Convert_VR_to_MMR( N_TRACERS, TCVV, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Number of tracers
-      INTEGER, INTENT(IN)    :: N_TRACERS 
+    ! Number of tracers
+    INTEGER, INTENT(IN)    :: N_TRACERS 
 
-      ! Array containing ratio of air to tracer molecular weights
-      REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
+    ! Array containing ratio of air to tracer molecular weights
+    REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
 
 ! !OUTPUT PARAMETERS:
 !
-      ! Array containing tracer concentration [kg/kg]
-      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    ! Array containing tracer concentration [kg/kg]
+    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
 ! !REMARKS (edit this)
 !  The volume ratio is the same as the molar ratio [mol/mol] under the 
@@ -465,11 +466,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, N
+    INTEGER :: I, J, L, N
 
-      !=================================================================
-      ! Convert_VR_to_MMR begins here!
-      !=================================================================
+    !=================================================================
+    ! Convert_VR_to_MMR begins here!
+    !=================================================================
 
          !==============================================================
          !
@@ -495,22 +496,22 @@ CONTAINS
          !                   
          !==============================================================
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, N ) 
-            DO N = 1, N_TRACERS
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               STT(I,J,L,N) = STT(I,J,L,N) / TCVV(N)
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        STT(I,J,L,N) = STT(I,J,L,N) / TCVV(N)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+      !$OMP END PARALLEL DO
 
-      ! Return to calling program
-      END SUBROUTINE Convert_VR_to_MMR
+    ! Return to calling program
+    END SUBROUTINE Convert_VR_to_MMR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -526,23 +527,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Convert_MND_to_MMR( N_TRACERS, MAIRDEN, TCMW, STT ) 
+    SUBROUTINE Convert_MND_to_MMR( N_TRACERS, MAIRDEN, TCMW, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Number of tracers
-      INTEGER, INTENT(IN)    :: N_TRACERS 
+    ! Number of tracers
+    INTEGER, INTENT(IN)    :: N_TRACERS 
 
-      ! Array containing grid box moist air density [kg/m3]
-      REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
+    ! Array containing grid box moist air density [kg/m3]
+    REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
 
-      ! Array containing molecule weight for tracers [kg/molecule]
-      REAL(fp),  INTENT(IN)    :: TCMW(N_TRACERS)
+    ! Array containing molecule weight for tracers [kg/molecule]
+    REAL(fp),  INTENT(IN)    :: TCMW(N_TRACERS)
 !
 ! !OUTPUT PARAMETERS:
 !
       ! Array containing tracer concentration [molecules/cm3]
-      REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
 ! !REMARKS
 !
@@ -555,11 +556,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, N
+    INTEGER :: I, J, L, N
 
-      !=================================================================
-      ! Convert_MND_to_MMR begins here!
-      !=================================================================
+    !=================================================================
+    ! Convert_MND_to_MMR begins here!
+    !=================================================================
 
          !==============================================================
          !
@@ -586,20 +587,21 @@ CONTAINS
          !                   
          !==============================================================
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, N ) 
-            DO N = 1, N_TRACERS
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               STT(I,J,L,N) = STT(I,J,L,N) / MAIRDEN(I,J,L) * 1E+6 * TCMW(N)
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( I, J, L, N ) 
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+        STT(I,J,L,N) = STT(I,J,L,N) / MAIRDEN(I,J,L) * 1E+6 * TCMW(N)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
-      END SUBROUTINE Convert_MND_to_MMR
+    ! Return to calling program
+    END SUBROUTINE Convert_MND_to_MMR
 !EOC
+END MODULE UnitConv_Mod
