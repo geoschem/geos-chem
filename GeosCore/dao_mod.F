@@ -277,7 +277,8 @@
 !  (2 ) DELP     (REAL(fp) ) : Delta-P extent  of a grid box   [mb      ]
 !  (3 ) AIRVOL   (REAL(fp) ) : Volume  of air  in a grid box   [m^3     ]
 !  (4 ) AD       (REAL(fp) ) : Mass    of air  in a grid box   [kg      ]
-!  (5 ) AIRDEN   (REAL(fp) ) : Density of air  in a grid box   [kg/m^3  ]
+!  (5 ) AIRDEN   (REAL(fp) ) : Density of dry air in a grid box  [kg/m^3]
+!  (6 ) MAIRDEN  (REAL(fp) ) : Density of moist air in a grid box [kg/m^3]
 ! 
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
@@ -327,6 +328,7 @@
 !                              type object
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%DELP(I,J,L)
+!  07 Jan 2015 - E. Lundgren - Add new Met field moist air density
 !EOP
 !------------------------------------------------------------------------------
 !BOC
