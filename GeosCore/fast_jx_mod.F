@@ -2782,6 +2782,7 @@ c------------key arrays AFTER solving for J's---------------------------
       real*8   VALJL(JXL_,X_) !2-D array of J_s returned by JRATET
 
       integer  L2EDGE, I,J,K,L,M,KMIE,IDXAER
+      INTEGER  KMIE2, IR
       real*8   XQO3,XQO2,WAVE, TTTX
 C-----------------------------------------------------------------------
       ! For compatibility with GEOS-Chem (SDE 03/30/13)
@@ -2799,6 +2800,12 @@ C-----------------------------------------------------------------------
       ! AD64 diagnostics
       REAL*8, DIMENSION(JXL1_) :: FDIRECT, FDIFFUSE
 
+      !Maps the new LUT optics wavelengths on to 
+      !the 5 jv_spec_mie.dat wavelengths
+      ! N.B. currently 200nm and 300nm data is the same in
+      ! jv_spec_mie.dat, so we copy from new LUT 300nm for both
+      INTEGER LUTIDX(5) 
+      LUTIDX = (/1,1,2,6,10/)
       !=================================================================
       ! PHOTO_JX begins here!
       !=================================================================
@@ -2876,11 +2883,18 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
        enddo
       enddo
 
+       ! Clunky fix to accomodate RRTMG and UCX (DAR 01/2015)
+       ! Using a combination of old optics LUT format and
+       ! new optics format (greater spectral resolution and range
+       ! for RRTMG). Clouds, non-tracer aerosols and strat aerosols 
+       ! are not incorporated into the new LUT so must still use the
+       ! old LUT for these.
+
        ! Don't bother on extraneous level - leave as zero
        do L = 1,L_
           DO KMIE=1,5
-             ! Clouds, aerosols, mineral dust
-             DO M=1,AN_
+             ! Clouds and non-tracer aerosols
+             DO M=1,3
                 IF (AERX_COL(M,L).gt.0d0) THEN
                    IDXAER=MIEDX(M)
                    IF (IDXAER.lt.15) THEN
@@ -2903,7 +2917,89 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
                    ENDDO ! I (Phase function)
                 ENDIF
              ENDDO ! M (Aerosol)
+
+#if defined( UCX )
+             ! Strat aerosols
+             IM=10+(NRHAER*NRH)+1
+             DO M=IM,IM+1
+                IF (AERX_COL(M,L).gt.0d0) THEN
+                   IDXAER=MIEDX(M)
+                   IF (IDXAER.lt.15) THEN
+                      ! Cloud (600 nm scaling)
+                      QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
+                   ELSEIF (AOD999) THEN
+                      ! Aerosol/dust (999 nm scaling)
+                      QSCALING = QAA(KMIE,IDXAER)/QAA(IND999,IDXAER)
+                   ELSE
+                      ! Aerosol/dust (550 nm scaling)
+                      QSCALING = QAA(KMIE,IDXAER)/QAA_AOD(IDXAER)
+                   ENDIF
+                   LOCALOD = QSCALING*AERX_COL(M,L)
+                   LOCALSSA = SAA(KMIE,IDXAER)*LOCALOD
+                   OD(KMIE,L) = OD(KMIE,L) + LOCALOD
+                   SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
+                   DO I=1,8
+                      SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
+     &                            (PAA(I,KMIE,IDXAER)*LOCALSSA)
+                   ENDDO ! I (Phase function)
+                ENDIF
+             ENDDO ! M (Aerosol)
+
+#endif
+             
+             KMIE2=LUTIDX(KMIE)
+             ! Mineral dust (from new optics LUT)
+             DO M=4,10
+                IF (AERX_COL(M,L).gt.0d0) THEN
+                   IDXAER=6
+                   IR=M-3
+                   IF (AOD999) THEN
+                      !write(6,*) L,KMIE2,IR,IDXAER,QQAA(KMIE2,IR,IDXAER)
+                      QSCALING = QQAA(KMIE2,IR,IDXAER)/
+     &                           QQAA(10,IR,IDXAER) !1000nm in new .dat
+                   ELSE
+                      ! Aerosol/dust (550 nm scaling)
+                      QSCALING = QQAA(KMIE2,IR,IDXAER)/
+     &                           QQAA(5,IR,IDXAER)  !550nm in new .dat
+                   ENDIF
+                   LOCALOD = QSCALING*AERX_COL(M,L)
+                   LOCALSSA = SSAA(KMIE2,IR,IDXAER)*LOCALOD
+                   OD(KMIE,L) = OD(KMIE,L) + LOCALOD
+                   SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
+                   DO I=1,8
+                      SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
+     &                            (PHAA(KMIE2,IR,IDXAER,I)*LOCALSSA)
+                   ENDDO ! I (Phase function)
+                ENDIF
+             ENDDO ! M (Aerosol)
+
+             ! Other aerosol (from new optics LUT)
+             DO M=1,5
+                IF (AERX_COL(M+10,L).gt.0d0) THEN
+                  DO IR=1,5
+                  IDXAER=(IDXAER-1)*NRH+IR+10
+                  !write(6,*) L,KMIE2,IR,IDXAER,QQAA(KMIE2,IR,IDXAER)
+                   IF (AOD999) THEN
+                      QSCALING = QQAA(KMIE2,IR,IDXAER)/
+     &                           QQAA(10,IR,IDXAER) !1000nm in new .dat
+                   ELSE
+                      ! Aerosol/dust (550 nm scaling)
+                      QSCALING = QQAA(KMIE2,IR,IDXAER)/
+     &                           QQAA(5,IR,IDXAER)  !550nm in new .dat
+                   ENDIF
+                   LOCALOD = QSCALING*AERX_COL(M,L)
+                   LOCALSSA = SSAA(KMIE2,IR,IDXAER)*LOCALOD
+                   OD(KMIE,L) = OD(KMIE,L) + LOCALOD
+                   SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
+                   DO I=1,8
+                      SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
+     &                            (PHAA(KMIE2,IR,IDXAER,I)*LOCALSSA)
+                   ENDDO ! I (Phase function)
+                  ENDDO  ! IR (RH bins)
+                ENDIF
+             ENDDO ! M (Aerosol)
           ENDDO ! KMIE (Mie scattering wavelength bin)
+
 
           ! Normalize
           DO KMIE=1,5

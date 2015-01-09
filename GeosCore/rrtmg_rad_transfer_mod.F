@@ -83,7 +83,7 @@
 !
       SUBROUTINE DO_RRTMG_RAD_TRANSFER( THISDAY,   THISMONTH, ICLD, 
      &                                  ISPECMENU, ISEED,     Input_Opt,
-     &                                  State_Met  )
+     &                                  State_Met, State_Chm  )
 !
 ! !USES:
 !
@@ -110,13 +110,14 @@
       USE CMN_FJX_MOD,  ONLY : SPECMASK,IRTWVSELECT,NWVSELECT,WVSELECT
       USE CMN_FJX_MOD,  ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE CMN_FJX_MOD,  ONLY : WVAA, NWVAA
-      USE CMN_FJX_MOD,  ONLY : NWVAA0,DO3
+      USE CMN_FJX_MOD,  ONLY : NWVAA0
 
       USE TOMS_MOD,     ONLY: GET_OVERHEAD_O3
       USE GRID_MOD,     ONLY : GET_YMID
 
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
   
       INTEGER, PARAMETER  :: NWV=37
 !
@@ -131,6 +132,7 @@
 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 
       LOGICAL             :: DOAERAD      ! INCLUDE AEROSOL DETERMINED FROM SPECMASK
       LOGICAL             :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
@@ -212,7 +214,9 @@
       REAL(KIND=RB) :: H2OVMR   (IIPAR*JJPAR,LLPAR)
       REAL(KIND=RB) :: TLAY     (IIPAR*JJPAR,LLPAR)
       REAL(KIND=RB) :: PLAY     (IIPAR*JJPAR,LLPAR)
+      REAL(KIND=RB) :: SUNCOS   (IIPAR*JJPAR,LLPAR)
       REAL(KIND=RB) :: TSFC     (IIPAR*JJPAR)
+      
 
       !VARIABLES FOR OBTAINING STRATOSPHERIC VARIABLES
       REAL*8       :: O3COL, YLAT, AIR_TMP
@@ -244,6 +248,12 @@
       REAL (KIND=RB)  :: TLEV(IIPAR*JJPAR,LLPAR+1)
       REAL (KIND=RB)  :: CO2VMR(IIPAR*JJPAR,LLPAR)
       REAL (KIND=RB)  :: O2VMR(IIPAR*JJPAR,LLPAR)
+      REAL (KIND=RB)  :: O3_CTM(LLPAR)
+      REAL (KIND=RB)  :: T_CLIM(LLPAR)
+      REAL (KIND=RB)  :: O3_CLIM(LLPAR)
+      REAL (KIND=RB)  :: Z_CLIM(LLPAR)
+      REAL (KIND=RB)  :: AIR_CLIM(LLPAR)
+
 
 ! SW SOLAR VARIABLES
       REAL(KIND=RB)  :: ADJES=1.0              ! FLUX ADJUSTMENT FOR EARTH/SUN DISTANCE
@@ -435,9 +445,9 @@
          H2OVMR (IJLOOP,L) = State_Met%AVGW(I,J,L)
          TLAY   (IJLOOP,L) = State_Met%T(I,J,L)
          INTROP (IJLOOP,L) = ITS_IN_THE_TROP( I, J, L, State_Met )
+         SUNCOS (IJLOOP,L) = State_Met%SUNCOS(I,J)
       ENDDO
-      TSFC   (IJLOOP)   = State_Met%TSKIN(I,J)
-
+      TSFC  (IJLOOP)   = State_Met%TSKIN(I,J)
       ENDDO
       ENDDO
 !OMP PARALLEL DO
@@ -511,9 +521,14 @@
            !! DENSITY OF AIR IN MOLEC/CM2
            AIR_TMP = AVG*AIR_TMP/WTAIR
            O3COL = GET_OVERHEAD_O3(I,J)
-           CALL SET_PROF_O3 (I,J,YLAT,THISMONTH,THISDAY,
-     &                       State_Met%T(I,J,:),O3COL)
-           O3VMR(IJLOOP,L) = DO3(L)/AIR_TMP
+           O3_CTM          = 0d0
+           O3_CTM(1:L)     = State_Chm%Tracers(I,J,1:L,IDO3)
+
+           CALL SET_PROF_O3 (YLAT,THISMONTH,THISDAY,
+     &                       State_Met%T(I,J,:), State_Met%PEDGE(I,J,:),
+     &                       O3_CTM, O3COL, T_CLIM,
+     &                       O3_CLIM,  Z_CLIM,  AIR_CLIM, Input_Opt)
+           O3VMR(IJLOOP,L) = O3_CLIM(L)/AIR_TMP
 
             !GET SCALINGS IF THIS IS THE FIRST LEVEL IN THE STRAT
             IF (FLG_FIRST_STRAT(IJLOOP).EQ.0) THEN
@@ -824,7 +839,10 @@
         LW_DFLUXC(IL,:) = DFLXC(1,:)
       ENDIF !LW
       IF (Input_Opt%LSWRAD) THEN
-
+        ! 1-D INDEX
+        IJLOOP         = (J-1)*IIPAR+I
+        I = IL - (J-1)*IIPAR
+        I = MOD(IL,IIPAR)
         CALL RRTMG_SW 
      &       (ONECOL    ,LLPAR    ,ICLDMCL , 
      &        PCENTER(IL,:)    ,PLEV(IL,:),TLAY(IL,:),TLEV(IL,:),
@@ -833,7 +851,7 @@
      &        CH4VMR(IL,:)  ,N2OVMR(IL,:)  ,O2VMR(IL,:), 
      &        ALBDIRVIS(IL) ,ALBDIFVIS(IL) ,
      &        ALBDIRNIR(IL) ,ALBDIFNIR(IL) , 
-     &        State_Met%SUNCOS(IL) ,ADJES   ,DOY  ,SCON    , 
+     &        SUNCOS(IL,:) ,ADJES   ,DOY  ,SCON    , 
      &        INFLGSW ,ICEFLGSW,LIQFLGSW,
      &        CLDFMCL_SW(:,IL,:),TAUCMCL_SW(:,IL,:),
      &        SSACMCL(:,IL,:),ASMCMCL(:,IL,:),FSFCMCL(:,IL,:), 
