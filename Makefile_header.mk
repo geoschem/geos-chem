@@ -151,6 +151,7 @@
 #  14 Nov 2014 - R. Yantosca - Further updates for hpc compilation
 #  21 Nov 2014 - R. Yantosca - Add special compilation command for ISORROPIA
 #  21 Nov 2014 - R. Yantosca - Add cosmetic changes and indentation 
+#   9 Jan 2015 - M. Sulprizio- Now properly link to the RRTMG directory
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -287,8 +288,10 @@ endif
 #------------------------------------------------------------------------------
 
 # %%%%% RRTMG %%%%%
+RRTMG_NEEDED         :=0
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
+  RRTMG_NEEDED       :=1
   USER_DEFS          += -DRRTMG
 endif
 
@@ -612,7 +615,11 @@ NCL                  := $(NC_LINK_CMD)
 ifeq ($(GTMM_NEEDED),1)
   LINK               :=-L$(LIB) -lHg
 else
+ifeq ($(RRTMG_NEEDED),1)
+  LINK               :=-L$(LIB) -lrad
+else
   LINK               :=-L$(LIB)
+endif
 endif
 LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
 LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
