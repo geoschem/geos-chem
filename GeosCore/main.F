@@ -35,6 +35,7 @@
       USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
       USE TRACER_MOD            ! For error-checking the tracer array
       USE REGRID_A2A_MOD        ! For horizontal regridding
+      USE UNITCONV_MOD          ! For gas concentration unit conversion
       USE PRECISION_MOD, ONLY : fpp => fp       ! For GEOS-CHEM Precision (fpp)
       
       !-----------------------------------------------------------------
@@ -342,6 +343,7 @@
       LOGICAL                  :: USE_OLSON_2001
       INTEGER                  :: N_TRACERS 
       REAL(fpp),  POINTER       :: TCVV(:)
+      REAL(fpp),  POINTER       :: XNUMOL(:)  ! temporary for unitconv testing
       !-----------------------------------------------------------------
 
       !=================================================================
@@ -455,6 +457,7 @@
       USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
       N_TRACERS           =  Input_Opt%N_TRACERS  
       TCVV                => Input_Opt%TCVV
+      XNUMOL              => Input_Opt%XNUMOL ! Temporary for unitconv testing
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
@@ -1074,6 +1077,65 @@
          ENDIF
 
          !==============================================================
+         !   ***** NEW UNIT CONVERSION SUBROUTINE TESTING *****
+         !   *****         TEMPORARY CODE STARTS HERE     *****
+         !==============================================================
+         
+         IF ( ITS_TIME_FOR_UNIT() ) THEN
+            ! Change units: vol/vol -> mass mixing ratio
+            CALL Convert_VR_to_MMR( N_TRACERS, TCVV, STT )
+
+            !### Debug
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a Convert_VR_to_MMR' )
+            ENDIF   
+
+            ! Change units: mass mixing ratio -> molecules /cm3 (Molec # dens)
+            CALL Convert_MMR_to_MND( N_TRACERS, State_Met%MAIRDEN, 
+     &                               XNUMOL, STT )
+
+            !### Debug
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_MND' )
+            ENDIF
+
+            ! Change units: molecules / cm3 -> mass mixing ratio
+            CALL Convert_MND_to_MMR( N_TRACERS, State_Met%MAIRDEN, 
+     &                               XNUMOL, STT )
+
+            !### Debug
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a Convert_MND_to_MMR' )
+            ENDIF
+
+            ! Change units: mass mixing ratio -> kg
+            CALL Convert_MMR_to_KG( N_TRACERS, State_Met%MAIRDEN, 
+     &                              State_Met%AIRVOL, STT )
+
+            !### Debug
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_KG' )
+            ENDIF
+
+            ! Change units: kg -> mass mixing ratio
+            CALL Convert_KG_to_MMR( N_TRACERS, State_Met%MAIRDEN, 
+     &                              State_Met%AIRVOL, STT )
+
+            !### Debug
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a Convert_KG_to_MMR' )
+            ENDIF
+
+            ! Change units: mass mixing ratio -> vol/vol
+            CALL Convert_MMR_to_VR( N_TRACERS, TCVV, STT )
+
+            !### Debug
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_VR' )
+            ENDIF
+         ENDIF
+
+         !==============================================================
          !              ***** T R A N S P O R T *****
          !==============================================================
          IF ( ITS_TIME_FOR_DYN() ) THEN
@@ -1576,7 +1638,7 @@
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
 
       ! Free pointers (mpayer, 12/6/12)
-      NULLIFY( STT, TCVV )
+      NULLIFY( STT, TCVV, XNUMOL )
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )

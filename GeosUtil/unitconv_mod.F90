@@ -75,7 +75,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     ! Number of tracers
-    INTEGER, INTENT(IN)    :: N_TRACERS 
+    INTEGER, INTENT(IN)      :: N_TRACERS 
 
     ! Array containing grid box moist air density [kg/m3]
     REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
@@ -130,8 +130,8 @@ CONTAINS
          !                   
          !==============================================================
 
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
       !$OMP PRIVATE( I, J, L, N ) 
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
@@ -142,7 +142,7 @@ CONTAINS
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+      !$OMP END PARALLEL DO
 
     ! Return to calling program
     END SUBROUTINE Convert_MMR_to_KG
@@ -168,7 +168,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     ! Number of tracers
-    INTEGER, INTENT(IN)    :: N_TRACERS 
+    INTEGER, INTENT(IN)      :: N_TRACERS 
 
     ! Array containing ratio of air to tracer molecular weights
     REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
@@ -201,14 +201,12 @@ CONTAINS
          !
          !  The conversion is as follows:
          !
-         !   kg tracer(N)      kg air        molecule tracer(N)    
-         !   -----------  * ------------  *  ------------------  
-         !     kg air       air molecule        kg tracer(N)          
+         !   kg tracer(N)    g air      mol tracer(N)    
+         !   -----------  * -------  *  -------------  
+         !     kg air       mol air      g tracer(N)          
          !
-         !   = mass mixing ratio * ratio of air to tracer molecular wts  
+         !   = mass mixing ratio * ratio of air to tracer molecular weights  
          !   
-         !   = molecules tracer / molecules air
-         !
          !   = molar ratio
          !
          ! Therefore, with:
@@ -223,8 +221,8 @@ CONTAINS
          !                   
          !==============================================================
  
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
       !$OMP PRIVATE( I, J, L, N ) 
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
@@ -254,18 +252,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_MMR_to_MND( N_TRACERS, MAIRDEN, TCMW, STT ) 
+    SUBROUTINE Convert_MMR_to_MND( N_TRACERS, MAIRDEN, XNUMOL, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
     ! Number of tracers
-    INTEGER, INTENT(IN)    :: N_TRACERS 
+    INTEGER, INTENT(IN)      :: N_TRACERS 
 
     ! Array containing grid box moist air density [kg/m3]
     REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
 
-    ! Array containing molecule weight for tracers [kg/molecule]
-    REAL(fp),  INTENT(IN)    :: TCMW(N_TRACERS)
+    ! Array containing molecules tracer / kg tracer
+    REAL(fp),  INTENT(IN)    :: XNUMOL(N_TRACERS)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -293,7 +291,7 @@ CONTAINS
          !
          !  The conversion is as follows:
          !
-         !   kg tracer(N)    kg air          m3        molecule tracer(N)     
+         !   kg tracer(N)    kg air          m3        molecules tracer(N)     
          !   -----------  * --------  *  ---------  *  ------------------      
          !     kg air          m3         1E6 cm3        kg tracer(N)  
          !
@@ -303,25 +301,25 @@ CONTAINS
          !
          ! Therefore, with:
          !
-         !  TCMW(N)        = tracer molecular weight (AMU)
+         !  XNUMOL(N)        = molecules tracer / kg tracer
          !  MAIRDEN(I,J,L)   = grid box moist air density [kg/m3]
          !     
          ! the conversion is:
          ! 
          !  STT(I,J,L,N) [molecules/cm3]
          !
-         !    = STT(I,J,L,N) [kg/kg] * MAIRDEN(I,J,L) * 1E-6 / TCMW(N)
+         !    = STT(I,J,L,N) [kg/kg] * MAIRDEN(I,J,L) * 1E-6 * XNUMOL(N)
          !                   
          !==============================================================
 
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
       !$OMP PRIVATE( I, J, L, N ) 
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) * MAIRDEN(I,J,L) * 1E-6 / TCMW(N)
+        STT(I,J,L,N) = STT(I,J,L,N) * MAIRDEN(I,J,L) * 1E-6_fp * XNUMOL(N)
       ENDDO
       ENDDO
       ENDDO
@@ -350,7 +348,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     ! Number of tracers
-    INTEGER, INTENT(IN)    :: N_TRACERS 
+    INTEGER, INTENT(IN)      :: N_TRACERS 
 
     ! Array containing grid box moist air density [kg/m3]
     REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
@@ -405,8 +403,8 @@ CONTAINS
          !                   
          !==============================================================
 
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
       !$OMP PRIVATE( I, J, L, N ) 
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
@@ -443,7 +441,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     ! Number of tracers
-    INTEGER, INTENT(IN)    :: N_TRACERS 
+    INTEGER, INTENT(IN)      :: N_TRACERS 
 
     ! Array containing ratio of air to tracer molecular weights
     REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
@@ -476,13 +474,13 @@ CONTAINS
          !
          !  The conversion is as follows:
          !
-         !   mol tracer(N)  molecule air        kg tracer(N)         
-         !   -----------  * ------------  *  ------------------  
-         !     mol air         kg air        molecule tracer(N)           
+         !   mol tracer(N)  mol air     g tracer(N)         
+         !   -----------  * -------  *  -------------  
+         !     mol air       g air      mol tracer(N)           
          !
          !   = volume ratio / ratio of air to tracer molecular wts  
          !   
-         !   = mass mixing ratio
+         !   = mass mixing ratio ([g/g] is equivalent to [kg/kg])
          !
          ! Therefore, with:
          !
@@ -496,8 +494,8 @@ CONTAINS
          !                   
          !==============================================================
 
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
       !$OMP PRIVATE( I, J, L, N ) 
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
@@ -527,18 +525,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_MND_to_MMR( N_TRACERS, MAIRDEN, TCMW, STT ) 
+    SUBROUTINE Convert_MND_to_MMR( N_TRACERS, MAIRDEN, XNUMOL, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
     ! Number of tracers
-    INTEGER, INTENT(IN)    :: N_TRACERS 
+    INTEGER, INTENT(IN)      :: N_TRACERS 
 
     ! Array containing grid box moist air density [kg/m3]
     REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
 
-    ! Array containing molecule weight for tracers [kg/molecule]
-    REAL(fp),  INTENT(IN)    :: TCMW(N_TRACERS)
+    ! Array containing molecules tracer / kg tracer
+    REAL(fp),  INTENT(IN)    :: XNUMOL(N_TRACERS)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -568,38 +566,38 @@ CONTAINS
          !
          !   molecules tracer(N)     m3       1E6 cm3       kg tracer(N)
          !   ------------------  * ------  *  -------  * ------------------
-         !          cm3            kg air        m3      molecule tracer(N)  
+         !          cm3            kg air        m3      molecules tracer(N)  
          !
-         !   = molecules per cm3 / air density * tracer molecular weight  
+         !   = molecules per cm3 / air density / molecules tracer / kg tracer 
          !   
          !   = mass mixing ratio
          !
          ! Therefore, with:
          !
-         !  TCMW(N)         = tracer molecular weight (AMU)
+         !  XNUMOL(N)       = molecules tracer / kg tracer
          !  MAIRDEN(I,J,L)  = grid box moist air density [kg/m3]
          !     
          ! the conversion is:
          ! 
          !  STT(I,J,L,N) [kg/kg]
          !
-         !   = STT(I,J,L,N) [molecules/cm3] / MAIRDEN(I,J,L) * 1E+6 * TCMW(N)
+         !   = STT(I,J,L,N) [molecules/cm3] / MAIRDEN(I,J,L) * 1E+6 / XNUMOL(N)
          !                   
          !==============================================================
 
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
+      !$OMP PARALLEL DO           &
+      !$OMP DEFAULT( SHARED     ) &
       !$OMP PRIVATE( I, J, L, N ) 
       DO N = 1, N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) / MAIRDEN(I,J,L) * 1E+6 * TCMW(N)
+        STT(I,J,L,N) = STT(I,J,L,N) / MAIRDEN(I,J,L) * 1E+6_fp / XNUMOL(N)
       ENDDO
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+      !$OMP END PARALLEL DO
 
     ! Return to calling program
     END SUBROUTINE Convert_MND_to_MMR
