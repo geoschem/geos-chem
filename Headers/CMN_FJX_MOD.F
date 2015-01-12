@@ -30,12 +30,7 @@
       INTEGER, PARAMETER :: IND999  = 5
 
       ! Required size of aerosol arrays
-!------------------------------------------------------------------------------
-! Prior to 12/5/14:
-! Now we're storing RH indices references ODAER can be smaller (dar,mps,12/5/14)
-!      INTEGER, PARAMETER :: NALLAER = (NRHAER*NRH)+NSTRATAER
-!------------------------------------------------------------------------------
-      INTEGER, PARAMETER :: NALLAER = NRHAER+NSTRATAER
+      INTEGER, PARAMETER :: NALLAER = (NRHAER*NRH)+NSTRATAER
 
       INTEGER            :: L_             ! Number of CTM layers
 
@@ -371,7 +366,7 @@
       IF ( RC /= GIGC_SUCCESS ) RETURN
       ODMDUST = 0d0
 
-      ALLOCATE( ODAER( IIPAR, JJPAR, LLPAR, NWVAA, NALLAER), STAT=RC )
+      ALLOCATE( ODAER( IIPAR, JJPAR, LLPAR, NWVAA, NAER), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
       ODAER = 0d0
 

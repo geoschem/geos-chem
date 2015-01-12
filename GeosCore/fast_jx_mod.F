@@ -2975,28 +2975,27 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
 
              ! Other aerosol (from new optics LUT)
              DO M=1,5
-                IF (AERX_COL(M+10,L).gt.0d0) THEN
-                  DO IR=1,5
-                  IDXAER=(IDXAER-1)*NRH+IR+10
-                  !write(6,*) L,KMIE2,IR,IDXAER,QQAA(KMIE2,IR,IDXAER)
+                DO IR=1,5
+                  IDXAER=10+(M-1)*NRH+IR
+                  IF (AERX_COL(IDXAER,L).gt.0d0) THEN
                    IF (AOD999) THEN
-                      QSCALING = QQAA(KMIE2,IR,IDXAER)/
-     &                           QQAA(10,IR,IDXAER) !1000nm in new .dat
+                      QSCALING = QQAA(KMIE2,IR,M)/
+     &                           QQAA(10,IR,M) !1000nm in new .dat
                    ELSE
                       ! Aerosol/dust (550 nm scaling)
-                      QSCALING = QQAA(KMIE2,IR,IDXAER)/
-     &                           QQAA(5,IR,IDXAER)  !550nm in new .dat
+                      QSCALING = QQAA(KMIE2,IR,M)/
+     &                           QQAA(5,IR,M)  !550nm in new .dat
                    ENDIF
-                   LOCALOD = QSCALING*AERX_COL(M,L)
-                   LOCALSSA = SSAA(KMIE2,IR,IDXAER)*LOCALOD
+                   LOCALOD = QSCALING*AERX_COL(IDXAER,L)
+                   LOCALSSA = SSAA(KMIE2,IR,M)*LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                    SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
                    DO I=1,8
                       SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
-     &                            (PHAA(KMIE2,IR,IDXAER,I)*LOCALSSA)
+     &                            (PHAA(KMIE2,IR,M,I)*LOCALSSA)
                    ENDDO ! I (Phase function)
-                  ENDDO  ! IR (RH bins)
-                ENDIF
+                  ENDIF  
+                ENDDO    ! IR (RH bins)
              ENDDO ! M (Aerosol)
           ENDDO ! KMIE (Mie scattering wavelength bin)
 
