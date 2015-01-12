@@ -767,7 +767,7 @@ CONTAINS
        ! eventually be used for separate vertical distributions
        ! when they become available.  (ltm, bmy, 12/11/06)
        !===========================================================
-			
+
        ! Get Inter-Cloud/Cloud-Ground flash ratio [unitless]
        IC_CG_RATIO = GET_IC_CG_RATIO( CC )
 

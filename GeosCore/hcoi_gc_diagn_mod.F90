@@ -52,11 +52,11 @@ MODULE HCOI_GC_Diagn_Mod
   ! Get parameters that define the different categories
 #include "hcoi_gc_diagn_include.H"
 
-  ! Define default output frequency. In an ESMF mode, this must be 'Manual'
+  ! Define default output frequency. In an ESMF mode, this must be 'Manual'.
 #if defined(ESMF_)
   CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Manual"
 #else
-  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Hourly"
+  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Daily"
 #endif
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -241,9 +241,9 @@ CONTAINS
 
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 
-          !---------------------
+          !-------------------------------------
           ! Hourly emissions
-          !---------------------
+          !-------------------------------------
 
           ! Do for all emission species
           DO I = 1,37
@@ -343,15 +343,15 @@ CONTAINS
                                     WriteFreq = Default_WriteFreq,      &
                                     AutoFill  = 1,                      &
                                     cID       = N,                      & 
-                                    RC        = RC ) 
+                                 RC        = RC ) 
                 IF ( RC /= HCO_SUCCESS ) RETURN
              ENDIF
 
-             !-----------------------------------
+             !-------------------------------------
              ! Emissions per category (NO only)
-             !-----------------------------------
-             IF ( TRIM(SpcName) == 'NO' ) THEN
-                
+             !-------------------------------------
+             IF ( TRIM(SpcName) == 'NO' .and. HcoID > 0 ) THEN
+
                 ! There are 3 different categories
                 DO J = 1, 6
                    SELECT CASE ( J )
@@ -384,17 +384,17 @@ CONTAINS
                          ExtNr     = 999
                          Cat       = 999
                    END SELECT
-                   
-                   CALL Diagn_Create ( am_I_Root,                     &
-                                       HcoState,                      &
-                                       cName    = DiagnName,          &
-                                       ExtNr    = ExtNr,              &
-                                       Cat      = Cat,                &
-                                       Hier     = -1,                 &
-                                       HcoID    = HcoID,              &
-                                       SpaceDim = 2,                  &
-                                       LevIDx   = -1,                 &
-                                       OutUnit  = 'kg/m2/s',          &
+
+                   CALL Diagn_Create ( am_I_Root, &
+                                       HcoState,  &
+                                       cName    = DiagnName, &
+                                       ExtNr    = ExtNr, &
+                                       Cat      = Cat, &
+                                       Hier     = -1, &
+                                       HcoID    = HcoID, &
+                                       SpaceDim = 2, &
+                                       LevIDx   = -1, &
+                                       OutUnit  = 'kg/m2/s', &
                                        WriteFreq = Default_WriteFreq, &
                                        AutoFill  = 1,                 &
                                        cID       = N,                 & 

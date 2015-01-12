@@ -634,7 +634,12 @@
       ! and creates entries for all data files needed for emission
       ! calculation. Also sets some logical switches in Input_Opt
       ! (e.g. LSOILNOX).
-      IF ( LEMIS ) THEN
+      ! Note: always call HEMCO, even if LEMIS is set to FALSE. This
+      ! is to make sure that HEMCO can still be used to read
+      ! non-emission data such as stratospheric Bry fields. If LEMIS
+      ! is set to FALSE, the emissions driver routines will make sure
+      ! that HEMCO does not calculate any emissions (ckeller, 1/12/15).
+!      IF ( LEMIS ) THEN
          CALL EMISSIONS_INIT( am_I_Root, Input_Opt,
      &                        State_Met, State_Chm, RC )
 
@@ -642,7 +647,7 @@
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP( 'Error in EMISSIONS_INIT!', 'main.F' )
          ENDIF
-      ENDIF
+!      ENDIF
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
@@ -1207,10 +1212,14 @@
             !
             ! http://wiki-geos-chem.org/Distributing_emissions_in_the_PBL
             !===========================================================
-            IF ( LEMIS ) THEN
+            !IF ( LEMIS ) THEN
 
                ! HEMCO driver.  NOTE, we will have to make sure that
                ! the specialty simulations work with HEMCO (bmy, 6/25/14)
+               ! Always call HEMCO, even if LEMIS is set to FALSE. 
+               ! This is to make sure that HEMCO can still be used to read
+               ! non-emission data such as stratospheric Bry fields. 
+               ! (ckeller, 1/12/15).
                CALL EMISSIONS_RUN( am_I_Root, Input_Opt, 
      &                             State_Met, State_Chm, RC )
 
@@ -1218,7 +1227,7 @@
                IF ( RC /= GIGC_SUCCESS ) THEN
                   CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
                ENDIF
-            ENDIF
+            !ENDIF
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
@@ -1330,6 +1339,10 @@
             IF ( LEMIS ) THEN
                
                ! Call the HEMCO emissions modules
+               ! Always call HEMCO, even if LEMIS is set to FALSE. 
+               ! This is to make sure that HEMCO can still be used to read
+               ! non-emission data such as stratospheric Bry fields. 
+               ! (ckeller, 1/12/15).
                CALL EMISSIONS_RUN ( am_I_Root, Input_Opt, 
      &                              State_Met, State_Chm, RC )
 

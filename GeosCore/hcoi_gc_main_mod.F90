@@ -163,12 +163,11 @@ CONTAINS
     USE HCO_Config_Mod,     ONLY : Config_ReadFile
     USE HCO_State_Mod,      ONLY : HcoState_Init
     USE HCO_Driver_Mod,     ONLY : HCO_Init
+    USE HCO_ExtList_Mod,    ONLY : SetExtNr
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
     USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_Diagn_Init
     USE HCOX_Driver_Mod,    ONLY : HCOX_Init
     USE HCOX_State_Mod,     ONLY : ExtStateInit
-
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -286,6 +285,14 @@ CONTAINS
 
     ! HEMCO configuration file
     HcoState%ConfigFile = Input_Opt%HcoConfigFile
+
+    ! If emissions shall not be used, reset all extension number to
+    ! -999 first. This will make sure that none of the extensions will
+    ! be initialized and none of the input data related to any of the
+    ! extensions will be used.
+    IF ( .NOT. Input_Opt%LEMIS ) THEN
+       CALL SetExtNr( am_I_Root, -999, RC=HMRC )
+    ENDIF
 
     !=================================================================
     ! Initialize HEMCO internal lists and variables. All data
@@ -1549,7 +1556,11 @@ CONTAINS
 
     ! If there is no species in the HEMCO configuration file, there
     ! are no matching species!
-    IF ( nConfigSpec == 0 ) THEN
+    ! Set number of HEMCO species to zero if emissions shall not be 
+    ! used. This approach will make it possible to use HEMCO still
+    ! for reading/writing non-emission data, e.g. stratospheric Bry
+    ! fields (ckeller, 01/12/15).
+    IF ( nConfigSpec == 0 .OR. .NOT. Input_Opt%LEMIS ) THEN
        nHcoSpec = 0
 
        ! To prevent out of bounds error
@@ -1584,7 +1595,10 @@ CONTAINS
     ENDIF
 
     IF ( nHcoSpec == 0 .AND. am_I_Root ) THEN
-       MSG = 'No matching species between HEMCO and the model!'
+       MSG = 'There are no HEMCO species! This is either because '      // &
+             'emissions are turned off or because there is no match '   // &
+             'between GEOS-Chem species and species names in the HEMCO '// &
+             'configuration file.'
        CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
     ENDIF
 

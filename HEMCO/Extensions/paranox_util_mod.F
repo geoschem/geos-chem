@@ -36,6 +36,11 @@
       !                           Efficiency for ship emiss (gvinken, 6/6/10)
       REAL*4 ::   fracnox(4,4,4,12,12,4,5)
       REAL*4 ::   intope(4,4,4,12,12,4,5)
+
+      ! Routine behaviour if illegal fraction NOx (< 0 or > 1) is encountered.
+      ! If set to TRUE, the run stops with an error (recommended). If set to
+      ! false, the current parameter is ignored and run continues.
+      LOGICAL, PARAMETER :: ErrorStop = .TRUE.
 !
 ! !REMARKS
 !  References:
@@ -298,8 +303,8 @@
       ! Temporary variable storage
       REAL*4                     :: temp_tmp,  jno2_tmp,  cao3_tmp
       REAL*4                     :: alfa0_tmp, alfa5_tmp, jo1d_tmp
-      REAL*4                     :: canox_tmp
-      
+      REAL*4                     :: canox_tmp, fnox_tmp
+ 
       ! Interpolation parameters
       REAL*4,  DIMENSION(2)      :: xtemp,     xjno2,     xcao3, xalfa0
       REAL*4,  DIMENSION(2)      :: xalfa5,    xjo1d,     xcanox
@@ -567,40 +572,41 @@
       DO i6=1,2
       DO i7=1,2 
 
+         ! get this fracnox
+         fnox_tmp = fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
+     $                       ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1,
+     $                       icanox+i7-1  ) 
+
          !IF ENCOUNTER -999 IN THE LUT PRINT ERROR!!       
-         IF ( ( fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
-     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1,
-     $                   icanox+i7-1  ) < 0. )     .or.
-     $        ( fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
-     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1, 
-     $                   icanox+i7-1  ) > 1. ) )   THEN
+         IF ( (fnox_tmp < 0.) .or. (fnox_tmp > 1.) ) THEN 
 
-            WRITE(MSG,*), 'INTERPOLATE_LUT2: fracnox = ,',
-     $          fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
-     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1,
-     $                   icanox+i7-1  )
-            CALL HCO_MSG(MSG)
+            ! print error details
+            WRITE(MSG,100) I, J, o3, no, no2, dens, JO1D, JNO2,
+     &                     TS, SUNCOSmid5, SUNCOSmid, fnox_tmp
+            IF ( ErrorStop ) THEN
+               CALL HCO_ERROR( MSG, RC, THISLOC=LOC ) 
+               RETURN 
+            ELSE
+               CALL HCO_WARNING( MSG, RC, THISLOC=LOC ) 
+            ENDIF
+ 100     FORMAT( 'LUT: FNOX not btw 0-1: ', I2.2, I2.2, 110E8.2 )
 
-            MSG = 'LUT error: Fracnox should be between 0 and 1!'
-            CALL HCO_ERROR( MSG, RC, THISLOC=LOC ) 
-            RETURN 
+         ! Update fraction_nox and intope
+         ELSE
+
+            ! fracnox is the array with the actual lut data
+            fraction_nox = fraction_nox + xtemp(i1)    * xjno2(i2)  *
+     $                     xcao3(i3)    * xalfa0(i4)   * xalfa5(i5) *
+     $                     xjo1d(i6)    * xcanox(i7)   * fnox_tmp
+
+            ! intope is the array with the actual lut data
+            int_ope =      int_ope      + xtemp(i1)    * xjno2(i2)  * 
+     $                     xcao3(i3)    * xalfa0(i4)   * xalfa5(i5) *
+     $                     xjo1d(i6)    * xcanox(i7)   * 
+     $                     intope(        itemp+i1-1,    ijno2+i2-1,
+     $                     icao3+i3-1,    ialfa0+i4-1,   ialfa5+i5-1,
+     $                     ijo1d+i6-1,    icanox+i7-1    )
          ENDIF
-
-         ! fracnox is the array with the actual lut data
-         fraction_nox = fraction_nox + xtemp(i1)    * xjno2(i2)  *
-     $                  xcao3(i3)    * xalfa0(i4)   * xalfa5(i5) *
-     $                  xjo1d(i6)    * xcanox(i7)   *
-     $                  fracnox(       itemp+i1-1,    ijno2+i2-1,
-     $                  icao3+i3-1,    ialfa0+i4-1,   ialfa5+i5-1,
-     $                  ijo1d+i6-1,    icanox+i7-1    )
-
-         ! intope is the array with the actual lut data
-         int_ope =      int_ope      + xtemp(i1)    * xjno2(i2)  * 
-     $                  xcao3(i3)    * xalfa0(i4)   * xalfa5(i5) *
-     $                  xjo1d(i6)    * xcanox(i7)   * 
-     $                  intope(        itemp+i1-1,    ijno2+i2-1,
-     $                  icao3+i3-1,    ialfa0+i4-1,   ialfa5+i5-1,
-     $                  ijo1d+i6-1,    icanox+i7-1    )
 
       END DO
       END DO

@@ -131,7 +131,7 @@ CONTAINS
     INTEGER                   :: Prc
     INTEGER                   :: MinResetFlag, MaxResetFlag
     LOGICAL                   :: EOI, PrevTime, Manual
-    
+ 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)' 
     !=================================================================
     ! HCOIO_DIAGN_WRITEOUT begins here!
@@ -280,6 +280,15 @@ CONTAINS
     deallocate(nctime)
 
     !-----------------------------------------------------------------
+    ! Write out grid box areas 
+    !-----------------------------------------------------------------
+    myName = 'AREA'
+    myUnit = 'm2'
+    CALL NC_VAR_DEF ( fId, lonId, latId, -1, -1, &
+                      TRIM(myName), 'Grid box area', TRIM(myUnit), Prc, VarCt )
+    CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr2D=HcoState%Grid%Area_M2%Val )
+
+    !-----------------------------------------------------------------
     ! Write diagnostics 
     !-----------------------------------------------------------------
 
@@ -338,7 +347,7 @@ CONTAINS
     ! Cleanup
     deallocate(Arr3D,Arr4D)
     ThisDiagn => NULL()
-
+    
     ! Return 
     RC = HCO_SUCCESS
 
