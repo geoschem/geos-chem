@@ -530,10 +530,6 @@
 
             ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt 
             ! Units are [molec CO/cm3]
-! -----------
-! Prior to June 2014
-!            CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH(I,J,L) * DTCHEM 
-! -----------
             CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH_MOLEC_CM3 * DTCHEM 
 
          ENDIF
@@ -847,10 +843,6 @@
             KRATE  = KCO1 + KCO2
 
             ! CO_OH = Tropospheric loss of CO by OH [molec/cm3]
-! -----------
-! Prior to June 2014
-!            CO_OH = KRATE * GCO * OH(I,J,L) * DTCHEM
-! -----------
             ! Now use OH_MOLEC_CM3, which includes a diurnal cycle.
             CO_OH = KRATE * GCO * OH_MOLEC_CM3 * DTCHEM
 
@@ -861,11 +853,6 @@
                DO N = 2, N_TRACERS
 
                   ! Use tropospheric rate constant 
-! -----------
-! Prior to June 2014
-!                  STT(I,J,L,N) = STT(I,J,L,N) *
-!     &                 ( 1e+0_fp - KRATE * OH(I,J,L) * DTCHEM )
-! -----------
                   STT(I,J,L,N) = STT(I,J,L,N) *
      &                 ( 1e+0_fp - KRATE * OH_MOLEC_CM3 * DTCHEM )
 
@@ -878,11 +865,6 @@
 
                   ! ND65 diagnostic -- loss of CO by OH for "tagged" tracers
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
-! -----------
-! Prior to June 2014
-!                     AD65(I,J,L,N) = AD65(I,J,L,N) + 
-!     &                    ( KRATE * OH(I,J,L)*STT(I,J,L,N) * STTCO )
-! -----------
                      AD65(I,J,L,N) = AD65(I,J,L,N) + 
      &                   ( KRATE * OH_MOLEC_CM3 * STT(I,J,L,N) * STTCO )
                   ENDIF
@@ -1349,131 +1331,6 @@
     
       END FUNCTION GET_PCO_LCO_STRAT
 !EOC
-!------------------------------------------------------------------------------
-! Prior to 6/23/14:
-! HEMCO appears to have orphaned this routine.  Comment out for now.
-! (bmy, 6/23/14)
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_acetone
-!!
-!! !DESCRIPTION: Subroutine READ\_ACETONE reads in biogenic acetone 
-!!  emissions from a binary punch file. 
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_ACETONE( am_I_Root, Input_Opt, THISMONTH, RC )
-!!
-!! !USES:
-!!
-!      USE CMN_SIZE_MOD 
-!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-!      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
-!      USE GIGC_ErrCode_Mod
-!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!      INTEGER,        INTENT(IN)  :: THISMONTH   ! Month to read
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
-!! 
-!! !REMARKS:
-!!  This routine will be replaced by HEMCO soon. All bpch file input is being
-!!  replaced with netCDF input.
-!!
-!! !REVISION HISTORY: 
-!!  23 Oct 2012 - B. Field, B. Duncan - Initial version
-!!  (1 ) Eliminate variables that aren't used anymore.  Updated comments
-!!        and made some cosmetic changes. (bnd, bmy, 6/14/01)
-!!  (2 ) Added to "tagged_co_mod.f" (bmy, 6/14/01)
-!!  (3 ) Now read acetone file from DATA_DIR/tagged_CO_200106 (bmy, 6/19/01)
-!!  (4 ) ARRAY needs to be of size (IIPAR,JJPAR).  Use TRANSFER_2D from 
-!!        "transfer_mod.f" to cast data from REAL*4 to REAL(fp), and also to 
-!!        copy data to an array of size (IIPAR,JJPAR).  Use 3 arguments (M/D/Y)
-!!        in call to GET_TAU0.  Use IIPAR,JJPAR in call to READ_BPCH2.
-!!        Added array TEMP(IIPAR,JJPAR).  Updated comments. (bmy, 9/28/01)
-!!  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
-!!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!  (7 ) Now reads data from both GEOS and GCAP grids (bmy, 8/16/05)
-!!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
-!!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER             :: I, J
-!      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-!      REAL(fp)              :: TEMP(IIPAR,JJPAR)
-!      REAL(fp)              :: XTAU
-!      CHARACTER(LEN=255)  :: FILENAME
-!     
-!      !=================================================================
-!      ! READ_ACETONE begins here!
-!      !=================================================================
-!
-!      ! Name of file with acetone data
-!      FILENAME = TRIM( Input_Opt%DATA_DIR )  // 
-!     &           'tagged_CO_200106/acetone.' // GET_NAME_EXT_2D() //
-!     &           '.'                         // GET_RES_EXT()
-!
-!      ! Echo to stdout
-!      IF ( am_I_Root ) THEN
-!         WRITE( 6, '(a)' ) 'READING ', TRIM( FILENAME )
-!      ENDIF
-!
-!      !  Initialize some variables      
-!      EMACET   = 0e+0_fp
-!       
-!      ! TAU value at the beginning of this month for 1994
-!      XTAU = GET_TAU0( THISMONTH, 1, 1994 )
-!
-!      !=================================================================
-!      ! Read direct biogenic acetone emissions [atoms C/cm2/s]
-!      !=================================================================
-!
-!      ! Initialize ARRAY
-!      ARRAY = 0e0
-!
-!      ! Read data
-!      CALL READ_BPCH2( FILENAME, 'EMISACET', 6, XTAU,
-!     &                 IIPAR,     JJPAR,     1, ARRAY )
-!
-!      ! Cast from REAL*4 to REAL(fp) and resize to (IIPAR,JJPAR)
-!      CALL TRANSFER_2D( ARRAY(:,:,1), EMACET )
-!
-!      !=================================================================
-!      ! Read acetone from grasslands [atoms C/cm2/s]
-!      !=================================================================
-!
-!      ! Initialize ARRAY
-!      ARRAY = 0e0
-!
-!      ! Read data
-!      CALL READ_BPCH2( FILENAME, 'EMISACET', 7, XTAU,
-!     &                 IIPAR,     JJPAR,     1, ARRAY )
-!
-!      ! Cast from REAL*4 to REAL(fp) and add
-!      CALL TRANSFER_2D( ARRAY(:,:,1), TEMP )
-!
-!      ! Add acetone from grasslands to direct biogenic emissions
-!      EMACET(:,:) = EMACET(:,:) + TEMP(:,:)
-!
-!      END SUBROUTINE READ_ACETONE
-!!EOC
-!------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

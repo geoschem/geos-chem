@@ -357,12 +357,6 @@
       IF ( hbr_rtemp > hobr_rtemp ) THEN
 
          ! 1. is it safe to divide?
-!------------------------------------------------------------------------------
-! Prior to 12/19/14:
-! Make sure all arguments to IS_SAFE_DIV are of the same type (bmy, 12/19/14)
-!         yn_div_safe = is_safe_div( 
-!     &        cld1k_hobr * hobr, hbr )
-!------------------------------------------------------------------------------
          numerator   = DBLE( cld1k_hobr * hobr )
          denominator = DBLE( hbr               )
          yn_div_safe = is_safe_div( numerator, denominator )
@@ -378,12 +372,6 @@
 
       ELSE ! if HOBr rate is larger than HBr rate
            ! 1. is it safe to divide?
-!------------------------------------------------------------------------------
-! Prior to 12/19/14:
-! Make sure all arguments to IS_SAFE_DIV are of the same type (bmy, 12/19/14)
-!         yn_div_safe = is_safe_div( 
-!     &        cld1k_hbr * hbr, hobr )
-!------------------------------------------------------------------------------
          numerator   = DBLE( cld1k_hbr * hbr )
          denominator = DBLE( hobr            )
          yn_div_safe = is_safe_div( numerator, denominator )

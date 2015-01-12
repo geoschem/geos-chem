@@ -941,20 +941,6 @@
       ! Kc is the conversion rate from cloud condensate to precip [s^-1]
       REAL(fp),  PARAMETER  :: KC        = 5e-3_fp
 
-!------------------------------------------------------------------------------
-! Prior to 12/19/14:
-! Bug fixes for scavenging by co-condensation. The square root term should be
-! inverted to be consistent with Mari et al (2000). (tdf, mps, 12/19/14)
-!      ! CONV_H2O2 = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
-!      ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
-!      ! 1.9 is ( molecular weight H2O2 / molecular weight water )
-!      REAL(fp),  PARAMETER  :: CONV_H2O2 = 8.27042925126e-1_fp
-!
-!      ! CONV_NH3 = 0.6 * SQRT( 0.9 ), used for the ice to gas ratio for NH3
-!      ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
-!      ! 0.9 is ( molecular weight NH3 / molecular weight water )
-!      REAL(fp),  PARAMETER  :: CONV_NH3  = 5.69209978831e-1_fp
-!------------------------------------------------------------------------------
       ! CONV_H2O2 = 0.6 * SQRT( 0.53 ), used for the ice to gas ratio for H2O2
       ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
       ! 0.53 is ( molecular weight water / molecular weight H2O2 )
@@ -3078,20 +3064,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-!-----------------------------------------------------------------------------
-! Prior to 12/19/14:
-! Bug fixes for scavenging by co-condensation. The square root term should be
-! inverted to be consistent with Mari et al (2000). (tdf, mps, 12/19/14)
-!      ! CONV_H2O2 = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
-!      ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
-!      ! 1.9 is ( molecular weight H2O2 / molecular weight water )
-!      REAL(fp), PARAMETER :: CONV_H2O2 = 8.27042925126e-1_fp
-!
-!      ! CONV_NH3 = 0.6 * SQRT( 0.9 ), used for the ice to gas ratio for NH3
-!      ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
-!      ! 0.9 is ( molecular weight NH3 / molecular weight water )
-!      REAL(fp), PARAMETER :: CONV_NH3  = 5.69209978831e-1_fp
-!-----------------------------------------------------------------------------
       ! CONV_H2O2 = 0.6 * SQRT( 0.53 ), used for the ice to gas ratio for H2O2
       ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
       ! 0.53 is ( molecular weight water / molecular weight H2O2 )
