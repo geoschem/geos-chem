@@ -2033,19 +2033,22 @@
       ! On first call, get pointers to HEMCO diagnostics arrays.
       ! These are the sea salt aerosol number densities for the fine
       ! and coarse mode, respectively. Values are in # / surface grid
-      ! box. These values are needed in the GET_ALK call below.
-      ! (ckeller, 11/03/2014)
+      ! box. These values are needed in the GET_ALK call below. If the
+      ! corresponding diagnostics cannot be found (e.g. because LEMIS
+      ! is set to FALSE and HEMCO thus doesn't calculate any emissions),
+      ! the pointers NDENS_SALA and NDENS_SALC will remain nullified
+      ! and number densities of zero will be used (ckeller, 01/12/2015).
       IF ( FIRST ) THEN
 
          ! Sea salt density, fine mode
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE', 
-     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALA )
+     &                     FORCE=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_FINE', LOC )
 
          ! Sea salt density, coarse mode 
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE', 
-     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALC )
+     &                     FORCE=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_COARSE', LOC )
          
@@ -8062,10 +8065,14 @@
      &        * State_Met%AREA_M2(I,J,1) * TS_EMIS * FEMIS 
 
          ! Get number densities in # / cm3. Weight by fraction of PBL
-         N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
-     &             * 1.e-6_fp * FEMIS
-         N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
-     &             * 1.e-6_fp * FEMIS
+         IF ( ASSOCIATED(NDENS_SALA) ) THEN
+            N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
+     &                * 1.e-6_fp * FEMIS
+         ENDIF
+         IF ( ASSOCIATED(NDENS_SALC) ) THEN
+            N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
+     &                * 1.e-6_fp * FEMIS
+         ENDIF
 
       ENDIF
 
