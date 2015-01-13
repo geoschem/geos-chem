@@ -101,7 +101,8 @@ debug:
 # correct order of compilation (so we don't have to do that ourselves!)
 #=============================================================================
 
-mcica_random_numbers.o                : mcica_random_numbers.f90    
+mcica_random_numbers.o               : mcica_random_numbers.f90      \
+                                       parkind.o
 	$(F90) $(R8) -c $(OPT) $<
 
 mcica_subcol_gen_lw.o                : mcica_subcol_gen_lw.f90  mcica_random_numbers.o  \

@@ -1156,13 +1156,13 @@
 
 
       ! FILENAME AND TIME
-      FILENAME  = TRIM( Input_Opt%DATA_DIR )         //
-     &            'modis_surf_201210/' //
+      FILENAME  = TRIM( Input_Opt%DATA_DIR ) //
+     &            'modis_surf_201210/'       //
 ! the 02-07 file contains our regridded and filled emissivity
 ! and albedo climatology for 2002-2007 direct from MODIS products
 ! N.B. this is raw MODIS data so contains snow cover but may have more
 ! filled missing value data.
-     &            'modis_surf_02-07_' //
+     &            'modis_surf_02-07_'       //
 
 ! the 01-04 file contains our regridded and filled emissivity
 ! for 2002-2007 and eco-type filled albedo produced by MODIS averaged over
@@ -1291,9 +1291,9 @@
       !=================================================================
 
       ! FILENAME AND TIME
-      FILENAME  = TRIM( Input_Opt%DATA_DIR )         //
-!     &            'STRAT_CHEM_201206/' //
-     &            'species_clim_profiles' //
+      FILENAME  = TRIM( Input_Opt%DATA_DIR ) //
+     &            'RRTMG_201411/'            //
+     &            'species_clim_profiles'    //
      &            '.'// GET_RES_EXT()
 
       ! ECHO INFO
