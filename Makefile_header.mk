@@ -151,7 +151,8 @@
 #  14 Nov 2014 - R. Yantosca - Further updates for hpc compilation
 #  21 Nov 2014 - R. Yantosca - Add special compilation command for ISORROPIA
 #  21 Nov 2014 - R. Yantosca - Add cosmetic changes and indentation 
-#   6 Jan 2015 - R. Yantosca - Add two-way nesting options from Y. Y. Yan
+#  06 Jan 2015 - R. Yantosca - Add two-way nesting options from Y. Y. Yan
+#  13 Jan 2015 - R. Yantosca - Add fix for GEOS-Chem-Libraries library path
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -667,12 +668,25 @@ else
 endif
 
 #=============================================================================
-#%%%%% KLUDGE FOR HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP MACHINES
-#%%%%% Manually prefix the library directory to the linker command.
-#%%%%% This corrects for an incomplete netCDF installation.
-NODENAME             :=$(shell uname -n)
-REGEXP               :=".as.harvard.edu"
-ifeq ($(shell [[ "$(NODENAME)" =~ $(REGEXP) ]] && echo true),true)
+#%%%%% FIX FOR USE WITH THE GEOS-Chem-Libraries (bmy, 1/13/15)
+#%%%%% 
+#%%%%% If your GEOS-Chem-Libraries netCDF/HDF5 package was built in one 
+#%%%%% directory and then moved somewhere else, then nf-config and nc-config 
+#%%%%% may not return the proper link directory path.  
+#%%%%% 
+#%%%%% To avoid this error, we shall test if the $GC_LIB environment variable 
+#%%%%% contains the text "GEOS-Chem-Libraries".  (Recall that $GC_LIB is 
+#%%%%% defined in either your .bashrc or .cshrc file depending on which Unix 
+#%%%%% shell you use.)  If we find the text "GEOS-Chem-Libraries" in $GC_LIB, 
+#%%%%% then we shall override the library path returned by nf-config and 
+#%%%%% nc-config with the path specified by $GC_LIB.  This will ensure that 
+#%%%%% we point to the location where the GEOS-Chem-Libraries are installed.
+#%%%%%
+#%%%%% NOTE: This fix should work for most users.  If it does not work, then
+#%%%%% contact the GEOS-Chem Support Team (geos-chem-support@as.harvard.edu).
+#%%%%%
+REGEXP               :="GEOS-Chem-Libraries"
+ifeq ($(shell [[ "$(GC_LIB)" =~ $(REGEXP) ]] && echo true),true)
   NC_LINK_CMD        := $(filter -l%,$(NC_LINK_CMD))
   NC_LINK_CMD        :=-L$(GC_LIB) $(NC_LINK_CMD)
 endif
