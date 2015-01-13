@@ -45,15 +45,15 @@ $(HCO)/hco_filedata_mod.F90	   \
 $(HCO)/hco_fluxarr_mod.F90	   \
 $(HCO)/hco_geotools_mod.F90	   \
 $(HCO)/hco_readlist_mod.F90	   \
-$(HCO)/hco_standalone_mod.F90	   \
+$(HCOI)/hcoi_standalone_mod.F90	   \
 $(HCO)/hco_state_mod.F90	   \
 $(HCO)/hco_tidx_mod.F90		   \
 $(HCO)/hco_unit_mod.F90		   \
-$(HCO)/hcoi_dataread_mod.F90	   \
-$(HCOI)/hcoi_gc_diagn_mod.F90	   \
+$(HCO)/hcoio_dataread_mod.F90	   \
+$(CORE)/hcoi_gc_diagn_mod.F90	   \
 $(CORE)/hcoi_gc_main_mod.F90	   \
 $(HCOX)/hcox_custom_mod.F90	   \
-$(CORE)/hcox_driver_mod.F90	   \
+$(HCOX)/hcox_driver_mod.F90	   \
 $(HCOX)/hcox_dustdead_mod.F	   \
 $(HCOX)/hcox_dustginoux_mod.F90	   \
 $(HCOX)/hcox_gc_RnPbBe_mod.F90	   \
@@ -62,13 +62,12 @@ $(HCOX)/hcox_gfed3_mod.F90	   \
 $(HCOX)/hcox_lightnox_mod.F90	   \
 $(HCOX)/hcox_megan_mod.F	   \
 $(HCOX)/hcox_paranox_mod.F90	   \
-$(CORE)/paranox_util_mod.F	   \
+$(HCOX)/paranox_util_mod.F	   \
 $(HCOX)/hcox_seaflux_mod.F90	   \
 $(HCOX)/hcox_seasalt_mod.F90	   \
 $(HCOX)/hcox_soilnox_mod.F90	   \
 $(HCOX)/hcox_state_mod.F90	   \
 $(HCOX)/drydep_toolbox_mod.F90	   \
-$(HCOX)/henry_mod.F		   \
 $(HCOX)/ocean_toolbox_mod.F90
 
 # Output file names

@@ -64,7 +64,7 @@ MODULE HCO_Unit_Mod
   ! add more units if you don't want HEMCO to attempt to convert data
   ! in these units.
   ! All characters in this list should be lower case!
-  INTEGER,           PARAMETER :: NUL = 11
+  INTEGER,           PARAMETER :: NUL = 19
   CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',        &
                                                'count',    &
                                                'unitless', &
@@ -75,6 +75,14 @@ MODULE HCO_Unit_Mod
                                                'v/v',      &
                                                's-1',      &
                                                'm2/m2',    & 
+                                               'k',        & 
+                                               'w/m2',     & 
+                                               'pptv',     & 
+                                               'ppt',      & 
+                                               'ppbv',     & 
+                                               'ppb',      & 
+                                               'ppmv',     & 
+                                               'ppm',      & 
                                                'cm2cm-2'    /)
 
   ! Accepted units for data on HEMCO standard units. No unit conversion 
@@ -88,10 +96,11 @@ MODULE HCO_Unit_Mod
                                                'kg(c)/m2/s'  /)
 
   ! Concentration units
-  INTEGER,           PARAMETER :: NHC = 1
-  CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m3' /)
+  INTEGER,           PARAMETER :: NHC = 3
+  CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m3', &
+                                               'kgm-3', &
+                                               'kgm^-3'  /)
 
-  ! Interfaces:
   ! Interfaces:
   INTERFACE HCO_UNIT_CHANGE
      MODULE PROCEDURE HCO_UNIT_CHANGE_SP

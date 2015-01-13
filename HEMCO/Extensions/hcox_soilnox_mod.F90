@@ -716,7 +716,7 @@ CONTAINS
                         OutUnit    = 'unitless',  &
                         WriteFreq  = 'End',       &
                         AutoFill   = 0,           &
-                        Trgt2D     = PFACTOR, &
+                        Trgt2D     = PFACTOR,     &
                         cID        = II,          &
                         RC         = RC            )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -731,7 +731,7 @@ CONTAINS
                         OutUnit    = 'unitless',    &
                         WriteFreq  = 'End',         &
                         AutoFill   = 0,             &
-                        Trgt2D     = DRYPERIOD, &
+                        Trgt2D     = DRYPERIOD,     &
                         cID        = II,            &
                         RC         = RC              )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -746,7 +746,7 @@ CONTAINS
                         OutUnit    = 'unitless',    &
                         WriteFreq  = 'End',         &
                         AutoFill   = 0,             &
-                        Trgt2D     = GWET_PREV, &
+                        Trgt2D     = GWET_PREV,     &
                         cID        = II,            &
                         RC         = RC              )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -761,7 +761,7 @@ CONTAINS
                         OutUnit    = 'kg/m3',           &
                         WriteFreq  = 'End',             &
                         AutoFill   = 0,                 &
-                        Trgt2D     = DEP_RESERVOIR, &
+                        Trgt2D     = DEP_RESERVOIR,     &
                         cID        = II,                &
                         RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -771,7 +771,7 @@ CONTAINS
     ! ---------------------------------------------------------------------- 
 
     ! Activate required met fields
-    ExtState%TSURFK%DoUse    = .TRUE. 
+    ExtState%T2M%DoUse       = .TRUE. 
     ExtState%GWETTOP%DoUse   = .TRUE. 
     ExtState%SUNCOSmid%DoUse = .TRUE. 
     ExtState%U10M%DoUse      = .TRUE. 
@@ -969,7 +969,7 @@ CONTAINS
     FERTDIAG       = 0e+0_hp
 
     ! Surface temperature [C]
-    TC             = ExtState%TSURFK%Arr%Val(I,J) - 273.15e+0_hp
+    TC             = ExtState%T2M%Arr%Val(I,J) - 273.15e+0_hp
 
     ! Surface wind speed, squared
     WINDSQR        = ExtState%U10M%Arr%Val(I,J)**2 + &
@@ -1129,8 +1129,8 @@ CONTAINS
     DO I = 1, HcoState%NX
 
        ! Surface temperature [K] and [C]
-       TEMPK = ExtState%TSURFK%Arr%Val(I,J)
-       TEMPC = ExtState%TSURFK%Arr%Val(I,J) - 273.15e+0_hp
+       TEMPK = ExtState%T2M%Arr%Val(I,J)
+       TEMPC = ExtState%T2M%Arr%Val(I,J) - 273.15e+0_hp
 
        ! Compute bulk surface resistance for gases.    
        !                                  

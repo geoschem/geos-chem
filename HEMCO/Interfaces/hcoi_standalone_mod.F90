@@ -1415,7 +1415,7 @@ CONTAINS
     CALL SetExtPtr ( am_I_Root, ExtState%WLI, 'WLI', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%TSURFK, 'TSURFK', RC )
+    CALL SetExtPtr ( am_I_Root, ExtState%T2M, 'T2M', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL SetExtPtr ( am_I_Root, ExtState%TSKIN, 'TSKIN', RC )

@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -166,7 +166,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -471,7 +471,7 @@
       END SUBROUTINE HCOX_DustDead_Run
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -772,7 +772,7 @@
       ExtState%TK%DoUse      = .TRUE.
       ExtState%U10M%DoUse    = .TRUE.
       ExtState%V10M%DoUse    = .TRUE.
-      ExtState%TSURFK%DoUse  = .TRUE.
+      ExtState%T2M%DoUse     = .TRUE.
       ExtState%GWETTOP%DoUse = .TRUE.
       ExtState%SNOWHGT%DoUse = .TRUE.
       ExtState%USTAR%DoUse   = .TRUE.
@@ -790,7 +790,7 @@
       END SUBROUTINE HCOX_DustDead_Init
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -855,7 +855,7 @@
       END SUBROUTINE HCOX_DustDead_Final
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !
 !******************************************************************************
@@ -1152,7 +1152,7 @@
       CALL TPT_GND_SOI_GET(
      &    HcoState,              ! Hemco state object
      &    LAT_IDX,               ! I [idx] Latitude index!
-     &    ExtState%TSURFK%Arr%Val, ! I [K] Sfc temperature at 2m
+     &    ExtState%T2M%Arr%Val, ! I [K] Sfc temperature at 2m
      &    TPT_GND_SLICE,         ! O [K] Ground temperature
      &    TPT_SOI_SLICE )        ! O [K] Soil temperature
 

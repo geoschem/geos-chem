@@ -18,6 +18,10 @@
 ! for frequently used checks, i.e. if this is a new year, month, etc.
 !\\
 !\\
+! The local time is calculated for 24 time zones, with each zone spanning 
+! 15 degrees.
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_Clock_Mod
@@ -56,6 +60,7 @@ MODULE HCO_Clock_Mod
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  08 Oct 2014 - C. Keller   - Added mid-month day calculation 
+!  03 Dec 2014 - C. Keller   - Now use fixed number of time zones (24)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -90,7 +95,7 @@ MODULE HCO_Clock_Mod
      INTEGER            :: MonthLastDay ! Last day of month: 28,29,30,31
 
      ! Current local times
-     INTEGER            :: nx              ! vector length == # of lons
+     INTEGER            :: ntz             ! number of time zones 
      INTEGER,  POINTER  :: ThisLocYear(:)  ! local year 
      INTEGER,  POINTER  :: ThisLocMonth(:) ! local month 
      INTEGER,  POINTER  :: ThisLocDay(:)   ! local day
@@ -123,12 +128,14 @@ MODULE HCO_Clock_Mod
   ! flag equal or higher than this value will be written to disk.
   INTEGER                     :: CurrMinResetFlag  = ResetFlagHourly + 1
 
-  ! Midmonth days for year 2000 (from modis_lai_mod.F90)
-  ! These can be used to obtain the mid-month day of the current month,
-  ! as required for the MODIS LAI values.
+  ! Midmonth days for a regular year.
+  ! These can be used to obtain the mid-month day of the current month.
   INTEGER, PARAMETER   :: MidMon(13) = (/  15,  45,  74, 105,      &
                                           135, 166, 196, 227,      &
                                           258, 288, 319, 349, 380/)
+
+  ! Number of time zones. Each time zone spans 15 degrees.
+  INTEGER, PARAMETER   :: nTimeZones = 24
 
 CONTAINS
 !EOC
@@ -198,37 +205,37 @@ CONTAINS
        HcoClock%MonthLastDay = -1
 
        ! local time vectors
-       HcoClock%NX = HcoState%NX
+       HcoClock%ntz = nTimeZones 
 
-       ALLOCATE ( HcoClock%ThisLocYear(HcoClock%NX), STAT=AS )
+       ALLOCATE ( HcoClock%ThisLocYear(HcoClock%ntz), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR ( 'ThisLocYear', RC )
           RETURN
        ENDIF
        HcoClock%ThisLocYear(:) = -1
 
-       ALLOCATE ( HcoClock%ThisLocMonth(HcoClock%NX), STAT=AS )
+       ALLOCATE ( HcoClock%ThisLocMonth(HcoClock%ntz), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR ( 'ThisLocMonth', RC )
           RETURN
        ENDIF
        HcoClock%ThisLocMonth(:) = -1
 
-       ALLOCATE ( HcoClock%ThisLocDay(HcoClock%NX), STAT=AS )
+       ALLOCATE ( HcoClock%ThisLocDay(HcoClock%ntz), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR ( 'ThisLocDay', RC )
           RETURN
        ENDIF
        HcoClock%ThisLocDay(:) = -1
 
-       ALLOCATE ( HcoClock%ThisLocWD(HcoClock%NX), STAT=AS )
+       ALLOCATE ( HcoClock%ThisLocWD(HcoClock%ntz), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR ( 'ThisLocWD', RC )
           RETURN
        ENDIF
        HcoClock%ThisLocWD(:) = -1
 
-       ALLOCATE ( HcoClock%ThisLocHour(HcoClock%NX), STAT=AS )
+       ALLOCATE ( HcoClock%ThisLocHour(HcoClock%ntz), STAT=AS )
        IF ( AS /= 0 ) THEN
           CALL HCO_ERROR ( 'ThisLocHour', RC )
           RETURN
@@ -356,7 +363,7 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Set local times 
     ! ----------------------------------------------------------------
-    CALL Set_LocalTime ( HcoState, UTC, RC )
+    CALL Set_LocalTime ( UTC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -515,24 +522,27 @@ CONTAINS
 ! !IROUTINE: HcoClock_GetLocal
 !
 ! !DESCRIPTION: Subroutine HcoClock\_GetLocal returns the selected local
-! time variables from the HEMCO clock object. 
+! time variables from the HEMCO clock object for the given longitude and
+! latitude. At the moment, the time zone is selected purely on the given
+! longitude and the passed latitude is not evaluated.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_GetLocal ( IX,  cYYYY, cMM,          &
-                                 cDD, cH,    CWEEKDAY, RC )
+  SUBROUTINE HcoClock_GetLocal ( Lon, Lat,   cYYYY,    cMM, &
+                                 cDD, cH,    CWEEKDAY, RC    )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,  INTENT(IN   )           :: IX        ! Latitude index
+    REAL(hp), INTENT(IN   )           :: Lon       ! Longitude (degrees east) 
+    REAL(hp), INTENT(IN   )           :: Lat       ! Latitude  (degrees north)
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,  INTENT(  OUT), OPTIONAL :: cYYYY     ! Current year   
     INTEGER,  INTENT(  OUT), OPTIONAL :: cMM       ! Current month 
     INTEGER,  INTENT(  OUT), OPTIONAL :: cDD       ! Current day     
-    REAL(sp), INTENT(  OUT), OPTIONAL :: cH        ! Current hour   
+    REAL(hp), INTENT(  OUT), OPTIONAL :: cH        ! Current hour   
     INTEGER,  INTENT(  OUT), OPTIONAL :: cWEEKDAY  ! Current weekday
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -546,14 +556,38 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    ! Local variables
+    REAL(hp)   :: TMP
+    INTEGER    :: IX
 
     !======================================================================
     ! HcoClock_GetLocal begins here!
     !======================================================================
-      
-    ! Check passed index
-    IF ( IX > HcoClock%NX ) THEN
-       CALL HCO_ERROR ( 'longitude index too big!', RC )
+    
+    ! Longitude must be between -180 and +180
+    TMP = Lon
+    IF ( TMP < -180_hp ) THEN
+       DO WHILE ( TMP < 180_hp )
+          TMP = TMP + 360_hp
+       ENDDO
+    ENDIF    
+    IF ( TMP > 180_hp ) THEN
+       DO WHILE ( TMP > 180_hp )
+          TMP = TMP - 360_hp
+       ENDDO
+    ENDIF    
+ 
+    ! Get time zone index for the given longitude, i.e. see into which time
+    ! zone the given longitude falls.
+    TMP = ( TMP + 180_hp ) / 15_hp
+    IX  = FLOOR(TMP) + 1
+
+    ! Avoid ix=25 if longitude is exactly 180
+    IF ( IX==25 ) IX = 24
+
+    ! Check time zone index
+    IF ( IX > HcoClock%ntz ) THEN
+       CALL HCO_ERROR ( 'time zone index too large!', RC )
        RETURN
     ENDIF
 
@@ -977,16 +1011,16 @@ CONTAINS
 ! !IROUTINE: Set_LocalTime 
 !
 ! !DESCRIPTION: Subroutine Set\_LocalTime sets the local time vectors in 
-! the HEMCO clock object. 
+! the HEMCO clock object. Local time is calculated for each of the 24 
+! defined time zones.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_LocalTime ( HcoState, UTC, RC ) 
+  SUBROUTINE Set_LocalTime ( UTC, RC ) 
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD, ONLY : HCO_State
 !
 ! !INPUT PARAMETERS: 
 !
@@ -994,13 +1028,13 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State), POINTER       :: HcoState  ! Hemco state
     INTEGER,         INTENT(INOUT) :: RC        ! Success or failure?
 !
 ! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
+!  13 Jan 2014 - C. Keller   - Initial version 
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  03 Dec 2014 - C. Keller   - Now use fixed number of time zones (24)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1008,7 +1042,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER  :: I,      MtLastDay
-    REAL(sp) :: DECloc
+    REAL(sp) :: LocDt, DECloc
     REAL(sp) :: ThisLocHour
     INTEGER  :: ThisLocYear, ThisLocMonth
     INTEGER  :: ThisLocDay,  ThisLocWD
@@ -1021,11 +1055,14 @@ CONTAINS
     CALL HCO_ENTER ( 'SET_LOCALTIME (HCO_CLOCK_MOD.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Loop over longitude to account for different local times.
-    DO I = 1, HcoState%NX
+    ! Loop over all time zones to account for different local times.
+    DO I = 1, HcoClock%ntz
+
+       ! local time shift relative to UTC 
+       LocDt = -12_sp + real(I-1,sp)
 
        ! local decimal time 
-       DECloc = UTC + ( HcoState%Grid%XMID%Val(I,1) / 15_sp )
+       DECloc = UTC + LocDt
 
        ! Extract local dates
          
@@ -1104,7 +1141,7 @@ CONTAINS
   END SUBROUTINE Set_LocalTime
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !

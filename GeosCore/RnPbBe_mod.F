@@ -217,13 +217,6 @@
       IF ( FIRSTCHEM ) THEN 
 
          ! Fraction of (222Rn, 210Pb, 7Be) left after radioactive decay
-!-----------------------------------------------------------------------------
-! Prior to 11/12/14:
-! New algorithm from Christoph Keller (bmy, 11/12/14)
-!         EXP_Rn    = EXP( -DTCHEM * 2.097e-6_fp  )
-!         EXP_Pb    = EXP( -DTCHEM * 9.725e-10_fp ) 
-!         EXP_Be    = EXP( -DTCHEM * 1.506e-7_fp  )
-!-----------------------------------------------------------------------------
          Decay     = ln2 / ( RnTau * 24.E+00_fp * 3600.E+00_fp ) 
          EXP_Rn    = EXP( -DTCHEM * Decay        )
          EXP_Pb    = EXP( -DTCHEM * 9.725E-10_fp ) 
@@ -279,7 +272,7 @@
             IF ( .NOT. FOUND ) CYCLE
             State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N)
      &                                 + ( Emis
-     &                                 *   State_Met%AREA_M2  (I,J,L  )
+     &                                 *   State_Met%AREA_M2  (I,J,1  )
      &                                 *   DTCHEM                      )
 
          ENDDO

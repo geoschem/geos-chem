@@ -386,6 +386,7 @@
       STT => State_Chm%Tracers
 
       ! testing only
+#if defined( DEBUG )
       write(*,*) 'Before EMISSCO2: '
       write(*,*) 'AD01 01: ', SUM(AD04(:,:,1))
       write(*,*) 'AD01 02: ', SUM(AD04(:,:,2))
@@ -397,7 +398,7 @@
       write(*,*) 'AD01 08: ', SUM(AD04(:,:,8))
       write(*,*) 'AD01 09: ', SUM(AD04(:,:,9))
       write(*,*) 'AD01 10: ', SUM(AD04(:,:,10))
-
+#endif
 
 !==============================================================================
 ! Now do all the emission reading and processing through HEMCO.
@@ -958,6 +959,7 @@
 !$OMP END PARALLEL DO
 
       ! testing only
+#if defined( DEBUG )
       write(*,*) 'After EMISSCO2: '
       write(*,*) 'AD01 01: ', SUM(AD04(:,:,1))
       write(*,*) 'AD01 02: ', SUM(AD04(:,:,2))
@@ -969,6 +971,7 @@
       write(*,*) 'AD01 08: ', SUM(AD04(:,:,8))
       write(*,*) 'AD01 09: ', SUM(AD04(:,:,9))
       write(*,*) 'AD01 10: ', SUM(AD04(:,:,10))
+#endif
 
       ! Free pointer
       NULLIFY( STT )

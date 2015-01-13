@@ -349,7 +349,7 @@
 
          ! Grid box surface area [m2]
 #if defined( ESMF_ )
-         AREA_M2                   = State_Met%AREA_M2(I,J,L)
+         AREA_M2                   = State_Met%AREA_M2(I,J,1)
 #else
          AREA_M2                   = GET_AREA_M2( I, J, L )
 #endif

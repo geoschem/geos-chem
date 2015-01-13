@@ -70,7 +70,7 @@
       PRIVATE :: APPLY_2DTRAC
       PRIVATE :: READ_SFC
       PRIVATE :: SET_MONTREAL
-      PRIVATE :: GET_MONTREAL
+      !PRIVATE :: GET_MONTREAL
       PRIVATE :: SET_MONTREAL_NCDF
       PRIVATE :: GET_MONTREAL_NCDF
       PRIVATE :: MONTREAL_SCALEFAC
@@ -80,12 +80,21 @@
       PRIVATE :: CALC_H2SO4_GAS
       PRIVATE :: CALC_SLA_GAMMA
       PRIVATE :: MOLEC_SPEED
+      PRIVATE :: SFCMR_INIT
+      PRIVATE :: SFCMR_READ
+      PRIVATE :: SFCMR_GET
+      PRIVATE :: NOXCOEFF_INIT
+      PRIVATE :: GET_JJNOX 
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
 !  04 Apr 2013 - S. D. Eastham - Rolled several routines into module
 !  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
 !  24 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
+!  05 Dec 2014 - C. Keller     - Added SFCMR object for reading surface mixing
+!                                ratios to buffer (from ASCII file).
+!                                Now map NOx coefficients onto grids other than
+!                                4x5 or 2x25.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -108,17 +117,25 @@
       !
       !=================================================================
 
-      INTEGER, PARAMETER            :: UCX_NLEVS=51
-      INTEGER, PARAMETER            :: UCX_NLAT=19
+      INTEGER,  PARAMETER           :: UCX_NLEVS=51
+      INTEGER,  PARAMETER           :: UCX_NLAT=19
       REAL(fp), PARAMETER           :: T_STS=240.0e+0_fp
-      INTEGER, PARAMETER            :: I_SLA=1
-      INTEGER, PARAMETER            :: I_SPA=2
-      REAL(fp),  PARAMETER          :: AVOGADRO=6.022d23
+      INTEGER,  PARAMETER           :: I_SLA=1
+      INTEGER,  PARAMETER           :: I_SPA=2
+      REAL(fp), PARAMETER           :: AVOGADRO=6.022e+23_fp
       REAL(fp), PARAMETER           :: R_UNIV = 8.31448e+0_fp
-      INTEGER, PARAMETER            :: INITMR_BASIS = 2005
-      LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
-      !LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
+      INTEGER,  PARAMETER           :: INITMR_BASIS = 2005
 
+#if defined(ESMF_)
+      ! Never use NETCDF in ESMF environment (ckeller, 12/05/14). 
+      LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
+#else
+      LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
+#endif
+
+      ! OCS and H2 surface boundary conditions
+      REAL(fp),PARAMETER :: OCS_MR = 5.00e-10_fp ! OCS is fixed to 500 pptv
+      REAL(fp),PARAMETER :: H2_MR  = 5.00e-7_fp  ! H2 is fixed to 500 ppbv
 !
 ! PRIVATE TYPES:
 !
@@ -236,6 +253,53 @@
       LOGICAL,PARAMETER                 :: STRAT2DCH4=.TRUE.
 
       !=================================================================
+      ! Derived type object for the surface boundary conditions.
+      ! This type holds the surface boundary mixing ratios MR of a given
+      ! species (NAME) and for the given dates (YR). The dates are in
+      ! decimal years, i.e. 1990.04 refers to (mid of) January 1990. SCAL
+      ! is the scale factor to be applied to the MR values, e.g. to 
+      ! convert ppt to mixing ratios.
+      ! The SFCMR vector will be allocated and filled during the UCX
+      ! initialization call (SFCMR_INIT). Surface boundary conditions 
+      ! for any given year and month can then be obtained by calling
+      ! SFCMR_GET without the need to read the file anymore
+      ! (ckeller, 05/12/2014).
+      !=================================================================
+      TYPE :: SfcMrTyp
+         CHARACTER(LEN=31)      :: NAME   ! Species name
+         INTEGER                :: ID     ! Species ID 
+         INTEGER                :: NX     ! # of values
+         REAL(fp)               :: SCAL   ! Scale factor
+         REAL(fp), ALLOCATABLE  :: YR(:)  ! year
+         REAL(fp), ALLOCATABLE  :: MR(:)  ! mixing ratio
+      END TYPE SfcMrTyp
+
+      ! Vector holding all boundary conditions
+      TYPE(SfcMrTyp), POINTER   :: SFCMR(:) => NULL()
+
+      ! Maximum number of elements fo SFCMR
+      INTEGER,        PARAMETER :: MAXSFCMR = 20
+
+      ! Actual number of used elements in SFCMR
+      INTEGER                   :: NSFCMR   = 0
+
+      !=================================================================
+      ! Variables to use NOx coefficients in ESMF / grid-independent
+      ! envionment. The NOx coefficients are climatological 2D 
+      ! (lat/lev/12 months) data that are currently available for 
+      ! horizontal (latitude) resolutions of 2 and 4 degrees. For other
+      ! resolutions, the horizontal data becomes mapped onto the
+      ! simulation grid (see GET_JJNOX).
+      ! Similar to the surface mixing ratio boundary conditions, we now
+      ! read all the NOx coefficients during initialization to avoid
+      ! additional I/O calls during run time (only if UCXNETCDF = false)
+      ! (ckeller, 05/12/2014).
+      !=================================================================
+      REAL*8, ALLOCATABLE, TARGET :: NOXCOEFF(:,:,:,:)
+      REAL*8, ALLOCATABLE         :: NOXLAT(:)
+      INTEGER                     :: JJNOXCOEFF
+
+      !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
       CONTAINS
@@ -326,6 +390,9 @@
 !  07 Feb 2014 - R. Yantosca   - !$OMP DO loops now go in L-J-I order
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  18 Jun 2014 - S. D. Eastham - Now read data for individual NOx species
+!  24 Nov 2014 - C. Keller     - Update for stratospheric NOy (as suggested by 
+!                                Seb Eastham)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -354,7 +421,7 @@
       LOGICAL            :: LSETH2SO4
       LOGICAL            :: LSETBRSTRAT
       LOGICAL            :: LSETNOYSTRAT
-      LOGICAL            :: LBASICEMIS
+!      LOGICAL            :: LBASICEMIS
       INTEGER            :: N_TRACERS
       REAL(fp)             :: TCVV(Input_Opt%N_TRACERS)
 
@@ -376,7 +443,7 @@
       LSETH2SO4    = Input_Opt%LSETH2SO4
       LSETBRSTRAT  = Input_Opt%LSETBRSTRAT
       LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
-      LBASICEMIS   = Input_Opt%LBASICEMIS
+!      LBASICEMIS   = Input_Opt%LBASICEMIS
       N_TRACERS    = Input_Opt%N_TRACERS
       TCVV         = Input_Opt%TCVV(1:N_TRACERS)
 
@@ -401,10 +468,10 @@
       WRITE( MONTH_STR, '(i0.2)' ) MONTH_STR_INT
 
       ! Are we using 2D data?
+      ! Don't use LBASICEMIS in check below (ckeller, 05/12/14)
       USE2DDATA = ( LSETOCS     .or. LSETCFC      .or. LSETCL     .or.
      &              LSETBR      .or. LSETH2SO4    .or. STRAT2DCH4 .or.
-     &              LSETBRSTRAT .or. LSETNOYSTRAT .or. LSETN2O    .or.
-     &              LBASICEMIS  )
+     &              LSETBRSTRAT .or. LSETNOYSTRAT .or. LSETN2O        )
 
       IF (USE2DDATA) THEN
 
@@ -492,23 +559,62 @@
      &                         Input_Opt, State_Met, State_Chm )
          ENDIF
 
-         ! Stratospheric NOy
+         ! Stratospheric NOy (update ckeller, 11/25/14)
          IF (LSETNOYSTRAT) THEN
             IF ( am_I_Root ) THEN
-               WRITE(6,*) '|NOx      |HNO3     |         |'
+               WRITE(6,*) '|NO       |NO2      |NO3      |'
+               WRITE(6,*) '|---------|---------|---------|'
+               WRITE(6,*) '|HNO2     |HNO3     |HNO4     |'
+               WRITE(6,*) '|---------|---------|---------|'
+               WRITE(6,*) '|N2O5     |PAN      |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
-
+ 
             ! No Montreal scaling
             SCALEFAC = 1.e+0_fp
+
+            TRAC_IDX = IDTNO
+            TRAC_SET = 'NO'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+
+            TRAC_IDX = IDTNO2
+            TRAC_SET = 'NO2'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+ 
+            ! Unstable product of ETO2 + NO2 gets lumped into NO2 for now
+            TRAC_SET = 'ETHO2NO2'
+            CALL APPLY_2DTRAC( .TRUE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+
+            TRAC_IDX = IDTNO3
+            TRAC_SET = 'NO3'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+
+            TRAC_IDX = IDTN2O5
+            TRAC_SET = 'N2O5'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+
+            TRAC_IDX = IDTHNO2
+            TRAC_SET = 'HONO'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
 
             TRAC_IDX = IDTHNO3
             TRAC_SET = 'HNO3'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
 
-            TRAC_IDX = IDTNO
-            TRAC_SET = 'NOX'
+            TRAC_IDX = IDTHNO4
+            TRAC_SET = 'HO2NO2'
+            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
+     &                         Input_Opt, State_Met, State_Chm )
+
+            TRAC_IDX = IDTPAN
+            TRAC_SET = 'PAN'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
          ENDIF
@@ -639,8 +745,10 @@
                SCALEFAC = MONTREAL_SCALEFAC('C2BR2F4',
      &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
             ELSE
-               SCALEFAC=GET_MONTREAL('C2BR2F4',CFCYEAR+OFFSETYEAR-1949)/
-     &                  GET_MONTREAL('C2BR2F4',INITMR_BASIS-1949)
+!               SCALEFAC=GET_MONTREAL('C2BR2F4',CFCYEAR+OFFSETYEAR-1949)/
+!     &                  GET_MONTREAL('C2BR2F4',INITMR_BASIS-1949)
+               SCALEFAC = SFCMR_GET('C2BR2F4',CFCYEAR+OFFSETYEAR,1)
+     &                  / SFCMR_GET('C2BR2F4',INITMR_BASIS,1)
             ENDIF
 
             CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
@@ -859,7 +967,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: FUTURE_LINE, BASIS_LINE
+!      INTEGER :: FUTURE_LINE, BASIS_LINE
 
       !=================================================================
       ! MONTREAL_SCALEFAC begins here!
@@ -869,10 +977,12 @@
          SCALEFAC = GET_MONTREAL_NCDF(MS_TRAC,MS_FUTRYR,MS_TARGMO)/
      &              GET_MONTREAL_NCDF(MS_TRAC,MS_INITYR,MS_TARGMO)
       ELSE
-         FUTURE_LINE = (12*(MS_FUTRYR-1959)) + MS_TARGMO
-         BASIS_LINE = (12*(MS_INITYR-1959)) + MS_TARGMO
-         SCALEFAC = GET_MONTREAL(MS_TRAC,FUTURE_LINE)/
-     &              GET_MONTREAL(MS_TRAC,BASIS_LINE)
+!         FUTURE_LINE = (12*(MS_FUTRYR-1959)) + MS_TARGMO
+!         BASIS_LINE = (12*(MS_INITYR-1959)) + MS_TARGMO
+!         SCALEFAC = GET_MONTREAL(MS_TRAC,FUTURE_LINE)/
+!     &              GET_MONTREAL(MS_TRAC,BASIS_LINE)
+         SCALEFAC = SFCMR_GET(MS_TRAC,MS_FUTRYR,MS_TARGMO)
+     &            / SFCMR_GET(MS_TRAC,MS_INITYR,MS_TARGMO)
       ENDIF
 
       END FUNCTION MONTREAL_SCALEFAC
@@ -1307,25 +1417,26 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: IOS
-      INTEGER :: ILEV
-      INTEGER :: I, J, L, ITRAC
-      REAL(fp)  :: PCENTER
-      REAL(fp)  :: CURRVAL
-      INTEGER :: VERTCOUNT, AS
-      LOGICAL :: FOUNDLEV,EXTRAP
-      INTEGER :: IU_FILE, fId
-      INTEGER :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
-      LOGICAL :: ISRATE
-      CHARACTER(LEN=255) :: NOX_FILE
-      CHARACTER(LEN=255) :: TARG_TRAC
-      CHARACTER(LEN=255) :: DBGMSG
-      REAL(fp),DIMENSION(:,:,:),ALLOCATABLE :: NOXDATA2D
-      REAL(fp),DIMENSION(:,:),ALLOCATABLE :: NOXD2D_IN
-      INTEGER :: LSTART
+      INTEGER                               :: IOS
+      INTEGER                               :: ILEV
+      INTEGER                               :: I, J, L, ITRAC
+      INTEGER                               :: JJNOX
+      REAL(fp)                              :: PCENTER
+      REAL(fp)                              :: CURRVAL
+      INTEGER                               :: VERTCOUNT, AS
+      LOGICAL                               :: FOUNDLEV,EXTRAP
+      INTEGER                               :: IU_FILE, fId
+      INTEGER                               :: st3d(3), ct3d(3) ! Start/count
+      LOGICAL                               :: ISRATE
+      CHARACTER(LEN=255)                    :: NOX_FILE
+      CHARACTER(LEN=255)                    :: TARG_TRAC
+      CHARACTER(LEN=255)                    :: DBGMSG
+      REAL(fp), DIMENSION(:,:,:), POINTER   :: NOXDATA2D => NULL()
+      REAL(fp), DIMENSION(:,:), ALLOCATABLE :: NOXD2D_IN
+      INTEGER                               :: LSTART
 
       ! Local variables for quantities from Input_Opt
-      LOGICAL :: LPRT
+      LOGICAL                               :: LPRT
 
       !=================================================================
       ! GET_NOXCOEFF begins here!
@@ -1334,16 +1445,16 @@
       ! Copy fields from INPUT_OPT
       LPRT = Input_Opt%LPRT
 
-      ! Allocate and zero 2D data array
-      ALLOCATE( NOXDATA2D( JJPAR, 51, 6 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXDATA2D' )
-      NOXDATA2D = 0e+0_fp
-
       ! Clear interpolated arrays
       NOX_O = 0e+0_fp
       NOX_J = 0e+0_fp
 
       IF (UCXNETCDF) THEN
+         ! Allocate and zero 2D data array
+         ALLOCATE( NOXDATA2D( JJPAR, 51, 6 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXDATA2D' )
+         NOXDATA2D = 0e+0_fp
+
          ! Allocate and zero 2D input array
          ALLOCATE( NOXD2D_IN( UCX_NLAT, UCX_NLEVS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXD2D_IN' )
@@ -1415,70 +1526,81 @@
          DEALLOCATE( NOXD2D_IN )
          CALL NcCl( fId )
       ELSE
-         DO ITRAC = 1,6
-            SELECT CASE (ITRAC)
-               CASE ( 1 )
-                  TARG_TRAC = 'O'
-               CASE ( 2 )
-                  TARG_TRAC = 'O1D'
-               CASE ( 3 )
-                  TARG_TRAC = 'JNO'
-               CASE ( 4 )
-                  TARG_TRAC = 'JNO2'
-               CASE ( 5 )
-                  TARG_TRAC = 'JNO3'
-               CASE ( 6 )
-                  TARG_TRAC = 'JN2O'
-            END SELECT
-            WRITE(NOX_FILE,'(a,a,a,I0.2,a)') TRIM(NOON_FILE_ROOT),
-     &       TRIM(TARG_TRAC), '_', TARG_MONTH, '.dat'
 
-            ! Get a free LUN
-            IU_FILE = findFreeLUN()
+          ! All the coefficients are now stored in NOXCOEFF. 
+          ! NOXDATA2D points to the desired month slice.
+          ! (ckeller, 05/12/14)
+          NOXDATA2D => NOXCOEFF(:,:,:,TARG_MONTH)
 
-            IOS = 1
-            OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS) 
-            IF ( IOS /= 0 ) THEN
-               WRITE(6,*) 'UCX_MOD: Could not read ', TRIM(NOX_FILE)
-               CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
-            ENDIF
-  
-           IF (LPRT) THEN
-               WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
-     &           TRIM( NOX_FILE )
-               CALL DEBUG_MSG( TRIM(DBGMSG) )
-            ENDIF
- 
-            ! Read in data
-            DO ILEV = 1,51
-               READ(IU_FILE, 110, IOSTAT=IOS ) NOXDATA2D(:,ILEV,ITRAC)
-               IF ( IOS /= 0 ) THEN
-                  WRITE(6,'(a,a,I4,a,1x,a)') 'UCX_MOD: Error reading '
-     &    , 'line ', ILEV, ' in file ', TRIM( NOX_FILE )
-                  CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
-               ENDIF
-            ENDDO
-
-#if defined( GRID2x25 )
-110   FORMAT(91E10.3)
-#elif defined( GRID4x5 )
-110   FORMAT(46E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_CH )
-110   FORMAT(133E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_NA )
-110   FORMAT(121E10.3)
-#elif defined( GRID05x0666 )   && defined( NESTED_EU )
-110   FORMAT(81E10.3)
-#elif defined( GRID025x03125 ) && defined( NESTED_CH )
-110   FORMAT(161E10.3)
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-110   FORMAT(202E10.3)
-      ! dummy so that code works if none of the comp. switches is enabled
-#else
-110   FORMAT(300E10.3)
-#endif
-
-            CLOSE(IU_FILE)
+!         ! Allocate and zero 2D data array
+!         ALLOCATE( NOXDATA2D( JJPAR, 51, 6 ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXDATA2D' )
+!         NOXDATA2D = 0d0
+!
+!         DO ITRAC = 1,6
+!            SELECT CASE (ITRAC)
+!               CASE ( 1 )
+!                  TARG_TRAC = 'O'
+!               CASE ( 2 )
+!                  TARG_TRAC = 'O1D'
+!               CASE ( 3 )
+!                  TARG_TRAC = 'JNO'
+!               CASE ( 4 )
+!                  TARG_TRAC = 'JNO2'
+!               CASE ( 5 )
+!                  TARG_TRAC = 'JNO3'
+!               CASE ( 6 )
+!                  TARG_TRAC = 'JN2O'
+!            END SELECT
+!            WRITE(NOX_FILE,'(a,a,a,I0.2,a)') TRIM(NOON_FILE_ROOT),
+!     &       TRIM(TARG_TRAC), '_', TARG_MONTH, '.dat'
+!
+!            ! Get a free LUN
+!            IU_FILE = findFreeLUN()
+!
+!            IOS = 1
+!            OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS) 
+!            IF ( IOS /= 0 ) THEN
+!               WRITE(6,*) 'UCX_MOD: Could not read ', TRIM(NOX_FILE)
+!               CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
+!            ENDIF
+!  
+!           IF (LPRT) THEN
+!               WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
+!     &           TRIM( NOX_FILE )
+!               CALL DEBUG_MSG( TRIM(DBGMSG) )
+!            ENDIF
+! 
+!            ! Read in data
+!            DO ILEV = 1,51
+!               READ(IU_FILE, 110, IOSTAT=IOS ) NOXDATA2D(:,ILEV,ITRAC)
+!               IF ( IOS /= 0 ) THEN
+!                  WRITE(6,'(a,a,I4,a,1x,a)') 'UCX_MOD: Error reading '
+!     &    , 'line ', ILEV, ' in file ', TRIM( NOX_FILE )
+!                  CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
+!               ENDIF
+!            ENDDO
+!
+!#if defined( GRID2x25 )
+!110   FORMAT(91E10.3)
+!#elif defined( GRID4x5 )
+!110   FORMAT(46E10.3)
+!#elif defined( GRID05x0666 )   && defined( NESTED_CH )
+!110   FORMAT(133E10.3)
+!#elif defined( GRID05x0666 )   && defined( NESTED_NA )
+!110   FORMAT(121E10.3)
+!#elif defined( GRID05x0666 )   && defined( NESTED_EU )
+!110   FORMAT(81E10.3)
+!#elif defined( GRID025x03125 ) && defined( NESTED_CH )
+!110   FORMAT(161E10.3)
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!110   FORMAT(202E10.3)
+!#else
+!      ! use 2x25 as default 
+!110   FORMAT(91E10.3)
+!#endif
+!
+!            CLOSE(IU_FILE)
 
 !            ! Debug
 !            IF (LPRT) THEN
@@ -1490,7 +1612,8 @@
 !                  CALL DEBUG_MSG( DBGMSG )
 !               ENDDO
 !            ENDIF
-         ENDDO
+!         ENDDO
+
       ENDIF
 
       ! Scan through target array, element by element
@@ -1498,9 +1621,13 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,      J,      L,       VERTCOUNT )
 !$OMP+PRIVATE( EXTRAP, LSTART, PCENTER, FOUNDLEV  )
-!$OMP+PRIVATE( ITRAC,  ISRATE, CURRVAL            )
+!$OMP+PRIVATE( ITRAC,  ISRATE, CURRVAL, JJNOX     )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Get corresponding J value in NOXDATA2D. This can be different
+         ! from J if the simulation grid is not 2x25 or 4x5.
+         JJNOX = GET_JJNOX( I, J )
 
          ! Vertcount is the layer count for the input, where layer 1
          ! is at the *top* of the atmosphere
@@ -1531,16 +1658,16 @@
                ! Interpolate data
                IF (EXTRAP) THEN
                   ! Just take outside value if at edges
-                  CURRVAL = NOXDATA2D(J,VERTCOUNT,ITRAC)
+                  CURRVAL = NOXDATA2D(JJNOX,VERTCOUNT,ITRAC)
                ELSE
                   ! Interpolate by pressure
                   CURRVAL = (UCX_PLEVS(VERTCOUNT+1)-PCENTER)
                   CURRVAL = CURRVAL/(UCX_PLEVS(VERTCOUNT+1)-
      &                               UCX_PLEVS(VERTCOUNT))
                   CURRVAL = CURRVAL * 
-     &               (NOXDATA2D(J,VERTCOUNT+1,ITRAC)-
-     &                NOXDATA2D(J,VERTCOUNT,ITRAC))
-                  CURRVAL = NOXDATA2D(J,VERTCOUNT+1,ITRAC) - CURRVAL
+     &               (NOXDATA2D(JJNOX,VERTCOUNT+1,ITRAC)-
+     &                NOXDATA2D(JJNOX,VERTCOUNT,ITRAC))
+                  CURRVAL = NOXDATA2D(JJNOX,VERTCOUNT+1,ITRAC) - CURRVAL
                ENDIF
                IF (.not.ISRATE) THEN
                   ! Reading in mixing ratios (v/v)
@@ -1551,12 +1678,18 @@
                ENDIF
             ENDDO ! ITRAC
          ENDDO ! L
+
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
 
-      DEALLOCATE( NOXDATA2D )
- 
+      ! Cleanup
+      IF (UCXNETCDF) THEN
+         IF ( ASSOCIATED(NOXDATA2D) ) DEALLOCATE( NOXDATA2D )
+      ELSE 
+         NOXDATA2D => NULL()
+      ENDIF
+
       END SUBROUTINE GET_NOXCOEFF
 !EOC
 !------------------------------------------------------------------------------
@@ -1977,8 +2110,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp),PARAMETER :: OCS_MR = 5.00e-10_fp ! OCS is fixed to 500 pptv
-      REAL(fp),PARAMETER :: H2_MR = 5.00e-7_fp  ! H2 is fixed to 500 ppbv
       REAL(fp)           :: YLAT
       REAL(fp)           :: MR90S,MR30S,MR30N,MR90N
       INTEGER          :: N, TARG_LINE, J
@@ -2295,146 +2426,150 @@
 !
 ! !LOCAL VARIABLES:
 !
+      INTEGER :: YY, MM
 
       !=================================================================
       ! SET_MONTREAL begins here!
       !=================================================================
 
-      GRID_EMIT(:,N) = GRID_EMIT(:,N)+GET_MONTREAL(TRAC_NAME,TARG_LINE)
+!      GRID_EMIT(:,N) = GRID_EMIT(:,N)+GET_MONTREAL(TRAC_NAME,TARG_LINE)
+
+      YY = CFCYEAR+OFFSETYEAR
+      MM = SFC_MONTH
+      GRID_EMIT(:,N) = GRID_EMIT(:,N) + SFCMR_GET( TRAC_NAME, YY, MM )
 
       ! Return to calling routine
       END SUBROUTINE SET_MONTREAL
-!
 !EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!               MIT Laboratory for Aviation and the Environment               !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: get_montreal
+!!
+!! !DESCRIPTION: Function GET\_MONTREAL gets mean surface mixing ratio of a 
+!!  given species based on forecasts from WHO estimates. Values are
+!!  interpolated between two monthly averages.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      FUNCTION GET_MONTREAL (TRAC_NAME,TARG_LINE) RESULT (MEAN_MIXRATIO)
+!!
+!! !USES:
+!!
+!      USE ERROR_MOD,   ONLY : ERROR_STOP, ALLOC_ERR
+!      USE FILE_MOD,    ONLY : IOERROR
+!!
+!! !INPUT PARAMETERS:
+!!
+!      REAL(fp)                         :: MEAN_MIXRATIO
+!      CHARACTER*(*),INTENT(IN)       :: TRAC_NAME
+!      INTEGER,INTENT(IN)             :: TARG_LINE
+!!
+!! !REVISION HISTORY: 
+!!  04 Apr 2013 - S. D. Eastham - Initial version
+!!  10 Oct 2013 - S. D. Eastham - Split into two routines (GET and SET)
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      CHARACTER(LEN=255)             :: FILENAME, DBGMSG
+!      REAL(fp)                         :: CURRLINE
+!      REAL(fp)                         :: SCALEFAC
+!      REAL(fp)                         :: TEMPMR,TEMPYR
+!      INTEGER                        :: ILINE
+!      INTEGER                        :: IU_FILE, IOS, AS
+!      ! For NetCDF
+!      INTEGER                        :: fId, st1d, ct1d
 !
-! !IROUTINE: get_montreal
+!      !=================================================================
+!      ! GET_MONTREAL begins here!
+!      !=================================================================
 !
-! !DESCRIPTION: Function GET\_MONTREAL gets mean surface mixing ratio of a 
-!  given species based on forecasts from WHO estimates. Values are
-!  interpolated between two monthly averages.
-!\\
-!\\
-! !INTERFACE:
+!      ! Read from ASCII files
+!      FILENAME = TRIM(MONTREAL_FILE_ROOT) // TRIM(TRAC_NAME) // 
+!     &          '_boundary'
 !
-      FUNCTION GET_MONTREAL (TRAC_NAME,TARG_LINE) RESULT (MEAN_MIXRATIO)
+!      IF ( doPrint ) THEN
+!         WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ', 
+!     &        TRIM(TRAC_NAME), ' from ', TRIM( FILENAME )
+!         CALL DEBUG_MSG( TRIM(DBGMSG) )
+!      ENDIF
 !
-! !USES:
+!      ! Get a free LUN
+!      IU_FILE = findFreeLUN()
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP, ALLOC_ERR
-      USE FILE_MOD,    ONLY : IOERROR
+!      IOS=1
 !
-! !INPUT PARAMETERS:
+!      OPEN( IU_FILE, FILE=TRIM( FILENAME ), IOSTAT=IOS )
+!      IF ( IOS /= 0 ) THEN 
+!         WRITE(6,*) 'UCX: FAILED TO FIND ', TRIM(FILENAME)
+!          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
+!      ENDIF
 !
-      REAL(fp)                         :: MEAN_MIXRATIO
-      CHARACTER*(*),INTENT(IN)       :: TRAC_NAME
-      INTEGER,INTENT(IN)             :: TARG_LINE
+!      ! First line not important
+!      READ(IU_FILE,*,IOSTAT=IOS)
+!      IF ( IOS /= 0 ) THEN
+!         WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+!          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
+!      ENDIF
 !
-! !REVISION HISTORY: 
-!  04 Apr 2013 - S. D. Eastham - Initial version
-!  10 Oct 2013 - S. D. Eastham - Split into two routines (GET and SET)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      ! Second line contains scaling factor
+!      READ(IU_FILE,101,IOSTAT=IOS) SCALEFAC
 !
-! !LOCAL VARIABLES:
+!101   FORMAT(E7.1)
 !
-      CHARACTER(LEN=255)             :: FILENAME, DBGMSG
-      REAL(fp)                         :: CURRLINE
-      REAL(fp)                         :: SCALEFAC
-      REAL(fp)                         :: TEMPMR,TEMPYR
-      INTEGER                        :: ILINE
-      INTEGER                        :: IU_FILE, IOS, AS
-      ! For NetCDF
-      INTEGER                        :: fId, st1d, ct1d
-
-      !=================================================================
-      ! GET_MONTREAL begins here!
-      !=================================================================
-
-      ! Read from ASCII files
-      FILENAME = TRIM(MONTREAL_FILE_ROOT) // TRIM(TRAC_NAME) // 
-     &          '_boundary'
-
-      IF ( doPrint ) THEN
-         WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ', 
-     &        TRIM(TRAC_NAME), ' from ', TRIM( FILENAME )
-         CALL DEBUG_MSG( TRIM(DBGMSG) )
-      ENDIF
-
-      ! Get a free LUN
-      IU_FILE = findFreeLUN()
-
-      IOS=1
-
-      OPEN( IU_FILE, FILE=TRIM( FILENAME ), IOSTAT=IOS )
-      IF ( IOS /= 0 ) THEN 
-         WRITE(6,*) 'UCX: FAILED TO FIND ', TRIM(FILENAME)
-          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-      ENDIF
-
-      ! First line not important
-      READ(IU_FILE,*,IOSTAT=IOS)
-      IF ( IOS /= 0 ) THEN
-         WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-      ENDIF
-
-      ! Second line contains scaling factor
-      READ(IU_FILE,101,IOSTAT=IOS) SCALEFAC
-
-101   FORMAT(E7.1)
-
-      ! Third and fourth line also to be ignored
-      DO ILINE=1,2
-         READ(IU_FILE,*,IOSTAT=IOS)
-         IF ( IOS /= 0 ) THEN
-            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-         ENDIF
-      ENDDO
-
-      ! Skip to line specified
-      DO ILINE=1,(TARG_LINE-1)
-         READ(IU_FILE,*,IOSTAT=IOS) ! Skip line
-         IF ( IOS /= 0 ) THEN 
-            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-         ENDIF
-      ENDDO
-
-      ! Read relevant line
-      IF (TRAC_NAME.eq.'C2BR2F4') THEN
-         WRITE(6,*) 'C2Br2F4 encountered - reading...'
-         READ(IU_FILE,103,IOSTAT=IOS) TEMPYR,TEMPMR
-      ELSE
-         READ(IU_FILE,102,IOSTAT=IOS) TEMPYR,TEMPMR
-      ENDIF
-      IF ( IOS /= 0 ) THEN
-         WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
-          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
-      ENDIF
-
-      CLOSE(IU_FILE)
-
-      MEAN_MIXRATIO = TEMPMR * SCALEFAC
-
-102   FORMAT(F7.2,F11.2)
-      ! C2Br2F4 only
-103   FORMAT(F7.2,F8.2)
-
-      IF ( doPrint ) THEN
-         WRITE(DBGMSG,'(a,E16.4)') ' ### UCX: Retrieved value: ', 
-     &        MEAN_MIXRATIO
-         CALL DEBUG_MSG( TRIM(DBGMSG) )
-      ENDIF
-
-      ! Return to calling program
-      END FUNCTION GET_MONTREAL
-!EOC
+!      ! Third and fourth line also to be ignored
+!      DO ILINE=1,2
+!         READ(IU_FILE,*,IOSTAT=IOS)
+!         IF ( IOS /= 0 ) THEN
+!            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+!             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
+!         ENDIF
+!      ENDDO
+!
+!      ! Skip to line specified
+!      DO ILINE=1,(TARG_LINE-1)
+!         READ(IU_FILE,*,IOSTAT=IOS) ! Skip line
+!         IF ( IOS /= 0 ) THEN 
+!            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+!             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
+!         ENDIF
+!      ENDDO
+!
+!      ! Read relevant line
+!      IF (TRAC_NAME.eq.'C2BR2F4') THEN
+!         WRITE(6,*) 'C2Br2F4 encountered - reading...'
+!         READ(IU_FILE,103,IOSTAT=IOS) TEMPYR,TEMPMR
+!      ELSE
+!         READ(IU_FILE,102,IOSTAT=IOS) TEMPYR,TEMPMR
+!      ENDIF
+!      IF ( IOS /= 0 ) THEN
+!         WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+!          CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SET_MONTREAL')
+!      ENDIF
+!
+!      CLOSE(IU_FILE)
+!
+!      MEAN_MIXRATIO = TEMPMR * SCALEFAC
+!
+!102   FORMAT(F7.2,F11.2)
+!      ! C2Br2F4 only
+!103   FORMAT(F7.2,F8.2)
+!
+!      IF ( doPrint ) THEN
+!         WRITE(DBGMSG,'(a,E16.4)') ' ### UCX: Retrieved value: ', 
+!     &        MEAN_MIXRATIO
+!         CALL DEBUG_MSG( TRIM(DBGMSG) )
+!      ENDIF
+!
+!      ! Return to calling program
+!      END FUNCTION GET_MONTREAL
+!!EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
@@ -5819,7 +5954,8 @@
       INTEGER, PARAMETER    :: REF_YEAR=2007
       REAL(fp)                :: CH4_SCALE
       INTEGER               :: FUTURE_LINE
-      INTEGER               :: BASIS_LINE
+!      INTEGER               :: BASIS_LINE
+      INTEGER               :: THIS_YEAR
       INTEGER, SAVE         :: LAST_YEAR=-1
       REAL(fp), SAVE          :: LAST_MR(4)
 
@@ -5860,10 +5996,13 @@
      &               GET_MONTREAL_NCDF('CH4',CFCYEAR+OFFSETYEAR,1)/
      &               GET_MONTREAL_NCDF('CH4',REF_YEAR,1)
             ELSE
-               FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + 1
-               BASIS_LINE = (12*(REF_YEAR-1959)) + 1
-               CH4_SCALE = (1.0d-9)*GET_MONTREAL('CH4',FUTURE_LINE)/
-     &                       GET_MONTREAL('CH4',BASIS_LINE)
+!               FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + 1
+!               BASIS_LINE = (12*(REF_YEAR-1959)) + 1
+!               CH4_SCALE = (1.0d-9)*GET_MONTREAL('CH4',FUTURE_LINE)/
+!     &                       GET_MONTREAL('CH4',BASIS_LINE)
+               THIS_YEAR = CFCYEAR+OFFSETYEAR
+               CH4_SCALE = (1.0e-9_fp) * SFCMR_GET('CH4',THIS_YEAR,1)
+     &                   / SFCMR_GET('CH4',REF_YEAR,1)
             ENDIF
          ELSE
             CH4_SCALE = 1.0e-9_fp
@@ -5888,6 +6027,594 @@
       ENDIF
 
       END SUBROUTINE GET_UCX_CH4
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: sfcmr_init
+!
+! !DESCRIPTION: Subroutine SFCMR\_INIT initializes the surface mixing ratio
+! derived type object. This reads in all the mixing ratios from ASCII files
+! and saves them in the SFCMR object.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SFCMR_INIT( am_I_Root, Input_Opt )
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,          INTENT(IN) :: am_I_Root          ! Root CPU? 
+      TYPE(OptInput),   INTENT(IN) :: Input_Opt          ! Input options
+!
+! !OUTPUT VARIABLES:
+!
+!
+! !REVISION HISTORY: 
+!  05 Dec 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I, N, ID, AS
+      CHARACTER(LEN=20) :: LOCAL_NAME
+
+      !=================================================================
+      ! SFCMR_INIT begins here!
+      !=================================================================
+
+      ! Initialize the SFCMR derived type
+      ALLOCATE(SFCMR(MAXSFCMR), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SFCMR' )
+
+      ! Fill SFCMR for every emitted species. Some emitted species
+      ! have multiple source files, so create a separate SFCMR entry
+      ! for all of those.
+      DO I = 1, N_EMIT
+         ID = IDT_EMIT(I)
+         SELECT CASE (TRIM(TRAC_EMIT(I)))
+
+            CASE ('CFCX')
+               LOCAL_NAME = TRIM('CFC113')
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+               LOCAL_NAME = TRIM('CFC114')
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+               LOCAL_NAME = TRIM('CFC115')
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+            CASE ('HCFCX')
+               LOCAL_NAME = TRIM('HCFC141b')
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+               LOCAL_NAME = TRIM('HCFC142b')
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+            CASE ('H2402')
+               LOCAL_NAME = TRIM('C2BR2F4')
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID )
+            CASE ('OCS')
+               LOCAL_NAME = TRIM('OCS')
+               CALL SFCMR_READ( am_I_Root,  Input_Opt, 
+     &                          LOCAL_NAME, ID,        iMR=OCS_MR )
+            CASE ('H2')
+               LOCAL_NAME = TRIM('H2')
+               CALL SFCMR_READ( am_I_Root,  Input_Opt, 
+     &                          LOCAL_NAME, ID,        iMR=H2_MR )
+            CASE DEFAULT
+               LOCAL_NAME = TRIM(TRAC_EMIT(I))
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+         END SELECT
+      ENDDO
+
+      END SUBROUTINE SFCMR_INIT
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: sfcmr_read
+!
+! !DESCRIPTION: Subroutine SFCMR\_READ reads the surface mixing rations from
+! ASCII file and stores the values in the next available SFCMR object.
+! The ascii file is expected to be in the following format:
+!C2CL3F3              MIXING RATIO BOUNDARY CONDITIONS FOR WMO-2006
+!1.0E-12
+!
+! time      CFC113
+!1959.04        0.99
+!1959.12        1.00
+!1959.21        1.01
+!1959.29        1.02
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SFCMR_READ( am_I_Root, Input_Opt, iName, iID, iMR )
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,            INTENT(IN   ) :: am_I_Root          ! Root CPU? 
+      TYPE(OptInput),     INTENT(IN   ) :: Input_Opt          ! Input options
+      CHARACTER(LEN=*),   INTENT(IN   ) :: iName              ! species name 
+      INTEGER,            INTENT(IN   ) :: iID                ! species ID 
+      REAL(fp), OPTIONAL, INTENT(IN   ) :: iMR                ! fixed MR
+!
+! !REVISION HISTORY: 
+!  05 Dec 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I, N, NX, IOS, AS
+      INTEGER            :: IU_FILE
+      CHARACTER(LEN=30)  :: FM 
+      ! Max. number of lines in ascii files. Monthly values btw 1950-2100 = 1800
+      INTEGER, PARAMETER :: MAXLINES = 3000
+      REAL(fp)           :: SCALEFAC, TMPYR, TMPMR
+      REAL(fp)           :: YR(MAXLINES), MR(MAXLINES)
+      CHARACTER(LEN=255) :: FILENAME, DBGMSG
+
+      !=================================================================
+      ! SFCMR_READ begins here!
+      !=================================================================
+
+      ! If a fixed MR is given, just use this value
+      IF ( PRESENT( iMR ) ) THEN
+         NX       = 1
+         YR(1)    = 1900.0_fp
+         MR(1)    = iMR
+         SCALEFAC = 1.0_fp
+
+      ! If no fixed MR is given, read MR and years from ASCII file
+      ELSE
+
+         ! Construct file name
+         FILENAME = TRIM(MONTREAL_FILE_ROOT)//TRIM(iName)//'_boundary'
+        
+         IF ( doPrint ) THEN
+            WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ',
+     &           TRIM(iNAME), ' from ', TRIM( FILENAME )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
+         ENDIF      
+   
+         ! Get a free LUN
+         IU_FILE = findFreeLUN()      
+   
+         ! Initialize values
+         IOS = 1
+         NX  = 0  ! number of values
+   
+         ! Open file
+         OPEN( IU_FILE, FILE=TRIM( FILENAME ), IOSTAT=IOS )
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,*) 'UCX: FAILED TO FIND ', TRIM(FILENAME)
+             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
+         ENDIF      
+   
+         ! First line not important
+         READ(IU_FILE,*,IOSTAT=IOS)
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
+         ENDIF
+         
+         ! Second line contains scaling factor
+         READ(IU_FILE,101,IOSTAT=IOS) SCALEFAC
+   
+101      FORMAT(E7.1)
+   
+         ! Third and fourth line also to be ignored
+         DO I=1,2
+            READ(IU_FILE,*,IOSTAT=IOS)
+            IF ( IOS /= 0 ) THEN
+               WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+                CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
+            ENDIF
+         ENDDO
+  
+         ! C2BR2F4 has a different format.
+         IF ( TRIM(iName) == 'C2BR2F4' ) THEN
+            FM = "(F7.2,F8.2)"
+         ELSE
+            !FM = "(F7.2,F11.2)"
+            FM = "(F7.2,F12.2)"
+         ENDIF
+   
+         ! Read until end of file 
+         DO
+            ! Read values into temporary buffer
+            READ(IU_FILE,FM,IOSTAT=IOS) TMPYR, TMPMR
+   
+            ! Error?
+            IF ( IOS > 0 ) THEN
+               WRITE(6,*) 'UCX: READ ERROR IN ', TRIM(FILENAME)
+                CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
+            ENDIF
+   
+            ! End of file?
+            IF ( IOS < 0 ) EXIT
+   
+            ! Increase counter and pass data to buffer
+            NX = NX + 1
+            IF ( NX > MAXLINES ) THEN
+               DBGMSG = 'Beyond max. number of lines: '//TRIM(FILENAME)
+               CALL ERROR_STOP( DBGMSG, 'UCX_MOD: SFCMR_READ' )
+            ENDIF
+            YR(NX) = TMPYR
+            MR(NX) = TMPMR
+         ENDDO
+
+         ! Close file
+         CLOSE(IU_FILE)
+
+      ENDIF
+
+      ! Get next SFCMR index in list
+      NSFCMR = NSFCMR + 1
+      IF ( NSFCMR > MAXSFCMR ) THEN
+         DBGMSG = 'Max. number of SFCMR objects exceeded! '
+         CALL ERROR_STOP( DBGMSG, 'UCX_MOD: SFCMR_READ' )
+      ENDIF
+      N = NSFCMR
+
+      ! Fill SFCMR type object
+      ALLOCATE( SFCMR(N)%YR(NX), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SFCMR(N)%YR'//TRIM(iName) )
+      ALLOCATE( SFCMR(N)%MR(NX), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SFCMR(N)%MR'//TRIM(iName) )
+
+      SFCMR(N)%NAME  = TRIM(iName)
+      SFCMR(N)%ID    = iID 
+      SFCMR(N)%NX    = NX
+      SFCMR(N)%YR(:) = YR(1:NX)
+      SFCMR(N)%MR(:) = MR(1:NX)
+      SFCMR(N)%SCAL  = SCALEFAC
+
+      END SUBROUTINE SFCMR_READ
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: sfcmr_get
+!
+! !DESCRIPTION: Subroutine SFCMR\_GET returns the surface mixing ratio of
+! the given species for the given year and month. The value of the closest
+! available date in the past is taken, and no interpolation between dates
+! is performed.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION SFCMR_GET( TRAC_NAME, YEAR, MONTH ) RESULT( MR ) 
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+      CHARACTER(LEN=*), INTENT(IN) :: TRAC_NAME          ! species name
+      INTEGER,          INTENT(IN) :: YEAR               ! desired year 
+      INTEGER,          INTENT(IN) :: MONTH              ! desired month
+!
+! !INPUT/OUTPUT VARIABLES:
+!
+      REAL(fp)                     :: MR 
+!
+! !REVISION HISTORY: 
+!  05 Dec 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I, N, NX, IDX
+      REAL(fp)            :: YRMT
+      REAL(fp), PARAMETER :: DECMT = 1.0_fp / 12.0_fp
+      REAL(fp), PARAMETER :: MIDMT = DECMT  /  2.0_fp
+      CHARACTER(LEN=255)  :: MSG
+
+      !=================================================================
+      ! SFCMR_GET begins here!
+      !=================================================================
+
+      ! Init
+      MR = 0.0_fp
+
+      ! In the SFCMR structure, the date is stored as decimal year/month
+      ! value referring to the mid-month, e.g. January 1990 is 1990.04, 
+      ! July 1990 is 1990.54, etc.
+      YRMT = REAL(YEAR,4) + ( (MONTH-1) * DECMT ) + MIDMT
+  
+      ! Get index to desired SFCMR object
+      N = -1
+      DO I = 1, NSFCMR
+         IF ( TRIM(SFCMR(I)%NAME) == TRIM(TRAC_NAME) ) THEN
+            N = I
+            EXIT
+         ENDIF
+      ENDDO
+      IF ( N < 0 ) RETURN
+
+      ! Get time index to be used. Use closest available time stamp
+      ! that is in the past.
+      IDX = -1
+      NX  = SFCMR(N)%NX
+
+      ! Check for lower boundary
+      IF ( YRMT <= SFCMR(N)%YR(1) ) THEN
+         IDX = 1
+
+      ! Check for upper boundary
+      ELSEIF ( YRMT >= SFCMR(N)%YR(NX) ) THEN
+         IDX = NX
+
+      ! Otherwise walk through dates until we pass the date line
+      ELSE
+         DO I = 1, NX-1
+            IF ( SFCMR(N)%YR(I+1) > YRMT ) THEN
+               IDX = I
+               EXIT
+            ENDIF
+         ENDDO
+      ENDIF
+
+      ! This should never happen:
+      IF ( IDX < 0 ) RETURN
+
+      ! Get mixing ratio
+      MR = SFCMR(N)%MR(IDX) * SFCMR(N)%SCAL 
+
+      IF ( doPrint ) THEN
+         WRITE(MSG,'(a,E16.4)') ' ### UCX: Retrieved value: ', MR
+         CALL DEBUG_MSG( TRIM(MSG) )
+      ENDIF      
+
+      END FUNCTION SFCMR_GET
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: noxcoeff_init
+!
+! !DESCRIPTION: Subroutine NOXCOEFF\_INIT initializes the NOX 2D interpolation
+! values. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE NOXCOEFF_INIT ( am_I_Root, Input_Opt )
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,          INTENT(IN) :: am_I_Root          ! Root CPU? 
+      TYPE(OptInput),   INTENT(IN) :: Input_Opt          ! Input options
+!
+! !OUTPUT VARIABLES:
+!
+!
+! !REVISION HISTORY: 
+!  05 Dec 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I, AS, IOS
+      INTEGER            :: IMON, ITRAC, ILEV
+      INTEGER            :: IU_FILE
+      CHARACTER(LEN=255) :: NOX_FILE
+      CHARACTER(LEN=255) :: TARG_TRAC
+      CHARACTER(LEN=255) :: DBGMSG
+      LOGICAL            :: LPRT
+
+      !=================================================================
+      ! NOXCOEFF_INIT begins here!
+      !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LPRT = Input_Opt%LPRT
+
+      ! Number of latitude levels of NOXCOEFF array. Data is only
+      ! available for 2x25 and 4x5. Use 2x25 for any different grid
+      ! and map NOx coeffs onto simulation grid when calling 
+      ! GET_NOXCOEFF.
+#if defined ( GRID2x25 ) || defined ( GRID4x5 )
+      JJNOXCOEFF = JJPAR
+#else
+      JJNOXCOEFF = 91
+
+      ! Fill NOx latitudes
+      ALLOCATE(NOXLAT(JJNOXCOEFF+1), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXLAT' )
+
+      ! Fill manually
+      NOXLAT(2) = -89.0d0
+      DO I = 3,JJNOXCOEFF
+         NOXLAT(I) = NOXLAT(I-1) + 2d0
+      ENDDO
+      ! Overshoot to make sure that a latitude of 90.0 will be properl
+      ! matched onto JJNOXCOEFF. 
+      NOXLAT(JJNOXCOEFF+1) = 90.5d0 
+#endif
+
+      ! Initialize the NOXCOEFF array. This array holds monthly NOx 
+      ! coefficients on 51 levels and for 6 species.
+      ALLOCATE(NOXCOEFF(JJNOXCOEFF,UCX_NLEVS,6,12), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXCOEFF' )
+      NOXCOEFF = 0.0d0
+
+      ! Fill array
+      DO IMON  = 1,12 
+      DO ITRAC = 1,6
+         SELECT CASE (ITRAC)
+            CASE ( 1 )
+               TARG_TRAC = 'O'
+            CASE ( 2 )
+               TARG_TRAC = 'O1D'
+            CASE ( 3 )
+               TARG_TRAC = 'JNO'
+            CASE ( 4 )
+               TARG_TRAC = 'JNO2'
+            CASE ( 5 )
+               TARG_TRAC = 'JNO3'
+            CASE ( 6 )
+               TARG_TRAC = 'JN2O'
+         END SELECT
+         WRITE(NOX_FILE,'(a,a,a,I0.2,a)') TRIM(NOON_FILE_ROOT),
+     &    TRIM(TARG_TRAC), '_', IMON, '.dat'
+
+         ! Get a free LUN
+         IU_FILE = findFreeLUN()
+
+         IOS = 1
+         OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS) 
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,*) 'UCX_MOD: Could not read ', TRIM(NOX_FILE)
+            CALL IOERROR( IOS, IU_FILE,'UCX_MOD:NOXCOEFF_INIT')
+         ENDIF
+  
+         IF (LPRT) THEN
+            WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
+     &        TRIM( NOX_FILE )
+            CALL DEBUG_MSG( TRIM(DBGMSG) )
+         ENDIF
+ 
+         ! Read in data
+         DO ILEV = 1,UCX_NLEVS
+            READ(IU_FILE, 110, IOSTAT=IOS ) NOXCOEFF(:,ILEV,ITRAC,IMON)
+            IF ( IOS /= 0 ) THEN
+               WRITE(6,'(a,a,I4,a,1x,a)') 'UCX_MOD: Error reading '
+     & , 'line ', ILEV, ' in file ', TRIM( NOX_FILE )
+               CALL IOERROR( IOS, IU_FILE,'UCX_MOD:NOXCOEFF_INIT')
+            ENDIF
+         ENDDO
+
+#if defined( GRID2x25 )
+110   FORMAT(91E10.3)
+#elif defined( GRID4x5 )
+110   FORMAT(46E10.3)
+#elif defined( GRID05x0666 )   && defined( NESTED_CH )
+110   FORMAT(133E10.3)
+#elif defined( GRID05x0666 )   && defined( NESTED_NA )
+110   FORMAT(121E10.3)
+#elif defined( GRID05x0666 )   && defined( NESTED_EU )
+110   FORMAT(81E10.3)
+#elif defined( GRID025x03125 ) && defined( NESTED_CH )
+110   FORMAT(161E10.3)
+#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+110   FORMAT(202E10.3)
+#else
+      ! use 2x25 as default 
+110   FORMAT(91E10.3)
+#endif
+
+         CLOSE(IU_FILE)
+
+      ENDDO !ITRAC
+      ENDDO !IMON
+
+      END SUBROUTINE NOXCOEFF_INIT
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_jjnox 
+!
+! !DESCRIPTION: Subroutine GET\_JJNOX maps grid box at location IISIM, JJSIM of  
+! the simulation grid onto the latitude grid of the NOXCOEFF array. JJNOX can
+! differ from JJSIM if it's not a 4x5 or 2x25 simulation.
+!\\
+!\\
+! This routine simply returns the index of the NOx latitude vector that covers
+! the latitude value of interest. No grid box weighting, etc. is performed.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_JJNOX( IISIM, JJSIM ) RESULT ( JJNOX )
+!
+! !USES:
+!
+      USE GRID_MOD,           ONLY : GET_YMID
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,          INTENT(IN) :: IISIM    ! Latitude index on simulation grid 
+      INTEGER,          INTENT(IN) :: JJSIM    ! Latitude index on simulation grid 
+!
+! !OUTPUT VARIABLES:
+!
+      INTEGER                      :: JJNOX    ! Latitude index on NOXCOEFF grid
+!
+! !REVISION HISTORY: 
+!  05 Dec 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I
+      REAL*8              :: LAT 
+
+      !=================================================================
+      ! GET_JJNOX begins here!
+      !=================================================================
+
+      ! Nothing to do for 'standard' grids
+#if defined( GRID4x5 ) || defined( GRID2x25 )
+      JJNOX = JJSIM
+#else
+
+      ! Init
+      JJNOX = -1
+
+      ! Get latitude in degrees north on simulation grid
+      LAT = GET_YMID ( IISIM, JJSIM, 1 )
+
+      ! Loop over all latitudes of the NOx grid until we reach the grid
+      ! box where the simulation latitude sits in. 
+      DO I = 1,JJNOXCOEFF
+         IF ( LAT < NOXLAT(I+1) ) THEN
+            JJNOX = I
+            EXIT
+         ENDIF
+      ENDDO
+#endif
+
+      END FUNCTION GET_JJNOX
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -5959,7 +6686,7 @@
       LOGICAL :: LSETBRSTRAT
       LOGICAL :: LSETNOYSTRAT
       LOGICAL :: LSETN2O
-      LOGICAL :: LBASICEMIS
+!      LOGICAL :: LBASICEMIS
 
       !=================================================================
       ! INIT_UCX begins here!
@@ -5983,7 +6710,7 @@
       LSETBRSTRAT  = Input_Opt%LSETBRSTRAT
       LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
       LSETN2O      = Input_Opt%LSETN2O
-      LBASICEMIS   = Input_Opt%LBASICEMIS
+!      LBASICEMIS   = Input_Opt%LBASICEMIS
 
       ! Set module variable doPrint for use in internal functions
       doPrint      = LPRT
@@ -5993,10 +6720,10 @@
       WRITE( 6,'(a)') 'Routines written by SEBASTIAN D. EASTHAM'
       WRITE( 6,'(a)') REPEAT( '=', 79 )
 
+      ! Don't use BASICEMIS switch in check below (ckeller, 05/12/14)
       USE2DDATA = ( LSETOCS     .or. LSETCFC      .or. LSETCL     .or.
      &              LSETBR      .or. LSETH2SO4    .or. STRAT2DCH4 .or.
-     &              LSETBRSTRAT .or. LSETNOYSTRAT .or. LSETN2O    .or.
-     &              LBASICEMIS  )
+     &              LSETBRSTRAT .or. LSETNOYSTRAT .or. LSETN2O        )
 
 #if !defined(GRID4x5) && !defined(GRID2x25)
       IF ( LUCX .and. USE2DDATA ) THEN
@@ -6339,8 +7066,23 @@
 !         ENDIF
       ENDDO
 
+      ! Initialize surface boundary conditions (ckeller, 12/05/14)
+      ! This reads the surface boundary conditions for all emitted species
+      ! and all available years to disk and stores them in the SFCMR object.
+      ! Call SFCMR_GET can then be used to pick the surface boundary condition
+      ! for a given year and month.
+      ! This is advantagous in an MPI environment where we try to avoid file
+      ! I/O during runtime as much as possible.
+      IF ( Input_Opt%LBASICEMIS .AND. .NOT. UCXNETCDF ) THEN
+         CALL SFCMR_INIT ( am_I_Root, Input_Opt ) 
+      ENDIF
+
+      ! Initialize NOXCOEFF arrays
+      IF ( .NOT. UCXNETCDF ) THEN
+         CALL NOXCOEFF_INIT( am_I_Root, Input_Opt ) 
+      ENDIF
+
       END SUBROUTINE INIT_UCX
-!
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -6362,6 +7104,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      INTEGER :: N
 
       !=================================================================
       ! CLEANUP_UCX begins here!
@@ -6386,7 +7129,19 @@
       IF ( ALLOCATED( NOX_J      ) ) DEALLOCATE( NOX_J      )
       IF ( ALLOCATED( SO4_TOPPHOT) ) DEALLOCATE( SO4_TOPPHOT)
 
+      ! Cleanup SFCMR object
+      IF ( ASSOCIATED(SFCMR) ) THEN
+         DO N=1,NSFCMR
+            IF ( ALLOCATED(SFCMR(N)%YR ) ) DEALLOCATE( SFCMR(N)%YR )
+            IF ( ALLOCATED(SFCMR(N)%MR ) ) DEALLOCATE( SFCMR(N)%MR )
+         ENDDO
+         DEALLOCATE(SFCMR)
+      ENDIF
+
+      ! Cleanup the NOx coeff arrays 
+      IF ( ALLOCATED( NOXCOEFF ) ) DEALLOCATE( NOXCOEFF )
+      IF ( ALLOCATED( NOXLAT   ) ) DEALLOCATE( NOXLAT   )
+
       END SUBROUTINE CLEANUP_UCX
-!
 !EOC
       END MODULE UCX_MOD

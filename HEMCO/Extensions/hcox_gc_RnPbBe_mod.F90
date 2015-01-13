@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -93,7 +93,7 @@ MODULE HCOX_GC_RnPbBe_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -298,7 +298,7 @@ CONTAINS
           ENDIF
    
           ! For boxes below freezing, reduce 222Rn emissions by 3x
-          IF ( ExtState%TSURFK%Arr%Val(I,J) < 273.15 ) THEN
+          IF ( ExtState%T2M%Arr%Val(I,J) < 273.15 ) THEN
              ADD_Rn = ADD_Rn / 3d0
           ENDIF
    
@@ -421,7 +421,7 @@ CONTAINS
   END SUBROUTINE HCOX_Gc_RnPbBe_Run
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -527,7 +527,7 @@ CONTAINS
 
     ! Activate met fields required by this extension
     ExtState%FRCLND%DoUse  = .TRUE. 
-    ExtState%TSURFK%DoUse  = .TRUE. 
+    ExtState%T2M%DoUse     = .TRUE. 
     ExtState%AIR%DoUse     = .TRUE. 
 #if defined( GCAP ) 
     ExtState%TROPP%DoUse   = .TRUE.
@@ -592,7 +592,7 @@ CONTAINS
   END SUBROUTINE HCOX_Gc_RnPbBe_Init
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -627,7 +627,7 @@ CONTAINS
   END SUBROUTINE HCOX_Gc_RnPbBe_Final
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -657,7 +657,7 @@ CONTAINS
   END SUBROUTINE Init_7Be_Emissions
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !

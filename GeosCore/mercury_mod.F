@@ -6867,13 +6867,6 @@
          IF ( IS_WATER( I, J, State_Met ) ) THEN
 
             ! Wind speed at 10m altitude [m/s]
-!----------------------------------------------------------------------------
-! Prior to 7/25/14:
-! Remove reference to function SFCWINDSQR (bmy, 7/25/14)
-!            U10M = SQRT( SFCWINDSQR( I, J,
-!     &                               State_Met%U10M,
-!     &                               State_Met%V10M ) )
-!----------------------------------------------------------------------------
             SFCWINDSQR = State_Met%U10M(I,J)**2 
      &                 + State_Met%V10M(I,J)**2
             U10M       = SQRT( SFCWINDSQR )

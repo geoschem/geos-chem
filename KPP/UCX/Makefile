@@ -1,6 +1,6 @@
 # $Id: Makefile,v 1.2 2009/12/11 19:27:42 bmy Exp $
 #------------------------------------------------------------------------------
-#          Harvard University Atmospheric Chemistry Modeling Group            !
+#                  GEOS-Chem Global Chemical Transport Model                  !
 #------------------------------------------------------------------------------
 #BOP
 #
