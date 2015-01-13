@@ -568,7 +568,7 @@ CONTAINS
          !   ------------------  * ------  *  -------  * ------------------
          !          cm3            kg air        m3      molecules tracer(N)  
          !
-         !   = molecules per cm3 / air density / molecules tracer / kg tracer 
+         !   = molecules per cm3 / air density / (molecules tracer / kg tracer) 
          !   
          !   = mass mixing ratio
          !

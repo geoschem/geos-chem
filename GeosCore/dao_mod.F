@@ -337,7 +337,7 @@
 !
 
       INTEGER :: I,  J,  L
-      REAL(fp)  :: P1, P2, AREA_M2, Psat, Pv, Pd
+      REAL(fp)  :: P1, P2, AREA_M2, Psat, Pv, Pd, T_C
 
       !=================================================================
       ! AIRQNT begins here! 
@@ -365,12 +365,14 @@
          ! Pressure difference between top & bottom edges [hPa]
          State_Met%DELP(I,J,L)     = P1 - P2
 
+         ! Temperature in Celsius
+         T_C = State_Met%T(I,J,L) - 2.7415e+2_fp
+
          ! Empirical formulation for saturation pressure of water [Pa].
-         ! Temperature is converted to Kelvin, and hPa converted to Pa.
          ! Parameters 7.5, 237.3, and 6.1078 are empirically-derived.
-         Psat = 10**( 7.5 * ( State_Met%T(I,J,L) - 274.15 )
-     &                / ( State_Met%T(I,J,L) - 274.14 + 237.3 ) )
-     &                * 6.1078 * 100         
+         ! Pressure is converted from hPa to Pa by multiplying by 100.
+         Psat = 10**( 7.5e+0_fp * T_C / ( T_C + 2.373e+2_fp ) ) 
+     &        * 6.1078e+0_fp * 1.0e+2_fp         
 
          ! Partial pressure of water vapor [Pa]
          Pv = State_Met%RH(I,J,L) * Psat
@@ -439,15 +441,16 @@
          !
          !             Partial      Molec     Partial       Molec
          !             pressure   * wt of   + pressure of * wt of 
-         !             of dry air   air       water vapor   water
-         ! Moist     (  [Pa]       [g/mol]     [Pa]       [g/mol] )
-         ! Air     =  -----------------------------------------------           
+         !             of dry air   air       water vapor   water     
+         ! Moist        [Pa]        [g/mol]     [Pa]        [g/mol]  
+         ! Air     =  ----------------------------------------------           
          ! Density      Universal gas constant  * Temp * 1000 
          !                     [J/K/mol]          [K]   [g/kg]
          !
          !===========================================================
-         State_Met%MAIRDEN(I,J,L) = ( Pd * AIRMW + Pv * H2OMW ) / 1000
-     &                            / RSTARG / State_Met%T(I,J,L) 
+         State_Met%MAIRDEN(I,J,L) = ( Pd * AIRMW + Pv * H2OMW ) 
+     &                            * 1.0e-3_fp / RSTARG 
+     &                            / State_Met%T(I,J,L)
 
 
       ENDDO
