@@ -3717,7 +3717,7 @@
       CALL GetExtOpt ( ExtNr, 'PECCA model', OptValBool=LPECCA, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
       CALL GetExtOpt ( ExtNr, 'Isoprene scaling', 
-     &                 OptValDp=ISOP_SCALING, RC=RC )
+     &                 OptValHp=ISOP_SCALING, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Verbose mode
