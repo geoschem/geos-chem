@@ -33,7 +33,6 @@ MODULE HCO_ExtList_Mod
   PUBLIC :: AddExtOpt
   PUBLIC :: GetExtOpt
   PUBLIC :: GetExtNr 
-  PUBLIC :: SetExtNr
   PUBLIC :: GetExtSpcStr
   PUBLIC :: SetExtNr
   PUBLIC :: ExtNrInUse

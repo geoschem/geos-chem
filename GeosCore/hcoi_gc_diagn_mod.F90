@@ -327,8 +327,8 @@ CONTAINS
              HcoID = HCO_GetHcoID( TRIM(SpcName), HcoState )
              IF ( HcoID > 0 ) THEN
                 CALL Diagn_Create ( am_I_Root,                          &
-                                    HcoState,                           &
                                     cName     = 'EMIS_'//TRIM(SpcName), &
+                                    HcoState  = HcoState,               &
                                     ExtNr     = -1,                     &
                                     Cat       = -1,                     &
                                     Hier      = -1,                     &
@@ -381,16 +381,16 @@ CONTAINS
                          Cat       = 999
                    END SELECT
 
-                   CALL Diagn_Create ( am_I_Root, &
-                                       HcoState,  &
-                                       cName    = DiagnName, &
-                                       ExtNr    = ExtNr, &
-                                       Cat      = Cat, &
-                                       Hier     = -1, &
-                                       HcoID    = HcoID, &
-                                       SpaceDim = 2, &
-                                       LevIDx   = -1, &
-                                       OutUnit  = 'kg/m2/s', &
+                   CALL Diagn_Create ( am_I_Root,                     &
+                                       cName     = DiagnName,         &
+                                       HcoState  = HcoState,          &
+                                       ExtNr     = ExtNr,             &
+                                       Cat       = Cat,               &
+                                       Hier      = -1,                &
+                                       HcoID     = HcoID,             &
+                                       SpaceDim  = 2,                 &
+                                       LevIDx    = -1,                &
+                                       OutUnit   = 'kg/m2/s',         & 
                                        WriteFreq = Default_WriteFreq, &
                                        AutoFill  = 1,                 &
                                        cID       = N,                 & 
