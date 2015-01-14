@@ -21,16 +21,21 @@
       USE ERROR_MOD,  ONLY : DEBUG_MSG
       USE CMN_SIZE_MOD
 
+#if !defined(ESMF_)
       ! NcdfUtil modules for netCDF I/O
       USE m_netcdf_io_open                    ! netCDF open
       USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
       USE m_netcdf_io_read                    ! netCDF data reads
       USE m_netcdf_io_close                   ! netCDF close
+#endif
 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
+#if !defined(ESMF_)
 #     include "netcdf.inc"
+#endif!  14 Jan 2015 - R. Yantosca -  
+
       PRIVATE
 
 !
@@ -2358,6 +2363,7 @@
       ! GET_MONTREAL_NCDF begins here!
       !=================================================================
 
+#if !defined(ESMF_)
       ! Read direct from master file
       FILENAME = TRIM(MONTREAL_FILE_ROOT)
 
@@ -2390,6 +2396,10 @@
 !     &        MEAN_MIXRATIO
 !         CALL DEBUG_MSG( TRIM(DBGMSG) )
 !      ENDIF
+
+#else
+      MEAN_MIXRATIO = 0.0_fp
+#endif
 
       ! Return to calling program
       END FUNCTION GET_MONTREAL_NCDF
@@ -6725,23 +6735,27 @@
      &              LSETBR      .or. LSETH2SO4    .or. STRAT2DCH4 .or.
      &              LSETBRSTRAT .or. LSETNOYSTRAT .or. LSETN2O        )
 
-#if !defined(GRID4x5) && !defined(GRID2x25)
+      ! --------------------------------------------------------------
+      ! Input data sources
+      ! --------------------------------------------------------------
+      
+      ! 2D initial boundary conditions are only defined for 2x25 and
+      ! 4x5 simulations.
       IF ( LUCX .and. USE2DDATA ) THEN
+#if !defined(GRID4x5) && !defined(GRID2x25)
        DBGMSG = 'Zonal means preprocessed only for 2x2.5 and 4x5 grid.'
        CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
-      ELSE
-       AVG_FILE_ROOT = ''
-      ENDIF
-#elif defined(GRID2x25)
-      GRIDSPEC = 'Grid2x25/InitCFC_'
-#elif defined(GRID4x5)
-      GRIDSPEC = 'Grid4x5/InitCFC_'
-#else
-      GRIDSPEC = ''
 #endif
+      ENDIF
 
       ! Determine folder paths from root folder
-      IF (UCXNETCDF .and. am_I_Root ) THEN
+      ! Regridding of netCDF input data is currently not supported.
+      IF (UCXNETCDF) THEN
+#if !defined(GRID4x5) && !defined(GRID2x25)
+         DBGMSG = 'NOx coeffs only preprocessed for 2x25 and 4x5 '//
+     &            '- try setting the module variable UCXNETCDF=.FALSE.'
+         CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
+#endif
          WRITE( AVG_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%DATA_DIR_1x1),
      &      'UCX_201403/Init2D/DiurnalAvg.nc'
@@ -6751,7 +6765,18 @@
          WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%DATA_DIR_1x1), 
      &        'UCX_201403/Init1D/Montreal.nc'
+
+      ! For ASCII input, use 2x25 grid for all other grids than 4x5. 
+      ! This is ok for the NOx coeffs which can be regridded on the fly
+      ! from 2x25 onto any other grid. This won't work for the 2D 
+      ! boundary conditions, but those have been checked in the logical 
+      ! check above (USE2DDATA). 
       ELSE
+#if defined(GRID4x5)
+         GRIDSPEC = 'Grid4x5/InitCFC_'
+#else
+         GRIDSPEC = 'Grid2x25/InitCFC_'
+#endif
          WRITE( AVG_FILE_ROOT,'(a,a,a)') 
      &        TRIM(Input_Opt%DATA_DIR_1x1),
      &      'UCX_201403/DiurnalAvg/', TRIM(GRIDSPEC)

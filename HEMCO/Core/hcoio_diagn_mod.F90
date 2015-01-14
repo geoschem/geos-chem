@@ -68,9 +68,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root, HcoState, WriteAll,    &
-                                   RC,        PREFIX,   UsePrevTime, &
-                                   InclManual                         )
+  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root,  HcoState, WriteAll,    &
+                                   RC,         PREFIX,   UsePrevTime, &
+                                   InclManual, COL                     )
 !
 ! !USES:
 !
@@ -92,6 +92,7 @@ CONTAINS
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: UsePrevTime ! Use previous time 
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: InclManual  ! Get manual diagn. too? 
+    INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr. 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -108,7 +109,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                   :: I, CNT, levIdTmp
+    INTEGER                   :: I, PS, CNT, levIdTmp
     REAL(dp)                  :: GMT, JD1, JD1985, JD_DELTA, THISDAY
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
@@ -131,6 +132,7 @@ CONTAINS
     INTEGER                   :: Prc
     INTEGER                   :: MinResetFlag, MaxResetFlag
     LOGICAL                   :: EOI, PrevTime, Manual
+    LOGICAL                   :: verb
  
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)' 
     !=================================================================
@@ -138,8 +140,13 @@ CONTAINS
     !=================================================================
   
     ! Init
-    RC  = HCO_SUCCESS
-    CNT = 0
+    RC   = HCO_SUCCESS
+    CNT  = 0
+    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+
+    ! Collection number
+    PS = 1
+    IF ( PRESENT(COL) ) PS = COL
 
     ! Get manual containers? Only of relevance for WriteAll
     IF ( PRESENT(InclManual) ) THEN
@@ -171,7 +178,7 @@ CONTAINS
        MinResetFlag = HcoClock_GetMinResetFlag()
        EOI = .TRUE.
     ENDIF
-    MaxResetFlag = Diagn_GetMaxResetFlag()
+    MaxResetFlag = Diagn_GetMaxResetFlag( COL=PS )
     IF ( MinResetFlag > MaxResetFlag ) RETURN
 
     ! Get PrevTime flag from input argument or set to default (=> TRUE)
@@ -222,10 +229,16 @@ CONTAINS
     IF ( PRESENT(PREFIX) ) THEN
        Pfx = PREFIX
     ELSE
-       CALL Diagn_GetDiagnPrefix( Pfx, RC )
+       CALL Diagn_GetDiagnPrefix( Pfx, RC, COL=PS )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
     ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
+
+    ! verbose
+    IF ( verb .AND. PS==1 ) THEN
+       MSG = 'Write diagnostics into file '//TRIM(ncFile)
+       CALL HCO_MSG( MSG )
+    ENDIF
 
     ! Create output file
     CALL NC_CREATE( ncFile, nLon,  nLat,  nLev,  nTime, &
@@ -299,8 +312,8 @@ CONTAINS
        ! Get next diagnostics in list. This will return the next 
        ! diagnostics container that contains content to be written
        ! out on this time step.
-       CALL Diagn_Get ( am_I_Root, HcoState, EOI, ThisDiagn, FLAG, RC, &
-                        InclManual=Manual )
+       CALL Diagn_Get ( am_I_Root, EOI, ThisDiagn, FLAG, RC, &
+                        InclManual=Manual, COL=PS )
        IF ( RC /= HCO_SUCCESS ) RETURN 
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
@@ -337,6 +350,11 @@ CONTAINS
           CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr3D=Arr3D )
        ENDIF
 
+       ! verbose
+       IF ( verb .AND. PS==1 ) THEN
+          MSG = '--- Added diagnostics: '//TRIM(myName)
+          CALL HCO_MSG(MSG)
+       ENDIF
     ENDDO
 
     !-----------------------------------------------------------------
@@ -361,17 +379,33 @@ CONTAINS
 !
 ! !IROUTINE: HCOIO_Diagn_WriteOut
 !
-! !DESCRIPTION: This is the ESMF environment for the diagnostics writeout.
-! For now, just get all diagnostics for this time step (to make sure that
-! the internal pointers are reset properly) but don't do anything with the
-! data.
+! !DESCRIPTION: Subroutine HCOIO\_Diagn\_WriteOut is the interface routine to
+! link the HEMCO diagnostics arrays to the corresponding data pointers of the
+! MAPL/ESMF history component. 
+!\\
+!\\
+! Since the history component internally organizes many diagnostics tasks such
+! as output scheduling, file writing, and data averaging, all HEMCO diagnostics
+! are made available to the history component on every time step, e.g. the 
+! entire content of the HEMCO diagnostics list is 'flushed' every time this
+! subroutine is called. 
+!\\
+!\\
+! For now, all diagnostics data is copied to the corresponding MAPL data
+! pointer so that this routine works for cases where the HEMCO precision is
+! not equal to the ESMF precision.
+!\\
+!\\
+! Once the HEMCO precision is pegged to the ESMF precision, we can just 
+! establish pointers between the export arrays and the diagnostics the first
+! time this routine is called.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root, HcoState, WriteAll,    &
                                    RC,        PREFIX,   UsePrevTime, &
-                                   InclManual                         )
+                                   InclManual, COL                    )
 !
 ! !USES:
 !
@@ -390,6 +424,7 @@ CONTAINS
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: UsePrevTime ! Use previous time 
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: InclManual  ! Get manual diagn. too? 
+    INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr. 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -405,14 +440,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
-    INTEGER                   :: FLAG, STAT
+    INTEGER                   :: PS, FLAG, STAT
     CHARACTER(LEN=255)        :: MSG
     INTEGER                   :: MinResetFlag, MaxResetFlag
     LOGICAL                   :: EOI, PrevTime, Manual
     REAL, POINTER             :: Ptr2D(:,:)   => NULL()
     REAL, POINTER             :: Ptr3D(:,:,:) => NULL()
+    LOGICAL, SAVE             :: FIRST = .TRUE.
 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)'
+
     !=================================================================
     ! HCOIO_DIAGN_WRITEOUT begins here!
     !=================================================================
@@ -420,34 +457,17 @@ CONTAINS
     ! Assume success until otherwise 
     RC  = HCO_SUCCESS
 
-    ! Get manual containers? Only of relevance for WriteAll
-    IF ( PRESENT(InclManual) ) THEN
-       Manual = InclManual
-    ELSE
-       Manual = .FALSE.
-    ENDIF
-    IF ( Manual .AND. .NOT. WriteAll ) THEN
-       MSG = 'InclManual option enabled, but WriteAll is not set to true!!'
-       CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
-       Manual = .FALSE.
-    ENDIF
+    ! If pointers are used, we need to call this routine only once
+!    IF ( .NOT. FIRST ) RETURN
 
-    ! Check if there is at least one diagnostics to write:
-    ! If current time stamp is not at the end of an interval - or
-    ! if there is no diagnostics container in the list with a reset
-    ! flag smaller or equal to MinResetFlag - there will be no matching
-    ! container whatsoever. Can leave right here.
-    ! EOI is the end-of-interval flag that will be used by routine
-    ! Diagn_Get. If set to true, only the containers at the end of
-    ! their averaging interval are returned.
+    ! Collection number
+    PS = 1
+    IF ( PRESENT(COL) ) PS = COL
 
     ! In an ESMF environment, always get all diagnostics since output
     ! is scheduled through MAPL History!
-    MinResetFlag = -1
-    MaxResetFlag = Diagn_GetMaxResetFlag()
-    EOI          = .FALSE.
-    Manual       = .TRUE.
-    IF ( MinResetFlag > MaxResetFlag ) RETURN
+    EOI    = .FALSE.
+    Manual = .TRUE.
 
     ! Get PrevTime flag from input argument or set to default (=> TRUE)
     IF ( PRESENT(UsePrevTime) ) THEN
@@ -467,8 +487,8 @@ CONTAINS
        ! Get next diagnostics in list. This will return the next 
        ! diagnostics container that contains content to be written
        ! out on this time step.
-       CALL Diagn_Get ( am_I_Root, HcoState, EOI, ThisDiagn, FLAG, RC, &
-                        InclManual=Manual )
+       CALL Diagn_Get ( am_I_Root, EOI, ThisDiagn, FLAG, RC, &
+                        InclManual=Manual, COL=PS )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
@@ -483,12 +503,16 @@ CONTAINS
           CALL MAPL_GetPointer ( HcoState%EXPORT, Ptr2D, &
              TRIM(ThisDiagn%cName), NotFoundOk=.TRUE., RC=STAT )
           IF ( ASSOCIATED(Ptr2D) ) Ptr2D = ThisDiagn%Arr2D%Val
+! to use pointers, use the following instead (untested!)
+!          IF ( ASSOCIATED(Ptr2D) ) Ptr2D => ThisDiagn%Arr2D%Val
 
        ! ... or 3D
        ELSEIF ( ThisDiagn%SpaceDim == 3 ) THEN
           CALL MAPL_GetPointer ( HcoState%EXPORT, Ptr3D, &
              TRIM(ThisDiagn%cName), NotFoundOk=.TRUE., RC=STAT )
           IF ( ASSOCIATED(Ptr3D) ) Ptr3D = ThisDiagn%Arr3D%Val
+! to use pointers, use the following instead (untested!)
+!          IF ( ASSOCIATED(Ptr3D) ) Ptr3D => ThisDiagn%Arr3D%Val
 
        ENDIF
 
@@ -499,6 +523,7 @@ CONTAINS
 
     ! Cleanup
     ThisDiagn => NULL()
+    FIRST     = .FALSE.
 
     ! Return 
     RC = HCO_SUCCESS

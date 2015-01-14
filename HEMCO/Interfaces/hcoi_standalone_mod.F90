@@ -419,10 +419,12 @@ CONTAINS
        !=================================================================
        IF ( CNT == 1 ) THEN
           CALL HcoClock_Set ( am_I_Root, HcoState, YRS(1), MTS(1), &
-                              DYS(1),    HRS(1),   MNS(1), SCS(1), RC=RC)
+                              DYS(1),    HRS(1),   MNS(1), SCS(1), &
+                              IsEmisTime=.TRUE.,   RC=RC)
           IF ( RC /= HCO_SUCCESS) RETURN 
        ELSE   
-          CALL HcoClock_Increase ( am_I_Root, HcoState, HcoState%TS_EMIS, RC=RC)
+          CALL HcoClock_Increase ( am_I_Root,        HcoState,    &
+                                   HcoState%TS_EMIS, .TRUE., RC=RC )
           IF ( RC /= HCO_SUCCESS) RETURN 
        ENDIF
 
@@ -555,15 +557,12 @@ CONTAINS
                                 UsePrevTime=.FALSE., PREFIX=RST )
     IF (RC /= HCO_SUCCESS) RETURN 
  
-    ! Cleanup diagnostics
-    CALL Diagn_Cleanup()
- 
+    ! Cleanup HCO core
+    CALL HCO_FINAL()
+
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
     CALL HCOX_FINAL( ExtState ) 
-
-    ! Cleanup HCO core
-    CALL HCO_FINAL()
 
     ! Deallocate module arrays/pointers
     IF ( ALLOCATED( XMID    ) ) DEALLOCATE ( XMID    )
@@ -1169,7 +1168,7 @@ CONTAINS
 
        ! Register for output (through diagnostics)
        CALL Diagn_Create ( am_I_Root,                         &
-                           HcoState,                          &
+                           HcoState  = HcoState,              &
                            cName     = TRIM(HcoSpecNames(I)), &
                            ExtNr     = -1,                    &
                            Cat       = -1,                    &

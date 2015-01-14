@@ -46,6 +46,7 @@
       PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP
       PUBLIC :: INIT_WEIGHTSS
+      PUBLIC :: DIAGINIT_DRYDEP
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -284,9 +285,9 @@
       CHARACTER(LEN=14)     :: DEPNAME (MAXDEP   )
 
       ! Allocatable arrays
-      REAL(fp), ALLOCATABLE :: DEPSAV  (:,:,:    )   ! Drydep frequencies
-      REAL(f8), ALLOCATABLE :: DMID    (:        )   ! 
-      REAL(f8), ALLOCATABLE :: SALT_V  (:        )
+      REAL(fp), ALLOCATABLE, TARGET :: DEPSAV  (:,:,:    )   ! Drydep frequencies
+      REAL(f8), ALLOCATABLE         :: DMID    (:        )   ! 
+      REAL(f8), ALLOCATABLE         :: SALT_V  (:        )
       
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -317,6 +318,10 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      
+      ! testing the new diagnostics structure
+      USE HCO_ERROR_MOD
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 !
 ! !INPUT PARAMETERS:
 !
@@ -431,6 +436,10 @@
       LOGICAL       :: LNLPBL
       LOGICAL       :: LPRT
 
+      ! New diagnostics
+      INTEGER           :: N_O3, HCRC
+      REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
+
       !=================================================================
       ! DO_DRYDEP begins here!
       !=================================================================
@@ -466,6 +475,7 @@
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
       !=================================================================
+      N_O3 = -1 !testing only
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, IJLOOP, THIK, N, NN, NDVZ, DVZ )
@@ -490,6 +500,9 @@
 
             ! GEOS-CHEM tracer number
             NN   = NTRAIND(N)
+
+            ! For testing the new diagnostics structure: save out NO id
+            IF ( NN == IDTO3 ) N_O3 = N
 
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
@@ -533,6 +546,20 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Archive diagnostics into new diagnostics structure
+      IF ( N_O3 > 0 ) THEN
+         Ptr2D => DEPSAV(:,:,N_O3)
+         CALL Diagn_Update( am_I_Root,
+     &                      cName   = 'DEPVEL_O3', 
+     &                      Array2D = Ptr2D,
+     &                      COL     = GCDiagNr,
+     &                      RC      = HCRC )
+         Ptr2D => NULL()
+         IF ( HCRC /= HCO_SUCCESS ) THEN
+            CALL ERROR_STOP('Cannot update diagnostics','drydep_mod.F')
+         ENDIF
+      ENDIF
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
@@ -4089,6 +4116,86 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: diaginit_drydep
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_DRYDEP initializes the dry deposition 
+! diagnostics arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+
+! testing the new diagnostics
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_ERROR_MOD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  13 Jan 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N
+      CHARACTER(LEN= 63) :: DiagnName 
+      CHARACTER(LEN=255) :: MSG
+      CHARACTER(LEN=255) :: LOC = 'DIAGINIT_DRYDEP (drydep_mod.F)' 
+
+      !=================================================================
+      ! DIAGINIT_DRYDEP begins here!
+      !=================================================================
+      
+      !=================================================================
+      ! New diagnostics structure
+      !=================================================================
+      DiagnName = 'DEPVEL_O3'
+      CALL Diagn_Create ( am_I_Root, 
+     &                    cName     = TRIM(DiagnName), 
+     &                    ExtNr     = -1, 
+     &                    Cat       = -1, 
+     &                    Hier      = -1, 
+     &                    HcoID     = -1, 
+     &                    SpaceDim  =  2, 
+     &                    LevIDx    = -1, 
+     &                    OutUnit   = 's-1',
+     &                    OutOper   = 'Mean',
+     &                    WriteFreq = 'Hourly',
+     &                    AutoFill  = 0,
+     &                    cID       = N,
+     &                    RC        = RC,
+     &                    COL       = GCDiagNr )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         MSG = 'Cannot created diagnostics: ' // TRIM(DiagnName)
+         CALL ERROR_STOP ( MSG, LOC ) 
+      ENDIF
+
+      ! Return w/ success
+      RC = GIGC_SUCCESS
+
+      END SUBROUTINE DIAGINIT_DRYDEP
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: init_drydep
 !
 ! !DESCRIPTION: Subroutine INIT\_DRYDEP initializes certain variables for the
@@ -4183,7 +4290,12 @@
       RC = GIGC_SUCCESS
      
       ! For GEOS-5, we need to do this only on the root CPU
-      IF ( am_I_Root ) THEN
+      ! Note: in an ESMF environment, only the Input_Opt drydep
+      ! variables (NUMDEP, NDVZIND, DEPNAME) are broadcasted from the
+      ! root CPU. To make sure that all the private module variables
+      ! become properly filled, we still need to call all of the code
+      ! below (ckeller, 1/14/2015).
+!      IF ( am_I_Root ) THEN
 
       ! Is this a mercury simulation?
       IS_Hg      = Input_Opt%ITS_A_MERCURY_SIM
@@ -6043,9 +6155,11 @@
           ENDIF
 
       ENDIF
-      ELSE
-         NUMDEP  = Input_Opt%NUMDEP
-      ENDIF
+
+      ! Root CPU: still call all of the code above
+!      ELSE
+!         NUMDEP  = Input_Opt%NUMDEP
+!      ENDIF
 
       !=================================================================
       ! Allocate arrays
@@ -6067,10 +6181,20 @@
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SHIPO3DEP' )
 !      SHIPO3DEP = 0e+0_f8
 
+      ! If we are not on the root CPU, don't pass variables to
+      ! Input_Opt but check if local NUMDEP matches the value
+      ! set in Input_Opt (ckeller, 1/14/2015).
       IF ( am_I_Root ) THEN
          Input_Opt%NUMDEP            = NUMDEP
          Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
          Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
+
+      ELSE
+         IF ( Input_Opt%NUMDEP /= NUMDEP ) THEN
+            WRITE(MSG,*) 'NUMDEP /= Input_Opt%NUMDEP: ', NUMDEP,
+     &                   Input_Opt%NUMDEP
+            CALL ERROR_STOP( MSG, 'INIT_DRYDEP (drydep_mod.F)' )
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -6133,8 +6257,8 @@
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS( Input_Opt )
       
-      ! Need to save NUMDEP into Input_Opt
-      Input_Opt%NUMDEP = NUMDEP
+      ! Need to save NUMDEP into Input_Opt (already done above)
+!      Input_Opt%NUMDEP = NUMDEP
 
       END SUBROUTINE INIT_DRYDEP
 !EOC

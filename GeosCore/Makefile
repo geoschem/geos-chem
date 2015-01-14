@@ -430,7 +430,7 @@ cleanup.o                   : cleanup.F                                      \
                               diag51b_mod.o           diag53_mod.o           \
                               diag_oh_mod.o           diag_pl_mod.o          \
                               drydep_mod.o            dust_mod.o             \
-                              emissions_mod.o                                \
+                              diagnostics_mod.o       emissions_mod.o        \
                               global_ch4_mod.o        global_nox_mod.o       \
                               global_oh_mod.o         hcn_ch3cn_mod.o        \
                               isoropiaII_mod.o        land_mercury_mod.o     \
@@ -524,6 +524,10 @@ diag56_mod.o                : diag56_mod.F
 diag63_mod.o                : diag63_mod.F                                   \
                               diag_mod.o              pbl_mix_mod.o          \
                               tracerid_mod.o          hcoi_gc_main_mod.o
+
+diagnostics_mod.o           : diagnostics_mod.F90                            \
+                              hcoi_gc_main_mod.o                             \
+                              drydep_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
                               chemgrid_mod.o          diag_mod.o
@@ -707,6 +711,7 @@ main.o                      : main.F                                         \
                               chemgrid_mod.o          chemistry_mod.o        \
                               carbon_mod.o            convection_mod.o       \
                               comode_mod.o            diag_mod.o             \
+                              diagnostics_mod.o                              \
                               diag41_mod.o            diag42_mod.o           \
                               diag48_mod.o            diag49_mod.o           \
                               diag50_mod.o            diag51_mod.o           \

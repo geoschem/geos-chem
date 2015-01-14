@@ -213,14 +213,14 @@ CONTAINS
     IF ( DoDiagn ) THEN
        IF ( DoWetland ) THEN
           Arr2D => CH4wtl
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              cName=TRIM(DiagnWtl), Array2D=Arr2D, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Arr2D => NULL()
        ENDIF
        IF ( DoRice ) THEN
           Arr2D => CH4rce
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              cName=TRIM(DiagnRce), Array2D=Arr2D, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Arr2D => NULL()
@@ -240,7 +240,7 @@ CONTAINS
     ! Eventually update diagnostics
     IF ( Diagn_AutoFillLevelDefined(2) ) THEN
        Arr2D => CH4wtl
-       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                           Cat=-1, Hier=-1, HcoID=IDTtot,     &
                           AutoFill=1, Array2D=Arr2D, RC=RC   )
        IF ( RC /= HCO_SUCCESS ) RETURN 

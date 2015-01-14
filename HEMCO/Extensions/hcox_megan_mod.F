@@ -398,9 +398,9 @@
       ERR = .FALSE.
 
       ! Time information
-      IsNewHour = HcoClock_NewHour()
-      IsNewDay  = HcoClock_NewDay()
-      FIRST     = HcoClock_First()
+      FIRST     = HcoClock_First  ( .TRUE. )
+      IsNewHour = HcoClock_NewHour( .TRUE. )
+      IsNewDay  = HcoClock_NewDay ( .TRUE. )
 
       ! Initialize flux arrays
       FLUXISOP   = 0.0_hp
@@ -1272,7 +1272,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXISOP
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
      &                         Cat=-1, Hier=-1, HcoID=IDTISOP,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1294,7 +1294,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXEMMO
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono,
      &                         Cat=-1, Hier=-1, HcoID=IDTMONX,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1311,19 +1311,19 @@
          ! MEGAN_ACET_DIRECT
          Arr2D     => FLUXACETmo 
          DiagnName =  'MEGAN_ACET_MONO'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
 
          Arr2D     => FLUXACETmb
          DiagnName =  'MEGAN_ACET_MBO'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
 
          Arr2D     => FLUXACETbg 
          DiagnName =  'MEGAN_ACET_DIRECT'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -1338,7 +1338,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXACETbg
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
      &                         Cat=-1, Hier=-1, HcoID=IDTACET,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1360,7 +1360,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXCO
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono,
      &                         Cat=-1, Hier=-1, HcoID=IDTCO,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1382,7 +1382,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXPRPE
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
      &                         Cat=-1, Hier=-1, HcoID=IDTPRPE,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1404,7 +1404,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXC2H4
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
      &                         Cat=-1, Hier=-1, HcoID=IDTC2H4,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1428,7 +1428,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXOCPI
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono,
      &                         Cat=-1, Hier=-1, HcoID=IDTOCPI,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1450,7 +1450,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXMTPA
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNrSoa,
      &                         Cat=-1, Hier=-1, HcoID=IDTMTPA,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1472,7 +1472,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXMTPO
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNrSoa,
      &                         Cat=-1, Hier=-1, HcoID=IDTMTPO,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1494,7 +1494,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXLIMO
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNrSoa,
      &                         Cat=-1, Hier=-1, HcoID=IDTLIMO,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1516,7 +1516,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXSESQ
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNrSoa,
      &                         Cat=-1, Hier=-1, HcoID=IDTSESQ,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1926,7 +1926,7 @@
       ! Need to determine which monoterpene AEFs 
       ! we need to use (mpb,2009)
       ! SOAudpate: add BETA, AGE_SPECIES (hotp 7/29/10)
-      SELECT CASE( TERP_SPECIES )
+      SELECT CASE( TRIM(TERP_SPECIES) )
       CASE( 'APINE' )
          AEF_SPARE      = AEF_APINE(I,J)
          LDF            = 0.1_hp
@@ -4036,7 +4036,8 @@
       ! Initialize internal diagnostics. These are the restart variables
       ! that can be used for a 'warm' start of MEGAN.
       !=================================================================
-      CALL Diagn_Create ( am_I_Root, HcoState,
+      CALL Diagn_Create ( am_I_Root, 
+     &                    HcoState   = HcoState,
      &                    cName      = 'T_DAVG',
      &                    ExtNr      = ExtNr,
      &                    Cat        = -1,  
@@ -4051,7 +4052,8 @@
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL Diagn_Create ( am_I_Root, HcoState,
+      CALL Diagn_Create ( am_I_Root, 
+     &                    HcoState   = HcoState,
      &                    cName      = 'T_PREVDAY',
      &                    ExtNr      = ExtNr,  
      &                    Cat        = -1,
@@ -4066,7 +4068,8 @@
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL Diagn_Create ( am_I_Root, HcoState,  
+      CALL Diagn_Create ( am_I_Root,
+     &                    HcoState   = HcoState,
      &                    cName      = 'LAI_PREVDAY',
      &                    ExtNr      = ExtNr,
      &                    Cat        = -1, 
@@ -4081,7 +4084,8 @@
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL Diagn_Create ( am_I_Root, HcoState,
+      CALL Diagn_Create ( am_I_Root,
+     &                    HcoState   = HcoState,
      &                    cName      = 'PARDR_DAVG',
      &                    ExtNr      = ExtNr,
      &                    Cat        = -1, 
@@ -4096,7 +4100,8 @@
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL Diagn_Create ( am_I_Root, HcoState,
+      CALL Diagn_Create ( am_I_Root, 
+     &                    HcoState   = HcoState,
      &                    cName      = 'PARDF_DAVG',
      &                    ExtNr      = ExtNr,
      &                    Cat        = -1,

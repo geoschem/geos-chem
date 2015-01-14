@@ -508,7 +508,7 @@ CONTAINS
     ! Eventually update diagnostics
     IF ( Diagn_AutoFillLevelDefined(2) ) THEN
        Arr2D => FLUX_2D
-       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                           Cat=-1, Hier=-1, HcoID=IDTNO,     &
                           AutoFill=1, Array2D=Arr2D, RC=RC   )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -524,7 +524,7 @@ CONTAINS
     IF ( DoDiagn ) THEN
        Arr2D => DIAG
        DiagnName = 'FERTILIZER_NO'
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, & 
+       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, & 
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL()
@@ -706,7 +706,8 @@ CONTAINS
     ! ---------------------------------------------------------------------- 
     ! Set diagnostics 
     ! ---------------------------------------------------------------------- 
-    CALL Diagn_Create ( am_I_Root, HcoState,      &    
+    CALL Diagn_Create ( am_I_Root,                &
+                        HcoState   = HcoState,    & 
                         cName      = 'PFACTOR',   &
                         ExtNr      = ExtNr,       &
                         Cat        = -1,          &
@@ -721,7 +722,8 @@ CONTAINS
                         RC         = RC            )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root, HcoState,        &    
+    CALL Diagn_Create ( am_I_Root,                  &
+                        HcoState   = HcoState,      & 
                         cName      = 'DRYPERIOD',   &
                         ExtNr      = ExtNr,         &
                         Cat        = -1,            &
@@ -736,7 +738,8 @@ CONTAINS
                         RC         = RC              )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root, HcoState,        &    
+    CALL Diagn_Create ( am_I_Root,                  &
+                        HcoState   = HcoState,      & 
                         cName      = 'GWET_PREV',   &
                         ExtNr      = ExtNr,         &
                         Cat        = -1,            &
@@ -751,7 +754,8 @@ CONTAINS
                         RC         = RC              )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root, HcoState,            &    
+    CALL Diagn_Create ( am_I_Root,                      &
+                        HcoState   = HcoState,          & 
                         cName      = 'DEP_RESERVOIR',   &
                         ExtNr      = ExtNr,             &
                         Cat        = -1,                &

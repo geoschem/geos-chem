@@ -416,7 +416,7 @@ CONTAINS
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => SUM_OC_EM(:,:)
-          CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,     &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                    &
                              Cat=-1,     Hier=-1,       HcoID=IDTPOPPOC, &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           Arr2D => NULL() 
@@ -441,7 +441,7 @@ CONTAINS
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => SUM_BC_EM(:,:)
-          CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,     &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                    &
                              Cat=-1,     Hier=-1,       HcoID=IDTPOPPBC, &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           Arr2D => NULL() 
@@ -466,7 +466,7 @@ CONTAINS
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => SUM_G_EM(:,:)
-          CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,   &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                  &
                              Cat=-1,     Hier=-1,       HcoID=IDTPOPG, &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           Arr2D => NULL() 

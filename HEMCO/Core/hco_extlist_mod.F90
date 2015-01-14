@@ -33,6 +33,7 @@ MODULE HCO_ExtList_Mod
   PUBLIC :: AddExtOpt
   PUBLIC :: GetExtOpt
   PUBLIC :: GetExtNr 
+  PUBLIC :: SetExtNr
   PUBLIC :: GetExtSpcStr
   PUBLIC :: SetExtNr
   PUBLIC :: ExtNrInUse
@@ -426,14 +427,14 @@ CONTAINS
     ! Pass name to module 
     LCname = TRIM(ExtName)
 
+    ! Set to lower case
+    CALL TRANLC( LCname )
+
     ! Init output
     ExtNr = -1 
 
     ! Point to header of extensions list
     ThisExt => ExtList
-
-    ! Set to lower case
-    CALL TRANLC( LCname )
 
     ! Loop over all used extensions and check if any of them matches
     ! ExtName.
@@ -743,4 +744,3 @@ CONTAINS
   END SUBROUTINE ExtFinal
 !EOC
 END MODULE HCO_ExtList_Mod 
-!EOM
