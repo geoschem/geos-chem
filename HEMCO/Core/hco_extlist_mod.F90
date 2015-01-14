@@ -33,6 +33,7 @@ MODULE HCO_ExtList_Mod
   PUBLIC :: AddExtOpt
   PUBLIC :: GetExtOpt
   PUBLIC :: GetExtNr 
+  PUBLIC :: SetExtNr
   PUBLIC :: GetExtSpcStr
   PUBLIC :: ExtNrInUse
   PUBLIC :: ExtFinal
@@ -421,14 +422,14 @@ CONTAINS
     ! Pass name to module 
     LCname = TRIM(ExtName)
 
+    ! Set to lower case
+    CALL TRANLC( LCname )
+
     ! Init output
     ExtNr = -1 
 
     ! Point to header of extensions list
     ThisExt => ExtList
-
-    ! Set to lower case
-    CALL TRANLC( LCname )
 
     ! Loop over all used extensions and check if any of them matches
     ! ExtName.
@@ -517,6 +518,110 @@ CONTAINS
     RC = HCO_SUCCESS 
 
     END SUBROUTINE GetExtSpcStr
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SetExtNr 
+!
+! !DESCRIPTION: Subroutine SetExtNr overwrites the extension number of a
+! given extension. The extension of interest is provided in argument 
+! ExtName. If this argument is omitted, the extension numbers of all 
+! extensions currently listed in ExtList will be set to the provided 
+! number. This is useful to disable all extensions by setting the ExtNr
+! to a negative value.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE SetExtNr( am_I_Root, ExtNr, ExtName, RC ) 
+!
+! !USES:
+!
+    USE CHARPAK_MOD,  ONLY : TRANLC
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )           :: am_I_Root
+    INTEGER,          INTENT(IN   )           :: ExtNr
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: ExtName 
+!
+! !INPUT/OUTPUT PARAMETER:
+!
+    INTEGER,          INTENT(INOUT)           :: RC
+!
+! !REVISION HISTORY:
+!  12 Jan 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !INTERNAL VARIABLES:
+!
+    TYPE(Ext), POINTER  :: ThisExt => NULL()
+    CHARACTER(LEN=255)  :: LCname
+    CHARACTER(LEN=255)  :: MSG
+    LOGICAL             :: verb, overwrite 
+
+    !======================================================================
+    ! SetExtNr begins here
+    !======================================================================
+
+    ! verbose?
+    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+
+    ! Pass name to module and set to lower case
+    IF ( PRESENT(ExtName) ) THEN
+       LCname = TRIM(ExtName)
+       CALL TRANLC( LCname )  ! lower case
+    ELSE
+       LCname = ''
+    ENDIF
+
+    ! Point to header of extensions list
+    ThisExt => ExtList
+
+    ! Loop over all used extensions and check if any of them matches
+    ! ExtName.
+    DO WHILE ( ASSOCIATED ( ThisExt ) ) 
+
+       ! Overwrite this ExtNr?
+       overwrite = .FALSE.
+
+       ! If argument ExtName is given, only overwrite extension number
+       ! of that particular extension.
+       IF ( PRESENT(ExtName) ) THEN 
+          IF ( TRIM(ThisExt%ExtName) == TRIM(LCname) ) overwrite = .TRUE. 
+
+       ! If argument is not given, overwrite all extensions except for
+       ! HEMCO core
+       ELSEIF ( ThisExt%ExtNr /= 0 ) THEN
+          overwrite = .TRUE.
+       ENDIF
+
+       ! Overwrite extension number if needed
+       IF ( overwrite ) THEN
+          ThisExt%ExtNr = ExtNr
+          IF ( verb ) THEN
+             WRITE(MSG,*) 'Force ExtNr of extension ', TRIM(ThisExt%ExtName), &
+                          'to ', ExtNr
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ENDIF
+
+       ! Advance to next extension
+       ThisExt => ThisExt%NextExt
+    ENDDO
+
+    ! Cleanup
+    ThisExt => NULL()
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+   
+  END SUBROUTINE SetExtNr
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

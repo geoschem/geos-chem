@@ -269,7 +269,7 @@ CONTAINS
     ! For logfile
     IF ( am_I_Root ) THEN
        IF ( UseDay ) THEN
-          IF ( HcoClock_NewDay() ) THEN
+          IF ( HcoClock_NewDay( .TRUE. ) ) THEN
              CALL HcoClock_Get( cYYYY = cYYYY, cMM=cMM, cDD=cDD, RC=RC )
              IF ( RC/=HCO_SUCCESS ) RETURN
              WRITE(MSG, 100) cYYYY, cMM, cDD
@@ -278,7 +278,7 @@ CONTAINS
                       i4, '/', i2.2, '/', i2.2 )
           ENDIF
        ELSE 
-          IF ( HcoClock_NewMonth() ) THEN
+          IF ( HcoClock_NewMonth( .TRUE. ) ) THEN
              CALL HcoClock_Get( cYYYY = cYYYY, cMM=cMM, LMD=NDAYS, RC=RC)
              IF ( RC/=HCO_SUCCESS ) RETURN
              WRITE(MSG, 110) cYYYY, cMM
@@ -371,7 +371,7 @@ CONTAINS
        ! Write out total (daily or monthly) emissions to log-file
        IF ( am_I_Root ) THEN
           IF ( UseDay ) THEN
-             IF ( HcoClock_NewDay() ) THEN
+             IF ( HcoClock_NewDay( .TRUE. ) ) THEN
                 TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%AREA_M2%Val(:,:))
                 TOTAL = TOTAL * 86400.0_hp * 1e-9_hp
                 WRITE(MSG, 120) HcoState%Spc(HcoID)%SpcName, TOTAL
@@ -379,7 +379,7 @@ CONTAINS
 120             FORMAT( 'SUM biomass ', a4,1x,': ', f11.4,1x,'[Tg]' )
              ENDIF
           ELSE
-             IF ( HcoClock_NewMonth() ) THEN
+             IF ( HcoClock_NewMonth( .TRUE. ) ) THEN
                 TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%AREA_M2%Val(:,:))
                 TOTAL = TOTAL * NDAYS * 86400.0_hp * 1e-9_hp
                 WRITE(MSG, 130) HcoState%Spc(HcoID)%SpcName, TOTAL
@@ -392,9 +392,9 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => SpcArr
-          CALL Diagn_Update(am_I_Root, HcoState,     ExtNr=ExtNr,&
-                            Cat=-1,    Hier=-1,      HcoID=HcoID,&
-                            AutoFill=1,Array2D=Arr2D,RC=RC        )
+          CALL Diagn_Update(am_I_Root, ExtNr=ExtNr,               &
+                            Cat=-1,    Hier=-1,      HcoID=HcoID, &
+                            AutoFill=1,Array2D=Arr2D,RC=RC         )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Arr2D => NULL()
        ENDIF

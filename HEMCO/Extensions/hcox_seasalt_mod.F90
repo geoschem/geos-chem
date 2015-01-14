@@ -375,7 +375,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => FLUXSALA
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IDTSALA,   &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -396,7 +396,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => FLUXSALC
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IDTSALC,   &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -417,7 +417,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => FLUXBr2
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IDTBr2,   &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -735,7 +735,8 @@ CONTAINS
     ! to the respective density arrays filled by the run method of this
     ! module.
     !=======================================================================
-    CALL Diagn_Create ( am_I_Root, HcoState,                &    
+    CALL Diagn_Create ( am_I_Root,                          &
+                        HcoState   = HcoState,              & 
                         cName      = 'SEASALT_DENS_FINE',   &
                         ExtNr      = ExtNr,                 &
                         Cat        = -1,                    &
@@ -750,7 +751,8 @@ CONTAINS
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root, HcoState,                &    
+    CALL Diagn_Create ( am_I_Root,                          & 
+                        HcoState   = HcoState,              & 
                         cName      = 'SEASALT_DENS_COARSE', &
                         ExtNr      = ExtNr,                 &
                         Cat        = -1,                    &

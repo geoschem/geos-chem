@@ -317,7 +317,7 @@
       ! array contain temp, jno2, cao3, alfa_0, alfa_5, jo1d, canox
       REAL*4,  DIMENSION(7)      :: var_array
 
-      CHARACTER(LEN=255)         :: MSG
+      CHARACTER(LEN=255)         :: MSG, MSG1, MSG2, MSG3, MSG4, MSG5
       CHARACTER(LEN= 63), PARAMETER ::
      &   LOC = 'INTERPOLATE_LUT2 (paranox_util_mod.F)'
 
@@ -581,15 +581,24 @@
          IF ( (fnox_tmp < 0.) .or. (fnox_tmp > 1.) ) THEN 
 
             ! print error details
-            WRITE(MSG,100) I, J, o3, no, no2, dens, JO1D, JNO2,
-     &                     TS, SUNCOSmid5, SUNCOSmid, fnox_tmp
+            WRITE(MSG1,100) I, J 
+            WRITE(MSG2,101) o3, no, no2
+            WRITE(MSG3,102) TS, JO1D, JNO2
+            WRITE(MSG4,103) SUNCOSmid, SUNCOSmid5
+            WRITE(MSG5,104) dens, fnox_tmp
+            MSG = TRIM(MSG1)//'; '//TRIM(MSG2)//'; '//TRIM(MSG3)//'; '//
+     &            TRIM(MSG4)//'; '//TRIM(MSG5)
             IF ( ErrorStop ) THEN
                CALL HCO_ERROR( MSG, RC, THISLOC=LOC ) 
                RETURN 
             ELSE
                CALL HCO_WARNING( MSG, RC, THISLOC=LOC ) 
             ENDIF
- 100     FORMAT( 'LUT: FNOX not btw 0-1: ', I2.2, I2.2, 110E8.2 )
+ 100     FORMAT( 'LUT: FNOX not btw 0-1: ', I3, 1x, I3 )
+ 101     FORMAT( '; O3=',E11.3,'; NO=',E11.3,'; NO2=',E11.3 )
+ 102     FORMAT( '; TS=',E11.3,'; JO1D=',E11.3,'; JNO2=',E11.3 )
+ 103     FORMAT( '; SUNCOSmid=',E11.3,'; SUNCOSmid5=',E11.3 )
+ 104     FORMAT( '; DENS=',E11.3, '; FNOX_TMP=',E11.3)
 
          ! Update fraction_nox and intope
          ELSE

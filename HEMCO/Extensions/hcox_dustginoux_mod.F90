@@ -358,7 +358,7 @@ CONTAINS
           ! Eventually update diagnostics
           IF ( Diagn_AutoFillLevelDefined(2) ) THEN
              Arr2D => FLUX(:,:,N)
-             CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+             CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                                 Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
                                 AutoFill=1, Array2D=Arr2D, RC=RC   )
              IF ( RC /= HCO_SUCCESS ) RETURN 

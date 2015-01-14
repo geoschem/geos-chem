@@ -492,10 +492,10 @@ CONTAINS
                 ! something must have gone wrong (they are on the order
                 ! of <1e-9)
                 IF ( DEPO3(I,J) > 1.0_hp ) THEN
-                   DEPO3(I,J) = 0.0_hp
                    WRITE(MSG,*) 'O3 deposition velocity > 1., set to zero', &
-                      I, J, DEPO3(I,J), ABS(iFlx), ExtState%O3%Arr%Val(I,J,1)
+                      I, J, DEPO3(I,J), TMP, ABS(iFlx), ExtState%O3%Arr%Val(I,J,1)
                    CALL HCO_WARNING(MSG, RC)
+                   DEPO3(I,J) = 0.0_hp
                 ENDIF
              ENDIF
 
@@ -543,7 +543,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => FLUXNO
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IDTNO,     &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -564,7 +564,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => FLUXHNO3
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IDTHNO3,   &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -585,7 +585,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => FLUXO3
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IDTO3,   &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -604,28 +604,28 @@ CONTAINS
     IF ( DoDiagn ) THEN
        DiagnName =  'PARANOX_NOXFRAC_REMAINING'
        Arr2D     => DIAGN(:,:,1)
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
        Arr2D => NULL()       
        
        DiagnName =  'PARANOX_OPE'
        Arr2D     => DIAGN(:,:,2)
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
        Arr2D => NULL()       
 
        DiagnName =  'PARANOX_O3_PRODUCTION'
        Arr2D     => DIAGN(:,:,3)
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
        Arr2D => NULL()       
 
        DiagnName =  'PARANOX_TOTAL_SHIPNOX'
        Arr2D     => DIAGN(:,:,4)
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
        Arr2D => NULL()       

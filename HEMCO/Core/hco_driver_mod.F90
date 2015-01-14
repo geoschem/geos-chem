@@ -69,8 +69,7 @@ CONTAINS
 !
     USE HCO_Calc_Mod,     ONLY : HCO_CalcEmis
     USE HCO_ReadList_Mod, ONLY : ReadList_Read 
-!    USE HCO_tIdx_Mod,     ONLY : tIDx_Update
-!    USE HCO_ReadList_Mod, ONLY : ReadList_to_EmisList 
+    USE HCO_Clock_Mod,    ONLY : HcoClock_Get
 !
 ! !INPUT PARAMETERS:
 !
@@ -93,6 +92,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL     :: IsEmisTime
 
     !=================================================================
     ! HCO_RUN begins here!
@@ -102,13 +102,11 @@ CONTAINS
     CALL HCO_ENTER( 'HCO_RUN (hco_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-!    !--------------------------------------------------------------
-!    ! 1. Update the time slice indeces
-!    ! This is to make sure that the correct time slices will be
-!    ! used for all emission fields. See also hco\_tidx\_mod.F90. 
-!    !--------------------------------------------------------------
-!    CALL tIDx_Update( am_I_Root, RC )
-!    IF ( RC /= HCO_SUCCESS ) RETURN
+    !--------------------------------------------------------------
+    ! 1. Check if it's time for emissions 
+    !--------------------------------------------------------------
+    CALL HcoClock_Get ( IsEmisTime=IsEmisTime, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !--------------------------------------------------------------
     ! 2. Read/update data
@@ -121,24 +119,21 @@ CONTAINS
     CALL ReadList_Read( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Make sure that content of EmisList is up-to-date. This call
-    ! primarily ensures that pre-calculation optimizations are
-    ! correctly applied (e.g. to unify arrays with same properties). 
-!    CALL ReadList_to_EmisList ( am_I_Root, HcoState, RC )
-!    IF ( RC /= HCO_SUCCESS ) RETURN
-
     !-----------------------------------------------------------------
     ! 3. Calculate the emissions for current time stamp based on the
-    ! content of EmisList. Emissions become written into HcoState. 
+    ! content of EmisList. Emissions become written into HcoState.
+    ! Do this only if it's time for emissions. 
     !-----------------------------------------------------------------
+    IF ( IsEmisTime ) THEN
 
-    ! Use emission data only
-    CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Use emission data only
+       CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Use concentration data only
-    CALL HCO_CalcEmis( am_I_Root, HcoState, .TRUE., RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Use concentration data only
+       CALL HCO_CalcEmis( am_I_Root, HcoState, .TRUE., RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 
     ! Leave w/ success
     CALL HCO_LEAVE( RC ) 
@@ -170,6 +165,7 @@ CONTAINS
     USE HCO_ReadList_Mod, ONLY : ReadList_Init
     USE HCO_ReadList_Mod, ONLY : ReadList_Read
     USE HCO_Config_Mod,   ONLY : SetReadList 
+    USE HCO_Diagn_Mod,    ONLY : DiagnCollection_Create
 !
 ! !INPUT PARAMETERS:
 !
@@ -205,6 +201,20 @@ CONTAINS
     CALL HcoClock_Init( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Initialize the HEMCO emissions diagnostics collection. Collection
+    ! will be placed at position 1 (default position). The empty
+    ! prefix will make sure that the prefix is obtained from the 
+    ! HEMCO configuration file settings.
+    CALL DiagnCollection_Create( am_I_Root,                          &
+                                 NX     = HcoState%NX,               &
+                                 NY     = HcoState%NY,               &
+                                 NZ     = HcoState%NZ,               &
+                                 TS     = HcoState%TS_EMIS,          &
+                                 AM2    = HcoState%Grid%AREA_M2%Val, &
+                                 PREFIX = '',                        & 
+                                 RC     = RC                          )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+ 
     ! Initialize the HEMCO ReadList. This has to be done before
     ! the call to SetReadList below. 
     CALL ReadList_Init() 
@@ -242,6 +252,7 @@ CONTAINS
     USE HCO_DataCont_Mod,  ONLY : cIDList_Cleanup
     USE HCO_DataCont_Mod,  ONLY : Reset_nnDataCont
     USE HCO_ExtList_Mod,   ONLY : ExtFinal
+    USE HCO_Diagn_Mod,     ONLY : DiagnCollection_Cleanup
 !
 ! !REMARKS:
 !  (1) ConfigFile_Cleanup also cleans up the data containers, while routine
@@ -262,6 +273,7 @@ CONTAINS
     ! HCO_FINAL begins here 
     !=================================================================
 
+    CALL DiagnCollection_Cleanup()
     CALL cIDList_Cleanup  (         ) 
     CALL HcoClock_Cleanup (         )
     CALL tIDx_Cleanup     (         )

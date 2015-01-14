@@ -670,7 +670,7 @@
                ENDIF
   
                ! Get diagnostics from HEMCO
-               CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
      &                         AutoFill=1, InclManual=.TRUE. )
                IF ( RC /= HCO_SUCCESS ) THEN
@@ -704,7 +704,7 @@
    
                ! Get diagnostics from HEMCO
                DiagnCnt  => NULL()
-               CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
      &                         AutoFill=1, InclManual=.TRUE. )
                IF ( RC /= HCO_SUCCESS ) THEN
@@ -2116,7 +2116,7 @@
 
          ! Get BIOMASS_BCPI 
          DiagnName = 'BIOMASS_BCPI'
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+         CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                   FLAG, RC,   cName=TRIM(DiagnName), 
      &                   AutoFill=1, InclManual=.TRUE. )
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -2137,7 +2137,7 @@
          ! Get BIOMASS_BCPO 
          DiagnName = 'BIOMASS_BCPO'
          DiagnCnt  => NULL()
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+         CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
      &                      AutoFill=1, InclManual=.TRUE. )
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -2185,7 +2185,7 @@
    
             ! Get BIOMASS_OCPI 
             DiagnName = 'BIOMASS_OCPI'
-            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+            CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
      &                      AutoFill=1, InclManual=.TRUE. )
             IF ( RC /= HCO_SUCCESS ) THEN
@@ -2206,8 +2206,8 @@
             ! Get BIOMASS_OCPO 
             DiagnName = 'BIOMASS_OCPO'
             DiagnCnt  => NULL()
-            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
-     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+            CALL Diagn_Get( am_I_Root,   .FALSE., DiagnCnt, 
+     &                         FLAG, RC, cName=TRIM(DiagnName), 
      &                         AutoFill=1, InclManual=.TRUE. )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
@@ -2405,7 +2405,7 @@
          ARRAY     = 0e0
 
          ! Get diagnostics from HEMCO
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+         CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                   FLAG, RC,   cName=TRIM(DiagnName), 
      &                   AutoFill=1, InclManual=.TRUE. )
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -2427,7 +2427,7 @@
          DiagnCnt  => NULL()
 
          ! Get diagnostics from HEMCO
-         CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+         CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                   FLAG, RC,   cName=TRIM(DiagnName), 
      &                   AutoFill=1, InclManual=.TRUE. )
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -3630,7 +3630,7 @@
             DiagnCnt  => NULL()
 
             ! Get diagnostics from HEMCO
-            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+            CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
      &                      AutoFill=1, InclManual=.TRUE. )
             IF ( RC /= HCO_SUCCESS ) THEN
@@ -3653,7 +3653,7 @@
             DiagnCnt  => NULL()
 
             ! Get diagnostics from HEMCO
-            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+            CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
      &                      AutoFill=1, InclManual=.TRUE. )
             IF ( RC /= HCO_SUCCESS ) THEN
@@ -3852,7 +3852,7 @@
             ARRAY     = 0e0
 
             ! Get diagnostics from HEMCO
-            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+            CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
      &                      AutoFill=1, InclManual=.TRUE. )
             IF ( RC /= HCO_SUCCESS ) THEN
@@ -3876,7 +3876,7 @@
             DiagnCnt  => NULL()
 
             ! Get diagnostics from HEMCO
-            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+            CALL Diagn_Get( am_I_Root, .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
      &                      AutoFill=1, InclManual=.TRUE. )
             IF ( RC /= HCO_SUCCESS ) THEN
@@ -3900,7 +3900,7 @@
             DiagnCnt  => NULL()
 
             ! Get diagnostics from HEMCO
-            CALL Diagn_Get( am_I_Root,  HcoState, .FALSE., DiagnCnt, 
+            CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
      &                      AutoFill=1, InclManual=.TRUE. )
             IF ( RC /= HCO_SUCCESS ) THEN
@@ -5209,9 +5209,9 @@
  
       ! Get diagnostics
       DgnCont => NULL()
-      CALL Diagn_Get( air,   HcoState, .FALSE., DgnCont, 
-     &                FLG,   ERR,      cName=TRIM(dname), 
-     &                AutoFill=dAF,    InclManual=.TRUE. )
+      CALL Diagn_Get( air,   .FALSE., DgnCont, 
+     &                FLG,   ERR,     cName=TRIM(dname), 
+     &                AutoFill=dAF,   InclManual=.TRUE. )
 
       ! If diagnostic not found, write error message
       IF ( ERR /= HCO_SUCCESS ) THEN

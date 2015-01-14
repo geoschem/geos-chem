@@ -94,9 +94,12 @@
       USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
       
       ! HEMCO
-#if !defined(ESMF_) 
+!#if !defined(ESMF_) 
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
-#endif
+!#endif
+
+      ! New diagnostics
+      USE DIAGNOSTICS_MOD,         ONLY : DIAGNOSTICS_FINAL
 
       IMPLICIT NONE
 !
@@ -251,12 +254,15 @@
       WRITE( 6, 100 ) 
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
+      ! Cleanup diagnostics
+      CALL DIAGNOSTICS_FINAL()
+
       ! Cleanup HEMCO 
-#if !defined(ESMF_) 
+!#if !defined(ESMF_) 
       IF ( Input_Opt%LEMIS ) THEN
          CALL EMISSIONS_FINAL ( am_I_Root )
       ENDIF
-#endif
+!#endif
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()

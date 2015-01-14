@@ -1195,7 +1195,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,       ONLY : ExtNrInUse
     USE HCO_READLIST_Mod,      ONLY : ReadList_Set
     USE HCO_DATACONT_Mod,      ONLY : DataCont_Cleanup
 !

@@ -42,10 +42,10 @@ MODULE HCOI_GC_Main_Mod
   PUBLIC  :: GetHcoVal
   PUBLIC  :: GetHcoID
   PUBLIC  :: GetHcoDiagn
+  PUBLIC  :: SetHcoTime
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: Set_Current_Time
   PRIVATE :: ExtState_SetPointers
   PRIVATE :: ExtState_UpdtPointers
   PRIVATE :: GridEdge_Set
@@ -163,12 +163,11 @@ CONTAINS
     USE HCO_Config_Mod,     ONLY : Config_ReadFile
     USE HCO_State_Mod,      ONLY : HcoState_Init
     USE HCO_Driver_Mod,     ONLY : HCO_Init
+    USE HCO_ExtList_Mod,    ONLY : SetExtNr
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
     USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_Diagn_Init
     USE HCOX_Driver_Mod,    ONLY : HCOX_Init
     USE HCOX_State_Mod,     ONLY : ExtStateInit
-
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -287,11 +286,20 @@ CONTAINS
     ! HEMCO configuration file
     HcoState%ConfigFile = Input_Opt%HcoConfigFile
 
+    ! If emissions shall not be used, reset all extension number to
+    ! -999 first. This will make sure that none of the extensions will
+    ! be initialized and none of the input data related to any of the
+    ! extensions will be used.
+    IF ( .NOT. Input_Opt%LEMIS ) THEN
+       CALL SetExtNr( am_I_Root, -999, RC=HMRC )
+    ENDIF
+
     !=================================================================
     ! Initialize HEMCO internal lists and variables. All data
     ! information is written into internal lists (ReadList) and 
     ! the HEMCO configuration file is removed from buffer in this
-    ! step. Also initializes the HEMCO clock
+    ! step. This also initializes the HEMCO clock as well as the
+    ! HEMCO emissions diagnostics collection.
     !=================================================================
     CALL HCO_Init( am_I_Root, HcoState, HMRC )
     IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
@@ -318,8 +326,8 @@ CONTAINS
 #endif
 
     !=================================================================
-    ! Initialize all HEMCO extensions.  
-    ! Also selects the required met fields used by each extension.
+    ! Initialize all HEMCO extensions. This also selects the required 
+    ! met fields used by each extension.
     !=================================================================
     CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC )
     IF( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC )
@@ -422,6 +430,8 @@ CONTAINS
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
 
     ! HEMCO routines 
+    USE HCO_CLOCK_MOD,         ONLY : HcoClock_Get
+    USE HCO_CLOCK_MOD,         ONLY : HcoClock_EmissionsDone
     USE HCO_DIAGN_MOD,         ONLY : HCO_DIAGN_AUTOUPDATE
     USE HCO_FLUXARR_MOD,       ONLY : HCO_FluxarrReset 
     USE HCO_DRIVER_MOD,        ONLY : HCO_RUN
@@ -449,6 +459,8 @@ CONTAINS
 !  12 Sep 2013 - C. Keller   - Initial version 
 !  22 Aug 2014 - R. Yantosca - Now pass State_Met to MAP_HCO2GC
 !  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
+!  13 Jan 2015 - C. Keller   - Now check if it's time for emissions. Added
+!                              call to HcoClock_EmissionsDone.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -456,6 +468,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                        :: HMRC 
+    LOGICAL                        :: IsEmisTime
     CHARACTER(LEN=255), PARAMETER  :: LOC='HCOI_GC_RUN (hcoi_gc_main_mod.F90)'
 
     !=======================================================================
@@ -468,26 +481,38 @@ CONTAINS
     HMRC = HCO_SUCCESS
 
     !=======================================================================
-    ! Set HcoClock 
+    ! Make sure HEMCO time is in sync with simulation time
     !=======================================================================
-    CALL SET_CURRENT_TIME ( am_I_Root, HcoState, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SET_CURRENT_TIME', LOC )
+    CALL SetHcoTime ( am_I_Root, Input_Opt%LEMIS, HMRC )
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SetHcoTime', LOC )
+
+    !=======================================================================
+    ! See if it's time for emissions. Don't just use the LEMIS flag in
+    ! case that we call this routine multiple times. IsEmisTime will only
+    ! be true if this is an emission time step AND emissions have not yet
+    ! been calculated for that time step.
+    !=======================================================================
+    CALL HcoClock_Get( IsEmisTime=IsEmisTime, RC=HMRC )
 
     !=======================================================================
     ! Output diagnostics 
     !=======================================================================
     IF ( DoDiagn ) THEN
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC )
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, &
+                                WriteAll=.FALSE., RC=HMRC, UsePrevTime=.FALSE. ) 
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_WRITEOUT', LOC )
     ENDIF
 
     ! ======================================================================
-    ! Reset all emission and deposition values
+    ! Reset all emission and deposition values. Do this only if it is time
+    ! for emissions, i.e. if those values will be refilled.
     ! ======================================================================
-    CALL HCO_FluxarrReset ( HcoState, HMRC )
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP('ResetArrays', LOC )
-       RETURN 
+    IF ( IsEmisTime ) THEN
+       CALL HCO_FluxarrReset ( HcoState, HMRC )
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP('ResetArrays', LOC )
+          RETURN 
+       ENDIF
     ENDIF
 
     !=======================================================================
@@ -517,13 +542,23 @@ CONTAINS
 
     !=======================================================================
     ! Run HCO core module
-    ! Emissions will be written into the corresponding flux arrays 
-    ! in HcoState. 
+    ! Emissions will be written into the corresponding flux arrays in 
+    ! HcoState. 
     !=======================================================================
     CALL HCO_RUN ( am_I_Root, HcoState, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('HCO_RUN', LOC )
        RETURN 
+    ENDIF
+
+    !=======================================================================
+    ! Leave here if it's not time for emissions. The following routines
+    ! only need be called to calculate emissions or update emission 
+    ! diagnostics.
+    !=======================================================================
+    IF ( .NOT. IsEmisTime ) THEN
+       RC = GIGC_SUCCESS
+       RETURN
     ENDIF
 
     !=======================================================================
@@ -545,7 +580,7 @@ CONTAINS
     IF ( HMRC/= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('HCOX_RUN', LOC )
        RETURN
-    ENDIF 
+    ENDIF
 
     !=======================================================================
     ! Update diagnostics 
@@ -560,6 +595,11 @@ CONTAINS
     ! be re-filled in drydep and wetdep.
     !=======================================================================
     CALL RESET_DEP_N()
+
+    !=======================================================================
+    ! Emissions are now done for this time step
+    !=======================================================================
+    CALL HcoClock_EmissionsDone( am_I_Root, RC )
 
     ! We are now back in GEOS-Chem environment, hence set 
     ! return flag accordingly! 
@@ -590,7 +630,7 @@ CONTAINS
     USE Error_Mod,           ONLY : Error_Stop
     USE CMN_SIZE_Mod,        ONLY : IIPAR, JJPAR, LLPAR
     USE HCO_Driver_Mod,      ONLY : HCO_Final
-    USE HCO_Diagn_Mod,       ONLY : Diagn_Cleanup
+    USE HCO_Diagn_Mod,       ONLY : DiagnCollection_Cleanup
     USE HCO_State_Mod,       ONLY : HcoState_Final
     USE HCOIO_Diagn_Mod,     ONLY : HCOIO_Diagn_WriteOut
     USE HCOX_Driver_Mod,     ONLY : HCOX_Final
@@ -611,7 +651,7 @@ CONTAINS
     CHARACTER(LEN=255) :: LOC
 
     ! File prefix for restart file
-    CHARACTER(LEN= 31), PARAMETER :: RST = 'HEMCO_restart'
+    CHARACTER(LEN= 31), PARAMETER :: RST = 'HEMCO_Restart'
 
     !=================================================================
     ! HCOI_GC_FINAL begins here!
@@ -622,28 +662,28 @@ CONTAINS
 
     ! Set HcoClock to current time. This is to make sure that the 
     ! diagnostics are properly written.
-    CALL SET_CURRENT_TIME ( am_I_Root, HcoState, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SET_CURRENT_TIME', LOC )
+    CALL SetHcoTime ( am_I_Root, .FALSE., HMRC )
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SetHcoTime', LOC )
 
     ! Write out 'standard' diagnostics. Use previous time.
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., HMRC, &
-                                UsePrevTime=.TRUE. )
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState,    &
+                                WriteAll=.FALSE., RC=HMRC, &
+                                UsePrevTime=.FALSE. )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL A', LOC )
  
     ! Also write all other diagnostics into restart file. Use current time.
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE., HMRC, &
-                                UsePrevTime=.FALSE., PREFIX=RST ) 
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState,    &
+                                WriteAll=.TRUE., RC=HMRC, &
+                                UsePrevTime=.FALSE., PREFIX=RST )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL B', LOC )
- 
-    ! Cleanup diagnostics
-    CALL Diagn_Cleanup()
+
+    ! Cleanup HCO core. this will also clean up the HEMCO emissions 
+    ! diagnostics collection.
+    CALL HCO_FINAL()
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
     CALL HCOX_FINAL ( ExtState ) 
-
-    ! Cleanup HCO core
-    CALL HCO_FINAL()
 
     ! Cleanup HcoState object 
     CALL HcoState_Final ( HcoState ) 
@@ -663,15 +703,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_Current_Time 
+! !IROUTINE: SetHcoTime
 !
-! !DESCRIPTION: SUBROUTINE Set\_Current\_Time sets the current simulation 
+! !DESCRIPTION: SUBROUTINE SetHcoTime sets the current simulation 
 ! datetime in HcoState. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Current_Time( am_I_Root, HcoState, RC ) 
+  SUBROUTINE SetHcoTime( am_I_Root, TimeForEmis, RC ) 
 !
 ! !USES:
 !
@@ -683,7 +723,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   ) :: am_I_Root
-    TYPE(HCO_State), POINTER       :: HcoState
+    LOGICAL,         INTENT(IN   ) :: TimeForEmis 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -692,6 +732,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller - Initial Version
 !  23 Jan 2013 - C. Keller - Now call MAP_A2A instead of DO_REGRID_A2A
+!  12 Jan 2015 - C. Keller - Added argument TimeForEmis 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -701,7 +742,7 @@ CONTAINS
     INTEGER  :: cYr, cMt, cDy, cHr, cMin, cSec, cDOY 
 
     !=================================================================
-    ! SET_CURRENT_TIME begins here
+    ! SetHcoTime begins here
     !=================================================================
 
     cYr      = GET_YEAR()
@@ -713,9 +754,9 @@ CONTAINS
     cDOY     = GET_DAY_OF_YEAR()
 
     CALL HcoClock_Set ( am_I_Root,  HcoState, cYr, cMt, cDy, cHr, &
-                        cMin, cSec, cDoy, RC=RC )
+                        cMin, cSec, cDoy, IsEmisTime=TimeForEmis, RC=RC )
 
-  END SUBROUTINE Set_Current_Time
+  END SUBROUTINE SetHcoTime
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1549,7 +1590,11 @@ CONTAINS
 
     ! If there is no species in the HEMCO configuration file, there
     ! are no matching species!
-    IF ( nConfigSpec == 0 ) THEN
+    ! Set number of HEMCO species to zero if emissions shall not be 
+    ! used. This approach will make it possible to use HEMCO still
+    ! for reading/writing non-emission data, e.g. stratospheric Bry
+    ! fields (ckeller, 01/12/15).
+    IF ( nConfigSpec == 0 .OR. .NOT. Input_Opt%LEMIS ) THEN
        nHcoSpec = 0
 
        ! To prevent out of bounds error
@@ -1584,7 +1629,10 @@ CONTAINS
     ENDIF
 
     IF ( nHcoSpec == 0 .AND. am_I_Root ) THEN
-       MSG = 'No matching species between HEMCO and the model!'
+       MSG = 'There are no HEMCO species! This is either because '      // &
+             'emissions are turned off or because there is no match '   // &
+             'between GEOS-Chem species and species names in the HEMCO '// &
+             'configuration file.'
        CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
     ENDIF
 
@@ -1860,7 +1908,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetHcoDiagn ( am_I_Root, DiagnName, Force, RC, Ptr2D, Ptr3D )
+  SUBROUTINE GetHcoDiagn ( am_I_Root, DiagnName, Force, RC, Ptr2D, Ptr3D, COL )
 !
 ! !USES:
 !
@@ -1869,18 +1917,19 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )      :: am_I_Root  ! Are we on the root CPU?
-    CHARACTER(LEN=*), INTENT(IN   )      :: DiagnName  ! Name of diagnostics
-    LOGICAL,          INTENT(IN   )      :: Force      ! Force error if diagn. not found?
+    LOGICAL,          INTENT(IN)           :: am_I_Root  ! Are we on the root CPU?
+    CHARACTER(LEN=*), INTENT(IN)           :: DiagnName  ! Name of diagnostics
+    LOGICAL,          INTENT(IN)           :: Force      ! Force error if diagn. not found?
+    INTEGER,          INTENT(IN), OPTIONAL :: COL        ! Collection Nr. 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)      :: RC         ! Error return code
+    INTEGER,          INTENT(INOUT)        :: RC         ! Error return code
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),         POINTER, OPTIONAL  :: Ptr2D(:,:)   ! Pointer to 2D data
-    REAL(hp),         POINTER, OPTIONAL  :: Ptr3D(:,:,:) ! Pointer to 3D data
+    REAL(hp),         POINTER, OPTIONAL    :: Ptr2D(:,:)   ! Pointer to 2D data
+    REAL(hp),         POINTER, OPTIONAL    :: Ptr3D(:,:,:) ! Pointer to 3D data
 !
 ! !REMARKS:
 !
@@ -1892,7 +1941,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                   :: FLAG, ERR, LevIDx
+    INTEGER                   :: FLAG, ERR, LevIDx, PS
     TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
 
     CHARACTER(LEN=255) :: MSG
@@ -1902,17 +1951,16 @@ CONTAINS
     ! GetHcoDiagn begins here 
     !=======================================================================
 
-    ! Check HEMCO state object
-    IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-       CALL ERROR_STOP ( 'HcoState not defined', LOC )
-    ENDIF
+    ! Set collection number
+    PS = 1
+    IF ( PRESENT(COL) ) PS = COL
 
     ! Get diagnostics by name. Search all diagnostics, i.e. both AutoFill
     ! and manually filled diagnostics. Also include those with a manual
     ! output interval.
-    CALL Diagn_Get( am_I_Root,   HcoState, .FALSE., DgnCont,       &
-                    FLAG,        ERR,      cName=TRIM(DiagnName),  &
-                    AutoFill=-1, InclManual=.TRUE. )     
+    CALL Diagn_Get( am_I_Root,   .FALSE.,  DgnCont,               &
+                    FLAG,        ERR,      cName=TRIM(DiagnName), &
+                    AutoFill=-1, InclManual=.TRUE., COL=PS         )     
 
     ! Error checks
     IF ( ERR /= HCO_SUCCESS ) THEN

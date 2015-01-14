@@ -330,9 +330,9 @@ CONTAINS
           ! (only if defined in the diagnostics list).
           IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
              Diag3D => CatFlx
-             CALL Diagn_Update( am_I_Root,   HcoState, ExtNr=ExtNr,   &
+             CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
                                 Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                                AutoFill=1,  Array3D=Diag3D, RC = RC ) 
+                                AutoFill=1,  Array3D=Diag3D, RC=RC     ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
              Diag3D => NULL() 
           ENDIF
@@ -366,9 +366,9 @@ CONTAINS
              ! the same time step, continuously adding emissions to it.
              IF ( Diagn_AutoFillLevelDefined(2) .AND. DoDiagn ) THEN 
                 Diag3D => SpcFlx
-                CALL Diagn_Update(am_I_Root, HcoState, ExtNr=ExtNr,   &
+                CALL Diagn_Update(am_I_Root, ExtNr=ExtNr,             &
                                   Cat=-1,    Hier=-1,  HcoID=PrevSpc, &
-                                  AutoFill=1,Array3D=Diag3D, RC = RC ) 
+                                  AutoFill=1,Array3D=Diag3D, RC=RC     ) 
                 IF ( RC /= HCO_SUCCESS ) RETURN
                 Diag3D => NULL()
              ENDIF
@@ -514,7 +514,7 @@ CONTAINS
        ! emissions to it. 
        IF ( Diagn_AutoFillLevelDefined(4) .AND. DoDiagn ) THEN 
           Diag3D => TmpFlx
-          CALL Diagn_Update( am_I_Root,  HcoState,       ExtNr=ExtNr,   &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=ThisCat,Hier=ThisHir,   HcoID=ThisSpc, &
                              AutoFill=1, Array3D=Diag3D, PosOnly=.TRUE.,&
                              RC=RC ) 
@@ -542,9 +542,9 @@ CONTAINS
        ! Diagnostics at category level
        IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
           Diag3D => CatFlx
-          CALL Diagn_Update( am_I_Root,   HcoState, ExtNr=ExtNr,   &
+          CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
                              Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                             AutoFill=1,  Array3D=Diag3D, RC = RC ) 
+                             AutoFill=1,  Array3D=Diag3D, RC = RC   ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
           Diag3D => NULL() 
        ENDIF
@@ -552,9 +552,9 @@ CONTAINS
        ! Diagnostics at extension number level
        IF ( Diagn_AutoFillLevelDefined(2) .AND. DoDiagn ) THEN 
           Diag3D => SpcFlx
-          CALL Diagn_Update( am_I_Root,  HcoState,       ExtNr=ExtNr,   &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=-1,     Hier=-1,        HcoID=PrevSpc, &
-                             AutoFill=1, Array3D=Diag3D, RC = RC         )
+                             AutoFill=1, Array3D=Diag3D, RC=RC           )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Diag3D => NULL()
        ENDIF

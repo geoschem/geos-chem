@@ -456,7 +456,7 @@
             ! Eventually update diagnostics
             IF ( Diagn_AutoFillLevelDefined(2) ) THEN
                Arr2D => FLUX(:,:,N)
-               CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+               CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
      &                            Cat=-1, Hier=-1, HcoID=HcoIDs(N),
      &                            AutoFill=1, Array2D=Arr2D, RC=RC   )
                IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -5449,11 +5449,12 @@ c Fix up for negative argument, erf, etc.
       FLX_MSS_FDG_FCT = -999.0d0
 
       ! Error 
-      IF ( am_I_Root ) THEN
-         MSG = 'Cannot assign mass flux tuning factor - ' //
-     &         'please set `mass tuning factor` in configuration file!'
+      MSG = 'Cannot assign mass flux tuning factor - ' //
+     &      'please explicitly set it by adding ' //
+     &      '` --> Mass tuning factor: XX.X` to the extension ' //
+     &      'options in your config. file.'
          CALL HCO_ERROR ( MSG, RC, THISLOC='HCOX_DustDead_GetFluxTun')
-      ENDIF
+      RETURN
 
 #endif
 

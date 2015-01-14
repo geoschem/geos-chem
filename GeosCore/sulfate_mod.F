@@ -1939,6 +1939,7 @@
 !  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  12 Jan 2015 - C. Keller   - Now allow NDENS_SALA and NDENS_SALC to be empty.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2034,18 +2035,22 @@
       ! These are the sea salt aerosol number densities for the fine
       ! and coarse mode, respectively. Values are in # / surface grid
       ! box. These values are needed in the GET_ALK call below.
-      ! (ckeller, 11/03/2014)
+      ! If the diagnostics are not being found, e.g. because the
+      ! sea salt emissins extension is turned off (or LEMIS is 
+      ! disabled), the passed pointers NDENS_SALA and NDENS_SALC
+      ! will stay nullified. Values of zero will be used in this
+      ! case! (ckeller, 01/12/2015)
       IF ( FIRST ) THEN
 
          ! Sea salt density, fine mode
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE', 
-     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALA )
+     &                     FORCE=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_FINE', LOC )
 
          ! Sea salt density, coarse mode 
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE', 
-     &                     FORCE=.TRUE., RC=RC, Ptr2D=NDENS_SALC )
+     &                     FORCE=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
          IF ( RC /= HCO_SUCCESS )
      &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_COARSE', LOC )
          
@@ -8062,10 +8067,14 @@
      &        * State_Met%AREA_M2(I,J,1) * TS_EMIS * FEMIS 
 
          ! Get number densities in # / cm3. Weight by fraction of PBL
-         N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
+         IF ( ASSOCIATED(NDENS_SALA) ) THEN
+            N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
+     &                * 1.e-6_fp * FEMIS
+         ENDIF
+         IF ( ASSOCIATED(NDENS_SALC) ) THEN
+            N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
      &             * 1.e-6_fp * FEMIS
-         N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
-     &             * 1.e-6_fp * FEMIS
+         ENDIF
 
       ENDIF
 
