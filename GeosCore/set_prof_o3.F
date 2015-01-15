@@ -5,13 +5,12 @@
 !
 ! !IROUTINE: set_prof_o3
 !
-! !DESCRIPTION: Subroutine SET_PROF_o3 sets up atmospheric profiles required by 
-!  rrtmg in the stratosphere  using a doubled version of the level scheme used in the CTM.  First 
-!  pressure and z* altitude are defined, then O3 and T are taken from the 
-!  supplied climatology and integrated to the CTM levels (may be overwritten 
-!  with values directly from the CTM, if desired) .
-! 
-!  This is a stripped down version of set_prof.F; it does O3 only
+! !DESCRIPTION: Subroutine SET\_PROF\_O3 sets up atmospheric profiles required
+!  by RRTMG in the stratosphere  using a doubled version of the level scheme
+!  used in the CTM.  First pressure and z* altitude are defined, then O3 and T
+!  are taken from the supplied climatology and integrated to the CTM levels
+!  (may be overwritten with values directly from the CTM, if desired).
+!  This is a stripped down version of SET\_PROF; it does O3 only.
 !\\
 !\\
 ! !INTERFACE:
