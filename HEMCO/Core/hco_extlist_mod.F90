@@ -222,9 +222,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetExtOpt ( ExtNr,      OptName,    OptValSp,   &
-                         OptValDp,   OptValInt,  OptValBool, &
-                         OptValChar, Found,      RC           ) 
+  SUBROUTINE GetExtOpt ( ExtNr,      OptName,    OptValHp,      &
+                         OptValSp,   OptValDp,   OptValInt,     &
+                         OptValBool, OptValChar, Found,     RC ) 
 !
 ! !USES:
 !
@@ -237,6 +237,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
+    REAL(hp),         INTENT(  OUT), OPTIONAL  :: OptValHp
     REAL(sp),         INTENT(  OUT), OPTIONAL  :: OptValSp
     REAL(dp),         INTENT(  OUT), OPTIONAL  :: OptValDp
     INTEGER,          INTENT(  OUT), OPTIONAL  :: OptValInt
@@ -250,6 +251,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Oct 2013 - C. Keller - Initial version
+!  13 Jan 2015 - R. Yantosca - Add optional variable of flex precision (hp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -335,6 +337,8 @@ CONTAINS
              READ( SUBSTR(2), * ) OptValSp
           ELSEIF ( PRESENT(OptValDp) ) THEN
              READ( SUBSTR(2), * ) OptValDp
+          ELSEIF ( PRESENT(OptValHp) ) THEN
+             READ( SUBSTR(2), * ) OptValHp
           ELSEIF ( PRESENT(OptValInt) ) THEN
              READ( SUBSTR(2), * ) OptValInt
           ELSEIF ( PRESENT(OptValBool) ) THEN
