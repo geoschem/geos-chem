@@ -4609,11 +4609,9 @@
       IF ( ND62 > 0 ) THEN
          CATEGORY = 'INST-MAP'
 
-#if defined( DEVEL )
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
          ! (mpayer, 12/6/12)
          STT => State_Chm%Tracers
-#endif
 
          DO M = 1, TMAX(62)
             N  = TINDEX(62,M)
@@ -4646,10 +4644,8 @@
 
          ENDDO
 
-#if defined( DEVEL )
          ! Free pointer
          NULLIFY( STT )
-#endif
 
       ENDIF
 !
