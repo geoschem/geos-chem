@@ -300,8 +300,8 @@
       ! additional I/O calls during run time (only if UCXNETCDF = false)
       ! (ckeller, 05/12/2014).
       !=================================================================
-      REAL*8, ALLOCATABLE, TARGET :: NOXCOEFF(:,:,:,:)
-      REAL*8, ALLOCATABLE         :: NOXLAT(:)
+      REAL(fp), ALLOCATABLE, TARGET :: NOXCOEFF(:,:,:,:)
+      REAL(fp), ALLOCATABLE         :: NOXLAT(:)
       INTEGER                     :: JJNOXCOEFF
 
       !=================================================================
@@ -2783,7 +2783,7 @@
          NATCOL = .FALSE.
 
          ! Arbitrary limits
-         BXMIN = 1.d20
+         BXMIN = 1.e+20_fp
          MINALT = LLPAR+1
          MAXALT = 0
          VFALLMAX = 0e+0_fp
@@ -6468,20 +6468,20 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXLAT' )
 
       ! Fill manually
-      NOXLAT(2) = -89.0d0
+      NOXLAT(2) = -89.0e+0_fp
       DO I = 3,JJNOXCOEFF
-         NOXLAT(I) = NOXLAT(I-1) + 2d0
+         NOXLAT(I) = NOXLAT(I-1) + 2e+0_fp
       ENDDO
       ! Overshoot to make sure that a latitude of 90.0 will be properl
       ! matched onto JJNOXCOEFF. 
-      NOXLAT(JJNOXCOEFF+1) = 90.5d0 
+      NOXLAT(JJNOXCOEFF+1) = 90.5e+0_fp 
 #endif
 
       ! Initialize the NOXCOEFF array. This array holds monthly NOx 
       ! coefficients on 51 levels and for 6 species.
       ALLOCATE(NOXCOEFF(JJNOXCOEFF,UCX_NLEVS,6,12), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXCOEFF' )
-      NOXCOEFF = 0.0d0
+      NOXCOEFF = 0.0e+0_fp
 
       ! Fill array
       DO IMON  = 1,12 
@@ -6597,7 +6597,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I
-      REAL*8              :: LAT 
+      REAL(fp)              :: LAT 
 
       !=================================================================
       ! GET_JJNOX begins here!
@@ -6848,7 +6848,7 @@
       ! Calculate conversion factors for SLA
       ! Factor to convert volume (m3 SLA/m3 air) to
       ! surface area density (cm2 SLA/cm3 air)
-      SLA_VA = (8.406d-8)*(10.e+0_fp**(12.e+0_fp*0.751e+0_fp))
+      SLA_VA = (8.406e-8_fp)*(10.e+0_fp**(12.e+0_fp*0.751e+0_fp))
 
       ! Factor to convert effective radius to 
       ! liquid radius (unitless)
