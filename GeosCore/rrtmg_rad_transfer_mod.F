@@ -99,6 +99,7 @@
       
       !USE STRAT_CHEM_MOD, ONLY : GET_SPECIES
       USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,   ONLY : GET_CHEMGRID_LEVEL
       USE PRESSURE_MOD,   ONLY : GET_PCENTER,      GET_PEDGE
       USE COMODE_MOD,   ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_LOOP_MOD,   ONLY : ICH4, AVG, WTAIR
@@ -111,6 +112,7 @@
       USE CMN_FJX_MOD,  ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE CMN_FJX_MOD,  ONLY : WVAA, NWVAA
       USE CMN_FJX_MOD,  ONLY : NWVAA0
+      USE TRACERID_MOD, ONLY : IDTO3
 
       USE TOMS_MOD,     ONLY: GET_OVERHEAD_O3
       USE GRID_MOD,     ONLY : GET_YMID
@@ -152,6 +154,9 @@
 !  17 AUG 2012 - R. YANTOSCA - INITIAL VERSION
 !  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
 !                              avoid conflicts with hourly max ppbv diagnostic.
+!  15 Jan 2015 - M. Sulprizio- Added T_CTM and P_CTM arrays and calculate them
+!                              in the same manner that we do in fast_jx_mod.F.
+!                              Also moved and fixed calculation of O3_CTM.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -253,7 +258,8 @@
       REAL (KIND=RB)  :: O3_CLIM(LLPAR)
       REAL (KIND=RB)  :: Z_CLIM(LLPAR)
       REAL (KIND=RB)  :: AIR_CLIM(LLPAR)
-
+      REAL (KIND=RB)  :: T_CTM(LLPAR+1)
+      REAL (KIND=RB)  :: P_CTM(LLPAR+2)
 
 ! SW SOLAR VARIABLES
       REAL(KIND=RB)  :: ADJES=1.0              ! FLUX ADJUSTMENT FOR EARTH/SUN DISTANCE
@@ -450,18 +456,48 @@
       TSFC  (IJLOOP)   = State_Met%TSKIN(I,J)
       ENDDO
       ENDDO
+
 !OMP PARALLEL DO
 !OMP+DEFAULT( SHARED )
 !OMP+PRIVATE( I, J, L, IJLOOP, JLOOP, AIR_TMP )
-!OMP+PRIVATE( YLAT, O3COL)
+!OMP+PRIVATE( YLAT, O3COL, O3_CTM, T_CTM, P_CTM )
 !OMP+SCHEDULE( DYNAMIC )
       DO I = 1, IIPAR
       DO J = 1, JJPAR
-       ALBVIS(IJLOOP)   = State_Met%ALBD(I,J)
-      DO L = 1, LLPAR
-       
        ! 1-D INDEX
        IJLOOP         = (J-1)*IIPAR+I
+       ALBVIS(IJLOOP)   = State_Met%ALBD(I,J)
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+       ! Define the P array here, using GCM pressures
+       DO L = 1, LLPAR+1
+          P_CTM(L)     = State_Met%PEDGE( I, J, L )
+       ENDDO
+#else
+       ! Define the P array here, using Ap and Bp from GEOS-Chem
+       DO L = 1, LLPAR+1
+          P_CTM(L)     = GET_PEDGE( I, J, L )
+       ENDDO
+#endif
+
+       ! Top edge of P_CTM is top of atmosphere
+       P_CTM(LLPAR+2)  = 0d0
+
+       ! Temperature profile [K]
+       T_CTM(1:LLPAR)  = State_Met%T(I,J,1:LLPAR)
+
+       ! Top of atmosphere
+       T_CTM(LLPAR+1)  = T_CTM(LLPAR)
+
+       ! Overhead ozone column [DU]
+       O3COL = GET_OVERHEAD_O3(I,J)
+
+       ! CTM ozone densities (molec/cm3)
+       O3_CTM          = 0d0
+       L               = GET_CHEMGRID_LEVEL(I,J,State_Met)
+       O3_CTM(1:L)     = State_Chm%Tracers(I,J,1:L,IDTO3)
+       
+      DO L = 1, LLPAR
 
             !-----------------------------
             ! GET CLOUD PROPERTIES BY SETTING REASONABLE VALUES FOR REL
@@ -520,12 +556,9 @@
      &               State_Met%BXHEIGHT(I,J,L)*1.0E-1
            !! DENSITY OF AIR IN MOLEC/CM2
            AIR_TMP = AVG*AIR_TMP/WTAIR
-           O3COL = GET_OVERHEAD_O3(I,J)
-           O3_CTM          = 0d0
-           O3_CTM(1:L)     = State_Chm%Tracers(I,J,1:L,IDO3)
 
            CALL SET_PROF_O3 (YLAT,THISMONTH,THISDAY,
-     &                       State_Met%T(I,J,:), State_Met%PEDGE(I,J,:),
+     &                       T_CTM,  P_CTM,
      &                       O3_CTM, O3COL, T_CLIM,
      &                       O3_CLIM,  Z_CLIM,  AIR_CLIM, Input_Opt)
            O3VMR(IJLOOP,L) = O3_CLIM(L)/AIR_TMP
