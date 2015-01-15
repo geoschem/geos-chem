@@ -4413,8 +4413,6 @@
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-! testing the new diagnostics
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
@@ -4445,9 +4443,7 @@
       ! DIAGINIT_DRYDEP begins here!
       !=================================================================
       
-      !=================================================================
-      ! New diagnostics structure
-      !=================================================================
+      ! Add diagnostics
       DiagnName = 'DEPVEL_O3'
       CALL Diagn_Create ( am_I_Root, 
      &                    cName     = TRIM(DiagnName), 
@@ -4459,7 +4455,7 @@
      &                    LevIDx    = -1, 
      &                    OutUnit   = 's-1',
      &                    OutOper   = 'Mean',
-     &                    WriteFreq = 'Hourly',
+     &                    WriteFreq = 'Daily',
      &                    AutoFill  = 0,
      &                    cID       = N,
      &                    RC        = RC,

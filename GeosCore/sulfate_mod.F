@@ -749,7 +749,8 @@
 #if defined( UCX )
       ! Stratospheric aerosol graviational settling
       IF ( LGRAVSTRAT ) THEN
-         CALL SETTLE_STRAT_AER( Input_Opt, State_Met, State_Chm )
+         CALL SETTLE_STRAT_AER( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
          ENDIF

@@ -646,10 +646,6 @@
          ENDIF
 !      ENDIF
 
-      ! Initialize all diagnostics (ckeller, 1/13/15).
-      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
- 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
@@ -661,7 +657,8 @@
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
-         CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
+         !CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
+         CALL INIT_UCX( am_I_Root, Input_Opt )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
       ENDIF
 
@@ -690,6 +687,14 @@
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
       ENDIF
 
+      !=================================================================
+      !      ***** INITIALIZE DIAGNOSTICS ***** 
+      !=================================================================      
+
+      ! Initialize all diagnostics (ckeller, 1/13/15).
+      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
+ 
       !=================================================================
       !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
       !=================================================================      
@@ -802,10 +807,11 @@
      &                                  NHMS,      State_Chm, RC    )
                ENDIF 
 
-#if defined( UCX )
-               ! Write PSC data
-               CALL MAKE_PSC_FILE( NYMD, NHMS, Input_Opt )
-#endif
+! This is now done through HEMCO diagnostics (ckeller, 1/14/2015).
+!#if defined( UCX )
+!               ! Write PSC data
+!               CALL MAKE_PSC_FILE( NYMD, NHMS, Input_Opt )
+!#endif
 
                !### Debug
                IF ( prtDebug ) THEN

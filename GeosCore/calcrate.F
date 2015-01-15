@@ -1035,8 +1035,8 @@ c new OH+CO rate from JPL2006.
                   
 #if defined( UCX )
             ! Check surface type of PSCs (SDE 04/17/13)
-            CALL CHECK_NAT( IX, IY, IZ, NATSURFACE, PSCBOX, STRATBOX,
-     &                      Input_Opt,  State_Met,  State_Chm )
+            CALL CHECK_NAT( am_I_Root, IX, IY, IZ, NATSURFACE, PSCBOX, 
+     &           STRATBOX,  Input_Opt, State_Met,  State_Chm )
 #endif
 
             DO I       = 1, NNADDK(NCS)

@@ -310,6 +310,8 @@ CONTAINS
 !                              on GEOS-Chem levels. 
 !  31 Dec 2014 - C. Keller   - Now call ModelLev_Interpolate for model remapping
 !                              of model levels.
+!  15 Jan 2015 - C. Keller   - Now allow model level interpolation in combination
+!                              with MESSy (horizontal) regridding.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -784,8 +786,11 @@ CONTAINS
        ! mid-point levels, and the interface values are calculated 
        ! by linear interpolation of the mid-point values in a second
        ! step.
+       ! For model levels, the sigma levels don't need to be known
+       ! as vertical interpolation will be done based on subroutine
+       ! ModelLev_Interpolate (within HCO_MESSY_REGRID).
        !--------------------------------------------------------------
-       IF ( nlev > 1 ) THEN
+       IF ( nlev > 1 .AND. .NOT. IsModelLevel ) THEN
 
           ! Get sigma levels
           CALL NC_Get_Sigma_Levels ( fID     = ncLun,   &
@@ -825,9 +830,9 @@ CONTAINS
        ENDIF ! nlev>1
 
        ! Now do the regridding
-       CALL HCO_MESSY_REGRID ( am_I_Root, HcoState, NcArr,   &
-                               LonEdge,   LatEdge,  SigEdge, &
-                               Lct,       RC                  )
+       CALL HCO_MESSY_REGRID ( am_I_Root, HcoState,     NcArr,   &
+                               LonEdge,   LatEdge,      SigEdge, &
+                               Lct,       IsModelLevel, RC        )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Cleanup

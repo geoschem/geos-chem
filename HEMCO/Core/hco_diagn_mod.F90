@@ -365,7 +365,7 @@ CONTAINS
                                                                !  operation 
     INTEGER,          INTENT(IN   ), OPTIONAL :: LevIdx        ! Level index 
                                                                !  to use
-    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill      ! 1=auto fill
+    INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill      ! 1=do autofill
                                                                ! 0=don't 
     REAL(hp),         INTENT(IN   ), OPTIONAL :: Trgt2D(:,:)   ! 2D target data
     REAL(hp),         INTENT(IN   ), OPTIONAL :: Trgt3D(:,:,:) ! 3D target data

@@ -53,7 +53,7 @@ MODULE HCOI_GC_Diagn_Mod
 #include "hcoi_gc_diagn_include.H"
 
   ! Define default output frequency. 
-  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Hourly"
+  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Daily"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -3368,7 +3368,7 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if we are doing a specialty simulation w/o lightning
-    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
+    !IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
 
     ! Define diagnostics
     IF ( ND56 > 0 ) THEN
@@ -3379,7 +3379,7 @@ CONTAINS
        ! Exit if LightNOx was not turned on
        IF ( ExtNr <= 0 ) THEN
           MSG = 'Lightning NOx is not enabled - cannot write diagnostics ND56!'
-          CALL HCO_Error( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 

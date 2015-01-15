@@ -70,7 +70,10 @@ CONTAINS
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE GRID_MOD,           ONLY : AREA_M2
     USE TIME_MOD,           ONLY : GET_TS_CHEM
+
+    ! Define diagnostics in these modules:
     USE DRYDEP_MOD,         ONLY : DIAGINIT_DRYDEP
+    USE UCX_MOD,            ONLY : DIAGINIT_UCX
 !
 ! !INPUT PARAMETERS:
 !
@@ -114,7 +117,7 @@ CONTAINS
                                  AM2       = AM2,      & 
                                  PREFIX    = DGN,      &
                                  COL       = GCDiagNr, &
-                                 OVERWRITE = .TRUE.,   & 
+                                 OVERWRITE = .FALSE.,  & 
                                  RC        = RC         )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP( 'Cannot overwrite collection', LOC ) 
@@ -126,7 +129,8 @@ CONTAINS
     ! ----------------------------------------------------------------------
     ! Add diagnostics to collection 
     ! ----------------------------------------------------------------------
-    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+    IF ( Input_Opt%LDRYD ) CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+    IF ( Input_Opt%LUCX  ) CALL DIAGINIT_UCX   ( am_I_Root, Input_Opt, RC )
 
     ! Leave w/ success
     RC = GIGC_SUCCESS

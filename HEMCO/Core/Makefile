@@ -240,6 +240,7 @@ hcoio_messy_mod.o      : hcoio_messy_mod.F90     \
                          hco_datacont_mod.o      \
                          hco_error_mod.o         \
                          hco_filedata_mod.o      \
+                         hco_interp_mod.o        \
                          hco_state_mod.o         \
                          hco_unit_mod.o          \
                          messy_ncregrid_base.o
