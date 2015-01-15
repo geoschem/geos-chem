@@ -82,7 +82,9 @@
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
+#if defined( DEVEL )
       USE DIAGNOSTICS_MOD       ! New diagnostics module (C. Keller)
+#endif
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -650,10 +652,12 @@
          ENDIF
 !      ENDIF
 
+#if defined( DEVEL )
       ! Initialize all diagnostics (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
- 
+#endif 
+
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
@@ -1570,8 +1574,12 @@
          !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
-         ! New diagnostics structure (ckeller, 01/09/2015)
-         CALL Diagnostics_Write ( am_I_Root, .FALSE., RC )
+#if defined( DEVEL )
+         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
+         ! Each diagnostic has a specified averaging period specified 
+         ! in Input_Opt. (ckeller, bmy, 1/15/15)
+         CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC )
+#endif
 
          !### After diagnostics
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
@@ -1639,8 +1647,12 @@
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
 
-      ! New diagnostics structure (ckeller, 01/09/2015)
-      CALL Diagnostics_Write ( am_I_Root, .TRUE., RC )
+#if defined( DEVEL )
+      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
+      ! Each diagnostic has a specified averaging period specified 
+      ! in Input_Opt. (ckeller, bmy, 1/15/15)
+      CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC )
+#endif
 
       ! For model benchmarking, save final masses of 
       ! Rn,Pb,Be or Ox to a binary punch file 

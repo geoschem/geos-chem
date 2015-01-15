@@ -1,3 +1,4 @@
+#if defined( DEVEL )
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -27,17 +28,14 @@ MODULE Diagnostics_Mod
   PUBLIC :: Diagnostics_Write
   PUBLIC :: Diagnostics_Final
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-!
-! !MODULE PARAMETER
+! !DEFINED PARAMETERS:
 !
   ! Prefix of restart file. This file will hold all diagnostics that are 
   ! written out at the end of a simulation (either because their output 
   ! frequency is set to 'End' or the run finishes and these diagnostics
   ! haven't reached the end of their output interval yet).
-  CHARACTER(LEN= 31), PARAMETER           :: RST = 'GEOSCHEM_Restart'
-  CHARACTER(LEN= 31), PARAMETER           :: DGN = 'GEOSCHEM_Diagnostics'
+  CHARACTER(LEN=31), PARAMETER :: RST = 'GEOSCHEM_Restart'
+  CHARACTER(LEN=31), PARAMETER :: DGN = 'GEOSCHEM_Diagnostics'
 !
 ! !REVISION HISTORY:
 !  09 Jan 2015 - C. Keller   - Initial version. 
@@ -74,14 +72,17 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
+    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
+    TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
+    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry state 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(OptInput),   INTENT(INOUT) :: Input_Opt  ! Input opts
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version 
@@ -103,18 +104,19 @@ CONTAINS
     AM2    => AREA_M2(:,:,1)
     TS     =  GET_TS_CHEM() * 60.0_sp
 
-    ! ----------------------------------------------------------------------
-    ! Create collection
-    ! ----------------------------------------------------------------------
-    CALL DiagnCollection_Create( am_I_Root,            &
-                                 NX        = IIPAR,    &
-                                 NY        = JJPAR,    &
-                                 NZ        = LLPAR,    &
-                                 TS        = TS,       & 
-                                 AM2       = AM2,      & 
-                                 PREFIX    = DGN,      &
-                                 COL       = GCDiagNr, &
-                                 OVERWRITE = .TRUE.,   & 
+    !-----------------------------------------------------------------------
+    ! Create diagnostics collection for GEOS-Chem.  This will keep the
+    ! GEOS-Chem diagostics separate from the HEMCO diagnostics.
+    !-----------------------------------------------------------------------
+    CALL DiagnCollection_Create( am_I_Root,                             &
+                                 NX        = IIPAR,                     &
+                                 NY        = JJPAR,                     &
+                                 NZ        = LLPAR,                     &
+                                 TS        = TS,                        &
+                                 AM2       = AM2,                       &
+                                 PREFIX    = DGN,                       &
+                                 COL       = Input_Opt%DIAG_COLLECTION, &
+                                 OVERWRITE = .TRUE.,                    & 
                                  RC        = RC         )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP( 'Cannot overwrite collection', LOC ) 
@@ -123,9 +125,12 @@ CONTAINS
     ! Cleanup
     AM2 => NULL()
 
-    ! ----------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Add diagnostics to collection 
-    ! ----------------------------------------------------------------------
+    ! (Add calls to additional subroutines for other diagnostics here!)
+    !-----------------------------------------------------------------------
+
+    ! Drydep diagnostic (ND44)
     CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
 
     ! Leave w/ success
@@ -146,11 +151,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagnostics_Write ( am_I_Root, LAST, RC ) 
+  SUBROUTINE Diagnostics_Write( am_I_Root, Input_Opt, LAST, RC ) 
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_STATE_MOD,      ONLY : HCO_STATE
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, SetHcoTime
@@ -158,15 +164,17 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
-    LOGICAL,          INTENT(IN   )  :: LAST       ! Is this the last call? 
+    LOGICAL,        INTENT(IN ) :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN ) :: Input_Opt  ! Input Options object
+    LOGICAL,        INTENT(IN ) :: LAST       ! Is this the last call? 
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    INTEGER,        INTENT(OUT) :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  09 Jan 2015 - C. Keller   - Initial version 
+!  09 Jan 2015 - C. Keller   - Initial version
+!  15 Jan 2015 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,17 +198,35 @@ CONTAINS
        CALL ERROR_STOP( 'Cannot get HEMCO state object', LOC )
     ENDIF
 
-    ! Write diagnostics:
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, WriteAll=.FALSE., RC=RC, &
-                                UsePrevTime=.FALSE., COL=GCDiagNr )
-    IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Diagnostics write error', LOC ) 
+    !-----------------------------------------------------------------------
+    ! Write diagnostics to the diagnostics file
+    !-----------------------------------------------------------------------
+    CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                &
+                               HcoState,                                 &
+                               WriteAll    = .FALSE.,                    &
+                               UsePrevTime = .FALSE.,                    & 
+                               COL         = Input_Opt%DIAG_COLLECTION,  & 
+                               RC          = RC                         )
 
-    ! Last call: write out all diagnostics. Use current time stamp and write into
-    ! restart file
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Diagnostics write error', LOC ) 
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Last call: write out all diagnostics. 
+    ! Use current time stamp and write into restart file
+    !-----------------------------------------------------------------------
     IF ( LAST ) THEN
-       CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, WriteAll=.TRUE., RC=RC, &
-                                   UsePrevTime=.FALSE., PREFIX=RST, COL=GCDiagNr )
-       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Diagnostics write error A', LOC ) 
+       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                & 
+                                  HcoState,                                 &
+                                  WriteAll    = .TRUE.,                     &
+                                  UsePrevTime = .FALSE.,                    &
+                                  PREFIX      = RST,                        &  
+                                  COL         = Input_Opt%DIAG_COLLECTION,  &
+                                  RC          = RC                         )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Diagnostics write error at end of run', LOC ) 
+       ENDIF
 
     ENDIF
 
@@ -225,16 +251,36 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagnostics_Final ( ) 
+  SUBROUTINE Diagnostics_Final( am_I_Root, Input_Opt, RC ) 
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN ) :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN ) :: Input_Opt  ! Input Options objec
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version 
+!  15 Jan 2015 - R. Yantosca - Now accept Input_Opt, am_I_Root, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-    CALL DiagnCollection_Cleanup( COL = GCDiagNr )
+    ! Finalize diagnostics
+    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
+
+    ! Return with success
+    RC = GIGC_SUCCESS
 
   END SUBROUTINE Diagnostics_Final
 !EOC
 END MODULE Diagnostics_Mod
+#endif

@@ -51,10 +51,6 @@
       
       ! KIND parameter for 8-byte precision
       INTEGER, PARAMETER, PUBLIC :: f8 = KIND( 0.d0 )
-
-      ! Diagnostics collection number. Set to anything between 2-5.
-      ! (ckeller, 01/09/15)
-      INTEGER, PARAMETER, PUBLIC :: GcDiagNr = 2
 !
 ! !REMARKS:
 !  This module is designed to help avoid hard-coding precision.

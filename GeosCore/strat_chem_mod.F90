@@ -952,19 +952,6 @@ CONTAINS
 
        call NcCl( fileID )
 
-!#if defined( DEVEL ) 
-! NOTE: Comment out the strat chem fields of State_Chem for now (bmy, 11/26/12)
-!       !-----------------------------------------------------------------
-!       !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-!       !
-!       ! Call the routine GIGC_Allocate_All (located in module file
-!       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
-!       ! allocatable arrays used by GEOS-Chem.  
-!       !-----------------------------------------------------------------
-!       State_Chm%Schm_P(:,:,:,N) = PROD(:,:,:,N)
-!       State_Chm%Schm_k(:,:,:,N) = LOSS(:,:,:,N)
-!#endif
-
     ENDDO
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1823,16 +1810,6 @@ CONTAINS
                 NSCHEM                 = NSCHEM + 1
                 Strat_TrID_GC(NSCHEM)  = N  ! Maps 1:NSCHEM to STT index
                 Strat_TrID_GMI(NSCHEM) = NN ! Maps 1:NSCHEM to GMI_TrName index
-
-! NOTE: Comment out strat-chem fields of State_Chm for now (bmy, 11/26/12)
-!#if defined( DEVEL ) 
-!                !---------------------------------------------------------
-!                ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-!                !
-!                !---------------------------------------------------------
-!                State_Chm%Schm_Id(NSCHEM)   = Strat_TrID_GC(NSCHEM)
-!                State_Chm%Schm_Name(NSCHEM) = TRIM( TRACER_NAME(N) )
-!#endif
 
              ENDIF
 

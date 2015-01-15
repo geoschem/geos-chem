@@ -86,8 +86,10 @@
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
 !#endif
 
-      ! New diagnostics
+#if defined( DEVEL )
+      ! Cleanup routine for netCDF diagnostics structure
       USE DIAGNOSTICS_MOD,         ONLY : DIAGNOSTICS_FINAL
+#endif
 
       IMPLICIT NONE
 !
@@ -243,8 +245,10 @@
       WRITE( 6, 100 ) 
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
-      ! Cleanup diagnostics
-      CALL DIAGNOSTICS_FINAL()
+#if defined( DEVEL )
+      ! Cleanup the new netCDF diagnostics structure
+      CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
+#endif
 
       ! Cleanup HEMCO 
 !#if !defined(ESMF_) 
@@ -277,11 +281,6 @@
       CALL CLEANUP_GLOBAL_NOX()
       CALL CLEANUP_GLOBAL_OH()
       CALL CLEANUP_GRID()
-!-----------------------------------------------------------------------------
-! This simulation is obsolete.  You can restore it if you wish (bmy, 6/23/14)
-!      CALL CLEANUP_GLOBAL_O1D()
-!      CALL CLEANUP_H2_HD()
-!-----------------------------------------------------------------------------
       CALL CLEANUP_HCN_CH3CN()
       CALL CLEANUP_HDF()
       CALL CLEANUP_ISOROPIAII()
