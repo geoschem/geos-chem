@@ -1577,6 +1577,7 @@ CONTAINS
     ! April 2012 - Oct 2014. Will need to be updated as more
     ! met fields become available (ltm, 2014-12-10).
     IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
          ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
        BETA = ANN_AVG_FLASHRATE / 82.373293d0
     ENDIF
@@ -1591,6 +1592,7 @@ CONTAINS
     ! April 2012 - Oct 2014. Will need to be updated as more
     ! met fields become available (ltm, 2014-12-10).
     IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
          ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
        BETA = ANN_AVG_FLASHRATE / 260.40253d0
 
@@ -1618,6 +1620,7 @@ CONTAINS
     ! April 2012 - Oct 2014. Will need to be updated as more
     ! met fields become available (ltm, 2015-01-13).
     IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
          ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
        BETA = ANN_AVG_FLASHRATE / 720.10258d0
     ENDIF
