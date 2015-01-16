@@ -444,7 +444,9 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DIAG_PL_MOD,        ONLY : AD65
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE DRYDEP_MOD,         ONLY : DEPSAV      
@@ -729,6 +731,7 @@
          ENDDO
 !$OMP END PARALLEL DO
 
+#if !defined( NO_BPCH )
          !==============================================================
          ! ND44: Sum drydep fluxes by level into the AD44 array in
          ! order to ensure that  we get the same results w/ sp or mp 
@@ -746,6 +749,7 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDIF
+#endif
       ENDDO
 
       ! Free pointer

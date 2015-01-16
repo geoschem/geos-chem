@@ -145,8 +145,10 @@
       INTEGER, ALLOCATABLE :: LTLXRO2H(:,:)
       INTEGER, ALLOCATABLE :: LTLXRO2N(:,:)
 
+#if !defined( NO_BPCH )
       ! For ND44 -- Dry deposition fluxes & velocities
       REAL*4,  ALLOCATABLE :: AD44(:,:,:,:)
+#endif
 
       ! For ND45 -- Tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD45(:,:,:,:)      
@@ -369,7 +371,9 @@
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
+#if !defined( NO_BPCH )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
+#endif
       IF ( ALLOCATED( AD45        ) ) DEALLOCATE( AD45        )
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
       IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )

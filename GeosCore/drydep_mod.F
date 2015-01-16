@@ -21,7 +21,9 @@
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field subroutines
+#if !defined( NO_BPCH )
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
+#endif
       USE ERROR_MOD                             ! Error handling routines
       USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE PBL_MIX_MOD                           ! Boundary layer quantities
@@ -547,10 +549,12 @@
             SAVE_DEPVEL(I,J,N) = DVZ
 #endif
 
+#if !defined( NO_BPCH )
             ! ND44 diagnostic: drydep velocity [cm/s]
             IF ( ND44 > 0 ) THEN 
                AD44(I,J,N,2) = AD44(I,J,N,2) + DVZ
             ENDIF
+#endif
          ENDDO
       ENDDO
       ENDDO
@@ -1012,14 +1016,15 @@
                     
                ! Convert TDRYFX from [molec] to [molec/cm2/s]        
                TDRYFX        = TDRYFX / ( AREA_CM2 * DTCHEM ) 
-                    
+              
+#if !defined( NO_BPCH )
 !$OMP CRITICAL
                ! Save into AD44 diagnostic array
                IF ( ND44 > 0 ) THEN 
                   AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
                ENDIF 
 !$OMP END CRITICAL
-
+#endif
                ! Archive dry deposited N species for use in soil_nox_mod
                IF ( Input_Opt%LSOILNOX ) THEN
                   CALL SOIL_DRYDEP( I, J, L, NN, TDRYFX )
@@ -1188,13 +1193,14 @@
                AMT_LOST = STT(I,J,L,NN) * FRACLOST
             ENDIF
 
+#if !defined( NO_BPCH )
             ! ND44 diagnostic: drydep flux [kg/s]
             IF ( ND44 > 0 ) THEN
 !$OMP CRITICAL
                AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
 !$OMP END CRITICAL
             ENDIF
-
+#endif
             ! Subtract AMT_LOST from the STT array [kg]
             STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
 

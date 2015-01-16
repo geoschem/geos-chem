@@ -842,7 +842,9 @@
       USE CMN_GCTM_MOD        
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1112,6 +1114,7 @@
      &                *  TC(I,J,L+1) )
          ENDDO
          
+#if !defined( NO_BPCH )
          !==============================================================
          ! ND44 diagnostic: sea salt loss [molec/cm2/s]
          !==============================================================
@@ -1137,6 +1140,7 @@
             ! Store in AD44 array
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
          ENDIF
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1491,7 +1495,9 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE CMN_GCTM_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1702,6 +1708,7 @@
       ENDDO
 !$OMP END PARALLEL DO
       
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -1719,6 +1726,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -1749,7 +1757,9 @@
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD05
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -2595,6 +2605,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -2612,6 +2623,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -4258,7 +4270,9 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -4675,6 +4689,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that we get the same results w/ sp or mp 
@@ -4707,6 +4722,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointers
       NULLIFY( STT )
@@ -4873,7 +4889,9 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -5056,7 +5074,8 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-      
+
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -5074,6 +5093,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -5100,7 +5120,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
@@ -5299,6 +5321,7 @@
 !$OMP END PARALLEL DO
          ENDIF
 
+#if !defined( NO_BPCH )
          !------------------------------------------------------------
          ! (2) Save archived NH3 drydep fluxes into the AD44 array
          !------------------------------------------------------------
@@ -5315,6 +5338,7 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDIF
+#endif
       ENDIF
 
       ! Free pointer
@@ -5342,7 +5366,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -5540,6 +5566,7 @@
 !$OMP END PARALLEL DO
          ENDIF
 
+#if !defined( NO_BPCH )
          !------------------------------------------------------------
          ! (2) Save archived NH4 drydep fluxes into the AD44 array
          !------------------------------------------------------------
@@ -5557,6 +5584,7 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDIF
+#endif
       ENDIF
 
       ! Free pointer
@@ -5584,7 +5612,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
@@ -5875,6 +5905,7 @@
 !$OMP END PARALLEL DO
          ENDIF
 
+#if !defined( NO_BPCH )
          !------------------------------------------------------------
          ! (2) Save archived NIT & NITs drydep fluxes into AD44 array
          !------------------------------------------------------------
@@ -5895,6 +5926,7 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDIF         
+#endif
       ENDIF
 
       ! Free pointer

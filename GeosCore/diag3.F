@@ -3191,6 +3191,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
          ENDDO
       ENDIF
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND44: Drydep flux (molec/cm2/s) and velocity (cm/s) diagnostics
@@ -3485,6 +3486,7 @@
 
          ENDDO
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND45: Tracer Mixing Ratio (v/v) for Levels L = 1, LD45
