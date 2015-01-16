@@ -133,6 +133,7 @@ MODULE HCOX_LightNOx_Mod
 !  22 Jul 2014 - R. Yantosca - Now hardwire the Lesley Ott et al CDF's in 
 !                              lightning_cdf_mod.F90.  This avoids having to
 !                              read an ASCII input in the ESMF environment.
+!  13 Jan 2015 - L. Murray   - Add most recent lightning updates to HEMCO version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1486,6 +1487,7 @@ CONTAINS
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  04 Nov 2014 - Y. X. Wang  - Define BETA, ANN_AVG_FLASHRATE for the
 !                              GEOS-FP 025x03125 NESTED_CH grid
+!  14 Jan 2015 - L. Murray   - Updated GEOS-FP files through Oct 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1572,11 +1574,11 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 11/07/13).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 82.003230d0
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2014-12-10).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 82.373293d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1586,12 +1588,11 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 01/15/14).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 257.93269d0
-    ENDIF
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2014-12-10).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 260.40253d0
 
 #elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
 
@@ -1601,7 +1602,7 @@ CONTAINS
 
     ! Constrained with simulated "climatology" for
     ! Jan 2013 - Dec 2013. Will need to be updated as more
-    ! met fields become available (ltm, 10/22/14).
+    ! met fields become available (ltm, 2014-10-22).
     IF ( ( cYr .eq. 2013 .and. cMt .ge. 1  )   .or. &
          ( cYr .eq. 2013 .and. cMt .le. 12 ) ) THEN
        BETA = ANN_AVG_FLASHRATE / 1052.6366d0
@@ -1614,11 +1615,11 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 11/14/13).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 652.44105d0
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2015-01-13).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 720.10258d0
     ENDIF
 
 #elif defined( MERRA ) && defined( GRID2x25 )
@@ -1651,9 +1652,9 @@ CONTAINS
 
     ! Discourage users from using lightning outside the constraint period.
     ! You may comment out these lines, but should verify that lightning
-    ! doesn't become unreasonably high anywere in the domain. (ltm, 11/07/13)
-    IF (   cYr .ge. 2014 .or. &
-         ( cYr .eq. 2013 .and. cMt .gt. 5 ) ) BETA = 1d0
+    ! doesn't become unreasonably high anywere in the domain. (ltm, 2015-01-15)
+    IF (   cYr .gt. 2014 .or. &
+         ( cYr .eq. 2014 .and. cMt .gt. 10 ) ) BETA = 1d0
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_CH)
 
