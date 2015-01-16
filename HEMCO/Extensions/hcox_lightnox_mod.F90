@@ -327,6 +327,7 @@ CONTAINS
 !                              derived type object
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  06 Oct 2014 - C. Keller   - Now calculate pressure centers from edges.
+!  16 Jan 2015 - R. Yantosca - Bug fix: TmpScale should be REAL(dp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -352,7 +353,8 @@ CONTAINS
     REAL(hp), POINTER :: Arr2D(:,:) => NULL() 
     CHARACTER(LEN=31) :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
-    REAL(hp)          :: TROPP, TmpScale
+    REAL(hp)          :: TROPP
+    REAL(dp)          :: TmpScale
 
     !=================================================================
     ! LIGHTNOX begins here!
