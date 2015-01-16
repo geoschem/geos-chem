@@ -440,7 +440,7 @@
       INTEGER           :: HCRC
       REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
       CHARACTER(LEN=30) :: DiagnName
-      REAL(f8), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,Input_Opt%NUMDEP)
+      REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,Input_Opt%NUMDEP)
 #endif
 
       !=================================================================
