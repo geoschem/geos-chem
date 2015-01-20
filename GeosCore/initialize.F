@@ -191,8 +191,8 @@
          IF ( ND43 > 0 ) AD43     = 0e0
 #if !defined( NO_BPCH )
          IF ( ND44 > 0 ) AD44     = 0e0
-#endif
          IF ( ND45 > 0 ) AD45     = 0e0
+#endif
          IF ( ND47 > 0 ) AD47     = 0e0
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0

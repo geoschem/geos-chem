@@ -3486,7 +3486,6 @@
 
          ENDDO
       ENDIF
-#endif
 !
 !******************************************************************************
 !  ND45: Tracer Mixing Ratio (v/v) for Levels L = 1, LD45
@@ -3556,8 +3555,7 @@
          NPOUTSTEPS = 0
       ENDIF
 #endif
-
-
+#endif
 !
 !******************************************************************************
 !  ND46: Biogenic source diagnostic

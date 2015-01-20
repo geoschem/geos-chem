@@ -25,6 +25,7 @@
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
       USE DIAG_MOD,           ONLY : AD71_COUNT, AD71_HRCT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -47,11 +48,13 @@
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! Diagnostic arrays & parameters
-      USE CMN_GCTM_MOD             ! Physical constants
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE CMN_GCTM_MOD
 
-      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
+      USE PRECISION_MOD
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE HCO_ERROR_MOD
 
       IMPLICIT NONE
 !
@@ -133,6 +136,7 @@
 !  29 Aug 2013 - R. Yantosca - In ND57, we need to make ND57 !$OMP PRIVATE
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  20 Jan 2015 - R. Yantosca - Added new netCDF diagnostics
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -143,24 +147,29 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
-      INTEGER :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
-      REAL(fp)  :: FDTT, XLOCTM, AREA_M2
+      LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
+      INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
+      REAL(fp)           :: FDTT, XLOCTM, AREA_M2
 #if   defined( APM ) 
-      REAL(fp)  :: STT_VV(IIPAR,JJPAR,LLPAR,
-     &                  Input_Opt%N_TRACERS+N_APMTRA)
-#else
-      REAL(fp)  :: STT_VV(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
+      REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
+     &                             Input_Opt%N_TRACERS+N_APMTRA)
+#else 
+      REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
+     &                             Input_Opt%N_TRACERS)
 #endif 
 
-      !FOR ND57
       ! For FP potential temperature (hotp 7/31/09)
-      REAL(fp)  :: P0
+      REAL(fp)          :: P0
 
       ! For fields from Input_Opt
-      LOGICAL :: ITS_A_FULLCHEM_SIM
-      INTEGER :: N_TRACERS
-      REAL(fp)  :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL            :: ITS_A_FULLCHEM_SIM
+      INTEGER            :: N_TRACERS
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+
+      ! For netCDF diagnostics via HEMCO
+      INTEGER            :: HCRC
+      REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+      CHARACTER(LEN=255) :: DiagnName
 
       !=================================================================
       ! DIAG1 begins here!
@@ -320,6 +329,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+#if !defined( NO_BPCH )
       !================================================================= 
       ! ND45: Tracer (V/V) at level 1 to level LD45, averaged over 
       !       the time period OTH_HR1 to OTH_HR2.  
@@ -348,6 +358,7 @@
          ENDDO   
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       !================================================================= 
       ! ND47: Tracer (V/V) at level 1 to level LD45, 
@@ -525,6 +536,53 @@
          AD71_LHR = GET_HOUR()
          AD71_HRCT = AD71_HRCT + 1
       ENDIF
+
+!##############################################################################
+!###                                                                        ###
+!###   NEW GEOS-Chem DIAGNOSTICS VIA HEMCO LINKED LIST --> netCDF output    ###
+!###                                                                        ###
+!##############################################################################
+
+#if defined( DEVEL )
+      !=================================================================
+      ! ND45: Tracer concentrations (new diagnostic structure)
+      !=================================================================
+      IF ( Input_Opt%ND45 > 0 ) THEN
+
+         ! Loop over all tracers
+         DO N = 1, Input_Opt%N_TRACERS
+
+            ! If this tracer number NN is scheduled for output in input.geos,
+            ! then archive the latest depvel data into the diagnostic structure
+            IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
+
+               ! Construct diagnostic name
+               DiagnName = 'TRACER_CONC_' // 
+     &                      TRIM( Input_Opt%TRACER_NAME(N) )
+
+               ! Point to the proper slice of the DEPSAV array
+               Ptr3D => STT_VV(:,:,:,N)
+
+               ! Update the deposition velocity diagostics
+               CALL Diagn_Update( am_I_Root,
+     &                            cName   = TRIM( DiagnName ),
+     &                            Array3D = Ptr3D,
+     &                            COL     = Input_Opt%DIAG_COLLECTION,
+     &                            RC      = HCRC )
+
+               ! Free the pointer
+               Ptr3D => NULL()
+
+               ! STOP wieth error if the diagnostics were unsuccessful
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP(
+     &                 'Cannot update TRACER_CONC diag diagnostics',
+     &                 'DIAG1 (diag1.F)')
+               ENDIF
+            ENDIF
+         ENDDO
+      ENDIF
+#endif
 
       END SUBROUTINE DIAG1
 !EOC

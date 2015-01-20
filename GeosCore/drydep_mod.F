@@ -48,7 +48,6 @@
       PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP
       PUBLIC :: INIT_WEIGHTSS
-      PUBLIC :: DIAGINIT_DRYDEP
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -440,9 +439,9 @@
 #if defined( DEVEL )
       ! Variables for netCDF diagnostics routines
       INTEGER           :: HCRC
-      REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
       CHARACTER(LEN=30) :: DiagnName
       REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,Input_Opt%NUMDEP)
+      REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
 #endif
 
       !=================================================================
@@ -564,40 +563,42 @@
       !=================================================================
       ! Update drydep velocity into new diagnostics structure
       !=================================================================
+      IF ( Input_Opt%ND44 > 0 ) THEN
 
-      ! Loop over all depositing species
-      DO N = 1, Input_Opt%NUMDEP
+         ! Loop over all depositing species
+         DO N = 1, Input_Opt%NUMDEP
 
-         ! Get the corresponding GEOS-Chem tracer number
-         NN = Input_Opt%NTRAIND(N)
+            ! Get the corresponding GEOS-Chem tracer number
+            NN = Input_Opt%NTRAIND(N)
 
-         ! If this tracer number NN is scheduled for output in input.geos, 
-         ! then archive the latest depvel data into the diagnostic structure
-         IF ( ANY( Input_Opt%NTRAIND == NN ) ) THEN
+            ! If this tracer number NN is scheduled for output in input.geos, 
+            ! then archive the latest depvel data into the diagnostic structure
+            IF ( ANY( Input_Opt%TINDEX(44,:) == NN ) ) THEN
 
-            ! Construct diagnostic name
-            DiagnName = 'DEPVEL_' // TRIM( Input_Opt%DEPNAME(N) )
+               ! Construct diagnostic name
+               DiagnName = 'DEPVEL_' // TRIM( Input_Opt%DEPNAME(N) )
             
-            ! Point to the proper slice of the DEPSAV array
-            Ptr2D => SAVE_DEPVEL(:,:,N)
+               ! Point to the proper slice of the DEPSAV array
+               Ptr2D => SAVE_DEPVEL(:,:,N)
 
-            ! Update the deposition velocity diagostics 
-            CALL Diagn_Update( am_I_Root,
-     &                         cName   = TRIM( DiagnName ),
-     &                         Array2D = Ptr2D,
-     &                         COL     = Input_Opt%DIAG_COLLECTION,
-     &                         RC      = HCRC )
+               ! Update the deposition velocity diagostics 
+               CALL Diagn_Update( am_I_Root,
+     &                            cName   = TRIM( DiagnName ),
+     &                            Array2D = Ptr2D,
+     &                            COL     = Input_Opt%DIAG_COLLECTION,
+     &                            RC      = HCRC )
 
-            ! Free the pointer
-            Ptr2D => NULL()
+               ! Free the pointer
+               Ptr2D => NULL()
 
-            ! Stop wieth error if the diagnostics were unsuccessful
-            IF ( HCRC /= HCO_SUCCESS ) THEN
-               CALL ERROR_STOP( 'Cannot update Depvel diagnostics',
-     &                          'DO_DRYDEP (drydep_mod.F)')
+               ! Stop with error if the diagnostics were unsuccessful
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP( 'Cannot update Depvel diagnostics',
+     &                             'DO_DRYDEP (drydep_mod.F)')
+               ENDIF
             ENDIF
-         ENDIF
-      ENDDO
+         ENDDO
+      ENDIF
 #endif
 
       !### Debug
@@ -4151,136 +4152,7 @@
       RS   = 1.e+0_f8 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
 
       END FUNCTION DUST_SFCRSII
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: diaginit_drydep
-!
-! !DESCRIPTION: Subroutine DIAGINIT\_DRYDEP initializes the dry deposition 
-! diagnostics arrays. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
-      USE HCO_ERROR_MOD
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  13 Jan 2015 - C. Keller   - Initial version 
-!  15 Jan 2015 - R. Yantosca - Init drydep velocity & flux diagnostics
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: cId,      Collection, D, N
-      CHARACTER(LEN=15)  :: OutOper,  WriteFreq
-      CHARACTER(LEN=60)  :: DiagnName
-      CHARACTER(LEN=255) :: MSG
-      CHARACTER(LEN=255) :: LOC = 'DIAGINIT_DRYDEP (drydep_mod.F)' 
 
-      !=================================================================
-      ! DIAGINIT_DRYDEP begins here!
-      !=================================================================
-      
-      ! Get diagnostic parameters from the Input_Opt object
-      Collection = Input_Opt%DIAG_COLLECTION
-      OutOper    = Input_Opt%ND44_OUTPUT_TYPE
-      WriteFreq  = Input_Opt%ND44_OUTPUT_FREQ
-      
-      ! Loop over # of depositing species
-      DO D = 1, Input_Opt%NUMDEP
-         
-         ! Corresponding GEOS-Chem tracer number
-         N = Input_Opt%NTRAIND(D)
-
-         ! If this tracer number N is scheduled for output in input.geos, 
-         ! then define the diagnostic containers for drydep velocity & flux
-         IF ( ANY( Input_Opt%NTRAIND == N ) ) THEN
-
-            !-----------------------------------------------------------
-            ! Create containers for drydep velocity [m/s]
-            !-----------------------------------------------------------
-
-            ! Diagnostic name
-            DiagnName = 'DEPVEL_' // TRIM( Input_Opt%DEPNAME(D) )
-
-            ! Create container
-            CALL Diagn_Create( am_I_Root, 
-     &                         Col       = Collection,
-     &                         cName     = TRIM( DiagnName ),
-     &                         AutoFill  = 0,
-     &                         ExtNr     = -1,
-     &                         Cat       = -1,
-     &                         Hier      = -1,
-     &                         HcoID     = -1,
-     &                         SpaceDim  =  2,
-     &                         LevIDx    = -1,
-     &                         OutUnit   = 's-1',
-     &                         OutOper   = TRIM( OutOper   ),
-     &                         WriteFreq = TRIM( WriteFreq ),
-     &                         cID       = cId,
-     &                         RC        = RC )
-            IF ( RC /= HCO_SUCCESS ) THEN
-               MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-               CALL ERROR_STOP( MSG, LOC ) 
-            ENDIF
-
-            !-----------------------------------------------------------
-            ! Create containers for drydep flux [molec/cm2/s]
-            !-----------------------------------------------------------
-
-            ! Diagnostic name
-            DiagnName = 'DEPFLUX_' // TRIM( DEPNAME(D) )
-
-            ! Create container
-            CALL Diagn_Create( am_I_Root, 
-     &                         Col       = Collection,
-     &                         cName     = TRIM( DiagnName ), 
-     &                         AutoFill  = 0,
-     &                         ExtNr     = -1, 
-     &                         Cat       = -1, 
-     &                         Hier      = -1, 
-     &                         HcoID     = -1, 
-     &                         SpaceDim  =  2, 
-     &                         LevIDx    = -1, 
-     &                         OutUnit   = 'cm-2 s-1',
-     &                         OutOper   = TRIM( OutOper   ),
-     &                         WriteFreq = TRIM( WriteFreq ),
-     &                         cID       = cId,
-     &                         RC        = RC )
-            IF ( RC /= HCO_SUCCESS ) THEN
-               MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-               CALL ERROR_STOP ( MSG, LOC ) 
-            ENDIF
-         ENDIF
-
-      ENDDO
-
-      ! Return w/ success
-      RC = GIGC_SUCCESS
-
-      END SUBROUTINE DIAGINIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

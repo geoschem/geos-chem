@@ -148,12 +148,12 @@
 #if !defined( NO_BPCH )
       ! For ND44 -- Dry deposition fluxes & velocities
       REAL*4,  ALLOCATABLE :: AD44(:,:,:,:)
-#endif
 
       ! For ND45 -- Tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD45(:,:,:,:)      
       INTEGER, ALLOCATABLE :: LTOTH(:,:)
       INTEGER, ALLOCATABLE :: CTOTH(:,:)
+#endif
 
       ! For ND47 -- 24-h tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD47(:,:,:,:)      
@@ -298,6 +298,8 @@
 !  15 Aug 2014 - R. Yantosca - Remove diagnostics now tracked by HEMCO
 !  21 Aug 2014 - R. Yantosca - AD01 is now only a 3-D array (for Pb emissions)
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  20 Jan 2015 - R. Yantosca - Added DIAGINIT_TRACER_CONC routine
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -373,8 +375,8 @@
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
 #if !defined( NO_BPCH )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
-#endif
       IF ( ALLOCATED( AD45        ) ) DEALLOCATE( AD45        )
+#endif
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
       IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )
       IF ( ALLOCATED( AD54        ) ) DEALLOCATE( AD54        )
