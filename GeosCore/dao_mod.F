@@ -264,7 +264,7 @@
 !
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE GRID_MOD,             ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,         ONLY : GET_BP, GET_PEDGE
+      USE PRESSURE_MOD,         ONLY : GET_BP, GET_PEDGE, GET_PCENTER
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -337,14 +337,24 @@
 !
 
       INTEGER :: I,  J,  L
-      REAL(fp)  :: P1, P2, AREA_M2, Psat, Pv, Pd, T_C
+      REAL(fp)  :: P1, P2, AREA_M2, Psat, Pv, Pd, Tc, Pcenter
+
+      ! Conversion factors
+      REAL(fp), PARAMETER   :: TOFFSET = -2.7415e+2_fp   ! K -> deg C
+      REAL(fp), PARAMETER   :: PSATC1  = 6.1078e+0_fp    ! empirical
+      REAL(fp), PARAMETER   :: PSATC2  = 7.5e+0_fp       ! empirical
+      REAL(fp), PARAMETER   :: PSATC3  = 2.373e+2_fp     ! empirical
+      REAL(fp), PARAMETER   :: PCONV   = 1.00e+2_fp      ! hPa -> Pa 
+      REAL(fp), PARAMETER   :: RHCONV  = 1.00e-2_fp      ! % -> fraction
+      REAL(fp), PARAMETER   :: MCONV   = 1.00e-3_fp      ! g -> kg
+
 
       !=================================================================
       ! AIRQNT begins here! 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
+!$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2, Tc, Psat, Pv, Pcenter, Pd )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -365,22 +375,40 @@
          ! Pressure difference between top & bottom edges [hPa]
          State_Met%DELP(I,J,L)     = P1 - P2
 
+         !===========================================================
+         ! MAIRDEN = density of moist air [kg/m^3],
+         ! given by:
+         !
+         !             Partial      Molec     Partial       Molec
+         !             pressure   * wt of   + pressure of * wt of 
+         !             of dry air   air       water vapor   water     
+         ! Moist        [Pa]        [g/mol]     [Pa]        [g/mol]  
+         ! Air     =  ----------------------------------------------           
+         ! Density      Universal gas constant  * Temp * 1000 
+         !                     [J/K/mol]          [K]   [g/kg]
+         !
+         !===========================================================
+         
          ! Temperature in Celsius
-         T_C = State_Met%T(I,J,L) - 2.7415e+2_fp
+         Tc = State_Met%T( I,J,L ) + TOFFSET
 
-         ! Empirical formulation for saturation pressure of water [Pa].
-         ! Parameters 7.5, 237.3, and 6.1078 are empirically-derived.
-         ! Pressure is converted from hPa to Pa by multiplying by 100.
-         Psat = 10**( 7.5e+0_fp * T_C / ( T_C + 2.373e+2_fp ) ) 
-     &        * 6.1078e+0_fp * 1.0e+2_fp         
+         ! Empirical formulation for saturation pressure of water [Pa]
+         Psat = PSATC1 * 10**( PSATC2 * Tc / ( Tc + PSATC3 ) ) * PCONV         
 
          ! Partial pressure of water vapor [Pa]
-         Pv = State_Met%RH(I,J,L) * Psat
+         Pv = State_Met%RH( I,J,L ) * RHCONV * Psat
+
+         ! Pressure at center of grid box [hPa]
+         Pcenter = GET_PCENTER( I,J,L )
 
          ! Partial pressure of dry air [Pa]
-         Pd = State_Met%PMID(I,J,L) - Pv 
+         Pd = Pcenter * PCONV - Pv 
 
-         !===========================================================
+         ! Density of moist air [kg/m^3]
+         State_Met%MAIRDEN(I,J,L) = ( Pd * AIRMW + Pv * H2OMW ) * MCONV
+     &                            / RSTARG / State_Met%T(I,J,L)
+
+          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
          ! in meters. 
          !
@@ -433,24 +461,6 @@
          !===========================================================
          State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L) 
      &                           / State_Met%AIRVOL(I,J,L)
-
-
-         !===========================================================
-         ! AIRDEN = moist density of air in kg / m^3,
-         ! given by:
-         !
-         !             Partial      Molec     Partial       Molec
-         !             pressure   * wt of   + pressure of * wt of 
-         !             of dry air   air       water vapor   water     
-         ! Moist        [Pa]        [g/mol]     [Pa]        [g/mol]  
-         ! Air     =  ----------------------------------------------           
-         ! Density      Universal gas constant  * Temp * 1000 
-         !                     [J/K/mol]          [K]   [g/kg]
-         !
-         !===========================================================
-         State_Met%MAIRDEN(I,J,L) = ( Pd * AIRMW + Pv * H2OMW ) 
-     &                            * 1.0e-3_fp / RSTARG 
-     &                            / State_Met%T(I,J,L)
 
 
       ENDDO
