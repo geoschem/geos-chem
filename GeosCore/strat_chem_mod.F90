@@ -78,8 +78,8 @@ MODULE STRAT_CHEM_MOD
   ! 1:6 = (Br2, Br, BrO, HOBr, HBr, BrNO3) for both
   INTEGER,           PARAMETER :: br_nos(6)   = (/ 44, 45, 46, 47, 48, 50 /)
 
-  ! BrPointers is a simple derived type to hold pointers to the Bry 
-  ! day and night data.
+  ! BrPointers is a derived type to hold pointers to the Bry day 
+  ! and night data 
   TYPE :: BrPointers
      REAL(hp), POINTER  :: MR(:,:,:) => NULL()
   END TYPE BrPointers
@@ -93,6 +93,24 @@ MODULE STRAT_CHEM_MOD
   ! data is in ppt.
   TYPE(BrPointers)      :: BrPtrDay(6) 
   TYPE(BrPointers)      :: BrPtrNight(6) 
+
+  ! PL_Pointers is a derived type to hold pointers to the production
+  ! and loss fields 
+  TYPE :: PL_Pointers 
+     REAL(hp), POINTER  :: PROD(:,:,:) => NULL() ! Production rate [v/v/s]
+     REAL(hp), POINTER  :: LOSS(:,:,:) => NULL() ! Loss frequency [s-1]
+  END TYPE PL_Pointers 
+
+  ! Vector holding the prod/loss arrays of all active strat chem 
+  ! species
+  TYPE(PL_Pointers), POINTER :: PLVEC(:) => NULL()
+
+  ! Toggle to specify whether or not production/loss rates must be provided
+  ! for every strat chem tracer. If set to TRUE, the code will return with
+  ! an error if the production/loss rate cannot be found (through HEMCO) for
+  ! any of the species. If set to .FALSE., only a warning is prompted and a
+  ! value of 0.0 is used for every field that cannotbe found. 
+  LOGICAL, PARAMETER   :: PLMUSTFIND = .FALSE.
 
   ! Number of species from GMI model
   INTEGER, PARAMETER   :: NTR_GMI   = 120  
@@ -261,8 +279,8 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: errCode     ! Success or failure
-!f
+    INTEGER,        INTENT(INOUT) :: errCode     ! Success or failure
+! 
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
@@ -378,10 +396,15 @@ CONTAINS
        LASTMONTH = GET_MONTH()
     ENDIF
 
-    ! On first call, establish pointers to Strat Bry data.
+    ! On first call, establish pointers to data fields read by HEMCO. These are
+    ! the stratospheric Bry fields as well as the production/loss rates.
     ! (ckeller, 12/30/2014)
     IF ( FIRST ) THEN
        CALL Set_BryPointers ( am_I_Root, Input_Opt, State_Chm, State_Met, errCode )
+       IF ( errCode /= GIGC_SUCCESS ) RETURN
+
+       CALL Set_PLVEC ( am_I_Root, Input_Opt, State_Chm, State_Met, errCode )
+       IF ( errCode /= GIGC_SUCCESS ) RETURN
     ENDIF
 
     ! SDE 2014-01-14: Allow the user to overwrite stratospheric
@@ -431,8 +454,23 @@ CONTAINS
                    IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTO3 ) CYCLE
 
                    dt = DTCHEM                              ! timestep [s]
+
+                   ! original code:
                    k = LOSS(I,J,L,N)                        ! loss freq [s-1]
                    P = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
+
+!                   ! new code:
+!                   IF ( .NOT. ASSOCIATED(PLVEC(N)%LOSS) ) THEN
+!                      k = 0.0_fp
+!                   ELSE
+!                      k = PLVEC(N)%LOSS(I,J,L)
+!                   ENDIF
+!                   IF ( .NOT. ASSOCIATED(PLVEC(N)%PROD) ) THEN
+!                      P = 0.0_fp 
+!                   ELSE
+!                      P = PLVEC(N)%PROD(I,J,L) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
+!                   ENDIF
+
                    M0 = STT(I,J,L,NN)                       ! initial mass [kg]
 
                    ! No prod or loss at all
@@ -1329,8 +1367,9 @@ CONTAINS
 !
 ! !IROUTINE: Set_BryPointers 
 !
-! !DESCRIPTION: Function SET\_BryPointers gets the Bry stratospheric data read
-! by HEMCO. 
+! !DESCRIPTION: Subroutine SET\_BryPointers gets the Bry stratospheric data 
+! read by HEMCO. The pointers only need to be established once. Target data
+! is automatically updated through HEMCO. 
 !\\
 !\\
 ! !INTERFACE:
@@ -1380,8 +1419,7 @@ CONTAINS
     ! Construct error message
     MSG = 'Cannot get pointer from HEMCO! Stratospheric Bry data ' // &
           'is expected to be listed in the HEMCO configuration '   // &
-          'file and the GMI_StratChem extension must be enabled. ' // &
-          'This error occured when trying to get field'
+          'file. This error occured when trying to get field'
 
     ! Do for every Bry species
     DO N = 1,6
@@ -1419,6 +1457,126 @@ CONTAINS
     RC = GIGC_SUCCESS
 
   END SUBROUTINE Set_BryPointers 
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_PLVEC
+!
+! !DESCRIPTION: Subroutine SET\_PLVEC gets the production and loss terms of
+! all strat chem tracers from HEMCO. The pointers only need to be established 
+! once. Target data is automatically updated through HEMCO. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_PLVEC ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+
+    IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorological State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY: 
+!  16 Jan 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    CHARACTER(LEN=16)   :: ThisName
+    CHARACTER(LEN=255)  :: FIELDNAME
+    CHARACTER(LEN=1023) :: MSG, ERR
+    INTEGER             :: N, TRCID
+    LOGICAL             :: FND
+
+    !=================================================================
+    ! Set_PLVEC begins here 
+    !=================================================================
+
+    ! Assume error until success
+    RC = GIGC_FAILURE
+
+    ! Construct error message
+    ERR = 'Cannot get pointer from HEMCO! GMI prod/loss data is '  // &
+          'expected to be listed in the HEMCO configuration file. '// &
+          'This error occured when trying to get field'
+
+    ! Do for every species 
+    DO N = 1,NSCHEM
+
+       ! Get GEOS-Chem tracer index
+       TRCID = Strat_TrID_GC(N)
+
+       ! Skip if tracer is not defined    
+       IF ( TRCID <= 0 ) CYCLE
+
+       ! Get species name
+       ThisName = Input_Opt%TRACER_NAME( TRCID )
+
+       ! ---------------------------------------------------------------
+       ! Get pointers to fields
+       ! ---------------------------------------------------------------
+
+       ! Production rates [v/v/s]
+       FIELDNAME = 'GMI_PROD_'//TRIM(ThisName)
+       CALL HCO_GetPtr( am_I_Root, FIELDNAME, PLVEC(N)%PROD, RC, FOUND=FND )
+       IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
+          CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
+                            'Set_PLVEC (start_chem_mod.F90)' )
+          RETURN
+       ENDIF
+       IF ( .NOT. FND .AND. AM_I_ROOT ) THEN
+          MSG = 'Cannot find archived GMI production rates for ' // &
+                TRIM(ThisName) // ' - will use value of 0.0. '   // &
+                'To use archived rates, add the following field '// &
+                'to the HEMCO configuration file: '//TRIM(FIELDNAME)
+          WRITE(6,*) TRIM(MSG)
+       ENDIF
+
+       ! Loss frequency [s-1]
+       FIELDNAME = 'GMI_LOSS_'//TRIM(ThisName)
+       CALL HCO_GetPtr( am_I_Root, FIELDNAME, PLVEC(N)%LOSS, RC, FOUND=FND )
+       IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
+          CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
+                            'Set_PLVEC (start_chem_mod.F90)' )
+          RETURN
+       ENDIF
+       IF ( .NOT. FND .AND. AM_I_ROOT ) THEN
+          MSG = 'Cannot find archived GMI loss frequencies for ' // &
+                TRIM(ThisName) // ' - will use value of 0.0. '   // &
+                'To use archived rates, add the following field '// &
+                'to the HEMCO configuration file: '//TRIM(FIELDNAME)
+          WRITE(6,*) TRIM(MSG)
+       ENDIF
+
+    ENDDO !N
+
+    ! Return w/ success
+    RC = GIGC_SUCCESS
+
+  END SUBROUTINE Set_PLVEC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1893,6 +2051,12 @@ CONTAINS
     LOSS = 0e0
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    ! Allocate and initialize prod/loss vector
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    ALLOCATE( PLVEC( NSCHEM ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLVEC' )
+
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     ! Allocate and initialize arrays for STE calculation !
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 
@@ -1963,10 +2127,18 @@ CONTAINS
     IF ( ALLOCATED( MInit      ) ) DEALLOCATE( MInit      )
     IF ( ALLOCATED( TPAUSEL    ) ) DEALLOCATE( TPAUSEL    )
     IF ( ALLOCATED( SCHEM_TEND ) ) DEALLOCATE( SCHEM_TEND )
+
+    ! Cleanup pointer vectors
     DO I = 1,6
        BrPtrDay(I)%MR   => NULL()
        BrPtrNight(I)%MR => NULL()
     ENDDO
+
+    DO I = 1,NSCHEM
+       PLVEC(I)%PROD => NULL()
+       PLVEC(I)%LOSS => NULL()
+    ENDDO
+    IF ( ASSOCIATED(PLVEC) ) DEALLOCATE(PLVEC)
 
   END SUBROUTINE CLEANUP_STRAT_CHEM
 !EOC

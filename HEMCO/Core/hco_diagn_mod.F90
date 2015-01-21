@@ -875,8 +875,8 @@ CONTAINS
        ! never been passed to the output yet (via routine Diagn\_Get) and 
        ! will thus be lost!
        !----------------------------------------------------------------------
-       IF ( ThisDiagn%ResetFlag >= MinResetFlag .AND. &
-            .NOT. ThisDiagn%IsOutFormat ) THEN
+       IF ( (ThisDiagn%ResetFlag >= MinResetFlag) .AND. &
+            .NOT. ThisDiagn%IsOutFormat .AND. (ThisDiagn%Counter > 0) ) THEN
           MSG = 'Diagnostics is at end of its output interval '      // &
                 'but was not passed to output - data will be lost: ' // &
                 TRIM(ThisDiagn%cName)

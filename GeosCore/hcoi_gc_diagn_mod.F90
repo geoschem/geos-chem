@@ -4134,7 +4134,11 @@ CONTAINS
     ExtNr = GetExtNr( 'GFED3' )
     IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN
-       CALL HCO_Warning ( 'Biomass burning emissions not turned on!!', RC, THISLOC=LOC )
+       IF ( am_I_Root ) THEN
+          MSG = 'Biomass burning not turned on - no CH4 emissions from biomass burning!'
+          WRITE(*,*) TRIM(MSG)
+          CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+       ENDIF
     ENDIF
     IF ( ExtNr > 0 ) THEN
        IF ( IDCH4 < 0 ) THEN
@@ -4171,7 +4175,11 @@ CONTAINS
     ! HEMCO extension # for wetland ch4 
     ExtNr = GetExtNr( 'CH4_WETLANDS' )
     IF ( ExtNr <= 0 ) THEN
-       CALL HCO_Warning ( 'Wetland emissions not turned on!!', RC, THISLOC=LOC )
+       IF ( am_I_Root ) THEN
+          MSG = 'Wetland emissions not turned on - no CH4 emissions from rice!'
+          WRITE(*,*) TRIM(MSG)
+          CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+       ENDIF
     ENDIF
     IF ( ExtNr > 0 ) THEN
        IF ( IDCH4 < 0 ) THEN

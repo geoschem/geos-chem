@@ -259,7 +259,11 @@
       ! Logicals
       LOGICAL                           :: doPrint
       LOGICAL                           :: TRAC_ADD
+#if defined(ESMF_)
+      LOGICAL,PARAMETER                 :: STRAT2DCH4=.FALSE.
+#else
       LOGICAL,PARAMETER                 :: STRAT2DCH4=.TRUE.
+#endif
 
       !=================================================================
       ! Derived type object for the surface boundary conditions.
@@ -460,12 +464,14 @@
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
 
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, 100   )
-      WRITE( 6, 110   )
-      WRITE( 6, 120   )
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, 100   )
+         WRITE( 6, 110   )
+         WRITE( 6, 120   )
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      ENDIF
+   
       ! FORMAT strings
  100  FORMAT( 'T R A C E R   I N I T I A L I Z A T I O N'   )
  110  FORMAT( 'Routine written by SEBASTIAN D. EASTHAM' )
@@ -3524,7 +3530,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_YEDGE
+      !USE GRID_MOD,           ONLY : GET_YEDGE
+      USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTH2O
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTNIT, IDTBrNO3, IDTHBr
@@ -3611,7 +3618,7 @@
       REAL(fp)                :: HOBr_BOX_G, HOBr_BOX_L
       REAL(fp)                :: HNO3GASFRAC, HClGASFRAC, HOClGASFRAC
       REAL(fp)                :: HBrGASFRAC, HOBrGASFRAC
-      REAL(fp)                :: VOL_NAT, VOL_ICE, VOL_SLA
+      REAL(fp)                :: VOL_NAT, VOL_ICE, VOL_SLA, VOL_TOT
       REAL(fp)                :: RAD_AER_BOX,RHO_AER_BOX
       REAL(fp)                :: KG_AER_BOX,NDENS_AER_BOX,SAD_AER_BOX
       REAL(fp)                :: KG_NAT, KG_ICE, KG_NO3
@@ -3625,8 +3632,8 @@
       REAL(fp)                :: KHET_SPECIFIC
 
       ! Grid box location
-      REAL(fp)                :: BOX_LAT_S, BOX_LAT_N
-      LOGICAL               :: IS_VALID, IS_POLAR, IS_STRAT
+      REAL(fp)                :: BOX_LAT_S, BOX_LAT_N, BOX_LAT
+      LOGICAL                 :: IS_VALID, IS_POLAR, IS_STRAT
 
       ! Local properties
       REAL(fp), DIMENSION(11) :: GAMMA_BOX
@@ -3724,15 +3731,23 @@
 !$OMP+PRIVATE( D_FRACN,      D_MAXN,             D_XH2O        )
 !$OMP+PRIVATE( D_XHNO3,      D_XNAT,             D_PPA         )
 !$OMP+PRIVATE( D_PP,         D_PS,               D_TK          )
+!$OMP+PRIVATE( VOL_TOT,      BOX_LAT                           )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
-         BOX_LAT_S = GET_YEDGE(1,J,1)
-         BOX_LAT_N = GET_YEDGE(1,J+1,1)
-         IS_POLAR = ((BOX_LAT_S.lt.PSC_MINLAT).or.
-     &               (BOX_LAT_N.gt.PSC_MAXLAT))
+!         BOX_LAT_S = GET_YEDGE(1,J,1)
+!         BOX_LAT_N = GET_YEDGE(1,J+1,1)
+!         IS_POLAR = ((BOX_LAT_S.lt.PSC_MINLAT).or.
+!     &               (BOX_LAT_N.gt.PSC_MAXLAT))
          ! Loop over longitudinal boxes
          DO I = 1, IIPAR
+
+               ! Now do IS_POLAR check for every grid box separately
+               ! and using mid-point instead of edges. This is to be
+               ! applicable to cube-sphere systems (ckeller, 1/16/15).
+               BOX_LAT  = GET_YMID(I,J,1)
+               IS_POLAR = ( (BOX_LAT <= PSC_MINLAT) .OR.
+     &                      (BOX_LAT >= PSC_MAXLAT)     )
 
                ! Get local conditions
                PCENTER    = GET_PCENTER(I,J,L) 
@@ -3950,18 +3965,24 @@
                      RHO_AER_BOX  = DENSICE
                      NDENS_AER_BOX= 0e+0_fp
                   ELSE
+                     VOL_TOT = VOL_NAT + VOL_ICE
                      KG_AER_BOX = KG_NAT + KG_ICE
                      RAD_AER_BOX = MIN_RAD
-                     NDENS_AER_BOX = (3.0e+0_fp*(VOL_NAT+VOL_ICE)/
+                     NDENS_AER_BOX = (3.0e+0_fp*(VOL_TOT)/
      &                  (4.0e+0_fp*PI*(RAD_AER_BOX**3.0e+0_fp)))
                      IF (NDENS_AER_BOX.gt.MAX_NDENS) THEN
                         NDENS_AER_BOX = MAX_NDENS
-                        RAD_AER_BOX = (3.0e+0_fp*(VOL_NAT+VOL_ICE)/
+                        RAD_AER_BOX = (3.0e+0_fp*(VOL_TOT)/
      &                   (4.0e+0_fp*PI*MAX_NDENS))**(1.e+0_fp/3.e+0_fp)
                      ENDIF
-                     RHO_AER_BOX = 
-     &                  ((VOL_ICE*DENSICE)+(VOL_NAT*DENSNAT))/
-     &                                    (VOL_ICE+VOL_NAT)
+
+                     ! Prevent div-zero (ckeller, 1/16/15)
+                     IF ( VOL_TOT > 0.0_fp ) THEN
+                        RHO_AER_BOX = 
+     &                     ((VOL_ICE*DENSICE)+(VOL_NAT*DENSNAT))/VOL_TOT
+                     ELSE
+                        RHO_AER_BOX = DENSICE ! Is that correct?
+                     ENDIF
                   ENDIF
 
                   ! Calculate SAD (cm2/cm3)
@@ -6818,12 +6839,14 @@
 !      LBASICEMIS   = Input_Opt%LBASICEMIS
 
       ! Set module variable doPrint for use in internal functions
-      doPrint      = LPRT
+      doPrint      = LPRT .AND. am_I_Root
 
-      WRITE( 6,'(a)') REPEAT( '=', 79 )
-      WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
-      WRITE( 6,'(a)') 'Routines written by SEBASTIAN D. EASTHAM'
-      WRITE( 6,'(a)') REPEAT( '=', 79 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6,'(a)') REPEAT( '=', 79 )
+         WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
+         WRITE( 6,'(a)') 'Routines written by SEBASTIAN D. EASTHAM'
+         WRITE( 6,'(a)') REPEAT( '=', 79 )
+      ENDIF
 
       ! Don't use BASICEMIS switch in check below (ckeller, 05/12/14)
       USE2DDATA = ( LSETOCS     .or. LSETCFC      .or. LSETCL     .or.
@@ -6840,6 +6863,7 @@
 #if !defined(GRID4x5) && !defined(GRID2x25)
        DBGMSG = 'Zonal means preprocessed only for 2x2.5 and 4x5 grid.'
        CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
+       RETURN
 #endif
       ENDIF
 
@@ -6847,9 +6871,10 @@
       ! Regridding of netCDF input data is currently not supported.
       IF (UCXNETCDF) THEN
 #if !defined(GRID4x5) && !defined(GRID2x25)
-         DBGMSG = 'NOx coeffs only preprocessed for 2x25 and 4x5 '//
-     &            '- try setting the module variable UCXNETCDF=.FALSE.'
+         DBGMSG = 'NetCDF NOx coeffs only preprocessed for 2x25 and '//
+     &     ' 4x5 - try setting the module variable UCXNETCDF=.FALSE.'
          CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
+       RETURN
 #endif
          WRITE( AVG_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%DATA_DIR_1x1),

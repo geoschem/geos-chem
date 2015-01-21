@@ -595,7 +595,8 @@
                CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
                fraction_nox = 1.0
                int_ope      = 0.0
-               EXIT
+               RC = HCO_SUCCESS
+               RETURN
             ENDIF
  100     FORMAT( 'LUT: FNOX not btw 0-1: ', I4, I4 )
  101     FORMAT( 'O3=',E11.3,'; NO=',E11.3,'; NO2=',E11.3 )
