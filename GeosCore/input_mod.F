@@ -4281,6 +4281,10 @@
       READ( SUBSTRS(1), * ) ND01
       IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) ND01 = 0 
       CALL SET_TINDEX( am_I_Root, 01, ND01, SUBSTRS(2:N), N-1, N_MAX )
+
+      ! For netCDF diagnostics (Pb only)
+      Input_Opt%ND01_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND01_OUTPUT_TYPE = 'Mean'
       
       !--------------------------
       ! ND02: Rn-Pb-Be decay
@@ -4290,6 +4294,10 @@
       IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) ND02 = 0 
       CALL SET_TINDEX( am_I_Root, 02, ND02, SUBSTRS(2:N), N-1, N_MAX )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND02_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND02_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND03: Hg diagnostics
       !--------------------------
@@ -4297,6 +4305,10 @@
       READ( SUBSTRS(1), * ) ND03
       IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) ND03 = 0
       CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND03_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND03_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND04: CO2 emissions
@@ -4306,6 +4318,8 @@
       IF ( .not. Input_Opt%ITS_A_CO2_SIM ) ND04 = 0
       CALL SET_TINDEX( am_I_Root, 04, ND04, SUBSTRS(2:N), N-1, PD04 )
 
+      ! To be included in HEMCO diagnostics for netCDF
+
       !--------------------------
       ! ND05: Sulfate prod/loss
       !--------------------------
@@ -4314,6 +4328,10 @@
       IF ( .not. Input_Opt%LSULF ) ND05 = 0
       CALL SET_TINDEX( am_I_Root, 05, ND05, SUBSTRS(2:N), N-1, PD05 )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND05_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND05_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND06: Dust emissions
       !--------------------------
@@ -4321,6 +4339,8 @@
       READ( SUBSTRS(1), * ) ND06
       IF ( .not. Input_Opt%LDUST ) ND06 = 0
       CALL SET_TINDEX( am_I_Root, 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN )
+ 
+      ! Included in HEMCO diagnostics for netCDF
 
       !--------------------------
       ! ND07: Carbon/SOA source
@@ -4330,6 +4350,10 @@
       IF ( .not. Input_Opt%LCARB ) ND07 = 0
       CALL SET_TINDEX( am_I_Root, 07, ND07, SUBSTRS(2:N), N-1, PD07 )
 
+      ! For netCDF diagnostics (PL-BC=$, PL-OC=$, and SOA production)
+      Input_Opt%ND07_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND07_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND08: Sea salt source
       !--------------------------
@@ -4338,8 +4362,10 @@
       IF ( .not. Input_Opt%LSSALT ) ND08 = 0
       CALL SET_TINDEX( am_I_Root, 08, ND08, SUBSTRS(2:N), N-1, PD08 )
 
+      ! Included in HEMCO diagnostics for netCDF
+
       !--------------------------
-      ! ND09: HCN/CH3CN
+      ! ND09: HCN/CH3CN (obsolete)
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:11' )
       READ( SUBSTRS(1), * ) ND09
@@ -4360,12 +4386,18 @@
       READ( SUBSTRS(1), * ) ND11
       CALL SET_TINDEX( am_I_Root, 11, ND11, SUBSTRS(2:N), N-1, PD11 )
 
+      ! Included in HEMCO diagnostics for netCDF
+
       !--------------------------
       ! ND12: PBL distribution
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:14' )
       READ( SUBSTRS(1), * ) ND12
       CALL SET_TINDEX( am_I_Root, 12, ND12, SUBSTRS(2:N), N-1, PD12 )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND12_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND12_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND13: Sulfur sources
@@ -4375,6 +4407,8 @@
       IF ( .not. Input_Opt%LSULF ) ND13 = 0
       CALL SET_TINDEX( am_I_Root, 13, ND13, SUBSTRS(2:N), N-1, PD13 )
 
+      ! Included in HEMCO diagnostics for netCDF
+
       !--------------------------
       ! ND14: Wet conv up flux
       !--------------------------
@@ -4382,6 +4416,10 @@
       READ( SUBSTRS(1), * ) ND14
       IF ( .not. Input_Opt%LCONV ) ND14 = 0
       CALL SET_TINDEX( am_I_Root, 14, ND14, SUBSTRS(2:N), N-1, N_MAX )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND14_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND14_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND15: Mass change in PBL
@@ -4391,12 +4429,20 @@
       IF ( .not. Input_Opt%LTURB ) ND15 = 0
       CALL SET_TINDEX( am_I_Root, 15, ND15, SUBSTRS(2:N), N-1, N_MAX )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND15_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND15_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND16: Precip fractions
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:18' )
       READ( SUBSTRS(1), * ) ND16
       CALL SET_TINDEX( am_I_Root, 16, ND16, SUBSTRS(2:N), N-1, N_MAX )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND16_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND16_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND17: Rainout losses
@@ -4407,6 +4453,10 @@
       IF ( .not. Input_Opt%LWETD ) ND17 = 0
       CALL SET_TINDEX( am_I_Root, 17, ND17, SUBSTRS(2:N), N-1, N_TMP )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND17_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND17_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND18: Washout losses
       !--------------------------
@@ -4416,12 +4466,20 @@
       IF ( .not. Input_Opt%LWETD ) ND18 = 0
       CALL SET_TINDEX( am_I_Root, 18, ND18, SUBSTRS(2:N), N-1, N_TMP )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND18_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND18_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND19: CH4 loss
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:21' )
       READ( SUBSTRS(1), * ) ND19
       CALL SET_TINDEX( am_I_Root, 19, ND19, SUBSTRS(2:N), N-1, PD19 )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND19_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND19_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND21: Opt depths etc.
@@ -4437,6 +4495,10 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
+      ! For netCDF diagnostics
+      Input_Opt%ND21_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND21_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND22: J-values
       !--------------------------
@@ -4447,12 +4509,20 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:24' ) 
       READ( SUBSTRS(1:N), * ) HR1_JV, HR2_JV
 
+      ! For netCDF diagnostics
+      Input_Opt%ND22_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND22_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND24: E/W transport flux
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:25' )
       READ( SUBSTRS(1), * ) ND24
       CALL SET_TINDEX( am_I_Root, 24, ND24, SUBSTRS(2:N), N-1, N_MAX )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND24_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND24_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND25: N/S transport flux
@@ -4461,12 +4531,20 @@
       READ( SUBSTRS(1), * ) ND25
       CALL SET_TINDEX( am_I_Root, 25, ND25, SUBSTRS(2:N), N-1, N_MAX )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND25_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND25_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND26: U/D transport flux
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:27' )
       READ( SUBSTRS(1), * ) ND26
       CALL SET_TINDEX( am_I_Root, 26, ND26, SUBSTRS(2:N), N-1, N_MAX )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND26_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND26_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND27: Strat fluxes
@@ -4475,12 +4553,18 @@
       READ( SUBSTRS(1), * ) ND27
       CALL SET_TINDEX( am_I_Root, 27, ND27, SUBSTRS(2:N), N-1, PD27 )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND27_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND27_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND28: Biomass emissions
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:29' )
       READ( SUBSTRS(1), * ) ND28
  
+      ! Included in HEMCO diagnostics for netCDF
+
       !--------------------------
       ! ND29: CO sources
       !--------------------------
@@ -4488,12 +4572,18 @@
       READ( SUBSTRS(1), * ) ND29
       CALL SET_TINDEX( am_I_Root, 29, ND29, SUBSTRS(2:N), N-1, PD29 )
 
+      ! Included in HEMCO diagnostics for netCDF
+
       !--------------------------
       ! ND30: Land map
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:31' )
       READ( SUBSTRS(1), * ) ND30
       CALL SET_TINDEX( am_I_Root, 30, ND30, SUBSTRS(2:N), N-1, PD30 )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND30_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND30_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND31: Surface pressure

@@ -137,6 +137,120 @@ CONTAINS
     ! we may want to add more (i.e. hourly, instantaneous, monthly, etc.)
     !-----------------------------------------------------------------------
 
+!    ! Rn/Pb/Be source diagnostic (ND01)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Rn/Pb/Be decay diagnostic (ND02)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Hg emissions/prod/loss diagnostic (ND03)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Sulfate prod/loss diagnostic (ND05)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Carbon aerosol sources diagnostic (ND07)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Boundary layer fraction diagnostic (ND12)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Cloud convection mass flux diagnostic (ND14)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Boundary-layer mixing mass flux diagnostic (ND15)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Areal fraction of precip diagnostic (ND16)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Rainout fraction diagnostic (ND17)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Washout fraction diagnostic (ND18)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! CH4 loss diagnostic (ND19)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Optical depths diagnostic (ND21)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Photolysis rates (J-values) diagnostic (ND22)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! E/W transport flux diagnostic (ND24)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! N/S transport flux diagnostic (ND25)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! U/D transport flux diagnostic (ND26)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Strat influx (NOx, Ox, HNO3 diagnostic (ND27)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
+!    ! Land map diagnostic (ND30)
+!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    IF ( RC /= GIGC_SUCCESS ) THEN
+!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!    ENDIF
+!
     ! Drydep diagnostic (ND44)
     CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
@@ -530,6 +644,105 @@ CONTAINS
           ENDIF
        ENDIF
     ENDDO
+
+  END SUBROUTINE DiagInit_Tracer_Conc
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_pb210_emiss
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_PB210\_EMISS initializes the 210Pb emissions diagnostic (aka part of ND01).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Pb210_Emiss( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  21 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: cId,      Collection, N
+    CHARACTER(LEN=15)  :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_PB210_EMISS (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_TRACER_CONC begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND01 diagnostic is turned off
+    IF ( Input_Opt%ND01 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND01_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND01_OUTPUT_FREQ
+        
+    ! Corresponding GEOS-Chem tracer number
+    N = ! WHAT TO PUT HERE??? Study TINDEX / tracer storage in Input_Mod
+  
+    ! If this tracer number is scheduled for output in input.geos, 
+    ! then define the diagnostic container for 210Pb emissions.
+    IF ( ANY ( Input_Opt%TINDEX(1,:) ) == N ) THEN
+
+       !----------------------------------------------------------------
+       ! Create containers for 210Pb emissions [kg/s]
+       !----------------------------------------------------------------
+
+       ! Diagnostic name
+       DiagnName = 'TRACER_CONC_' // TRIM( Input_Opt%TRACER_NAME(N) )
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  2,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/s',             &
+                          OutOper   = TRIM( OutOper   ), &
+                          WriteFreq = TRIM( WriteFreq ), &
+                          cId       = cId,               &
+                          RC        = RC )
+
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+    ENDIF
 
   END SUBROUTINE DiagInit_Tracer_Conc
 !EOC
