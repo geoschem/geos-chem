@@ -709,6 +709,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use carbon
+!  20 Jan 2015 - M. Yannetti - Added LEMIS Catch Exit
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -732,6 +733,9 @@ CONTAINS
          ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
        RETURN
     ENDIF
+
+    ! Exit if emissions are turned off
+    IF ( .not. Input_Opt%LEMIS ) RETURN
    
     ! Define diagnostics
     IF ( ND07 > 0 .AND. Input_Opt%LCARB ) THEN
@@ -954,6 +958,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use acetone
+!  21 Jan 2015 - M. Yannetti - Added catch for emissions being turned off
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -972,6 +977,10 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+    ! Exit if emissions are turned off
+    IF ( .not. Input_Opt%LEMIS ) RETURN
+
 
     ! Exit if we are doing a specialty simulation w/o acetone
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
@@ -1061,6 +1070,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use sulfur
+!  21 Jan 2015 - M. Yannetti - Added catch for emissions being turned off
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1078,6 +1088,10 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+    ! Exit if emissions are turned off
+    IF ( .not. Input_Opt%LEMIS ) RETURN
+
 
     ! Exit if we are doing a specialty simulation w/o carbon aerosols
     IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. &
@@ -1391,6 +1405,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use biomass
+!  21 Jan 2015 - M. Yannetti - Added catch for emissions being turned off
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1408,6 +1423,9 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+    ! Exit if emissions are turned off
+    IF ( .not. Input_Opt%LEMIS ) RETURN
 
     ! Exit if we are doing a specialty simulation w/o biomass
     IF ( Input_Opt%ITS_A_POPS_SIM   ) RETURN
@@ -1964,6 +1982,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use NO
+!  22 Jan 2015 - M. Yannetti - Corrected typo in LOC, exit for emissions off
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1976,7 +1995,7 @@ CONTAINS
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGN_BIOMASS (hcoi_gc_diagn_mod.F90)'
+    CHARACTER(LEN=255) :: LOC = 'DIAGN_NOSRC (hcoi_gc_diagn_mod.F90)'
 
     !=======================================================================
     ! DIAGN_NOSRC begins here!
@@ -1984,6 +2003,10 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+    ! Exit if emissions are turned off
+    IF ( .not. Input_Opt%LEMIS ) RETURN
+
 
     ! Exit if we are doing a specialty simulation w/o NO
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -2174,6 +2197,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use biofuels
+!  22 Jan 2015 - M. Yannetti - Added LEMIS Catch Exit
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2191,6 +2215,10 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+    ! Exit if emissions are turned off
+    IF ( .not. Input_Opt%LEMIS ) RETURN
+
 
     ! Exit if we are doing a specialty simulation w/o biofuels
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
@@ -2370,6 +2398,7 @@ CONTAINS
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use anthro
 !  28 Aug 2014 - R. Yantosca - Add IF statements to prevent defining diags
 !                              for species that aren't present in a given sim
+!  22 Jan 2015 - M. Yannetti - Added LEMIS Catch Exit
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -2391,6 +2420,9 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+    ! Exit if emissions are turned off
+    IF ( .not. Input_Opt%LEMIS ) RETURN
 
     ! Exit if we are doing a specialty simulation w/o the anthro species below
     IF ( Input_Opt%ITS_A_C2H6_SIM    ) RETURN
@@ -2730,6 +2762,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use MEGAN
+!  22 Jan 2015 - M. Yannetti - Added LEMIS Catch Exit
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2750,6 +2783,9 @@ CONTAINS
     
     ! Assume success
     RC = HCO_SUCCESS
+
+    ! Exit if emissions are turned off
+    IF ( .not. Input_Opt%LEMIS ) RETURN
 
     ! Exit if we are doing a specialty simulation w/o biofuels
     IF ( Input_Opt%ITS_A_HCN_SIM     ) RETURN
@@ -3300,6 +3336,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use lightning
+!  22 Jan 2015 - M. Yannetti - Added LEMIS Catch Exit
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3319,6 +3356,9 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
+
+    ! Exit if emissions are turned off
+    IF ( .not. Input_Opt%LEMIS ) RETURN
 
     ! Exit if we are doing a specialty simulation w/o lightning
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
