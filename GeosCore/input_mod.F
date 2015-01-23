@@ -159,12 +159,8 @@
       INTEGER            :: IU_GEOS
       INTEGER, PARAMETER :: FIRSTCOL = 26
       INTEGER, PARAMETER :: MAXDIM   = 500
-      INTEGER            :: CT1, CT2, CT3
+      INTEGER            :: CT1      = 0
       CHARACTER(LEN=255) :: FILENAME = 'input.geos'
-      CHARACTER(LEN=255) :: TOPTITLE
-      CHARACTER(LEN=255) :: BPCH_FILE
-      CHARACTER(LEN=255) :: DIAGINFO  
-      CHARACTER(LEN=255) :: TRACERINFO
 
       CONTAINS
 !EOC
@@ -233,7 +229,7 @@
 !                              ".rc" to input.geos (instead of ___.rc)
 !  04 Apr 2013 - R. Yantosca - Now pass objects to DO_GAMAP routine
 !  23 Jun 2014 - R. Yantosca - Now do not call INIT_INPUT, this is replaced
-!                              by the INIT_GIGC_INPUT_OPT routine
+!                              by the INIT_GIGC_INPUT_OPT routine.   
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,6 +241,8 @@
       CHARACTER(LEN=1)   :: TAB   = ACHAR(9)
       CHARACTER(LEN=1)   :: SPACE = ' '
       CHARACTER(LEN=MAXDIM) :: LINE
+      CHARACTER(LEN=255) :: TOPTITLE
+
 
       !=================================================================
       ! READ_INPUT_FILE begins here!
@@ -875,7 +873,7 @@
          WRITE( 6, 100 ) 'Start time of run           : ', NYMDb, NHMSb
          WRITE( 6, 100 ) 'End time of run             : ', NYMDe, NHMSe
          WRITE( 6, 110 ) 'Run directory               : ',
-     &                    TRIM( Input_Opt% RUN_DIR )
+     &                    TRIM( Input_Opt%RUN_DIR )
          WRITE( 6, 110 ) 'Data Directory              : ',
      &                    TRIM( Input_Opt%DATA_DIR )
          WRITE( 6, 110 ) 'GCAP       sub-directory    : ', 
@@ -1229,7 +1227,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: N,  T,  C
-      LOGICAL            :: LSPLIT
       CHARACTER(LEN=255) :: C1, C2, LINE, NAME
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
@@ -3985,7 +3982,7 @@
 !
       LOGICAL            :: EOF
       INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), DIAGINFO, TRACERINFO
 
       !=================================================================
       ! READ_GAMAP_MENU begins here!
@@ -4241,7 +4238,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: M,      N,     N_MAX, N_TMP,   N_TRACERS
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION, BPCH_FILE
 
       !=================================================================
       ! READ_DIAGNOSTIC_MENU begins here!
