@@ -26,11 +26,13 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
+#if !defined( NO_BPCH )
       ! For ND01 -- Pb emissions (Rn, Be now tracked thru HEMCO)
       REAL*4,  ALLOCATABLE :: AD01(:,:,:)
 
       ! For ND02 -- Rn, Pb, Be decay
       REAL*4,  ALLOCATABLE :: AD02(:,:,:,:)
+#endif
 
       ! For ND05 -- Sulfate prod/loss diagnostics
       REAL*4,  ALLOCATABLE :: AD05(:,:,:,:)

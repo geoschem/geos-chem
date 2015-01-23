@@ -32,6 +32,9 @@ MODULE Diagnostics_Mod
 !
   PRIVATE :: DiagInit_Drydep
   PRIVATE :: DiagInit_Tracer_Conc
+  PRIVATE :: DiagInit_Pb_Emiss
+
+
 !
 ! !DEFINED PARAMETERS:
 !
@@ -137,118 +140,118 @@ CONTAINS
     ! we may want to add more (i.e. hourly, instantaneous, monthly, etc.)
     !-----------------------------------------------------------------------
 
-!    ! Rn/Pb/Be source diagnostic (ND01)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
-!    ENDIF
-!
-!    ! Rn/Pb/Be decay diagnostic (ND02)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
-!    ENDIF
-!
+    ! Pb emissions diagnostic (ND01)
+    CALL DIAGINIT_PB_EMISS( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_PB_EMISS', LOC ) 
+    ENDIF
+
+    ! Rn/Pb/Be decay diagnostic (ND02)
+    CALL DIAGINIT_RN_DECAY( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_RN_DECAY', LOC ) 
+    ENDIF
+
 !    ! Hg emissions/prod/loss diagnostic (ND03)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_HG_SOURCE( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_HG_SOURCE', LOC ) 
 !    ENDIF
 !
 !    ! Sulfate prod/loss diagnostic (ND05)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_SULFATE_PL( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_SULFATE_PL', LOC ) 
 !    ENDIF
 !
 !    ! Carbon aerosol sources diagnostic (ND07)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_C_AERSRC( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_C_AERSRC', LOC ) 
 !    ENDIF
 !
 !    ! Boundary layer fraction diagnostic (ND12)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_BL_FRAC( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_BL_FRAC', LOC ) 
 !    ENDIF
 !
 !    ! Cloud convection mass flux diagnostic (ND14)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_CLDCONV_FLX( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_CLDCONV_FLX', LOC ) 
 !    ENDIF
 !
 !    ! Boundary-layer mixing mass flux diagnostic (ND15)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_BLMIX_FLX( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
 !       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
 !    ENDIF
 !
 !    ! Areal fraction of precip diagnostic (ND16)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_PRECIP_FRAC( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_PRECIP_FRAC', LOC ) 
 !    ENDIF
 !
 !    ! Rainout fraction diagnostic (ND17)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_RAINOUT_FRAC( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_RAINOUT_FRAC', LOC ) 
 !    ENDIF
 !
 !    ! Washout fraction diagnostic (ND18)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_WASHOUT_FRAC( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_WASHOUT_FRAC', LOC ) 
 !    ENDIF
 !
 !    ! CH4 loss diagnostic (ND19)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_CH4_LOSS( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_CH4_LOSS', LOC ) 
 !    ENDIF
 !
 !    ! Optical depths diagnostic (ND21)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_CLD_OD( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_CLD_OD', LOC ) 
 !    ENDIF
 !
 !    ! Photolysis rates (J-values) diagnostic (ND22)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_PHOTOLYSIS( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_PHOTOLYSIS', LOC ) 
 !    ENDIF
 !
 !    ! E/W transport flux diagnostic (ND24)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_EW_FLX( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_EW_FLUX', LOC ) 
 !    ENDIF
 !
 !    ! N/S transport flux diagnostic (ND25)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_NS_FLX( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_NS_FLX', LOC ) 
 !    ENDIF
 !
 !    ! U/D transport flux diagnostic (ND26)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_VERT_FLX( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_VERT_FLX', LOC ) 
 !    ENDIF
 !
 !    ! Strat influx (NOx, Ox, HNO3 diagnostic (ND27)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_STRAT_FLX( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_STRAT_FLX', LOC ) 
 !    ENDIF
 !
 !    ! Land map diagnostic (ND30)
-!    CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!    CALL DIAGINIT_LANDMAP( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+!       CALL ERROR_STOP( 'Error in DIAGINIT_LANDMAP', LOC ) 
 !    ENDIF
 !
     ! Drydep diagnostic (ND44)
@@ -652,14 +655,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: diaginit_pb210_emiss
+! !IROUTINE: diaginit_pb_emiss
 !
-! !DESCRIPTION: Subroutine DIAGINIT\_PB210\_EMISS initializes the 210Pb emissions diagnostic (aka part of ND01).
+! !DESCRIPTION: Subroutine DIAGINIT\_PB\_EMISS initializes the Pb emissions 
+!  diagnostic (aka ND01). Other ND01 tracer emissions (Rn and Be7) are 
+!  handled within HEMCO.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagInit_Pb210_Emiss( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagInit_Pb_Emiss( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -668,6 +673,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE HCO_Error_Mod
+    USE TRACERID_MOD        ONLY : IDTPB   
 !
 ! !INPUT PARAMETERS:
 !
@@ -686,14 +692,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: cId,      Collection, N
+    INTEGER            :: cId,      Collection
     CHARACTER(LEN=15)  :: OutOper,  WriteFreq
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_PB210_EMISS (diagnostics_mod.F90)' 
+    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_PB_EMISS (diagnostics_mod.F90)' 
 
     !=======================================================================
-    ! DIAGINIT_TRACER_CONC begins here!
+    ! DIAGINIT_PB_EMISS begins here!
     !=======================================================================
       
     ! Assume successful return
@@ -706,20 +712,17 @@ CONTAINS
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND01_OUTPUT_TYPE
     WriteFreq  = Input_Opt%ND01_OUTPUT_FREQ
-        
-    ! Corresponding GEOS-Chem tracer number
-    N = ! WHAT TO PUT HERE??? Study TINDEX / tracer storage in Input_Mod
-  
-    ! If this tracer number is scheduled for output in input.geos, 
+    
+    ! If the tracer number for lead is scheduled for output in input.geos, 
     ! then define the diagnostic container for 210Pb emissions.
-    IF ( ANY ( Input_Opt%TINDEX(1,:) ) == N ) THEN
+    IF ( ANY ( Input_Opt%TINDEX(1,:) == IDTPB ) THEN
 
        !----------------------------------------------------------------
-       ! Create containers for 210Pb emissions [kg/s]
+       ! Create containers for Pb emissions [kg/s]
        !----------------------------------------------------------------
 
        ! Diagnostic name
-       DiagnName = 'TRACER_CONC_' // TRIM( Input_Opt%TRACER_NAME(N) )
+       DiagnName = 'EMISS_PB'
 
        ! Create container
        CALL Diagn_Create( am_I_Root,                     &
@@ -744,7 +747,228 @@ CONTAINS
        ENDIF
     ENDIF
 
-  END SUBROUTINE DiagInit_Tracer_Conc
+  END SUBROUTINE DiagInit_Pb_Emiss
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_rn_decay
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_RN\_DECAY initializes the Rn/Pb/Be7
+!  decay diagnostic (aka ND02).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Rn_Decay( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+    USE TRACERID_MOD        ONLY : IDTPB, IDTRN, IDTBE7   
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  23 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    INTEGER, PARAMETER   :: RDNUM = 3
+    INTEGER              :: RDN ( RDNUM )
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_RN_DECAY (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_RN_DECAY begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND02 diagnostic is turned off
+    IF ( Input_Opt%ND02 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND02_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND02_OUTPUT_FREQ
+    
+    ! Assign array of tracer numbers corresponding to decaying species
+    TRCN(1) = IDTPB
+    TRCN(2) = IDTRN
+    TRCN(3) = IDTBE7
+
+    ! Loop over # of radon decay diagnostics
+    DO N = 1, RDNUM
+
+       ! If the tracer number is scheduled for output in input.geos, 
+       ! then define the diagnostic container for that tracer.
+       IF ( ANY ( Input_Opt%TINDEX(2,:) == RDN(N) ) THEN
+
+          !----------------------------------------------------------------
+          ! Create containers for Rn/Pb/Be7 decay [kg/s]
+          !----------------------------------------------------------------
+
+          ! Diagnostic name
+          DiagnName = 'DECAY_' // TRIM( Input_Opt%TRACER_NAME(N) )
+
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  2,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/s',             &
+                          OutOper   = TRIM( OutOper   ), &
+                          WriteFreq = TRIM( WriteFreq ), &
+                          cId       = cId,               &
+                          RC        = RC )
+
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagInit_Rn_Decay
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_hg_source
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_HG\_SOURCE initializes the mercury
+!  emissions, production, and loss diagnostic (aka ND03).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Hg_Source( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+    USE TRACERID_MOD        ONLY : ??? 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  23 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+!    INTEGER, PARAMETER   :: NUMTRC = 3
+!    INTEGER              :: TRCN ( NUMTRC )
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_HG_SOURCE (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_RN_DECAY begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND03 diagnostic is turned off
+    IF ( Input_Opt%ND03 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND03_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND03_OUTPUT_FREQ
+    
+    ! Assign array of tracer numbers corresponding to decaying species
+    TRCN(1) = IDTPB
+    TRCN(2) = IDTRN
+    TRCN(3) = IDTBE7
+
+    ! Loop over # of mercury diagnostics
+    DO N = 1, NUMHGD
+
+
+
+       ! If the tracer number is scheduled for output in input.geos, 
+       ! then define the diagnostic container for that tracer.
+       IF ( ANY ( Input_Opt%TINDEX(2,:) == TRCN(N) ) THEN
+
+          !----------------------------------------------------------------
+          ! Create containers for Rn/Pb/Be7 decay [kg/s]
+          !----------------------------------------------------------------
+
+          ! Diagnostic name
+          DiagnName = 'HG_SOURCE_' // TRIM( Input_Opt%TRACER_NAME(N) )
+
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  2,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg' ,             &
+                          OutOper   = TRIM( OutOper   ), &
+                          WriteFreq = TRIM( WriteFreq ), &
+                          cId       = cId,               &
+                          RC        = RC )
+
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagInit_Hg_Source
+!EOC
+
 END MODULE Diagnostics_Mod
 #endif
