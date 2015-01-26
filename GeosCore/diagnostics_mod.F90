@@ -170,48 +170,48 @@ CONTAINS
 !       CALL ERROR_STOP( 'Error in DIAGINIT_C_AERSRC', LOC ) 
 !    ENDIF
 !
-!    ! Boundary layer fraction diagnostic (ND12)
-!    CALL DIAGINIT_BL_FRAC( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_BL_FRAC', LOC ) 
-!    ENDIF
-!
-!    ! Cloud convection mass flux diagnostic (ND14)
-!    CALL DIAGINIT_CLDCONV_FLX( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_CLDCONV_FLX', LOC ) 
-!    ENDIF
-!
-!    ! Boundary-layer mixing mass flux diagnostic (ND15)
-!    CALL DIAGINIT_BLMIX_FLX( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
-!    ENDIF
-!
-!    ! Areal fraction of precip diagnostic (ND16)
-!    CALL DIAGINIT_PRECIP_FRAC( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_PRECIP_FRAC', LOC ) 
-!    ENDIF
-!
-!    ! Rainout fraction diagnostic (ND17)
-!    CALL DIAGINIT_RAINOUT_FRAC( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_RAINOUT_FRAC', LOC ) 
-!    ENDIF
-!
-!    ! Washout fraction diagnostic (ND18)
-!    CALL DIAGINIT_WASHOUT_FRAC( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_WASHOUT_FRAC', LOC ) 
-!    ENDIF
-!
-!    ! CH4 loss diagnostic (ND19)
-!    CALL DIAGINIT_CH4_LOSS( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_CH4_LOSS', LOC ) 
-!    ENDIF
-!
+    ! Boundary layer fraction diagnostic (ND12)
+    CALL DIAGINIT_BL_FRAC( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_BL_FRAC', LOC ) 
+    ENDIF
+
+    ! Cloud convection mass flux diagnostic (ND14)
+    CALL DIAGINIT_CLDCONV_FLX( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_CLDCONV_FLX', LOC ) 
+    ENDIF
+
+    ! Boundary-layer mixing mass flux diagnostic (ND15)
+    CALL DIAGINIT_BLMIX_FLX( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_DRYDEP', LOC ) 
+    ENDIF
+
+    ! Areal fraction of precip diagnostic (ND16)
+    CALL DIAGINIT_PRECIP_FRAC( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_PRECIP_FRAC', LOC ) 
+    ENDIF
+
+    ! Rainout fraction diagnostic (ND17)
+    CALL DIAGINIT_RAIN_FRAC( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_RAIN_FRAC', LOC ) 
+    ENDIF
+
+    ! Washout fraction diagnostic (ND18)
+    CALL DIAGINIT_WASH_FRAC( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_WASH_FRAC', LOC ) 
+    ENDIF
+
+    ! CH4 loss diagnostic (ND19)
+    CALL DIAGINIT_CH4_LOSS( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_CH4_LOSS', LOC ) 
+    ENDIF
+
 !    ! Optical depths diagnostic (ND21)
 !    CALL DIAGINIT_CLD_OD( am_I_Root, Input_Opt, RC )
 !    IF ( RC /= GIGC_SUCCESS ) THEN
@@ -224,36 +224,36 @@ CONTAINS
 !       CALL ERROR_STOP( 'Error in DIAGINIT_PHOTOLYSIS', LOC ) 
 !    ENDIF
 !
-!    ! E/W transport flux diagnostic (ND24)
-!    CALL DIAGINIT_EW_FLX( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_EW_FLUX', LOC ) 
-!    ENDIF
-!
-!    ! N/S transport flux diagnostic (ND25)
-!    CALL DIAGINIT_NS_FLX( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_NS_FLX', LOC ) 
-!    ENDIF
-!
-!    ! U/D transport flux diagnostic (ND26)
-!    CALL DIAGINIT_VERT_FLX( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_VERT_FLX', LOC ) 
-!    ENDIF
-!
-!    ! Strat influx (NOx, Ox, HNO3 diagnostic (ND27)
-!    CALL DIAGINIT_STRAT_FLX( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_STRAT_FLX', LOC ) 
-!    ENDIF
-!
-!    ! Land map diagnostic (ND30)
-!    CALL DIAGINIT_LANDMAP( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_LANDMAP', LOC ) 
-!    ENDIF
-!
+    ! E/W transport flux diagnostic (ND24)
+    CALL DIAGINIT_EW_FLX( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_EW_FLUX', LOC ) 
+    ENDIF
+
+    ! N/S transport flux diagnostic (ND25)
+    CALL DIAGINIT_NS_FLX( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_NS_FLX', LOC ) 
+    ENDIF
+
+    ! U/D transport flux diagnostic (ND26)
+    CALL DIAGINIT_VERT_FLX( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_VERT_FLX', LOC ) 
+    ENDIF
+
+    ! Strat influx (NOx, Ox, HNO3 diagnostic (ND27)
+    CALL DIAGINIT_STRAT_FLX( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_STRAT_FLX', LOC ) 
+    ENDIF
+
+    ! Land map diagnostic (ND30)
+    CALL DIAGINIT_LANDMAP( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_LANDMAP', LOC ) 
+    ENDIF
+
     ! Drydep diagnostic (ND44)
     CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
@@ -633,7 +633,7 @@ CONTAINS
                              Cat       = -1,                &
                              Hier      = -1,                &
                              HcoID     = -1,                &
-                             SpaceDim  =  2,                &
+                             SpaceDim  =  3,                &
                              LevIDx    = -1,                &
                              OutUnit   = 'v/v',             &
                              OutOper   = TRIM( OutOper   ), &
@@ -733,7 +733,7 @@ CONTAINS
                           Cat       = -1,                &
                           Hier      = -1,                &
                           HcoID     = -1,                &
-                          SpaceDim  =  2,                &
+                          SpaceDim  =  3,                &
                           LevIDx    = -1,                &
                           OutUnit   = 'kg/s',             &
                           OutOper   = TRIM( OutOper   ), &
@@ -790,9 +790,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: cId,      Collection, N
-    INTEGER, PARAMETER   :: RDNUM = 3
-    INTEGER              :: RDN ( RDNUM )
+    INTEGER              :: cId, Collection, N
+    INTEGER, PARAMETER   :: NumDiagND02 = 3          ! # of radon decay diagnostics
+    INTEGER              :: Tracer_ind ( NumDiagND02 ) ! Pb/Rn/Be7 tracer indexes
     CHARACTER(LEN=15)    :: OutOper,  WriteFreq
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
@@ -814,16 +814,16 @@ CONTAINS
     WriteFreq  = Input_Opt%ND02_OUTPUT_FREQ
     
     ! Assign array of tracer numbers corresponding to decaying species
-    TRCN(1) = IDTPB
-    TRCN(2) = IDTRN
-    TRCN(3) = IDTBE7
+    Tracer_ind(1) = IDTPB
+    Tracer_ind(2) = IDTRN
+    Tracer_ind(3) = IDTBE7
 
     ! Loop over # of radon decay diagnostics
-    DO N = 1, RDNUM
+    DO N = 1, NumDiagND02
 
        ! If the tracer number is scheduled for output in input.geos, 
        ! then define the diagnostic container for that tracer.
-       IF ( ANY ( Input_Opt%TINDEX(2,:) == RDN(N) ) THEN
+       IF ( ANY ( Input_Opt%TINDEX(2,:) == Tracer_ind( N ) ) THEN
 
           !----------------------------------------------------------------
           ! Create containers for Rn/Pb/Be7 decay [kg/s]
@@ -834,20 +834,20 @@ CONTAINS
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
-                          Col       = Collection,        & 
-                          cName     = TRIM( DiagnName ), &
-                          AutoFill  = 0,                 &
-                          ExtNr     = -1,                &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  =  2,                &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/s',             &
-                          OutOper   = TRIM( OutOper   ), &
-                          WriteFreq = TRIM( WriteFreq ), &
-                          cId       = cId,               &
-                          RC        = RC )
+                             Col       = Collection,        & 
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/s',             &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             cId       = cId,               &
+                             RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
              MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
@@ -858,20 +858,392 @@ CONTAINS
 
   END SUBROUTINE DiagInit_Rn_Decay
 !EOC
+
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: diaginit_hg_source (LL in progress)
+!!
+!! !DESCRIPTION: Subroutine DIAGINIT\_HG\_SOURCE initializes the mercury
+!!  emissions, production, and loss diagnostic (aka ND03).
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE DiagInit_Hg_Source( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!    USE Error_Mod,          ONLY : Error_Stop
+!    USE GIGC_ErrCode_Mod
+!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+!    USE HCO_Error_Mod
+!    USE TRACERID_MOD        ONLY : ??? 
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!! 
+!! !REVISION HISTORY: 
+!!  23 Jan 2015 - E. Lundgren - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    INTEGER              :: cId,      Collection, N
+!!    INTEGER, PARAMETER   :: NUMTRC = 3
+!!    INTEGER              :: TRCN ( NUMTRC )
+!    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+!    CHARACTER(LEN=60)    :: DiagnName
+!    CHARACTER(LEN=255)   :: MSG
+!    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_HG_SOURCE (diagnostics_mod.F90)' 
+!
+!    !=======================================================================
+!    ! DIAGINIT_HG_SOURCE begins here!
+!    !=======================================================================
+!      
+!    ! Assume successful return
+!    RC = GIGC_SUCCESS
+!
+!    ! Skip if ND03 diagnostic is turned off
+!    IF ( Input_Opt%ND03 <= 0 ) RETURN
+!
+!    ! Get diagnostic parameters from the Input_Opt object
+!    Collection = Input_Opt%DIAG_COLLECTION
+!    OutOper    = Input_Opt%ND03_OUTPUT_TYPE
+!    WriteFreq  = Input_Opt%ND03_OUTPUT_FREQ
+!    
+!    ! Assign array of tracer numbers corresponding to decaying species
+!    TRCN(1) = IDTPB
+!    TRCN(2) = IDTRN
+!    TRCN(3) = IDTBE7
+!
+!    ! Loop over # of mercury diagnostics
+!    DO N = 1, NumDiagND03
+!
+!       ! If the tracer number is scheduled for output in input.geos, 
+!       ! then define the diagnostic container for that tracer.
+!       IF ( ANY ( Input_Opt%TINDEX(2,:) == TRCN(N) ) THEN
+!
+!          !----------------------------------------------------------------
+!          ! Create containers for mercury sources [units?]
+!          !----------------------------------------------------------------
+!
+!          ! Diagnostic name
+!          DiagnName = 'HG_SOURCE_' // TRIM( Input_Opt%TRACER_NAME(N) )
+!
+!          ! Create container
+!          CALL Diagn_Create( am_I_Root,                     &
+!                             Col       = Collection,        & 
+!                             cName     = TRIM( DiagnName ), &
+!                             AutoFill  = 0,                 &
+!                             ExtNr     = -1,                &
+!                             Cat       = -1,                &
+!                             Hier      = -1,                &
+!                             HcoID     = -1,                &
+!                             SpaceDim  =  2,                &
+!                             LevIDx    = -1,                &
+!                             OutUnit   = 'kg' ,             &
+!                             OutOper   = TRIM( OutOper   ), &
+!                             WriteFreq = TRIM( WriteFreq ), &
+!                             cId       = cId,               &
+!                             RC        = RC )
+!
+!          IF ( RC /= HCO_SUCCESS ) THEN
+!             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+!             CALL ERROR_STOP( MSG, LOC ) 
+!          ENDIF
+!       ENDIF
+!    ENDDO
+!
+!  END SUBROUTINE DiagInit_Hg_Source
+!!EOC
+
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: diaginit_sulfate_pl (LL in progress)
+!!
+!! !DESCRIPTION: Subroutine DIAGINIT\_SULFATE\_PL initializes the sulfate
+!!  chemistry production and loss diagnostic (aka ND05).
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE DiagInit_Sulfate_PL( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!    USE Error_Mod,          ONLY : Error_Stop
+!    USE GIGC_ErrCode_Mod
+!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+!    USE HCO_Error_Mod
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!! 
+!! !REVISION HISTORY: 
+!!  26 Jan 2015 - E. Lundgren - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    INTEGER              :: cId,      Collection, N
+!    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+!    CHARACTER(LEN=60)    :: DiagnName
+!    CHARACTER(LEN=255)   :: MSG
+!    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_SULFATE_PL (diagnostics_mod.F90)' 
+!
+!    !=======================================================================
+!    ! DIAGINIT_SULFATE_PL begins here!
+!    !=======================================================================
+!      
+!    ! Assume successful return
+!    RC = GIGC_SUCCESS
+!
+!    ! Skip if ND05 diagnostic is turned off
+!    IF ( Input_Opt%ND05 <= 0 ) RETURN
+!
+!    ! Get diagnostic parameters from the Input_Opt object
+!    Collection = Input_Opt%DIAG_COLLECTION
+!    OutOper    = Input_Opt%ND05_OUTPUT_TYPE
+!    WriteFreq  = Input_Opt%ND05_OUTPUT_FREQ
+!    
+!    ! Loop over # of diagnostics (only ones with units kg S)
+!    DO N = 1, NumDiagND05
+!
+!       ! If the tracer number is scheduled for output in input.geos, 
+!       ! then define the diagnostic container for that tracer.
+!       IF ( ANY ( Input_Opt%TINDEX(5,:) == TRCN(N) ) THEN
+!
+!          !----------------------------------------------------------------
+!          ! Create containers for sulfate PL [kg S] (8 of these so need a loop)
+!          !----------------------------------------------------------------
+!
+!          ! Diagnostic name
+!          DiagnName = 'PL_SUL_' // TRIM( Input_Opt%TRACER_NAME(N) )
+!
+!          ! Create container
+!          CALL Diagn_Create( am_I_Root,                     &
+!                             Col       = Collection,        & 
+!                             cName     = TRIM( DiagnName ), &
+!                             AutoFill  = 0,                 &
+!                             ExtNr     = -1,                &
+!                             Cat       = -1,                &
+!                             Hier      = -1,                &
+!                             HcoID     = -1,                &
+!                             SpaceDim  =  3,                &
+!                             LevIDx    = -1,                &
+!                             OutUnit   = 'kg S' ,           &
+!                             OutOper   = TRIM( OutOper   ), &
+!                             WriteFreq = TRIM( WriteFreq ), &
+!                             cId       = cId,               &
+!                             RC        = RC )
+!
+!          IF ( RC /= HCO_SUCCESS ) THEN
+!             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+!             CALL ERROR_STOP( MSG, LOC ) 
+!          ENDIF
+!
+!          !----------------------------------------------------------------
+!          ! Create containers for L(OH) by DMS [kg OH] - just 1
+!          !----------------------------------------------------------------
+!
+!          ! Diagnostic name
+!          DiagnName = 'PL_SUL_' // TRIM( Input_Opt%TRACER_NAME(N) )
+!
+!          ! Create container
+!          CALL Diagn_Create( am_I_Root,                     &
+!                             Col       = Collection,        & 
+!                             cName     = TRIM( DiagnName ), &
+!                             AutoFill  = 0,                 &
+!                             ExtNr     = -1,                &
+!                             Cat       = -1,                &
+!                             Hier      = -1,                &
+!                             HcoID     = -1,                &
+!                             SpaceDim  =  3,                &
+!                             LevIDx    = -1,                &
+!                             OutUnit   = 'kg OH' ,          &
+!                             OutOper   = TRIM( OutOper   ), &
+!                             WriteFreq = TRIM( WriteFreq ), &
+!                             cId       = cId,               &
+!                             RC        = RC )
+!
+!          IF ( RC /= HCO_SUCCESS ) THEN
+!             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+!             CALL ERROR_STOP( MSG, LOC ) 
+!
+!          !----------------------------------------------------------------
+!          ! Create containers for L(NO3) by DMS [kg NO3] - just 1
+!          !----------------------------------------------------------------
+!
+!          ! Diagnostic name
+!          DiagnName = 'PL_SUL_' // TRIM( Input_Opt%TRACER_NAME(N) )
+!
+!          ! Create container
+!          CALL Diagn_Create( am_I_Root,                     &
+!                             Col       = Collection,        & 
+!                             cName     = TRIM( DiagnName ), &
+!                             AutoFill  = 0,                 &
+!                             ExtNr     = -1,                &
+!                             Cat       = -1,                &
+!                             Hier      = -1,                &
+!                             HcoID     = -1,                &
+!                             SpaceDim  =  3,                &
+!                             LevIDx    = -1,                &
+!                             OutUnit   = 'kg NO3' ,         &
+!                             OutOper   = TRIM( OutOper   ), &
+!                             WriteFreq = TRIM( WriteFreq ), &
+!                             cId       = cId,               &
+!                             RC        = RC )
+!
+!          IF ( RC /= HCO_SUCCESS ) THEN
+!             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+!             CALL ERROR_STOP( MSG, LOC ) 
+!
+!       ENDIF
+!    ENDDO
+!!
+!  END SUBROUTINE DiagInit_Sulfate_PL
+!!EOC
+
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: diaginit_C_AerSrc (LL in progress)
+!!
+!! !DESCRIPTION: Subroutine DIAGINIT\_C\_AERSRC initializes the sources of
+!!  black carbon and organic carbon diagnostic (aka ND07).
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE DiagInit_C_AerSrc( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!    USE Error_Mod,          ONLY : Error_Stop
+!    USE GIGC_ErrCode_Mod
+!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+!    USE HCO_Error_Mod
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!! 
+!! !REVISION HISTORY: 
+!!  26 Jan 2015 - E. Lundgren - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    INTEGER              :: cId,      Collection, N
+!    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+!    CHARACTER(LEN=60)    :: DiagnName
+!    CHARACTER(LEN=255)   :: MSG
+!    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_C_AERSRC (diagnostics_mod.F90)' 
+!
+!    !=======================================================================
+!    ! DIAGINIT_C_AERSRC begins here!
+!    !=======================================================================
+!      
+!    ! Assume successful return
+!    RC = GIGC_SUCCESS
+!
+!    ! Skip if ND07 diagnostic is turned off
+!    IF ( Input_Opt%ND07 <= 0 ) RETURN
+!
+!    ! Get diagnostic parameters from the Input_Opt object
+!    Collection = Input_Opt%DIAG_COLLECTION
+!    OutOper    = Input_Opt%ND07_OUTPUT_TYPE
+!    WriteFreq  = Input_Opt%ND07_OUTPUT_FREQ
+!    
+!    ! Loop over # of diagnostics (NOTE: diags 10-23 only if SOA simulation)
+!    DO N = 1, NumDiagND07
+!
+!       ! If the tracer number is scheduled for output in input.geos, 
+!       ! then define the diagnostic container for that tracer.
+!       IF ( ANY ( Input_Opt%TINDEX(7,:) == TRCN(N) ) THEN
+!
+!          !----------------------------------------------------------------
+!          ! Create containers for carbon aerosol sources [kg]
+!          !----------------------------------------------------------------
+!
+!          ! Diagnostic name
+!          DiagnName = 'C_AERSRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
+!
+!          ! Create container
+!          CALL Diagn_Create( am_I_Root,                     &
+!                             Col       = Collection,        & 
+!                             cName     = TRIM( DiagnName ), &
+!                             AutoFill  = 0,                 &
+!                             ExtNr     = -1,                &
+!                             Cat       = -1,                &
+!                             Hier      = -1,                &
+!                             HcoID     = -1,                &
+!                             SpaceDim  =  2,                &
+!                             LevIDx    = -1,                &
+!                             OutUnit   = 'kg' ,             &
+!                             OutOper   = TRIM( OutOper   ), &
+!                             WriteFreq = TRIM( WriteFreq ), &
+!                             cId       = cId,               &
+!                             RC        = RC )
+!
+!          IF ( RC /= HCO_SUCCESS ) THEN
+!             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+!             CALL ERROR_STOP( MSG, LOC ) 
+!          ENDIF
+!       ENDIF
+!    ENDDO
+!
+!  END SUBROUTINE DiagInit_C_AerSrc
+!!EOC
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: diaginit_hg_source
+! !IROUTINE: diaginit_bl_frac (LL in progress)
 !
-! !DESCRIPTION: Subroutine DIAGINIT\_HG\_SOURCE initializes the mercury
-!  emissions, production, and loss diagnostic (aka ND03).
+! !DESCRIPTION: Subroutine DIAGINIT\_BL\_FRAC initializes the distribution 
+!  of surface emissions in the boundary layer diagnostics (aka ND12).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagInit_Hg_Source( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagInit_BL_Frac( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -880,7 +1252,6 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE HCO_Error_Mod
-    USE TRACERID_MOD        ONLY : ??? 
 !
 ! !INPUT PARAMETERS:
 !
@@ -892,7 +1263,7 @@ CONTAINS
     INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
-!  23 Jan 2015 - E. Lundgren - Initial version
+!  26 Jan 2015 - E. Lundgren - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -900,51 +1271,1346 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER              :: cId,      Collection, N
-!    INTEGER, PARAMETER   :: NUMTRC = 3
-!    INTEGER              :: TRCN ( NUMTRC )
     CHARACTER(LEN=15)    :: OutOper,  WriteFreq
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_HG_SOURCE (diagnostics_mod.F90)' 
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_BL_FRAC (diagnostics_mod.F90)' 
 
     !=======================================================================
-    ! DIAGINIT_RN_DECAY begins here!
+    ! DIAGINIT_BL_FRAC begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND12 diagnostic is turned off
+    IF ( Input_Opt%ND12 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND12_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND12_OUTPUT_FREQ
+
+    ! Check if certain tracer(s) listed for ND12 in input.geos???
+
+    !----------------------------------------------------------------
+    ! Create containers for fraction of BL occupied by level L [.]
+    !----------------------------------------------------------------
+
+    ! Diagnostic name
+    DiagnName = 'BL_FRAC'
+
+    ! Create container
+    CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        & 
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = '.' ,              &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC ) 
+    ENDIF
+
+  END SUBROUTINE DiagInit_BL_Frac
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_cldconv_flx (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_CLDCONV\_FLX initializes the upward
+!  mass flux due to wet convection diagnostic (aka ND14).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_CldConv_Flx( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_CLDCONV_FLX (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_CLDCONV_FLX begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND14 diagnostic is turned off
+    IF ( Input_Opt%ND14 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND14_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND14_OUTPUT_FREQ
+
+    ! Check if certain tracer(s) listed for ND14 in input.geos???
+    ! NEED TO ADD LOOP OVER TRACERS
+    
+    ! Loop over tracers
+    DO N = 1, Input_Opt%N_TRACERS
+         
+       ! If this tracer number N is scheduled for output in input.geos, 
+       ! then define the diagnostic containers for cloud convection mass change
+       IF ( ANY( Input_Opt%TINDEX(14,:) == N ) ) THEN
+
+          !----------------------------------------------------------------
+          ! Create container for mass change due to cloud convection [kg/s]
+          !----------------------------------------------------------------
+      
+          ! Diagnostic name
+          DiagnName = 'CLDCONV_FLX_' // TRIM( Input_Opt%TRACER_NAME(N) )
+      
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             Name     = TRIM( DiagnName ),  &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/s' ,           &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             cId       = cId,               &
+                             RC        = RC )
+      
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF      
+       ENDIF
+    ENDDO   
+
+  END SUBROUTINE DiagInit_CldConv_Flx
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_blmix_flx (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_BLMIX\_FLX initializes the upward
+!  mass flux from boundary-layer mixing diagnostic (aka ND15).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_BLMix_Flx( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_BLMIX_FLX (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_BLMIX_FLX begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND15 diagnostic is turned off
+    IF ( Input_Opt%ND15 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND15_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND15_OUTPUT_FREQ
+    
+    ! Check if certain tracer(s) listed for ND15 in input.geos???
+
+    ! Loop over tracers
+    DO N = 1, Input_Opt%N_TRACERS
+         
+       ! If this tracer number N is scheduled for output in input.geos, 
+       ! then define the diagnostic containers for BL mixing upward flux
+       IF ( ANY( Input_Opt%TINDEX(15,:) == N ) ) THEN
+
+          !----------------------------------------------------------------
+          ! Create containers for boundary-layer mixing upward mass flux [kg/s]
+          !----------------------------------------------------------------
+      
+          ! Diagnostic name
+          DiagnName = 'BLMIX_FLX_' // TRIM( Input_Opt%TRACER_NAME(N) )
+      
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             Name     = TRIM( DiagnName ),  &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/s' ,             &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             cId       = cId,               &
+                             RC        = RC )
+      
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO   
+
+  END SUBROUTINE DiagInit_BLMix_Flx
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_precip_frac (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_PRECIP\_FRAC initializes the areal
+!  fraction of precipitation diagnostic (aka ND16).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Precip_Frac( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_PRECIP_FRAC (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_PRECIP_FRAC begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND16 diagnostic is turned off
+    IF ( Input_Opt%ND16 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND16_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND16_OUTPUT_FREQ
+
+    ! Check if certain tracer(s) listed for ND16 in input.geos???
+    
+    !----------------------------------------------------------------
+    ! Create containers for fraction of grid box with rainout and
+    ! washout (large-scale precipitation) [.]
+    !----------------------------------------------------------------
+
+    ! Diagnostic name
+    DiagnName = 'PRECIP_FRAC_LS'
+
+    Create container
+    CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        & 
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = '.' ,              &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC ) 
+    ENDIF
+
+    !----------------------------------------------------------------
+    ! Create containers for fraction of grid box with rainout and
+    ! washout (convective precipitation) [.]
+    !----------------------------------------------------------------
+
+    ! Diagnostic name
+    DiagnName = 'PRECIP_FRAC_CONV'
+
+    Create container
+    CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        & 
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = '.' ,              &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC ) 
+    ENDIF
+
+  END SUBROUTINE DiagInit_Precip_Frac
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_rain_frac (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_RAIN\_FRAC initializes the rainout
+!  fraction in precipitation diagnostic (aka ND17).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Rain_Frac( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_RAIN_FRAC (diagnostics_mod.F90)' !
+    !=======================================================================
+    ! DIAGINIT_RAIN_FRAC begins here!
     !=======================================================================
       
     ! Assume successful return
     RC = GIGC_SUCCESS
 
     ! Skip if ND03 diagnostic is turned off
-    IF ( Input_Opt%ND03 <= 0 ) RETURN
+    IF ( Input_Opt%ND17 <= 0 ) RETURN
 
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
-    OutOper    = Input_Opt%ND03_OUTPUT_TYPE
-    WriteFreq  = Input_Opt%ND03_OUTPUT_FREQ
+    OutOper    = Input_Opt%ND17_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND17_OUTPUT_FREQ
     
-    ! Assign array of tracer numbers corresponding to decaying species
-    TRCN(1) = IDTPB
-    TRCN(2) = IDTRN
-    TRCN(3) = IDTBE7
+    ! Check if certain tracer(s) listed for ND17 in input.geos???
 
-    ! Loop over # of mercury diagnostics
-    DO N = 1, NUMHGD
-
-
-
-       ! If the tracer number is scheduled for output in input.geos, 
-       ! then define the diagnostic container for that tracer.
-       IF ( ANY ( Input_Opt%TINDEX(2,:) == TRCN(N) ) THEN
+    ! Loop over tracers
+    DO N = 1, Input_Opt%N_TRACERS
+         
+       ! If this tracer number N is scheduled for output in input.geos, 
+       ! then define the diagnostic containers for rainout fraction
+       IF ( ANY( Input_Opt%TINDEX(17,:) == N ) ) THEN
 
           !----------------------------------------------------------------
-          ! Create containers for Rn/Pb/Be7 decay [kg/s]
+          ! Create containers for the fraction of soluble tracer
+          ! lost to rainout (large-scale precipitation) [.]
           !----------------------------------------------------------------
-
+      
           ! Diagnostic name
-          DiagnName = 'HG_SOURCE_' // TRIM( Input_Opt%TRACER_NAME(N) )
-
+          DiagnName = 'RAIN_FRAC_LS_' // TRIM( Input_Opt%TRACER_NAME(N) )
+      
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = '.' ,              &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             cId       = cId,               &
+                             RC        = RC )
+      
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+      
+          !----------------------------------------------------------------
+          ! Create containers for the fraction of soluble tracer
+          ! lost to rainout (convective precipitation) [.]
+          !----------------------------------------------------------------
+      
+          ! Diagnostic name
+          DiagnName = 'RAIN_FRAC_CONV_' // TRIM( Input_Opt%TRACER_NAME(N) )
+      
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = '.' ,              &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             cId       = cId,               &
+                             RC        = RC )
+      
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO     
+
+  END SUBROUTINE DiagInit_Rain_Frac
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_wash_frac (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_WASH\_FRAC initializes the washout
+!  fraction diagnostic (aka ND18).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Wash_Frac( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_WASH_FRAC (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_WASH_FRAC begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND18 diagnostic is turned off
+    IF ( Input_Opt%ND18 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND18_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND18_OUTPUT_FREQ
+ 
+    ! Check if certain tracer(s) listed for ND18 in input.geos???
+
+    !----------------------------------------------------------------
+    ! Create containers for the fraction of soluble tracer
+    ! lost to washout (large-scale precipitation) [.]
+    !----------------------------------------------------------------
+
+    ! Diagnostic name
+    DiagnName = 'WASH_FRAC_LS'
+
+    ! Create container
+    CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        & 
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = '.' ,              &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC ) 
+    ENDIF
+
+    ! Loop over tracers
+    DO N = 1, Input_Opt%N_TRACERS
+         
+       ! If this tracer number N is scheduled for output in input.geos, 
+       ! then define the diagnostic containers for washout fraction
+       IF ( ANY( Input_Opt%TINDEX(18,:) == N ) ) THEN
+
+          !----------------------------------------------------------------
+          ! Create containers for the fraction of soluble tracer
+          ! lost to washout (convective precipitation) [.]
+          !----------------------------------------------------------------
+      
+          ! Diagnostic name
+          DiagnName = 'WASH_FRAC_CONV_' // TRIM( Input_Opt%TRACER_NAME(N) )
+      
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = '.' ,              &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             cId       = cId,               &
+                             RC        = RC )
+      
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagInit_Washout_Frac
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_CH4_Loss (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_CH4\_LOSS initializes the methane
+!  loss diagnostic (aka ND19).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_CH4_Loss( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_CH4_LOSS (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_CH4_LOSS begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND19 diagnostic is turned off
+    IF ( Input_Opt%ND19 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND19_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND19_OUTPUT_FREQ
+    
+    ! Check if certain tracer(s) listed for ND19 in input.geos???
+
+    !----------------------------------------------------------------
+    ! Create containers for CH4 removal by OH [kg CH4]
+    !----------------------------------------------------------------
+
+    ! Diagnostic name
+    DiagnName = 'CH4_LOSS'
+
+    ! Create container
+    CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        & 
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg CH4' ,         &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC ) 
+    ENDIF
+
+  END SUBROUTINE DiagInit_CH4_Loss
+!EOC
+
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: diaginit_Cld_OD (LL in progress)
+!!
+!! !DESCRIPTION: Subroutine DIAGINIT\_CLD\_OD initializes the cloud
+!!  optical depths and cloud fractions diagnostic (aka ND21).
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE DiagInit_Cld_OD( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!    USE Error_Mod,          ONLY : Error_Stop
+!    USE GIGC_ErrCode_Mod
+!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+!    USE HCO_Error_Mod
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!! 
+!! !REVISION HISTORY: 
+!!  26 Jan 2015 - E. Lundgren - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    INTEGER              :: cId,      Collection, N
+!    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+!    CHARACTER(LEN=60)    :: DiagnName
+!    CHARACTER(LEN=255)   :: MSG
+!    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_CLD_OD (diagnostics_mod.F90)' 
+!
+!    !=======================================================================
+!    ! DIAGINIT_CLD_OD begins here!
+!    !=======================================================================
+!      
+!    ! Assume successful return
+!    RC = GIGC_SUCCESS
+!
+!    ! Skip if ND21 diagnostic is turned off
+!    IF ( Input_Opt%ND21 <= 0 ) RETURN
+!
+!    ! Get diagnostic parameters from the Input_Opt object
+!    Collection = Input_Opt%DIAG_COLLECTION
+!    OutOper    = Input_Opt%ND21_OUTPUT_TYPE
+!    WriteFreq  = Input_Opt%ND21_OUTPUT_FREQ
+!    
+!    ! Loop over # of cloud OD and fractions diagnostics
+!    DO N = 1, NumDiagND21
+!
+!       ! If the tracer number is scheduled for output in input.geos, 
+!       ! then define the diagnostic container for that tracer.
+!       IF ( ANY ( Input_Opt%TINDEX(21,:) == TRCN(N) ) THEN
+!
+!          !----------------------------------------------------------------
+!          ! Create containers for ...  [???] - lots of diags. Revisit!
+!          !----------------------------------------------------------------
+!
+!          ! Diagnostic name
+!          DiagnName = 'CLD_OD_' // TRIM( Input_Opt%TRACER_NAME(N) )
+!
+!          ! Create container
+!          CALL Diagn_Create( am_I_Root,                     &
+!                             Col       = Collection,        & 
+!                             cName     = TRIM( DiagnName ), &
+!                             AutoFill  = 0,                 &
+!                             ExtNr     = -1,                &
+!                             Cat       = -1,                &
+!                             Hier      = -1,                &
+!                             HcoID     = -1,                &
+!                             SpaceDim  =  3,                &
+!                             LevIDx    = -1,                &
+!                             OutUnit   = 'kg' ,             &
+!                             OutOper   = TRIM( OutOper   ), &
+!                             WriteFreq = TRIM( WriteFreq ), &
+!                             cId       = cId,               &
+!                             RC        = RC )
+!
+!          IF ( RC /= HCO_SUCCESS ) THEN
+!             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+!             CALL ERROR_STOP( MSG, LOC ) 
+!          ENDIF
+!       ENDIF
+!    ENDDO
+!
+!  END SUBROUTINE DiagInit_Cld_OD
+!!EOC
+
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: diaginit_photolysis (LL in progress)
+!!
+!! !DESCRIPTION: Subroutine DIAGINIT\_PHOTOLYSIS initializes the photolysis
+!!  rates (J-values) diagnostic (aka ND22).
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE DiagInit_Photolysis( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!    USE Error_Mod,          ONLY : Error_Stop
+!    USE GIGC_ErrCode_Mod
+!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+!    USE HCO_Error_Mod
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!! 
+!! !REVISION HISTORY: 
+!!  26 Jan 2015 - E. Lundgren - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    INTEGER              :: cId,      Collection, N
+!    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+!    CHARACTER(LEN=60)    :: DiagnName
+!    CHARACTER(LEN=255)   :: MSG
+!    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_PHOTOLYSIS (diagnostics_mod.F90)' 
+!
+!    !=======================================================================
+!    ! DIAGINIT_PHOTOLYSIS begins here!
+!    !=======================================================================
+!      
+!    ! Assume successful return
+!    RC = GIGC_SUCCESS
+!
+!    ! Skip if ND22 diagnostic is turned off
+!    IF ( Input_Opt%ND22 <= 0 ) RETURN
+!
+!    ! Get diagnostic parameters from the Input_Opt object
+!    Collection = Input_Opt%DIAG_COLLECTION
+!    OutOper    = Input_Opt%ND22_OUTPUT_TYPE
+!    WriteFreq  = Input_Opt%ND22_OUTPUT_FREQ
+!    
+!    ! Loop over # of photolysis rate diagnostics
+!    DO N = 1, NumDiagND22 (NO2, HNO3, H2O2, CH2O, O3, OH source from O3)
+!
+!       ! If the tracer number is scheduled for output in input.geos, 
+!       ! then define the diagnostic container for that tracer.
+!       IF ( ANY ( Input_Opt%TINDEX(22,:) == TRCN(N) ) THEN
+!
+!          !----------------------------------------------------------------
+!          ! Create containers for J-Values [1/s] - Revisit this!!!
+!          !----------------------------------------------------------------
+!
+!          ! Diagnostic name
+!          DiagnName = 'JVALUES_' // TRIM( Input_Opt%TRACER_NAME(N) )
+!
+!          ! Create container
+!          CALL Diagn_Create( am_I_Root,                  &
+!                          Col       = Collection,        & 
+!                          cName     = TRIM( DiagnName ), &
+!                          AutoFill  = 0,                 &
+!                          ExtNr     = -1,                &
+!                          Cat       = -1,                &
+!                          Hier      = -1,                &
+!                          HcoID     = -1,                &
+!                          SpaceDim  =  3,                &
+!                          LevIDx    = -1,                &
+!                          OutUnit   = '1/s' ,            &
+!                          OutOper   = TRIM( OutOper   ), &
+!                          WriteFreq = TRIM( WriteFreq ), &
+!                          cId       = cId,               &
+!                          RC        = RC )
+!
+!          IF ( RC /= HCO_SUCCESS ) THEN
+!             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+!             CALL ERROR_STOP( MSG, LOC ) 
+!          ENDIF
+!       ENDIF
+!    ENDDO
+!
+!    ! If simulation is SOA, also output J(GLYX) and J(MGLY)...revisit!!!
+!
+!  END SUBROUTINE DiagInit_Photolysis
+!!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_ew_flx (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_EW\_FLX initializes the zonal
+!  (east/west) horizontal mass transport flux diagnostic (aka ND24).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_EW_Flx( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_EW_FLX (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_EW_FLX begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND24 diagnostic is turned off
+    IF ( Input_Opt%ND24 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND24_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND24_OUTPUT_FREQ
+ 
+    ! Check if certain tracer(s) listed for ND24 in input.geos???
+
+    ! Loop over tracers
+    DO N = 1, Input_Opt%N_TRACERS
+         
+       ! If this tracer number N is scheduled for output in input.geos, 
+       ! then define the diagnostic containers for E/W flux
+       IF ( ANY( Input_Opt%TINDEX(24,:) == N ) ) THEN
+
+          !----------------------------------------------------------------
+          ! Create container for east/west mass flux by transport [kg/s]
+          !----------------------------------------------------------------
+      
+          ! Diagnostic name
+          DiagnName = 'EW_FLX_' // TRIM( Input_Opt%TRACER_NAME(N) )
+      
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/s' ,           &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             cId       = cId,               &
+                             RC        = RC )
+      
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF  
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagInit_EW_Flx
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_ns_flx (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_NS\_FLX initializes the meridional 
+!  (north/south) horizontal mass transport flux diagnostic (aka ND25).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_NS_Flx( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_NS_FLX (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_NS_FLX begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND25 diagnostic is turned off
+    IF ( Input_Opt%ND25 <= 0 ) RETURN
+
+    ! Check if certain tracer(s) listed for ND25 in input.geos???
+
+    ! Loop over tracers
+    DO N = 1, Input_Opt%N_TRACERS
+         
+       ! If this tracer number N is scheduled for output in input.geos, 
+       ! then define the diagnostic containers for N/S flux
+       IF ( ANY( Input_Opt%TINDEX(25,:) == N ) ) THEN
+
+          !----------------------------------------------------------------
+          ! Create container for the north/south mass flux by transport [kg/s]
+          !----------------------------------------------------------------
+      
+          ! Diagnostic name
+          DiagnName = 'NS_FLX_' // TRIM( Input_Opt%TRACER_NAME(N) )
+      
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/s' ,           &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             cId       = cId,               &
+                             RC        = RC )
+      
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagInit_NS_Flx
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_vert_flx (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_VERT\_FLX initializes the vertical
+!  (up/down) mass transport flux diagnostic (aka ND26).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Vert_Flx( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_VERT_FLX (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_VERT_FLX begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND26 diagnostic is turned off
+    IF ( Input_Opt%ND26 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND26_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND26_OUTPUT_FREQ
+ 
+    ! Check if certain tracer(s) listed for ND26 in input.geos???
+
+    ! Loop over tracers
+    DO N = 1, Input_Opt%N_TRACERS
+         
+       ! If this tracer number N is scheduled for output in input.geos, 
+       ! then define the diagnostic containers for N/S flux
+       IF ( ANY( Input_Opt%TINDEX(25,:) == N ) ) THEN
+
+          !----------------------------------------------------------------
+          ! Create container for the up/down mass flux by transport [kg/s]
+          !----------------------------------------------------------------
+      
+          ! Diagnostic name
+          DiagnName = 'VERT_FLX_' // TRIM( Input_Opt%TRACER_NAME(N) )
+      
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/s' ,           &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             cId       = cId,               &
+                             RC        = RC )
+      
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF  
+    ENDDO 
+
+  END SUBROUTINE DiagInit_Vert_Flx
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_strat_flx (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_STRAT\_FLX initializes the stratospheric
+!  influx diagnostics (aka ND27).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Strat_Flx( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_STRAT_FLX (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_STRAT_FLX begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND27 diagnostic is turned off
+    IF ( Input_Opt%ND27 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND27_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND27_OUTPUT_FREQ
+    
+    IF ( Input_Opt%SIM_TYPE == 3 ) THEN     ! NOx-Ox-HC simulation (full chem)
+
+       ! Check if certain tracer(s) listed for ND27 in input.geos???
+
+       !----------------------------------------------------------------
+       ! Create container for NOx, Ox, and NHO3 influx from stratosphere [kg/s]
+       !----------------------------------------------------------------
+
+       ! Diagnostic name
+       DiagnName = 'STRAT_FLX_FULL'
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
                           Col       = Collection,        & 
                           cName     = TRIM( DiagnName ), &
                           AutoFill  = 0,                 &
@@ -954,20 +2620,181 @@ CONTAINS
                           HcoID     = -1,                &
                           SpaceDim  =  2,                &
                           LevIDx    = -1,                &
-                          OutUnit   = 'kg' ,             &
+                          OutUnit   = 'kg/s' ,           &
                           OutOper   = TRIM( OutOper   ), &
                           WriteFreq = TRIM( WriteFreq ), &
                           cId       = cId,               &
                           RC        = RC )
 
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-             CALL ERROR_STOP( MSG, LOC ) 
-          ENDIF
-       ENDIF
-    ENDDO
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF   
+     
+    ELSEIF ( Input_Opt%SIM_TYPE == 13 ) THEN      ! H2/HD simulation
+  
+       !----------------------------------------------------------------
+       ! Create container for H2, HD influx from stratosphere [kg/s]
+       !----------------------------------------------------------------
 
-  END SUBROUTINE DiagInit_Hg_Source
+       ! Check if certain tracer(s) listed for ND27 in input.geos???
+
+       ! Diagnostic name
+       DiagnName = 'STRAT_FLX_H2HD'
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  2,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/s' ,           &
+                          OutOper   = TRIM( OutOper   ), &
+                          WriteFreq = TRIM( WriteFreq ), &
+                          cId       = cId,               &
+                          RC        = RC )
+
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF   
+
+    ELSE
+  
+       !----------------------------------------------------------------
+       ! Create container for Ox influx from stratosphere [kg/s]
+       !----------------------------------------------------------------
+
+       ! Check if certain tracer(s) listed for ND27 in input.geos???
+
+       ! Diagnostic name
+       DiagnName = 'STRAT_FLX_Ox'
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  2,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/s' ,           &
+                          OutOper   = TRIM( OutOper   ), &
+                          WriteFreq = TRIM( WriteFreq ), &
+                          cId       = cId,               &
+                          RC        = RC )
+
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF   
+
+     ENDIF
+
+  END SUBROUTINE DiagInit_Strat_Flx
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_landmap (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_LANDMAP initializes the land map  
+!  diagnostic (aka ND30).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_LandMap( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_LANDMAP (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_LANDMAP begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND30 diagnostic is turned off
+    IF ( Input_Opt%ND30 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND30_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND30_OUTPUT_FREQ
+   
+    ! Check if certain tracer(s) listed for ND30 in input.geos???
+
+    !----------------------------------------------------------------
+    ! Create container for the GMAO land-water indices [.]
+    !----------------------------------------------------------------
+
+    ! Diagnostic name
+    DiagnName = 'LANDMAP'
+
+    ! Create container
+    CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        & 
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  2,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = '.' ,              &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC ) 
+    ENDIF   
+
+  END SUBROUTINE DiagInit_LandMap
 !EOC
 
 END MODULE Diagnostics_Mod

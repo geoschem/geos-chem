@@ -1070,6 +1070,7 @@
 
          ENDDO
       ENDIF
+#if !defined( BPCH )
 !
 !******************************************************************************
 !  ND12: distribution of surface emissions in the boundry layer: [fraction]
@@ -1093,6 +1094,7 @@
      &               IIPAR,     JJPAR,     LLCHEM,   IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD12) )
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND13: Sulfur emissions (for DMS/SO2/SO4/MSA/NH3/NH4/NIT chemistry)
@@ -1243,6 +1245,7 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
       ENDIF    
+#if !defined( BPCH )
 !
 !******************************************************************************
 !  ND14: Upward mass flux from wet convection (NFCLDMX)
@@ -1495,6 +1498,7 @@
      &               JFIRST,    LFIRST,    AD19(:,:,:) )
 
 	ENDIF
+#endif
 !
 !******************************************************************************
 !  ND21: Optical depth diagnostics
@@ -1828,6 +1832,7 @@
             ENDIF
          ENDDO    
       ENDIF     
+#if !defined( BPCH )
 !
 !******************************************************************************
 !  ND24: Eastward mass flux from transport (TPCORE, XTP)
@@ -1927,6 +1932,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD26) )
          ENDDO
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND28: Biomass burning diagnostic 
@@ -2293,6 +2299,7 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDDO
       ENDIF
+#if !defined( BPCH)
 !
 !******************************************************************************
 !  ND30: Land map diagnostic
@@ -2318,6 +2325,7 @@
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND31: Surface pressure diagnostic
@@ -5129,7 +5137,7 @@
 !  corresponding diagnostics array to the bpch output file. 
 !\\
 !\\
-!  NOTE: This is a "bridge" routine intended to provide backwards compatbility 
+!  NOTE: This is a "bridge" routine intended to provide backwards compatibility 
 !  with the existing GEOS-Chem diagnostics.  Eventually we will write all 
 !  GEOS-Chem diagnostics to netCDF format but we are not yet at that point.
 !\\
