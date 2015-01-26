@@ -719,7 +719,7 @@ CONTAINS
        tIDx = tIDx_GetIndx( HcoState, BaseDct%Dta, I, J )
        IF ( tIDx < 1 ) THEN
           WRITE(MSG,*) 'Cannot get time slice index at location ',I,J,&
-                       ': ', TRIM(BaseDct%cName)
+                       ': ', TRIM(BaseDct%cName), tIDx
           ERROR = 1
           EXIT
        ENDIF
@@ -833,7 +833,9 @@ CONTAINS
           ! Get current time index for this container and at this location
           tIDx = tIDx_GetIndx( HcoState, ScalDct%Dta, I, J )
           IF ( tIDx < 1 ) THEN
-             ERROR = 1
+             WRITE(*,*) 'Cannot get time slice index at location ',I,J,&
+                          ': ', TRIM(ScalDct%cName), tIDx
+             ERROR = 3 
              EXIT
           ENDIF
 
@@ -917,6 +919,8 @@ CONTAINS
 
                 ! Return w/ error otherwise
                 ELSE
+                   WRITE(*,*) 'Negative scale factor at ',I,J,TmpLL,tidx,&
+                              ': ', TRIM(ScalDct%cName), TMPVAL
                    ERROR = 1 ! Will cause error
                    EXIT
                 ENDIF
@@ -943,6 +947,7 @@ CONTAINS
 
              ! Return w/ error otherwise (Oper 3 is only allowed for masks!)
              ELSE
+                WRITE(*,*) 'Illegal operator for ', TRIM(ScalDct%cName), ScalDct%Oper
                 ERROR = 2 ! Will cause error
                 EXIT
              ENDIF
@@ -973,6 +978,8 @@ CONTAINS
              MSG = 'Negative scale factor found (aborted): ' // TRIM(ScalDct%cName)
           ELSEIF ( ERROR == 2 ) THEN
              MSG = 'Illegal mathematical operator for scale factor: ' // TRIM(ScalDct%cName)
+          ELSEIF ( ERROR == 3 ) THEN
+             MSG = 'Encountered negative time index for scale factor: ' // TRIM(ScalDct%cName)
           ELSE
              MSG = 'Error when applying scale factor: ' // TRIM(ScalDct%cName)
           ENDIF

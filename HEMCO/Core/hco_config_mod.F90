@@ -600,18 +600,24 @@ CONTAINS
           Dta%ncPara    = srcVar
           Dta%OrigUnit  = srcUnit
 
+          ! If the parameter ncPara is not defined, attempt to read data
+          ! directly from configuration file instead of netCDF.
+          ! These data are always assumed to be in local time. Gridded 
+          ! data read from netCDF is always in UTC, except for weekdaily
+          ! data that is treated in local time. The corresponding 
+          ! IsLocTime flag is updated when reading the data (see 
+          ! hcoio_dataread_mod.F90).
+          IF ( TRIM(Dta%ncPara) == '-' ) THEN
+             Dta%ncRead    = .FALSE.
+             Dta%IsLocTime = .TRUE.
+          ENDIF
+
           ! Extract information from time stamp character and pass values 
           ! to the corresponding container variables. If no time string is
           ! defined, keep default values (-1 for all of them)
           IF ( TRIM(srcTime) /= '-' ) THEN
              CALL HCO_ExtractTime( srcTime, Dta, RC ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
-          ENDIF
-
-          ! If the parameter ncPara is not defined, attempt to read data
-          ! directly from configuration file instead of netCDF.
-          IF ( TRIM(Dta%ncPara) == '-' ) THEN
-             Dta%ncRead = .FALSE.
           ENDIF
 
           ! In an ESMF environment, the source data will be imported 

@@ -25,7 +25,6 @@
 !         across all longitudes (based upon UTC time).
 ! \item Weekdaily: Seven time slices, representing the days of the  
 !         week: Sun, Mon, ..., Sat. Uses local time.
-! \item Weekdaily\_gridded: As weekdaily, but uses utc time.
 ! \item Monthly: 12 time slices, representing the months of the year: 
 !         Jan, ..., Dec. Uses local time. 
 ! \end{itemize}
@@ -41,7 +40,8 @@
 ! time is used at every grid box when picking the time slice at a given
 ! time. For gridded data, it's assumed that local-time effects are already 
 ! taken into account and UTC time is used at all locations to select the
-! currently valid time slice.
+! currently valid time slice. The exception is weekdaily data, which is
+! always assumed to be in local time.
 !\\
 !\\
 ! Structure AlltIDx organizes the indexing of the vector arrays. It
@@ -186,12 +186,12 @@ CONTAINS
     AlltIDx%WEEKDAY%TypeID       = 7
     AlltIDx%WEEKDAY%TempRes      = "Weekday"
 
-    ! ----------------------------------------------------------------
-    ! "WEEKDAY_GRID" => changes every weekday, longitude-independent
-    ! ----------------------------------------------------------------
-    ALLOCATE ( AlltIDx%WEEKDAY_GRID )
-    AlltIDx%WEEKDAY_GRID%TypeID       = 71
-    AlltIDx%WEEKDAY_GRID%TempRes      = "Weekday_Grid"
+!    ! ----------------------------------------------------------------
+!    ! "WEEKDAY_GRID" => changes every weekday, longitude-independent
+!    ! ----------------------------------------------------------------
+!    ALLOCATE ( AlltIDx%WEEKDAY_GRID )
+!    AlltIDx%WEEKDAY_GRID%TypeID       = 71
+!    AlltIDx%WEEKDAY_GRID%TempRes      = "Weekday_Grid"
 
     ! ----------------------------------------------------------------
     ! "MONTHLY" => changes every month, longitude-dependent
@@ -259,8 +259,8 @@ CONTAINS
        CASE ( 7 )
           ctIDx => AlltIDx%WEEKDAY
 
-       CASE ( 71 )
-          ctIDx => AlltIDx%WEEKDAY_GRID
+!       CASE ( 71 )
+!          ctIDx => AlltIDx%WEEKDAY_GRID
 
        CASE ( 12 )
           ctIDx => AlltIDx%MONTHLY
@@ -477,10 +477,10 @@ CONTAINS
        ! Weekday data (already gridded)
        ! For gridded weekday factors, just use the UTC slice. Add
        ! one since weekday start at 0.
-       CASE ( 71 )
-          CALL HcoClock_Get( cWeekday = WD, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          Indx = WD + 1
+!       CASE ( 71 )
+!          CALL HcoClock_Get( cWeekday = WD, RC=RC )
+!          IF ( RC /= HCO_SUCCESS ) RETURN
+!          Indx = WD + 1
 
        ! Monthly data (local time)
        ! Monthly data is always in local time.
@@ -510,7 +510,10 @@ CONTAINS
     ENDIF
 
     ! Sanity check: index must not exceed time dimension
-    IF ( Indx > Dta%nt ) Indx = -1
+    IF ( Indx > Dta%nt ) THEN
+       WRITE(*,*) 'Indx exceeds # of time slices! ', Indx, Dta%nt, TRIM(Dta%ncFile)
+       Indx = -1
+    ENDIF
 
   END FUNCTION tIDx_Get
 !EOC
@@ -623,11 +626,18 @@ CONTAINS
           ! Check if data is in local time or not, set TempRes attribute
           ! accordingly. Data will only be in local time if data is
           ! spatially uniform or country-specific data. The IsLocTime
-          ! flag is set in hcoio_dataread_mod.F90
-          IF ( Lct%Dct%Dta%IsLocTime ) THEN
-             cTypeID = 7 
+          ! flag is set in hco_config_mod.F90 (for data read from other
+          ! sources than netCDF) or in hcoio_dataread_mod.F90 (for 
+          ! weekdaily data read from netCDF).
+          IF ( .NOT. Lct%Dct%Dta%IsLocTime ) THEN
+             MSG = 'Weekday data must be in local time!' // &
+                  TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR( MSG, RC )
+             RETURN
+
           ELSE
-             cTypeID = 71 
+             cTypeID = 7 
+!             cTypeID = 71 
           ENDIF
 
        ! -------------------------------------------------------------
@@ -673,8 +683,8 @@ CONTAINS
 
           ! Check if data is in local time or not, set TempRes attribute
           ! accordingly. Data will only be in local time if data is
-          ! spatially uniform or country-specific data. The IsLocTime
-          ! flag is set in hcoio_dataread_mod.F90
+          ! read from other sources than netCDF. The corresponding
+          ! IsLocTime flag is set in hco_config_mod.F90. 
           IF ( Lct%Dct%Dta%IsLocTime ) THEN
              cTypeID = 24 
           ELSE
@@ -827,13 +837,17 @@ CONTAINS
                          Lct%Dct%Dta%ncHrs(2)          )
     ENDIF
 
+    ! For weekday data, set day to 1. The seven day slices to be
+    ! read will be detected based upon the current year/month. 
+    IF ( Lct%Dct%Dta%ncDys(1) == -10 ) readDy = 1
+
     ! Don't allow invalid entries for years, months or days, i.e.
     ! force readYr, readMt and readDy to be positive!
     ! readHr can be negative, in which case all hourly fields will
     ! become read!
-    if ( readYr < 0 ) readYr = cYr 
-    if ( readMt < 0 ) readMt = cMt
-    if ( readDy < 0 ) readDy = cDy
+    IF ( readYr < 0 ) readYr = cYr 
+    IF ( readMt < 0 ) readMt = cMt
+    IF ( readDy < 0 ) readDy = cDy
 
   END SUBROUTINE HCO_GetPrefTimeAttr
 !EOC
@@ -856,9 +870,10 @@ CONTAINS
 !  found in the data set.
 ! \item Time tokens: $YYYY, $MM, $DD, $HH. When reading the data, these values
 !  will be substituted by the current simulation date.
-! \item String 'WD'. Denotes that the data contains weekday data. Weekdaily data
-!  is always completely read into array (e.g. all seven data arrays) and it is
-!  expected that the first slice represents Sunday.
+! \item String 'WD'. Denotes that the data contains weekday data. It is 
+!  expected that the first slice represents Sunday. Weekday data can be used
+!  in combination with annual or monthly data. In that case, there need to be 
+!  seven entries for every year and/or month, respectively.
 ! \end{enumerate}
 !
 ! The extracted time stamp is written into the arrays ncYrs, ncMts,
@@ -936,11 +951,10 @@ CONTAINS
           TimeVec(I0:I1) = -999
 
        ! For the daily index, value 'WD' is also supported. This 
-       ! indicates weekdays (Sun-Sat). Weekday data is always read
-       ! entirely (e.g. all seven arrays) and we can set the time limits
-       ! to -1.
+       ! indicates weekdays (Sun, Mon, ..., Sat). Use a special
+       ! flag here to expliclity state that these are weekday data. 
        ELSEIF ( I==3 .AND. INDEX( TRIM(SUBSTR(I)), 'WD' ) > 0 ) THEN
-          TimeVec(I0:I1) = -1 
+          TimeVec(I0:I1) = -10
 
        ! Otherwise, check for date range and set lower and upper bound
        ! accordingly.
@@ -962,13 +976,27 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
-    ENDDO
+
+    ENDDO !I
 
     ! Pass to list container
     Dta%ncYrs = TimeVec(1:2)
     Dta%ncMts = TimeVec(3:4)
     Dta%ncDys = TimeVec(5:6)
     Dta%ncHrs = TimeVec(7:8)
+
+    ! Check for local times.
+    ! Hourly and daily data that is in local time shall be completely
+    ! read into memory. This will ensure that for every time zone, the 
+    ! correct values can be selected.
+    IF ( Dta%IsLocTime ) THEN
+       Dta%ncDys = -1
+       Dta%ncHrs = -1
+    ENDIF
+
+    ! Weekdaily data is always in local time. All seven time slices will
+    ! be read into memory.
+    IF ( Dta%ncDys(1) == -10 ) Dta%IsLocTime  = .TRUE.
 
     ! Leave w/ success
     RC = HCO_SUCCESS

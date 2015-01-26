@@ -406,9 +406,11 @@ CONTAINS
     ! This determines the lower and upper time slice index (tidx1 
     ! and tidx2) to be read based upon the time slice information 
     ! extracted from the file and the time stamp settings set in the
-    ! HEMCO configuration file.
+    ! HEMCO configuration file. Multiple time slices are only selected
+    ! for weekdaily data or for 'autodetected' hourly data (using the
+    ! wildcard character in the configuration file time attribute).
     ! ----------------------------------------------------------------
-    CALL GET_TIMEIDX ( am_I_Root, HcoState, Lct, &
+    CALL GET_TIMEIDX ( am_I_Root, HcoState, Lct,     &
                        ncLun,     tidx1,    tidx2,   &
                        ncYr,      ncMt,     RC        )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -966,8 +968,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Ncdf_Mod,     ONLY : NC_Read_Time_YYYYMMDDhh
-    USE HCO_tIdx_Mod, ONLY : HCO_GetPrefTimeAttr
+    USE Ncdf_Mod,      ONLY : NC_Read_Time_YYYYMMDDhh
+    USE HCO_tIdx_Mod,  ONLY : HCO_GetPrefTimeAttr
 !
 ! !INPUT PARAMETERS:
 !
@@ -1049,14 +1051,14 @@ CONTAINS
     ! ------------------------------------------------------------- 
     ! Get preferred time stamp to read based upon the specs set
     ! in the config. file. 
-    ! This can return value -1 for prefHr, indicating that all 
-    ! hourly slices shall be read. Will always return a valid 
-    ! attribute for Yr, Mt, and Dy.
+    ! This can return value -1 for prefHr, indicating that all  
+    ! corresponding time slices shall be read. Will always return
+    ! a valid attribute for Yr, Mt, or Dy.
     ! ------------------------------------------------------------- 
     CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     prefYMDh = prefYr*1000000 + prefMt*10000 + &
-               prefDy*100     + max(prefHr,0)
+               prefDy*100 + max(prefHr,0)
 
     ! verbose mode
     IF ( verb ) THEN
@@ -1112,25 +1114,12 @@ CONTAINS
                 write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
                 CALL HCO_MSG(MSG)
              ENDIF
-   
+      
              CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
-
+   
           ENDDO
-
-!          IF ( tidx1 < 0 ) THEN
-!             CALL prefYMDh_adjustYear ( nTime, availYMDh, prefYMDh )
-!   
-!             ! verbose mode 
-!             IF ( verb ) THEN
-!                write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
-!                CALL HCO_MSG(MSG)
-!             ENDIF
-!   
-!             CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
-!          ENDIF
-
        ENDIF
-
+   
        ! ------------------------------------------------------------- 
        ! If tidx1 still isn't defined, i.e. prefYMDh is still 
        ! outside the range of availYMDh, set tidx1 to the closest
@@ -1145,6 +1134,75 @@ CONTAINS
           ENDIF
        ENDIF
  
+       ! ------------------------------------------------------------- 
+       ! If we are dealing with weekday data, pick the slice to be
+       ! used based on the current day of week. 
+       ! The ncDys flag has been set in subroutine HCO_ExtractTime
+       ! (hco_tidx_mod.F90) based upon the time attributes set in the
+       ! configuration file. It can have the following values:
+       ! >0  : specific days are given.
+       ! -1  : wildcard (autodetect)
+       ! -10 : WD (weekday). 
+       ! -999: determine from current simulation day.
+       ! For specific days or if determined from the current datetime
+       ! (flags >0 or -999), the weekday is not taken into account.
+       ! If auto-detection is enabled, days are treated as weekday if
+       ! (and only if) there are exactly 7 time slices. Otherwise, they
+       ! are interpreted as 'regular' day data. 
+       ! If flag is set to -10, e.g. time attribute is 'WD', the current 
+       ! time index is assumed to hold Sunday data, with the following 
+       ! six slices being Mon, Tue, ..., Sat. For weekdaily data, all 
+       ! seven time slices will be read into memory so that at any given
+       ! time, the local weekday can be taken (weekdaily data is always 
+       ! assumed to be in local time).
+       ! ------------------------------------------------------------- 
+
+       ! Day flag is -1: wildcard
+       IF ( Lct%Dct%Dta%ncDys(1) == -1 .AND. nTime == 7 ) THEN
+          tidx1 = 1
+          tidx2 = nTime 
+
+          ! Make sure data is treated in local time
+          Lct%Dct%Dta%IsLocTime = .TRUE.
+
+       ! Day flag is -10: WD
+       ELSEIF ( Lct%Dct%Dta%ncDys(1) == -10 ) THEN
+
+          ! There must be at least 7 time slices 
+          IF ( nTime < 7 ) THEN
+             MSG = 'Data must have exactly 7 time slices '// &
+                   'if you set day attribute to WD: '//TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR ( MSG, RC )
+             RETURN
+          ENDIF
+ 
+          ! If there are exactly seven time slices, interpret them as
+          ! the seven weekdays. 
+          IF ( nTime == 7 ) THEN
+             tidx1 = 1
+             tidx2 = tidx1 + 6
+             
+          ! If there are more than 7 time slices, interpret the current
+          ! selected index as sunday of the current time frame (e.g. sunday
+          ! data of current month), and select the time slice index
+          ! accordingly. This requires that there are at least 6 more time
+          ! slices following the current one. 
+          ELSE
+             IF ( (tidx1+6) > nTime ) THEN
+                WRITE(MSG,*) 'Cannot get weekday for: ',TRIM(Lct%Dct%cName), &
+                   '. There are less than 6 additional time slices after ',  &
+                   'selected start date ', availYMDh(tidx1)
+                CALL HCO_ERROR ( MSG, RC )
+                RETURN
+             ENDIF
+             tidx2 = tidx1 + 6
+          ENDIF
+
+          ! Make sure data is treated in local time
+          Lct%Dct%Dta%IsLocTime = .TRUE.
+
+       ENDIF
+
        ! verbose mode 
        IF ( verb ) THEN
           WRITE(MSG,'(A30,I12)') 'selected tidx1: ', tidx1
@@ -1154,21 +1212,26 @@ CONTAINS
        ! ------------------------------------------------------------- 
        ! Now need to set upper time slice index tidx2. This index
        ! is only different from tidx1 if multiple hourly slices are
-       ! read (--> prefHr = -1). In this case, check if there are 
-       ! multiple time slices for the selected date (y/m/d). 
-       ! ------------------------------------------------------------- 
-       IF ( tidx1 > 0 .AND. prefHr < 0 ) THEN
-          CALL SET_TIDX2 ( nTime, availYMDH, tidx1, tidx2 ) 
-          
-          ! verbose mode 
-          IF ( verb ) THEN
-             WRITE(MSG,'(A30,I12)') 'selected tidx2: ', tidx1
-             CALL HCO_MSG(MSG)
+       ! read (--> prefHr = -1, e.g. hour attribute in config. file
+       ! was set to wildcard character). In this case, check if there
+       ! are multiple time slices for the selected date (y/m/d).
+       ! tidx2 has already been set to proper value above if it's
+       ! weekday data.
+       ! -------------------------------------------------------------
+       IF ( tidx2 < 0 ) THEN
+          IF ( tidx1 > 0 .AND. prefHr < 0 ) THEN
+             CALL SET_TIDX2 ( nTime, availYMDH, tidx1, tidx2 )    
+          ELSE
+             tidx2 = tidx1
           ENDIF
-       ELSE
-          tidx2 = tidx1
+       ENDIF   
+
+       ! verbose mode 
+       IF ( (tidx2 /= tidx1) .AND. verb ) THEN
+          WRITE(MSG,'(A30,I12)') 'selected tidx2: ', tidx2
+          CALL HCO_MSG(MSG)
        ENDIF
-       
+
     ! ================================================================
     ! Case 3: No time slice available. Set both indeces to zero. 
     ! ================================================================
@@ -1195,7 +1258,8 @@ CONTAINS
     ! (e.g. every hour, every 3 hours, ...).
     !-----------------------------------------------------------------
     IF ( tidx2 > tidx1 ) THEN
-       Lct%Dct%Dta%DeltaT = availYMDh(tidx1+1) - availYMDh(tidx1)
+       !Lct%Dct%Dta%DeltaT = availYMDh(tidx1+1) - availYMDh(tidx1)
+       Lct%Dct%Dta%DeltaT = YMDh2hrs( availYMDh(tidx1+1) - availYMDh(tidx1) )
     ELSE
        Lct%Dct%Dta%DeltaT = 0
     ENDIF
@@ -1204,11 +1268,13 @@ CONTAINS
     IF ( verb .and. tidx1 > 0 ) THEN
        write(MSG,'(A30,I12)') 'corresponding datetime 1: ', availYMDh(tidx1)
        CALL HCO_MSG(MSG)
-       if ( nTime > 1 ) THEN
+       if ( tidx2 > tidx1 ) THEN
           write(MSG,'(A30,I12)') 'corresponding datetime 2: ', availYMDh(tidx2)
           CALL HCO_MSG(MSG)
        endif
        write(MSG,'(A30,I12)') 'assigned delta t [h]: ', Lct%Dct%Dta%DeltaT 
+       CALL HCO_MSG(MSG)
+       write(MSG,*) 'local time? ', Lct%Dct%Dta%IsLocTime
        CALL HCO_MSG(MSG)
     ENDIF
 
@@ -1251,7 +1317,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Checks if prefYMDh is within the range of availYMDh
 ! and returns the location of the closest vector element that is in
-! the past as tidx1. tidx1 is set to -1 otherwise. 
+! the past (--> tidx1). tidx1 is set to -1 otherwise. 
 !\\
 !\\
 ! !INTERFACE:
@@ -1447,6 +1513,48 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: YMDh2hrs
+!
+! !DESCRIPTION: returns the hours of element YMDh. For simplicity, 30 days are
+! assigned to every month. At the moment, this routine is only called to
+! determine the time interval between two emission time slices (DeltaT) and 
+! this approximation is good enough.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION YMDh2hrs ( YMDh ) RESULT ( hrs ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN)  :: YMDh
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER              :: hrs
+!
+! !REVISION HISTORY:
+!  26 Jan 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=================================================================
+    ! YMDh2hrs begins here! 
+    !=================================================================
+
+    hrs = FLOOR( MOD(YMDh, 10000000000) / 1.0d6 ) * 8760 + &
+          FLOOR( MOD(YMDh, 1000000    ) / 1.0d4 ) * 720  + &
+          FLOOR( MOD(YMDh, 10000      ) / 1.0d2 ) * 24   + &
+          FLOOR( MOD(YMDh, 100        ) / 1.0d0 )
+
+  END FUNCTION YMDh2hrs 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Normalize_Area 
 !
 ! !DESCRIPTION: Subroutine Normalize\_Area normalizes the given array
@@ -1567,11 +1675,20 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    CHARACTER(LEN=255) :: MSG
 
     !======================================================================
     ! HCOIO_ReadOther begins here
     !======================================================================
   
+    ! Error check: data must be in local time 
+    IF ( .NOT. Lct%Dct%Dta%IsLocTime ) THEN
+       MSG = 'Cannot read data from file that is not in local time: ' // &
+             TRIM(Lct%Dct%cName)
+       CALL HCO_ERROR( MSG, RC, THISLOC='HCOIO_ReadOther (hcoio_dataread_mod.F90)' )
+       RETURN
+    ENDIF
+
     ! Read an ASCII file as country values
     IF ( INDEX( TRIM(Lct%Dct%Dta%ncFile), '.txt' ) > 0 ) THEN
        CALL HCOIO_ReadCountryValues ( am_I_Root, HcoState, Lct, RC )
@@ -1772,9 +1889,16 @@ CONTAINS
     ! Close file
     CLOSE ( IUFILE )
 
-    ! Data is 2D and in local time.
+    ! Data is 2D
     Lct%Dct%Dta%SpaceDim  = 2
-    Lct%Dct%Dta%IsLocTime = .TRUE.
+
+    ! Make sure data is in local time
+    IF ( .NOT. Lct%Dct%Dta%IsLocTime ) THEN
+       Lct%Dct%Dta%IsLocTime = .TRUE.
+       MSG = 'Data assigned to mask regions will be treated in local time: '//&
+              TRIM(Lct%Dct%cName)
+       CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+    ENDIF
 
     ! Cleanup
     Cntr => NULL()
@@ -1895,9 +2019,17 @@ CONTAINS
           Lct%Dct%Dta%V2(I)%Val(1,1) = Vals(I)
        ENDDO
 
-       ! Data is 1D and as such assumed to be in local time. 
+       ! Data is 1D
        Lct%Dct%Dta%SpaceDim  = 1
-       Lct%Dct%Dta%IsLocTime = .TRUE.
+
+       ! Make sure data is in local time
+       IF ( .NOT. Lct%Dct%Dta%IsLocTime ) THEN
+          Lct%Dct%Dta%IsLocTime = .TRUE.
+          MSG = 'Scale factors read from file are treated as local time: '// &
+                 TRIM(Lct%Dct%cName)
+          CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+       ENDIF
+
     ENDIF
 
     ! Cleanup
@@ -2101,8 +2233,8 @@ CONTAINS
        ! Read selected time slice(s) into data array
        ! ----------------------------------------------------------------
        IF ( IDX2 > N ) THEN
-          WRITE(MSG,*) 'Index ', IDX2, ' is larger than number of found values: ', &
-                       TRIM(Lct%Dct%cName)
+          WRITE(MSG,*) 'Index ', IDX2, ' is larger than number of ', &
+                       'values found: ', TRIM(Lct%Dct%cName)
           CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF

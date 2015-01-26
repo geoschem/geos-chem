@@ -48,8 +48,8 @@
 !       emission array.
 ! \item IsLocTime: Set to true if data is in local time. Defaults to
 !       false and becomes only true if data is scalar (e.g. uniform
-!       diurnal scale factors) or country-specific data (read from
-!       ASCII).
+!       diurnal scale factors), country-specific data (read from
+!       ASCII), or weekdaily data.
 ! \item V3: vector of 3D fields. For 3D-data, this vector will hold
 !       the 3D arrays of all time slices kept in memory (e.g. 24
 !       elements for hourly data).
