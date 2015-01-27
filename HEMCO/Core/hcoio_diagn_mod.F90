@@ -355,6 +355,7 @@ CONTAINS
           MSG = '--- Added diagnostics: '//TRIM(myName)
           CALL HCO_MSG(MSG)
        ENDIF
+
     ENDDO
 
     !-----------------------------------------------------------------

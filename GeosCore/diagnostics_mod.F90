@@ -145,12 +145,17 @@ CONTAINS
 ! !IROUTINE: Diagnostics_Write
 !
 ! !DESCRIPTION: Subroutine Diagnostics\_Write writes the GEOS-Chem diagnostics
-! to disk. 
+! to disk. If the variable RESTART is set to true, all GEOS-Chem diagnostics
+! are passed to the restart file.
+!\\
+!\\
+! The Diagnostics\_Write routine is called from main.F, at the end of the time
+! loop and during cleanup (to write the restart file).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagnostics_Write ( am_I_Root, LAST, RC ) 
+  SUBROUTINE Diagnostics_Write ( am_I_Root, RESTART, RC ) 
 !
 ! !USES:
 !
@@ -163,7 +168,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
-    LOGICAL,          INTENT(IN   )  :: LAST       ! Is this the last call? 
+    LOGICAL,          INTENT(IN   )  :: RESTART    ! Write restart file? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -194,18 +199,18 @@ CONTAINS
        CALL ERROR_STOP( 'Cannot get HEMCO state object', LOC )
     ENDIF
 
-    ! Write diagnostics:
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, WriteAll=.FALSE., RC=RC, &
-                                UsePrevTime=.FALSE., COL=GCDiagNr )
-    IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Diagnostics write error', LOC ) 
-
-    ! Last call: write out all diagnostics. Use current time stamp and write into
-    ! restart file
-    IF ( LAST ) THEN
+    ! RESTART: write out all diagnostics. Use current time stamp and save into
+    ! restart file.
+    IF ( RESTART ) THEN
        CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, WriteAll=.TRUE., RC=RC, &
                                    UsePrevTime=.FALSE., PREFIX=RST, COL=GCDiagNr )
-       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Diagnostics write error A', LOC ) 
+       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Restart write error', LOC ) 
 
+    ! Not restart: write out regular diagnostics. Use current time stamp.
+    ELSE
+       CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, WriteAll=.FALSE., RC=RC, &
+                                   UsePrevTime=.FALSE., COL=GCDiagNr )
+       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Diagnostics write error', LOC ) 
     ENDIF
 
     ! Free pointer

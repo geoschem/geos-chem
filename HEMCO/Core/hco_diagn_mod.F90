@@ -422,8 +422,7 @@ CONTAINS
     ENDIF
 
     !----------------------------------------------------------------------
-    ! Initalize diagnostics container. This will automatically add the
-    ! container to the diagnostics list.
+    ! Initalize diagnostics container.
     !----------------------------------------------------------------------
     CALL DiagnCont_Init( ThisDiagn )
 
@@ -675,7 +674,7 @@ CONTAINS
     ! Add to diagnostics list of this collection. 
     ! Insert at the beginning of the list.
     !-----------------------------------------------------------------------
-    IF ( Collections(PS)%nnDiagn > 1 ) THEN
+    IF ( Collections(PS)%nnDiagn > 0 ) THEN
        ThisDiagn%NextCont => Collections(PS)%DiagnList
     ENDIF
     Collections(PS)%DiagnList => ThisDiagn

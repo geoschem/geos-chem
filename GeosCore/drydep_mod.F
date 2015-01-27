@@ -441,7 +441,7 @@
       LOGICAL       :: LPRT
 
       ! New diagnostics
-      INTEGER           :: N_O3, HCRC
+      INTEGER           :: N_O3, N_NO2, HCRC
       REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
 
       !=================================================================
@@ -479,7 +479,9 @@
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
       !=================================================================
-      N_O3 = -1 !testing only
+      N_O3  = -1 !testing only
+      N_NO2 = -1 !testing only
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, IJLOOP, THIK, N, NN, NDVZ, DVZ )
@@ -506,7 +508,8 @@
             NN   = NTRAIND(N)
 
             ! For testing the new diagnostics structure: save out NO id
-            IF ( NN == IDTO3 ) N_O3 = N
+            IF ( NN == IDTO3  ) N_O3  = N
+            IF ( NN == IDTNO2 ) N_NO2 = N
 
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
@@ -559,6 +562,22 @@
      &                      Array2D = Ptr2D,
      &                      COL     = GCDiagNr,
      &                      RC      = HCRC )
+
+         Ptr2D => NULL()
+         IF ( HCRC /= HCO_SUCCESS ) THEN
+            CALL ERROR_STOP('Cannot update diagnostics','drydep_mod.F')
+         ENDIF
+      ENDIF
+
+      ! Archive diagnostics into new diagnostics structure
+      IF ( N_NO2 > 0 ) THEN
+         Ptr2D => DEPSAV(:,:,N_NO2)
+         CALL Diagn_Update( am_I_Root,
+     &                      cName   = 'DEPVEL_NO2', 
+     &                      Array2D = Ptr2D,
+     &                      COL     = GCDiagNr,
+     &                      RC      = HCRC )
+
          Ptr2D => NULL()
          IF ( HCRC /= HCO_SUCCESS ) THEN
             CALL ERROR_STOP('Cannot update diagnostics','drydep_mod.F')
@@ -4434,7 +4453,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N
+      INTEGER            :: I, N
       CHARACTER(LEN= 63) :: DiagnName 
       CHARACTER(LEN=255) :: MSG
       CHARACTER(LEN=255) :: LOC = 'DIAGINIT_DRYDEP (drydep_mod.F)' 
@@ -4443,27 +4462,41 @@
       ! DIAGINIT_DRYDEP begins here!
       !=================================================================
       
-      ! Add diagnostics
-      DiagnName = 'DEPVEL_O3'
-      CALL Diagn_Create ( am_I_Root, 
-     &                    cName     = TRIM(DiagnName), 
-     &                    ExtNr     = -1, 
-     &                    Cat       = -1, 
-     &                    Hier      = -1, 
-     &                    HcoID     = -1, 
-     &                    SpaceDim  =  2, 
-     &                    LevIDx    = -1, 
-     &                    OutUnit   = 's-1',
-     &                    OutOper   = 'Mean',
-     &                    WriteFreq = 'Daily',
-     &                    AutoFill  = 0,
-     &                    cID       = N,
-     &                    RC        = RC,
-     &                    COL       = GCDiagNr )
-      IF ( RC /= HCO_SUCCESS ) THEN
-         MSG = 'Cannot created diagnostics: ' // TRIM(DiagnName)
-         CALL ERROR_STOP ( MSG, LOC ) 
-      ENDIF
+      ! Loop over all diagnostics
+      DO I = 1, 2
+
+         ! Define diagnostics name
+         SELECT CASE ( I ) 
+            CASE ( 1 )  
+               DiagnName = 'DEPVEL_O3'
+            CASE ( 2 )  
+               DiagnName = 'DEPVEL_NO2'
+            CASE DEFAULT 
+               DiagnName = 'DEPVEL_DUMMY'
+         END SELECT
+
+         ! Add diagnostics
+         CALL Diagn_Create ( am_I_Root, 
+     &                       cName     = TRIM(DiagnName), 
+     &                       ExtNr     = -1, 
+     &                       Cat       = -1, 
+     &                       Hier      = -1, 
+     &                       HcoID     = -1, 
+     &                       SpaceDim  =  2, 
+     &                       LevIDx    = -1, 
+     &                       OutUnit   = 's-1',
+     &                       OutOper   = 'Mean',
+     &                       WriteFreq = 'Hourly',
+     &                       AutoFill  = 0,
+     &                       cID       = N,
+     &                       RC        = RC,
+     &                       COL       = GCDiagNr )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            MSG = 'Cannot created diagnostics: ' // TRIM(DiagnName)
+            CALL ERROR_STOP ( MSG, LOC ) 
+         ENDIF
+
+      ENDDO !I
 
       ! Return w/ success
       RC = GIGC_SUCCESS
