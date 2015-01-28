@@ -1593,7 +1593,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: cId,      Collection, N
+    INTEGER              :: cId,      Collection, M
     CHARACTER(LEN=15)    :: OutOper,  WriteFreq
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
@@ -1613,68 +1613,45 @@ CONTAINS
     Collection = Input_Opt%DIAG_COLLECTION
     OutOper    = Input_Opt%ND16_OUTPUT_TYPE
     WriteFreq  = Input_Opt%ND16_OUTPUT_FREQ
-
-    ! Check if certain tracer(s) listed for ND16 in input.geos???
     
-    !----------------------------------------------------------------
-    ! Create containers for fraction of grid box with rainout and
-    ! washout (large-scale precipitation) [.]
-    !----------------------------------------------------------------
+    DO M = 1, 2
 
-    ! Diagnostic name
-    DiagnName = 'PRECIP_FRAC_LS'
+       IF ( M == 1) THEN
+          !----------------------------------------------------------------
+          ! Name container for fraction of grid box with rainout and
+          ! washout (large-scale precipitation) [.]
+          !----------------------------------------------------------------
+          DiagnName = 'PRECIP_FRAC_LS'
+       ELSE
+          !----------------------------------------------------------------
+          ! Name container for fraction of grid box with rainout and
+          ! washout (convective precipitation) [.]
+          !----------------------------------------------------------------
+          DiagnName = 'PRECIP_FRAC_CONV'
+       END IF
 
-    Create container
-    CALL Diagn_Create( am_I_Root,                     &
-                       Col       = Collection,        & 
-                       cName     = TRIM( DiagnName ), &
-                       AutoFill  = 0,                 &
-                       ExtNr     = -1,                &
-                       Cat       = -1,                &
-                       Hier      = -1,                &
-                       HcoID     = -1,                &
-                       SpaceDim  =  3,                &
-                       LevIDx    = -1,                &
-                       OutUnit   = '.' ,              &
-                       OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
-                       cId       = cId,               &
-                       RC        = RC )
-
-    IF ( RC /= HCO_SUCCESS ) THEN
-       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-       CALL ERROR_STOP( MSG, LOC ) 
-    ENDIF
-
-    !----------------------------------------------------------------
-    ! Create containers for fraction of grid box with rainout and
-    ! washout (convective precipitation) [.]
-    !----------------------------------------------------------------
-
-    ! Diagnostic name
-    DiagnName = 'PRECIP_FRAC_CONV'
-
-    Create container
-    CALL Diagn_Create( am_I_Root,                     &
-                       Col       = Collection,        & 
-                       cName     = TRIM( DiagnName ), &
-                       AutoFill  = 0,                 &
-                       ExtNr     = -1,                &
-                       Cat       = -1,                &
-                       Hier      = -1,                &
-                       HcoID     = -1,                &
-                       SpaceDim  =  3,                &
-                       LevIDx    = -1,                &
-                       OutUnit   = '.' ,              &
-                       OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
-                       cId       = cId,               &
-                       RC        = RC )
-
-    IF ( RC /= HCO_SUCCESS ) THEN
-       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-       CALL ERROR_STOP( MSG, LOC ) 
-    ENDIF
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  3,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = '.' ,              &
+                          OutOper   = TRIM( OutOper   ), &
+                          WriteFreq = TRIM( WriteFreq ), &
+                          cId       = cId,               &
+                          RC        = RC )
+   
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+   ENDDO
 
   END SUBROUTINE DiagInit_Precip_Frac
 !EOC
@@ -1719,7 +1696,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: cId,      Collection, N
+    INTEGER              :: cId,      Collection, N, M
     CHARACTER(LEN=15)    :: OutOper,  WriteFreq
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
@@ -1748,65 +1725,44 @@ CONTAINS
        ! then define the diagnostic containers for rainout fraction
        IF ( ANY( Input_Opt%TINDEX(17,:) == N ) ) THEN
 
-          !----------------------------------------------------------------
-          ! Create containers for the fraction of soluble tracer
-          ! lost to rainout (large-scale precipitation) [.]
-          !----------------------------------------------------------------
+          DO M = 1, 2          
+             IF ( M == 1 ) THEN
+                !-----------------------------------------------------
+                ! Name container for the fraction of soluble tracer
+                ! lost to rainout (large-scale precipitation) [.]
+                !-----------------------------------------------------
+                DiagnName = 'RAIN_FRAC_LS_' // TRIM( Input_Opt%TRACER_NAME(N) )
+             ELSE
+               !------------------------------------------------------
+               ! Name container for the fraction of soluble tracer
+               ! lost to rainout (convective precipitation) [.]
+               !------------------------------------------------------
+               ! Diagnostic name
+               DiagnName = 'RAIN_FRAC_CONV_' // TRIM( Input_Opt%TRACER_NAME(N) )
+             END IF
       
-          ! Diagnostic name
-          DiagnName = 'RAIN_FRAC_LS_' // TRIM( Input_Opt%TRACER_NAME(N) )
-      
-          ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
-                             Col       = Collection,        & 
-                             cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
-                             SpaceDim  =  3,                &
-                             LevIDx    = -1,                &
-                             OutUnit   = '.' ,              &
-                             OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
-                             cId       = cId,               &
-                             RC        = RC )
-      
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-             CALL ERROR_STOP( MSG, LOC ) 
-          ENDIF
-      
-          !----------------------------------------------------------------
-          ! Create containers for the fraction of soluble tracer
-          ! lost to rainout (convective precipitation) [.]
-          !----------------------------------------------------------------
-      
-          ! Diagnostic name
-          DiagnName = 'RAIN_FRAC_CONV_' // TRIM( Input_Opt%TRACER_NAME(N) )
-      
-          ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
-                             Col       = Collection,        & 
-                             cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
-                             SpaceDim  =  3,                &
-                             LevIDx    = -1,                &
-                             OutUnit   = '.' ,              &
-                             OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
-                             cId       = cId,               &
-                             RC        = RC )
-      
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-             CALL ERROR_STOP( MSG, LOC ) 
-          ENDIF
+             ! Create container
+             CALL Diagn_Create( am_I_Root,                     &
+                                Col       = Collection,        & 
+                                cName     = TRIM( DiagnName ), &
+                                AutoFill  = 0,                 &
+                                ExtNr     = -1,                &
+                                Cat       = -1,                &
+                                Hier      = -1,                &
+                                HcoID     = -1,                &
+                                SpaceDim  =  3,                &
+                                LevIDx    = -1,                &
+                                OutUnit   = '.' ,              &
+                                OutOper   = TRIM( OutOper   ), &
+                                WriteFreq = TRIM( WriteFreq ), &
+                                cId       = cId,               &
+                                RC        = RC )
+         
+             IF ( RC /= HCO_SUCCESS ) THEN
+                MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+                CALL ERROR_STOP( MSG, LOC ) 
+             ENDIF 
+          ENDDO     
        ENDIF
     ENDDO     
 
@@ -1853,7 +1809,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: cId,      Collection, N
+    INTEGER              :: cId,      Collection, N, M
     CHARACTER(LEN=15)    :: OutOper,  WriteFreq
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
@@ -1876,36 +1832,6 @@ CONTAINS
  
     ! Check if certain tracer(s) listed for ND18 in input.geos???
 
-    !----------------------------------------------------------------
-    ! Create containers for the fraction of soluble tracer
-    ! lost to washout (large-scale precipitation) [.]
-    !----------------------------------------------------------------
-
-    ! Diagnostic name
-    DiagnName = 'WASH_FRAC_LS'
-
-    ! Create container
-    CALL Diagn_Create( am_I_Root,                     &
-                       Col       = Collection,        & 
-                       cName     = TRIM( DiagnName ), &
-                       AutoFill  = 0,                 &
-                       ExtNr     = -1,                &
-                       Cat       = -1,                &
-                       Hier      = -1,                &
-                       HcoID     = -1,                &
-                       SpaceDim  =  3,                &
-                       LevIDx    = -1,                &
-                       OutUnit   = '.' ,              &
-                       OutOper   = TRIM( OutOper   ), &
-                       WriteFreq = TRIM( WriteFreq ), &
-                       cId       = cId,               &
-                       RC        = RC )
-
-    IF ( RC /= HCO_SUCCESS ) THEN
-       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-       CALL ERROR_STOP( MSG, LOC ) 
-    ENDIF
-
     ! Loop over tracers
     DO N = 1, Input_Opt%N_TRACERS
          
@@ -1913,35 +1839,43 @@ CONTAINS
        ! then define the diagnostic containers for washout fraction
        IF ( ANY( Input_Opt%TINDEX(18,:) == N ) ) THEN
 
-          !----------------------------------------------------------------
-          ! Create containers for the fraction of soluble tracer
-          ! lost to washout (convective precipitation) [.]
-          !----------------------------------------------------------------
-      
-          ! Diagnostic name
-          DiagnName = 'WASH_FRAC_CONV_' // TRIM( Input_Opt%TRACER_NAME(N) )
-      
-          ! Create container
-          CALL Diagn_Create( am_I_Root,                     &
-                             Col       = Collection,        & 
-                             cName     = TRIM( DiagnName ), &
-                             AutoFill  = 0,                 &
-                             ExtNr     = -1,                &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
-                             SpaceDim  =  3,                &
-                             LevIDx    = -1,                &
-                             OutUnit   = '.' ,              &
-                             OutOper   = TRIM( OutOper   ), &
-                             WriteFreq = TRIM( WriteFreq ), &
-                             cId       = cId,               &
-                             RC        = RC )
-      
-          IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-             CALL ERROR_STOP( MSG, LOC ) 
-          ENDIF
+          DO M = 1, 2          
+             IF ( M == 1 ) THEN
+                !-----------------------------------------------------
+                ! Name container for the fraction of soluble tracer
+                ! lost to washout (large-scale precipitation) [.]
+                !-----------------------------------------------------
+                DiagnName = 'WASH_FRAC_LS'
+             ELSE
+               !------------------------------------------------------
+               ! Name container for the fraction of soluble tracer
+               ! lost to washout (convective precipitation) [.]
+               !------------------------------------------------------
+               DiagnName = 'WASH_FRAC_CONV_' // TRIM( Input_Opt%TRACER_NAME(N) )
+             ENDIF
+
+             ! Create container
+             CALL Diagn_Create( am_I_Root,                     &
+                                Col       = Collection,        & 
+                                cName     = TRIM( DiagnName ), &
+                                AutoFill  = 0,                 &
+                                ExtNr     = -1,                &
+                                Cat       = -1,                &
+                                Hier      = -1,                &
+                                HcoID     = -1,                &
+                                SpaceDim  =  3,                &
+                                LevIDx    = -1,                &
+                                OutUnit   = '.' ,              &
+                                OutOper   = TRIM( OutOper   ), &
+                                WriteFreq = TRIM( WriteFreq ), &
+                                cId       = cId,               &
+                                RC        = RC )
+         
+             IF ( RC /= HCO_SUCCESS ) THEN
+                MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+                CALL ERROR_STOP( MSG, LOC ) 
+             ENDIF
+          ENDDO
        ENDIF
     ENDDO
 
