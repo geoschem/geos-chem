@@ -254,6 +254,12 @@ CONTAINS
 !       CALL ERROR_STOP( 'Error in DIAGINIT_LANDMAP', LOC ) 
 !    ENDIF
 !
+!   ! Surface Pressure diagnostic (ND31)
+!   CALL DIAGINIT_PRESSURE( am_I_Root, Input_Opt, RC )
+!   IF ( RC /= GIGC_SUCCESS ) THEN
+!      CALL ERROR_STOP ( 'Error in DIAGINIT_PRESSURE', LOC )
+!   ENDIF
+!
     ! Drydep diagnostic (ND44)
     CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
@@ -265,7 +271,24 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
     ENDIF
-
+!   ! Tropopause Height diagnostic (ND55)
+!   CALL DIAGINIT_TROP_HEIGHT( am_I_Root, Input_Opt, RC )
+!   IF ( RC /= GIGC_SUCCESS ) THEN
+!      CALL ERROR_STOP( 'Error in DIAGINIT_TROP_HEIGHT', LOC )
+!   ENDIF
+!
+!   ! Lightning Flashes diagnostic (ND56)
+!   CALL DIAGINIT_LIGHTNING( am_I_Root, Input_Opt, RC )
+!   IF ( RC /= GIGC_SUCCESS ) THEN
+!      CALL ERROR_STOP( 'Error in DIAGINIT_LIGHTNING', LOC )
+!   ENDIF
+!
+!   ! Potential Temperature diagnostic (ND57)
+!   CALL DIAGINIT_POT_TEMP( am_I_Root, Input_Opt, RC )
+!   IF ( RC /= GIGC_SUCCESS ) THEN
+!      CALL ERROR_STOP( 'Error in DIAGINIT_POT_TEMP', LOC )
+!   ENDIF
+!
     ! Leave with success
     RC = GIGC_SUCCESS
 
