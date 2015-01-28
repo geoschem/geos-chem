@@ -249,6 +249,7 @@
       ENDIF
 !-------------------------------------------------------------------------
 
+#if !defined( NO_BPCH )
       !================================================================= 
       ! ND30: Land/water/ice flags
       !=================================================================
@@ -268,6 +269,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       !================================================================= 
       ! ND31: Surface pressure diagnostic (PS - PTOP) in hPa
@@ -544,6 +546,58 @@
 !##############################################################################
 
 #if defined( DEVEL )
+
+      !=================================================================
+      ! ND30: Landmap diagnostics (new diagnostic structure)
+      !=================================================================
+      IF ( Input_Opt%ND30 > 0 ) THEN
+
+               ! Construct diagnostic name
+               DiagnName = 'LANDMAP'
+
+               ! Create the landmap. 
+               ! For now, use AD30. This will not work if !defined ( NO_BPCH )
+               ! It may make more sense to create/update
+               ! the landmap array elsewhere and simply point to it here.
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            IF ( IS_WATER( I, J, State_Met ) )
+     &           AD30(I,J) = AD30(I,J) + 0e0
+            IF ( IS_LAND ( I, J, State_Met ) )
+     &           AD30(I,J) = AD30(I,J) + 1e0
+            IF ( IS_ICE  ( I, J, State_Met ) )
+     &           AD30(I,J) = AD30(I,J) + 2e0
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+               ! Point to the landmap array
+               Ptr2D => AD30
+
+               ! Update the landmap diagostic
+               CALL Diagn_Update( am_I_Root,
+     &                            cName   = TRIM( DiagnName ),
+     &                            Array2D = Ptr2D,
+     &                            COL     = Input_Opt%DIAG_COLLECTION,
+     &                            RC      = HCRC )
+
+               ! Free the pointer
+               Ptr2D => NULL()
+
+               ! STOP with error if the diagnostics were unsuccessful
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP(
+     &                 'Cannot update landmap diagnostic',
+     &                 'DIAG1 (diag1.F)')
+               ENDIF
+            ENDIF
+         ENDDO
+      ENDIF
+
+
       !=================================================================
       ! ND45: Tracer concentrations (new diagnostic structure)
       !=================================================================
@@ -553,17 +607,17 @@
          DO N = 1, Input_Opt%N_TRACERS
 
             ! If this tracer number NN is scheduled for output in input.geos,
-            ! then archive the latest depvel data into the diagnostic structure
+            ! then archive the latest concentration into the diagnostic structure
             IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
 
                ! Construct diagnostic name
                DiagnName = 'TRACER_CONC_' // 
      &                      TRIM( Input_Opt%TRACER_NAME(N) )
 
-               ! Point to the proper slice of the DEPSAV array
+               ! Point to the proper slice of the tracer concentration array
                Ptr3D => STT_VV(:,:,:,N)
 
-               ! Update the deposition velocity diagostics
+               ! Update the tracer concentration diagostics
                CALL Diagn_Update( am_I_Root,
      &                            cName   = TRIM( DiagnName ),
      &                            Array3D = Ptr3D,
