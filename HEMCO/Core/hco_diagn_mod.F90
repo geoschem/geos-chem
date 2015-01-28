@@ -675,7 +675,7 @@ CONTAINS
     ! Add to diagnostics list of this collection. 
     ! Insert at the beginning of the list.
     !-----------------------------------------------------------------------
-    IF ( Collections(PS)%nnDiagn > 1 ) THEN
+    IF ( Collections(PS)%nnDiagn > 0 ) THEN
        ThisDiagn%NextCont => Collections(PS)%DiagnList
     ENDIF
     Collections(PS)%DiagnList => ThisDiagn
