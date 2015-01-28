@@ -4589,6 +4589,10 @@
       READ( SUBSTRS(1), * ) ND31
       CALL SET_TINDEX( am_I_Root, 31, ND31, SUBSTRS(2:N), N-1, PD31 )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND31_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND31_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND32: NOx sources
       !--------------------------
@@ -4756,6 +4760,10 @@
       READ( SUBSTRS(1), * ) ND55
       CALL SET_TINDEX( am_I_Root, 55, ND55, SUBSTRS(2:N), N-1, PD55 )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND55_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND55_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND56: Lightning flashes
       !--------------------------
@@ -4763,12 +4771,20 @@
       READ( SUBSTRS(1), * ) ND56
       CALL SET_TINDEX( am_I_Root, 56, ND56, SUBSTRS(2:N), N-1, PD56 )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND56_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND56_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND57: Potential temperature
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:56' )
       READ( SUBSTRS(1), * ) ND57
       CALL SET_TINDEX( am_I_Root, 57, ND57, SUBSTRS(2:N), N-1, PD57 )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND57_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND57_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND58: CH4 Emissions 
