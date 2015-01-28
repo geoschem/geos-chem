@@ -332,35 +332,31 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! Write diagnostics to the diagnostics file
-    !-----------------------------------------------------------------------
-    CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                &
-                               HcoState,                                 &
-                               WriteAll    = .FALSE.,                    &
-                               UsePrevTime = .FALSE.,                    & 
-                               COL         = Input_Opt%DIAG_COLLECTION,  & 
-                               RC          = RC                         )
-
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Diagnostics write error', LOC ) 
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Last call: write out all diagnostics. 
-    ! Use current time stamp and write into restart file
+    ! Write out diagnostics to file using current time stamp.
+    ! If last, save into restart file. Else, write out regular diagnostics.
     !-----------------------------------------------------------------------
     IF ( LAST ) THEN
        CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                & 
                                   HcoState,                                 &
                                   WriteAll    = .TRUE.,                     &
                                   UsePrevTime = .FALSE.,                    &
-                                  PREFIX      = RST,                        &  
+                                  PREFIX      = RST,                        &   
                                   COL         = Input_Opt%DIAG_COLLECTION,  &
                                   RC          = RC                         )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Diagnostics write error at end of run', LOC ) 
+          CALL ERROR_STOP( 'Restart write error', LOC )
        ENDIF
+    ELSE
+       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                &
+                                  HcoState,                                 &
+                                  WriteAll    = .FALSE.,                    &
+                                  UsePrevTime = .FALSE.,                    & 
+                                  COL         = Input_Opt%DIAG_COLLECTION,  & 
+                                  RC          = RC                         )
 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Diagnostics write error', LOC ) 
+       ENDIF
     ENDIF
 
     ! Free pointer
