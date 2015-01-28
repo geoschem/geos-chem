@@ -2326,6 +2326,8 @@
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDIF
 #endif
+
+#if !defined( BPCH )
 !
 !******************************************************************************
 !  ND31: Surface pressure diagnostic
@@ -2356,6 +2358,8 @@
      &               IIPAR,     JJPAR,     LD31,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD31) )
       ENDIF
+
+#endif
 !
 !******************************************************************************
 !  ND32: NOx source diagnostic
@@ -4008,6 +4012,7 @@
      &               IIPAR,     JJPAR,     LD54,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD54) )
       ENDIF
+#if !defined( BPCH )
 !
 !******************************************************************************
 !  ND55: Tropopause diagnostics
@@ -4046,6 +4051,9 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
+#endif
+
+#if !defined( BPCH )
 !
 !******************************************************************************
 !  ND56: Lightning flash rate diagnostics (ltm, bmy, 5/5/06))
@@ -4097,6 +4105,9 @@
          ENDDO
 
       ENDIF
+#endif
+
+#if !defined( BPCH )
 !
 !******************************************************************************
 !  ND57: THETA
@@ -4120,7 +4131,7 @@
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD57) )
       ENDIF
 
-
+#endif
 !
 !******************************************************************************
 !  ND58: CH4 Emission Diagnostics

@@ -271,24 +271,24 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
     ENDIF
-!   ! Tropopause Height diagnostic (ND55)
-!   CALL DIAGINIT_TROP_HEIGHT( am_I_Root, Input_Opt, RC )
-!   IF ( RC /= GIGC_SUCCESS ) THEN
-!      CALL ERROR_STOP( 'Error in DIAGINIT_TROP_HEIGHT', LOC )
-!   ENDIF
-!
-!   ! Lightning Flashes diagnostic (ND56)
-!   CALL DIAGINIT_LIGHTNING( am_I_Root, Input_Opt, RC )
-!   IF ( RC /= GIGC_SUCCESS ) THEN
-!      CALL ERROR_STOP( 'Error in DIAGINIT_LIGHTNING', LOC )
-!   ENDIF
-!
-!   ! Potential Temperature diagnostic (ND57)
-!   CALL DIAGINIT_POT_TEMP( am_I_Root, Input_Opt, RC )
-!   IF ( RC /= GIGC_SUCCESS ) THEN
-!      CALL ERROR_STOP( 'Error in DIAGINIT_POT_TEMP', LOC )
-!   ENDIF
-!
+    ! Tropopause Height diagnostic (ND55)
+    CALL DIAGINIT_TROP_HEIGHT( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_TROP_HEIGHT', LOC )
+    ENDIF
+
+    ! Lightning Flashes diagnostic (ND56)
+    CALL DIAGINIT_LIGHTNING( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_LIGHTNING', LOC )
+    ENDIF
+
+    ! Potential Temperature (THETA) diagnostic (ND57)
+    CALL DIAGINIT_THETA( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_THETA', LOC )
+    ENDIF
+
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -2814,7 +2814,413 @@ CONTAINS
     ENDIF   
 
   END SUBROUTINE DiagInit_LandMap
+
 !EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_pressure
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_PRESSURE initializes the diagnostics
+!  for Pressure (aka ND31).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Pressure( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  28 Jan 2015 - M. Yannetti - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_PRESSURE (diagnostics_mod.F90)'
+
+    !=======================================================================
+    ! DIAGINIT_PRESSURE begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND31 diagnostic is turned off
+
+      IF ( Input_Opt%ND31 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND31_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND31_OUTPUT_FREQ
+
+    ! TODO Check if certain tracer(s) listed for ND31 in input.geos 
+
+    !----------------------------------------------------------------
+    ! Create containers for Pressure
+    !----------------------------------------------------------------
+
+    ! Diagnostic name
+    DiagnName = 'PRESSURE'
+
+    ! Create container
+    CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        &
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = '.' ,              &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC )
+    ENDIF
+
+  END SUBROUTINE DiagInit_Pressure
+
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_trop_height
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_TROP\_HEIGHT initializes the diagnostics
+!  for Tropospheric Height (aka ND55).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Trop_Height( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  28 Jan 2015 - M. Yannetti - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_TROP_HEIGHT (diagnostics_mod.F90)'
+
+    !=======================================================================
+    ! DIAGINIT_TROP_HEIGHT begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND55 diagnostic is turned off
+
+      IF ( Input_Opt%ND55 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND55_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND55_OUTPUT_FREQ
+
+    ! TODO Check if certain tracer(s) listed for ND55 in input.geos 
+
+    !----------------------------------------------------------------
+    ! Create containers for Tropospheric Height
+    !----------------------------------------------------------------
+
+    ! Diagnostic name
+    DiagnName = 'TROP_HEIGHT'
+
+    ! Create container
+    CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        &
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = '.' ,              &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC )
+    ENDIF
+
+  END SUBROUTINE DiagInit_Trop_Height
+
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_lightning
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_LIGHTNING initializes the diagnostics
+!  for Lightning Flashrate (aka ND56).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Lightning( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  28 Jan 2015 - M. Yannetti - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N, M
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_LIGHTNING (diagnostics_mod.F90)'
+
+    !=======================================================================
+    ! DIAGINIT_LIGHTNING begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND56 diagnostic is turned off
+
+    IF ( Input_Opt%ND56 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND56_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND56_OUTPUT_FREQ
+
+    ! TODO Check if certain tracer(s) listed for ND56 in input.geos 
+
+    !----------------------------------------------------------------
+    ! Create containers for Lightning
+    !----------------------------------------------------------------
+
+    ! Loop over ND56 diagnostic tracers
+    DO M = 1, 3
+
+    ! Define quantities
+      N = Input_Opt%TINDEX(56,M)
+
+      SELECT CASE ( N )
+         CASE ( 1 )
+           DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
+         CASE ( 2 )
+           DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
+         CASE ( 3 )
+           DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
+         CASE DEFAULT
+           MSG = 'Lightning index N must not exceed 3!'
+           CALL ERROR_STOP ( MSG, LOC )
+       END SELECT
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        &
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = '.' ,              &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+       IF ( RC /= HCO_SUCCESS ) THEN
+           MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+           CALL ERROR_STOP( MSG, LOC )
+       ENDIF
+    ENDDO
+  END SUBROUTINE DiagInit_Lightning
+
+!EOC
+
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_theta
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_THETA initializes the diagnostics
+!  for Potential Temperature (aka ND57).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Theta( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  28 Jan 2015 - M. Yannetti - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_THETA (diagnostics_mod.F90)'
+
+    !=======================================================================
+    ! DIAGINIT_THETA begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND57 diagnostic is turned off
+
+      IF ( Input_Opt%ND57 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND57_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND57_OUTPUT_FREQ
+
+    ! TODO Check if certain tracer(s) listed for ND57 in input.geos 
+
+    !----------------------------------------------------------------
+    ! Create containers for Potential Temperature
+    !----------------------------------------------------------------
+
+    ! Diagnostic name
+    DiagnName = 'THETA'
+
+    ! Create container
+    CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        &
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = '.' ,              &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL ERROR_STOP( MSG, LOC )
+    ENDIF
+
+  END SUBROUTINE DiagInit_Theta
+
+!EOC
+
 
 END MODULE Diagnostics_Mod
 #endif
