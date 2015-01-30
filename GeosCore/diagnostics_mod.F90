@@ -692,7 +692,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE HCO_Error_Mod
-    USE TRACERID_MOD        ONLY : IDTPB   
+    USE TRACERID_MOD,       ONLY : IDTPB   
 !
 ! !INPUT PARAMETERS:
 !
@@ -734,7 +734,7 @@ CONTAINS
     
     ! If the tracer number for lead is scheduled for output in input.geos, 
     ! then define the diagnostic container for 210Pb emissions.
-    IF ( ANY ( Input_Opt%TINDEX(1,:) == IDTPB ) THEN
+    IF ( ANY ( Input_Opt%TINDEX(1,:) == IDTPB ) ) THEN
 
        !----------------------------------------------------------------
        ! Create containers for Pb emissions [kg/s]
@@ -790,7 +790,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE HCO_Error_Mod
-    USE TRACERID_MOD        ONLY : IDTPB, IDTRN, IDTBE7   
+    USE TRACERID_MOD,        ONLY : IDTPB, IDTRN, IDTBE7   
 !
 ! !INPUT PARAMETERS:
 !
@@ -842,7 +842,7 @@ CONTAINS
 
        ! If the tracer number is scheduled for output in input.geos, 
        ! then define the diagnostic container for that tracer.
-       IF ( ANY ( Input_Opt%TINDEX(2,:) == Tracer_ind( N ) ) THEN
+       IF ( ANY ( Input_Opt%TINDEX(2,:) == Tracer_ind( N ) ) ) THEN
 
           !----------------------------------------------------------------
           ! Create containers for Rn/Pb/Be7 decay [kg/s]
@@ -900,7 +900,7 @@ CONTAINS
 !    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
 !    USE HCO_Error_Mod
-!    USE TRACERID_MOD        ONLY : ??? 
+!    USE TRACERID_MOD,        ONLY : ??? 
 !!
 !! !INPUT PARAMETERS:
 !!
@@ -952,7 +952,7 @@ CONTAINS
 !
 !       ! If the tracer number is scheduled for output in input.geos, 
 !       ! then define the diagnostic container for that tracer.
-!       IF ( ANY ( Input_Opt%TINDEX(2,:) == TRCN(N) ) THEN
+!       IF ( ANY ( Input_Opt%TINDEX(3,:) == TRCN(N) ) ) THEN
 !
 !          !----------------------------------------------------------------
 !          ! Create containers for mercury sources [units?]
@@ -1054,7 +1054,7 @@ CONTAINS
 !
 !       ! If the tracer number is scheduled for output in input.geos, 
 !       ! then define the diagnostic container for that tracer.
-!       IF ( ANY ( Input_Opt%TINDEX(5,:) == TRCN(N) ) THEN
+!       IF ( ANY ( Input_Opt%TINDEX(5,:) == TRCN(N) ) ) THEN
 !
 !          !----------------------------------------------------------------
 !          ! Create containers for sulfate PL [kg S] (8 of these so need a loop)
@@ -1213,7 +1213,7 @@ CONTAINS
 !
 !       ! If the tracer number is scheduled for output in input.geos, 
 !       ! then define the diagnostic container for that tracer.
-!       IF ( ANY ( Input_Opt%TINDEX(7,:) == TRCN(N) ) THEN
+!       IF ( ANY ( Input_Opt%TINDEX(7,:) == TRCN(N) ) ) THEN
 !
 !          !----------------------------------------------------------------
 !          ! Create containers for carbon aerosol sources [kg]
@@ -1425,7 +1425,7 @@ CONTAINS
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
                              Col       = Collection,        & 
-                             Name     = TRIM( DiagnName ),  &
+                             cName     = TRIM( DiagnName ),  &
                              AutoFill  = 0,                 &
                              ExtNr     = -1,                &
                              Cat       = -1,                &
@@ -1529,7 +1529,7 @@ CONTAINS
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
                              Col       = Collection,        & 
-                             Name     = TRIM( DiagnName ),  &
+                             cName     = TRIM( DiagnName ),  &
                              AutoFill  = 0,                 &
                              ExtNr     = -1,                &
                              Cat       = -1,                &
@@ -1879,7 +1879,7 @@ CONTAINS
        ENDIF
     ENDDO
 
-  END SUBROUTINE DiagInit_Washout_Frac
+  END SUBROUTINE DiagInit_Wash_Frac
 !EOC
 
 !------------------------------------------------------------------------------
@@ -2043,7 +2043,7 @@ CONTAINS
 !
 !       ! If the tracer number is scheduled for output in input.geos, 
 !       ! then define the diagnostic container for that tracer.
-!       IF ( ANY ( Input_Opt%TINDEX(21,:) == TRCN(N) ) THEN
+!       IF ( ANY ( Input_Opt%TINDEX(21,:) == TRCN(N) ) ) THEN
 !
 !          !----------------------------------------------------------------
 !          ! Create containers for ...  [???] - lots of diags. Revisit!
@@ -2145,7 +2145,7 @@ CONTAINS
 !
 !       ! If the tracer number is scheduled for output in input.geos, 
 !       ! then define the diagnostic container for that tracer.
-!       IF ( ANY ( Input_Opt%TINDEX(22,:) == TRCN(N) ) THEN
+!       IF ( ANY ( Input_Opt%TINDEX(22,:) == TRCN(N) ) ) THEN
 !
 !          !----------------------------------------------------------------
 !          ! Create containers for J-Values [1/s] - Revisit this!!!
@@ -2454,7 +2454,7 @@ CONTAINS
          
        ! If this tracer number N is scheduled for output in input.geos, 
        ! then define the diagnostic containers for N/S flux
-       IF ( ANY( Input_Opt%TINDEX(25,:) == N ) ) THEN
+       IF ( ANY( Input_Opt%TINDEX(26,:) == N ) ) THEN
 
           !----------------------------------------------------------------
           ! Create container for the up/down mass flux by transport [kg/s]
