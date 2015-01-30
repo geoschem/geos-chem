@@ -288,6 +288,7 @@
       N_TRC_TOT = N_TRACERS              ! G-C advected tracers only
 #endif
 
+#if !defined( NO_BPCH )
       !=================================================================
       ! ND01: Rn, Pb, Be emissions
       !=================================================================
@@ -306,6 +307,7 @@
          ALLOCATE( AD02( IIPAR, JJPAR, LD02, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD02' )
       ENDIF
+#endif
 
       !=================================================================
       ! ND04: CO2 source - see ??
@@ -620,6 +622,7 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
       ENDIF
 
+#if !defined( NO_BPCH )
       !=================================================================
       ! ND30: Land/water/ice flags
       !=================================================================      
@@ -627,6 +630,7 @@
          ALLOCATE( AD30( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD30' )
       ENDIF
+#endif
 
       !=================================================================
       ! ND31: 3-D pressure edges [hPa] --> Uses AD31 array (allocatable)

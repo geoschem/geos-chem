@@ -23,6 +23,10 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
       PUBLIC  :: CHEMRnPbBe
+! 
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: Diagn_RnPbBe_Update
 
       ! NOTE: WE NEED TO KEEP THIS HERE FOR NOW SINCE IT IS USED
       ! BY CODE IN mercury_mod.F.  REMOVE IT LATER. (bmy, 7/7/14)
@@ -81,6 +85,7 @@
 !                              are now defined in the HEMCO code.
 !  22 Aug 2014 - R. Yantosca - Remove XNUMOL_* parameters; these are obsolete
 !  04 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  30 Jan 2015 - E. Lundgren - Add new diagnostics stuctures for netCDF output.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -107,8 +112,10 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD01
       USE DIAG_MOD,           ONLY : AD02
+#endif
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -119,6 +126,7 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
       USE HCO_Error_Mod
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -188,6 +196,15 @@
       ! To get HEMCO values
       REAL(hp)              :: Emis
       LOGICAL             :: FOUND
+
+      ! For netCDF diagnostics via HEMCO
+      CHARACTER(LEN=255) :: MSG
+      CHARACTER(LEN=255) :: LOC = 'CHEMRNPBBE (RnPbBe_mod.F)'
+      REAL(fp), TARGET   :: PB_EMISS(IIPAR, JJPAR, LLPAR)
+      REAL(fp), TARGET   :: RN_DECAY(IIPAR, JJPAR, LLPAR)
+      REAL(fp), TARGET   :: PB_DECAY(IIPAR, JJPAR, LLPAR) 
+      REAL(fp), TARGET   :: BE_DECAY(IIPAR, JJPAR, LLPAR)  
+
 !
 ! !DEFINED PARAMETERS
 !
@@ -303,8 +320,13 @@
 
             ! ND02 diag: 222Rn lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
+#if !defined( NO_BPCH )
                AD02(I,J,L,1)           = AD02(I,J,L,1) 
      &                                 + ( Rn_LOST(I,J,L) / DTCHEM )
+#endif
+#if defined( DEVEL )
+               RN_DECAY(I,J,L) = RN_LOST(I,J,L) / DTCHEM
+#endif
             ENDIF
 
             ! Subtract Rn_LOST from STT [kg]
@@ -314,6 +336,15 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+         ! Update ND02 diagnostic: Rn lost to decay [kg/s]
+         CALL Diagn_RnPbBe_Update( am_I_Root,
+     &                             'ND02', 
+     &                             Input_Opt%TRACER_NAME( IDTRn ), 
+     &                             RN_DECAY, INput_Opt%DIAG_COLLECTION )
+#endif
+         
       ENDIF
 
       !=================================================================
@@ -348,8 +379,13 @@
 
             ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN
+#if !defined( NO_BPCH )
                AD01(I,J,L)             = AD01(I,J,L) + 
      &                                   ( ADD_Pb / DTCHEM )
+#endif
+#if ( DEVEL )
+               PB_EMISS(I,J,L) = ADD_Pb / DTCHEM
+#endif
             ENDIF
 
             ! Add 210Pb gained by decay from 222Rn into STT [kg]
@@ -363,8 +399,13 @@
 
             ! ND02 diag: 210Pb lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
+#if !defined( NO_BPCH )
                AD02(I,J,L,2)           = AD02(I,J,L,2) 
      &                                 + ( Pb_LOST / DTCHEM )
+#endif
+#if defined( DEVEL )
+               PB_DECAY(I,J,L) = PB_LOST / DTCHEM
+#endif
             ENDIF
 
             ! Subtract 210Pb lost to decay from STT [kg]
@@ -374,6 +415,23 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+
+         ! Update ND01 diagnostic: Pb emission [kg/s]
+         CALL Diagn_RnPbBe_Update( am_I_Root,
+     &                             'ND01', 
+     &                             Input_Opt%TRACER_NAME( IDTPb ), 
+     &                             PB_EMISS, Input_Opt%DIAG_COLLECTION )
+
+         ! Update ND02 diagnostic: Pb lost to decay [kg/s]
+         CALL Diagn_RnPbBe_Update( am_I_Root,
+     &                             'ND02', 
+     &                             Input_Opt%TRACER_NAME( IDTPb ), 
+     &                             PB_DECAY, Input_Opt%DIAG_COLLECTION )
+
+#endif
+
       ENDIF
 
       !=================================================================
@@ -398,8 +456,13 @@
 
             ! ND02 diag: 7Be lost to decay [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
+#if !defined( NO_BPCH )
                AD02(I,J,L,3)           = AD02(I,J,L,3) 
      &                                 + ( Be_LOST / DTCHEM )
+#endif
+#if defined( DEVEL )
+               BE_DECAY(I,J,L) = Be_LOST / DTCHEM
+#endif
             ENDIF
 
             ! Subtract amount of 7Be lost to decay from STT [kg]
@@ -409,10 +472,119 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+         ! Update ND02 diagnostic: Be lost to decay [kg/s]
+         CALL Diagn_RnPbBe_Update( am_I_Root,
+     &                             'ND02', 
+     &                             Input_Opt%TRACER_NAME( IDTBe7 ), 
+     &                             BE_DECAY, Input_Opt%DIAG_COLLECTION )
+#endif
+
       ENDIF
 
       END SUBROUTINE CHEMRnPbBe
 !EOC
+
+#if defined( DEVEL )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: diagn_rnpbbe_update
+!
+! !DESCRIPTION: Subroutine DIAGN\_RNPBBE\_UPDATE updates the Rn/Pb/Be7
+!  diagnostics (ND01 and ND02) that are written to netCDF.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Diagn_RnPbBe_Update( am_I_Root, NDxx, TracerName, 
+     &                                DiagArray, ColNo )
+!
+! !USES:
+!
+      USE ERROR_MOD
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE HCO_ERROR_MOD
+!      USE GIGCErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,            INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      CHARACTER(LEN=4),   INTENT(IN)  :: NDxx        ! Diagnostic id
+      CHARACTER(LEN=255), INTENT(IN)  :: TracerName  ! Tracer name
+      REAL(fp), TARGET,   INTENT(IN)  :: DiagArray(:,:,:)
+      INTEGER,            INTENT(IN)  :: ColNo       ! Diag collection #
+
+!
+! !OUTPUT PARAMETERS:
+!
+!      INTEGER,           INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  30 Jan 2015 - E. Lundgren   - Initial version
+! 
+! !REMARKS:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=255)  :: DiagnName
+      CHARACTER(LEN=255)  :: MSG
+      CHARACTER(LEN=255)  :: LOC = 'DIAGN_RNPBBE_UPDATE (RnPbBe_mod.F)'
+      INTEGER             :: HCRC
+      REAL(fp), POINTER   :: Ptr3D(:,:,:) => NULL()
+
+      !=================================================================
+      ! DIAGN_RNPBBE_UPDATE begins here!
+      !=================================================================
+      
+      ! Assume success
+!      RC  =  GIGC_SUCCESS
+  
+      ! Define the diagnostic name
+      SELECT CASE ( NDxx )
+         CASE ( 'ND01' )
+            DiagnName = 'EMISS_' // TRIM( TracerName )
+         CASE ( 'ND02' )
+            DiagnName = 'DECAY_' // TRIM( TracerName )
+         CASE DEFAULT
+            MSG = 'Undefined Rn/Pb/Be7 diagnostic: ' // NDxx
+            CALL ERROR_STOP( TRIM( MSG ), LOC )
+      END SELECT
+
+      ! Point to the array
+      Ptr3D => DiagArray
+
+      ! Update container for diagnostic
+      CALL Diagn_Update( am_I_Root,
+     &                   cName   = TRIM( DiagnName ),
+     &                   Array3D = Ptr3D,
+     &                   COL     = ColNo,
+     &                   RC      = HCRC )
+ 
+      ! Free the pointer before error handling
+      Ptr3D => NULL()
+ 
+      ! Stop with error if the diagnostic update was unsuccessful
+      IF ( HCRC /= HCO_SUCCESS ) THEN
+         MSG = 'Cannot update ' // NDxx // ' diagnostic: ' 
+     &         // TRIM(DiagnName)
+         CALL ERROR_STOP( MSG, LOC)
+      ENDIF
+
+      ! Leave with success (not currently used)
+!      RC  =  GIGC_SUCCESS
+
+      END SUBROUTINE Diagn_RnPbBe_Update 
+!EOC
+#endif
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

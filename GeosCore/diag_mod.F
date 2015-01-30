@@ -101,8 +101,10 @@
       ! For ND26 -- UP/DOWN transport mass flux diagnostic
       REAL(fp),  ALLOCATABLE :: MASSFLUP(:,:,:,:)
 
+#if !defined( NO_BPCH )
       ! For ND30 -- land / water / ice flags
       REAL*4,  ALLOCATABLE :: AD30(:,:)
+#endif
 
       ! For ND31 -- surface pressures
       REAL*4,  ALLOCATABLE :: AD31(:,:,:)
@@ -349,8 +351,10 @@
       !=================================================================
       ! CLEANUP_DIAG begins here!
       !=================================================================
+#if !defined( NO_BPCH )
       IF ( ALLOCATED( AD01        ) ) DEALLOCATE( AD01        )
       IF ( ALLOCATED( AD02        ) ) DEALLOCATE( AD02        )
+#endif
       IF ( ALLOCATED( AD06        ) ) DEALLOCATE( AD06        )
       IF ( ALLOCATED( AD07        ) ) DEALLOCATE( AD07        )
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )
@@ -367,7 +371,9 @@
       IF ( ALLOCATED( AD21        ) ) DEALLOCATE( AD21        )
       IF ( ALLOCATED( AD21_cr     ) ) DEALLOCATE( AD21_cr     )
       IF ( ALLOCATED( AD22        ) ) DEALLOCATE( AD22        ) 
+#if !defined( NO_BPCH )
       IF ( ALLOCATED( AD30        ) ) DEALLOCATE( AD30        ) 
+#endif
       IF ( ALLOCATED( AD31        ) ) DEALLOCATE( AD31        ) 
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )

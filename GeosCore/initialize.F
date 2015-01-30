@@ -165,8 +165,10 @@
 
          ! Allocatable arrays are zeroed only if their
          ! respective diagnostics are turned on (bmy, 2/17/00)
+#if !defined( NO_BPCH )
          IF ( ND01 > 0 ) AD01     = 0e0
          IF ( ND02 > 0 ) AD02     = 0e0
+#endif
          IF ( ND05 > 0 ) AD05     = 0e0
          IF ( ND06 > 0 ) AD06     = 0e0
          IF ( ND08 > 0 ) AD08     = 0e0
@@ -181,7 +183,9 @@
          IF ( ND24 > 0 ) MASSFLEW = 0e+0_fp
          IF ( ND25 > 0 ) MASSFLNS = 0e+0_fp
          IF ( ND26 > 0 ) MASSFLUP = 0e+0_fp
+#if !defined( NO_BPCH )
          IF ( ND30 > 0 ) AD30     = 0e0
+#endif
          IF ( ND31 > 0 ) AD31     = 0e0
          IF ( ND33 > 0 ) AD33     = 0e0
          IF ( ND35 > 0 ) AD35     = 0e0

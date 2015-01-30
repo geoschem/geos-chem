@@ -790,7 +790,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE HCO_Error_Mod
-    USE TRACERID_MOD,        ONLY : IDTPB, IDTRN, IDTBE7   
+    USE TRACERID_MOD,       ONLY : IDTPb, IDTRn, IDTBe7   
 !
 ! !INPUT PARAMETERS:
 !
@@ -809,9 +809,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: cId, Collection, N
-    INTEGER, PARAMETER   :: NumDiagND02 = 3          ! # of radon decay diagnostics
-    INTEGER              :: Tracer_ind ( NumDiagND02 ) ! Pb/Rn/Be7 tracer indexes
+    INTEGER              :: cId, Collection, M
+    INTEGER, PARAMETER   :: NumTracers = 3        ! Does a var exist for this?
+    INTEGER              :: TracersN ( NumTracers ) 
     CHARACTER(LEN=15)    :: OutOper,  WriteFreq
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
@@ -833,23 +833,22 @@ CONTAINS
     WriteFreq  = Input_Opt%ND02_OUTPUT_FREQ
     
     ! Assign array of tracer numbers corresponding to decaying species
-    Tracer_ind(1) = IDTPB
-    Tracer_ind(2) = IDTRN
-    Tracer_ind(3) = IDTBE7
+    TracersN = (/ IDTPb, IDTRN, IDTBe7 /)
 
     ! Loop over # of radon decay diagnostics
-    DO N = 1, NumDiagND02
+    DO M = 1, NumTracers
 
        ! If the tracer number is scheduled for output in input.geos, 
        ! then define the diagnostic container for that tracer.
-       IF ( ANY ( Input_Opt%TINDEX(2,:) == Tracer_ind( N ) ) ) THEN
+       IF ( ANY ( Input_Opt%TINDEX(2,:) == TracersN( M ) ) ) THEN
 
           !----------------------------------------------------------------
           ! Create containers for Rn/Pb/Be7 decay [kg/s]
           !----------------------------------------------------------------
 
           ! Diagnostic name
-          DiagnName = 'DECAY_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          DiagnName = 'DECAY_' //                           &
+                      TRIM( Input_Opt%TRACER_NAME( TracersN( M ) ) )
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
@@ -1614,21 +1613,27 @@ CONTAINS
     OutOper    = Input_Opt%ND16_OUTPUT_TYPE
     WriteFreq  = Input_Opt%ND16_OUTPUT_FREQ
     
-    DO M = 1, 2
+    DO M = 1, 2          
+       SELECT CASE ( M )
+          CASE ( 1 )
+             !----------------------------------------------------------------
+             ! Name container for fraction of grid box with rainout and
+             ! washout (large-scale precipitation) [.]
+             !----------------------------------------------------------------
+             DiagnName = 'PRECIP_FRAC_LS' 
+          CASE ( 2 )
+             !----------------------------------------------------------------
+             ! Name container for fraction of grid box with rainout and
+             ! washout (convective precipitation) [.]
+             !----------------------------------------------------------------
+             DiagnName = 'PRECIP_FRAC_CONV'
+          CASE DEFAULT
+             IF ( RC /= HCO_SUCCESS ) THEN
+                MSG = 'ND16 diagnostic name not defined.'
+                CALL ERROR_STOP( MSG, LOC ) 
+             ENDIF             
+       END SELECT
 
-       IF ( M == 1) THEN
-          !----------------------------------------------------------------
-          ! Name container for fraction of grid box with rainout and
-          ! washout (large-scale precipitation) [.]
-          !----------------------------------------------------------------
-          DiagnName = 'PRECIP_FRAC_LS'
-       ELSE
-          !----------------------------------------------------------------
-          ! Name container for fraction of grid box with rainout and
-          ! washout (convective precipitation) [.]
-          !----------------------------------------------------------------
-          DiagnName = 'PRECIP_FRAC_CONV'
-       END IF
 
        ! Create container
        CALL Diagn_Create( am_I_Root,                     &
@@ -1648,7 +1653,7 @@ CONTAINS
                           RC        = RC )
    
        IF ( RC /= HCO_SUCCESS ) THEN
-          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          MSG = 'Cannot create ND16 diagnostic: ' // TRIM(DiagnName)
           CALL ERROR_STOP( MSG, LOC ) 
        ENDIF
    ENDDO
@@ -1726,20 +1731,29 @@ CONTAINS
        IF ( ANY( Input_Opt%TINDEX(17,:) == N ) ) THEN
 
           DO M = 1, 2          
-             IF ( M == 1 ) THEN
+             SELECT CASE ( M )
+                CASE ( 1 )
                 !-----------------------------------------------------
                 ! Name container for the fraction of soluble tracer
                 ! lost to rainout (large-scale precipitation) [.]
                 !-----------------------------------------------------
-                DiagnName = 'RAIN_FRAC_LS_' // TRIM( Input_Opt%TRACER_NAME(N) )
-             ELSE
+                DiagnName = 'RAIN_FRAC_LS_'                    &
+                     // TRIM( Input_Opt%TRACER_NAME(N) )
+                CASE ( 2 )
                !------------------------------------------------------
                ! Name container for the fraction of soluble tracer
                ! lost to rainout (convective precipitation) [.]
                !------------------------------------------------------
                ! Diagnostic name
-               DiagnName = 'RAIN_FRAC_CONV_' // TRIM( Input_Opt%TRACER_NAME(N) )
-             END IF
+               DiagnName = 'RAIN_FRAC_CONV_'                   &
+                    // TRIM( Input_Opt%TRACER_NAME(N) )
+                CASE DEFAULT
+                   IF ( RC /= HCO_SUCCESS ) THEN
+                      MSG = 'ND17 diagnostic name not defined.'
+                      CALL ERROR_STOP( MSG, LOC ) 
+                   ENDIF             
+             END SELECT
+
       
              ! Create container
              CALL Diagn_Create( am_I_Root,                     &
@@ -1759,7 +1773,7 @@ CONTAINS
                                 RC        = RC )
          
              IF ( RC /= HCO_SUCCESS ) THEN
-                MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+                MSG = 'Cannot create ND17 diagnostic: ' // TRIM(DiagnName)
                 CALL ERROR_STOP( MSG, LOC ) 
              ENDIF 
           ENDDO     
@@ -1840,19 +1854,27 @@ CONTAINS
        IF ( ANY( Input_Opt%TINDEX(18,:) == N ) ) THEN
 
           DO M = 1, 2          
-             IF ( M == 1 ) THEN
-                !-----------------------------------------------------
-                ! Name container for the fraction of soluble tracer
-                ! lost to washout (large-scale precipitation) [.]
-                !-----------------------------------------------------
-                DiagnName = 'WASH_FRAC_LS'
-             ELSE
-               !------------------------------------------------------
-               ! Name container for the fraction of soluble tracer
-               ! lost to washout (convective precipitation) [.]
-               !------------------------------------------------------
-               DiagnName = 'WASH_FRAC_CONV_' // TRIM( Input_Opt%TRACER_NAME(N) )
-             ENDIF
+             SELECT CASE ( M )
+                CASE ( 1 )
+                   !-----------------------------------------------------
+                   ! Name container for the fraction of soluble tracer
+                   ! lost to washout (large-scale precipitation) [.]
+                   !-----------------------------------------------------
+                   DiagnName = 'WASH_FRAC_LS'                  &
+                        // TRIM( Input_Opt%TRACER_NAME(N) )
+                CASE ( 2 )
+                   !------------------------------------------------------
+                   ! Name container for the fraction of soluble tracer
+                   ! lost to washout (convective precipitation) [.]
+                   !------------------------------------------------------
+                   DiagnName = 'WASH_FRAC_CONV_'               &
+                        // TRIM( Input_Opt%TRACER_NAME(N) )
+                CASE DEFAULT
+                   IF ( RC /= HCO_SUCCESS ) THEN
+                      MSG = 'ND18 diagnostic name not defined.'
+                      CALL ERROR_STOP( MSG, LOC ) 
+                   ENDIF             
+             END SELECT
 
              ! Create container
              CALL Diagn_Create( am_I_Root,                     &
@@ -1872,7 +1894,7 @@ CONTAINS
                                 RC        = RC )
          
              IF ( RC /= HCO_SUCCESS ) THEN
-                MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+                MSG = 'Cannot create ND18 diagnostic: ' // TRIM(DiagnName)
                 CALL ERROR_STOP( MSG, LOC ) 
              ENDIF
           ENDDO
@@ -2244,8 +2266,6 @@ CONTAINS
     OutOper    = Input_Opt%ND24_OUTPUT_TYPE
     WriteFreq  = Input_Opt%ND24_OUTPUT_FREQ
  
-    ! Check if certain tracer(s) listed for ND24 in input.geos???
-
     ! Loop over tracers
     DO N = 1, Input_Opt%N_TRACERS
          
@@ -2342,8 +2362,6 @@ CONTAINS
 
     ! Skip if ND25 diagnostic is turned off
     IF ( Input_Opt%ND25 <= 0 ) RETURN
-
-    ! Check if certain tracer(s) listed for ND25 in input.geos???
 
     ! Loop over tracers
     DO N = 1, Input_Opt%N_TRACERS
@@ -2447,8 +2465,6 @@ CONTAINS
     OutOper    = Input_Opt%ND26_OUTPUT_TYPE
     WriteFreq  = Input_Opt%ND26_OUTPUT_FREQ
  
-    ! Check if certain tracer(s) listed for ND26 in input.geos???
-
     ! Loop over tracers
     DO N = 1, Input_Opt%N_TRACERS
          
@@ -2495,7 +2511,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: diaginit_strat_flx (LL in progress)
+! !IROUTINE: diaginit_strat_flx (LL in progress...obsolete diag???)
 !
 ! !DESCRIPTION: Subroutine DIAGINIT\_STRAT\_FLX initializes the stratospheric
 !  influx diagnostics (aka ND27).
