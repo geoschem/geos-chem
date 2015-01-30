@@ -98,23 +98,23 @@
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE :: GET_EMACET_MEGAN    
-      PRIVATE :: GET_EMISOP_MEGAN  
-      PRIVATE :: GET_EMMBO_MEGAN    
-!     SOAudpate: renamed, includes SESQ (hotp 3/2/10)
-      PRIVATE :: GET_EMTERP_MEGAN
-      PRIVATE :: GET_EMMONOT_MEGAN 
+      PRIVATE :: GET_MEGAN_EMISSIONS  ! dbm, new MEGAN driver routine
+                                      ! for all compounds (6/21/2012)
       PRIVATE :: UPDATE_HCOT_DAY      
       PRIVATE :: UPDATE_HCOT_15_AVG   
+      PRIVATE :: GET_MEGAN_PARAMS
+      PRIVATE :: GET_MEGAN_AEF
+      PRIVATE :: GET_GAMMA_PAR_PCEEA
+      PRIVATE :: GET_GAMMA_T_LI
+      PRIVATE :: GET_GAMMA_T_LD
       PRIVATE :: GET_GAMMA_LAI
-      PRIVATE :: GET_GAMMA_LEAF_AGE
-      PRIVATE :: GET_GAMMA_P
-      PRIVATE :: GET_GAMMA_T_ISOP
-      PRIVATE :: GET_GAMMA_T_NISOP
-      PRIVATE :: GET_GAMMA_P_PECCA
+      PRIVATE :: GET_GAMMA_AGE
+      PRIVATE :: GET_GAMMA_SM
+      PRIVATE :: CALC_NORM_FAC
       PRIVATE :: SOLAR_ANGLE
       PRIVATE :: GET_AEF_GEN
       PRIVATE :: FILL_RESTART_VARS 
+      PRIVATE :: CALC_AEF
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (6/2003).  Updated to 
@@ -156,7 +156,16 @@
 !  04 Aug 2014 - C. Keller   - Added 'manual' diagnostics for Acetone.
 !  09 Oct 2014 - C. Keller   - Now use only GC_LAI (keep prev. LAI in memory)
 !  22 Dec 2014 - C. Keller   - Now use flexible precision (hp) everywhere.
-!                              Option to read temperature/irradiation from restart.
+!                              Option to read temperature/irradiation from
+!                              restart.
+!  26 Jan 2015 - M. Sulprizio- Update from D. Millet (19 Jan 2013): Streamlined
+!                              computations into a single driver routine
+!                              and updated emissions according to MEGAN 2.1 as
+!                              described in:
+!                              Guenther et al., The Model of Emissions of Gases
+!                              and Aerosols from Nature version 2.1 (MEGAN2.1):
+!                              an extended and updated framework for modeling 
+!                              biogenic emissions, GMD, 5, 1471-1492, 2012.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,16 +199,28 @@
       ! These fields are obtained from ext. data (from config file)
       ! These arrays represent the base emission values in kg(C)/m2/s
       ! that will be scaled based upon meteorological conditions.
-      REAL(hp), POINTER       :: AEF_ISOP(:,:) => NULL()     ! Isoprene 
-      REAL(hp), POINTER       :: AEF_MBO(:,:) => NULL()      ! Methyl butenol
-      REAL(hp), POINTER       :: AEF_APINE(:,:) => NULL()    ! Alpha-pinene
-      REAL(hp), POINTER       :: AEF_BPINE(:,:) => NULL()    ! Beta-pinene
-      REAL(hp), POINTER       :: AEF_LIMON(:,:) => NULL()    ! Limonene
-      REAL(hp), POINTER       :: AEF_SABIN(:,:) => NULL()    ! Sabine
-      REAL(hp), POINTER       :: AEF_MYRCN(:,:) => NULL()    ! Myrcene
-      REAL(hp), POINTER       :: AEF_CAREN(:,:) => NULL()    ! 3-Carene
-      REAL(hp), POINTER       :: AEF_OCIMN(:,:) => NULL()    ! Ocimene
-      REAL(hp), POINTER       :: AEF_ACET(:,:) => NULL()     ! Acetone
+      REAL(hp), POINTER       :: AEF_ISOP(:,:) => NULL()    ! Isoprene 
+      REAL(hp), POINTER       :: AEF_MBOX(:,:) => NULL()    ! Methyl butenol
+      REAL(hp), POINTER       :: AEF_APIN(:,:) => NULL()    ! Alpha-pinene
+      REAL(hp), POINTER       :: AEF_BPIN(:,:) => NULL()    ! Beta-pinene
+      REAL(hp), POINTER       :: AEF_CARE(:,:) => NULL()    ! 3-Carene
+      REAL(hp), POINTER       :: AEF_LIMO(:,:) => NULL()    ! Limonene
+      REAL(hp), POINTER       :: AEF_MYRC(:,:) => NULL()    ! Myrcene
+      REAL(hp), POINTER       :: AEF_OCIM(:,:) => NULL()    ! Ocimene
+      REAL(hp), POINTER       :: AEF_SABI(:,:) => NULL()    ! Sabine
+      REAL(hp), POINTER       :: AEF_OMON(:,:) => NULL()    ! Other monoterpenes
+      REAL(hp), POINTER       :: AEF_MOHX(:,:) => NULL()    ! Methanol
+      REAL(hp), POINTER       :: AEF_ACET(:,:) => NULL()    ! Acetone
+      REAL(hp), POINTER       :: AEF_ETOH(:,:) => NULL()    ! Ethanol
+      REAL(hp), POINTER       :: AEF_CH2O(:,:) => NULL()    ! Formaldehyde
+      REAL(hp), POINTER       :: AEF_ALD2(:,:) => NULL()    ! Acetaldehyde
+      REAL(hp), POINTER       :: AEF_FAXX(:,:) => NULL()    ! Formic acid
+      REAL(hp), POINTER       :: AEF_AAXX(:,:) => NULL()    ! Acetic acid
+      REAL(hp), POINTER       :: AEF_C2H4(:,:) => NULL()    ! Ethene
+      REAL(hp), POINTER       :: AEF_TOLU(:,:) => NULL()    ! Toluene
+      REAL(hp), POINTER       :: AEF_HCNX(:,:) => NULL()    ! HCN
+      REAL(hp), POINTER       :: AEF_PRPE(:,:) => NULL()    ! >= C3 alkenes
+      REAL(hp), POINTER       :: NORM_FAC(:)   => NULL()    ! Normalization factor
       REAL(hp), POINTER       :: GEIA_ORVC(:,:) => NULL()
 
       ! Generic emission factors (all 20 MEGAN groups). Will be determined from 
@@ -299,16 +320,22 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J
-      REAL(hp)            :: SUNCOS,   D_BTW_M,  Q_DIR_2
-      REAL(hp)            :: Q_DIFF_2, ISOLAI,   MISOLAI,  PMISOLAI
-      REAL(hp)            :: GAMMA_P,  GAMMA_SM, GAMMA_LAI
-      REAL(hp)            :: EMISOP, EMMO,  EMMB,  APINE, EMMT
-      REAL(hp)            :: BPINE,  LIMON, SABIN, MYRCN, CAREN, OCIMN 
+!------------------------------------------------------------------------------
+! Prior to 1/26/15:
+!      REAL(hp)            :: SUNCOS,   D_BTW_M,  Q_DIR_2
+!      REAL(hp)            :: Q_DIFF_2, ISOLAI,   MISOLAI,  PMISOLAI
+!      REAL(hp)            :: GAMMA_P,  GAMMA_SM, GAMMA_LAI
+!------------------------------------------------------------------------------
+      REAL(hp)            :: EMIS_ISOP, EMIS_MBOX, EMIS_APIN, EMIS_BPIN
+      REAL(hp)            :: EMIS_LIMO, EMIS_SABI, EMIS_MYRC, EMIS_CARE
+      REAL(hp)            :: EMIS_OCIM, EMIS_OMON, EMIS_MONO, EMIS_ALD2
+      REAL(hp)            :: EMIS_MOHX, EMIS_ETOH, EMIS_FAXX, EMIS_AAXX
+      REAL(hp)            :: EMIS_ACET, EMIS_PRPE, EMIS_C2H4
       REAL(hp)            :: FARN,   BCAR,  OSQT,  OMTP
-      REAL(hp)            :: TERP_ORGC, BIOG_ALPH, BIOG_LIMO
+      REAL(hp)            :: BIOG_ALPH, BIOG_LIMO
       REAL(hp)            :: BIOG_ALCO
-      REAL(hp)            :: EMMO_MOL
-      REAL(hp)            :: MB_MOL
+      REAL(hp)            :: MONO_MOL
+      REAL(hp)            :: MBOX_MOL
       REAL(hp)            :: X, Y 
       REAL(hp)            :: DIURFACT, DIURORVC
       REAL(hp)            :: TMP
@@ -317,7 +344,7 @@
 
       ! Emission arrays (kgC/m2/s)
       REAL(hp), TARGET    :: FLUXISOP  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXEMMO  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXMONO  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXACETmo(HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXACETmb(HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXACETbg(HcoState%NX,HcoState%NY)
@@ -353,40 +380,44 @@
       REAL(hp), PARAMETER   :: MB_SCALE1  = 0.6_hp
       REAL(hp), PARAMETER   :: MB_SCALE2  = 0.76_hp
 
-      !--------------------------------------------------------------------
-      !  Biogenic source of PRPE -- scaled to ISOPRENE
-      !
-      !  Also, add biogenic emissions of alkenes. We do this by scaling to
-      !  isoprene emissions (probably OK for summertime conditions). The
-      !  scaling factor is based on work by Allen Goldstein. His values
-      !  indicate emission ratios of ethene:propene:butene=4:2:1 (on a
-      !  per molecule basis), with total emissions approx. equal to
-      !  10% of isoprene emissions (again, on molecule basis).
-      !  BIOSCAL is in units of atoms C (alkenes) / atoms C (isoprene)
-      !*******************************************************************
-      ! Change this factor to exclude ethene (bey, ljm)
-      !    (10 molec alkenes / 100 molec isop) * (1 molec isop / 5 atoms C isop)
-      !    *(3 molec butene + propene / 7 molec total alkenes)
-      !    *(3.3333 atoms C but+prop mix/ 1 molec but+prop mix)
-      !    = 0.0286 atoms C butene+propene / atom C isop
-      ! Note that 3.3333 atoms C/molecule is the weighted average for this mix.
-      ! Scale factor is the same on a mass basis, i.e. kgC/kgC 
-      ! (ckeller, 08/05/13) 
-      !--------------------------------------------------------------------
-      REAL(hp), PARAMETER   :: BIOSCAL = 0.0286_hp ! new factor, (ljm, bey, 9/28/98)
-
-      !--------------------------------------------------------------------
-      ! Biogenic source of ethene (scaled to isoprene)
-      ! Scale factor BIOSCALEC2H4 =
-      !   ( 10 molec alkenes / 100 molec isop ) * ( 1 molec isop / 5 atoms C )
-      !   * ( 4 molec ethene / 7 molec alkenes )
-      !   * ( 2 atoms C / 1 molec ethene )
-      !   = 0.022857d0  [atoms C / atoms C isop]
-      ! (tmf, 1/13/06)
-      ! Scale factor is the same on a mass basis, i.e. kgC/kgC 
-      ! (ckeller, 08/05/13) 
-      !--------------------------------------------------------------------
-      REAL(hp), PARAMETER   :: BIOSCALEC2H4 = 0.022857_hp
+!------------------------------------------------------------------------------
+! Prior to 1/26/14:
+! Now get PRPE and C2H6 emissions from MEGAN 2.1 (mps, 1/26/14)
+!      !--------------------------------------------------------------------
+!      !  Biogenic source of PRPE -- scaled to ISOPRENE
+!      !
+!      !  Also, add biogenic emissions of alkenes. We do this by scaling to
+!      !  isoprene emissions (probably OK for summertime conditions). The
+!      !  scaling factor is based on work by Allen Goldstein. His values
+!      !  indicate emission ratios of ethene:propene:butene=4:2:1 (on a
+!      !  per molecule basis), with total emissions approx. equal to
+!      !  10% of isoprene emissions (again, on molecule basis).
+!      !  BIOSCAL is in units of atoms C (alkenes) / atoms C (isoprene)
+!      !*******************************************************************
+!      ! Change this factor to exclude ethene (bey, ljm)
+!      !    (10 molec alkenes / 100 molec isop) * (1 molec isop / 5 atoms C isop)
+!      !    *(3 molec butene + propene / 7 molec total alkenes)
+!      !    *(3.3333 atoms C but+prop mix/ 1 molec but+prop mix)
+!      !    = 0.0286 atoms C butene+propene / atom C isop
+!      ! Note that 3.3333 atoms C/molecule is the weighted average for this mix.
+!      ! Scale factor is the same on a mass basis, i.e. kgC/kgC 
+!      ! (ckeller, 08/05/13) 
+!      !--------------------------------------------------------------------
+!      REAL(hp), PARAMETER   :: BIOSCAL = 0.0286_hp ! new factor, (ljm, bey, 9/28/98)
+!
+!      !--------------------------------------------------------------------
+!      ! Biogenic source of ethene (scaled to isoprene)
+!      ! Scale factor BIOSCALEC2H4 =
+!      !   ( 10 molec alkenes / 100 molec isop ) * ( 1 molec isop / 5 atoms C )
+!      !   * ( 4 molec ethene / 7 molec alkenes )
+!      !   * ( 2 atoms C / 1 molec ethene )
+!      !   = 0.022857d0  [atoms C / atoms C isop]
+!      ! (tmf, 1/13/06)
+!      ! Scale factor is the same on a mass basis, i.e. kgC/kgC 
+!      ! (ckeller, 08/05/13) 
+!      !--------------------------------------------------------------------
+!      REAL(hp), PARAMETER   :: BIOSCALEC2H4 = 0.022857_hp
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! HCOX_Megan_Run begins here! 
@@ -404,7 +435,7 @@
 
       ! Initialize flux arrays
       FLUXISOP   = 0.0_hp
-      FLUXEMMO   = 0.0_hp
+      FLUXMONO   = 0.0_hp
       FLUXACETmo = 0.0_hp
       FLUXACETmb = 0.0_hp
       FLUXACETbg = 0.0_hp
@@ -426,33 +457,39 @@
          CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_ISOP', AEF_ISOP, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_ACET', AEF_ACET, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
+! ---> Now compute EF maps for acetone (dbm, 12/2012)
+!         CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_ACET', AEF_ACET, RC )
+!         IF ( RC /= HCO_SUCCESS ) RETURN
+! <---
 
          ! Arrays used if monoterpene switch is turned on
          IF ( ExtNrMono > 0 ) THEN
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MBO', AEF_MBO, RC )
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MBO', AEF_MBOX, RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
       
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_APINE',AEF_APINE, RC)
+! ---> Now compute EF maps for a-pinene and myrcene (dbm, 12/2012)
+!            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_APIN',AEF_APIN, RC )
+!            IF ( RC /= HCO_SUCCESS ) RETURN
+! <---
+
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_BPIN',AEF_BPIN, RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
 
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_BPINE',AEF_BPINE, RC)
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_LIMO',AEF_LIMO, RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
 
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_LIMON',AEF_LIMON, RC)
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_SABI',AEF_SABI, RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
 
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_SABIN',AEF_SABIN, RC)
+! ---> Now compute EF maps for a-pinene and myrcene (dbm, 12/2012)
+!            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MYRC',AEF_MYRC, RC )
+!            IF ( RC /= HCO_SUCCESS ) RETURN
+! <---
+
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_CARE',AEF_CARE, RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
 
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_MYRCN',AEF_MYRCN, RC)
-            IF ( RC /= HCO_SUCCESS ) RETURN
-
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_CAREN',AEF_CAREN, RC)
-            IF ( RC /= HCO_SUCCESS ) RETURN
-
-            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_OCIMN',AEF_OCIMN, RC)
+            CALL HCO_GetPtr( am_I_Root, 'MEGAN_AEF_OCIM',AEF_OCIM, RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
          ENDIF
    
@@ -461,6 +498,10 @@
             CALL HCO_GetPtr( am_I_Root, 'MEGAN_ORVC', GEIA_ORVC, RC )
             IF ( RC /= HCO_SUCCESS ) RETURN
          ENDIF
+
+         ! Read PFT fractions
+         CALL CALC_AEF
+
       ENDIF ! FIRST
 
       ! SET AEF_GEN (only on first call). These values are needed for
@@ -487,10 +528,16 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, SUNCOS, Q_DIR_2, Q_DIFF_2, ISOLAI, PMISOLAI       )
-!$OMP+PRIVATE( MISOLAI, GAMMA_P, GAMMA_LAI, GAMMA_SM, EMISOP           ) 
-!$OMP+PRIVATE( EMMB, APINE, BPINE, LIMON, SABIN, MYRCN, CAREN, OCIMN   ) 
-!$OMP+PRIVATE( EMMO, EMMO_MOL, TMP, MB_MOL, TERP_ORGC                  ) 
+!------------------------------------------------------------------------------
+! Prior to 1/26/15:
+!!$OMP+PRIVATE( I, J, SUNCOS, Q_DIR_2, Q_DIFF_2, ISOLAI, PMISOLAI       )
+!!$OMP+PRIVATE( MISOLAI, GAMMA_P, GAMMA_LAI, GAMMA_SM, EMISOP           ) 
+!------------------------------------------------------------------------------
+!$OMP+PRIVATE( I, J,      EMIS_ISOP, EMIS_MBOX, EMIS_APIN, EMIS_BPIN   )
+!$OMP+PRIVATE( EMIS_LIMO, EMIS_SABI, EMIS_MYRC, EMIS_CARE, EMIS_OCIM   )
+!$OMP+PRIVATE( EMIS_OMON, EMIS_MONO, EMIS_MOHX, EMIS_ETOH, EMIS_FAXX   )
+!$OMP+PRIVATE( EMIS_AAXX, EMIS_ACET, EMIS_PRPE, EMIS_C2H4              )
+!$OMP+PRIVATE( MONO_MOL,  TMP,       MBOX_MOL                          )
 !$OMP+PRIVATE( DIURFACT, DIURORVC, BIOG_ALPH                           ) 
 !$OMP+PRIVATE( BIOG_LIMO, BIOG_ALCO, X, Y, RC                          )
 
@@ -499,6 +546,27 @@
       !-----------------------------------------------------------------
       DO J = 1, HcoState%NY 
       DO I = 1, HcoState%NX
+
+         ! Zero biogenic species
+         EMIS_ISOP  = 0.0_hp
+         EMIS_MBOX  = 0.0_hp
+         EMIS_APIN  = 0.0_hp
+         EMIS_BPIN  = 0.0_hp
+         EMIS_LIMO  = 0.0_hp
+         EMIS_SABI  = 0.0_hp
+         EMIS_MYRC  = 0.0_hp
+         EMIS_CARE  = 0.0_hp
+         EMIS_OCIM  = 0.0_hp
+         EMIS_OMON  = 0.0_hp
+         EMIS_MONO  = 0.0_hp
+         EMIS_ALD2  = 0.0_hp
+         EMIS_MOHX  = 0.0_hp
+         EMIS_ETOH  = 0.0_hp
+         EMIS_FAXX  = 0.0_hp
+         EMIS_AAXX  = 0.0_hp
+         EMIS_ACET  = 0.0_hp
+         EMIS_PRPE  = 0.0_hp
+         EMIS_C2H4  = 0.0_hp
 
          !-----------------------------------------------------------------
          ! Update internal temperature arrays 
@@ -531,60 +599,63 @@
             ENDIF
          ENDIF
 
-         !-----------------------------------------------------------------
-         ! Extract meteorological variables 
-         !-----------------------------------------------------------------
-
-         ! Cosine of solar zenith angle
-         SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
-      
-         ! Convert Q_DIR and Q_DIFF from (W/m2) to (micromol/m2/s)
-         Q_DIR_2  = ExtState%PARDR%Arr%Val(I,J) * WM2_TO_UMOLM2S
-         Q_DIFF_2 = ExtState%PARDF%Arr%Val(I,J) * WM2_TO_UMOLM2S
-
-         ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
-         ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
-         PMISOLAI = LAI_PREVDAY(I,J)
-         MISOLAI  = ISOLAI
-!         PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
-!         MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-
-         !-----------------------------------------------------------------
-         ! Get species independent scale factors for particular grid box 
-         !-----------------------------------------------------------------
-
-         !---------------------------------------------------
-         ! Do only during day and over continent
-         ! Only interested in terrestrial biosphere (pip)
-         !---------------------------------------------------
-         IF ( SUNCOS > 0.0_hp ) THEN
-
-            IF ( LPECCA ) THEN 
-                
-               ! Activity factor for light 
-               GAMMA_P = GET_GAMMA_P_PECCA( HcoState, ExtState, I, J, 
-     &                   Q_DIR_2, Q_DIFF_2, HCOPARDR_15_AVG(I,J), 
-     &                   HCOPARDF_15_AVG(I,J))
-
-            ELSE 
-
-               ! Activity factor for light 
-               GAMMA_P = GET_GAMMA_P(  ISOLAI,  SUNCOS,
-     &                                 Q_DIR_2, Q_DIFF_2 )
-
-            ENDIF
-      
-         ELSE
-            
-            GAMMA_P = 0.0_hp
-
-         ENDIF
-
-         ! Activity factor for leaf area
-         GAMMA_LAI = GET_GAMMA_LAI( MISOLAI )
-
-         ! Activity factor for soil moisture
-         GAMMA_SM = 1.0_hp
+!------------------------------------------------------------------------------
+! Prior to 1/26/14:
+! Now calculate scale factors for each species in GET_MEGAN_EMISSIONS
+! (mps, 1/26/14)
+!         !-----------------------------------------------------------------
+!         ! Extract meteorological variables 
+!         !-----------------------------------------------------------------
+!
+!         ! Cosine of solar zenith angle
+!         SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
+!      
+!         ! Convert Q_DIR and Q_DIFF from (W/m2) to (micromol/m2/s)
+!         Q_DIR_2  = ExtState%PARDR%Arr%Val(I,J) * WM2_TO_UMOLM2S
+!         Q_DIFF_2 = ExtState%PARDF%Arr%Val(I,J) * WM2_TO_UMOLM2S
+!
+!         ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
+!         ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
+!         PMISOLAI = LAI_PREVDAY(I,J)
+!         MISOLAI  = ISOLAI
+!!         PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
+!!         MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
+!
+!         !-----------------------------------------------------------------
+!         ! Get species independent scale factors for particular grid box 
+!         !-----------------------------------------------------------------
+!
+!         !---------------------------------------------------
+!         ! Do only during day and over continent
+!         ! Only interested in terrestrial biosphere (pip)
+!         !---------------------------------------------------
+!         IF ( SUNCOS > 0.0_hp ) THEN
+!
+!            ! Activity factor for light 
+!            GAMMA_P = GET_GAMMA_P_PECCA( HcoState, ExtState, I, J, 
+!     &                Q_DIR_2, Q_DIFF_2, HCOPARDR_15_AVG(I,J), 
+!     &                HCOPARDF_15_AVG(I,J))
+!
+!            ELSE 
+!
+!               ! Activity factor for light 
+!               GAMMA_P = GET_GAMMA_P(  ISOLAI,  SUNCOS,
+!     &                                 Q_DIR_2, Q_DIFF_2 )
+!
+!            ENDIF
+!      
+!         ELSE
+!            
+!            GAMMA_P = 0.0_hp
+!
+!         ENDIF
+!
+!         ! Activity factor for leaf area
+!         GAMMA_LAI = GET_GAMMA_LAI( MISOLAI )
+!
+!         ! Activity factor for soil moisture
+!         GAMMA_SM = 1.0_hp
+!------------------------------------------------------------------------------
 
          !--------------------------------------------------------------
          ! Calculate VOC emissions 
@@ -594,50 +665,32 @@
          ! anymore (--> UNITCONV = 1). ckeller, 14/01/25.
          !--------------------------------------------------------------
 
-!         ! testing only
-!         if ( i==ix .and. j==iy ) then
-!                  write(*,*) ' '
-!                  write(*,*) 'do HEMCO MEGAN @i,j ', i,j
-!                  write(*,*) 'SUNCOSmid:             ', SUNCOS
-!                  write(*,*) 'TEMPERATURE:',ExtState%T2M%Arr%Val(I,J)
-!                  write(*,*) 'Q_DIR: ', Q_DIR_2 / WM2_TO_UMOLM2S
-!                  write(*,*) 'Q_DIFF:', Q_DIFF_2 / WM2_TO_UMOLM2S
-!                  write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J)
-!                  write(*,*) 'HCOPARDR_15_AVG: ', HCOPARDR_15_AVG(I,J)
-!                  write(*,*) 'HCOPARDF_15_AVG: ', HCOPARDF_15_AVG(I,J)
-!                  write(*,*) 'HCOT_DAILY : ', HCOT_DAILY (I,J)
-!                  write(*,*) 'ISOLAI: ', ISOLAI
-!                  write(*,*) 'PMISOLAI: ', PMISOLAI
-!                  write(*,*) 'MISOLAI: ', MISOLAI
-!                  write(*,*) ' '
-!         endif
-
          !--------------------------------------------------------------------
          ! MEGAN Isoprene
          !--------------------------------------------------------------------
 
          ! Isoprene [kg C/m2/s]
-         CALL GET_EMISOP_MEGAN( HcoState, ExtState, I, J,
-     &                          GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                          UNITCONV, EMISOP, RC )
+         ! Updated to new MEGAN routine (dbm, 12/2012)
+         CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                             'ISOP',   EMIS_ISOP, RC )
          IF ( RC /= HCO_SUCCESS ) THEN 
-            CALL HCO_ERROR( 'GET_EMISOP_MEGAN', RC )
+            CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_ISOP', RC )
             ERR = .TRUE.
             EXIT
          ENDIF 
 
          !FP_ISOP (6/2009)
-         EMISOP = ISOP_SCALING * EMISOP
+         EMIS_ISOP = ISOP_SCALING * EMIS_ISOP
 
          ! Write isoprene emissions into tracer tendency array
          IF ( IDTISOP > 0 ) THEN
-            FLUXISOP(I,J) = EMISOP 
+            FLUXISOP(I,J) = EMIS_ISOP 
 
 !            ! testing only
 !            if ( i==ix .and. j==iy ) then
 !               write(*,*) 'HEMCO MEGAN @ ', ix, iy
 !               write(*,*) 'ISOP_SCAL: ', ISOP_SCALING
-!               write(*,*) 'ISOP (kgC/m2/s): ', EMISOP
+!               write(*,*) 'ISOP (kgC/m2/s): ', EMIS_ISOP
 !            endif
 
          ENDIF
@@ -645,146 +698,202 @@
          !--------------------------------------------------------------------
          ! MEGAN biogenics
          !--------------------------------------------------------------------
+         ! Updated the calls below for new MEGAN routine (dbm, 12/2012)
 
          IF ( ExtNrMono > 0 ) THEN
 
             ! ---------------------------------------------------
             ! Methyl butenol
-            CALL GET_EMMBO_MEGAN( HcoState, ExtState, I, J, 
-     &                            GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                            UNITCONV, EMMB, RC )
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'MBOX',   EMIS_MBOX, RC )
             IF ( RC /= HCO_SUCCESS ) THEN 
-               CALL HCO_ERROR( 'GET_EMMBO_MEGAN', RC )
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_MBOX', RC )
                ERR = .TRUE.
                EXIT
             ENDIF 
 
             ! ---------------------------------------------------
             ! Alpha Pinene emissions
-            CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                             GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                             UNITCONV , 'APINE', APINE, RC )
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'APIN',   EMIS_APIN, RC )
             IF ( RC /= HCO_SUCCESS ) THEN 
-               CALL HCO_ERROR( 'GET_EMTERP_MEGAN_APINE', RC )
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_APIN', RC )
                ERR = .TRUE.
                EXIT
             ENDIF 
 
             ! ---------------------------------------------------
             ! Beta Pinene emissions
-            CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                             GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                             UNITCONV , 'BPINE', BPINE, RC )
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'BPIN',   EMIS_BPIN, RC )
             IF ( RC /= HCO_SUCCESS ) THEN 
-               CALL HCO_ERROR( 'GET_EMTERP_MEGAN_BPINE', RC )
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_BPIN', RC )
                ERR = .TRUE.
                EXIT
             ENDIF 
 
             ! ---------------------------------------------------
             ! Limonene emissions 
-            CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                             GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                             UNITCONV , 'LIMON', LIMON, RC )
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'LIMO',   EMIS_LIMO, RC )
             IF ( RC /= HCO_SUCCESS ) THEN 
-               CALL HCO_ERROR( 'GET_EMTERP_MEGAN_LIMON', RC )
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_LIMO', RC )
                ERR = .TRUE.
                EXIT
             ENDIF 
 
             ! ---------------------------------------------------
             ! Sabinene emissions
-            CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                             GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                             UNITCONV , 'SABIN', SABIN, RC )
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'SABI',   EMIS_SABI, RC )
             IF ( RC /= HCO_SUCCESS ) THEN 
-               CALL HCO_ERROR( 'GET_EMTERP_MEGAN_SABIN', RC )
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_SABI', RC )
                ERR = .TRUE.
                EXIT
             ENDIF 
 
             ! ---------------------------------------------------
             ! Mycrene emissions
-            CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                             GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                             UNITCONV , 'MYRCN', MYRCN, RC )
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'MYRC',   EMIS_MYRC, RC )
             IF ( RC /= HCO_SUCCESS ) THEN 
-               CALL HCO_ERROR( 'GET_EMTERP_MEGAN_MYRCN', RC )
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_MYRC', RC )
                ERR = .TRUE.
                EXIT
             ENDIF 
 
             ! ---------------------------------------------------
             ! 3-Carene emissions
-            CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                             GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                             UNITCONV , 'CAREN', CAREN, RC )
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'CARE',   EMIS_CARE, RC )
             IF ( RC /= HCO_SUCCESS ) THEN 
-               CALL HCO_ERROR( 'GET_EMTERP_MEGAN_CAREN', RC )
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_CARE', RC )
                ERR = .TRUE.
                EXIT
             ENDIF 
 
             ! ---------------------------------------------------
             ! Ocimene emissions
-            CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                             GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                             UNITCONV , 'OCIMN', OCIMN, RC )
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'OCIM',   EMIS_OCIM, RC )
             IF ( RC /= HCO_SUCCESS ) THEN 
-               CALL HCO_ERROR( 'GET_EMTERP_MEGAN_OCIMN', RC )
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_OCIM', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF 
+
+            ! ---------------------------------------------------
+            ! Other monoterpenes
+            ! (added 12/2012; dbm)
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'OMON',   EMIS_OMON, RC )
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_OMON', RC )
                ERR = .TRUE.
                EXIT
             ENDIF 
 
             ! ---------------------------------------------------
             ! Total monoterpenes = sum of individual
-            EMMO = APINE + BPINE + LIMON + SABIN + 
-     &             MYRCN + CAREN + OCIMN
+            ! dbm, now add other lumped monoterpenes (11/2012)
+            EMIS_MONO = EMIS_APIN + EMIS_BPIN + EMIS_LIMO + EMIS_SABI + 
+     &                  EMIS_MYRC + EMIS_CARE + EMIS_OCIM + EMIS_OMON
 
             ! Add to tracer tendency array [kg C/m2/s]
             IF ( IDTMONX > 0 ) THEN
-               FLUXEMMO(I,J) = EMMO
+               FLUXMONO(I,J) = EMIS_MONO
             ENDIF
 
          ELSE
-            EMMO = 0.0_hp
-            EMMB = 0.0_hp
+            EMIS_MONO = 0.0_hp
+            EMIS_MBOX = 0.0_hp
          ENDIF
 
-! -------------------------------------------------------------
-!         EMISS_BVOC( I , J , 1 ) =  EMIS   / AREA_CM2 / DTSRCE     
-!         EMISS_BVOC( I , J , 2 ) =  EMMO   / AREA_CM2 / DTSRCE
-!         EMISS_BVOC( I , J , 3 ) =  EMMB   / AREA_CM2 / DTSRCE                 
-!         EMISS_BVOC( I , J , 4 ) =  APINE  / AREA_CM2 / DTSRCE     
-!         EMISS_BVOC( I , J , 5 ) =  BPINE  / AREA_CM2 / DTSRCE
-!         EMISS_BVOC( I , J , 6 ) =  LIMON  / AREA_CM2 / DTSRCE  
-!         EMISS_BVOC( I , J , 7 ) =  SABIN  / AREA_CM2 / DTSRCE     
-!         EMISS_BVOC( I , J , 8 ) =  MYRCN  / AREA_CM2 / DTSRCE
-!         EMISS_BVOC( I , J , 9 ) =  CAREN  / AREA_CM2 / DTSRCE  
-!         EMISS_BVOC( I , J , 10) =  OCIMN  / AREA_CM2 / DTSRCE 
-! -------------------------------------------------------------
 
 !         ! testing only
 !         if ( i == ix .AND. j == iy .and. .FALSE. ) then
 !                 write(*,*) ' '
 !                 write(*,*) 'HEMCO MEGAN (kg/m2/s) @ ', i, j 
-!                 write(*,*) 'EMISOP: ', EMISOP
-!                 write(*,*) 'EMMO: ', EMMO
-!                 write(*,*) 'EMMB: ', EMMB
-!                 write(*,*) 'APINE: ', APINE
-!                 write(*,*) 'BPINE: ', BPINE
-!                 write(*,*) 'LIMON: ', LIMON
-!                 write(*,*) 'SABIN: ', SABIN
-!                 write(*,*) 'MYRCN: ', MYRCN
-!                 write(*,*) 'CAREN: ', CAREN
-!                 write(*,*) 'OCIMN: ', OCIMN
+!                 write(*,*) 'ISOP: ', EMIS_ISOP
+!                 write(*,*) 'MBOX: ', EMIS_MBOX
+!                 write(*,*) 'MONO: ', EMIS_MONO
+!                 write(*,*) 'APIN: ', EMIS_APIN
+!                 write(*,*) 'BPIN: ', EMIS_BPIN
+!                 write(*,*) 'LIMO: ', EMIS_LIMO
+!                 write(*,*) 'SABI: ', EMIS_SABI
+!                 write(*,*) 'MYRC: ', EMIS_MYRC
+!                 write(*,*) 'CARE: ', EMIS_CARE
+!                 write(*,*) 'OCIM: ', EMIS_OCIM
+!                 write(*,*) 'OMON: ', EMIS_OMON
 !         endif
 
-!-----------------------------------------------------------------------------
-         
+         !------------------
+         ! MEGAN ALD2
+         !------------------
+         CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                             'ALD2',   EMIS_ALD2, RC )
+         IF ( RC /= HCO_SUCCESS ) THEN 
+            CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_ALD2', RC )
+            ERR = .TRUE.
+            EXIT
+         ENDIF 
 
          !--------------------------------------------------------------------
-         ! BIOGENIC ACETONE EMISSIONS
+         ! Other MEGAN biogenics
+         ! Calls included here for future incorporation or
+         ! specialized simulations. (dbm, 12/2012)
+         !--------------------------------------------------------------------
+
+         !------------------
+         ! MEGAN Methanol
+         !------------------
+         ! Uncomment this to compute biogenic methanol emissions
+!         CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+!     &                             'MOHX',   EMIS_MOHX, RC )
+!         IF ( RC /= HCO_SUCCESS ) THEN 
+!            CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_MOHX', RC )
+!            ERR = .TRUE.
+!            EXIT
+!         ENDIF 
+
+         !------------------
+         ! MEGAN Ethanol
+         !------------------
+         ! Uncomment this to compute biogenic ethanol emissions
+!         CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+!     &                             'ETOH',   EMIS_ETOH, RC )
+!         IF ( RC /= HCO_SUCCESS ) THEN 
+!            CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_ETOH', RC )
+!            ERR = .TRUE.
+!            EXIT
+!         ENDIF
+
+         !------------------
+         ! MEGAN Formic acid
+         !------------------
+         ! Uncomment this to compute biogenic formic acid emissions
+!         CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+!     &                             'FAXX',   EMIS_FAXX, RC )
+!         IF ( RC /= HCO_SUCCESS ) THEN 
+!            CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_FAXX', RC )
+!            ERR = .TRUE.
+!            EXIT
+!         ENDIF
+
+         !------------------
+         ! MEGAN Acetic acid
+         !------------------
+         ! Uncomment this to compute biogenic acetic acid emissions
+!         CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+!     &                             'AAXX',   EMIS_AAXX, RC )
+!         IF ( RC /= HCO_SUCCESS ) THEN 
+!            CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_AAXX', RC )
+!            ERR = .TRUE.
+!            EXIT
+!         ENDIF
+
+         !--------------------------------------------------------------------
+         ! Biogenic acetone emissions
          !--------------------------------------------------------------------
          IF ( IDTACET > 0 ) THEN
 
@@ -796,16 +905,16 @@
 
             ! Convert [kg C/m2/s] to [kg MONOTERPENE/m2/s]
             ! There are 10 C atoms per molecule of MONOTERPENE
-            EMMO_MOL   = EMMO / 10.0_hp
+            MONO_MOL = EMIS_MONO / 10.0_hp
       
             ! Apply yield from monoterpenes to get [kg ACET/m2/s]
-            TMP        = EMMO_MOL * YIELD_MO
+            TMP      = MONO_MOL * YIELD_MO
       
             ! Convert acetone emissions back into [kg C/m2/s] 
-            TMP       = TMP * 3.0_hp
+            TMP      = TMP * 3.0_hp
       
             ! Scale to a posteriori source from Jacob et al 2001 (bdf, 9/5/01)
-            TMP        = TMP * MONO_SCALE
+            TMP      = TMP * MONO_SCALE
       
             ! Add to total biogenic acetone emissions
             FLUXACETmo(I,J) = TMP
@@ -832,14 +941,14 @@
       
                ! Convert from [kg C/m2/s] to [kg MBO/m2/s] 
                ! There are 5 C atoms per molecule MBO
-               MB_MOL   = EMMB / 5.0_hp
+               MBOX_MOL = EMIS_MBOX / 5.0_hp
       
                ! Apply yield from MBO to get [kg ACET/m2/s]
-               TMP = MB_MOL * MB_SCALE1
+               TMP      = MBOX_MOL * MB_SCALE1
       
                ! Convert from [kg ACET/m2/s] to [kg C/m2/s]
                ! There are 3 C atoms per acetone molecule
-               TMP = TMP * 3.0_hp
+               TMP      = TMP * 3.0_hp
       
                ! Scale to a posteriori source from Jacob et al 2001 (bdf,
                ! 9/5/01)
@@ -852,17 +961,16 @@
             ! evf, removed obsolete code, replaced with MEGAN acetone
             ! emissions (5/25/2011) Direct Emission now includes emission
             ! from grasses and emission from dry leaf matter
-            CALL GET_EMACET_MEGAN( HcoState, ExtState, I, J, 
-     &                             GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                             UNITCONV, TMP, RC )
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'ACET',   EMIS_ACET, RC )
             IF ( RC /= HCO_SUCCESS ) THEN 
-               CALL HCO_ERROR( 'GET_EMACET_MEGAN', RC )
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_ACET', RC )
                ERR = .TRUE.
                EXIT
             ENDIF 
 
             ! Write to array
-            FLUXACETbg(I,J) = TMP
+            FLUXACETbg(I,J) = EMIS_ACET
          ENDIF
 
          !--------------------------------------------------------------------
@@ -870,38 +978,42 @@
          !
          !  CO from METHANOL oxidation -- scaled from ISOPRENE (bnd, 1/2/01)
          !
-         !    We need to scale the Isoprene flux to get the CH3OH (methanol) flux.
-         !    Currently, the annual isoprene flux in GEOS-CHEM is ~ 397 Tg C.
+         !    We need to scale the Isoprene flux to get the CH3OH (methanol)
+         !    flux. Currently, the annual isoprene flux in GEOS-CHEM is
+         !    ~ 397 Tg C.
          !
-         !    Daniel Jacob recommends a flux of 100 Tg/yr CO from CH3OH oxidation  
-         !    based on Singh et al. 2000 [JGR 105, 3795-3805] who estimate a global 
-         !    methanol source of 122 Tg yr-1, of which most (75 Tg yr-1) is 
-         !    "primary biogenic".  He also recommends for now that the CO flux 
-         !    from CH3OH oxidation be scaled to monthly mean isoprene flux.
+         !    Daniel Jacob recommends a flux of 100 Tg/yr CO from CH3OH
+         !    oxidation based on Singh et al. 2000 [JGR 105, 3795-3805] who
+         !    estimate a global methanol source of 122 Tg yr-1, of which most
+         !    (75 Tg yr-1) is "primary biogenic". He also recommends for now
+         !    that the CO flux from CH3OH oxidation be scaled to monthly mean
+         !    isoprene flux.
          !
          !    To get CO from METHANOL oxidation, we must therefore multiply
          !    the ISOPRENE flux by the following scale factor:
-         !      ( 100 Tg CO from CH3OH Oxidation  / 397 Tg C from Isoprene Flux ) *
-         !      (  12 g C/mole                    / 28 g CO/mole                )
+         !    ( 100 Tg CO from CH3OH Oxidation / 397 Tg C from Isoprene Flux ) *
+         !    (  12 g C/mole                   / 28 g CO/mole                )
          !
          !  CO from MONOTERPENE oxidation (bnd, bmy, 1/2/01)
          !
-         !    Assume the production of CO from monoterpenes is instantaneous even 
-         !    though the lifetime of intermediate species may be on the order of hours 
-         !    or days.  This assumption will likely cause CO from monoterpene oxidation
-         !    to be too high in the box in which the monoterpene is emitted.
+         !    Assume the production of CO from monoterpenes is instantaneous
+         !    even though the lifetime of intermediate species may be on the
+         !    order of hours or days. This assumption will likely cause CO from
+         !    monoterpene oxidation to be too high in the box in which the
+         !    monoterpene is emitted.
          !
          !    The CO yield here is taken from:
          !
          !    Hatakeyama et al. JGR, Vol. 96, p. 947-958 (1991)
-         !      "The ultimate yield of CO from the tropospheric oxidation of terpenes 
-         !       (including both O3 and OH reactions) was estimated to be 20% on the 
-         !       carbon number basis."  They studied ALPHA- & BETA-pinene.
+         !      "The ultimate yield of CO from the tropospheric oxidation of
+         !       terpenes (including both O3 and OH reactions) was estimated
+         !       to be 20% on the carbon number basis." They studied
+         !       ALPHA- & BETA-pinene.
          !
          !    Vinckier et al. Fresenius Env. Bull., Vol. 7, p.361-368 (1998)
          !      "R(CO)=1.8+/-0.3" : 1.8/10 is about 20%.
          !
-         !    EMMO is now kgC, conversion factor then becomes: 
+         !    EMIS_MONO is now kgC, conversion factor then becomes: 
          !    28g CO / 60g C = 46.666%
          !    (ckeller, 4/15/14).
          !--------------------------------------------------------------------
@@ -911,7 +1023,7 @@
          ! (jaf, mak, bmy, 2/14/08)
          IF ( (IDTCO>0) .AND. (ExtNrMono>0) ) THEN
 !            FLUX = EMMO * 0.2d0
-            FLUXCO(I,J) = EMMO * 0.4666_hp
+            FLUXCO(I,J) = EMIS_MONO * 0.4666_hp
 
 !            ! testing only
 !            if ( i==ix .and. j==iy .and. .FALSE. ) then
@@ -920,16 +1032,22 @@
 !               write(*,*) 'CO (kg/m2/s): ', FLUXCO(I,J)
 !            endif
 
-!            ! ND29: CO-source from monoterpenes [molec/cm2/s]
-!            IF ( ND29 > 0 ) THEN
-!               AD29(I,J,5) = AD29(I,J,5) + ( TMPVAL / AREA_CM2 )
-!            ENDIF
          ENDIF
 
-         ! NOTE: Don't save into EMISRR for the tagged 
-         ! CO simulation. (jaf, mak, bmy, 2/14/08)
+         !--------------------------------------------------------------------
+         ! Biogenic emissions of PRPE
+         !  Now uses MEGAN2.1 (dbm, 12/2012)
+         !--------------------------------------------------------------------
          IF ( IDTPRPE > 0 ) THEN
-            FLUXPRPE(I,J) = EMISOP * BIOSCAL
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'PRPE',   EMIS_PRPE, RC )
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_PRPE', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF 
+
+            FLUXPRPE(I,J) = EMIS_PRPE
 
 !           ! testing only
 !           if ( i==ix .and. j==iy .and. .FALSE. ) then
@@ -941,11 +1059,19 @@
          ENDIF
 
          !--------------------------------------------------------------------
-         ! Add biogenic emission of ethene (C2H4) --> scaled to isoprene
+         ! Biogenic emissions of ethene (C2H4)
+         !  Now uses MEGAN2.1 (dbm, 12/2012)
          !--------------------------------------------------------------------
 
          IF ( IDTC2H4 > 0 ) THEN
-            FLUXC2H4(I,J) = EMISOP * BIOSCALEC2H4
+            CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                'C2H4',   EMIS_C2H4, RC )
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_C2H4', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF 
+            FLUXC2H4(I,J) = EMIS_C2H4
          ENDIF
 
          !--------------------------------------------------------------------
@@ -957,27 +1083,22 @@
 
          ! Get monoterpenes from MEGAN [kg C/m2/s]
          ! terpene emissions
-         IF ( (ExtNrMono > 0 ) .AND. ( IDTOCPI > 0 ) ) THEN 
-
-            CALL GET_EMMONOT_MEGAN( HcoState, ExtState, I, J, 
-     &                              GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                              UNITCONV, TERP_ORGC, RC )
-            IF ( RC /= HCO_SUCCESS ) THEN 
-               CALL HCO_ERROR( 'GET_EMMONOT_MEGAN', RC )
-               ERR = .TRUE.
-               EXIT
-            ENDIF               
+         IF ( (ExtNrMono > 0 ) .AND. ( IDTOCPI > 0 ) ) THEN           
 
             ! Convert monoterpenes into hydrophilic OC and pass to
             ! OC emissions array 
-            FLUXOCPI(I,J) = TERP_ORGC * EMMT2OC
+            FLUXOCPI(I,J) = EMIS_MONO * EMMT2OC
+
+            ! Now need to convert this from atomsC to kgC
+            ! dbm (11/2012)
+            FLUXOCPI(I,J) = FLUXOCPI(I,J) * 12e-3_hp/6.02e23_hp
 
 !            ! testing only
 !            if ( i==ix .and. j==iy ) then
 !                  write(*,*) ' '
 !                  write(*,*) 'HEMCO MEGAN @ ', ix, iy
 !                  write(*,*) 'OCPI (NOSOA) (kg/m2/s): ', FLUXOCPI(I,J)
-!                  write(*,*) 'TERP_ORGC: ', TERP_ORGC
+!                  write(*,*) 'EMIS_MONO: ', EMIS_MONO
 !                  write(*,*) 'EMMT2OC: ', EMMT2OC
 !            endif
          ENDIF
@@ -1051,7 +1172,8 @@
                ! New lumping: MTPA=a-,b-pinene,sabinene,carene (hotp 5/20/10)
                ! a-pinene
                IF ( IDTMTPA > 0 ) THEN
-                  FLUXMTPA(I,J) = (APINE + BPINE + SABIN + CAREN) * FC1
+                  FLUXMTPA(I,J) = ( EMIS_APIN + EMIS_BPIN +
+     &                              EMIS_SABI + EMIS_CARE ) * FC1
                ENDIF
 
                !----------------------------------------
@@ -1059,74 +1181,78 @@
                !----------------------------------------
                ! LIMONENE [kg C/m2/s]
                IF ( IDTLIMO > 0 ) THEN
-                  FLUXLIMO(I,J) = LIMON * FC1 
+                  FLUXLIMO(I,J) = EMIS_LIMO * FC1 
                ENDIF
 
-               !----------------------------------------
-               ! MTPO
-               !----------------------------------------
-               ! MTPO is all other monoterpenes (MEGAN categories:
-               ! myrcene, ocimene, OMTP) (hotp 5/20/10)
-               ! All other monoterpenes (mostly camphene, linalool,
-               ! terpinolene, terpinolene, phellandrene) (hotp 3/10/10)
-               ! 14-18% of OMTP is terpinene and terpinolene
-               IF ( IDTMTPO > 0 ) THEN
-
-                  ! ---------------------------------------------------
-                  ! Other monoterpene
-                  CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                                   GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                                   UNITCONV , 'OMTPE', OMTP, RC )
-                  IF ( RC /= HCO_SUCCESS ) THEN 
-                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_FARNE', RC )
-                     ERR = .TRUE.
-                     EXIT
-                  ENDIF 
-
-                  FLUXMTPO(I,J) = (OMTP + MYRCN + OCIMN ) * FC1
-               ENDIF
-
-               !----------------------------------------
-               ! SESQ updated
-               !----------------------------------------
-               ! Sesquiterpenes from MEGAN (hotp 3/10/10)
-               IF ( IDTSESQ > 0 ) THEN
-
-                  ! ---------------------------------------------------
-                  ! a-Farnesene 
-                  CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                                   GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                                   UNITCONV , 'FARNE', FARN, RC )
-                  IF ( RC /= HCO_SUCCESS ) THEN 
-                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_FARNE', RC )
-                     ERR = .TRUE.
-                     EXIT
-                  ENDIF 
-      
-                  ! ---------------------------------------------------
-                  ! b_Caryophyllene 
-                  CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                                   GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                                   UNITCONV , 'BCARE', BCAR, RC )
-                  IF ( RC /= HCO_SUCCESS ) THEN 
-                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_BCARE', RC )
-                     ERR = .TRUE.
-                     EXIT
-                  ENDIF 
-      
-                  ! ---------------------------------------------------
-                  ! Other sesquiterpene
-                  CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                                   GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                                   UNITCONV , 'OSQTE', OSQT, RC )
-                  IF ( RC /= HCO_SUCCESS ) THEN 
-                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_OSQTE', RC )
-                     ERR = .TRUE.
-                     EXIT
-                  ENDIF 
-
-                  FLUXSESQ(I,J) = ( FARN + BCAR + OSQT ) * FC3
-               ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Comment out for now. These species need to be updated for MEGAN2.1.
+! and defined in GET_MEGAN_PARAMS. (mps, 1/26/14)
+!               !----------------------------------------
+!               ! MTPO
+!               !----------------------------------------
+!               ! MTPO is all other monoterpenes (MEGAN categories:
+!               ! myrcene, ocimene, OMTP) (hotp 5/20/10)
+!               ! All other monoterpenes (mostly camphene, linalool,
+!               ! terpinolene, terpinolene, phellandrene) (hotp 3/10/10)
+!               ! 14-18% of OMTP is terpinene and terpinolene
+!               IF ( IDTMTPO > 0 ) THEN
+!
+!                  ! ---------------------------------------------------
+!                  ! Other monoterpene
+!                  CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
+!     &                                   GAMMA_LAI, GAMMA_P, GAMMA_SM, 
+!     &                                   UNITCONV , 'OMTPE', OMTP, RC )
+!                  IF ( RC /= HCO_SUCCESS ) THEN 
+!                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_FARNE', RC )
+!                     ERR = .TRUE.
+!                     EXIT
+!                  ENDIF 
+!
+!                  FLUXMTPO(I,J) = (OMTP + MYRCN + OCIMN ) * FC1
+!               ENDIF
+!
+!               !----------------------------------------
+!               ! SESQ updated
+!               !----------------------------------------
+!               ! Sesquiterpenes from MEGAN (hotp 3/10/10)
+!               IF ( IDTSESQ > 0 ) THEN
+!
+!                  ! ---------------------------------------------------
+!                  ! a-Farnesene 
+!                  CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
+!     &                                   GAMMA_LAI, GAMMA_P, GAMMA_SM, 
+!     &                                   UNITCONV , 'FARNE', FARN, RC )
+!                  IF ( RC /= HCO_SUCCESS ) THEN 
+!                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_FARNE', RC )
+!                     ERR = .TRUE.
+!                     EXIT
+!                  ENDIF 
+!      
+!                  ! ---------------------------------------------------
+!                  ! b_Caryophyllene 
+!                  CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
+!     &                                   GAMMA_LAI, GAMMA_P, GAMMA_SM, 
+!     &                                   UNITCONV , 'BCARE', BCAR, RC )
+!                  IF ( RC /= HCO_SUCCESS ) THEN 
+!                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_BCARE', RC )
+!                     ERR = .TRUE.
+!                     EXIT
+!                  ENDIF 
+!      
+!                  ! ---------------------------------------------------
+!                  ! Other sesquiterpene
+!                  CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
+!     &                                   GAMMA_LAI, GAMMA_P, GAMMA_SM, 
+!     &                                   UNITCONV , 'OSQTE', OSQT, RC )
+!                  IF ( RC /= HCO_SUCCESS ) THEN 
+!                     CALL HCO_ERROR( 'GET_EMTERP_MEGAN_OSQTE', RC )
+!                     ERR = .TRUE.
+!                     EXIT
+!                  ENDIF 
+!
+!                  FLUXSESQ(I,J) = ( FARN + BCAR + OSQT ) * FC3
+!               ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! If MEGAN Monoterpene is turned off:
             ! NOTE: In the original GEOS-Chem code, many of these fluxes
@@ -1553,35 +1679,34 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_EmIsop_Megan
+! !IROUTINE: Get_Megan_Emissions
 !
 ! !DESCRIPTION: Subroutine Get\_EmIsop\_Megan computes isoprene emissions in 
-!  units of [atoms C/box] using the MEGAN inventory.
+!  units of [atoms C/box] using the MEGAN inventory. (dbm, 12/2012)
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_EMISOP_MEGAN( HcoState, ExtState, I, J, 
-     &                             GAMMA_LAI, GAMMA_P, GAMMA_SM,
-     &                             XNUMOL, EMISOP, RC )
+      SUBROUTINE GET_MEGAN_EMISSIONS( HcoState, ExtState, I, J, 
+     &                                CMPD, MEGAN_EMIS, RC )
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(HCO_STATE), POINTER    :: HcoState
-      TYPE(Ext_State), POINTER    :: ExtState
-      INTEGER,         INTENT(IN) :: I, J     ! GEOS-Chem lon & lat indices
-      REAL(hp),        INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
-      REAL(hp),        INTENT(IN) :: GAMMA_P   ! Light correction factor 
-      REAL(hp),        INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
-      REAL(hp),        INTENT(IN) :: XNUMOL   ! Number of atoms C / kg C 
+      TYPE(HCO_STATE),  POINTER     :: HcoState
+      TYPE(Ext_State),  POINTER     :: ExtState
+      INTEGER,          INTENT(IN)  :: I, J      ! GEOS-Chem lon & lat indices
+      CHARACTER(LEN=*), INTENT(IN)  :: CMPD      ! Compound name (dbm,6/21/2012)
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(hp),        INTENT(OUT) :: EMISOP   ! Isoprene emissions [atoms C/box]
+      REAL(hp),         INTENT(OUT) :: MEGAN_EMIS ! VOC emission in atomsC/box 
+                                                  ! or molec/box, depending on
+                                                  ! units the compound is
+                                                  ! carried in
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER,         INTENT(INOUT) :: RC
+      INTEGER,          INTENT(INOUT) :: RC
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -1589,6 +1714,8 @@
 !  (1 ) Guenther et al, 1995, 1999, 2000, 2004, 2006
 !  (2 ) Wang,    et al, 1998
 !  (3 ) Guenther et al, 2007, MEGAN v2.1 User mannual 
+!  (4 ) Guenther et al, 2012 GMD MEGANv2.1 description and associated code at
+!                                http://acd.ucar.edu/~guenther/MEGAN/
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Original code by Dorian Abbot (9/2003).  Updated to the latest 
@@ -1600,6 +1727,8 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
 !  11 Apr 2012 - R. Yantosca - Cosmetic changes
+!  26 Jan 2015 - M. Sulprizio- Update from D. Millet (21 Jun 2012): New driver
+!                              routine for all MEGAN compounds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1607,18 +1736,39 @@
 ! !LOCAL VARIABLES:
 !
       REAL(hp)  :: TS, SUNCOS
-      REAL(hp)  :: GAMMA_LEAF_AGE, GAMMA_T, GAMMA_LAI_ISOP
+      REAL(hp)  :: Q_DIR_2, Q_DIFF_2
+      REAL(hp)  :: GAMMA_AGE
+      REAL(hp)  :: GAMMA_T_LD
+      REAL(hp)  :: GAMMA_T_LI
+      REAL(hp)  :: AEF
       REAL(hp)  :: D_BTW_M
+      REAL(hp)  :: BETA, LDF, CT1, CEO
+      REAL(hp)  :: ANEW, AGRO, AMAT, AOLD
       REAL(hp)  :: ISOLAI, PMISOLAI, MISOLAI
+      LOGICAL   :: BIDIR    
 
       !=================================================================
-      ! GET_EMISOP_MEGAN begins here!
+      ! GET_MEGAN_EMISSIONS begins here!
       !================================================================= 
 
-      ! Initialize return value & activity factors
-      EMISOP          = 0.0_hp
-      GAMMA_LEAF_AGE  = 0.0_hp
-      GAMMA_LAI_ISOP  = 1.0_hp
+      ! Initialize parameters, gamma values, and return value
+      MEGAN_EMIS = 0.0_hp
+      GAMMA_LAI  = 0.0_hp
+      GAMMA_AGE  = 0.0_hp
+      GAMMA_T_LD = 0.0_hp
+      GAMMA_T_LI = 0.0_hp
+      GAMMA_PAR  = 0.0_hp
+      GAMMA_SM   = 0.0_hp
+      BETA       = 0.0_hp
+      AEF        = 0.0_hp
+      LDF        = 0.0_hp
+      CT1        = 0.0_hp
+      CEO        = 0.0_hp
+      ANEW       = 0.0_hp
+      AGRO       = 0.0_hp
+      AMAT       = 0.0_hp
+      AOLD       = 0.0_hp
+      BIDIR      = .FALSE.  
 
       ! Number of days between MISOLAI and PMISOLAI
       D_BTW_M  = DBLE( DAYS_BTW_M )
@@ -1632,41 +1782,96 @@
       TS       = ExtState%T2M%Arr%Val(I,J)
       SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
 
+      ! Convert Q_DIR and Q_DIFF from (W/m2) to (micromol/m2/s)
+      Q_DIR_2  = ExtState%PARDR%Arr%Val(I,J) * WM2_TO_UMOLM2S
+      Q_DIFF_2 = ExtState%PARDF%Arr%Val(I,J) * WM2_TO_UMOLM2S
 
-      !---------------------------------------------------
-      ! Do only during day and over continent
-      ! Only interested in terrestrial biosphere (pip)
-      !---------------------------------------------------
-      IF ( SUNCOS > 0.0_hp ) THEN
+      ! --------------------------------------------
+      ! Get MEGAN parameters for this compound
+      ! --------------------------------------------
+      CALL GET_MEGAN_PARAMS ( CMPD, BETA, LDF,  CT1,  CEO, 
+     &                        ANEW, AGRO, AMAT, AOLD, BIDIR )
 
-         IF ( ISOLAI * AEF_ISOP(I,J) > 0.0_hp ) THEN
+      ! --------------------------------------------
+      ! Get base emission factor for this compound and grid square
+      ! Units: atomsC/box or molec/box
+      ! --------------------------------------------
+      AEF = GET_MEGAN_AEF ( I, J, CMPD )
+     
+      !-----------------------------------------------------
+      ! Only interested in terrestrial biosphere
+      ! If (local LAI != 0 .AND. baseline emission !=0 ) 
+      !-----------------------------------------------------
+      IF ( ISOLAI(I,J) * AEF > 0.0_hp ) THEN
 
-            ! Activity factor for leaf age 
-            GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI, 
-     &                                 PMISOLAI, D_BTW_M, 
-     &                                'ISOP' , HCOT_15_AVG(I,J) )
+         ! --------------------------------------------------
+         ! GAMMA_par (light activity factor)
+         ! --------------------------------------------------
+
+         ! Calculate GAMMA PAR only during day
+         IF ( SUNCOS > 0.0_hp ) THEN
+
+            GAMMA_PAR = GET_GAMMA_PAR_PCEEA(I, J, 
+     &                  Q_DIR_2, Q_DIFF_2,
+     &                  HCOPARDR_15_AVG(I,J),  HCOPARDF_15_AVG(I,J) )
+
+         ELSE             
+ 
+            ! If night
+            GAMMA_PAR = 0.0_hp  
+            
+         ENDIF 
+
+         ! --------------------------------------------------
+         ! GAMMA_T_LI (temperature activity factor for
+         ! light-independent fraction)
+         ! --------------------------------------------------
+         GAMMA_T_LI = GET_GAMMA_T_LI( TS, BETA )
+
+         ! --------------------------------------------------
+         ! GAMMA_T_LD (temperature activity factor for
+         ! light-dependent fraction)
+         ! --------------------------------------------------
+         GAMMA_T_LD = GET_GAMMA_T_LD( TS, T_15_AVG(I,J), 
+     &        T_DAILY(I,J), CT1, CEO )
+
+         ! --------------------------------------------------
+         ! GAMMA_LAI (leaf area index activity factor)
+         ! --------------------------------------------------
+         GAMMA_LAI = GET_GAMMA_LAI( MISOLAI(I,J), BIDIR )
+
+         ! --------------------------------------------------
+         ! GAMMA_AGE (leaf age activity factor)
+         ! --------------------------------------------------
+         GAMMA_AGE = GET_GAMMA_AGE( MISOLAI(I, J), PMISOLAI(I, J), 
+     &        D_BTW_M, T_15_AVG(I,J), ANEW, AGRO, AMAT, AOLD )
+
+         ! --------------------------------------------------
+         ! GAMMA_SM (soil moisture activity factor)
+         ! --------------------------------------------------
+         GAMMA_SM = GET_GAMMA_SM( I, J, CMPD )
+
+      ELSE
+
+         ! set activity factors to zero
+         GAMMA_PAR  = 0.0_hp
+         GAMMA_T_LI = 0.0_hp
+         GAMMA_T_LD = 0.0_hp
+         GAMMA_LAI  = 0.0_hp
+         GAMMA_AGE  = 0.0_hp
+         GAMMA_SM   = 0.0_hp
+
+      END IF
+
+      ! Emission is the product of all of these.
+      ! Units here are atomsC/box or molec/box as appropriate for the compound.
+      ! Normalization factor ensures product of GAMMA values is 1.0 under
+      !  standard conditions. 
+      MEGAN_EMIS = NORM_FAC(1) * AEF * GAMMA_AGE * GAMMA_SM * GAMMA_LAI
+     &             * ((1.0_fp - LDF) * GAMMA_T_LI +
+     &             (LDF * GAMMA_PAR * GAMMA_T_LD))
 
 
-            ! Activity factor for temperature
-            GAMMA_T  = GET_GAMMA_T_ISOP( TS, HCOT_15_AVG(I,J), 
-     &                                       HCOT_15(I,J,1)   )
-
-            ! Activity factor for LAI. Use default (1.0) if PECCA model
-            ! is not used!   
-            IF ( LPECCA ) THEN
-               GAMMA_LAI_ISOP = GAMMA_LAI
-            ENDIF
-
-            ! Isoprene emission is the product of all these
-            EMISOP    = AEF_ISOP(I,J) * GAMMA_LAI_ISOP 
-     &                * GAMMA_LEAF_AGE * GAMMA_T   * GAMMA_P * GAMMA_SM
-
-            ! Convert from [kg/box] to [atoms C/box]
-            EMISOP    = EMISOP * XNUMOL
-
-         ENDIF
-      ENDIF
-   
 !      ! testing only
 !      if ( i==ix .and. j==iy ) then
 !         write(*,*) ' ' 
@@ -1695,176 +1900,256 @@
       ! Leave w/ success
       RC = HCO_SUCCESS
  
-      END SUBROUTINE GET_EMISOP_MEGAN
+      END SUBROUTINE GET_MEGAN_EMISSIONS
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_EmMbo_Megan
+! !IROUTINE: Get_Megan_Params
 !
-! !DESCRIPTION: Subroutine Get\_EmMbo\_Megan computes methylbutenol emissions
-!  in units of [atoms C/box] using the MEGAN inventory.
+! !DESCRIPTION: Subroutine Get\_Megan\_Params returns the emission parameters
+!  for each MEGAN compound needed to compute emissions. Called from
+!  GET\_MEGAN\_EMISSIONS.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_EMMBO_MEGAN( HcoState, ExtState, I, J, 
-     &                            GAMMA_LAI, GAMMA_P, GAMMA_SM,
-     &                            XNUMOL, EMMBO, RC ) 
+      SUBROUTINE GET_MEGAN_PARAMS( CPD,   BTA,   LIDF,  C_T1,  C_EO,
+     &                             A_NEW, A_GRO, A_MAT, A_OLD, BI_DIR,
+     &                             RC )
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(HCO_STATE), POINTER    :: HcoState
-      TYPE(Ext_State), POINTER    :: ExtState
-      INTEGER,         INTENT(IN) :: I, J      ! GEOS-Chem lon & lat indices
-      REAL(hp),        INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
-      REAL(hp),        INTENT(IN) :: GAMMA_P   ! Light correction factor 
-      REAL(hp),        INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
-      REAL(hp),        INTENT(IN) :: XNUMOL    ! Number of atoms C / kg C 
-!
-! !OUTPUT PARAMETERS: 
-!
-      REAL(hp),        INTENT(OUT) :: EMMBO   ! Methylbutenol emissions [atoms C/box]
+      CHARACTER(LEN=*), INTENT(IN) :: CPD    ! Compound name
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-
-      INTEGER,         INTENT(INOUT) :: RC
+      REAL(hp), INTENT(INOUT) :: BTA    ! Beta coefficient for temperature activity 
+                                        ! factor for light-independent fraction
+      REAL(hp), INTENT(INOUT) :: LIDF   ! Light-dependent fraction of emissions
+      REAL(hp), INTENT(INOUT) :: C_T1   ! CT1 parameter for temperature activity
+                                        ! factor for light-dependent fraction
+      REAL(hp), INTENT(INOUT) :: C_EO   ! Ceo parameter for temperature activity
+                                        ! factor for light-dependent fraction
+      REAL(hp), INTENT(INOUT) :: A_NEW  ! Relative emission factor (new leaves)
+      REAL(hp), INTENT(INOUT) :: A_GRO  ! Relative emission factor (growing leaves)
+      REAL(hp), INTENT(INOUT) :: A_MAT  ! Relative emission factor (mature leaves)
+      REAL(hp), INTENT(INOUT) :: A_OLD  ! Relative emission factor (old leaves)
+      LOGICAL,  INTENT(INOUT) :: BI_DIR ! Logical flag to indicate bidirectional exchange
+      INTEGER,  INTENT(INOUT) :: RC
 ! 
 ! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
-!  (1 ) Guenther et al, 1995, 1999, 2000, 2004, 2006
-!  (2 ) Wang,    et al, 1998
-!  (3 ) Guenther et al, 2007, MEGAN v2.1 User mannual 
+!  (1 ) Guenther et al, (GMD 2012) and associated MEGANv2.1 source code
 !
 ! !REVISION HISTORY: 
-!  (1 ) Original code by Dorian Abbot (9/2003).  Updated to the latest 
-!        algorithm and modified for the standard code by May Fu (11/20/04)
-!  (2 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
-!        met field. TS is the surface air temperature, which should be 
-!        carefully distinguished from TSKIN. (tmf, 11/20/04)
-!  (3 ) Restructing of function & implementation of activity factors (mpb,2009)
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
+!  (1 ) Created by dbm 07/2012
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
-!
-      REAL(hp)            :: GAMMA_LEAF_AGE, GAMMA_T, TS, SUNCOS
-      REAL(hp)            :: GAMMA_LAI_EMMB, D_BTW_M
-      REAL(hp)            :: ISOLAI, PMISOLAI, MISOLAI
-!
-! !DEFINED PARAMETERS:
-!
-      REAL(hp), PARAMETER :: BETA = 0.09_hp
-
       !=================================================================
-      ! GET_EMMBO_MEGAN begins here!
+      ! GET_MEGAN_PARAMS begins here!
       !================================================================= 
 
-      ! Initialize return value & activity factors
-      EMMBO           = 0.0_hp
-      GAMMA_LEAF_AGE  = 0.0_hp
-      GAMMA_LAI_EMMB  = 1.0_hp
+      ! Initialize values
+      BTA    = 0.0_hp           
+      LIDF   = 0.0_hp    
+      C_T1   = 0.0_hp    
+      C_EO   = 0.0_hp     
+      A_NEW  = 0.0_hp  
+      A_GRO  = 0.0_hp   
+      A_MAT  = 0.0_hp    
+      A_OLD  = 0.0_hp   
+      BI_DIR = .FALSE. 
 
-      ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
-      ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
-      PMISOLAI = LAI_PREVDAY(I,J)
-      MISOLAI = ISOLAI
-!      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
-!      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-      TS       = ExtState%T2M%Arr%Val(I,J)
-      SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
+      ! ---------------------------
+      ! Note that not all the above compounds are used in standard chemistry
+      ! simulations, but they are provided here for future incorporation or 
+      ! specialized applications. More compounds can be added as needed
+      ! by adding the corresponding CPD name and the appropriate paramaters.
+      ! (dbm, 01/2013)
+      ! ---------------------------
 
+      ! Isoprene, MBO
+      IF ( TRIM(CPD) == 'ISOP' .OR.
+     &     TRIM(CPD) == 'MBOX' ) THEN
+         BTA    = 0.13_hp  ! Not actually used for ISOP, MBO
+         LIDF   = 1.0_hp
+         C_T1   = 95.0_hp
+         C_EO   = 2.0_hp
+         A_NEW  = 0.05_hp
+         A_GRO  = 0.6_hp
+         A_MAT  = 1.0_hp
+         A_OLD  = 0.9_hp
+         BI_DIR = .FALSE. 
 
-      ! Number of days between MISOLAI and PMISOLAI
-      D_BTW_M  = DBLE( DAYS_BTW_M )
+      ! Myrcene, sabinene, alpha-pinene
+      ELSE IF ( TRIM(CPD) == 'MYRC' .OR. 
+     &          TRIM(CPD) == 'SABI' .OR.
+     &          TRIM(CPD) == 'APIN' ) THEN
+         BTA    = 0.10_hp
+         LIDF   = 0.6_hp
+         C_T1   = 80.0_hp
+         C_EO   = 1.83_hp
+         A_NEW  = 2.0_hp
+         A_GRO  = 1.8_hp
+         A_MAT  = 1.0_hp
+         A_OLD  = 1.05_hp
+         BI_DIR = .FALSE. 
 
-      !-------------------------------------------------
-      ! Do only during day and over continent
-      ! Only interested in terrestrial biosphere (pip)
-      !-------------------------------------------------
-      IF ( SUNCOS > 0.0_hp ) THEN
+      ! Limonene, 3-carene, beta-pinene
+      ELSE IF ( TRIM(CPD) == 'LIMO' .OR. 
+     &          TRIM(CPD) == 'CARE' .OR.
+     &          TRIM(CPD) == 'BPIN' ) THEN
+         BTA    = 0.10_hp
+         LIDF   = 0.2_hp
+         C_T1   = 80.0_hp
+         C_EO   = 1.83_hp
+         A_NEW  = 2.0_hp
+         A_GRO  = 1.8_hp
+         A_MAT  = 1.0_hp
+         A_OLD  = 1.05_hp
+         BI_DIR = .FALSE. 
+       
+      ! t-beta-ocimene
+      ELSE IF ( TRIM(CPD) == 'OCIM' ) THEN
+         BTA    = 0.10_hp
+         LIDF   = 0.8_hp
+         C_T1   = 80.0_hp
+         C_EO   = 1.83_hp
+         A_NEW  = 2.0_hp
+         A_GRO  = 1.8_hp
+         A_MAT  = 1.0_hp
+         A_OLD  = 1.05_hp
+         BI_DIR = .FALSE. 
 
-         IF ( ISOLAI * AEF_MBO(I,J) > 0.0_hp ) THEN
-
-            ! Activity factor for leaf age 
-            GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI, 
-     &                                 PMISOLAI, D_BTW_M, 
-     &                                'MBOT' , HCOT_15_AVG(I,J) )
+      ! Other monoterpenes (lumped)
+      ELSE IF ( TRIM(CPD) == 'OMON' ) THEN
+         BTA    = 0.10_hp
+         LIDF   = 0.4_hp
+         C_T1   = 80.0_hp
+         C_EO   = 1.83_hp
+         A_NEW  = 2.0_hp
+         A_GRO  = 1.8_hp
+         A_MAT  = 1.0_hp
+         A_OLD  = 1.05_hp
+         BI_DIR = .FALSE. 
          
-            ! Activity factor for temperature
-            GAMMA_T = GET_GAMMA_T_NISOP( TS, BETA )
+      ! Methanol
+      ELSE IF ( TRIM(CPD) == 'MOHX' ) THEN
+         BTA    = 0.08_hp
+         LIDF   = 0.8_hp
+         C_T1   = 60.0_hp
+         C_EO   = 1.6_hp
+         A_NEW  = 3.5_hp
+         A_GRO  = 3.0_hp
+         A_MAT  = 1.0_hp
+         A_OLD  = 1.2_hp
+         BI_DIR = .FALSE. 
 
-            ! Activity factor for LAI. Use default (1.0) if PECCA model
-            ! is not used!   
-            IF ( LPECCA ) THEN
-               GAMMA_LAI_EMMB = GAMMA_LAI
-            ENDIF
+      ! Acetone
+      ELSE IF ( TRIM(CPD) == 'ACET' ) THEN
+         BTA    = 0.1_hp
+         LIDF   = 0.2_hp
+         C_T1   = 80.0_hp
+         C_EO   = 1.83_hp
+         A_NEW  = 1.0_hp
+         A_GRO  = 1.0_hp
+         A_MAT  = 1.0_hp
+         A_OLD  = 1.0_hp
+         BI_DIR = .FALSE. 
+         
+      ! Bidirectional VOC: Ethanol, formaldehyde, acetaldehyde, formic acid,
+      ! acetic acid
+      ELSE IF ( TRIM(CPD) == 'ETOH' .OR.
+     &          TRIM(CPD) == 'CH2O' .OR. 
+     &          TRIM(CPD) == 'ALD2' .OR.
+     &          TRIM(CPD) == 'FAXX' .OR.
+     &          TRIM(CPD) == 'AAXX' ) THEN
+         BTA    = 0.13_hp
+         LIDF   = 0.8_hp
+         C_T1   = 95.0_hp
+         C_EO   = 2.0_hp
+         A_NEW  = 1.0_hp
+         A_GRO  = 1.0_hp
+         A_MAT  = 1.0_hp
+         A_OLD  = 1.0_hp
+         BI_DIR = .TRUE.  
+        
+      ! Stress VOCs: ethene, toluene, HCN
+      ! There are others species in this category but none are currently 
+      ! used in GEOS-Chem
+      ELSE IF ( TRIM(CPD) == 'C2H4' .OR.
+     &          TRIM(CPD) == 'TOLU' .OR. 
+     &          TRIM(CPD) == 'HCNX' ) THEN
+         BTA    = 0.1_hp
+         LIDF   = 0.8_hp
+         C_T1   = 80.0_hp
+         C_EO   = 1.83_hp
+         A_NEW  = 1.0_hp
+         A_GRO  = 1.0_hp
+         A_MAT  = 1.0_hp
+         A_OLD  = 1.0_hp
+         BI_DIR = .FALSE. 
+         
+      ! Other VOCs: >C2 alkenes
+      ! This includes propene, butene and very minor contribution from
+      ! larger alkenes
+      ELSE IF ( TRIM(CPD) == 'PRPE' ) THEN
+         BTA    = 0.1_hp
+         LIDF   = 0.2_hp
+         C_T1   = 80.0_hp
+         C_EO   = 1.83_hp
+         A_NEW  = 1.0_hp
+         A_GRO  = 1.0_hp
+         A_MAT  = 1.0_hp
+         A_OLD  = 1.0_hp
+         BI_DIR = .FALSE. 
+         
+      ! Calls for any other MEGAN compounds (e.g. sesquiterpenes, CO, etc.) can
+      ! be added following the above format based on the parameters in
+      ! Guenther 2012 or the MEGAN source code (dbm, 6/21/2012).
+      ELSE
 
-            ! MBO emissions in [kgC/m2/s]
-            EMMBO = AEF_MBO(I,J)     * GAMMA_LAI_EMMB 
-     &            * GAMMA_LEAF_AGE * GAMMA_T  * GAMMA_P   * GAMMA_SM
-
-            ! Convert if necessary 
-            EMMBO = EMMBO * XNUMOL
-
-         ENDIF
+         CALL ERROR_STOP( 'Invalid compound name for MEGAN emissions', 
+     &                    ' (hcox_megan_mod.F)' )
+         
       ENDIF
-
-!      ! testing only
-!      if ( i==ix .and. j==iy ) then
-!         write(*,*) ' '
-!         write(*,*) 'HEMCO GET_EMMBO_MEGAN @',i,j
-!         write(*,*) 'GAMMA_LEAF_AGE: ', GAMMA_LEAF_AGE
-!         write(*,*) 'GAMMA_T: ', GAMMA_T
-!         write(*,*) 'GAMMA_SM: ', GAMMA_SM
-!         write(*,*) 'GAMMA_P: ', GAMMA_P
-!         write(*,*) 'GAMMA_LAI: ', GAMMA_LAI_EMMB
-!      endif
-!
+     
       ! Leave w/ success
       RC = HCO_SUCCESS
 
-      END SUBROUTINE GET_EMMBO_MEGAN
+      END SUBROUTINE GET_MEGAN_PARAMS
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_EmTerp_Megan
+! !IROUTINE: Get_Megan_AEF
 !
-! !DESCRIPTION: Function Get\_EmTerp\_Megan computes monoterpene and
-!  sesquiterpene emissions for individual species in units of [atoms C/box]
-!  using the MEGAN v2.1 inventory.
+! !DESCRIPTION: Function Get\_Megan\_AEF returns the appropriate AEF value
+!  for a given compound and grid square.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_EMTERP_MEGAN( HcoState, ExtState, I, J, 
-     &                             GAMMA_LAI, GAMMA_P, GAMMA_SM, 
-     &                             XNUMOL, TERP_SPECIES, EMTERP, RC )
+      SUBROUTINE GET_MEGAN_AEF( I, J, CPD, EMFAC, RC )
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(HCO_STATE),   POINTER    :: HcoState
-      TYPE(Ext_State),   POINTER    :: ExtState
-      INTEGER,           INTENT(IN) :: I, J          ! Lon & lat indices
-      REAL(hp),          INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
-      REAL(hp),          INTENT(IN) :: GAMMA_P   ! Light correction factor 
-      REAL(hp),          INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
-      REAL(hp),          INTENT(IN) :: XNUMOL        ! Number of atoms C / kg C 
-      CHARACTER(LEN=5),  INTENT(IN) :: TERP_SPECIES  ! Monoterpene species name
+      INTEGER,           INTENT(IN)  :: I, J        ! Lon & lat indices
+      CHARACTER(LEN=*),  INTENT(IN)  :: CPD         ! Compound name
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL(hp),          INTENT(OUT) :: EMTERP        ! Emissions [kg/m2/s]
+      REAL(hp),          INTENT(OUT) :: EMFAC       ! MEGAN base emission factor
+                                                    ! (molec/box or atomsC/box)
+                                                    ! for grid cell (I,J)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -1873,436 +2158,90 @@
 ! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
-!  (1 ) Guenther et al, 1995, 1999, 2004, 2006
-!  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
-!  (3 ) Sakulyanontvittaya et al, 2008
+!  (1 ) Guenther et al, 2012, MEGANv2.1 source code
 ! 
 ! !REVISION HISTORY: 
-!  (1 ) Written by Michael Barkley (2008), based on old monoterpene code by 
-!       dsa,tmf.
-!  (2 ) Uses gamma factors instead of exchange factors, this includes
-!        calling of a new temperature algorithm which use a beta factor.
-!        (mpb,2008)
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
-!  13 Aug 2013 - M. Sulprizio- Renamed from GET_EMMONOG_MEGAN and added
-!                              sesquiterpenes (H. Pye)
+!  (1 ) Created 11/2012 by dbm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
-!
-      REAL(hp)          :: BETA
-      REAL(hp)          :: GAMMA_LEAF_AGE, GAMMA_T, TS
-      REAL(hp)          :: D_BTW_M
-      REAL(hp)          :: LDF 
-      REAL(hp)          :: AEF_SPARE
-      REAL(hp)          :: ISOLAI, PMISOLAI, MISOLAI
-      CHARACTER(LEN=4)  :: AGE_SPECIES ! Identify age param & pass to GAMMA_AGE
-      CHARACTER(LEN=255):: MSG
-
       !=================================================================
-      ! GET_EMMONOT_MEGAN begins here!
+      ! GET_MEGAN_AEF begins here!
       !================================================================= 
 
-      ! Initialize return value & activity factors
-      EMTERP          = 0.0_hp
-      GAMMA_LEAF_AGE  = 0.0_hp
-      AEF_SPARE       = 0.0_hp
+      ! Find appropriate tracer
+      SELECT CASE ( TRIM( CPD ) )
 
-      ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
-      ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
-      PMISOLAI = LAI_PREVDAY(I,J)
-      MISOLAI = ISOLAI
-!      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
-!      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-      TS       = ExtState%T2M%Arr%Val(I,J)
-
-
-      ! Number of days between MISOLAI and PMISOLAI
-      D_BTW_M  = DBLE( DAYS_BTW_M )
-
-      ! Need to determine which monoterpene AEFs 
-      ! we need to use (mpb,2009)
-      ! SOAudpate: add BETA, AGE_SPECIES (hotp 7/29/10)
-      SELECT CASE( TERP_SPECIES )
-      CASE( 'APINE' )
-         AEF_SPARE      = AEF_APINE(I,J)
-         LDF            = 0.1_hp
-         BETA           = 0.09_hp
-         AGE_SPECIES    = 'MONO'
-      CASE( 'BPINE' )
-         AEF_SPARE      = AEF_BPINE(I,J)
-         LDF            = 0.1_hp
-         BETA           = 0.09_hp
-         AGE_SPECIES    = 'MONO'
-      CASE( 'LIMON' )
-         AEF_SPARE      = AEF_LIMON(I,J)
-         LDF            = 0.05_hp
-         BETA           = 0.09_hp
-         AGE_SPECIES    = 'MONO'
-      CASE( 'SABIN' )
-         AEF_SPARE      = AEF_SABIN(I,J)
-         LDF            = 0.1_hp
-         BETA           = 0.09_hp
-         AGE_SPECIES    = 'MONO'
-      CASE( 'MYRCN' )
-         AEF_SPARE      = AEF_MYRCN(I,J)
-         LDF            = 0.05_hp
-         BETA           = 0.09_hp
-         AGE_SPECIES    = 'MONO'
-      CASE( 'CAREN' )
-         AEF_SPARE      = AEF_CAREN(I,J)
-         LDF            = 0.05_hp
-         BETA           = 0.09_hp
-         AGE_SPECIES    = 'MONO'
-      CASE( 'OCIMN' )
-         AEF_SPARE      = AEF_OCIMN(I,J)
-         LDF            = 0.8_hp
-         BETA           = 0.09_hp
-         AGE_SPECIES    = 'MONO'
-      ! SOAupdate: add Sesquiterpenes (hotp 3/1/10)
-      ! Sesquiterpene LDF based on Sakulyanontvittaya 2008
-      ! beta from MEGANv2.04 (megan CDP)
-      ! make name 5 characters
-      CASE( 'FARNE' )
-         AEF_SPARE      = AEF_GEN(I,J,IDMGFARN)
-         LDF            = 0.5_hp
-         BETA           = 0.17_hp
-         AGE_SPECIES    = 'SESQ'
-      CASE( 'BCARE' )
-         AEF_SPARE      = AEF_GEN(I,J,IDMGBCAR)
-         LDF            = 0.5_hp
-         BETA           = 0.17_hp
-         AGE_SPECIES    = 'SESQ'
-      CASE( 'OSQTE' )
-         AEF_SPARE      = AEF_GEN(I,J,IDMGOSQT)
-         LDF            = 0.5_hp
-         BETA           = 0.17_hp
-         AGE_SPECIES    = 'SESQ'
-      ! Other monoterpenes (hotp 3/5/10)
-      CASE( 'OMTPE' )
-         AEF_SPARE      = AEF_GEN(I,J,IDMGOMTP)
-         LDF            = 0.1_hp
-         BETA           = 0.1_hp
-         AGE_SPECIES    = 'MONO'
-      CASE DEFAULT
-         MSG = 'Invalid TERPENE species'
-         CALL HCO_ERROR( MSG, RC, THISLOC='GET_EMTERP_MEGAN' )
-         RETURN 
-      END SELECT   
-
-      !-----------------------------------------------------
-      ! Only interested in terrestrial biosphere (pip)
-      ! If (local LAI != 0 .AND. baseline emission !=0 ) 
-      !-----------------------------------------------------
-      ! AEF_SPARE no longer I,J (hotp 3/10/10)
-      IF ( ISOLAI * AEF_SPARE > 0.0_hp ) THEN
-
-         ! Activity factor for leaf age 
-         GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI, 
-     &                              PMISOLAI, D_BTW_M, 
-     &                              AGE_SPECIES, HCOT_15_AVG(I,J) )
-
-         ! Activity factor for temperature
-         GAMMA_T = GET_GAMMA_T_NISOP( TS, BETA )
-    
-         ! Monoterpene emission is the product of all these; must be 
-         ! careful to distinguish between canopy & PECCA models.
-         IF ( LPECCA ) THEN
-            EMTERP = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-     &                         * GAMMA_SM       * GAMMA_LAI
-     &                         * ( (1.0_hp - LDF) + (LDF * GAMMA_P) )
-
-         ELSE 
-
-            ! removed I,J from AEF_SPARE (hotp 3/10/10)
-            EMTERP = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-     &                         * GAMMA_SM       
-     &             * ( GAMMA_LAI * (1.0_hp - LDF) + (LDF * GAMMA_P) )
-
-         END IF 
-
-         ! Convert from [kg/box] to [atoms C/box]
-         EMTERP  = EMTERP * XNUMOL
-
-      END IF
+      CASE ( 'ISOP' )
+         EMFAC = AEF_ISOP(I,J)
+      CASE ( 'MBOX' )
+         EMFAC = AEF_MBOX(I,J)
+      CASE ( 'MYRC' )
+         EMFAC = AEF_MYRC(I,J)
+      CASE ( 'SABI' )
+         EMFAC = AEF_SABI(I,J)
+      CASE ( 'APIN' )
+         EMFAC = AEF_APIN(I,J)
+      CASE ( 'LIMO' )
+         EMFAC = AEF_LIMO(I,J)
+      CASE ( 'CARE' )
+         EMFAC = AEF_CARE(I,J)
+      CASE ( 'BPIN' )
+         EMFAC = AEF_BPIN(I,J)
+      CASE ( 'OCIM' )
+         EMFAC = AEF_OCIM(I,J)
+      CASE ( 'OMON' )
+         EMFAC = AEF_OMON(I,J)
+      CASE ( 'MOHX' )
+         EMFAC = AEF_MOHX(I,J)
+      CASE ( 'ACET' )
+         EMFAC = AEF_ACET(I,J)
+      CASE ( 'ETOH' )
+         EMFAC = AEF_ETOH(I,J)
+      CASE ( 'CH2O' )
+         EMFAC = AEF_CH2O(I,J)
+      CASE ( 'ALD2' )
+         EMFAC = AEF_ALD2(I,J)
+      CASE ( 'FAXX' )
+         EMFAC = AEF_FAXX(I,J)
+      CASE ( 'AAXX' )
+         EMFAC = AEF_AAXX(I,J)
+      CASE ( 'C2H4' )
+         EMFAC = AEF_C2H4(I,J)
+      CASE ( 'TOLU' )
+         EMFAC = AEF_TOLU(I,J)
+      CASE ( 'HCNX' )
+         EMFAC = AEF_HCNX(I,J)
+      CASE ( 'PRPE' )
+         EMFAC = AEF_PRPE(I,J)
+      CASE DEFAULT     
+         CALL ERROR_STOP( 'Invalid compound name for MEGAN AEF', 
+     &                    ' (hcox_megan_mod.F)' )
+      END SELECT
 
       ! Return w/ success
       RC = HCO_SUCCESS
 
-      END SUBROUTINE GET_EMTERP_MEGAN
+      END SUBROUTINE GET_MEGAN_AEF
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_EmaAet_megan
+! !IROUTINE: Get_Gamma_PAR_PCEEA
 !
-! !DESCRIPTION: Subroutine Get\_EmAcet\_Megan computes acetone emissions in
-!  units of [atomsC/box] using the MEGAN inventory.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GET_EMACET_MEGAN( HcoState, ExtState, I, J, 
-     &                             GAMMA_LAI, GAMMA_P, GAMMA_SM,
-     &                             XNUMOL, EMACET, RC ) 
-!
-! !INPUT PARAMETERS: 
-!
-      TYPE(HCO_STATE), POINTER    :: HcoState
-      TYPE(Ext_State), POINTER    :: ExtState
-      INTEGER,         INTENT(IN) :: I,  J   ! GEOS-Chem lon & lat indices
-      REAL(hp),        INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
-      REAL(hp),        INTENT(IN) :: GAMMA_P   ! Light correction factor 
-      REAL(hp),        INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
-      REAL(hp),        INTENT(IN) :: XNUMOL  ! Number of atoms C / kg C 
-!
-! !OUTPUT PARAMETERS: 
-!
-      REAL(hp),        INTENT(OUT) :: EMACET  ! Acetone emissions [atoms C/box]
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      INTEGER, INTENT(INOUT) :: RC
-! 
-! !REMARKS:
-!  References (see above for full citations):
-!  ============================================================================
-!  (1 ) Guenther et al, 1995, 1999, 2004, 2006
-!  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
-!
-! !REVISION HISTORY:
-!  (1 ) Written by Michael Barkley (2008), based on old monoterpene code by 
-!       dsa,tmf.
-!  (2 ) Uses gamma factors instead of exchange factors, this includes
-!        calling of a new temperature algorithm which use a beta factor.
-!        (mpb,2008) 
-!  24 May 2011 - E. Fischer  - Modified for acetone. Function GET_EMACET_MEGAN
-!                              is called from "acetone_mod.f"
-!  06 Dec 2011 - M. Payer    - Added ProTeX headers
-!  27 Mar 2012 - R. Yantosca - Avoid segfault errors if LMEGAN=.FALSE.
-!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-      ! Fraction of emission that is light dependent (A. Guenther 5/25/2011)
-      REAL(hp), PARAMETER   :: LDF    = 0.2_hp
-
-      ! Temperature response factor for light-independent emissions
-      ! (A. Guenther 5/25/2011)
-      REAL(hp), PARAMETER   :: BETA   = 0.1_hp
-!
-! !LOCAL VARIABLES:
-!
-      REAL(hp)              :: GAMMA_LEAF_AGE
-      REAL(hp)              :: GAMMA_T
-      REAL(hp)              :: D_BTW_M, TS, SUNCOS
-      REAL(hp)              :: ISOLAI, PMISOLAI, MISOLAI
-
-      !=================================================================
-      ! GET_EMACET_MEGAN begins here!
-      !================================================================= 
-
-      ! Initialize return value & activity factors
-      EMACET          = 0.0_hp
-      GAMMA_T         = 0.0_hp
-      GAMMA_LEAF_AGE  = 1.0_hp
-
-      ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
-      ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
-      PMISOLAI = LAI_PREVDAY(I,J)
-      MISOLAI = ISOLAI
-!      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
-!      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-      TS       = ExtState%T2M%Arr%Val(I,J)
-      SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
-
-
-      !-----------------------------------------------------
-      ! Only interested in terrestrial biosphere (pip)
-      ! If (local LAI != 0 .AND. baseline emission !=0 ) 
-      !-----------------------------------------------------
-      IF ( ISOLAI * AEF_ACET(I,J) > 0.0_hp ) THEN
-
-         ! Calculate gamma PAR only if sunlight conditions
-         IF ( SUNCOS > 0.0_hp ) THEN
-
-            ! --------------------------------------------------
-            ! GAMMA_age
-            ! --------------------------------------------------
-            ! Activity factor for leaf age
-            ! there is no leaf age dependence for acetone so 
-            ! GAMMA_LEAF_AGE should be 1
-!            GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI(I,J), 
-!     &                                 PMISOLAI(I,J), D_BTW_M, 
-!     &                                 'MOHT', HCOT_15_AVG(I,J) )
-
-         ENDIF
-    
-         ! --------------------------------------------------
-         ! GAMMA_T
-         ! --------------------------------------------------
-         ! Activity factor for temperature
-         GAMMA_T = GET_GAMMA_T_NISOP( TS, BETA )
-
-         ! Acetone emission is the product of all these; must be 
-         ! careful to distinguish between canopy & PECCA models.
-         IF ( LPECCA ) THEN
-
-            EMACET   = AEF_ACET(I,J) * GAMMA_LEAF_AGE 
-     &               * GAMMA_T   * GAMMA_SM   * GAMMA_LAI
-     &               * ( (1.0_hp - LDF) + (LDF * GAMMA_P) )
-
-         ELSE 
-
-            EMACET   = AEF_ACET(I,J)     * GAMMA_LEAF_AGE 
-     &               * GAMMA_T                    * GAMMA_SM       
-     &               * (  GAMMA_LAI * (1.0_hp - LDF) + (LDF * GAMMA_P) )
-
-         END IF 
-
-         ! Convert from [kg/box] to [atoms C/box]
-         EMACET  = EMACET * XNUMOL
- 
-      END IF
-
-      ! Return w/ success
-      RC = HCO_SUCCESS
-
-!      ! testing only
-!      if ( i==ix .and. j==iy ) then
-!         write(*,*) ' '
-!         write(*,*) 'HEMCO GET_EMACET_MEGAN @',i,j
-!         write(*,*) 'GAMMA_LEAF_AGE: ', GAMMA_LEAF_AGE
-!         write(*,*) 'GAMMA_T: ', GAMMA_T
-!         write(*,*) 'GAMMA_SM: ', GAMMA_SM
-!         write(*,*) 'GAMMA_P: ', GAMMA_P
-!         write(*,*) 'GAMMA_LAI: ', GAMMA_LAI
-!      endif
-!
-      END SUBROUTINE GET_EMACET_MEGAN
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_EmMonot_Megan
-!
-! !DESCRIPTION: Subroutine Get\_EmMonot\_Megan computes the total 
-!  monoterpene emissions in units of [atoms C/box] using the MEGAN v2.1 
-!  inventory.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GET_EMMONOT_MEGAN( HcoState, ExtState, I, J, 
-     &                              GAMMA_LAI, GAMMA_P, GAMMA_SM,
-     &                              XNUMOL, EMMONOT, RC )
-!
-! !INPUT PARAMETERS: 
-!
-      TYPE(HCO_STATE), POINTER    :: HcoState
-      TYPE(Ext_State), POINTER    :: ExtState
-      INTEGER,         INTENT(IN) :: I, J      ! Lon & lat indices
-      REAL(hp),        INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
-      REAL(hp),        INTENT(IN) :: GAMMA_P   ! Light correction factor 
-      REAL(hp),        INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
-      REAL(hp),        INTENT(IN) :: XNUMOL    ! Number of atoms C / kg C 
-!
-! !OUTPUT PARAMETERS: 
-!
-      REAL(hp),        INTENT(OUT) :: EMMONOT   ! Monoterpene emissions [atoms C/box]
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      INTEGER,         INTENT(INOUT) :: RC
-!
-! !REMARKS:
-!  References (see above for full citations):
-!  ============================================================================
-!  (1 ) Guenther et al, 1995, 1999, 2000, 2006
-!  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
-! 
-! !REVISION HISTORY: 
-!  (1 ) Original code by Michael Barkley (mpb,2009).
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  09 Mar 2010 - H.O.T. Pye  - Change order of arguments in call to 
-!                              routine GET_EMMONOG_MEGAN
-!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-      INTEGER, PARAMETER :: N = 7
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      REAL(hp)           :: MONO
-      INTEGER            :: K 
-
-      ! Arrays
-      CHARACTER(LEN=5)   :: SPECIES(N) = (/ 'APINE', 'BPINE', 'LIMON', 
-     &                                      'SABIN', 'MYRCN', 'CAREN', 
-     &                                      'OCIMN'                   /)
-
-      !=================================================================
-      ! GET_EMMONOT_MEGAN begins here!
-      !================================================================= 
-
-      ! Initialize
-      EMMONOT = 0.0_hp
-
-      ! Loop over all species
-      DO K = 1, N
-
-         ! Get contribution from each individual species [kg C/box]
-         CALL GET_EMTERP_MEGAN( HcoState, ExtState, I, J,  
-     &                          GAMMA_LAI, GAMMA_P, GAMMA_SM,
-     &                          XNUMOL, SPECIES(K), MONO, RC )
-
-         ! Error trap
-         IF ( RC /= HCO_SUCCESS ) THEN
-            RC = HCO_FAIL 
-            RETURN
-         ENDIF
-
-         ! Compute overall total
-         EMMONOT = EMMONOT + MONO
-      ENDDO
-
-      ! Return w/ success
-      RC = HCO_SUCCESS
-
-      END SUBROUTINE GET_EMMONOT_MEGAN
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_Gamma_P_Pecca
-!
-! !DESCRIPTION: Computes the PECCA gamma activity factor with sensitivity 
+! !DESCRIPTION: Computes the PCEEA gamma activity factor with sensitivity 
 !  to LIGHT.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_GAMMA_P_PECCA( HcoState, ExtState, I, J, Q_DIR_2, 
-     &                            Q_DIFF_2, HCOPARDR_AVG_SIM, 
-     &                            HCOPARDF_AVG_SIM )
-     &              RESULT( GAMMA_P_PECCA )
+      FUNCTION GET_GAMMA_PAR_PCEEA( HcoState, ExtState, I, J, Q_DIR_2, 
+     &                              Q_DIFF_2, HCOPARDR_AVG_SIM, 
+     &                              HCOPARDF_AVG_SIM )
+     &              RESULT( GAMMA_P_PCEEA )
 !
 ! !USES:
 !
@@ -2320,7 +2259,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(hp)                    :: GAMMA_P_PECCA     ! GAMMA factor for light
+      REAL(hp)                    :: GAMMA_P_PCEEA     ! GAMMA factor for light
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -2355,7 +2294,7 @@
       REAL(hp)   :: LocalHour
 
       !-----------------------------------------------------------------
-      ! Compute GAMMA_P_PECCA
+      ! Compute GAMMA_PAR_PCEEA
       !-----------------------------------------------------------------  
 
       ! Initialize
@@ -2383,7 +2322,7 @@
 
       IF ( SINbeta < 0.0_hp ) THEN
 
-         GAMMA_P_PECCA = 0.0_hp
+         GAMMA_P_PCEEA = 0.0_hp
 
       ELSEIF ( SINbeta > 0.0_hp ) THEN       
 
@@ -2398,23 +2337,23 @@
          BBB     = 1.0_hp + 0.0005_hp *( PAC_DAILY - 400.0_hp ) 
          AAA     = ( 2.46_hp * BBB * PHI ) - ( 0.9_hp * PHI**2 )
 
-         GAMMA_P_PECCA = SINbeta * AAA
+         GAMMA_P_PCEEA = SINbeta * AAA
 
       ENDIF
 
        ! Screen unforced errors. IF solar elevation angle is 
        ! less than 1 THEN gamma_p can not be greater than 0.1.
-       IF ( BETA < 1.0_hp .AND. GAMMA_P_PECCA > 0.1_hp ) THEN
-          GAMMA_P_PECCA  = 0.0_hp
+       IF ( BETA < 1.0_hp .AND. GAMMA_P_PCEEA > 0.1_hp ) THEN
+          GAMMA_P_PCEEA  = 0.0_hp
        ENDIF
    
       ! Prevent negative values
-      GAMMA_P_PECCA = MAX( GAMMA_P_PECCA , 0.0_hp )
+      GAMMA_P_PCEEA = MAX( GAMMA_P_PCEEA , 0.0_hp )
 
 !      ! testing only
 !      if ( i==ix .and. j==iy ) then
 !         write(*,*) ' '
-!         write(*,*) 'HEMCO GAMMA_P_PECCA: ', GAMMA_P_PECCA
+!         write(*,*) 'HEMCO GAMMA_P_PCEEA: ', GAMMA_P_PCEEA
 !         write(*,*) 'DOY: ', DOY
 !         write(*,*) 'LUT: ', LUT
 !         write(*,*) 'LAT: ', LAT
@@ -2428,7 +2367,7 @@
 !         write(*,*) 'PAC_INSTANT: ', PAC_INSTANT
 !      endif
 
-      END FUNCTION GET_GAMMA_P_PECCA
+      END FUNCTION GET_GAMMA_PAR_PCEEA
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -2494,48 +2433,116 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_Gamma_T_Isop
+! !IROUTINE: Get_Gamma_T_LI
 !
-! !DESCRIPTION: Function Get\_Gamma\_T\_Isop computes the temperature 
-!  sensitivity for ISOPRENE ONLY.
+! !DESCRIPTION: Function Get\_Gamma\_T\_LI computes the temperature 
+!  activity factor (GAMMA\_T_LI) for the light-independent fraction of emissions
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_GAMMA_T_ISOP( T, PHCOT_15, PT_1 ) RESULT( GAMMA_T )
+      FUNCTION GET_GAMMA_T_LI( T, BETA ) RESULT( GAMMA_T_LI )
 !
 ! !INPUT PARAMETERS: 
 !
-
       ! Current leaf temperature, the surface air temperature field (TS) 
       ! is assumed equivalent to the leaf temperature over forests.
       REAL(hp),  INTENT(IN) :: T 
 
- 
-      ! Average leaf temperature over the past 15 days
-      REAL(hp),  INTENT(IN) :: PHCOT_15
-
-      ! Average leaf temperature over the past arbitray day(s).
-      ! This is not used at present (but might be soon!).
-      REAL(hp),  INTENT(IN) :: PT_1
+      ! Temperature factor per species
+      REAL(hp),  INTENT(IN) :: BETA
 !
 ! !RETURN VALUE:
 !
-      ! GAMMA factor for temperature (isoprene only)
-      REAL(hp)              :: GAMMA_T
+      ! Activity factor for the light-independent fraction of emissions
+      REAL(hp)              :: GAMMA_T_LI
+!
+! !REMARKS:
+!  GAMMA_T =  exp[Beta*(T - T_Standard)]
+!                                                                             .
+!             where Beta   = temperature dependent parameter
+!                   Ts     = standard temperature (normally 303K, 30C)
+!                                                                             .
+!  References (see above for full citations):
+!  ============================================================================
+!  (1 ) Guenther et al, 2006
+!  (2 ) Guenther et al, MEGAN user mannual 2007-08
+!  (3 ) Guenther et al., GMD 2012 and MEGANv2.1 source code.
+! 
+! !REVISION HISTORY: 
+!  (1 ) Original code by Michael Barkley (2009).
+!       Note: If T = Ts  (i.e. standard conditions) then GAMMA_T = 1 
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  (2 ) Modified to GAMMA_T_LI (dbm, 6/21/2012)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! Standard reference temperature [K]
+      REAL*8, PARAMETER   :: T_STANDARD = 303.d0
+
+      !=================================================================
+      ! GET_GAMMAT_T_LI begins here!
+      !================================================================= 
+
+      GAMMA_T_LI = EXP( BETA * ( T - T_STANDARD ) )
+
+      END FUNCTION GET_GAMMA_T_LI
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Gamma_T_LD
+!
+! !DESCRIPTION: Function Get\_Gamma\_T\_LD computes the temperature 
+!  sensitivity for the light-dependent fraction of emissions.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_GAMMA_T_LD( T, PT_15, PT_1, CT1, CEO ) 
+     &     RESULT( GAMMA_T_LD )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Current leaf temperature [K], the surface air temperature field (TS) 
+      ! is assumed equivalent to the leaf temperature over forests.
+      REAL(hp), INTENT(IN) :: T        
+
+       ! Average leaf temperature over the past 15 days
+      REAL(hp), INTENT(IN) :: PT_15
+
+      ! Average leaf temperature over the past arbitray day(s).
+      ! This is not used at present
+      REAL(hp), INTENT(IN) :: PT_1
+
+      ! Compound-specific parameters for light-dependent temperature activity
+      ! factor (dbm, 6/21/2012)
+      REAL(hp), INTENT(IN) :: CT1, CEO
+!
+! !RETURN VALUE:
+!
+      ! Temperature activity factor for the light-dependent fraction of 
+      ! emissions
+      REAL(hp)             :: GAMMA_T_LD
 !
 ! !REMARKS:
 !  References (see above for full citations):
-!  ============================================================================
 !  (1 ) Guenther et al, 1995
 !  (2 ) Guenther et al, 2006
 !  (3 ) Guenther et al, MEGAN v2.1 user mannual 2007-08
-! 
-! 
+!  (4 ) Guenther et al., GMD 2012 and MEGANv2.1 source code.
+!
 ! !REVISION HISTORY: 
 !  (1 ) Includes the latest MEGAN v2.1 temperature algorithm (mpb, 2009).
-!       Note, this temp-dependence is the same for the PECCA & hybrid models.
+!       Note, this temp-dependence is the same for the PCEEA & hybrid models.
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  (2 ) Modified to gamma_t_ld and to permit compound specific parameters
+!       CT1 and Ceo (dbm, 6/21/2012)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2544,21 +2551,18 @@
 !
       REAL(hp)              :: C_T,   CT1,   CT2
       REAL(hp)              :: E_OPT, T_OPT, X
-
+!
+! !DEFINED PARAMETERS:
+!
       ! Ideal gas constant [J/mol/K]
       REAL(hp), PARAMETER   :: R   = 8.314e-3_hp
 
-
-      ! Normalization Factor 
-      REAL(hp), PARAMETER   ::  NORM = 0.99558166894501043_hp 
-                                   
-      !=================================================================!
-      !             ALWAYS CHECK THE ABOVE NORMALIZATION                !
-      !=================================================================!
-       E_OPT = 1.75_hp * EXP( 0.08_hp * ( PHCOT_15  - 2.97e2_hp ) )
-       T_OPT = 3.13e2_hp + ( 6.0e-1_hp * ( PHCOT_15 - 2.97e2_hp ) )
-       CT1   = 80.0_hp
-       CT2   = 200.0_hp
+      !=================================================================
+      ! GET_GAMMA_T_LD begins here!
+      !================================================================= 
+      E_OPT = CEO * EXP( 0.08_hp * ( PT_15  - 2.97e2_hp ) )
+      T_OPT = 3.13e2_hp + ( 6.0e-1_hp * ( PT_15 - 2.97e2_hp ) )
+      CT2   = 200.0_hp
 
       ! Variable related to temperature 
       X     = ( 1.0_hp/T_OPT - 1.0_hp/T ) / R
@@ -2571,316 +2575,125 @@
 
       ! Hourly emission activity = C_T
       ! Prevent negative values
-      GAMMA_T = MAX( C_T * NORM , 0.0_hp )
+      GAMMA_T_LD = MAX( C_T, 0.0_hp )
 
-      END FUNCTION GET_GAMMA_T_ISOP
+      END FUNCTION GET_GAMMA_T_LD
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_Gamma_T_nIsop
+! !IROUTINE: Get_Gamma_Lai
 !
-! !DESCRIPTION: Function Get\_Gamma\_T\_nIsop computes the temperature 
-!  activity factor (GAMMA\_T) for BVOCs OTHER than isoprene.  Called from 
-!  routines Get\_EmMonog\_Megan and Get\_Emmbo\_Megan.
+! !DESCRIPTION: Function Get\_Gamma\_Lai computes the gamma exchange activity 
+!  factor which is sensitive to leaf area (= GAMMA\_LAI).
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_GAMMA_T_NISOP( T, BETA ) RESULT( GAMMA_T )
+      FUNCTION GET_GAMMA_LAI( CMLAI, BIDIREXCH ) RESULT( GAMMA_LAI )
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Current leaf temperature [K], the surface air temperature field (TS) 
-      ! is assumed equivalent to the leaf temperature over forests.
-      REAL(hp), INTENT(IN) :: T        
-
-      ! Temperature factor per species (from MEGAN user manual). 
-      ! Beta = 0.09 for MBO and for monoterpene species (APINE, BPINE, LIMON, 
-      ! SABIN, MYRCN, CAREN, OCIMN). Pass as an argument in case this changes.
-      REAL(hp), INTENT(IN) :: BETA     
+      REAL(hp), INTENT(IN) :: CMLAI       ! Current month's LAI [cm2/cm2]
+      LOGICAL,  INTENT(IN) :: BIDIREXCH   ! Logical flag indicating whether
+                                          ! the compound undergoes bidirectional
+                                          ! exchange
 !
 ! !RETURN VALUE:
 !
-      REAL(hp)             :: GAMMA_T  ! 
+      REAL(hp)             :: GAMMA_LAI 
 !
 ! !REMARKS:
-!  GAMMA_T =  exp[BETA*(T-Ts)]
-!                                                                             .
-!             where BETA   = temperature dependent parameter
-!                   Ts     = standard temperature (normally 303K, 30C)
-!                                                                             .
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 2006
 !  (2 ) Guenther et al, MEGAN user mannual 2007-08
-
-! !REVISION HISTORY: 
-!  (1 ) Original code by Michael Barkley (2009).
-!       Note: If T = Ts  (i.e. standard conditions) then GAMMA_T = 1 
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-      ! Standard reference temperature [K]
-      REAL(hp), PARAMETER   :: Ts = 303.0_hp
-
-      !=================================================================
-      ! GET_GAMMAT_NISOP begins here!
-      !================================================================= 
-
-      GAMMA_T = EXP( BETA * ( T - Ts ) )
-
-      END FUNCTION GET_GAMMA_T_NISOP
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_Gamma_P
-!
-! !DESCRIPTION: Function Get\_Gamma\_P computes the gamma activity factor with
-!  sensitivity to LIGHT (aka 'PAR').  Called by the functions !
-!  GEt\_EmIsop\_Megan, Get\_EmMbo\_Megan, and Get\_EmMonog\_Megan.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_GAMMA_P( LAI, SUNCOS1, Q_DIR_2, Q_DIFF_2 ) 
-     &              RESULT( GAMMA_P )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL(hp),  INTENT(IN) :: LAI        ! Cumulative leaf area index 
-      REAL(hp),  INTENT(IN) :: SUNCOS1    ! Cosine of solar zenith angle 
-      REAL(hp),  INTENT(IN) :: Q_DIR_2    ! Direct PAR above canopy [umol/m2/s]
-      REAL(hp),  INTENT(IN) :: Q_DIFF_2   ! Diffuse PAR above canopy [umol/m2/s]
-!
-! !RETURN VALUE:
-!
-      REAL(hp)              :: GAMMA_P    ! Gamma activity factor w/r/t light
-!
-! !REMARKS:
-!  *** REVAMPED FUNCTION ***
-!                                                                             .
-!  C_PPFD: Effect of increasing PPFD up to a saturation point, where emission 
-!          level off, based on Eq 4abc from Guenther et al. (1999)
-!          In addition, a 5 layered canopy model based on Eqs 12-16 
-!          from Guenther et al. (1995) is included to correct for light 
-!          attenuation in the canopy.
-!                                                                             .
-!  References (see above for full citations):
-!  ============================================================================
-!  (1 ) Guenther et al, 1995
-!  (2 ) Wang     et al, 1998
-!  (3 ) Guenther et al, 1999
-!  (5 ) Guenther et al, 2004
+!  (3 ) Guenther et al., GMD 2012 and MEGANv2.1 source code.
 ! 
 ! !REVISION HISTORY: 
-!  (1 ) Original code by Dorian Abbot and by May Fu.
-!  (2 ) This code was extracted from the previous GET_HEA_TL function. 
-!       (mpb,2009)
+!  (1 ) Original code by Dorian Abbot (9/2003).  Modified for the standard 
+!        code by May Fu (11/2004)
+!  (2 ) Update to publically released (as of 11/2004) MEGAN algorithm and 
+!        modified for the standard code by May Fu (11/2004).
+!  (3 ) Algorithm is based on the latest MEGAN v2.1 User's Guide (mpb,2009)
+!  (4 ) Updated to treat bidirectional exchange compounds appropriately (dbm, 6/2012)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      !-----------------------------------------------------------------
-      ! Canopy model variables (Eqs 12-16 from Guenther et al, 1995)
-      !-----------------------------------------------------------------
 
+      !-----------------------
+      ! Compute GAMMA_LAI
+      !-----------------------
 
-      ! C_PPFD: Effect of increasing PPFD up to a saturation point, where 
-      ! emissions level off, based on Eq 4abc from Guenther et al. (1999)
-      ! In addition, a 5 layered canopy model based on Eqs 12-16 
-      ! from Guenther et al. (1995) is included to correct for light 
-      ! attenuation in the canopy.
-      REAL(hp)              :: C_PPFD
+      ! Formulation for birectional compounds is as described for 
+      ! ALD2 in Millet et al., ACP 2010
+      IF ( BIDIREXCH ) THEN
+         
+         IF ( CMLAI <= 6.0_hp) THEN
+               
+            ! if lai less than 2:
+            IF ( CMLAI <= 2.0_hp ) THEN
+               GAMMA_LAI = 0.5_hp * CMLAI
+               
+            ! if between 2 and 6:
+            ELSE
+               GAMMA_LAI = 1.0_hp - 0.0625_hp * ( CMLAI - 2.0_hp )
+            END IF
 
-      ! LAYERS: number of layers in canopy model
-      INTEGER, PARAMETER  :: LAYERS = 5
+         ELSE
+            ! keep at 0.75 for LAI > 6
+            GAMMA_LAI = 0.75_hp
+         END IF
 
-      ! WEIGHTGAUSS : weights for gaussian integration
-      REAL(hp),  PARAMETER  :: WEIGHTGAUSS(LAYERS) = (/ 1.1846e-1_hp, 
-     &                                                2.3931e-1_hp, 
-     &                                                2.8444e-1_hp, 
-     &                                                2.3931e-1_hp, 
-     &                                                1.1846e-1_hp /)
+      ! For all other compounds use the standard gamma_lai formulation
+      ELSE
+         GAMMA_LAI = 0.49_hp * CMLAI / SQRT( 1.0_hp + 0.2_hp *
+     &               CMLAI*CMLAI)
+      ENDIF
 
-      ! DISTGAUSS: points to evaluate fcn for gaussian integration
-      REAL(hp),  PARAMETER  :: DISTGAUSS(LAYERS)   = (/ 4.6910e-2_hp, 
-     &                                                2.3075e-1_hp, 
-     &                                                5.0000e-1_hp, 
-     &                                                7.6924e-1_hp, 
-     &                                                9.5308e-1_hp /)
-
-      ! SCAT: Scattering coefficient
-      REAL(hp), PARAMETER   :: SCAT = 2.0e-1_hp
-
-      ! REFLD: Reflection coefficient for diffuse light
-      REAL(hp), PARAMETER   :: REFLD = 5.7e-2_hp
-
-      ! CLUSTER: clustering coefficient (accounts for leaf clumping 
-      ! influence on mean projected leaf area in the direction 
-      ! of the sun's beam) use 0.85 for default
-      REAL(hp), PARAMETER   :: CLUSTER = 8.5e-1_hp
-
-      ! NORMAL_FACTOR : C_PPFD calculated with LAI = 5, and above canopy 
-      ! total PPFD = 1500 umol/m2/s, and Q_DIFF = 0.2 * above canopy total 
-      ! PPFD.  May Fu calculated this to be 1.8967d0
-      ! Quickly checked by mpb in 2008 & found to be:
-      REAL(hp), PARAMETER   :: NORMAL_FACTOR = 1.80437817285271950_hp
-
-      ! F_SUN: Fraction leaves sunlit
-      REAL(hp)              :: F_SUN
-
-      ! F_SHADE: Fraction leaves shaded
-      REAL(hp)              :: F_SHADE
-
-      ! LAI_DEPTH: Cumulative LAI above current layer
-      REAL(hp)              :: LAI_DEPTH
-
-      ! Q_SUN: Flux density of PAR on sunny leaves [umol/m2/s]
-      REAL(hp)              :: Q_SUN
- 
-      ! Q_SHADE: Flux density of PAR on shaded leaves [umol/m2/s]
-      REAL(hp)              :: Q_SHADE, Q_SHADE_1, Q_SHADE_2
-
-      ! KB: Extinction coefficient for black leaves for direct (beam)
-      REAL(hp)              :: KB, KBP
-
-      ! KD: Extinction coefficient for black leaves for diffuse light
-      REAL(hp)              :: KD,   KDP
-      REAL(hp)              :: REFLB
-
-      ! C_P_SUN: C_PPFD at layer I for sunlit leaves
-      REAL(hp)              :: C_P_SUN
-      
-      ! C_P_SHADE: C_PPFD at layer I for shaded leaves
-      REAL(hp)              :: C_P_SHADE
-
-      ! C_PPFD_I    : C_PPFD at layer I
-      REAL(hp)              :: C_PPFD_I
-
-      ! Empirical functions (Eq 4a, 4b, 4c from Guenther et al, 1999)
-      REAL(hp)              :: ALPHA, CL
-
-      ! ??
-      REAL(hp)              :: P
-
-      ! Index for layers
-      INTEGER             :: I
-
-      !-----------------------------------------------------------------
-      ! Compute C_PPFD
-      !-----------------------------------------------------------------  
-
-      ! Initialize
-      C_PPFD  = 0.0_hp
-
-      ! 0.5 and 0.8 assume a spherical leaf-angle distribution
-      KB      = 0.5_hp * CLUSTER / SUNCOS1
-      KD      = 0.8_hp * CLUSTER
-      P       = SQRT( 1.0_hp - SCAT )
-      REFLB   = 1.d0 - 
-     &          EXP(-2.0_hp*KB * ( 1.0_hp-P ) 
-     &          / ( 1.0_hp+P ) / ( 1.0_hp+KB ) )
-      KBP     = KB * P
-      KDP     = KD * P
-
-      ! 5-layer Gaussian integration over canopy
-      DO I = 1, LAYERS 
-
-         ! Cumulative LAI above layer I
-         LAI_DEPTH  = LAI * DISTGAUSS( I )
-
-         ! Fraction sun and shade leaves at layer I
-         F_SUN      = EXP( -KB * LAI_DEPTH ) 
-         F_SHADE    = 1.0_hp - F_SUN
-
-         ! For PAR on shaded leaves
-         Q_SHADE_1  = Q_DIFF_2 * KDP * ( 1.0_hp - REFLD ) *
-     &                EXP( -KDP * LAI_DEPTH ) 
-
-         ! For PAR on shaded leaves
-         Q_SHADE_2  = Q_DIR_2 * ( KBP * ( 1.d0 - REFLB ) * 
-     &                EXP( -KBP * LAI_DEPTH ) - KB * ( 1.0_hp - SCAT ) *
-     &                EXP( -KB * LAI_DEPTH ) )
-
-         ! PAR on shaded leaves
-         Q_SHADE    = ( Q_SHADE_1 + Q_SHADE_2 ) / ( 1.0_hp - SCAT )
-
-         ! PAR on sunlit leaves
-         Q_SUN      = Q_SHADE + KB * Q_DIR_2
-
-         ! Update C_P_SUN and C_P_SHADE at layer I
-         ! The following already accounts for canopy attenuation
-         ! (Guenther et al, 1999)
-         ALPHA      = 1.0e-3_hp + ( 8.5e-4_hp ) * LAI_DEPTH
-         CL         = ( 1.42_hp ) * EXP( -( 3.0e-1_hp ) * LAI_DEPTH )
-
-         C_P_SUN    = ALPHA * CL * Q_SUN / 
-     &                SQRT( 1.0_hp + ALPHA*ALPHA * Q_SUN*Q_SUN )
-
-         C_P_SHADE  = ALPHA * CL * Q_SHADE / 
-     &                SQRT( 1.0_hp + ALPHA*ALPHA * Q_SHADE*Q_SHADE )
-
-         ! Update C_PPFD_I at layer I
-         C_PPFD_I   = F_SUN * C_P_SUN + F_SHADE * C_P_SHADE
-
-         ! Add on to total C_PPFD
-         C_PPFD     = C_PPFD + WEIGHTGAUSS( I ) * C_PPFD_I * LAI
-
-      ENDDO
-
-      ! Prevent negative values.
-      GAMMA_P = MAX( C_PPFD / NORMAL_FACTOR, 0.0_hp )
-
-      END FUNCTION GET_GAMMA_P
+      END FUNCTION GET_GAMMA_LAI 
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_Gamma_Leaf_Age
+! !IROUTINE: Get_Gamma_Age
 !
-! !DESCRIPTION: Function Get\_Gamma\_Leaf\_Age computes the gamma exchange 
-!  activity factor which is sensitive to leaf age (= Gamma\_Leaf\_Age).
-!  Called from Get\_EmIsop\_Megan, Get\_EmMbo\_Megan, and Get\_EmMonog\_Megan.
+! !DESCRIPTION: Function Get\_Gamma\_Age computes the gamma exchange 
+!  activity factor which is sensitive to leaf age (= Gamma\_Age).
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_GAMMA_LEAF_AGE( CMLAI, PMLAI, T, SPECIES, TT ) 
-     &         RESULT( GAMMA_LEAF_AGE )
+      FUNCTION GET_GAMMA_AGE( CMLAI, PMLAI, DBTWN, TT,
+     &                        AN, AG, AM, AO )
+     &         RESULT( GAMMA_AGE )
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(hp),         INTENT(IN) :: T        ! Number of days between 
-                                               !  current and previous LAI.
-      REAL(hp),         INTENT(IN) :: CMLAI    ! Current month's LAI [cm2/cm2]
-      REAL(hp),         INTENT(IN) :: PMLAI    ! Previous months LAI [cm2/cm2]
-      CHARACTER(LEN=4), INTENT(IN) :: SPECIES  ! BVOC species name
-      REAL(hp),         INTENT(IN) :: TT       ! Daily average temperature [K]
+      REAL(hp), INTENT(IN) :: CMLAI     ! Current month's LAI [cm2/cm2]
+      REAL(hp), INTENT(IN) :: PMLAI     ! Previous months LAI [cm2/cm2]
+      REAL(hp), INTENT(IN) :: DBTWN     ! Number of days between 
+      REAL(hp), INTENT(IN) :: TT        ! Daily average temperature [K]
+      REAL(hp), INTENT(IN) :: AN        ! Relative emiss factor (new leaves)
+      REAL(hp), INTENT(IN) :: AG        ! Relative emiss factor (growing leaves)
+      REAL(hp), INTENT(IN) :: AM        ! Relative emiss factor (mature leaves)
+      REAL(hp), INTENT(IN) :: AO        ! Relative emiss factor (old leaves)
 !
 ! !RETURN VALUE:
 !
-      REAL(hp)                     :: GAMMA_LEAF_AGE   ! Activity factor    
+      REAL(hp)             :: GAMMA_AGE ! Activity factor    
 !
 ! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
-!  (3 ) Guenther et al, 2006
-!  (5 ) Guenther et al, MEGAN user mannual 2007-08
+!  (1 ) Guenther et al, 2006
+!  (2 ) Guenther et al, MEGAN user mannual 2007-08
+!  (3 ) Guenther et al., GMD 2012 and MEGANv2.1 source code
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Original code by Dorian Abbot (9/2003). Modified for the standard 
@@ -2899,6 +2712,7 @@
 !       i.e. if LAI has increased with time, and used new values for 
 !       all foilage fractions if ( CMLAI = PMLAI ). Also removed TG variable 
 !       as not now needed. (mpb,2000)
+!  (7 ) Updated to pass leaf age activity factors as arguments (dbm, 6/2012)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2013 - M. Sulprizio- Updated for sesquiterpenes (H. Pye)
 !EOP
@@ -2907,67 +2721,19 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! M_AGE: leaf age factor
-      REAL(hp)             :: M_AGE
+      REAL(hp)             :: FNEW  ! Fraction of new leaves in canopy
+      REAL(hp)             :: FGRO  ! Fraction of growing leaves
+      REAL(hp)             :: FMAT  ! Fraction of mature leaves
+      REAL(hp)             :: FOLD  ! Fraction of old leaves
 
-      ! FNEW, ANEW: new foliage that emits negligible amounts of isoprene
-      REAL(hp)             :: FNEW
-
-      ! FGRO, AGRO: growing foliage that emits isoprene at low rates
-      REAL(hp)             :: FGRO
-
-      ! FMAT, AMAT: mature foliage that emits isoprene at peak rates
-      REAL(hp)             :: FMAT
-
-      ! FSEN, ASEN: senescing foliage that emits isoprene at reduced rates
-      REAL(hp)             :: FSEN
-
-      ! TI: number of days after budbreak required to induce iso. em.
+      ! TI: number of days after budbreak required to induce emissions
       REAL(hp)             :: TI   
 
-      ! TM: number of days after budbreak required to reach peak iso. em. rates
+      ! TM: number of days after budbreak required to reach peak emissions
       REAL(hp)             :: TM
 
-      ! Index for the relative emission activity (mpb,2008)
-      INTEGER            :: AINDX
- 
-      ! Use species specific relative emission activity factors (mpb,2008)
-      INTEGER, PARAMETER :: N_CAT = 5
-      REAL(hp)             :: ANEW(N_CAT)
-      REAL(hp)             :: AGRO(N_CAT)
-      REAL(hp)             :: AMAT(N_CAT)
-      REAL(hp)             :: ASEN(N_CAT)
-      REAL(hp)             :: NORM_V(N_CAT)
-
-      ! Constant Factors (not used)
-      DATA    ANEW(  1),  AGRO(  1),  AMAT(  1),  ASEN(  1)
-     &     /  1.0_hp    ,  1.0_hp    ,  1.0_hp    ,  1.0_hp      /
-      ! Monoterpenes 
-      DATA    ANEW(  2),  AGRO(  2),  AMAT(  2),  ASEN(  2)
-     &     /  2.0_hp   ,   1.8_hp   ,  0.95_hp  ,  1.0_hp      /
-      ! Isoprene and MBO 
-      DATA    ANEW(  3),  AGRO(  3),  AMAT(  3),  ASEN(  3)
-     &     /  0.05_hp  ,  0.6_hp   ,  1.125_hp ,  1.0_hp      /
-      ! Current set-up (v7-04-11) - used for other VOCs (OVOC)
-      DATA    ANEW(  4),  AGRO(  4),  AMAT(  4),  ASEN(  4)
-     &     /  0.01_hp  ,  0.5_hp   ,  1.0_hp   ,  0.33_hp    /
-      ! SOAupdate: Sesquiterpenes hotp 3/2/10
-      ! from MEGANv2.04/src/EMPROC/INCLDIR
-      DATA    ANEW(  5),  AGRO(  5),  AMAT(  5),  ASEN(  5)
-     &     /  0.4_hp  ,  0.6_hp   ,  1.075_hp  ,  1.0_hp     /
-
-      ! Normalization factors
-      ! SOAupdate: Sesq normalization factor added (hotp 3/16/2010)
-      ! NORM_V(5) = 1/( 0.1*0.6 + 0.1*1 + 0.8*1.075 )
-      DATA   NORM_V(1) , NORM_V(2) , NORM_V(3) , NORM_V(4), NORM_V(5)
-     &     /                 1.0_hp, ! Constant
-     &       0.96153846153846145_hp, ! Monoterpenes
-     &       0.94339622641509424_hp, ! Isoprene & MBO
-     &         1.132502831257078_hp, ! Other VOCs
-     &            0.980392156863_hp/ ! Sesquiterpenes (hotp 3/2/10,3/16/10)
-
       !=================================================================
-      ! GET_GAMMA_LEAF_AGE begins here!
+      ! GET_GAMMA_AGE begins here!
       !================================================================= 
       
       !-----------------------
@@ -2983,124 +2749,264 @@
       TM = 2.3_hp * TI
 
       !-----------------------
-      ! Compute M_AGE
+      ! Compute GAMMA_AGE
       !-----------------------
 
       IF ( CMLAI == PMLAI ) THEN !(i.e. LAI stays the same) 
 
-         !New values           Old Vlaues (mpb, 2009)
-         FMAT = 0.8_hp            !1._hp  
-         FNEW = 0.0_hp            !0._hp
-         FGRO = 0.1_hp            !0._hp
-         FSEN = 0.1_hp            !0._hp
+         FNEW = 0.0_hp        
+         FGRO = 0.1_hp
+         FMAT = 0.8_hp
+         FOLD = 0.1_hp
 
       ELSE IF ( CMLAI > PMLAI ) THEN !(i.e. LAI has INcreased) 
 
-         IF ( T > TI ) THEN
-            FNEW = ( TI / T ) * ( 1.0_hp -  PMLAI / CMLAI )
+         ! Calculate Fnew
+         IF ( DBTWN > TI ) THEN
+            FNEW = ( TI / DBTWN ) * ( 1.0_hp -  PMLAI / CMLAI )
          ELSE
             FNEW = 1.0_hp - ( PMLAI / CMLAI )
          ENDIF
 
-         IF ( T > TM ) THEN
+         ! Calculate FMAT
+         IF ( DBTWN > TM ) THEN
             FMAT = ( PMLAI / CMLAI ) +
-     &             ( ( T - TM ) / T ) * ( 1.0_hp -  PMLAI / CMLAI )
+     &            (( DBTWN - TM ) / DBTWN )*( 1.0_hp -  PMLAI / CMLAI )
          ELSE 
             FMAT = ( PMLAI / CMLAI )
          ENDIF
 
-         ! Implement new condition for FGRO (mpb,2009)
-         FSEN = 0.0_hp
+         ! Calculate Fgro and Fold
          FGRO = 1.0_hp - FNEW - FMAT
+         FOLD = 0.0_hp
 
       ELSE ! This is the case if  PMLAI > CMLAI (i.e. LAI has DEcreased) 
 
-         FSEN = ( PMLAI - CMLAI ) / PMLAI
-         FMAT = 1.0_hp - FSEN
-         FGRO = 0.0_hp
          FNEW = 0.0_hp
+         FGRO = 0.0_hp
+         FOLD = ( PMLAI - CMLAI ) / PMLAI
+         FMAT = 1.0_hp - FOLD
 
       ENDIF
 
-      ! Choose relative emission activity (mpb,2009)
-      SELECT CASE ( TRIM(SPECIES) )
-      CASE ('CONSTANT')
-         AINDX = 1
-      CASE ('MONO')
-         AINDX = 2
-      CASE ( 'ISOP','MBOT' )
-         AINDX = 3
-      CASE ('OVOC')
-         AINDX = 4
-      ! SOAupdate: Sesquiterpenes (hotp 3/2/10)
-      CASE ('SESQ')
-         AINDX = 5
-      CASE DEFAULT
-         GAMMA_LEAF_AGE = -999.0_hp
-         RETURN
-      END SELECT
-
       ! Age factor
-      M_AGE = FNEW*ANEW(AINDX) + FGRO*AGRO(AINDX) + 
-     &        FMAT*AMAT(AINDX) + FSEN*ASEN(AINDX)  
+      GAMMA_AGE = FNEW * AN + FGRO * AG +
+     &            FMAT * AM + FOLD * AO
 
-      !Note: I think this should be normalized.
-      !But, in the megan code I've consistently download 
-      !from NCAR it never is...
-
-      ! Normalize & prevent negative values
-      GAMMA_LEAF_AGE = MAX( M_AGE * NORM_V(AINDX) , 0.0_hp )
+      ! Prevent negative values
+      GAMMA_AGE = MAX( GAMMA_AGE , 0.0_hp )
 
       END FUNCTION GET_GAMMA_LEAF_AGE
 !EOC
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_Gamma_Lai
+! !IROUTINE: get_gamma_sm
 !
-! !DESCRIPTION: Function Get\_Gamma\_Lai computes the gamma exchange activity 
-!  factor which is sensitive to leaf area (= GAMMA\_LAI).  Called from
-!  Get\_EmIsop\_Megan, Get\_EmMbo\_Megan, and Get\_EmMonog\_Megan.
+! !DESCRIPTION: Function GET\_GAMMA\_SM computes activity factor for soil
+!  moisture
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_GAMMA_LAI( CMLAI ) RESULT( GAMMA_LAI )
+      FUNCTION GET_GAMMA_SM( ExtState, I, J, CMPD )
+     &            RESULT( GAMMA_SM )
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(hp), INTENT(IN) :: CMLAI       ! Current month's LAI [cm2/cm2]
-!
+      TYPE(Ext_State),  POINTER     :: ExtState
+      INTEGER,          INTENT(IN)  :: I, J     ! GEOS-Chem lon & lat indices
+      CHARACTER(LEN=*), INTENT(IN)  :: CMPD     ! Compound name (dbm, 6/21/2012)
+      
 ! !RETURN VALUE:
 !
-      REAL(hp)             :: GAMMA_LAI 
+      REAL(hp)                      :: GAMMA_SM ! Activity factor    
 !
 ! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
-!  (1 ) Guenther et al, 2006
-!  (2 ) Guenther et al, MEGAN user mannual 2007-08
+!  (1 ) Guenther et al, ACP 2006
+!  (2 ) Guenther et al., GMD 2012 and MEGANv2.1 source code
 ! 
 ! !REVISION HISTORY: 
-!  (1 ) Original code by Dorian Abbot (9/2003).  Modified for the standard 
-!        code by May Fu (11/2004)
-!  (2 ) Update to publically released (as of 11/2004) MEGAN algorithm and 
-!        modified for the standard code by May Fu (11/2004).
-!  (3 ) Algorithm is based on the latest MEGAN v2.1 User's Guide (mpb,2009)
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  (1 ) Created by dbm (6/2012). We are not currently using a soil moisture
+!       effect for isoprene. For all compounds other than acetaldehyde and
+!       ethanol, gamma_sm =1 presently.
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(hp)  :: GWETROOT
+
+      !=================================================================
+      ! GET_GAMMA_SM begins here!
+      !================================================================= 
+      
+      ! By default gamma_sm is 1.0
+      GAMMA_SM = 1.0_hp
+
+      ! GWETROOT is only defined for GEOS-5
+#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA )
+
+      GWETROOT = ExtState%GWETROOT%Arr%Val(I,J)
+
+      IF ( TRIM( CMPD ) == 'ALD2' .OR. TRIM ( CMPD ) == 'ETOH' ) THEN
+         
+         ! GWETROOT = degree of saturation or wetness in the root-zone
+         ! (top meter of soil). This is defined as the ratio of the volumetric
+         ! soil moisture to the porosity. We use a soil moisture activity factor
+         ! for ALD2 to account for stimulation of emission by flooding.
+         ! (Millet et al., ACP 2010)
+         ! Constant value of 1.0 for GWETROOT = 0-0.9, increasing linearly to
+         ! 3.0 at GWETROOT =1.
+         GAMMA_SM = MAX( 20.0_hp * GWETROOT - 17.0_hp, 1.0_hp)
+
+      ENDIF
+
+#endif
+
+      ! return to calling program
+      END FUNCTION GET_GAMMA_SM
+
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CALC_NORM_FAC
+!
+! !DESCRIPTION: Function CALC\_NORM\_FAC calculates the normalization factor 
+!  needed to compute emissions. Called from GET_MEGAN_EMISSIONS.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CALC_NORM_FAC
+!
+! !REMARKS:
+!  References (see above for full citations):
+!  ============================================================================
+!  (1 ) Guenther et al, (GMD 2012) and associated MEGANv2.1 source code 
+! 
+! !REVISION HISTORY: 
+!  (1 ) Created by dbm 11/2012. We calculate only 1 normalization factor for all
+!       compounds based on the isoprene gamma values. Formally there should be a
+!       different normalization factor for each compound, but we are following
+!       Alex Guenther's approach here and the MEGAN source code.
+!       "Hi Dylan, sorry for being so slow to get back to you.
+!        Since the change is only a few percent or less, I didn't
+!        bother to assign a different normalization factor to each
+!        compound.  Since the MEGAN canopy environment model also 
+!        has 8 different canopy types (tropical broadleaf tree, 
+!        conifer tree, etc.) then to be correct we should have a 
+!        different CCE for each canopy type for each compound class
+!        (which would be 160 slightly different values of CCE)."
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(hp) :: PAC_DAILY, PHI, BBB, AAA, GAMMA_P_STANDARD
+      REAL(hp) :: GAMMA_T_LI_STANDARD
+      REAL(hp) :: GAMMA_SM_STANDARD
+      REAL(hp) :: CMLAI, GAMMA_LAI_STANDARD
+      REAL(hp) :: GAMMA_AGE_STANDARD
+      REAL(hp) :: PT_15, T, R, CEO, CT1, E_OPT, T_OPT, CT2, X
+      REAL(hp) :: GAMMA_T_LD_STANDARD
+      REAL(hp) :: LDF, GAMMA_STANDARD
 
-      !-----------------------
-      ! Compute GAMMA_LAI
-      !-----------------------
-      GAMMA_LAI = 0.49_hp * CMLAI / SQRT( 1.0_hp + 0.2_hp * CMLAI*CMLAI)
+      !-----------------------------------------------------------------
+      ! CALC_NORM_FAC
+      !-----------------------------------------------------------------  
 
-      END FUNCTION GET_GAMMA_LAI 
+      ! -----------------
+      ! GAMMA_P for standard conditions
+      ! -----------------
+      ! Based on Eq. 11b from Guenther et al., 2006
+      ! Using standard conditions of phi = 0.6, solar angle of 60 deg,
+      ! and P_daily = 400
+      ! Note corrigendum for Eq. 11b in that paper, should be a
+      ! minus sign before the 0.9.
+      PAC_DAILY = 400.0_hp
+      PHI       = 0.6_hp
+      BBB       = 1.0_hp + 0.0005_hp *( PAC_DAILY - 400.0_hp ) 
+      AAA       = ( 2.46_hp * BBB * PHI ) - ( 0.9_hp * PHI**2 )
+      ! sin(60) = 0.866
+      GAMMA_P_STANDARD = 0.866_hp * AAA
+
+      ! -----------------
+      ! GAMMA_T_LI for standard conditions
+      ! -----------------
+      ! gamma_t_li = EXP( Beta * ( T - T_Standard ) )
+      ! This is 1.0 for T = T_Standard
+      GAMMA_T_LI_STANDARD = 1.0_hp
+
+      ! -----------------
+      ! GAMMA_SM for standard conditions
+      ! -----------------
+      ! Standard condition is soil moisture = 0.3 m^3/m^3
+      ! GAMMA_SM = 1.0 for all compounds under this condition
+      GAMMA_SM_STANDARD = 1.0_hp
+
+      ! -----------------
+      ! GAMMA_LAI for standard conditions 
+      ! -----------------
+      ! Standard condition is LAI = 5
+      CMLAI = 5.0_hp
+      GAMMA_LAI_STANDARD = 0.49_hp * 
+     &     CMLAI / SQRT( 1.0_hp + 0.2_hp * CMLAI*CMLAI )
+     
+      ! -----------------
+      ! GAMMA_AGE for standard conditions
+      ! -----------------
+      ! Standard condition is 0% new, 10% growing, 80% mature, 10% old foliage
+      ! Isoprene uses A_NEW = 0.05d0, A_GRO = 0.6d0, A_MAT = 1.d0, A_OLD = 0.9d0
+      GAMMA_AGE_STANDARD = 0.1_hp*0.6_hp + 0.8_hp*1.0_hp + 0.1_hp*0.9_hp
+
+      ! -----------------
+      ! GAMMA_T_LD for standard conditions
+      ! -----------------
+      ! Standard condition is
+      ! PT_15 = average leaf temp over past 24-240 hours = 297K
+      ! T = air temperature = 303K
+      PT_15 = 297.0_hp
+      T     = 303.0_hp
+      R     = 8.314e-3_hp
+      ! parameters for isoprene
+      CEO = 2.0_hp
+      CT1 = 95.0_hp
+
+      E_OPT = CEO * EXP( 0.08_hp * ( PT_15  - 2.97e2_hp ) )           
+      T_OPT = 3.13e2_hp + ( 6.0e-1_hp * ( PT_15 - 2.97e2_hp ) )
+      CT2   = 200.0_hp
+
+      ! Variable related to temperature 
+      X     = ( 1.0_hp/T_OPT - 1.0_hp/T ) / R
+
+      GAMMA_T_LD_STANDARD = E_OPT * CT2 * EXP( CT1 * X ) / 
+     &     ( CT2 - CT1 * ( 1.0_hp - EXP( CT2 * X ) ) )
+
+      ! -----------------
+      ! Overall GAMMA_STANDARD
+      ! -----------------
+      ! LDF = 1d0 for isoprene
+      LDF = 1.0_hp
+      GAMMA_STANDARD = 
+     &     GAMMA_AGE_STANDARD * GAMMA_SM_STANDARD * GAMMA_LAI_STANDARD
+     &     * ((1.0_hp - LDF) * GAMMA_T_LI_STANDARD 
+     &     + (LDF * GAMMA_P_STANDARD * GAMMA_T_LD_STANDARD))
+      ! This ends up being 1.0101081.
+      
+      NORM_FAC = 1.0_hp / GAMMA_STANDARD
+
+      END SUBROUTINE CALC_NORM_FAC
 !EOC
+
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -3434,6 +3340,352 @@
       END SUBROUTINE UPDATE_HCOT_15_AVG
 !EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CALC_AEF
+!
+! !DESCRIPTION: Subroutine CALC\_AEF reads Emission Factors for all
+!  biogenic VOC species from disk. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CALC_AEF
+!
+! !USES:
+!
+      ! References to F90 modules
+      USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
+      USE TIME_MOD,       ONLY : GET_TS_EMIS
+      USE GRID_MOD,       ONLY : GET_AREA_M2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+
+!
+! !REMARKS:
+!  Reference: (5 ) Guenther et al, 2004 
+! 
+! !REVISION HISTORY: 
+!  (1 ) Original code by Dorian Abbot (9/2003).  Modified for the standard 
+!        code by May Fu (11/2004)
+!  (2 ) AEF detailed in the latest MEGAN User's Guide (tmf, 11/19/04)
+!  (3 ) Bug fix (tmf, 11/30/04)
+!  (4 ) Now reads 1x1 files and regrids to current resolution (bmy, 10/24/05)
+!  (5 ) Uses new v2.1 emission factors maps for isoprene, MBO and 7 monoterpene
+!     species, download in 2009. (mpb,2009)
+!  (6 ) Now use 2.1 emission factors for isoprene, MBO, and 7 monoterpenes. EFs for
+!       other compounds are computed by reading in the PFT fractions and multiplying
+!       the fractions by corresponding EF values. (dbm, 11/2012)
+!  (7 ) Also, now read in the EF values already gridded to model resolution.
+!       (dbm, 11/2012)
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                 :: I, J, P, ARR_IND
+      REAL*4                  :: ARRAY   (IIPAR, JJPAR, 1)
+      REAL*4                  :: ARRAY_16(IIPAR, JJPAR, 16)
+      REAL*8                  :: DTSRCE, AREA_M2, FACTOR
+      CHARACTER(LEN=255)      :: FILENAME
+      REAL*8,  PARAMETER      :: AVO = 6.022D23
+      REAL*8                  :: PFT_EF_OMON(15), PFT_EF_MOHX(15)
+      REAL*8                  :: PFT_EF_ACET(15), PFT_EF_BIDR(15)
+      REAL*8                  :: PFT_EF_STRS(15), PFT_EF_OTHR(15)
+! --->
+! dbm, compute EF maps for a-pinene and myrcene as well since there seems to 
+! be an issue with the EF maps for these species provided on the MEGAN
+! data portal
+      REAL*8                  :: PFT_EF_APIN(15), PFT_EF_MYRC(15)
+! <---
+      REAL*8                  :: EM_FRAC_ALD2(15), EM_FRAC_ETOH(15)
+      REAL*8                  :: EM_FRAC_FAXX(15), EM_FRAC_AAXX(15)
+      REAL*8                  :: EM_FRAC_CH2O(15)
+      
+      !=================================================================
+      ! CALC_AEF begins here!
+      !=================================================================
+
+      ! ---------------------------
+      ! Note that not all these compounds are used in standard chemistry
+      ! simulations, but they are provided here for future incorporation or 
+      ! specialized applications. More compounds can be added as needed
+      ! by adding the corresponding PFT-specific emission factors and 
+      ! emission category fraction.
+      ! (dbm, 01/2013)
+      ! ---------------------------
+
+      ! Emission timestep [min]
+      DTSRCE = GET_TS_EMIS()
+      
+      !---------------------------------------------
+      ! Read in PFT fractions
+      !---------------------------------------------
+
+      ! Get pointers to data
+      CALL HCO_GetPtr( am_I_Root, 'CLIM4_PFT', ARRAY_16, RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+
+      ! CLM4 PFT coverage (%)
+      ! PFT_BARE                = ARRAY_16(:,:,1 )
+      ! PFT_NDLF_EVGN_TMPT_TREE = ARRAY_16(:,:,2 )
+      ! PFT_NDLF_EVGN_BORL_TREE = ARRAY_16(:,:,3 )
+      ! PFT_NDLF_DECD_BORL_TREE = ARRAY_16(:,:,4 )
+      ! PFT_BDLF_EVGN_TROP_TREE = ARRAY_16(:,:,5 )
+      ! PFT_BDLF_EVGN_TMPT_TREE = ARRAY_16(:,:,6 )
+      ! PFT_BDLF_DECD_TROP_TREE = ARRAY_16(:,:,7 )
+      ! PFT_BDLF_DECD_TMPT_TREE = ARRAY_16(:,:,8 )
+      ! PFT_BDLF_DECD_BORL_TREE = ARRAY_16(:,:,9 )
+      ! PFT_BDLF_EVGN_SHRB      = ARRAY_16(:,:,10)
+      ! PFT_BDLF_DECD_TMPT_SHRB = ARRAY_16(:,:,11)
+      ! PFT_BDLF_DECD_BORL_SHRB = ARRAY_16(:,:,12)
+      ! PFT_C3_ARCT_GRSS        = ARRAY_16(:,:,13)
+      ! PFT_C3_NARC_GRSS        = ARRAY_16(:,:,14)
+      ! PFT_C4_GRSS             = ARRAY_16(:,:,15)
+      ! PFT_CROP                = ARRAY_16(:,:,16)
+
+      ! -------------------------------------------
+      ! PFT-specific EFs from Guenther et al., 2012
+      ! in ug compound/m2/h
+      ! PFTs 1-15 in the table correspond to #2-16 
+      ! (i.e., excluding bare ground #1) in the above array.
+      ! -------------------------------------------
+      ! Compound Class EF1 EF2 EF3 EF4 EF5 EF6 EF7 EF8 EF9 EF10 EF11 EF12 EF13 EF14 EF15
+      ! --------------------------------------------------------------------------------
+      ! Other Monoterp 180 180 170 150 150 150 150 150 110 200  110  5    5    5    5
+      ! Methanol       900 900 900 500 900 500 900 900 900 900  900  500  500  500  900
+      ! Acetone        240 240 240 240 240 240 240 240 240 240  240  80   80   80   80
+      ! Bidirect VOC   500 500 500 500 500 500 500 500 500 500  500  80   80   80   80
+      ! Stress VOC     300 300 300 300 300 300 300 300 300 300  300  300  300  300  300
+      ! Other VOC      140 140 140 140 140 140 140 140 140 140  140  140  140  140  140  
+      ! --------------------------------------------------------------------------------
+
+!     One thing to note is these are net emissions to the canopy atmosphere but not net
+!     emissions to the above canopy atmosphere since they don't account for within-canopy
+!     deposition. Only an issue for OVOCs.
+      
+!                     EF1    EF2    EF3    EF4    EF5    
+      PFT_EF_OMON = (/180d0, 180d0, 170d0, 150d0, 150d0, 
+!                     EF6    EF7    EF8    EF9    EF10
+     &                150d0, 150d0, 150d0, 110d0, 200d0, 
+!                     EF11   EF12   EF13   EF14   EF15
+     &                110d0, 5d0  , 5d0  , 5d0  , 5d0/)
+
+!                     EF1    EF2    EF3    EF4    EF5    
+      PFT_EF_MOHX = (/900d0, 900d0, 900d0, 500d0, 900d0, 
+!                     EF6    EF7    EF8    EF9    EF10
+     &                500d0, 900d0, 900d0, 900d0, 900d0, 
+!                     EF11   EF12   EF13   EF14   EF15
+     &                900d0, 500d0, 500d0, 500d0, 900d0/)
+
+!                     EF1    EF2    EF3    EF4    EF5    
+      PFT_EF_ACET = (/240d0, 240d0, 240d0, 240d0, 240d0, 
+!                     EF6    EF7    EF8    EF9    EF10
+     &                240d0, 240d0, 240d0, 240d0, 240d0, 
+!                     EF11   EF12   EF13   EF14   EF15
+     &                240d0, 80d0 , 80d0 , 80d0 , 80d0/)
+
+!                     EF1    EF2    EF3    EF4    EF5    
+      PFT_EF_BIDR = (/500d0, 500d0, 500d0, 500d0, 500d0, 
+!                     EF6    EF7    EF8    EF9    EF10
+     &                500d0, 500d0, 500d0, 500d0, 500d0, 
+!                     EF11   EF12   EF13   EF14   EF15
+     &                500d0, 80d0 , 80d0 , 80d0 , 80d0/)
+
+!                     EF1    EF2    EF3    EF4    EF5    
+      PFT_EF_STRS = (/300d0, 300d0, 300d0, 300d0, 300d0, 
+!                     EF6    EF7    EF8    EF9    EF10
+     &                300d0, 300d0, 300d0, 300d0, 300d0, 
+!                     EF11   EF12   EF13   EF14   EF15
+     &                300d0, 300d0, 300d0, 300d0, 300d0/)
+
+!                     EF1    EF2    EF3    EF4    EF5    
+      PFT_EF_OTHR = (/140d0, 140d0, 140d0, 140d0, 140d0, 
+!                     EF6    EF7    EF8    EF9    EF10
+     &                140d0, 140d0, 140d0, 140d0, 140d0, 
+!                     EF11   EF12   EF13   EF14   EF15
+     &                140d0, 140d0, 140d0, 140d0, 140d0/)
+
+! ---> Now compute EFs for a-pinene and myrcene as well (dbm, 12/2012)
+!                     EF1    EF2    EF3    EF4    EF5    
+      PFT_EF_APIN = (/500d0, 500d0, 510d0, 600d0, 400d0, 
+!                     EF6    EF7    EF8    EF9    EF10
+     &                600d0, 400d0, 400d0, 200d0, 300d0, 
+!                     EF11   EF12   EF13   EF14   EF15
+     &                200d0, 2d0,   2d0,   2d0,   2d0/)
+
+!                     EF1    EF2    EF3    EF4    EF5    
+      PFT_EF_MYRC = (/70d0,  70d0,  60d0,  80d0,  30d0, 
+!                     EF6    EF7    EF8    EF9    EF10
+     &                80d0,  30d0,  30d0,  30d0,  50d0, 
+!                     EF11   EF12   EF13   EF14   EF15
+     &                30d0,  0.3d0, 0.3d0, 0.3d0, 0.3d0/)
+! <---
+
+
+      ! Other monoterpenes, methanol, acetone, MBO are each 100% of thier
+      ! respective categories. The VOCs within the stress category each 
+      ! account for a specific fraction of emissions across all PFTs
+      ! (ethene 58%, toluene 3%, HCN 1.5%). The VOCs within the 
+      ! other category also account for a given fraction of emissions
+      ! across all PFTs (propene 48%, butene 24%, other alkenes 0.2%). But
+      ! VOCs in the bidirectional category account for a different amount of
+      ! the total flux for the different PFTs. So in this case we define a
+      ! vector containing these fractions.
+      
+      ! Acetaldehyde: 40% of bidirectional category flux, except 25%
+      ! for grasses and crops
+      EM_FRAC_ALD2 = (/0.40d0, 0.40d0, 0.40d0, 0.40d0, 0.40d0,
+     &                 0.40d0, 0.40d0, 0.40d0, 0.40d0, 0.40d0,
+     &                 0.40d0, 0.25d0, 0.25d0, 0.25d0, 0.25d0/)
+
+      ! Ethanol: 40% of bidirectional category flux, except 25%
+      ! for grasses and crops
+      EM_FRAC_ETOH = (/0.40d0, 0.40d0, 0.40d0, 0.40d0, 0.40d0,
+     &                 0.40d0, 0.40d0, 0.40d0, 0.40d0, 0.40d0,
+     &                 0.40d0, 0.25d0, 0.25d0, 0.25d0, 0.25d0/)
+
+      ! Formic acid: 6% of bidirectional category flux, except 15%
+      ! for grasses and crops
+      EM_FRAC_FAXX = (/0.06d0, 0.06d0, 0.06d0, 0.06d0, 0.06d0,
+     &                 0.06d0, 0.06d0, 0.06d0, 0.06d0, 0.06d0,
+     &                 0.06d0, 0.15d0, 0.15d0, 0.15d0, 0.15d0/)
+
+      ! Acetic acid: 6% of bidirectional category flux, except 15%
+      ! for grasses and crops
+      EM_FRAC_AAXX = (/0.06d0, 0.06d0, 0.06d0, 0.06d0, 0.06d0,
+     &                 0.06d0, 0.06d0, 0.06d0, 0.06d0, 0.06d0,
+     &                 0.06d0, 0.15d0, 0.15d0, 0.15d0, 0.15d0/)
+
+      ! Formaldehyde: 8% of bidirectional category flux, except 20%
+      ! for grasses and crops
+      EM_FRAC_CH2O = (/0.08d0, 0.08d0, 0.08d0, 0.08d0, 0.08d0,
+     &                 0.08d0, 0.08d0, 0.08d0, 0.08d0, 0.08d0,
+     &                 0.08d0, 0.20d0, 0.20d0, 0.20d0, 0.20d0/)
+
+      ! Loop through plant types
+      DO P = 1, 15
+
+         ! Add 1 to Array_16 index to skip bare ground
+         ARR_IND = P + 1
+         
+! ---> Now compute EFs for a-pinene and myrcene as well (dbm, 12/2012)
+         ! a-pinene: 100% of category
+         AEF_APIN(:,:) = AEF_APIN(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * PFT_EF_APIN(P)
+
+         ! a-pinene: 100% of category
+         AEF_MYRC(:,:) = AEF_MYRC(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * PFT_EF_MYRC(P)
+! <---
+
+         ! Other monoterpenes: 100% of category
+         AEF_OMON(:,:) = AEF_OMON(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * PFT_EF_OMON(P)
+
+         ! Methanol: 100% of category
+         AEF_MOHX(:,:) = AEF_MOHX(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * PFT_EF_MOHX(P)
+
+         ! Acetone: 100% of category
+         AEF_ACET(:,:) = AEF_ACET(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * PFT_EF_ACET(P)
+
+         ! Ethanol: variable fraction of category
+         AEF_ETOH(:,:) = AEF_ETOH(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * 
+     &        PFT_EF_BIDR(P) * EM_FRAC_ETOH(P)
+
+         ! Formaldehyde: variable fraction of category
+         AEF_CH2O(:,:) = AEF_CH2O(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * 
+     &        PFT_EF_BIDR(P) * EM_FRAC_CH2O(P)
+
+         ! Acetaldehyde: variable fraction of category
+         AEF_ALD2(:,:) = AEF_ALD2(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * 
+     &        PFT_EF_BIDR(P) * EM_FRAC_ALD2(P)
+
+         ! Formic acid: variable fraction of category
+         AEF_FAXX(:,:) = AEF_FAXX(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * 
+     &        PFT_EF_BIDR(P) * EM_FRAC_FAXX(P)
+
+         ! Acetic acid: variable fraction of category
+         AEF_AAXX(:,:) = AEF_AAXX(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * 
+     &        PFT_EF_BIDR(P) * EM_FRAC_AAXX(P)
+
+         ! Ethene: 58% of "stress" category for all PFTs
+         AEF_C2H4(:,:) = AEF_C2H4(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * PFT_EF_STRS(P) * 0.58d0
+
+         ! Toluene: 3% of "stress" category for all PFTs
+         AEF_TOLU(:,:) = AEF_TOLU(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * PFT_EF_STRS(P) * 0.03d0
+
+         ! HCN: 1.5% of "stress" category for all PFTs
+         AEF_HCNX(:,:) = AEF_HCNX(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * PFT_EF_STRS(P) * 0.015d0
+
+         ! Propene: 48% of "other" category for all PFTs
+         ! Butene:  24% of "other" category for all PFTs
+         ! Larger alkenes: 0.2% of "other" category for all PFTs
+         ! Total: 72.2% 
+         AEF_PRPE(:,:) = AEF_PRPE(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND)/100d0 * PFT_EF_OTHR(P) * 0.722d0
+         
+      ENDDO
+
+      ! Loop over longitudes
+      DO J = 1, JJPAR
+       
+         ! Grid box surface area [m2]
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
+
+         ! Conversion factor from [ug compound/m2/hr] to [g compound/box]
+         FACTOR = 1.d-6 / 60.d0 * AREA_M2 * DTSRCE 
+          
+         ! Loop over latitudes
+         DO I = 1, IIPAR
+
+            ! Convert AEF arrays To [atomsC / box]
+            AEF_ISOP(I,J)= AEF_ISOP(I,J) * FACTOR* AVO * 5d0 /68.117d0
+            AEF_MBOX(I,J)= AEF_MBOX(I,J) * FACTOR* AVO * 5d0 /86.132d0
+            AEF_APIN(I,J)= AEF_APIN(I,J) * FACTOR* AVO * 10d0 /136.234d0
+            AEF_BPIN(I,J)= AEF_BPIN(I,J) * FACTOR* AVO * 10d0 /136.234d0
+            AEF_CARE(I,J)= AEF_CARE(I,J) * FACTOR* AVO * 10d0 /136.234d0
+            AEF_LIMO(I,J)= AEF_LIMO(I,J) * FACTOR* AVO * 10d0 /136.234d0 
+            AEF_MYRC(I,J)= AEF_MYRC(I,J) * FACTOR* AVO * 10d0 /136.234d0
+            AEF_OCIM(I,J)= AEF_OCIM(I,J) * FACTOR* AVO * 10d0 /136.234d0 
+            AEF_SABI(I,J)= AEF_SABI(I,J) * FACTOR* AVO * 10d0 /136.234d0 
+            AEF_OMON(I,J)= AEF_OMON(I,J) * FACTOR* AVO * 10d0 /136.234d0
+            AEF_ACET(I,J)= AEF_ACET(I,J) * FACTOR* AVO * 3d0 /58.079d0 
+            AEF_ETOH(I,J)= AEF_ETOH(I,J) * FACTOR* AVO * 2d0 /46.068d0 
+            AEF_ALD2(I,J)= AEF_ALD2(I,J) * FACTOR* AVO * 2d0 /44.053d0 
+            AEF_C2H4(I,J)= AEF_C2H4(I,J) * FACTOR* AVO * 2d0 /28.053d0  
+            AEF_TOLU(I,J)= AEF_TOLU(I,J) * FACTOR* AVO * 7d0 /92.138d0 
+            AEF_PRPE(I,J)= AEF_PRPE(I,J) * FACTOR* AVO * 3d0 /42.080d0  
+
+            ! Methanol, formaldehyde, formic acid, acetic acid, HCN are
+            ! carried in molec, not atomsC
+            AEF_MOHX(I,J) = AEF_MOHX(I,J) * FACTOR * AVO / 32.042d0
+            AEF_CH2O(I,J) = AEF_CH2O(I,J) * FACTOR * AVO / 30.026d0 
+            AEF_FAXX(I,J) = AEF_FAXX(I,J) * FACTOR * AVO / 46.025d0
+            AEF_AAXX(I,J) = AEF_AAXX(I,J) * FACTOR * AVO / 60.052d0
+            AEF_HCNX(I,J) = AEF_HCNX(I,J) * FACTOR * AVO / 27.025d0
+
+         ENDDO
+      ENDDO
+
+      ! Return to calling program
+      END SUBROUTINE CALC_AEF
+!EOC
+!------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
@@ -3512,20 +3764,32 @@
       SUMOMTP = 0.0_hp
 
       ! Get pointers to data
-      CALL HCO_GetPtr( am_I_Root, 'MEGAN_PFT_BT', PFT_BT, RC )
+      CALL HCO_GetPtr( am_I_Root, 'CLIM4_PFT', CLIM4_PFT, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL HCO_GetPtr( am_I_Root, 'MEGAN_PFT_NT', PFT_NT, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+      ! CLM4 PFT coverage (%)
+      ! PFT_BARE                = CLIM4_PDF(:,:,1 )
+      ! PFT_NDLF_EVGN_TMPT_TREE = CLIM4_PDF(:,:,2 )
+      ! PFT_NDLF_EVGN_BORL_TREE = CLIM4_PDF(:,:,3 )
+      ! PFT_NDLF_DECD_BORL_TREE = CLIM4_PDF(:,:,4 )
+      ! PFT_BDLF_EVGN_TROP_TREE = CLIM4_PDF(:,:,5 )
+      ! PFT_BDLF_EVGN_TMPT_TREE = CLIM4_PDF(:,:,6 )
+      ! PFT_BDLF_DECD_TROP_TREE = CLIM4_PDF(:,:,7 )
+      ! PFT_BDLF_DECD_TMPT_TREE = CLIM4_PDF(:,:,8 )
+      ! PFT_BDLF_DECD_BORL_TREE = CLIM4_PDF(:,:,9 )
+      ! PFT_BDLF_EVGN_SHRB      = CLIM4_PDF(:,:,10)
+      ! PFT_BDLF_DECD_TMPT_SHRB = CLIM4_PDF(:,:,11)
+      ! PFT_BDLF_DECD_BORL_SHRB = CLIM4_PDF(:,:,12)
+      ! PFT_C3_ARCT_GRSS        = CLIM4_PDF(:,:,13)
+      ! PFT_C3_NARC_GRSS        = CLIM4_PDF(:,:,14)
+      ! PFT_C4_GRSS             = CLIM4_PDF(:,:,15)
+      ! PFT_CROP                = CLIM4_PDF(:,:,16)
 
-      CALL HCO_GetPtr( am_I_Root, 'MEGAN_PFT_SH', PFT_SH, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL HCO_GetPtr( am_I_Root, 'MEGAN_PFT_GR', PFT_GR, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL HCO_GetPtr( am_I_Root, 'MEGAN_PFT_CR', PFT_CR, RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+
+
+
 
       ! Calculation:
       ! AEF = PFT (m2/m2) * EF (ug/m2/h) * FACTOR
@@ -4129,6 +4393,7 @@
       ExtState%PARDF%DoUse     = .TRUE.
       ExtState%SZAFACT%DoUse   = .TRUE.
       ExtState%GC_LAI%DoUse    = .TRUE.
+      ExtState%GWETROOT%DoUse  = .TRUE.
 
       ! Enable module 
       ExtState%Megan = .TRUE.
@@ -4168,15 +4433,25 @@
       ! Nullify pointers
       GEIA_ORVC => NULL()
       AEF_ISOP  => NULL()
-      AEF_MBO   => NULL()
-      AEF_APINE => NULL()
-      AEF_BPINE => NULL()
-      AEF_LIMON => NULL()
-      AEF_SABIN => NULL()
-      AEF_MYRCN => NULL()
-      AEF_CAREN => NULL()
-      AEF_OCIMN => NULL()
+      AEF_MBOX  => NULL()
+      AEF_APIN  => NULL()
+      AEF_BPIN  => NULL()
+      AEF_LIMO  => NULL()
+      AEF_MYRC  => NULL()
+      AEF_SABI  => NULL()
+      AEF_OMON  => NULL()
+      AEF_MOHX  => NULL()
       AEF_ACET  => NULL()
+      AEF_ETOH  => NULL()
+      AEF_CH2O  => NULL()
+      AEF_ALD2  => NULL()
+      AEF_FAXX  => NULL()
+      AEF_AAXX  => NULL()
+      AEF_C2H4  => NULL()
+      AEF_TOLU  => NULL()
+      AEF_HCNX  => NULL()
+      AEF_PRPE  => NULL()
+      NORM_FAC  => NULL()
 
       ! Cleanup module arrays
       T_PREVDAY => NULL()
