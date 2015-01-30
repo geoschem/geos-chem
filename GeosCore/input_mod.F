@@ -4607,6 +4607,10 @@
       READ( SUBSTRS(1), * ) ND33
       CALL SET_TINDEX( am_I_Root, 33, ND33, SUBSTRS(2:N), N-1, N_MAX )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND33_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND33_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND34: Biofuel sources
       !--------------------------
@@ -4871,6 +4875,10 @@
       READ( SUBSTRS(1), * ) ND71
       CALL SET_TINDEX( am_I_Root, 
      &                 71, ND71, SUBSTRS(2:N), N-1, N_TRACERS )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND71_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND71_OUTPUT_TYPE = 'Mean'
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:70' )

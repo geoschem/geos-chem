@@ -254,11 +254,17 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_LANDMAP', LOC ) 
     ENDIF
 
-!    ! Surface Pressure diagnostic (ND31)
-!    CALL DIAGINIT_PRESSURE( am_I_Root, Input_Opt, RC )
-!    IF ( RC /= GIGC_SUCCESS ) THEN
-!       CALL ERROR_STOP( 'Error in DIAGINIT_PRESSURE', LOC )
-!    ENDIF
+    ! Surface Pressure diagnostic (ND31)
+    CALL DIAGINIT_PEDGE( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_PEDGE', LOC )
+    ENDIF
+
+    ! Trop. Column Sum of Tracer (ND33)
+    CALL DIAGINIT_COLUMNT( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_COLUMNT', LOC )
+    ENDIF
 
     ! Drydep diagnostic (ND44)
     CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
@@ -271,10 +277,10 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
     ENDIF
-    ! Tropopause Height diagnostic (ND55)
-    CALL DIAGINIT_TROP_HEIGHT( am_I_Root, Input_Opt, RC )
+    ! Tropopause diagnostics (ND55)
+    CALL DIAGINIT_TR_PAUSE( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_TROP_HEIGHT', LOC )
+       CALL ERROR_STOP( 'Error in DIAGINIT_TR_PAUSE', LOC )
     ENDIF
 
     ! Lightning Flashes diagnostic (ND56)
@@ -287,6 +293,12 @@ CONTAINS
     CALL DIAGINIT_THETA( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_THETA', LOC )
+    ENDIF
+
+    ! Tracer Mixing Ratio (IJ-MAX) Diagnostic (ND71)
+    CALL DIAGINIT_TRACER_MIXING( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_MIXING', LOC )
     ENDIF
 
     ! Leave with success
@@ -2756,15 +2768,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: diaginit_pressure
+! !IROUTINE: diaginit_pedge
 !
-! !DESCRIPTION: Subroutine DIAGINIT\_PRESSURE initializes the diagnostics
+! !DESCRIPTION: Subroutine DIAGINIT\_PEDGE initializes the diagnostics
 !  for Pressure (aka ND31).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagInit_Pressure( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagInit_Pedge( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -2795,10 +2807,10 @@ CONTAINS
     CHARACTER(LEN=15)    :: OutOper,  WriteFreq
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_PRESSURE (diagnostics_mod.F90)'
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_PEDGE (diagnostics_mod.F90)'
 
     !=======================================================================
-    ! DIAGINIT_PRESSURE begins here!
+    ! DIAGINIT_PEDGE begins here!
     !=======================================================================
 
     ! Assume successful return
@@ -2820,7 +2832,7 @@ CONTAINS
     !----------------------------------------------------------------
 
     ! Diagnostic name
-    DiagnName = 'PRESSURE'
+    DiagnName = 'PEDGE'
 
     ! Create container
     CALL Diagn_Create( am_I_Root,                     &
@@ -2833,7 +2845,7 @@ CONTAINS
                        HcoID     = -1,                &
                        SpaceDim  =  3,                &
                        LevIDx    = -1,                &
-                       OutUnit   = '.' ,              &
+                       OutUnit   = 'mb',              &
                        OutOper   = TRIM( OutOper   ), &
                        WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
@@ -2844,24 +2856,128 @@ CONTAINS
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
 
-  END SUBROUTINE DiagInit_Pressure
+  END SUBROUTINE DiagInit_Pedge
 
 !EOC
+
 
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: diaginit_trop_height
+! !IROUTINE: diaginit_columnt
 !
-! !DESCRIPTION: Subroutine DIAGINIT\_TROP\_HEIGHT initializes the diagnostics
-!  for Tropospheric Height (aka ND55).
+! !DESCRIPTION: Subroutine DIAGINIT\_COLUMNT initializes the diagnostics
+!  for Trop. Column Sum (aka ND33).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagInit_Trop_Height( am_I_Root, Input_Opt, RC )
+  SUBROUTINE DiagInit_ColumnT( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  29 Jan 2015 - M. Yannetti - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N, M
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_COLUMNT (diagnostics_mod.F90)'
+
+    !=======================================================================
+    ! DIAGINIT_COLUMNT begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND33 diagnostic is turned off
+
+    IF ( Input_Opt%ND33 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND33_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND33_OUTPUT_FREQ
+
+    ! TODO Check if certain tracer(s) listed for ND33 in input.geos 
+
+    !----------------------------------------------------------------
+    ! Create containers for Column Tracer
+    !----------------------------------------------------------------
+
+    ! Diagnostic name
+    DiagnName = 'COLUMN-T'
+
+    DO M = 1, Input_Opt%TMAX(33)
+      N  = Input_Opt%TINDEX(33,M)
+      IF ( N > Input_Opt%N_TRACERS ) CYCLE
+
+
+      ! Create container
+      CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        &
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'kg' ,             &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+      IF ( RC /= HCO_SUCCESS ) THEN
+         MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+    ENDDO
+  END SUBROUTINE DiagInit_ColumnT
+
+!EOC
+
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_tr_pause
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_TR\_PAUSE initializes the diagnostics
+!  for Tropopause height/level/pressure. (aka ND55).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Tr_Pause( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -2888,14 +3004,15 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: cId,      Collection, N
+    INTEGER              :: cId,      Collection, N, M
     CHARACTER(LEN=15)    :: OutOper,  WriteFreq
     CHARACTER(LEN=60)    :: DiagnName
     CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_TROP_HEIGHT (diagnostics_mod.F90)'
+    CHARACTER(LEN=40)    :: THEUNIT
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_TR_PAUSE (diagnostics_mod.F90)'
 
     !=======================================================================
-    ! DIAGINIT_TROP_HEIGHT begins here!
+    ! DIAGINIT_TR_PAUSE begins here!
     !=======================================================================
 
     ! Assume successful return
@@ -2913,14 +3030,34 @@ CONTAINS
     ! TODO Check if certain tracer(s) listed for ND55 in input.geos 
 
     !----------------------------------------------------------------
-    ! Create containers for Tropospheric Height
+    ! Create containers for Tropopause Diags
     !----------------------------------------------------------------
 
     ! Diagnostic name
-    DiagnName = 'TROP_HEIGHT'
+    DiagnName = 'TR-PAUSE'
+
+    ! Loop over ND55 diagnostic tracers
+    DO M = 1, Input_Opt%TMAX(55)
+
+    ! Define quantities
+      N = Input_Opt%TINDEX(55,M)
+      IF ( N > Input_Opt%PD55 ) CYCLE
+
+      ! Pick the appropriate unit string
+      SELECT CASE ( N )
+        CASE ( 1 )
+          THEUNIT = 'unitless'
+        CASE ( 2 )
+          THEUNIT = 'km'
+        CASE ( 3 )
+          THEUNIT = 'mb'
+      END SELECT
+
+    ! pulled from diag3... not sure where these vars are... (mdy)
+!     ARRAY(:,:,1) = AD55(:,:,N) / SCALEDYN
 
     ! Create container
-    CALL Diagn_Create( am_I_Root,                     &
+      CALL Diagn_Create( am_I_Root,                     &
                        Col       = Collection,        &
                        cName     = TRIM( DiagnName ), &
                        AutoFill  = 0,                 &
@@ -2930,18 +3067,20 @@ CONTAINS
                        HcoID     = -1,                &
                        SpaceDim  =  3,                &
                        LevIDx    = -1,                &
-                       OutUnit   = '.' ,              &
+                       OutUnit   = TRIM( THEUNIT   ), &
                        OutOper   = TRIM( OutOper   ), &
                        WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
                        RC        = RC )
 
-    IF ( RC /= HCO_SUCCESS ) THEN
-       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-       CALL ERROR_STOP( MSG, LOC )
-    ENDIF
+      IF ( RC /= HCO_SUCCESS ) THEN
+         MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
 
-  END SUBROUTINE DiagInit_Trop_Height
+  ENDDO
+
+  END SUBROUTINE DiagInit_Tr_Pause
 
 !EOC
 
@@ -3042,7 +3181,7 @@ CONTAINS
                        HcoID     = -1,                &
                        SpaceDim  =  3,                &
                        LevIDx    = -1,                &
-                       OutUnit   = '.' ,              &
+                       OutUnit   = 'flashes/min/km2', &
                        OutOper   = TRIM( OutOper   ), &
                        WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
@@ -3129,6 +3268,9 @@ CONTAINS
     ! Diagnostic name
     DiagnName = 'THETA'
 
+    ! another import from diag3... (mdy)
+!    ARRAY(:,:,1:LD57) = AD57(:,:,1:LD57) / SCALEDIAG
+
     ! Create container
     CALL Diagn_Create( am_I_Root,                     &
                        Col       = Collection,        &
@@ -3140,7 +3282,7 @@ CONTAINS
                        HcoID     = -1,                &
                        SpaceDim  =  3,                &
                        LevIDx    = -1,                &
-                       OutUnit   = '.' ,              &
+                       OutUnit   = 'K' ,              &
                        OutOper   = TRIM( OutOper   ), &
                        WriteFreq = TRIM( WriteFreq ), &
                        cId       = cId,               &
@@ -3152,6 +3294,111 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE DiagInit_Theta
+
+!EOC
+
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_tracer_mixing
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_TRACER\_MIXING initializes the diagnostics
+!  for Tracer Mixing Ratio at Surface (aka ND71).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Tracer_Mixing( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  30 Jan 2015 - M. Yannetti - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N, M
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGINIT_TRACER_MIXING (diagnostics_mod.F90)'
+
+    !=======================================================================
+    ! DIAGINIT_TRACER_MIXING begins here!
+    !=======================================================================
+
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND71 diagnostic is turned off
+
+      IF ( Input_Opt%ND71 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND71_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND71_OUTPUT_FREQ
+
+    ! TODO Check if certain tracer(s) listed for ND71 in input.geos 
+
+    !----------------------------------------------------------------
+    ! Create containers for Tracer Mixing Ratio
+    !----------------------------------------------------------------
+
+    ! Diagnostic name
+    DiagnName = 'IJ-MAX'
+    DO M = 1, Input_Opt%TMAX(71)
+       N = Input_Opt%TINDEX(71,M)
+       IF ( N > Input_Opt%N_TRACERS ) CYCLE
+
+!       ! line from diag3
+!       ARRAY(:,:,1) = AD71(:,:,N)/AD71_COUNT
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                       Col       = Collection,        &
+                       cName     = TRIM( DiagnName ), &
+                       AutoFill  = 0,                 &
+                       ExtNr     = -1,                &
+                       Cat       = -1,                &
+                       Hier      = -1,                &
+                       HcoID     = -1,                &
+                       SpaceDim  =  3,                &
+                       LevIDx    = -1,                &
+                       OutUnit   = 'v/v' ,              &
+                       OutOper   = TRIM( OutOper   ), &
+                       WriteFreq = TRIM( WriteFreq ), &
+                       cId       = cId,               &
+                       RC        = RC )
+
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagInit_Tracer_Mixing
 
 !EOC
 
