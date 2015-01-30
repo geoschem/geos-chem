@@ -384,20 +384,18 @@
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-
-      ! testing only
 #if defined( DEBUG )
       write(*,*) 'Before EMISSCO2: '
-      write(*,*) 'AD01 01: ', SUM(AD04(:,:,1))
-      write(*,*) 'AD01 02: ', SUM(AD04(:,:,2))
-      write(*,*) 'AD01 03: ', SUM(AD04(:,:,3))
-      write(*,*) 'AD01 04: ', SUM(AD04(:,:,4))
-      write(*,*) 'AD01 05: ', SUM(AD04(:,:,5))
-      write(*,*) 'AD01 06: ', SUM(AD04(:,:,6))
-      write(*,*) 'AD01 07: ', SUM(AD04(:,:,7))
-      write(*,*) 'AD01 08: ', SUM(AD04(:,:,8))
-      write(*,*) 'AD01 09: ', SUM(AD04(:,:,9))
-      write(*,*) 'AD01 10: ', SUM(AD04(:,:,10))
+      write(*,*) 'AD04 01: ', SUM(AD04(:,:,1))
+      write(*,*) 'AD04 02: ', SUM(AD04(:,:,2))
+      write(*,*) 'AD04 03: ', SUM(AD04(:,:,3))
+      write(*,*) 'AD04 04: ', SUM(AD04(:,:,4))
+      write(*,*) 'AD04 05: ', SUM(AD04(:,:,5))
+      write(*,*) 'AD04 06: ', SUM(AD04(:,:,6))
+      write(*,*) 'AD04 07: ', SUM(AD04(:,:,7))
+      write(*,*) 'AD04 08: ', SUM(AD04(:,:,8))
+      write(*,*) 'AD04 09: ', SUM(AD04(:,:,9))
+      write(*,*) 'AD04 10: ', SUM(AD04(:,:,10))
 #endif
 
 !==============================================================================
@@ -961,16 +959,16 @@
       ! testing only
 #if defined( DEBUG )
       write(*,*) 'After EMISSCO2: '
-      write(*,*) 'AD01 01: ', SUM(AD04(:,:,1))
-      write(*,*) 'AD01 02: ', SUM(AD04(:,:,2))
-      write(*,*) 'AD01 03: ', SUM(AD04(:,:,3))
-      write(*,*) 'AD01 04: ', SUM(AD04(:,:,4))
-      write(*,*) 'AD01 05: ', SUM(AD04(:,:,5))
-      write(*,*) 'AD01 06: ', SUM(AD04(:,:,6))
-      write(*,*) 'AD01 07: ', SUM(AD04(:,:,7))
-      write(*,*) 'AD01 08: ', SUM(AD04(:,:,8))
-      write(*,*) 'AD01 09: ', SUM(AD04(:,:,9))
-      write(*,*) 'AD01 10: ', SUM(AD04(:,:,10))
+      write(*,*) 'AD04 01: ', SUM(AD04(:,:,1))
+      write(*,*) 'AD04 02: ', SUM(AD04(:,:,2))
+      write(*,*) 'AD04 03: ', SUM(AD04(:,:,3))
+      write(*,*) 'AD04 04: ', SUM(AD04(:,:,4))
+      write(*,*) 'AD04 05: ', SUM(AD04(:,:,5))
+      write(*,*) 'AD04 06: ', SUM(AD04(:,:,6))
+      write(*,*) 'AD04 07: ', SUM(AD04(:,:,7))
+      write(*,*) 'AD04 08: ', SUM(AD04(:,:,8))
+      write(*,*) 'AD04 09: ', SUM(AD04(:,:,9))
+      write(*,*) 'AD04 10: ', SUM(AD04(:,:,10))
 #endif
 
       ! Free pointer
