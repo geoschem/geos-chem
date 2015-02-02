@@ -358,6 +358,11 @@ CONTAINS
     ! Write out diagnostics to file using current time stamp.
     ! If last, save into restart file. Else, write out regular diagnostics.
     !-----------------------------------------------------------------------
+
+    ! DEBUGGING - LL 2/2/15
+    PRINT *, 'Attempting to write diagnostics to netcdf'
+    ! End of debugging
+
     IF ( LAST ) THEN
        CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                & 
                                   HcoState,                                 &
@@ -2363,6 +2368,11 @@ CONTAINS
     ! Skip if ND25 diagnostic is turned off
     IF ( Input_Opt%ND25 <= 0 ) RETURN
 
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND25_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND25_OUTPUT_FREQ
+ 
     ! Loop over tracers
     DO N = 1, Input_Opt%N_TRACERS
          
