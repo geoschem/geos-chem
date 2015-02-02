@@ -72,6 +72,8 @@
 !  15 Aug 2014 - R. Yantosca - We can remove the IDF* flags as all biomass
 !                              emissions are now handled in HEMCO
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  29 Jan 2015 - E. Lundgren - Removed IDTHg0, IDTHg2, and IDTHgP since no
+!                              longer used in code.
 !******************************************************************************
 !
       ! for CTM tracers
@@ -144,7 +146,7 @@
       INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
       INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
       INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
-      INTEGER            :: IDTHG0,  IDTHg2,  IDTHgP,  IDTAS
+      INTEGER            :: IDTAS
       INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
       INTEGER            :: IDTNITs
       INTEGER            :: IDTBENZ, IDTTOLU,   IDTXYLE,  IDTMONX
@@ -1149,7 +1151,6 @@
             CASE ( 'HG0' )
                COUNT_Hg0         = COUNT_Hg0 + 1              
                ID_Hg_tot         = COUNT_Hg0
-               IDTHg0            = N
                ID_Hg0(COUNT_Hg0) = N
 
             CASE ( 'HG2' )

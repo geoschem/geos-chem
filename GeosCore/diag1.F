@@ -167,9 +167,11 @@
       REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! For netCDF diagnostics via HEMCO
+      CHARACTER(LEN=255) :: DiagnName
       INTEGER            :: HCRC
       REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
-      CHARACTER(LEN=255) :: DiagnName
+      REAL(fp), POINTER  :: Ptr2D(:,:) => NULL()
+      REAL(fp), TARGET   :: Landmap(IIPAR, JJPAR)
 
       !=================================================================
       ! DIAG1 begins here!
@@ -196,7 +198,6 @@
       
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 .or. ND71 > 0 ) THEN
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -212,11 +213,11 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
       ENDIF
 
 ! H Amos, 25 Oct 2011--------------------------------------------------
 
+#if !defined( NO_BPCH )
       !-----------------------------------------------!
       ! Write ND03 diagnostics for RGM and PBM (pptv) !
       !-----------------------------------------------!
@@ -245,11 +246,8 @@
         ENDDO
         ENDDO
 !$OMP END PARALLEL DO 
-
       ENDIF
-!-------------------------------------------------------------------------
 
-#if !defined( NO_BPCH )
       !================================================================= 
       ! ND30: Land/water/ice flags
       !=================================================================
@@ -552,51 +550,49 @@
       !=================================================================
       IF ( Input_Opt%ND30 > 0 ) THEN
 
-               ! Construct diagnostic name
-               DiagnName = 'LANDMAP'
+         ! Construct diagnostic name
+         ! (better to have function to get it since already defined)
+         DiagnName = 'LANDMAP'
 
-               ! Create the landmap. 
-               ! For now, use AD30. This will not work if !defined ( NO_BPCH )
-               ! It may make more sense to create/update
-               ! the landmap array elsewhere and simply point to it here.
+         ! Compute landmap
+         IF ( ND30 > 0 ) THEN  
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            IF ( IS_WATER( I, J, State_Met ) )
-     &           AD30(I,J) = AD30(I,J) + 0e0
-            IF ( IS_LAND ( I, J, State_Met ) )
-     &           AD30(I,J) = AD30(I,J) + 1e0
-            IF ( IS_ICE  ( I, J, State_Met ) )
-     &           AD30(I,J) = AD30(I,J) + 2e0
-         ENDDO
-         ENDDO
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               IF ( IS_WATER( I, J, State_Met ) )
+     &           Landmap(I,J) = 0e0
+               IF ( IS_LAND ( I, J, State_Met ) )
+     &           Landmap(I,J) = 1e0
+               IF ( IS_ICE  ( I, J, State_Met ) )
+     &           Landmap(I,J) = 2e0
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDIF
 
-               ! Point to the landmap array
-               Ptr2D => AD30
-
-               ! Update the landmap diagostic
-               CALL Diagn_Update( am_I_Root,
-     &                            cName   = TRIM( DiagnName ),
-     &                            Array2D = Ptr2D,
-     &                            COL     = Input_Opt%DIAG_COLLECTION,
-     &                            RC      = HCRC )
-
-               ! Free the pointer
-               Ptr2D => NULL()
-
-               ! STOP with error if the diagnostics were unsuccessful
-               IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP(
-     &                 'Cannot update landmap diagnostic',
-     &                 'DIAG1 (diag1.F)')
-               ENDIF
-            ENDIF
-         ENDDO
+         ! Point to the landmap array
+         Ptr2D => Landmap
+    
+         ! Update the landmap diagnostic
+         CALL Diagn_Update( am_I_Root,
+     &                      cName   = TRIM( DiagnName ),
+     &                      Array2D = Ptr2D,
+     &                      COL     = Input_Opt%DIAG_COLLECTION,
+     &                      RC      = HCRC )
+    
+         ! Free the pointer before error handling
+         Ptr2D => NULL()
+    
+         ! Stop with error if the diagnostics were unsuccessful
+         IF ( HCRC /= HCO_SUCCESS ) THEN
+            CALL ERROR_STOP(
+     &           'Cannot update landmap diagnostic (ND30)',
+     &           'DIAG1 (diag1.F)')
+         ENDIF
+ 
       ENDIF
-
 
       !=================================================================
       ! ND45: Tracer concentrations (new diagnostic structure)
