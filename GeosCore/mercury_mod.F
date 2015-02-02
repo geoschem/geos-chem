@@ -330,7 +330,9 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HG2_DD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_DD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Br,  AD03_Hg2_OH
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
@@ -1030,6 +1032,7 @@
      &              DEP_HG2g_DRY + DEP_Hg2p_DRY, State_Met )
             ENDIF           
 
+#if !defined( NO_BPCH )
             !=================================================================
             ! ND44 diagnostic: drydep flux of Hg(II) [molec/cm2/s]
             !=================================================================
@@ -1062,8 +1065,8 @@
                AD44(I,J,ID_HGP(N),1) = AD44(I,J,ID_HGP(N),1) +
      &              DEP_DRY_FLX
 
-
             ENDIF
+#endif
 
             !==============================================================
             ! ND03 diagnostic: Hg(II) production [kg]
@@ -6867,13 +6870,6 @@
          IF ( IS_WATER( I, J, State_Met ) ) THEN
 
             ! Wind speed at 10m altitude [m/s]
-!----------------------------------------------------------------------------
-! Prior to 7/25/14:
-! Remove reference to function SFCWINDSQR (bmy, 7/25/14)
-!            U10M = SQRT( SFCWINDSQR( I, J,
-!     &                               State_Met%U10M,
-!     &                               State_Met%V10M ) )
-!----------------------------------------------------------------------------
             SFCWINDSQR = State_Met%U10M(I,J)**2 
      &                 + State_Met%V10M(I,J)**2
             U10M       = SQRT( SFCWINDSQR )

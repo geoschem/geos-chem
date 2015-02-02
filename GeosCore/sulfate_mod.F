@@ -242,21 +242,12 @@
       REAL(fp),  ALLOCATABLE :: ESO2_nv(:,:,:)
       REAL(fp),  ALLOCATABLE :: ESO2_sh(:,:) 
       REAL(fp),  ALLOCATABLE :: ESO4_an(:,:,:) 
-! not used for now - comment it (phs, 6/29/09)      
-!      REAL(fp),  ALLOCATABLE :: LSO2_AQ(:,:,:)
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! These fields are now handled by HEMCO (mps, 9/18/14)
-!      REAL(fp),  ALLOCATABLE :: JH2O2(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: O3m(:,:,:)
-!      REAL(fp),  ALLOCATABLE :: PH2O2m(:,:,:)
-!------------------------------------------------------------------------------
       REAL(fp),  ALLOCATABLE :: PMSA_DMS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO2_DMS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO4_SO2(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO4_SS(:,:,:)
       REAL(fp),  ALLOCATABLE :: PNITs(:,:,:)
-      REAL*4,  ALLOCATABLE :: SOx_SCALE(:,:)
+      REAL*4,    ALLOCATABLE :: SOx_SCALE(:,:)
       REAL(fp),  ALLOCATABLE :: SSTEMP(:,:)
       REAL(fp),  ALLOCATABLE :: TCOSZ(:,:)
       REAL(fp),  ALLOCATABLE :: TTDAY(:,:)
@@ -517,12 +508,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get OH and NO3 from HEMCO (mps, 9/18/14)
-!      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
-!      USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
-!------------------------------------------------------------------------------
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
@@ -655,18 +640,6 @@
 
       ! If it's an offline simulation ...
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
-
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get global OH and NO3 fields from HEMCO (mps, 9/18/14)
-!         ! Then read monthly data files ...
-!         IF ( ITS_A_NEW_MONTH() ) THEN 
-!            CALL GET_GLOBAL_OH
-!     &           ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
-!            CALL GET_GLOBAL_NO3
-!     &           ( am_I_Root, Input_Opt,            MONTH, RC )
-!         ENDIF
-!------------------------------------------------------------------------------
 
          ! Get offline oxidant fields from HEMCO (mps, 9/18/14)
          IF ( FIRSTCHEM ) THEN
@@ -870,7 +843,9 @@
       USE CMN_GCTM_MOD        
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -912,6 +887,7 @@
 !  14 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -930,7 +906,7 @@
       REAL(fp),  PARAMETER     :: A2   = -4.28e-5_fp
       REAL(fp),  PARAMETER     :: A3   =  2.52e-6_fp
       REAL(fp),  PARAMETER     :: A4   = -2.35e-8_fp
-      REAL(fp),  PARAMETER     :: EPSI = 1.0e-4_fp 
+      REAL(f8),  PARAMETER     :: EPSI = 1.0e-4_f8 
 !
 ! !LOCAL VARIABLES:
 !
@@ -940,13 +916,13 @@
       REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
       REAL(fp)                 :: FAC2,   FLUX,  AREA_CM2, RHB
       ! replace RCM (radius in CM with RUM radius in microns) jaegle 5/11/11
-      REAL(fp)                 :: RUM,    RWET,  RATIO_R,  RHO 
+      REAL(fp)                 :: RUM,    RWET,  RATIO_R
       REAL(fp)                 :: TOT1,   TOT2
       REAL(fp)                 :: VTS(LLPAR)  
       REAL(fp)                 :: TC0(LLPAR)
       ! added variables for density calculation (jaegle, bec 5/11/11)
-      REAL(fp)                 :: RHO1, WTP
-      
+      REAL(f8)                 :: RHO1, WTP, RHO
+ 
       ! Arrays
       INTEGER                :: IDDEP(2)
       INTEGER                :: IDTRC(2)	
@@ -1055,25 +1031,25 @@
             ! (bec, jaegle 5/11/11)
             RATIO_R = ( REFF / RWET )
             ! Assume an initial density of 1000 kg/m3
-            RHO  = 1000.D0
-            RHO1 = 0.e+0_fp !initialize (bec, 6/21/10)
+            RHO  = 1000.e+0_f8
+            RHO1 = 0.e+0_f8 !initialize (bec, 6/21/10)
             DO WHILE ( ABS( RHO1-RHO ) .gt. EPSI )
                 ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet) 
-                WTP    = 100.e+0_fp * DEN/RHO * RATIO_R**3.e+0_fp
+                WTP    = 100.e+0_f8 * DEN/RHO * RATIO_R**3.e+0_f8
                 ! Then calculate density of wet aerosol using equation 5 
                 ! in Tang et al., 1997 [kg/m3]
-                RHO1   = ( 0.9971e+0_fp + (A1 * WTP) 
-     $          + (A2 * WTP**2.e+0_fp)
-     $          + (A3 * WTP**3.e+0_fp) 
-     $          + (A4 * WTP**4.e+0_fp) ) * 1000.e+0_fp
+                RHO1   = ( 0.9971e+0_f8 + (A1 * WTP) 
+     $          + (A2 * WTP**2.e+0_f8)
+     $          + (A3 * WTP**3.e+0_f8) 
+     $          + (A4 * WTP**4.e+0_f8) ) * 1000.e+0_f8
                 ! Now calculate new weight percent using above density
                 ! calculation
-                WTP    = 100.e+0_fp * DEN/RHO1 * RATIO_R**3.e+0_fp
+                WTP    = 100.e+0_f8 * DEN/RHO1 * RATIO_R**3.e+0_f8
                 ! Now recalculate new wet density [kg/m3]
-                RHO   = ( 0.9971e+0_fp + (A1 * WTP) 
-     $          + (A2 * WTP**2.e+0_fp)
-     $          + (A3 * WTP**3.e+0_fp) 
-     $          + (A4 * WTP**4.e+0_fp) ) * 1000.e+0_fp
+                RHO   = ( 0.9971e+0_f8 + (A1 * WTP) 
+     $          + (A2 * WTP**2.e+0_f8)
+     $          + (A3 * WTP**3.e+0_f8) 
+     $          + (A4 * WTP**4.e+0_f8) ) * 1000.e+0_f8
             ENDDO
 
             ! Dp = particle diameter [um]
@@ -1139,6 +1115,7 @@
      &                *  TC(I,J,L+1) )
          ENDDO
          
+#if !defined( NO_BPCH )
          !==============================================================
          ! ND44 diagnostic: sea salt loss [molec/cm2/s]
          !==============================================================
@@ -1164,6 +1141,7 @@
             ! Store in AD44 array
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
          ENDIF
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1518,7 +1496,9 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE CMN_GCTM_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1647,44 +1627,6 @@
       ENDIF
 
       !=================================================================
-      ! For offline run: read J(H2O2) from disk below
-      !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get J(H2O2) from HEMCO (mps, 9/18/14)
-!      IF ( ITS_A_NEW_MONTH() ) THEN
-!
-!         ! File name to read data 
-!         FILENAME = TRIM( Input_Opt%DATA_DIR )             // 
-!     &              'sulfate_sim_200508/offline/JH2O2.'    // 
-!     &              GET_NAME_EXT() // '.' // GET_RES_EXT()
-!           
-!         ! Print filename
-!         IF ( am_I_Root ) THEN
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!         ENDIF
-! 100     FORMAT( '     - CHEM_H2O2: Reading ', a )
-!
-!         ! Get TAU0 value for this month in "generic" year 1985
-!         XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
-!
-!         ! Read J(H2O2) [s-1]  from disk (only up to tropopause)
-!         ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
-!         ! tropopause. This is backward compatibility with 
-!         ! offline data set.
-!         CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      
-!     &     XTAU,        IIPAR,                    JJPAR,      
-!     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
-!
-!         ! Cast to REAL(fp) and resize if necessary
-!         CALL TRANSFER_3D_TROP( ARRAY, JH2O2 )
-!            
-!         ! Reset LASTMONTH
-!         !LASTMONTH = GET_MONTH()
-!      ENDIF
-!------------------------------------------------------------------------------
-
-      !=================================================================
       ! Loop over tropopsheric grid boxes and do chemistry
       !=================================================================
 !$OMP PARALLEL DO
@@ -1737,11 +1679,6 @@
          ALPHA = 1.e+0_fp + ( KOH + PHOTJ + FREQ ) * DT 
 
          ! Delta H2O2 [v/v]
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get PH2O2m [kg/m3] from HEMCO (mps, 9/18/14)
-!         DH2O2 = PH2O2m(I,J,L) * DT / ( ALPHA * M )
-!------------------------------------------------------------------------------
          ! PH2O2m is in kg/m3 (from HEMCO), convert to molec/cm3/s (mps,9/18/14)
          DH2O2 = ( PH2O2m(I,J,L) / TS_EMIS * XNUMOL_H2O2 / CM3PERM3 )
      &           * DT / ( ALPHA * M )
@@ -1772,6 +1709,7 @@
       ENDDO
 !$OMP END PARALLEL DO
       
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -1789,6 +1727,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -1819,7 +1758,9 @@
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD05
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -1828,12 +1769,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get HNO3 from HEMCO (mps, 9/18/14)
-!      USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
-!      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_VV
-!------------------------------------------------------------------------------
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
@@ -1844,7 +1779,6 @@
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTNH3,  IDTNH4,  IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTNIT,  IDTDST1, IDTDST2, IDTDST3
       USE TRACERID_MOD,       ONLY : IDTDST4, IDTSALA, IDTSALC
-!      USE SEASALT_MOD,        ONLY : GET_ALK
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal, GetHcoDiagn
@@ -2011,18 +1945,6 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get HNO3 from HEMCO (mps 9/18/14)
-!      ! Read HNO3 for offline simulation
-!      IF ( IS_OFFLINE ) THEN
-!         IF ( ITS_A_NEW_MONTH() ) THEN
-!            CALL GET_GLOBAL_HNO3
-!     &           ( am_I_Root, Input_Opt, GET_MONTH(), RC )
-!         ENDIF
-!      ENDIF
-!------------------------------------------------------------------------------
-
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM   = GET_TS_CHEM() * 60e+0_fp
 
@@ -2037,7 +1959,7 @@
       ! and coarse mode, respectively. Values are in # / surface grid
       ! box. These values are needed in the GET_ALK call below.
       ! If the diagnostics are not being found, e.g. because the
-      ! sea salt emissins extension is turned off (or LEMIS is 
+      ! sea salt emissions extension is turned off (or LEMIS is 
       ! disabled), the passed pointers NDENS_SALA and NDENS_SALC
       ! will stay nullified. Values of zero will be used in this
       ! case! (ckeller, 01/12/2015)
@@ -2338,11 +2260,6 @@
 	       GNO3 = STT(I,J,L,IDTHNO3) !For Fahey & Pandis decision algorithm
             ELSE IF ( IS_OFFLINE ) THEN
                TANIT = STT(I,J,L,IDTNIT) !aerosol nitrate [v/v]
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get HNO3 from HEMCO (mps, 9/18/14)
-!	       GNO3  = GET_HNO3_VV(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
-!------------------------------------------------------------------------------
 	       GNO3  = HNO3(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
    	       ANIT  = TANIT * 0.7e+0_fp ! aerosol nitrate in the cloud drops [v/v]
 	       TNO3  = GNO3 + ANIT   ! total nitrate for cloud pH calculations
@@ -2689,6 +2606,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -2706,6 +2624,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -2751,10 +2670,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-!      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
-!------------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_MONTH 
@@ -2897,20 +2812,6 @@
 
       ELSE
          
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get HNO3 from HEMCO (mps, 9/18/14)
-!         ! Get HNO3 in ug/m3, then multiply by volume in m3
-!         ! and 1e-6 kg/ug to get HNO3 in kg
-!         HNO3_kg = GET_HNO3_UGM3( I, J, L, State_Met ) *
-!     &             AIRVOL(I,J,L) * 1e-6
-!
-!	 ! Convert HNO3 [kg] first to [v/v] 
-!         HNO3_vv = HNO3_kg * ( 28.97e+0_fp / 63e+0_fp ) / AD(I,J,L)
-! 
-!         ! Then convert HNO3 [kg] to [equivalents]
-!         HNO3_eq = HNO3_kg / 63d-3
-!------------------------------------------------------------------------------
          ! HNO3 is in v/v (from HEMCO)
          HNO3_vv = HNO3(I,J,L)
 
@@ -3221,6 +3122,7 @@
 !            
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  06 Jan 2015 - M. Yannetti - Set some variables to f8 that required it
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3240,9 +3142,10 @@
       REAL(fp)                 :: kSO2p, kSO2p2
       REAL(fp)                 :: kHNO3p, kNH3p, kHClp
       INTEGER                :: count
-      REAL(fp)                 :: E, F, G, H, P, Q, R, A, B
-      REAL(fp)                 :: A2, A1, A0, X, Y
+      REAL(fp)                 :: E, F, G, H, P, Q, R
+      REAL(fp)                 :: X, Y
       REAL(fp)                 :: CRUTES( 3 ) ! Coeff and roots of cubic equation
+      REAL(f8)                 :: A, B, A1, A2, A0
       INTEGER                :: NR          ! Number of roots to cubic equation
 
       !=================================================================
@@ -3306,10 +3209,10 @@
 
 	 R = F/H
 
-	 A = (1.e+0_fp/3.e+0_fp)*((3.e+0_fp*Q)-(P*P))
+	 A = (1.e+0_f8/3.e+0_f8)*((3.e+0_f8*Q)-(P*P))
 
-  	 B = (1.e+0_fp/27.e+0_fp)*((2.0e+0_fp*P*P*P)
-     &        -(9.0e+0_fp*P*Q)+(27.0e+0_fp*R))
+  	 B = (1.e+0_f8/27.e+0_f8)*((2.0e+0_f8*P*P*P)
+     &        -(9.0e+0_f8*P*Q)+(27.0e+0_f8*R))
 
  	 A2 = 0.
  	 A1 = A
@@ -3819,7 +3722,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER           :: NR
-      REAL(fp)            :: A2, A1, A0
+      REAL(f8)            :: A2, A1, A0
       REAL(fp)            :: CRUTES(3)
 !
 ! !REMARKS:
@@ -3838,6 +3741,7 @@
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!  06 Jan 2015 - M. Yannetti - Manual changes of some variables to f8
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3850,29 +3754,31 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)            :: QQ,    RR,    A2SQ,  THETA, DUM1, DUM2
-      REAL(fp)            :: PART1, PART2, PART3, RRSQ,  PHI,  YY1
+      REAL(fp)            :: A2SQ,  THETA 
+      REAL(f8)            :: PART1, PART2, PART3, YY1
       REAL(fp)            :: YY2,   YY3,   COSTH, SINTH
+      REAL(f8)            :: PHI,   DUM1,  DUM2,  RRSQ
+      REAL(f8)            :: QQ,    RR
 
       !=================================================================
       ! CUBIC begins here!
       !=================================================================
       A2SQ = A2 * A2
-      QQ   = ( A2SQ - 3.e+0_fp*A1 ) / 9.e+0_fp
-      RR   = ( A2*( 2.e+0_fp*A2SQ - 9.e+0_fp*A1 ) + 27.e+0_fp*A0 ) 
-     &       / 54.e+0_fp
+      QQ   = ( A2SQ - 3.e+0_f8 * A1 ) / 9.e+0_f8
+      RR   = ( A2*( 2.e+0_f8*A2SQ - 9.e+0_f8*A1 ) + 27.e+0_f8*A0 ) 
+     &       / 54.e+0_f8
 
       ! CASE 1 THREE REAL ROOTS or  CASE 2 ONLY ONE REAL ROOT
       DUM1 = QQ * QQ * QQ
       RRSQ = RR * RR
       DUM2 = DUM1 - RRSQ
 
-      IF ( DUM2 .GE. 0.e+0_fp ) THEN
+      IF ( DUM2 .GE. 0.e+0_f8 ) THEN
 
          ! Now we have three real roots
          PHI = SQRT( DUM1 )
 
-         IF ( ABS( PHI ) .LT. 1.e-20_fp ) THEN
+         IF ( ABS( PHI ) .LT. 1.e-20_f8 ) THEN
             CRUTES(1) = 0.0e+0_fp
             CRUTES(2) = 0.0e+0_fp
             CRUTES(3) = 0.0e+0_fp
@@ -4365,7 +4271,9 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -4782,6 +4690,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that we get the same results w/ sp or mp 
@@ -4814,6 +4723,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointers
       NULLIFY( STT )
@@ -4980,7 +4890,9 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -5163,7 +5075,8 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-      
+
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -5181,6 +5094,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -5207,7 +5121,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
@@ -5406,6 +5322,7 @@
 !$OMP END PARALLEL DO
          ENDIF
 
+#if !defined( NO_BPCH )
          !------------------------------------------------------------
          ! (2) Save archived NH3 drydep fluxes into the AD44 array
          !------------------------------------------------------------
@@ -5422,6 +5339,7 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDIF
+#endif
       ENDIF
 
       ! Free pointer
@@ -5449,7 +5367,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -5647,6 +5567,7 @@
 !$OMP END PARALLEL DO
          ENDIF
 
+#if !defined( NO_BPCH )
          !------------------------------------------------------------
          ! (2) Save archived NH4 drydep fluxes into the AD44 array
          !------------------------------------------------------------
@@ -5664,6 +5585,7 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDIF
+#endif
       ENDIF
 
       ! Free pointer
@@ -5691,7 +5613,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
@@ -5982,6 +5906,7 @@
 !$OMP END PARALLEL DO
          ENDIF
 
+#if !defined( NO_BPCH )
          !------------------------------------------------------------
          ! (2) Save archived NIT & NITs drydep fluxes into AD44 array
          !------------------------------------------------------------
@@ -6002,6 +5927,7 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDIF         
+#endif
       ENDIF
 
       ! Free pointer
@@ -6121,11 +6047,6 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get OH from HEMCO (mps, 9/18/14)
-!      USE GLOBAL_OH_MOD,      ONLY : OH
-!------------------------------------------------------------------------------
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDOH
 !
@@ -6296,11 +6217,6 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! Now get NO3 from HEMCO (mps, 9/18/14)
-!      USE GLOBAL_NO3_MOD,     ONLY : NO3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDNO3
 !
 ! !INPUT PARAMETERS: 
@@ -8070,11 +7986,11 @@
          ! Get number densities in # / cm3. Weight by fraction of PBL
          IF ( ASSOCIATED(NDENS_SALA) ) THEN
             N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
-     &                * 1.e-6_fp * FEMIS
+     &         * 1.e-6_fp        * FEMIS
          ENDIF
          IF ( ASSOCIATED(NDENS_SALC) ) THEN
             N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
-     &             * 1.e-6_fp * FEMIS
+     &         * 1.e-6_fp        * FEMIS
          ENDIF
 
       ENDIF
@@ -8377,22 +8293,6 @@
       !=================================================================
       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 9/18/14:
-! These fields are now handled by HEMCO (mps, 9/18/14)
-!         ALLOCATE( PH2O2m( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH2O2m' )
-!         PH2O2m = 0e+0_fp
-!
-!         ALLOCATE( O3m( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'O3m' )
-!         O3m = 0e+0_fp
-!
-!         ALLOCATE( JH2O2( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JH2O' )
-!         JH2O2 = 0e+0_fp
-!------------------------------------------------------------------------------
-
          ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
          TCOSZ = 0e+0_fp
@@ -8517,13 +8417,6 @@
       IF ( ALLOCATED( ESO2_bf    ) ) DEALLOCATE( ESO2_bf    )
       IF ( ALLOCATED( ESO2_sh    ) ) DEALLOCATE( ESO2_sh    )
       IF ( ALLOCATED( ESO4_an    ) ) DEALLOCATE( ESO4_an    )
-!------------------------------------------------------------------------------
-! Prior to 9/18/14
-! These fields are now handled by HEMCO (mps, 9/18/14)
-!      IF ( ALLOCATED( JH2O2      ) ) DEALLOCATE( JH2O2      )
-!      IF ( ALLOCATED( O3m        ) ) DEALLOCATE( O3m        )
-!      IF ( ALLOCATED( PH2O2m     ) ) DEALLOCATE( PH2O2m     )
-!------------------------------------------------------------------------------
       IF ( ALLOCATED( PMSA_DMS   ) ) DEALLOCATE( PMSA_DMS   )
       IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
       IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )
@@ -8538,20 +8431,6 @@
       IF ( ALLOCATED( TTDAY      ) ) DEALLOCATE( TTDAY      )          
       IF ( ALLOCATED( VCLDF      ) ) DEALLOCATE( VCLDF      )
       IF ( ALLOCATED( COSZM      ) ) DEALLOCATE( COSZM      )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: This is for the SEAC4RS volcano emissions.  Leave code commented
-!%%% out here so that we can restore it later. (bmy, 9/25/13)
-!      IF ( ALLOCATED( VEV_ELEV  ) ) DEALLOCATE( VEV_ELEV  )
-!      IF ( ALLOCATED( VEV_SO2   ) ) DEALLOCATE( VEV_SO2   )
-!      IF ( ALLOCATED( VEV_DATE  ) ) DEALLOCATE( VEV_DATE  )
-!      IF ( ALLOCATED( VEV_II    ) ) DEALLOCATE( VEV_II    )
-!      IF ( ALLOCATED( VEV_JJ    ) ) DEALLOCATE( VEV_JJ    )
-!      IF ( ALLOCATED( VNV_ELEV  ) ) DEALLOCATE( VNV_ELEV  )
-!      IF ( ALLOCATED( VNV_SO2   ) ) DEALLOCATE( VNV_SO2   )
-!      IF ( ALLOCATED( VNV_DATE  ) ) DEALLOCATE( VNV_DATE  )
-!      IF ( ALLOCATED( VNV_II    ) ) DEALLOCATE( VNV_II    )
-!      IF ( ALLOCATED( VNV_JJ    ) ) DEALLOCATE( VNV_JJ    )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Free pointers
       IF ( ASSOCIATED( O3m        ) ) O3m        => NULL()

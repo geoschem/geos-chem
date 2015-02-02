@@ -4232,6 +4232,8 @@
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt, RC to INIT_DIAG_OH
 !  24 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
+!  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION
+ 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4244,6 +4246,11 @@
       !=================================================================
       ! READ_DIAGNOSTIC_MENU begins here!
       !=================================================================
+
+      ! Define collection number for netCDF diagnostics
+      ! (this number can be between 2 and 5)
+      !%%% NOTE, hardwire this for now, but eventually read from file
+      Input_Opt%DIAG_COLLECTION = 2
 
       ! Get fields from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS
@@ -4600,6 +4607,10 @@
       IF ( .not. Input_Opt%LDRYD ) ND44 = 0
       CALL SET_TINDEX( am_I_Root, 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND44_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND44_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND45: Tracer conc.
       !--------------------------
@@ -4609,6 +4620,10 @@
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:48' ) 
       READ( SUBSTRS(1:N), * ) HR1_OTH, HR2_OTH
+
+      ! For netCDF diagnostics
+      Input_Opt%ND45_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND45_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND46: Biogenic sources

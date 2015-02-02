@@ -82,6 +82,8 @@
 #                              Removed references to tropopause_mod and routines
 #                              for Fast-J.
 #  08 Jul 2014 - R. Yantosca - Removed obsolete routines from the list
+#  06 Jan 2015 - M. Sulprizio- Remove additional routines made obsolete by HEMCO
+#  07 Jan 2015 - R. Yantosca - Added exchange_mod (i.e. 2-way nesting)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -93,18 +95,12 @@ SRC1 :=                               \
 $(HDR)/CMN_SIZE_mod.F                 \
 $(HDR)/CMN_DIAG_mod.F                 \
 $(HDR)/CMN_GCTM_mod.F                 \
-$(HDR)/CMN_NOX_mod.F                  \
 $(HDR)/CMN_O3_mod.F                   \
 $(HDR)/CMN_FJX_MOD.F                  \
-$(HDR)/CMN_mod.F                      \
-$(HDR)/commsoil_mod.F                 \
 $(HDR)/comode_loop_mod.F              \
-$(HDR)/EF_MGN20_mod.F                 \
 $(HDR)/gigc_errcode_mod.F90           \
 $(HDR)/gigc_state_chm_mod.F90         \
 $(HDR)/gigc_state_met_mod.F90         \
-$(HDR)/smv_dimension_mod.F            \
-$(HDR)/smv_physconst_mod.F            \
 $(CORE)/main.F                        \
 $(CORE)/a3_read_mod.F                 \
 $(CORE)/a6_read_mod.F                 \
@@ -112,7 +108,6 @@ $(CORE)/aerosol_mod.F                 \
 $(CORE)/benchmark_mod.F               \
 $(CORE)/bromocarb_mod.F               \
 $(CORE)/c2h6_mod.F                    \
-$(CORE)/canopy_nox_mod.F              \
 $(CORE)/carbon_mod.F                  \
 $(CORE)/chemgrid_mod.F                \
 $(CORE)/chemistry_mod.F               \
@@ -136,21 +131,17 @@ $(CORE)/diag_oh_mod.F                 \
 $(CORE)/diag_mod.F                    \
 $(CORE)/drydep_mod.F                  \
 $(CORE)/dust_mod.F                    \
+$(CORE)/exchange_mod.F                \
 $(CORE)/fast_jx_mod.F                 \
 $(CORE)/gamap_mod.F                   \
 $(CORE)/gcap_read_mod.F               \
 $(CORE)/get_ndep_mod.F                \
 $(CORE)/gigc_environment_mod.F90      \
 $(CORE)/geosfp_read_mod.F90           \
-$(CORE)/get_popsinfo_mod.F            \
-$(CORE)/global_bc_mod.F               \
 $(CORE)/global_br_mod.F               \
 $(CORE)/global_ch4_mod.F              \
-$(CORE)/global_hno3_mod.F             \
-$(CORE)/global_no3_mod.F              \
 $(CORE)/global_nox_mod.F              \
 $(CORE)/global_o3_mod.F               \
-$(CORE)/global_oc_mod.F               \
 $(CORE)/global_oh_mod.F               \
 $(CORE)/i6_read_mod.F                 \
 $(CORE)/input_mod.F                   \
@@ -184,7 +175,6 @@ $(CORE)/ucx_mod.F                     \
 $(CORE)/vdiff_mod.F90                 \
 $(CORE)/vdiff_pre_mod.F90             \
 ./subs.geos-chem                      \
-$(CORE)/boxvl.F                       \
 $(CORE)/cldice_HBrHOBr_rxn.F          \
 $(CORE)/diag1.F                       \
 $(CORE)/diag3.F                       \
@@ -199,8 +189,7 @@ $(CORE)/partition.F                   \
 $(CORE)/physproc.F                    \
 $(CORE)/setemdep.F                    \
 $(CORE)/ruralbox.F                    \
-$(CORE)/setemis.F                     \
-$(CORE)/sfcwindsqr.F
+$(CORE)/setemis.F
 
 
 # Output file names

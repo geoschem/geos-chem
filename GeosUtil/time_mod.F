@@ -104,6 +104,7 @@
       PUBLIC  :: ITS_TIME_FOR_CONV
       PUBLIC  :: ITS_TIME_FOR_DYN
       PUBLIC  :: ITS_TIME_FOR_EMIS
+      PUBLIC  :: ITS_TIME_FOR_EXCH
       PUBLIC  :: ITS_TIME_FOR_UNIT
       PUBLIC  :: ITS_TIME_FOR_DIAG
       PUBLIC  :: ITS_TIME_FOR_A1
@@ -231,6 +232,7 @@
 !  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  17 Dec 2014 - R. Yantosca - Need to keep time variables as 8-byte precision
+!  06 Jan 2015 - R. Yantosca - Add ITS_TIME_FOR_EXCH function for 2-way nests
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3508,6 +3510,52 @@
       FLAG = ( MOD( ELAPSED_MIN, TS_EMIS ) == (M-1)*TS_DYN )
 
       END FUNCTION ITS_TIME_FOR_EMIS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_exch
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_EXCH returns TRUE if it is time to do
+!  exchange for two-way coupled simulation, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_EXCH() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
+!  30 Mar 2014 - Y.Y. Yan - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! changes for proper chemistry time (lzh, ccc, 3/20/10)
+      INTEGER :: M
+
+      !=================================================================
+      ! ITS_TIME_FOR_CHEM begins here!
+      !=================================================================
+
+      ! Get multiplier between transport and chemistry:
+      M = TS_CHEM/TS_DYN
+
+      ! Divide by 2 (get middle). KEEP INTEGERS!!!!
+      M = MAX( M/2, 1 )
+
+      ! Is it time for exchange?
+      ! Chemistry time step is now in the center of transport time steps
+      FLAG = ( MOD( ELAPSED_MIN, 180 ) == 0 )
+
+      END FUNCTION ITS_TIME_FOR_EXCH
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

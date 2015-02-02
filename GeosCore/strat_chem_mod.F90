@@ -2018,16 +2018,6 @@ CONTAINS
                 Strat_TrID_GC(NSCHEM)  = N  ! Maps 1:NSCHEM to STT index
                 Strat_TrID_GMI(NSCHEM) = NN ! Maps 1:NSCHEM to GMI_TrName index
 
-! NOTE: Comment out strat-chem fields of State_Chm for now (bmy, 11/26/12)
-!#if defined( DEVEL ) 
-!                !---------------------------------------------------------
-!                ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-!                !
-!                !---------------------------------------------------------
-!                State_Chm%Schm_Id(NSCHEM)   = Strat_TrID_GC(NSCHEM)
-!                State_Chm%Schm_Name(NSCHEM) = TRIM( TRACER_NAME(N) )
-!#endif
-
              ENDIF
 
           ENDDO

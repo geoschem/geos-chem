@@ -35,6 +35,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  12 Jan 2015 - R. Yantosca - Remove CLEANUP_UVALBEDO routine
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -163,22 +164,6 @@
 
       ! Return to calling program
       END SUBROUTINE READ_UVALBEDO
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE CLEANUP_UVALBEDO
-!
-!******************************************************************************
-!  Subroutine CLEANUP_UVALBEDO deallocates the UVALBEDO array (bmy, 1/15/02)
-!******************************************************************************
-!
-!----------------------------------------------------------------------------
-! Prior to 11/6/14:
-!      IF ( ALLOCATED( UVALBEDO ) ) DEALLOCATE( UVALBEDO )
-!----------------------------------------------------------------------------
-
-      ! Return to calling program
-      END SUBROUTINE CLEANUP_UVALBEDO
 
 !------------------------------------------------------------------------------
 

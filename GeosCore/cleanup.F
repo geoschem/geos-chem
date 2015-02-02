@@ -37,20 +37,9 @@
       USE ERROR_MOD,               ONLY : DEBUG_MSG
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
-!------------------------------------------------------------------------------
-! Prior to 9/23/14:
-! HEMCO has made these routines obsolete (mps, 9/23/14)
-!      USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
-!      USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
-!------------------------------------------------------------------------------
       USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
       USE GRID_MOD,                ONLY : CLEANUP_GRID
-!-----------------------------------------------------------------------------
-! The H2/HD simulation is now obsolete.  You can reactivate this if you want.
-!      USE GLOBAL_O1D_MOD,          ONLY : CLEANUP_GLOBAL_O1D
-!      USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
-!-----------------------------------------------------------------------------
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
@@ -76,7 +65,6 @@
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
       USE TPCORE_GEOSFP_WINDOW_MOD,ONLY : EXIT_GEOSFP_TPCORE_WINDOW !clb
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
-      USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
@@ -98,8 +86,10 @@
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
 !#endif
 
-      ! New diagnostics
+#if defined( DEVEL )
+      ! Cleanup routine for netCDF diagnostics structure
       USE DIAGNOSTICS_MOD,         ONLY : DIAGNOSTICS_FINAL
+#endif
 
       IMPLICIT NONE
 !
@@ -243,6 +233,7 @@
 !                              global_bc_mod.F
 !  23 Sep 2014 - M. Sulprizio- Remove references to global_hno3_mod.F and
 !                              global_no3_mod.F
+!  12 Jan 2015 - R. Yantosca - Remove CLEANUP_UVALBEDO routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -254,8 +245,10 @@
       WRITE( 6, 100 ) 
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
-      ! Cleanup diagnostics
-      CALL DIAGNOSTICS_FINAL()
+#if defined( DEVEL )
+      ! Cleanup the new netCDF diagnostics structure
+      CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
+#endif
 
       ! Cleanup HEMCO 
 !#if !defined(ESMF_) 
@@ -285,20 +278,9 @@
       CALL CLEANUP_DRYDEP()
       CALL CLEANUP_DUST()
       CALL CLEANUP_GLOBAL_CH4()
-!------------------------------------------------------------------------------
-! Prior to 9/23/14:
-! HEMCO has made these routines obsolete (mps, 9/23/14)
-!      CALL CLEANUP_GLOBAL_HNO3()
-!      CALL CLEANUP_GLOBAL_NO3()
-!------------------------------------------------------------------------------
       CALL CLEANUP_GLOBAL_NOX()
       CALL CLEANUP_GLOBAL_OH()
       CALL CLEANUP_GRID()
-!-----------------------------------------------------------------------------
-! This simulation is obsolete.  You can restore it if you wish (bmy, 6/23/14)
-!      CALL CLEANUP_GLOBAL_O1D()
-!      CALL CLEANUP_H2_HD()
-!-----------------------------------------------------------------------------
       CALL CLEANUP_HCN_CH3CN()
       CALL CLEANUP_HDF()
       CALL CLEANUP_ISOROPIAII()
@@ -322,7 +304,6 @@
 #endif
       CALL CLEANUP_TOMS()
       CALL CLEANUP_UCX()
-      CALL CLEANUP_UVALBEDO()
       CALL CLEANUP_WETSCAV()
 
 #if   defined( APM )

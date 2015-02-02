@@ -34,7 +34,8 @@
       IMPLICIT NONE
 #if !defined(ESMF_)
 #     include "netcdf.inc"
-#endif
+#endif!  14 Jan 2015 - R. Yantosca -  
+
       PRIVATE
 
 !
@@ -132,12 +133,11 @@
       REAL(fp), PARAMETER           :: R_UNIV = 8.31448e+0_fp
       INTEGER,  PARAMETER           :: INITMR_BASIS = 2005
 
-      ! Never use NETCDF in ESMF environment (ckeller, 12/05/14). 
 #if defined(ESMF_)
+      ! Never use NETCDF in ESMF environment (ckeller, 12/05/14). 
       LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
 #else
-      !LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
-      LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
+      LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
 #endif
 
       ! OCS and H2 surface boundary conditions
@@ -308,8 +308,8 @@
       ! additional I/O calls during run time (only if UCXNETCDF = false)
       ! (ckeller, 05/12/2014).
       !=================================================================
-      REAL*8, ALLOCATABLE, TARGET :: NOXCOEFF(:,:,:,:)
-      REAL*8, ALLOCATABLE         :: NOXLAT(:)
+      REAL(fp), ALLOCATABLE, TARGET :: NOXCOEFF(:,:,:,:)
+      REAL(fp), ALLOCATABLE         :: NOXLAT(:)
       INTEGER                     :: JJNOXCOEFF
 
       !=================================================================
@@ -403,6 +403,7 @@
 !  07 Feb 2014 - R. Yantosca   - !$OMP DO loops now go in L-J-I order
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  18 Jun 2014 - S. D. Eastham - Now read data for individual NOx species
 !  24 Nov 2014 - C. Keller     - Update for stratospheric NOy (as suggested by 
 !                                Seb Eastham)
 !EOP
@@ -586,12 +587,12 @@
  
             ! No Montreal scaling
             SCALEFAC = 1.e+0_fp
- 
+
             TRAC_IDX = IDTNO
             TRAC_SET = 'NO'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
- 
+
             TRAC_IDX = IDTNO2
             TRAC_SET = 'NO2'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
@@ -601,58 +602,37 @@
             TRAC_SET = 'ETHO2NO2'
             CALL APPLY_2DTRAC( .TRUE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
- 
+
             TRAC_IDX = IDTNO3
             TRAC_SET = 'NO3'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
- 
+
             TRAC_IDX = IDTN2O5
             TRAC_SET = 'N2O5'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
- 
+
             TRAC_IDX = IDTHNO2
             TRAC_SET = 'HONO'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
- 
+
             TRAC_IDX = IDTHNO3
             TRAC_SET = 'HNO3'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
- 
+
             TRAC_IDX = IDTHNO4
             TRAC_SET = 'HO2NO2'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
- 
+
             TRAC_IDX = IDTPAN
             TRAC_SET = 'PAN'
             CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
      &                         Input_Opt, State_Met, State_Chm )
          ENDIF
-
-!         ! Stratospheric NOy
-!         IF (LSETNOYSTRAT) THEN
-!            IF ( am_I_Root ) THEN
-!               WRITE(6,*) '|NOx      |HNO3     |         |'
-!               WRITE(6,*) '|---------|---------|---------|'
-!            ENDIF
-!
-!            ! No Montreal scaling
-!            SCALEFAC = 1.d0
-!
-!            TRAC_IDX = IDTHNO3
-!            TRAC_SET = 'HNO3'
-!            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-!     &                         Input_Opt, State_Met, State_Chm )
-!
-!            TRAC_IDX = IDTNO
-!            TRAC_SET = 'NOX'
-!            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-!     &                         Input_Opt, State_Met, State_Chm )
-!         ENDIF
 
          ! Br-Cl (special case)
          IF (LSETCL.or.LSETBR.or.LSETBRSTRAT) THEN
@@ -2825,7 +2805,7 @@
          NATCOL = .FALSE.
 
          ! Arbitrary limits
-         BXMIN = 1.d20
+         BXMIN = 1.e+20_fp
          MINALT = LLPAR+1
          MAXALT = 0
          VFALLMAX = 0e+0_fp
@@ -6583,20 +6563,20 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXLAT' )
 
       ! Fill manually
-      NOXLAT(2) = -89.0d0
+      NOXLAT(2) = -89.0e+0_fp
       DO I = 3,JJNOXCOEFF
-         NOXLAT(I) = NOXLAT(I-1) + 2d0
+         NOXLAT(I) = NOXLAT(I-1) + 2e+0_fp
       ENDDO
       ! Overshoot to make sure that a latitude of 90.0 will be properl
       ! matched onto JJNOXCOEFF. 
-      NOXLAT(JJNOXCOEFF+1) = 90.5d0 
+      NOXLAT(JJNOXCOEFF+1) = 90.5e+0_fp 
 #endif
 
       ! Initialize the NOXCOEFF array. This array holds monthly NOx 
       ! coefficients on 51 levels and for 6 species.
       ALLOCATE(NOXCOEFF(JJNOXCOEFF,UCX_NLEVS,6,12), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXCOEFF' )
-      NOXCOEFF = 0.0d0
+      NOXCOEFF = 0.0e+0_fp
 
       ! Fill array
       DO IMON  = 1,12 
@@ -6712,7 +6692,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I
-      REAL*8              :: LAT 
+      REAL(fp)              :: LAT 
 
       !=================================================================
       ! GET_JJNOX begins here!
@@ -6968,7 +6948,7 @@
       ! Calculate conversion factors for SLA
       ! Factor to convert volume (m3 SLA/m3 air) to
       ! surface area density (cm2 SLA/cm3 air)
-      SLA_VA = (8.406d-8)*(10.e+0_fp**(12.e+0_fp*0.751e+0_fp))
+      SLA_VA = (8.406e-8_fp)*(10.e+0_fp**(12.e+0_fp*0.751e+0_fp))
 
       ! Factor to convert effective radius to 
       ! liquid radius (unitless)
@@ -7282,7 +7262,7 @@
      &                    WriteFreq = 'End',
      &                    cID       = N,
      &                    RC        = RC,
-     &                    COL       = GCDiagNr )
+     &                    COL       = Input_Opt%DIAG_COLLECTION )
       IF ( RC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot created diagnostics: ' // TRIM(DiagnName)
          CALL ERROR_STOP ( MSG, LOC ) 

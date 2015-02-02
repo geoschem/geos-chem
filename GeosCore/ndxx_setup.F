@@ -293,13 +293,6 @@
       !=================================================================
       IF ( ND01 > 0 ) THEN 
          LD01 = MIN( ND01, LLPAR )
-
-!-----------------------------------------------------------------------------
-! Prior to 8/21/14:
-! AD01 is now only used for Pb.  Rn and Be7 are now tracked thru HEMCO.
-! (bmy, 8/21/14)
-!         ALLOCATE( AD01( IIPAR, JJPAR, LD01, N_TRACERS ), STAT=AS )
-!-----------------------------------------------------------------------------
          ALLOCATE( AD01( IIPAR, JJPAR, LD01 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
       ENDIF
@@ -836,6 +829,7 @@
 
       ENDIF
 
+#if !defined( NO_BPCH )
       !=================================================================
       ! ND44: Drydep fluxes [s-1] and drydep velocities [cm/s]
       !       --> uses AD44 arrays (allocatable)
@@ -870,6 +864,7 @@
          ALLOCATE( AD44( IIPAR, JJPAR, NMAX, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
       ENDIF
+#endif
       
       !=================================================================
       ! ND45: Tracer concentrations [v/v] between HR1_OTH and HR2_OTH

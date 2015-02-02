@@ -1923,7 +1923,7 @@ CONTAINS
 !\\
 !\\
 ! This routine splits the input line (or the next line of an open file with
-! ID IU_HCO), using the HEMCO separator (default: space) as separator. The
+! ID IU\_HCO), using the HEMCO separator (default: space) as separator. The
 ! resulting elements are then passed to the specified output characters and
 ! integers. For example, to pass the 5th element of a line to variable int1,
 ! set int1cl to 5, etc. An error will be returned (STAT=100) if any of the

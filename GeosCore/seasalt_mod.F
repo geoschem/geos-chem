@@ -300,7 +300,9 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -363,7 +365,7 @@
       REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
       REAL(fp)                 :: FAC2,   FLUX,  AREA_CM2, RHB
       ! replace RCM with RUM (radis in micron) jaegle 5/11/11
-      REAL(fp)                 :: RUM,    RWET,  RATIO_R,  RHO
+      REAL(fp)                 :: RUM,    RWET,  RATIO_R
       REAL(fp)                 :: TOT1,   TOT2,  DTCHEM
       REAL(fp)                 :: VTS(LLPAR)  
       REAL(fp)                 :: TC0(LLPAR)
@@ -371,9 +373,10 @@
       REAL(fp)                 :: SW
       REAL(fp)                 :: R0,       R1, NR, DEDGE, SALT_MASS
       REAL(fp)                 :: SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW
-      REAL(fp)                 :: WTP, RHO1 
+      REAL(f8)                 :: WTP 
       INTEGER                  :: ID
       LOGICAL, SAVE            :: FIRST = .TRUE.
+      REAL(f8)                 :: RHO, RHO1
 ! !DEFINED PARAMETERS:
 !      
       REAL(fp),  PARAMETER     :: C1 =  0.7674e+0_fp 
@@ -389,7 +392,7 @@
       ! increment of radius for integration of settling velocity (um)
       REAL(fp), PARAMETER      :: DR    = 5.e-2_fp
       ! parameter for convergence
-      REAL(fp),  PARAMETER     :: EPSI = 1.0e-4_fp
+      REAL(f8),  PARAMETER     :: EPSI = 1.0e-4_f8
       ! parameters for assumed size distribution of acc and coarse mode
       ! sea salt aerosols (jaegle 5/11/11)
       ! geometric dry mean diameters (microns)
@@ -403,10 +406,18 @@
       REAL(fp)                 :: SALA_REDGE_um(2)
       REAL(fp)                 :: SALC_REDGE_um(2)
       REAL(fp)                 :: XNUMOL(Input_Opt%N_TRACERS)
+      ! Non-SAVEd variables
+      LOGICAL        :: prtDebug
+      LOGICAL        :: LPRT
 
       !=================================================================
       ! WET_SETTLING begins here!
       !=================================================================
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LPRT     = Input_Opt%LPRT
+
+      ! Do we have to print debug output?
+      prtDebug = ( LPRT .and. am_I_Root )
 
 
       ! Assume success
@@ -490,6 +501,7 @@
         IF ( FIRST ) FIRST = .FALSE.
       ENDIF
 
+      IF (LPRT) CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
 
       ! Sea salt radius [cm]
       !RCM  = REFF * 100e+0_fp  
@@ -564,24 +576,25 @@
             ! (bec, jaegle 5/11/11)
             RATIO_R = ( REFF / RWET )
             ! Assume an initial density of 1000 kg/m3
-            RHO  = 1000.e+0_fp
-            RHO1 = 0.e+0_fp !initialize (bec, 6/21/10)
+            RHO  = 1000.e+0_f8
+            RHO1 = 0.e+0_f8 !initialize (bec, 6/21/10)
             DO WHILE ( ABS( RHO1-RHO ) .gt. EPSI )
                 ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet) 
-                WTP    = 100.e+0_fp * DEN/RHO * RATIO_R**3.e+0_fp
+                WTP    = 100.e+0_f8 * DEN/RHO * RATIO_R**3.e+0_f8
                 ! Then calculate density of wet aerosol using equation 5 
                 ! in Tang et al., 1997 [kg/m3]
-                RHO1 = (0.9971e+0_fp + (A1 * WTP) + (A2 * WTP**2.e+0_fp)
-     $               + (A3 * WTP**3.e+0_fp) + (A4 * WTP**4.e+0_fp) ) 
-     $               * 1000.e+0_fp
+                RHO1 = (0.9971e+0_f8 + (A1 * WTP) + (A2 * WTP**2.e+0_f8)
+     $               + (A3 * WTP**3.e+0_f8) + (A4 * WTP**4.e+0_f8) ) 
+     $               * 1000.e+0_f8
                 ! Now calculate new weight percent using above density 
                 ! calculation
-                WTP    = 100.e+0_fp * DEN/RHO1 * RATIO_R**3.e+0_fp
+                WTP    = 100.e+0_f8 * DEN/RHO1 * RATIO_R**3.e+0_f8
                 ! Now recalculate new wet density [kg/m3]
-                RHO = (0.9971e+0_fp + (A1 * WTP) + (A2 * WTP**2.e+0_fp)
-     $              + (A3 * WTP**3.e+0_fp) + (A4 * WTP**4.e+0_fp) ) 
-     $              * 1000.e+0_fp
+                RHO = (0.9971e+0_f8 + (A1 * WTP) + (A2 * WTP**2.e+0_f8)
+     $              + (A3 * WTP**3.e+0_f8) + (A4 * WTP**4.e+0_f8) ) 
+     $              * 1000.e+0_f8
             ENDDO
+
 
             ! Dp = particle diameter [um]
             DP      = 2.e+0_fp * RWET * 1.e+6_fp        
@@ -683,7 +696,8 @@
      &                * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1
      &                *  TC(I,J,L+1) )
          ENDDO
-         
+
+#if !defined( NO_BPCH )
          !==============================================================
          ! ND44 diagnostic: sea salt loss [molec/cm2/s]
          !==============================================================
@@ -709,10 +723,11 @@
             ! Store in AD44 array
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
          ENDIF
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
+      IF (LPRT) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
       END SUBROUTINE WET_SETTLING
 !EOC
 !------------------------------------------------------------------------------
@@ -735,7 +750,9 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -876,6 +893,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if !defined( NO_BPCH )
       !====================================================================
       ! ND44 diagnostic: save into AD44 array, summing in the vertical
       !====================================================================
@@ -891,6 +909,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       END SUBROUTINE DRY_DEPOSITION
 !EOC

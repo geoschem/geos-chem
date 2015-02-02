@@ -3191,6 +3191,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
          ENDDO
       ENDIF
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND44: Drydep flux (molec/cm2/s) and velocity (cm/s) diagnostics
@@ -3554,8 +3555,7 @@
          NPOUTSTEPS = 0
       ENDIF
 #endif
-
-
+#endif
 !
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
@@ -4609,11 +4609,9 @@
       IF ( ND62 > 0 ) THEN
          CATEGORY = 'INST-MAP'
 
-#if defined( DEVEL )
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
          ! (mpayer, 12/6/12)
          STT => State_Chm%Tracers
-#endif
 
          DO M = 1, TMAX(62)
             N  = TINDEX(62,M)
@@ -4646,10 +4644,8 @@
 
          ENDDO
 
-#if defined( DEVEL )
          ! Free pointer
          NULLIFY( STT )
-#endif
 
       ENDIF
 !

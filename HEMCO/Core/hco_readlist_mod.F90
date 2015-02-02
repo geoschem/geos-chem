@@ -11,7 +11,8 @@
 ! frequency, i.e all data containers that need to be updated on an annual
 ! basis are stored in ReadList 'Year', etc. The following reading update
 ! frequencies are supported:
-!
+!\\
+!\\
 ! \begin{itemize}
 ! \item Year: update every year (annual data) 
 ! \item Month: update every month (monthly data) 
@@ -20,8 +21,7 @@
 ! \item Once: update only once (time-invariant data)
 ! \item Always: update every time step
 ! \end{itemize} 
-!\\
-!\\
+!
 ! !INTERFACE: 
 !
 MODULE HCO_ReadList_Mod

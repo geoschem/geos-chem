@@ -33,8 +33,8 @@ MODULE HCO_ExtList_Mod
   PUBLIC :: AddExtOpt
   PUBLIC :: GetExtOpt
   PUBLIC :: GetExtNr 
-  PUBLIC :: SetExtNr
   PUBLIC :: GetExtSpcStr
+  PUBLIC :: SetExtNr
   PUBLIC :: ExtNrInUse
   PUBLIC :: ExtFinal
 !
@@ -222,9 +222,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetExtOpt ( ExtNr,      OptName,    OptValSp,   &
-                         OptValDp,   OptValInt,  OptValBool, &
-                         OptValChar, Found,      RC           ) 
+  SUBROUTINE GetExtOpt ( ExtNr,      OptName,    OptValHp,      &
+                         OptValSp,   OptValDp,   OptValInt,     &
+                         OptValBool, OptValChar, Found,     RC ) 
 !
 ! !USES:
 !
@@ -237,6 +237,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
+    REAL(hp),         INTENT(  OUT), OPTIONAL  :: OptValHp
     REAL(sp),         INTENT(  OUT), OPTIONAL  :: OptValSp
     REAL(dp),         INTENT(  OUT), OPTIONAL  :: OptValDp
     INTEGER,          INTENT(  OUT), OPTIONAL  :: OptValInt
@@ -250,6 +251,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Oct 2013 - C. Keller - Initial version
+!  13 Jan 2015 - R. Yantosca - Add optional variable of flex precision (hp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -335,6 +337,8 @@ CONTAINS
              READ( SUBSTR(2), * ) OptValSp
           ELSEIF ( PRESENT(OptValDp) ) THEN
              READ( SUBSTR(2), * ) OptValDp
+          ELSEIF ( PRESENT(OptValHp) ) THEN
+             READ( SUBSTR(2), * ) OptValHp
           ELSEIF ( PRESENT(OptValInt) ) THEN
              READ( SUBSTR(2), * ) OptValInt
           ELSEIF ( PRESENT(OptValBool) ) THEN
@@ -536,7 +540,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SetExtNr( am_I_Root, ExtNr, ExtName, RC ) 
+  SUBROUTINE SetExtNr( am_I_Root, ExtNr, ExtName, RC )
 !
 ! !USES:
 !
@@ -546,7 +550,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root
     INTEGER,          INTENT(IN   )           :: ExtNr
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: ExtName 
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: ExtName
 !
 ! !INPUT/OUTPUT PARAMETER:
 !
@@ -563,7 +567,7 @@ CONTAINS
     TYPE(Ext), POINTER  :: ThisExt => NULL()
     CHARACTER(LEN=255)  :: LCname
     CHARACTER(LEN=255)  :: MSG
-    LOGICAL             :: verb, overwrite 
+    LOGICAL             :: verb, overwrite
 
     !======================================================================
     ! SetExtNr begins here
@@ -585,15 +589,15 @@ CONTAINS
 
     ! Loop over all used extensions and check if any of them matches
     ! ExtName.
-    DO WHILE ( ASSOCIATED ( ThisExt ) ) 
+    DO WHILE ( ASSOCIATED ( ThisExt ) )
 
        ! Overwrite this ExtNr?
        overwrite = .FALSE.
 
        ! If argument ExtName is given, only overwrite extension number
        ! of that particular extension.
-       IF ( PRESENT(ExtName) ) THEN 
-          IF ( TRIM(ThisExt%ExtName) == TRIM(LCname) ) overwrite = .TRUE. 
+       IF ( PRESENT(ExtName) ) THEN
+          IF ( TRIM(ThisExt%ExtName) == TRIM(LCname) ) overwrite = .TRUE.
 
        ! If argument is not given, overwrite all extensions except for
        ! HEMCO core
@@ -620,7 +624,7 @@ CONTAINS
 
     ! Return w/ success
     RC = HCO_SUCCESS
-   
+
   END SUBROUTINE SetExtNr
 !EOC
 !------------------------------------------------------------------------------
@@ -739,4 +743,3 @@ CONTAINS
   END SUBROUTINE ExtFinal
 !EOC
 END MODULE HCO_ExtList_Mod 
-!EOM

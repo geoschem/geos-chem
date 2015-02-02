@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -170,7 +170,7 @@ MODULE HCOX_LightNOx_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -271,7 +271,7 @@ CONTAINS
   END SUBROUTINE HCOX_LightNOx_Run
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -327,6 +327,7 @@ CONTAINS
 !                              derived type object
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  06 Oct 2014 - C. Keller   - Now calculate pressure centers from edges.
+!  16 Jan 2015 - R. Yantosca - Bug fix: TmpScale should be REAL(dp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -352,7 +353,8 @@ CONTAINS
     REAL(hp), POINTER :: Arr2D(:,:) => NULL() 
     CHARACTER(LEN=31) :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
-    REAL(hp)          :: TROPP, TmpScale
+    REAL(hp)          :: TROPP
+    REAL(dp)          :: TmpScale
 
     !=================================================================
     ! LIGHTNOX begins here!
@@ -1028,7 +1030,7 @@ CONTAINS
   END SUBROUTINE LightNOx
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1224,7 +1226,7 @@ CONTAINS
   END SUBROUTINE LightDist
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1304,7 +1306,7 @@ CONTAINS
   END SUBROUTINE Flashes_CTH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1420,7 +1422,7 @@ CONTAINS
   END FUNCTION Get_IC_CG_Ratio
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1725,7 +1727,7 @@ CONTAINS
   END SUBROUTINE Get_OTD_LIS_Scale
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1883,7 +1885,7 @@ CONTAINS
   END SUBROUTINE HCOX_LightNOx_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !

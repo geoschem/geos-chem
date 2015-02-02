@@ -1804,7 +1804,9 @@ contains
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+#if !defined( NO_BPCH )
     USE DIAG_MOD,           ONLY : AD44
+#endif
     USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV
 !                                   SHIPO3DEP
     USE DRYDEP_MOD,         ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
@@ -2492,6 +2494,7 @@ contains
               NN == IDTDST3 .OR. &
               NN == IDTDST4       ) CYCLE
 
+#if !defined( NO_BPCH )
                 ! only for the lowest model layer
                 ! Convert : kg/m2/s -> molec/cm2/s
                 ! consider timestep difference between convection and emissions
@@ -2500,6 +2503,7 @@ contains
                        / TRACER_MW_KG(NN) * 6.022e+23_fp * 1.e-4_fp &
                        * GET_TS_CONV() / GET_TS_EMIS() 
 		ENDIF
+#endif
 
                 ! If Soil NOx is turned on, then call SOIL_DRYDEP to
                 ! archive dry deposition fluxes for nitrogen species
@@ -2524,12 +2528,14 @@ contains
        IF ( IS_TAGOX ) THEN
           ! The first species, Ox, has been done above
           do N = 2, N_TRACERS 
+#if !defined( NO_BPCH )
              ! Convert : kg/m2/s -> molec/cm2/s
              ! Consider timestep difference between convection and emissions
              AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,N) &
                        / TRACER_MW_KG(1) * 6.022e+23_fp * 1.e-4_fp &
                        * GET_TS_CONV() / GET_TS_EMIS()
              AD44(:,:,N,2) = AD44(:,:,1,2) ! drydep velocity
+#endif
           enddo
        endif
 

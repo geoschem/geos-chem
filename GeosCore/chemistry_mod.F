@@ -24,9 +24,9 @@
 !
       PUBLIC :: INIT_CHEMISTRY
       PUBLIC :: DO_CHEMISTRY
-#IF DEFINED ( KPP )
+#if defined( USE_REAL8 )
       PUBLIC :: GCKPP_DRIVER
-#ENDIF
+#endif
       PUBLIC :: RECOMPUTE_OD
 !
 ! !REVISION HISTORY: 
@@ -58,6 +58,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 May 2014 - C. Keller   - Added INIT_CHEMISTRY
 !  15 Dec 2014 - M. Yannetti - KPP code is commented out unless compiling KPP
+!  08 Jan 2015 - M. Sulprizio- Now restrict KPP to REAL*8 to allow for KPP code
+!                              to compile properly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -87,12 +89,6 @@
       USE AEROSOL_MOD,        ONLY : SOILDUST
       USE C2H6_MOD,           ONLY : CHEMC2H6
       USE CARBON_MOD,         ONLY : CHEMCARBON
-!-----------------------------------------------------------------------------
-! These simulations are now obsolete.  You can can reactivate this if you want.
-!      USE CH3I_MOD,           ONLY : CHEMCH3I
-!      USE DRYDEP_MOD,         ONLY : DRYFLXH2HD
-!      USE H2_HD_MOD,          ONLY : CHEM_H2_HD
-!-----------------------------------------------------------------------------
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
       USE COMODE_LOOP_MOD     
@@ -631,7 +627,7 @@
 
       END SUBROUTINE DO_CHEMISTRY
 !EOC
-#IF DEFINED ( KPP )
+#if defined( USE_REAL8 )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -860,7 +856,7 @@
          
          ! Try another time if it failed
          IF ( IERR < 0 ) THEN
-#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
+#if defined( KPP_SOLVE_ALWAYS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% For KPP tolerance fix (mlong, 4/12/13) %%%
             !%%% Re-entry point for non-convergence     %%%
@@ -885,7 +881,7 @@
             ! 1D grid box index on the global grid
             JLOOP = JLOOPLO+KLOOP
 
-#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
+#if defined( KPP_SOLVE_ALWAYS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
             !%%% Increase tolerances by factor of 2     %%%
@@ -897,7 +893,7 @@
             call Integrate( TIN,    TOUT,    ICNTRL, 
      &                      RCNTRL, ISTATUS, RSTATE, IERR )
             IF ( IERR < 0 ) THEN 
-#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
+#if defined( KPP_SOLVE_ALWAYS )
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
                !%%% Try to solve again; don't quit the run %%%
@@ -958,7 +954,7 @@
 
       ! Return to calling program
       END SUBROUTINE GCKPP_DRIVER
-#ENDIF
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1109,7 +1105,7 @@
       END SUBROUTINE RECOMPUTE_OD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

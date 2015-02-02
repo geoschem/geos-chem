@@ -801,9 +801,9 @@ MODULE HCOIO_MESSY_MOD
 
   END SUBROUTINE AXIS_DELETE 
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HCO2MESSY
