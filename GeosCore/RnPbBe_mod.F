@@ -342,7 +342,8 @@
          CALL Diagn_RnPbBe_Update( am_I_Root,
      &                             'ND02', 
      &                             Input_Opt%TRACER_NAME( IDTRn ), 
-     &                             RN_DECAY, INput_Opt%DIAG_COLLECTION )
+     &                             RN_DECAY, 
+     &                             INput_Opt%DIAG_COLLECTION )
 #endif
          
       ENDIF
@@ -422,13 +423,15 @@
          CALL Diagn_RnPbBe_Update( am_I_Root,
      &                             'ND01', 
      &                             Input_Opt%TRACER_NAME( IDTPb ), 
-     &                             PB_EMISS, Input_Opt%DIAG_COLLECTION )
+     &                             PB_EMISS, 
+     &                             Input_Opt%DIAG_COLLECTION )
 
          ! Update ND02 diagnostic: Pb lost to decay [kg/s]
          CALL Diagn_RnPbBe_Update( am_I_Root,
      &                             'ND02', 
      &                             Input_Opt%TRACER_NAME( IDTPb ), 
-     &                             PB_DECAY, Input_Opt%DIAG_COLLECTION )
+     &                             PB_DECAY, 
+     &                             Input_Opt%DIAG_COLLECTION )
 
 #endif
 
@@ -478,7 +481,8 @@
          CALL Diagn_RnPbBe_Update( am_I_Root,
      &                             'ND02', 
      &                             Input_Opt%TRACER_NAME( IDTBe7 ), 
-     &                             BE_DECAY, Input_Opt%DIAG_COLLECTION )
+     &                             BE_DECAY, 
+     &                             Input_Opt%DIAG_COLLECTION )
 #endif
 
       ENDIF
@@ -495,7 +499,9 @@
 ! !ROUTINE: diagn_rnpbbe_update
 !
 ! !DESCRIPTION: Subroutine DIAGN\_RNPBBE\_UPDATE updates the Rn/Pb/Be7
-!  diagnostics (ND01 and ND02) that are written to netCDF.
+!  diagnostics ND01 (emissions) and ND02 (loss due to decay) that are 
+!  written to netCDF. ND01 Rn and Be7 emissions diagnostics are included
+!  in HEMCO emissions and are therefore not updated in this subroutine.
 !\\
 !\\
 ! !INTERFACE:
@@ -505,10 +511,9 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-      USE HCO_ERROR_MOD
-!      USE GIGCErrCode_Mod
+      USE HCO_Error_Mod
+      USE Error_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -517,11 +522,6 @@
       CHARACTER(LEN=255), INTENT(IN)  :: TracerName  ! Tracer name
       REAL(fp), TARGET,   INTENT(IN)  :: DiagArray(:,:,:)
       INTEGER,            INTENT(IN)  :: ColNo       ! Diag collection #
-
-!
-! !OUTPUT PARAMETERS:
-!
-!      INTEGER,           INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  30 Jan 2015 - E. Lundgren   - Initial version
@@ -544,9 +544,6 @@
       ! DIAGN_RNPBBE_UPDATE begins here!
       !=================================================================
       
-      ! Assume success
-!      RC  =  GIGC_SUCCESS
-  
       ! Define the diagnostic name
       SELECT CASE ( NDxx )
          CASE ( 'ND01' )
@@ -557,6 +554,10 @@
             MSG = 'Undefined Rn/Pb/Be7 diagnostic: ' // NDxx
             CALL ERROR_STOP( TRIM( MSG ), LOC )
       END SELECT
+
+      ! DEBUGGING code - EWL, 2/2/15
+      PRINT *,"Updating diagnostic for ", DiagnName
+      ! End of debugging code
 
       ! Point to the array
       Ptr3D => DiagArray
@@ -577,9 +578,6 @@
      &         // TRIM(DiagnName)
          CALL ERROR_STOP( MSG, LOC)
       ENDIF
-
-      ! Leave with success (not currently used)
-!      RC  =  GIGC_SUCCESS
 
       END SUBROUTINE Diagn_RnPbBe_Update 
 !EOC
