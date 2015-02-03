@@ -26,7 +26,9 @@
 ! 
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+#if defined( DEVEL )
       PRIVATE :: Diagn_RnPbBe_Update
+#endif
 
       ! NOTE: WE NEED TO KEEP THIS HERE FOR NOW SINCE IT IS USED
       ! BY CODE IN mercury_mod.F.  REMOVE IT LATER. (bmy, 7/7/14)
