@@ -251,6 +251,12 @@ CONTAINS
 ! routines.
 !\\
 !\\
+! Two different regridding algorithm are used: NCREGRID for 3D data with
+! vertical regridding, and map\_a2a for all other data. map\_a2a also
+! supports index-based remapping, while this feature is currently not
+! possible in combination with NCREGRID.
+!\\
+!\\
 ! 3D data is vertically regridded onto the simulation grid on the sigma 
 ! interface levels. In order to calculate these levels correctly, the netCDF 
 ! vertical coordinate description must adhere to the CF - conventions. See 
@@ -285,10 +291,12 @@ CONTAINS
     USE HCO_Unit_Mod,       ONLY : HCO_IsIndexData
     USE HCO_Unit_Mod,       ONLY : HCO_UnitTolerance
     USE HCO_GeoTools_Mod,   ONLY : HCO_ValidateLon
-    USE Regrid_A2A_Mod,     ONLY : MAP_A2A
     USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
     USE HCO_FileData_Mod,   ONLY : FileData_Cleanup
     USE HCOIO_MESSY_MOD,    ONLY : HCO_MESSY_REGRID
+    USE HCO_INTERP_MOD,     ONLY : REGRID_MAPA2A 
+
+    USE Regrid_A2A_Mod,     ONLY : MAP_A2A
     USE HCO_INTERP_MOD,     ONLY : ModelLev_Interpolate 
 !
 ! !INPUT PARAMETERS:
@@ -312,6 +320,7 @@ CONTAINS
 !                              of model levels.
 !  15 Jan 2015 - C. Keller   - Now allow model level interpolation in combination
 !                              with MESSy (horizontal) regridding.
+!  03 Feb 2015 - C. Keller   - Moved map_a2a regridding to hco_interp_mod.F90.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -321,7 +330,6 @@ CONTAINS
     CHARACTER(LEN=255)            :: thisUnit, LevUnit, LevName
     CHARACTER(LEN=255)            :: MSG 
     CHARACTER(LEN=1023)           :: srcFile
-    INTEGER                       :: L, T
     INTEGER                       :: NX, NY
     INTEGER                       :: NCRC, Flag, AS
     INTEGER                       :: ncLun
@@ -331,8 +339,6 @@ CONTAINS
     INTEGER                       :: HcoID
     INTEGER                       :: nlatEdge, nlonEdge
     REAL(sp), POINTER             :: ncArr(:,:,:,:)   => NULL()
-    REAL(sp), POINTER             :: ORIG_2D(:,:)     => NULL()
-    REAL(hp), POINTER             :: REGR_2D(:,:)     => NULL()
     REAL(hp), POINTER             :: SigEdge(:,:,:)   => NULL()
     REAL(hp), POINTER             :: SigLev (:,:,:)   => NULL()
     REAL(hp), POINTER             :: LonMid   (:)     => NULL()
@@ -340,22 +346,11 @@ CONTAINS
     REAL(hp), POINTER             :: LevMid   (:)     => NULL()
     REAL(hp), POINTER             :: LonEdge  (:)     => NULL()
     REAL(hp), POINTER             :: LatEdge  (:)     => NULL()
-    REAL(sp), ALLOCATABLE         :: LonEdgeI(:)
-    REAL(sp), ALLOCATABLE         :: LatEdgeI(:)
-    REAL(sp)                      :: LonEdgeO(HcoState%NX+1) 
-    REAL(sp)                      :: LatEdgeO(HcoState%NY+1)
     LOGICAL                       :: verb
     LOGICAL                       :: IsModelLevel
-    REAL(dp)                      :: PI_180
     REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
     INTEGER                       :: UnitTolerance
     INTEGER                       :: AreaFlag, TimeFlag 
-
-    ! For vertical interpolation between native and reduced GEOS-5 levels
-    ! (47 vs. 72 levels)
-    INTEGER                       :: outlev
-    LOGICAL                       :: Inflate, Collapse
-    REAL(hp), POINTER             :: REGR_4D(:,:,:,:) => NULL()
 
     ! Use MESSy regridding routines?
     LOGICAL                       :: UseMESSy
@@ -369,9 +364,6 @@ CONTAINS
     CALL HCO_ENTER ('HCOIO_DATAREAD (hcoio_dataread_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     
-    ! To convert from deg to rad  
-    PI_180 = HcoState%Phys%PI / 180.0_dp
-
     ! Check for verbose mode
     verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
 
@@ -738,9 +730,8 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Determine regridding algorithm to be applied: use NCREGRID from
-    ! MESSy only for index-based values (e.g. land types) or if we need 
-    ! to regrid vertical levels. For all other fields, use the much
-    ! faster map_a2a.
+    ! MESSy only if we need to regrid vertical levels. For all other 
+    ! fields, use the much faster map_a2a.
     ! Perform no vertical regridding if the vertical levels are model
     ! levels. Model levels are assumed to start at the surface, i.e.
     ! the first input level must correspond to the surface level. The 
@@ -750,14 +741,20 @@ CONTAINS
     ! Vertical regridding based on NCREGRID will always map the input 
     ! data onto the entire simulation grid (no extrapolation beyond
     ! the vertical input coordinates).
+    ! Index-based remapping can currently not be done with the MESSy
+    ! routines, i.e. it is not possible to vertically regrid index- 
+    ! based data.
     !-----------------------------------------------------------------
 
     UseMESSy = .FALSE.
-    IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) ) THEN
-       UseMESSy = .TRUE.
-    ENDIF
     IF ( nlev > 1 .AND. .NOT. IsModelLevel ) THEN 
        UseMESSy = .TRUE.
+    ENDIF
+    IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) .AND. UseMESSy ) THEN
+       MSG = 'Cannot do MESSy regridding for index data: ' // &
+             TRIM(srcFile)
+       CALL HCO_ERROR( MSG, RC )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------
@@ -849,76 +846,9 @@ CONTAINS
           CALL HCO_MSG(MSG)
        ENDIF
 
-       ! Write input grid edges to shadow variables so that map_a2a accepts them
-       ! as argument.
-       ! Also, for map_a2a, latitudes have to be sines...
-       ALLOCATE(LonEdgeI(nlonEdge), LatEdgeI(nlatEdge), STAT=AS )
-       IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'alloc error LonEdgeI', RC )
-          RETURN
-       ENDIF
-       LonEdgeI(:) = LonEdge
-       LatEdgeI(:) = SIN( LatEdge * PI_180 )
-      
-       ! Get output grid edges from HEMCO state
-       LonEdgeO(:) = HcoState%Grid%XEDGE%Val(:,1)
-       LatEdgeO(:) = HcoState%Grid%YSIN%Val(1,:) 
-     
-       ! Reset nlev and ntime to effective array sizes
-       nlev  = size(ncArr,3)
-       ntime = size(ncArr,4)
-
-       ! Define array to put horizontally regridded data onto. If this
-       ! is 3D data, we first regrid all vertical levels horizontally
-       ! and then pass these data to the list container. In this second
-       ! step, levels may be deflated/collapsed.
-
-       ! 2D data is directly passed to the data container 
-       IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-          CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, ntime, RC ) 
-          IF ( RC /= 0 ) RETURN
-
-       ! 3D data is first written into a temporary array
-       ELSE
-          ALLOCATE( REGR_4D(nx,ny,nlev,ntime), STAT=AS )
-          IF ( AS /= 0 ) THEN
-             CALL HCO_ERROR( 'alloc error REGR_4D', RC )
-             RETURN
-          ENDIF
-          REGR_4D = 0.0_hp
-       ENDIF
-   
-       ! Do regridding
-       DO T = 1, NTIME
-       DO L = 1, NLEV 
-   
-          ! Point to 2D slices to be regridded
-          ORIG_2D => ncArr(:,:,L,T)
-          IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-             REGR_2D => Lct%Dct%Dta%V2(T)%Val(:,:)
-          ELSE
-             REGR_2D => REGR_4D(:,:,L,T)
-          ENDIF
-   
-          ! Do the regridding
-          CALL MAP_A2A( nlon,  NLAT, LonEdgeI, LatEdgeI, ORIG_2D, &
-                        NX,    NY,   LonEdgeO, LatEdgeO, REGR_2D, 0, 0 )
-   
-          ORIG_2D => NULL()
-          REGR_2D => NULL()
-   
-       ENDDO !L
-       ENDDO !T
-  
-       ! Eventually inflate/collapse levels onto simulation levels.
-       IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
-          CALL ModelLev_Interpolate ( am_I_Root, HcoState, REGR_4D, Lct, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF
-
-       ! Cleanup
-       DEALLOCATE(LonEdgeI, LatEdgeI)
-       IF ( ASSOCIATED( REGR_4D ) ) DEALLOCATE( REGR_4D )
+       CALL REGRID_MAPA2A ( am_I_Root, HcoState, NcArr, &
+                            LonEdge,   LatEdge,  Lct,   RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ENDIF
 

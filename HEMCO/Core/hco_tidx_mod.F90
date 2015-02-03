@@ -73,10 +73,6 @@ MODULE HCO_tIdx_Mod
   PUBLIC :: HCO_GetPrefTimeAttr
   PUBLIC :: HCO_ExtractTime
 !
-! !PUBLIC MEMBER FUNCTIONS:
-!
-  PRIVATE :: tIDx_Get 
-!
 ! !REMARKS: 
 !  The current local time implementation assumes a regular grid,
 !  i.e. local time does not change with latitude! 
@@ -335,84 +331,32 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: tIDx_GetIndx 
+! !ROUTINE: tIDx_GetIndx
 !
-! !DESCRIPTION: Function tIDx\_GetIndx returns the current active time 
-! slice index for the given file data object and longitude (by index).
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION tIDx_GetIndx( HcoState, Dta, I, J ) RESULT ( Indx )
-!
-! !USES:
-!
-    USE HCO_State_Mod,    ONLY : HCO_State
-    USE HCO_FileData_Mod, ONLY : FileData 
-!
-! !INPUT PARAMETERS: 
-!
-    TYPE(HCO_State), POINTER    :: HcoState  ! Hemco state 
-    TYPE(FileData),  POINTER    :: Dta     ! File data object 
-    INTEGER,         INTENT(IN) :: I       ! Longitude index 
-    INTEGER,         INTENT(IN) :: J       ! Longitude index 
-!
-! !RETURN VALUE:
-!
-    INTEGER                    :: Indx 
-!
-! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(hp)     :: ThisLon, ThisLat
-
-    !-----------------------------------
-    ! tIDx_GetIndx begins here! 
-    !-----------------------------------
-
-    ! Get the longitude at this location
-    ThisLon = HcoState%Grid%XMID%Val(I,J)
-    ThisLat = HcoState%Grid%YMID%Val(I,J)
-
-    ! Get time slice index for this file data and longitude
-    Indx = tIDx_Get( Dta, ThisLon, ThisLat )
-
-  END FUNCTION tIDx_GetIndx
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: tIDx_Get
-!
-! !DESCRIPTION: Subroutine tIDx\_Get calculates the current valid 
+! !DESCRIPTION: Subroutine tIDx\_GetIndx calculates the current valid 
 ! index values for the given file data time slice type and longitude
 ! location 
 !\\
 ! !INTERFACE:
 !
-  FUNCTION tIDx_Get ( Dta, Lon, Lat ) RESULT ( Indx )
+  FUNCTION tIDx_GetIndx ( HcoState, Dta, I, J ) RESULT ( Indx )
 !
 ! !USES:
 !
+    USE HCO_State_Mod,    ONLY : HCO_State
     USE HCO_FileData_Mod, ONLY : FileData 
     USE HCO_CLOCK_MOD,    ONLY : HcoClock_Get, HcoClock_GetLocal
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(FileData),  POINTER    :: Dta     ! File data object 
-    REAL(hp),        INTENT(IN) :: Lon     ! Longitude of interest
-    REAL(hp),        INTENT(IN) :: Lat     ! Latitude  of interest
+    TYPE(HCO_State), POINTER    :: HcoState  ! Hemco state 
+    TYPE(FileData),  POINTER    :: Dta       ! File data object 
+    INTEGER,         INTENT(IN) :: I         ! Longitude index of interest
+    INTEGER,         INTENT(IN) :: J         ! Latitude  index of interest
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER                     :: Indx    ! Index 
+    INTEGER                     :: Indx      ! Index 
 !
 ! !REVISION HISTORY:
 !  02 Dec 2014 - C. Keller - Initial version
@@ -427,14 +371,8 @@ CONTAINS
     REAL(dp)           :: frac
 
     !======================================================================
-    ! tIDx_Get begins here!
+    ! tIDx_GetIndx begins here!
     !======================================================================
-
-    ! ----------------------------------------------------------------
-    ! Set longitude independent indeces
-    ! ----------------------------------------------------------------
-
-    ! Get current times
 
     ! Default value (=> This will cause the code to crash!)
     Indx = -1
@@ -452,7 +390,7 @@ CONTAINS
        ! Indx returns the time slice representative for the LOCAL time
        ! at longitude Lon.
        CASE ( 24 )
-          CALL HcoClock_GetLocal( Lon, Lat, cH=LonHH, RC=RC ) 
+          CALL HcoClock_GetLocal( HcoState, I, J, cH=LonHH, RC=RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
           Indx = FLOOR(LonHH) + 1
 
@@ -470,7 +408,7 @@ CONTAINS
        ! weekday at longitude Lon.
        CASE ( 7 )
 
-          CALL HcoClock_GetLocal( Lon, Lat, cWeekday=WD, RC=RC )
+          CALL HcoClock_GetLocal( HcoState, I, J, cWeekday=WD, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Indx = WD + 1
 
@@ -487,7 +425,7 @@ CONTAINS
        ! For gridded monthly data, only the current valid time slice
        ! is kept in memory (and updated whenever a new month is entered).
        CASE ( 12 )
-          CALL HcoClock_GetLocal( Lon, Lat, cMM = MM, RC=RC )
+          CALL HcoClock_GetLocal( HcoState, I, J, cMM = MM, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Indx = MM
 
@@ -515,7 +453,7 @@ CONTAINS
        Indx = -1
     ENDIF
 
-  END FUNCTION tIDx_Get
+  END FUNCTION tIDx_GetIndx
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -539,17 +477,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE tIDx_Assign( HcoState, Lct, RC ) 
+  SUBROUTINE tIDx_Assign( HcoState, Dct, RC ) 
 !
 ! !USES:
 !
     USE HCO_State_Mod,    ONLY : HCO_State
-    USE HCO_DataCont_MOD, ONLY : ListCont
+    USE HCO_DataCont_MOD, ONLY : DataCont
 !
 ! !INPUT PARAMETERS: 
 !
     TYPE(HCO_State), POINTER       :: HcoState  ! Hemco state 
-    TYPE(ListCont),  POINTER       :: Lct   ! List container
+    TYPE(DataCont),  POINTER       :: Dct   ! Data container
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -576,13 +514,13 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check if already done
-    IF ( ASSOCIATED( Lct%Dct%Dta%tIDx ) ) THEN
+    IF ( ASSOCIATED( Dct%Dta%tIDx ) ) THEN
        CALL HCO_LEAVE( RC )
        RETURN
     ENDIF
 
     ! Get array dimensions
-    nt = Lct%Dct%Dta%nt
+    nt = Dct%Dta%nt
 
     ! Do the following only for defined data arrays
     IF ( nt > 0 ) THEN
@@ -591,13 +529,13 @@ CONTAINS
        ! Extract data array dimensions and delta t [h] between time 
        ! slices
        ! -------------------------------------------------------------
-       dt = Lct%Dct%Dta%DeltaT
-       IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-          nx = SIZE(Lct%Dct%Dta%V2(1)%Val,1)
-          ny = SIZE(Lct%Dct%Dta%V2(1)%Val,2)
+       dt = Dct%Dta%DeltaT
+       IF ( Dct%Dta%SpaceDim <= 2 ) THEN
+          nx = SIZE(Dct%Dta%V2(1)%Val,1)
+          ny = SIZE(Dct%Dta%V2(1)%Val,2)
        ELSE
-          nx = SIZE(Lct%Dct%Dta%V3(1)%Val,1)
-          ny = SIZE(Lct%Dct%Dta%V3(1)%Val,2)
+          nx = SIZE(Dct%Dta%V3(1)%Val,1)
+          ny = SIZE(Dct%Dta%V3(1)%Val,2)
        ENDIF
 
        ! -------------------------------------------------------------
@@ -618,7 +556,7 @@ CONTAINS
           ! Sanity check if dt = 24 hours
           IF ( dt /= 24 ) THEN
              MSG = '7 time slices but delta t is not 24 hours!' // &
-                  TRIM(Lct%Dct%cName)
+                  TRIM(Dct%cName)
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ENDIF
@@ -629,9 +567,9 @@ CONTAINS
           ! flag is set in hco_config_mod.F90 (for data read from other
           ! sources than netCDF) or in hcoio_dataread_mod.F90 (for 
           ! weekdaily data read from netCDF).
-          IF ( .NOT. Lct%Dct%Dta%IsLocTime ) THEN
+          IF ( .NOT. Dct%Dta%IsLocTime ) THEN
              MSG = 'Weekday data must be in local time!' // &
-                  TRIM(Lct%Dct%cName)
+                  TRIM(Dct%cName)
              CALL HCO_ERROR( MSG, RC )
              RETURN
 
@@ -650,7 +588,7 @@ CONTAINS
              cTypeID = 12 
           ELSE
              MSG = 'Monthly data must not be gridded:' // &
-                  TRIM(Lct%Dct%cName)
+                  TRIM(Dct%cName)
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ENDIF
@@ -667,7 +605,7 @@ CONTAINS
           ! Check if we can evenly split up data within a day 
           IF ( MOD(24,dt) /= 0 ) THEN
              MSG = 'Cannot properly split up hourly data!' // &
-                  TRIM(Lct%Dct%cName)
+                  TRIM(Dct%cName)
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ENDIF
@@ -676,7 +614,7 @@ CONTAINS
           ntexp = 24/dt
           IF ( ntexp /= nt ) THEN
              MSG = 'Wrong delta t and/or number of time slices!' // &
-                  TRIM(Lct%Dct%cName)
+                  TRIM(Dct%cName)
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ENDIF
@@ -685,7 +623,7 @@ CONTAINS
           ! accordingly. Data will only be in local time if data is
           ! read from other sources than netCDF. The corresponding
           ! IsLocTime flag is set in hco_config_mod.F90. 
-          IF ( Lct%Dct%Dta%IsLocTime ) THEN
+          IF ( Dct%Dta%IsLocTime ) THEN
              cTypeID = 24 
           ELSE
              cTypeID = 241 
@@ -696,7 +634,7 @@ CONTAINS
        ! -------------------------------------------------------------
        ELSE
           MSG = 'Invalid time slice for field ' // &
-               TRIM(Lct%Dct%cName)
+               TRIM(Dct%cName)
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ENDIF
@@ -705,7 +643,7 @@ CONTAINS
        ! Establish the appropriate pointer for the
        ! 4th dimension (temporal resolution) of the field array
        ! -------------------------------------------------------------
-       CALL tIDx_Set( Lct%Dct%Dta%tIDx, cTypeID ) 
+       CALL tIDx_Set( Dct%Dta%tIDx, cTypeID ) 
      
     ENDIF
 

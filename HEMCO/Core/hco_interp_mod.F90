@@ -5,8 +5,16 @@
 !
 ! !MODULE: hco_interp_mod.F90
 !
-! !DESCRIPTION: Module HCO\_INTERP\_MOD contains routines to
-! interpolate input data onto the HEMCO grid.
+! !DESCRIPTION: Module HCO\_INTERP\_MOD contains routines to interpolate
+! input data onto the HEMCO grid. This module contains routine for 
+! horizontal regridding between regular grids (MAP\_A2A), as well as
+! vertical interpolation amongst GEOS model levels (full <--> reduced).
+!\\
+!\\
+! Horizontal regridding is supported for concentration quantities (default)
+! and index-based values. For the latter, the values in the regridded grid 
+! boxes correspond to the value of the original grid that contrbutes most
+! to the given box.
 !\\
 !\\
 ! !INTERFACE: 
@@ -25,6 +33,7 @@ MODULE HCO_Interp_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: ModelLev_Interpolate
+  PUBLIC  :: REGRID_MAPA2A
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -33,9 +42,8 @@ MODULE HCO_Interp_Mod
   PRIVATE :: INFLATE
 !
 ! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
-!  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  30 Dec 2014 - C. Keller - Initialization
+!  03 Feb 2015 - C. Keller   - Added REGRID_MAPA2A (from hcoio_dataread_mod.F90).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -89,6 +97,329 @@ MODULE HCO_Interp_Mod
                     0.020000_hp,   0.010000_hp /)
 
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Regrid_MAPA2A 
+!
+! !DESCRIPTION: Subroutine Regrid\_MAPA2A regrids input array NcArr onto
+! the simulation grid and stores the data in list container Lct. Horizontal
+! regridding is performed using MAP\_A2A algorithm. Vertical interpolation
+! between GEOS levels (full vs. reduced, GEOS-5 vs. GEOS-4), is also
+! supported.
+!\\
+!\\
+! This routine can remap concentrations and index-based quantities. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE REGRID_MAPA2A ( am_I_Root, HcoState, NcArr, LonE, LatE, Lct, RC )
+!
+! !USES:
+!
+    USE REGRID_A2A_Mod,     ONLY : MAP_A2A
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
+    USE HCO_UNIT_MOD,       ONLY : HCO_IsIndexData
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root         ! Are we on the root CPU?
+    TYPE(HCO_State),  POINTER        :: HcoState          ! HEMCO state object
+    REAL(sp),         POINTER        :: NcArr(:,:,:,:)    ! 4D input data
+    REAL(hp),         POINTER        :: LonE(:)           ! Input grid longitude edges 
+    REAL(hp),         POINTER        :: LatE(:)           ! Input grid latitude edges 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER        :: Lct               ! HEMCO list container
+    INTEGER,          INTENT(INOUT)  :: RC                ! Success or failure?
+!
+! !REVISION HISTORY:
+!  03 Feb 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                 :: nLonEdge, nLatEdge
+    INTEGER                 :: NX, NY, NZ, NLEV, NTIME, NCELLS
+    INTEGER                 :: I, J, L, T, AS
+    INTEGER                 :: nIndex
+    REAL(sp), ALLOCATABLE   :: LonEdgeI(:)
+    REAL(sp), ALLOCATABLE   :: LatEdgeI(:)
+    REAL(sp)                :: LonEdgeO(HcoState%NX+1)
+    REAL(sp)                :: LatEdgeO(HcoState%NY+1)
+    REAL(dp)                :: PI_180
+
+    REAL(sp), POINTER       :: ORIG_2D(:,:)     => NULL()
+    REAL(hp), POINTER       :: REGR_2D(:,:)     => NULL()
+    REAL(hp), POINTER       :: REGR_4D(:,:,:,:) => NULL()
+
+    REAL(sp), ALLOCATABLE, TARGET :: FRACS(:,:,:,:)
+    REAL(hp), ALLOCATABLE         :: REGFRACS(:,:,:,:) 
+    REAL(hp), ALLOCATABLE         :: MAXFRACS(:,:,:,:)
+    REAL(hp), ALLOCATABLE         :: INDECES(:,:,:,:)
+    REAL(hp), ALLOCATABLE         :: UNIQVALS(:)
+    REAL(hp)                      :: IVAL
+    LOGICAL                       :: IsIndex
+
+    LOGICAL                 :: VERB
+    CHARACTER(LEN=255)      :: MSG
+    CHARACTER(LEN=255)      :: LOC = 'ModelLev_Interpolate (hco_interp_mod.F90)'
+
+    !=================================================================
+    ! REGRID_MAPA2A begins here
+    !=================================================================
+
+    ! Check for verbose mode
+    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+
+    ! To convert from deg to rad
+    PI_180 = HcoState%Phys%PI / 180.0_dp
+
+    ! get longitude / latitude sizes
+    nLonEdge = SIZE(LonE,1)
+    nLatEdge = SIZE(LatE,1)
+
+    ! Write input grid edges to shadow variables so that map_a2a accepts them
+    ! as argument.
+    ! Also, for map_a2a, latitudes have to be sines...
+    ALLOCATE(LonEdgeI(nlonEdge), LatEdgeI(nlatEdge), STAT=AS )
+    IF ( AS /= 0 ) THEN
+       CALL HCO_ERROR( 'alloc error LonEdgeI/LatEdgeI', RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    LonEdgeI(:) = LonE
+    LatEdgeI(:) = SIN( LatE * PI_180 )
+   
+    ! Get output grid edges from HEMCO state
+    LonEdgeO(:) = HcoState%Grid%XEDGE%Val(:,1)
+    LatEdgeO(:) = HcoState%Grid%YSIN%Val(1,:) 
+  
+    ! Get input array sizes 
+    NX     = size(ncArr,1)
+    NY     = size(ncArr,2)
+    NLEV   = size(ncArr,3)
+    NTIME  = size(ncArr,4)
+    NCELLS = NX * NY * NLEV * NTIME
+
+    ! Are these index-based data? If so, need to remap the fraction (1 or 0) 
+    ! of every value independently. For every grid box, the value with the
+    ! highest overlap (closest to 1) is taken.
+    IsIndex = HCO_IsIndexData(Lct%Dct%Dta%OrigUnit)
+
+    IF ( IsIndex ) THEN
+
+       ! Allocate working arrays:
+       ! - FRACS contains the fractions on the original grid. These are 
+       !   binary (1 or 0).
+       ! - MAXFRACS stores the highest used fraction for each output grid
+       !   box. Will be updated continously.
+       ! - INDECES is the output array holding the index-based remapped 
+       !   values. Will be updated continuously.
+       ! - UNIQVALS is a vector holding all unique values of the input
+       !   array (NINDEX is the number of unique values).
+       ALLOCATE( FRACS(NX,NY,NLEV,NTIME), STAT=AS ) 
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR( 'alloc error FRACS', RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       ALLOCATE( MAXFRACS(HcoState%NX,HcoState%NY,HcoState%NZ,NTIME), STAT=AS ) 
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR( 'alloc error MAXFRACS', RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       ALLOCATE( REGFRACS(HcoState%NX,HcoState%NY,HcoState%NZ,NTIME), STAT=AS ) 
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR( 'alloc error INDECES', RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       ALLOCATE( INDECES(HcoState%NX,HcoState%NY,HcoState%NZ,NTIME), STAT=AS ) 
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR( 'alloc error INDECES', RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       ALLOCATE( UNIQVALS(NCELLS), STAT=AS ) 
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR( 'alloc error INDECES', RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       FRACS    = 0.0_sp
+       REGFRACS = 0.0_hp
+       MAXFRACS = 0.0_hp
+       INDECES  = 0.0_hp
+       UNIQVALS = 0.0_hp
+
+       ! Get unique values. Loop over all input data values and add 
+       ! them to UNIQVALS vector if UNIQVALS doesn't hold that same value
+       ! yet. 
+       NINDEX = 0
+       DO T = 1, NTIME
+       DO L = 1, NLEV
+       DO J = 1, NY 
+       DO I = 1, NX
+          
+          ! Current value
+          IVAL = NcArr(I,J,L,T)
+
+          ! Check if value already exists in UNIQVALS
+          IF ( NINDEX > 0 ) THEN
+             IF ( ANY(UNIQVALS(1:NINDEX) == IVAL) ) CYCLE 
+          ENDIF
+
+          ! Add to UNIQVALS
+          NINDEX = NINDEX + 1 
+          UNIQVALS(NINDEX) = IVAL
+       ENDDO
+       ENDDO
+       ENDDO
+       ENDDO
+
+       ! Verbose mode
+       IF ( verb ) THEN
+          MSG = 'Do index based regridding for field ' // TRIM(Lct%Dct%cName)
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) '   - Number of indeces: ', NINDEX
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+    ELSE
+       NINDEX = 1
+    ENDIF
+
+    ! Define array to put horizontally regridded data onto. If this
+    ! is 3D data, we first regrid all vertical levels horizontally
+    ! and then pass these data to the list container. In this second
+    ! step, levels may be deflated/collapsed.
+
+    ! 2D data is directly passed to the data container 
+    IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
+       CALL FileData_ArrCheck( Lct%Dct%Dta, HcoState%NX, HcoState%NY, NTIME, RC ) 
+       IF ( RC /= 0 ) RETURN
+    ENDIF
+   
+    ! 3D data and index data is first written into a temporary array,
+    ! REGR_4D.
+    IF ( Lct%Dct%Dta%SpaceDim == 3 .OR. IsIndex ) THEN 
+       ALLOCATE( REGR_4D(HcoState%NX,HcoState%NY,NLEV,NTIME), STAT=AS )
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR( 'alloc error REGR_4D', RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       REGR_4D = 0.0_hp
+    ENDIF
+
+    ! Do regridding for every index value. If it's not index data, this loop
+    ! is executed only once (NINDEX=1).
+    DO I = 1, NINDEX
+
+       ! For index based data, create fractions array for the given index.
+       IF ( IsIndex ) THEN
+          IVAL = UNIQVALS(I)
+          WHERE( ncArr == IVAL )
+             FRACS = 1.0_sp
+          ELSEWHERE
+             FRACS = 0.0_sp
+          END WHERE
+       ENDIF
+
+       ! Regrid horizontally
+       DO T = 1, NTIME
+       DO L = 1, NLEV 
+   
+          ! Point to 2D slices to be regridded:
+          ! - Original 2D array
+          IF ( IsIndex ) THEN
+            ORIG_2D => FRACS(:,:,L,T)
+          ELSE 
+            ORIG_2D => ncArr(:,:,L,T)
+          ENDIF
+
+          ! - Regridded 2D array
+          IF ( Lct%Dct%Dta%SpaceDim <= 2 .AND. .NOT. IsIndex ) THEN
+             REGR_2D => Lct%Dct%Dta%V2(T)%Val(:,:)
+          ELSE
+             REGR_2D => REGR_4D(:,:,L,T)
+          ENDIF
+   
+          ! Do the regridding
+          CALL MAP_A2A( NX,      NY, LonEdgeI,    LatEdgeI, ORIG_2D,  &
+                        HcoState%NX, HcoState%NY, LonEdgeO, LatEdgeO, &
+                        REGR_2D,     0, 0 )
+   
+          ORIG_2D => NULL()
+          REGR_2D => NULL()
+   
+       ENDDO !L
+       ENDDO !T
+     
+       ! Eventually inflate/collapse levels onto simulation levels.
+       IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
+          CALL ModelLev_Interpolate ( am_I_Root, HcoState, REGR_4D, Lct, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       ! For index based data, map fractions back to corresponding value.
+       ! Array INDECES holds the index-based remapped values. Set INDECES
+       ! to current index value in every grid box where the regridded 
+       ! fraction of this index is higher than any previous fraction
+       ! (array MAXFRACS stores the highest used fraction in each grid box).
+       IF ( IsIndex ) THEN
+   
+          ! Reset 
+          REGFRACS = 0.0_hp
+
+          ! 3D data written to Lct needs to be mapped back onto REGR_4D.
+          IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
+             DO T = 1, NTIME
+                NZ = SIZE(Lct%Dct%Dta%V3(T)%Val,3)
+                REGFRACS(:,:,1:NZ,T) = Lct%Dct%Dta%V3(T)%Val(:,:,:)
+             ENDDO
+          ELSE
+             REGFRACS(:,:,1:NLEV,:) = REGR_4D(:,:,:,:)
+          ENDIF
+
+          ! REGR_4D are the remapped fractions.
+          WHERE ( REGFRACS > MAXFRACS ) 
+             MAXFRACS = REGR_4D
+             INDECES  = IVAL
+          END WHERE 
+       ENDIF
+
+    ENDDO !I
+
+    ! For index values, pass index data to data container.
+    IF ( IsIndex ) THEN
+       IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
+          DO T = 1, NTIME
+             NZ = SIZE(Lct%Dct%Dta%V3(T)%Val,3)
+             Lct%Dct%Dta%V3(T)%Val(:,:,:) = INDECES(:,:,1:NZ,T)
+          ENDDO
+       ELSE
+          DO T = 1, NTIME
+             Lct%Dct%Dta%V2(T)%Val(:,:)   = INDECES(:,:,1,T)
+          ENDDO
+       ENDIF
+    ENDIF
+
+    ! Cleanup
+    DEALLOCATE(LonEdgeI, LatEdgeI)
+    IF ( ASSOCIATED( REGR_4D  ) ) DEALLOCATE( REGR_4D  )
+    IF ( ALLOCATED ( FRACS    ) ) DEALLOCATE( FRACS    )
+    IF ( ALLOCATED ( REGFRACS ) ) DEALLOCATE( REGFRACS )
+    IF ( ALLOCATED ( MAXFRACS ) ) DEALLOCATE( MAXFRACS )
+    IF ( ALLOCATED ( INDECES  ) ) DEALLOCATE( INDECES  )
+    IF ( ALLOCATED ( UNIQVALS ) ) DEALLOCATE( UNIQVALS )
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE REGRID_MAPA2A 
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -175,7 +506,7 @@ CONTAINS
     !=================================================================
 
     ! Enter
-    CALL HCO_ENTER ('ModelLev_Interpolate (hcoio_interpolate_mod.F90)' , RC )
+    CALL HCO_ENTER ('ModelLev_Interpolate (hco_interp_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check for verbose mode

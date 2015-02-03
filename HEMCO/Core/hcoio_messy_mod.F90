@@ -276,6 +276,7 @@ MODULE HCOIO_MESSY_MOD
        MSG = 'Do MESSy regridding: ' // TRIM(Lct%Dct%cName)
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) ' - SameGrid     ? ', SameGrid
+       CALL HCO_MSG(MSG)
        WRITE(MSG,*) ' - Model levels ? ', IsModelLev
        CALL HCO_MSG(MSG)
     ENDIF
@@ -373,8 +374,16 @@ MODULE HCOIO_MESSY_MOD
     ALLOCATE(rg_type(NTIME))
     IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) ) THEN
        rg_type(:) = RG_IDX
+       IF ( verb ) THEN
+          MSG = ' - Remap as index data.'
+          CALL HCO_MSG(MSG)
+       ENDIF
     ELSE
        rg_type(:) = RG_INT 
+       IF ( verb ) THEN
+          MSG = ' - Remap as concentration data.'
+          CALL HCO_MSG(MSG)
+       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
@@ -424,7 +433,14 @@ MODULE HCOIO_MESSY_MOD
        !-----------------------------------------------------------------
        CALL MESSY2HCO( am_I_Root, HcoState, narr_dst, Lct, I, ArrOut, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN      
-  
+ 
+       ! testing only
+       IF ( trim(Lct%Dct%cName) == 'TIMEZONES' ) then
+          write(*,*) 'timezones regridded'
+          write(*,*) any((ArrIn < -14.0_hp) .AND. (ArrIn > -999.0_hp))
+          write(*,*) any((Lct%Dct%Dta%V2(1)%Val < -14.0_hp) .AND. (Lct%Dct%Dta%V2(1)%Val > -999.0_hp))
+       endif
+ 
        ! Cleanup
        ArrIn => NULL()
  

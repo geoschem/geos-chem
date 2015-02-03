@@ -341,6 +341,7 @@ CONTAINS
     USE HCO_FileData_Mod,   ONLY : FileData_ArrIsDefined
     USE HCO_EmisList_Mod,   ONLY : EmisList_Pass
     USE HCO_DataCont_Mod,   ONLY : DataCont_Cleanup
+    USE HCO_TIDX_MOD,       ONLY : tIDx_Assign 
 !
 ! !INPUT PARAMETERS:
 !
@@ -361,6 +362,9 @@ CONTAINS
 !  23 Dec 2014 - C. Keller - Now pass container to EmisList immediately after
 !                            reading the data. Added second loop to remove
 !                            data arrays that are not used in EmisList.
+!  02 Feb 2015 - C. Keller - Now call tIDx_Assign here instead of in 
+!                            hco_emislist_mod. This way, hco_emislist_mod 
+!                            can also be used by hco_clock_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -424,6 +428,18 @@ CONTAINS
 
        ! Pass container to EmisList (only if array is defined)
        IF ( FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
+
+          ! Set time index pointer tIDx of this data container. 
+          ! tIDx will be set according to the number of time slices 
+          ! (and the tim einterval between them) hold by this data 
+          ! container. For hourly data (24 time slices), for example, 
+          ! tIDx will point to the corresponding 'HOURLY' or 
+          ! 'HOURLY_GRID' time index collection type defined in 
+          ! hco_tidx_mod. 
+          CALL tIDx_Assign ( HcoState, Lct%Dct, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Container is now read to be passed to emissions list.
           CALL EmisList_Pass( am_I_Root, HcoState, Lct, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF

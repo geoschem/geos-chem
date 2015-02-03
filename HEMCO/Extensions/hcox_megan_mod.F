@@ -2343,8 +2343,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(hp)   :: LON
-      REAL(hp)   :: LAT 
       REAL(hp)   :: mmHCOPARDR_DAILY
       REAL(hp)   :: mmHCOPARDF_DAILY
       REAL(hp)   :: PAC_DAILY, PAC_INSTANT, C_PPFD
@@ -2353,6 +2351,7 @@
       INTEGER    :: DOY, RC 
       REAL(hp)   :: AAA, BBB
       REAL(hp)   :: LocalHour
+      REAL(hp)   :: LAT
 
       !-----------------------------------------------------------------
       ! Compute GAMMA_P_PECCA
@@ -2370,12 +2369,13 @@
       PAC_DAILY    = mmHCOPARDR_DAILY + mmHCOPARDF_DAILY
       PAC_INSTANT  = Q_DIR_2       +  Q_DIFF_2
 
+      ! Get latitude
+      LAT = HcoState%Grid%YMID%Val(I,J)
+
       ! Get day of year, local-time and latitude
       ! TODO: Evaluate RC?
-      LON = HcoState%Grid%XMID%Val( I, J )
-      LAT = HcoState%Grid%YMID%Val( I, J )
       CALL HcoClock_Get ( cDOY = DOY, RC=RC )
-      CALL HcoClock_GetLocal ( LON, LAT, cH = LocalHour, RC=RC )
+      CALL HcoClock_GetLocal ( HcoState, I, J, cH = LocalHour, RC=RC )
 
       ! Get solar elevation angle
       SINbeta      =  SOLAR_ANGLE( HcoState, DOY, LocalHour, LAT )

@@ -28,8 +28,17 @@
 ! for frequently used checks, i.e. if this is a new year, month, etc.
 !\\
 !\\
-! The local time is calculated for 24 time zones, with each zone spanning 
-! 15 degrees.
+! Local times are calculated for 26 time zones, ranging from UTC-12 hours
+! to UTC+13 hours. The time zone to be used at a given grid point is
+! based on its geographical position. By default, the time zone is picked
+! according to the longitude, with each time zone spanning 15 degrees.
+! More detailed time zones can be provided through an external input file, 
+! specified in the HEMCO configuration file. The field name must be
+! `TIMEZONES`, and the file must contain UTC offsets in hours. If such a
+! file is provided, the time zones are determined based on these values.
+! Minute offsets are ignored, e.g. UTC+9hr30min is treated as UTC+9hr. If
+! the input field contains any invalid values (e.g. outside the range of
+! UTC-12 - UTC+13 hours), the default algorithm is applied.
 !\\
 !\\
 ! !INTERFACE: 
@@ -73,6 +82,7 @@ MODULE HCO_Clock_Mod
 !  08 Oct 2014 - C. Keller   - Added mid-month day calculation 
 !  03 Dec 2014 - C. Keller   - Now use fixed number of time zones (24)
 !  12 Jan 2015 - C. Keller   - Added emission time variables.
+!  02 Feb 2015 - C. Keller   - Added option to get time zones from file (TIMEZONES)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -166,8 +176,13 @@ MODULE HCO_Clock_Mod
                                           135, 166, 196, 227,      &
                                           258, 288, 319, 349, 380/)
 
-  ! Number of time zones. Each time zone spans 15 degrees.
-  INTEGER, PARAMETER   :: nTimeZones = 24
+  ! Number of time zones. Time zone index 1 is UTC-12. Time zone index
+  ! 25 is UTC+12. Add one more to account for UTC+13. 
+  INTEGER, PARAMETER   :: nTimeZones = 26
+
+  ! Pointer to gridded time zones. Will only hold data if a field `TIMEZONES`
+  ! is provided in the HEMCO configuration file.
+  REAL(hp), POINTER    :: TIMEZONES(:,:) => NULL()
 
 CONTAINS
 !EOC
@@ -657,13 +672,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_GetLocal ( Lon, Lat,   cYYYY,    cMM, &
-                                 cDD, cH,    CWEEKDAY, RC    )
+  SUBROUTINE HcoClock_GetLocal ( HcoState,   I,     J, cYYYY, cMM, &
+                                 cDD, cH,    CWEEKDAY, RC           )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(hp), INTENT(IN   )           :: Lon       ! Longitude (degrees east) 
-    REAL(hp), INTENT(IN   )           :: Lat       ! Latitude  (degrees north)
+    TYPE(HCO_State), POINTER          :: HcoState  ! Hemco state
+    INTEGER,  INTENT(IN   )           :: I         ! Longitude index
+    INTEGER,  INTENT(IN   )           :: J         ! Latitude  index
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -681,37 +702,82 @@ CONTAINS
 !  29 Dec 2012 - C. Keller - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  02 Feb 2015 - C. Keller   - Added option to get time zones from file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
     ! Local variables
-    REAL(hp)   :: TMP
-    INTEGER    :: IX
+    REAL(hp)      :: LON
+    INTEGER       :: IX, OFFSET
+    LOGICAL       :: FOUND
+    LOGICAL, SAVE :: FIRST = .TRUE.
 
     !======================================================================
     ! HcoClock_GetLocal begins here!
     !======================================================================
-    
-    ! Longitude must be between -180 and +180
-    TMP = Lon
-    IF ( TMP < -180_hp ) THEN
-       DO WHILE ( TMP < 180_hp )
-          TMP = TMP + 360_hp
-       ENDDO
-    ENDIF    
-    IF ( TMP > 180_hp ) THEN
-       DO WHILE ( TMP > 180_hp )
-          TMP = TMP - 360_hp
-       ENDDO
-    ENDIF    
- 
-    ! Get time zone index for the given longitude, i.e. see into which time
-    ! zone the given longitude falls.
-    TMP = ( TMP + 180_hp ) / 15_hp
-    IX  = FLOOR(TMP) + 1
 
-    ! Avoid ix=25 if longitude is exactly 180
-    IF ( IX==25 ) IX = 24
+    ! On first call, see if a field with the time zones (offset to UTC)
+    ! has been set.
+    IF ( FIRST ) THEN
+       CALL HCO_GetPtr ( .FALSE., 'TIMEZONES', TIMEZONES, RC, FOUND=FOUND )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       FIRST = .FALSE.
+
+       ! testing only 
+       IF ( .NOT. FOUND ) THEN
+          write(*,*) 'time zones not found'
+       ELSE
+          write(*,*) 'time zones found'
+       ENDIF
+
+    ENDIF 
+
+    ! Get longitude (degrees east) 
+    LON = HcoState%Grid%XMID%Val(I,J)
+
+    ! Longitude must be between -180 and +180
+    IF ( LON < -180_hp ) THEN
+       DO WHILE ( LON < 180_hp )
+          LON = LON + 360_hp
+       ENDDO
+    ENDIF    
+    IF ( LON > 180_hp ) THEN
+       DO WHILE ( LON > 180_hp )
+          LON = LON - 360_hp
+       ENDDO
+    ENDIF    
+
+    ! Get time zone index for the given position (longitude and latitude).
+    ! Use gridded time zones if available, and default 15 degrees time zone
+    ! bins otherwise. 
+
+    ! Init 
+    IX = -1
+
+    ! First try to get time zone index from gridded data
+    IF ( ASSOCIATED(TIMEZONES) ) THEN
+
+       ! Offset from UTC in hours
+       OFFSET = FLOOR(TIMEZONES(I,J))
+
+       ! Extract time zone index from offset. Index 13 is UTC=0.
+       ! Valid offset is between -12 and +13
+       IF ( OFFSET >= -12 .AND. OFFSET <= 13 ) THEN
+          IX = 13 + OFFSET 
+       ENDIF
+    ENDIF
+
+    ! Use default approach if (a) time zone file is not provided; (b) no valid
+    ! time zone was found for this grid box. 
+    IF ( IX < 0 ) THEN 
+       ! Get time zone index for the given longitude, i.e. see into which time
+       ! zone the given longitude falls.
+       LON = ( LON + 180_hp ) / 15_hp
+       IX  = FLOOR(LON) + 1
+
+       ! Avoid ix=25 if longitude is exactly 180
+       IF ( IX==25 ) IX = 1
+    ENDIF
 
     ! Check time zone index
     IF ( IX > HcoClock%ntz ) THEN
@@ -959,6 +1025,9 @@ CONTAINS
 
     ! Reset current minimum reset flag to default (initial) value
     CurrMinResetFlag  = ResetFlagHourly + 1
+
+    ! Make sure TIMEZONES array does not point to any content any more.
+    TIMEZONES => NULL()
 
   END SUBROUTINE HcoClock_Cleanup
 !EOC
