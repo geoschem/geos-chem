@@ -556,7 +556,7 @@
       END SELECT
 
       ! DEBUGGING code - EWL, 2/2/15
-      PRINT *,"Updating diagnostic for ", DiagnName
+      PRINT *,"Diagnostic update: ", DiagnName
       ! End of debugging code
 
       ! Point to the array
