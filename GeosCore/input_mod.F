@@ -4955,6 +4955,7 @@
       Input_Opt%ND68               = ND68
       Input_Opt%ND69               = ND69
       Input_Opt%ND70               = ND70
+      Input_Opt%ND71               = ND71
       Input_Opt%LPRT               = ( ND70 > 0 )
 
       ! Loop over # of diagnostics

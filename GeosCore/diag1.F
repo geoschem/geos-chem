@@ -19,8 +19,11 @@
       ! References to F90 modules
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
-      USE DIAG_MOD,           ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
-      USE DIAG_MOD,           ONLY : AD47, AD67, AD68, AD69, LTOTH
+      USE DIAG_MOD,           ONLY : AD31, AD33, AD35, AD54 
+      USE DIAG_MOD,           ONLY : AD47, AD67, AD68, AD69
+#if !defined( NO_BPCH )
+      USE DIAG_MOD,           ONLY : AD30, AD45, LTOTH
+#endif
       USE DIAG_MOD,           ONLY : AD57, AD71
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR

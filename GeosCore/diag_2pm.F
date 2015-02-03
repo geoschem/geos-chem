@@ -29,7 +29,10 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE DIAG_MOD,           ONLY : LTJV,  CTJV
-      USE DIAG_MOD,           ONLY : LTOH,  CTOH,  LTOTH, CTOTH
+      USE DIAG_MOD,           ONLY : LTOH,  CTOH
+#if !defined( NO_BPCH )
+      USE DIAG_MOD,           ONLY : LTOTH, CTOTH
+#endif
       USE DIAG_MOD,           ONLY : LTHO2, CTHO2
       USE DIAG_MOD,           ONLY : CTO3_24h
       USE DIAG_MOD,           ONLY : CTO1D,    LTO1D
@@ -130,7 +133,7 @@
 !$OMP+PRIVATE( I, J, L )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
+#if !defined( NO_BPCH )
          !-----------------------------
          ! ND45 -- mixing ratios
          !-----------------------------
@@ -155,7 +158,7 @@
 
             ENDIF
          ENDIF
-
+#endif
          !-----------------------------
          ! ND47_O3 / ND65 -- "chemistry all day long" counter
          !-----------------------------
