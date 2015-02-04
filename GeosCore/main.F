@@ -1082,57 +1082,119 @@
          !==============================================================
          
          IF ( ITS_TIME_FOR_UNIT() ) THEN
-            ! Change units: vol/vol -> mass mixing ratio
-            CALL Convert_VR_to_MMR( N_TRACERS, TCVV, STT )
 
-            !### Debug
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG( '### MAIN: a Convert_VR_to_MMR' )
-            ENDIF   
+            PRINT *, " "
+            PRINT *, "Concentrations at grid point (25,25,2):"
+            PRINT *, "  vol/vol: "
+            PRINT *, "    Rn:    ", STT(25,25,2,1)
+            PRINT *, "    Pb:    ", STT(25,25,2,2)
+            PRINT *, "    Be7:   ", STT(25,25,2,3)
 
-            ! Change units: mass mixing ratio -> molecules /cm3 (Molec # dens)
-            CALL Convert_MMR_to_MND( N_TRACERS, State_Met%MAIRDEN, 
+           ! Change units: vol/vol -> mass mixing ratio
+           CALL Convert_VR_to_MMR( N_TRACERS, TCVV, STT )
+
+           !### Debug
+           IF ( prtDebug ) THEN 
+              CALL DEBUG_MSG( '### MAIN: a Convert_VR_to_MMR' )
+           ENDIF   
+
+           PRINT *, "  kg/kg: "
+           PRINT *, "    Rn:    ", STT(25,25,2,1)
+           PRINT *, "    Pb:    ", STT(25,25,2,2)
+           PRINT *, "    Be7:   ", STT(25,25,2,3)
+
+          ! Change units: mass mixing ratio -> molecules /cm3 (Molec # dens)
+          CALL Convert_MMR_to_MND( N_TRACERS, State_Met%MAIRDEN, 
      &                               XNUMOL, STT )
 
-            !### Debug
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_MND' )
-            ENDIF
+          !### Debug
+          IF ( prtDebug ) THEN 
+             CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_MND' )
+          ENDIF
 
-            ! Change units: molecules / cm3 -> mass mixing ratio
-            CALL Convert_MND_to_MMR( N_TRACERS, State_Met%MAIRDEN, 
+           PRINT *, "  Convert to molecules/cm3 using:"
+           PRINT *, "    XNUMOL:"
+           PRINT *, "      Rn:    ", XNUMOL(1)
+           PRINT *, "      Pb:    ", XNUMOL(2)
+           PRINT *, "      Be7:   ", XNUMOL(3)
+           PRINT *, "    MAIRDEN(25,25,2) [kg/m3]:"
+           PRINT *, "      ", State_Met%MAIRDEN(25,25,2)
+           PRINT *, "  Resultant molecules/cm3: "
+           PRINT *, "    Rn:    ", STT(25,25,2,1)
+           PRINT *, "    Pb:    ", STT(25,25,2,2)
+           PRINT *, "    Be7:   ", STT(25,25,2,3)
+
+          ! Change units: molecules / cm3 -> mass mixing ratio
+          CALL Convert_MND_to_MMR( N_TRACERS, State_Met%MAIRDEN, 
      &                               XNUMOL, STT )
 
-            !### Debug
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG( '### MAIN: a Convert_MND_to_MMR' )
-            ENDIF
+          !### Debug
+          IF ( prtDebug ) THEN 
+             CALL DEBUG_MSG( '### MAIN: a Convert_MND_to_MMR' )
+          ENDIF
 
-            ! Change units: mass mixing ratio -> kg
-            CALL Convert_MMR_to_KG( N_TRACERS, State_Met%MAIRDEN, 
+           PRINT *, "  kg/kg: "
+           PRINT *, "    Rn:    ", STT(25,25,2,1)
+           PRINT *, "    Pb:    ", STT(25,25,2,2)
+           PRINT *, "    Be7:   ", STT(25,25,2,3)
+
+          ! Change units: mass mixing ratio -> kg
+          CALL Convert_MMR_to_KG( N_TRACERS, State_Met%MAIRDEN, 
      &                              State_Met%AIRVOL, STT )
 
-            !### Debug
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_KG' )
-            ENDIF
+          !### Debug
+          IF ( prtDebug ) THEN 
+             CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_KG' )
+          ENDIF
 
-            ! Change units: kg -> mass mixing ratio
-            CALL Convert_KG_to_MMR( N_TRACERS, State_Met%MAIRDEN, 
+          ! DEBUGGING
+!!!           ! OLD UNIT CONVERSION FOR COMPARISON TESTING
+!!!           CALL CONVERT_UNITS( 2,  N_TRACERS, TCVV, State_Met%AD, STT )
+          ! END DEBUGGING
+
+           PRINT *, "  Convert to kg using:"
+           PRINT *, "    AIRVOL(25,25,2) [m3]:"
+           PRINT *, "     ", State_Met%AIRVOL(25,25,2)
+           PRINT *, "    MAIRDEN(25,25,2) [kg/m3]:"
+           PRINT *, "     ", State_Met%MAIRDEN(25,25,2)
+           PRINT *, "  Resultant kg: "
+           PRINT *, "    Rn:    ", STT(25,25,2,1)
+           PRINT *, "    Pb:    ", STT(25,25,2,2)
+           PRINT *, "    Be7:   ", STT(25,25,2,3)
+
+           ! Change units: kg -> mass mixing ratio
+           CALL Convert_KG_to_MMR( N_TRACERS, State_Met%MAIRDEN, 
      &                              State_Met%AIRVOL, STT )
 
-            !### Debug
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG( '### MAIN: a Convert_KG_to_MMR' )
-            ENDIF
+           !### Debug
+           IF ( prtDebug ) THEN 
+              CALL DEBUG_MSG( '### MAIN: a Convert_KG_to_MMR' )
+           ENDIF
 
-            ! Change units: mass mixing ratio -> vol/vol
-            CALL Convert_MMR_to_VR( N_TRACERS, TCVV, STT )
+           PRINT *, "  kg/kg: "
+           PRINT *, "    Rn:    ", STT(25,25,2,1)
+           PRINT *, "    Pb:    ", STT(25,25,2,2)
+           PRINT *, "    Be7:   ", STT(25,25,2,3)
 
-            !### Debug
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_VR' )
-            ENDIF
+           ! Change units: mass mixing ratio -> vol/vol
+           CALL Convert_MMR_to_VR( N_TRACERS, TCVV, STT )
+
+           !### Debug
+           IF ( prtDebug ) THEN 
+              CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_VR' )
+           ENDIF
+
+          ! DEBUGGING
+!!!           ! OLD UNIT CONVERSION FOR COMPARISON TESTING
+!!!           CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, State_Met%AD, STT )
+          ! END DEBUGGING
+
+           PRINT *, "  vol/vol: "
+           PRINT *, "    Rn:    ", STT(25,25,2,1)
+           PRINT *, "    Pb:    ", STT(25,25,2,2)
+           PRINT *, "    Be7:   ", STT(25,25,2,3)
+           PRINT *, "  "
+
          ENDIF
 
          !==============================================================
