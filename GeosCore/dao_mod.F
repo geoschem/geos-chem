@@ -405,8 +405,14 @@
          Pd = Pcenter * PCONV - Pv 
 
          ! Density of moist air [kg/m^3]
-         State_Met%MAIRDEN(I,J,L) = ( Pd * AIRMW + Pv * H2OMW ) * MCONV
+!         State_Met%MAIRDEN(I,J,L) = ( Pd * AIRMW + Pv * H2OMW ) * MCONV
+!     &                            / RSTARG / State_Met%T(I,J,L)
+
+         ! DEBUGGING - ewl, 2/4/15
+         ! Density of dry air calculated similarly to moist air [kg/m3]
+         State_Met%MAIRDEN(I,J,L) = ( Pd * AIRMW ) * MCONV
      &                            / RSTARG / State_Met%T(I,J,L)
+         ! END DEBUGGING
 
           !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
