@@ -1832,7 +1832,6 @@
             ENDIF
          ENDDO    
       ENDIF     
-#if !defined( BPCH )
 !
 !******************************************************************************
 !  ND24: Eastward mass flux from transport (TPCORE, XTP)
@@ -1847,6 +1846,7 @@
 !  (2) Now only write LD24 levels out to the bpch file (bmy, 12/7/00)
 !******************************************************************************
 !
+#if !defined( BPCH )
       IF ( ND24 > 0 ) THEN
          CATEGORY = 'EW-FLX-$'
          UNIT = 'kg/s'
@@ -1866,6 +1866,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD24) )
          ENDDO
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND25: Northward mass flux from transport (TPCORE, YTP)
@@ -1880,6 +1881,7 @@
 !  (2) Now only write LD25 levels out to the bpch file (bmy, 12/7/00)
 !******************************************************************************
 !  
+#if !defined( NO_BPCH )
       IF ( ND25 > 0 ) THEN
          CATEGORY = 'NS-FLX-$'
          UNIT = 'kg/s'

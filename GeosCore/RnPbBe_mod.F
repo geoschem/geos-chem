@@ -340,12 +340,16 @@
 !$OMP END PARALLEL DO
 
 #if defined( DEVEL )
-         ! Update ND02 diagnostic: Rn lost to decay [kg/s]
-         CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                             'ND02', 
-     &                             Input_Opt%TRACER_NAME( IDTRn ), 
-     &                             RN_DECAY, 
-     &                             INput_Opt%DIAG_COLLECTION )
+         ! Make sure ND02 is turned on
+         IF ( Input_Opt%ND02 > 0 ) THEN
+
+            ! Update ND02 diagnostic: Rn lost to decay [kg/s]
+            CALL Diagn_RnPbBe_Update( am_I_Root,
+     &                                'ND02', 
+     &                                Input_Opt%TRACER_NAME( IDTRn ), 
+     &                                RN_DECAY, 
+     &                                INput_Opt%DIAG_COLLECTION )
+         ENDIF
 #endif
          
       ENDIF
@@ -407,7 +411,7 @@
      &                                 + ( Pb_LOST / DTCHEM )
 #endif
 #if defined( DEVEL )
-               PB_DECAY(I,J,L) = PB_LOST / DTCHEM
+               PB_DECAY(I,J,L) = Pb_LOST / DTCHEM
 #endif
             ENDIF
 
@@ -420,20 +424,27 @@
 !$OMP END PARALLEL DO
 
 #if defined( DEVEL )
-
-         ! Update ND01 diagnostic: Pb emission [kg/s]
-         CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                             'ND01', 
-     &                             Input_Opt%TRACER_NAME( IDTPb ), 
-     &                             PB_EMISS, 
-     &                             Input_Opt%DIAG_COLLECTION )
+         ! Make sure ND02 is turned on
+         IF ( Input_Opt%ND02 > 0 ) THEN
 
          ! Update ND02 diagnostic: Pb lost to decay [kg/s]
-         CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                             'ND02', 
-     &                             Input_Opt%TRACER_NAME( IDTPb ), 
-     &                             PB_DECAY, 
-     &                             Input_Opt%DIAG_COLLECTION )
+            CALL Diagn_RnPbBe_Update( am_I_Root,
+     &                                'ND02', 
+     &                                Input_Opt%TRACER_NAME( IDTPb ), 
+     &                                PB_DECAY, 
+     &                                Input_Opt%DIAG_COLLECTION )
+         ENDIF
+
+         ! Make sure ND01 is turned on
+         IF ( Input_Opt%ND01 > 0 ) THEN
+
+            ! Update ND01 diagnostic: Pb emission [kg/s]
+            CALL Diagn_RnPbBe_Update( am_I_Root,
+     &                                'ND01', 
+     &                                Input_Opt%TRACER_NAME( IDTPb ), 
+     &                                PB_EMISS, 
+     &                                Input_Opt%DIAG_COLLECTION )
+         ENDIF
 
 #endif
 
@@ -479,12 +490,16 @@
 !$OMP END PARALLEL DO
 
 #if defined( DEVEL )
-         ! Update ND02 diagnostic: Be lost to decay [kg/s]
-         CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                             'ND02', 
-     &                             Input_Opt%TRACER_NAME( IDTBe7 ), 
-     &                             BE_DECAY, 
-     &                             Input_Opt%DIAG_COLLECTION )
+         ! Make sure ND02 is turned on
+         IF ( Input_Opt%ND02 > 0 ) THEN
+
+            ! Update ND02 diagnostic: Be lost to decay [kg/s]
+            CALL Diagn_RnPbBe_Update( am_I_Root,
+     &                                'ND02', 
+     &                                Input_Opt%TRACER_NAME( IDTBe7 ), 
+     &                                BE_DECAY, 
+     &                                Input_Opt%DIAG_COLLECTION )
+         ENDIF
 #endif
 
       ENDIF
@@ -557,10 +572,6 @@
             CALL ERROR_STOP( TRIM( MSG ), LOC )
       END SELECT
 
-      ! DEBUGGING code - EWL, 2/2/15
-      PRINT *,"Diagnostic update: ", DiagnName
-      ! End of debugging code
-
       ! Point to the array
       Ptr3D => DiagArray
 
@@ -577,7 +588,7 @@
       ! Stop with error if the diagnostic update was unsuccessful
       IF ( HCRC /= HCO_SUCCESS ) THEN
          MSG = 'Cannot update ' // NDxx // ' diagnostic: ' 
-     &         // TRIM(DiagnName)
+     &         // TRIM( DiagnName )
          CALL ERROR_STOP( MSG, LOC)
       ENDIF
 

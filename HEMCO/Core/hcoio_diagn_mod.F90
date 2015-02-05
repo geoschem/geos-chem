@@ -314,12 +314,26 @@ CONTAINS
        ! out on this time step.
        CALL Diagn_Get ( am_I_Root, EOI, ThisDiagn, FLAG, RC, &
                         InclManual=Manual, COL=PS )
+
+
        IF ( RC /= HCO_SUCCESS ) RETURN 
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
        ! Only write diagnostics if this is the first Diagn_Get call for
        ! this container and time step. 
-       IF ( ThisDiagn%nnGetCalls > 1 ) CYCLE
+       IF ( ThisDiagn%nnGetCalls > 1 ) THEN
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "Skipping diag since ThisDiagn%nnGetCalls = ", &
+               ThisDiagn%nnGetCalls, " : ", ThisDiagn%cName
+          ! END DEBUGGING
+          
+          CYCLE
+       ENDIF
+
+       ! DEBUGGING - ewl, 2/2/15
+       PRINT *, "Got diagnostic for writing: ", ThisDiagn%cName
+       ! END DEBUGGING
 
        ! Define variable
        myName = ThisDiagn%cName

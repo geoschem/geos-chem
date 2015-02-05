@@ -412,6 +412,7 @@ CONTAINS
     ! Get collection position
     PS = 1
     IF ( PRESENT(COL) ) PS = COL
+
     IF ( .NOT. Collections(PS)%InUse ) THEN
        WRITE(MSG,*) 'Diagnostics collection not defined, cannot add ',  &
                     'diagnostcs ', TRIM(cName), ' to collection ', PS,  &
@@ -675,8 +676,19 @@ CONTAINS
     ! Add to diagnostics list of this collection. 
     ! Insert at the beginning of the list.
     !-----------------------------------------------------------------------
+    
+    ! DEBUGGING - ewl, 2/2/15
+    PRINT *, " "
+    PRINT *, "Creating diagnostics in Diagn_Create: ", cName
+    PRINT *, "   Starting Collections(PS)%nnDiagn: ", Collections(PS)%nnDiagn
+    ! END DEBUGGING
+
     IF ( Collections(PS)%nnDiagn > 0 ) THEN
        ThisDiagn%NextCont => Collections(PS)%DiagnList
+       
+       ! DEBUGGING - ewl, 2/2/15
+       PRINT *, "ThisDiagn%NextCont now points to previous diagnostic created"
+       ! END DEBUGGING
     ENDIF
     Collections(PS)%DiagnList => ThisDiagn
 
@@ -690,6 +702,13 @@ CONTAINS
        CALL HCO_MSG ( MSG )
        CALL Diagn_Print( ThisDiagn, .TRUE. )
     ENDIF
+
+    ! DEBUGGING - ewl, 2/2/15
+    PRINT *, "   Ending Collections(PS)%nnDiagn: ", Collections(PS)%nnDiagn
+    PRINT *, "   Collection: ", PS 
+    PRINT *, "   Diagnostic index in collection: ", ThisDiagn%cID
+    PRINT *, "   Diagnostic name: ", ThisDiagn%cName
+    ! END DEBUGGING
 
     ! Return
     cID = ThisDiagn%cID 
@@ -804,6 +823,10 @@ CONTAINS
     LOC = 'Diagn_Update (hco_diagn_mod.F90)'
     RC  = HCO_SUCCESS
 
+    ! DEBUGGING, ewl - 2/2/15
+    PRINT *, " "
+    PRINT *, "Now in " // TRIM( LOC )
+
     ! Get collection number
     PS = 1
     IF ( PRESENT(COL) ) PS = COL
@@ -857,7 +880,14 @@ CONTAINS
                             ThisDiagn, RESUME=.TRUE., COL=PS         )
 
        ! Exit while loop if no diagnostics found
-       IF ( .NOT. Found ) EXIT
+       IF ( .NOT. Found ) THEN
+          EXIT
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "No diagnostic found - exiting Diagn_Update."
+          ! END DEBUGGING
+
+       ENDIF
 
        ! If container holds just a pointer to external data, don't do
        ! anything!
@@ -889,6 +919,11 @@ CONTAINS
        !----------------------------------------------------------------------
        IF ( ThisDiagn%IsOutFormat ) THEN
           ThisDiagn%Counter    = 0
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "ThisDiagn%IsOutFormat is false - exiting Diagn_Update."
+          ! END DEBUGGING
+          
        ENDIF
    
        !----------------------------------------------------------------------
@@ -1100,11 +1135,22 @@ CONTAINS
 
        ! Verbose mode 
        IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
-          MSG = 'Successfully updated diagnostics: ' // TRIM(ThisDiagn%cName)
+          WRITE(MSG,'(a,a,a,I3,a)') 'Successfully updated diagnostics: ', &
+             TRIM(ThisDiagn%cName), ' (counter:', ThisDiagn%Counter, ')'
+!          MSG = 'Successfully updated diagnostics: ' // TRIM(ThisDiagn%cName)
           CALL HCO_MSG ( MSG )
        ENDIF
 
     ENDDO
+
+    ! DEBUGGING - ewl, 2/2/15
+    PRINT *, "   Successfully updated diagnostics."
+    IF ( PRESENT ( cName ) ) THEN
+       PRINT *, "   Diagnostic: ", cName
+    ELSE
+       PRINT *, "   No name passed to Diagn_Create."
+    ENDIF
+    ! END DEBUGGING
 
     ! Return
     ThisDiagn => NULL()
@@ -1216,6 +1262,16 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! DEBUGGING - ewl, 2/2/15
+    PRINT *, " "
+    PRINT *, "In subroutine Diagn_Get in hco_diagn_mod.F90"
+    IF ( PRESENT (cName) ) THEN
+       PRINT *, "   Called with name: ", cName
+    ELSE
+       PRINT *, "   Name not included in call."
+    ENDIF
+    ! END DEBUGGING
+
     ! Set AutoFill flag
     AF = -1
     IF ( PRESENT(AutoFill  ) ) AF     = AutoFill
@@ -1246,16 +1302,36 @@ CONTAINS
     ! If container name is given, search for diagnostics with 
     ! the given name. 
     IF ( PRESENT( cName ) ) THEN
+
+       ! DEBUGGING - ewl, 2/2/15
+       PRINT *, "   Searching for diagnostic using name ", cName
+       ! END DEBUGGING
+
        CALL DiagnCont_Find( -1, -1, -1, -1, -1, cName, &
                             AF, FOUND, DgnCont, COL=PS )
 
        IF ( .NOT. FOUND ) THEN
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "   Diagnostic with that name not found."
+          ! END DEBUGGING
+          
           DgnCont => NULL()
        ELSE
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "   Diagnostic with that name found."
+          ! END DEBUGGING
+
           ! Don't consider container if not at the desired
           ! time interval or if counter is zero.
           IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
                DgnCont%Counter   == 0                  ) THEN
+
+             ! DEBUGGING - ewl, 2/2/15
+             PRINT *, "   Diagnostic at wrong time interval or counter is 0."
+             ! END DEBUGGING
+
              DgnCont => NULL()
           ENDIF
        ENDIF
@@ -1266,16 +1342,36 @@ CONTAINS
     ! If container id is given, search for diagnostics with 
     ! the given container ID.
     IF ( PRESENT( cID ) ) THEN
+
+       ! DEBUGGING - ewl, 2/2/15
+       PRINT *, "   Searching for diagnostic using id ", cID
+       ! END DEBUGGING
+
        CALL DiagnCont_Find( cID, -1, -1, -1, -1, '', &
                             AF, FOUND, DgnCont, COL=PS )
        IF ( .NOT. FOUND ) THEN
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "   Diagnostic with that id not found."
+          ! END DEBUGGING
+
           DgnCont => NULL()
        ELSE
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "   Diagnostic with that id found."
+          ! END DEBUGGING
+
           ! Don't consider container if not at the desired
           ! time interval or if counter is zero.
           IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
                DgnCont%Counter   == 0                  ) THEN
              DgnCont => NULL()
+
+             ! DEBUGGING - ewl, 2/2/15
+             PRINT *, "   Diagnostic at wrong time interval or counter is 0."
+             ! END DEBUGGING
+
           ENDIF
        ENDIF
        CF = .TRUE.
@@ -1285,19 +1381,63 @@ CONTAINS
     ! list (or to head of list if DgnCont is not yet associated). 
     ! Number of updates since last output must be larger than zero!
     IF ( .NOT. CF ) THEN 
+
+       ! DEBUGGING - ewl, 2/2/15
+       PRINT *, "   No container selected yet."
+       ! END DEBUGGING
+
        IF ( .NOT. ASSOCIATED( DgnCont ) ) THEN
           DgnCont => Collections(PS)%DiagnList
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "   DgnCont not associated so pointing to head of list."
+          ! END DEBUGGING
+
        ELSE
           DgnCont => DgnCont%NextCont
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "   DiagCont associated so pointing to next container."
+          ! END DEBUGGING
+
        ENDIF
+
        DO WHILE ( ASSOCIATED ( DgnCont ) ) 
-          IF ( DgnCont%Counter > 0 ) EXIT 
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "      DiagCont is associated. Now in DO loop." 
+          PRINT *, "      Counter = ", DgnCont%Counter
+!          IF ( PRESENT( DgnCont%cName ) ) THEN
+          PRINT *, "      DgnCont%cName = ", DgnCont%Cname
+!          ELSE
+!             PRINT *, "      DgnCont%Cname not present."
+!          ENDIF
+          ! END DEBUGGING
+          
+          IF ( DgnCont%Counter > 0 ) THEN
+             
+             ! DEBUGGING - ewl, 2/2/15
+             PRINT *,"      Exiting do loop since counter > 0"
+             ! END DEBUGGING
+
+             EXIT
+          ENDIF
           DgnCont => DgnCont%NextCont
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "      DgnCont now pointing to DgnCont%NextCont"
+          ! END DEBUGGING
+
        ENDDO
   
        ! If EndOfIntvOnly flag is enabled, make sure that the
        ! selected container is at the end of its interval.
        IF ( EndOfIntvOnly ) THEN
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "   EndOfIntvOnly is TRUE"
+          ! END DEBUGGING
+
           ! If MinResetFlag > 0, search for first container with a
           ! ResetFlag equal or larger than MinResetFlag and where
           ! updates since last output (counter) is not zero.
@@ -1319,7 +1459,16 @@ CONTAINS
        ! Increase number of times this container has been called by
        ! Diagn_Get
        DgnCont%nnGetCalls = DgnCont%nnGetCalls + 1
+
+       ! DEBUGGING - ewl, 2/2/15
+       PRINT *, "   Diagnostic prepared for output and Diagn_Get is done."
+       ! END DEBUGGING
+
     ENDIF
+
+    ! DEBUGGING - ewl, 2/2/15
+    PRINT *, "   Is DgnCont associated? ", ASSOCIATED( DgnCont )
+    ! END DEBUGGING
 
   END SUBROUTINE Diagn_Get
 !EOC
