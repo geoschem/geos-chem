@@ -826,6 +826,7 @@ CONTAINS
     ! DEBUGGING, ewl - 2/2/15
     PRINT *, " "
     PRINT *, "Now in " // TRIM( LOC )
+    ! END DEBUGGING
 
     ! Get collection number
     PS = 1
@@ -921,7 +922,7 @@ CONTAINS
           ThisDiagn%Counter    = 0
 
           ! DEBUGGING - ewl, 2/2/15
-          PRINT *, "ThisDiagn%IsOutFormat is false - exiting Diagn_Update."
+          PRINT *, "ThisDiagn%IsOutFormat is true - exiting Diagn_Update."
           ! END DEBUGGING
           
        ENDIF

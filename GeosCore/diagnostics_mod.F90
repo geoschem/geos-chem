@@ -30,9 +30,27 @@ MODULE Diagnostics_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: DiagInit_Drydep
-  PRIVATE :: DiagInit_Tracer_Conc
-  PRIVATE :: DiagInit_Pb_Emiss
+  PRIVATE :: DiagInit_Drydep        ! ND44
+  PRIVATE :: DiagInit_Tracer_Conc   ! ND45
+  PRIVATE :: DiagInit_Pb_Emiss      ! ND01
+  PRIVATE :: DiagInit_Rn_Decay      ! ND02
+!  PRIVATE :: DiagInit_Hg_Source     ! ND03
+!  PRIVATE :: DiagInit_Sulfate_PL    ! ND05
+!  PRIVATE :: DiagInit_C_AerSrc      ! ND07
+  PRIVATE :: DiagInit_BL_Frac       ! ND12
+  PRIVATE :: DiagInit_CldConv_Flx   ! ND14
+  PRIVATE :: DiagInit_BlMix_Flx     ! ND15
+  PRIVATE :: DiagInit_Precip_Frac   ! ND16
+  PRIVATE :: DiagInit_Rain_Frac     ! ND17
+  PRIVATE :: DiagInit_Wash_Frac     ! ND18
+  PRIVATE :: DiagInit_CH4_Loss      ! ND19
+!  PRIVATE :: DiagInit_Cld_OD        ! ND21
+!  PRIVATE :: DiagInit_Photolysis    ! ND22
+  PRIVATE :: DiagInit_EW_Flx        ! ND24
+  PRIVATE :: DiagInit_NS_Flx        ! ND25
+  PRIVATE :: DiagInit_Vert_Flx      ! ND26
+  PRIVATE :: DiagInit_Strat_Flx     ! ND27
+  PRIVATE :: DiagInit_Landmap       ! ND30
 
 
 !
@@ -140,16 +158,21 @@ CONTAINS
     ! we may want to add more (i.e. hourly, instantaneous, monthly, etc.)
     !-----------------------------------------------------------------------
 
-    ! Pb emissions diagnostic (ND01)
-    CALL DIAGINIT_PB_EMISS( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_PB_EMISS', LOC ) 
-    ENDIF
+    ! DEBUGGING - ewl, 2/2/15
+    !    Switched the order of ND01 and ND02 to investigate
+    !    why EMISS_PB is not written to netcdf eventhough it is updated.
+    ! END DEBUGGING
 
     ! Rn/Pb/Be decay diagnostic (ND02)
     CALL DIAGINIT_RN_DECAY( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_RN_DECAY', LOC ) 
+    ENDIF
+
+    ! Pb emissions diagnostic (ND01)
+    CALL DIAGINIT_PB_EMISS( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_PB_EMISS', LOC ) 
     ENDIF
 
 !    ! Hg emissions/prod/loss diagnostic (ND03)
@@ -358,10 +381,6 @@ CONTAINS
     ! Write out diagnostics to file using current time stamp.
     ! If last, save into restart file. Else, write out regular diagnostics.
     !-----------------------------------------------------------------------
-
-    ! DEBUGGING - LL 2/2/15
-    PRINT *, 'Attempting to write diagnostics to netcdf'
-    ! End of debugging
 
     IF ( LAST ) THEN
        CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                & 
