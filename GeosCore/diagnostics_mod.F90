@@ -765,7 +765,7 @@ CONTAINS
        !----------------------------------------------------------------
 
        ! Diagnostic name
-       DiagnName = 'EMISS_PB'
+       DiagnName = 'EMISS_' // TRIM( Input_Opt%TRACER_NAME( IDTPB ) )
 
        ! Create container
        CALL Diagn_Create( am_I_Root,                     &

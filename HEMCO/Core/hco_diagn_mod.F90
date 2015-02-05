@@ -708,6 +708,7 @@ CONTAINS
     PRINT *, "   Collection: ", PS 
     PRINT *, "   Diagnostic index in collection: ", ThisDiagn%cID
     PRINT *, "   Diagnostic name: ", ThisDiagn%cName
+    PRINT *, "   Diagnostic counter: ", ThisDiagn%Counter
     ! END DEBUGGING
 
     ! Return
@@ -876,17 +877,29 @@ CONTAINS
        ! If ThisDiagn is empty (first call), the search will start
        ! at the first diagnostics container. Otherwise, the search
        ! will resume from this diagnostics container.
+
+       ! DEBUGGING - ewl, 2/2/15
+       PRINT *, "   Calling DiagnCont_Find with:"
+       PRINT *, "   DgncID: ", DgncID
+       PRINT *, "   DgnExtNr: ", DgnExtNr
+       PRINT *, "   DgnCat: ",DgnCat
+       PRINT *, "   DgnHier: ", DgnHier
+       PRINT *, "   DgnHcoID: ", DgnHcoID
+       PRINT *, "   DgnName: ", DgnName
+       ! END DEBUGGING
+
        CALL DiagnCont_Find( DgncID,    DgnExtNr, DgnCat,   DgnHier, &
                             DgnHcoID,  DgnName,  AutoFlag, Found,   &
                             ThisDiagn, RESUME=.TRUE., COL=PS         )
 
        ! Exit while loop if no diagnostics found
        IF ( .NOT. Found ) THEN
-          EXIT
 
           ! DEBUGGING - ewl, 2/2/15
           PRINT *, "No diagnostic found - exiting Diagn_Update."
           ! END DEBUGGING
+
+          EXIT
 
        ENDIF
 
@@ -922,7 +935,7 @@ CONTAINS
           ThisDiagn%Counter    = 0
 
           ! DEBUGGING - ewl, 2/2/15
-          PRINT *, "ThisDiagn%IsOutFormat is true - exiting Diagn_Update."
+          PRINT *, "ThisDiagn%IsOutFormat is true. Counter set to 0."
           ! END DEBUGGING
           
        ENDIF
@@ -945,8 +958,19 @@ CONTAINS
        ! Check if this is a new time step for this diagnostics. 
        !----------------------------------------------------------------------
        IsNewTS = .TRUE.
-       IF ( ThisDiagn%LastUpdateID == ThisUpdateID ) IsNewTS = .FALSE. 
- 
+       IF ( ThisDiagn%LastUpdateID == ThisUpdateID ) THEN
+
+          ! DEBUGGING - ewl, 2/2/15
+          PRINT *, "ThisDiagn%LastUpdateID: ", ThisDiagn%LastUpdateID
+          PRINT *, "ThisUpdateID: ", ThisUpdateID
+          PRINT *, "These values are equal so not a new time step."
+          PRINT *, "Setting IsNewTS to FALSE."
+          ! END DEBUGGING
+          
+          IsNewTS = .FALSE. 
+          
+       ENDIF
+
        !----------------------------------------------------------------------
        ! To add 3D array
        !----------------------------------------------------------------------
@@ -1126,6 +1150,13 @@ CONTAINS
        IF ( IsNewTS ) THEN
           ThisDiagn%Counter      = ThisDiagn%Counter + 1
           ThisDiagn%LastUpdateID = ThisUpdateID
+
+          ! DEBUGGING - ewl, 2/5/15
+          PRINT *, "   IsNewTs is TRUE."
+          PRINT *, "   New last update id: ", ThisUpdateID
+          PRINT *, "   New counter: ", ThisDiagn%Counter
+          ! END DEBUGGING
+
        ENDIF
    
        !----------------------------------------------------------------------
