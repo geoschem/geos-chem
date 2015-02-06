@@ -375,7 +375,7 @@
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
       ENDIF
-#if !defined( BPCH )
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND01: Rn, Pb, Be emissions (Category: "RN--SRCE")
@@ -1070,7 +1070,7 @@
 
          ENDDO
       ENDIF
-#if !defined( BPCH )
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND12: distribution of surface emissions in the boundry layer: [fraction]
@@ -1245,7 +1245,7 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
       ENDIF    
-#if !defined( BPCH )
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND14: Upward mass flux from wet convection (NFCLDMX)
@@ -1846,7 +1846,7 @@
 !  (2) Now only write LD24 levels out to the bpch file (bmy, 12/7/00)
 !******************************************************************************
 !
-#if !defined( BPCH )
+#if !defined( NO_BPCH )
       IF ( ND24 > 0 ) THEN
          CATEGORY = 'EW-FLX-$'
          UNIT = 'kg/s'
@@ -2301,7 +2301,7 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDDO
       ENDIF
-#if !defined( BPCH)
+#if !defined( NO_BPCH)
 !
 !******************************************************************************
 !  ND30: Land map diagnostic
@@ -2329,7 +2329,7 @@
       ENDIF
 #endif
 
-#if !defined( BPCH )
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND31: Surface pressure diagnostic
@@ -2507,7 +2507,7 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
       ENDIF
-#if !defined( BPCH )
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND33: Atmospheric column sum of Tracer
@@ -4016,7 +4016,7 @@
      &               IIPAR,     JJPAR,     LD54,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD54) )
       ENDIF
-#if !defined( BPCH )
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND55: Tropopause diagnostics
@@ -4057,7 +4057,7 @@
       ENDIF
 #endif
 
-#if !defined( BPCH )
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND56: Lightning flash rate diagnostics (ltm, bmy, 5/5/06))
@@ -4111,7 +4111,7 @@
       ENDIF
 #endif
 
-#if !defined( BPCH )
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND57: THETA
