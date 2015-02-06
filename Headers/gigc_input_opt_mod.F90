@@ -447,6 +447,9 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: ND69,             LD69
      CHARACTER(LEN=15)           :: ND69_OUTPUT_FREQ, ND69_OUTPUT_TYPE
      INTEGER                     :: ND70,             LD70
+     INTEGER                     :: ND71,             LD71
+     CHARACTER(LEN=15)           :: ND71_OUTPUT_FREQ, ND71_OUTPUT_TYPE
+     
      INTEGER                     :: TS_DIAG
      LOGICAL                     :: LPRT
      INTEGER,            POINTER :: TINDEX(:,:)
@@ -1177,6 +1180,7 @@ CONTAINS
     Input_Opt%ND68                   = 0
     Input_Opt%ND69                   = 0
     Input_Opt%ND70                   = 0
+    Input_Opt%ND71                   = 0
     Input_Opt%LD01                   = 0
     Input_Opt%LD02                   = 0
     Input_Opt%LD03                   = 0
@@ -1247,6 +1251,7 @@ CONTAINS
     Input_Opt%LD68                   = 0
     Input_Opt%LD69                   = 0
     Input_Opt%LD70                   = 0
+    Input_Opt%LD71                   = 0
     Input_Opt%LPRT                   = .FALSE.
     Input_Opt%TINDEX(:,:)            = 0
     Input_Opt%TCOUNT(:)              = 0	  

@@ -877,7 +877,7 @@
       IF ( ND45 > 0 ) THEN
          LD45 = MIN( ND45,        LLPAR   )
          NMAX = MIN( N_TRC_TOT+1, NNPAR+1 )
-
+#if !defined( NO_BPCH )
          ! Accumulating diagnostic array
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD45( IIPAR, JJPAR, LD45, NMAX ), STAT=AS )
@@ -890,7 +890,7 @@
          ! Number of times LT is between HR1_OTH and HR2_OTH
          ALLOCATE( CTOTH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
-
+#endif
       ENDIF
 
       !=================================================================

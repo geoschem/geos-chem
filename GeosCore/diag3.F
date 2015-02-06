@@ -2507,6 +2507,7 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
       ENDIF
+#if !defined( BPCH )
 !
 !******************************************************************************
 !  ND33: Atmospheric column sum of Tracer
@@ -2540,6 +2541,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
+#endif
 !
 !******************************************************************************
 !  ND34: Biofuel burning diagnostic 
@@ -5097,7 +5099,7 @@
 
          CALL UPDATE_DEP( N )
       ENDIF
-            
+#if !defined( NO_BPCH )            
 !
 !******************************************************************************
 !  ND71: Tracer Mixing Ratio (v/v) at surface, maximum value
@@ -5128,6 +5130,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
+
+#endif
 
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
