@@ -156,8 +156,7 @@ hcox_megan_mod.o            : hcox_megan_mod.F                \
                               EF_MGN20_mod.o		      
 
 hcox_paranox_mod.o          : hcox_paranox_mod.F90            \
-                              hcox_state_mod.o                \
-                              paranox_util_mod.o	      
+                              hcox_state_mod.o
 
 hcox_seaflux_mod.o          : hcox_seaflux_mod.F90            \
                               hcox_state_mod.o                \
@@ -179,7 +178,5 @@ lightning_cdf_mod.o         : lightning_cdf_mod.F90           \
                               lightning_cdf_include.H
 
 ocean_toolbox_mod.o         : ocean_toolbox_mod.F90
-
-paranox_util_mod.o          : paranox_util_mod.F
 
 #EOC

@@ -722,14 +722,6 @@ CONTAINS
        CALL HCO_GetPtr ( .FALSE., 'TIMEZONES', TIMEZONES, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        FIRST = .FALSE.
-
-       ! testing only 
-       IF ( .NOT. FOUND ) THEN
-          write(*,*) 'time zones not found'
-       ELSE
-          write(*,*) 'time zones found'
-       ENDIF
-
     ENDIF 
 
     ! Get longitude (degrees east) 

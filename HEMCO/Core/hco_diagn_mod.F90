@@ -1099,7 +1099,8 @@ CONTAINS
 
        ! Verbose mode 
        IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
-          MSG = 'Successfully updated diagnostics: ' // TRIM(ThisDiagn%cName)
+          WRITE(MSG,'(a,a,a,I3,a)') 'Successfully updated diagnostics: ', &
+             TRIM(ThisDiagn%cName), ' (counter:', ThisDiagn%Counter, ')'
           CALL HCO_MSG ( MSG )
        ENDIF
 
