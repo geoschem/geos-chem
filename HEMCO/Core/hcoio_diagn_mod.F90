@@ -162,7 +162,7 @@ CONTAINS
 
     ! Inherit data precision from HEMCO
     Prc = HP
- 
+
     ! Check if there is at least one diagnostics to write:
     ! If current time stamp is not at the end of an interval - or
     ! if there is no diagnostics container in the list with a reset
@@ -305,6 +305,11 @@ CONTAINS
     ! Write diagnostics 
     !-----------------------------------------------------------------
 
+    ! DEBUGGING - ewl, 2/6/15
+    PRINT *, " "
+    PRINT *, "In HcoIO_Diagn_Writeout (hcoio_diagn_mod.F90)"
+    ! END DEBUGGING
+
     ! Loop over all diagnostics in diagnostics list 
     ThisDiagn => NULL()
     DO WHILE ( .TRUE. )
@@ -324,15 +329,18 @@ CONTAINS
        IF ( ThisDiagn%nnGetCalls > 1 ) THEN
 
           ! DEBUGGING - ewl, 2/2/15
-          PRINT *, "Skipping diag since ThisDiagn%nnGetCalls = ", &
-               ThisDiagn%nnGetCalls, " : ", ThisDiagn%cName
+          PRINT *, "   At container for " // TRIM( ThisDiagn%cName )
+          PRINT *, "      Skipping diag since ThisDiagn%nnGetCalls = ", &
+               ThisDiagn%nnGetCalls
           ! END DEBUGGING
           
           CYCLE
        ENDIF
 
        ! DEBUGGING - ewl, 2/2/15
-       PRINT *, "Got diagnostic for writing: ", ThisDiagn%cName
+       PRINT *, " "
+       PRINT *, "   Got diagnostic for writing: ", ThisDiagn%cName
+       PRINT *, " "
        ! END DEBUGGING
 
        ! Define variable

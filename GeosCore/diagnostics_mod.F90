@@ -27,31 +27,32 @@ MODULE Diagnostics_Mod
   PUBLIC  :: Diagnostics_Init
   PUBLIC  :: Diagnostics_Write
   PUBLIC  :: Diagnostics_Final
+  PUBLIC  :: DiagUpdate_EW_Flx      ! ND24 update
+
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: DiagInit_Drydep        ! ND44
-  PRIVATE :: DiagInit_Tracer_Conc   ! ND45
-  PRIVATE :: DiagInit_Pb_Emiss      ! ND01
-  PRIVATE :: DiagInit_Rn_Decay      ! ND02
-!  PRIVATE :: DiagInit_Hg_Source     ! ND03
-!  PRIVATE :: DiagInit_Sulfate_PL    ! ND05
-!  PRIVATE :: DiagInit_C_AerSrc      ! ND07
-  PRIVATE :: DiagInit_BL_Frac       ! ND12
-  PRIVATE :: DiagInit_CldConv_Flx   ! ND14
-  PRIVATE :: DiagInit_BlMix_Flx     ! ND15
-  PRIVATE :: DiagInit_Precip_Frac   ! ND16
-  PRIVATE :: DiagInit_Rain_Frac     ! ND17
-  PRIVATE :: DiagInit_Wash_Frac     ! ND18
-  PRIVATE :: DiagInit_CH4_Loss      ! ND19
-!  PRIVATE :: DiagInit_Cld_OD        ! ND21
-!  PRIVATE :: DiagInit_Photolysis    ! ND22
-  PRIVATE :: DiagInit_EW_Flx        ! ND24
-  PRIVATE :: DiagInit_NS_Flx        ! ND25
-  PRIVATE :: DiagInit_Vert_Flx      ! ND26
-  PRIVATE :: DiagInit_Strat_Flx     ! ND27
-  PRIVATE :: DiagInit_Landmap       ! ND30
-
+  PRIVATE :: DiagInit_Drydep        ! ND44 init
+  PRIVATE :: DiagInit_Tracer_Conc   ! ND45 init
+  PRIVATE :: DiagInit_Pb_Emiss      ! ND01 init
+  PRIVATE :: DiagInit_Rn_Decay      ! ND02 init
+!  PRIVATE :: DiagInit_Hg_Source     ! ND03 init
+!  PRIVATE :: DiagInit_Sulfate_PL    ! ND05 init
+!  PRIVATE :: DiagInit_C_AerSrc      ! ND07 init
+  PRIVATE :: DiagInit_BL_Frac       ! ND12 init
+  PRIVATE :: DiagInit_CldConv_Flx   ! ND14 init
+  PRIVATE :: DiagInit_BlMix_Flx     ! ND15 init
+  PRIVATE :: DiagInit_Precip_Frac   ! ND16 init
+  PRIVATE :: DiagInit_Rain_Frac     ! ND17 init
+  PRIVATE :: DiagInit_Wash_Frac     ! ND18 init
+  PRIVATE :: DiagInit_CH4_Loss      ! ND19 init
+!  PRIVATE :: DiagInit_Cld_OD        ! ND21 init
+!  PRIVATE :: DiagInit_Photolysis    ! ND22 init
+  PRIVATE :: DiagInit_EW_Flx        ! ND24 init
+  PRIVATE :: DiagInit_NS_Flx        ! ND25 init
+  PRIVATE :: DiagInit_Vert_Flx      ! ND26 init
+  PRIVATE :: DiagInit_Strat_Flx     ! ND27 init
+  PRIVATE :: DiagInit_Landmap       ! ND30 init
 
 !
 ! !DEFINED PARAMETERS:
@@ -158,21 +159,16 @@ CONTAINS
     ! we may want to add more (i.e. hourly, instantaneous, monthly, etc.)
     !-----------------------------------------------------------------------
 
-    ! DEBUGGING - ewl, 2/2/15
-    !    Switched the order of ND01 and ND02 to investigate
-    !    why EMISS_PB is not written to netcdf eventhough it is updated.
-    ! END DEBUGGING
+    ! Pb emissions diagnostic (ND01)
+    CALL DIAGINIT_PB_EMISS( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_PB_EMISS', LOC ) 
+    ENDIF
 
     ! Rn/Pb/Be decay diagnostic (ND02)
     CALL DIAGINIT_RN_DECAY( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in DIAGINIT_RN_DECAY', LOC ) 
-    ENDIF
-
-    ! Pb emissions diagnostic (ND01)
-    CALL DIAGINIT_PB_EMISS( am_I_Root, Input_Opt, RC )
-    IF ( RC /= GIGC_SUCCESS ) THEN
-       CALL ERROR_STOP( 'Error in DIAGINIT_PB_EMISS', LOC ) 
     ENDIF
 
 !    ! Hg emissions/prod/loss diagnostic (ND03)
@@ -2246,7 +2242,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: diaginit_ew_flx (LL in progress)
+! !IROUTINE: diaginit_ew_flx
 !
 ! !DESCRIPTION: Subroutine DIAGINIT\_EW\_FLX initializes the zonal
 !  (east/west) horizontal mass transport flux diagnostic (aka ND24).
@@ -2773,8 +2769,6 @@ CONTAINS
     OutOper    = Input_Opt%ND30_OUTPUT_TYPE
     WriteFreq  = Input_Opt%ND30_OUTPUT_FREQ
    
-    ! Check if certain tracer(s) listed for ND30 in input.geos???
-
     !----------------------------------------------------------------
     ! Create container for the GMAO land-water indices [.]
     !----------------------------------------------------------------
@@ -3446,6 +3440,145 @@ CONTAINS
 
   END SUBROUTINE DiagInit_Tracer_Mixing
 
+!EOC
+
+! subroutine  PRIVATE :: DiagUpdate_EW_Flx      ! ND24 update
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diagupdate_ew_flx (LL in progress)
+!
+! !DESCRIPTION: Subroutine DIAGUPDATE\_EW\_FLX updates the zonal
+!  (east/west) horizontal mass transport flux diagnostic (aka ND24).
+!  CONSIDER MAKING THIS USED FOR ALL ND24 to ND25???
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagUpdate_EW_Flx( am_I_Root, NDxx, DiagArray, ColNo, &
+                                Input_Opt, RC )
+!
+! !USES:
+!
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod    ! Is this needed?
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Update
+    USE HCO_Error_Mod
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN) :: am_I_Root          ! Is this the root CPU?
+    CHARACTER(LEN=4), INTENT(IN) :: NDxx               ! Diagnostic id
+    INTEGER,          INTENT(IN) :: ColNo              ! Diag collection #
+    REAL(fp),         INTENT(IN) :: DiagArray(:,:,:,:)   ! data
+    TYPE(OptInput),   INTENT(IN) :: Input_Opt          ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  6 Feb 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER              :: cId,      Collection, N
+    CHARACTER(LEN=15)    :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: MSG
+    CHARACTER(LEN=255)   :: LOC = 'DIAGUPDATE_EW_FLX (diagnostics_mod.F90)' 
+    INTEGER              :: HCRC
+    REAL(fp), TARGET     :: DiagArray_tracer(IIPAR,JJPAR,LLPAR)
+    REAL(fp), POINTER    :: Ptr3D(:,:,:)
+
+    !=======================================================================
+    ! DIAGUPDATE_EW_FLX begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if diagnostic is turned off.
+    SELECT CASE ( NDxx )
+       CASE ( 'ND24' )
+          IF ( Input_Opt%ND24 <= 0 ) RETURN
+       CASE ( 'ND25' )
+          IF ( Input_Opt%ND25 <= 0 ) RETURN
+       CASE ( 'ND26' )
+          IF ( Input_Opt%ND26 <= 0 ) RETURN
+       CASE DEFAULT
+          MSG = 'Undefined Rn/Pb/Be7 diagnostic: ' // NDxx
+          CALL ERROR_STOP( TRIM( MSG ), LOC )
+    END SELECT
+
+    ! Loop over tracers
+    DO N = 1, Input_Opt%N_TRACERS
+
+       ! If this tracer number N is scheduled for output in input.geos, 
+       ! then update its diagnostic container for E/W flux
+       IF ( ANY( Input_Opt%TINDEX(24,:) == N ) ) THEN
+         
+          !----------------------------------------------------------------
+          ! Update container for east/west mass flux by transport [kg/s]
+          !----------------------------------------------------------------
+      
+          ! Diagnostic name
+          SELECT CASE ( NDxx )
+             CASE ( 'ND24' )
+                DiagnName = 'EW_FLX_' // TRIM( Input_Opt%TRACER_NAME( N ) )
+             CASE ( 'ND25' )
+                DiagnName = 'NS_FLX_' // TRIM( Input_Opt%TRACER_NAME( N ) )
+             CASE ( 'ND26' )
+                DiagnName = 'VERT_FLX_' // TRIM( Input_Opt%TRACER_NAME( N ) )
+             CASE DEFAULT
+                MSG = 'Undefined mass flux diagnostic: ' // NDxx
+                CALL ERROR_STOP( TRIM( MSG ), LOC )
+          END SELECT
+
+          ! DEBUGGING - ewl, 2/6/15
+          PRINT *, " "
+          PRINT *, "In " // TRIM( LOC ) // " for diag ", DiagnName
+          ! END DEBUGGING
+
+          ! Assign temporary 3D array
+          DiagArray_tracer = DiagArray(:,:,:,N)
+
+          ! Point to the array
+          Ptr3D => DiagArray_tracer
+
+          ! Create container
+          CALL Diagn_Update( am_I_Root,                                &
+                             cName     = TRIM( DiagnName ),            &
+                             Array3D   = Ptr3D,                        &
+                             COL       = ColNo,                        &
+                             RC        = HCRC )
+
+          ! DEBUGGING - ewl, 2/6/15
+          PRINT *, "   Sample data point: ", DiagArray_tracer(25,25,2)
+          PRINT *, "   Diagn_Update was called for diagnostic"
+          ! END DEBUGGING
+                
+          ! Free the point before error handling
+          Ptr3D => NULL()
+
+          ! Stop with error if the diagnostics update was unsuccessful.
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot Update ' // TRIM( NDxx ) &
+                   // ' diagnostic: ' // TRIM( DiagnName )
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF  
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagUpdate_EW_Flx
 !EOC
 
 

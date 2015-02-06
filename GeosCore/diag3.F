@@ -63,6 +63,9 @@
       USE HCO_STATE_MOD,     ONLY : HCO_STATE
       USE HCOI_GC_MAIN_MOD,  ONLY : GetHcoState
 
+      ! Modules for writing diagnostics to netcdf (temporary)
+      USE DIAGNOSTICS_MOD,   ONLY : DIAGUPDATE_EW_FLX
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -315,6 +318,11 @@
       REAL(hp), PARAMETER      :: S_SO4    = 32e+0_hp / 96e+0_hp
 
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
+
+#if defined( DEVEL )
+      ! Temporary for writing to netcdf
+      REAL(fp)   :: EW_FLX_ARRAY(IIPAR,JJPAR,LLPAR,PD24)
+#endif
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -1832,6 +1840,7 @@
             ENDIF
          ENDDO    
       ENDIF     
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND24: Eastward mass flux from transport (TPCORE, XTP)
@@ -1846,7 +1855,6 @@
 !  (2) Now only write LD24 levels out to the bpch file (bmy, 12/7/00)
 !******************************************************************************
 !
-#if !defined( NO_BPCH )
       IF ( ND24 > 0 ) THEN
          CATEGORY = 'EW-FLX-$'
          UNIT = 'kg/s'
@@ -1867,6 +1875,15 @@
          ENDDO
       ENDIF
 #endif
+#if defined( DEVEL )
+      EW_FLX_ARRAY = MASSFLEW / SCALEDYN
+
+      CALL DiagUpdate_EW_Flx( am_I_Root, 
+     &                        'ND24',
+     &                        EW_FLX_ARRAY,
+     &                        2, Input_Opt, RC = RC )     ! change this in the future
+#endif
+#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND25: Northward mass flux from transport (TPCORE, YTP)
@@ -1881,7 +1898,6 @@
 !  (2) Now only write LD25 levels out to the bpch file (bmy, 12/7/00)
 !******************************************************************************
 !  
-#if !defined( NO_BPCH )
       IF ( ND25 > 0 ) THEN
          CATEGORY = 'NS-FLX-$'
          UNIT = 'kg/s'
