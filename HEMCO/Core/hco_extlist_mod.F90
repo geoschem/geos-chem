@@ -15,7 +15,15 @@
 ! = 0). The CORE extension is activated in every HEMCO run, while
 ! all other extensions are only activated if enabled in the 
 ! configuration file.
-! \\
+!\\
+!\\
+! Extension number -999 is used as 'wildcard' value, e.g. data
+! containers with extension number -999 will always be read by
+! HEMCO but will be ignored for emission calculation. This is
+! particularly useful for data fields that shall be used outside 
+! of HEMCO, e.g. stratospheric chemistry prod/loss rates, etc.
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_ExtList_Mod
@@ -664,6 +672,12 @@ CONTAINS
     !======================================================================
     ! ExtNrInUse begins here
     !======================================================================
+
+    ! Use number -999 for wildcard values
+    IF ( ExtNr == -999 ) THEN
+       InUse = .TRUE.
+       RETURN
+    ENDIF
 
     ! Init output
     InUse = .FALSE.

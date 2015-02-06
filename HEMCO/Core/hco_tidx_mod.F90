@@ -706,6 +706,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER   :: cYr, cMt, cDy, cHr 
+    LOGICAL   :: InRange
 
     !-----------------------------------
     ! HCO_GetPrefTimeAttr begins here! 
@@ -720,10 +721,68 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to 2 or 3, the preferred datetime is 
+    ! If CycleFlag is set to 2 (range), the preferred datetime is 
+    ! the current date if we are within the provided range, and 
+    ! invalid otherwise.
+    ! ------------------------------------------------------------- 
+    IF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN
+
+       ! Check if we are inside of valid range
+       InRange = .TRUE.
+
+       IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
+          IF ( cYr < Lct%Dct%Dta%ncYrs(1) .OR. &
+               cYr > Lct%Dct%Dta%ncYrs(2)       ) THEN 
+             InRange = .FALSE.
+          ENDIF
+       ENDIF
+
+       IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
+          IF ( cMt < Lct%Dct%Dta%ncMts(1) .OR. &
+               cMt > Lct%Dct%Dta%ncMts(2)       ) THEN 
+             InRange = .FALSE.
+          ENDIF
+       ENDIF
+
+       IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
+          IF ( cDy < Lct%Dct%Dta%ncDys(1) .OR. &
+               cDy > Lct%Dct%Dta%ncDys(2)       ) THEN 
+             InRange = .FALSE.
+          ENDIF
+       ENDIF
+
+       IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
+          IF ( cHr < Lct%Dct%Dta%ncHrs(1) .OR. &
+               cHr > Lct%Dct%Dta%ncHrs(2)       ) THEN 
+             InRange = .FALSE.
+          ENDIF
+       ENDIF
+ 
+       IF ( InRange ) THEN
+          readYr = cYr
+          readMt = cMt
+          readDy = cDy
+          IF ( Lct%Dct%Dta%ncHrs(1) == -1 ) THEN
+             readHr = -1
+          ELSE
+             readHr = cHr
+          ENDIF
+       ELSE
+          readYr = -1
+          readMt = -1
+          readDy = -1
+          readHr = -1
+       ENDIF
+
+       ! Don't need below
+       RETURN
+    ENDIF
+
+    ! ------------------------------------------------------------- 
+    ! If CycleFlag is set to 3 (exact), the preferred datetime is 
     ! always the current date.
     ! ------------------------------------------------------------- 
-    IF ( Lct%Dct%Dta%CycleFlag > 1 ) THEN
+    IF ( Lct%Dct%Dta%CycleFlag == 3 ) THEN
        readYr = cYr
        readMt = cMt
        readDy = cDy

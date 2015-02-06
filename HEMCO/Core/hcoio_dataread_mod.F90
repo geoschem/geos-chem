@@ -423,14 +423,13 @@ CONTAINS
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ELSEIF ( Lct%Dct%Dta%CycleFlag == 1 ) THEN
-          MSG = 'You broke HEMCO! Invalid time index: ' // &
-               TRIM(srcFile)
+          MSG = 'Invalid time index: ' // TRIM(srcFile)
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ELSEIF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN
           CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
-          MSG = 'Simulation time is outside of time range of file ' // &
-               TRIM(srcFile) // ' - ignore these data!'
+          MSG = 'Simulation time is outside of time range provided for '//&
+               TRIM(Lct%Dct%cName) // ' - data is ignored!'
           CALL HCO_WARNING ( MSG, RC )
           CALL NC_CLOSE ( ncLun ) 
           CALL HCO_LEAVE ( RC ) 
@@ -978,15 +977,39 @@ CONTAINS
     ! Select time slices to read
     ! ---------------------------------------------------------------- 
 
-    ! ------------------------------------------------------------- 
+    ! ---------------------------------------------------------------- 
     ! Get preferred time stamp to read based upon the specs set
     ! in the config. file. 
     ! This can return value -1 for prefHr, indicating that all  
-    ! corresponding time slices shall be read. Will always return
-    ! a valid attribute for Yr, Mt, or Dy.
-    ! ------------------------------------------------------------- 
+    ! corresponding time slices shall be read.
+    ! This call will return -1 for all dates if the simulation date is
+    ! outside of the data range given in the configuration file.
+    ! ---------------------------------------------------------------- 
     CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Check if we are outside of provided range
+    IF ( prefYr < 0 .OR. prefMt < 0 .OR. prefDy < 0 ) THEN
+     
+       ! This should only happen for 'range' data (cycle flag is 2). 
+       IF ( Lct%Dct%Dta%CycleFlag /= 2 ) THEN
+          MSG = 'Cannot get preferred datetime for ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ENDIF
+
+       ! If this part of the code gets executed, the data associated 
+       ! with this container shall not be used at the current date.
+       ! To do so, set the time indeces to -1 and leave right here.
+       tidx1 = -1
+       tidx2 = -1
+ 
+       ! Leave w/ success
+       CALL HCO_LEAVE( RC )
+       RETURN 
+    ENDIF
+
+    ! prefYMDh is the preferred datetime
     prefYMDh = prefYr*1000000 + prefMt*10000 + &
                prefDy*100 + max(prefHr,0)
 
@@ -1025,10 +1048,10 @@ CONTAINS
        ! ------------------------------------------------------------- 
        ! If tidx1 couldn't be set in the call above, re-adjust 
        ! preferred year to the closest available year in the 
-       ! time slices. Then repeat the check. Do only if time slice
-       ! cycling is enabled, i.e. CycleFlag set to 1. 
+       ! time slices. Then repeat the check. Don't do this for exact
+       ! dates. 
        ! ------------------------------------------------------------- 
-       IF ( Lct%Dct%Dta%CycleFlag == 1 ) THEN
+       IF ( Lct%Dct%Dta%CycleFlag /= 3 ) THEN
          
           ! Adjust year, month, and day (in this order).
           CNT  = 0
@@ -1053,10 +1076,9 @@ CONTAINS
        ! ------------------------------------------------------------- 
        ! If tidx1 still isn't defined, i.e. prefYMDh is still 
        ! outside the range of availYMDh, set tidx1 to the closest
-       ! available date. This must be 1 or nTime! Do only if time
-       ! slice cycling is enabled, i.e. CycleFlag set to 1. 
+       ! available date. This must be 1 or nTime! 
        ! ------------------------------------------------------------- 
-       IF ( tidx1 < 0 .AND. Lct%Dct%Dta%CycleFlag == 1 ) THEN
+       IF ( tidx1 < 0 .AND. Lct%Dct%Dta%CycleFlag /= 3 ) THEN
           IF ( prefYMDh < availYMDh(1) ) THEN
              tidx1 = 1
           ELSE

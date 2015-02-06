@@ -784,8 +784,11 @@ CONTAINS
        ! if scale factors are only defined for a given time range and
        ! the simulation datetime is outside of this range.
        IF ( .NOT. FileData_ArrIsDefined(ScalDct%Dta) ) THEN
-          MSG = 'Scale factor not defined: ' // TRIM(ScalDct%cName)
-          CALL HCO_WARNING( MSG, RC )
+          IF ( verb ) THEN
+             MSG = 'Skip scale factor '//TRIM(ScalDct%cName)// &
+                   ' because it is not defined for this datetime.'
+             CALL HCO_MSG( MSG )
+          ENDIF
           CYCLE
        ENDIF
 

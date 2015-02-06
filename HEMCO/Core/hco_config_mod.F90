@@ -1607,6 +1607,14 @@ CONTAINS
     ! By default, set target ID to container ID
     targetID = cID
 
+    ! If ExtNr is -999, always read this field. ExtNr becomes zero
+    ! if the extension number entry in the configuration file is the
+    ! wildcard character
+    IF ( ExtNr == -999 ) THEN
+       CALL HCO_LEAVE( RC )
+       RETURN
+    ENDIF
+
     ! If species ID is zero, always read this field as is, i.e. don't
     ! skip it and don't add it to another field!
     ! Species ID become zero if the species ID entry in the
@@ -2079,7 +2087,8 @@ CONTAINS
     IF ( STAT == 100 ) RETURN 
 
     ! ---------------------------------------------------------------------
-    ! Read integers as specified and write them into given variables 
+    ! Read integers as specified and write them into given variables. 
+    ! Value -999 is returned for wildcard characters.
     ! ---------------------------------------------------------------------
 
     CALL READINT( LINE, SUBSTR, N, int1cl, int1, OPT, STAT )
@@ -2185,7 +2194,12 @@ CONTAINS
              intout = -999
           ENDIF
        ELSE
-          READ( SUBSTR(intcl), * ) intout
+          ! Check for wildcard
+          IF ( SUBSTR(intcl) == HCO_WCD() ) THEN
+             intout = -999
+          ELSE
+             READ( SUBSTR(intcl), * ) intout
+          ENDIF
        ENDIF
     ENDIF
 
