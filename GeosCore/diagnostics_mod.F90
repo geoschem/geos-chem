@@ -3012,6 +3012,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE HCO_Error_Mod
+    USE CMN_DIAG_MOD,       ONLY : PD55
 !
 ! !INPUT PARAMETERS:
 !
@@ -3067,7 +3068,7 @@ CONTAINS
 
     ! Define quantities
       N = Input_Opt%TINDEX(55,M)
-      IF ( N > Input_Opt%PD55 ) CYCLE
+      IF ( N > PD55 ) CYCLE
 
       ! Pick the appropriate unit string
       SELECT CASE ( N )
