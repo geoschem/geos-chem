@@ -1377,9 +1377,11 @@ CONTAINS
 
    ! Return w/ success
    RC = HCO_SUCCESS
+#endif
    
  END SUBROUTINE READ_PARANOX_LUT_NC
 !EOC
+#if !defined(ESMF_)
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2180,26 +2182,27 @@ CONTAINS
 !
 !      INTEGER                    :: NK, JLOOP
    INTEGER                    :: I1,I2,I3,I4,I5,I6,I7,I8
-   REAL*4                     :: FNOX_TMP, DNOX_TMP, OPE_TMP, MOE_TMP
-   REAL*4                     :: WEIGHT, MOE
-   REAL*8                     :: DENS, JNO2, JO1D, JOH, TAIR
-   REAL(dp)                   :: H2O
-   REAL(hp)                   :: AIR
+   REAL(sp)                   :: FNOX_TMP, DNOX_TMP, OPE_TMP, MOE_TMP
+   REAL(sp)                   :: WEIGHT
+   REAL(sp)                   :: DENS, JNO2, JO1D, JOH, TAIR
+   REAL(sp)                   :: H2O
+   REAL(sp)                   :: AIR
+   REAL*8                     :: MOE
 !      CHARACTER*8                :: SPECNAME
 !      REAL*8, EXTERNAL           :: FJFUNC
 
    ! Interpolation variables, indices, and weights
    REAL(sp), DIMENSION(8)     :: VARS
-   INTEGER,DIMENSION(8,2)     :: INDX
-   REAL*4, DIMENSION(8,2)     :: WTS
+   INTEGER,  DIMENSION(8,2)   :: INDX
+   REAL(sp), DIMENSION(8,2)   :: WTS
 
-   REAL*4, POINTER, DIMENSION(:,:,:,:,:,:,:) :: FRACNOX_LUT => NULL(), &
+   REAL(sp), POINTER, DIMENSION(:,:,:,:,:,:,:) :: FRACNOX_LUT => NULL(), &
           DNOX_LUT => NULL(), OPE_LUT  => NULL(),   MOE_LUT => NULL() 
     
    CHARACTER(LEN=255)         :: MSG
    CHARACTER(LEN=255)         :: LOC = 'PARANOX_LUT' 
 
-   REAL(dp), PARAMETER        :: MWH2O = 18.0_dp
+   REAL(sp), PARAMETER        :: MWH2O = 18.0_sp
 
 !      LOGICAL, SAVE              :: FIRST=.TRUE.
 !      INTEGER, SAVE              :: Ind_JNO2, Ind_JO1D
@@ -2216,9 +2219,9 @@ CONTAINS
 
    ! Air density, molec/cm3
    !DENS = State_Met%AIRDEN(1,I,J) / 28.97d-3 * 6.02d23 / 1d6
-   DENS = AIR                            * 1.d3                &
+   DENS = AIR                            * 1.e3_sp             &
         / ExtState%AIRVOL%Arr%Val(I,J,1) / HcoState%Phys%AIRMW &
-        * HcoState%Phys%Avgdr            / 1.d6
+        * HcoState%Phys%Avgdr            / 1.e6_sp
 
    ! Air temperature, K
    Tair = ExtState%T2M%Arr%Val(I,J)
@@ -2257,7 +2260,7 @@ CONTAINS
 !      ENDIF
 
    ! Check if sun is up
-   IF ( ExtState%SUNCOSmid%Arr%Val(I,J) > 0d0 ) THEN
+   IF ( ExtState%SUNCOSmid%Arr%Val(I,J) > 0.0_hp ) THEN
 
       ! J(NO2), 1/s
       !JNO2 = FJFUNC(I,J,1,Ind_JNO2,1,SPECNAME)
@@ -2269,27 +2272,27 @@ CONTAINS
 
       ! H2O, molec/cm3. Get from specific humidity, which is in kg/kg.
       ! H2O = CSPEC(JLOOP,IH2O)
-      H2O = ExtState%SPHU%Arr%Val(I,J,1) * 1.d3  &
-          * ExtState%AIR%Arr%Val(I,J,1)  / MWH2O &
-          * HcoState%Phys%Avgdr          / 1d6
+      H2O = ExtState%SPHU%Arr%Val(I,J,1) * 1.e3_sp &
+          * ExtState%AIR%Arr%Val(I,J,1)  / MWH2O   &
+          * HcoState%Phys%Avgdr          / 1e6_sp
          
       ! Calculate J(OH), the effective rate for O3+hv -> OH+OH,
       ! assuming steady state for O(1D).
       ! Rate coefficients are cm3/molec/s; concentrations are molec/cm3
       ! This should match the O3+hv (+H2O) -> OH+OH kinetics in calcrate.F
       JOH = JO1D *                                            &
-            1.63d-10 * EXP( 60.d0/Tair) * H2O /               &
-            ( 1.63d-10 * EXP( 60.d0/Tair) * H2O +             &
-            1.20d-10                    * DENS * 0.5000d-6  + &
-            2.15d-11 * EXP(110.d0/Tair) * DENS * 0.7808d0   + &
-            3.30d-11 * EXP( 55.d0/Tair) * DENS * 0.2095d0   )
+            1.63e-10 * EXP( 60.e0/Tair) * H2O /               &
+          ( 1.63e-10 * EXP( 60.e0/Tair) * H2O +             &
+            1.20e-10                    * DENS * 0.5000e-6  + &
+            2.15e-11 * EXP(110.e0/Tair) * DENS * 0.7808e0   + &
+            3.30e-11 * EXP( 55.e0/Tair) * DENS * 0.2095e0   )
 
    ELSE
 
       ! J-values are zero when sun is down
-      JNO2 = 0d0
-      JO1D = 0d0
-      JOH  = 0d0
+      JNO2 = 0e0_sp
+      JO1D = 0e0_sp
+      JOH  = 0e0_sp
 
    ENDIF
 
@@ -2306,7 +2309,7 @@ CONTAINS
    ! O3 concentration in ambient air, ppb
    VARS(3) = ExtState%O3%Arr%Val(I,J,1) / AIR   &
            * HcoState%Phys%AIRMW        / MW_O3 &
-           * 1.E9
+           * 1.e9_sp
 !  VARS(3) = CSPEC(JLOOP,IDO3) / DENS * 1.E9
 
    ! Solar elevation angle, degree
@@ -2323,10 +2326,11 @@ CONTAINS
    ! Note J(OH) is the loss rate (1/s) of O3 to OH, which accounts for 
    ! the temperature, pressure and water vapor dependence of these reactions
    !VARS(6) = SAFE_DIV( JOH, JNO2, 0D0 )
-   IF ( (EXPONENT(JOH)-EXPONENT(JNO2)) < MAXEXPONENT(JOH) ) THEN
-      VARS(6) = JOH / JNO2
-   ELSE
-      VARS(6) = 0.0_sp
+   VARS(6) = 0.0_sp
+   IF ( JOH /= 0.0_sp ) THEN
+      IF ( (EXPONENT(JOH)-EXPONENT(JNO2)) < MAXEXPONENT(JOH) ) THEN
+         VARS(6) = JOH / JNO2
+      ENDIF
    ENDIF
 
    ! NOx concetration in ambient air, ppt
@@ -2335,7 +2339,7 @@ CONTAINS
            *     HcoState%Phys%AIRMW         / MW_NO  )   &
            +   ( ExtState%NO2%Arr%Val(I,J,1) / AIR        &
            *     HcoState%Phys%AIRMW         / MW_NO2 ) ) &
-           * 1.E12
+           * 1.e12_sp
 
       ! Wind speed, m/s
 !   VARS(8) = SQRT( State_Met%U(I,J,1)**2 + State_Met%V(I,J,1)**2 )         
@@ -2384,10 +2388,10 @@ CONTAINS
    !========================================================================
       
    ! Initialize
-   FNOX = 0.0
-   DNOx = 0.0
-   OPE  = 0.0
-   MOE  = 0.0
+   FNOX = 0.0d0
+   DNOx = 0.0d0
+   OPE  = 0.0d0
+   MOE  = 0.0d0
 
    ! Loop over wind speed
    DO I8=1,2
