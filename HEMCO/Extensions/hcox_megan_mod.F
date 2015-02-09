@@ -190,17 +190,17 @@
       ! These fields are obtained from ext. data (from config file)
       ! These arrays represent the base emission values in kg(C)/m2/s
       ! that will be scaled based upon meteorological conditions.
-      REAL(hp), POINTER       :: AEF_ISOP(:,:) => NULL()     ! Isoprene 
-      REAL(hp), POINTER       :: AEF_MBO(:,:) => NULL()      ! Methyl butenol
-      REAL(hp), POINTER       :: AEF_APINE(:,:) => NULL()    ! Alpha-pinene
-      REAL(hp), POINTER       :: AEF_BPINE(:,:) => NULL()    ! Beta-pinene
-      REAL(hp), POINTER       :: AEF_LIMON(:,:) => NULL()    ! Limonene
-      REAL(hp), POINTER       :: AEF_SABIN(:,:) => NULL()    ! Sabine
-      REAL(hp), POINTER       :: AEF_MYRCN(:,:) => NULL()    ! Myrcene
-      REAL(hp), POINTER       :: AEF_CAREN(:,:) => NULL()    ! 3-Carene
-      REAL(hp), POINTER       :: AEF_OCIMN(:,:) => NULL()    ! Ocimene
-      REAL(hp), POINTER       :: AEF_ACET(:,:) => NULL()     ! Acetone
-      REAL(hp), POINTER       :: GEIA_ORVC(:,:) => NULL()
+      REAL(sp), POINTER       :: AEF_ISOP(:,:) => NULL()     ! Isoprene 
+      REAL(sp), POINTER       :: AEF_MBO(:,:) => NULL()      ! Methyl butenol
+      REAL(sp), POINTER       :: AEF_APINE(:,:) => NULL()    ! Alpha-pinene
+      REAL(sp), POINTER       :: AEF_BPINE(:,:) => NULL()    ! Beta-pinene
+      REAL(sp), POINTER       :: AEF_LIMON(:,:) => NULL()    ! Limonene
+      REAL(sp), POINTER       :: AEF_SABIN(:,:) => NULL()    ! Sabine
+      REAL(sp), POINTER       :: AEF_MYRCN(:,:) => NULL()    ! Myrcene
+      REAL(sp), POINTER       :: AEF_CAREN(:,:) => NULL()    ! 3-Carene
+      REAL(sp), POINTER       :: AEF_OCIMN(:,:) => NULL()    ! Ocimene
+      REAL(sp), POINTER       :: AEF_ACET(:,:) => NULL()     ! Acetone
+      REAL(sp), POINTER       :: GEIA_ORVC(:,:) => NULL()
 
       ! Generic emission factors (all 20 MEGAN groups). Will be determined from 
       ! plant functional types.
@@ -222,26 +222,26 @@
       ! Past light & temperature conditions (mpb,2009)
       ! (1) Temperature at 2m (TS):
 !      REAL(hp), ALLOCATABLE, TARGET :: HCOT_DAILY(:,:)       ! Daily averaged sfc temp
-      REAL(hp), POINTER             :: T_PREVDAY(:,:)        ! Pointer to previous day T.
-      REAL(hp), ALLOCATABLE, TARGET :: HCOT_DAY(:,:,:)       ! Holds 1 day of sfc temp data
-      REAL(hp), ALLOCATABLE, TARGET :: HCOT_15(:,:,:)        ! Holds 15 days of daily avg T
-      REAL(hp), ALLOCATABLE, TARGET :: HCOT_15_AVG(:,:)      ! Sfc temp avg'd over NUM_DAYS
+      REAL(sp), POINTER             :: T_PREVDAY(:,:)        ! Pointer to previous day T.
+      REAL(sp), ALLOCATABLE, TARGET :: HCOT_DAY(:,:,:)       ! Holds 1 day of sfc temp data
+      REAL(sp), ALLOCATABLE, TARGET :: HCOT_15(:,:,:)        ! Holds 15 days of daily avg T
+      REAL(sp), ALLOCATABLE, TARGET :: HCOT_15_AVG(:,:)      ! Sfc temp avg'd over NUM_DAYS
 
       ! (2) PAR Direct: 
 !      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDR_DAILY(:,:)   ! Average daily PARDR
-      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDR_DAY(:,:,:)   ! Holds 1 day of PARDR data
-      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDR_15(:,:,:)    ! 10 days of daily avg'd PARDR
-      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDR_15_AVG(:,:)  ! PARDR averaged over NUM_DAYS
+      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDR_DAY(:,:,:)   ! Holds 1 day of PARDR data
+      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDR_15(:,:,:)    ! 10 days of daily avg'd PARDR
+      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDR_15_AVG(:,:)  ! PARDR averaged over NUM_DAYS
 
       ! (3) PAR Diffuse: 
 !      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDF_DAILY(:,:)   ! Average daily PARDR
-      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDF_DAY(:,:,:)   ! Holds 1-day of PARDR data
-      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDF_15(:,:,:)    ! 10 days of daily avg'd PARDR 
-      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDF_15_AVG(:,:)  ! PARDF averaged over NUM_DAYS
+      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDF_DAY(:,:,:)   ! Holds 1-day of PARDR data
+      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDF_15(:,:,:)    ! 10 days of daily avg'd PARDR 
+      REAL(sp), ALLOCATABLE, TARGET :: HCOPARDF_15_AVG(:,:)  ! PARDF averaged over NUM_DAYS
 
       ! previous LAI values (ckeller, 10/09/2014)
-      REAL(hp), ALLOCATABLE, TARGET :: LAI_PREVSTEP(:,:)     ! LAI of prev. time step
-      REAL(hp), ALLOCATABLE, TARGET :: LAI_PREVDAY(:,:)      ! LAI of prev. day
+      REAL(sp), ALLOCATABLE, TARGET :: LAI_PREVSTEP(:,:)     ! LAI of prev. time step
+      REAL(sp), ALLOCATABLE, TARGET :: LAI_PREVDAY(:,:)      ! LAI of prev. day
 
       ! Days between mid-months (updated by HEMCO clock)
       INTEGER             :: DAYS_BTW_M
@@ -2313,8 +2313,8 @@
       TYPE(HCO_State), POINTER    :: HcoState
       TYPE(Ext_State), POINTER    :: ExtState
       INTEGER,         INTENT(IN) :: I,  J             ! Lon & lat indices 
-      REAL(hp),        INTENT(IN) :: HCOPARDR_AVG_SIM     ! Average direct PAR [W/m2]
-      REAL(hp),        INTENT(IN) :: HCOPARDF_AVG_SIM     ! Average diffuse PAR [W/m2]
+      REAL(sp),        INTENT(IN) :: HCOPARDR_AVG_SIM     ! Average direct PAR [W/m2]
+      REAL(sp),        INTENT(IN) :: HCOPARDF_AVG_SIM     ! Average diffuse PAR [W/m2]
       REAL(hp),        INTENT(IN) :: Q_DIR_2           ! Direct PAR [umol/m2/s]
       REAL(hp),        INTENT(IN) :: Q_DIFF_2          ! Diffuse PAR [umol/m2/s]
 !
@@ -2513,11 +2513,11 @@
 
  
       ! Average leaf temperature over the past 15 days
-      REAL(hp),  INTENT(IN) :: PHCOT_15
+      REAL(sp),  INTENT(IN) :: PHCOT_15
 
       ! Average leaf temperature over the past arbitray day(s).
       ! This is not used at present (but might be soon!).
-      REAL(hp),  INTENT(IN) :: PT_1
+      REAL(sp),  INTENT(IN) :: PT_1
 !
 ! !RETURN VALUE:
 !
@@ -2870,7 +2870,7 @@
       REAL(hp),         INTENT(IN) :: CMLAI    ! Current month's LAI [cm2/cm2]
       REAL(hp),         INTENT(IN) :: PMLAI    ! Previous months LAI [cm2/cm2]
       CHARACTER(LEN=4), INTENT(IN) :: SPECIES  ! BVOC species name
-      REAL(hp),         INTENT(IN) :: TT       ! Daily average temperature [K]
+      REAL(sp),         INTENT(IN) :: TT       ! Daily average temperature [K]
 !
 ! !RETURN VALUE:
 !
@@ -3140,7 +3140,7 @@
 !
       INTEGER           :: I
       LOGICAL           :: FND
-      REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
+      REAL(sp), POINTER :: Ptr2D(:,:) => NULL()
 
       !=================================================================
       ! FILL_RESTART_VARS begins here!
@@ -3182,18 +3182,21 @@
       CALL HCO_GetPtr( am_I_Root, 'T_DAVG', Ptr2D, RC, FOUND=FND )
       IF ( RC /= HCO_SUCCESS ) RETURN
      
+      ! Set average of HCOT_15 array
       ! Use current temperature if restart not found 
       IF ( .NOT. FND ) THEN
-         Ptr2D => ExtState%T2M%Arr%Val
+         HCOT_15_AVG = ExtState%T2M%Arr%Val
+      ELSE
+         HCOT_15_AVG = Ptr2D 
       ENDIF
-
-      ! Set average of HCOT_15 array
-      HCOT_15_AVG = Ptr2D 
 
       ! Set all daily averages to this value. 
       DO I = 1, NUM_DAYS
-         HCOT_15(:,:,I) = Ptr2D
+         HCOT_15(:,:,I) = HCOT_15_AVG 
       ENDDO 
+
+      ! Cleanup
+      Ptr2D => NULL() 
 
       ! Check for most recent daily average
       CALL HCO_GetPtr( am_I_Root, 'T_PREVDAY', Ptr2D, RC, FOUND=FND )
@@ -3217,23 +3220,23 @@
       CALL HCO_GetPtr( am_I_Root, 'PARDR_DAVG', Ptr2D, RC, FOUND=FND )
       IF ( RC /= HCO_SUCCESS ) RETURN
      
+      ! Set daily average
       ! Use current value if not found 
       IF ( .NOT. FND ) THEN
-         Ptr2D => ExtState%PARDR%Arr%Val
+         HCOPARDR_15_AVG = ExtState%PARDR%Arr%Val
+      ELSE
+         HCOPARDR_15_AVG = Ptr2D 
       ENDIF
 
       ! Set hourly variables
       DO I = 1, DAY_DIM 
-         HCOPARDR_DAY(:,:,I) = Ptr2D
+         HCOPARDR_DAY(:,:,I) = HCOPARDR_15_AVG 
       ENDDO
 
       ! Set daily averages
       DO I = 1, NUM_DAYS
-         HCOPARDR_15(:,:,I) = Ptr2D
+         HCOPARDR_15(:,:,I) = HCOPARDR_15_AVG
       ENDDO 
-
-      ! Set daily average
-      HCOPARDR_15_AVG = Ptr2D 
 
       ! Cleanup
       Ptr2D => NULL()
@@ -3246,23 +3249,23 @@
       CALL HCO_GetPtr( am_I_Root, 'PARDF_DAVG', Ptr2D, RC, FOUND=FND )
       IF ( RC /= HCO_SUCCESS ) RETURN
      
+      ! Set daily average
       ! Use current value if not found 
       IF ( .NOT. FND ) THEN
-         Ptr2D => ExtState%PARDF%Arr%Val
+         HCOPARDF_15_AVG = ExtState%PARDF%Arr%Val
+      ELSE
+         HCOPARDF_15_AVG = Ptr2D 
       ENDIF
 
       ! Set hourly variables
       DO I = 1, DAY_DIM 
-         HCOPARDF_DAY(:,:,I) = Ptr2D
+         HCOPARDF_DAY(:,:,I) = HCOPARDF_15_AVG 
       ENDDO
 
       ! Set daily averages
       DO I = 1, NUM_DAYS
-         HCOPARDF_15(:,:,I) = Ptr2D
+         HCOPARDF_15(:,:,I) = HCOPARDF_15_AVG
       ENDDO 
-
-      ! Set daily average
-      HCOPARDF_15_AVG = Ptr2D 
 
       ! Cleanup
       Ptr2D => NULL()
@@ -3495,11 +3498,11 @@
       REAL(hp)                :: SUMFARN, SUMBCAR, SUMOSQT, SUMOMTP
 
       ! SOAupdate: Plant functional types (hotp 2/26/10)
-      REAL(hp), POINTER       :: PFT_BT(:,:) => NULL()       ! broadleaf trees
-      REAL(hp), POINTER       :: PFT_NT(:,:) => NULL()       ! needleleaf trees
-      REAL(hp), POINTER       :: PFT_SH(:,:) => NULL()       ! shrubs
-      REAL(hp), POINTER       :: PFT_GR(:,:) => NULL()       ! grasses
-      REAL(hp), POINTER       :: PFT_CR(:,:) => NULL()       ! crops
+      REAL(sp), POINTER       :: PFT_BT(:,:) => NULL()       ! broadleaf trees
+      REAL(sp), POINTER       :: PFT_NT(:,:) => NULL()       ! needleleaf trees
+      REAL(sp), POINTER       :: PFT_SH(:,:) => NULL()       ! shrubs
+      REAL(sp), POINTER       :: PFT_GR(:,:) => NULL()       ! grasses
+      REAL(sp), POINTER       :: PFT_CR(:,:) => NULL()       ! crops
 
       !=================================================================
       ! GET_AEF_GEN begins here!
@@ -3924,14 +3927,14 @@
         CALL HCO_ERROR( 'HCOT_DAY', RC )
         RETURN
       ENDIF
-      HCOT_DAY = 0.0_hp
+      HCOT_DAY = 0.0_sp
 
       ALLOCATE( HCOT_15( NX, NY, NUM_DAYS ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOT_15', RC )
         RETURN
       ENDIF
-      HCOT_15 = 0.0_hp
+      HCOT_15 = 0.0_sp
       T_PREVDAY => HCOT_15(:,:,1)
 
       ALLOCATE( HCOT_15_AVG( NX, NY ), STAT=AS )
@@ -3939,7 +3942,7 @@
         CALL HCO_ERROR( 'HCOT_15_AVG', RC )
         RETURN
       ENDIF
-      HCOT_15_AVG = 0.0_hp
+      HCOT_15_AVG = 0.0_sp
 
 !      ! Daily averaged temperature (mpb,2009)
 !      ALLOCATE( HCOT_DAILY( NX, NY ), STAT=AS )
@@ -3956,21 +3959,21 @@
         CALL HCO_ERROR( 'HCOPARDR_DAY', RC )
         RETURN
       ENDIF
-      HCOPARDR_DAY = 0.0_hp
+      HCOPARDR_DAY = 0.0_sp
 
       ALLOCATE( HCOPARDR_15( NX, NY, NUM_DAYS ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOPARDR_15', RC )
         RETURN
       ENDIF
-      HCOPARDR_15 = 0.0_hp
+      HCOPARDR_15 = 0.0_sp
 
       ALLOCATE( HCOPARDR_15_AVG( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOPARDR_15_AVG', RC )
         RETURN
       ENDIF
-      HCOPARDR_15_AVG = 0.0_hp
+      HCOPARDR_15_AVG = 0.0_sp
 
 !      ALLOCATE( HCOPARDR_DAILY( NX, NY ), STAT=AS )
 !      IF ( AS /= 0 ) THEN 
@@ -3985,21 +3988,21 @@
         CALL HCO_ERROR( 'HCOPARDF_DAY', RC )
         RETURN
       ENDIF
-      HCOPARDF_DAY = 0.0_hp
+      HCOPARDF_DAY = 0.0_sp
 
       ALLOCATE( HCOPARDF_15( NX, NY, NUM_DAYS ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOPARDF_15', RC )
         RETURN
       ENDIF
-      HCOPARDF_15 = 0.0_hp
+      HCOPARDF_15 = 0.0_sp
 
       ALLOCATE( HCOPARDF_15_AVG( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOPARDF_15_AVG', RC )
         RETURN
       ENDIF
-      HCOPARDF_15_AVG = 0.0_hp
+      HCOPARDF_15_AVG = 0.0_sp
 
 !      ALLOCATE( HCOPARDF_DAILY( NX, NY ), STAT=AS )
 !      IF ( AS /= 0 ) THEN 
@@ -4015,7 +4018,7 @@
         CALL HCO_ERROR( 'AEF_GEN', RC )
         RETURN
       ENDIF
-      AEF_GEN = 0.0_hp
+      AEF_GEN = 0.0_sp
 
       ! LAI from previous time step
       ALLOCATE( LAI_PREVSTEP( NX, NY ), STAT=AS )
@@ -4023,14 +4026,14 @@
         CALL HCO_ERROR( 'LAI_PREVSTEP', RC )
         RETURN
       ENDIF
-      LAI_PREVSTEP = 0.0_hp
+      LAI_PREVSTEP = 0.0_sp
 
       ALLOCATE( LAI_PREVDAY( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'LAI_PREVDAY', RC )
         RETURN
       ENDIF
-      LAI_PREVDAY = 0.0_hp
+      LAI_PREVDAY = 0.0_sp
 
       !=================================================================
       ! Initialize internal diagnostics. These are the restart variables

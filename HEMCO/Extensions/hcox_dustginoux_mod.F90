@@ -99,12 +99,12 @@ MODULE HCOX_DustGinoux_Mod
   REAL,    ALLOCATABLE :: DUSTREFF(:)       ! effective radius [um] 
 
   ! Source functions (get from HEMCO core) 
-  REAL(hp), POINTER    :: SRCE_SAND(:,:) => NULL()
-  REAL(hp), POINTER    :: SRCE_SILT(:,:) => NULL()
-  REAL(hp), POINTER    :: SRCE_CLAY(:,:) => NULL()
+  REAL(sp), POINTER    :: SRCE_SAND(:,:) => NULL()
+  REAL(sp), POINTER    :: SRCE_SILT(:,:) => NULL()
+  REAL(sp), POINTER    :: SRCE_CLAY(:,:) => NULL()
 
   ! Transfer coefficient (grid-dependent)
-  REAL*8               :: CH_DUST 
+  REAL(dp)             :: CH_DUST 
 
 CONTAINS
 !EOC

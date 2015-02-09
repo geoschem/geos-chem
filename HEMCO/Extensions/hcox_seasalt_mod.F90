@@ -70,8 +70,8 @@ MODULE HCOX_SeaSalt_Mod
   REAL*8, ALLOCATABLE :: RRMID (:,:)
 
   ! Number densities
-  REAL(hp), POINTER   :: NDENS_SALA(:,:) => NULL()
-  REAL(hp), POINTER   :: NDENS_SALC(:,:) => NULL()
+  REAL(sp), POINTER   :: NDENS_SALA(:,:) => NULL()
+  REAL(sp), POINTER   :: NDENS_SALC(:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -619,14 +619,14 @@ CONTAINS
        CALL HCO_ERROR( 'Cannot allocate NDENS_SALA', RC )
        RETURN
     ENDIF
-    NDENS_SALA = 0.0_hp
+    NDENS_SALA = 0.0_sp
 
     ALLOCATE ( NDENS_SALC( HcoState%NX, HcoState%NY), STAT=AS )
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( 'Cannot allocate NDENS_SALC', RC )
        RETURN
     ENDIF
-    NDENS_SALC = 0.0_hp
+    NDENS_SALC = 0.0_sp
 
     !=================================================================
     ! Define edges and midpoints of each incremental radius bin

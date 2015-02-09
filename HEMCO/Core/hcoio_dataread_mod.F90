@@ -181,15 +181,15 @@ CONTAINS
        IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V3) ) THEN
 
           ! Use pointer if types match
-          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, 0, RC )
-          CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, LL, RC )
+          CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, 0, RC )
+          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, LL, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! Pointer to data. HEMCO expects data to have surface level at
        ! index 1 ('up').
-       !Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
-       Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
+       Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
+       !Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
 
     !-----------------------------------------------------------------
     ! Read 2D data from ESMF 
@@ -215,14 +215,14 @@ CONTAINS
 
        ! Define HEMCO array pointer if not yet defined
        IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V2) ) THEN
-          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, RC )
-          CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, RC )
+          CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, RC )
+          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! Pointer to data
-       !Lct%Dct%Dta%V2(1)%Val => Ptr2D
-       Lct%Dct%Dta%V2(1)%Val = Ptr2D
+       Lct%Dct%Dta%V2(1)%Val => Ptr2D
+       !Lct%Dct%Dta%V2(1)%Val = Ptr2D
 
     ENDIF
  
@@ -1698,7 +1698,7 @@ CONTAINS
 !
     INTEGER               :: IUFILE, IOS
     INTEGER               :: ID1, ID2, I, NT, CID, NLINE
-    REAL(hp), POINTER     :: CNTR(:,:) => NULL()
+    REAL(sp), POINTER     :: CNTR(:,:) => NULL()
     INTEGER,  ALLOCATABLE :: CIDS(:,:)
     REAL(hp), POINTER     :: Vals(:) => NULL()
     LOGICAL               :: Verb
@@ -1814,7 +1814,7 @@ CONTAINS
        ! not yet been filled. 
        DO I = 1, NT
           IF ( CID == 0 ) THEN
-             WHERE ( Lct%Dct%Dta%V2(I)%Val <= 0.0_hp )
+             WHERE ( Lct%Dct%Dta%V2(I)%Val <= 0.0_sp )
                 Lct%Dct%Dta%V2(I)%Val = Vals(I)
              ENDWHERE
           ELSE
@@ -2361,7 +2361,7 @@ CONTAINS
             HcoState%Grid%YMID%Val(I,J) >= LAT1 .AND. &
             HcoState%Grid%YMID%Val(I,J) <= LAT2        ) THEN
 
-          Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_hp
+          Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_sp
        ENDIF 
 
     ENDDO

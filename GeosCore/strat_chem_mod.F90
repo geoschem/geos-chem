@@ -102,7 +102,7 @@ MODULE STRAT_CHEM_MOD
   ! BrPointers is a derived type to hold pointers to the Bry day 
   ! and night data 
   TYPE :: BrPointers
-     REAL(hp), POINTER  :: MR(:,:,:) => NULL()
+     REAL(sp), POINTER  :: MR(:,:,:) => NULL()
   END TYPE BrPointers
 
   ! Vectors holding the mixing ratios (MR) of day/night Bry data.
@@ -118,12 +118,12 @@ MODULE STRAT_CHEM_MOD
   ! PL_Pointers is a derived type to hold pointers to the production
   ! and loss fields 
   TYPE :: PL_Pointers 
-     REAL(hp), POINTER  :: PROD(:,:,:) => NULL() ! Production rate [v/v/s]
-     REAL(hp), POINTER  :: LOSS(:,:,:) => NULL() ! Loss frequency [s-1]
+     REAL(sp), POINTER  :: PROD(:,:,:) => NULL() ! Production rate [v/v/s]
+     REAL(sp), POINTER  :: LOSS(:,:,:) => NULL() ! Loss frequency [s-1]
   END TYPE PL_Pointers 
 
   ! Monthly mean OH [v/v]
-  REAL(hp), POINTER     :: STRAT_OH(:,:,:) => NULL()
+  REAL(sp), POINTER     :: STRAT_OH(:,:,:) => NULL()
 
   ! Vector holding the prod/loss arrays of all active strat chem 
   ! species.

@@ -3200,7 +3200,7 @@
 
       ! HEMCO update
       CHARACTER(LEN= 63)       :: DgnName
-      REAL(hp), POINTER        :: Ptr2D(:,:) => NULL()  
+      REAL(sp), POINTER        :: Ptr2D   (:,:) => NULL()  
       TYPE(HCO_STATE), POINTER :: HcoState   => NULL()
 
       CHARACTER(LEN=255) :: MSG
@@ -3302,7 +3302,7 @@
       IF ( RC /= HCO_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to HG0_SOILDIST', LOC )
       ENDIF
-      EHg0_dist = Ptr2D(:,:) 
+      EHg0_dist =  Ptr2D(:,:) 
       Ptr2D     => NULL()
 
       ! Free pointer

@@ -748,7 +748,7 @@ CONTAINS
 !                                                             ! (default=1)
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),         POINTER               :: Ptr3D(:,:,:)   ! output array
+    REAL(sp),         POINTER               :: Ptr3D(:,:,:)   ! output array
     LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND          ! cont. found?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -858,7 +858,7 @@ CONTAINS
 !                                                          ! (default=1)
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),         POINTER               :: Ptr2D(:,:)  ! output array
+    REAL(sp),         POINTER               :: Ptr2D(:,:)  ! output array
     LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND          ! cont. found?
 !
 ! !INPUT/OUTPUT PARAMETERS:

@@ -1928,8 +1928,8 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),         POINTER, OPTIONAL    :: Ptr2D(:,:)   ! Pointer to 2D data
-    REAL(hp),         POINTER, OPTIONAL    :: Ptr3D(:,:,:) ! Pointer to 3D data
+    REAL(sp),         POINTER, OPTIONAL    :: Ptr2D(:,:)      ! Pointer to 2D data
+    REAL(sp),         POINTER, OPTIONAL    :: Ptr3D(:,:,:)    ! Pointer to 3D data
 !
 ! !REMARKS:
 !
@@ -1990,19 +1990,19 @@ CONTAINS
 
           ! Error if no 2D or 3D data available
           ELSE
-             MSG = 'no data defined: ' // TRIM(DiagnName)
+             MSG = 'no data defined: '// TRIM(DiagnName)
              CALL ERROR_STOP ( MSG, LOC )
           ENDIF 
-   
+  
        ! 3D pointer: must point to 3D data
        ELSEIF ( PRESENT(Ptr3D) ) THEN
           IF ( ASSOCIATED(DgnCont%Arr3D%Val) ) THEN
              Ptr3D => DgnCont%Arr3D%Val
           ELSE
-             MSG = 'no 3D data defined: ' // TRIM(DiagnName)
+             MSG = 'no 3D data defined: '// TRIM(DiagnName)
              CALL ERROR_STOP ( MSG, LOC )
           ENDIF 
-  
+
        ! Error otherwise 
        ELSE
           MSG = 'Please define output data pointer: ' // TRIM(DiagnName)

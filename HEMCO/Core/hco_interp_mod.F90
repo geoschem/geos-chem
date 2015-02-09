@@ -157,8 +157,8 @@ CONTAINS
     REAL(dp)                :: PI_180
 
     REAL(sp), POINTER       :: ORIG_2D(:,:)     => NULL()
-    REAL(hp), POINTER       :: REGR_2D(:,:)     => NULL()
-    REAL(hp), POINTER       :: REGR_4D(:,:,:,:) => NULL()
+    REAL(sp), POINTER       :: REGR_2D(:,:)     => NULL()
+    REAL(sp), POINTER       :: REGR_4D(:,:,:,:) => NULL()
 
     REAL(sp), ALLOCATABLE, TARGET :: FRACS(:,:,:,:)
     REAL(hp), ALLOCATABLE         :: REGFRACS(:,:,:,:) 
@@ -480,7 +480,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root         ! Are we on the root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState          ! HEMCO state object
-    REAL(hp),         POINTER        :: REGR_4D(:,:,:,:)  ! 4D input data
+    REAL(sp),         POINTER        :: REGR_4D(:,:,:,:)  ! 4D input data
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -905,7 +905,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(hp),         POINTER        :: REGR_4D(:,:,:,:)  ! 4D input data
+    REAL(sp),         POINTER        :: REGR_4D(:,:,:,:)  ! 4D input data
     INTEGER,          INTENT(IN)     :: T
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -928,7 +928,7 @@ CONTAINS
     !=================================================================
 
     ! Reset
-    Lct%Dct%Dta%V3(T)%Val(:,:,1:12) = 0.0_hp
+    Lct%Dct%Dta%V3(T)%Val(:,:,1:12) = 0.0_sp
 
     ! Number of levels in output array
     NZ = SIZE(REGR_4D,3)
@@ -944,61 +944,61 @@ CONTAINS
     Lct%Dct%Dta%V3(T)%Val(:,:, 1) = REGR_4D(:,:,1,T)
 
     ! Level 2:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 2) = 3.78e-3_hp * REGR_4D(:,:, 1,T) &
-                                  + 0.515_hp   * REGR_4D(:,:, 2,T) &
-                                  + 0.481_hp   * REGR_4D(:,:, 3,T)
+    Lct%Dct%Dta%V3(T)%Val(:,:, 2) = 3.78e-3_sp * REGR_4D(:,:, 1,T) &
+                                  + 0.515_sp   * REGR_4D(:,:, 2,T) &
+                                  + 0.481_sp   * REGR_4D(:,:, 3,T)
 
     ! Level 3:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 3) = 1.88e-2_hp * REGR_4D(:,:, 3,T) &
-                                  + 0.285_hp   * REGR_4D(:,:, 4,T) &
-                                  + 0.285_hp   * REGR_4D(:,:, 5,T) &
-                                  + 0.285_hp   * REGR_4D(:,:, 6,T) &
-                                  + 0.127_hp   * REGR_4D(:,:, 7,T)
+    Lct%Dct%Dta%V3(T)%Val(:,:, 3) = 1.88e-2_sp * REGR_4D(:,:, 3,T) &
+                                  + 0.285_sp   * REGR_4D(:,:, 4,T) &
+                                  + 0.285_sp   * REGR_4D(:,:, 5,T) &
+                                  + 0.285_sp   * REGR_4D(:,:, 6,T) &
+                                  + 0.127_sp   * REGR_4D(:,:, 7,T)
 
     ! Level 4:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 4) = 0.115_hp   * REGR_4D(:,:, 7,T) &
-                                  + 0.208_hp   * REGR_4D(:,:, 8,T) &
-                                  + 0.208_hp   * REGR_4D(:,:, 9,T) &
-                                  + 0.208_hp   * REGR_4D(:,:,10,T) &
-                                  + 0.208_hp   * REGR_4D(:,:,11,T) &
-                                  + 5.51e-2_hp * REGR_4D(:,:,12,T)
+    Lct%Dct%Dta%V3(T)%Val(:,:, 4) = 0.115_sp   * REGR_4D(:,:, 7,T) &
+                                  + 0.208_sp   * REGR_4D(:,:, 8,T) &
+                                  + 0.208_sp   * REGR_4D(:,:, 9,T) &
+                                  + 0.208_sp   * REGR_4D(:,:,10,T) &
+                                  + 0.208_sp   * REGR_4D(:,:,11,T) &
+                                  + 5.51e-2_sp * REGR_4D(:,:,12,T)
 
     ! Level 5:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 5) = 0.189_hp   * REGR_4D(:,:,12,T) &
-                                  + 0.253_hp   * REGR_4D(:,:,13,T) &
-                                  + 0.253_hp   * REGR_4D(:,:,14,T) &
-                                  + 0.253_hp   * REGR_4D(:,:,15,T) &
-                                  + 5.68e-2_hp * REGR_4D(:,:,16,T)
+    Lct%Dct%Dta%V3(T)%Val(:,:, 5) = 0.189_sp   * REGR_4D(:,:,12,T) &
+                                  + 0.253_sp   * REGR_4D(:,:,13,T) &
+                                  + 0.253_sp   * REGR_4D(:,:,14,T) &
+                                  + 0.253_sp   * REGR_4D(:,:,15,T) &
+                                  + 5.68e-2_sp * REGR_4D(:,:,16,T)
 
     ! Level 6:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 6) = 0.224_hp   * REGR_4D(:,:,16,T) &
-                                  + 0.289_hp   * REGR_4D(:,:,17,T) &
-                                  + 0.289_hp   * REGR_4D(:,:,18,T) &
-                                  + 0.199_hp   * REGR_4D(:,:,19,T)
+    Lct%Dct%Dta%V3(T)%Val(:,:, 6) = 0.224_sp   * REGR_4D(:,:,16,T) &
+                                  + 0.289_sp   * REGR_4D(:,:,17,T) &
+                                  + 0.289_sp   * REGR_4D(:,:,18,T) &
+                                  + 0.199_sp   * REGR_4D(:,:,19,T)
 
     ! Level 7:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 7) = 0.120_hp   * REGR_4D(:,:,19,T) &
-                                  + 0.385_hp   * REGR_4D(:,:,20,T) &
-                                  + 0.385_hp   * REGR_4D(:,:,21,T) &
-                                  + 0.110_hp   * REGR_4D(:,:,22,T)
+    Lct%Dct%Dta%V3(T)%Val(:,:, 7) = 0.120_sp   * REGR_4D(:,:,19,T) &
+                                  + 0.385_sp   * REGR_4D(:,:,20,T) &
+                                  + 0.385_sp   * REGR_4D(:,:,21,T) &
+                                  + 0.110_sp   * REGR_4D(:,:,22,T)
 
     ! Level 8:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 8) = 0.324_hp   * REGR_4D(:,:,22,T) &
-                                  + 0.453_hp   * REGR_4D(:,:,23,T) &
-                                  + 0.223_hp   * REGR_4D(:,:,24,T)
+    Lct%Dct%Dta%V3(T)%Val(:,:, 8) = 0.324_sp   * REGR_4D(:,:,22,T) &
+                                  + 0.453_sp   * REGR_4D(:,:,23,T) &
+                                  + 0.223_sp   * REGR_4D(:,:,24,T)
 
     ! Level 9:
-    Lct%Dct%Dta%V3(T)%Val(:,:, 9) = 0.271_hp   * REGR_4D(:,:,24,T) &
-                                  + 0.533_hp   * REGR_4D(:,:,25,T) &
-                                  + 0.196_hp   * REGR_4D(:,:,26,T)
+    Lct%Dct%Dta%V3(T)%Val(:,:, 9) = 0.271_sp   * REGR_4D(:,:,24,T) &
+                                  + 0.533_sp   * REGR_4D(:,:,25,T) &
+                                  + 0.196_sp   * REGR_4D(:,:,26,T)
 
     ! Level 10:
-    Lct%Dct%Dta%V3(T)%Val(:,:,10) = 0.396_hp   * REGR_4D(:,:,26,T) &
-                                  + 0.604_hp   * REGR_4D(:,:,27,T)
+    Lct%Dct%Dta%V3(T)%Val(:,:,10) = 0.396_sp   * REGR_4D(:,:,26,T) &
+                                  + 0.604_sp   * REGR_4D(:,:,27,T)
 
     ! Level 11:
-    Lct%Dct%Dta%V3(T)%Val(:,:,11) = 3.63e-2_hp * REGR_4D(:,:,27,T) &
-                                  + 0.964_hp   * REGR_4D(:,:,28,T)
+    Lct%Dct%Dta%V3(T)%Val(:,:,11) = 3.63e-2_sp * REGR_4D(:,:,27,T) &
+                                  + 0.964_sp   * REGR_4D(:,:,28,T)
 
     ! Return with success
     RC = HCO_SUCCESS
@@ -1025,7 +1025,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(hp),         POINTER        :: REGR_4D(:,:,:,:)  ! 4D input data
+    REAL(sp),         POINTER        :: REGR_4D(:,:,:,:)  ! 4D input data
     INTEGER,          INTENT(IN)     :: OutLev
     INTEGER,          INTENT(IN)     :: InLev1
     INTEGER,          INTENT(IN)     :: NLEV
@@ -1111,7 +1111,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(hp),         POINTER        :: REGR_4D(:,:,:,:)  ! 4D input data
+    REAL(sp),         POINTER        :: REGR_4D(:,:,:,:)  ! 4D input data
     INTEGER,          INTENT(IN)     :: InLev
     INTEGER,          INTENT(IN)     :: OutLev1
     INTEGER,          INTENT(IN)     :: NLEV

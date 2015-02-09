@@ -165,7 +165,7 @@ MODULE HCOX_LightNOx_Mod
   REAL(hp),ALLOCATABLE, TARGET :: SLBASE(:,:,:)
 
   ! OTD scale factors read through configuration file
-  REAL(hp), POINTER :: OTDLIS(:,:) => NULL()
+  REAL(sp), POINTER :: OTDLIS(:,:) => NULL()
 
 CONTAINS
 !EOC

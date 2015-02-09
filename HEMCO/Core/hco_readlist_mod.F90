@@ -148,17 +148,16 @@ CONTAINS
     ENDIF
 
     ! NOTE: In an ESMF environment, data I/O is organized through 
-    ! ESMF/MAPL. These routines interpolate between all timesteps,
-    ! we hence need to update ReadList (and EmisList) every time!
-    ! The only exception to this are the one-time lists, which don't
-    ! need to be renewed at all!
-!    IF ( HcoState%isESMF ) THEN
-!       IF ( intv /= 5 ) THEN
-!          CALL DtCont_Add( ReadLists%Always, Dct )
-!       ELSE
-!          CALL DtCont_Add( ReadLists%Once,  Dct ) 
-!       ENDIF
-!    ELSE 
+    ! ESMF/MAPL. The hemco reading call (HCOIO_DATAREAD) sets a 
+    ! pointer of the data container array to the data array provided
+    ! by MAPL. These arrays are already interpolated / updated (over
+    ! time) by MAPL, and a pointer needs to be established only once.
+    ! Hence, make sure that all containers are added to the one-time
+    ! reading list! 
+    IF ( HcoState%isESMF .AND. Dct%Dta%ncRead ) THEN
+       intv = 5
+    ENDIF
+
     IF ( intv == 1 ) THEN 
        CALL DtCont_Add( ReadLists%Hour,  Dct ) 
     ELSEIF ( intv == 2 ) THEN 
