@@ -5123,39 +5123,43 @@
       RXNGAMMA(2) = TINY(1e+0_fp)
 
       ! Reactions 3/4. ClNO3 + H2O/HCl
-      c_ClNO3     =  1474.e+0_fp*SQRT(T)
-      SClNO3      =  0.306e+0_fp+24.e+0_fp/T
-      HClNO3      =  1.6e-6_fp*EXP(4710.e+0_fp/T)*EXP(-SClNO3*M_H2SO4)
-      DClNO3      =  5e-8_fp*T/h
-      kH2O        =  1.95e+10_fp*EXP(-2800.e+0_fp/T)
-      kH          =  1.22e+12_fp*EXP(-6200.e+0_fp/T)
-      khydr       =  kH2O*ACTH2O + kH*aH*ACTH2O
-      GbH2O       =  4.e+0_fp*HClNO3*0.082e+0_fp*T*SQRT(DClNO3*khydr)/
-     &               c_ClNO3
-      HHCl        =  (0.094e+0_fp-0.61e+0_fp*X+1.2e+0_fp*X*X)
-     &             *EXP(-8.68e+0_fp+(8515.e+0_fp-10718.e+0_fp*X**0.7)/T)
-      MHCl        =  HHCl *HClPP
-      kHCl        =  7.9e+11_fp*aH*DClNO3*MHCl
-      lClNO3      =  SQRT(DClNO3/(khydr+kHCl))
-      if (lClNO3.gt.(1.e+5_fp*arad)) then
-         ! Limiting rate
-         fClNO3   =  arad/(3.e+0_fp*lClNO3)
-      else
-         fClNO3   =  1.e+0_fp/tanh(arad/lClNO3)- lClNO3/arad
-      endif
-      GClNO3rxn   =  fClNO3*GbH2O *SQRT(1.e+0_fp+kHCl/khydr)
-      GbHCl       =  GClNO3rxn* kHCl/(kHCl+ khydr)
-      Gs          =  66.12e+0_fp*EXP(-1374.e+0_fp/T)*HClNO3*MHCl
-      FHCl        =  1.e+0_fp/(1.e+0_fp+0.612e+0_fp*(Gs+GbHCl)*
-     &             ClNO3PP/ HClPP)
-      Gsp         =  FHCl*Gs
-      GbHClp      =  FHCl*GbHCl
-      Gb          =  GbHClp  + GClNO3rxn* khydr/( kHCl+ khydr)
-      gClNO3      =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/(Gsp + Gb))
-      gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
-      gClNO3_H2O  =  gClNO3 - gClNO3_HCl
-
+      ! Now od only if HCl concentrations are large enough
+      ! (to avoid div-by-zero errors), ckeller, 2/10/15.
       IF (HClOK) THEN
+         c_ClNO3     =  1474.e+0_fp*SQRT(T)
+         SClNO3      =  0.306e+0_fp+24.e+0_fp/T
+         HClNO3      =  1.6e-6_fp*EXP(4710.e+0_fp/T)
+     &               *  EXP(-SClNO3*M_H2SO4)
+         DClNO3      =  5e-8_fp*T/h
+         kH2O        =  1.95e+10_fp*EXP(-2800.e+0_fp/T)
+         kH          =  1.22e+12_fp*EXP(-6200.e+0_fp/T)
+         khydr       =  kH2O*ACTH2O + kH*aH*ACTH2O
+         GbH2O       =  4_fp*HClNO3*0.082_fp*T*SQRT(DClNO3*khydr)
+     &               /  c_ClNO3
+         HHCl        =  (0.094e+0_fp-0.61e+0_fp*X+1.2e+0_fp*X*X)
+     &               *  EXP(-8.68_fp+(8515_fp-10718_fp*X**0.7)/T)
+         MHCl        =  HHCl *HClPP
+         kHCl        =  7.9e+11_fp*aH*DClNO3*MHCl
+         lClNO3      =  SQRT(DClNO3/(khydr+kHCl))
+         if (lClNO3.gt.(1.e+5_fp*arad)) then
+            ! Limiting rate
+            fClNO3   =  arad/(3.e+0_fp*lClNO3)
+         else
+            fClNO3   =  1.e+0_fp/tanh(arad/lClNO3)- lClNO3/arad
+         endif
+         GClNO3rxn   =  fClNO3*GbH2O *SQRT(1.e+0_fp+kHCl/khydr)
+         GbHCl       =  GClNO3rxn* kHCl/(kHCl+ khydr)
+         Gs          =  66.12e+0_fp*EXP(-1374.e+0_fp/T)*HClNO3*MHCl
+         FHCl        =  1.e+0_fp/(1.e+0_fp+0.612e+0_fp*(Gs+GbHCl)*
+     &                ClNO3PP/ HClPP)
+         Gsp         =  FHCl*Gs
+         GbHClp      =  FHCl*GbHCl
+         Gb          =  GbHClp  + GClNO3rxn* khydr/( kHCl+ khydr)
+         gClNO3      =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/(Gsp + Gb))
+         gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
+         gClNO3_H2O  =  gClNO3 - gClNO3_HCl
+   
+         !IF (HClOK) THEN
          RXNGAMMA(3) =  gClNO3_H2O
          RXNGAMMA(4) =  gClNO3_HCl
       ELSE
