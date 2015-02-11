@@ -1183,13 +1183,19 @@
 !
 ! !REVISION HISTORY:
 !  04 Jan 2010 - R. Yantosca - Initial version
+!  06 Feb 2015 - M. Yannetti - Needed to make the CUTOFF smaller for
+!                              REAL*4.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
+#IF DEFINED( USE_REAL8 )
       REAL(fp), PARAMETER :: CUTOFF = 600e+0_fp
+#ELSE
+      REAL(fp), PARAMETER :: CUTOFF = 75e+0_fp
+#ENDIF
 
       ! If -CUTOFF < x < CUTOFF, then it is safe to take EXP( x )
       F = ( ABS( X ) < CUTOFF )
