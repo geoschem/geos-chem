@@ -302,14 +302,14 @@
       INTEGER              :: DRYLET,  DRYNH4aq
 
       ! HEMCO pointers
-      REAL(hp), POINTER    :: O3m(:,:,:)      => NULL()
-      REAL(hp), POINTER    :: PH2O2m(:,:,:)   => NULL()
-      REAL(hp), POINTER    :: JH2O2(:,:,:)    => NULL()
-      REAL(hp), POINTER    :: OH(:,:,:)       => NULL()
-      REAL(hp), POINTER    :: NO3(:,:,:)      => NULL()
-      REAL(hp), POINTER    :: HNO3(:,:,:)     => NULL()
-      REAL(hp), POINTER    :: NDENS_SALA(:,:) => NULL()
-      REAL(hp), POINTER    :: NDENS_SALC(:,:) => NULL()
+      REAL(sp), POINTER    :: O3m(:,:,:)      => NULL()
+      REAL(sp), POINTER    :: PH2O2m(:,:,:)   => NULL()
+      REAL(sp), POINTER    :: JH2O2(:,:,:)    => NULL()
+      REAL(sp), POINTER    :: OH(:,:,:)       => NULL()
+      REAL(sp), POINTER    :: NO3(:,:,:)      => NULL()
+      REAL(sp), POINTER    :: HNO3(:,:,:)     => NULL()
+      REAL(sp), POINTER    :: NDENS_SALA(:,:) => NULL()
+      REAL(sp), POINTER    :: NDENS_SALC(:,:) => NULL()
 
       ! Emission timestep (imported from HEMCO)
       REAL(fp)               :: TS_EMIS

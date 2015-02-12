@@ -66,10 +66,10 @@
       REAL(fp),  ALLOCATABLE :: COSZM(:,:)
 
       ! HEMCO pointers
-      REAL(hp), POINTER    :: C_OC(:,:,:) => NULL()
-      REAL(hp), POINTER    :: C_BC(:,:,:) => NULL()
-      REAL(hp), POINTER    :: O3(:,:,:)   => NULL()
-      REAL(hp), POINTER    :: OH(:,:,:)   => NULL()
+      REAL(sp), POINTER    :: C_OC(:,:,:) => NULL()
+      REAL(sp), POINTER    :: C_BC(:,:,:) => NULL()
+      REAL(sp), POINTER    :: O3(:,:,:)   => NULL()
+      REAL(sp), POINTER    :: OH(:,:,:)   => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 

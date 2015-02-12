@@ -1374,8 +1374,8 @@ CONTAINS
 !
     INTEGER                       :: AS
     LOGICAL                       :: FOUND
-    REAL(hp), POINTER             :: Ptr3D(:,:,:) => NULL()
-    CHARACTER(LEN=255), PARAMETER :: LOC = 'READ_TIME (hcoi_standalone_mod.F90)'
+    REAL(sp), POINTER             :: Ptr3D(:,:,:) => NULL()
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'ExtOpt_SetPointers (hcoi_standalone_mod.F90)'
 
     !=================================================================
     ! ExtOpt_SetPointers begins here
@@ -1392,7 +1392,7 @@ CONTAINS
     CALL HCO_GetPtr( am_I_Root, 'PEDGE', Ptr3D, RC, FOUND=FOUND )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) THEN
-       HcoState%Grid%PEDGE%Val => Ptr3D
+       HcoState%Grid%PEDGE%Val = Ptr3D
        Ptr3D => NULL()
     ENDIF
 
@@ -1550,7 +1550,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    REAL(hp), POINTER             :: Ptr2D(:,:)   => NULL()
+    REAL(sp), POINTER             :: Ptr2D(:,:)   => NULL()
 
     !=================================================================
     ! SetExtPtr_2R begins here
@@ -1559,7 +1559,7 @@ CONTAINS
     IF ( ExtDat%DoUse ) THEN
        CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC )
        IF ( RC /= 0 ) RETURN
-       ExtDat%Arr%Val => Ptr2D
+       ExtDat%Arr%Val = Ptr2D
        Ptr2D => NULL()
     ENDIF
 
@@ -1606,7 +1606,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    REAL(hp), POINTER             :: Ptr3D(:,:,:)   => NULL()
+    REAL(sp), POINTER             :: Ptr3D(:,:,:)   => NULL()
 
     !=================================================================
     ! SetExtPtr_3R begins here
@@ -1615,7 +1615,7 @@ CONTAINS
     IF ( ExtDat%DoUse ) THEN
        CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr3D, RC )
        IF ( RC /= 0 ) RETURN
-       ExtDat%Arr%Val => Ptr3D
+       ExtDat%Arr%Val = Ptr3D
        Ptr3D => NULL()
     ENDIF
 
@@ -1666,7 +1666,10 @@ CONTAINS
     ! ExtState_Update begins here
     !=================================================================
 
-    ! nothing to do for now.
+    ! Data is copied, so need to call ExtOpt_SetPointers every time
+    ! to make sure that all data is up-to-date.
+    CALL ExtOpt_SetPointers( am_I_Root, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
     RC = HCO_SUCCESS

@@ -241,7 +241,7 @@
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: NDENS_AER
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_AER
       !INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
-      REAL(fp),DIMENSION(:,:,:),POINTER       :: STATE_PSC => NULL()
+      REAL(f4),DIMENSION(:,:,:),POINTER       :: STATE_PSC => NULL()
       LOGICAL                                 :: GOT_STATE_PSC = .FALSE.
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: KHETI_SLA
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: AERFRAC
@@ -3037,7 +3037,7 @@
                ! per m3 in a grid box
                L = STARTPT
                !IF (STATE_PSC(I,J,L).lt.2) THEN
-               IF (STATE_PSC(I,J,L) < 2.0_fp ) THEN
+               IF (STATE_PSC(I,J,L) < 2.0_f4 ) THEN
                   XNO3_0 = 0e+0_fp
                   XNAT_0 = 0e+0_fp
                   XICE_0 = 0e+0_fp
@@ -3056,7 +3056,7 @@
                IF (L .lt. (LLPAR-1)) THEN
                   INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+1)
                   !IF (STATE_PSC(I,J,L+1).lt.2) THEN
-                  IF (STATE_PSC(I,J,L+1) < 2.0_fp ) THEN
+                  IF (STATE_PSC(I,J,L+1) < 2.0_f4 ) THEN
                      XNO3_ABOVE = 0e+0_fp
                      XNAT_ABOVE = 0e+0_fp
                      XICE_ABOVE = 0e+0_fp
@@ -3110,7 +3110,7 @@
                   IF (L.lt.(LLPAR-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
                      !IF (STATE_PSC(I,J,L+2).ge.2) THEN
-                     IF (STATE_PSC(I,J,L+2) >= 2.0_fp ) THEN
+                     IF (STATE_PSC(I,J,L+2) >= 2.0_f4 ) THEN
                         XNO3_ABOVE = STT(I,J,L+2,IDTNIT)*INVAIR_ABOVE/ 
      &                                TRACER_MW_G(IDTNIT)
                         XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
@@ -3867,7 +3867,7 @@
 
                ! Store state
                !STATE_PSC(I,J,L) = STATE_LOCAL
-               STATE_PSC(I,J,L) = REAL(STATE_LOCAL,fp)
+               STATE_PSC(I,J,L) = REAL(STATE_LOCAL,f4)
 
                ! Only continue if we want online solid PSCs
                IF (LSOLIDPSC) THEN
@@ -4437,7 +4437,7 @@
 
       IS_PSC   = ( ( Input_Opt%LPSCCHEM ) .and.
 !     &             ( STATE_PSC(I,J,L) .ge. 2 ) .and. ( IS_STRAT ) )
-     &             ( STATE_PSC(I,J,L) >= 2.0_fp ) .and. ( IS_STRAT ) )
+     &             ( STATE_PSC(I,J,L) >= 2.0_f4 ) .and. ( IS_STRAT ) )
 
       IS_NAT   = ( ( IS_PSC ) .and.
      &         ( State_Chm%Tracers(I,J,L,IDTNIT) .gt. TINY(1e+0_fp) ) )
@@ -5553,7 +5553,7 @@
       ! HEMCO update
       LOGICAL            :: IT_EXISTS 
       INTEGER            :: RC
-      REAL(hp), POINTER  :: Ptr3D(:,:,:) => NULL()
+      REAL(sp), POINTER  :: Ptr3D(:,:,:) => NULL()
       CHARACTER(LEN=255) :: cName 
 
       !=================================================================
@@ -7106,7 +7106,7 @@
       ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
       !STATE_PSC = 0e+0_fp
-      STATE_PSC     = 0.0_fp
+      STATE_PSC     = 0.0_f4
       
       ! Mass fraction of tracers contained in liquid aerosol
       ! Indices: 1 - SO4

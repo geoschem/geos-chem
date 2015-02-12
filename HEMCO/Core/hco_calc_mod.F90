@@ -86,7 +86,7 @@ MODULE HCO_Calc_Mod
   ! Mask threshold. All mask values below this value will be evaluated 
   ! as zero (= outside of mask), and all values including and above this 
   ! value as inside the mask.
-  REAL(hp), PARAMETER  :: MASK_THRESHOLD = 0.5_hp
+  REAL(hp), PARAMETER  :: MASK_THRESHOLD = 0.5_sp
 !
 ! ============================================================================
 !

@@ -148,12 +148,12 @@ MODULE HcoX_FINN_Mod
   ! These are the pointers to the 6 vegetation type data arrays
   ! specified in the configuration file
   !=================================================================
-  REAL(hp),          POINTER     :: VEGTYP1(:,:) => NULL()
-  REAL(hp),          POINTER     :: VEGTYP2(:,:) => NULL()
-  REAL(hp),          POINTER     :: VEGTYP3(:,:) => NULL()
-  REAL(hp),          POINTER     :: VEGTYP4(:,:) => NULL()
-  REAL(hp),          POINTER     :: VEGTYP5(:,:) => NULL()
-  REAL(hp),          POINTER     :: VEGTYP9(:,:) => NULL()
+  REAL(sp),          POINTER     :: VEGTYP1(:,:) => NULL()
+  REAL(sp),          POINTER     :: VEGTYP2(:,:) => NULL()
+  REAL(sp),          POINTER     :: VEGTYP3(:,:) => NULL()
+  REAL(sp),          POINTER     :: VEGTYP4(:,:) => NULL()
+  REAL(sp),          POINTER     :: VEGTYP5(:,:) => NULL()
+  REAL(sp),          POINTER     :: VEGTYP9(:,:) => NULL()
 
 CONTAINS
 !EOC
@@ -214,7 +214,7 @@ CONTAINS
     REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
 
     ! Pointers
-    REAL(hp), POINTER   :: THISTYP(:,:) => NULL()
+    REAL(sp), POINTER   :: THISTYP(:,:) => NULL()
     REAL(hp), POINTER   :: Arr2D  (:,:) => NULL()
 
 

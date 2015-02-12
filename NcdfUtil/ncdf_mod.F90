@@ -478,7 +478,7 @@ CONTAINS
 !
   SUBROUTINE NC_READ_ARR( fID,   ncVar,   lon1, lon2,  lat1,  &
                           lat2,  lev1,    lev2, time1, time2, & 
-                          ncArr, VarUnit, RC                   ) 
+                          ncArr, VarUnit, MissVal, RC          ) 
 !
 ! !USES:
 !
@@ -495,6 +495,7 @@ CONTAINS
     INTEGER,          INTENT(IN)            :: lat1,  lat2
     INTEGER,          INTENT(IN)            :: lev1,  lev2
     INTEGER,          INTENT(IN)            :: time1, time2
+    REAL*4,           INTENT(IN ), OPTIONAL :: MissVal
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -543,6 +544,10 @@ CONTAINS
 
     ! Logicals
     LOGICAL                :: ReadAtt
+
+    ! Missing value
+    REAL*8                 :: miss
+    REAL*4                 :: MissValue
 
     ! For error handling
     CHARACTER(LEN=255)     :: LOC, MSG
@@ -643,6 +648,37 @@ CONTAINS
     IF ( ReadAtt ) THEN
        CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),corr)
        ncArr(:,:,:,:) = ncArr(:,:,:,:) + corr
+    ENDIF
+
+    ! ------------------------------------------
+    ! Check for filling values
+    ! ------------------------------------------
+
+    ! Define missing value
+    IF ( PRESENT(MissVal) ) THEN
+       MissValue = MissVal
+    ELSE
+       MissValue = 0.0
+    ENDIF
+
+    ! 1: 'missing_value' 
+    a_name  = "missing_value"
+    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) ) 
+    IF ( ReadAtt ) THEN
+       CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),miss)
+       WHERE(ncArr == miss)
+          ncArr = MissValue
+       END WHERE 
+    ENDIF
+
+    ! 2: '_FillValue'
+    a_name  = "_FillValue"
+    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) ) 
+    IF ( ReadAtt ) THEN
+       CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),miss)
+       WHERE(ncArr == miss)
+          ncArr = MissValue
+       END WHERE 
     ENDIF
 
     ! ----------------------------
@@ -2058,7 +2094,7 @@ CONTAINS
     ! Read ps 
     !--------
     CALL NC_READ_ARR( fID, TRIM(psname), lon1, lon2, lat1, &
-                      lat2, 0, 0, time,  time, ps,   thisUnit, RC )
+                      lat2, 0, 0, time,  time, ps, VarUnit=thisUnit, RC=RC )
     IF ( RC /= 0 ) RETURN
 
     !------------------------------------------------------------------------

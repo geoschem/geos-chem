@@ -122,8 +122,8 @@ MODULE HCO_FileData_Mod
      INTEGER                     :: ncHrs(2)  ! hour range
      INTEGER                     :: CycleFlag ! cycle flag
      LOGICAL                     :: ncRead    ! read from source?
-     TYPE(Arr3D_HP),     POINTER :: V3(:)     ! vector of 3D fields
-     TYPE(Arr2D_HP),     POINTER :: V2(:)     ! vector of 2D fields
+     TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
+     TYPE(Arr2D_SP),     POINTER :: V2(:)     ! vector of 2D fields
      TYPE(TimeIdx),      POINTER :: tIDx      ! for time slice indexing 
      CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
      INTEGER                     :: Cover     ! data coverage

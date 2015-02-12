@@ -953,6 +953,12 @@ CONTAINS
        ELSEIF ( I==3 .AND. INDEX( TRIM(SUBSTR(I)), 'WD' ) > 0 ) THEN
           TimeVec(I0:I1) = -10
 
+       ! For the hourly index, value 'LH' is also supported. This 
+       ! indicates local hours. Use a special flag here to expliclity 
+       ! state that these data are local hours. 
+       ELSEIF ( I==4 .AND. INDEX( TRIM(SUBSTR(I)), 'LH' ) > 0 ) THEN
+          TimeVec(I0:I1) = -10
+
        ! Otherwise, check for date range and set lower and upper bound
        ! accordingly.
        ELSE

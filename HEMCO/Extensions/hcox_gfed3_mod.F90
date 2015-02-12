@@ -145,15 +145,15 @@ MODULE HCOX_GFED3_MOD
   ! These are the pointers to the 6 input data specified in the 
   ! the configuration file
   !=================================================================
-  REAL(hp), POINTER   :: GFED3_WDL(:,:) => NULL()
-  REAL(hp), POINTER   :: GFED3_SAV(:,:) => NULL()
-  REAL(hp), POINTER   :: GFED3_PET(:,:) => NULL()
-  REAL(hp), POINTER   :: GFED3_FOR(:,:) => NULL()
-  REAL(hp), POINTER   :: GFED3_AGW(:,:) => NULL()
-  REAL(hp), POINTER   :: GFED3_DEF(:,:) => NULL()
-  REAL(hp), POINTER   :: HUMTROP  (:,:) => NULL()
-  REAL(hp), POINTER   :: DAYSCAL  (:,:) => NULL()
-  REAL(hp), POINTER   :: HRSCAL   (:,:) => NULL()
+  REAL(sp), POINTER   :: GFED3_WDL(:,:) => NULL()
+  REAL(sp), POINTER   :: GFED3_SAV(:,:) => NULL()
+  REAL(sp), POINTER   :: GFED3_PET(:,:) => NULL()
+  REAL(sp), POINTER   :: GFED3_FOR(:,:) => NULL()
+  REAL(sp), POINTER   :: GFED3_AGW(:,:) => NULL()
+  REAL(sp), POINTER   :: GFED3_DEF(:,:) => NULL()
+  REAL(sp), POINTER   :: HUMTROP  (:,:) => NULL()
+  REAL(sp), POINTER   :: DAYSCAL  (:,:) => NULL()
+  REAL(sp), POINTER   :: HRSCAL   (:,:) => NULL()
 
 CONTAINS
 !EOC
@@ -198,7 +198,7 @@ CONTAINS
     LOGICAL, SAVE       :: FIRST = .TRUE.
     INTEGER             :: N, M
     REAL(hp), POINTER   :: Arr2D (:,:) => NULL()
-    REAL(hp), POINTER   :: TMPPTR(:,:) => NULL()
+    REAL(sp), POINTER   :: TMPPTR(:,:) => NULL()
     CHARACTER(LEN=63)   :: MSG
 
     REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)

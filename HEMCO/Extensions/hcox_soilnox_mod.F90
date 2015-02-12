@@ -118,34 +118,34 @@ MODULE HCOX_SoilNOx_Mod
   INTEGER, PARAMETER            :: NBIOM = 24 
 
   ! Dry period length (from restart)
-  REAL(hp), ALLOCATABLE, TARGET :: DRYPERIOD    (:,:  )
+  REAL(sp), ALLOCATABLE, TARGET :: DRYPERIOD    (:,:  )
 
   ! Pulse factors (from restart)
-  REAL(hp), ALLOCATABLE, TARGET :: PFACTOR      (:,:  )
-  REAL(hp), ALLOCATABLE, TARGET :: GWET_PREV    (:,:  )
+  REAL(sp), ALLOCATABLE, TARGET :: PFACTOR      (:,:  )
+  REAL(sp), ALLOCATABLE, TARGET :: GWET_PREV    (:,:  )
 
   ! Deposition reservoir (from restart)
-  REAL(hp), POINTER             :: DEP_RESERVOIR(:,:  ) => NULL()
+  REAL(sp), POINTER             :: DEP_RESERVOIR(:,:  ) => NULL()
 
-  ! Instantaneous soil NOx and fertilizer
-  REAL(hp),  ALLOCATABLE        :: INST_SOIL    (:,:  )
-  REAL(hp),  ALLOCATABLE        :: INST_FERT    (:,:  )
+!  ! Instantaneous soil NOx and fertilizer
+!  REAL(hp),  ALLOCATABLE        :: INST_SOIL    (:,:  )
+!  REAL(hp),  ALLOCATABLE        :: INST_FERT    (:,:  )
 
   ! NOx in the canopy
   REAL(hp),  ALLOCATABLE        :: CANOPYNOX        (:,:,:)
 
   ! MODIS landtype
   TYPE MODL
-     REAL(hp), POINTER          :: VAL              (:,:)
+     REAL(sp), POINTER          :: VAL              (:,:)
   ENDTYPE MODL
   TYPE(MODL), POINTER           :: LANDTYPE         (:    ) => NULL()
 
   ! Soil fertilizer (kg/m3) 
-  REAL(hp), POINTER             :: SOILFERT         (:,:  ) => NULL()
+  REAL(sp), POINTER             :: SOILFERT         (:,:  ) => NULL()
 
   ! Fraction of arid and non-arid land
-  REAL(hp), POINTER             :: CLIMARID         (:,:  ) => NULL()
-  REAL(hp), POINTER             :: CLIMNARID        (:,:  ) => NULL()
+  REAL(sp), POINTER             :: CLIMARID         (:,:  ) => NULL()
+  REAL(sp), POINTER             :: CLIMNARID        (:,:  ) => NULL()
 
   ! DRYCOEFF (if read from settings in configuration file)
   REAL(hp), ALLOCATABLE, TARGET :: DRYCOEFF(:)
@@ -283,7 +283,7 @@ CONTAINS
     REAL*4                   :: TSEMIS
     REAL(hp)                 :: UNITCONV, IJFLUX
     REAL(dp), ALLOCATABLE    :: VecDp(:)
-    REAL(hp), POINTER        :: TmpArr(:,:) => NULL()
+    REAL(sp), POINTER        :: TmpArr(:,:) => NULL()
     REAL(hp), POINTER        :: Arr2D (:,:) => NULL()
     LOGICAL, SAVE            :: FIRST = .TRUE.
     LOGICAL                  :: aIR, FOUND
@@ -474,7 +474,7 @@ CONTAINS
 
        ! Put in constraint if dry period gt 1 yr, keep at 1yr to
        ! avoid unrealistic pulse
-       IF ( DRYPERIOD(I,J) > 8760e+0_hp ) DRYPERIOD(I,J) = 8760e+0_hp
+       IF ( DRYPERIOD(I,J) > 8760e+0_sp ) DRYPERIOD(I,J) = 8760e+0_sp
  
        ! Return NO emissions from soils [kg NO/m2/s]
        CALL SOIL_NOX_EMISSION( ExtState,                       &
@@ -660,17 +660,17 @@ CONTAINS
        RETURN
     ENDIF
 
-    ALLOCATE( INST_SOIL    ( I, J        ), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('INST_SOIL',     RC )
-       RETURN
-    ENDIF
-
-    ALLOCATE( INST_FERT    ( I, J        ), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       CALL HCO_ERROR('INST_FERT',     RC )
-       RETURN
-    ENDIF
+!    ALLOCATE( INST_SOIL    ( I, J        ), STAT=AS )
+!    IF ( AS /= 0 ) THEN
+!       CALL HCO_ERROR('INST_SOIL',     RC )
+!       RETURN
+!    ENDIF
+!
+!    ALLOCATE( INST_FERT    ( I, J        ), STAT=AS )
+!    IF ( AS /= 0 ) THEN
+!       CALL HCO_ERROR('INST_FERT',     RC )
+!       RETURN
+!    ENDIF
 
     ALLOCATE( DEP_RESERVOIR( I, J        ), STAT=AS )
     IF ( AS /= 0 ) THEN
@@ -695,13 +695,13 @@ CONTAINS
     ENDDO
 
     ! Zero arrays
-    DRYPERIOD     = 0.0_hp
-    PFACTOR       = 0.0_hp
-    GWET_PREV     = 0.0_hp
-    INST_SOIL     = 0e+0_hp
-    INST_FERT     = 0e+0_hp
+    DRYPERIOD     = 0.0_sp
+    PFACTOR       = 0.0_sp
+    GWET_PREV     = 0.0_sp
+    DEP_RESERVOIR = 0.0_sp
+!    INST_SOIL     = 0e+0_hp
+!    INST_FERT     = 0e+0_hp
     CANOPYNOX     = 0e+0_hp
-    DEP_RESERVOIR = 0.0_hp
 
     ! ---------------------------------------------------------------------- 
     ! Set diagnostics 
@@ -834,8 +834,8 @@ CONTAINS
     IF ( ALLOCATED (DRYPERIOD    ) ) DEALLOCATE ( DRYPERIOD     )
     IF ( ALLOCATED (PFACTOR      ) ) DEALLOCATE ( PFACTOR       )
     IF ( ALLOCATED (GWET_PREV    ) ) DEALLOCATE ( GWET_PREV     )
-    IF ( ALLOCATED (INST_SOIL    ) ) DEALLOCATE ( INST_SOIL     )
-    IF ( ALLOCATED (INST_FERT    ) ) DEALLOCATE ( INST_FERT     )
+!    IF ( ALLOCATED (INST_SOIL    ) ) DEALLOCATE ( INST_SOIL     )
+!    IF ( ALLOCATED (INST_FERT    ) ) DEALLOCATE ( INST_FERT     )
     IF ( ALLOCATED (CANOPYNOX        ) ) DEALLOCATE ( CANOPYNOX         )
     IF ( ASSOCIATED(DEP_RESERVOIR) ) DEALLOCATE ( DEP_RESERVOIR )
     IF ( ALLOCATED (DRYCOEFF         ) ) DEALLOCATE ( DRYCOEFF          )
@@ -931,9 +931,9 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     REAL(hp),   INTENT(OUT) :: SOILNOx         ! Soil NOx emissions [kg/m2/s]
-    REAL(hp), INTENT(OUT) :: GWET_PREV       ! Soil Moisture Prev timestep
-    REAL(hp), INTENT(OUT) :: DRYPERIOD       ! Dry period length in hours
-    REAL(hp), INTENT(OUT) :: PFACTOR         ! Pulsing Factor
+    REAL(sp), INTENT(OUT) :: GWET_PREV       ! Soil Moisture Prev timestep
+    REAL(sp), INTENT(OUT) :: DRYPERIOD       ! Dry period length in hours
+    REAL(sp), INTENT(OUT) :: PFACTOR         ! Pulsing Factor
     REAL(hp),   INTENT(OUT) :: FERTDIAG        ! Fert emissions [kg/m2/s]
 !
 ! !REMARKS:
@@ -1981,9 +1981,9 @@ CONTAINS
 
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(hp), INTENT(INOUT) :: GWET_PREV   ! Soil Moisture Prev timestep
-    REAL(hp), INTENT(INOUT) :: PFACTOR     ! Pulsing Factor
-    REAL(hp), INTENT(INOUT) :: DRYPERIOD   ! Dry period length in hours
+    REAL(sp), INTENT(INOUT) :: GWET_PREV   ! Soil Moisture Prev timestep
+    REAL(sp), INTENT(INOUT) :: PFACTOR     ! Pulsing Factor
+    REAL(sp), INTENT(INOUT) :: DRYPERIOD   ! Dry period length in hours
 !  
 ! !RETURN VALUE:
 !

@@ -80,7 +80,7 @@
       REAL(fp), ALLOCATABLE :: HNO3_sav(:,:,:)
 
       ! HEMCO pointers
-      REAL(hp), POINTER   :: HNO3(:,:,:) => NULL()
+      REAL(sp), POINTER   :: HNO3(:,:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement

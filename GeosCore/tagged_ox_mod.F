@@ -117,8 +117,8 @@
 !
 ! !PRIVATE TYPES:
 !
-      REAL(hp), POINTER        :: P24H(:,:,:) => NULL() ! O3 production rate
-      REAL(hp), POINTER        :: L24H(:,:,:) => NULL() ! O3 loss rate
+      REAL(sp), POINTER        :: P24H(:,:,:) => NULL() ! O3 production rate
+      REAL(sp), POINTER        :: L24H(:,:,:) => NULL() ! O3 loss rate
 
       ! Emission timestep (will be imported from HEMCO)
       REAL(fp)                   :: TS_EMIS

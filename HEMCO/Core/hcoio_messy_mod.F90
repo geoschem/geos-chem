@@ -140,7 +140,7 @@ MODULE HCOIO_MESSY_MOD
     REAL(hp),     POINTER         :: lat    (:)       => NULL()
     REAL(hp),     POINTER         :: sigma  (:,:,:)   => NULL()
     REAL(sp),     POINTER         :: ArrIn  (:,:,:,:) => NULL()
-    REAL(hp),     POINTER         :: ArrOut (:,:,:,:) => NULL()
+    REAL(sp),     POINTER         :: ArrOut (:,:,:,:) => NULL()
     REAL(hp), ALLOCATABLE, TARGET :: sigout (:,:,:) 
     REAL(hp)                      :: sigMin
     INTEGER                       :: NZIN, NZOUT, NTIME
@@ -401,7 +401,7 @@ MODULE HCOIO_MESSY_MOD
           CALL HCO_ERROR ( 'Cannot allocate ArrOut', RC )
           RETURN
        ENDIF
-       ArrOut = 0.0_hp
+       ArrOut = 0.0_sp
     ENDIF
 
     ! Do for all level batches ...
@@ -433,13 +433,6 @@ MODULE HCOIO_MESSY_MOD
        !-----------------------------------------------------------------
        CALL MESSY2HCO( am_I_Root, HcoState, narr_dst, Lct, I, ArrOut, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN      
- 
-       ! testing only
-       IF ( trim(Lct%Dct%cName) == 'TIMEZONES' ) then
-          write(*,*) 'timezones regridded'
-          write(*,*) any((ArrIn < -14.0_hp) .AND. (ArrIn > -999.0_hp))
-          write(*,*) any((Lct%Dct%Dta%V2(1)%Val < -14.0_hp) .AND. (Lct%Dct%Dta%V2(1)%Val > -999.0_hp))
-       endif
  
        ! Cleanup
        ArrIn => NULL()
@@ -966,7 +959,7 @@ MODULE HCOIO_MESSY_MOD
     TYPE(narray),     POINTER                :: narr(:)
     TYPE(ListCont),   POINTER                :: Lct 
     INTEGER,          INTENT(IN   )          :: LEV
-    REAL(hp),         POINTER                :: Ptr4D(:,:,:,:)
+    REAL(sp),         POINTER                :: Ptr4D(:,:,:,:)
     INTEGER,          INTENT(INOUT)          :: RC
 !
 ! !REVISION HISTORY:

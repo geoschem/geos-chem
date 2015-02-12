@@ -182,7 +182,7 @@ MODULE HCO_Clock_Mod
 
   ! Pointer to gridded time zones. Will only hold data if a field `TIMEZONES`
   ! is provided in the HEMCO configuration file.
-  REAL(hp), POINTER    :: TIMEZONES(:,:) => NULL()
+  REAL(sp), POINTER    :: TIMEZONES(:,:) => NULL()
 
 CONTAINS
 !EOC

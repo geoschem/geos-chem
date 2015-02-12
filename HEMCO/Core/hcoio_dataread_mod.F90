@@ -181,15 +181,15 @@ CONTAINS
        IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V3) ) THEN
 
           ! Use pointer if types match
-          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, 0, RC )
-          CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, LL, RC )
+          CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, 0, RC )
+          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, LL, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! Pointer to data. HEMCO expects data to have surface level at
        ! index 1 ('up').
-       !Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
-       Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
+       Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
+       !Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
 
     !-----------------------------------------------------------------
     ! Read 2D data from ESMF 
@@ -215,14 +215,14 @@ CONTAINS
 
        ! Define HEMCO array pointer if not yet defined
        IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V2) ) THEN
-          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, RC )
-          CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, RC )
+          CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, RC )
+          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! Pointer to data
-       !Lct%Dct%Dta%V2(1)%Val => Ptr2D
-       Lct%Dct%Dta%V2(1)%Val = Ptr2D
+       Lct%Dct%Dta%V2(1)%Val => Ptr2D
+       !Lct%Dct%Dta%V2(1)%Val = Ptr2D
 
     ENDIF
  
@@ -1164,15 +1164,23 @@ CONTAINS
        ! ------------------------------------------------------------- 
        ! Now need to set upper time slice index tidx2. This index
        ! is only different from tidx1 if multiple hourly slices are
-       ! read (--> prefHr = -1, e.g. hour attribute in config. file
-       ! was set to wildcard character). In this case, check if there
-       ! are multiple time slices for the selected date (y/m/d).
+       ! read (--> prefHr = -1 or -10, e.g. hour attribute in config. 
+       ! file was set to wildcard character or data is in local hours). 
+       ! In this case, check if there are multiple time slices for the 
+       ! selected date (y/m/d).
        ! tidx2 has already been set to proper value above if it's
        ! weekday data.
        ! -------------------------------------------------------------
        IF ( tidx2 < 0 ) THEN
+
+          ! Check for multiple hourly data
           IF ( tidx1 > 0 .AND. prefHr < 0 ) THEN
              CALL SET_TIDX2 ( nTime, availYMDH, tidx1, tidx2 )    
+
+             ! Denote as local time if necessary
+             IF ( Lct%Dct%Dta%ncHrs(1) == -10 ) THEN
+                Lct%Dct%Dta%IsLocTime = .TRUE.
+             ENDIF
           ELSE
              tidx2 = tidx1
           ENDIF
@@ -1210,7 +1218,6 @@ CONTAINS
     ! (e.g. every hour, every 3 hours, ...).
     !-----------------------------------------------------------------
     IF ( tidx2 > tidx1 ) THEN
-       !Lct%Dct%Dta%DeltaT = availYMDh(tidx1+1) - availYMDh(tidx1)
        Lct%Dct%Dta%DeltaT = YMDh2hrs( availYMDh(tidx1+1) - availYMDh(tidx1) )
     ELSE
        Lct%Dct%Dta%DeltaT = 0
@@ -1698,7 +1705,7 @@ CONTAINS
 !
     INTEGER               :: IUFILE, IOS
     INTEGER               :: ID1, ID2, I, NT, CID, NLINE
-    REAL(hp), POINTER     :: CNTR(:,:) => NULL()
+    REAL(sp), POINTER     :: CNTR(:,:) => NULL()
     INTEGER,  ALLOCATABLE :: CIDS(:,:)
     REAL(hp), POINTER     :: Vals(:) => NULL()
     LOGICAL               :: Verb
@@ -1814,7 +1821,7 @@ CONTAINS
        ! not yet been filled. 
        DO I = 1, NT
           IF ( CID == 0 ) THEN
-             WHERE ( Lct%Dct%Dta%V2(I)%Val <= 0.0_hp )
+             WHERE ( Lct%Dct%Dta%V2(I)%Val <= 0.0_sp )
                 Lct%Dct%Dta%V2(I)%Val = Vals(I)
              ENDWHERE
           ELSE
@@ -2361,7 +2368,7 @@ CONTAINS
             HcoState%Grid%YMID%Val(I,J) >= LAT1 .AND. &
             HcoState%Grid%YMID%Val(I,J) <= LAT2        ) THEN
 
-          Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_hp
+          Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_sp
        ENDIF 
 
     ENDDO

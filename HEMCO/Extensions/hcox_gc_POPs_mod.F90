@@ -72,9 +72,9 @@ MODULE HCOX_GC_POPs_Mod
   REAL*8,  PARAMETER            :: SMALLNUM = 1D-20
 
   ! Pointers to emission arrays read from disk
-  REAL(hp), POINTER             :: POP_TOT_EM(:,:) => NULL()
-  REAL(hp), POINTER             :: C_OC(:,:,:)     => NULL()
-  REAL(hp), POINTER             :: C_BC(:,:,:)     => NULL()
+  REAL(sp), POINTER             :: POP_TOT_EM(:,:) => NULL()
+  REAL(sp), POINTER             :: C_OC(:,:,:)     => NULL()
+  REAL(sp), POINTER             :: C_BC(:,:,:)     => NULL()
 
   ! Calculated emissions of OC-phase, BC-phase, and gas-phase POPs
   REAL(hp), ALLOCATABLE, TARGET :: EPOP_OC(:,:,:)
