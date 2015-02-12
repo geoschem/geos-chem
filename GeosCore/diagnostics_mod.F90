@@ -27,7 +27,7 @@ MODULE Diagnostics_Mod
   PUBLIC  :: Diagnostics_Init
   PUBLIC  :: Diagnostics_Write
   PUBLIC  :: Diagnostics_Final
-  PUBLIC  :: DiagUpdate_EW_Flx      ! ND24 update
+  PUBLIC  :: DiagnUpdate_NTracers_3D 
 
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -3441,25 +3441,23 @@ CONTAINS
   END SUBROUTINE DiagInit_Tracer_Mixing
 
 !EOC
-
-! subroutine  PRIVATE :: DiagUpdate_EW_Flx      ! ND24 update
-
+  
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: diagupdate_ew_flx (LL in progress)
+! !IROUTINE: diagnupdate_ntracers_3D
 !
-! !DESCRIPTION: Subroutine DIAGUPDATE\_EW\_FLX updates the zonal
-!  (east/west) horizontal mass transport flux diagnostic (aka ND24).
-!  CONSIDER MAKING THIS USED FOR ALL ND24 to ND25???
+! !DESCRIPTION: Subroutine DIAGNUPDATE\_NTRACERS\_3D updates a generic set of
+!  3D diagnostics that are distinguished from each other by tracer.
+!  
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagUpdate_EW_Flx( am_I_Root, NDxx, DiagArray, ColNo, &
-                                Input_Opt, RC )
+  SUBROUTINE DiagnUpdate_NTracers_3D( am_I_Root, DiagnPrefix, DiagnNum, &
+                                     DiagnArray, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -3468,15 +3466,15 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE HCO_Diagn_Mod,      ONLY : Diagn_Update
     USE HCO_Error_Mod
-    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR ! Works for all cases???
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN) :: am_I_Root          ! Is this the root CPU?
-    CHARACTER(LEN=4), INTENT(IN) :: NDxx               ! Diagnostic id
-    INTEGER,          INTENT(IN) :: ColNo              ! Diag collection #
-    REAL(fp),         INTENT(IN) :: DiagArray(:,:,:,:)   ! data
-    TYPE(OptInput),   INTENT(IN) :: Input_Opt          ! Input Options object
+    LOGICAL,           INTENT(IN) :: am_I_Root          ! Is this the root CPU?
+    CHARACTER(LEN=60), INTENT(IN) :: DiagnPrefix         ! Diag name prefix
+    INTEGER,           INTENT(IN) :: DiagnNum            ! Diagn # (eg. 24)
+    REAL(fp),          INTENT(IN) :: DiagnArray(:,:,:,:) ! data
+    TYPE(OptInput),    INTENT(IN) :: Input_Opt          ! Input options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3492,93 +3490,61 @@ CONTAINS
 !
     INTEGER              :: cId,      Collection, N
     CHARACTER(LEN=15)    :: OutOper,  WriteFreq
-    CHARACTER(LEN=60)    :: DiagnName
+    CHARACTER(LEN=255)   :: DiagnName
     CHARACTER(LEN=255)   :: MSG
-    CHARACTER(LEN=255)   :: LOC = 'DIAGUPDATE_EW_FLX (diagnostics_mod.F90)' 
+    CHARACTER(LEN=255)   :: LOC = 'DIAGNUPDATE_NTRACERS_3D (diagnostics_mod.F90)' 
     INTEGER              :: HCRC
-    REAL(fp), TARGET     :: DiagArray_tracer(IIPAR,JJPAR,LLPAR)
+    REAL(fp), TARGET     :: DiagnArray_tracer(IIPAR,JJPAR,LLPAR)
     REAL(fp), POINTER    :: Ptr3D(:,:,:)
 
     !=======================================================================
-    ! DIAGUPDATE_EW_FLX begins here!
+    ! DIAGNUPDATE_NTRACERS_3D begins here!
     !=======================================================================
       
     ! Assume successful return
     RC = GIGC_SUCCESS
 
-    ! Skip if diagnostic is turned off.
-    SELECT CASE ( NDxx )
-       CASE ( 'ND24' )
-          IF ( Input_Opt%ND24 <= 0 ) RETURN
-       CASE ( 'ND25' )
-          IF ( Input_Opt%ND25 <= 0 ) RETURN
-       CASE ( 'ND26' )
-          IF ( Input_Opt%ND26 <= 0 ) RETURN
-       CASE DEFAULT
-          MSG = 'Undefined Rn/Pb/Be7 diagnostic: ' // NDxx
-          CALL ERROR_STOP( TRIM( MSG ), LOC )
-    END SELECT
+    ! Assume this is called if Input_Opt%NDXX > 0
 
     ! Loop over tracers
     DO N = 1, Input_Opt%N_TRACERS
 
        ! If this tracer number N is scheduled for output in input.geos, 
-       ! then update its diagnostic container for E/W flux
-       IF ( ANY( Input_Opt%TINDEX(24,:) == N ) ) THEN
+       ! then update its diagnostic container for transport flux
+       IF ( ANY( Input_Opt%TINDEX(DiagnNum,:) == N ) ) THEN
          
           !----------------------------------------------------------------
-          ! Update container for east/west mass flux by transport [kg/s]
+          ! Update diagnostic container
           !----------------------------------------------------------------
       
           ! Diagnostic name
-          SELECT CASE ( NDxx )
-             CASE ( 'ND24' )
-                DiagnName = 'EW_FLX_' // TRIM( Input_Opt%TRACER_NAME( N ) )
-             CASE ( 'ND25' )
-                DiagnName = 'NS_FLX_' // TRIM( Input_Opt%TRACER_NAME( N ) )
-             CASE ( 'ND26' )
-                DiagnName = 'VERT_FLX_' // TRIM( Input_Opt%TRACER_NAME( N ) )
-             CASE DEFAULT
-                MSG = 'Undefined mass flux diagnostic: ' // NDxx
-                CALL ERROR_STOP( TRIM( MSG ), LOC )
-          END SELECT
-
-          ! DEBUGGING - ewl, 2/6/15
-          PRINT *, " "
-          PRINT *, "In " // TRIM( LOC ) // " for diag ", DiagnName
-          ! END DEBUGGING
+          DiagnName = DiagnPrefix // TRIM( Input_Opt%TRACER_NAME( N ) )
 
           ! Assign temporary 3D array
-          DiagArray_tracer = DiagArray(:,:,:,N)
+          DiagnArray_tracer = DiagnArray(:,:,:,N)
 
           ! Point to the array
-          Ptr3D => DiagArray_tracer
+          Ptr3D => DiagnArray_tracer
 
           ! Create container
           CALL Diagn_Update( am_I_Root,                                &
                              cName     = TRIM( DiagnName ),            &
                              Array3D   = Ptr3D,                        &
-                             COL       = ColNo,                        &
+                             COL       = Input_Opt%DIAG_COLLECTION,    &
                              RC        = HCRC )
 
-          ! DEBUGGING - ewl, 2/6/15
-          PRINT *, "   Sample data point: ", DiagArray_tracer(25,25,2)
-          PRINT *, "   Diagn_Update was called for diagnostic"
-          ! END DEBUGGING
-                
           ! Free the point before error handling
           Ptr3D => NULL()
 
           ! Stop with error if the diagnostics update was unsuccessful.
           IF ( RC /= HCO_SUCCESS ) THEN
-             MSG = 'Cannot Update ' // TRIM( NDxx ) &
-                   // ' diagnostic: ' // TRIM( DiagnName )
+             MSG = 'Cannot update diagnostic: ' // TRIM( DiagnName )
              CALL ERROR_STOP( MSG, LOC ) 
           ENDIF  
        ENDIF
     ENDDO
 
-  END SUBROUTINE DiagUpdate_EW_Flx
+  END SUBROUTINE DiagnUpdate_NTracers_3D
 !EOC
 
 

@@ -63,9 +63,6 @@
       USE HCO_STATE_MOD,     ONLY : HCO_STATE
       USE HCOI_GC_MAIN_MOD,  ONLY : GetHcoState
 
-      ! Modules for writing diagnostics to netcdf (temporary)
-      USE DIAGNOSTICS_MOD,   ONLY : DIAGUPDATE_EW_FLX
-
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -319,10 +316,6 @@
 
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
 
-#if defined( DEVEL )
-      ! Temporary for writing to netcdf
-      REAL(fp)   :: EW_FLX_ARRAY(IIPAR,JJPAR,LLPAR,PD24)
-#endif
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -1874,16 +1867,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD24) )
          ENDDO
       ENDIF
-#endif
-#if defined( DEVEL )
-      EW_FLX_ARRAY = MASSFLEW / SCALEDYN
-
-      CALL DiagUpdate_EW_Flx( am_I_Root, 
-     &                        'ND24',
-     &                        EW_FLX_ARRAY,
-     &                        2, Input_Opt, RC = RC )     ! change this in the future
-#endif
-#if !defined( NO_BPCH )
 !
 !******************************************************************************
 !  ND25: Northward mass flux from transport (TPCORE, YTP)

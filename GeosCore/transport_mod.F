@@ -29,6 +29,7 @@
       PUBLIC  :: INIT_GEOS5_WINDOW_TRANSPORT
       PUBLIC  :: INIT_GEOSFP_WINDOW_TRANSPORT
       PUBLIC  :: SET_TRANSPORT
+      PUBLIC  :: DIAGNUPDATE_TRANSPORT
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -1907,4 +1908,101 @@
 
       END SUBROUTINE CLEANUP_TRANSPORT
 !EOC
+#if defined( DEVEL )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: diagnupdate_transport
+!
+! !DESCRIPTION: Subroutine DIAGNUPDATE\_TRANSPORT updates the transport 
+!  mass flux diagnostics (zonal ND24, meridional ND25, and vertical ND26) 
+!  that are written to netCDF. This routine is called within various
+!  TPCORE routines.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DiagnUpdate_Transport( am_I_Root, NDxx, MassFlxArray4D, 
+     &                                  Input_Opt, RC )
+!
+! !USES:
+!
+      USE Error_Mod 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput    
+      USE Diagnostics_Mod,    ONLY : DiagnUpdate_NTracers_3D
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,            INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      CHARACTER(LEN=4),   INTENT(IN)  :: NDxx        ! Diagnostic id
+      REAL(fp),           INTENT(IN)  :: MassFlxArray4D(:,:,:,:)
+      TYPE(OptInput),     INTENT(IN)  :: Input_Opt   ! Input options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,           INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  12 Feb 2015 - E. Lundgren   - Initial version
+! 
+! !REMARKS:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=60)   :: DiagnPrefix
+      CHARACTER(LEN=255)  :: MSG
+      CHARACTER(LEN=255)  :: LOC = 'DIAGNUPDATE_TRANSPORT'
+     &                              // ' (Transport_mod.F)'
+      INTEGER             :: DiagnNum
+
+      !=================================================================
+      ! DIAGNUPDATE_TRANSPORT begins here!
+      !=================================================================
+      
+       ! Assume successful return
+       RC = GIGC_SUCCESS
+   
+       ! Skip if diagnostic is turned off. 
+       ! Otherwise, set diagnostic name prefix and diagnostic #
+       SELECT CASE ( NDxx )
+          CASE ( 'ND24' )
+             IF ( Input_Opt%ND24 <= 0 ) THEN 
+                RETURN
+             ELSE
+                DiagnPrefix = 'EW_FLX_'
+                DiagnNum = 24
+             ENDIF
+          CASE ( 'ND25' )
+             IF ( Input_Opt%ND25 <= 0 ) THEN
+                RETURN
+             ELSE
+                DiagnPrefix = 'NS_FLX_'
+                DiagnNum = 25
+             ENDIF
+          CASE ( 'ND26' )
+             IF ( Input_Opt%ND26 <= 0 ) THEN
+                RETURN
+             ELSE
+                DiagnPrefix = 'UP_FLX_'
+                DiagnNum = 26
+             ENDIF
+          CASE DEFAULT
+             MSG = 'Undefined transport diagnostic: ' // NDxx
+             CALL ERROR_STOP( TRIM( MSG ), LOC )
+       END SELECT
+
+       CALL DiagnUpdate_NTracers_3D( am_I_Root, DiagnPrefix, DiagnNum, 
+     &                               MassFlxArray4D, Input_Opt, RC )
+
+      END SUBROUTINE DiagnUpdate_Transport
+!EOC
+#endif
+
       END MODULE TRANSPORT_MOD

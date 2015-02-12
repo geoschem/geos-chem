@@ -446,6 +446,13 @@ CONTAINS
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 !----------------------------------------------------------------------------
 
+!#if defined( DEVEL )
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!! USES - added by E. Lundgren (GCST) for netcdf diagnostics, 2/11/15
+! USE TRANSPORT_MOD,   ONLY : DiagnUpdate_Transport
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!#endif
+
  implicit none
 
 ! Input:
@@ -812,7 +819,6 @@ CONTAINS
     IF ( ND24 > 0 ) THEN
        MASSFLEW(:,:,K,IQ) = MFLEW
     ENDIF
-
     IF ( ND25 > 0 ) THEN
        MASSFLNS(:,:,K,IQ) = MFLNS
     ENDIF
@@ -829,6 +835,32 @@ CONTAINS
 
    enddo
    enddo
+
+!!-------------------------------------------------------------------
+!! Update diagnostics containers for writing to netcdf - ewl 2/11/15
+!!-------------------------------------------------------------------
+!#if defined( DEVEL )
+!   ! Don't forget to reverse the levels - to be done!!!
+!   IF ( ND24 > 0 ) THEN
+!      CALL DiagUpdate_EW_Flx( am_I_Root,     & 
+!                              'ND24',        &
+!                              24,            &
+!                              MASSFLEW,  &
+!                              2,             &
+!                              Input_Opt,     &
+!                              RC = RC )
+!   ENDIF
+!   IF ( ND25 > 0 ) THEN
+!      CALL DiagUpdate_EW_Flx( am_I_Root,     & 
+!                              'ND25',        &
+!                              25,            &
+!                              MASSFLNS,  &
+!                              2,             &
+!                              Input_Opt,     &
+!                              RC = RC )
+!   ENDIF
+!#endif
+
 
 !---------------------------------------------------------------
 ! Perform Remapping back to the hybrid sigma-pressure coordinate
@@ -907,7 +939,23 @@ CONTAINS
     ENDDO
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
-    ENDIF
+!!-------------------------------------------------------------------
+!! Update diagnostics containers for writing to netcdf - ewl 2/11/15
+!!-------------------------------------------------------------------
+!#if defined( DEVEL )
+!   ! Don't forget to reverse the levels - to be done!!!
+!   IF ( ND26 > 0 ) THEN
+!      CALL DiagUpdate_EW_Flx( am_I_Root,     & 
+!                              'ND24',        &
+!                              24,            &
+!                              MASSFLUP,  &
+!                              2,             &
+!                              Input_Opt,     &
+!                              RC = RC )
+!   ENDIF
+!#endif
+
+ ENDIF
 
  END subroutine TPCORE_GEOS5_WINDOW
 
