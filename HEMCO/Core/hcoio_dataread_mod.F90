@@ -1164,15 +1164,23 @@ CONTAINS
        ! ------------------------------------------------------------- 
        ! Now need to set upper time slice index tidx2. This index
        ! is only different from tidx1 if multiple hourly slices are
-       ! read (--> prefHr = -1, e.g. hour attribute in config. file
-       ! was set to wildcard character). In this case, check if there
-       ! are multiple time slices for the selected date (y/m/d).
+       ! read (--> prefHr = -1 or -10, e.g. hour attribute in config. 
+       ! file was set to wildcard character or data is in local hours). 
+       ! In this case, check if there are multiple time slices for the 
+       ! selected date (y/m/d).
        ! tidx2 has already been set to proper value above if it's
        ! weekday data.
        ! -------------------------------------------------------------
        IF ( tidx2 < 0 ) THEN
+
+          ! Check for multiple hourly data
           IF ( tidx1 > 0 .AND. prefHr < 0 ) THEN
              CALL SET_TIDX2 ( nTime, availYMDH, tidx1, tidx2 )    
+
+             ! Denote as local time if necessary
+             IF ( Lct%Dct%Dta%ncHrs(1) == -10 ) THEN
+                Lct%Dct%Dta%IsLocTime = .TRUE.
+             ENDIF
           ELSE
              tidx2 = tidx1
           ENDIF
@@ -1210,7 +1218,6 @@ CONTAINS
     ! (e.g. every hour, every 3 hours, ...).
     !-----------------------------------------------------------------
     IF ( tidx2 > tidx1 ) THEN
-       !Lct%Dct%Dta%DeltaT = availYMDh(tidx1+1) - availYMDh(tidx1)
        Lct%Dct%Dta%DeltaT = YMDh2hrs( availYMDh(tidx1+1) - availYMDh(tidx1) )
     ELSE
        Lct%Dct%Dta%DeltaT = 0

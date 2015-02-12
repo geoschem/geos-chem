@@ -69,6 +69,10 @@ MODULE Regrid_A2A_Mod
 !                              dependency for the HEMCO emissions package.
 !                              input/output.
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  11 Feb 2015 - C. Keller   - Add capability for regridding local grids onto
+!                              global grids. To do so, xmap now only operates
+!                              within the longitude range spanned by the input
+!                              domain.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1381,7 +1385,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE xmap_r8r8(im, jm, lon1, q1, in, lon2, q2)
+  SUBROUTINE xmap_r8r8(im, jm, lon1, q1, iin, ilon2, iq2)
 !
 ! !INPUT PARAMETERS:
 !
@@ -1389,7 +1393,7 @@ CONTAINS
     INTEGER, INTENT(IN)  :: im           
 
     ! Target E-W dimension
-    INTEGER, INTENT(IN)  :: in           
+    INTEGER, INTENT(IN)  :: iin
   
     ! Original N-S dimension
     INTEGER, INTENT(IN)  :: jm           
@@ -1401,12 +1405,12 @@ CONTAINS
     REAL*8,  INTENT(IN)  :: q1(im,jm)    
   
     ! Target cell's western edge
-    REAL*8,  INTENT(IN)  :: lon2(in+1)   
+    REAL*8,  INTENT(IN), TARGET  :: ilon2(iin+1)   
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*8,  INTENT(OUT) :: q2(in,jm)    
+    REAL*8,  INTENT(OUT), TARGET :: iq2(iin,jm)    
 !
 ! !REMARKS:
 !   lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
@@ -1435,6 +1439,14 @@ CONTAINS
     REAL*8               :: qsum
     LOGICAL              :: found
 
+    ! Update
+    INTEGER              :: n1, n2
+    INTEGER              :: in
+    REAL*8, POINTER      :: lon2(:) => NULL()
+    REAL*8, POINTER      :: q2(:,:) => NULL()
+    REAL*8               :: minlon, maxlon 
+    REAL*8               :: lon1s(im+1)
+
     ! XMAP begins here!
     do i=1,im+1
        x1(i) = lon1(i)
@@ -1443,6 +1455,37 @@ CONTAINS
     do i=1,im
        dx1(i) = x1(i+1) - x1(i)
     enddo
+
+    !===================================================================
+    ! define minimum and maximum longitude on output grid
+    ! to be used. Remapping will be restricted to this
+    ! domain. This procedure allows remapping of nested
+    ! domains onto larger (e.g. global) domains. 
+    ! ckeller, 2/11/15).
+    !===================================================================
+    minlon = minval(lon1)
+    maxlon = maxval(lon1)
+
+    ! check for values > 180.0
+    if(maxlon > 180.0d0) then
+       lon1s = lon1
+       do while(maxlon > 180.0d0)
+          WHERE(lon1s > 180.0d0) lon1s = lon1s - 360.0d0
+          minlon = minval(lon1s)
+          maxlon = maxval(lon1s)
+       enddo
+    endif    
+
+    ! Reduce input grid
+    n1 = 1
+    n2 = iin+1
+    do i=1,iin+1
+       if ( ilon2(i) < minlon ) n1 = i
+       if ( ilon2(iin+2-i) > maxlon ) n2 = iin+2-i
+    enddo
+    in = n2 - n1
+    lon2 => ilon2(n1:n2)
+    q2   => iq2(n1:n2,:)
     
     !===================================================================
     ! check to see if ghosting is necessary
@@ -1560,6 +1603,10 @@ CONTAINS
 1000 continue
      !$OMP END PARALLEL DO
 
+    ! Cleanup
+    lon2 => NULL() 
+    q2   => NULL() 
+    
   END SUBROUTINE xmap_r8r8
 !EOC
 !------------------------------------------------------------------------------
@@ -1580,7 +1627,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE xmap_r4r4(im, jm, lon1, q1, in, lon2, q2)
+  SUBROUTINE xmap_r4r4(im, jm, lon1, q1, iin, ilon2, iq2)
 !
 ! !INPUT PARAMETERS:
 !
@@ -1588,7 +1635,7 @@ CONTAINS
     INTEGER, INTENT(IN)  :: im           
 
     ! Target E-W dimension
-    INTEGER, INTENT(IN)  :: in           
+    INTEGER, INTENT(IN)  :: iin
   
     ! Original N-S dimension
     INTEGER, INTENT(IN)  :: jm           
@@ -1600,12 +1647,12 @@ CONTAINS
     REAL*4,  INTENT(IN)  :: q1(im,jm)    
   
     ! Target cell's western edge
-    REAL*4,  INTENT(IN)  :: lon2(in+1)   
+    REAL*4,  INTENT(IN), TARGET  :: ilon2(iin+1)   
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*4,  INTENT(OUT) :: q2(in,jm)    
+    REAL*4,  INTENT(OUT), TARGET :: iq2(iin,jm)    
 !
 ! !REMARKS:
 !   lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
@@ -1634,6 +1681,14 @@ CONTAINS
     REAL*4               :: qsum
     LOGICAL              :: found
 
+    ! Update
+    INTEGER              :: n1, n2
+    INTEGER              :: in
+    REAL*4, POINTER      :: lon2(:) => NULL()
+    REAL*4, POINTER      :: q2(:,:) => NULL()
+    REAL*4               :: minlon, maxlon 
+    REAL*4               :: lon1s(im+1)
+
     ! XMAP begins here!
     do i=1,im+1
        x1(i) = lon1(i)
@@ -1642,7 +1697,40 @@ CONTAINS
     do i=1,im
        dx1(i) = x1(i+1) - x1(i)
     enddo
-    
+
+    !===================================================================
+    ! define minimum and maximum longitude on output grid
+    ! to be used. Remapping will be restricted to this
+    ! domain. This procedure allows remapping of nested
+    ! domains onto larger (e.g. global) domains. 
+    ! ckeller, 2/11/15).
+    !===================================================================
+    minlon = minval(lon1)
+    maxlon = maxval(lon1)
+
+    ! check for values > 180.0
+    if(maxlon > 180.0) then
+       lon1s = lon1
+       do while(maxlon > 180.0)
+          WHERE(lon1s > 180.0) lon1s = lon1s - 360.0
+          minlon = minval(lon1s)
+          maxlon = maxval(lon1s)
+       enddo
+    endif    
+
+    ! Reduce input grid
+    n1 = 1
+    n2 = iin+1
+    do i=1,iin+1
+       if ( ilon2(i) < minlon ) n1 = i
+       if ( ilon2(iin+2-i) > maxlon ) n2 = iin+2-i
+    enddo
+    in = n2 - n1
+    lon2 => ilon2(n1:n2)
+    q2   => iq2(n1:n2,:)
+
+    ! shadow variables to selected range
+ 
     !===================================================================
     ! check to see if ghosting is necessary
     ! Western edge:
@@ -1758,6 +1846,10 @@ CONTAINS
 555    continue
 1000 continue
      !$OMP END PARALLEL DO
+
+     ! Cleanup
+     lon2 => NULL()
+     q2   => NULL()
 
   END SUBROUTINE xmap_r4r4
 !EOC
@@ -1779,7 +1871,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE xmap_r4r8(im, jm, lon1, q1, in, lon2, q2)
+  SUBROUTINE xmap_r4r8(im, jm, lon1, q1, iin, ilon2, iq2)
 !
 ! !INPUT PARAMETERS:
 !
@@ -1787,7 +1879,7 @@ CONTAINS
     INTEGER, INTENT(IN)  :: im           
 
     ! Target E-W dimension
-    INTEGER, INTENT(IN)  :: in           
+    INTEGER, INTENT(IN)  :: iin
   
     ! Original N-S dimension
     INTEGER, INTENT(IN)  :: jm           
@@ -1799,12 +1891,12 @@ CONTAINS
     REAL*4,  INTENT(IN)  :: q1(im,jm)    
   
     ! Target cell's western edge
-    REAL*4,  INTENT(IN)  :: lon2(in+1)   
+    REAL*4,  INTENT(IN), TARGET  :: ilon2(iin+1)   
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*8,  INTENT(OUT) :: q2(in,jm)    
+    REAL*8,  INTENT(OUT), TARGET :: iq2(iin,jm)    
 !
 ! !REMARKS:
 !   lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
@@ -1833,6 +1925,14 @@ CONTAINS
     REAL*8               :: qsum
     LOGICAL              :: found
 
+    ! Update
+    INTEGER              :: n1, n2
+    INTEGER              :: in
+    REAL*4, POINTER      :: lon2(:) => NULL()
+    REAL*8, POINTER      :: q2(:,:) => NULL()
+    REAL*4               :: minlon, maxlon 
+    REAL*4               :: lon1s(im+1)
+
     ! XMAP begins here!
     do i=1,im+1
        x1(i) = lon1(i)
@@ -1841,6 +1941,37 @@ CONTAINS
     do i=1,im
        dx1(i) = x1(i+1) - x1(i)
     enddo
+    
+    !===================================================================
+    ! define minimum and maximum longitude on output grid
+    ! to be used. Remapping will be restricted to this
+    ! domain. This procedure allows remapping of nested
+    ! domains onto larger (e.g. global) domains. 
+    ! ckeller, 2/11/15).
+    !===================================================================
+    minlon = minval(lon1)
+    maxlon = maxval(lon1)
+
+    ! check for values > 180.0
+    if(maxlon > 180.0) then
+       lon1s = lon1
+       do while(maxlon > 180.0)
+          WHERE(lon1s > 180.0) lon1s = lon1s - 360.0
+          minlon = minval(lon1s)
+          maxlon = maxval(lon1s)
+       enddo
+    endif    
+
+    ! Reduce input grid
+    n1 = 1
+    n2 = iin+1
+    do i=1,iin+1
+       if ( ilon2(i) < minlon ) n1 = i
+       if ( ilon2(iin+2-i) > maxlon ) n2 = iin+2-i
+    enddo
+    in = n2 - n1
+    lon2 => ilon2(n1:n2)
+    q2   => iq2(n1:n2,:)
     
     !===================================================================
     ! check to see if ghosting is necessary
@@ -1958,6 +2089,10 @@ CONTAINS
 1000 continue
      !$OMP END PARALLEL DO
 
+    ! Cleanup
+    lon2 => NULL() 
+    q2   => NULL() 
+    
   END SUBROUTINE xmap_r4r8
 !EOC
 !------------------------------------------------------------------------------
@@ -1978,7 +2113,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE xmap_r8r4(im, jm, lon1, q1, in, lon2, q2)
+  SUBROUTINE xmap_r8r4(im, jm, lon1, q1, iin, ilon2, iq2)
 !
 ! !INPUT PARAMETERS:
 !
@@ -1986,7 +2121,7 @@ CONTAINS
     INTEGER, INTENT(IN)  :: im           
 
     ! Target E-W dimension
-    INTEGER, INTENT(IN)  :: in           
+    INTEGER, INTENT(IN)  :: iin           
   
     ! Original N-S dimension
     INTEGER, INTENT(IN)  :: jm           
@@ -1998,12 +2133,12 @@ CONTAINS
     REAL*8,  INTENT(IN)  :: q1(im,jm)    
   
     ! Target cell's western edge
-    REAL*4,  INTENT(IN)  :: lon2(in+1)   
+    REAL*4,  INTENT(IN), TARGET  :: ilon2(iin+1)   
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*4,  INTENT(OUT) :: q2(in,jm)    
+    REAL*4,  INTENT(OUT), TARGET :: iq2(iin,jm)    
 !
 ! !REMARKS:
 !   lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
@@ -2032,6 +2167,14 @@ CONTAINS
     REAL*4               :: qsum
     LOGICAL              :: found
 
+    ! Update
+    INTEGER              :: n1, n2
+    INTEGER              :: in
+    REAL*4, POINTER      :: lon2(:) => NULL()
+    REAL*4, POINTER      :: q2(:,:) => NULL()
+    REAL*4               :: minlon, maxlon 
+    REAL*4               :: lon1s(im+1)
+
     ! XMAP begins here!
     do i=1,im+1
        x1(i) = lon1(i)
@@ -2040,6 +2183,37 @@ CONTAINS
     do i=1,im
        dx1(i) = x1(i+1) - x1(i)
     enddo
+    
+    !===================================================================
+    ! define minimum and maximum longitude on output grid
+    ! to be used. Remapping will be restricted to this
+    ! domain. This procedure allows remapping of nested
+    ! domains onto larger (e.g. global) domains. 
+    ! ckeller, 2/11/15).
+    !===================================================================
+    minlon = minval(lon1)
+    maxlon = maxval(lon1)
+
+    ! check for values > 180.0
+    if(maxlon > 180.0) then
+       lon1s = lon1
+       do while(maxlon > 180.0)
+          WHERE(lon1s > 180.0) lon1s = lon1s - 360.0
+          minlon = minval(lon1s)
+          maxlon = maxval(lon1s)
+       enddo
+    endif    
+
+    ! Reduce input grid
+    n1 = 1
+    n2 = iin+1
+    do i=1,iin+1
+       if ( ilon2(i) < minlon ) n1 = i
+       if ( ilon2(iin+2-i) > maxlon ) n2 = iin+2-i
+    enddo
+    in = n2 - n1
+    lon2 => ilon2(n1:n2)
+    q2   => iq2(n1:n2,:)
     
     !===================================================================
     ! check to see if ghosting is necessary
@@ -2157,6 +2331,10 @@ CONTAINS
 1000 continue
      !$OMP END PARALLEL DO
 
+    ! Cleanup
+    lon2 => NULL() 
+    q2   => NULL() 
+    
   END SUBROUTINE xmap_r8r4
 !EOC
 !------------------------------------------------------------------------------
