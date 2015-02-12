@@ -438,8 +438,14 @@ CONTAINS
  !%%% ND26 to arg list of TPCORE_FVDAS for GEOS-CHEM mass-flux diagnostics 
  !%%% (bdf, bmy, 9/28/04)
  !%%%
+ !%%% Added DiagnArrays for writing diagnostics to netcdf (ewl, 2/12/15).
+ !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative. New diagnostic
+ !%%% arrays are instantaneous since cumulative sum is abstracted to
+ !%%% to high-level diagnostic container update code.
                          MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2,     &
-                         TCVV,     ND24,     ND25,     ND26 )
+                         TCVV,     ND24,     ND25,     ND26,        &
+                         DiagnArray_EW_Flx, DiagnArray_NS_Flx,      &
+                         DiagnArray_Vert_Flx )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 !----------------------------------------------------------------------------
 
@@ -551,12 +557,17 @@ CONTAINS
  !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, ND26
  !%%% for mass-flux diagnostics (bdf, bmy, 9/28/04)
  !%%%
+ !%%% Added netcdf diagnostic arrays (ewl, 2/12/15)
+ !%%%
 ! REAL,    INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ) ! east/west mass flux
 ! REAL,    INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ) ! north/south mass flux
 ! REAL,    INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ) ! up/down vertical mass flux
  REAL,    INTENT(INOUT) :: MASSFLEW(:,:,:,:) ! east/west mass flux
  REAL,    INTENT(INOUT) :: MASSFLNS(:,:,:,:) ! north/south mass flux
  REAL,    INTENT(INOUT) :: MASSFLUP(:,:,:,:) ! up/down vertical mass flux
+ REAL,    INTENT(INOUT) :: DiagnArray_EW_Flx(:,:,:,:)
+ REAL,    INTENT(INOUT) :: DiagnArray_NS_Flx(:,:,:,:)
+ REAL,    INTENT(INOUT) :: DiagnArray_Vert_Flx(:,:,:,:)
  REAL,    INTENT(IN)    :: AREA_M2(JM)           ! box area for mass flux diag
  REAL,    INTENT(IN)    :: TCVV(NQ)              ! tracer masses for flux diag
  INTEGER, INTENT(IN)    :: ND24                  ! E/W flux diag switch
@@ -579,6 +590,10 @@ CONTAINS
 ! Local arrays for mass fluxes to save memory if diagnostics not used.
 ! (ccc, 9/9/10)
  real MFLEW(im, jm), MFLNS(im, jm)
+
+! Local arrays for diagnostics passed to routine TP2G  (ewl, 2/12/15)
+ real Diagn_EW_Flx(im, jm)
+ real Diagn_NS_Flx(im, jm)
 
 ! Local variables:
  integer i,j,k,iq
@@ -736,6 +751,10 @@ CONTAINS
     MFLEW(:,:) = 0.d0
     MFLNS(:,:) = 0.d0
 
+    ! Initialize new diagnostics local variable (ewl, 2/12/15)
+    ! Do this whether DEVEL defined or not since now always passed.
+    Diagn_EW_Flx(:,:) = 0.d0
+    Diagn_NS_Flx(:,:) = 0.d0
 
 ! Copying q to 2d work array for transport. This allows q to be dimensioned
 ! differently from the calling routine.
@@ -746,6 +765,7 @@ CONTAINS
        enddo
     enddo
 
+#if !defined( NO_BPCH )
     IF ( ND24 > 0 ) THEN 
        MFLEW = MASSFLEW(:,:,K,IQ)
     ELSE
@@ -757,6 +777,21 @@ CONTAINS
     ELSE
        MFLNS(1,1) = MASSFLNS(1,1,1,1)
     ENDIF
+#endif
+#if defined( DEVEL )
+    ! Initialize local diagnostic 2D arrays before passing to routine TP2G
+    IF ( ND24 > 0 ) THEN 
+       Diagn_EW_Flx = DiagnArray_EW_Flx(:,:,K,IQ)
+    ELSE
+       Diagn_EW_Flx(1,1) = DiagnArray_EW_Flx(1,1,1,1)
+    ENDIF
+
+    IF ( ND25 > 0 ) THEN
+       Diagn_NS_Flx = DiagnArray_NS_Flx(:,:,K,IQ)
+    ELSE
+       Diagn_NS_Flx(1,1) = DiagnArray_NS_Flx(1,1,1,1)
+    ENDIF
+#endif
 
     
 !--- Previous to (ccc, 9/9/10)
@@ -789,10 +824,13 @@ CONTAINS
  !%%% arguments to routine TP2G for GEOS-CHEM mass flux diagnostics 
  !%%% (bdf, bmy, 9/28/04)
  !%%%
+ !%%% Now pass new diagnostics for writing to netcdf (ewl, 2/12/15)
                MFLEW, MFLNS,      &
-               AREA_M2, TCVV(IQ), ND24, ND25, DT )
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               AREA_M2, TCVV(IQ), ND24, ND25, DT,   &
+               Diagn_EW_Flx, Diagn_NS_Flx )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
 
+#if !defined( NO_BPCH )
     ! Save mass flux diagnostics (clb, 7/2/12)
     IF ( ND24 > 0 ) THEN
        MASSFLEW(:,:,K,IQ) = MFLEW
@@ -801,6 +839,16 @@ CONTAINS
     IF ( ND25 > 0 ) THEN
        MASSFLNS(:,:,K,IQ) = MFLNS
     ENDIF
+#endif
+#if defined( DEVEL )
+    ! Save diagnostics for writing to netcdf (ewl, 2/12/15)
+    IF ( ND24 > 0 ) THEN
+       DiagnArray_EW_Flx(:,:,K,IQ) = Diagn_EW_Flx
+    ENDIF
+    IF ( ND25 > 0 ) THEN
+       DiagnArray_NS_Flx(:,:,K,IQ) = Diagn_NS_Flx
+    ENDIF
+#endif
 
     !do j=jfirst,jlast
     do j=max(jfirst,jord+1),min(jlast,jm-jord+1)   ! Lin_20140518
@@ -808,6 +856,7 @@ CONTAINS
           q(i,j,k,iq) = q2(i,j)
        enddo
     enddo
+
 
 ! enddo Vertical_OMP
 ! enddo Multi_Tracer
@@ -881,8 +930,12 @@ CONTAINS
                             (100D0) * AREA_M2(J) / ( 9.8D0* TCVV(IQ) )
 
        DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
-
+#if !defined( NO_BPCH)
        MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ) / DT
+#endif
+#if defined( DEVEL )
+       DiagnArray_Vert_Flx(I,J,K,IQ) = DTC(I,J,K,IQ) / DT
+#endif
     ENDDO
     ENDDO
     ENDDO
@@ -1240,8 +1293,10 @@ CONTAINS
  !%%% Add MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT as arguments
  !%%% to subroutine TP2G for mass-flux diagnostics (bmy, 9/28/04)
  !%%%
+ !%%% Add diagnostics for writing to netcdf (ewl, 2/12/15)
                 MFLEW, MFLNS, AREA_M2,                 & 
-                TCV,   ND24,  ND25,   DT )
+                TCV,   ND24,  ND25,   DT,              &
+                Diagn_EW_Flx, Diagn_NS_Flx )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  implicit none
 
@@ -1271,8 +1326,12 @@ CONTAINS
  !%%% Declare MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT for the
  !%%% GEOS-CHEM mass-flux diagnostics (bdf, bmy, 9/28/04)
  !%%% 
+ !%%% Declare new diagnostic local arrays for writing to netcdf (ewl, 2/12/15)
+ !%%% 
    REAL,    INTENT(INOUT) :: MFLEW(IM,JM)  ! E/W mass flux array
    REAL,    INTENT(INOUT) :: MFLNS(IM,JM)  ! N/S mass flux array
+   REAL,    INTENT(INOUT) :: Diagn_EW_Flx(IM,JM) ! E/W diagnostic array 
+   REAL,    INTENT(INOUT) :: Diagn_NS_Flx(IM,JM) ! N/S diagnostic array
    REAL,    INTENT(IN)    :: AREA_M2(JM)   ! Grid bos surface area [m2]
    REAL,    INTENT(IN)    :: TCV           ! Mass ratio
    INTEGER, INTENT(IN)    :: ND24          ! flux diag
@@ -1329,16 +1388,28 @@ CONTAINS
  !%%%      (airmass/tracer mass)/timestep to get into kg/s
  !%%% (3) DP is current pressure thickness
  !%%%
+ !%%% Add diagnostics for writing to netcdf (ewl, 2/12/15)
+ !%%%
    IF ( ND24 > 0 ) THEN
       DO J = JS2G0, JN2G0
 
          DO I = 1, IM-1
             DTC        = FX(I,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+#if !defined( NO_BPCH )
             MFLEW(I,J) = MFLEW(I,J) + DTC
+#endif
+#if defined( DEVEL )
+            Diagn_EW_Flx(I,J) = DTC
+#endif
          ENDDO
 
          DTC         = FX(IM,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+#if !defined( NO_BPCH )
          MFLEW(IM,J) = MFLEW(I,J) + DTC
+#endif
+#if defined( DEVEL )
+         Diagn_EW_Flx(IM,J) = DTC
+#endif
       ENDDO
    ENDIF
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1349,11 +1420,19 @@ CONTAINS
  !%%% Implement ND25 diag: N/S flux of tracer [kg/s] (bdf, bmy, 9/28/04)
  !%%% Now multiply fluxes by latitude factor RGW_25 (bdf, bmy, 10/29/04)
  !%%%
+ !%%% Add diagnostics for writing to netcdf (ewl, 2/12/15)
+ !%%%
    IF ( ND25 > 0 ) THEN
       DO J = JS2G0, JN2G0
       DO I = 1,     IM
          DTC        = FY(I,J)*RGW_25(J)*AREA_M2(J)*100./ (TCV*DT*9.8)
+#if !defined( NO_BPCH )
          MFLNS(I,J) = MFLNS(I,J) + DTC
+#endif
+#if defined( DEVEL )
+         Diagn_NS_Flx(I,J) = DTC
+#endif
+
       ENDDO
       ENDDO
 
@@ -1361,7 +1440,12 @@ CONTAINS
       IF ( JFIRST == 1 ) THEN
          DO I = 1, IM
             DTC        = -FY(I,2)*RGW_25(1)*AREA_M2(1)*100./(TCV*DT*9.8)
+#if !defined( NO_BPCH )
             MFLNS(I,1) = MFLNS(I,1) + DTC
+#endif
+#if defined( DEVEL )
+            Diagn_NS_Flx(I,1) = DTC
+#endif
          ENDDO
       ENDIF
 
@@ -1369,7 +1453,13 @@ CONTAINS
       IF ( JLAST == JM ) THEN
          DO I = 1, IM
             DTC     = FY(I,JM)*RGW_25(JM)*AREA_M2(JM)*100./(TCV*DT*9.8)
+#if !defined( NO_BPCH )
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
+#endif
+#if defined( DEVEL )
+            Diagn_NS_Flx(I,JM) = DTC
+#endif
+
          ENDDO
       ENDIF
    ENDIF

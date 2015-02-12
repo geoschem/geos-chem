@@ -29,7 +29,6 @@
       PUBLIC  :: INIT_GEOS5_WINDOW_TRANSPORT
       PUBLIC  :: INIT_GEOSFP_WINDOW_TRANSPORT
       PUBLIC  :: SET_TRANSPORT
-      PUBLIC  :: DIAGNUPDATE_TRANSPORT
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -38,6 +37,9 @@
       PRIVATE :: DO_GEOS5_WINDOW_TRANSPORT
       PRIVATE :: DO_GEOSFP_WINDOW_TRANSPORT      
       PRIVATE :: GET_AIR_MASS                
+#if defined( DEVEL )
+      PRIVATE :: DIAGNUPDATE_TRANSPORT
+#endif
 !
 ! !REVISION HISTORY:
 !  10 Mar 2003 - Y. Wang, R. Yantosca - Initial version
@@ -74,6 +76,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed "GEOS57" to "GEOSFP" in routine names
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 Feb 2015 - E. Lundgren - Added functionality for writing diags to netcdf
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -162,7 +165,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE     :: FIRST = .TRUE.
+      LOGICAL, SAVE   :: FIRST = .TRUE.
 
       !=================================================================
       ! DO_TRANSPORT begins here!
@@ -343,6 +346,12 @@
       INTEGER          :: N_TRACERS
       REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
+      ! New diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
+      ! These are passed, so need to be defined even if DEVEL = n
+      REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
+      REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
+      REAL(fp) :: DiagnArray_Vert_Flx(IIPAR,JJPAR,LLPAR,NNPAR) 
+
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
       !=================================================================
@@ -466,7 +475,18 @@
      &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS,         
      &                   LFILL,  MASSFLEW,  MASSFLNS, MASSFLUP,    
      &                   A_M2,   TCVV,      ND24,     ND25,     
-     &                   ND26 )
+     &                   ND26,
+      ! Add new diagnostics for writing to netcdf (ewl, 2/12/15)
+     &                   DiagnArray_EW_Flx, DiagnArray_NS_Flx,
+     &                   DiagnArray_Vert_Flx )
+#if defined( DEVEL )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', DiagnArray_EW_Flx,
+     &                           Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', DiagnArray_NS_Flx,
+     &                           Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', 
+     &                            DiagnArray_Vert_Flx, Input_Opt, RC )
+#endif
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -648,6 +668,12 @@
       ! Variable to ensure mass conservation (ccc, 20/11/08)
       REAL(fp)           :: SUMADA
 
+      ! New diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
+      ! These are passed, so need to be defined even if DEVEL = n
+      REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
+      REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
+      REAL(fp) :: DiagnArray_Vert_Flx(IIPAR,JJPAR,LLPAR,NNPAR) 
+
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
       !=================================================================
@@ -776,7 +802,18 @@
      &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS,
      &                   LFILL,   MASSFLEW,  MASSFLNS, MASSFLUP, 
      &                   A_M2,    TCVV,      ND24,     ND25,     
-     &                   ND26 )
+     &                   ND26,
+      ! Add new diagnostics for writing to netcdf (ewl, 2/12/15)
+     &                   DiagnArray_EW_Flx, DiagnArray_NS_Flx,
+     &                   DiagnArray_Vert_Flx )
+#if defined( DEVEL )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', DiagnArray_EW_Flx,
+     &                           Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', DiagnArray_NS_Flx,
+     &                           Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', 
+     &                            DiagnArray_Vert_Flx, Input_Opt, RC )
+#endif
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -961,6 +998,12 @@
       ! Variable to ensure mass conservation (ccc, 20/11/08)
       REAL(fp)           :: SUMADA
 
+      ! New diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
+      ! These are passed, so need to be defined even if DEVEL is not.
+      REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
+      REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
+      REAL(fp) :: DiagnArray_Vert_Flx(IIPAR,JJPAR,LLPAR,NNPAR) 
+
       !=================================================================
       ! DO_GEOS5_WINDOW_TRANSPORT begins here!
       !=================================================================
@@ -1088,14 +1131,27 @@
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
       ! Do the advection
-      CALL TPCORE_GEOS5_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
+
+      ! Pass new diagnostic arrays - ewl, 2/12/2015
+       CALL TPCORE_GEOS5_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
      &                          LLPAR,    JFIRST,    JLAST,    NG,
      &                          MG,       N_TOT_TRC, Ap,       Bp,
      &                          p_UWND,   p_VWND,    P_TP1,    P_TP2,
      &                          P_TEMP,   p_STT,     IORD,     JORD,
      &                          KORD,     N_ADJ,     p_XMASS,  p_YMASS,
      &                          MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
-     &                          TCVV,     ND24,      ND25,     ND26 )
+     &                          TCVV,     ND24,      ND25,     ND26,
+      ! Add new diagnostics for writing to netcdf (ewl, 2/12/15)
+     &                          DiagnArray_EW_Flx, DiagnArray_NS_Flx,
+     &                          DiagnArray_Vert_Flx )
+#if defined( DEVEL )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', DiagnArray_EW_Flx,
+     &                           Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', DiagnArray_NS_Flx,
+     &                           Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', 
+     &                            DiagnArray_Vert_Flx, Input_Opt, RC )
+#endif
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS ) 
@@ -1214,7 +1270,13 @@
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
-      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
+
+      ! New diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
+      ! These are passed, so need to be defined even if DEVEL not defined
+      REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
+      REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
+      REAL(fp) :: DiagnArray_Vert_Flx(IIPAR,JJPAR,LLPAR,NNPAR) 
 
       !=================================================================
       ! DO_GEOSFP_FVDAS_WINDOW_TRANSPORT begins here!
@@ -1344,8 +1406,18 @@
      &                           P_TEMP,   p_STT,     IORD,     JORD,      
      &                           KORD,     N_ADJ,     p_XMASS,  p_YMASS,
      &                           MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
-     &                           TCVV,     ND24,      ND25,     ND26 )
-
+     &                           TCVV,     ND24,      ND25,     ND26,
+      ! Add new diagnostics for writing to netcdf (ewl, 2/12/15)
+     &                           DiagnArray_EW_Flx, DiagnArray_NS_Flx,
+     &                           DiagnArray_Vert_Flx )
+#if defined( DEVEL )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', DiagnArray_EW_Flx,
+     &                           Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', DiagnArray_NS_Flx,
+     &                           Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', 
+     &                            DiagnArray_Vert_Flx, Input_Opt, RC )
+#endif
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
 
@@ -1898,6 +1970,7 @@
 !  (1 ) Remove reference to DSIG, it's obsolete. (bmy, 6/24/03)
 !  (2 ) Remove obsolete embedded chemistry arrays (bmy, 10/30/07)
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  12 Feb 2015 - E. Lundgren - Added new diagnostics arrays for netcdf output
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1990,7 +2063,7 @@
              IF ( Input_Opt%ND26 <= 0 ) THEN
                 RETURN
              ELSE
-                DiagnPrefix = 'UP_FLX_'
+                DiagnPrefix = 'VERT_FLX_'
                 DiagnNum = 26
              ENDIF
           CASE DEFAULT

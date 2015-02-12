@@ -896,7 +896,7 @@ toms_mod.o                  : toms_mod.F
 tpcore_bc_mod.o             : tpcore_bc_mod.F                                \
                               tracer_mod.o
 
-tpcore_geos5_window_mod.o   : tpcore_geos5_window_mod.F90
+tpcore_geos5_window_mod.o   : tpcore_geos5_window_mod.F90                    
 ifeq ($(PRECISION),8)
 	$(F90) -c $(FREEFORM) $(R8) $<
 endif

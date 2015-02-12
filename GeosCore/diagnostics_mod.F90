@@ -55,7 +55,7 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagInit_Landmap       ! ND30 init
 
 !
-! !DEFINED PARAMETERS:
+! !DEFINED PARAMETERS:x
 !
   ! Prefix of restart file. This file will hold all diagnostics that are 
   ! written out at the end of a simulation (either because their output 
@@ -3518,7 +3518,8 @@ CONTAINS
           !----------------------------------------------------------------
       
           ! Diagnostic name
-          DiagnName = DiagnPrefix // TRIM( Input_Opt%TRACER_NAME( N ) )
+          DiagnName = TRIM( DiagnPrefix )                              & 
+                      // TRIM( Input_Opt%TRACER_NAME( N ) )
 
           ! Assign temporary 3D array
           DiagnArray_tracer = DiagnArray(:,:,:,N)
