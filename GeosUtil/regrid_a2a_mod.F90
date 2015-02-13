@@ -307,7 +307,9 @@ CONTAINS
     !===================================================================
     ! E-W regridding
     !===================================================================    
-    IF ( im .eq. in ) THEN
+    IF ( im         == in         .and. &
+         lon1(1)    == lon2(1)    .and. &
+         lon1(im+1) == lon2(in+1)        ) THEN
 
        ! Don't call XMAP if both grids have the same # of longitudes
        ! but save the input data in the QTMP array
@@ -331,7 +333,9 @@ CONTAINS
     !===================================================================
     ! N-S regridding
     !===================================================================    
-    IF ( jm .eq. jn ) THEN
+    IF ( jm         == jn         .and. & 
+         sin1(1)    == sin2(1)    .and. &
+         sin1(jm+1) == sin2(jn+1)        ) THEN
 
        ! Don't call XMAP if both grids have the same # of longitudes,
        ! but assign the value of QTMP to the output Q2 array
@@ -423,7 +427,9 @@ CONTAINS
     !===================================================================
     ! E-W regridding
     !===================================================================    
-    IF ( im .eq. in ) THEN
+    IF ( im         == in         .and. &
+         lon1(1)    == lon2(1)    .and. &
+         lon1(im+1) == lon2(in+1)        ) THEN
 
        ! Don't call XMAP if both grids have the same # of longitudes
        ! but save the input data in the QTMP array
@@ -447,7 +453,9 @@ CONTAINS
     !===================================================================
     ! N-S regridding
     !===================================================================    
-    IF ( jm .eq. jn ) THEN
+    IF ( jm         == jn         .and. & 
+         sin1(1)    == sin2(1)    .and. &
+         sin1(jm+1) == sin2(jn+1)        ) THEN
 
        ! Don't call XMAP if both grids have the same # of longitudes,
        ! but assign the value of QTMP to the output Q2 array
@@ -540,7 +548,9 @@ CONTAINS
     !===================================================================
     ! E-W regridding
     !===================================================================    
-    IF ( im .eq. in ) THEN
+    IF ( im         == in         .and. &
+         lon1(1)    == lon2(1)    .and. &
+         lon1(im+1) == lon2(in+1)        ) THEN
 
        ! Don't call XMAP if both grids have the same # of longitudes
        ! but save the input data in the QTMP array
@@ -564,7 +574,9 @@ CONTAINS
     !===================================================================
     ! N-S regridding
     !===================================================================    
-    IF ( jm .eq. jn ) THEN
+    IF ( jm         == jn         .and. & 
+         sin1(1)    == sin2(1)    .and. &
+         sin1(jm+1) == sin2(jn+1)        ) THEN
 
        ! Don't call XMAP if both grids have the same # of longitudes,
        ! but assign the value of QTMP to the output Q2 array
@@ -657,7 +669,9 @@ CONTAINS
     !===================================================================
     ! E-W regridding
     !===================================================================    
-    IF ( im .eq. in ) THEN
+    IF ( im         == in         .and. &
+         lon1(1)    == lon2(1)    .and. &
+         lon1(im+1) == lon2(in+1)        ) THEN
 
        ! Don't call XMAP if both grids have the same # of longitudes
        ! but save the input data in the QTMP array
@@ -681,7 +695,9 @@ CONTAINS
     !===================================================================
     ! N-S regridding
     !===================================================================    
-    IF ( jm .eq. jn ) THEN
+    IF ( jm         == jn         .and. & 
+         sin1(1)    == sin2(1)    .and. &
+         sin1(jm+1) == sin2(jn+1)        ) THEN
 
        ! Don't call XMAP if both grids have the same # of longitudes,
        ! but assign the value of QTMP to the output Q2 array
