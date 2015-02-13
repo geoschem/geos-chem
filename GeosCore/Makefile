@@ -722,7 +722,7 @@ main.o                      : main.F                                         \
                               tpcore_bc_mod.o         uvalbedo_mod.o         \
                               tracerid_mod.o          wetscav_mod.o          \
                               ucx_mod.o               vdiff_mod.o            \
-                              emissions_mod.o         cleanup.o
+                              emissions_mod.o         cleanup.o              
 
 mapping_mod.o               : mapping_mod.F90                              
 

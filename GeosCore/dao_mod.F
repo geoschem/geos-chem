@@ -338,6 +338,7 @@
 
       INTEGER :: I,  J,  L
       REAL(fp)  :: P1, P2, AREA_M2, Psat, Pv, Pd, Tc, Pcenter
+      REAL(fp)  :: AD_mairden, AD_ideal
 
       ! Conversion factors
       REAL(fp), PARAMETER   :: TOFFSET = -2.7415e+2_fp   ! K -> deg C
@@ -359,21 +360,87 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Grid box surface area [m2]
+         !=============================================================
+         ! Set grid box surface area [m2]
+         !=============================================================
+
 #if defined( ESMF_ )
          AREA_M2                   = State_Met%AREA_M2(I,J,L)
 #else
          AREA_M2                   = GET_AREA_M2( I, J, L )
 #endif
-  
-         ! Pressure at bottom edge of grid box [hPa]
-         P1                        = GET_PEDGE( I, J, L )
 
-         ! Pressure at top edge of grid box [hPa]
-         P2                        = GET_PEDGE( I, J, L+1 )
+         !=============================================================
+         ! Set grid box height [m]
+         !=============================================================
 
-         ! Pressure difference between top & bottom edges [hPa]
-         State_Met%DELP(I,J,L)     = P1 - P2
+         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
+         ! in meters. 
+         !
+         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
+         ! Rd = 287 J/K/kg is the value for the ideal gas constant
+         ! R for air (M.W = 0.02897 kg/mol),  or 
+         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
+
+         State_Met%BXHEIGHT(I,J,L) = Rdg0 
+     &                             * State_Met%T(I,J,L) 
+     &                             * LOG( P1 / P2 )
+
+         !=============================================================
+         ! Set grid box volume [m3]
+         !=============================================================
+
+         ! AIRVOL is the volume of grid box (I,J,L) in meters^3
+         !
+         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
+         ! boxes (I,J,L=1), that is, at the earth's surface.
+         !
+         ! Since the thickness of the atmosphere is much smaller 
+         ! than the radius of the earth, we can make the "thin 
+         ! atmosphere" approximation, namely:
+         !
+         !               (Rearth + h) ~ Rearth
+         !
+         ! Therefore, the Delta-X * Delta-Y surface area of grid
+         ! boxes that are above the earth's surface will be 
+         ! approx. the same as AREA_M2.  Thus we are justified 
+         ! in using AREA_M2 for grid boxes (I, J, L > 1)
+
+         State_Met%AIRVOL(I,J,L) = State_Met%BXHEIGHT(I,J,L) * AREA_M2
+
+         !=============================================================
+         ! Set grid box wet air pressures [hPa]
+         !=============================================================  
+
+         ! Pressure (wet) at bottom edge of grid box [hPa]
+         P1_WET                    = GET_PEDGE( I, J, L )
+
+         ! Pressure (wet) at top edge of grid box [hPa]
+         P2_WET                    = GET_PEDGE( I, J, L+1 )
+
+         ! Pressure (wet) difference between top & bottom edges [hPa]
+         State_Met%DELP(I,J,L)     = P1_WET - P2_WET
+
+         ! Pressure (wet) at mid-point of grid box [hPa?]
+         State_Met%PMID             = GET_PCENTER( I,J,L )
+
+
+         !=============================================================
+         ! Set grid box dry air pressures [hPa]
+         !=============================================================  
+
+         ! Pressure (dry) at bottom edge of grid box [hPa?]
+         P1_DRY                     = 0 ! GET_DRY_PRESSURE( P1_WET )
+
+         ! Pressure (dry) at top edge of grid box [hPa?]
+         P2_DRY                     = 0 ! GET_DRY_PRESSURE( P2_WET )
+
+         ! Pressure (dry) difference between top & bottom edges [hPa?]
+         State_Met%DELPDRY( I,J,L )   = P1_DRY - P2_DRY
+
+         ! Pressure (dry) at mid-point of grid box [hPa?]
+         State_Met%PMIDDRY           = 0.5e+0_fp * 
+     &                                 ( P1_DRY + P2_DRY )
 
          !===========================================================
          ! MAIRDEN = density of moist air [kg/m^3],
@@ -408,45 +475,15 @@
          State_Met%MAIRDEN(I,J,L) = ( Pd * AIRMW + Pv * H2OMW ) * MCONV
      &                            / RSTARG / State_Met%T(I,J,L)
 
-!         ! DEBUGGING - ewl, 2/4/15 - Use dry air density for compaison
+!        ! DEBUGGING - ewl, 2/5/15
 !         State_Met%MAIRDEN(I,J,L) = Pcenter * PCONV * AIRMW * MCONV
 !     &                            / RSTARG / State_Met%T(I,J,L)
-!         ! END DEBUGGING
+!        ! END DEBUGGING
 
-          !===========================================================
-         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
-         ! in meters. 
-         !
-         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
-         ! Rd = 287 J/K/kg is the value for the ideal gas constant
-         ! R for air (M.W = 0.02897 kg/mol),  or 
-         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
-         !===========================================================
-         State_Met%BXHEIGHT(I,J,L) = Rdg0 
-     &                             * State_Met%T(I,J,L) 
-     &                             * LOG( P1 / P2 )
+
 
          !===========================================================
-         ! AIRVOL is the volume of grid box (I,J,L) in meters^3
-         !
-         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
-         ! boxes (I,J,L=1), that is, at the earth's surface.
-         !
-         ! Since the thickness of the atmosphere is much smaller 
-         ! than the radius of the earth, we can make the "thin 
-         ! atmosphere" approximation, namely:
-         !
-         !               (Rearth + h) ~ Rearth
-         !
-         ! Therefore, the Delta-X * Delta-Y surface area of grid
-         ! boxes that are above the earth's surface will be 
-         ! approx. the same as AREA_M2.  Thus we are justified 
-         ! in using AREA_M2 for grid boxes (I, J, L > 1)
-         !===========================================================
-         State_Met%AIRVOL(I,J,L) = State_Met%BXHEIGHT(I,J,L) * AREA_M2
-
-         !===========================================================
-         ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
+         ! AD = mass of air in grid box (I,J,L) in kg, 
          ! given by:        
          !
          !  Mass    Pressure        100      1        Surface area 
@@ -467,11 +504,37 @@
          State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L) 
      &                           / State_Met%AIRVOL(I,J,L)
 
-
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+!         ! DEBUGGING - ewl, 2/5/15
+!
+!         ! Calculate mass from moist air density * area * box height
+!         AD_mairden = State_Met%MAIRDEN(25,25,2) * 
+!     &     State_Met%AIRVOL(25,25,2) 
+!
+!         ! Calculate mass from ideal gas law using air molecular wt
+!         AD_ideal = GET_PCENTER(25,25,2) * PCONV * AIRMW * MCONV
+!     &                            / RSTARG / State_Met%T(25,25,2)
+!     &                            * STate_Met%AIRVOL(25,25,2)
+!
+!         PRINT *, " "
+!         PRINT *, "Kg in grid box from moist air density * "
+!     &        // "area * box height "
+!         PRINT *, "   ", AD_mairden
+!
+!         PRINT *, "Kg in grid box from delta pressure * area / g"
+!         PRINT *, "   ", State_Met%AD(25,25,2)
+!
+!         PRINT *, "Kg in grid box from ideal gas law using "
+!     &        // "air molec wt "
+!         PRINT *, "   ", AD_ideal
+!
+!         PRINT *, " "
+!         ! END DEBUGGING
+
 
       END SUBROUTINE AIRQNT
 !EOC
