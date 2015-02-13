@@ -870,6 +870,7 @@
       ! ND45: Tracer concentrations [v/v] between HR1_OTH and HR2_OTH
       !       --> uses AD45 array (allocatable)
       !=================================================================
+#if !defined(NO_BPCH)
       IF ( ND45 > 0 ) THEN
          LD45 = MIN( ND45,        LLPAR   )
          NMAX = MIN( N_TRC_TOT+1, NNPAR+1 )
@@ -888,6 +889,7 @@
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
 
       ENDIF
+#endif
 
       !=================================================================
       ! ND47: 24-h averaged tracer concentration [v/v]

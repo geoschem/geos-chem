@@ -4608,7 +4608,7 @@
       CALL SET_TINDEX( am_I_Root, 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
 
       ! For netCDF diagnostics
-      Input_Opt%ND44_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND44_OUTPUT_FREQ = 'Daily'    ! Note, can change later
       Input_Opt%ND44_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
@@ -4622,7 +4622,7 @@
       READ( SUBSTRS(1:N), * ) HR1_OTH, HR2_OTH
 
       ! For netCDF diagnostics
-      Input_Opt%ND45_OUTPUT_FREQ = 'Hourly'   ! Note, can change later
+      Input_Opt%ND45_OUTPUT_FREQ = 'Daily'   ! Note, can change later
       Input_Opt%ND45_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
