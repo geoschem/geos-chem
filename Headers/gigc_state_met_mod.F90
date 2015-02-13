@@ -614,7 +614,8 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AIRVOL   = 0.0_fp
                                                
-    ALLOCATE( State_Met%AREA_M2   ( IM, JM, LM   ), STAT=RC )
+!    ALLOCATE( State_Met%AREA_M2   ( IM, JM, LM   ), STAT=RC )
+    ALLOCATE( State_Met%AREA_M2   ( IM, JM, 1    ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%AREA_M2  = 0.0_fp
 

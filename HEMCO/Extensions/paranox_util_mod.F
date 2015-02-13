@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -36,6 +36,11 @@
       !                           Efficiency for ship emiss (gvinken, 6/6/10)
       REAL*4 ::   fracnox(4,4,4,12,12,4,5)
       REAL*4 ::   intope(4,4,4,12,12,4,5)
+
+      ! Routine behaviour if illegal fraction NOx (< 0 or > 1) is encountered.
+      ! If set to TRUE, the run stops with an error (recommended). If set to
+      ! false, the current parameter is ignored and run continues.
+      LOGICAL, PARAMETER :: ErrorStop = .TRUE.
 !
 ! !REMARKS
 !  References:
@@ -52,13 +57,14 @@
 !  23 Aug 2013 - C. Keller   - Renamed from paranox_mod to paranox_util_mod
 !  28 Jul 2014 - C. Keller   - Broke dependencies from GEOS-Chem code: Now
 !                              use HEMCO routines for error handling etc.
+!  18 Dec 2014 - C. Keller   - Added option to read LUT from ASCII files.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -70,10 +76,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PARANOX_LUT( FracNOx_FILE, IntOPE_FILE, RC )
+      SUBROUTINE READ_PARANOX_LUT( am_I_Root, FracNOx_FILE,
+     &                             IntOPE_FILE, RC )
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,          INTENT(IN)    :: am_I_Root
       CHARACTER(LEN=*), INTENT(IN)    :: FracNOx_FILE
       CHARACTER(LEN=*), INTENT(IN)    :: IntOPE_FILE
       INTEGER,          INTENT(INOUT) :: RC
@@ -93,7 +101,9 @@
 !
       INTEGER            :: IOS
       INTEGER            :: IU_FILE
+      LOGICAL            :: IsTxt
       CHARACTER(LEN=255) :: MSG
+      CHARACTER(LEN= 15), PARAMETER :: FMAT = "(E40.32)"
       CHARACTER(LEN= 63), PARAMETER ::
      &   LOC = 'READ_PARANOX_LUT (paranox_util_mod.F)'
 
@@ -107,23 +117,38 @@
       !=================================================================
 
       ! Echo info
-      WRITE( MSG, 100 ) TRIM( FracNOx_FILE )
+      IF ( am_I_ Root ) THEN
+         WRITE( MSG, 100 ) TRIM( FracNOx_FILE )
+         CALL HCO_MSG( MSG )
+      ENDIF
  100  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
-      CALL HCO_MSG( MSG )
  
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
 
-      ! Open file to read  
-      OPEN( IU_FILE, FILE=TRIM( FracNOx_FILE ), FORM="binary", 
-     &      IOSTAT=IOS )
+      ! Is this a .txt file?
+      IsTxt = ( INDEX( TRIM(FracNOx_FILE), '.txt' ) > 0 ) 
+
+      ! Open file to read 
+      IF ( IsTxt ) THEN
+         OPEN( IU_FILE, FILE=TRIM( FracNOx_FILE ), FORM="FORMATTED", 
+     &         IOSTAT=IOS )
+      ELSE 
+         OPEN( IU_FILE, FILE=TRIM( FracNOx_FILE ), FORM="binary", 
+     &         IOSTAT=IOS )
+      ENDIF
+
       IF ( IOS /= 0 ) THEN 
          CALL HCO_ERROR( 'read_paranox_lut:1', RC, THISLOC=LOC )
          RETURN
       ENDIF
 
       ! Read file
-      READ( IU_FILE, IOSTAT=IOS ) FRACNOX
+      IF ( IsTxt ) THEN
+         READ( IU_FILE, FMT=FMAT, IOSTAT=IOS ) FRACNOX
+      ELSE
+         READ( IU_FILE, IOSTAT=IOS ) FRACNOX
+      ENDIF
       IF ( IOS /= 0 ) THEN 
          CALL HCO_ERROR( 'read_paranox_lut:2', RC, THISLOC=LOC )
          RETURN
@@ -138,23 +163,37 @@
       !=================================================================
 
       ! Echo info
-      WRITE( MSG, 101 ) TRIM( IntOPE_FILE )
+      IF ( am_I_Root ) THEN 
+         WRITE( MSG, 101 ) TRIM( IntOPE_FILE )
+         CALL HCO_MSG(MSG)
+      ENDIF
  101  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
-      CALL HCO_MSG(MSG)
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
 
+      ! Is this a .txt file?
+      IsTxt = ( INDEX( TRIM(IntOPE_FILE), '.txt' ) > 0 ) 
+
       ! Open file to read
-      OPEN( IU_FILE, FILE=TRIM( IntOPE_FILE ), FORM="BINARY", 
-     &      IOSTAT=IOS )
+      IF ( IsTxt ) THEN
+         OPEN( IU_FILE, FILE=TRIM( IntOPE_FILE ), FORM="FORMATTED", 
+     &         IOSTAT=IOS )
+      ELSE
+         OPEN( IU_FILE, FILE=TRIM( IntOPE_FILE ), FORM="BINARY", 
+     &         IOSTAT=IOS )
+      ENDIF
       IF ( IOS /= 0 ) THEN 
          CALL HCO_ERROR( 'read_paranox_lut:3', RC, THISLOC=LOC )
          RETURN
       ENDIF
 
       ! Read file
-      READ( IU_FILE, IOSTAT=IOS ) INTOPE
+      IF ( IsTxt ) THEN
+         READ( IU_FILE, FMT=FMAT, IOSTAT=IOS ) INTOPE
+      ELSE
+         READ( IU_FILE, IOSTAT=IOS ) INTOPE
+      ENDIF
       IF ( IOS /= 0 ) THEN 
          CALL HCO_ERROR( 'read_paranox_lut:4', RC, THISLOC=LOC )
          RETURN
@@ -169,7 +208,7 @@
       END SUBROUTINE READ_PARANOX_LUT
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -264,8 +303,8 @@
       ! Temporary variable storage
       REAL*4                     :: temp_tmp,  jno2_tmp,  cao3_tmp
       REAL*4                     :: alfa0_tmp, alfa5_tmp, jo1d_tmp
-      REAL*4                     :: canox_tmp
-      
+      REAL*4                     :: canox_tmp, fnox_tmp
+ 
       ! Interpolation parameters
       REAL*4,  DIMENSION(2)      :: xtemp,     xjno2,     xcao3, xalfa0
       REAL*4,  DIMENSION(2)      :: xalfa5,    xjo1d,     xcanox
@@ -533,40 +572,41 @@
       DO i6=1,2
       DO i7=1,2 
 
+         ! get this fracnox
+         fnox_tmp = fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
+     $                       ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1,
+     $                       icanox+i7-1  ) 
+
          !IF ENCOUNTER -999 IN THE LUT PRINT ERROR!!       
-         IF ( ( fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
-     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1,
-     $                   icanox+i7-1  ) < 0. )     .or.
-     $        ( fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
-     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1, 
-     $                   icanox+i7-1  ) > 1. ) )   THEN
+         IF ( (fnox_tmp < 0.) .or. (fnox_tmp > 1.) ) THEN 
 
-            WRITE(MSG,*), 'INTERPOLATE_LUT2: fracnox = ,',
-     $          fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
-     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1,
-     $                   icanox+i7-1  )
-            CALL HCO_MSG(MSG)
+            ! print error details
+            WRITE(MSG,100) I, J, o3, no, no2, dens, JO1D, JNO2,
+     &                     TS, SUNCOSmid5, SUNCOSmid, fnox_tmp
+            IF ( ErrorStop ) THEN
+               CALL HCO_ERROR( MSG, RC, THISLOC=LOC ) 
+               RETURN 
+            ELSE
+               CALL HCO_WARNING( MSG, RC, THISLOC=LOC ) 
+            ENDIF
+ 100     FORMAT( 'LUT: FNOX not btw 0-1: ', I2.2, I2.2, 110E8.2 )
 
-            MSG = 'LUT error: Fracnox should be between 0 and 1!'
-            CALL HCO_ERROR( MSG, RC, THISLOC=LOC ) 
-            RETURN 
+         ! Update fraction_nox and intope
+         ELSE
+
+            ! fracnox is the array with the actual lut data
+            fraction_nox = fraction_nox + xtemp(i1)    * xjno2(i2)  *
+     $                     xcao3(i3)    * xalfa0(i4)   * xalfa5(i5) *
+     $                     xjo1d(i6)    * xcanox(i7)   * fnox_tmp
+
+            ! intope is the array with the actual lut data
+            int_ope =      int_ope      + xtemp(i1)    * xjno2(i2)  * 
+     $                     xcao3(i3)    * xalfa0(i4)   * xalfa5(i5) *
+     $                     xjo1d(i6)    * xcanox(i7)   * 
+     $                     intope(        itemp+i1-1,    ijno2+i2-1,
+     $                     icao3+i3-1,    ialfa0+i4-1,   ialfa5+i5-1,
+     $                     ijo1d+i6-1,    icanox+i7-1    )
          ENDIF
-
-         ! fracnox is the array with the actual lut data
-         fraction_nox = fraction_nox + xtemp(i1)    * xjno2(i2)  *
-     $                  xcao3(i3)    * xalfa0(i4)   * xalfa5(i5) *
-     $                  xjo1d(i6)    * xcanox(i7)   *
-     $                  fracnox(       itemp+i1-1,    ijno2+i2-1,
-     $                  icao3+i3-1,    ialfa0+i4-1,   ialfa5+i5-1,
-     $                  ijo1d+i6-1,    icanox+i7-1    )
-
-         ! intope is the array with the actual lut data
-         int_ope =      int_ope      + xtemp(i1)    * xjno2(i2)  * 
-     $                  xcao3(i3)    * xalfa0(i4)   * xalfa5(i5) *
-     $                  xjo1d(i6)    * xcanox(i7)   * 
-     $                  intope(        itemp+i1-1,    ijno2+i2-1,
-     $                  icao3+i3-1,    ialfa0+i4-1,   ialfa5+i5-1,
-     $                  ijo1d+i6-1,    icanox+i7-1    )
 
       END DO
       END DO

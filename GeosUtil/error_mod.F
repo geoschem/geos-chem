@@ -60,6 +60,11 @@
          MODULE PROCEDURE CHECK_REAL_VALUE
          MODULE PROCEDURE CHECK_DBLE_VALUE
       END INTERFACE
+
+      INTERFACE IS_SAFE_DIV
+         MODULE PROCEDURE IS_SAFE_DIV_R4
+         MODULE PROCEDURE IS_SAFE_DIV_R8
+      END INTERFACE
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -69,6 +74,8 @@
       PRIVATE :: FINITE_FLOAT
       PRIVATE :: NAN_DBLE
       PRIVATE :: NAN_FLOAT
+      PRIVATE :: IS_SAFE_DIV_R4
+      PRIVATE :: IS_SAFE_DIV_R8
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -122,6 +129,8 @@
 !  08 Jul 2014 - R. Yantosca - Add shadow variables for am_I_Root, Input_Opt
 !                              so that we can pass these to routine CLEANUP
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD 
+!  19 Dec 2014 - R. Yantosca - Now overload IS_SAFE_DIV w/ REAL*4 and REAL*8 
+!                              module procedures to facilitate flex precision
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -968,29 +977,30 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: is_safe_div
+! !IROUTINE: is_safe_div_r4
 !
 ! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is 
 !  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
-!  returned if the division cannot be performed. (phs, 6/11/08)
+!  returned if the division cannot be performed.  The numerator and 
+!  denominator must be 4-byte floating point.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION IS_SAFE_DIV( N, D, R4 ) RESULT( F )
+      FUNCTION IS_SAFE_DIV_R4( N, D, R4 ) RESULT( F )
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp),  INTENT(IN)           :: N    ! Numerator
-      REAL(fp),  INTENT(IN)           :: D    ! Denominator
-      LOGICAL, INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits 
-                                            !  of REAL*4 to define underflow
-                                            !  or overflow.  Extra defensive.
+      REAL(f4), INTENT(IN)           :: N    ! Numerator
+      REAL(f4), INTENT(IN)           :: D    ! Denominator
+      LOGICAL,  INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits 
+                                             !  of REAL*4 to define underflow
+                                             !  or overflow.  Extra defensive.
 !
 ! !OUTPUT PARAMETERS:
 !
-      LOGICAL                       :: F    ! =F if division isn't allowed
-                                            ! =T otherwise
+      LOGICAL                        :: F    ! =F if division isn't allowed
+                                             ! =T otherwise
 !
 ! !REMARKS:
 !  UnderFlow, OverFlow and NaN are tested for. If you need to
@@ -1005,8 +1015,8 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER MaxExp, MinExp
-      REAL*4  RR
+      INTEGER  :: MaxExp, MinExp
+      REAL(f4) :: RR
 
       !==================================================================
       ! IS_SAFE_DIV begins here!
@@ -1030,7 +1040,77 @@
       ENDIF
 
       ! Return to calling program
-      END FUNCTION IS_SAFE_DIV
+      END FUNCTION IS_SAFE_DIV_R4
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: is_safe_div_r8
+!
+! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is 
+!  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
+!  returned if the division cannot be performed.  The numerator and 
+!  denominator must be 4-byte floating point.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION IS_SAFE_DIV_R8( N, D, R4 ) RESULT( F )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL(f8), INTENT(IN)           :: N    ! Numerator
+      REAL(f8), INTENT(IN)           :: D    ! Denominator
+      LOGICAL,  INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits 
+                                             !  of REAL*4 to define underflow
+                                             !  or overflow.  Extra defensive.
+!
+! !OUTPUT PARAMETERS:
+!
+      LOGICAL                        :: F    ! =F if division isn't allowed
+                                             ! =T otherwise
+!
+! !REMARKS:
+!  UnderFlow, OverFlow and NaN are tested for. If you need to
+!  differentiate between the three, use the SAFE_DIV (phs, 4/14/09)
+!
+! !REVISION HISTORY:
+!  11 Jun 2008 - P. Le Sager - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      INTEGER  :: MaxExp, MinExp
+      REAL(f4) :: RR
+
+      !==================================================================
+      ! IS_SAFE_DIV begins here!
+      !==================================================================
+
+      MaxExp = MAXEXPONENT( N )
+      MinExp = MINEXPONENT( N )
+
+      IF ( PRESENT( R4 ) ) THEN
+         IF ( R4 ) THEN
+            MaxExp = MAXEXPONENT( RR )
+            MinExp = MINEXPONENT( RR )
+         ENDIF
+      ENDIF  
+
+      IF ( EXPONENT(N) - EXPONENT(D) >= MaxExp .or. D==0 .or.
+     &     EXPONENT(N) - EXPONENT(D) <= MinExp  ) THEN
+         F = .FALSE.
+      ELSE
+         F = .TRUE.
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION IS_SAFE_DIV_R8
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

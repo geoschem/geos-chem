@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -17,23 +17,34 @@
 ! MEGAN calculates gamma activity factor based upon temperature and 
 ! radiation information from the past 10 days. In the original GEOS-Chem 
 ! code, the initial 10-d averages were explicitly calculated during 
-! initialization of MEGAN. This is not feasible in an ESMF environment. 
-! As a first approximation, the averages are now set to the initial 
-! temperature/radiation value. Especially for the radiation (PARDR and 
-! PARDF), this may result in very different average values - which in 
-! turn may result in local differences of >50%. HEMCO emissions are 
-! identical to original GEOS-Chem emissions once we pass the first 10 
-! days (ckeller, 10/8/2013).
+! initialization of MEGAN. This is not feasible in an ESMF environment,
+! and the following restart variables can now be provided through the 
+! HEMCO configuration file:
+! \begin{itemize}
+! \item T\_DAVG: temperature (10 day average) 
+! \item PARDR\_DAVG: direct radiation (10 day average) 
+! \item PARDF\_DAVG: diffuse radiation (10 day average)
+! \item T\_PREVDAY: temperature (1 day average) 
+! \end{itemize}
+! These variables are automatically searched for on the first run
+! call. If not defined, the current tempeature/radiation value is 
+! used instead. Especially for the radiation (PARDR and PARDF), this 
+! may result in very different average values - which in turn may 
+! result in local differences of >50%. HEMCO emissions are identical 
+! to original GEOS-Chem emissions once we pass the first 10 days 
+! (ckeller, 10/8/2013).
 !\\
 !\\
-! A similar procedure is now also applied for the leaf area index variables.
+! A similar procedure is also applied to the leaf area index variables.
 ! The original GEOS-Chem MEGAN code used three LAI variables: current month
 ! LAI (LAI\_CM), previous month LAI (LAI\_PM), and instantaneous LAI (LAI), 
 ! which was a daily interpolation of LAI\_CM and next month' LAI, (LAI\_NM). 
 ! The HEMCO implementation uses only the instantaneous LAI, assuming it is
 ! updated every day. The previous day LAI is kept in memory and used to
 ! determine the LAI change over time (used to calculate the gamma leaf age).
-! For the first simulation day, a LAI change of zero is assumed.
+! For the first simulation day, the previous' day LAI is taken from the 
+! restart file (field LAI\_PREVDAY). If no restart variable is defined, a 
+! LAI change of zero is assumed.
 ! (ckeller, 10/9/2014)
 !\\
 !\\
@@ -103,6 +114,7 @@
       PRIVATE :: GET_GAMMA_P_PECCA
       PRIVATE :: SOLAR_ANGLE
       PRIVATE :: GET_AEF_GEN
+      PRIVATE :: FILL_RESTART_VARS 
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (6/2003).  Updated to 
@@ -143,6 +155,8 @@
 !  05 Oct 2013 - C. Keller   - Now a HEMCO extension 
 !  04 Aug 2014 - C. Keller   - Added 'manual' diagnostics for Acetone.
 !  09 Oct 2014 - C. Keller   - Now use only GC_LAI (keep prev. LAI in memory)
+!  22 Dec 2014 - C. Keller   - Now use flexible precision (hp) everywhere.
+!                              Option to read temperature/irradiation from restart.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -153,11 +167,11 @@
       INTEGER                 :: ExtNrMono 
       INTEGER                 :: ExtNrSoa
       LOGICAL                 :: LPECCA
-      REAL*8                  :: ISOP_SCALING
+      REAL(hp)                :: ISOP_SCALING
 
       ! Physical parameter
-      REAL*8                  :: D2RAD  ! Degrees to radians 
-      REAL*8                  :: RAD2D  ! Radians to degrees
+      REAL(hp)                :: D2RAD  ! Degrees to radians 
+      REAL(hp)                :: RAD2D  ! Radians to degrees
 
       ! HEMCO species IDs
       INTEGER                 :: IDTISOP
@@ -193,10 +207,10 @@
       REAL(hp), ALLOCATABLE   :: AEF_GEN(:,:,:)
 
       ! Scalars
-      INTEGER, PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
+      INTEGER,  PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
 !      INTEGER, PARAMETER  :: DAY_DIM        = 8        ! # of 3-hr periods/day
-      INTEGER, PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
-      REAL*8,  PARAMETER  :: WM2_TO_UMOLM2S = 4.766d0  ! W/m2 -> umol/m2/s
+      INTEGER,  PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
+      REAL(hp), PARAMETER  :: WM2_TO_UMOLM2S = 4.766_hp ! W/m2 -> umol/m2/s
 
       ! SOAupdate: Megan group IDs (from MEGAN CDP) (hotp 3/1/10)
       ! Used to locate species within EF and AEF_GEN arrays
@@ -207,26 +221,27 @@
 
       ! Past light & temperature conditions (mpb,2009)
       ! (1) Temperature at 2m (TS):
-      REAL*8, ALLOCATABLE :: HCOT_DAILY(:,:)       ! Daily averaged sfc temp
-      REAL*8, ALLOCATABLE :: HCOT_DAY(:,:,:)       ! Holds 1 day of sfc temp data
-      REAL*8, ALLOCATABLE :: HCOT_15(:,:,:)        ! Holds 15 days of daily avg T
-      REAL*8, ALLOCATABLE :: HCOT_15_AVG(:,:)      ! Sfc temp avg'd over NUM_DAYS
+!      REAL(hp), ALLOCATABLE, TARGET :: HCOT_DAILY(:,:)       ! Daily averaged sfc temp
+      REAL(hp), POINTER             :: T_PREVDAY(:,:)        ! Pointer to previous day T.
+      REAL(hp), ALLOCATABLE, TARGET :: HCOT_DAY(:,:,:)       ! Holds 1 day of sfc temp data
+      REAL(hp), ALLOCATABLE, TARGET :: HCOT_15(:,:,:)        ! Holds 15 days of daily avg T
+      REAL(hp), ALLOCATABLE, TARGET :: HCOT_15_AVG(:,:)      ! Sfc temp avg'd over NUM_DAYS
 
       ! (2) PAR Direct: 
-      REAL*8, ALLOCATABLE :: HCOPARDR_DAILY(:,:)   ! Average daily PARDR
-      REAL*8, ALLOCATABLE :: HCOPARDR_DAY(:,:,:)   ! Holds 1 day of PARDR data
-      REAL*8, ALLOCATABLE :: HCOPARDR_15(:,:,:)    ! 10 days of daily avg'd PARDR
-      REAL*8, ALLOCATABLE :: HCOPARDR_15_AVG(:,:)  ! PARDR averaged over NUM_DAYS
+!      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDR_DAILY(:,:)   ! Average daily PARDR
+      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDR_DAY(:,:,:)   ! Holds 1 day of PARDR data
+      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDR_15(:,:,:)    ! 10 days of daily avg'd PARDR
+      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDR_15_AVG(:,:)  ! PARDR averaged over NUM_DAYS
 
       ! (3) PAR Diffuse: 
-      REAL*8, ALLOCATABLE :: HCOPARDF_DAILY(:,:)   ! Average daily PARDR
-      REAL*8, ALLOCATABLE :: HCOPARDF_DAY(:,:,:)   ! Holds 1-day of PARDR data
-      REAL*8, ALLOCATABLE :: HCOPARDF_15(:,:,:)    ! 10 days of daily avg'd PARDR 
-      REAL*8, ALLOCATABLE :: HCOPARDF_15_AVG(:,:)  ! PARDF averaged over NUM_DAYS
+!      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDF_DAILY(:,:)   ! Average daily PARDR
+      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDF_DAY(:,:,:)   ! Holds 1-day of PARDR data
+      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDF_15(:,:,:)    ! 10 days of daily avg'd PARDR 
+      REAL(hp), ALLOCATABLE, TARGET :: HCOPARDF_15_AVG(:,:)  ! PARDF averaged over NUM_DAYS
 
       ! previous LAI values (ckeller, 10/09/2014)
-      REAL*8, ALLOCATABLE :: LAI_PREVSTEP(:,:)     ! LAI of prev. time step
-      REAL*8, ALLOCATABLE :: LAI_PREVDAY(:,:)      ! LAI of prev. day
+      REAL(hp), ALLOCATABLE, TARGET :: LAI_PREVSTEP(:,:)     ! LAI of prev. time step
+      REAL(hp), ALLOCATABLE, TARGET :: LAI_PREVDAY(:,:)      ! LAI of prev. day
 
       ! Days between mid-months (updated by HEMCO clock)
       INTEGER             :: DAYS_BTW_M
@@ -238,7 +253,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -284,19 +299,19 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J
-      REAL*8              :: SUNCOS,   D_BTW_M,  Q_DIR_2
-      REAL*8              :: Q_DIFF_2, ISOLAI,   MISOLAI,  PMISOLAI
-      REAL*8              :: GAMMA_P,  GAMMA_SM, GAMMA_LAI
-      REAL*8              :: EMISOP, EMMO,  EMMB,  APINE, EMMT
-      REAL*8              :: BPINE,  LIMON, SABIN, MYRCN, CAREN, OCIMN 
-      REAL*8              :: FARN,   BCAR,  OSQT,  OMTP
-      REAL*8              :: TERP_ORGC, BIOG_ALPH, BIOG_LIMO
-      REAL*8              :: BIOG_ALCO
-      REAL*8              :: EMMO_MOL
-      REAL*8              :: MB_MOL
-      REAL*8              :: X, Y 
-      REAL*8              :: DIURFACT, DIURORVC
-      REAL*8              :: TMP
+      REAL(hp)            :: SUNCOS,   D_BTW_M,  Q_DIR_2
+      REAL(hp)            :: Q_DIFF_2, ISOLAI,   MISOLAI,  PMISOLAI
+      REAL(hp)            :: GAMMA_P,  GAMMA_SM, GAMMA_LAI
+      REAL(hp)            :: EMISOP, EMMO,  EMMB,  APINE, EMMT
+      REAL(hp)            :: BPINE,  LIMON, SABIN, MYRCN, CAREN, OCIMN 
+      REAL(hp)            :: FARN,   BCAR,  OSQT,  OMTP
+      REAL(hp)            :: TERP_ORGC, BIOG_ALPH, BIOG_LIMO
+      REAL(hp)            :: BIOG_ALCO
+      REAL(hp)            :: EMMO_MOL
+      REAL(hp)            :: MB_MOL
+      REAL(hp)            :: X, Y 
+      REAL(hp)            :: DIURFACT, DIURORVC
+      REAL(hp)            :: TMP
       LOGICAL             :: ERR
       LOGICAL             :: FIRST, IsNewHour, IsNewDay 
 
@@ -320,23 +335,23 @@
       CHARACTER(LEN=63)   :: DiagnName
 
       ! Molecules C / kg C
-      REAL*8, PARAMETER   :: XNUMOL_C = 6.022d+23 / 12d-3
-      REAL*8, PARAMETER   :: UNITCONV = 1.0d0
+      REAL(hp), PARAMETER   :: XNUMOL_C = 6.022e+23_hp / 12e-3_hp
+      REAL(hp), PARAMETER   :: UNITCONV = 1.0_hp
 
       ! Fraction of yield of OC (hydrophilic) from terpene emissions
-      REAL*8, PARAMETER   :: EMMT2OC = 1.0d-1
+      REAL(hp), PARAMETER   :: EMMT2OC = 1.0e-1_hp
 
       ! Conversion factors for OC/BC
-      REAL*8, PARAMETER   :: FC1 = 136.2364d0 / 120.11d0
-      REAL*8, PARAMETER   :: FC2 = 154.2516d0 / 120.11d0
-      REAL*8, PARAMETER   :: FC3 = 204.3546d0 / 180.165d0
-      REAL*8, PARAMETER   :: FC4 = 152.d0     / 120.11d0
+      REAL(hp), PARAMETER   :: FC1 = 136.2364_hp / 120.11_hp
+      REAL(hp), PARAMETER   :: FC2 = 154.2516_hp / 120.11_hp
+      REAL(hp), PARAMETER   :: FC3 = 204.3546_hp / 180.165_hp
+      REAL(hp), PARAMETER   :: FC4 = 152.0_hp    / 120.11_hp
 
       ! Conversion factors for acetone calculations
-      REAL*8, PARAMETER   :: YIELD_MO   = 0.116d0
-      REAL*8, PARAMETER   :: MONO_SCALE = 0.89d0
-      REAL*8, PARAMETER   :: MB_SCALE1  = 0.6d0
-      REAL*8, PARAMETER   :: MB_SCALE2  = 0.76d0
+      REAL(hp), PARAMETER   :: YIELD_MO   = 0.116_hp
+      REAL(hp), PARAMETER   :: MONO_SCALE = 0.89_hp
+      REAL(hp), PARAMETER   :: MB_SCALE1  = 0.6_hp
+      REAL(hp), PARAMETER   :: MB_SCALE2  = 0.76_hp
 
       !--------------------------------------------------------------------
       !  Biogenic source of PRPE -- scaled to ISOPRENE
@@ -358,7 +373,7 @@
       ! Scale factor is the same on a mass basis, i.e. kgC/kgC 
       ! (ckeller, 08/05/13) 
       !--------------------------------------------------------------------
-      REAL*8, PARAMETER   :: BIOSCAL = 0.0286d0 ! new factor, (ljm, bey, 9/28/98)
+      REAL(hp), PARAMETER   :: BIOSCAL = 0.0286_hp ! new factor, (ljm, bey, 9/28/98)
 
       !--------------------------------------------------------------------
       ! Biogenic source of ethene (scaled to isoprene)
@@ -371,7 +386,7 @@
       ! Scale factor is the same on a mass basis, i.e. kgC/kgC 
       ! (ckeller, 08/05/13) 
       !--------------------------------------------------------------------
-      REAL*8, PARAMETER   :: BIOSCALEC2H4 = 0.022857d0
+      REAL(hp), PARAMETER   :: BIOSCALEC2H4 = 0.022857_hp
 
       !=================================================================
       ! HCOX_Megan_Run begins here! 
@@ -458,7 +473,8 @@
       ! On first call, fill previous day LAI with current LAI since we
       ! don't know the previous day values yet... 
       IF ( FIRST ) THEN
-         LAI_PREVDAY = ExtState%GC_LAI%Arr%Val
+         CALL FILL_RESTART_VARS( am_I_Root, HcoState, ExtState, RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! On a new day, copy previous LAI values to array that holds
       ! previous day LAI.
@@ -493,8 +509,8 @@
          ! on first call. This avoids reading all met-fields of the past
          ! 10 days, but introduces errors in the MEGAN emissions of the
          ! first 10 days.
-         IF ( IsNewHour .OR. FIRST ) THEN 
-            CALL UPDATE_HCOT_DAY ( HcoState, ExtState, I, J, FIRST, RC )
+         IF ( IsNewHour .AND. .NOT. FIRST ) THEN 
+            CALL UPDATE_HCOT_DAY ( HcoState, ExtState, I, J, RC )
             IF ( RC /= HCO_SUCCESS ) THEN
                CALL HCO_ERROR( 'UPDATE_HCOT_DAY', RC )
                ERR = .TRUE.
@@ -506,7 +522,7 @@
          ! or on first call. 
          ! This routine relies on the arrays filled in UPDATE_HCOT_DAY, so
          ! make sure it's called afterwards!
-         IF ( IsNewDay ) THEN
+         IF ( IsNewDay .AND. .NOT. FIRST ) THEN
             CALL UPDATE_HCOT_15_AVG ( HcoState, I, J, RC )
             IF ( RC /= HCO_SUCCESS ) THEN
                CALL HCO_ERROR( 'UPDATE_HCOT_15_AVG', RC )
@@ -541,7 +557,7 @@
          ! Do only during day and over continent
          ! Only interested in terrestrial biosphere (pip)
          !---------------------------------------------------
-         IF ( SUNCOS > 0d0 ) THEN
+         IF ( SUNCOS > 0.0_hp ) THEN
 
             IF ( LPECCA ) THEN 
                 
@@ -560,7 +576,7 @@
       
          ELSE
             
-            GAMMA_P = 0.0
+            GAMMA_P = 0.0_hp
 
          ENDIF
 
@@ -568,7 +584,7 @@
          GAMMA_LAI = GET_GAMMA_LAI( MISOLAI )
 
          ! Activity factor for soil moisture
-         GAMMA_SM = 1.d0
+         GAMMA_SM = 1.0_hp
 
          !--------------------------------------------------------------
          ! Calculate VOC emissions 
@@ -583,7 +599,7 @@
 !                  write(*,*) ' '
 !                  write(*,*) 'do HEMCO MEGAN @i,j ', i,j
 !                  write(*,*) 'SUNCOSmid:             ', SUNCOS
-!                  write(*,*) 'TEMPERATURE:',ExtState%TSURFK%Arr%Val(I,J)
+!                  write(*,*) 'TEMPERATURE:',ExtState%T2M%Arr%Val(I,J)
 !                  write(*,*) 'Q_DIR: ', Q_DIR_2 / WM2_TO_UMOLM2S
 !                  write(*,*) 'Q_DIFF:', Q_DIFF_2 / WM2_TO_UMOLM2S
 !                  write(*,*) 'HCOT_15_AVG: ', HCOT_15_AVG(I,J)
@@ -731,8 +747,8 @@
             ENDIF
 
          ELSE
-            EMMO = 0d0
-            EMMB = 0d0
+            EMMO = 0.0_hp
+            EMMB = 0.0_hp
          ENDIF
 
 ! -------------------------------------------------------------
@@ -780,13 +796,13 @@
 
             ! Convert [kg C/m2/s] to [kg MONOTERPENE/m2/s]
             ! There are 10 C atoms per molecule of MONOTERPENE
-            EMMO_MOL   = EMMO / 10d0
+            EMMO_MOL   = EMMO / 10.0_hp
       
             ! Apply yield from monoterpenes to get [kg ACET/m2/s]
             TMP        = EMMO_MOL * YIELD_MO
       
             ! Convert acetone emissions back into [kg C/m2/s] 
-            TMP       = TMP * 3.d0
+            TMP       = TMP * 3.0_hp
       
             ! Scale to a posteriori source from Jacob et al 2001 (bdf, 9/5/01)
             TMP        = TMP * MONO_SCALE
@@ -803,7 +819,7 @@
             ! North america emits 3.2Tg-C of MBO, producing 1.15 Tg-C of 
             ! Acetone in North America.
             !=================================================================
-            TMP = 0D0
+            TMP = 0.0_hp
       
             ! Lon and lat of grid box (I,J) in degrees
             X = HcoState%Grid%XMID%Val( I, J )
@@ -811,19 +827,19 @@
       
             ! Methyl butenol is emitted only in North America, where
             ! ( -167.5 <= lon <= -52.5 ) and ( 16.0 <= lat <= 72.0 ) 
-            IF ( ( X >= -167.5d0 .and. X <= -52.5d0 ) .AND.
-     &           ( Y >=   16.0d0 .and. Y <=  72.0d0 ) ) THEN
+            IF ( ( X >= -167.5_hp .and. X <= -52.5_hp ) .AND.
+     &           ( Y >=   16.0_hp .and. Y <=  72.0_hp ) ) THEN
       
                ! Convert from [kg C/m2/s] to [kg MBO/m2/s] 
                ! There are 5 C atoms per molecule MBO
-               MB_MOL   = EMMB / 5.d0
+               MB_MOL   = EMMB / 5.0_hp
       
                ! Apply yield from MBO to get [kg ACET/m2/s]
                TMP = MB_MOL * MB_SCALE1
       
                ! Convert from [kg ACET/m2/s] to [kg C/m2/s]
                ! There are 3 C atoms per acetone molecule
-               TMP = TMP * 3.d0
+               TMP = TMP * 3.0_hp
       
                ! Scale to a posteriori source from Jacob et al 2001 (bdf,
                ! 9/5/01)
@@ -895,7 +911,7 @@
          ! (jaf, mak, bmy, 2/14/08)
          IF ( (IDTCO>0) .AND. (ExtNrMono>0) ) THEN
 !            FLUX = EMMO * 0.2d0
-            FLUXCO(I,J) = EMMO * 0.4666d0
+            FLUXCO(I,J) = EMMO * 0.4666_hp
 
 !            ! testing only
 !            if ( i==ix .and. j==iy .and. .FALSE. ) then
@@ -1130,22 +1146,22 @@
                ! TERPENOID KETONE is lumped with SABINENE
                ! Then SABINENE    is lumped with ALPHA-PINENE
                IF ( IDTMTPA > 0 ) THEN
-                  FLUXMTPA(I,J) = DIURORVC * FC4 * 0.04d0 ! using campher
+                  FLUXMTPA(I,J) = DIURORVC * FC4 * 0.04_hp ! using campher
                ENDIF
 
                ! LIMONENE not defined (derived from TERP)
                IF ( IDTLIMO > 0 ) THEN
-                  FLUXLIMO(I,J) = 0.0d0
+                  FLUXLIMO(I,J) = 0.0_hp
                ENDIF  
 
                ! MTPO
                IF ( IDTMTPO > 0 ) THEN
-                  FLUXMTPO(I,J) = DIURORVC * FC2 * 0.09d0 ! using LINALOOL 
+                  FLUXMTPO(I,J) = DIURORVC * FC2 * 0.09_hp ! using LINALOOL 
                ENDIF
 
                ! IDTSESQ 
                IF ( IDTSESQ > 0 ) THEN
-                  FLUXSESQ(I,J) = DIURORVC * FC3 * 0.05d0 
+                  FLUXSESQ(I,J) = DIURORVC * FC3 * 0.05_hp
                ENDIF
 
             ENDIF
@@ -1533,7 +1549,7 @@
       END SUBROUTINE HCOX_Megan_Run
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1551,21 +1567,21 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(HCO_STATE), POINTER :: HcoState
-      TYPE(Ext_State), POINTER :: ExtState
-      INTEGER, INTENT(IN) :: I, J     ! GEOS-Chem lon & lat indices
-      REAL*8,  INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
-      REAL*8,  INTENT(IN) :: GAMMA_P   ! Light correction factor 
-      REAL*8,  INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
-      REAL*8,  INTENT(IN) :: XNUMOL   ! Number of atoms C / kg C 
+      TYPE(HCO_STATE), POINTER    :: HcoState
+      TYPE(Ext_State), POINTER    :: ExtState
+      INTEGER,         INTENT(IN) :: I, J     ! GEOS-Chem lon & lat indices
+      REAL(hp),        INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
+      REAL(hp),        INTENT(IN) :: GAMMA_P   ! Light correction factor 
+      REAL(hp),        INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
+      REAL(hp),        INTENT(IN) :: XNUMOL   ! Number of atoms C / kg C 
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: EMISOP   ! Isoprene emissions [atoms C/box]
+      REAL(hp),        INTENT(OUT) :: EMISOP   ! Isoprene emissions [atoms C/box]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(INOUT) :: RC
+      INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -1590,19 +1606,19 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8  :: TS, SUNCOS
-      REAL*8  :: GAMMA_LEAF_AGE, GAMMA_T, GAMMA_LAI_ISOP
-      REAL*8  :: D_BTW_M
-      REAL*8  :: ISOLAI, PMISOLAI, MISOLAI
+      REAL(hp)  :: TS, SUNCOS
+      REAL(hp)  :: GAMMA_LEAF_AGE, GAMMA_T, GAMMA_LAI_ISOP
+      REAL(hp)  :: D_BTW_M
+      REAL(hp)  :: ISOLAI, PMISOLAI, MISOLAI
 
       !=================================================================
       ! GET_EMISOP_MEGAN begins here!
       !================================================================= 
 
       ! Initialize return value & activity factors
-      EMISOP          = 0.d0
-      GAMMA_LEAF_AGE  = 0.d0
-      GAMMA_LAI_ISOP  = 1.d0
+      EMISOP          = 0.0_hp
+      GAMMA_LEAF_AGE  = 0.0_hp
+      GAMMA_LAI_ISOP  = 1.0_hp
 
       ! Number of days between MISOLAI and PMISOLAI
       D_BTW_M  = DBLE( DAYS_BTW_M )
@@ -1613,7 +1629,7 @@
       MISOLAI  = ISOLAI
 !      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
 !      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-      TS       = ExtState%TSURFK%Arr%Val(I,J)
+      TS       = ExtState%T2M%Arr%Val(I,J)
       SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
 
 
@@ -1621,9 +1637,9 @@
       ! Do only during day and over continent
       ! Only interested in terrestrial biosphere (pip)
       !---------------------------------------------------
-      IF ( SUNCOS > 0d0 ) THEN
+      IF ( SUNCOS > 0.0_hp ) THEN
 
-         IF ( ISOLAI * AEF_ISOP(I,J) > 0d0 ) THEN
+         IF ( ISOLAI * AEF_ISOP(I,J) > 0.0_hp ) THEN
 
             ! Activity factor for leaf age 
             GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI, 
@@ -1633,7 +1649,7 @@
 
             ! Activity factor for temperature
             GAMMA_T  = GET_GAMMA_T_ISOP( TS, HCOT_15_AVG(I,J), 
-     &                                       HCOT_DAILY(I,J)  )
+     &                                       HCOT_15(I,J,1)   )
 
             ! Activity factor for LAI. Use default (1.0) if PECCA model
             ! is not used!   
@@ -1682,7 +1698,7 @@
       END SUBROUTINE GET_EMISOP_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1700,22 +1716,22 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(HCO_STATE), POINTER :: HcoState
-      TYPE(Ext_State), POINTER :: ExtState
-      INTEGER, INTENT(IN) :: I, J      ! GEOS-Chem lon & lat indices
-      REAL*8,  INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
-      REAL*8,  INTENT(IN) :: GAMMA_P   ! Light correction factor 
-      REAL*8,  INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
-      REAL*8,  INTENT(IN) :: XNUMOL    ! Number of atoms C / kg C 
+      TYPE(HCO_STATE), POINTER    :: HcoState
+      TYPE(Ext_State), POINTER    :: ExtState
+      INTEGER,         INTENT(IN) :: I, J      ! GEOS-Chem lon & lat indices
+      REAL(hp),        INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
+      REAL(hp),        INTENT(IN) :: GAMMA_P   ! Light correction factor 
+      REAL(hp),        INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
+      REAL(hp),        INTENT(IN) :: XNUMOL    ! Number of atoms C / kg C 
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL*8, INTENT(OUT) :: EMMBO   ! Methylbutenol emissions [atoms C/box]
+      REAL(hp),        INTENT(OUT) :: EMMBO   ! Methylbutenol emissions [atoms C/box]
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
 
-      INTEGER, INTENT(INOUT) :: RC
+      INTEGER,         INTENT(INOUT) :: RC
 ! 
 ! !REMARKS:
 !  References (see above for full citations):
@@ -1739,22 +1755,22 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8            :: GAMMA_LEAF_AGE, GAMMA_T, TS, SUNCOS
-      REAL*8            :: GAMMA_LAI_EMMB, D_BTW_M
-      REAL*8            :: ISOLAI, PMISOLAI, MISOLAI
+      REAL(hp)            :: GAMMA_LEAF_AGE, GAMMA_T, TS, SUNCOS
+      REAL(hp)            :: GAMMA_LAI_EMMB, D_BTW_M
+      REAL(hp)            :: ISOLAI, PMISOLAI, MISOLAI
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8, PARAMETER :: BETA = 0.09
+      REAL(hp), PARAMETER :: BETA = 0.09_hp
 
       !=================================================================
       ! GET_EMMBO_MEGAN begins here!
       !================================================================= 
 
       ! Initialize return value & activity factors
-      EMMBO           = 0.d0
-      GAMMA_LEAF_AGE  = 0.d0
-      GAMMA_LAI_EMMB  = 1.d0
+      EMMBO           = 0.0_hp
+      GAMMA_LEAF_AGE  = 0.0_hp
+      GAMMA_LAI_EMMB  = 1.0_hp
 
       ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
       ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
@@ -1762,7 +1778,7 @@
       MISOLAI = ISOLAI
 !      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
 !      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-      TS       = ExtState%TSURFK%Arr%Val(I,J)
+      TS       = ExtState%T2M%Arr%Val(I,J)
       SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
 
 
@@ -1773,9 +1789,9 @@
       ! Do only during day and over continent
       ! Only interested in terrestrial biosphere (pip)
       !-------------------------------------------------
-      IF ( SUNCOS > 0d0 ) THEN
+      IF ( SUNCOS > 0.0_hp ) THEN
 
-         IF ( ISOLAI * AEF_MBO(I,J) > 0d0 ) THEN
+         IF ( ISOLAI * AEF_MBO(I,J) > 0.0_hp ) THEN
 
             ! Activity factor for leaf age 
             GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI, 
@@ -1818,7 +1834,7 @@
       END SUBROUTINE GET_EMMBO_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1837,22 +1853,22 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(HCO_STATE), POINTER :: HcoState
-      TYPE(Ext_State), POINTER :: ExtState
-      INTEGER,          INTENT(IN) :: I, J          ! Lon & lat indices
-      REAL*8,  INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
-      REAL*8,  INTENT(IN) :: GAMMA_P   ! Light correction factor 
-      REAL*8,  INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
-      REAL*8,           INTENT(IN) :: XNUMOL        ! Number of atoms C / kg C 
-      CHARACTER(LEN=5), INTENT(IN) :: TERP_SPECIES  ! Monoterpene species name
+      TYPE(HCO_STATE),   POINTER    :: HcoState
+      TYPE(Ext_State),   POINTER    :: ExtState
+      INTEGER,           INTENT(IN) :: I, J          ! Lon & lat indices
+      REAL(hp),          INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
+      REAL(hp),          INTENT(IN) :: GAMMA_P   ! Light correction factor 
+      REAL(hp),          INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
+      REAL(hp),          INTENT(IN) :: XNUMOL        ! Number of atoms C / kg C 
+      CHARACTER(LEN=5),  INTENT(IN) :: TERP_SPECIES  ! Monoterpene species name
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL*8,          INTENT(OUT) :: EMTERP        ! Emissions [kg/m2/s]
+      REAL(hp),          INTENT(OUT) :: EMTERP        ! Emissions [kg/m2/s]
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      INTEGER,       INTENT(INOUT) :: RC            ! Return code 
+      INTEGER,           INTENT(INOUT) :: RC            ! Return code 
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -1877,12 +1893,12 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8            :: BETA
-      REAL*8            :: GAMMA_LEAF_AGE, GAMMA_T, TS
-      REAL*8            :: D_BTW_M
-      REAL*8            :: LDF 
-      REAL*8            :: AEF_SPARE
-      REAL*8            :: ISOLAI, PMISOLAI, MISOLAI
+      REAL(hp)          :: BETA
+      REAL(hp)          :: GAMMA_LEAF_AGE, GAMMA_T, TS
+      REAL(hp)          :: D_BTW_M
+      REAL(hp)          :: LDF 
+      REAL(hp)          :: AEF_SPARE
+      REAL(hp)          :: ISOLAI, PMISOLAI, MISOLAI
       CHARACTER(LEN=4)  :: AGE_SPECIES ! Identify age param & pass to GAMMA_AGE
       CHARACTER(LEN=255):: MSG
 
@@ -1891,9 +1907,9 @@
       !================================================================= 
 
       ! Initialize return value & activity factors
-      EMTERP          = 0.d0
-      GAMMA_LEAF_AGE  = 0.d0
-      AEF_SPARE       = 0.d0
+      EMTERP          = 0.0_hp
+      GAMMA_LEAF_AGE  = 0.0_hp
+      AEF_SPARE       = 0.0_hp
 
       ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
       ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
@@ -1901,7 +1917,7 @@
       MISOLAI = ISOLAI
 !      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
 !      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-      TS       = ExtState%TSURFK%Arr%Val(I,J)
+      TS       = ExtState%T2M%Arr%Val(I,J)
 
 
       ! Number of days between MISOLAI and PMISOLAI
@@ -1913,38 +1929,38 @@
       SELECT CASE( TERP_SPECIES )
       CASE( 'APINE' )
          AEF_SPARE      = AEF_APINE(I,J)
-         LDF            = 0.1
-         BETA           = 0.09
+         LDF            = 0.1_hp
+         BETA           = 0.09_hp
          AGE_SPECIES    = 'MONO'
       CASE( 'BPINE' )
          AEF_SPARE      = AEF_BPINE(I,J)
-         LDF            = 0.1
-         BETA           = 0.09
+         LDF            = 0.1_hp
+         BETA           = 0.09_hp
          AGE_SPECIES    = 'MONO'
       CASE( 'LIMON' )
          AEF_SPARE      = AEF_LIMON(I,J)
-         LDF            = 0.05
-         BETA           = 0.09
+         LDF            = 0.05_hp
+         BETA           = 0.09_hp
          AGE_SPECIES    = 'MONO'
       CASE( 'SABIN' )
          AEF_SPARE      = AEF_SABIN(I,J)
-         LDF            = 0.1
-         BETA           = 0.09
+         LDF            = 0.1_hp
+         BETA           = 0.09_hp
          AGE_SPECIES    = 'MONO'
       CASE( 'MYRCN' )
          AEF_SPARE      = AEF_MYRCN(I,J)
-         LDF            = 0.05
-         BETA           = 0.09
+         LDF            = 0.05_hp
+         BETA           = 0.09_hp
          AGE_SPECIES    = 'MONO'
       CASE( 'CAREN' )
          AEF_SPARE      = AEF_CAREN(I,J)
-         LDF            = 0.05
-         BETA           = 0.09
+         LDF            = 0.05_hp
+         BETA           = 0.09_hp
          AGE_SPECIES    = 'MONO'
       CASE( 'OCIMN' )
          AEF_SPARE      = AEF_OCIMN(I,J)
-         LDF            = 0.8
-         BETA           = 0.09
+         LDF            = 0.8_hp
+         BETA           = 0.09_hp
          AGE_SPECIES    = 'MONO'
       ! SOAupdate: add Sesquiterpenes (hotp 3/1/10)
       ! Sesquiterpene LDF based on Sakulyanontvittaya 2008
@@ -1952,24 +1968,24 @@
       ! make name 5 characters
       CASE( 'FARNE' )
          AEF_SPARE      = AEF_GEN(I,J,IDMGFARN)
-         LDF            = 0.5d0
-         BETA           = 0.17d0
+         LDF            = 0.5_hp
+         BETA           = 0.17_hp
          AGE_SPECIES    = 'SESQ'
       CASE( 'BCARE' )
          AEF_SPARE      = AEF_GEN(I,J,IDMGBCAR)
-         LDF            = 0.5d0
-         BETA           = 0.17d0
+         LDF            = 0.5_hp
+         BETA           = 0.17_hp
          AGE_SPECIES    = 'SESQ'
       CASE( 'OSQTE' )
          AEF_SPARE      = AEF_GEN(I,J,IDMGOSQT)
-         LDF            = 0.5d0
-         BETA           = 0.17d0
+         LDF            = 0.5_hp
+         BETA           = 0.17_hp
          AGE_SPECIES    = 'SESQ'
       ! Other monoterpenes (hotp 3/5/10)
       CASE( 'OMTPE' )
          AEF_SPARE      = AEF_GEN(I,J,IDMGOMTP)
-         LDF            = 0.1d0
-         BETA           = 0.1d0
+         LDF            = 0.1_hp
+         BETA           = 0.1_hp
          AGE_SPECIES    = 'MONO'
       CASE DEFAULT
          MSG = 'Invalid TERPENE species'
@@ -1982,7 +1998,7 @@
       ! If (local LAI != 0 .AND. baseline emission !=0 ) 
       !-----------------------------------------------------
       ! AEF_SPARE no longer I,J (hotp 3/10/10)
-      IF ( ISOLAI * AEF_SPARE > 0d0 ) THEN
+      IF ( ISOLAI * AEF_SPARE > 0.0_hp ) THEN
 
          ! Activity factor for leaf age 
          GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI, 
@@ -1997,14 +2013,14 @@
          IF ( LPECCA ) THEN
             EMTERP = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
      &                         * GAMMA_SM       * GAMMA_LAI
-     &                         * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
+     &                         * ( (1.0_hp - LDF) + (LDF * GAMMA_P) )
 
          ELSE 
 
             ! removed I,J from AEF_SPARE (hotp 3/10/10)
             EMTERP = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
      &                         * GAMMA_SM       
-     &             * ( GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
+     &             * ( GAMMA_LAI * (1.0_hp - LDF) + (LDF * GAMMA_P) )
 
          END IF 
 
@@ -2019,7 +2035,7 @@
       END SUBROUTINE GET_EMTERP_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2037,17 +2053,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(HCO_STATE), POINTER :: HcoState
-      TYPE(Ext_State), POINTER :: ExtState
-      INTEGER, INTENT(IN) :: I,  J   ! GEOS-Chem lon & lat indices
-      REAL*8,  INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
-      REAL*8,  INTENT(IN) :: GAMMA_P   ! Light correction factor 
-      REAL*8,  INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
-      REAL*8,  INTENT(IN) :: XNUMOL  ! Number of atoms C / kg C 
+      TYPE(HCO_STATE), POINTER    :: HcoState
+      TYPE(Ext_State), POINTER    :: ExtState
+      INTEGER,         INTENT(IN) :: I,  J   ! GEOS-Chem lon & lat indices
+      REAL(hp),        INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
+      REAL(hp),        INTENT(IN) :: GAMMA_P   ! Light correction factor 
+      REAL(hp),        INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
+      REAL(hp),        INTENT(IN) :: XNUMOL  ! Number of atoms C / kg C 
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL*8, INTENT(OUT) :: EMACET  ! Acetone emissions [atoms C/box]
+      REAL(hp),        INTENT(OUT) :: EMACET  ! Acetone emissions [atoms C/box]
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -2077,27 +2093,27 @@
 ! !DEFINED PARAMETERS:
 !
       ! Fraction of emission that is light dependent (A. Guenther 5/25/2011)
-      REAL*8, PARAMETER   :: LDF    = 0.20d0
+      REAL(hp), PARAMETER   :: LDF    = 0.2_hp
 
       ! Temperature response factor for light-independent emissions
       ! (A. Guenther 5/25/2011)
-      REAL*8, PARAMETER   :: BETA   = 0.10d0
+      REAL(hp), PARAMETER   :: BETA   = 0.1_hp
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8              :: GAMMA_LEAF_AGE
-      REAL*8              :: GAMMA_T
-      REAL*8              :: D_BTW_M, TS, SUNCOS
-      REAL*8              :: ISOLAI, PMISOLAI, MISOLAI
+      REAL(hp)              :: GAMMA_LEAF_AGE
+      REAL(hp)              :: GAMMA_T
+      REAL(hp)              :: D_BTW_M, TS, SUNCOS
+      REAL(hp)              :: ISOLAI, PMISOLAI, MISOLAI
 
       !=================================================================
       ! GET_EMACET_MEGAN begins here!
       !================================================================= 
 
       ! Initialize return value & activity factors
-      EMACET          = 0.d0
-      GAMMA_T         = 0.d0
-      GAMMA_LEAF_AGE  = 1.d0
+      EMACET          = 0.0_hp
+      GAMMA_T         = 0.0_hp
+      GAMMA_LEAF_AGE  = 1.0_hp
 
       ! Pass met variables. Now use only GC_LAI (ckeller, 10/9/2014)
       ISOLAI   = ExtState%GC_LAI%Arr%Val(I,J)
@@ -2105,7 +2121,7 @@
       MISOLAI = ISOLAI
 !      PMISOLAI = ExtState%GC_LAI_PM%Arr%Val(I,J)
 !      MISOLAI  = ExtState%GC_LAI_CM%Arr%Val(I,J)
-      TS       = ExtState%TSURFK%Arr%Val(I,J)
+      TS       = ExtState%T2M%Arr%Val(I,J)
       SUNCOS   = ExtState%SUNCOSmid%Arr%Val(I,J)
 
 
@@ -2113,10 +2129,10 @@
       ! Only interested in terrestrial biosphere (pip)
       ! If (local LAI != 0 .AND. baseline emission !=0 ) 
       !-----------------------------------------------------
-      IF ( ISOLAI * AEF_ACET(I,J) > 0d0 ) THEN
+      IF ( ISOLAI * AEF_ACET(I,J) > 0.0_hp ) THEN
 
          ! Calculate gamma PAR only if sunlight conditions
-         IF ( SUNCOS > 0d0 ) THEN
+         IF ( SUNCOS > 0.0_hp ) THEN
 
             ! --------------------------------------------------
             ! GAMMA_age
@@ -2142,13 +2158,13 @@
 
             EMACET   = AEF_ACET(I,J) * GAMMA_LEAF_AGE 
      &               * GAMMA_T   * GAMMA_SM   * GAMMA_LAI
-     &               * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
+     &               * ( (1.0_hp - LDF) + (LDF * GAMMA_P) )
 
          ELSE 
 
             EMACET   = AEF_ACET(I,J)     * GAMMA_LEAF_AGE 
      &               * GAMMA_T                    * GAMMA_SM       
-     &               * (  GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
+     &               * (  GAMMA_LAI * (1.0_hp - LDF) + (LDF * GAMMA_P) )
 
          END IF 
 
@@ -2174,7 +2190,7 @@
       END SUBROUTINE GET_EMACET_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2193,21 +2209,21 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(HCO_STATE), POINTER :: HcoState
-      TYPE(Ext_State), POINTER :: ExtState
-      INTEGER, INTENT(IN) :: I, J      ! Lon & lat indices
-      REAL*8,  INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
-      REAL*8,  INTENT(IN) :: GAMMA_P   ! Light correction factor 
-      REAL*8,  INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
-      REAL*8,  INTENT(IN) :: XNUMOL    ! Number of atoms C / kg C 
+      TYPE(HCO_STATE), POINTER    :: HcoState
+      TYPE(Ext_State), POINTER    :: ExtState
+      INTEGER,         INTENT(IN) :: I, J      ! Lon & lat indices
+      REAL(hp),        INTENT(IN) :: GAMMA_LAI ! Leaf area correction factor 
+      REAL(hp),        INTENT(IN) :: GAMMA_P   ! Light correction factor 
+      REAL(hp),        INTENT(IN) :: GAMMA_SM  ! Soil moisture correction factor 
+      REAL(hp),        INTENT(IN) :: XNUMOL    ! Number of atoms C / kg C 
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL*8, INTENT(OUT) :: EMMONOT   ! Monoterpene emissions [atoms C/box]
+      REAL(hp),        INTENT(OUT) :: EMMONOT   ! Monoterpene emissions [atoms C/box]
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      INTEGER, INTENT(INOUT) :: RC
+      INTEGER,         INTENT(INOUT) :: RC
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -2232,7 +2248,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      REAL*8             :: MONO
+      REAL(hp)           :: MONO
       INTEGER            :: K 
 
       ! Arrays
@@ -2245,7 +2261,7 @@
       !================================================================= 
 
       ! Initialize
-      EMMONOT = 0.d0
+      EMMONOT = 0.0_hp
 
       ! Loop over all species
       DO K = 1, N
@@ -2271,7 +2287,7 @@
       END SUBROUTINE GET_EMMONOT_MEGAN
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2294,17 +2310,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(HCO_State), POINTER  :: HcoState
-      TYPE(Ext_State), POINTER  :: ExtState
-      INTEGER,       INTENT(IN) :: I,  J             ! Lon & lat indices 
-      REAL*8,        INTENT(IN) :: HCOPARDR_AVG_SIM     ! Average direct PAR [W/m2]
-      REAL*8,        INTENT(IN) :: HCOPARDF_AVG_SIM     ! Average diffuse PAR [W/m2]
-      REAL*8,        INTENT(IN) :: Q_DIR_2           ! Direct PAR [umol/m2/s]
-      REAL*8,        INTENT(IN) :: Q_DIFF_2          ! Diffuse PAR [umol/m2/s]
+      TYPE(HCO_State), POINTER    :: HcoState
+      TYPE(Ext_State), POINTER    :: ExtState
+      INTEGER,         INTENT(IN) :: I,  J             ! Lon & lat indices 
+      REAL(hp),        INTENT(IN) :: HCOPARDR_AVG_SIM     ! Average direct PAR [W/m2]
+      REAL(hp),        INTENT(IN) :: HCOPARDF_AVG_SIM     ! Average diffuse PAR [W/m2]
+      REAL(hp),        INTENT(IN) :: Q_DIR_2           ! Direct PAR [umol/m2/s]
+      REAL(hp),        INTENT(IN) :: Q_DIFF_2          ! Diffuse PAR [umol/m2/s]
 !
 ! !RETURN VALUE:
 !
-      REAL*8                    :: GAMMA_P_PECCA     ! GAMMA factor for light
+      REAL(hp)                    :: GAMMA_P_PECCA     ! GAMMA factor for light
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -2327,23 +2343,24 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8  :: LAT 
-      REAL*8  :: mmHCOPARDR_DAILY
-      REAL*8  :: mmHCOPARDF_DAILY
-      REAL*8  :: PAC_DAILY, PAC_INSTANT, C_PPFD
-      REAL*8  :: PTOA, PHI
-      REAL*8  :: BETA,   SINbeta 
-      INTEGER :: DOY, RC 
-      REAL*8  :: AAA, BBB
-      REAL*4  :: LocalHour
+      REAL(hp)   :: LON
+      REAL(hp)   :: LAT 
+      REAL(hp)   :: mmHCOPARDR_DAILY
+      REAL(hp)   :: mmHCOPARDF_DAILY
+      REAL(hp)   :: PAC_DAILY, PAC_INSTANT, C_PPFD
+      REAL(hp)   :: PTOA, PHI
+      REAL(hp)   :: BETA,   SINbeta 
+      INTEGER    :: DOY, RC 
+      REAL(hp)   :: AAA, BBB
+      REAL(hp)   :: LocalHour
 
       !-----------------------------------------------------------------
       ! Compute GAMMA_P_PECCA
       !-----------------------------------------------------------------  
 
       ! Initialize
-      C_PPFD   = 0.0d0
-      PTOA     = 0.0d0
+      C_PPFD   = 0.0_hp
+      PTOA     = 0.0_hp
 
       ! Convert past light conditions to micromol/m2/s 
       mmHCOPARDR_DAILY   = HCOPARDR_AVG_SIM  * WM2_TO_UMOLM2S
@@ -2355,30 +2372,31 @@
 
       ! Get day of year, local-time and latitude
       ! TODO: Evaluate RC?
-      CALL HcoClock_Get ( cDOY = DOY, RC=RC )
-      CALL HcoClock_GetLocal ( I, cH = LocalHour, RC=RC )
+      LON = HcoState%Grid%XMID%Val( I, J )
       LAT = HcoState%Grid%YMID%Val( I, J )
+      CALL HcoClock_Get ( cDOY = DOY, RC=RC )
+      CALL HcoClock_GetLocal ( LON, LAT, cH = LocalHour, RC=RC )
 
       ! Get solar elevation angle
-      SINbeta      =  SOLAR_ANGLE( HcoState, DOY , LocalHour, LAT )
+      SINbeta      =  SOLAR_ANGLE( HcoState, DOY, LocalHour, LAT )
       BETA         =  ASIN( SINbeta ) * RAD2D       
 
-      IF ( SINbeta .LE. 0.0d0 ) THEN
+      IF ( SINbeta < 0.0_hp ) THEN
 
-         GAMMA_P_PECCA = 0.0d0
+         GAMMA_P_PECCA = 0.0_hp
 
-      ELSEIF ( SINbeta .GT. 0.0d0 ) THEN       
+      ELSEIF ( SINbeta > 0.0_hp ) THEN       
 
          ! PPFD at top of atmosphere
-         PTOA    = 3000.0d0 + 99.0d0 * 
-     &             COS( 2.d0 * 3.14d0 *( DOY - 10 ) / 365 )
+         PTOA    = 3000.0_hp + 99.0_hp * 
+     &             COS( 2._hp * 3.14_hp *( DOY - 10.0_hp ) / 365.0_hp )
 
          ! Above canopy transmission
          PHI     = PAC_INSTANT / ( SINbeta * PTOA )
 
          ! Work out gamma P
-         BBB     = 1.0d0 + 0.0005d0 *( PAC_DAILY - 400.0d0  ) 
-         AAA     = ( 2.46d0 * BBB * PHI ) - ( 0.9d0 * PHI**2 )
+         BBB     = 1.0_hp + 0.0005_hp *( PAC_DAILY - 400.0_hp ) 
+         AAA     = ( 2.46_hp * BBB * PHI ) - ( 0.9_hp * PHI**2 )
 
          GAMMA_P_PECCA = SINbeta * AAA
 
@@ -2386,12 +2404,12 @@
 
        ! Screen unforced errors. IF solar elevation angle is 
        ! less than 1 THEN gamma_p can not be greater than 0.1.
-       IF ( BETA .LT. 1.0 .AND. GAMMA_P_PECCA .GT. 0.1) THEN
-          GAMMA_P_PECCA  = 0.0
+       IF ( BETA < 1.0_hp .AND. GAMMA_P_PECCA > 0.1_hp ) THEN
+          GAMMA_P_PECCA  = 0.0_hp
        ENDIF
    
       ! Prevent negative values
-      GAMMA_P_PECCA = MAX( GAMMA_P_PECCA , 0d0 )
+      GAMMA_P_PECCA = MAX( GAMMA_P_PECCA , 0.0_hp )
 
 !      ! testing only
 !      if ( i==ix .and. j==iy ) then
@@ -2413,7 +2431,7 @@
       END FUNCTION GET_GAMMA_P_PECCA
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2431,14 +2449,14 @@
 ! !INPUT PARAMETERS: 
 !
       ! Arguments
-      TYPE(HCO_State), POINTER    :: HcoState
-      INTEGER,         INTENT(IN) :: DOY       ! Day of year
-      REAL*4,          INTENT(IN) :: SHOUR     ! Local time 
-      REAL*8,          INTENT(IN) :: LAT       ! Latitude
+      TYPE(HCO_State),   POINTER    :: HcoState
+      INTEGER,           INTENT(IN) :: DOY       ! Day of year
+      REAL(hp),          INTENT(IN) :: SHOUR     ! Local time 
+      REAL(hp),          INTENT(IN) :: LAT       ! Latitude
 !
 ! !RETURN VALUE:
 !
-      REAL*8                      :: SINbeta   ! Sin of the local solar angle
+      REAL(hp)                      :: SINbeta   ! Sin of the local solar angle
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -2454,25 +2472,25 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: BETA                        ! solar elevation angle
-      REAL*8 :: sindelta, cosdelta, A, B
+      REAL(hp) :: BETA                        ! solar elevation angle
+      REAL(hp) :: sindelta, cosdelta, A, B
 
       ! Calculation of sin beta 
-      sindelta = -SIN( 0.40907d0 ) * 
-     &            COS( 6.28d0 * ( DOY + 10 ) / 365 )
+      sindelta = -SIN( 0.40907_hp ) * 
+     &            COS( 6.28_hp * ( DOY + 10_dp ) / 365_dp )
 
-      cosdelta = (1-sindelta**2.)**0.5
+      cosdelta = (1-sindelta**2.0_hp)**0.5_hp
 
       A = SIN( LAT * D2RAD ) * sindelta
       B = COS( LAT * D2RAD ) * cosdelta
 
       SINbeta = A + B * 
-     &          COS( 2.0d0 * HcoState%Phys%PI * ( SHOUR-12 ) / 24 ) 
+     &          COS( 2.0_hp * HcoState%Phys%PI * ( SHOUR-12_dp )/24_dp )
 
       END FUNCTION SOLAR_ANGLE 
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2491,20 +2509,20 @@
 
       ! Current leaf temperature, the surface air temperature field (TS) 
       ! is assumed equivalent to the leaf temperature over forests.
-      REAL*8,  INTENT(IN) :: T 
+      REAL(hp),  INTENT(IN) :: T 
 
  
       ! Average leaf temperature over the past 15 days
-      REAL*8,  INTENT(IN) :: PHCOT_15
+      REAL(hp),  INTENT(IN) :: PHCOT_15
 
       ! Average leaf temperature over the past arbitray day(s).
       ! This is not used at present (but might be soon!).
-      REAL*8,  INTENT(IN) :: PT_1
+      REAL(hp),  INTENT(IN) :: PT_1
 !
 ! !RETURN VALUE:
 !
       ! GAMMA factor for temperature (isoprene only)
-      REAL*8              :: GAMMA_T
+      REAL(hp)              :: GAMMA_T
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -2524,41 +2542,41 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8              :: C_T,   CT1,   CT2
-      REAL*8              :: E_OPT, T_OPT, X
+      REAL(hp)              :: C_T,   CT1,   CT2
+      REAL(hp)              :: E_OPT, T_OPT, X
 
       ! Ideal gas constant [J/mol/K]
-      REAL*8, PARAMETER   :: R   = 8.314d-3
+      REAL(hp), PARAMETER   :: R   = 8.314e-3_hp
 
 
       ! Normalization Factor 
-      REAL*8, PARAMETER   ::  NORM = 0.99558166894501043d0    
+      REAL(hp), PARAMETER   ::  NORM = 0.99558166894501043_hp 
                                    
       !=================================================================!
       !             ALWAYS CHECK THE ABOVE NORMALIZATION                !
       !=================================================================!
-       E_OPT = 1.75d0 * EXP( 0.08d0 * ( PHCOT_15  - 2.97d2 ) )     
-       T_OPT = 3.13d2 + ( 6.0d-1 * ( PHCOT_15 - 2.97d2 ) )
-       CT1   = 80d0
-       CT2   = 200d0
+       E_OPT = 1.75_hp * EXP( 0.08_hp * ( PHCOT_15  - 2.97e2_hp ) )
+       T_OPT = 3.13e2_hp + ( 6.0e-1_hp * ( PHCOT_15 - 2.97e2_hp ) )
+       CT1   = 80.0_hp
+       CT2   = 200.0_hp
 
       ! Variable related to temperature 
-      X     = ( 1.d0/T_OPT - 1.d0/T ) / R
+      X     = ( 1.0_hp/T_OPT - 1.0_hp/T ) / R
 
       ! C_T: Effect of temperature on leaf BVOC emission, including 
       ! effect of average temperature over previous 15 days, based on 
       ! Eq 5a, 5b, 5c from Guenther et al, 1999.
       C_T   = E_OPT * CT2 * EXP( CT1 * X ) / 
-     &        ( CT2 - CT1 * ( 1.d0 - EXP( CT2 * X ) ) )
+     &        ( CT2 - CT1 * ( 1.0_hp - EXP( CT2 * X ) ) )
 
       ! Hourly emission activity = C_T
       ! Prevent negative values
-      GAMMA_T = MAX( C_T * NORM , 0d0 )
+      GAMMA_T = MAX( C_T * NORM , 0.0_hp )
 
       END FUNCTION GET_GAMMA_T_ISOP
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2577,16 +2595,16 @@
 !
       ! Current leaf temperature [K], the surface air temperature field (TS) 
       ! is assumed equivalent to the leaf temperature over forests.
-      REAL*8, INTENT(IN) :: T        
+      REAL(hp), INTENT(IN) :: T        
 
       ! Temperature factor per species (from MEGAN user manual). 
       ! Beta = 0.09 for MBO and for monoterpene species (APINE, BPINE, LIMON, 
       ! SABIN, MYRCN, CAREN, OCIMN). Pass as an argument in case this changes.
-      REAL*8, INTENT(IN) :: BETA     
+      REAL(hp), INTENT(IN) :: BETA     
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: GAMMA_T  ! 
+      REAL(hp)             :: GAMMA_T  ! 
 !
 ! !REMARKS:
 !  GAMMA_T =  exp[BETA*(T-Ts)]
@@ -2610,7 +2628,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Standard reference temperature [K]
-      REAL*8, PARAMETER   :: Ts = 303.0
+      REAL(hp), PARAMETER   :: Ts = 303.0_hp
 
       !=================================================================
       ! GET_GAMMAT_NISOP begins here!
@@ -2621,7 +2639,7 @@
       END FUNCTION GET_GAMMA_T_NISOP
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2639,14 +2657,14 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN) :: LAI        ! Cumulative leaf area index 
-      REAL*8,  INTENT(IN) :: SUNCOS1    ! Cosine of solar zenith angle 
-      REAL*8,  INTENT(IN) :: Q_DIR_2    ! Direct PAR above canopy [umol/m2/s]
-      REAL*8,  INTENT(IN) :: Q_DIFF_2   ! Diffuse PAR above canopy [umol/m2/s]
+      REAL(hp),  INTENT(IN) :: LAI        ! Cumulative leaf area index 
+      REAL(hp),  INTENT(IN) :: SUNCOS1    ! Cosine of solar zenith angle 
+      REAL(hp),  INTENT(IN) :: Q_DIR_2    ! Direct PAR above canopy [umol/m2/s]
+      REAL(hp),  INTENT(IN) :: Q_DIFF_2   ! Diffuse PAR above canopy [umol/m2/s]
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: GAMMA_P    ! Gamma activity factor w/r/t light
+      REAL(hp)              :: GAMMA_P    ! Gamma activity factor w/r/t light
 !
 ! !REMARKS:
 !  *** REVAMPED FUNCTION ***
@@ -2685,78 +2703,78 @@
       ! In addition, a 5 layered canopy model based on Eqs 12-16 
       ! from Guenther et al. (1995) is included to correct for light 
       ! attenuation in the canopy.
-      REAL*8              :: C_PPFD
+      REAL(hp)              :: C_PPFD
 
       ! LAYERS: number of layers in canopy model
       INTEGER, PARAMETER  :: LAYERS = 5
 
       ! WEIGHTGAUSS : weights for gaussian integration
-      REAL*8,  PARAMETER  :: WEIGHTGAUSS(LAYERS) = (/ 1.1846d-1, 
-     &                                                2.3931d-1, 
-     &                                                2.8444d-1, 
-     &                                                2.3931d-1, 
-     &                                                1.1846d-1 /)
+      REAL(hp),  PARAMETER  :: WEIGHTGAUSS(LAYERS) = (/ 1.1846e-1_hp, 
+     &                                                2.3931e-1_hp, 
+     &                                                2.8444e-1_hp, 
+     &                                                2.3931e-1_hp, 
+     &                                                1.1846e-1_hp /)
 
       ! DISTGAUSS: points to evaluate fcn for gaussian integration
-      REAL*8,  PARAMETER  :: DISTGAUSS(LAYERS)   = (/ 4.6910d-2, 
-     &                                                2.3075d-1, 
-     &                                                5.0000d-1, 
-     &                                                7.6924d-1, 
-     &                                                9.5308d-1 /)
+      REAL(hp),  PARAMETER  :: DISTGAUSS(LAYERS)   = (/ 4.6910e-2_hp, 
+     &                                                2.3075e-1_hp, 
+     &                                                5.0000e-1_hp, 
+     &                                                7.6924e-1_hp, 
+     &                                                9.5308e-1_hp /)
 
       ! SCAT: Scattering coefficient
-      REAL*8, PARAMETER   :: SCAT = 2.0d-1
+      REAL(hp), PARAMETER   :: SCAT = 2.0e-1_hp
 
       ! REFLD: Reflection coefficient for diffuse light
-      REAL*8, PARAMETER   :: REFLD = 5.7d-2
+      REAL(hp), PARAMETER   :: REFLD = 5.7e-2_hp
 
       ! CLUSTER: clustering coefficient (accounts for leaf clumping 
       ! influence on mean projected leaf area in the direction 
       ! of the sun's beam) use 0.85 for default
-      REAL*8, PARAMETER   :: CLUSTER = 8.5d-1
+      REAL(hp), PARAMETER   :: CLUSTER = 8.5e-1_hp
 
       ! NORMAL_FACTOR : C_PPFD calculated with LAI = 5, and above canopy 
       ! total PPFD = 1500 umol/m2/s, and Q_DIFF = 0.2 * above canopy total 
       ! PPFD.  May Fu calculated this to be 1.8967d0
       ! Quickly checked by mpb in 2008 & found to be:
-      REAL*8, PARAMETER   :: NORMAL_FACTOR = 1.80437817285271950d0
+      REAL(hp), PARAMETER   :: NORMAL_FACTOR = 1.80437817285271950_hp
 
       ! F_SUN: Fraction leaves sunlit
-      REAL*8              :: F_SUN
+      REAL(hp)              :: F_SUN
 
       ! F_SHADE: Fraction leaves shaded
-      REAL*8              :: F_SHADE
+      REAL(hp)              :: F_SHADE
 
       ! LAI_DEPTH: Cumulative LAI above current layer
-      REAL*8              :: LAI_DEPTH
+      REAL(hp)              :: LAI_DEPTH
 
       ! Q_SUN: Flux density of PAR on sunny leaves [umol/m2/s]
-      REAL*8              :: Q_SUN
+      REAL(hp)              :: Q_SUN
  
       ! Q_SHADE: Flux density of PAR on shaded leaves [umol/m2/s]
-      REAL*8              :: Q_SHADE, Q_SHADE_1, Q_SHADE_2
+      REAL(hp)              :: Q_SHADE, Q_SHADE_1, Q_SHADE_2
 
       ! KB: Extinction coefficient for black leaves for direct (beam)
-      REAL*8              :: KB, KBP
+      REAL(hp)              :: KB, KBP
 
       ! KD: Extinction coefficient for black leaves for diffuse light
-      REAL*8              :: KD,   KDP
-      REAL*8              :: REFLB
+      REAL(hp)              :: KD,   KDP
+      REAL(hp)              :: REFLB
 
       ! C_P_SUN: C_PPFD at layer I for sunlit leaves
-      REAL*8              :: C_P_SUN
+      REAL(hp)              :: C_P_SUN
       
       ! C_P_SHADE: C_PPFD at layer I for shaded leaves
-      REAL*8              :: C_P_SHADE
+      REAL(hp)              :: C_P_SHADE
 
       ! C_PPFD_I    : C_PPFD at layer I
-      REAL*8              :: C_PPFD_I
+      REAL(hp)              :: C_PPFD_I
 
       ! Empirical functions (Eq 4a, 4b, 4c from Guenther et al, 1999)
-      REAL*8              :: ALPHA, CL
+      REAL(hp)              :: ALPHA, CL
 
       ! ??
-      REAL*8              :: P
+      REAL(hp)              :: P
 
       ! Index for layers
       INTEGER             :: I
@@ -2766,14 +2784,15 @@
       !-----------------------------------------------------------------  
 
       ! Initialize
-      C_PPFD  = 0.d0
+      C_PPFD  = 0.0_hp
 
       ! 0.5 and 0.8 assume a spherical leaf-angle distribution
-      KB      = 0.5d0 * CLUSTER / SUNCOS1
-      KD      = 0.8d0 * CLUSTER
-      P       = SQRT( 1.d0 - SCAT )
+      KB      = 0.5_hp * CLUSTER / SUNCOS1
+      KD      = 0.8_hp * CLUSTER
+      P       = SQRT( 1.0_hp - SCAT )
       REFLB   = 1.d0 - 
-     &          EXP(-2.d0*KB * ( 1.d0-P ) / ( 1.d0+P ) / ( 1.d0+KB ) )
+     &          EXP(-2.0_hp*KB * ( 1.0_hp-P ) 
+     &          / ( 1.0_hp+P ) / ( 1.0_hp+KB ) )
       KBP     = KB * P
       KDP     = KD * P
 
@@ -2785,19 +2804,19 @@
 
          ! Fraction sun and shade leaves at layer I
          F_SUN      = EXP( -KB * LAI_DEPTH ) 
-         F_SHADE    = 1.d0 - F_SUN
+         F_SHADE    = 1.0_hp - F_SUN
 
          ! For PAR on shaded leaves
-         Q_SHADE_1  = Q_DIFF_2 * KDP * ( 1.d0 - REFLD ) *
+         Q_SHADE_1  = Q_DIFF_2 * KDP * ( 1.0_hp - REFLD ) *
      &                EXP( -KDP * LAI_DEPTH ) 
 
          ! For PAR on shaded leaves
          Q_SHADE_2  = Q_DIR_2 * ( KBP * ( 1.d0 - REFLB ) * 
-     &                EXP( -KBP * LAI_DEPTH ) - KB * ( 1.d0 - SCAT ) * 
+     &                EXP( -KBP * LAI_DEPTH ) - KB * ( 1.0_hp - SCAT ) *
      &                EXP( -KB * LAI_DEPTH ) )
 
          ! PAR on shaded leaves
-         Q_SHADE    = ( Q_SHADE_1 + Q_SHADE_2 ) / ( 1.d0 - SCAT )
+         Q_SHADE    = ( Q_SHADE_1 + Q_SHADE_2 ) / ( 1.0_hp - SCAT )
 
          ! PAR on sunlit leaves
          Q_SUN      = Q_SHADE + KB * Q_DIR_2
@@ -2805,14 +2824,14 @@
          ! Update C_P_SUN and C_P_SHADE at layer I
          ! The following already accounts for canopy attenuation
          ! (Guenther et al, 1999)
-         ALPHA      = 1.0d-3 + ( 8.5d-4 ) * LAI_DEPTH
-         CL         = ( 1.42d0 ) * EXP( -( 3.0d-1 ) * LAI_DEPTH )
+         ALPHA      = 1.0e-3_hp + ( 8.5e-4_hp ) * LAI_DEPTH
+         CL         = ( 1.42_hp ) * EXP( -( 3.0e-1_hp ) * LAI_DEPTH )
 
          C_P_SUN    = ALPHA * CL * Q_SUN / 
-     &                SQRT( 1.d0 + ALPHA*ALPHA * Q_SUN*Q_SUN )
+     &                SQRT( 1.0_hp + ALPHA*ALPHA * Q_SUN*Q_SUN )
 
          C_P_SHADE  = ALPHA * CL * Q_SHADE / 
-     &                SQRT( 1.d0 + ALPHA*ALPHA * Q_SHADE*Q_SHADE )
+     &                SQRT( 1.0_hp + ALPHA*ALPHA * Q_SHADE*Q_SHADE )
 
          ! Update C_PPFD_I at layer I
          C_PPFD_I   = F_SUN * C_P_SUN + F_SHADE * C_P_SHADE
@@ -2823,12 +2842,12 @@
       ENDDO
 
       ! Prevent negative values.
-      GAMMA_P = MAX( C_PPFD / NORMAL_FACTOR, 0d0 )
+      GAMMA_P = MAX( C_PPFD / NORMAL_FACTOR, 0.0_hp )
 
       END FUNCTION GET_GAMMA_P
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2846,16 +2865,16 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,           INTENT(IN) :: T        ! Number of days between 
+      REAL(hp),         INTENT(IN) :: T        ! Number of days between 
                                                !  current and previous LAI.
-      REAL*8,           INTENT(IN) :: CMLAI    ! Current month's LAI [cm2/cm2]
-      REAL*8,           INTENT(IN) :: PMLAI    ! Previous months LAI [cm2/cm2]
+      REAL(hp),         INTENT(IN) :: CMLAI    ! Current month's LAI [cm2/cm2]
+      REAL(hp),         INTENT(IN) :: PMLAI    ! Previous months LAI [cm2/cm2]
       CHARACTER(LEN=4), INTENT(IN) :: SPECIES  ! BVOC species name
-      REAL*8,           INTENT(IN) :: TT       ! Daily average temperature [K]
+      REAL(hp),         INTENT(IN) :: TT       ! Daily average temperature [K]
 !
 ! !RETURN VALUE:
 !
-      REAL*8                       :: GAMMA_LEAF_AGE   ! Activity factor    
+      REAL(hp)                     :: GAMMA_LEAF_AGE   ! Activity factor    
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -2889,63 +2908,63 @@
 ! !LOCAL VARIABLES:
 !
       ! M_AGE: leaf age factor
-      REAL*8             :: M_AGE
+      REAL(hp)             :: M_AGE
 
       ! FNEW, ANEW: new foliage that emits negligible amounts of isoprene
-      REAL*8             :: FNEW
+      REAL(hp)             :: FNEW
 
       ! FGRO, AGRO: growing foliage that emits isoprene at low rates
-      REAL*8             :: FGRO
+      REAL(hp)             :: FGRO
 
       ! FMAT, AMAT: mature foliage that emits isoprene at peak rates
-      REAL*8             :: FMAT
+      REAL(hp)             :: FMAT
 
       ! FSEN, ASEN: senescing foliage that emits isoprene at reduced rates
-      REAL*8             :: FSEN
+      REAL(hp)             :: FSEN
 
       ! TI: number of days after budbreak required to induce iso. em.
-      REAL*8             :: TI   
+      REAL(hp)             :: TI   
 
       ! TM: number of days after budbreak required to reach peak iso. em. rates
-      REAL*8             :: TM
+      REAL(hp)             :: TM
 
       ! Index for the relative emission activity (mpb,2008)
       INTEGER            :: AINDX
  
       ! Use species specific relative emission activity factors (mpb,2008)
       INTEGER, PARAMETER :: N_CAT = 5
-      REAL*8             :: ANEW(N_CAT)
-      REAL*8             :: AGRO(N_CAT)
-      REAL*8             :: AMAT(N_CAT)
-      REAL*8             :: ASEN(N_CAT)
-      REAL*8             :: NORM_V(N_CAT)
+      REAL(hp)             :: ANEW(N_CAT)
+      REAL(hp)             :: AGRO(N_CAT)
+      REAL(hp)             :: AMAT(N_CAT)
+      REAL(hp)             :: ASEN(N_CAT)
+      REAL(hp)             :: NORM_V(N_CAT)
 
       ! Constant Factors (not used)
       DATA    ANEW(  1),  AGRO(  1),  AMAT(  1),  ASEN(  1)
-     &     /  1.0d0    ,  1.0d0    ,  1.0d0    ,  1.0d0      /
+     &     /  1.0_hp    ,  1.0_hp    ,  1.0_hp    ,  1.0_hp      /
       ! Monoterpenes 
       DATA    ANEW(  2),  AGRO(  2),  AMAT(  2),  ASEN(  2)
-     &     /  2.0d0   ,   1.8d0    ,  0.95d0   ,  1.0d0      /
+     &     /  2.0_hp   ,   1.8_hp   ,  0.95_hp  ,  1.0_hp      /
       ! Isoprene and MBO 
       DATA    ANEW(  3),  AGRO(  3),  AMAT(  3),  ASEN(  3)
-     &     /  0.05d0   ,  0.6d0    ,  1.125d0  ,  1.0d0      /
+     &     /  0.05_hp  ,  0.6_hp   ,  1.125_hp ,  1.0_hp      /
       ! Current set-up (v7-04-11) - used for other VOCs (OVOC)
       DATA    ANEW(  4),  AGRO(  4),  AMAT(  4),  ASEN(  4)
-     &     /  0.01d0   ,  0.5d0    ,  1.00d0   ,  0.33d0     /
+     &     /  0.01_hp  ,  0.5_hp   ,  1.0_hp   ,  0.33_hp    /
       ! SOAupdate: Sesquiterpenes hotp 3/2/10
       ! from MEGANv2.04/src/EMPROC/INCLDIR
       DATA    ANEW(  5),  AGRO(  5),  AMAT(  5),  ASEN(  5)
-     &     /  0.4d0   ,  0.6d0    ,  1.075d0   ,  1.0d0     /
+     &     /  0.4_hp  ,  0.6_hp   ,  1.075_hp  ,  1.0_hp     /
 
       ! Normalization factors
       ! SOAupdate: Sesq normalization factor added (hotp 3/16/2010)
       ! NORM_V(5) = 1/( 0.1*0.6 + 0.1*1 + 0.8*1.075 )
       DATA   NORM_V(1) , NORM_V(2) , NORM_V(3) , NORM_V(4), NORM_V(5)
-     &     /                 1.0d0 , ! Constant
-     &       0.96153846153846145d0 , ! Monoterpenes
-     &       0.94339622641509424d0 , ! Isoprene & MBO
-     &         1.132502831257078d0 , ! Other VOCs
-     &            0.980392156863d0 / ! Sesquiterpenes (hotp 3/2/10,3/16/10)
+     &     /                 1.0_hp, ! Constant
+     &       0.96153846153846145_hp, ! Monoterpenes
+     &       0.94339622641509424_hp, ! Isoprene & MBO
+     &         1.132502831257078_hp, ! Other VOCs
+     &            0.980392156863_hp/ ! Sesquiterpenes (hotp 3/2/10,3/16/10)
 
       !=================================================================
       ! GET_GAMMA_LEAF_AGE begins here!
@@ -2956,12 +2975,12 @@
       ! (mpb,2009)
       !-----------------------
 
-      IF ( TT <= 303.d0 ) THEN
-         TI = 5.0d0 + 0.7 * ( 300.0d0 - TT )
-      ELSEIF ( TT >  303.d0 ) THEN
-         TI = 2.9d0
+      IF ( TT <= 303.0_hp ) THEN
+         TI = 5.0_hp + 0.7_hp * ( 300.0_hp - TT )
+      ELSEIF ( TT >  303.0_hp ) THEN
+         TI = 2.9_hp
       ENDIF   
-      TM = 2.3d0 * TI
+      TM = 2.3_hp * TI
 
       !-----------------------
       ! Compute M_AGE
@@ -2970,36 +2989,36 @@
       IF ( CMLAI == PMLAI ) THEN !(i.e. LAI stays the same) 
 
          !New values           Old Vlaues (mpb, 2009)
-         FMAT = 0.8d0            !1.d0  
-         FNEW = 0.d0             !0.d0
-         FGRO = 0.1d0            !0.d0
-         FSEN = 0.1d0            !0.d0
+         FMAT = 0.8_hp            !1._hp  
+         FNEW = 0.0_hp            !0._hp
+         FGRO = 0.1_hp            !0._hp
+         FSEN = 0.1_hp            !0._hp
 
       ELSE IF ( CMLAI > PMLAI ) THEN !(i.e. LAI has INcreased) 
 
          IF ( T > TI ) THEN
-            FNEW = ( TI / T ) * ( 1.d0 -  PMLAI / CMLAI )
+            FNEW = ( TI / T ) * ( 1.0_hp -  PMLAI / CMLAI )
          ELSE
-            FNEW = 1.d0 - ( PMLAI / CMLAI )
+            FNEW = 1.0_hp - ( PMLAI / CMLAI )
          ENDIF
 
          IF ( T > TM ) THEN
             FMAT = ( PMLAI / CMLAI ) +
-     &             ( ( T - TM ) / T ) * ( 1.d0 -  PMLAI / CMLAI )
+     &             ( ( T - TM ) / T ) * ( 1.0_hp -  PMLAI / CMLAI )
          ELSE 
             FMAT = ( PMLAI / CMLAI )
          ENDIF
 
          ! Implement new condition for FGRO (mpb,2009)
-         FSEN = 0.d0
-         FGRO = 1.d0 - FNEW - FMAT
+         FSEN = 0.0_hp
+         FGRO = 1.0_hp - FNEW - FMAT
 
       ELSE ! This is the case if  PMLAI > CMLAI (i.e. LAI has DEcreased) 
 
          FSEN = ( PMLAI - CMLAI ) / PMLAI
-         FMAT = 1.d0 - FSEN
-         FGRO = 0.d0
-         FNEW = 0.d0
+         FMAT = 1.0_hp - FSEN
+         FGRO = 0.0_hp
+         FNEW = 0.0_hp
 
       ENDIF
 
@@ -3017,7 +3036,7 @@
       CASE ('SESQ')
          AINDX = 5
       CASE DEFAULT
-         GAMMA_LEAF_AGE = -999d0
+         GAMMA_LEAF_AGE = -999.0_hp
          RETURN
       END SELECT
 
@@ -3030,12 +3049,12 @@
       !from NCAR it never is...
 
       ! Normalize & prevent negative values
-      GAMMA_LEAF_AGE = MAX( M_AGE * NORM_V(AINDX) , 0d0 )
+      GAMMA_LEAF_AGE = MAX( M_AGE * NORM_V(AINDX) , 0.0_hp )
 
       END FUNCTION GET_GAMMA_LEAF_AGE
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3052,11 +3071,11 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: CMLAI       ! Current month's LAI [cm2/cm2]
+      REAL(hp), INTENT(IN) :: CMLAI       ! Current month's LAI [cm2/cm2]
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: GAMMA_LAI 
+      REAL(hp)             :: GAMMA_LAI 
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -3078,12 +3097,183 @@
       !-----------------------
       ! Compute GAMMA_LAI
       !-----------------------
-      GAMMA_LAI = 0.49d0 * CMLAI / SQRT( 1.d0 + 0.2d0 * CMLAI*CMLAI )
+      GAMMA_LAI = 0.49_hp * CMLAI / SQRT( 1.0_hp + 0.2_hp * CMLAI*CMLAI)
 
       END FUNCTION GET_GAMMA_LAI 
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Fill_Restart_Vars 
+!
+! !DESCRIPTION: Subroutine FILL\_RESTART\_VARS fills the megan restart
+!  variables.  
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE FILL_RESTART_VARS( am_I_Root, HcoState, ExtState, RC )
+!
+! !USES:
+!
+      USE HCO_EMISLIST_MOD,    ONLY : HCO_GetPtr
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,         INTENT(IN   )  :: am_I_Root 
+      TYPE(HCO_State), POINTER        :: HcoState 
+      TYPE(Ext_State), POINTER        :: ExtState
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      INTEGER,         INTENT(INOUT)  :: RC
+! 
+! !REVISION HISTORY: 
+!  19 Dec 2014 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I
+      LOGICAL           :: FND
+      REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
+
+      !=================================================================
+      ! FILL_RESTART_VARS begins here!
+      !=================================================================
+
+      ! On first call, see if there are restart variables available for
+      ! historic values of temperature and irradiation. If so, fill the
+      ! daily arrays with those average values to start with. If not,
+      ! simply use the current values.
+      ! The same procedure is applied to the 15 day average values. For
+      ! temperature, we also restart previous day temperature so that
+      ! we can determine a trend in the daily average temperatures
+      ! (between the long term daily averages and the most recent daily
+      ! average).
+
+      !-----------------------------------------------------------------
+      ! LAI
+      !-----------------------------------------------------------------
+
+      ! Get data
+      CALL HCO_GetPtr( am_I_Root, 'LAI_PREVDAY', Ptr2D, RC, FOUND=FND )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      
+      ! Fill variables
+      IF ( .NOT. FND ) THEN
+         LAI_PREVDAY = ExtState%GC_LAI%Arr%Val
+      ELSE
+         LAI_PREVDAY = Ptr2D 
+      ENDIF
+
+      ! Cleanup
+      Ptr2D => NULL()
+
+      !-----------------------------------------------------------------
+      ! TEMPERATURE
+      !-----------------------------------------------------------------
+
+      ! Get data
+      CALL HCO_GetPtr( am_I_Root, 'T_DAVG', Ptr2D, RC, FOUND=FND )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+     
+      ! Use current temperature if restart not found 
+      IF ( .NOT. FND ) THEN
+         Ptr2D => ExtState%T2M%Arr%Val
+      ENDIF
+
+      ! Set average of HCOT_15 array
+      HCOT_15_AVG = Ptr2D 
+
+      ! Set all daily averages to this value. 
+      DO I = 1, NUM_DAYS
+         HCOT_15(:,:,I) = Ptr2D
+      ENDDO 
+
+      ! Check for most recent daily average
+      CALL HCO_GetPtr( am_I_Root, 'T_PREVDAY', Ptr2D, RC, FOUND=FND )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! Eventually overwrite most recent entry in HCOT_15. 
+      IF ( FND ) THEN
+         HCOT_15(:,:,1) = Ptr2D
+      ENDIF
+
+      ! Set hourly variables
+      DO I = 1, DAY_DIM 
+         HCOT_DAY(:,:,I) = HCOT_15(:,:,1)
+      ENDDO
+
+      !-----------------------------------------------------------------
+      ! DIRECT RADIATION ( PARDR )
+      !-----------------------------------------------------------------
+
+      ! Get data
+      CALL HCO_GetPtr( am_I_Root, 'PARDR_DAVG', Ptr2D, RC, FOUND=FND )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+     
+      ! Use current value if not found 
+      IF ( .NOT. FND ) THEN
+         Ptr2D => ExtState%PARDR%Arr%Val
+      ENDIF
+
+      ! Set hourly variables
+      DO I = 1, DAY_DIM 
+         HCOPARDR_DAY(:,:,I) = Ptr2D
+      ENDDO
+
+      ! Set daily averages
+      DO I = 1, NUM_DAYS
+         HCOPARDR_15(:,:,I) = Ptr2D
+      ENDDO 
+
+      ! Set daily average
+      HCOPARDR_15_AVG = Ptr2D 
+
+      ! Cleanup
+      Ptr2D => NULL()
+
+      !-----------------------------------------------------------------
+      ! DIFFUSE RADIATION ( PARDF )
+      !-----------------------------------------------------------------
+
+      ! Get data
+      CALL HCO_GetPtr( am_I_Root, 'PARDF_DAVG', Ptr2D, RC, FOUND=FND )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+     
+      ! Use current value if not found 
+      IF ( .NOT. FND ) THEN
+         Ptr2D => ExtState%PARDF%Arr%Val
+      ENDIF
+
+      ! Set hourly variables
+      DO I = 1, DAY_DIM 
+         HCOPARDF_DAY(:,:,I) = Ptr2D
+      ENDDO
+
+      ! Set daily averages
+      DO I = 1, NUM_DAYS
+         HCOPARDF_15(:,:,I) = Ptr2D
+      ENDDO 
+
+      ! Set daily average
+      HCOPARDF_15_AVG = Ptr2D 
+
+      ! Cleanup
+      Ptr2D => NULL()
+
+      ! Return w/ success
+      RC = HCO_SUCCESS
+       
+      END SUBROUTINE FILL_RESTART_VARS 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3096,7 +3286,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE UPDATE_HCOT_DAY( HcoState, ExtState, I, J, FIRST, RC )
+      SUBROUTINE UPDATE_HCOT_DAY( HcoState, ExtState, I, J, RC )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3104,7 +3294,6 @@
       TYPE(Ext_State), POINTER        :: ExtState
       INTEGER,         INTENT(IN   )  :: I 
       INTEGER,         INTENT(IN   )  :: J 
-      LOGICAL,         INTENT(IN   )  :: FIRST 
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -3131,31 +3320,18 @@
       ! UPDATE_HCOT_DAY begins here!
       !=================================================================
 
-      ! On first call, set all memory values to current value
-      ! Also fill the 15 day values with current values... 
-      IF ( FIRST ) THEN
-         HCOT_DAY(I,J,:)     = ExtState%TSURFK%Arr%Val(I,J)
-         HCOPARDR_DAY(I,J,:) = ExtState%PARDR%Arr%Val(I,J)
-         HCOPARDF_DAY(I,J,:) = ExtState%PARDF%Arr%Val(I,J)
-
-         HCOT_15(I,J,:)      = ExtState%TSURFK%Arr%Val(I,J)
-         HCOPARDR_15(I,J,:)  = ExtState%PARDR%Arr%Val(I,J) 
-         HCOPARDF_15(I,J,:)  = ExtState%PARDF%Arr%Val(I,J)
-      ELSE
-
-         ! Move each day up
-         DO D = DAY_DIM, 2, -1
-            ! Need PAR as well as Temp  (mpb,2009)
-            HCOT_DAY(I,J,D)     = HCOT_DAY(I,J,D-1)
-            HCOPARDR_DAY(I,J,D) = HCOPARDR_DAY(I,J,D-1)
-            HCOPARDF_DAY(I,J,D) = HCOPARDF_DAY(I,J,D-1)
-         ENDDO
-         
-         ! Store 
-         HCOT_DAY(I,J,1)     = ExtState%TSURFK%Arr%Val(I,J)
-         HCOPARDF_DAY(I,J,1) = ExtState%PARDF%Arr%Val(I,J)
-         HCOPARDR_DAY(I,J,1) = ExtState%PARDR%Arr%Val(I,J)
-      ENDIF
+      ! Move each day up
+      DO D = DAY_DIM, 2, -1
+         ! Need PAR as well as Temp  (mpb,2009)
+         HCOT_DAY(I,J,D)     = HCOT_DAY(I,J,D-1)
+         HCOPARDR_DAY(I,J,D) = HCOPARDR_DAY(I,J,D-1)
+         HCOPARDF_DAY(I,J,D) = HCOPARDF_DAY(I,J,D-1)
+      ENDDO
+      
+      ! Store 
+      HCOT_DAY(I,J,1)     = ExtState%T2M%Arr%Val(I,J)
+      HCOPARDF_DAY(I,J,1) = ExtState%PARDF%Arr%Val(I,J)
+      HCOPARDR_DAY(I,J,1) = ExtState%PARDR%Arr%Val(I,J)
 
       ! Return w/ success
       RC = HCO_SUCCESS
@@ -3163,7 +3339,7 @@
       END SUBROUTINE UPDATE_HCOT_DAY
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3208,16 +3384,16 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: D
-      REAL*8            :: D_DIM, D_DAYS, TMP_T
-      REAL*8            :: TMP_PARDR , TMP_PARDF ! (mpb,2009)
+      REAL(hp)          :: D_DIM, D_DAYS, TMP_T
+      REAL(hp)          :: TMP_PARDR , TMP_PARDF ! (mpb,2009)
 
       !=================================================================
       ! UPDATE_HCOT_15_AVG begins here!
       !=================================================================
 
       ! Convert to REAL*8
-      D_DIM  = DBLE( DAY_DIM  )
-      D_DAYS = DBLE( NUM_DAYS )
+      D_DIM  = REAL( DAY_DIM , KIND=hp )
+      D_DAYS = REAL( NUM_DAYS, KIND=hp )
 
       ! Average HCOT_DAY over the TS values during the day.
       TMP_T = SUM( HCOT_DAY(I,J,:) ) / D_DIM
@@ -3241,16 +3417,16 @@
       HCOT_15_AVG(I,J) = SUM( HCOT_15(I,J,:) ) / D_DAYS 
 
       ! Assign daily average temperature to HCOT_DAILY (mpb,2009)
-      HCOT_DAILY(I,J)  = TMP_T
+      ! HCOT_DAILY(I,J)  = TMP_T
 
       ! Repeat for PAR diffuse & direct (mpb,2009)
       HCOPARDR_15(I,J,1)   = TMP_PARDR
       HCOPARDR_15_AVG(I,J) = SUM( HCOPARDR_15(I,J,:) ) / D_DAYS 
-      HCOPARDR_DAILY(I,J)  = TMP_PARDR
+      ! HCOPARDR_DAILY(I,J)  = TMP_PARDR
 
       HCOPARDF_15(I,J,1)   = TMP_PARDF
       HCOPARDF_15_AVG(I,J) = SUM( HCOPARDF_15(I,J,:) ) / D_DAYS 
-      HCOPARDF_DAILY(I,J)  = TMP_PARDF
+      ! HCOPARDF_DAILY(I,J)  = TMP_PARDF
 
       ! Return w/ success 
       RC = HCO_SUCCESS
@@ -3258,7 +3434,7 @@
       END SUBROUTINE UPDATE_HCOT_15_AVG
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3312,11 +3488,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: I, J, SPECIES
-      REAL*8               :: FACTOR
-      REAL*8               :: SPECIES2CARBON
-      CHARACTER(LEN=255)   :: MSG
-      REAL*8               :: SUMFARN, SUMBCAR, SUMOSQT, SUMOMTP
+      INTEGER                 :: I, J, SPECIES
+      REAL(hp)                :: FACTOR
+      REAL(hp)                :: SPECIES2CARBON
+      CHARACTER(LEN=255)      :: MSG
+      REAL(hp)                :: SUMFARN, SUMBCAR, SUMOSQT, SUMOMTP
 
       ! SOAupdate: Plant functional types (hotp 2/26/10)
       REAL(hp), POINTER       :: PFT_BT(:,:) => NULL()       ! broadleaf trees
@@ -3330,10 +3506,10 @@
       !=================================================================
 
       ! Init
-      SUMFARN = 0.d0
-      SUMBCAR = 0.d0
-      SUMOSQT = 0.d0
-      SUMOMTP = 0.d0
+      SUMFARN = 0.0_hp
+      SUMBCAR = 0.0_hp
+      SUMOSQT = 0.0_hp
+      SUMOMTP = 0.0_hp
 
       ! Get pointers to data
       CALL HCO_GetPtr( am_I_Root, 'MEGAN_PFT_BT', PFT_BT, RC )
@@ -3365,26 +3541,26 @@
 
          ! Ratio of carbon mass to total compound mass [kgC/kg]
          IF ( SPECIES == IDMGFARN ) THEN
-            SPECIES2CARBON = 15.d0 * 12.01d0 /
-     &                       ( 15.d0 * 12.01d0 + 24.d0 * 1.01d0 )
+            SPECIES2CARBON = 15.0_hp * 12.01_hp /
+     &                       ( 15.0_hp * 12.01_hp + 24.0_hp * 1.01_hp )
          ELSEIF( SPECIES == IDMGBCAR ) THEN
-            SPECIES2CARBON = 15.d0 * 12.01d0 /
-     &                       ( 15.d0 * 12.01d0 + 24.d0 * 1.01d0 )
+            SPECIES2CARBON = 15.0_hp * 12.01_hp /
+     &                       ( 15.0_hp * 12.01_hp + 24.0_hp * 1.01_hp )
          ELSEIF( SPECIES == IDMGOSQT ) THEN
-            SPECIES2CARBON = 15.d0 * 12.01d0 /
-     &                       ( 15.d0 * 12.01d0 + 24.d0 * 1.01d0 )
+            SPECIES2CARBON = 15.0_hp * 12.01_hp /
+     &                       ( 15.0 * 12.01_hp + 24.0_hp * 1.01_hp )
          ! Other monoterpenes (hotp 3/5/10)
          ELSEIF( SPECIES == IDMGOMTP ) THEN
-            SPECIES2CARBON = 10.d0 * 12.01d0 /
-     &                       ( 10.d0 * 12.01d0 + 16.d0 * 1.01d0 )
+            SPECIES2CARBON = 10.0_hp * 12.01_hp /
+     &                       ( 10.0_hp * 12.01_hp + 16.0_hp * 1.01_hp )
          ELSE 
             ! species other than those listed above have not been
             ! checked so let's zero them
-            SPECIES2CARBON = 0d0
+            SPECIES2CARBON = 0.0_hp
          ENDIF
 
          ! Conversion factor from ug/m2/hr to 
-         FACTOR = 1.d-9 / 3600.d0 * SPECIES2CARBON 
+         FACTOR = 1.e-9_hp / 3600.0_hp * SPECIES2CARBON 
 
          ! Compute AEF and convert from [ug/m2/hr] to [kgC/m2/s]
          ! Loop over surface boxes
@@ -3405,21 +3581,24 @@
 
             ! Eventually write out total sum (TgC/yr)
             IF ( SPECIES == IDMGFARN ) THEN
-               SUMFARN = SUMFARN +
-     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 * 24d0 *
-     &                   3600d0 * HcoState%Grid%AREA_M2%Val(I,J) )
+               SUMFARN = SUMFARN + ( AEF_GEN(I,J,SPECIES) * 1e-9_hp 
+     &                 * 365.0_hp * 24.0_hp * 3600.0_hp 
+     &                 * HcoState%Grid%AREA_M2%Val(I,J) )
             ELSEIF( SPECIES == IDMGBCAR ) THEN
-               SUMBCAR = SUMBCAR +
-     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 * 24d0 *
-     &                   3600d0 * HcoState%Grid%AREA_M2%Val(I,J) )
+               SUMBCAR = SUMBCAR
+     &                 + ( AEF_GEN(I,J,SPECIES) * 1e-9_hp * 365.0_hp 
+     &                 * 24.0_hp * 3600.0_hp 
+     &                 * HcoState%Grid%AREA_M2%Val(I,J) )
             ELSEIF( SPECIES == IDMGOSQT ) THEN
-               SUMOSQT = SUMOSQT +
-     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 * 24d0 *
-     &                   3600d0 * HcoState%Grid%AREA_M2%Val(I,J) )
+               SUMOSQT = SUMOSQT
+     &                 + ( AEF_GEN(I,J,SPECIES) * 1e-9_hp * 365.0_hp 
+     &                 * 24.0_hp * 3600.0_hp 
+     &                 * HcoState%Grid%AREA_M2%Val(I,J) )
             ELSEIF( SPECIES == IDMGOMTP ) THEN
-               SUMOMTP = SUMOMTP +
-     &                 ( AEF_GEN(I,J,SPECIES) * 1d-9 * 365d0 * 24d0 *
-     &                   3600d0 * HcoState%Grid%AREA_M2%Val(I,J) )
+               SUMOMTP = SUMOMTP
+     &                 + ( AEF_GEN(I,J,SPECIES) * 1e-9_hp * 365.0_hp 
+     &                 * 24.0_hp * 3600.0_hp 
+     &                 * HcoState%Grid%AREA_M2%Val(I,J) )
             ENDIF
          ENDDO
          ENDDO
@@ -3454,7 +3633,7 @@
       END SUBROUTINE GET_AEF_GEN
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3512,6 +3691,7 @@
       INTEGER                        :: I, nSpc, AS, NX, NY
       INTEGER, ALLOCATABLE           :: HcoIDs(:)
       REAL*8                         :: PI_180
+      REAL(hp), POINTER              :: Ptr2D(:,:) => NULL()
       CHARACTER(LEN=255)             :: MSG
       CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:) 
  
@@ -3537,7 +3717,7 @@
       CALL GetExtOpt ( ExtNr, 'PECCA model', OptValBool=LPECCA, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
       CALL GetExtOpt ( ExtNr, 'Isoprene scaling', 
-     &                 OptValDp=ISOP_SCALING, RC=RC )
+     &                 OptValHp=ISOP_SCALING, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Verbose mode
@@ -3562,7 +3742,7 @@
       IDTPRPE = -1
       IDTC2H4 = -1
       DO I = 1, nSpc
-         SELECT CASE ( SpcNames(I) )
+         SELECT CASE ( TRIM(SpcNames(I)) )
             CASE( 'ISOP' )
                IDTISOP = HcoIDs(I)
                WRITE(MSG,*) '   Isoprene   = ',TRIM(SpcNames(I)),IDTISOP
@@ -3611,7 +3791,7 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
     
          DO I = 1, nSpc
-            SELECT CASE ( SpcNames(I) )
+            SELECT CASE ( TRIM(SpcNames(I)) )
                CASE( 'CO' )
                   IDTCO = HcoIDs(I)
                   WRITE(MSG,*) '   CO         = ',
@@ -3683,7 +3863,7 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
 
          DO I = 1, nSpc
-            SELECT CASE ( SpcNames(I) )
+            SELECT CASE ( TRIM(SpcNames(I)) )
                CASE( 'MTPA' )
                   IDTMTPA = HcoIDs(I)
                   WRITE(MSG,*) '     a-,b-pinene    = ',
@@ -3725,7 +3905,7 @@
             IF ( am_I_Root ) THEN
                MSG = 'SOA option is turned on - '// 
      &               'no OCPI emissions will be calculated'
-               CALL HCO_MSG(MSG)
+               CALL HCO_WARNING(MSG,RC)
             ENDIF
          ENDIF
       ENDIF
@@ -3744,30 +3924,31 @@
         CALL HCO_ERROR( 'HCOT_DAY', RC )
         RETURN
       ENDIF
-      HCOT_DAY = 0d0
+      HCOT_DAY = 0.0_hp
 
       ALLOCATE( HCOT_15( NX, NY, NUM_DAYS ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOT_15', RC )
         RETURN
       ENDIF
-      HCOT_15 = 0d0
+      HCOT_15 = 0.0_hp
+      T_PREVDAY => HCOT_15(:,:,1)
 
       ALLOCATE( HCOT_15_AVG( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOT_15_AVG', RC )
         RETURN
       ENDIF
-      HCOT_15_AVG = 0d0
+      HCOT_15_AVG = 0.0_hp
 
-      ! Daily averaged temperature (mpb,2009)
-      ALLOCATE( HCOT_DAILY( NX, NY ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOT_DAILY', RC )
-        RETURN
-      ENDIF
-      HCOT_DAILY = 0d0
-
+!      ! Daily averaged temperature (mpb,2009)
+!      ALLOCATE( HCOT_DAILY( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'HCOT_DAILY', RC )
+!        RETURN
+!      ENDIF
+!      HCOT_DAILY = 0.0_hp
+ 
       ! Allocate arrays for light (mpb,2009)
       ! -- Direct --
       ALLOCATE( HCOPARDR_DAY( NX, NY, DAY_DIM ), STAT=AS )
@@ -3775,57 +3956,57 @@
         CALL HCO_ERROR( 'HCOPARDR_DAY', RC )
         RETURN
       ENDIF
-      HCOPARDR_DAY = 0d0
+      HCOPARDR_DAY = 0.0_hp
 
       ALLOCATE( HCOPARDR_15( NX, NY, NUM_DAYS ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOPARDR_15', RC )
         RETURN
       ENDIF
-      HCOPARDR_15 = 0d0
+      HCOPARDR_15 = 0.0_hp
 
       ALLOCATE( HCOPARDR_15_AVG( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOPARDR_15_AVG', RC )
         RETURN
       ENDIF
-      HCOPARDR_15_AVG = 0d0
+      HCOPARDR_15_AVG = 0.0_hp
 
-      ALLOCATE( HCOPARDR_DAILY( NX, NY ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDR_DAILY', RC )
-        RETURN
-      ENDIF
-      HCOPARDR_DAILY = 0d0
-
+!      ALLOCATE( HCOPARDR_DAILY( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'HCOPARDR_DAILY', RC )
+!        RETURN
+!      ENDIF
+!      HCOPARDR_DAILY = 0.0_hp
+ 
       ! -- Diffuse --
       ALLOCATE( HCOPARDF_DAY( NX, NY, DAY_DIM ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOPARDF_DAY', RC )
         RETURN
       ENDIF
-      HCOPARDF_DAY = 0d0
+      HCOPARDF_DAY = 0.0_hp
 
       ALLOCATE( HCOPARDF_15( NX, NY, NUM_DAYS ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOPARDF_15', RC )
         RETURN
       ENDIF
-      HCOPARDF_15 = 0d0
+      HCOPARDF_15 = 0.0_hp
 
       ALLOCATE( HCOPARDF_15_AVG( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'HCOPARDF_15_AVG', RC )
         RETURN
       ENDIF
-      HCOPARDF_15_AVG = 0d0
+      HCOPARDF_15_AVG = 0.0_hp
 
-      ALLOCATE( HCOPARDF_DAILY( NX, NY ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
-        CALL HCO_ERROR( 'HCOPARDF_DAILY', RC )
-        RETURN
-      ENDIF
-      HCOPARDF_DAILY = 0d0
+!      ALLOCATE( HCOPARDF_DAILY( NX, NY ), STAT=AS )
+!      IF ( AS /= 0 ) THEN 
+!        CALL HCO_ERROR( 'HCOPARDF_DAILY', RC )
+!        RETURN
+!      ENDIF
+!      HCOPARDF_DAILY = 0d0
 
       ! -- Generic emission factors --
       ! SOAupdate: For all 20 MEGAN groups (hotp 2/27/10)
@@ -3842,14 +4023,93 @@
         CALL HCO_ERROR( 'LAI_PREVSTEP', RC )
         RETURN
       ENDIF
-      LAI_PREVSTEP = 0d0
+      LAI_PREVSTEP = 0.0_hp
 
       ALLOCATE( LAI_PREVDAY( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
         CALL HCO_ERROR( 'LAI_PREVDAY', RC )
         RETURN
       ENDIF
-      LAI_PREVDAY = 0d0
+      LAI_PREVDAY = 0.0_hp
+
+      !=================================================================
+      ! Initialize internal diagnostics. These are the restart variables
+      ! that can be used for a 'warm' start of MEGAN.
+      !=================================================================
+      CALL Diagn_Create ( am_I_Root, HcoState,
+     &                    cName      = 'T_DAVG',
+     &                    ExtNr      = ExtNr,
+     &                    Cat        = -1,  
+     &                    Hier       = -1,
+     &                    HcoID      = -1, 
+     &                    SpaceDim   = 2,   
+     &                    OutUnit    = 'K',  
+     &                    WriteFreq  = 'End', 
+     &                    AutoFill   = 0,      
+     &                    Trgt2D     = HCOT_15_AVG, 
+     &                    cID        = I,    
+     &                    RC         = RC            )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL Diagn_Create ( am_I_Root, HcoState,
+     &                    cName      = 'T_PREVDAY',
+     &                    ExtNr      = ExtNr,  
+     &                    Cat        = -1,
+     &                    Hier       = -1, 
+     &                    HcoID      = -1, 
+     &                    SpaceDim   = 2,   
+     &                    OutUnit    = 'K',  
+     &                    WriteFreq  = 'End', 
+     &                    AutoFill   = 0,     
+     &                    Trgt2D     = T_PREVDAY, 
+     &                    cID        = I,      
+     &                    RC         = RC            )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL Diagn_Create ( am_I_Root, HcoState,  
+     &                    cName      = 'LAI_PREVDAY',
+     &                    ExtNr      = ExtNr,
+     &                    Cat        = -1, 
+     &                    Hier       = -1, 
+     &                    HcoID      = -1,  
+     &                    SpaceDim   = 2,    
+     &                    OutUnit    = '1',  
+     &                    WriteFreq  = 'End',
+     &                    AutoFill   = 0,    
+     &                    Trgt2D     = LAI_PREVDAY,
+     &                    cID        = I,    
+     &                    RC         = RC            )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL Diagn_Create ( am_I_Root, HcoState,
+     &                    cName      = 'PARDR_DAVG',
+     &                    ExtNr      = ExtNr,
+     &                    Cat        = -1, 
+     &                    Hier       = -1,
+     &                    HcoID      = -1, 
+     &                    SpaceDim   = 2,   
+     &                    OutUnit    = 'W/m2',
+     &                    WriteFreq  = 'End', 
+     &                    AutoFill   = 0,   
+     &                    Trgt2D     = HCOPARDR_15_AVG,
+     &                    cID        = I,
+     &                    RC         = RC            )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      CALL Diagn_Create ( am_I_Root, HcoState,
+     &                    cName      = 'PARDF_DAVG',
+     &                    ExtNr      = ExtNr,
+     &                    Cat        = -1,
+     &                    Hier       = -1,
+     &                    HcoID      = -1,
+     &                    SpaceDim   = 2,   
+     &                    OutUnit    = 'W/m2',
+     &                    WriteFreq  = 'End',
+     &                    AutoFill   = 0,   
+     &                    Trgt2D     = HCOPARDF_15_AVG,
+     &                    cID        = I,
+     &                    RC         = RC            )
+      IF ( RC /= HCO_SUCCESS ) RETURN
 
       !=================================================================
       ! The original MEGAN code used to read the emission factors here.
@@ -3858,12 +4118,12 @@
       !=================================================================
 
       ! Set physical constants
-      PI_180 = HcoState%Phys%PI / 180.0d0
-      D2RAD  = PI_180               ! Degrees to radians
-      RAD2D  = 1.0d0 / PI_180       ! Radians to degrees
+      PI_180 = HcoState%Phys%PI / 180.0_dp
+      D2RAD  = PI_180                ! Degrees to radians
+      RAD2D  = 1.0_hp / PI_180       ! Radians to degrees
 
       ! Enable met. fields
-      ExtState%TSURFK%DoUse    = .TRUE.
+      ExtState%T2M%DoUse       = .TRUE.
       ExtState%SUNCOSmid%DoUse = .TRUE.
       ExtState%PARDR%DoUse     = .TRUE.
       ExtState%PARDF%DoUse     = .TRUE.
@@ -3881,7 +4141,7 @@
       END SUBROUTINE HCOX_Megan_Init
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3919,18 +4179,19 @@
       AEF_ACET  => NULL()
 
       ! Cleanup module arrays
+      T_PREVDAY => NULL()
       IF ( ALLOCATED( HCOT_DAY        ) ) DEALLOCATE( HCOT_DAY        )
       IF ( ALLOCATED( HCOT_15         ) ) DEALLOCATE( HCOT_15         )
       IF ( ALLOCATED( HCOT_15_AVG     ) ) DEALLOCATE( HCOT_15_AVG     )
-      IF ( ALLOCATED( HCOT_DAILY      ) ) DEALLOCATE( HCOT_DAILY      )
+!      IF ( ALLOCATED( HCOT_DAILY      ) ) DEALLOCATE( HCOT_DAILY      )
       IF ( ALLOCATED( HCOPARDR_DAY    ) ) DEALLOCATE( HCOPARDR_DAY    )
       IF ( ALLOCATED( HCOPARDR_15     ) ) DEALLOCATE( HCOPARDR_15     )
       IF ( ALLOCATED( HCOPARDR_15_AVG ) ) DEALLOCATE( HCOPARDR_15_AVG )
-      IF ( ALLOCATED( HCOPARDR_DAILY  ) ) DEALLOCATE( HCOPARDR_DAILY  )
+!      IF ( ALLOCATED( HCOPARDR_DAILY  ) ) DEALLOCATE( HCOPARDR_DAILY  )
       IF ( ALLOCATED( HCOPARDF_DAY    ) ) DEALLOCATE( HCOPARDF_DAY    )
       IF ( ALLOCATED( HCOPARDF_15     ) ) DEALLOCATE( HCOPARDF_15     )
       IF ( ALLOCATED( HCOPARDF_15_AVG ) ) DEALLOCATE( HCOPARDF_15_AVG )
-      IF ( ALLOCATED( HCOPARDF_DAILY  ) ) DEALLOCATE( HCOPARDF_DAILY  )
+!      IF ( ALLOCATED( HCOPARDF_DAILY  ) ) DEALLOCATE( HCOPARDF_DAILY  )
       IF ( ALLOCATED( LAI_PREVSTEP    ) ) DEALLOCATE( LAI_PREVSTEP    )
       IF ( ALLOCATED( LAI_PREVDAY     ) ) DEALLOCATE( LAI_PREVDAY     )
 

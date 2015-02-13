@@ -112,7 +112,7 @@ MODULE HCOX_SoilNOx_Mod
   INTEGER                       :: ExtNr          ! Extension number
   INTEGER                       :: IDTNO          ! NO tracer ID
   LOGICAL                       :: LFERTILIZERNOX ! Use fertilizer NOx?
-  REAL(hp)                        :: FERT_SCALE     ! fertilizer scale factor
+  REAL(hp)                      :: FERT_SCALE     ! fertilizer scale factor
 
   ! # of MODIS/Koppen biome types
   INTEGER, PARAMETER            :: NBIOM = 24 
@@ -128,11 +128,11 @@ MODULE HCOX_SoilNOx_Mod
   REAL(hp), POINTER             :: DEP_RESERVOIR(:,:  ) => NULL()
 
   ! Instantaneous soil NOx and fertilizer
-  REAL(hp),  ALLOCATABLE          :: INST_SOIL    (:,:  )
-  REAL(hp),  ALLOCATABLE          :: INST_FERT    (:,:  )
+  REAL(hp),  ALLOCATABLE        :: INST_SOIL    (:,:  )
+  REAL(hp),  ALLOCATABLE        :: INST_FERT    (:,:  )
 
   ! NOx in the canopy
-  REAL(hp),  ALLOCATABLE          :: CANOPYNOX        (:,:,:)
+  REAL(hp),  ALLOCATABLE        :: CANOPYNOX        (:,:,:)
 
   ! MODIS landtype
   TYPE MODL
@@ -149,6 +149,7 @@ MODULE HCOX_SoilNOx_Mod
 
   ! DRYCOEFF (if read from settings in configuration file)
   REAL(hp), ALLOCATABLE, TARGET :: DRYCOEFF(:)
+
   ! Max. # of allowed drycoeff vars
   INTEGER,  PARAMETER           :: MaxDryCoeff = 50 
 !
@@ -157,74 +158,74 @@ MODULE HCOX_SoilNOx_Mod
   ! Canopy wind extinction coefficients
   ! (cf. Yienger & Levy [1995], Sec 5), now a function of the
   ! MODIS/KOPPEN biometype (J.D. Maasakkers)
-  REAL(hp),  PARAMETER, PRIVATE :: SOILEXC(NBIOM) =               (/ & 
+  REAL(hp),  PARAMETER, PRIVATE :: SOILEXC(NBIOM) =                 (/ & 
         0.10, 0.50, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 1.00,    &
         1.00, 1.00, 1.00, 2.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00,    &
         4.00, 2.00, 0.10, 2.00                                       /)
 
   ! Steinkamp and Lawrence, 2011 A values, wet biome coefficients
   ! for each of the 24 soil biomes [ng N/m2/s].
-  REAL(hp),  PARAMETER, PRIVATE  :: A_BIOME(NBIOM) =              (/ &
+  REAL(hp),  PARAMETER, PRIVATE  :: A_BIOME(NBIOM) =                (/ &
         0.00, 0.00, 0.00, 0.00, 0.00, 0.06, 0.09, 0.09, 0.01, 0.84,    &
         0.84, 0.24, 0.42, 0.62, 0.03, 0.36, 0.36, 0.35, 1.66, 0.08,    &
         0.44, 0.57, 0.57, 0.57                                       /)
 
   ! "A" coefficients for converting surface temp to soil temp
   ! for each of the 24 soil biomes
-  REAL(hp),  PARAMETER, PRIVATE :: SOILTA(NBIOM)  =               (/ &
+  REAL(hp),  PARAMETER, PRIVATE :: SOILTA(NBIOM)  =                 (/ &
         0.00, 0.92, 0.00, 0.66, 0.66, 0.66, 0.66, 0.66, 0.66, 0.66,    &
         0.66, 0.66, 0.66, 0.66, 0.84, 0.84, 0.84, 0.84, 0.84, 0.84,    &
         0.84, 1.03, 1.03, 1.03                                       /)
 
   ! "B" coefficients for converting surface temp to soil temp
   ! for each of the 24 soil biomes
-  REAL(hp),  PARAMETER, PRIVATE :: SOILTB(NBIOM)  =               (/ &
+  REAL(hp),  PARAMETER, PRIVATE :: SOILTB(NBIOM)  =                 (/ &
         0.00, 4.40, 0.00, 8.80, 8.80, 8.80, 8.80, 8.80, 8.80, 8.80,    &
         8.80, 8.80, 8.80, 8.80, 3.60, 3.60, 3.60, 3.60, 3.60, 3.60,    &
         3.60, 2.90, 2.90, 2.90                                       /)
 
   ! MODIS/Koppen resistance values
-  INTEGER, PARAMETER, PRIVATE :: SNIMODIS(NBIOM) =              (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIMODIS(NBIOM) =                  (/ &
            1,    2,    3,    4,    5,    6,    7,    8,    9,   10,    &
           11,   12,   13,   14,   15,   16,   17,   18,   19,   20,    &
           21,   22,   23,   24                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRI(NBIOM) =                 (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRI(NBIOM) =                     (/ &
         9999,  200, 9999, 9999, 9999, 9999,  200,  200,  200,  200,    &
          200,  200,  200,  200,  200,  200,  200,  400,  400,  200,    &
          200,  200, 9999,  200                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRLU(NBIOM) =                (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRLU(NBIOM) =                    (/ &
         9999, 9000, 9999, 9999, 9999, 9999, 9000, 9000, 9000, 9000,    &
         9000, 9000, 9000, 9000, 9000, 1000, 9000, 9000, 9000, 9000,    &
         1000, 9000, 9999, 9000                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRAC(NBIOM) =                (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRAC(NBIOM) =                    (/ &
            0,  300,    0,    0,    0,    0,  100,  100,  100,  100,    &
          100,  100,  100,  100, 2000, 2000, 2000, 2000, 2000, 2000,    &
         2000,  200,  100,  200                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRGSS(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRGSS(NBIOM) =                   (/ &
            0,    0,  100, 1000,  100, 1000,  350,  350,  350,  350,    &
          350,  350,  350,  350,  500,  200,  500,  500,  500,  500,    &
          200,  150,  400,  150                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRGSO(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRGSO(NBIOM) =                   (/ &
         2000, 1000, 3500,  400, 3500,  400,  200,  200,  200,  200,    &
          200,  200,  200,  200,  200,  200,  200,  200,  200,  200,    &
          200,  150,  300,  150                                       /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRCLS(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRCLS(NBIOM) =                   (/ &
        9999, 2500, 9999, 9999, 9999, 9999, 2000, 2000, 2000, 2000,     &
        2000, 2000, 2000, 2000, 2000, 9999, 2000, 2000, 2000, 2000,     &
        9999, 2000, 9999, 2000                                        /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIRCLO(NBIOM) =               (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIRCLO(NBIOM) =                   (/ &
        9999, 1000, 1000, 9999, 1000, 9999, 1000, 1000, 1000, 1000,     & 
        1000, 1000, 1000, 1000, 1000, 9999, 1000, 1000, 1000, 1000,     &
        9999, 1000, 9999, 1000                                        /)
 
-  INTEGER, PARAMETER, PRIVATE :: SNIVSMAX(NBIOM) =              (/ &
+  INTEGER, PARAMETER, PRIVATE :: SNIVSMAX(NBIOM) =                  (/ &
          10,  100,  100,   10,  100,   10,  100,  100,  100,  100,     &
         100,  100,  100,  100,  100,  100,  100,  100,  100,  100,     &
         100,  100,  100,  100                                        /)
@@ -275,19 +276,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, N
-    REAL(hp), TARGET       :: FLUX_2D(HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET       :: DIAG   (HcoState%NX,HcoState%NY)
+    INTEGER                  :: I, J, N
+    REAL(hp), TARGET         :: FLUX_2D(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: DIAG   (HcoState%NX,HcoState%NY)
     REAL(hp)                 :: FERTDIAG, DEP_FERT, SOILFRT
-    REAL*4                 :: TSEMIS
+    REAL*4                   :: TSEMIS
     REAL(hp)                 :: UNITCONV, IJFLUX
-    REAL(dp), ALLOCATABLE  :: VecDp(:)
-    REAL(hp), POINTER      :: TmpArr(:,:) => NULL()
-    REAL(hp), POINTER      :: Arr2D (:,:) => NULL()
-    LOGICAL, SAVE          :: FIRST = .TRUE.
-    LOGICAL                :: aIR, FOUND
-    CHARACTER(LEN= 31)     :: DiagnName
-    CHARACTER(LEN=255)     :: MSG, DMY
+    REAL(dp), ALLOCATABLE    :: VecDp(:)
+    REAL(hp), POINTER        :: TmpArr(:,:) => NULL()
+    REAL(hp), POINTER        :: Arr2D (:,:) => NULL()
+    LOGICAL, SAVE            :: FIRST = .TRUE.
+    LOGICAL                  :: aIR, FOUND
+    CHARACTER(LEN= 31)       :: DiagnName
+    CHARACTER(LEN=255)       :: MSG, DMY
 
     ! For manual diagnostics
     LOGICAL, SAVE            :: DoDiagn = .FALSE.
@@ -715,7 +716,7 @@ CONTAINS
                         OutUnit    = 'unitless',  &
                         WriteFreq  = 'End',       &
                         AutoFill   = 0,           &
-                        Trgt2D     = PFACTOR, &
+                        Trgt2D     = PFACTOR,     &
                         cID        = II,          &
                         RC         = RC            )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -730,7 +731,7 @@ CONTAINS
                         OutUnit    = 'unitless',    &
                         WriteFreq  = 'End',         &
                         AutoFill   = 0,             &
-                        Trgt2D     = DRYPERIOD, &
+                        Trgt2D     = DRYPERIOD,     &
                         cID        = II,            &
                         RC         = RC              )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -745,7 +746,7 @@ CONTAINS
                         OutUnit    = 'unitless',    &
                         WriteFreq  = 'End',         &
                         AutoFill   = 0,             &
-                        Trgt2D     = GWET_PREV, &
+                        Trgt2D     = GWET_PREV,     &
                         cID        = II,            &
                         RC         = RC              )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -760,7 +761,7 @@ CONTAINS
                         OutUnit    = 'kg/m3',           &
                         WriteFreq  = 'End',             &
                         AutoFill   = 0,                 &
-                        Trgt2D     = DEP_RESERVOIR, &
+                        Trgt2D     = DEP_RESERVOIR,     &
                         cID        = II,                &
                         RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -770,7 +771,7 @@ CONTAINS
     ! ---------------------------------------------------------------------- 
 
     ! Activate required met fields
-    ExtState%TSURFK%DoUse    = .TRUE. 
+    ExtState%T2M%DoUse       = .TRUE. 
     ExtState%GWETTOP%DoUse   = .TRUE. 
     ExtState%SUNCOSmid%DoUse = .TRUE. 
     ExtState%U10M%DoUse      = .TRUE. 
@@ -968,7 +969,7 @@ CONTAINS
     FERTDIAG       = 0e+0_hp
 
     ! Surface temperature [C]
-    TC             = ExtState%TSURFK%Arr%Val(I,J) - 273.15e+0_hp
+    TC             = ExtState%T2M%Arr%Val(I,J) - 273.15e+0_hp
 
     ! Surface wind speed, squared
     WINDSQR        = ExtState%U10M%Arr%Val(I,J)**2 + &
@@ -1128,8 +1129,8 @@ CONTAINS
     DO I = 1, HcoState%NX
 
        ! Surface temperature [K] and [C]
-       TEMPK = ExtState%TSURFK%Arr%Val(I,J)
-       TEMPC = ExtState%TSURFK%Arr%Val(I,J) - 273.15e+0_hp
+       TEMPK = ExtState%T2M%Arr%Val(I,J)
+       TEMPC = ExtState%T2M%Arr%Val(I,J) - 273.15e+0_hp
 
        ! Compute bulk surface resistance for gases.    
        !                                  

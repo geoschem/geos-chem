@@ -152,31 +152,35 @@
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
 !  11 Apr 2012 - R. Yantosca - Remove reference to lai_mod.F, it's not needed
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
-      INTEGER                  :: N,    R,     H,    W, X, Y
-      INTEGER                  :: NHMS, TS_DIAG
-      REAL(fp)                   :: TAU1, TAU0
-      REAL(fp)                   :: Q( ND63_NI, ND63_NJ, 1)
-      CHARACTER(LEN=16)        :: STAMP
-      CHARACTER(LEN=40)        :: CATEGORY
-      CHARACTER(LEN=40)        :: UNIT
-      CHARACTER(LEN=255)       :: FILENAME
+      INTEGER                       :: IOS,  GMTRC, GMNL, I, J, K, L 
+      INTEGER                       :: N,    R,     H,    W, X, Y
+      INTEGER                       :: NHMS, TS_DIAG
+      REAL(f8)                      :: TAU1, TAU0
+      REAL(fp)                      :: Q( ND63_NI, ND63_NJ, 1)
+      CHARACTER(LEN=16)             :: STAMP
+      CHARACTER(LEN=40)             :: CATEGORY
+      CHARACTER(LEN=40)             :: UNIT
+      CHARACTER(LEN=255)            :: FILENAME
 
       ! Connect to HEMCO diagnostics
-      INTEGER                  :: FLAG
-      INTEGER                  :: AF
-      CHARACTER(LEN= 63)       :: DiagnName
-      CHARACTER(LEN=255)       :: MSG
-      TYPE(DiagnCont), POINTER :: DiagnCnt => NULL()
-      TYPE(HCO_State), POINTER :: HcoState => NULL()      
-      REAL*8                   :: FACTOR
-      REAL*8, PARAMETER        :: CM2PERM2 = 10000d0
+      INTEGER                       :: FLAG
+      INTEGER                       :: AF
+      CHARACTER(LEN= 63)            :: DiagnName
+      CHARACTER(LEN=255)            :: MSG
+      TYPE(DiagnCont), POINTER      :: DiagnCnt => NULL()
+      TYPE(HCO_State), POINTER      :: HcoState => NULL()      
+      REAL(f8)                      :: FACTOR
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(f8), PARAMETER           :: CM2PERM2 = 10000e+0_f8
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG63 (DIAG63_MOD.F)' 
 
       !=================================================================

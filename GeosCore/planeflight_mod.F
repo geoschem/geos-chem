@@ -1225,6 +1225,7 @@
 !
 ! !USES:
 !
+      USE BPCH2_MOD,          ONLY : GET_TAU0
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD
       USE COMODE_LOOP_MOD          ! CSPEC, etc.
       USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
@@ -1239,7 +1240,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
-      USE TIME_MOD,           ONLY : GET_TAU,        GET_TS_DIAG
+      USE TIME_MOD
       USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
       USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
 !
@@ -1286,6 +1287,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  19 Nov 2014 - M. Yannetti - Edited OCEAN_MERCURY_MOD Fp to OMMFP
+!  12 Jan 2015 - L. Schiferl - Allow for more precision in TAUE computation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1302,19 +1304,22 @@
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
-!
-! !DEFINED PARAMETERS:
-!
-      REAL(fp),  PARAMETER  :: MISSING = -999.99999999e+0_fp  ! Missing data value
-      REAL(fp),  PARAMETER  :: TINY    = 1.e-36_fp           ! arbitary small # to 
-                                                        !  avoid faulty output
-      ! Expand from 4 to 5 for Fast-JX
-      INTEGER, PARAMETER  :: IND999  = 4
+
+      ! Allow for more accurate computation of TAU (L. Schiferl, 1/12/15)
+      INTEGER             :: YEAR, MONTH, DAY, HOUR, MINUTE 
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: STT(:,:,:,:)
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(fp), PARAMETER :: MISSING = -999.99999999e+0_fp  ! Missing data value
+      REAL(fp), PARAMETER :: TINY    = 1.e-36_fp           ! arbitary small # to 
+                                                        !  avoid faulty output
+      ! Expand from 4 to 5 for Fast-JX
+      INTEGER, PARAMETER  :: IND999  = 4
 
       !=================================================================
       ! PLANEFLIGHT begins here!
@@ -1326,11 +1331,23 @@
       ! Return if there is no flighttrack data for today
       IF ( .not. DO_PF ) RETURN
 
+      ! Get date & time values
+      YEAR   = GET_YEAR()
+      MONTH  = GET_MONTH()
+      DAY    = GET_DAY()
+      HOUR   = GET_HOUR()
+      MINUTE = GET_MINUTE()
+
       ! Loop over all the locations that have not yet been found
       DO M = PPOINT, NPOINTS
 
          ! Starting & end times of chemistry interval
-         PTAUE = GET_TAU()
+!-----------------------------------------------------------------------------
+! Prior to 1/12/15:
+! Allow for more accurate computation of PTAUE (L. Schiferl, 1/12/15)
+!        PTAUE = GET_TAU()
+!-----------------------------------------------------------------------------
+         PTAUE = GET_TAU0( MONTH, DAY, YEAR, HOUR, MINUTE, 0 )
          PTAUS = PTAUE - ( GET_TS_DIAG() / 60e+0_fp )
 
          ! Initialize VARI to missing value for this point

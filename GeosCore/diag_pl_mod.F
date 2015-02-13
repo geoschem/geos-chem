@@ -28,11 +28,11 @@
       INTEGER,           PUBLIC              :: TAGO3_PL_YEAR
 
       ! Arrays
-      REAL*4,            PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
-      REAL(fp),            PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
+      REAL(f4),          PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
+      REAL(fp),          PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
       CHARACTER(LEN=14), PUBLIC, ALLOCATABLE :: FAM_NAME(:)
 #if   defined( TOMAS )
-      REAL(fp),            PUBLIC, ALLOCATABLE :: H2SO4RATE(:,:,:) 
+      REAL(fp),          PUBLIC, ALLOCATABLE :: H2SO4RATE(:,:,:) 
 #endif
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -70,6 +70,7 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  06 Aug 2012 - R. Yantosca - Make IU_ND20 a local module variable
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -81,13 +82,13 @@
       INTEGER                        :: IU_ND20
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD
-      REAL(fp)                         :: TAUb, TAUe, TAU0, TAU1
+      REAL(f8)                       :: TAUb, TAUe, TAU0, TAU1
       CHARACTER(LEN=255)             :: FILENAME
 
       ! Arrays
       INTEGER,           ALLOCATABLE :: FAM_NMEM(:), COUNT(:,:,:)
-      REAL(fp),            ALLOCATABLE :: FAM_COEF(:,:)
-      REAL(fp),            ALLOCATABLE :: PL24H(:,:,:,:)
+      REAL(fp),          ALLOCATABLE :: FAM_COEF(:,:)
+      REAL(fp),          ALLOCATABLE :: PL24H(:,:,:,:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:)
 
@@ -805,7 +806,7 @@
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL           :: DO_WRITE
       INTEGER           :: I, J, L, N, JLOOP
-      REAL(fp)            :: P_Ox, L_Ox
+      REAL(fp)          :: P_Ox, L_Ox
       CHARACTER(LEN=16) :: STAMP 
 
       ! Pointers
@@ -996,8 +997,8 @@
       INTEGER            :: IFIRST, JFIRST, LFIRST
       INTEGER            :: HALFPOLAR 
       INTEGER, PARAMETER :: CENTER180 = 1 
-      REAL*4             :: LONRES, LATRES
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
+      REAL(f4)           :: LONRES, LATRES
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLCHEM)
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
@@ -1108,15 +1109,16 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp),  INTENT(OUT) :: TAU_W      ! TAU value @ time of writing to disk
+      REAL(f8), INTENT(OUT) :: TAU_W      ! TAU value @ time of writing to disk
 !
 ! !RETURN VALUE:
 !
-      LOGICAL              :: ITS_TIME   ! =T if its time to write to disk
+      LOGICAL               :: ITS_TIME   ! =T if its time to write to disk
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC

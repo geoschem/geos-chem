@@ -776,6 +776,7 @@
 !  15 Sep 2006 - N. E. Selin - Initial version
 !  30 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -784,7 +785,7 @@
 !
       INTEGER             :: I, J, L, MONTH, N
       REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-      REAL(fp)              :: XTAU
+      REAL(f8)            :: XTAU
       CHARACTER(LEN=255)  :: FILENAME
       CHARACTER(LEN=2)    :: CMONTH(12) = (/ '01','02','03','04',
      &                                       '05','06','07','08',

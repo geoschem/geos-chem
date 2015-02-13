@@ -263,6 +263,7 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -276,8 +277,9 @@
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NHMS, TS_DIAG
-      REAL(fp)                   :: TAU, TMP,   SCALEAODnm
-      REAL(fp)                   :: Q( ND49_NI, ND49_NJ, ND49_NL )
+      REAL(f8)                 :: TAU
+      REAL(fp)                 :: TMP, SCALEAODnm
+      REAL(fp)                 :: Q( ND49_NI, ND49_NJ, ND49_NL )
       CHARACTER(LEN=16)        :: STAMP
       CHARACTER(LEN=40)        :: CATEGORY
       CHARACTER(LEN=40)        :: UNIT

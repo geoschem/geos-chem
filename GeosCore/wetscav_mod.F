@@ -914,6 +914,9 @@
 !  18 Apr 2014 - R. Yantosca - Now make the F argument an assumed-shape array
 !                              so that we can pass a pointer array slice to it
 !  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
+!  19 Dec 2014 - M. Sulprizio- Add bug fixes for CONV_H2O2 and CONV_NH3 from
+!                              Duncan Fairlie. The square root term should be
+!                              inverted to be consistent with Mari et al (2000).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -938,15 +941,15 @@
       ! Kc is the conversion rate from cloud condensate to precip [s^-1]
       REAL(fp),  PARAMETER  :: KC        = 5e-3_fp
 
-      ! CONV_H2O2 = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
+      ! CONV_H2O2 = 0.6 * SQRT( 0.53 ), used for the ice to gas ratio for H2O2
       ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
-      ! 1.9 is ( molecular weight H2O2 / molecular weight water )
-      REAL(fp),  PARAMETER  :: CONV_H2O2 = 8.27042925126e-1_fp
+      ! 0.53 is ( molecular weight water / molecular weight H2O2 )
+      REAL(fp), PARAMETER   :: CONV_H2O2 = 4.36564e-1_fp     
 
-      ! CONV_NH3 = 0.6 * SQRT( 0.9 ), used for the ice to gas ratio for NH3
+      ! CONV_NH3 = 0.6 * SQRT( 1.06 ), used for the ice to gas ratio for NH3
       ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
-      ! 0.9 is ( molecular weight NH3 / molecular weight water )
-      REAL(fp),  PARAMETER  :: CONV_NH3  = 5.69209978831e-1_fp
+      ! 1.06 is ( molecular weight water /  molecular weight NH3 )
+      REAL(fp), PARAMETER   :: CONV_NH3  = 6.17395e-1_fp
 
       !=================================================================
       ! COMPUTE_F begins here!
@@ -3048,6 +3051,9 @@
 !                              semivolatile POA simulations (H. Pye)
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  19 Dec 2014 - M. Sulprizio- Add bug fixes for CONV_H2O2 and CONV_NH3 from
+!                              Duncan Fairlie. The square root term should be
+!                              inverted to be consistent with Mari et al (2000).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3058,15 +3064,15 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! CONV_H2O2 = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
+      ! CONV_H2O2 = 0.6 * SQRT( 0.53 ), used for the ice to gas ratio for H2O2
       ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
-      ! 1.9 is ( molecular weight H2O2 / molecular weight water )
-      REAL(fp), PARAMETER :: CONV_H2O2 = 8.27042925126e-1_fp
+      ! 0.53 is ( molecular weight water / molecular weight H2O2 )
+      REAL(fp), PARAMETER   :: CONV_H2O2 = 4.36564e-1_fp     
 
-      ! CONV_NH3 = 0.6 * SQRT( 0.9 ), used for the ice to gas ratio for NH3
+      ! CONV_NH3 = 0.6 * SQRT( 1.06 ), used for the ice to gas ratio for NH3
       ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
-      ! 0.9 is ( molecular weight NH3 / molecular weight water )
-      REAL(fp), PARAMETER :: CONV_NH3  = 5.69209978831e-1_fp
+      ! 1.06 is ( molecular weight water /  molecular weight NH3 )
+      REAL(fp), PARAMETER   :: CONV_NH3  = 6.17395e-1_fp
 
       !==================================================================
       ! RAINOUT begins here!
@@ -7037,6 +7043,8 @@
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
+!                              tracers (C. Friedman)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7242,7 +7250,13 @@
             ! WETLOSS is the amount of tracer mass in 
             ! grid box (I,J,L) that is lost to washout.
             ! (Eq. 16, Jacob et al, 2000)
-            WETLOSS = MASS_WASH * WASHFRAC -DSTT(NN,L+1,I,J)
+!------------------------------------------------------------------------------
+! Prior to 2/4/15:
+! Bug fix: Make sure mass of scavenged tracer passed to depo_mercury_mod.F
+! is the same as mass archived in ND39 (clf, mps, 2/4/15)
+!            WETLOSS = MASS_WASH * WASHFRAC -DSTT(NN,L+1,I,J)
+!------------------------------------------------------------------------------
+            WETLOSS = ( MASS_WASH - DSTT(NN,L+1,I,J) ) * WASHFRAC
 
             ! The tracer left in grid box (I,J,L) is what was
             ! in originally in the non-precipitating fraction 

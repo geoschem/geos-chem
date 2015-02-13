@@ -153,9 +153,10 @@
 !
       INTEGER            :: CENTER180, HALFPOLAR, IFIRST, JFIRST 
       INTEGER            :: LFIRST,    LMAX,      M,      N       
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*4             :: LONRES,    LATRES
-      REAL(fp)             :: DIAGb,     DIAGe,       SCALE
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)           :: LONRES,    LATRES
+      REAL(f8)           :: DIAGb,     DIAGe
+      REAL(fp)           :: SCALE
       CHARACTER(LEN=20)  :: MODELNAME 
       CHARACTER(LEN=40)  :: CATEGORY,  RESERVED,    UNIT
 

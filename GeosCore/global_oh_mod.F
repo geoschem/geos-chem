@@ -131,6 +131,7 @@
 !  29 Oct 2013 - R. Yantosca - Remove TRANSFER_3D_NOLUMP routine, we can just
 !                              instead do a direct cast assignment
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,8 +139,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, J, L
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL(fp)             :: XTAU
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LGLOB)
+      REAL(f8)           :: XTAU
       CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
@@ -229,7 +230,7 @@
       END SUBROUTINE GET_GLOBAL_OH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -299,7 +300,7 @@
       END FUNCTION GET_SZAFACT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -353,7 +354,7 @@
       END FUNCTION GET_DIURNAL_OH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

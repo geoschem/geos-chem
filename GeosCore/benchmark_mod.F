@@ -100,6 +100,8 @@
 !                              NOx-Ox partitioning
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  30 May 2013 - R. Yantosca - Now pass Input_Opt object via the arg list
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  17 Dec 2014 - R. Yantosca - Now use State_Chm%TRACERS instead of STT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,18 +113,13 @@
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
       INTEGER, PARAMETER  :: CENTER180=1
       INTEGER             :: HALFPOLAR
-      REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*4              :: LONRES, LATRES
-      REAL(fp)              :: TAU
+      REAL(f4)            :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)            :: LONRES, LATRES
+      REAL(f8)            :: TAU
       CHARACTER(LEN=20)   :: MODELNAME 
       CHARACTER(LEN=40)   :: CATEGORY, RESERVED, UNIT
       CHARACTER(LEN=80)   :: TITLE
       CHARACTER(LEN=255)  :: FILENAME
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! STDRUN begins here!
@@ -146,10 +143,6 @@
       NYMD      = GET_NYMD()
       NHMS      = GET_NHMS()
       TAU       = GET_TAU()
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT       => State_Chm%Tracers
 
       ! Define filename for beginning or end of benchmark run
       IF ( LBEGIN ) THEN
@@ -175,7 +168,7 @@
          DO N = 1, Input_Opt%N_TRACERS
 
             ! Save Rn, Pb, Be as REAL*4
-            ARRAY(:,:,:) = STT(:,:,:,N)
+            ARRAY(:,:,:) = State_Chm%TRACERS(:,:,:,N)
 
             ! Write Rn, Pb, Be to binary punch file
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
@@ -195,12 +188,12 @@
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
         
          ! Save O3 as REAL*4
-         ARRAY(:,:,:) = STT(:,:,:,IDTO3)
+         ARRAY(:,:,:) = State_Chm%TRACERS(:,:,:,IDTO3)
 
          ! Write O3 to binary punch file
          CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY,  IDTO3,
-     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
+     &               UNIT,      TAU,       TAU,       RESERVED,
      &               IIPAR,     JJPAR,     LLPAR,     IFIRST,
      &               JFIRST,    LFIRST,    ARRAY(:,:,:) )
                
@@ -208,9 +201,6 @@
 
       ! Close file
       CLOSE( IU_FILE )
-
-      ! Free pointer
-      NULLIFY( STT )
 
       END SUBROUTINE STDRUN
 !EOC

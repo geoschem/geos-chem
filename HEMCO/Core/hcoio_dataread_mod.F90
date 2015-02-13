@@ -5,10 +5,48 @@
 !
 ! !MODULE: hcoio_dataread_mod.F90 
 !
-! !DESCRIPTION: Module HCOIO\_DataRead\_Mod controls data processing (file
-! reading, unit conversion, regridding) for HEMCO.
+! !DESCRIPTION: Module HCOIO\_DataRead\_Mod controls data processing 
+! (file reading, unit conversion, regridding) for HEMCO.
 !\\
 !\\
+! Currently, HEMCO can read data from the following data sources:
+! \begin{itemize}
+! \item Gridded data from netCDF file. The netCDF file should adhere to
+!   the COARDS conventions and can hold data on resolutions different 
+!   than then simulation grid. Regridding is performed as part of the 
+!   data reading. Routine HCOIO\_DataRead is the driver routine to read
+!   data from netCDF file. In an ESMF environment, this routine simply
+!   calls down to the MAPL/ESMF - generic I/O routines. In a non-ESMF
+!   environment, the HEMCO generic reading and remapping algorithms are
+!   used. Those support vertical regridding, unit conversion, and more
+!   (see below).
+! \item Scalar data directly specified in the HEMCO configuration file.
+!   If multiple values - separated by the separator sign (/) - are 
+!   provided, they are interpreted as temporally changing values:
+!   7 values = Sun, Mon, ..., Sat; 12 values = Jan, Feb, ..., Dec;
+!   24 values = 0am, 1am, ..., 23pm (local time!). For masks, exactly
+!   four values must be provided, interpreted as lower left and upper
+!   right mask box corners (lon1/lat1/lon2/lat2).
+! \item Country-specific data specified in a separate ASCII file. This
+!   file must end with the suffix '.txt' and hold the country specific
+!   values listed by country ID. The IDs must correspond to the IDs of
+!   a corresponding (netCDF) mask file. The container name of this mask 
+!   file must be given in the first line of the file, and must be listed 
+!   HEMCO configuration file. ID 0 is reserved for the default values,
+!   applied to all countries with no specific values listed. The .txt 
+!   file must be structured as follows:
+!
+!   \# Country mask file name
+!   CountryMask
+!
+!   \# CountryName CountryID CountryValues
+!   DEFAULT   0 1.0/1.0/1.0/1.0/1.0/1.0/1/0
+!   USA     840 0.8/0.9/1.0/1.1/1.2/1.1/0.9
+!
+!   The CountryValues are interpreted the same way as scalar values, 
+!   except that they are applied to all grid boxes with the given 
+!   country ID. 
+! \end{itemize}
 ! !INTERFACE: 
 !
 MODULE HCOIO_DataRead_Mod
@@ -26,7 +64,7 @@ MODULE HCOIO_DataRead_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: HCOIO_DataRead
-  PUBLIC  :: HCOIO_ReadFromConfig
+  PUBLIC  :: HCOIO_ReadOther
 !
 ! !REVISION HISTORY:
 !  22 Aug 2013 - C. Keller   - Initial version
@@ -95,17 +133,20 @@ CONTAINS
     LOGICAL                    :: verb
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
+    CHARACTER(LEN=ESMF_MAXSTR) :: Iam
 
     !=================================================================
     ! HCOIO_DATAREAD begins here
     !=================================================================
 
     ! For error handling
+    Iam = LOC
     CALL HCO_ENTER ( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Point to ESMF IMPORT object
     IMPORT => HcoState%IMPORT
+    ASSERT_(ASSOCIATED(IMPORT))
 
     ! Verbose?
     verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
@@ -124,7 +165,7 @@ CONTAINS
                              TRIM(Lct%Dct%Dta%ncFile), RC=STAT )
 
        ! Check for MAPL error
-       IF( MAPL_VRFY(STAT,LOC,1) ) THEN
+       IF( STAT /= ESMF_SUCCESS ) THEN 
           MSG = 'Cannot get xyz pointer: ' // TRIM(Lct%Dct%Dta%ncFile)
           CALL HCO_ERROR ( MSG, RC ) 
           RETURN
@@ -145,8 +186,8 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
-       ! Pointer to data. HEMCO expected data to have surface level at
-       ! index 1 ('up'), so revert ESMF levels (which are 'down').
+       ! Pointer to data. HEMCO expects data to have surface level at
+       ! index 1 ('up').
        !Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
        Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
 
@@ -160,7 +201,7 @@ CONTAINS
                              TRIM(Lct%Dct%Dta%ncFile), RC=STAT )
 
        ! Check for MAPL error 
-       IF( MAPL_VRFY(STAT,LOC,2) ) THEN
+       IF( STAT /= ESMF_SUCCESS ) THEN 
           MSG = 'Cannot get xy pointer: ' // TRIM(Lct%Dct%Dta%ncFile)
           CALL HCO_ERROR ( MSG, RC ) 
           RETURN
@@ -210,12 +251,19 @@ CONTAINS
 ! routines.
 !\\
 !\\
-! For 3D data, vertical regridding is perfored if (and only if) the number of
-! vertical levels of the input file does not correspond to the number of
-! levels on the simulation grid. Vertical regridding is performed on the sigma
-! interface levels. In order to calculate these levels correctly, the netCDF
-! vertical coordinate description must adhere to the CF - conventions. See
+! 3D data is vertically regridded onto the simulation grid on the sigma 
+! interface levels. In order to calculate these levels correctly, the netCDF 
+! vertical coordinate description must adhere to the CF - conventions. See 
 ! routine NC\_Get\_Sigma\_Levels in Ncdf\_Mod for more details.
+!\\
+!\\
+! A simpler vertical interpolation scheme is used if (a) the number of 
+! vertical levels of the input data corresponds to the number of levels
+! on the simulation grid (direct mapping, no remapping), (b) the vertical
+! level variable name (long\_name) contains the word "GEOS-Chem level". In
+! the latter case, the vertical levels of the input data is interpreted as
+! GEOS vertical levels and mapped onto the simulation grid using routine
+! ModelLev\_Interpolate. 
 !\\
 !\\
 ! !INTERFACE:
@@ -230,6 +278,7 @@ CONTAINS
     USE Ncdf_Mod,           ONLY : NC_Read_Arr
     USE Ncdf_Mod,           ONLY : NC_Get_Grid_Edges
     USE Ncdf_Mod,           ONLY : NC_Get_Sigma_Levels
+    USE Ncdf_Mod,           ONLY : NC_ISMODELLEVEL
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_Change
     USE HCO_Unit_Mod,       ONLY : HCO_Unit_ScalCheck
     USE HCO_Unit_Mod,       ONLY : HCO_IsUnitless
@@ -240,6 +289,7 @@ CONTAINS
     USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
     USE HCO_FileData_Mod,   ONLY : FileData_Cleanup
     USE HCOIO_MESSY_MOD,    ONLY : HCO_MESSY_REGRID
+    USE HCO_INTERP_MOD,     ONLY : ModelLev_Interpolate 
 !
 ! !INPUT PARAMETERS:
 !
@@ -256,6 +306,10 @@ CONTAINS
 !  27 Aug 2014 - R. Yantosca - Err msg now displays hcoio_dataread_mod.F90
 !  01 Oct 2014 - C. Keller   - Added file name parser
 !  03 Oct 2014 - C. Keller   - Added vertical regridding capability
+!  12 Dec 2014 - C. Keller   - Don't do vertical regridding if data is already
+!                              on GEOS-Chem levels. 
+!  31 Dec 2014 - C. Keller   - Now call ModelLev_Interpolate for model remapping
+!                              of model levels.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -289,10 +343,17 @@ CONTAINS
     REAL(sp)                      :: LonEdgeO(HcoState%NX+1) 
     REAL(sp)                      :: LatEdgeO(HcoState%NY+1)
     LOGICAL                       :: verb
+    LOGICAL                       :: IsModelLevel
     REAL(dp)                      :: PI_180
     REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
     INTEGER                       :: UnitTolerance
     INTEGER                       :: AreaFlag, TimeFlag 
+
+    ! For vertical interpolation between native and reduced GEOS-5 levels
+    ! (47 vs. 72 levels)
+    INTEGER                       :: outlev
+    LOGICAL                       :: Inflate, Collapse
+    REAL(hp), POINTER             :: REGR_4D(:,:,:,:) => NULL()
 
     ! Use MESSy regridding routines?
     LOGICAL                       :: UseMESSy
@@ -440,18 +501,31 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! Are these model levels? This will only return true if the long
+       ! name of the level variable contains "GEOS-Chem level".
+       IsModelLevel = NC_ISMODELLEVEL( ncLun, LevName )
+
        ! Set level indeces to be read
-       ! NOTE: for now, always read all levels. Edit here to read
-       ! only particular levels.
+       ! NOTE: for now, always read all existing levels. Edit here to
+       ! read only particular levels.
        lev1 = 1
        lev2 = nlev
+
+       ! If # of levels are exactly # of simulation levels, assume that 
+       ! they are on model levels. 
+       ! This should probably be removed eventually, as it's better to 
+       ! explicitly state model levels via the level long name 
+       ! "GEOS-Chem level" (see above)!
+       ! (ckeller, 12/12/14).
+       IF ( nlev == HcoState%NZ ) IsModelLevel = .TRUE.
 
     ! For 2D data, set lev1 and lev2 to zero. This will ignore
     ! the level dimension in the netCDF reading call that follows.
     ELSE 
-       nlev = 0 
-       lev1 = 0
-       lev2 = 0
+       nlev        = 0 
+       lev1        = 0
+       lev2        = 0
+       IsModelLevel = .FALSE.
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -663,17 +737,22 @@ CONTAINS
     ! MESSy only for index-based values (e.g. land types) or if we need 
     ! to regrid vertical levels. For all other fields, use the much
     ! faster map_a2a.
-    ! Assume that no vertical regridding is required if the number of
-    ! levels of the input file matches the number of levels on the 
-    ! simulation grid. This also assumes that the input data is point-
-    ! ing 'upwards', i.e. the first level is the surface level! 
+    ! Perform no vertical regridding if the vertical levels are model
+    ! levels. Model levels are assumed to start at the surface, i.e.
+    ! the first input level must correspond to the surface level. The 
+    ! total number of vertical levels must not match the number of 
+    ! vertical levels on the simulation grid. Data is not extrapolated
+    ! beyond the existing levels.
+    ! Vertical regridding based on NCREGRID will always map the input 
+    ! data onto the entire simulation grid (no extrapolation beyond
+    ! the vertical input coordinates).
     !-----------------------------------------------------------------
 
     UseMESSy = .FALSE.
     IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) ) THEN
        UseMESSy = .TRUE.
     ENDIF
-    IF ( nlev > 1 .AND. nlev /= HcoState%NZ ) THEN 
+    IF ( nlev > 1 .AND. .NOT. IsModelLevel ) THEN 
        UseMESSy = .TRUE.
     ENDIF
 
@@ -781,14 +860,25 @@ CONTAINS
        ! Reset nlev and ntime to effective array sizes
        nlev  = size(ncArr,3)
        ntime = size(ncArr,4)
-  
-       ! Allocate output array if not yet defined
+
+       ! Define array to put horizontally regridded data onto. If this
+       ! is 3D data, we first regrid all vertical levels horizontally
+       ! and then pass these data to the list container. In this second
+       ! step, levels may be deflated/collapsed.
+
+       ! 2D data is directly passed to the data container 
        IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
           CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, ntime, RC ) 
           IF ( RC /= 0 ) RETURN
+
+       ! 3D data is first written into a temporary array
        ELSE
-          CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nlev, ntime, RC ) 
-          IF ( RC /= 0 ) RETURN
+          ALLOCATE( REGR_4D(nx,ny,nlev,ntime), STAT=AS )
+          IF ( AS /= 0 ) THEN
+             CALL HCO_ERROR( 'alloc error REGR_4D', RC )
+             RETURN
+          ENDIF
+          REGR_4D = 0.0_hp
        ENDIF
    
        ! Do regridding
@@ -800,7 +890,7 @@ CONTAINS
           IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
              REGR_2D => Lct%Dct%Dta%V2(T)%Val(:,:)
           ELSE
-             REGR_2D => Lct%Dct%Dta%V3(T)%Val(:,:,L)
+             REGR_2D => REGR_4D(:,:,L,T)
           ENDIF
    
           ! Do the regridding
@@ -812,8 +902,16 @@ CONTAINS
    
        ENDDO !L
        ENDDO !T
-   
+  
+       ! Eventually inflate/collapse levels onto simulation levels.
+       IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
+          CALL ModelLev_Interpolate ( am_I_Root, HcoState, REGR_4D, Lct, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       ! Cleanup
        DEALLOCATE(LonEdgeI, LatEdgeI)
+       IF ( ASSOCIATED( REGR_4D ) ) DEALLOCATE( REGR_4D )
 
     ENDIF
 
@@ -1423,7 +1521,267 @@ CONTAINS
 !EOC
 #endif
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOIO_ReadOther
+!
+! !DESCRIPTION: Subroutine HCOIO\_ReadOther is a wrapper routine to
+! read data from sources other than netCDF.
+!\\
+!\\
+! If a file name is given (ending with '.txt'), the data are assumed
+! to hold country-specific values (e.g. diurnal scale factors). In all
+! other cases, the data is directly read from the configuration file
+! (scalars).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOIO_ReadOther ( am_I_Root, HcoState, Lct, RC ) 
+!
+! !USES:
+!
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,         INTENT(IN   )    :: am_I_Root
+    TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER         :: Lct
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !REVISION HISTORY:
+!  22 Dec 2014 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+    !======================================================================
+    ! HCOIO_ReadOther begins here
+    !======================================================================
+  
+    ! Read an ASCII file as country values
+    IF ( INDEX( TRIM(Lct%Dct%Dta%ncFile), '.txt' ) > 0 ) THEN
+       CALL HCOIO_ReadCountryValues ( am_I_Root, HcoState, Lct, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Directly read from configuration file otherwise
+    ELSE
+       CALL HCOIO_ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCOIO_ReadOther
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOIO_ReadCountryValues
+!
+! !DESCRIPTION: Subroutine HCOIO\_ReadCountryValues
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOIO_ReadCountryValues ( am_I_Root, HcoState, Lct, RC ) 
+!
+! !USES:
+!
+    USE inquireMod,         ONLY : findFreeLUN
+    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_CMT, HCO_SPC, NextCharPos
+    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,         INTENT(IN   )    :: am_I_Root
+    TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER         :: Lct
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !REVISION HISTORY:
+!  22 Dec 2014 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER               :: IUFILE, IOS
+    INTEGER               :: ID1, ID2, I, NT, CID, NLINE
+    REAL(hp), POINTER     :: CNTR(:,:) => NULL()
+    INTEGER,  ALLOCATABLE :: CIDS(:,:)
+    REAL(hp), POINTER     :: Vals(:) => NULL()
+    LOGICAL               :: Verb
+    CHARACTER(LEN=2047)   :: LINE
+    CHARACTER(LEN=255)    :: MSG, DUM, CNT
+    CHARACTER(LEN=255)    :: LOC = 'HCOIO_ReadCountryValues (hcoio_dataread_mod.F90)'
+
+    !======================================================================
+    ! HCOIO_ReadCountryValues begins here
+    !======================================================================
+   
+    ! verbose mode? 
+    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
+   
+    ! Verbose
+    IF ( Verb ) THEN
+       MSG = 'Use country-specific values for ' // TRIM(Lct%Dct%cName)
+       CALL HCO_MSG(MSG)
+       MSG = '- Source file: ' // TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_MSG(MSG)
+    ENDIF
+
+    ! Open file
+    IUFILE = FindFreeLun()
+    OPEN ( IUFILE, FILE=TRIM( Lct%Dct%Dta%ncFile ), STATUS='OLD', IOSTAT=IOS )
+    IF ( IOS /= 0 ) THEN
+       MSG = 'Cannot open ' // TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN 
+    ENDIF 
+
+    ! Repeat for every line
+    NLINE = 0
+    DO
+
+       ! Read line
+       READ( IUFILE, '(a)', IOSTAT=IOS ) LINE
+    
+       ! End of file?
+       IF ( IOS < 0 ) EXIT
+
+       ! Error?
+       IF ( IOS > 0 ) THEN
+          MSG = 'Error reading ' // TRIM(Lct%Dct%Dta%ncFile)
+          MSG = TRIM(MSG) // ' - last valid line: ' // TRIM(LINE)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Skip commented lines and/or empty lines
+       IF ( TRIM(LINE) == '' ) CYCLE
+       IF ( LINE(1:1) == HCO_CMT() ) CYCLE
+
+       ! First (valid) line holds the name of the mask container
+       IF ( NLINE == 0 ) THEN
+
+          ! Get pointer to mask. Convert to integer
+          CALL HCO_GetPtr ( am_I_Root, TRIM(LINE), CNTR, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          ALLOCATE( CIDS(HcoState%NX, HcoState%NY), STAT=IOS )
+          IF ( IOS /= 0 ) THEN
+             CALL HCO_ERROR( 'Cannot allocate CIDS', RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+          CIDS = NINT(CNTR)
+
+          ! Verbose
+          IF ( Verb ) THEN
+             MSG = '- Use ID mask ' // TRIM(LINE)
+             CALL HCO_MSG(MSG)
+          ENDIF
+
+          ! Go to next line
+          NLINE = NLINE + 1
+          CYCLE
+       ENDIF
+
+       ! Get first space character to skip country name.
+       ! We assume here that a country name is given right at the
+       ! beginning of the line, e.g. 'USA 744 1.05/1.02/...'
+       ID1 = NextCharPos( LINE, HCO_SPC() )
+       CNT = LINE(1:ID1)
+
+       ! Get country ID
+       DO I = ID1, LEN(LINE)
+          IF ( LINE(I:I) /= HCO_SPC() ) EXIT
+       ENDDO
+       ID1 = I
+       ID2 = NextCharPos( LINE, HCO_SPC(), START=ID1 )
+
+       IF ( ID2 >= LEN(LINE) .OR. ID2 < 0 ) THEN
+          MSG = 'Cannot extract country ID from: ' // TRIM(LINE)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       DUM = LINE(ID1:ID2)
+       READ( DUM, * ) CID
+
+       ! Extract data values
+       ID1  = ID2+1
+       ID2  = LEN(LINE)
+       LINE = LINE(ID1:ID2)
+       CALL GetDataVals( am_I_Root, HcoState, Lct, LINE, Vals, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Check data / array dimensions
+       NT = SIZE(Vals,1)
+       CALL FileData_ArrCheck( Lct%Dct%Dta, HcoState%NX, HcoState%NY, NT, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Pass to data array. If the country ID is larger than zero, fill 
+       ! only those grid boxes. Otherwise, fill all grid boxes that have 
+       ! not yet been filled. 
+       DO I = 1, NT
+          IF ( CID == 0 ) THEN
+             WHERE ( Lct%Dct%Dta%V2(I)%Val <= 0.0_hp )
+                Lct%Dct%Dta%V2(I)%Val = Vals(I)
+             ENDWHERE
+          ELSE
+             WHERE ( CIDS == CID )
+                Lct%Dct%Dta%V2(I)%Val = Vals(I)
+             ENDWHERE
+          ENDIF
+       ENDDO
+
+       ! Verbose
+       IF ( verb ) THEN
+          WRITE(MSG,*) '- Obtained values for ',TRIM(CNT),' ==> ID:', CID
+          CALL HCO_MSG(MSG)
+       ENDIF
+ 
+       ! Cleanup
+       IF ( ASSOCIATED(Vals) ) DEALLOCATE( Vals )
+       Vals => NULL()
+
+       ! Update # of read lines
+       NLINE = NLINE + 1
+    ENDDO
+
+    ! Close file
+    CLOSE ( IUFILE )
+
+    ! Data is 2D and in local time.
+    Lct%Dct%Dta%SpaceDim  = 2
+    Lct%Dct%Dta%IsLocTime = .TRUE.
+
+    ! Cleanup
+    Cntr => NULL()
+    IF ( ALLOCATED(CIDS) ) DEALLOCATE ( CIDS )
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCOIO_ReadCountryValues
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1476,20 +1834,137 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: I, I1, I2, J1, J2, NT
+    REAL(hp), POINTER  :: Vals(:) => NULL()
+    LOGICAL            :: Verb
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'HCOIO_ReadFromConfig (hcoio_dataread_mod.F90)'
+
+    !======================================================================
+    ! HCOIO_ReadFromConfig begins here
+    !======================================================================
+   
+    ! verbose mode? 
+    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
+   
+    ! Verbose
+    IF ( Verb ) THEN
+       WRITE(MSG, *) 'Read from config file: ', TRIM(Lct%Dct%cName)
+       CALL HCO_MSG(MSG)
+    ENDIF
+
+    !-------------------------------------------------------------------
+    ! Get data values for this time step.
+    !-------------------------------------------------------------------
+    CALL GetDataVals ( am_I_Root, HcoState, Lct, Lct%Dct%Dta%ncFile, Vals, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+    !-------------------------------------------------------------------
+    ! Copy data into array.
+    !-------------------------------------------------------------------
+
+    ! Number of values
+    NT = SIZE(Vals,1)
+
+    ! For masks, interpret data as mask corners (lon1/lat1/lon2/lat2) 
+    ! with no time dimension 
+    IF ( Lct%Dct%DctType == 3 ) THEN
+
+       ! Make sure data is allocated
+       CALL FileData_ArrCheck( Lct%Dct%Dta, HcoState%NX, HcoState%NY, 1, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Fill array: 1.0 within grid box, 0.0 outside.
+       CALL FillMaskBox ( am_I_Root, HcoState, Lct, Vals, RC )
+
+       ! Data is 2D
+       Lct%Dct%Dta%SpaceDim = 2
+
+    ! For base emissions and scale factors, interpret data as scalar 
+    ! values with a time dimension.
+    ELSE
+
+       CALL FileData_ArrCheck( Lct%Dct%Dta, 1, 1, NT, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       DO I = 1, NT
+          Lct%Dct%Dta%V2(I)%Val(1,1) = Vals(I)
+       ENDDO
+
+       ! Data is 1D and as such assumed to be in local time. 
+       Lct%Dct%Dta%SpaceDim  = 1
+       Lct%Dct%Dta%IsLocTime = .TRUE.
+    ENDIF
+
+    ! Cleanup
+    IF ( ASSOCIATED(Vals) ) DEALLOCATE(Vals)
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCOIO_ReadFromConfig 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetDataVals 
+!
+! !DESCRIPTION: Subroutine GetDataVals extracts the data values from ValStr
+! and writes them into vector Vals. ValStr is typically a character string
+! read from an external ASCII file or directly from the HEMCO configuration
+! file. Depending on the time specifications provided in the configuration
+! file, Vals will be filled with only a subset of the values of ValStr.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetDataVals ( am_I_Root, HcoState, Lct, ValStr, Vals, RC ) 
+!
+! !USES:
+!
+    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_CharSplit
+    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_WCD, HCO_SEP
+    USE HCO_UNIT_MOD,       ONLY : HCO_Unit_Change
+    USE HCO_tIdx_Mod,       ONLY : HCO_GetPrefTimeAttr
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,          INTENT(IN   )   :: am_I_Root
+    TYPE(HCO_State),  POINTER         :: HcoState    ! HEMCO state
+    CHARACTER(LEN=*), INTENT(IN   )   :: ValStr
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER         :: Lct
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(hp),         POINTER         :: Vals(:)
+!
+! !REVISION HISTORY:
+!  22 Dec 2014 - C. Keller: Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     REAL(hp)           :: MW_g,  EmMW_g, MolecRatio
     INTEGER            :: HcoID
     INTEGER            :: I, N, NUSE, AS
     INTEGER            :: IDX1, IDX2
     INTEGER            :: AreaFlag, TimeFlag, Check
     INTEGER            :: prefYr, prefMt, prefDy, prefHr
-    REAL(sp)           :: FileVals(100)
-    REAL(sp), POINTER  :: FileArr(:,:,:,:) => NULL()
+    REAL(hp)           :: FileVals(100)
+    REAL(hp), POINTER  :: FileArr(:,:,:,:) => NULL()
     LOGICAL            :: Verb, IsPerArea
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'HCOIO_ReadFromConfig (hcoio_dataread_mod.F90)'
+    CHARACTER(LEN=255) :: LOC = 'GetDataVals (hcoio_dataread_mod.F90)'
 
     !======================================================================
-    ! HCOIO_ReadFromConfig begins here
+    ! GetDataVals begins here
     !======================================================================
    
     ! verbose mode? 
@@ -1508,193 +1983,216 @@ CONTAINS
        MolecRatio = -999.0_hp
     ENDIF
 
-    ! Verbose
-    IF ( Verb ) THEN
-       WRITE(MSG, *) 'Read from config file: ', TRIM(Lct%Dct%cName)
-       CALL HCO_MSG(MSG)
-    ENDIF
-
     ! Read data into array
-    CALL HCO_CharSplit ( Lct%Dct%Dta%ncFile,  HCO_SEP(), &
-                         HCO_WCD(), FileVals, N, RC       ) 
+    CALL HCO_CharSplit ( ValStr, HCO_SEP(), HCO_WCD(), FileVals, N, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ error if no scale factor defined
     IF ( N == 0 ) THEN
        MSG = 'Cannot read data: ' // TRIM(Lct%Dct%cName) // &
-             ': ' // TRIM(Lct%Dct%Dta%ncFile)
+             ': ' // TRIM(ValStr)
        CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
        RETURN 
     ENDIF
 
     ! ---------------------------------------------------------------- 
-    ! Select time slices to be used at this time.
+    ! For masks, assume that values represent the corners of the mask
+    ! box, e.g. there must be four values. Masks are time-independent
+    ! and unitless
+    ! ---------------------------------------------------------------- 
+    IF ( Lct%Dct%DctType == 3 ) THEN
+
+       ! There must be exactly four values
+       IF ( N /= 4 ) THEN
+          MSG = 'Mask values are not lon1/lat1/lon2/lat2: ' // &
+                TRIM(ValStr) // ' --> ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Pass to FileArr array (will be used below)
+       NUSE = 4
+       ALLOCATE( FileArr(1,1,1,NUSE), STAT=AS )
+       IF ( AS /= 0 ) THEN
+          MSG = 'Cannot allocate FileArr'
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       FileArr(1,1,1,:) = FileVals(1:NUSE) 
+
+    ! ----------------------------------------------------------------
+    ! For non-masks, the data is interpreted as uniform values with
+    ! a time dimension. Need to select the time slices to be used at
+    ! this time (depending on the provided time attributes), as well
+    ! as to ensure that values are in the correct units.
     ! Use all time slices unless a time interval is provided in
     ! attribute srcTime of the configuration file.
     ! ---------------------------------------------------------------- 
-
-    ! Get the preferred times, i.e. the preferred year, month, day, 
-    ! or hour (as specified in the configuration file).
-    CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Currently, data read directly from the configuration file can only
-    ! represent one time dimension, i.e. it can only be yearly, monthly,
-    ! daily (or hourly data, but this is read all at the same time). 
-
-    ! Annual data 
-    IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
-       ! Error check
-       IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) .OR. & 
-            Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
-            Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
-          MSG = 'Data must not have more than one time dimension: ' // &
-                 TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       CALL GetSliceIdx ( Lct, 1, prefYr, IDX1, RC ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IDX2 = IDX1
-       NUSE = 1
-
-    ! Monthly data
-    ELSEIF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
-       ! Error check
-       IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
-            Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
-          MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       CALL GetSliceIdx ( Lct, 2, prefMt, IDX1, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IDX2 = IDX1
-       NUSE = 1
-
-    ! Daily data
-    ELSEIF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
-       ! Error check
-       IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
-          MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
-          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       CALL GetSliceIdx ( Lct, 3, prefDy, IDX1, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IDX2 = IDX1
-       NUSE = 1
-
-    ! All other cases (incl. hourly data): read all time slices).
     ELSE
-       IDX1 = 1
-       IDX2 = N
-       NUSE = N
-    ENDIF
 
-    ! ---------------------------------------------------------------- 
-    ! Read selected time slice(s) into data array
-    ! ----------------------------------------------------------------
-    IF ( IDX2 > N ) THEN
-       WRITE(MSG,*) 'Index ', IDX2, ' is larger than number of found values: ', &
+       ! Get the preferred times, i.e. the preferred year, month, day, 
+       ! or hour (as specified in the configuration file).
+       CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       ! Currently, data read directly from the configuration file can only
+       ! represent one time dimension, i.e. it can only be yearly, monthly,
+       ! daily (or hourly data, but this is read all at the same time). 
+   
+       ! Annual data 
+       IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
+          ! Error check
+          IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) .OR. & 
+               Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
+               Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
+             MSG = 'Data must not have more than one time dimension: ' // &
                     TRIM(Lct%Dct%cName)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+   
+          CALL GetSliceIdx ( Lct, 1, prefYr, IDX1, RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IDX2 = IDX1
+          NUSE = 1
+   
+       ! Monthly data
+       ELSEIF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
+          ! Error check
+          IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) .OR. & 
+               Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2)       ) THEN
+             MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+   
+          CALL GetSliceIdx ( Lct, 2, prefMt, IDX1, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IDX2 = IDX1
+          NUSE = 1
+   
+       ! Daily data
+       ELSEIF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
+          ! Error check
+          IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
+             MSG = 'Data must only have one time dimension: ' // TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+   
+          CALL GetSliceIdx ( Lct, 3, prefDy, IDX1, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IDX2 = IDX1
+          NUSE = 1
+   
+       ! All other cases (incl. hourly data): read all time slices).
+       ELSE
+          IDX1 = 1
+          IDX2 = N
+          NUSE = N
+       ENDIF
+   
+       ! ---------------------------------------------------------------- 
+       ! Read selected time slice(s) into data array
+       ! ----------------------------------------------------------------
+       IF ( IDX2 > N ) THEN
+          WRITE(MSG,*) 'Index ', IDX2, ' is larger than number of found values: ', &
+                       TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
 
-    ALLOCATE( FileArr(1,1,1,NUSE), STAT=AS )
+       ALLOCATE( FileArr(1,1,1,NUSE), STAT=AS )
+       IF ( AS /= 0 ) THEN
+          MSG = 'Cannot allocate FileArr'
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+    
+       ! IDX1 becomes -1 for data that is outside of the valid range
+       ! (and no time cycling enabled). In this case, make sure that
+       ! scale factor is set to zero.
+       IF ( IDX1 < 0 ) THEN
+          FileArr(1,1,1,:) = 0.0_hp
+          MSG = 'Scale factor outside of range - set to zero: ' // &
+                TRIM(Lct%Dct%cName)
+          CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+       ELSE
+          FileArr(1,1,1,:) = FileVals(IDX1:IDX2)
+       ENDIF
+   
+       ! ---------------------------------------------------------------- 
+       ! Convert data to HEMCO units 
+       ! ---------------------------------------------------------------- 
+       CALL HCO_Unit_Change( Array       = FileArr,                    &
+                             Units       = TRIM(Lct%Dct%Dta%OrigUnit), &
+                             MW_IN       = MW_g,                       &
+                             MW_OUT      = EmMW_g,                     &
+                             MOLEC_RATIO = MolecRatio,                 &
+                             YYYY        = -999,                       &
+                             MM          = -999,                       &
+                             AreaFlag    = AreaFlag,                   &
+                             TimeFlag    = TimeFlag,                   &
+                             RC          = RC                           )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       ! Data must be ... 
+       ! ... concentration ...
+       IF ( AreaFlag == 3 .AND. TimeFlag == 0 ) THEN
+          Lct%Dct%Dta%IsConc = .TRUE.
+   
+       ELSEIF ( AreaFlag == 3 .AND. TimeFlag == 1 ) THEN
+          Lct%Dct%Dta%IsConc = .TRUE.
+          FileArr = FileArr * HcoState%TS_EMIS
+          MSG = 'Data converted from kg/m3/s to kg/m3: ' // &
+                TRIM(Lct%Dct%cName) // ': ' // TRIM(Lct%Dct%Dta%OrigUnit)
+          CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+   
+       ! ... emissions or unitless ...
+       ELSEIF ( (AreaFlag == -1 .AND. TimeFlag == -1) .OR. &
+                (AreaFlag ==  2 .AND. TimeFlag ==  1)       ) THEN
+          Lct%Dct%Dta%IsConc = .FALSE.
+   
+       ! ... invalid otherwise:
+       ELSE
+          MSG = 'Unit must be unitless, emission or concentration: ' // &
+                TRIM(Lct%Dct%cName) // ': ' // TRIM(Lct%Dct%Dta%OrigUnit)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+   
+       ! Auto-detect delta t [in hours] between time slices.
+       ! Scale factors can be:
+       ! length 1 : constant
+       ! length 7 : weekday factors: Sun, Mon, ..., Sat
+       ! length 12: monthly factors: Jan, Feb, ..., Dec
+       ! length 24: hourly  factors: 12am, 1am, ... 11pm
+       IF ( NUSE == 1 ) THEN
+          Lct%Dct%Dta%DeltaT = 0
+       ELSEIF ( NUSE == 7 ) THEN
+          Lct%Dct%Dta%DeltaT = 24
+       ELSEIF ( NUSE == 12 ) THEN
+          Lct%Dct%Dta%DeltaT = 720 
+       ELSEIF ( NUSE == 24 ) THEN
+          Lct%Dct%Dta%DeltaT = 1 
+       ELSE
+          MSG = 'Factor must be of length 1, 7, 12, or 24!' // &
+                 TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
+          RETURN 
+       ENDIF
+   
+    ENDIF ! Masks vs. non-masks
+   
+    ! Copy data into output array.
+    IF ( ASSOCIATED(Vals) ) DEALLOCATE( Vals )
+    ALLOCATE( Vals(NUSE), STAT=AS )
     IF ( AS /= 0 ) THEN
-       MSG = 'Cannot allocate FileArr'
+       MSG = 'Cannot allocate Vals'
        CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
- 
-    ! IDX1 becomes -1 for data that is outside of the valid range
-    ! (and no time cycling enabled). In this case, make sure that
-    ! scale factor is set to zero.
-    IF ( IDX1 < 0 ) THEN
-       FileArr(1,1,1,:) = 0.0_hp
-       MSG = 'Scale factor outside of range - set to zero: ' // &
-             TRIM(Lct%Dct%cName)
-       CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-    ELSE
-       FileArr(1,1,1,:) = FileVals(IDX1:IDX2)
-    ENDIF
-
-    ! ---------------------------------------------------------------- 
-    ! Convert data to HEMCO units 
-    ! ---------------------------------------------------------------- 
-    CALL HCO_Unit_Change( Array       = FileArr,                    &
-                          Units       = TRIM(Lct%Dct%Dta%OrigUnit), &
-                          MW_IN       = MW_g,                       &
-                          MW_OUT      = EmMW_g,                     &
-                          MOLEC_RATIO = MolecRatio,                 &
-                          YYYY        = -999,                       &
-                          MM          = -999,                       &
-                          AreaFlag    = AreaFlag,                   &
-                          TimeFlag    = TimeFlag,                   &
-                          RC          = RC                           )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Data must be ... 
-    ! ... concentration ...
-    IF ( AreaFlag == 3 .AND. TimeFlag == 0 ) THEN
-       Lct%Dct%Dta%IsConc = .TRUE.
-
-    ELSEIF ( AreaFlag == 3 .AND. TimeFlag == 1 ) THEN
-       Lct%Dct%Dta%IsConc = .TRUE.
-       FileArr = FileArr * HcoState%TS_EMIS
-       MSG = 'Data converted from kg/m3/s to kg/m3: ' // &
-             TRIM(Lct%Dct%cName) // ': ' // TRIM(Lct%Dct%Dta%OrigUnit)
-       CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
-
-    ! ... emissions or unitless ...
-    ELSEIF ( (AreaFlag == -1 .AND. TimeFlag == -1) .OR. &
-             (AreaFlag ==  2 .AND. TimeFlag ==  1)       ) THEN
-       Lct%Dct%Dta%IsConc = .FALSE.
-
-    ! ... invalid otherwise:
-    ELSE
-       MSG = 'Unit must be unitless, emission or concentration: ' // &
-             TRIM(Lct%Dct%cName) // ': ' // TRIM(Lct%Dct%Dta%OrigUnit)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-
-    ! Copy data into array. Assume all data is temporal
-    ! dimension!
-    CALL FileData_ArrCheck( Lct%Dct%Dta, 1, 1, NUSE, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    DO I = 1, NUSE
-       Lct%Dct%Dta%V2(I)%Val(1,1) = FileArr(1,1,1,I)
-    ENDDO
-
-    ! Data is always 1D.
-    Lct%Dct%Dta%SpaceDim = 1
-
-    ! Auto-detect delta t [in hours] between time slices.
-    ! Scale factors can be:
-    ! length 1 : constant
-    ! length 7 : weekday factors: Sun, Mon, ..., Sat
-    ! length 12: monthly factors: Jan, Feb, ..., Dec
-    ! length 24: hourly  factors: 12am, 1am, ... 11pm
-    IF ( NUSE == 1 ) THEN
-       Lct%Dct%Dta%DeltaT = 0
-    ELSEIF ( NUSE == 7 ) THEN
-       Lct%Dct%Dta%DeltaT = 24
-    ELSEIF ( NUSE == 12 ) THEN
-       Lct%Dct%Dta%DeltaT = 720 
-    ELSEIF ( NUSE == 24 ) THEN
-       Lct%Dct%Dta%DeltaT = 1 
-    ELSE
-       MSG = 'Factor must be of length 1, 7, 12, or 24!' // &
-              TRIM(Lct%Dct%cName)
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC)
-       RETURN 
-    ENDIF
+    Vals(:) = FileArr(1,1,1,:)
 
     ! Cleanup
     IF ( ASSOCIATED(FileArr) ) DEALLOCATE(FileArr)
@@ -1703,7 +2201,88 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCOIO_ReadFromConfig 
+  END SUBROUTINE GetDataVals 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FillMaskBox
+!
+! !DESCRIPTION: Subroutine FillMaskBox fills the data array of the passed list 
+! container Lct according to the mask region provided in Vals. Vals contains
+! the mask region of interest, denoted by the lower left and upper right grid
+! box corners: lon1, lat1, lon2, lat2. The data array of Lct is filled such 
+! that all grid boxes are set to 1 whose mid-point is inside of the given box 
+! range.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FillMaskBox ( am_I_Root, HcoState, Lct, Vals, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMTERS:
+!
+    LOGICAL,          INTENT(IN   )   :: am_I_Root
+    TYPE(HCO_State),  POINTER         :: HcoState    ! HEMCO state
+    REAL(hp)        , POINTER         :: Vals(:)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ListCont),   POINTER         :: Lct
+    INTEGER,          INTENT(INOUT)   :: RC 
+!
+! !REVISION HISTORY:
+!  29 Dec 2014 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I, J
+    INTEGER            :: LON1, LON2, LAT1, LAT2
+    CHARACTER(LEN=255) :: LOC = 'FillMaskBox (HCOIO_DataRead_Mod.F90)'
+
+    !=================================================================
+    ! FillMaskBox begins here! 
+    !=================================================================
+
+    ! Extract lon1, lon2, lat1, lat2
+    LON1 = VALS(1)
+    LAT1 = VALS(2)
+    LON2 = VALS(3)
+    LAT2 = VALS(4)
+
+    ! Check for every grid box if mid point is within mask region. 
+    ! Set to 1.0 if this is the case.
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED )  &
+!$OMP PRIVATE( I, J )    &
+!$OMP SCHEDULE( DYNAMIC )
+    DO J = 1, HcoState%NY
+    DO I = 1, HcoState%NX
+    
+       IF ( HcoState%Grid%XMID%Val(I,J) >= LON1 .AND. &
+            HcoState%Grid%XMID%Val(I,J) <= LON2 .AND. &
+            HcoState%Grid%YMID%Val(I,J) >= LAT1 .AND. &
+            HcoState%Grid%YMID%Val(I,J) <= LAT2        ) THEN
+
+          Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_hp
+       ENDIF 
+
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE FillMaskBox
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1817,6 +2396,9 @@ CONTAINS
 ! such as $ROOT, $YYYY, etc., within the file name and replaces those values 
 ! with the intendend characters. The parsed file name is returned in string
 ! srcFile, while the original file name is retained in Lct.
+!\\
+!\\
+! !INTERFACE:
 !
   SUBROUTINE SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, RC )
 !

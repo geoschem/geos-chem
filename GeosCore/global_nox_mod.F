@@ -106,8 +106,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, J, L
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL(fp)             :: XTAU
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LGLOB)
+      REAL(f8)           :: XTAU
       CHARACTER(LEN=255) :: FILENAME
       CHARACTER(LEN=255) :: FIELD_DIR, RGNAME, TEMPO, CHAROP
       CHARACTER(LEN=3)   :: BMONTH(12) = (/ 'jan', 'feb', 'mar', 

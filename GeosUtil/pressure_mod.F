@@ -298,7 +298,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
+      REAL(f8)              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
 !
 ! !REVISION HISTORY:
 !  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
@@ -314,6 +314,7 @@
 !                              This prevents problems when compiling G-C with
 !                              the DEVEL tag when using traditional main.F.
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  23 Dec 2014 - M. Yannetti - Changed output to REAL(f8)
 !EOP
 !------------------------------------------------------------------------------
 !BOC

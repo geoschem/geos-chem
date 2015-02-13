@@ -454,7 +454,7 @@
 !
       INTEGER,        INTENT(IN)   :: NYMD        ! Year-Month-Date
       INTEGER,        INTENT(IN)   :: NHMS        ! and Hour-Min-Sec
-      REAL(fp),         INTENT(IN)   :: TAU         ! TAU value: hrs since 1/1/85
+      REAL(f8),       INTENT(IN)   :: TAU         ! TAU value: hrs since 1/1/85
       LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
 !
@@ -476,8 +476,8 @@
       INTEGER               :: HALFPOLAR, CENTER180, IU_FILE
       INTEGER               :: IFIRST,    JFIRST,    LFIRST
       INTEGER               :: N,         NN
-      REAL(fp)                :: TS_DYN,    TS_CHEM
-      REAL*4                :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
+      REAL(f8)              :: TS_DYN,    TS_CHEM
+      REAL(f4)              :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
       CHARACTER(LEN=20)     :: MODELNAME
       CHARACTER(LEN=40)     :: CATEGORY,  UNIT,     RESERVED
       CHARACTER(LEN=255)    :: FILENAME

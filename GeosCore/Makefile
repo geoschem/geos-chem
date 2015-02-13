@@ -173,6 +173,7 @@ KPP   :=$(ROOT)/KPP
 MOD   :=$(ROOT)/mod
 NCDF  :=$(ROOT)/NcdfUtil
 UTIL  :=$(ROOT)/GeosUtil
+DYN   := $(GIGC)/FVdycoreCubed_GridComp
 
 # Executables
 EXE   :=geos
@@ -241,6 +242,7 @@ lib:                                               # Build all G-C libraries
 libcore: $(OBJ)                                    # Build code in GeosCore/
 
 libgigc:
+	@$(MAKE) -C $(DYN) install
 	@$(MAKE) -C $(GIGC) lib
 
 libheaders:                                        # Build code in Headers/ 
@@ -556,6 +558,10 @@ emissions_mod.o             : emissions_mod.F90                              \
                               dust_mod.o              global_ch4_mod.o       \
                               hcoi_gc_main_mod.o      tracerid_mod.o         \
                               ucx_mod.o 
+
+exchange_mod.o              : exchange_mod.F                                 \
+	                      tpcore_bc_mod.o         dao_mod.o              \
+			      tracer_mod.o
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
                               chemgrid_mod.o          dao_mod.o              \

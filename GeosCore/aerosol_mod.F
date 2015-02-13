@@ -863,6 +863,7 @@
 !                              derived type object
 !  27 Mar 2013 - S.D. Eastham- Upgraded from Fast-J to Fast-JX
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -877,8 +878,9 @@
       INTEGER             :: I, J, L, N, R, JLOOP, IRH, IRHN
       INTEGER, SAVE       :: MONTH_LAST = -999
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
-      REAL(fp)              :: TEMP2(IIPAR,JJPAR,LLPAR)
-      REAL(fp)              :: MSDENS(NAER), XTAU, DRYAREA
+      REAL(fp)            :: TEMP2(IIPAR,JJPAR,LLPAR)
+      REAL(fp)            :: MSDENS(NAER), DRYAREA
+      REAL(f8)            :: XTAU
 
       ! Effective radius at RH bins read in from "jv_spec.dat"
       REAL(fp)		  :: RW(NRH)	

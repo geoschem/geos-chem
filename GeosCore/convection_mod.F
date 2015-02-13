@@ -1947,6 +1947,8 @@
 !  18 Apr 2014 - R. Yantosca - Now point to 3-D arrays internally
 !  18 Apr 2014 - R. Yantosca - Now also pass N_TRACERS (to facilitate APM)
 !  18 Apr 2014 - R. Yantosca - Remove code that we don't need anymore
+!  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
+!                              tracers below the cloud base (C. Friedman)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2577,7 +2579,13 @@
                      ! WETLOSS is the amount of tracer mass in 
                      ! grid box (I,J,L) that is lost to washout.
                      ! (Eq. 16, Jacob et al, 2000)
-                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM 
+!------------------------------------------------------------------------------
+! Prior to 2/4/15:
+! Bug fix: Make sure mass of scavenged tracer passed to depo_mercury_mod.F
+! is the same as mass archived in ND38 (clf, mps, 2/4/15)
+!                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
+!------------------------------------------------------------------------------
+                     WETLOSS     = ( MASS_WASH - T0_SUM ) * WASHFRAC
                      
                      ! The tracer left in grid box (I,J,L) is what was
                      ! in originally in the non-precipitating fraction 

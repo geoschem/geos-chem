@@ -149,6 +149,7 @@
 !  27 Nov 2012 - M. Payer    - Added ProTeX headers
 !  26 Aug 2014 - M. Sulprizio- Now track POPs emissions through HEMCO and
 !                              write to bpch in diag3.F
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,12 +159,13 @@
       INTEGER               :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER               :: JFIRST,    LFIRST,      LMAX
       INTEGER               :: M,         N,           NN
-      REAL*4                :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*4                :: LONRES,    LATRES
-      REAL(fp)                :: DIAGb,     DIAGe,       SCALE
+      REAL(f4)              :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)              :: LONRES,    LATRES
+      REAL(fp)              :: SCALE
+      REAL(f8)              :: DIAGb,     DIAGe
       CHARACTER(LEN=20)     :: MODELNAME 
       CHARACTER(LEN=40)     :: CATEGORY,  RESERVED,    UNIT
-      REAL(fp)                :: NCHEMSTEP !CDH for sea salt loss rate
+      REAL(fp)              :: NCHEMSTEP !CDH for sea salt loss rate
 
       !=================================================================
       ! WRITE_DIAG53 begins here!

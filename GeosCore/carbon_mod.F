@@ -5778,7 +5778,7 @@ ccc
 ! OC emissions. The same behavior can be achieved in HEMCO by assigning the desired
 ! POA tracer name to the given source type, e.g.:
 !
-!0 BOND_ANTH .../Bond_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POA1 70/300 1 1
+!0 BOND\_ANTH .../Bond\_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POA1 70/300 1 1
 !
 ! It is assumed here that emissions that shall go into array POAEMISS(:,:,:,1) 
 ! represent tracer POA1 and POAEMISS(:,:,:,2) represent tracer POG1.
