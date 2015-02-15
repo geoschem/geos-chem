@@ -130,18 +130,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_ReadFile( am_I_Root, ConfigFile, RC )
+  SUBROUTINE Config_ReadFile( am_I_Root, ConfigFile, Phase, RC )
 !
 ! !USES:
 !
     USE inquireMod,       ONLY : findFreeLUN
     USE CharPak_Mod,      ONLY : STRREPL
-    USE HCO_EXTLIST_MOD,  ONLY : AddExt
+    USE HCO_EXTLIST_MOD,  ONLY : AddExt, CoreNr, ExtNrInUse 
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,            INTENT(IN)    :: am_I_Root   ! root CPU?
     CHARACTER(LEN=*),   INTENT(IN)    :: ConfigFile  ! Full file name
+    INTEGER,            INTENT(IN)    :: Phase       ! 0: all
+                                                     ! 1: Settings and switches only
+                                                     ! 2: fields only 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -152,6 +155,8 @@ CONTAINS
 !  03 Jan 2014 - C. Keller   - Now use Config_ReadCont calls.
 !  30 Sep 2014 - R. Yantosca - Now declare LINE w/ 2047 characters.  This lets
 !                              us handle extra-long species lists
+!  13 Feb 2015 - C. Keller   - Removed section extension data: these are now
+!                              listed in section base emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,7 +190,9 @@ CONTAINS
     ! Open configuration file
     OPEN ( IU_HCO, FILE=TRIM( ConfigFile ), STATUS='OLD', IOSTAT=IOS )
     IF ( IOS /= 0 ) THEN
-       WRITE(*,*) 'Error reading ' // TRIM(ConfigFile)
+       IF ( am_I_Root ) THEN
+          WRITE(*,*) 'Error reading ' // TRIM(ConfigFile)
+       ENDIF 
        RC = HCO_FAIL
        RETURN 
     ENDIF 
@@ -193,7 +200,9 @@ CONTAINS
     ! Register HEMCO core as extension Nr. 0 (default). The core 
     ! module is used by all HEMCO simulations, and the overall
     ! HEMCO settings are stored as options of this extension.
-    CALL AddExt ( 'CORE', 0, 'all' )
+    IF ( .NOT. ExtNrInUse( CoreNr ) ) THEN
+       CALL AddExt ( 'CORE', CoreNr, 'all' )
+    ENDIF
 
     ! Loop until EOF 
     DO
@@ -205,21 +214,35 @@ CONTAINS
        ! Replace tab characters in LINE (if any) w/ spaces
        CALL STRREPL( LINE, HCO_TAB(), HCO_SPC() )
 
-       ! Read settings if this is beginning of settings section 
-       IF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
+       ! Read extension switches. This registers all enabled extensions.
+       ! This must include the core extension. 
+       IF ( INDEX ( LINE, 'BEGIN SECTION EXTENSION SWITCHES' ) > 0 ) THEN 
 
-          CALL ReadSettings( AIR, IU_HCO, EOF, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          IF ( EOF ) EXIT
+          IF ( PHASE < 2 ) THEN
+             CALL ExtSwitch2Buffer( AIR, IU_HCO, EOF, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             IF ( EOF ) EXIT
+          ENDIF
+
+       ! Read settings if this is beginning of settings section 
+       ELSEIF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
+
+          IF ( PHASE < 2 ) THEN
+             CALL ReadSettings( AIR, IU_HCO, EOF, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             IF ( EOF ) EXIT
+          ENDIF
 
        ! Read base emissions. This creates a new data container for each 
        ! base emission field. 
        ELSEIF ( INDEX ( LINE, 'BEGIN SECTION BASE EMISSIONS' ) > 0 ) THEN
 
           ! Read data and write into container
-          CALL Config_ReadCont( AIR, IU_HCO, 1, EOF, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          IF ( EOF ) EXIT
+          IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
+             CALL Config_ReadCont( AIR, IU_HCO, 1, EOF, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             IF ( EOF ) EXIT
+          ENDIF 
 
        ! Read scale factors. This creates a new data container for each 
        ! scale factor.
@@ -232,26 +255,12 @@ CONTAINS
        ! Read masks. This creates a new data container for each mask 
        ELSE IF ( INDEX ( LINE, 'BEGIN SECTION MASKS' ) > 0 ) THEN
 
-          CALL Config_ReadCont( AIR, IU_HCO, 3, EOF, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          IF ( EOF ) EXIT
+          IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
+             CALL Config_ReadCont( AIR, IU_HCO, 3, EOF, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             IF ( EOF ) EXIT
+          ENDIF
 
-       ! Read extension switches. This registers all enabled extensions.
-       ELSE IF ( INDEX ( LINE, &
-                         'BEGIN SECTION EXTENSION SWITCHES' ) > 0 ) THEN
-
-          CALL ExtSwitch2Buffer( AIR, IU_HCO, EOF, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          IF ( EOF ) EXIT
-
-       ! Read extension data. This reads the extension data of all 
-       ! activated extensions (as base data).
-       ELSE IF ( INDEX ( LINE, &
-                         'BEGIN SECTION EXTENSION DATA' ) > 0 ) THEN
-
-          CALL Config_ReadCont( AIR, IU_HCO, 1, EOF, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          IF ( EOF ) EXIT
        ENDIF
     ENDDO
 
@@ -264,7 +273,9 @@ CONTAINS
     ENDIF 
 
     ! Configuration file is now read
-    ConfigFileRead = .TRUE.
+    IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
+       ConfigFileRead = .TRUE.
+    ENDIF
 
     ! Leave w/ success
     RC = HCO_SUCCESS 
@@ -376,7 +387,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : ExtNrInUse
+    USE HCO_EXTLIST_MOD,  ONLY : ExtNrInUse, GetExtOpt, CoreNr
     USE HCO_TIDX_Mod,     ONLY : HCO_ExtractTime
     USE HCO_FILEDATA_Mod, ONLY : FileData_Init
 !
@@ -405,8 +416,25 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Maximum number of nested brackets
+    INTEGER, PARAMETER        :: MAXBRACKNEST = 5
+
     ! Scalars
     INTEGER                   :: STAT
+    INTEGER                   :: Int1
+    INTEGER                   :: Int2
+    INTEGER                   :: Int3
+    INTEGER                   :: Int4
+    INTEGER                   :: N
+    INTEGER                   :: STRLEN
+    INTEGER                   :: NEST
+    INTEGER                   :: SKIPLEVEL
+    LOGICAL                   :: InSkipBracket
+    LOGICAL                   :: FOUND
+    LOGICAL                   :: UseBracket
+    LOGICAL                   :: verb
+    CHARACTER(LEN=255)        :: AllBrackets(MAXBRACKNEST)
+    CHARACTER(LEN=255)        :: TmpBracket
     CHARACTER(LEN= 31)        :: cName
     CHARACTER(LEN=255)        :: srcFile
     CHARACTER(LEN= 31)        :: srcVar
@@ -416,12 +444,8 @@ CONTAINS
     CHARACTER(LEN= 31)        :: srcUnit
     CHARACTER(LEN= 31)        :: SpcName 
     CHARACTER(LEN=255)        :: Char1
-    INTEGER                   :: Int1
-    INTEGER                   :: Int2
-    INTEGER                   :: Int3
-    INTEGER                   :: Int4
-    INTEGER                   :: N
     CHARACTER(LEN=255)        :: LOC, MSG 
+    CHARACTER(LEN=255)        :: LINE
 
     ! Arrays
     INTEGER                   :: SplitInts(SclMax)
@@ -437,7 +461,16 @@ CONTAINS
     ! Enter
     LOC = 'Config_ReadCont (hco_config_mod.F90)'
 
-    ! Repeat until end of base emissions section is found 
+    ! Verbose check
+    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+
+    ! Initialize
+    AllBrackets(:) = ''
+    InSkipBracket  = .FALSE.
+    NEST           = 0
+    SKIPLEVEL      = 0
+
+    ! Repeat until end of the given section is found 
     DO
 
        !==============================================================
@@ -453,7 +486,8 @@ CONTAINS
                                    srcDim,    7,      srcUnit,  8,  &
                                    SpcName,   9,      Char1,   10,  &
                                    Int1,     11,      Int2,    12,  &
-                                   Int3,      1,      STAT           )
+                                   Int3,      1,      STAT,         &
+                                   OutLine=LINE                      )
 
        ELSE IF ( DctType == 2 ) THEN
           CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
@@ -499,6 +533,117 @@ CONTAINS
        IF ( STAT == 100 ) THEN
           CALL HCO_ERROR ( 'STAT == 100', RC, THISLOC=LOC )
           RETURN 
+       ENDIF
+
+       ! -------------------------------------------------------------
+       ! Check for emission shortcuts. Base emissions can be bracketed
+       ! into 'collections'. 
+       ! -------------------------------------------------------------
+       IF ( DctType == 1 ) THEN
+
+          ! Get name of this bracket
+          IF ( STAT == 5 .OR. STAT == 6 ) THEN
+             STRLEN     = LEN(LINE)
+             IF ( STRLEN < 4 ) THEN
+                CALL HCO_ERROR ( 'Illegal bracket length: '//TRIM(LINE), &
+                                 RC, THISLOC=LOC )
+                RETURN 
+             ELSE
+                TmpBracket = TRIM(LINE(4:STRLEN))
+             ENDIF
+          ENDIF
+
+          ! Open a bracket. Save out the bracket name in the list of all
+          ! opened brackets. This is primarily to ensure that every opening
+          ! brackets is properly closed. Only register it as skipping bracket
+          ! if needed. 
+          IF ( STAT == 5 ) THEN
+
+             ! Archive bracket name
+             NEST = NEST + 1
+             IF ( NEST > MAXBRACKNEST ) THEN
+                MSG = 'Too many nested brackets'
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+             AllBrackets(NEST) = TmpBracket
+
+             ! Check if this bracket content shall be skipped. Always skip
+             ! if this is a nested bracket in an already skipped bracket. 
+             IF ( .NOT. InSkipBracket ) THEN
+
+                ! Check if this bracket has been registered as being used.
+                ! Scan all extensions, including the core one.
+                CALL GetExtOpt( -999, TRIM(TmpBracket), &
+                   OptValBool=UseBracket, FOUND=FOUND, RC=RC )
+                IF ( RC /= HCO_SUCCESS ) RETURN
+
+                ! If bracket name not found in options, skip content.
+                IF ( .NOT. FOUND ) THEN
+                   InSkipBracket = .TRUE.
+
+                ! Use value defined in HEMCO configuration file.
+                ELSE
+                   InSkipBracket = .NOT. UseBracket
+                ENDIF
+          
+                ! testing only
+                write(*,*) 'UseBracket: ', TRIM(TmpBracket), FOUND, InSkipBracket 
+
+                ! If bracket is skipped, adjust skip level accordingly.
+                ! This is so that we know when it's time to flip back to
+                ! a bracket that is being used (if brackets are nested). 
+                IF ( InSkipBracket ) THEN
+                   SKIPLEVEL = NEST
+                ENDIF 
+             ENDIF
+
+             ! Verbose mode
+!             IF ( verb ) THEN
+                MSG = 'Opened shortcut bracket: '//TRIM(TmpBracket)
+                CALL HCO_MSG(MSG)
+                WRITE(MSG,*) ' - Skip content of this bracket: ', InSkipBracket
+                CALL HCO_MSG(MSG)
+!             ENDIF
+          ENDIF
+
+          ! Close a bracket
+          IF ( STAT == 6 ) THEN
+
+             ! This must be the latest opened bracket
+             IF ( TRIM(TmpBracket) /= TRIM(AllBrackets(NEST)) ) THEN
+                MSG = 'Closing bracket does not match opening bracket: '// &
+                   TRIM(TmpBracket)//', expected: '//TRIM(AllBrackets(NEST))
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF       
+
+             ! If that was the latest opened bracket that was disabled 
+             IF ( SKIPLEVEL == NEST ) THEN
+                InSkipBracket = .FALSE.
+             ENDIF
+  
+             ! Update nesting level
+             AllBrackets(NEST) = ''
+             NEST              = NEST - 1
+
+             ! Verbose mode
+!             IF ( verb ) THEN
+                MSG = 'Closed shortcut bracket: '//TRIM(TmpBracket)
+                write(*,*) trim(msg)
+                CALL HCO_MSG(MSG)
+                WRITE(MSG,*) ' - Skip following lines: ', InSkipBracket
+                CALL HCO_MSG(MSG)
+                write(*,*) trim(msg)
+!             ENDIF
+          ENDIF
+          
+          ! Skip here if we are in a bracket that is not being used
+          IF ( InSkipBracket ) CYCLE
+
+          ! Can advance to next line if this was a bracket line: nothing
+          ! else to do with this line.
+          IF ( STAT == 5 .OR. STAT == 6 ) CYCLE
        ENDIF
 
        ! Output status should be 0 if none of the statuses above applies 
@@ -759,7 +904,7 @@ CONTAINS
     ! Enter
     LOC   = 'ExtSwitch2Buffer (hco_config_mod.F90)'
     RC    = HCO_SUCCESS
-    ExtNr = 0
+    ExtNr = -1
 
     ! Do until exit 
     DO 
@@ -779,7 +924,7 @@ CONTAINS
        ! Check if these are options
        IF ( INDEX(LINE,'-->') > 0 ) THEN
           ! Only add if extension is defined!
-          IF ( ExtNr > 0 .AND. Enabled ) THEN 
+          IF ( ExtNr >= 0 .AND. Enabled ) THEN 
              CALL AddExtOpt( TRIM(LINE), ExtNr, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
@@ -853,7 +998,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,    ONLY : AddExtOpt, GetExtOpt
+    USE HCO_EXTLIST_MOD,    ONLY : AddExtOpt, GetExtOpt, CoreNr
     USE CHARPAK_MOD,        ONLY : STRREPL, STRSPLIT, TRANLC
 !
 ! !INPUT PARAMETERS:
@@ -915,8 +1060,8 @@ CONTAINS
        ! Ignore empty lines
        IF ( TRIM(LINE) == '' ) CYCLE
 
-       ! Add this option to HEMCO core (extension 0)
-       CALL AddExtOpt ( TRIM(LINE), 0, RC )
+       ! Add this option to HEMCO core 
+       CALL AddExtOpt ( TRIM(LINE), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDDO
@@ -927,19 +1072,19 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Verbose mode?
-    CALL GetExtOpt( 0, 'Verbose', OptValBool=verb, RC=RC )
+    CALL GetExtOpt( CoreNr, 'Verbose', OptValBool=verb, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Logfile to write into
-    CALL GetExtOpt( 0, 'Logfile', OptValChar=Logfile, RC=RC )
+    CALL GetExtOpt( CoreNr, 'Logfile', OptValChar=Logfile, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Prompt warnings to logfile? 
-    CALL GetExtOpt( 0, 'Show warnings', OptValBool=warn, RC=RC  )
+    CALL GetExtOpt( CoreNr, 'Show warnings', OptValBool=warn, RC=RC  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Track code? 
-    CALL GetExtOpt( 0, 'Track', OptValBool=track, RC=RC  )
+    CALL GetExtOpt( CoreNr, 'Track', OptValBool=track, RC=RC  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If LogFile is equal to wildcard character, set LogFile to asterik 
@@ -2044,6 +2189,20 @@ CONTAINS
     IF ( LINE(1:1) == HCO_CMT() ) THEN
        STAT = 1
        RETURN
+    ENDIF
+
+    ! Return here with flag = 5 is line is opening a (shortcut) bracket.
+    IF ( LEN(TRIM(LINE)) >= 3 ) THEN
+       IF ( LINE(1:3) == '<<<' ) THEN
+          STAT = 5
+          RETURN
+       ENDIF 
+
+       ! Return here with flag = 6 is line is opening a (shortcut) bracket.
+       IF ( LINE(1:3) == '>>>' ) THEN
+          STAT = 6
+          RETURN
+       ENDIF 
     ENDIF
 
     ! Split line into columns

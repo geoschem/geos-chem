@@ -2386,7 +2386,7 @@ CONTAINS
 !
 ! !USES:
 !
-      USE HCO_EXTLIST_MOD,        ONLY : GetExtOpt
+      USE HCO_EXTLIST_MOD,        ONLY : GetExtOpt, CoreNr
 !
 ! !INPUT ARGUMENTS:
 !
@@ -2474,7 +2474,7 @@ CONTAINS
     ! For emissions diagnostics collections and if the prefix is empty,
     ! try to get prefix from the HEMCO configuration file. 
     IF ( PS == 1 .AND. TRIM(PREFIX) == '' ) THEN
-       CALL GetExtOpt ( 0, 'DiagnPrefix', OptValChar=MyPrefix, RC=RC )
+       CALL GetExtOpt ( CoreNr, 'DiagnPrefix', OptValChar=MyPrefix, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        Collections(PS)%PREFIX = TRIM(MyPrefix)
     ELSE

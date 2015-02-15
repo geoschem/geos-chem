@@ -123,7 +123,6 @@ CONTAINS
     USE HCO_ARR_MOD,      ONLY : HCO_ArrAssert
     USE HCO_EMISLIST_MOD, ONLY : EmisList_NextCont
     USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !

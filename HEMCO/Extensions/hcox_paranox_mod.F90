@@ -1520,7 +1520,7 @@ CONTAINS
    CALL NcRd( FNOx, fId, 'FNOx', st7d, ct7d )
 
   ! testing only
-   PRINT*, "binary_fracnox: ", Fnox(1:4,1,1,2,3,4,4)
+!   PRINT*, "binary_fracnox: ", Fnox(1:4,1,1,2,3,4,4)
 
    !-----------------------------------------------------------------
    ! Read look up table for 5-h integrated Ozone Production Efficiency
@@ -1530,7 +1530,7 @@ CONTAINS
    CALL NcRd( OPE, fId, 'OPE', st7d, ct7d )
 
   ! testing only
-   PRINT*, "binary_intope: ", OPE(1:4,1,1,2,3,4,4)
+!   PRINT*, "binary_intope: ", OPE(1:4,1,1,2,3,4,4)
 
    !-----------------------------------------------------------------
    ! Read look up table for 5-h integrated Methane Oxidation Efficiency
@@ -1540,7 +1540,7 @@ CONTAINS
    CALL NcRd( MOE, fId, 'MOE', st7d, ct7d )
 
   ! testing only
-   PRINT*, "binary_intmoe: ", MOE(1:4,1,1,2,3,4,4)
+!   PRINT*, "binary_intmoe: ", MOE(1:4,1,1,2,3,4,4)
 
    !-----------------------------------------------------------------
    ! Read look up table for 5-h integrated NOx deposition fraction
@@ -1550,7 +1550,7 @@ CONTAINS
    CALL NcRd( DNOx, fId, 'DNOx', st7d, ct7d )
 
   ! testing only
-  PRINT*, "binary_depnox: ", DNOx(1:4,1,1,2,3,4,4)
+!  PRINT*, "binary_depnox: ", DNOx(1:4,1,1,2,3,4,4)
 
    ! Close netCDF file
    CALL NcCl( fId )

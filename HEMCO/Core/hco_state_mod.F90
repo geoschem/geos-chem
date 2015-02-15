@@ -200,7 +200,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,    ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,    ONLY : GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -370,7 +370,7 @@ CONTAINS
     HcoState%Options%FillBuffer    = .FALSE.
 
     ! Get negative flag value from configuration file. If not found, set to 0. 
-    CALL GetExtOpt ( 0, 'Negative values', &
+    CALL GetExtOpt ( CoreNr, 'Negative values', &
                      OptValInt=HcoState%Options%NegFlag, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%NegFlag = 0

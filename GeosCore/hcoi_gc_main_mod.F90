@@ -163,7 +163,8 @@ CONTAINS
     USE HCO_Config_Mod,     ONLY : Config_ReadFile
     USE HCO_State_Mod,      ONLY : HcoState_Init
     USE HCO_Driver_Mod,     ONLY : HCO_Init
-    USE HCO_ExtList_Mod,    ONLY : SetExtNr
+    USE HCO_ExtList_Mod,    ONLY : SetExtNr,  AddExtOpt
+    USE HCO_ExtList_Mod,    ONLY : GetExtOpt, CoreNr
     USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
     USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_Diagn_Init
     USE HCOX_Driver_Mod,    ONLY : HCOX_Init
@@ -186,14 +187,16 @@ CONTAINS
 !                               via module variables.
 !  30 Sep 2014 - R. Yantosca  - Now pass fields for aerosol and microphysics
 !                               options to extensions via HcoState
+!  13 Feb 2015 - C. Keller    - Now read configuration file in two steps.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL                         :: LSTRAT,  FOUND
     INTEGER                         :: nHcoSpc, HMRC
-    CHARACTER(LEN=255)              :: LOC
+    CHARACTER(LEN=255)              :: OptName, LOC
 
     !=================================================================
     ! HCOI_GC_INIT begins here!
@@ -211,8 +214,58 @@ CONTAINS
     ! Read HEMCO configuration file and save into buffer. This also
     ! sets the HEMCO error properties (verbose mode? log file name, 
     ! etc.) based upon the specifications in the configuration file.
+    ! The log file is now read in two phases: phase 1 reads only the
+    ! settings and extensions; phase 2 reads all data fields. This 
+    ! way, settings and extension options can be updated before 
+    ! reading all the associated fields. For instance, if the LEMIS
+    ! toggle is set to false (=no emissions), all extensions can be
+    ! deactivated. Similarly, certain brackets can be set explicitly
+    ! to make sure that these data is only read by HEMCO if the 
+    ! corresponding GEOS-Chem switches are turned on.
+    ! (ckeller, 2/13/15).
     !=================================================================
-    CALL Config_ReadFile( am_I_Root, Input_Opt%HcoConfigFile, HMRC )
+
+    ! Phase 1: read settings and switches
+    CALL Config_ReadFile( am_I_Root, Input_Opt%HcoConfigFile, 1, HMRC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC )
+
+    ! If emissions shall not be used, reset all extension number to
+    ! -999 first. This will make sure that none of the extensions will
+    ! be initialized and none of the input data related to any of the
+    ! extensions will be used.
+    IF ( .NOT. Input_Opt%LEMIS ) THEN
+       CALL SetExtNr( am_I_Root, -999, RC=HMRC )
+       IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'SetExtNr', LOC )
+    ENDIF
+
+    ! Set stratospheric chemistry toggle according to options in 
+    ! input.geos. This will enable/disable all fields in input.geos
+    ! that are bracketed by 'LinStratChem'. Check first if this bracket
+    ! values has been set explicitly in the HEMCO configuration file,
+    ! in which case it's not being changed.
+    CALL GetExtOpt( CoreNr, 'LinStratChem', OptValBool=LSTRAT, &
+                    FOUND=FOUND, RC=HMRC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
+    IF ( FOUND ) THEN
+       IF ( Input_Opt%LSCHEM /= LSTRAT ) THEN
+          WRITE(*,*) ' '
+          WRITE(*,*) 'StratChem toggle in HEMCO configuration file'
+          WRITE(*,*) 'does not agree with stratospheric chemistry'
+          WRITE(*,*) 'settings in input.geos. This may be inefficient' 
+          WRITE(*,*) 'and/or yield to wrong results!' 
+       ENDIF
+    ELSE
+       IF ( Input_Opt%LSCHEM ) THEN
+          OptName = 'LinStratChem : true'
+       ELSE
+          OptName = 'LinStratChem : false'
+       ENDIF
+       CALL AddExtOpt( TRIM(OptName), CoreNr, HMRC ) 
+       IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'AddExtOpt', LOC )
+    ENDIF 
+
+    ! Phase 2: read fields
+    CALL Config_ReadFile( am_I_Root, Input_Opt%HcoConfigFile, 2, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC )
 
     !=================================================================
@@ -285,14 +338,6 @@ CONTAINS
 
     ! HEMCO configuration file
     HcoState%ConfigFile = Input_Opt%HcoConfigFile
-
-    ! If emissions shall not be used, reset all extension number to
-    ! -999 first. This will make sure that none of the extensions will
-    ! be initialized and none of the input data related to any of the
-    ! extensions will be used.
-    IF ( .NOT. Input_Opt%LEMIS ) THEN
-       CALL SetExtNr( am_I_Root, -999, RC=HMRC )
-    ENDIF
 
     !=================================================================
     ! Initialize HEMCO internal lists and variables. All data

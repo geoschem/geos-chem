@@ -912,7 +912,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -938,7 +938,7 @@ CONTAINS
     ! On first call, try to get unit tolerance value from core settings.
     ! Use value of zero if not specified in the configuration file.
     IF ( Tolerance < 0 ) THEN
-       CALL GetExtOpt ( 0, 'Unit tolerance', OptValInt=Tolerance, &
+       CALL GetExtOpt ( CoreNr, 'Unit tolerance', OptValInt=Tolerance, &
                         FOUND=FOUND, RC=RC )
        IF ( .NOT. FOUND ) Tolerance = 0
 

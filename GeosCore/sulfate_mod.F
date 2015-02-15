@@ -20,8 +20,7 @@
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
       USE inquireMod,    ONLY : findFreeLUN
 
-      USE HCO_ERROR_MOD       ! For real precisions (hp)
-
+      USE HCO_ERROR_MOD    ! For HEMCO error statements 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE

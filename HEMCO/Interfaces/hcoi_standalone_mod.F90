@@ -249,7 +249,7 @@ CONTAINS
     ! sets the HEMCO error properties (verbose mode? log file name, 
     ! etc.) based upon the specifications in the configuration file.
     !=================================================================
-    CALL Config_ReadFile( am_I_Root, ConfigFile, RC )
+    CALL Config_ReadFile( am_I_Root, ConfigFile, 0, RC )
     IF( RC /= HCO_SUCCESS) RETURN 
 
     !=================================================================
@@ -599,7 +599,7 @@ CONTAINS
 ! !USES:
 !
     USE inquireMod,      ONLY : findfreeLUN
-    USE HCO_EXTLIST_Mod, ONLY : GetExtOpt
+    USE HCO_EXTLIST_Mod, ONLY : GetExtOpt, CoreNr
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -637,7 +637,7 @@ CONTAINS
     LOC = 'Model_GetSpecies (hcoi_standalone_mod.F90)'
 
     ! Try to get SpecFile from configuration file (in settings)
-    CALL GetExtOpt ( 0, 'SpecFile', OptValChar=MySpecFile, &
+    CALL GetExtOpt ( CoreNr, 'SpecFile', OptValChar=MySpecFile, &
                      Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) SpecFile = MySpecFile
@@ -774,7 +774,7 @@ CONTAINS
 !
     USE Grid_Mod,        ONLY : DoGridComputation
     USE inquireMod,      ONLY : findFreeLUN
-    USE HCO_ExtList_Mod, ONLY : GetExtOpt
+    USE HCO_ExtList_Mod, ONLY : GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -819,7 +819,7 @@ CONTAINS
     LOC = 'SET_GRID (hco_standalone_mod.F90)'
 
     ! Try to get GridFile from configuration file (in settings)
-    CALL GetExtOpt ( 0, 'GridFile', OptValChar=MyGridFile, &
+    CALL GetExtOpt ( CoreNr, 'GridFile', OptValChar=MyGridFile, &
                      Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) GridFile = MyGridFile
@@ -1212,7 +1212,7 @@ CONTAINS
 ! !USES:
 !
     USE inquireMod,      ONLY : findfreeLUN
-    USE HCO_Extlist_Mod, ONLY : GetExtOpt
+    USE HCO_Extlist_Mod, ONLY : GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -1244,7 +1244,7 @@ CONTAINS
     LOC = 'READ_TIME (hcoi_standalone_mod.F90)'
 
     ! Try to get TimeFile from configuration file (in settings)
-    CALL GetExtOpt ( 0, 'TimeFile', OptValChar=MyTimeFile, &
+    CALL GetExtOpt ( CoreNr, 'TimeFile', OptValChar=MyTimeFile, &
                      Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) TimeFile = MyTimeFile
