@@ -336,6 +336,20 @@ CONTAINS
              Diag3D => NULL() 
           ENDIF
 
+          ! verbose 
+          IF ( verb ) THEN
+             WRITE(MSG,*) 'Added category emissions to species array: '
+             CALL HCO_MSG(MSG)
+             WRITE(MSG,*) 'Species       : ', PrevSpc
+             CALL HCO_MSG(MSG)
+             WRITE(MSG,*) 'Category      : ', PrevCat
+             CALL HCO_MSG(MSG)
+             WRITE(MSG,*) 'Cat. emissions: ', SUM(CatFlx) 
+             CALL HCO_MSG(MSG)
+             WRITE(MSG,*) 'Spc. emissions: ', SUM(SpcFlx) 
+             CALL HCO_MSG(MSG)
+          ENDIF
+
           ! Reset CatFlx array and the previously used hierarchy 
           ! ==> Emission hierarchies are only important within the 
           ! same category, hence always start over at lowest hierarchy
@@ -359,6 +373,18 @@ CONTAINS
 
              ! Add to OutArr
              OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
+
+             ! testing only
+             IF ( verb ) THEN
+                WRITE(MSG,*) 'Added total emissions to output array: '
+                CALL HCO_MSG(MSG)
+                WRITE(MSG,*) 'Species: ', PrevSpc
+                CALL HCO_MSG(MSG)
+                WRITE(MSG,*) 'SpcFlx : ', SUM(SpcFlx)
+                CALL HCO_MSG(MSG)
+                WRITE(MSG,*) 'OutArr : ', SUM(OutArr)
+                CALL HCO_MSG(MSG)
+             ENDIF
 
              ! Add to diagnostics at extension number level. 
              ! The same diagnostics may be updated multiple times during 
@@ -538,6 +564,20 @@ CONTAINS
        SpcFlx(:,:,:) = SpcFlx(:,:,:) + CatFlx(:,:,:)
        OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
 
+       ! verbose mode 
+       IF ( verb ) THEN
+          WRITE(MSG,*) 'Added category emissions to species array: '
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Species       : ', PrevSpc
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Category      : ', PrevCat
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Cat. emissions: ', SUM(CatFlx) 
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Spc. emissions: ', SUM(SpcFlx) 
+          CALL HCO_MSG(MSG)
+       ENDIF
+
        ! Diagnostics at category level
        IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
           Diag3D => CatFlx
@@ -557,6 +597,19 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
           Diag3D => NULL()
        ENDIF
+
+       ! testing only
+       IF ( verb ) THEN
+          WRITE(MSG,*) 'Added total emissions to output array: '
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Species: ', PrevSpc
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'SpcFlx : ', SUM(SpcFlx)
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'OutArr : ', SUM(OutArr)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
     ENDIF ! nnSpec > 0
 
     ! Make sure internal pointers are nullified 

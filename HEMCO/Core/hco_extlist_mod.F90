@@ -227,9 +227,6 @@ CONTAINS
     ThisExt => NULL()
     RC = HCO_SUCCESS
 
-    ! testing only
-    write(*,*) 'AddExtOpt: ', ExtNr, TRIM(Opt)
-
   END SUBROUTINE AddExtOpt 
 !EOC
 !------------------------------------------------------------------------------
@@ -302,9 +299,6 @@ CONTAINS
     LOC      = 'GetExtOpt (hco_extlist_mod)'
     ExtFound = .FALSE.
     OptFound = .FALSE.
-
-    ! testing only
-    write(*,*) 'GetExtOpt ', ExtNr, TRIM(OptName)
 
     ! Find extension of interest 
     ThisExt => ExtList

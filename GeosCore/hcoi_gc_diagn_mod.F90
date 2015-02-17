@@ -53,7 +53,7 @@ MODULE HCOI_GC_Diagn_Mod
 #include "hcoi_gc_diagn_include.H"
 
   ! Define default output frequency. 
-  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Daily"
+  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Hourly"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -232,8 +232,8 @@ CONTAINS
     !=======================================================================
 
     ! This is for testing only. Only activate if needed.
-    IF ( .TRUE. ) THEN     ! Activated
-    !IF ( .FALSE. ) THEN     ! Deactivated
+    !IF ( .TRUE. ) THEN     ! Activated
+    IF ( .FALSE. ) THEN     ! Deactivated
 
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 
@@ -349,7 +349,7 @@ CONTAINS
              IF ( TRIM(SpcName) == 'NO' .and. HcoID > 0 ) THEN
 
                 ! There are 3 different categories
-                DO J = 1, 6
+                DO J = 1, 7
                    SELECT CASE ( J )
                       CASE ( 1 )
                          DiagnName = 'EMIS_NO_ANTHRO'
@@ -375,6 +375,10 @@ CONTAINS
                          DiagnName = 'EMIS_NO_BIOMASS'
                          ExtNr     = 111
                          Cat       = -1
+                      CASE ( 7 )
+                         DiagnName = 'EMIS_NO_BIOFUEL'
+                         ExtNr     = 0
+                         Cat       = 2
                       CASE DEFAULT
                          DiagnName = 'EMIS_NO_DUMMY'
                          ExtNr     = 999

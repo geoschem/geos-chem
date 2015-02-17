@@ -653,7 +653,7 @@ CONTAINS
     ! Split character into species string. 
     CALL STRSPLIT( SpcStr, HCO_SEP(), SUBSTR, nSpc )
 
-    ! Find extension of interest 
+    ! nothing to do if there are no species
     IF ( nSpc == 0 ) RETURN 
 
     ! Allocate arrays 

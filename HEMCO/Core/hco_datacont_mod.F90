@@ -112,6 +112,21 @@ MODULE HCO_DataCont_Mod
 !
   ! Maximum number of scale factor fields per base field
   INTEGER, PARAMETER,     PUBLIC :: SclMax = 10
+
+  ! Maximum number of emission categories that can be assigned to a
+  ! base field. If multiple emission categories are assigned to one
+  ! field, a 'shadow' container is created for every additional
+  ! emission category. A dummy scale factor of zero is applied to 
+  ! this shadow container, making sure that no additional emissions
+  ! are created by the shadow container. 
+  INTEGER, PARAMETER,     PUBLIC :: CatMax = 3
+
+  ! Fixed scale factor ID for 'dummy' scale factor of zero. 
+  ! Internally used to let an emission field cover multiple
+  ! emission categories at once. The scale factor here must not
+  ! be used in the HEMCO configuration file, otherwise HEMCO will
+  ! exit with an error.
+  INTEGER, PARAMETER,     PUBLIC :: ZeroScalID = 65123
 !
 ! !PRIVATE TYPES:
 !

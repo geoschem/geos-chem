@@ -1,6 +1,3 @@
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
 !BOP
 !
 ! !MODULE: hco_config_mod.F90
@@ -71,11 +68,15 @@ MODULE HCO_Config_Mod
   PRIVATE :: Register_Scal
   PRIVATE :: ReadAndSplit_Line
   PRIVATE :: Config_GetSpecAttr
+  PRIVATE :: BracketCheck 
+  PRIVATE :: AddZeroScal 
+  PRIVATE :: AddShadowFields
 !
 ! !REVISION HISTORY:
-!  18 Jun 2013 - C. Keller: Initialization
+!  18 Jun 2013 - C. Keller   -  Initialization
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  15 Feb 2015 - C. Keller   - Added BracketCheck, AddZeroScal, AddShadowFields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -272,6 +273,10 @@ CONTAINS
        RETURN 
     ENDIF 
 
+    ! If needed, read 'dummy' scale factor of zero
+
+
+
     ! Configuration file is now read
     IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
        ConfigFileRead = .TRUE.
@@ -387,9 +392,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : ExtNrInUse, GetExtOpt, CoreNr
+    USE HCO_EXTLIST_MOD,  ONLY : ExtNrInUse
     USE HCO_TIDX_Mod,     ONLY : HCO_ExtractTime
     USE HCO_FILEDATA_Mod, ONLY : FileData_Init
+    USE HCO_DATACONT_Mod, ONLY : CatMax, ZeroScalID
 !
 ! !INPUT PARAMETERS: 
 !
@@ -416,25 +422,17 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Maximum number of nested brackets
-    INTEGER, PARAMETER        :: MAXBRACKNEST = 5
-
     ! Scalars
+    INTEGER                   :: I, N
+    INTEGER                   :: nScl
     INTEGER                   :: STAT
     INTEGER                   :: Int1
     INTEGER                   :: Int2
     INTEGER                   :: Int3
     INTEGER                   :: Int4
-    INTEGER                   :: N
-    INTEGER                   :: STRLEN
-    INTEGER                   :: NEST
-    INTEGER                   :: SKIPLEVEL
-    LOGICAL                   :: InSkipBracket
-    LOGICAL                   :: FOUND
-    LOGICAL                   :: UseBracket
-    LOGICAL                   :: verb
-    CHARACTER(LEN=255)        :: AllBrackets(MAXBRACKNEST)
-    CHARACTER(LEN=255)        :: TmpBracket
+    INTEGER                   :: nCat
+    INTEGER                   :: Cats(CatMax)
+    LOGICAL                   :: SKIP
     CHARACTER(LEN= 31)        :: cName
     CHARACTER(LEN=255)        :: srcFile
     CHARACTER(LEN= 31)        :: srcVar
@@ -444,6 +442,7 @@ CONTAINS
     CHARACTER(LEN= 31)        :: srcUnit
     CHARACTER(LEN= 31)        :: SpcName 
     CHARACTER(LEN=255)        :: Char1
+    CHARACTER(LEN=255)        :: Char2
     CHARACTER(LEN=255)        :: LOC, MSG 
     CHARACTER(LEN=255)        :: LINE
 
@@ -452,6 +451,7 @@ CONTAINS
 
     ! Pointers
     TYPE(ListCont), POINTER   :: Lct => NULL()
+    TYPE(ListCont), POINTER   :: Tmp => NULL()
     TYPE(FileData), POINTER   :: Dta => NULL() 
 
     !=================================================================
@@ -461,14 +461,9 @@ CONTAINS
     ! Enter
     LOC = 'Config_ReadCont (hco_config_mod.F90)'
 
-    ! Verbose check
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
-
     ! Initialize
-    AllBrackets(:) = ''
-    InSkipBracket  = .FALSE.
-    NEST           = 0
-    SKIPLEVEL      = 0
+    SKIP           = .FALSE.
+    nCat           = -1
 
     ! Repeat until end of the given section is found 
     DO
@@ -485,7 +480,8 @@ CONTAINS
                                    srcTime,   5,      TmCycle,  6,  &
                                    srcDim,    7,      srcUnit,  8,  &
                                    SpcName,   9,      Char1,   10,  &
-                                   Int1,     11,      Int2,    12,  &
+                                   Char2,    11,                    &
+                                   Int1,     -1,      Int2,    12,  &
                                    Int3,      1,      STAT,         &
                                    OutLine=LINE                      )
 
@@ -495,6 +491,7 @@ CONTAINS
                                    srcTime,   5,      TmCycle,  6,  &
                                    srcDim,    7,      srcUnit,  8,  &
                                    SpcName,  -1,      Char1,   -1,  &
+                                   Char2,    -1,                    &
                                    Int1,      1,      Int2,     9,  &
                                    Int3,     10,      STAT,         &
                                    optcl=10                          )
@@ -505,6 +502,7 @@ CONTAINS
                                    srcTime,   5,      TmCycle,  6,  &
                                    srcDim,    7,      srcUnit,  8,  &
                                    SpcName,  -1,      Char1,   10,  &
+                                   Char2,    -1,                    &
                                    Int1,      1,      Int2,     9,  &
                                    Int3,     -1,      STAT           )
        ENDIF
@@ -541,109 +539,16 @@ CONTAINS
        ! -------------------------------------------------------------
        IF ( DctType == 1 ) THEN
 
-          ! Get name of this bracket
-          IF ( STAT == 5 .OR. STAT == 6 ) THEN
-             STRLEN     = LEN(LINE)
-             IF ( STRLEN < 4 ) THEN
-                CALL HCO_ERROR ( 'Illegal bracket length: '//TRIM(LINE), &
-                                 RC, THISLOC=LOC )
-                RETURN 
-             ELSE
-                TmpBracket = TRIM(LINE(4:STRLEN))
-             ENDIF
-          ENDIF
-
-          ! Open a bracket. Save out the bracket name in the list of all
-          ! opened brackets. This is primarily to ensure that every opening
-          ! brackets is properly closed. Only register it as skipping bracket
-          ! if needed. 
-          IF ( STAT == 5 ) THEN
-
-             ! Archive bracket name
-             NEST = NEST + 1
-             IF ( NEST > MAXBRACKNEST ) THEN
-                MSG = 'Too many nested brackets'
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF
-             AllBrackets(NEST) = TmpBracket
-
-             ! Check if this bracket content shall be skipped. Always skip
-             ! if this is a nested bracket in an already skipped bracket. 
-             IF ( .NOT. InSkipBracket ) THEN
-
-                ! Check if this bracket has been registered as being used.
-                ! Scan all extensions, including the core one.
-                CALL GetExtOpt( -999, TRIM(TmpBracket), &
-                   OptValBool=UseBracket, FOUND=FOUND, RC=RC )
-                IF ( RC /= HCO_SUCCESS ) RETURN
-
-                ! If bracket name not found in options, skip content.
-                IF ( .NOT. FOUND ) THEN
-                   InSkipBracket = .TRUE.
-
-                ! Use value defined in HEMCO configuration file.
-                ELSE
-                   InSkipBracket = .NOT. UseBracket
-                ENDIF
-          
-                ! testing only
-                write(*,*) 'UseBracket: ', TRIM(TmpBracket), FOUND, InSkipBracket 
-
-                ! If bracket is skipped, adjust skip level accordingly.
-                ! This is so that we know when it's time to flip back to
-                ! a bracket that is being used (if brackets are nested). 
-                IF ( InSkipBracket ) THEN
-                   SKIPLEVEL = NEST
-                ENDIF 
-             ENDIF
-
-             ! Verbose mode
-!             IF ( verb ) THEN
-                MSG = 'Opened shortcut bracket: '//TRIM(TmpBracket)
-                CALL HCO_MSG(MSG)
-                WRITE(MSG,*) ' - Skip content of this bracket: ', InSkipBracket
-                CALL HCO_MSG(MSG)
-!             ENDIF
-          ENDIF
-
-          ! Close a bracket
-          IF ( STAT == 6 ) THEN
-
-             ! This must be the latest opened bracket
-             IF ( TRIM(TmpBracket) /= TRIM(AllBrackets(NEST)) ) THEN
-                MSG = 'Closing bracket does not match opening bracket: '// &
-                   TRIM(TmpBracket)//', expected: '//TRIM(AllBrackets(NEST))
-                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-                RETURN
-             ENDIF       
-
-             ! If that was the latest opened bracket that was disabled 
-             IF ( SKIPLEVEL == NEST ) THEN
-                InSkipBracket = .FALSE.
-             ENDIF
-  
-             ! Update nesting level
-             AllBrackets(NEST) = ''
-             NEST              = NEST - 1
-
-             ! Verbose mode
-!             IF ( verb ) THEN
-                MSG = 'Closed shortcut bracket: '//TRIM(TmpBracket)
-                write(*,*) trim(msg)
-                CALL HCO_MSG(MSG)
-                WRITE(MSG,*) ' - Skip following lines: ', InSkipBracket
-                CALL HCO_MSG(MSG)
-                write(*,*) trim(msg)
-!             ENDIF
-          ENDIF
-          
-          ! Skip here if we are in a bracket that is not being used
-          IF ( InSkipBracket ) CYCLE
+          CALL BracketCheck( am_I_Root, STAT, LINE, SKIP, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+          ! Skip if needed
+          IF ( SKIP ) CYCLE
 
           ! Can advance to next line if this was a bracket line: nothing
           ! else to do with this line.
           IF ( STAT == 5 .OR. STAT == 6 ) CYCLE
+
        ENDIF
 
        ! Output status should be 0 if none of the statuses above applies 
@@ -681,18 +586,28 @@ CONTAINS
           ! Set species name, extension number, emission category, 
           ! hierarchy
           Lct%Dct%SpcName       = SpcName 
-          Lct%Dct%Cat           = Int1
           Lct%Dct%Hier          = Int2
           Lct%Dct%ExtNr         = Int3
+
+          ! Extract category from character 2. This can be up to 
+          ! CatMax integers, or empty. 
+          CALL HCO_CharSplit( Char2, HCO_SEP(), HCO_WCD(), Cats, nCat, RC ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( nCat == 0 ) THEN
+             Lct%Dct%Cat = -999
+          ELSE
+             Lct%Dct%Cat = Cats(1)
+          ENDIF
 
           ! Set scale factor IDs into Scal_cID. These values will be
           ! replaced lateron with the container IDs (in register_base)!
           ! Note: SplitInts is of same lenghth SclMax as Scal_cID.
           ALLOCATE ( Lct%Dct%Scal_cID(SclMax) )
+          Lct%Dct%Scal_cID(:) = -999
           CALL HCO_CharSplit( Char1, HCO_SEP(), HCO_WCD(), &
-                              SplitInts, N, RC )
+                              SplitInts, nScl, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          Lct%Dct%Scal_cID(1:SclMax) = SplitInts(1:SclMax)
+          Lct%Dct%Scal_cID(1:nScl) = SplitInts(1:nScl)
 
           ! Register species name. A list of all species names can be
           ! returned to the atmospheric model to match HEMCO species 
@@ -840,6 +755,23 @@ CONTAINS
        ! Connect file data object of this data container.
        Lct%Dct%Dta => Dta
 
+       ! If a base emission field covers multiple emission categories,
+       ! create a 'shadow' container for each additional category.
+       ! These shadow container have the same information as the main 
+       ! container except that a scale factor of zero will be applied in 
+       ! addition. This makes sure that the inventory cancels out other
+       ! inventories with lower hierarchy for every specified category,
+       ! while emission totals are not changed. All emissions of a base
+       ! field with multiple categories is written into the category
+       ! listed first. 
+       IF ( nCat > 1 ) THEN
+          CALL AddShadowFields( am_I_Root, Lct, Cats, nCat, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Reset nCat
+          nCat = -1
+       ENDIF
+
        ! Free list container for next cycle
        Lct => NULL()
     ENDDO
@@ -849,6 +781,387 @@ CONTAINS
     RC  =  HCO_SUCCESS 
 
   END SUBROUTINE Config_ReadCont
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: BracketCheck
+!
+! !DESCRIPTION: Subroutine BracketCheck checks if base emission data is within
+! a bracket and if that field shall be ignored or not. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE BracketCheck( am_I_Root, STAT, LINE, SKIP, RC )
+!
+! !USES:
+!
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN)            :: am_I_Root   ! root CPU?
+    INTEGER, INTENT(IN)            :: STAT        ! 
+    CHARACTER(LEN=*), INTENT(IN)   :: LINE        ! 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL, INTENT(INOUT)         :: SKIP        ! Skip 
+    INTEGER, INTENT(INOUT)         :: RC          ! Success/failure
+!
+! !REVISION HISTORY:
+!  15 Feb 2015 - C. Keller   - Initial version.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Maximum number of nested brackets
+    INTEGER, PARAMETER            :: MAXBRACKNEST = 5
+    INTEGER                       :: STRLEN
+    LOGICAL                       :: FOUND
+    LOGICAL                       :: UseBracket
+    LOGICAL                       :: verb
+    INTEGER, SAVE                 :: NEST      = 0
+    INTEGER, SAVE                 :: SKIPLEVEL = 0
+    CHARACTER(LEN=255), SAVE      :: AllBrackets(MAXBRACKNEST) = ''
+    CHARACTER(LEN=255)            :: MSG, TmpBracket
+
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'BracketCheck (hco_config_mod.F90)'
+
+    !======================================================================
+    ! BracketCheck begins here
+    !======================================================================
+
+    ! Init
+    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+
+    ! Get name of this bracket
+    IF ( STAT == 5 .OR. STAT == 6 ) THEN
+       STRLEN     = LEN(LINE)
+       IF ( STRLEN < 4 ) THEN
+          CALL HCO_ERROR ( 'Illegal bracket length: '//TRIM(LINE), &
+                           RC, THISLOC=LOC )
+          RETURN 
+       ELSE
+          TmpBracket = TRIM(LINE(4:STRLEN))
+       ENDIF
+    ENDIF
+
+    ! Open a bracket. Save out the bracket name in the list of all
+    ! opened brackets. This is primarily to ensure that every opening
+    ! brackets is properly closed. Only register it as skipping bracket
+    ! if needed. 
+    IF ( STAT == 5 ) THEN
+
+       ! Archive bracket name
+       NEST = NEST + 1
+       IF ( NEST > MAXBRACKNEST ) THEN
+          MSG = 'Too many nested brackets'
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+       AllBrackets(NEST) = TmpBracket
+
+       ! Check if this bracket content shall be skipped. Always skip
+       ! if this is a nested bracket in an already skipped bracket. 
+       IF ( .NOT. SKIP ) THEN
+
+          ! Check if this bracket has been registered as being used.
+          ! Scan all extensions, including the core one.
+          CALL GetExtOpt( -999, TRIM(TmpBracket), &
+             OptValBool=UseBracket, FOUND=FOUND, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! If bracket name not found in options, skip content.
+          IF ( .NOT. FOUND ) THEN
+             MSG = 'This data collection is not defined - skip: '// &
+                   TRIM(TmpBracket)
+             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+             SKIP = .TRUE.
+
+          ! Use value defined in HEMCO configuration file.
+          ELSE
+            SKIP = .NOT. UseBracket
+          ENDIF
+
+          ! If bracket is skipped, adjust skip level accordingly.
+          ! This is so that we know when it's time to flip back to
+          ! a bracket that is being used (if brackets are nested). 
+          IF ( SKIP ) THEN
+             SKIPLEVEL = NEST
+          ENDIF 
+       ENDIF
+
+       ! Verbose mode
+       IF ( verb ) THEN
+          MSG = 'Opened shortcut bracket: '//TRIM(TmpBracket)
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) ' - Skip content of this bracket: ', SKIP 
+          CALL HCO_MSG(MSG)
+       ENDIF
+    ENDIF
+
+    ! Close a bracket
+    IF ( STAT == 6 ) THEN
+
+       ! This must be the latest opened bracket
+       IF ( TRIM(TmpBracket) /= TRIM(AllBrackets(NEST)) ) THEN
+          MSG = 'Closing bracket does not match opening bracket: '// &
+             TRIM(TmpBracket)//', expected: '//TRIM(AllBrackets(NEST))
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF       
+
+       ! If that was the latest opened bracket that was disabled 
+       IF ( SKIPLEVEL == NEST ) THEN
+          SKIP = .FALSE.
+       ENDIF
+  
+       ! Update nesting level
+       AllBrackets(NEST) = ''
+       NEST              = NEST - 1
+
+       ! Verbose mode
+       IF ( verb ) THEN
+          MSG = 'Closed shortcut bracket: '//TRIM(TmpBracket)
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) ' - Skip following lines: ', SKIP 
+          CALL HCO_MSG(MSG)
+       ENDIF
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE BracketCheck
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: AddShadowFields
+!
+! !DESCRIPTION: Subroutine AddShadowFields adds a shadow container for every
+! additional category of a base emission field. These container contain the 
+! same container as the 'mother' container, but an additional scale factor
+! of zero will be applied to them. This makes sure that no additional emissions
+! are created by the virtue of the shadow container.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE AddShadowFields( am_I_Root, Lct, Cats, nCat, RC )
+!
+! !USES:
+!
+    USE HCO_DATACONT_MOD,  ONLY : CatMax, ZeroScalID
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)     :: am_I_Root    ! root CPU?
+    TYPE(ListCont), POINTER        :: Lct          ! List container of interest 
+    INTEGER,        INTENT(IN)     :: Cats(CatMax) ! Category numbers
+    INTEGER,        INTENT(IN)     :: nCat         ! number of categories
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT)  :: RC           ! Success/failure
+!
+! !REVISION HISTORY:
+!  15 Feb 2015 - C. Keller   - Initial version.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL                       :: verb
+    INTEGER                       :: I, N
+    TYPE(ListCont), POINTER       :: Shd => NULL()
+    CHARACTER(LEN=255)            :: MSG
+    CHARACTER(LEN=5)              :: C5
+
+    CHARACTER(LEN=255), PARAMETER :: LOC   = 'AddShadowFields (hco_config_mod.F90)'
+
+    !======================================================================
+    ! AddShadowFields begins here
+    !======================================================================
+
+    ! Nothing to do if ncat is only 1
+    IF ( nCat <= 1 ) THEN
+       RC = HCO_SUCCESS
+       RETURN
+    ENDIF
+
+    ! Init
+    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+
+    ! Get number of currently used scale factors
+    N = 0
+    DO I = 1, SclMax 
+       IF ( Lct%Dct%Scal_cID(I) < 0 ) EXIT
+       N = N + 1
+    ENDDO
+
+    ! There has to be space for scale factor zero.
+    IF ( N >= SclMax ) THEN
+       MSG = 'Cannot add shadow scale factor (zeros) - : ' // &
+             'All scale factors already used: ' // TRIM(Lct%Dct%cName)
+       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! Create 'shadow' container for every additional category.
+    ! Add scale factor zero to it, so that emissions will all be zero.
+    DO I = 2, nCat 
+
+       ! Create new data container
+       CALL ConfigList_AddCont ( Shd, ConfigList )
+
+       ! Character of category
+       Write(C5,'(I5.5)') Cats(I)
+ 
+       ! Shadow variables. Append category name to name
+       Shd%Dct%DctType       = Lct%Dct%DctType
+       Shd%Dct%cName         = TRIM(Lct%Dct%cName) // '_Cat' // TRIM(C5)
+       Shd%Dct%SpcName       = Lct%Dct%SpcName 
+       Shd%Dct%Hier          = Lct%Dct%Hier 
+       Shd%Dct%ExtNr         = Lct%Dct%ExtNr
+       Shd%Dct%Cat           = Cats(I)
+
+       ! Pass scale factors, add scale factor of zero to it
+       ALLOCATE ( Shd%Dct%Scal_cID(SclMax) )
+       Shd%Dct%Scal_cID(:) = -999
+       IF ( N > 0 ) THEN
+          Shd%Dct%Scal_cID(1:N) = Lct%Dct%Scal_cID(1:N)
+       ENDIF       
+       Shd%Dct%Scal_cID(N+1) = ZeroScalID
+
+       ! Connect to data from main container. Make sure the new container
+       ! is not identified as the home container (only points to the file
+       ! data container of another data container. 
+       Shd%Dct%DtaHome =  Shd%Dct%DtaHome - 1
+       Shd%Dct%Dta     => Lct%Dct%Dta
+
+       ! verbose mode
+       IF ( verb ) THEN
+          MSG = 'Created shadow base emission field: ' // TRIM(Shd%Dct%cName)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+       ! Cleanup
+       Shd => NULL()
+    ENDDO !I
+
+    ! Add zero scale factor container 
+    CALL AddZeroScal( am_I_Root, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE AddShadowFields 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: AddZeroScal 
+!
+! !DESCRIPTION: Subroutine AddZeroScal adds a scale factor of zero to the 
+! configuration container list. This scale factor is an internal scale factor
+! used in combination with the 'shadow' containers. Its scale factor ID is
+! defined in Hco\_DataCont\_Mod and must not be used otherwise, e.g. there 
+! must not be another scale factor in the HEMCO configuration file with the
+! same scale factor ID. Otherwise, HEMCO will create an error lateron. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE AddZeroScal( am_I_Root, RC )
+!
+! !USES:
+!
+    USE HCO_DATACONT_MOD,  ONLY : ZeroScalID 
+    USE HCO_FILEDATA_MOD,  ONLY : FileData_Init
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN)            :: am_I_Root   ! root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT)         :: RC          ! Success/failure
+!
+! !REVISION HISTORY:
+!  15 Feb 2015 - C. Keller   - Initial version.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(ListCont), POINTER       :: Lct => NULL()
+    TYPE(FileData), POINTER       :: Dta => NULL() 
+    CHARACTER(LEN=255)            :: MSG
+
+    LOGICAL,            SAVE      :: FIRST = .TRUE.
+    CHARACTER(LEN=255), PARAMETER :: LOC   = 'AddZeroScal (hco_config_mod.F90)'
+
+    !======================================================================
+    ! AddZeroScal begins here
+    !======================================================================
+
+    ! Only do on first call
+    IF ( FIRST ) THEN
+
+       ! Add new container to configuration list and set data container
+       ! attributes. 
+       CALL ConfigList_AddCont ( Lct, ConfigList )
+       Lct%Dct%DctType      = 2
+       Lct%Dct%cName        = 'DUMMYSCALE_ZERO' 
+       Lct%Dct%ScalID       = ZeroScalID 
+       Lct%Dct%Oper         = 1
+
+       ! Create new file data container and fill it with values. 
+       CALL FileData_Init ( Dta )
+       Dta%ncFile    = '0.0'
+       Dta%ncPara    = '-'
+       Dta%OrigUnit  = 'unitless'
+       Dta%CycleFlag = 1
+       Dta%SpaceDim  = 2
+       Dta%ncRead    = .FALSE.
+       Dta%IsLocTime = .TRUE.
+
+       ! Connect data container
+       Lct%Dct%Dta => Dta
+
+       ! verbose mode
+       IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
+          MSG = 'Created a fake scale factor with zeros'
+          CALL HCO_MSG(MSG)
+          MSG = 'This field will be used to artificially expand ' // &
+                'over multiple emission categories'
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+       ! Cleanup
+       Lct => NULL()
+       Dta => NULL()
+    ENDIF
+
+    ! Return w/ success
+    FIRST = .FALSE.
+    RC    = HCO_SUCCESS
+
+  END SUBROUTINE AddZeroScal
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1483,7 +1796,7 @@ CONTAINS
 
        ! Negative targetID is assigned to base data that doesn't need 
        ! to be considered either because it's a regional inventory
-       ! with no spatial overlap with the region domain on this CPU
+       ! with no spatial overlap with the region domain on this CPU,
        ! or because there exist another inventory with higher 
        ! priority (and same category) that will overwrite these 
        ! emissions data anyway!
@@ -2093,6 +2406,7 @@ CONTAINS
                                 char4,   chr4cl,  char5, chr5cl, &
                                 char6,   chr6cl,  char7, chr7cl, &
                                 char8,   chr8cl,  char9, chr9cl, &
+                                char10,  chr10cl,                &
                                 int1,    int1cl,  int2,  int2cl, &
                                 int3,    int3cl,  STAT,  inLine, &
                                 outLine, optcl                    )
@@ -2114,6 +2428,7 @@ CONTAINS
     INTEGER,            INTENT(IN   )           :: chr7cl
     INTEGER,            INTENT(IN   )           :: chr8cl
     INTEGER,            INTENT(IN   )           :: chr9cl
+    INTEGER,            INTENT(IN   )           :: chr10cl
     INTEGER,            INTENT(IN   )           :: int1cl
     INTEGER,            INTENT(IN   )           :: int2cl
     INTEGER,            INTENT(IN   )           :: int3cl
@@ -2131,6 +2446,7 @@ CONTAINS
     CHARACTER(LEN=*),   INTENT(INOUT)           :: char7
     CHARACTER(LEN=*),   INTENT(INOUT)           :: char8
     CHARACTER(LEN=*),   INTENT(INOUT)           :: char9
+    CHARACTER(LEN=*),   INTENT(INOUT)           :: char10
     INTEGER,            INTENT(INOUT)           :: int1
     INTEGER,            INTENT(INOUT)           :: int2
     INTEGER,            INTENT(INOUT)           :: int3
@@ -2192,14 +2508,14 @@ CONTAINS
     ENDIF
 
     ! Return here with flag = 5 is line is opening a (shortcut) bracket.
-    IF ( LEN(TRIM(LINE)) >= 3 ) THEN
-       IF ( LINE(1:3) == '<<<' ) THEN
+    IF ( LEN(TRIM(LINE)) > 3 ) THEN
+       IF ( LINE(1:3) == '(((' ) THEN
           STAT = 5
           RETURN
        ENDIF 
 
        ! Return here with flag = 6 is line is opening a (shortcut) bracket.
-       IF ( LINE(1:3) == '>>>' ) THEN
+       IF ( LINE(1:3) == ')))' ) THEN
           STAT = 6
           RETURN
        ENDIF 
@@ -2226,23 +2542,25 @@ CONTAINS
     ! Read characters as specified and write them into given variables 
     ! ---------------------------------------------------------------------
 
-    CALL READCHAR( LINE, SUBSTR, N, chr1cl, char1, OPT, STAT )
+    CALL READCHAR( LINE, SUBSTR, N, chr1cl,  char1,  OPT, STAT )
     IF ( STAT == 100 ) RETURN 
-    CALL READCHAR( LINE, SUBSTR, N, chr2cl, char2, OPT, STAT )
+    CALL READCHAR( LINE, SUBSTR, N, chr2cl,  char2,  OPT, STAT )
     IF ( STAT == 100 ) RETURN 
-    CALL READCHAR( LINE, SUBSTR, N, chr3cl, char3, OPT, STAT )
+    CALL READCHAR( LINE, SUBSTR, N, chr3cl,  char3,  OPT, STAT )
     IF ( STAT == 100 ) RETURN 
-    CALL READCHAR( LINE, SUBSTR, N, chr4cl, char4, OPT, STAT )
+    CALL READCHAR( LINE, SUBSTR, N, chr4cl,  char4,  OPT, STAT )
     IF ( STAT == 100 ) RETURN 
-    CALL READCHAR( LINE, SUBSTR, N, chr5cl, char5, OPT, STAT )
+    CALL READCHAR( LINE, SUBSTR, N, chr5cl,  char5,  OPT, STAT )
     IF ( STAT == 100 ) RETURN 
-    CALL READCHAR( LINE, SUBSTR, N, chr6cl, char6, OPT, STAT )
+    CALL READCHAR( LINE, SUBSTR, N, chr6cl,  char6,  OPT, STAT )
     IF ( STAT == 100 ) RETURN 
-    CALL READCHAR( LINE, SUBSTR, N, chr7cl, char7, OPT, STAT )
+    CALL READCHAR( LINE, SUBSTR, N, chr7cl,  char7,  OPT, STAT )
     IF ( STAT == 100 ) RETURN 
-    CALL READCHAR( LINE, SUBSTR, N, chr8cl, char8, OPT, STAT )
+    CALL READCHAR( LINE, SUBSTR, N, chr8cl,  char8,  OPT, STAT )
     IF ( STAT == 100 ) RETURN 
-    CALL READCHAR( LINE, SUBSTR, N, chr9cl, char9, OPT, STAT )
+    CALL READCHAR( LINE, SUBSTR, N, chr9cl,  char9,  OPT, STAT )
+    IF ( STAT == 100 ) RETURN 
+    CALL READCHAR( LINE, SUBSTR, N, chr10cl, char10, OPT, STAT )
     IF ( STAT == 100 ) RETURN 
 
     ! ---------------------------------------------------------------------
