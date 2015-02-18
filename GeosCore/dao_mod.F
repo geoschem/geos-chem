@@ -288,8 +288,8 @@
 !  (4)  PEDGE_DRY (REAL(fp)) : Dry air partial pressure at box bottom  [hPa]
 !  (5)  DELP_DRY  (REAL(fp)) : Dry delta-P extent of grid box          [hPa]
 !  (6)  PMID_DRY  (REAL(fp)) : Dry air partial pressure at box center  [hPa]
-!  (7)  MAIRDEN   (REAL(fp)) : Density of moist air in grid box     [kg/m^3]
-!  (8)  AIRDEN    (REAL(fp)) : Density of dry air in grid box       [kg/m^3]
+!  (7)  AIRDEN    (REAL(fp)) : Density of dry air in grid box       [kg/m^3]
+!  (8)  MAIRDEN   (REAL(fp)) : Density moist dry air in grid box    [kg/m^3]
 !  (9)  AD        (REAL(fp)) : Mass of dry air in grid box              [kg]
 !  (10) BXHEIGHT  (REAL(fp)) : Vertical extent of air (dry) in grid box  [m]   
 !  (11) AIRVOL    (REAL(fp)) : Volume  of dry air in grid box          [m^3]
@@ -341,7 +341,7 @@
 !                              type object
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%DELP(I,J,L)
-!  07 Jan 2015 - E. Lundgren - Add new Met field moist air density
+!  07 Jan 2015 - E. Lundgren - Add new Met field MAIRDEN (moist air density)
 !  13 Feb 2015 - E. Lundgren - Add new Met fields for dry air pressure and
 !                              change pressure-dependent quantities to use them
 !EOP

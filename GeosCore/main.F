@@ -249,9 +249,7 @@
 !  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
 !  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
-!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers. Change primary
-!                              tracer units to kg tracer/kg dry air. Remove
-!                              legacy CONVERT_UNITS subroutine calls.
+!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,11 +314,6 @@
       !
       LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
       !
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      !
-!      REAL(fpp),  POINTER       :: STT(:,:,:,:)
-      !
       ! Define shadow variables for fields in Input_Opt (bmy, 6/25/14)
       LOGICAL                  :: ITS_A_FULLCHEM_SIM 
       LOGICAL                  :: ITS_A_CH4_SIM
@@ -355,8 +348,6 @@
       LOGICAL                  :: LWINDO
       LOGICAL                  :: USE_OLSON_2001
       INTEGER                  :: N_TRACERS 
-!      REAL(fpp),  POINTER       :: TCVV(:)
-!      REAL(fpp),  POINTER       :: XNUMOL(:)  ! temporary for unitconv testing
       !-----------------------------------------------------------------
 
       !=================================================================
@@ -469,7 +460,6 @@
       LWINDO              =  Input_Opt%LWINDO
       USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
       N_TRACERS           =  Input_Opt%N_TRACERS  
-!      TCVV                => Input_Opt%TCVV
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
@@ -523,16 +513,11 @@
       ! N_TRACERS, which is obtained by reading the input.geos file.
       !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
-      !
-!      ! Define STT array from Chemistry State object.  This
-!      ! allows us to keep existing code intact. (mpayer, 12/6/12)
-!      STT               => State_Chm%Tracers
 
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field.  This will let us convert
       ! HEMCO emissions [kg/m2/s] to [kg] in various routines 
       ! without the overhead of many function calls. (bmy, 8/22/14)
-      ! REMOVE??? (elundgren, 2/15/15)
       State_Met%AREA_M2 =  AREA_M2
 
       !-----------------------------------------------------------------
@@ -662,14 +647,6 @@
       CALL READ_RESTART_FILE( NYMDb,     NHMSb, 
      &                        Input_Opt, State_Met, State_Chm )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
-
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!      ! TEMPORARY - ewl, 2/17/15
-!      ! Immediately convert from kg/kg to kg for testing purposes
-!      ! Note: This currently depends on AREA_M2 through AIRQNT.
-!      CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
-!     &                        State_Chm%TRACERS )
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
@@ -1080,7 +1057,7 @@
          ! Compute airmass quantities at each grid box 
          CALL AIRQNT( am_I_Root, State_Met, RC )
 
-         ! SDE 05/28/13: Set H2O to STT if relevant
+         ! SDE 05/28/13: Set H2O to tracer if relevant
          IF (IDTH2O.ne.0) THEN
             CALL SET_H2O_TRAC( (( .not. LUCX ) .or. LSETH2O ),
      &                         Input_Opt, State_Met, State_Chm )
@@ -1112,157 +1089,18 @@
          ! Get the overhead column O3 for use with FAST-J
          CALL GET_OVERHEAD_O3_FOR_FASTJ( am_I_Root )
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Legacy Code
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          !==============================================================
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN
-            CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, State_Met%AD, STT )
+            CALL CONVERT_UNITS( 1,  N_TRACERS, Input_Opt%TCVV, 
+     &                          State_Met%AD, State_Chm%TRACERS )
 
             !### Debug
             IF ( prtDebug ) THEN 
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
             ENDIF
          ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! End Legacy Code 
-! Expecting vol/vol starts here (ewl/18/2015)
-! Before this point, main.F has tracers in kg.
-! Goal is to have everything expecting kg/kg.
-! Have a moving conversion from kg to kg/kg starting here.
-! All calls within the moving block are updated to accept kg/kg.
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-!         !==============================================================
-!         !   ***** NEW UNIT CONVERSION SUBROUTINE TESTING *****
-!         !   *****         TEMPORARY CODE STARTS HERE     *****
-!         !==============================================================
-!         
-!         IF ( ITS_TIME_FOR_UNIT() ) THEN
-!
-!            PRINT *, " "
-!            PRINT *, "Concentrations at grid point (25,25,2):"
-!            PRINT *, "  vol/vol: "
-!            PRINT *, "    Rn:    ", STT(25,25,2,1)
-!            PRINT *, "    Pb:    ", STT(25,25,2,2)
-!            PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!           ! Change units: vol/vol -> mass mixing ratio
-!           CALL Convert_VR_to_MMR( N_TRACERS, TCVV, STT )
-!
-!           !### Debug
-!           IF ( prtDebug ) THEN 
-!              CALL DEBUG_MSG( '### MAIN: a Convert_VR_to_MMR' )
-!           ENDIF   
-!
-!           PRINT *, "  kg/kg: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!          ! Change units: mass mixing ratio -> molecules /cm3 (Molec # dens)
-!          CALL Convert_MMR_to_MND( N_TRACERS, State_Met%AIRDEN, 
-!     &                               XNUMOL, STT )
-!
-!          !### Debug
-!          IF ( prtDebug ) THEN 
-!             CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_MND' )
-!          ENDIF
-!
-!           PRINT *, "  Convert to molecules/cm3 using:"
-!           PRINT *, "    XNUMOL:"
-!           PRINT *, "      Rn:    ", XNUMOL(1)
-!           PRINT *, "      Pb:    ", XNUMOL(2)
-!           PRINT *, "      Be7:   ", XNUMOL(3)
-!           PRINT *, "    AIRDEN(25,25,2) [kg/m3]:"
-!           PRINT *, "      ", State_Met%AIRDEN(25,25,2)
-!           PRINT *, "  Resultant molecules/cm3: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!          ! Change units: molecules / cm3 -> mass mixing ratio
-!          CALL Convert_MND_to_MMR( N_TRACERS, State_Met%AIRDEN, 
-!     &                               XNUMOL, STT )
-!
-!          !### Debug
-!          IF ( prtDebug ) THEN 
-!             CALL DEBUG_MSG( '### MAIN: a Convert_MND_to_MMR' )
-!          ENDIF
-!
-!           PRINT *, "  kg/kg: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!          ! Change units: mass mixing ratio -> kg
-!          CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, STT )
-!
-!          !### Debug
-!          IF ( prtDebug ) THEN 
-!             CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_KG' )
-!          ENDIF
-!
-!          ! DEBUGGING
-!!!!           ! OLD UNIT CONVERSION FOR COMPARISON TESTING
-!!!!           CALL CONVERT_UNITS( 2,  N_TRACERS, TCVV, State_Met%AD, STT )
-!          ! END DEBUGGING
-!
-!           PRINT *, "  Convert to kg using:"
-!           PRINT *, "    AD(25,25,2) [m3]:"
-!           PRINT *, "     ", State_Met%AD(25,25,2)
-!           PRINT *, "  Resultant kg: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!           ! Change units: kg -> mass mixing ratio
-!           CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, STT )
-!
-!           !### Debug
-!           IF ( prtDebug ) THEN 
-!              CALL DEBUG_MSG( '### MAIN: a Convert_KG_to_MMR' )
-!           ENDIF
-!
-!           PRINT *, "  kg/kg: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!           ! Change units: mass mixing ratio -> vol/vol
-!           CALL Convert_MMR_to_VR( N_TRACERS, TCVV, STT )
-!
-!           !### Debug
-!           IF ( prtDebug ) THEN 
-!              CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_VR' )
-!           ENDIF
-!
-!          ! DEBUGGING
-!!!!           ! OLD UNIT CONVERSION FOR COMPARISON TESTING
-!!!!           CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, State_Met%AD, STT )
-!          ! END DEBUGGING
-!
-!           PRINT *, "  vol/vol: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!           PRINT *, "  "
-!
-!         ENDIF
-
-
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!! TEMPORARY - ewl, 2/17/15
-!! Convert kg to kg/kg
-!         CALL CONVERT_KG_to_MMR( N_TRACERS, State_Met%AD, 
-!     &                           State_Chm%TRACERS )
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
          !==============================================================
          !              ***** T R A N S P O R T *****
@@ -1316,14 +1154,6 @@
             CALL MAKE_RH( State_Met )
 #endif
 
-
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!! TEMPORARY - ewl, 2/17/15
-!! Convert kg/kg back to kg
-!         CALL CONVERT_MMR_to_KG( N_TRACERS, State_Met%AD, 
-!     &                           State_Chm%TRACERS )
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
 #if defined ( TOMAS )
@@ -1350,18 +1180,9 @@
          !-------------------------------
          IF ( LNLPBL .AND. ITS_TIME_FOR_EMIS() ) THEN
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Legacy Code
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             IF ( ITS_TIME_FOR_UNIT() )  ! v/v -> kg
-     &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV,
+     &         CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV,
      &                             State_Met%AD, State_Chm%TRACERS )
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! End Legacy Code - ewl, 2/17/15
-! Expecting kg starts here
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
@@ -1400,18 +1221,9 @@
                ENDIF
             !ENDIF
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Legacy Code
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             IF ( ITS_TIME_FOR_UNIT() ) ! kg -> v/v
-     &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
+     &         CALL CONVERT_UNITS( 1, N_TRACERS, Input_Opt%TCVV, 
      &                             State_Met%AD, State_Chm%TRACERS ) 
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! End Legacy Code (ewl, 2/17/15)
-! Expecting vol/vol starts here
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
             IF ( ITS_A_FULLCHEM_SIM ) THEN
@@ -1485,27 +1297,18 @@
             ENDIF 
          ENDIF 
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Legacy Code
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          !==============================================================
          !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN 
-            CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )
+            CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV, 
+     &                          State_Met%AD, State_Chm%TRACERS )
 
             !### Debug
             IF ( prtDebug ) THEN 
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
             ENDIF
          ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! End Legacy Code (ewl, 2/17/15)
-! Expecting kg starts here for the rest of main.F
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
          !-------------------------------
          ! Test for emission timestep
@@ -1587,7 +1390,7 @@
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
-            ! SDE 05/28/13: Set H2O to STT if relevant
+            ! SDE 05/28/13: Set H2O to tracer if relevant
             IF (IDTH2O.ne.0) THEN
                CALL SET_H2O_TRAC( (.not. LUCX), Input_Opt ,
      &                            State_Met,    State_Chm )
@@ -1599,7 +1402,7 @@
 
          ENDIF 
 
-         ! Check STT (yxw)   
+         ! Check STT (tracers) (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
          CALL CHECK_STT_05x0666( State_Chm, 
      &                           'end of chem section, before wetdep' )
@@ -1766,11 +1569,11 @@
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
          !==============================================================
 
-         ! Check for NaN, Negatives, Infinities in STT each time diag are
+         ! Check for NaN, Negatives, Infinities in tracers each time diag are
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
 
-         ! Sometimes STT in the stratosphere can be negative at 
+         ! Sometimes tracers in the stratosphere can be negative at 
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_STT (yxw)
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
@@ -1834,9 +1637,6 @@
       ! Close all files
       CALL CLOSE_FILES
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
-
-!      ! Free pointers (mpayer, 12/6/12)
-!      NULLIFY( STT, TCVV )
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )

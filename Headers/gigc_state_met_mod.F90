@@ -120,16 +120,19 @@ MODULE GIGC_State_Met_Mod
      !----------------------------------------------------------------------
      ! 3-D Fields                  
      !----------------------------------------------------------------------
-     REAL(fp), POINTER :: AD        (:,:,:) ! Air mass [kg]
-     REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
+     REAL(fp), POINTER :: AD        (:,:,:) ! Air mass [kg] (dry air)
      REAL(fp), POINTER :: AIRVOL    (:,:,:) ! Grid box volume [m3] (dry air)
      REAL(fp), POINTER :: AREA_M2   (:,:,:) ! Grid box surface area [cm2]
+     REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
+     REAL(fp), POINTER :: MAIRDEN   (:,:,:) ! Moist air density [kg/m3]
      REAL(fp), POINTER :: AVGW      (:,:,:) ! Mixing ratio of water vapor
      REAL(fp), POINTER :: BXHEIGHT  (:,:,:) ! Grid box height [m] (dry air)
      REAL(fp), POINTER :: CLDF      (:,:,:) ! 3-D cloud fraction [1]
      REAL(fp), POINTER :: CMFMC     (:,:,:) ! Cloud mass flux [kg/m2/s]
      REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P extent of grid box [hPa]
                                             ! (wet air)
+     REAL(fp), POINTER :: DELP_DRY  (:,:,:) ! Delta-P extent of grid box [hPa]
+                                            ! (dry air)
      REAL(fp), POINTER :: DETRAINE  (:,:,:) ! Detrainment (entrain plume)[Pa/s]
      REAL(fp), POINTER :: DETRAINN  (:,:,:) ! Detrainment (non-entr plume)[Pa/s]
      REAL(fp), POINTER :: DNDE      (:,:,:) ! Downdraft (entr plume) [Pa/s]
@@ -146,10 +149,12 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: MOISTQ    (:,:,:) ! Tendency in sp. humidity [kg/kg/s]
      REAL(fp), POINTER :: OPTD      (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: OPTDEP    (:,:,:) ! Visible optical depth [1]
-     REAL(fp), POINTER :: PEDGE     (:,:,:) ! Pressure @ level edges [Pa]
+     REAL(fp), POINTER :: PEDGE     (:,:,:) ! Pressure @ level edges [hPa]
                                             ! (wet air)
-     REAL(fp), POINTER :: PMID      (:,:,:) ! Pressure @ level centers [Pa]
+     REAL(fp), POINTER :: PEDGE_DRY (:,:,:) ! Dry air press @ level edges [hPa]
+     REAL(fp), POINTER :: PMID      (:,:,:) ! Pressure @ level centers [hPa]
                                             ! (wet air)
+     REAL(fp), POINTER :: PMID_DRY  (:,:,:) ! Dry air press @ level center [hPa]
      REAL(fp), POINTER :: PFICU     (:,:,:) ! Dwn flux ice prec:conv [kg/m2/s]
      REAL(fp), POINTER :: PFILSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
      REAL(fp), POINTER :: PFLCU     (:,:,:) ! Dwn flux liq prec:conv [kg/m2/s]
@@ -187,15 +192,6 @@ MODULE GIGC_State_Met_Mod
                                             !  (I,J) occupied by each land type
      REAL(fp), POINTER :: XLAI      (:,:,:) ! LAI per land type, this month
      REAL(fp), POINTER :: XLAI2     (:,:,:) ! LAI per land type, next month
-
-     !----------------------------------------------------------------------
-     ! 3-D Fields calculated from other Met fields        
-     !----------------------------------------------------------------------
-     REAL(fp), POINTER :: DELP_DRY  (:,:,:) ! Delta-P extent of grid box [hPa]
-                                            ! (dry air)
-     REAL(fp), POINTER :: PEDGE_DRY (:,:,:) ! Dry air press @ level edges [Pa?]
-     REAL(fp), POINTER :: PMID_DRY  (:,:,:) ! Dry air press @ level center [Pa?]
-     REAL(fp), POINTER :: MAIRDEN   (:,:,:) ! Moist air density [kg/m3]
 
 
   END TYPE MetState
