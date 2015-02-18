@@ -1144,15 +1144,14 @@
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
-            ! Reset State_Met air mass quantities
-            ! (ewl, 2/18/2015 - should this go after MAKE_RH call?)
-            CALL AIRQNT( am_I_root, State_Met, RC )
-
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
             ! Get relative humidity (after recomputing pressures)
             ! NOTE: for GEOS-5 we'll read this from disk instead
             CALL MAKE_RH( State_Met )
 #endif
+
+            ! Reset State_Met air mass quantities
+            CALL AIRQNT( am_I_root, State_Met, RC )
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
