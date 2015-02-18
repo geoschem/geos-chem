@@ -355,8 +355,6 @@
       LOGICAL                  :: LWINDO
       LOGICAL                  :: USE_OLSON_2001
       INTEGER                  :: N_TRACERS 
-!      REAL(fpp),  POINTER       :: TCVV(:)
-!      REAL(fpp),  POINTER       :: XNUMOL(:)  ! temporary for unitconv testing
       !-----------------------------------------------------------------
 
       !=================================================================
@@ -469,7 +467,6 @@
       LWINDO              =  Input_Opt%LWINDO
       USE_OLSON_2001      =  Input_Opt%USE_OLSON_2001
       N_TRACERS           =  Input_Opt%N_TRACERS  
-!      TCVV                => Input_Opt%TCVV
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
@@ -1120,7 +1117,8 @@
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN
-            CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, State_Met%AD, STT )
+            CALL CONVERT_UNITS( 1,  N_TRACERS, Input_Opt%TCVV, 
+     &                          State_Met%AD, STT )
 
             !### Debug
             IF ( prtDebug ) THEN 
@@ -1136,124 +1134,6 @@
 ! Have a moving conversion from kg to kg/kg starting here.
 ! All calls within the moving block are updated to accept kg/kg.
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-!         !==============================================================
-!         !   ***** NEW UNIT CONVERSION SUBROUTINE TESTING *****
-!         !   *****         TEMPORARY CODE STARTS HERE     *****
-!         !==============================================================
-!         
-!         IF ( ITS_TIME_FOR_UNIT() ) THEN
-!
-!            PRINT *, " "
-!            PRINT *, "Concentrations at grid point (25,25,2):"
-!            PRINT *, "  vol/vol: "
-!            PRINT *, "    Rn:    ", STT(25,25,2,1)
-!            PRINT *, "    Pb:    ", STT(25,25,2,2)
-!            PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!           ! Change units: vol/vol -> mass mixing ratio
-!           CALL Convert_VR_to_MMR( N_TRACERS, TCVV, STT )
-!
-!           !### Debug
-!           IF ( prtDebug ) THEN 
-!              CALL DEBUG_MSG( '### MAIN: a Convert_VR_to_MMR' )
-!           ENDIF   
-!
-!           PRINT *, "  kg/kg: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!          ! Change units: mass mixing ratio -> molecules /cm3 (Molec # dens)
-!          CALL Convert_MMR_to_MND( N_TRACERS, State_Met%AIRDEN, 
-!     &                               XNUMOL, STT )
-!
-!          !### Debug
-!          IF ( prtDebug ) THEN 
-!             CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_MND' )
-!          ENDIF
-!
-!           PRINT *, "  Convert to molecules/cm3 using:"
-!           PRINT *, "    XNUMOL:"
-!           PRINT *, "      Rn:    ", XNUMOL(1)
-!           PRINT *, "      Pb:    ", XNUMOL(2)
-!           PRINT *, "      Be7:   ", XNUMOL(3)
-!           PRINT *, "    AIRDEN(25,25,2) [kg/m3]:"
-!           PRINT *, "      ", State_Met%AIRDEN(25,25,2)
-!           PRINT *, "  Resultant molecules/cm3: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!          ! Change units: molecules / cm3 -> mass mixing ratio
-!          CALL Convert_MND_to_MMR( N_TRACERS, State_Met%AIRDEN, 
-!     &                               XNUMOL, STT )
-!
-!          !### Debug
-!          IF ( prtDebug ) THEN 
-!             CALL DEBUG_MSG( '### MAIN: a Convert_MND_to_MMR' )
-!          ENDIF
-!
-!           PRINT *, "  kg/kg: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!          ! Change units: mass mixing ratio -> kg
-!          CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, STT )
-!
-!          !### Debug
-!          IF ( prtDebug ) THEN 
-!             CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_KG' )
-!          ENDIF
-!
-!          ! DEBUGGING
-!!!!           ! OLD UNIT CONVERSION FOR COMPARISON TESTING
-!!!!           CALL CONVERT_UNITS( 2,  N_TRACERS, TCVV, State_Met%AD, STT )
-!          ! END DEBUGGING
-!
-!           PRINT *, "  Convert to kg using:"
-!           PRINT *, "    AD(25,25,2) [m3]:"
-!           PRINT *, "     ", State_Met%AD(25,25,2)
-!           PRINT *, "  Resultant kg: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!           ! Change units: kg -> mass mixing ratio
-!           CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, STT )
-!
-!           !### Debug
-!           IF ( prtDebug ) THEN 
-!              CALL DEBUG_MSG( '### MAIN: a Convert_KG_to_MMR' )
-!           ENDIF
-!
-!           PRINT *, "  kg/kg: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!
-!           ! Change units: mass mixing ratio -> vol/vol
-!           CALL Convert_MMR_to_VR( N_TRACERS, TCVV, STT )
-!
-!           !### Debug
-!           IF ( prtDebug ) THEN 
-!              CALL DEBUG_MSG( '### MAIN: a Convert_MMR_to_VR' )
-!           ENDIF
-!
-!          ! DEBUGGING
-!!!!           ! OLD UNIT CONVERSION FOR COMPARISON TESTING
-!!!!           CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, State_Met%AD, STT )
-!          ! END DEBUGGING
-!
-!           PRINT *, "  vol/vol: "
-!           PRINT *, "    Rn:    ", STT(25,25,2,1)
-!           PRINT *, "    Pb:    ", STT(25,25,2,2)
-!           PRINT *, "    Be7:   ", STT(25,25,2,3)
-!           PRINT *, "  "
-!
-!         ENDIF
 
 
 !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1355,7 +1235,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             IF ( ITS_TIME_FOR_UNIT() )  ! v/v -> kg
-     &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV,
+     &         CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV,
      &                             State_Met%AD, State_Chm%TRACERS )
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1405,7 +1285,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             IF ( ITS_TIME_FOR_UNIT() ) ! kg -> v/v
-     &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
+     &         CALL CONVERT_UNITS( 1, N_TRACERS, Input_Opt%TCVV, 
      &                             State_Met%AD, State_Chm%TRACERS ) 
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1493,7 +1373,8 @@
          !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN 
-            CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )
+            CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV, 
+     &                          State_Met%AD, STT )
 
             !### Debug
             IF ( prtDebug ) THEN 
@@ -1834,9 +1715,6 @@
       ! Close all files
       CALL CLOSE_FILES
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
-
-!      ! Free pointers (mpayer, 12/6/12)
-!      NULLIFY( STT, TCVV )
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
