@@ -250,36 +250,49 @@
 !
 ! !IROUTINE: airqnt
 !
-! !DESCRIPTION: Subroutine AIRQNT calculates the volume [m\^3 and cm\^3], mass 
-!  [kg], dry air density [kg/m\^3], moist air density [kg/m\^3], and pressure 
-!  thickness [hPa] of air for each grid box (I,J,L).   The quantity (surface 
-!  pressure - PTOP) [hPa] at each surface grid box (I,J) is also computed. 
+! !DESCRIPTION: Subroutine AIRQNT sets several members of State_Met (derived 
+!  type MetState), including PEDGE, DELP, PMID, PEDGE_DRY, DELP_DRY, PMID_DRY,
+!  MAIRDEN, AIRDEN, AD, BXHEIGHT, and AIRVOL. Eventually this functionality
+!  should move to gigc_state_met_mod.F90 as one or more 'set' subroutines.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AIRQNT( State_Met )
+      SUBROUTINE AIRQNT( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE GRID_MOD,             ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,         ONLY : GET_BP, GET_PEDGE, GET_PCENTER
+      USE PRESSURE_MOD      
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,  INTENT(IN)  :: am_I_Root           ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Obj for met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met  ! Obj for met fields
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
 !  ========================================================================
-!  (1 ) BXHEIGHT (REAL(fp) ) : Vertical extent of a grid box   [m       ]
-!  (2 ) DELP     (REAL(fp) ) : Delta-P extent  of a grid box   [mb      ]
-!  (3 ) AIRVOL   (REAL(fp) ) : Volume  of air  in a grid box   [m^3     ]
-!  (4 ) AD       (REAL(fp) ) : Mass    of air  in a grid box   [kg      ]
-!  (5 ) AIRDEN   (REAL(fp) ) : Density of dry air in a grid box  [kg/m^3]
-!  (6 ) MAIRDEN  (REAL(fp) ) : Density of moist air in a grid box [kg/m^3]
-! 
+!  (1)  PEDGE     (REAL(fp)) : Moist air pressure at grid box bottom   [hPa]
+!  (2)  DELP      (REAL(fp)) : Moist delta-P extent of grid box        [hPa]
+!  (3)  PMID      (REAL(fp)) : Moist air pressure at grid box center   [hPa]
+!  (4)  PEDGE_DRY (REAL(fp)) : Dry air partial pressure at box bottom  [hPa]
+!  (5)  DELP_DRY  (REAL(fp)) : Dry delta-P extent of grid box          [hPa]
+!  (6)  PMID_DRY  (REAL(fp)) : Dry air partial pressure at box center  [hPa]
+!  (7)  MAIRDEN   (REAL(fp)) : Density of moist air in grid box     [kg/m^3]
+!  (8)  AIRDEN    (REAL(fp)) : Density of dry air in grid box       [kg/m^3]
+!  (9)  AD        (REAL(fp)) : Mass of dry air in grid box              [kg]
+!  (10) BXHEIGHT  (REAL(fp)) : Vertical extent of air (dry) in grid box  [m]   
+!  (11) AIRVOL    (REAL(fp)) : Volume  of dry air in grid box          [m^3]
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) AIRQNT is written in Fixed-Form Fortran 90.  Use F90 syntax
@@ -329,6 +342,8 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%DELP(I,J,L)
 !  07 Jan 2015 - E. Lundgren - Add new Met field moist air density
+!  13 Feb 2015 - E. Lundgren - Add new Met fields for dry air pressure and
+!                              change pressure-dependent quantities to use them
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -337,8 +352,8 @@
 !
 
       INTEGER :: I,  J,  L
-      REAL(fp)  :: P1, P2, AREA_M2, Psat, Pv, Pd, Tc, Pcenter
-      REAL(fp)  :: AD_mairden, AD_ideal
+      REAL(fp)  :: AREA_M2, Psat, Pv, Tc
+      REAL(fp)  :: PEDGE_WET_TOP, PEDGE_DRY_TOP
 
       ! Conversion factors
       REAL(fp), PARAMETER   :: TOFFSET = -2.7415e+2_fp   ! K -> deg C
@@ -349,29 +364,100 @@
       REAL(fp), PARAMETER   :: RHCONV  = 1.00e-2_fp      ! % -> fraction
       REAL(fp), PARAMETER   :: MCONV   = 1.00e-3_fp      ! g -> kg
 
-
       !=================================================================
       ! AIRQNT begins here! 
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2, Tc, Psat, Pv, Pcenter, Pd )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( AREA_M2, PEDGE_WET_TOP, PEDGE_DRY_TOP, Tc, Psat, Pv )
+
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          !=============================================================
-         ! Set grid box surface area [m2]
-         !=============================================================
+         ! Set grid box pressures [hPa] (wet air)
+         !=============================================================  
 
-#if defined( ESMF_ )
-         AREA_M2                   = State_Met%AREA_M2(I,J,1)
-#else
-         AREA_M2                   = GET_AREA_M2( I, J, L )
-#endif
+         ! Pressure (wet) at bottom edge of grid box [hPa]
+         State_Met%PEDGE( I,J,L )  = GET_PEDGE( I,J,L )
+
+         ! Pressure (wet) at top edge of grid box [hPa]
+         PEDGE_WET_TOP             = GET_PEDGE( I,J,L+1 )
+
+         ! Pressure (wet) difference between top & bottom edges [hPa]
+         State_Met%DELP( I,J,L )   = State_Met%PEDGE( I,J,L ) 
+     &                                - PEDGE_WET_TOP
+
+         ! Pressure (wet) at mid-point of grid box [hPa]
+         State_Met%PMID( I,J,L )   = GET_PCENTER( I,J,L )
 
          !=============================================================
-         ! Set grid box height [m]
+         ! Set grid box pressures [hPa] (dry air)
+         !=============================================================  
+
+         ! Temperature in Celsius
+         Tc = State_Met%T( I,J,L ) + TOFFSET
+
+         ! Empirical formulation for saturation pressure of water [Pa]
+         Psat = PSATC1 * 10**( PSATC2 * Tc / ( Tc + PSATC3 ) ) * PCONV         
+
+         ! Partial pressure of water vapor [Pa]
+         Pv = State_Met%RH( I,J,L ) * RHCONV * Psat
+
+         ! Pressure (dry) at bottom edge of grid box [Pa]
+         State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L)  
+     &                                 * PCONV - Pv
+
+         ! Pressure (dry) at top edge of grid box [Pa]
+         PEDGE_DRY_TOP = PEDGE_WET_TOP * PCONV - Pv
+
+         ! Pressure (dry) difference between top & bottom edges [hPa]
+         State_Met%DELP_DRY( I,J,L ) = ( State_Met%PEDGE_DRY(I,J,L)  
+     &                                  - PEDGE_DRY_TOP ) / PCONV
+
+         ! Pressure (dry) at mid-point of grid box [hPa]
+         State_Met%PMID_DRY( I,J,L ) = 0.5e+0_fp * 
+     &                                 ( State_Met%PEDGE_DRY(I,J,L) 
+     &                                   + PEDGE_DRY_TOP ) / PCONV
+
+         !===========================================================
+         ! Set grid box air density [kg/m3] (wet air)
+         !==========================================================
+
+         !  MAIRDEN = density of moist air [kg/m^3],
+         ! given by:
+         !
+         !             Partial      Molec     Partial       Molec
+         !             pressure   * wt of   + pressure of * wt of 
+         !             of dry air   air       water vapor   water     
+         ! Moist        [Pa]        [g/mol]     [Pa]        [g/mol]  
+         ! Air     =  ----------------------------------------------           
+         ! Density      Universal gas constant  * Temp * 1000 
+         !                     [J/K/mol]          [K]   [g/kg]
+         !
+
+         ! Density of moist air [kg/m^3]
+         State_Met%MAIRDEN(I,J,L) = ( State_Met%PMID_DRY(I,J,L) * PCONV 
+     &                                * AIRMW + Pv * H2OMW ) * MCONV
+     &                                / RSTARG / State_Met%T(I,J,L)
+
+
+         !===========================================================
+         ! Set grid box density [kg/m3] (dry air) (area-independent)
+         !==========================================================
+         State_Met%AIRDEN(I,J,L) = ( State_Met%PMID_DRY(I,J,L) * PCONV 
+     &                   * AIRMW ) * MCONV
+     &                   / RSTARG / State_Met%T(I,J,L)
+
+
+         !=============================================================
+         ! Set grid box height [m] (dry air) (area-independent)
          !=============================================================
 
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
@@ -382,12 +468,42 @@
          ! R for air (M.W = 0.02897 kg/mol),  or 
          ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
 
-         State_Met%BXHEIGHT(I,J,L) = Rdg0 
-     &                             * State_Met%T(I,J,L) 
-     &                             * LOG( P1 / P2 )
+         State_Met%BXHEIGHT( I,J,L ) = Rdg0 
+     &                                 * State_Met%T(I,J,L) 
+     &                                 * LOG( State_Met%PEDGE_DRY(I,J,L) 
+     &                                        / PEDGE_DRY_TOP )
 
          !=============================================================
-         ! Set grid box volume [m3]
+         ! Set grid box surface area [m2]
+         !=============================================================
+
+#if defined( ESMF_ )
+            AREA_M2                   = State_Met%AREA_M2(I,J,1)
+#else
+            AREA_M2                   = GET_AREA_M2( I,J,L )
+#endif
+
+         !===========================================================
+         ! Set mass of air in grid box [kg/m3] (dry air) (area-dependent)
+         !==========================================================
+
+         ! AD = mass of dry air in grid box (I,J,L) in kg, 
+         ! given by:        
+         !          Dry air
+         !  Mass    pressure        100      1        Surface area 
+         !        = difference   *  ---  *  ---   *   of grid box 
+         !          in grid box      1       g          AREA_M2
+         !
+         !   kg         mb          Pa      s^2           m^2
+         !  ----  =    ----      * ----  * -----  *      -----
+         !    1          1          mb       m             1
+         !===========================================================
+         State_Met%AD(I,J,L) = State_Met%DELP_DRY(I,J,L)
+     &                         * G0_100
+     &                         * AREA_M2
+
+         !=============================================================
+         ! Set grid box volume [m3] (dry air) (area-dependent)
          !=============================================================
 
          ! AIRVOL is the volume of grid box (I,J,L) in meters^3
@@ -406,135 +522,12 @@
          ! approx. the same as AREA_M2.  Thus we are justified 
          ! in using AREA_M2 for grid boxes (I, J, L > 1)
 
-         State_Met%AIRVOL(I,J,L) = State_Met%BXHEIGHT(I,J,L) * AREA_M2
-
-         !=============================================================
-         ! Set grid box wet air pressures [hPa]
-         !=============================================================  
-
-         ! Pressure (wet) at bottom edge of grid box [hPa]
-         P1_WET                    = GET_PEDGE( I, J, L )
-
-         ! Pressure (wet) at top edge of grid box [hPa]
-         P2_WET                    = GET_PEDGE( I, J, L+1 )
-
-         ! Pressure (wet) difference between top & bottom edges [hPa]
-         State_Met%DELP(I,J,L)     = P1_WET - P2_WET
-
-         ! Pressure (wet) at mid-point of grid box [hPa?]
-         State_Met%PMID             = GET_PCENTER( I,J,L )
-
-
-         !=============================================================
-         ! Set grid box dry air pressures [hPa]
-         !=============================================================  
-
-         ! Pressure (dry) at bottom edge of grid box [hPa?]
-         P1_DRY                     = 0 ! GET_DRY_PRESSURE( P1_WET )
-
-         ! Pressure (dry) at top edge of grid box [hPa?]
-         P2_DRY                     = 0 ! GET_DRY_PRESSURE( P2_WET )
-
-         ! Pressure (dry) difference between top & bottom edges [hPa?]
-         State_Met%DELPDRY( I,J,L )   = P1_DRY - P2_DRY
-
-         ! Pressure (dry) at mid-point of grid box [hPa?]
-         State_Met%PMIDDRY           = 0.5e+0_fp * 
-     &                                 ( P1_DRY + P2_DRY )
-
-         !===========================================================
-         ! MAIRDEN = density of moist air [kg/m^3],
-         ! given by:
-         !
-         !             Partial      Molec     Partial       Molec
-         !             pressure   * wt of   + pressure of * wt of 
-         !             of dry air   air       water vapor   water     
-         ! Moist        [Pa]        [g/mol]     [Pa]        [g/mol]  
-         ! Air     =  ----------------------------------------------           
-         ! Density      Universal gas constant  * Temp * 1000 
-         !                     [J/K/mol]          [K]   [g/kg]
-         !
-         !===========================================================
-         
-         ! Temperature in Celsius
-         Tc = State_Met%T( I,J,L ) + TOFFSET
-
-         ! Empirical formulation for saturation pressure of water [Pa]
-         Psat = PSATC1 * 10**( PSATC2 * Tc / ( Tc + PSATC3 ) ) * PCONV         
-
-         ! Partial pressure of water vapor [Pa]
-         Pv = State_Met%RH( I,J,L ) * RHCONV * Psat
-
-         ! Pressure at center of grid box [hPa]
-         Pcenter = GET_PCENTER( I,J,L )
-
-         ! Partial pressure of dry air [Pa]
-         Pd = Pcenter * PCONV - Pv 
-
-         ! Density of moist air [kg/m^3]
-         State_Met%MAIRDEN(I,J,L) = ( Pd * AIRMW + Pv * H2OMW ) * MCONV
-     &                            / RSTARG / State_Met%T(I,J,L)
-
-!        ! DEBUGGING - ewl, 2/5/15
-!         State_Met%MAIRDEN(I,J,L) = Pcenter * PCONV * AIRMW * MCONV
-!     &                            / RSTARG / State_Met%T(I,J,L)
-!        ! END DEBUGGING
-
-
-
-         !===========================================================
-         ! AD = mass of air in grid box (I,J,L) in kg, 
-         ! given by:        
-         !
-         !  Mass    Pressure        100      1        Surface area 
-         !        = difference   *  ---  *  ---   *   of grid box 
-         !          in grid box      1       g          AREA_M2
-         !
-         !   kg         mb          Pa      s^2           m^2
-         !  ----  =    ----      * ----  * -----  *      -----
-         !    1          1          mb       m             1
-         !===========================================================
-         State_Met%AD(I,J,L) = State_Met%DELP(I,J,L) 
-     &                       * G0_100 
-     &                       * AREA_M2
-
-         !===========================================================
-         ! AIRDEN = dry density of air (AD / AIRVOL) in kg / m^3 
-         !===========================================================
-         State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L) 
-     &                           / State_Met%AIRVOL(I,J,L)
+         State_Met%AIRVOL( I,J,L ) = State_Met%BXHEIGHT(I,J,L) * AREA_M2
 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-!         ! DEBUGGING - ewl, 2/5/15
-!
-!         ! Calculate mass from moist air density * area * box height
-!         AD_mairden = State_Met%MAIRDEN(25,25,2) * 
-!     &     State_Met%AIRVOL(25,25,2) 
-!
-!         ! Calculate mass from ideal gas law using air molecular wt
-!         AD_ideal = GET_PCENTER(25,25,2) * PCONV * AIRMW * MCONV
-!     &                            / RSTARG / State_Met%T(25,25,2)
-!     &                            * STate_Met%AIRVOL(25,25,2)
-!
-!         PRINT *, " "
-!         PRINT *, "Kg in grid box from moist air density * "
-!     &        // "area * box height "
-!         PRINT *, "   ", AD_mairden
-!
-!         PRINT *, "Kg in grid box from delta pressure * area / g"
-!         PRINT *, "   ", State_Met%AD(25,25,2)
-!
-!         PRINT *, "Kg in grid box from ideal gas law using "
-!     &        // "air molec wt "
-!         PRINT *, "   ", AD_ideal
-!
-!         PRINT *, " "
-!         ! END DEBUGGING
-
 
       END SUBROUTINE AIRQNT
 !EOC

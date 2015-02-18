@@ -7,8 +7,9 @@
 !
 ! !DESCRIPTION: Module UNITCONV\_MOD contains routines which are used to 
 !  convert the units of tracer concentrations between mass mixing ratio 
-!  [kg/kg], mass per grid box [kg], volume ratio [vol/vol], and molecular 
-!  number density [molecules/cm3].
+!  [kg/kg], mass per grid box [kg], molar mixing ratio [vol/vol], and molecular 
+!  number density [molecules/cm3]. All mixing ratios are per quantity of
+!  dry air.
 !\\  
 !\\
 ! !INTERFACE: 
@@ -39,15 +40,15 @@ MODULE UnitConv_Mod
 !
 ! !REMARKS:
 !  The routines in this module are used to convert the units of tracer 
-!  concentrations for use in other GEOS-Chem routines. Tracer concentrations 
-!  are stored in units of mass mixing ratio [kg/kg] but most subroutines 
-!  require tracer units in mass per grid box [kg] or in volume ratio 
-!  [vol/vol] (same as molar ratio [mol/mol]). Some routines also require 
-!  conversion to and from molecular number density [molecules/cm3]. 
+!  concentrations in various GEOS-Chem routines. Tracer concentrations 
+!  are stored primarily in units of mass mixing ratio [kg/kg] but some
+!  subroutines  require tracer units in mass per grid box [kg], 
+!  molar mixing ratio [vol/vol], molecular number density [molecules/cm3]
+!  for certain calculation. 
 !
 !  Species concentrations are stored in units of molecular number density
 !  and the unit conversion routines within this module may therefore be 
-!  used to convert species concentration units, if needed.
+!  used to convert species concentration units in the future, if needed.
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - E. Lundgren - Initial version
@@ -64,7 +65,7 @@ CONTAINS
 ! !IROUTINE: convert_mmr_to_vr
 !
 ! !DESCRIPTION: Subroutine Convert\_MMR\_to\_VR converts the units of 
-!  tracer concentrations (STT) from mass mixing ratio (MMR) [kg/kg] to 
+!  tracer concentrations from mass mixing ratio (MMR) [kg/kg] to 
 !  volume ratio (VR) [vol/vol] (same as molar ratio [mol/mol]). 
 !\\
 !\\
@@ -154,8 +155,8 @@ CONTAINS
 ! !IROUTINE: convert_vr_to_mmr
 !
 ! !DESCRIPTION: Subroutine Convert\_VR\_to\_MMR converts the units of 
-!  tracer concentrations (STT) from volume ratio (VR) [vol/vol] (same 
-!  as molar ratio [mol/mol]) to mass mixing ratio (MMR) [kg/kg]. 
+!  tracer concentrations from volume ratio (VR) [vol/vol] (same 
+!  as molar mixing ratio [mol/mol]) to mass mixing ratio (MMR) [kg/kg]. 
 !\\
 !\\
 ! !INTERFACE:
@@ -243,24 +244,23 @@ CONTAINS
 ! !IROUTINE: convert_mmr_to_kg
 !
 ! !DESCRIPTION: Subroutine Convert\_MMR\_to\_KG converts the units of 
-!  tracer concentrations (STT) from mass mixing ratio (MMR) 
-!  [kg tracer/kg air] to tracer mass per grid box [kg]. 
+!  tracer concentrations from mass mixing ratio (MMR) 
+!  [kg tracer/kg dry air] to tracer mass per grid box [kg]. 
+!
+!  NOTE: This will go away in the future.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_MMR_to_KG( N_TRACERS, MAIRDEN, AIRVOL, STT ) 
+  SUBROUTINE Convert_MMR_to_KG( N_TRACERS, AIRMASS, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
     ! Number of tracers
     INTEGER, INTENT(IN)      :: N_TRACERS 
 
-    ! Array containing grid box moist air density [kg/m3]
-    REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
-
-    ! Array containing grid box volume [m3]
-    REAL(fp),  INTENT(IN)    :: AIRVOL(IIPAR,JJPAR,LLPAR)
+    ! Array containing grid box dry air mass [kg]
+    REAL(fp),  INTENT(IN)    :: AIRMASS(IIPAR,JJPAR,LLPAR)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -288,24 +288,23 @@ CONTAINS
          !
          !  The conversion is as follows:
          !
-         !   kg tracer(N)   kg moist air          
-         !   -----------  * ------------  *  m3       
-         !     kg air            m3              
+         !   kg tracer(N)            
+         !   -----------  *  kg dry air       
+         !   kg dry air                   
          !
-         !   = mass mixing ratio * moist air density * grid box volume  
+         !   = mass mixing ratio * dry air mass  
          !   
          !   = kg tracer(N)
          !
          ! Therefore, with:
          !
-         !  MAIRDEN(I,J,L)   = grid box moist air density [kg/m3]
-         !  AIRVOL(I,J,L)     = grid box volume [m3]
+         !  AIRMASS(I,J,L)   = grid box dry air mass [kg]
          !     
          ! the conversion is:
          ! 
          !  STT(I,J,L,N) [kg]
          !
-         !    = STT(I,J,L,N) [kg/kg] * MAIRDEN(I,J,L) * AIRVOL(I,J,L)
+         !    = STT(I,J,L,N) [kg/kg] * AIRMASS(I,J,L)
          !                   
          !==============================================================
 
@@ -316,7 +315,7 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) * AIRVOL(I,J,L) * MAIRDEN(I,J,L)
+        STT(I,J,L,N) = STT(I,J,L,N) * AIRMASS(I,J,L)
       ENDDO
       ENDDO
       ENDDO
@@ -335,24 +334,24 @@ CONTAINS
 ! !IROUTINE: convert_kg_to_mmr
 !
 ! !DESCRIPTION: Subroutine Convert\_KG\_to\_MMR converts the units of 
-!  tracer concentrations (STT) from tracer mass per grid box [kg] to mass 
+!  tracer concentrations from tracer mass per grid box [kg] to mass 
 !  mixing ratio (MMR) [kg tracer/kg air]. 
+!  
+!  This will go away in the future with grid-independence.
 !\\
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_KG_to_MMR( N_TRACERS, MAIRDEN, AIRVOL, STT ) 
+    SUBROUTINE Convert_KG_to_MMR( N_TRACERS, AIRMASS, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
     ! Number of tracers
     INTEGER, INTENT(IN)      :: N_TRACERS 
 
-    ! Array containing grid box moist air density [kg/m3]
-    REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
+    ! Array containing grid box dry air mass [kg]
+    REAL(fp),  INTENT(IN)    :: AIRMASS(IIPAR,JJPAR,LLPAR)
 
-    ! Array containing grid box volume [m3]
-    REAL(fp),  INTENT(IN)    :: AIRVOL(IIPAR,JJPAR,LLPAR)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -380,24 +379,23 @@ CONTAINS
          !
          !  The conversion is as follows:
          !
-         !                          m3          
-         !   kg tracer(N)  * --------------  /  m3       
-         !                    kg moist air              
+         !                         1          
+         !   kg tracer(N)  * --------------      
+         !                      kg dry air              
          !
-         !   = kg tracer(N) / moist air density / grid box volume  
+         !   = kg tracer(N) / dry air mass
          !   
          !   = mass mixing ratio
          !
          ! Therefore, with:
          !
-         !  MAIRDEN(I,J,L)   = grid box moist air density [kg/m3]
-         !  AIRVOL(I,J,L)     = grid box volume [m3]
+         !  AIRMASS(I,J,L)    = grid box air mass [kg]
          !     
          ! the conversion is:
          ! 
          !  STT(I,J,L,N) [kg/kg]
          !
-         !    = STT(I,J,L,N) [kg] / ( AIRVOL(I,J,L) * MAIRDEN(I,J,L) )
+         !    = STT(I,J,L,N) [kg] / AIRMASS(I,J,L) 
          !                   
          !==============================================================
 
@@ -408,7 +406,7 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) / ( AIRVOL(I,J,L) * MAIRDEN(I,J,L) ) 
+        STT(I,J,L,N) = STT(I,J,L,N) / AIRMASS(I,J,L)
       ENDDO
       ENDDO
       ENDDO
@@ -427,21 +425,21 @@ CONTAINS
 ! !IROUTINE: convert_mmr_to_mnd
 !
 ! !DESCRIPTION: Subroutine Convert\_MMR\_to\_MND converts the units of 
-!  tracer concentrations (STT) from mass mixing ratio (MMR) [kg/kg] to 
+!  tracer concentrations from mass mixing ratio (MMR) [kg/kg] to 
 !  molecular number density (MND) [molecules/cm3].  
 !\\
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_MMR_to_MND( N_TRACERS, MAIRDEN, XNUMOL, STT ) 
+    SUBROUTINE Convert_MMR_to_MND( N_TRACERS, AIRDEN, XNUMOL, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
     ! Number of tracers
     INTEGER, INTENT(IN)      :: N_TRACERS 
 
-    ! Array containing grid box moist air density [kg/m3]
-    REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
+    ! Array containing grid box air density [kg/m3]
+    REAL(fp),  INTENT(IN)    :: AIRDEN(IIPAR,JJPAR,LLPAR)
 
     ! Array containing molecules tracer / kg tracer
     REAL(fp),  INTENT(IN)    :: XNUMOL(N_TRACERS)
@@ -476,20 +474,20 @@ CONTAINS
          !   -----------  * --------  *  ---------  *  ------------------      
          !     kg air          m3         1E6 cm3        kg tracer(N)  
          !
-         !   = mass mixing ratio * moist air density * molecules / kg tracer
+         !   = mass mixing ratio * dry air density * molecules / kg tracer
          !   
          !   = molecules per cm3
          !
          ! Therefore, with:
          !
-         !  XNUMOL(N)        = molecules tracer / kg tracer
-         !  MAIRDEN(I,J,L)   = grid box moist air density [kg/m3]
+         !  XNUMOL(N)       = molecules tracer / kg tracer
+         !  AIRDEN(I,J,L)   = grid box dry air density [kg/m3]
          !     
          ! the conversion is:
          ! 
          !  STT(I,J,L,N) [molecules/cm3]
          !
-         !    = STT(I,J,L,N) [kg/kg] * XNUMOL(N) * MAIRDEN(I,J,L) * 1e-6
+         !    = STT(I,J,L,N) [kg/kg] * XNUMOL(N) * AIRDEN(I,J,L) * 1e-6
          !                   
          !==============================================================
 
@@ -500,7 +498,7 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) * XNUMOL(N) * MAIRDEN(I,J,L) * 1E-6_fp  
+        STT(I,J,L,N) = STT(I,J,L,N) * XNUMOL(N) * AIRDEN(I,J,L) * 1E-6_fp  
       ENDDO
       ENDDO
       ENDDO
@@ -519,21 +517,21 @@ CONTAINS
 ! !IROUTINE: convert_mnd_to_mmr
 !
 ! !DESCRIPTION: Subroutine Convert\_MND\_to\_MMR converts the units of 
-!  tracer concentrations (STT) from molecular number density (MND)
+!  tracer concentrations from molecular number density (MND)
 !  [molecules/cm3] to mass mixing ratio (MMR) [kg/kg].  
 !\\
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_MND_to_MMR( N_TRACERS, MAIRDEN, XNUMOL, STT ) 
+    SUBROUTINE Convert_MND_to_MMR( N_TRACERS, AIRDEN, XNUMOL, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
     ! Number of tracers
     INTEGER, INTENT(IN)      :: N_TRACERS 
 
-    ! Array containing grid box moist air density [kg/m3]
-    REAL(fp),  INTENT(IN)    :: MAIRDEN(IIPAR,JJPAR,LLPAR)
+    ! Array containing grid box dry air density [kg/m3]
+    REAL(fp),  INTENT(IN)    :: AIRDEN(IIPAR,JJPAR,LLPAR)
 
     ! Array containing molecules tracer / kg tracer
     REAL(fp),  INTENT(IN)    :: XNUMOL(N_TRACERS)
@@ -575,14 +573,14 @@ CONTAINS
          ! Therefore, with:
          !
          !  XNUMOL(N)       = molecules tracer / kg tracer
-         !  MAIRDEN(I,J,L)  = grid box moist air density [kg/m3]
+         !  AIRDEN(I,J,L)  = grid box dry air density [kg/m3]
          !     
          ! the conversion is:
          ! 
          !  STT(I,J,L,N) [kg/kg]
          !
          !   = STT(I,J,L,N) [molecules/cm3] * 1E+6 
-         !                          / ( XNUMOL(N) * MAIRDEN(I,J,L) ) 
+         !                          / ( XNUMOL(N) * AIRDEN(I,J,L) ) 
          !                   
          !==============================================================
 
@@ -593,7 +591,7 @@ CONTAINS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        STT(I,J,L,N) = STT(I,J,L,N) * 1E+6_fp / ( XNUMOL(N) * MAIRDEN(I,J,L) ) 
+        STT(I,J,L,N) = STT(I,J,L,N) * 1E+6_fp / ( XNUMOL(N) * AIRDEN(I,J,L) ) 
       ENDDO
       ENDDO
       ENDDO
