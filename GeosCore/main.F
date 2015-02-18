@@ -319,8 +319,6 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       !
-!      REAL(fpp),  POINTER       :: STT(:,:,:,:)
-      !
       ! Define shadow variables for fields in Input_Opt (bmy, 6/25/14)
       LOGICAL                  :: ITS_A_FULLCHEM_SIM 
       LOGICAL                  :: ITS_A_CH4_SIM
@@ -521,10 +519,6 @@
       !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
       !
-!      ! Define STT array from Chemistry State object.  This
-!      ! allows us to keep existing code intact. (mpayer, 12/6/12)
-!      STT               => State_Chm%Tracers
-
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field.  This will let us convert
       ! HEMCO emissions [kg/m2/s] to [kg] in various routines 
@@ -1077,7 +1071,7 @@
          ! Compute airmass quantities at each grid box 
          CALL AIRQNT( am_I_Root, State_Met, RC )
 
-         ! SDE 05/28/13: Set H2O to STT if relevant
+         ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
          IF (IDTH2O.ne.0) THEN
             CALL SET_H2O_TRAC( (( .not. LUCX ) .or. LSETH2O ),
      &                         Input_Opt, State_Met, State_Chm )
@@ -1118,7 +1112,7 @@
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN
             CALL CONVERT_UNITS( 1,  N_TRACERS, Input_Opt%TCVV, 
-     &                          State_Met%AD, STT )
+     &                          State_Met%AD, State_Chm%TRACERS )
 
             !### Debug
             IF ( prtDebug ) THEN 
@@ -1374,7 +1368,7 @@
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN 
             CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV, 
-     &                          State_Met%AD, STT )
+     &                          State_Met%AD, State_Chm%TRACERS )
 
             !### Debug
             IF ( prtDebug ) THEN 
@@ -1468,7 +1462,7 @@
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
-            ! SDE 05/28/13: Set H2O to STT if relevant
+            ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
             IF (IDTH2O.ne.0) THEN
                CALL SET_H2O_TRAC( (.not. LUCX), Input_Opt ,
      &                            State_Met,    State_Chm )
@@ -1480,7 +1474,7 @@
 
          ENDIF 
 
-         ! Check STT (yxw)   
+         ! Check State_Chm tracers (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
          CALL CHECK_STT_05x0666( State_Chm, 
      &                           'end of chem section, before wetdep' )
@@ -1647,11 +1641,11 @@
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
          !==============================================================
 
-         ! Check for NaN, Negatives, Infinities in STT each time diag are
+         ! Check for NaN, Negatives, Infinities in tracers each time diag are
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
 
-         ! Sometimes STT in the stratosphere can be negative at 
+         ! Sometimes tracers in the stratosphere can be negative at 
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_STT (yxw)
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
