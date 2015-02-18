@@ -531,7 +531,7 @@ CONTAINS
                              Cat       = -1,                &
                              Hier      = -1,                &
                              HcoID     = -1,                &
-                             SpaceDim  =  2,                &
+                             SpaceDim  =  3,                &
                              LevIDx    = -1,                &
                              OutUnit   = 'v/v',             &
                              OutOper   = TRIM( OutOper   ), &
