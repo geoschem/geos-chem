@@ -126,6 +126,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -155,6 +156,7 @@
 !  28 Feb 2012 - R. Yantosca - Treat GEOS-5.7 in the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  17 Feb 2015 - E. Lundgren - Expect kg/kg rather than kg tracer units. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,6 +192,13 @@
 #endif
          FIRST = .FALSE.
       ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! TEMPORARY - ewl, 2/17/15
+! Convert kg/kg to kg
+!         CALL CONVERT_MMR_to_KG( Input_Opt%N_TRACERS, State_Met%AD, 
+!     &                           State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !=================================================================
       ! Choose the proper version of TPCORE for the nested-grid window 
@@ -230,6 +239,13 @@
 
 #endif
       ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! TEMPORARY - ewl, 2/17/15
+! Convert kg back to kg/kg
+!         CALL CONVERT_KG_to_MMR( Input_Opt%N_TRACERS, State_Met%AD, 
+!     &                           State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Return to calling program
       END SUBROUTINE DO_TRANSPORT
