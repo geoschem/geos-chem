@@ -663,13 +663,13 @@
      &                        Input_Opt, State_Met, State_Chm )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!      ! TEMPORARY - ewl, 2/17/15
-!      ! Immediately convert from kg/kg to kg for testing purposes
-!      ! Note: This currently depends on AREA_M2 through AIRQNT.
-!      CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
-!     &                        State_Chm%TRACERS )
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! TEMPORARY - ewl, 2/17/15
+      ! Immediately convert from kg/kg to kg for testing purposes
+      ! Note: This currently depends on AREA_M2 through AIRQNT.
+      CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
