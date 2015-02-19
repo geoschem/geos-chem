@@ -577,6 +577,7 @@
          ND26 = LLPAR
       ENDIF
 
+
       !=================================================================
       ! ND24: Eastward mass flux from transport [kg/s] 
       !       --> uses MASSFLEW array (allocatable)
@@ -584,12 +585,14 @@
       IF ( ND24 > 0 ) THEN
          LD24 = MIN( ND24, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
-      
+
+#if !defined( NO_BPCH )      
          ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
       ELSE
          ALLOCATE( MASSFLEW( 1, 1, 1, 1 ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
+#endif
       ENDIF
 
       !=================================================================
@@ -600,11 +603,13 @@
          LD25 = MIN( ND25, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
 
+#if !defined( NO_BPCH )      
          ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
       ELSE
          ALLOCATE( MASSFLNS( 1, 1, 1, 1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
+#endif
       ENDIF
 
       !=================================================================
@@ -615,11 +620,13 @@
          LD26 = MIN( ND26, LLPAR )
          NMAX = MIN( N_TRACERS, NNPAR )
 
+#if !defined( NO_BPCH )      
          ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
       ELSE
          ALLOCATE( MASSFLUP( 1, 1, 1, 1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
+#endif
       ENDIF
 
 #if !defined( NO_BPCH )

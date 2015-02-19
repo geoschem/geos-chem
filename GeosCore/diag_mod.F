@@ -92,6 +92,7 @@
       ! For ND23 -- CH3CCl3 lifetime diagnostic
       REAL(fp),  ALLOCATABLE :: DIAGCHLORO(:,:,:,:)
 
+#if !defined( NO_BPCH )
       ! For ND24 -- E/W transport mass flux diagnostic
       REAL(fp),  ALLOCATABLE :: MASSFLEW(:,:,:,:)
 
@@ -101,7 +102,6 @@
       ! For ND26 -- UP/DOWN transport mass flux diagnostic
       REAL(fp),  ALLOCATABLE :: MASSFLUP(:,:,:,:)
 
-#if !defined( NO_BPCH )
       ! For ND30 -- land / water / ice flags
       REAL*4,  ALLOCATABLE :: AD30(:,:)
 #endif
@@ -456,10 +456,10 @@
       IF ( ALLOCATED( LTHO2       ) ) DEALLOCATE( LTHO2       )
 #if !defined( NO_BPCH )
       IF ( ALLOCATED( LTOTH       ) ) DEALLOCATE( LTOTH       )
-#endif
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
+#endif
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  )
 

@@ -180,10 +180,10 @@
          IF ( ND18 > 0 ) AD18     = 0e0         
          IF ( ND19 > 0 ) AD19     = 0e0
          IF ( ND22 > 0 ) AD22     = 0e0
+#if !defined( NO_BPCH )
          IF ( ND24 > 0 ) MASSFLEW = 0e+0_fp
          IF ( ND25 > 0 ) MASSFLNS = 0e+0_fp
          IF ( ND26 > 0 ) MASSFLUP = 0e+0_fp
-#if !defined( NO_BPCH )
          IF ( ND30 > 0 ) AD30     = 0e0
 #endif
          IF ( ND31 > 0 ) AD31     = 0e0
