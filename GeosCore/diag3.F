@@ -3560,34 +3560,34 @@
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
 !
-!   # : Field  : Description    : Units         : Scale Factor
+!   # : Field  : Description          : Units         : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1 ) ISOP   : Isoprene       : atoms C/cm2/s : SCALESRCE
-!  (2 ) ACET   : Acetone        : atoms C/cm2/s : SCALESRCE
-!  (3 ) PRPE   : Propene        : atoms C/cm2/s : SCALESRCE
-!  (4 ) MONO   : Monoterpenes   : atoms C/cm2/s : SCALESRCE
-!  (5 ) MBO    : Methyl Butenol : atoms C/cm2/s : SCALESRCE
-!  (6 ) C2H4   : Ethene         : atoms C/cm2/s : SCALESRCE
-!  (7 ) APIN   : Alpha pinene   : atoms C/cm2/s : SCALESRCE
-!  (8 ) BPIN   : Beta pinene    : atoms C/cm2/s : SCALESRCE
-!  (9 ) LIMO   : Limonene       : atoms C/cm2/s : SCALESRCE
-!  (10) SABI   : Sabinene       : atoms C/cm2/s : SCALESRCE
-!  (11) MYRC   : Mycrene        : atoms C/cm2/s : SCALESRCE
-!  (12) CARE   : 3-Carene       : atoms C/cm2/s : SCALESRCE
-!  (13) OCIM   : Ocimene        : atoms C/cm2/s : SCALESRCE
-!  (14) FAXX   : Formic acid    : atoms C/cm2/s : SCALESRCE
-!  (15) AAXX   : Acetic acid    : atoms C/cm2/s : SCALESRCE
-!  (16) ALD2   : Acetaldehyde   : atoms C/cm2/s : SCALESRCE
-!  (17) OMON   : Other monoterp : atoms C/cm2/s : SCALESRCE
-!  (18) MOHX   : Methanol       : atoms C/cm2/s : SCALESRCE
-!  (19) ETOH   : Ethanol        : atoms C/cm2/s : SCALESRCE
-!  (20) FARN   : Farnesene      : atoms C/cm2/s : SCALESRCE
-!  (21) BCAR   : b-caryophyllene: atoms C/cm2/s : SCALESRCE
-!  (22) OSQT   : Other sesquitrp: atoms C/cm2/s : SCALESRCE
-!  (23) CHBr3  : Bromoform      :       kg/m2/s : SCALESRCE
-!  (24) CH2Br2 : Dibromomethane :       kg/m2/s : SCALESRCE
-!  (25) Br2    : Molec. Bromine :       kg/m2/s : SCALESRCE
-!  (26) CH4    : Methane        : molec/cm2/s   : SCALE3
+!  (1 ) ISOP   : Isoprene             : atoms C/cm2/s : SCALESRCE
+!  (2 ) ACET   : Acetone              : atoms C/cm2/s : SCALESRCE
+!  (3 ) PRPE   : Propene              : atoms C/cm2/s : SCALESRCE
+!  (4 ) MONX   : Total Monoterpenes   : atoms C/cm2/s : SCALESRCE
+!  (5 ) MBOX   : Methyl Butenol       : atoms C/cm2/s : SCALESRCE
+!  (6 ) C2H4   : Ethene               : atoms C/cm2/s : SCALESRCE
+!  (7 ) APIN   : Alpha pinene         : atoms C/cm2/s : SCALESRCE
+!  (8 ) BPIN   : Beta pinene          : atoms C/cm2/s : SCALESRCE
+!  (9 ) LIMO   : Limonene             : atoms C/cm2/s : SCALESRCE
+!  (10) SABI   : Sabinene             : atoms C/cm2/s : SCALESRCE
+!  (11) MYRC   : Mycrene              : atoms C/cm2/s : SCALESRCE
+!  (12) CARE   : 3-Carene             : atoms C/cm2/s : SCALESRCE
+!  (13) OCIM   : Ocimene              : atoms C/cm2/s : SCALESRCE
+!  (14) FAXX   : Formic acid          : atoms C/cm2/s : SCALESRCE
+!  (15) AAXX   : Acetic acid          : atoms C/cm2/s : SCALESRCE
+!  (16) ALD2   : Acetaldehyde         : atoms C/cm2/s : SCALESRCE
+!  (17) OMON   : Other monoterp       : atoms C/cm2/s : SCALESRCE
+!  (18) MOHX   : Methanol             : atoms C/cm2/s : SCALESRCE
+!  (19) ETOH   : Ethanol              : atoms C/cm2/s : SCALESRCE
+!  (20) FARN   : Farnesene            : atoms C/cm2/s : SCALESRCE
+!  (21) BCAR   : b-caryophyllene      : atoms C/cm2/s : SCALESRCE
+!  (22) OSQT   : Other sesquiterpenes : atoms C/cm2/s : SCALESRCE
+!  (23) CHBr3  : Bromoform            :       kg/m2/s : SCALESRCE
+!  (24) CH2Br2 : Dibromomethane       :       kg/m2/s : SCALESRCE
+!  (25) Br2    : Molec. Bromine       :       kg/m2/s : SCALESRCE
+!  (26) CH4    : Methane              :   molec/cm2/s : SCALE3
 !
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)
@@ -3711,7 +3711,7 @@
          !%%%%% MBO %%%%%
          DiagnName = 'BIOGENIC_MBOX'
          N         = 5
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3730,7 +3730,7 @@
          !%%%%% APIN %%%%%
          DiagnName = 'BIOGENIC_APIN'
          N         = 7
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3738,7 +3738,7 @@
          !%%%%% BPIN %%%%%
          DiagnName = 'BIOGENIC_BPIN'
          N         = 7
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3746,7 +3746,7 @@
          !%%%%% LIMO %%%%%
          DiagnName = 'BIOGENIC_LIMO'
          N         = 9
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3754,7 +3754,7 @@
          !%%%%% SABI %%%%%
          DiagnName = 'BIOGENIC_SABI'
          N         = 10
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3762,7 +3762,7 @@
          !%%%%% MYRC %%%%%
          DiagnName = 'BIOGENIC_MYRC'
          N         = 11
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3770,7 +3770,7 @@
          !%%%%% CARE %%%%%
          DiagnName = 'BIOGENIC_CARE'
          N         = 12
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3778,15 +3778,18 @@
          !%%%%% OCIM %%%%%
          DiagnName = 'BIOGENIC_OCIM'
          N         = 13
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+
+! FIX FACTORS for FAXX, AACC, MOHX, HCNX, CH2O, FARN, BCAR, OSQT
+
          !%%%%% FAXX %%%%%
          DiagnName = 'BIOGENIC_FAXX'
          N         = 14
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3794,23 +3797,26 @@
          !%%%%% AAXX %%%%%
          DiagnName = 'BIOGENIC_AAXX'
          N         = 15
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !%%%%% ALD2 %%%%%
-         DiagnName = 'BIOGENIC_ALD2'
-         N         = 16
-         FACTOR    = 1.0e+0_fp
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( IDTALD2 > 0 ) THEN
+            DiagnName = 'BIOGENIC_ALD2'
+            N         = 16
+            FACTOR    = Input_Opt%XNUMOL(IDTALD2) / CM2PERM2
+            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTALD2,1)
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
 
          !%%%%% OMON %%%%%
          DiagnName = 'BIOGENIC_OMON'
          N         = 17
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3818,7 +3824,7 @@
          !%%%%% MOHX %%%%%
          DiagnName = 'BIOGENIC_MOHX'
          N         = 18
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3826,7 +3832,7 @@
          !%%%%% ETOH %%%%%
          DiagnName = 'BIOGENIC_ETOH'
          N         = 19
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3834,7 +3840,7 @@
          !%%%%% FARN %%%%%
          DiagnName = 'BIOGENIC_FARN'
          N         = 20
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3842,7 +3848,7 @@
          !%%%%% BCAR %%%%%
          DiagnName = 'BIOGENIC_BCAR'
          N         = 21
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -3850,7 +3856,7 @@
          !%%%%% OSQT %%%%%
          DiagnName = 'BIOGENIC_OSQT'
          N         = 22
-         FACTOR    = 1.0e+0_fp
+         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)

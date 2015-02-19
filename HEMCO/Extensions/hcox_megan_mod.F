@@ -112,7 +112,10 @@
       PRIVATE :: GET_GAMMA_SM
       PRIVATE :: CALC_NORM_FAC
       PRIVATE :: SOLAR_ANGLE
-      PRIVATE :: GET_AEF_GEN
+!------------------------------------------------------------------------------
+! Prior to 2/12/15:
+!      PRIVATE :: GET_AEF_GEN
+!------------------------------------------------------------------------------
       PRIVATE :: FILL_RESTART_VARS 
       PRIVATE :: CALC_AEF
 ! 
@@ -175,7 +178,11 @@
       INTEGER                 :: ExtNr
       INTEGER                 :: ExtNrMono 
       INTEGER                 :: ExtNrSoa
-      LOGICAL                 :: LPECCA
+!------------------------------------------------------------------------------
+! Prior to 2/18/15:
+! LPECCA flag is no longer needed since we use this scheme exclusively now
+!      LOGICAL                 :: LPECCA
+!------------------------------------------------------------------------------
       REAL(hp)                :: ISOP_SCALING
 
       ! Physical parameter
@@ -202,29 +209,32 @@
       ! that will be scaled based upon meteorological conditions.
       REAL(hp), POINTER       :: AEF_ISOP(:,:) => NULL()    ! Isoprene 
       REAL(hp), POINTER       :: AEF_MBOX(:,:) => NULL()    ! Methyl butenol
-      REAL(hp), POINTER       :: AEF_APIN(:,:) => NULL()    ! Alpha-pinene
       REAL(hp), POINTER       :: AEF_BPIN(:,:) => NULL()    ! Beta-pinene
       REAL(hp), POINTER       :: AEF_CARE(:,:) => NULL()    ! 3-Carene
       REAL(hp), POINTER       :: AEF_LIMO(:,:) => NULL()    ! Limonene
-      REAL(hp), POINTER       :: AEF_MYRC(:,:) => NULL()    ! Myrcene
       REAL(hp), POINTER       :: AEF_OCIM(:,:) => NULL()    ! Ocimene
       REAL(hp), POINTER       :: AEF_SABI(:,:) => NULL()    ! Sabine
-      REAL(hp), POINTER       :: AEF_OMON(:,:) => NULL()    ! Other monoterpenes
-      REAL(hp), POINTER       :: AEF_MOHX(:,:) => NULL()    ! Methanol
-      REAL(hp), POINTER       :: AEF_ACET(:,:) => NULL()    ! Acetone
-      REAL(hp), POINTER       :: AEF_ETOH(:,:) => NULL()    ! Ethanol
-      REAL(hp), POINTER       :: AEF_CH2O(:,:) => NULL()    ! Formaldehyde
-      REAL(hp), POINTER       :: AEF_ALD2(:,:) => NULL()    ! Acetaldehyde
-      REAL(hp), POINTER       :: AEF_FAXX(:,:) => NULL()    ! Formic acid
-      REAL(hp), POINTER       :: AEF_AAXX(:,:) => NULL()    ! Acetic acid
-      REAL(hp), POINTER       :: AEF_C2H4(:,:) => NULL()    ! Ethene
-      REAL(hp), POINTER       :: AEF_TOLU(:,:) => NULL()    ! Toluene
-      REAL(hp), POINTER       :: AEF_HCNX(:,:) => NULL()    ! HCN
-      REAL(hp), POINTER       :: AEF_PRPE(:,:) => NULL()    ! >= C3 alkenes
-      REAL(hp), POINTER       :: AEF_FARN(:,:) => NULL()    ! a-Farnesene
-      REAL(hp), POINTER       :: AEF_BCAR(:,:) => NULL()    ! b-Caryophyllene
-      REAL(hp), POINTER       :: AEF_OSQT(:,:) => NULL()    ! Other sesquiterp.
-      REAL(hp), POINTER       :: GEIA_ORVC(:,:) => NULL()
+      REAL(hp), POINTER       :: GEIA_ORVC(:,:) => NULL()   ! Organic carbon
+
+      ! Annual emission factors arrays
+      ! These fields are not read from file, but are computed in CALC_AEF
+      REAL(hp), ALLOCATABLE   :: AEF_APIN(:,:)              ! Alpha-pinene
+      REAL(hp), ALLOCATABLE   :: AEF_MYRC(:,:)              ! Myrcene
+      REAL(hp), ALLOCATABLE   :: AEF_OMON(:,:)              ! Other monoterpenes
+      REAL(hp), ALLOCATABLE   :: AEF_MOHX(:,:)              ! Methanol
+      REAL(hp), ALLOCATABLE   :: AEF_ACET(:,:)              ! Acetone
+      REAL(hp), ALLOCATABLE   :: AEF_ETOH(:,:)              ! Ethanol
+      REAL(hp), ALLOCATABLE   :: AEF_CH2O(:,:)              ! Formaldehyde
+      REAL(hp), ALLOCATABLE   :: AEF_ALD2(:,:)              ! Acetaldehyde
+      REAL(hp), ALLOCATABLE   :: AEF_FAXX(:,:)              ! Formic acid
+      REAL(hp), ALLOCATABLE   :: AEF_AAXX(:,:)              ! Acetic acid
+      REAL(hp), ALLOCATABLE   :: AEF_C2H4(:,:)              ! Ethene
+      REAL(hp), ALLOCATABLE   :: AEF_TOLU(:,:)              ! Toluene
+      REAL(hp), ALLOCATABLE   :: AEF_HCNX(:,:)              ! HCN
+      REAL(hp), ALLOCATABLE   :: AEF_PRPE(:,:)              ! >= C3 alkenes
+      REAL(hp), ALLOCATABLE   :: AEF_FARN(:,:)              ! a-Farnesene
+      REAL(hp), ALLOCATABLE   :: AEF_BCAR(:,:)              ! b-Caryophyllene
+      REAL(hp), ALLOCATABLE   :: AEF_OSQT(:,:)              ! Other sesquiterp.
 
       ! Pointers to CLM4 plant functional types
       REAL(hp), POINTER       :: PFT_BARE(:,:)                => NULL()
@@ -245,7 +255,7 @@
       REAL(hp), POINTER       :: PFT_CROP(:,:)                => NULL()
 
       ! Normalization factor
-      REAL(hp), ALLOCATABLE   :: NORM_FAC
+      REAL(hp), ALLOCATABLE   :: NORM_FAC(:)
 
 !------------------------------------------------------------------------------
 ! Prior to 2/12/15:
@@ -375,20 +385,7 @@
 
       ! Emission arrays (kgC/m2/s)
       REAL(hp), TARGET    :: FLUXISOP  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXMBOX  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXAPIN  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXBPIN  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXSABI  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXMYRC  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXCARE  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXOCIM  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXOMON  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXMONO  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXALD2  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXMOHX  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXETOH  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXFAXX  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXAAXX  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXACETmo(HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXACETmb(HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXACETbg(HcoState%NX,HcoState%NY)
@@ -399,10 +396,25 @@
       REAL(hp), TARGET    :: FLUXLIMO  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXMTPA  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXMTPO  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXFARN  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXBCAR  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXOSQT  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXSESQ  (HcoState%NX,HcoState%NY)
+
+      ! Emission arrays for use in diagnostics only (kgC/m2/s)
+      REAL(hp)            :: FLUXMBOX  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXAPIN  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXBPIN  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXSABI  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXMYRC  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXCARE  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXOCIM  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXOMON  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXALD2  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXMOHX  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXETOH  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXFAXX  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXAAXX  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXFARN  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXBCAR  (HcoState%NX,HcoState%NY)
+      REAL(hp)            :: FLUXOSQT  (HcoState%NX,HcoState%NY)
 
       ! For diagnostics
       REAL(hp), POINTER   :: Arr2D(:,:) => NULL()
@@ -513,7 +525,7 @@
 
       IF ( FIRST ) THEN
          ! Generate annual emission factors for MEGAN inventory
-         CALL CALC_AEF( am_I_Root, RC )
+         CALL CALC_AEF( am_I_Root, HcoState, ExtState, RC )
 
          ! Calculate normalization factor (dbm, 11/2012)
          CALL CALC_NORM_FAC( am_I_Root, RC )
@@ -721,7 +733,7 @@
          ENDIF
 
          !--------------------------------------------------------------------
-         ! MEGAN biogenics
+         ! MEGAN monoterpenes
          !--------------------------------------------------------------------
          ! Updated the calls below for new MEGAN routine (dbm, 12/2012)
 
@@ -821,7 +833,7 @@
             FLUXOCIM(I,J) = EMIS_OCIM
 
             ! ---------------------------------------------------
-            ! Other monoterpenes<
+            ! Other monoterpenes
             ! (added 12/2012; dbm)
             CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
      &                                'OMON',   EMIS_OMON, RC )
@@ -866,9 +878,9 @@
 !                 write(*,*) 'OMON: ', EMIS_OMON
 !         endif
 
-         !------------------
-         ! MEGAN ALD2
-         !------------------
+         !--------------------------------------------------------------------
+         ! MEGAN Acetaldehyde
+         !--------------------------------------------------------------------
          IF ( IDTALD2 > 0 ) THEN
             CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
      &                                'ALD2',   EMIS_ALD2, RC )
@@ -888,9 +900,8 @@
          ! specialized simulations. (dbm, 12/2012)
          !--------------------------------------------------------------------
 
-         !------------------
+         ! ---------------------------------------------------
          ! MEGAN Methanol
-         !------------------
          ! Uncomment this to compute biogenic methanol emissions
 !         CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
 !     &                             'MOHX',   EMIS_MOHX, RC )
@@ -901,9 +912,8 @@
 !         ENDIF 
 !         FLUXMOHX(I,J) = EMIS_MOHX
 
-         !------------------
+         ! ---------------------------------------------------
          ! MEGAN Ethanol
-         !------------------
          ! Uncomment this to compute biogenic ethanol emissions
 !         CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
 !     &                             'ETOH',   EMIS_ETOH, RC )
@@ -914,9 +924,8 @@
 !         ENDIF
 !         FLUXETOH(I,J) = EMIS_ETOH
 
-         !------------------
+         ! ---------------------------------------------------
          ! MEGAN Formic acid
-         !------------------
          ! Uncomment this to compute biogenic formic acid emissions
 !         CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
 !     &                             'FAXX',   EMIS_FAXX, RC )
@@ -927,9 +936,8 @@
 !         ENDIF
 !         FLUXFAXX(I,J) = EMIS_FAXX
 
-         !------------------
+         ! ---------------------------------------------------
          ! MEGAN Acetic acid
-         !------------------
          ! Uncomment this to compute biogenic acetic acid emissions
 !         CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
 !     &                             'AAXX',   EMIS_AAXX, RC )
@@ -1224,77 +1232,76 @@
                !             other sesq (OSQT)
                ! =========   ==========================================
 
-               !----------------------------------------
-               ! MTPA 
-               !----------------------------------------
-               ! rename EMMONOG to EMTERP (hotp 7/29/10)
-               ! New lumping: MTPA=a-,b-pinene,sabinene,carene (hotp 5/20/10)
-               ! a-pinene
+               !--------------------------------------------------------------
+               ! MEGAN MTPA 
+               !--------------------------------------------------------------
+               ! MTPA=a-,b-pinene,sabinene,carene (hotp 5/20/10)
                IF ( IDTMTPA > 0 ) THEN
                   FLUXMTPA(I,J) = ( EMIS_APIN + EMIS_BPIN +
      &                              EMIS_SABI + EMIS_CARE ) * FC1
                ENDIF
 
-               !----------------------------------------
-               ! LIMO 
-               !----------------------------------------
-               ! LIMONENE [kg C/m2/s]
+               !--------------------------------------------------------------
+               ! MEGAN Limonene 
+               !--------------------------------------------------------------
+               ! [kg C/m2/s]
                IF ( IDTLIMO > 0 ) THEN
                   FLUXLIMO(I,J) = EMIS_LIMO * FC1 
                ENDIF
 
-               !----------------------------------------
-               ! MTPO
-               !----------------------------------------
+               !--------------------------------------------------------------
+               ! MEGAN MTPO
+               !--------------------------------------------------------------
                ! MTPO is all other monoterpenes (MEGAN categories:
                ! myrcene, ocimene, OMON) (hotp 5/20/10)
                ! All other monoterpenes (mostly camphene, linalool,
                ! terpinolene, terpinolene, phellandrene) (hotp 3/10/10)
                ! 14-18% of OMTP is terpinene and terpinolene
                IF ( IDTMTPO > 0 ) THEN
-                  FLUXMTPO(I,J) = ( EMIS_MYRC + EMIS_OCIM 
+                  FLUXMTPO(I,J) = ( EMIS_MYRC + EMIS_OCIM +
      &                              EMIS_OMON ) * FC1
                ENDIF
 
-               !----------------------------------------
-               ! SESQ updated
-               !----------------------------------------
-               ! Sesquiterpenes from MEGAN (hotp 3/10/10)
+               !--------------------------------------------------------------
+               ! MEGAN sesquiterpenes
+               !--------------------------------------------------------------
+
+               ! ---------------------------------------------------
+               ! a-Farnesene 
+               CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                   'FARN',   EMIS_FARN, RC )
+               IF ( RC /= HCO_SUCCESS ) THEN 
+                  CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_FARN', RC )
+                  ERR = .TRUE.
+                  EXIT
+               ENDIF 
+               FLUXFARN(I,J) = EMIS_FARN
+
+               ! ---------------------------------------------------
+               ! b_Caryophyllene 
+               CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                   'BCAR',   EMIS_BCAR, RC )
+               IF ( RC /= HCO_SUCCESS ) THEN 
+                  CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_BCAR', RC )
+                  ERR = .TRUE.
+                  EXIT
+               ENDIF 
+               FLUXBCAR(I,J) = EMIS_BCAR
+
+               ! ---------------------------------------------------
+               ! Other sesquiterpene
+               CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
+     &                                   'OSQT',   EMIS_OSQT, RC )
+               IF ( RC /= HCO_SUCCESS ) THEN 
+                  CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_OSQT', RC )
+                  ERR = .TRUE.
+                  EXIT
+               ENDIF 
+               FLUXOSQT(I,J) = EMIS_OSQT
+
+               ! ---------------------------------------------------
+               ! Total sesquiterpenes from MEGAN (hotp 3/10/10)
                IF ( IDTSESQ > 0 ) THEN
-
-                  ! ---------------------------------------------------
-                  ! a-Farnesene 
-                  CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
-     &                                      'FARN',   EMIS_FARN, RC )
-                  IF ( RC /= HCO_SUCCESS ) THEN 
-                     CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_FARN', RC )
-                     ERR = .TRUE.
-                     EXIT
-                  ENDIF 
-                  FLUXFARN(I,J) = EMIS_FARN
-
-                  ! ---------------------------------------------------
-                  ! b_Caryophyllene 
-                  CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
-     &                                      'BCAR',   EMIS_BCAR, RC )
-                  IF ( RC /= HCO_SUCCESS ) THEN 
-                     CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_BCAR', RC )
-                     ERR = .TRUE.
-                     EXIT
-                  ENDIF 
-                  FLUXBCAR(I,J) = EMIS_BCAR
-
-                  ! ---------------------------------------------------
-                  ! Other sesquiterpene
-                  CALL GET_MEGAN_EMISSIONS( HcoState, ExtState,  I, J,
-     &                                      'OSQT',   EMIS_OSQT, RC )
-                  IF ( RC /= HCO_SUCCESS ) THEN 
-                     CALL HCO_ERROR( 'GET_MEGAN_EMISSIONS_OSQT', RC )
-                     ERR = .TRUE.
-                     EXIT
-                  ENDIF 
-                  FLUXOSQT(I,J) = EMIS_OSQT
-
                   FLUXSESQ(I,J) = ( EMIS_FARN + EMIS_BCAR +
      &                              EMIS_OSQT ) * FC3
                ENDIF
@@ -1553,7 +1560,7 @@
 
       ! ----------------------------------------------------------------
       ! MTPA 
-      IF ( (ExtNrSoa>0) .AND. (IDTMTPA>0) ) THEN 
+      IF ( ( ExtNrSoa > 0 ) .AND. ( IDTMTPA > 0 ) ) THEN 
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXMTPA, IDTMTPA, RC)
@@ -1562,20 +1569,25 @@
             RETURN 
          ENDIF
 
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXMTPA
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
-     &                         Cat=-1, Hier=-1, HcoID=IDTMTPA,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
-         ENDIF
+!------------------------------------------------------------------------------
+! Prior to 2/18/15:
+! Add individual species to diagnostics rather than lumped species, following
+! method used in original implementation (mps, 2/18/15)
+!         ! Eventually update diagnostics
+!         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+!            Arr2D => FLUXMTPA
+!            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
+!     &                         Cat=-1, Hier=-1, HcoID=IDTMTPA,
+!     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
+!            IF ( RC /= HCO_SUCCESS ) RETURN 
+!            Arr2D => NULL() 
+!         ENDIF
+!------------------------------------------------------------------------------
       ENDIF
 
       ! ----------------------------------------------------------------
       ! MTPO 
-      IF ( (ExtNrSoa>0) .AND. (IDTMTPO>0) ) THEN 
+      IF ( ( ExtNrSoa > 0 ) .AND. ( IDTMTPO > 0 ) ) THEN 
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXMTPO, IDTMTPO, RC)
@@ -1584,20 +1596,25 @@
             RETURN 
          ENDIF
 
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXMTPO
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
-     &                         Cat=-1, Hier=-1, HcoID=IDTMTPO,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
-         ENDIF
+!------------------------------------------------------------------------------
+! Prior to 2/18/15:
+! Add individual species to diagnostics rather than lumped species, following
+! method used in original implementation (mps, 2/18/15)
+!         ! Eventually update diagnostics
+!         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+!            Arr2D => FLUXMTPO
+!            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
+!     &                         Cat=-1, Hier=-1, HcoID=IDTMTPO,
+!     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
+!            IF ( RC /= HCO_SUCCESS ) RETURN 
+!            Arr2D => NULL() 
+!         ENDIF
+!------------------------------------------------------------------------------
       ENDIF
 
       ! ----------------------------------------------------------------
       ! LIMONENE 
-      IF ( (ExtNrSoa>0) .AND. (IDTLIMO>0) ) THEN
+      IF ( ( ExtNrSoa > 0 ) .AND. ( IDTLIMO > 0 ) ) THEN
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( HcoState, FLUXLIMO, IDTLIMO, RC)
@@ -1606,15 +1623,20 @@
             RETURN 
          ENDIF
 
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXLIMO
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
-     &                         Cat=-1, Hier=-1, HcoID=IDTLIMO,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
-         ENDIF
+!------------------------------------------------------------------------------
+! Prior to 2/18/15:
+! Add individual species to diagnostics rather than lumped species, following
+! method used in original implementation (mps, 2/18/15)
+!         ! Eventually update diagnostics
+!         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+!            Arr2D => FLUXLIMO
+!            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
+!     &                         Cat=-1, Hier=-1, HcoID=IDTLIMO,
+!     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
+!            IF ( RC /= HCO_SUCCESS ) RETURN 
+!            Arr2D => NULL() 
+!         ENDIF
+!------------------------------------------------------------------------------
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -1628,44 +1650,20 @@
             RETURN 
          ENDIF
 
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXSESQ
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
-     &                         Cat=-1, Hier=-1, HcoID=IDTSESQ,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
-         ENDIF
-
-         ! Add individuel sesquiterpene emissions to diagnostics
-         ! ---------------------------------------------------
-         ! a-Farnesene
-         Arr2D => FLUXFARN
-         DiagnName =  'MEGAN_FARN'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL() 
-
-         ! ---------------------------------------------------
-         ! b_Caryophyllene
-         Arr2D => FLUXBCAR
-         DiagnName =  'MEGAN_BCAR'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL()
-
-         ! ---------------------------------------------------
-         ! Other sesquiterpenes
-         Arr2D => FLUXOSQT
-         DiagnName =  'MEGAN_OSQT'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
-     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN 
-         Arr2D => NULL()
-
+!------------------------------------------------------------------------------
+! Prior to 2/18/15:
+! Add individual species to diagnostics rather than lumped species, following
+! method used in original implementation (mps, 2/18/15)
+!         ! Eventually update diagnostics
+!         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
+!            Arr2D => FLUXSESQ
+!            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrSoa,
+!     &                         Cat=-1, Hier=-1, HcoID=IDTSESQ,
+!     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
+!            IF ( RC /= HCO_SUCCESS ) RETURN 
+!            Arr2D => NULL() 
+!         ENDIF
+!------------------------------------------------------------------------------
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -1675,7 +1673,7 @@
          ! ---------------------------------------------------
          ! Methyl butenol
          Arr2D => FLUXMBOX
-         DiagnName =  'MEGAN_MBOX'
+         DiagnName =  'BIOGENIC_MBOX'
          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1684,7 +1682,7 @@
          ! ---------------------------------------------------
          ! Alpha Pinene
          Arr2D => FLUXAPIN
-         DiagnName =  'MEGAN_APIN'
+         DiagnName =  'BIOGENIC_APIN'
          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1693,7 +1691,7 @@
          ! ---------------------------------------------------
          ! Beta Pinene
          Arr2D => FLUXBPIN
-         DiagnName =  'MEGAN_BPIN'
+         DiagnName =  'BIOGENIC_BPIN'
          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1701,21 +1699,17 @@
 
          ! ---------------------------------------------------
          ! Limonene
-         ! Update diagnostic here if the SOA mechanism is turned off.
-         ! Otherwise, Limonene emissions are updated above.
-         IF ( ExtNrSoa < 1 ) THEN
          Arr2D => FLUXLIMO
-         DiagnName =  'MEGAN_LIMO'
+         DiagnName =  'BIOGENIC_LIMO'
          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
-         ENDIF
 
          ! ---------------------------------------------------
          ! Sabinene
          Arr2D => FLUXSABI
-         DiagnName =  'MEGAN_SABI'
+         DiagnName =  'BIOGENIC_SABI'
          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1724,7 +1718,7 @@
          ! ---------------------------------------------------
          ! Mycrene
          Arr2D => FLUXMYRC
-         DiagnName =  'MEGAN_MYRC'
+         DiagnName =  'BIOGENIC_MYRC'
          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1733,7 +1727,7 @@
          ! ---------------------------------------------------
          ! 3-Carene
          Arr2D => FLUXCARE
-         DiagnName =  'MEGAN_CARE'
+         DiagnName =  'BIOGENIC_CARE'
          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1742,7 +1736,7 @@
          ! ---------------------------------------------------
          ! Ocimene
          Arr2D => FLUXOCIM
-         DiagnName =  'MEGAN_OCIM'
+         DiagnName =  'BIOGENIC_OCIM'
          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1751,11 +1745,43 @@
          ! ---------------------------------------------------
          ! Other monoterpenes
          Arr2D => FLUXOMON
-         DiagnName =  'MEGAN_OMON'
+         DiagnName =  'BIOGENIC_OMON'
          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
+
+         IF ( ExtNrSoa > 0 ) THEN
+            ! ---------------------------------------------------
+            ! a-Farnesene
+            Arr2D => FLUXFARN
+            DiagnName =  'BIOGENIC_FARN'
+            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+     &                         cName=TRIM(DiagnName), Array2D=Arr2D,
+     &                         RC=RC)
+            IF ( RC /= HCO_SUCCESS ) RETURN 
+            Arr2D => NULL() 
+
+            ! ---------------------------------------------------
+            ! b_Caryophyllene
+            Arr2D => FLUXBCAR
+            DiagnName =  'BIOGENIC_BCAR'
+            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+     &                         cName=TRIM(DiagnName), Array2D=Arr2D,
+     &                         RC=RC)
+            IF ( RC /= HCO_SUCCESS ) RETURN 
+            Arr2D => NULL()
+
+            ! ---------------------------------------------------
+            ! Other sesquiterpenes
+            Arr2D => FLUXOSQT
+            DiagnName =  'BIOGENIC_OSQT'
+            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+     &                         cName=TRIM(DiagnName), Array2D=Arr2D,
+     &                         RC=RC)
+            IF ( RC /= HCO_SUCCESS ) RETURN 
+            Arr2D => NULL()
+         ENDIF
 
       ENDIF
 
@@ -1766,7 +1792,7 @@
       ! ---------------------------------------------------
       ! Methanol
       Arr2D => FLUXMOHX
-      DiagnName =  'MEGAN_MOHX'
+      DiagnName =  'BIOGENIC_MOHX'
       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1775,7 +1801,7 @@
       ! ---------------------------------------------------
       ! Ethanol
       Arr2D => FLUXETOH
-      DiagnName =  'MEGAN_ETOH'
+      DiagnName =  'BIOGENIC_ETOH'
       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1784,7 +1810,7 @@
       ! ---------------------------------------------------
       ! Formic acid
       Arr2D => FLUXFAXX
-      DiagnName =  'MEGAN_FAXX'
+      DiagnName =  'BIOGENIC_FAXX'
       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1793,7 +1819,7 @@
       ! ---------------------------------------------------
       ! Acetic acid
       Arr2D => FLUXAAXX
-      DiagnName =  'MEGAN_AAXX'
+      DiagnName =  'BIOGENIC_AAXX'
       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
      &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1940,19 +1966,19 @@
       ! Get MEGAN parameters for this compound
       ! --------------------------------------------
       CALL GET_MEGAN_PARAMS ( CMPD, BETA, LDF,  CT1,  CEO, 
-     &                        ANEW, AGRO, AMAT, AOLD, BIDIR )
+     &                        ANEW, AGRO, AMAT, AOLD, BIDIR, RC )
 
       ! --------------------------------------------
       ! Get base emission factor for this compound and grid square
       ! Units: atomsC/box or molec/box
       ! --------------------------------------------
-      AEF = GET_MEGAN_AEF ( I, J, CMPD )
+      CALL GET_MEGAN_AEF ( I, J, CMPD, AEF, RC )
      
       !-----------------------------------------------------
       ! Only interested in terrestrial biosphere
       ! If (local LAI != 0 .AND. baseline emission !=0 ) 
       !-----------------------------------------------------
-      IF ( ISOLAI(I,J) * AEF > 0.0_hp ) THEN
+      IF ( ISOLAI * AEF > 0.0_hp ) THEN
 
          ! --------------------------------------------------
          ! GAMMA_par (light activity factor)
@@ -1961,9 +1987,10 @@
          ! Calculate GAMMA PAR only during day
          IF ( SUNCOS > 0.0_hp ) THEN
 
-            GAMMA_PAR = GET_GAMMA_PAR_PCEEA(I, J, 
-     &                  Q_DIR_2, Q_DIFF_2,
-     &                  HCOPARDR_15_AVG(I,J),  HCOPARDF_15_AVG(I,J) )
+            GAMMA_PAR = GET_GAMMA_PAR_PCEEA(HcoState, ExtState, I, J, 
+     &                                      Q_DIR_2,  Q_DIFF_2,
+     &                                      HCOPARDR_15_AVG(I,J),
+     &                                      HCOPARDF_15_AVG(I,J)  )
 
          ELSE             
  
@@ -1999,7 +2026,7 @@
          ! --------------------------------------------------
          ! GAMMA_SM (soil moisture activity factor)
          ! --------------------------------------------------
-         GAMMA_SM = GET_GAMMA_SM( I, J, CMPD )
+         GAMMA_SM = GET_GAMMA_SM( ExtState, I, J, CMPD )
 
       ELSE
 
@@ -2018,7 +2045,7 @@
       ! Normalization factor ensures product of GAMMA values is 1.0 under
       !  standard conditions. 
       MEGAN_EMIS = NORM_FAC(1) * AEF * GAMMA_AGE * GAMMA_SM * GAMMA_LAI
-     &           * ((1.0_fp - LDF) * GAMMA_T_LI +
+     &           * ((1.0_hp - LDF) * GAMMA_T_LI +
      &             (LDF * GAMMA_PAR * GAMMA_T_LD))
 
 
@@ -2101,6 +2128,10 @@
 !------------------------------------------------------------------------------
 !BOC
 !
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=255):: MSG
+
       !=================================================================
       ! GET_MEGAN_PARAMS begins here!
       !================================================================= 
@@ -2265,7 +2296,7 @@
      &          TRIM(CPD) == 'BCAR' .OR.
      &          TRIM(CPD) == 'OSQT' ) THEN
          BTA    = 0.17_hp
-         LIDF   = 0.5_fp
+         LIDF   = 0.5_hp
          C_T1   = 130.0_hp
          C_EO   = 2.37_hp
          A_NEW  = 0.4_hp
@@ -2279,9 +2310,10 @@
       ! Guenther 2012 or the MEGAN source code (dbm, 6/21/2012).
       ELSE
 
-         CALL ERROR_STOP( 'Invalid compound name for MEGAN emissions', 
-     &                    ' (hcox_megan_mod.F)' )
-         
+         MSG = 'Invalid compound name'
+         CALL HCO_ERROR( MSG, RC, THISLOC='GET_MEGAN_PARAMS' )
+         RETURN 
+
       ENDIF
      
       ! Leave w/ success
@@ -2317,7 +2349,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      INTEGER,           INTENT(INOUT) :: RC            ! Return code 
+      INTEGER,           INTENT(INOUT) :: RC        ! Return code
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -2330,6 +2362,10 @@
 !------------------------------------------------------------------------------
 !BOC
 !
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=255):: MSG
+
       !=================================================================
       ! GET_MEGAN_AEF begins here!
       !================================================================= 
@@ -2386,8 +2422,9 @@
       CASE ( 'OSQT' )
          EMFAC = AEF_OSQT(I,J)
       CASE DEFAULT     
-         CALL ERROR_STOP( 'Invalid compound name for MEGAN AEF', 
-     &                    ' (hcox_megan_mod.F)' )
+         MSG = 'Invalid compound name'
+         CALL HCO_ERROR( MSG, RC, THISLOC='GET_MEGAN_AEF' )
+         RETURN 
       END SELECT
 
       ! Return w/ success
@@ -2719,7 +2756,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(hp)              :: C_T,   CT1,   CT2
+      REAL(hp)              :: C_T,   CT2
       REAL(hp)              :: E_OPT, T_OPT, X
 !
 ! !DEFINED PARAMETERS:
@@ -2966,7 +3003,7 @@
       ! Prevent negative values
       GAMMA_AGE = MAX( GAMMA_AGE , 0.0_hp )
 
-      END FUNCTION GET_GAMMA_LEAF_AGE
+      END FUNCTION GET_GAMMA_AGE
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -3533,7 +3570,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_AEF( am_I_Root, RC )
+      SUBROUTINE CALC_AEF( am_I_Root, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -3544,6 +3581,8 @@
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,         INTENT(IN)    :: am_I_Root
+      TYPE(Ext_State), POINTER       :: ExtState 
+      TYPE(HCO_State), POINTER       :: HcoState
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -3655,7 +3694,7 @@
       ENDIF
 
       ! Only used for SOA simulation:
-      IF ( ExtNrSoa>0 ) THEN
+      IF ( ExtNrSoa > 0 ) THEN
          CALL HCO_GetPtr( am_I_Root, 'MEGAN_ORVC', GEIA_ORVC, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
@@ -3917,19 +3956,22 @@
          ! Don't need to divide ARRAY_16 by 100 since data from netCDF
          ! file has already been converted to fraction (mps, 2/12/15)
 
+         IF ( ExtNrMono > 0 ) THEN
+
 ! ---> Now compute EFs for a-pinene and myrcene as well (dbm, 12/2012)
-         ! a-pinene: 100% of category
-         AEF_APIN(:,:) = AEF_APIN(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_APIN(P)
+            ! a-pinene: 100% of category
+            AEF_APIN(:,:) = AEF_APIN(:,:) + 
+     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_APIN(P)
 
-         ! a-pinene: 100% of category
-         AEF_MYRC(:,:) = AEF_MYRC(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_MYRC(P)
+            ! Myrcene: 100% of category
+            AEF_MYRC(:,:) = AEF_MYRC(:,:) + 
+     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_MYRC(P)
 ! <---
+            ! Other monoterpenes: 100% of category
+            AEF_OMON(:,:) = AEF_OMON(:,:) + 
+     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_OMON(P)
 
-         ! Other monoterpenes: 100% of category
-         AEF_OMON(:,:) = AEF_OMON(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_OMON(P)
+         ENDIF
 
          ! Methanol: 100% of category
          AEF_MOHX(:,:) = AEF_MOHX(:,:) + 
@@ -3939,17 +3981,21 @@
          AEF_ACET(:,:) = AEF_ACET(:,:) + 
      &        ARRAY_16(:,:,ARR_IND) * PFT_EF_ACET(P)
 
-         ! a-Farnesene: 100% of category
-         AEF_FARN(:,:) = AEF_FARN(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_FARN(P)
+         IF ( ExtNrSoa > 0 ) THEN
 
-         ! b-Caryophyllene: 100% of category
-         AEF_BCAR(:,:) = AEF_BCAR(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BCAR(P)
+            ! a-Farnesene: 100% of category
+            AEF_FARN(:,:) = AEF_FARN(:,:) + 
+     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_FARN(P)
 
-         ! Other sesquiterpenes: 100% of category
-         AEF_OSQT(:,:) = AEF_OSQT(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_OSQT(P)
+            ! b-Caryophyllene: 100% of category
+            AEF_BCAR(:,:) = AEF_BCAR(:,:) + 
+     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_BCAR(P)
+
+            ! Other sesquiterpenes: 100% of category
+            AEF_OSQT(:,:) = AEF_OSQT(:,:) + 
+     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_OSQT(P)
+
+         ENDIF
 
          ! Ethanol: variable fraction of category
          AEF_ETOH(:,:) = AEF_ETOH(:,:) + 
@@ -4314,6 +4360,8 @@
 !                              initialize the LAI arrays from main.F
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  11 Apr 2013 - R. Yantosca - Now pass directory info with Input_Opt
+!  18 Feb 2015 - M. Sulprizio- Now allocate AEF arrays for species not read
+!                              from file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4346,8 +4394,12 @@
       ! Read settings specified in configuration file
       ! Note: the specified strings have to match those in 
       !       the config. file!
-      CALL GetExtOpt ( ExtNr, 'PECCA model', OptValBool=LPECCA, RC=RC )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
+! Prior to 2/18/15:
+! LPECCA flag is no longer needed since we use this scheme exclusively now
+!      CALL GetExtOpt ( ExtNr, 'PECCA model', OptValBool=LPECCA, RC=RC )
+!      IF ( RC /= HCO_SUCCESS ) RETURN
+!------------------------------------------------------------------------------
       CALL GetExtOpt ( ExtNr, 'Isoprene scaling', 
      &                 OptValDp=ISOP_SCALING, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4356,8 +4408,11 @@
       IF ( am_I_Root ) THEN
          MSG = 'Use MEGAN biogenic emissions (extension module)'
          CALL HCO_MSG( MSG, SEP1='-' )
-         WRITE(MSG,*) ' - Use PECCA model: ', LPECCA
-         CALL HCO_MSG( MSG )
+!------------------------------------------------------------------------------
+! Prior to 2/18/15:
+!         WRITE(MSG,*) ' - Use PECCA model: ', LPECCA
+!         CALL HCO_MSG( MSG )
+!------------------------------------------------------------------------------
          MSG = ' - Use the following species:'
          CALL HCO_MSG( MSG )
       ENDIF
@@ -4436,7 +4491,7 @@
                   IDTOCPI = HcoIDs(I)
                   WRITE(MSG,*) '   OC aorosol = ',
      &                         TRIM(SpcNames(I)),IDTOCPI
-               CASE( 'MONX', 'MONO' )
+               CASE( 'MONX' )
                   IDTMONX = HcoIDs(I)
                   WRITE(MSG,*) '   Monoterp.  = ',
      &                         TRIM(SpcNames(I)),IDTMONX
@@ -4675,8 +4730,138 @@
       ! There should be a different normalization factor for each compound, but
       ! we calculate only 1 normalization factor for all compounds (dbm 11/2012)
       ALLOCATE( NORM_FAC( 1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NORM_FAC' )
+      IF ( AS /= 0 ) THEN 
+        CALL HCO_ERROR( 'NORM_FAC', RC )
+        RETURN
+      ENDIF
       NORM_FAC = -99d0
+
+      IF ( ExtNrMono > 0 ) THEN
+
+         ALLOCATE( AEF_APIN( NX, NY ), STAT=AS )
+         IF ( AS /= 0 ) THEN 
+            CALL HCO_ERROR( 'AEF_APIN', RC )
+            RETURN
+         ENDIF
+         AEF_APIN = 0.0_hp
+
+         ALLOCATE( AEF_MYRC( NX, NY ), STAT=AS )
+         IF ( AS /= 0 ) THEN 
+            CALL HCO_ERROR( 'AEF_MYRC', RC )
+            RETURN
+         ENDIF
+         AEF_MYRC = 0.0_hp
+
+         ALLOCATE( AEF_OMON( NX, NY ), STAT=AS )
+         IF ( AS /= 0 ) THEN 
+            CALL HCO_ERROR( 'AEF_OMON', RC )
+            RETURN
+         ENDIF
+         AEF_OMON = 0.0_hp
+
+      ENDIF
+
+      ALLOCATE( AEF_MOHX( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'AEF_MOHX', RC )
+         RETURN
+      ENDIF
+      AEF_MOHX = 0.0_hp
+
+      ALLOCATE( AEF_ACET( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'AEF_ACET', RC )
+         RETURN
+      ENDIF
+      AEF_ACET = 0.0_hp
+
+      ALLOCATE( AEF_ETOH( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'AEF_ETOH', RC )
+         RETURN
+      ENDIF
+      AEF_ETOH = 0.0_hp
+
+      ALLOCATE( AEF_CH2O( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'AEF_CH2O', RC )
+         RETURN
+      ENDIF
+      AEF_CH2O = 0.0_hp
+
+      ALLOCATE( AEF_ALD2( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'AEF_ALD2', RC )
+         RETURN
+      ENDIF
+      AEF_ALD2 = 0.0_hp
+
+      ALLOCATE( AEF_FAXX( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'AEF_FAXX', RC )
+         RETURN
+      ENDIF
+      AEF_FAXX = 0.0_hp
+
+      ALLOCATE( AEF_AAXX( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'AEF_AAXX', RC )
+         RETURN
+      ENDIF
+      AEF_AAXX = 0.0_hp
+
+      ALLOCATE( AEF_C2H4( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'AEF_C2H4', RC )
+         RETURN
+      ENDIF
+      AEF_C2H4 = 0.0_hp
+
+      ALLOCATE( AEF_TOLU( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'AEF_TOLU', RC )
+         RETURN
+      ENDIF
+      AEF_TOLU = 0.0_hp
+
+      ALLOCATE( AEF_HCNX( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'AEF_HCNX', RC )
+         RETURN
+      ENDIF
+      AEF_HCNX = 0.0_hp
+
+      ALLOCATE( AEF_PRPE( NX, NY ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( 'AEF_PRPE', RC )
+         RETURN
+      ENDIF
+      AEF_PRPE = 0.0_hp
+
+      IF ( ExtNrSoa > 0 ) THEN
+
+         ALLOCATE( AEF_FARN( NX, NY ), STAT=AS )
+         IF ( AS /= 0 ) THEN 
+            CALL HCO_ERROR( 'AEF_FARN', RC )
+            RETURN
+         ENDIF
+         AEF_FARN = 0.0_hp
+
+         ALLOCATE( AEF_BCAR( NX, NY ), STAT=AS )
+         IF ( AS /= 0 ) THEN 
+            CALL HCO_ERROR( 'AEF_BCAR', RC )
+            RETURN
+         ENDIF
+         AEF_BCAR = 0.0_hp
+
+         ALLOCATE( AEF_OSQT( NX, NY ), STAT=AS )
+         IF ( AS /= 0 ) THEN 
+            CALL HCO_ERROR( 'AEF_OSQT', RC )
+            RETURN
+         ENDIF
+         AEF_OSQT = 0.0_hp
+
+      ENDIF
 
       !=================================================================
       ! Initialize internal diagnostics. These are the restart variables
@@ -4805,6 +4990,7 @@
 ! !REVISION HISTORY: 
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  16 Aug 2013 - C. Keller   - Now a HEMCO extension 
+!  18 Feb 2015 - M. Sulprizio- Added AEF arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4854,6 +5040,23 @@
       IF ( ALLOCATED( LAI_PREVSTEP    ) ) DEALLOCATE( LAI_PREVSTEP    )
       IF ( ALLOCATED( LAI_PREVDAY     ) ) DEALLOCATE( LAI_PREVDAY     )
       IF ( ALLOCATED( NORM_FAC        ) ) DEALLOCATE( NORM_FAC        )
+      IF ( ALLOCATED( AEF_APIN        ) ) DEALLOCATE( AEF_APIN        )
+      IF ( ALLOCATED( AEF_MYRC        ) ) DEALLOCATE( AEF_MYRC        )
+      IF ( ALLOCATED( AEF_OMON        ) ) DEALLOCATE( AEF_OMON        )
+      IF ( ALLOCATED( AEF_MOHX        ) ) DEALLOCATE( AEF_MOHX        )
+      IF ( ALLOCATED( AEF_ACET        ) ) DEALLOCATE( AEF_ACET        )
+      IF ( ALLOCATED( AEF_ETOH        ) ) DEALLOCATE( AEF_ETOH        )
+      IF ( ALLOCATED( AEF_CH2O        ) ) DEALLOCATE( AEF_CH2O        )
+      IF ( ALLOCATED( AEF_ALD2        ) ) DEALLOCATE( AEF_ALD2        )
+      IF ( ALLOCATED( AEF_FAXX        ) ) DEALLOCATE( AEF_FAXX        )
+      IF ( ALLOCATED( AEF_AAXX        ) ) DEALLOCATE( AEF_AAXX        )
+      IF ( ALLOCATED( AEF_C2H4        ) ) DEALLOCATE( AEF_C2H4        )
+      IF ( ALLOCATED( AEF_TOLU        ) ) DEALLOCATE( AEF_TOLU        )
+      IF ( ALLOCATED( AEF_HCNX        ) ) DEALLOCATE( AEF_HCNX        )
+      IF ( ALLOCATED( AEF_PRPE        ) ) DEALLOCATE( AEF_PRPE        )
+      IF ( ALLOCATED( AEF_FARN        ) ) DEALLOCATE( AEF_FARN        )
+      IF ( ALLOCATED( AEF_BCAR        ) ) DEALLOCATE( AEF_BCAR        )
+      IF ( ALLOCATED( AEF_OSQT        ) ) DEALLOCATE( AEF_OSQT        )
 
       END SUBROUTINE HCOX_MEGAN_FINAL
 !EOC
