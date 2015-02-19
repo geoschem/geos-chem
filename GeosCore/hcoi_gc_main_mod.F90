@@ -54,6 +54,7 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: Set_Grid
   PRIVATE :: Get_nHcoSpc
   PRIVATE :: Register_Species
+  PRIVATE :: CheckSettings
 !
 ! !REMARKS:
 !  This module is ignored if you are using HEMCO in an ESMF environment.
@@ -68,6 +69,7 @@ MODULE HCOI_GC_Main_Mod
 !  06 Oct 2014 - C. Keller   - Removed PCENTER. Now calculate from pressure edges
 !  21 Oct 2014 - C. Keller   - Removed obsolete routines MAP_HCO2GC and 
 !                              Regrid_Emis2Sim. Added wrapper routine GetHcoID
+!  18 Feb 2015 - C. Keller   - Added routine CheckSettings.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,9 +165,6 @@ CONTAINS
     USE HCO_Config_Mod,     ONLY : Config_ReadFile
     USE HCO_State_Mod,      ONLY : HcoState_Init
     USE HCO_Driver_Mod,     ONLY : HCO_Init
-    USE HCO_ExtList_Mod,    ONLY : SetExtNr,  AddExtOpt
-    USE HCO_ExtList_Mod,    ONLY : GetExtOpt, CoreNr
-    USE HCO_LogFile_Mod,    ONLY : HCO_SPEC2LOG
     USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_Diagn_Init
     USE HCOX_Driver_Mod,    ONLY : HCOX_Init
     USE HCOX_State_Mod,     ONLY : ExtStateInit
@@ -229,40 +228,9 @@ CONTAINS
     CALL Config_ReadFile( am_I_Root, Input_Opt%HcoConfigFile, 1, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Config_ReadFile', LOC )
 
-    ! If emissions shall not be used, reset all extension number to
-    ! -999 first. This will make sure that none of the extensions will
-    ! be initialized and none of the input data related to any of the
-    ! extensions will be used.
-    IF ( .NOT. Input_Opt%LEMIS ) THEN
-       CALL SetExtNr( am_I_Root, -999, RC=HMRC )
-       IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'SetExtNr', LOC )
-    ENDIF
-
-    ! Set stratospheric chemistry toggle according to options in 
-    ! input.geos. This will enable/disable all fields in input.geos
-    ! that are bracketed by 'LinStratChem'. Check first if this bracket
-    ! values has been set explicitly in the HEMCO configuration file,
-    ! in which case it's not being changed.
-    CALL GetExtOpt( CoreNr, 'LinStratChem', OptValBool=LSTRAT, &
-                    FOUND=FOUND, RC=HMRC )
-    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
-    IF ( FOUND ) THEN
-       IF ( Input_Opt%LSCHEM /= LSTRAT ) THEN
-          WRITE(*,*) ' '
-          WRITE(*,*) 'StratChem toggle in HEMCO configuration file'
-          WRITE(*,*) 'does not agree with stratospheric chemistry'
-          WRITE(*,*) 'settings in input.geos. This may be inefficient' 
-          WRITE(*,*) 'and/or yield to wrong results!' 
-       ENDIF
-    ELSE
-       IF ( Input_Opt%LSCHEM ) THEN
-          OptName = 'LinStratChem : true'
-       ELSE
-          OptName = 'LinStratChem : false'
-       ENDIF
-       CALL AddExtOpt( TRIM(OptName), CoreNr, HMRC ) 
-       IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'AddExtOpt', LOC )
-    ENDIF 
+    ! Check settings
+    CALL CheckSettings( am_I_Root, Input_Opt, State_Met, State_Chm, HMRC )
+    IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'CheckSettings', LOC )
 
     ! Phase 2: read fields
     CALL Config_ReadFile( am_I_Root, Input_Opt%HcoConfigFile, 2, HMRC )
@@ -2246,5 +2214,146 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE M2HID_Allocate
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CheckSettings
+!
+! !DESCRIPTION: Subroutine CheckSettings performs some sanity checks of the
+! switches provided in the HEMCO configuration file (in combination with the
+! settings specified in input.geos). 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CheckSettings( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
+! !USES:
+!
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+
+    USE HCO_ExtList_Mod,    ONLY : GetExtNr,  SetExtNr
+    USE HCO_ExtList_Mod,    ONLY : GetExtOpt, AddExtOpt 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REVISION HISTORY:
+!  18 Feb 2015 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+
+    ! Local variables
+    INTEGER                       :: ExtNr
+    LOGICAL                       :: LTMP
+    LOGICAL                       :: FOUND
+    CHARACTER(LEN= 31)            :: OptName
+    CHARACTER(LEN=255)            :: MSG
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'CheckSettings (hcoi_gc_main_mod.F90'
+
+    !=================================================================
+    ! CheckSettings begins here
+    !=================================================================
+
+    !-----------------------------------------------------------------
+    ! If emissions shall not be used, reset all extension numbers to
+    ! -999. This will make sure that none of the extensions will be
+    ! initialized and none of the input data related to any of the
+    ! extensions will be used.
+    !-----------------------------------------------------------------
+    IF ( .NOT. Input_Opt%LEMIS ) THEN
+       CALL SetExtNr( am_I_Root, -999, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'SetExtNr', LOC )
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Set stratospheric chemistry toggle according to options in 
+    ! input.geos. This will enable/disable all fields in input.geos
+    ! that are bracketed by '+LinStratChem+'. Check first if this bracket
+    ! values has been set explicitly in the HEMCO configuration file,
+    ! in which case it's not being changed.
+    !-----------------------------------------------------------------
+    CALL GetExtOpt( 0, '+LinStratChem+', OptValBool=LTMP, &
+                    FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
+    IF ( FOUND ) THEN
+       IF ( Input_Opt%LSCHEM /= LTMP ) THEN
+          WRITE(*,*) ' '
+          WRITE(*,*) 'Setting +LinStratChem+ in the HEMCO configuration'
+          WRITE(*,*) 'file does not agree with stratospheric chemistry'
+          WRITE(*,*) 'settings in input.geos. This may be inefficient' 
+          WRITE(*,*) 'and/or yield to wrong results!' 
+       ENDIF
+    ELSE
+       IF ( Input_Opt%LSCHEM ) THEN
+          OptName = '+LinStratChem+ : true'
+       ELSE
+          OptName = '+LinStratChem+ : false'
+       ENDIF
+       CALL AddExtOpt( TRIM(OptName), 0, RC ) 
+       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'AddExtOpt', LOC )
+    ENDIF 
+
+    !-----------------------------------------------------------------
+    ! Make sure that the SHIPNO_BASE toggle is disabled if PARANOx is
+    ! being used. This is to avoid double-counting of ship NO 
+    ! emissions.
+    !-----------------------------------------------------------------
+    CALL GetExtOpt( 0, 'SHIPNO_BASE', OptValBool=LTMP, &
+                    FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
+    ExtNr = GetExtNr( 'ParaNOx' )
+
+    ! testing only
+    write(*,*) 'SHIPNO_BASE: ', FOUND, LTMP, ExtNr
+
+    ! It is not recommended to set +SHIPNO+ explicitly in the HEMCO
+    ! configuration file!
+    IF ( FOUND ) THEN
+       IF ( ExtNr > 0 .AND. LTMP ) THEN
+          MSG = 'Cannot use SHIPNO_BASE together with PARANOx:' // &
+          'This would double-count NO ship emissions!'
+          CALL ERROR_STOP( MSG, LOC )
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Make sure that BOND_BIOMASS toggle is disabled if GFED3 or FINN
+    ! are being used. This is to avoid double-counting of biomass
+    ! burning emissions. 
+    !-----------------------------------------------------------------
+    CALL GetExtOpt( 0, 'BOND_BIOMASS', OptValBool=LTMP, &
+                    FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
+    ExtNr = GetExtNr( 'ParaNOx' )
+
+    ! It is not recommended to set +SHIPNO+ explicitly in the HEMCO
+    ! configuration file!
+    IF ( FOUND ) THEN
+       IF ( ExtNr > 0 .AND. LTMP ) THEN
+          MSG = 'Cannot use BOND_BIOMASS together with GFED3 or FINN:' // &
+          'This would double-count biomass burning emissions!'
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE CheckSettings 
 !EOC
 END MODULE HCOI_GC_MAIN_MOD

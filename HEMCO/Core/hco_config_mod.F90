@@ -164,6 +164,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER              :: NN
     INTEGER              :: IU_HCO, IOS
     LOGICAL              :: AIR,    EOF
     CHARACTER(LEN=255)   :: MSG,    LOC
@@ -205,6 +206,9 @@ CONTAINS
        CALL AddExt ( 'CORE', CoreNr, 'all' )
     ENDIF
 
+    ! NN counts how many sections have ben read already
+    NN = 0
+
     ! Loop until EOF 
     DO
 
@@ -223,6 +227,12 @@ CONTAINS
              CALL ExtSwitch2Buffer( AIR, IU_HCO, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
+
+             ! Increase counter
+             NN = NN + 1
+
+             ! Can we leave here?
+             IF ( PHASE == 1 .AND. NN == 2 ) EXIT
           ENDIF
 
        ! Read settings if this is beginning of settings section 
@@ -232,6 +242,12 @@ CONTAINS
              CALL ReadSettings( AIR, IU_HCO, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
+
+             ! Increase counter
+             NN = NN + 1
+
+             ! Can we leave here?
+             IF ( PHASE == 1 .AND. NN == 2 ) EXIT
           ENDIF
 
        ! Read base emissions. This creates a new data container for each 
@@ -243,6 +259,9 @@ CONTAINS
              CALL Config_ReadCont( AIR, IU_HCO, 1, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
+
+             ! Increase counter
+             NN = NN + 1
           ENDIF 
 
        ! Read scale factors. This creates a new data container for each 
@@ -260,10 +279,22 @@ CONTAINS
              CALL Config_ReadCont( AIR, IU_HCO, 3, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
+
+             ! Increase counter
+             NN = NN + 1
           ENDIF
 
        ENDIF
     ENDDO
+
+    ! Check if we caught all sections. Do that only for phase 1. 
+    ! Sections SETTINGS and extension switches are needed.
+    IF ( PHASE == 1 .AND. NN /= 2 ) THEN
+       WRITE(*,*) 'Expected 2 sections, found/read ', NN
+       WRITE(*,*) 'Should read SETTINGS and EXTENSION SWITCHES'
+       RC = HCO_FAIL
+       RETURN 
+    ENDIF
 
     ! Close file
     CLOSE( UNIT=IU_HCO, IOSTAT=IOS )
@@ -272,10 +303,6 @@ CONTAINS
        RC = HCO_FAIL
        RETURN 
     ENDIF 
-
-    ! If needed, read 'dummy' scale factor of zero
-
-
 
     ! Configuration file is now read
     IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
