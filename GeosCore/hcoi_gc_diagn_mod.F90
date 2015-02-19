@@ -2739,7 +2739,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL            :: YesOrNo
-    INTEGER            :: Cat, ExtNr, HcoID, I, N
+    INTEGER            :: Cat, ExtNr, ExtNrSOA, HcoID, I, N
     CHARACTER(LEN=1)   :: ISTR
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
@@ -2964,7 +2964,6 @@ CONTAINS
              ELSEIF ( I == 5 ) THEN
                 DiagnName = 'BIOGENIC_ETOH'
              ENDIF
-
       
              ! Create diagnostics. Don't use AutoFill here since the 
              ! diagnostics update calls are explicitly called in 
@@ -2979,6 +2978,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
+                                OutOper   = 'Mean',            &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 0,                 &
                                 cID       = N,                 & 
@@ -3145,6 +3145,7 @@ CONTAINS
                                 SpaceDim  = 2,                 &
                                 LevIDx    = -1,                &
                                 OutUnit   = 'kg/m2/s',         &
+                                OutOper   = 'Mean',            &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 0,                 &
                                 cID       = N,                 & 
@@ -3191,6 +3192,7 @@ CONTAINS
                                    SpaceDim  = 2,                 &
                                    LevIDx    = -1,                &
                                    OutUnit   = 'kg/m2/s',         &
+                                   OutOper   = 'Mean',            &
                                    WriteFreq = 'Manual',          &
                                    AutoFill  = 0,                 &
                                    cID       = N,                 & 

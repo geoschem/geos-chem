@@ -6203,7 +6203,7 @@
       !-------------------------------------      
       IF ( ND46 > 0 .or. DO_TIMESERIES ) THEN 
 
-         NTRAC(46) = 21  
+         NTRAC(46) = 27
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -6251,16 +6251,22 @@
                   MOLC(T,46) = 10
                ! Formic acid carried in ppb and molec/cm2/s
                CASE( 14)
+                  INDEX(T,46) = T + ( SPACING * 21 )
                   NAME(T,46) = 'HCOOH'
+                  FNAME(T,46)= 'HCOOH emissions'
                   MOLC(T,46) = 1
                   UNIT(T,46) = 'molec/cm2/s'
                   MWT (T,46) = 46d-3
+                  SCALE (T,46) = 1e0
                ! Acetic acid carried in ppb and molec/cm2/s
                CASE( 15)
+                  INDEX(T,46) = T + ( SPACING * 21 )
                   NAME(T,46) = 'ACTA'
+                  FNAME(T,46)= 'ACTA emissions'
                   MOLC(T,46) = 2
                   UNIT(T,46) = 'molec/cm2/s'
                   MWT (T,46) = 60d-3
+                  SCALE (T,46) = 1e0
                CASE( 16)
                   NAME(T,46) = 'ALD2'
                   MOLC(T,46) = 2
@@ -6269,10 +6275,13 @@
                   MOLC(T,46) = 10
                ! Methanol in ppb and molec/cm2/s
                CASE( 18)
+                  INDEX(T,46) = T + ( SPACING * 21 )
                   NAME(T,46) = 'MOHX'
+                  FNAME(T,46)= 'MOHX emissions'
                   MOLC(T,46) = 1
                   UNIT(T,46) = 'molec/cm2/s'
                   MWT (T,46) = 32d-3
+                  SCALE (T,46) = 1e0
                CASE( 19)
                   NAME(T,46) = 'ETOH'
                   MOLC(T,46) = 2
@@ -6326,7 +6335,7 @@
 
             !jpp, 9/6/07: preventing these default quantities
             !             from overwriting CHBr3's info.
-            IF ( T < 24 .and. T /= 14 .and. T=/ 15 .and. T =/ 18 ) THEN
+            IF ( T < 24 .and. T /= 14 .and. T /= 15 .and. T /= 18 ) THEN
                ! Define the rest of the quantities
                INDEX(T,46) = T + ( SPACING * 21 )
                FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'

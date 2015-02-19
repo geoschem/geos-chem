@@ -207,13 +207,13 @@
       ! These fields are obtained from ext. data (from config file)
       ! These arrays represent the base emission values in kg(C)/m2/s
       ! that will be scaled based upon meteorological conditions.
-      REAL(hp), POINTER       :: AEF_ISOP(:,:) => NULL()    ! Isoprene 
-      REAL(hp), POINTER       :: AEF_MBOX(:,:) => NULL()    ! Methyl butenol
-      REAL(hp), POINTER       :: AEF_BPIN(:,:) => NULL()    ! Beta-pinene
-      REAL(hp), POINTER       :: AEF_CARE(:,:) => NULL()    ! 3-Carene
-      REAL(hp), POINTER       :: AEF_LIMO(:,:) => NULL()    ! Limonene
-      REAL(hp), POINTER       :: AEF_OCIM(:,:) => NULL()    ! Ocimene
-      REAL(hp), POINTER       :: AEF_SABI(:,:) => NULL()    ! Sabine
+      REAL(hp), POINTER       :: AEF_ISOP(:,:)  => NULL()   ! Isoprene 
+      REAL(hp), POINTER       :: AEF_MBOX(:,:)  => NULL()   ! Methyl butenol
+      REAL(hp), POINTER       :: AEF_BPIN(:,:)  => NULL()   ! Beta-pinene
+      REAL(hp), POINTER       :: AEF_CARE(:,:)  => NULL()   ! 3-Carene
+      REAL(hp), POINTER       :: AEF_LIMO(:,:)  => NULL()   ! Limonene
+      REAL(hp), POINTER       :: AEF_OCIM(:,:)  => NULL()   ! Ocimene
+      REAL(hp), POINTER       :: AEF_SABI(:,:)  => NULL()   ! Sabinene
       REAL(hp), POINTER       :: GEIA_ORVC(:,:) => NULL()   ! Organic carbon
 
       ! Annual emission factors arrays
@@ -399,22 +399,22 @@
       REAL(hp), TARGET    :: FLUXSESQ  (HcoState%NX,HcoState%NY)
 
       ! Emission arrays for use in diagnostics only (kgC/m2/s)
-      REAL(hp)            :: FLUXMBOX  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXAPIN  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXBPIN  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXSABI  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXMYRC  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXCARE  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXOCIM  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXOMON  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXALD2  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXMOHX  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXETOH  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXFAXX  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXAAXX  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXFARN  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXBCAR  (HcoState%NX,HcoState%NY)
-      REAL(hp)            :: FLUXOSQT  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXMBOX  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXAPIN  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXBPIN  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXSABI  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXMYRC  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXCARE  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXOCIM  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXOMON  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXALD2  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXMOHX  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXETOH  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXFAXX  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXAAXX  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXFARN  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXBCAR  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXOSQT  (HcoState%NX,HcoState%NY)
 
       ! For diagnostics
       REAL(hp), POINTER   :: Arr2D(:,:) => NULL()
@@ -3613,14 +3613,14 @@
 !
 !------------------------------------------------------------------------------
 ! Prior to 2/12/15:
-!      INTEGER                 :: I, J, P, ARR_IND
 !      REAL*4                  :: ARRAY   (IIPAR, JJPAR, 1)
 !      REAL*4                  :: ARRAY_16(IIPAR, JJPAR, 16)
 !      REAL*8                  :: DTSRCE, AREA_M2, FACTOR
 !      CHARACTER(LEN=255)      :: FILENAME
 !      REAL*8,  PARAMETER      :: AVO = 6.022D23
 !------------------------------------------------------------------------------
-      INTEGER                 :: P, ARR_IND
+      INTEGER                 :: I, J, P, ARR_IND
+      REAL(hp)                :: FACTOR
       REAL(hp)                :: ARRAY_16(HcoState%NX,HcoState%NY,16)
       REAL(hp)                :: PFT_EF_OMON(15), PFT_EF_MOHX(15)
       REAL(hp)                :: PFT_EF_ACET(15), PFT_EF_BIDR(15)
@@ -3703,7 +3703,7 @@
       ! Point to PFT fractions
       !-----------------------------------------------------------------
 
-      ! CLM4 PFT coverage (fraction)
+      ! CLM4 PFT coverage (unitless)
       ! From Table 3 in Guenther et al., 2012
       ! PFT_BARE                : Bare
       ! PFT_NDLF_EVGN_TMPT_TREE : Needleleaf evergreen temperate tree
@@ -4056,50 +4056,38 @@
       PFT_C4_GRSS             => NULL()
       PFT_CROP                => NULL()
 
-!------------------------------------------------------------------------------
-! Prior to 2/12/15:
-! HEMCO expects units kgC/m2/s as provided by netCDF files. (mps, 2/12/15)
-!      ! Loop over longitudes
-!      DO J = 1, HcoState%NY 
-!       
-!         ! Grid box surface area [m2]
-!         AREA_M2 = GET_AREA_M2( I, J, 1 )
-!
-!         ! Conversion factor from [ug compound/m2/hr] to [g compound/box]
-!         FACTOR = 1.d-6 / 60.d0 * AREA_M2 * DTSRCE 
-!          
-!         ! Loop over latitudes
-!         DO I = 1, HcoState%NX
-!
-!            ! Convert AEF arrays To [atomsC / box]
-!            AEF_ISOP(I,J)= AEF_ISOP(I,J) * FACTOR* AVO * 5d0 /68.117d0
-!            AEF_MBOX(I,J)= AEF_MBOX(I,J) * FACTOR* AVO * 5d0 /86.132d0
-!            AEF_APIN(I,J)= AEF_APIN(I,J) * FACTOR* AVO * 10d0 /136.234d0
-!            AEF_BPIN(I,J)= AEF_BPIN(I,J) * FACTOR* AVO * 10d0 /136.234d0
-!            AEF_CARE(I,J)= AEF_CARE(I,J) * FACTOR* AVO * 10d0 /136.234d0
-!            AEF_LIMO(I,J)= AEF_LIMO(I,J) * FACTOR* AVO * 10d0 /136.234d0 
-!            AEF_MYRC(I,J)= AEF_MYRC(I,J) * FACTOR* AVO * 10d0 /136.234d0
-!            AEF_OCIM(I,J)= AEF_OCIM(I,J) * FACTOR* AVO * 10d0 /136.234d0 
-!            AEF_SABI(I,J)= AEF_SABI(I,J) * FACTOR* AVO * 10d0 /136.234d0 
-!            AEF_OMON(I,J)= AEF_OMON(I,J) * FACTOR* AVO * 10d0 /136.234d0
-!            AEF_ACET(I,J)= AEF_ACET(I,J) * FACTOR* AVO * 3d0 /58.079d0 
-!            AEF_ETOH(I,J)= AEF_ETOH(I,J) * FACTOR* AVO * 2d0 /46.068d0 
-!            AEF_ALD2(I,J)= AEF_ALD2(I,J) * FACTOR* AVO * 2d0 /44.053d0 
-!            AEF_C2H4(I,J)= AEF_C2H4(I,J) * FACTOR* AVO * 2d0 /28.053d0  
-!            AEF_TOLU(I,J)= AEF_TOLU(I,J) * FACTOR* AVO * 7d0 /92.138d0 
-!            AEF_PRPE(I,J)= AEF_PRPE(I,J) * FACTOR* AVO * 3d0 /42.080d0  
-!
-!            ! Methanol, formaldehyde, formic acid, acetic acid, HCN are
-!            ! carried in molec, not atomsC
-!            AEF_MOHX(I,J) = AEF_MOHX(I,J) * FACTOR * AVO / 32.042d0
-!            AEF_CH2O(I,J) = AEF_CH2O(I,J) * FACTOR * AVO / 30.026d0 
-!            AEF_FAXX(I,J) = AEF_FAXX(I,J) * FACTOR * AVO / 46.025d0
-!            AEF_AAXX(I,J) = AEF_AAXX(I,J) * FACTOR * AVO / 60.052d0
-!            AEF_HCNX(I,J) = AEF_HCNX(I,J) * FACTOR * AVO / 27.025d0
-!
-!         ENDDO
-!      ENDDO
-!------------------------------------------------------------------------------
+      ! Conversion factor from [ug compound/m2/hr] to [kg compound/m2/s]
+      FACTOR = 1.0e-9_hp / 3600.0_hp
+          
+      ! Loop over grid boxes
+      DO J = 1, HcoState%NY 
+      DO I = 1, HcoState%NX
+
+         ! Convert AEF arrays to [kgC/m2/s]
+         ! Multiply arrays by FACTOR and ratio [g C/g compound]
+         ! NOTE: AEFs for ISOP, MBOX, BPIN, CARE, LIMO, OCIM, SABI 
+         ! are read from file in [kgC/m2/s], so no need to convert here
+         AEF_APIN(I,J) = AEF_APIN(I,J) * FACTOR * 120.0_hp / 136.234_hp
+         AEF_MYRC(I,J) = AEF_MYRC(I,J) * FACTOR * 120.0_hp / 136.234_hp
+         AEF_OMON(I,J) = AEF_OMON(I,J) * FACTOR * 120.0_hp / 136.234_hp
+         AEF_ACET(I,J) = AEF_ACET(I,J) * FACTOR *  36.0_hp /  58.079_hp 
+         AEF_ETOH(I,J) = AEF_ETOH(I,J) * FACTOR *  24.0_hp /  46.068_hp 
+         AEF_ALD2(I,J) = AEF_ALD2(I,J) * FACTOR *  24.0_hp /  44.053_hp 
+         AEF_C2H4(I,J) = AEF_C2H4(I,J) * FACTOR *  24.0_hp /  28.053_hp  
+         AEF_TOLU(I,J) = AEF_TOLU(I,J) * FACTOR *  84.0_hp /  92.138_hp 
+         AEF_PRPE(I,J) = AEF_PRPE(I,J) * FACTOR *  36.0_hp /  42.080_hp  
+
+         ! Methanol, formaldehyde, formic acid, acetic acid, HCN are
+         ! carried in kg, not kg C
+         ! Convert AEF arrays to [kg/m2/s]
+         AEF_MOHX(I,J) = AEF_MOHX(I,J) * FACTOR
+         AEF_CH2O(I,J) = AEF_CH2O(I,J) * FACTOR
+         AEF_FAXX(I,J) = AEF_FAXX(I,J) * FACTOR
+         AEF_AAXX(I,J) = AEF_AAXX(I,J) * FACTOR
+         AEF_HCNX(I,J) = AEF_HCNX(I,J) * FACTOR
+
+      ENDDO
+      ENDDO
 
       ! Return w/ success
       RC = HCO_SUCCESS
@@ -4440,12 +4428,12 @@
             CASE( 'PRPE' )
                IDTPRPE = HcoIDs(I)
                WRITE(MSG,*) '   C3 Alkenes = ',TRIM(SpcNames(I)),IDTPRPE
-            CASE( 'C2H4' )
-               IDTC2H4 = HcoIDs(I)
-               WRITE(MSG,*) '   Ethene     = ',TRIM(SpcNames(I)),IDTC2H4
             CASE( 'ALD2' )
                IDTALD2 = HcoIDs(I)
                WRITE(MSG,*) '   ALD2       = ',TRIM(SpcNames(I)),IDTALD2
+            CASE( 'C2H4' )
+               IDTC2H4 = HcoIDs(I)
+               WRITE(MSG,*) '   Ethene     = ',TRIM(SpcNames(I)),IDTC2H4
             CASE DEFAULT
                MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
                CALL HCO_ERROR( MSG, RC )
@@ -4472,7 +4460,7 @@
 
          ! Verbose
          IF ( am_I_Root ) THEN
-            MSG = '   - MEGAN monoterpene option enabled:' 
+            MSG = ' - MEGAN monoterpene option enabled' 
             CALL HCO_MSG( MSG )
          ENDIF
 
@@ -4489,7 +4477,7 @@
      &                         TRIM(SpcNames(I)),IDTCO
                CASE( 'OC', 'OCPI' )
                   IDTOCPI = HcoIDs(I)
-                  WRITE(MSG,*) '   OC aorosol = ',
+                  WRITE(MSG,*) '   OC aerosol = ',
      &                         TRIM(SpcNames(I)),IDTOCPI
                CASE( 'MONX' )
                   IDTMONX = HcoIDs(I)
@@ -5002,26 +4990,11 @@
       GEIA_ORVC => NULL()
       AEF_ISOP  => NULL()
       AEF_MBOX  => NULL()
-      AEF_APIN  => NULL()
       AEF_BPIN  => NULL()
+      AEF_CARE  => NULL()
       AEF_LIMO  => NULL()
-      AEF_MYRC  => NULL()
+      AEF_OCIM  => NULL()
       AEF_SABI  => NULL()
-      AEF_OMON  => NULL()
-      AEF_MOHX  => NULL()
-      AEF_ACET  => NULL()
-      AEF_ETOH  => NULL()
-      AEF_CH2O  => NULL()
-      AEF_ALD2  => NULL()
-      AEF_FAXX  => NULL()
-      AEF_AAXX  => NULL()
-      AEF_C2H4  => NULL()
-      AEF_TOLU  => NULL()
-      AEF_HCNX  => NULL()
-      AEF_PRPE  => NULL()
-      AEF_FARN  => NULL()
-      AEF_BCAR  => NULL()
-      AEF_OSQT  => NULL()
 
       ! Cleanup module arrays
       T_PREVDAY => NULL()

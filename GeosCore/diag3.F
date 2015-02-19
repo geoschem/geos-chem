@@ -3575,11 +3575,11 @@
 !  (11) MYRC   : Mycrene              : atoms C/cm2/s : SCALESRCE
 !  (12) CARE   : 3-Carene             : atoms C/cm2/s : SCALESRCE
 !  (13) OCIM   : Ocimene              : atoms C/cm2/s : SCALESRCE
-!  (14) FAXX   : Formic acid          : atoms C/cm2/s : SCALESRCE
-!  (15) AAXX   : Acetic acid          : atoms C/cm2/s : SCALESRCE
+!  (14) FAXX   : Formic acid          :   molec/cm2/s : SCALESRCE
+!  (15) AAXX   : Acetic acid          :   molec/cm2/s : SCALESRCE
 !  (16) ALD2   : Acetaldehyde         : atoms C/cm2/s : SCALESRCE
 !  (17) OMON   : Other monoterp       : atoms C/cm2/s : SCALESRCE
-!  (18) MOHX   : Methanol             : atoms C/cm2/s : SCALESRCE
+!  (18) MOHX   : Methanol             :   molec/cm2/s : SCALESRCE
 !  (19) ETOH   : Ethanol              : atoms C/cm2/s : SCALESRCE
 !  (20) FARN   : Farnesene            : atoms C/cm2/s : SCALESRCE
 !  (21) BCAR   : b-caryophyllene      : atoms C/cm2/s : SCALESRCE
@@ -3598,7 +3598,10 @@
 !       of "tracerinfo.dat" and "diaginfo.dat" for GAMAP. (bmy, 1/2/01)
 !  (4) Added MBO as tracer #5. (tmf, bmy, 10/20/05)
 !  (5) Added C2H4 as tracer #6. (tmf, 1/20/09)
-!  13 Feb 2015 - M. Sulprizio- Update for MEGAN2.1 from Guenther et al. 2012
+!  13 Feb 2015 - M. Sulprizio- Add updates for MEGAN2.1 from D. Millet,
+!                              based on Guenther et al. 2012
+!  19 Feb 2015 - M. Sulprizio- Bug fix: Now multiply acetone emissions by
+!                              TRACER_COEFF to get correct number of C atoms
 !******************************************************************************
 !
       IF ( ND46 > 0 ) THEN
@@ -3615,10 +3618,11 @@
          !%%% which is stored in Input_Opt%TRACER_COEFF. (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         !%%%%% ISOP %%%%%
+         !%%%%% ISOPRENE %%%%%
          IF ( IDTISOP > 0 ) THEN
             DiagnName = 'BIOGENIC_ISOP'
             N         = 1         
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTISOP) / CM2PERM2
             FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTISOP,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -3626,10 +3630,12 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
-         !%%%%% ACET %%%%%
+         !%%%%% ACETONE %%%%%
          IF ( IDTACET > 0 ) THEN
             N      = 2
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR = Input_Opt%XNUMOL(IDTACET) / CM2PERM2 
+            FACTOR = FACTOR * Input_Opt%TRACER_COEFF(IDTACET,1)
 
             ! (1) BIOGENIC ACET 
             DiagnName = 'BIOGENIC_ACET'
@@ -3686,10 +3692,11 @@
 
          ENDIF
 
-         !%%%%% PRPE %%%%%
+         !%%%%% ALKENES %%%%%
          IF ( IDTPRPE > 0 ) THEN
             DiagnName = 'BIOGENIC_PRPE'
             N         = 3
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTPRPE) / CM2PERM2
             FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTPRPE,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -3697,10 +3704,12 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
-         !%%%%% MONX %%%%%
+         !%%%%% TOTAL MONOTERPENES %%%%%
+         ! APIN + BPIN + LIMO + SABI + MYRC + CARE + OCIM + OMON
          IF ( IDTMONX > 0 ) THEN
             DiagnName = 'BIOGENIC_MONX'
             N         = 4
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTMONX) / CM2PERM2
             FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTMONX,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -3708,18 +3717,21 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
-         !%%%%% MBO %%%%%
+         !%%%%% METHYL BUTENOL %%%%%
          DiagnName = 'BIOGENIC_MBOX'
          N         = 5
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 5e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% C2H4 %%%%%
+         !%%%%% ETHENE %%%%%
          IF ( IDTC2H4 > 0 ) THEN
             DiagnName = 'BIOGENIC_C2H4'
             N         = 6
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTC2H4) / CM2PERM2
             FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTC2H4,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -3727,85 +3739,99 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
  
-         !%%%%% APIN %%%%%
+         !%%%%% ALPHA-PINENE %%%%%
          DiagnName = 'BIOGENIC_APIN'
          N         = 7
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% BPIN %%%%%
+         !%%%%% BETA-PINENE %%%%%
          DiagnName = 'BIOGENIC_BPIN'
          N         = 7
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% LIMO %%%%%
+         !%%%%% LIMONENE %%%%%
          DiagnName = 'BIOGENIC_LIMO'
          N         = 9
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% SABI %%%%%
+         !%%%%% SABINENE %%%%%
          DiagnName = 'BIOGENIC_SABI'
          N         = 10
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% MYRC %%%%%
+         !%%%%% MYRCENE %%%%%
          DiagnName = 'BIOGENIC_MYRC'
          N         = 11
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% CARE %%%%%
+         !%%%%% 3-CARENE %%%%%
          DiagnName = 'BIOGENIC_CARE'
          N         = 12
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% OCIM %%%%%
+         !%%%%% OCIMENE %%%%%
          DiagnName = 'BIOGENIC_OCIM'
          N         = 13
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-
-! FIX FACTORS for FAXX, AACC, MOHX, HCNX, CH2O, FARN, BCAR, OSQT
-
-         !%%%%% FAXX %%%%%
+         !%%%%% FORMIC ACID %%%%%
          DiagnName = 'BIOGENIC_FAXX'
          N         = 14
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kg/m2/s to molec/cm2/s
+         FACTOR    = ( 6.022e+23_hp / 46.025e+0_hp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% AAXX %%%%%
+         !%%%%% ACETIC ACID %%%%%
          DiagnName = 'BIOGENIC_AAXX'
          N         = 15
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kg/m2/s to molec/cm2/s
+         FACTOR    = ( 6.022e+23_hp / 60.052e+0_hp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% ALD2 %%%%%
+         !%%%%% ACETALDEHYDE %%%%%
          IF ( IDTALD2 > 0 ) THEN
             DiagnName = 'BIOGENIC_ALD2'
             N         = 16
+            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
             FACTOR    = Input_Opt%XNUMOL(IDTALD2) / CM2PERM2
             FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTALD2,1)
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -3813,50 +3839,61 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
-         !%%%%% OMON %%%%%
+         !%%%%% OTHER MONOTERPENES %%%%%
          DiagnName = 'BIOGENIC_OMON'
          N         = 17
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% MOHX %%%%%
+         !%%%%% METHANOL %%%%%
          DiagnName = 'BIOGENIC_MOHX'
          N         = 18
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kg/m2/s to molec/cm2/s
+         FACTOR    =  ( 6.022e+23_hp / 32.042e+0_hp )/ CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% ETOH %%%%%
+         !%%%%% ETHANOL %%%%%
          DiagnName = 'BIOGENIC_ETOH'
          N         = 19
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 2e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% FARN %%%%%
+         !%%%%% FARNESENE %%%%%
          DiagnName = 'BIOGENIC_FARN'
          N         = 20
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% BCAR %%%%%
+         !%%%%% B-CARYOPHYLLENE %%%%%
          DiagnName = 'BIOGENIC_BCAR'
          N         = 21
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% OSQT %%%%%
+         !%%%%% OTHER SESQUITERPENES %%%%%
          DiagnName = 'BIOGENIC_OSQT'
          N         = 22
-         FACTOR    = ( 6.022e+23_fp / 12.0e+0_fp ) / CM2PERM2
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 15e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
@@ -5302,12 +5339,12 @@
       INTEGER,          INTENT(IN)    :: dAF       ! AutoFill of diagnostic
       INTEGER,          INTENT(IN)    :: dZ        ! # of vertical levels
       LOGICAL,          INTENT(IN)    :: dOPTIONAL ! Optional field?
-      REAL(fp),           INTENT(IN)    :: dFACTOR   ! Scale factor
+      REAL(fp),         INTENT(IN)    :: dFACTOR   ! Scale factor
       INTEGER,          OPTIONAL      :: AreaScal  ! Area scaling 
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      INTEGER,          INTENT(INOUT) :: ERR ! Return code
+      INTEGER,          INTENT(INOUT) :: ERR       ! Return code
 !
 ! !REMARKS:
 !  (1) Data is multiplied by factor dFACTOR before writing to disk.
@@ -5416,6 +5453,5 @@
       DgnCont => NULL()
 
       END SUBROUTINE DIAG2BPCH
-
-      END SUBROUTINE DIAG3    
 !EOC
+      END SUBROUTINE DIAG3    
