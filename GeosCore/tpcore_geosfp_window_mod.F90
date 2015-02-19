@@ -62,6 +62,9 @@ module TPCORE_GEOSFP_WINDOW_MOD
 !  09 Sep 2010 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and
 !                              MASSFLUP to save memory space.
 !  26 Sep 2013 - R. Yantosca - Renamed to tpcore_geosfp_window_mod.F90
+!  19 Feb 2015 - E. Lundgren - Add diagnostics for output to netcdf.
+!                              Block off both bpch and netcdf diagnostic 
+!                              code within pre-processor statements.
 !******************************************************************************
 !
 ! The original module documentation header is listed here:
@@ -437,16 +440,20 @@ CONTAINS
  !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, and 
  !%%% ND26 to arg list of TPCORE_FVDAS for GEOS-CHEM mass-flux diagnostics 
  !%%% (bdf, bmy, 9/28/04)
- !%%%
  !%%% Added DiagnArrays for writing diagnostics to netcdf (ewl, 2/12/15).
  !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative. New diagnostic
  !%%% arrays are instantaneous since cumulative sum is abstracted to
  !%%% to high-level diagnostic container update code.
-                         MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2,     &
-                         TCVV,     ND24,     ND25,     ND26,        &
-                         DiagnArray_EW_Flx, DiagnArray_NS_Flx,      &
-                         DiagnArray_Vert_Flx )
+ !%%%
+#if !defined( NO_BPCH )
+                        MASSFLEW, MASSFLNS, MASSFLUP,                   &
+#endif
+#if defined( DEVEL )
+                        DiagnArray_EW_Flx, DiagnArray_NS_Flx,     &
+                        DiagnArray_Vert_Flx,                            &
+#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+                        TCVV, AREA_M2, ND24, ND25, ND26 )
 !----------------------------------------------------------------------------
 
  implicit none
@@ -556,24 +563,25 @@ CONTAINS
  !%%%
  !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, ND26
  !%%% for mass-flux diagnostics (bdf, bmy, 9/28/04)
- !%%%
  !%%% Added netcdf diagnostic arrays (ewl, 2/12/15)
  !%%%
-! REAL,    INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ) ! east/west mass flux
-! REAL,    INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ) ! north/south mass flux
-! REAL,    INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ) ! up/down vertical mass flux
+#if !defined( NO_BPCH )
  REAL,    INTENT(INOUT) :: MASSFLEW(:,:,:,:) ! east/west mass flux
  REAL,    INTENT(INOUT) :: MASSFLNS(:,:,:,:) ! north/south mass flux
  REAL,    INTENT(INOUT) :: MASSFLUP(:,:,:,:) ! up/down vertical mass flux
+#endif
+#if defined( DEVEL )
  REAL,    INTENT(INOUT) :: DiagnArray_EW_Flx(:,:,:,:)
  REAL,    INTENT(INOUT) :: DiagnArray_NS_Flx(:,:,:,:)
  REAL,    INTENT(INOUT) :: DiagnArray_Vert_Flx(:,:,:,:)
+#endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
  REAL,    INTENT(IN)    :: AREA_M2(JM)           ! box area for mass flux diag
  REAL,    INTENT(IN)    :: TCVV(NQ)              ! tracer masses for flux diag
  INTEGER, INTENT(IN)    :: ND24                  ! E/W flux diag switch
  INTEGER, INTENT(IN)    :: ND25                  ! N/S flux diag switch
  INTEGER, INTENT(IN)    :: ND26                  ! up/down flux diag switch
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !-----------------------
 ! Ghosted local arrays:
@@ -587,13 +595,22 @@ CONTAINS
  real   q2(im,jfirst-ng:jlast+ng)      ! local 2D q array
  logical ffsl(jfirst-ng:jlast+ng,km)   ! Flag to compute Integer fluxes
 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
+ !%%% code with pre-processor blocks (ewl, 2/19/2015)
+ !%%%
+#if !defined( NO_BPCH )
 ! Local arrays for mass fluxes to save memory if diagnostics not used.
 ! (ccc, 9/9/10)
  real MFLEW(im, jm), MFLNS(im, jm)
-
-! Local arrays for diagnostics passed to routine TP2G  (ewl, 2/12/15)
+#endif
+#if defined( DEVEL )
  real Diagn_EW_Flx(im, jm)
  real Diagn_NS_Flx(im, jm)
+#endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! Local variables:
  integer i,j,k,iq
@@ -740,21 +757,44 @@ CONTAINS
 
 !$omp parallel do                                   &
 !$omp default( shared ) &
-!$omp private(i, j, k, q2, MFLEW, MFLNS)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
+ !%%% code with pre-processor blocks (ewl, 2/19/2015)
+ !%%%
+#if !defined( NO_BPCH )
+!$omp private( i, j, k, q2, MFLEW, MFLNS )
+#elif !defined( NO_BPCH ) && defined( DEVEL ) 
+!$omp private( i, j, k, q2, MFLEW, MFLNS, Diagn_EW_Flx, Diagn_NS_FLX )
+#elif defined( DEVEL )
+!$omp private( i, j, k, q2, Diagn_EW_Flx, Diagn_NS_FLX )
+#else
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!$omp private( i, j, k, q2 ) 
+#endif
 
 ! Vertical_OMP:  
 
    do k=1,km
 
-
     q2(:,:) = 0.d0
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
+ !%%% code with pre-processor blocks (ewl, 2/19/2015)
+ !%%%
+#if !defined( NO_BPCH )
     MFLEW(:,:) = 0.d0
     MFLNS(:,:) = 0.d0
-
-    ! Initialize new diagnostics local variable (ewl, 2/12/15)
-    ! Do this whether DEVEL defined or not since now always passed.
+#endif
+#if defined( DEVEL )
     Diagn_EW_Flx(:,:) = 0.d0
     Diagn_NS_Flx(:,:) = 0.d0
+#endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! Copying q to 2d work array for transport. This allows q to be dimensioned
 ! differently from the calling routine.
@@ -765,6 +805,12 @@ CONTAINS
        enddo
     enddo
 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
+ !%%% code with pre-processor blocks (ewl, 2/19/2015)
+ !%%%
 #if !defined( NO_BPCH )
     IF ( ND24 > 0 ) THEN 
        MFLEW = MASSFLEW(:,:,K,IQ)
@@ -792,7 +838,7 @@ CONTAINS
        Diagn_NS_Flx(1,1) = DiagnArray_NS_Flx(1,1,1,1)
     ENDIF
 #endif
-
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
 !--- Previous to (ccc, 9/9/10)
 !    call tp2g( q2(1,jfirst-ng),    va(1,jfirst,k),          &
@@ -824,12 +870,22 @@ CONTAINS
  !%%% arguments to routine TP2G for GEOS-CHEM mass flux diagnostics 
  !%%% (bdf, bmy, 9/28/04)
  !%%%
- !%%% Now pass new diagnostics for writing to netcdf (ewl, 2/12/15)
-               MFLEW, MFLNS,      &
-               AREA_M2, TCVV(IQ), ND24, ND25, DT,   &
-               Diagn_EW_Flx, Diagn_NS_Flx )
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+#if !defined( NO_BPCH )
+               MFLEW, MFLNS,                                &
+#endif
+#if defined( DEVEL )
+               Diagn_EW_Flx, Diagn_NS_Flx,                  &
+#endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               DT, AREA_M2, TCVV(IQ), ND24, ND25 )
 
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
+ !%%% code with pre-processor blocks (ewl, 2/19/2015)
+ !%%%
 #if !defined( NO_BPCH )
     ! Save mass flux diagnostics (clb, 7/2/12)
     IF ( ND24 > 0 ) THEN
@@ -841,7 +897,6 @@ CONTAINS
     ENDIF
 #endif
 #if defined( DEVEL )
-    ! Save diagnostics for writing to netcdf (ewl, 2/12/15)
     IF ( ND24 > 0 ) THEN
        DiagnArray_EW_Flx(:,:,K,IQ) = Diagn_EW_Flx
     ENDIF
@@ -849,6 +904,7 @@ CONTAINS
        DiagnArray_NS_Flx(:,:,K,IQ) = Diagn_NS_Flx
     ENDIF
 #endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     !do j=jfirst,jlast
     do j=max(jfirst,jord+1),min(jlast,jm-jord+1)   ! Lin_20140518
@@ -930,12 +986,21 @@ CONTAINS
                             (100D0) * AREA_M2(J) / ( 9.8D0* TCVV(IQ) )
 
        DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
+ !%%% code with pre-processor blocks (ewl, 2/19/2015)
+ !%%%
 #if !defined( NO_BPCH)
        MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ) / DT
 #endif
 #if defined( DEVEL )
        DiagnArray_Vert_Flx(I,J,K,IQ) = DTC(I,J,K,IQ) / DT
 #endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     ENDDO
     ENDDO
     ENDDO
@@ -1292,12 +1357,17 @@ CONTAINS
  !%%% 
  !%%% Add MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT as arguments
  !%%% to subroutine TP2G for mass-flux diagnostics (bmy, 9/28/04)
- !%%%
  !%%% Add diagnostics for writing to netcdf (ewl, 2/12/15)
-                MFLEW, MFLNS, AREA_M2,                 & 
-                TCV,   ND24,  ND25,   DT,              &
-                Diagn_EW_Flx, Diagn_NS_Flx )
+ !%%%
+#if !defined( NO_BPCH )
+                MFLEW, MFLNS,                          &
+#endif 
+#if defined( DEVEL )
+                Diagn_EW_Flx, Diagn_NS_Flx,            &
+#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                DT, AREA_M2, TCV, ND24, ND25 )
+
  implicit none
 
 ! !INPUT PARAMETERS:
@@ -1325,19 +1395,23 @@ CONTAINS
  !%%%  
  !%%% Declare MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT for the
  !%%% GEOS-CHEM mass-flux diagnostics (bdf, bmy, 9/28/04)
- !%%% 
  !%%% Declare new diagnostic local arrays for writing to netcdf (ewl, 2/12/15)
  !%%% 
+#if !defined( NO_BPCH )
    REAL,    INTENT(INOUT) :: MFLEW(IM,JM)  ! E/W mass flux array
    REAL,    INTENT(INOUT) :: MFLNS(IM,JM)  ! N/S mass flux array
+#endif
+#if defined( DEVEL )
    REAL,    INTENT(INOUT) :: Diagn_EW_Flx(IM,JM) ! E/W diagnostic array 
    REAL,    INTENT(INOUT) :: Diagn_NS_Flx(IM,JM) ! N/S diagnostic array
+#endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
    REAL,    INTENT(IN)    :: AREA_M2(JM)   ! Grid bos surface area [m2]
    REAL,    INTENT(IN)    :: TCV           ! Mass ratio
    INTEGER, INTENT(IN)    :: ND24          ! flux diag
    INTEGER, INTENT(IN)    :: ND25          ! flux diag
    REAL,    INTENT(IN)    :: DT            ! time step for flux diagnostic
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! Local
    real fx(im,jfirst:jlast)        ! tracer flux in x ( unghosted )
@@ -1388,31 +1462,46 @@ CONTAINS
  !%%%      (airmass/tracer mass)/timestep to get into kg/s
  !%%% (3) DP is current pressure thickness
  !%%%
- !%%% Add diagnostics for writing to netcdf (ewl, 2/12/15)
- !%%%
    IF ( ND24 > 0 ) THEN
       DO J = JS2G0, JN2G0
 
          DO I = 1, IM-1
             DTC        = FX(I,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
+ !%%% code with pre-processor blocks (ewl, 2/19/2015)
+ !%%%
 #if !defined( NO_BPCH )
             MFLEW(I,J) = MFLEW(I,J) + DTC
 #endif
 #if defined( DEVEL )
             Diagn_EW_Flx(I,J) = DTC
 #endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
          ENDDO
 
          DTC         = FX(IM,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
+ !%%% code with pre-processor blocks (ewl, 2/19/2015)
+ !%%%
 #if !defined( NO_BPCH )
          MFLEW(IM,J) = MFLEW(I,J) + DTC
 #endif
 #if defined( DEVEL )
          Diagn_EW_Flx(IM,J) = DTC
 #endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       ENDDO
    ENDIF
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
@@ -1420,18 +1509,24 @@ CONTAINS
  !%%% Implement ND25 diag: N/S flux of tracer [kg/s] (bdf, bmy, 9/28/04)
  !%%% Now multiply fluxes by latitude factor RGW_25 (bdf, bmy, 10/29/04)
  !%%%
- !%%% Add diagnostics for writing to netcdf (ewl, 2/12/15)
- !%%%
    IF ( ND25 > 0 ) THEN
       DO J = JS2G0, JN2G0
       DO I = 1,     IM
          DTC        = FY(I,J)*RGW_25(J)*AREA_M2(J)*100./ (TCV*DT*9.8)
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
+ !%%% code with pre-processor blocks (ewl, 2/19/2015)
+ !%%%
 #if !defined( NO_BPCH )
          MFLNS(I,J) = MFLNS(I,J) + DTC
 #endif
 #if defined( DEVEL )
          Diagn_NS_Flx(I,J) = DTC
 #endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDDO
       ENDDO
@@ -1440,12 +1535,21 @@ CONTAINS
       IF ( JFIRST == 1 ) THEN
          DO I = 1, IM
             DTC        = -FY(I,2)*RGW_25(1)*AREA_M2(1)*100./(TCV*DT*9.8)
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
+ !%%% code with pre-processor blocks (ewl, 2/19/2015)
+ !%%%
 #if !defined( NO_BPCH )
             MFLNS(I,1) = MFLNS(I,1) + DTC
 #endif
 #if defined( DEVEL )
             Diagn_NS_Flx(I,1) = DTC
 #endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
          ENDDO
       ENDIF
 
@@ -1453,12 +1557,20 @@ CONTAINS
       IF ( JLAST == JM ) THEN
          DO I = 1, IM
             DTC     = FY(I,JM)*RGW_25(JM)*AREA_M2(JM)*100./(TCV*DT*9.8)
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
+ !%%% code with pre-processor blocks (ewl, 2/19/2015)
+ !%%%
 #if !defined( NO_BPCH )
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
 #endif
 #if defined( DEVEL )
             Diagn_NS_Flx(I,JM) = DTC
 #endif
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDDO
       ENDIF

@@ -385,14 +385,19 @@ CONTAINS
                            ak,       bk,       u,        v,       ps1,      &
                            ps2,      ps,       q,        iord,    jord,     &
                            kord,     n_adj,    XMASS,    YMASS,   FILL,     &
-                           MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV,     &
-                           ND24,     ND25,     ND26,                        &
+#if !defined( NO_BPCH )
+                           MASSFLEW, MASSFLNS, MASSFLUP,                    &
+#endif
+#if defined( DEVEL )
  !%%% Added DiagnArrays for writing diagnostics to netcdf (ewl, 2/12/15).
  !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative. New diagnostic
  !%%% arrays are instantaneous since cumulative sum is abstracted to
  !%%% to high-level diagnostic container update code.
-                           DiagnArray_EW_Flx, DiagnArray_NS_Flx,      &
-                           DiagnArray_Vert_Flx )
+                           DiagnArray_EW_Flx, DiagnArray_NS_Flx,            &
+                           DiagnArray_Vert_Flx,                             &
+#endif
+                           AREA_M2, TCVV, ND24, ND25, ND26 )
+
  
 !
 ! !USES:
@@ -478,15 +483,18 @@ CONTAINS
     ! Tracer "mixing ratios" [v/v]
     REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
+#if !defined( NO_BPCH )
     ! E/W, N/S, and up/down diagnostic mass fluxes
     REAL(fp),  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
     REAL(fp),  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
     REAL(fp),  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
-
+#endif
+#if defined( DEVEL )
     ! Netcdf diagnostic arrays (ewl, 2/12/15)
     REAL(fp),  INTENT(INOUT) :: DiagnArray_EW_Flx(:,:,:,:)
     REAL(fp),  INTENT(INOUT) :: DiagnArray_NS_Flx(:,:,:,:)
     REAL(fp),  INTENT(INOUT) :: DiagnArray_Vert_Flx(:,:,:,:)
+#endif
 
 !
 ! !OUTPUT PARAMETERS:

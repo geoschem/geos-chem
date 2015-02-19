@@ -256,7 +256,9 @@
 !
 ! !USES:
 !
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
+#endif
       USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -346,11 +348,12 @@
       INTEGER          :: N_TRACERS
       REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
-      ! New diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
-      ! These are passed, so need to be defined even if DEVEL = n
+#if defined( DEVEL )
+      ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
       REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
       REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
       REAL(fp) :: DiagnArray_Vert_Flx(IIPAR,JJPAR,LLPAR,NNPAR) 
+#endif
 
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
@@ -463,29 +466,36 @@
       p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
       ! Do the advection
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
       CALL TPCORE_FVDAS( D_DYN,  Re,        IIPAR,    JJPAR,
      &                   LLPAR,  JFIRST,    JLAST,    NG,
      &                   MG,     N_TOT_TRC, Ap,       Bp,
      &                   p_UWND, p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP, p_STT,     IORD,     JORD,      
-     &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS,         
-     &                   LFILL,  MASSFLEW,  MASSFLNS, MASSFLUP,    
-     &                   A_M2,   TCVV,      ND24,     ND25,     
-     &                   ND26,
-      ! Add new diagnostics for writing to netcdf (ewl, 2/12/15)
-     &                   DiagnArray_EW_Flx, DiagnArray_NS_Flx,
-     &                   DiagnArray_Vert_Flx )
+     &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS, LFILL,  
+#if !defined( NO_BPCH )
+      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+      ! are incremented upside-down (level 1 = top of the atmosphere).
+      ! The levels order is reversed only when written out in diag3.f
+      ! (ccc, 3/8/10)
+     &                   MASSFLEW,  MASSFLNS, MASSFLUP,
+#endif    
 #if defined( DEVEL )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', DiagnArray_EW_Flx,
-     &                           Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', DiagnArray_NS_Flx,
-     &                           Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', 
-     &                            DiagnArray_Vert_Flx, Input_Opt, RC )
+      ! Pass new local diagnostic arrays for netcdf output - ewl, 2/12/2015
+     &                   DiagnArray_EW_Flx, DiagnArray_NS_Flx,
+     &                   DiagnArray_Vert_Flx,
+#endif
+     &                   A_M2, TCVV, ND24, ND25, ND26 )
+
+#if defined( DEVEL )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', Input_Opt%LD24, 
+     &                            DiagnArray_EW_Flx,
+     &                            Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', Input_Opt%LD25, 
+     &                            DiagnArray_NS_Flx,
+     &                            Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', Input_Opt%LD26,
+     &                            DiagnArray_Vert_Flx, 
+     &                            Input_Opt, RC )
 #endif
 
       ! Free pointer memory
@@ -579,7 +589,9 @@
 !
 ! !USES:
 !
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
+#endif
       USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -668,11 +680,12 @@
       ! Variable to ensure mass conservation (ccc, 20/11/08)
       REAL(fp)           :: SUMADA
 
-      ! New diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
-      ! These are passed, so need to be defined even if DEVEL = n
+#if defined( DEVEL )
+      ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
       REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
       REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
       REAL(fp) :: DiagnArray_Vert_Flx(IIPAR,JJPAR,LLPAR,NNPAR) 
+#endif
 
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
@@ -789,30 +802,37 @@
       p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,   Re,        IIPAR,    JJPAR,
      &                   LLPAR,   JFIRST,    JLAST,    NG,
      &                   MG,      N_TOT_TRC, Ap,       Bp,
      &                   p_UWND,  p_VWND,    P_TP1,    P_TP2,
      &                   P_TEMP,  p_STT,     IORD,     JORD,      
-     &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS,
-     &                   LFILL,   MASSFLEW,  MASSFLNS, MASSFLUP, 
-     &                   A_M2,    TCVV,      ND24,     ND25,     
-     &                   ND26,
-      ! Add new diagnostics for writing to netcdf (ewl, 2/12/15)
-     &                   DiagnArray_EW_Flx, DiagnArray_NS_Flx,
-     &                   DiagnArray_Vert_Flx )
+     &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS, LFILL,
+#if !defined( NO_BPCH )
+      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+      ! are incremented upside-down (level 1 = top of the atmosphere).
+      ! The levels order is reversed only when written out in diag3.f
+      ! (ccc, 3/8/10)
+     &                   MASSFLEW,  MASSFLNS, MASSFLUP,
+#endif    
 #if defined( DEVEL )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', DiagnArray_EW_Flx,
-     &                           Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', DiagnArray_NS_Flx,
-     &                           Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', 
-     &                            DiagnArray_Vert_Flx, Input_Opt, RC )
+      ! Pass new local diagnostic arrays for netcdf output - ewl, 2/12/2015
+     &                   DiagnArray_EW_Flx, DiagnArray_NS_Flx,
+     &                   DiagnArray_Vert_Flx,
+#endif
+     &                   A_M2, TCVV, ND24, ND25, ND26 )
+
+#if defined( DEVEL )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', Input_Opt%LD24, 
+     &                            DiagnArray_EW_Flx,
+     &                            Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', Input_Opt%LD25, 
+     &                            DiagnArray_NS_Flx,
+     &                            Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', Input_Opt%LD26,
+     &                            DiagnArray_Vert_Flx, 
+     &                            Input_Opt, RC )
 #endif
 
       ! Free pointer memory
@@ -908,7 +928,9 @@
 ! !USES:
 !
       ! References to F90 modules
+#if !defined( NO_BPCH )
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+#endif
       USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,        ONLY : OptInput
@@ -998,11 +1020,12 @@
       ! Variable to ensure mass conservation (ccc, 20/11/08)
       REAL(fp)           :: SUMADA
 
-      ! New diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
-      ! These are passed, so need to be defined even if DEVEL is not.
+#if defined( DEVEL )
+      ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
       REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
       REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
       REAL(fp) :: DiagnArray_Vert_Flx(IIPAR,JJPAR,LLPAR,NNPAR) 
+#endif
 
       !=================================================================
       ! DO_GEOS5_WINDOW_TRANSPORT begins here!
@@ -1126,31 +1149,37 @@
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a array flip' )
 
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
       ! Do the advection
-
-      ! Pass new diagnostic arrays - ewl, 2/12/2015
        CALL TPCORE_GEOS5_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
      &                          LLPAR,    JFIRST,    JLAST,    NG,
      &                          MG,       N_TOT_TRC, Ap,       Bp,
      &                          p_UWND,   p_VWND,    P_TP1,    P_TP2,
      &                          P_TEMP,   p_STT,     IORD,     JORD,
      &                          KORD,     N_ADJ,     p_XMASS,  p_YMASS,
-     &                          MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
-     &                          TCVV,     ND24,      ND25,     ND26,
-      ! Add new diagnostics for writing to netcdf (ewl, 2/12/15)
-     &                          DiagnArray_EW_Flx, DiagnArray_NS_Flx,
-     &                          DiagnArray_Vert_Flx )
+#if !defined( NO_BPCH )
+      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+      ! are incremented upside-down (level 1 = top of the atmosphere).
+      ! The levels order is reversed only when written out in diag3.f
+      ! (ccc, 3/8/10)
+     &                          MASSFLEW, MASSFLNS,  MASSFLUP,         
+#endif
 #if defined( DEVEL )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', DiagnArray_EW_Flx,
-     &                           Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', DiagnArray_NS_Flx,
-     &                           Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', 
-     &                            DiagnArray_Vert_Flx, Input_Opt, RC )
+      ! Pass new local diagnostic arrays for netcdf output - ewl, 2/12/2015
+     &                          DiagnArray_EW_Flx, DiagnArray_NS_Flx,
+     &                          DiagnArray_Vert_Flx,
+#endif
+     &                          TCVV, A_M2, ND24, ND25, ND26 )
+
+#if defined( DEVEL )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', Input_Opt%LD24, 
+     &                            DiagnArray_EW_Flx,
+     &                            Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', Input_Opt%LD25, 
+     &                            DiagnArray_NS_Flx,
+     &                            Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', Input_Opt%LD26,
+     &                            DiagnArray_Vert_Flx, 
+     &                            Input_Opt, RC )
 #endif
 
       ! Free pointer memory
@@ -1188,7 +1217,9 @@
 ! !USES:
 !
       ! References to F90 modules
+#if !defined( NO_BPCH )
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+#endif
       USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET
       USE GIGC_ErrCode_Mod
@@ -1272,11 +1303,12 @@
       INTEGER          :: N_TRACERS
       REAL(fp)         :: TCVV(Input_Opt%N_TRACERS)
 
-      ! New diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
-      ! These are passed, so need to be defined even if DEVEL not defined
+#if defined( DEVEL )
+      ! New local diagnostics arrays for ND24, ND25, and ND26 - ewl, 2/12/2015
       REAL(fp) :: DiagnArray_EW_Flx(IIPAR,JJPAR,LLPAR,NNPAR)        
       REAL(fp) :: DiagnArray_NS_Flx(IIPAR,JJPAR,LLPAR,NNPAR)
       REAL(fp) :: DiagnArray_Vert_Flx(IIPAR,JJPAR,LLPAR,NNPAR) 
+#endif
 
       !=================================================================
       ! DO_GEOSFP_FVDAS_WINDOW_TRANSPORT begins here!
@@ -1394,10 +1426,6 @@
       p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
       p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
       ! Do the advection
       CALL TPCORE_GEOSFP_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
      &                           LLPAR,    JFIRST,    JLAST,    NG,
@@ -1405,18 +1433,30 @@
      &                           p_UWND,   p_VWND,    P_TP1,    P_TP2,
      &                           P_TEMP,   p_STT,     IORD,     JORD,      
      &                           KORD,     N_ADJ,     p_XMASS,  p_YMASS,
-     &                           MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
-     &                           TCVV,     ND24,      ND25,     ND26,
-      ! Add new diagnostics for writing to netcdf (ewl, 2/12/15)
-     &                           DiagnArray_EW_Flx, DiagnArray_NS_Flx,
-     &                           DiagnArray_Vert_Flx )
+#if !defined( NO_BPCH )
+      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+      ! are incremented upside-down (level 1 = top of the atmosphere).
+      ! The levels order is reversed only when written out in diag3.f
+      ! (ccc, 3/8/10)
+     &                          MASSFLEW, MASSFLNS,  MASSFLUP,         
+#endif
 #if defined( DEVEL )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', DiagnArray_EW_Flx,
-     &                           Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', DiagnArray_NS_Flx,
-     &                           Input_Opt, RC )
-      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', 
-     &                            DiagnArray_Vert_Flx, Input_Opt, RC )
+      ! Pass new local diagnostic arrays for netcdf output - ewl, 2/12/2015
+     &                          DiagnArray_EW_Flx, DiagnArray_NS_Flx,
+     &                          DiagnArray_Vert_Flx,
+#endif
+     &                          TCVV, A_M2, ND24, ND25, ND26 )
+
+#if defined( DEVEL )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND24', Input_Opt%LD24, 
+     &                            DiagnArray_EW_Flx,
+     &                            Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND25', Input_Opt%LD25, 
+     &                            DiagnArray_NS_Flx,
+     &                            Input_Opt, RC )
+      CALL DiagnUpdate_Transport( am_I_Root, 'ND26', Input_Opt%LD26,
+     &                            DiagnArray_Vert_Flx, 
+     &                            Input_Opt, RC )
 #endif
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
@@ -1653,7 +1693,7 @@
       NG    = 0
       MG    = 0
 
-      ! YMID_R is latitude of grid box center [radians]
+      ! YMID_R is latitude of grid box center [radian]
       DO J = 1,JJPAR
          YMID_R(J) = GET_YMID_R( 1, J, 1 )
       ENDDO
@@ -1997,13 +2037,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DiagnUpdate_Transport( am_I_Root, NDxx, MassFlxArray4D, 
-     &                                  Input_Opt, RC )
+      SUBROUTINE DiagnUpdate_Transport( am_I_Root, NDxx, NumLevels,
+     &                                  MassFlxArray4D, Input_Opt, RC )
 !
 ! !USES:
 !
       USE Error_Mod 
       USE GIGC_ErrCode_Mod
+      USE CMN_SIZE_MOD                    
       USE GIGC_Input_Opt_Mod, ONLY : OptInput    
       USE Diagnostics_Mod,    ONLY : DiagnUpdate_NTracers_3D
 !
@@ -2011,6 +2052,7 @@
 !
       LOGICAL,            INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       CHARACTER(LEN=4),   INTENT(IN)  :: NDxx        ! Diagnostic id
+      INTEGER,            INTENT(IN)  :: NumLevels   ! # levels for this NDxx
       REAL(fp),           INTENT(IN)  :: MassFlxArray4D(:,:,:,:)
       TYPE(OptInput),     INTENT(IN)  :: Input_Opt   ! Input options object
 !
@@ -2035,44 +2077,47 @@
      &                              // ' (Transport_mod.F)'
       INTEGER             :: DiagnNum
 
+      ! Array to hold input mass flux array with reverse-order levels
+      ! and only levels that have data (ie. less than LLPAR if input.geos
+      ! levels for the diagnostic are less than LLPAR).
+      REAL(fp)   :: FlxArray_ReverseLevels(IIPAR,JJPAR,NumLevels,NNPAR)
+
       !=================================================================
       ! DIAGNUPDATE_TRANSPORT begins here!
       !=================================================================
       
        ! Assume successful return
        RC = GIGC_SUCCESS
-   
+
        ! Skip if diagnostic is turned off. 
+       If ( NumLevels <= 0 ) THEN
+          RETURN
+       ENDIF
+          
        ! Otherwise, set diagnostic name prefix and diagnostic #
        SELECT CASE ( NDxx )
           CASE ( 'ND24' )
-             IF ( Input_Opt%ND24 <= 0 ) THEN 
-                RETURN
-             ELSE
                 DiagnPrefix = 'EW_FLX_'
                 DiagnNum = 24
-             ENDIF
           CASE ( 'ND25' )
-             IF ( Input_Opt%ND25 <= 0 ) THEN
-                RETURN
-             ELSE
                 DiagnPrefix = 'NS_FLX_'
                 DiagnNum = 25
-             ENDIF
           CASE ( 'ND26' )
-             IF ( Input_Opt%ND26 <= 0 ) THEN
-                RETURN
-             ELSE
                 DiagnPrefix = 'VERT_FLX_'
                 DiagnNum = 26
-             ENDIF
           CASE DEFAULT
              MSG = 'Undefined transport diagnostic: ' // NDxx
              CALL ERROR_STOP( TRIM( MSG ), LOC )
        END SELECT
 
+       ! Reverse-order the levels such that index 1 corresponds to surface. 
+       FlxArray_ReverseLevels(:,:,1:NumLevels,:) =
+     &                MassFlxArray4D(:,:,LLPAR:LLPAR-NumLevels+1:-1,:)
+
+       ! Update the diagnostic container using routine in diagnostics module
        CALL DiagnUpdate_NTracers_3D( am_I_Root, DiagnPrefix, DiagnNum, 
-     &                               MassFlxArray4D, Input_Opt, RC )
+     &                               FlxArray_ReverseLevels, Input_Opt, 
+     &                               RC )
 
       END SUBROUTINE DiagnUpdate_Transport
 !EOC
