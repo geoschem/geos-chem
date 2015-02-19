@@ -653,7 +653,8 @@ CONTAINS
     LOGICAL, INTENT(IN)              :: am_I_Root
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller    - Initial version 
+!  12 Sep 2013 - C. Keller   - Initial version 
+!  19 Feb 2015 - R. Yantosca - Change restart file name back to HEMCO_restart
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -664,7 +665,7 @@ CONTAINS
     CHARACTER(LEN=255) :: LOC
 
     ! File prefix for restart file
-    CHARACTER(LEN= 31), PARAMETER :: RST = 'HEMCO_Restart'
+    CHARACTER(LEN= 31), PARAMETER :: RST = 'HEMCO_restart'
 
     !=================================================================
     ! HCOI_GC_FINAL begins here!
