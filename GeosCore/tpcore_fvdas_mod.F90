@@ -5440,8 +5440,14 @@ CONTAINS
     ! direction as diagnosed from the hydrostatic relationship [hPa]
     REAL*8,  INTENT(IN)    :: wz(I1:I2, JU1:J2, K1:K2)
 
-    ! Species concentration [mixing ratio]
-    REAL*8,  INTENT(IN)    :: qq1(ILO:IHI, JULO:JHI, K1:K2)
+!-----------------------------------------------------------------------------
+! Prior to 4/16/14:
+! QQ1 accepts a pointer argument, so it should be declared as assumed-shape,
+! which is more efficient of memory (bmy, 4/16/14)
+!    REAL*8,  INTENT(IN)    :: qq1(ILO:IHI, JULO:JHI, K1:K2)
+!-----------------------------------------------------------------------------
+    REAL*8,  INTENT(IN)    :: qq1(:,:,:)
+
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !

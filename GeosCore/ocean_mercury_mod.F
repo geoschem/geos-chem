@@ -343,6 +343,7 @@
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Arrays to hold aerosol concentrations  
+      REAL*4               :: ARRAYtemp( IGLOB, JGLOB, LGLOB )  ! temp
       REAL*4               :: ARRAYso4(  IGLOB, JGLOB, LGLOB )  ! so4
       REAL*4               :: ARRAYnit(  IGLOB, JGLOB, LGLOB )  ! nit
       REAL*4               :: ARRAYnh4(  IGLOB, JGLOB, LGLOB )  ! nh4
@@ -444,7 +445,13 @@
      &                 LGLOB,     ARRAYbcpo, QUIET=.TRUE. )
 
       ! convert REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAYbcpi + ARRAYbcpo , BC_CONC ) 
+!-----------------------------------------------------------------------------
+! Prior to 4/15/14:
+! Remove an array temporary (bmy, 4/15/14)
+!      CALL TRANSFER_3D_TROP( ARRAYbcpi + ARRAYbcpo , BC_CONC ) 
+!-----------------------------------------------------------------------------
+      ARRAYtemp = ARRAYbcpi + ARRAYbcpo
+      CALL TRANSFER_3D_TROP( ARRAYtemp, BC_CONC ) 
 
       ! ocpi, tracer = 35
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 35,      
@@ -457,7 +464,13 @@
      &                 LGLOB,     ARRAYocpo, QUIET=.TRUE. )
 
       ! convert REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAYocpi + ARRAYocpo , OC_CONC ) 
+!-----------------------------------------------------------------------------
+! Prior to 4/15/14:
+! Remove an array temporary (bmy, 4/15/14)
+!      CALL TRANSFER_3D_TROP( ARRAYocpi + ARRAYocpo , OC_CONC ) 
+!-----------------------------------------------------------------------------
+      ARRAYtemp = ARRAYocpi + ARRAYocpo
+      CALL TRANSFER_3D_TROP( ARRAYtemp, OC_CONC )  
 
       ! dst1, tracer = 38   
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 49,  
