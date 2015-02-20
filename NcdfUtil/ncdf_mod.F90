@@ -392,7 +392,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)            :: RC 
 ! 
 ! !REVISION HISTORY:
-!  04 Nov 2012 - C. Keller - Initial version
+!  04 Nov 2012 - C. Keller   - Initial version
+!  20 Feb 2015 - R. Yantosca - Need to add attType to Ncdoes_Attr_Exist
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -403,6 +404,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: v_name             ! netCDF variable name 
     CHARACTER(LEN=255)     :: a_name             ! netCDF attribute name
     CHARACTER(LEN=255)     :: a_val              ! netCDF attribute value
+    INTEGER                :: a_type             ! netCDF attribute type
     INTEGER                :: st1d(1), ct1d(1)   ! For 1D arrays    
 
     !=================================================================
@@ -446,7 +448,7 @@ CONTAINS
     ! empty string (dimensionless vertical coordinates do not require
     ! a units attribute).
     a_name  = "units"
-    hasVar  = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) )
+    hasVar  = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type )
     IF ( .NOT. hasVar ) THEN
        varUnit = ''
     ELSE 
@@ -529,11 +531,12 @@ CONTAINS
     CHARACTER(LEN=255)     :: v_name    ! netCDF variable name 
     CHARACTER(LEN=255)     :: a_name    ! netCDF attribute name
     CHARACTER(LEN=255)     :: a_val     ! netCDF attribute value
+    INTEGER                :: a_type    ! netCDF attribute type
     REAL*8                 :: corr      ! netCDF attribute value 
 
     ! Arrays for netCDF start and count values
     INTEGER                :: nlon,  nlat, nlev, ntime
-    INTEGER                :: nclev, nctime 
+    INTEGER                :: nclev, nctime
     INTEGER                :: st2d(2), ct2d(2)   ! For 2D arrays 
     INTEGER                :: st3d(3), ct3d(3)   ! For 3D arrays 
     INTEGER                :: st4d(4), ct4d(4)   ! For 4D arrays 
@@ -546,7 +549,8 @@ CONTAINS
     LOGICAL                :: ReadAtt
 
     ! Missing value
-    REAL*8                 :: miss
+    REAL*8                 :: miss8
+    REAL*4                 :: miss4
     REAL*4                 :: MissValue
 
     ! For error handling
@@ -634,7 +638,7 @@ CONTAINS
 
     ! Check for scale factor
     a_name  = "scale_factor"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) ) 
+    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type ) 
 
     IF ( ReadAtt ) THEN
        CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),corr)
@@ -643,7 +647,7 @@ CONTAINS
 
     ! Check for offset factor
     a_name  = "add_offset"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) ) 
+    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type ) 
 
     IF ( ReadAtt ) THEN
        CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),corr)
@@ -652,6 +656,7 @@ CONTAINS
 
     ! ------------------------------------------
     ! Check for filling values
+    ! NOTE: Test for REAL*4 and REAL*8
     ! ------------------------------------------
 
     ! Define missing value
@@ -661,24 +666,60 @@ CONTAINS
        MissValue = 0.0
     ENDIF
 
+!    ! 1: 'missing_value' 
+!    a_name  = "missing_value"
+!    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), attType ) 
+!    IF ( ReadAtt ) THEN
+!       CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),miss)
+!       WHERE(ncArr == miss)
+!          ncArr = MissValue
+!       END WHERE 
+!    ENDIF
+!
+!    ! 2: '_FillValue'
+!    a_name  = "_FillValue"
+!    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) ) 
+!    IF ( ReadAtt ) THEN
+!       CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),miss)
+!       WHERE(ncArr == miss)
+!          ncArr = MissValue
+!       END WHERE 
+!    ENDIF
+
     ! 1: 'missing_value' 
     a_name  = "missing_value"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) ) 
+    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type ) 
     IF ( ReadAtt ) THEN
-       CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),miss)
-       WHERE(ncArr == miss)
-          ncArr = MissValue
-       END WHERE 
+       IF ( a_type == NF_REAL ) THEN
+          CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss4 )
+          WHERE ( ncArr == miss4 )
+             ncArr = MissValue
+          END WHERE
+       ELSE IF ( a_type == NF_DOUBLE ) THEN
+          CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss8 )
+          miss4 = REAL( miss8 )
+          WHERE ( ncArr == miss4 )
+             ncArr = MissValue
+          END WHERE
+       ENDIF
     ENDIF
 
     ! 2: '_FillValue'
     a_name  = "_FillValue"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name) ) 
+    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type ) 
     IF ( ReadAtt ) THEN
-       CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),miss)
-       WHERE(ncArr == miss)
-          ncArr = MissValue
-       END WHERE 
+       IF ( a_type == NF_REAL ) THEN
+          CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss4 )
+          WHERE ( ncArr == miss4 )
+             ncArr = MissValue
+          END WHERE
+       ELSE IF ( a_type == NF_DOUBLE ) THEN
+          CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss8 )
+          miss4 = REAL( miss8 )
+          WHERE ( ncArr == miss4 )
+             ncArr = MissValue
+          END WHERE
+       ENDIF
     ENDIF
 
     ! ----------------------------
@@ -1834,6 +1875,7 @@ CONTAINS
 !
     CHARACTER(LEN=255)   :: stdname
     CHARACTER(LEN=255)   :: a_name    ! netCDF attribute name
+    INTEGER              :: a_type    ! netCDF attribute type
     LOGICAL              :: ok
 
     !======================================================================
@@ -1853,7 +1895,8 @@ CONTAINS
 
     ! Get standard name
     a_name = "standard_name"
-    IF ( .NOT. NcDoes_Attr_Exist ( fID, TRIM(levName), TRIM(a_Name) ) ) THEN
+    IF ( .NOT. NcDoes_Attr_Exist ( fID,          TRIM(levName),     &
+                                   TRIM(a_Name), a_type         ) ) THEN
        WRITE(*,*) 'Cannot find level attribute ', TRIM(a_name), ' in variable ', &
                   TRIM(levName), ' - File: ', TRIM(ncFile), '!'
        RC = -999
@@ -1996,6 +2039,7 @@ CONTAINS
     CHARACTER(LEN=255)   :: formula, ThisUnit
     CHARACTER(LEN=255)   :: aname, bname, psname, p0name
     CHARACTER(LEN=255)   :: a_name    ! netCDF attribute name
+    INTEGER              :: a_type    ! netCDF attribute type
 
     !======================================================================
     ! NC_GET_SIG_FROM_HYBRID begins here
@@ -2025,7 +2069,8 @@ CONTAINS
     
     ! Get formula 
     a_name = "formula_terms"
-    IF ( .NOT. NcDoes_Attr_Exist ( fID, TRIM(levName), TRIM(a_name) ) ) THEN
+    IF ( .NOT. NcDoes_Attr_Exist ( fID,          TRIM(levName),            &
+                                   TRIM(a_name), a_type         ) ) THEN
        WRITE(*,*) 'Cannot find attribute ', TRIM(a_name), ' in variable ', &
                   TRIM(levName)
        RC = -999
@@ -2104,7 +2149,7 @@ CONTAINS
     ! top of atmosphere). 
     !------------------------------------------------------------------------
     a_name = "positive"
-    IF ( NcDoes_Attr_Exist ( fID, TRIM(levName), TRIM(a_name) ) ) THEN
+    IF ( NcDoes_Attr_Exist( fID, TRIM(levName), TRIM(a_name), a_type ) ) THEN
        CALL NcGet_Var_Attributes( fID, TRIM(levName), TRIM(a_name), formula )
        IF ( TRIM(formula) == 'up' ) THEN
           dir = 1
@@ -3541,6 +3586,7 @@ CONTAINS
 !
     LOGICAL                :: HasLngN
     CHARACTER(LEN=255)     :: a_name, LngName
+    INTEGER                :: a_type
 
     !=======================================================================
     ! NC_ISMODELLEVEL begins here!
@@ -3551,7 +3597,7 @@ CONTAINS
 
     ! Check if there is a long_name attribute 
     a_name = "long_name"
-    HasLngN = Ncdoes_Attr_Exist ( fId, TRIM(lev_name), TRIM(a_name) )
+    HasLngN = Ncdoes_Attr_Exist ( fId, TRIM(lev_name), TRIM(a_name), a_type )
 
     ! Only if attribute exists...
     IF ( HasLngN ) THEN
