@@ -2319,9 +2319,6 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
     ExtNr = GetExtNr( 'ParaNOx' )
 
-    ! testing only
-    write(*,*) 'SHIPNO_BASE: ', FOUND, LTMP, ExtNr
-
     ! It is not recommended to set +SHIPNO+ explicitly in the HEMCO
     ! configuration file!
     IF ( FOUND ) THEN
