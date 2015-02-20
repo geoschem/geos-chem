@@ -131,8 +131,6 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: CMFMC     (:,:,:) ! Cloud mass flux [kg/m2/s]
      REAL(fp), POINTER :: DELP      (:,:,:) ! Delta-P extent of grid box [hPa]
                                             ! (wet air)
-     REAL(fp), POINTER :: DELP_DRY  (:,:,:) ! Delta-P extent of grid box [hPa]
-                                            ! (dry air)
      REAL(fp), POINTER :: DETRAINE  (:,:,:) ! Detrainment (entrain plume)[Pa/s]
      REAL(fp), POINTER :: DETRAINN  (:,:,:) ! Detrainment (non-entr plume)[Pa/s]
      REAL(fp), POINTER :: DNDE      (:,:,:) ! Downdraft (entr plume) [Pa/s]
@@ -151,7 +149,6 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: OPTDEP    (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: PEDGE     (:,:,:) ! Pressure @ level edges [hPa]
                                             ! (wet air)
-     REAL(fp), POINTER :: PEDGE_DRY (:,:,:) ! Dry air press @ level edges [hPa]
      REAL(fp), POINTER :: PMID      (:,:,:) ! Pressure @ level centers [hPa]
                                             ! (wet air)
      REAL(fp), POINTER :: PMID_DRY  (:,:,:) ! Dry air press @ level center [hPa]
@@ -640,10 +637,6 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%DELP     = 0.0_fp
 
-    ALLOCATE( State_Met%DELP_DRY   ( IM, JM, LM   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-    State_Met%DELP_DRY  = 0.0_fp
-
     ALLOCATE( State_Met%DQRCU     ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%DQRCU    = 0.0_fp
@@ -684,10 +677,6 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%PEDGE    = 0.0_fp
 
-    ALLOCATE( State_Met%PEDGE_DRY  ( IM, JM, LM+1 ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN           
-    State_Met%PEDGE_DRY = 0.0_fp
-                                               
     ALLOCATE( State_Met%PMID      ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%PMID     = 0.0_fp
@@ -993,7 +982,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%CLDF       )) DEALLOCATE( State_Met%CLDF       )
     IF ( ASSOCIATED( State_Met%CMFMC      )) DEALLOCATE( State_Met%CMFMC      )
     IF ( ASSOCIATED( State_Met%DELP       )) DEALLOCATE( State_Met%DELP       )
-    IF ( ASSOCIATED( State_Met%DELP_DRY   )) DEALLOCATE( State_Met%DELP_DRY   )
     IF ( ASSOCIATED( State_Met%DQRCU      )) DEALLOCATE( State_Met%DQRCU      )
     IF ( ASSOCIATED( State_Met%DQRLSAN    )) DEALLOCATE( State_Met%DQRLSAN    )
     IF ( ASSOCIATED( State_Met%DQIDTMST   )) DEALLOCATE( State_Met%DQIDTMST   )
@@ -1004,7 +992,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
     IF ( ASSOCIATED( State_Met%OPTDEP     )) DEALLOCATE( State_Met%OPTDEP     )
     IF ( ASSOCIATED( State_Met%PEDGE      )) DEALLOCATE( State_Met%PEDGE      )
-    IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) DEALLOCATE( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) DEALLOCATE( State_Met%PMID       )
     IF ( ASSOCIATED( State_Met%PMID_DRY   )) DEALLOCATE( State_Met%PMID_DRY   )
     IF ( ASSOCIATED( State_Met%PV         )) DEALLOCATE( State_Met%PV         )

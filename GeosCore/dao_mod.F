@@ -353,7 +353,7 @@
 
       INTEGER :: I,  J,  L
       REAL(fp)  :: AREA_M2, Psat, Pv, Tc
-      REAL(fp)  :: PEDGE_WET_TOP, PEDGE_DRY_TOP
+      REAL(fp)  :: PEDGE_WET_TOP
 
       ! Conversion factors
       REAL(fp), PARAMETER   :: TOFFSET = -2.7415e+2_fp   ! K -> deg C
@@ -374,14 +374,14 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-!$OMP+PRIVATE( AREA_M2, PEDGE_WET_TOP, PEDGE_DRY_TOP, Tc, Psat, Pv )
+!$OMP+PRIVATE( AREA_M2, PEDGE_WET_TOP, Tc, Psat, Pv )
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          !=============================================================
-         ! Set grid box pressures [hPa] (wet air)
+         ! Set grid box wet air pressures [hPa] (lower edge, delta, and mid)
          !=============================================================  
 
          ! Pressure (wet) at bottom edge of grid box [hPa]
@@ -398,7 +398,7 @@
          State_Met%PMID( I,J,L )   = GET_PCENTER( I,J,L )
 
          !=============================================================
-         ! Set grid box pressures [hPa] (dry air)
+         ! Set grid box center dry air partial pressure [hPa]
          !=============================================================  
 
          ! Temperature in Celsius
@@ -410,24 +410,12 @@
          ! Partial pressure of water vapor [Pa]
          Pv = State_Met%RH( I,J,L ) * RHCONV * Psat
 
-         ! Pressure (dry) at bottom edge of grid box [Pa]
-         State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L)  
-     &                                 * PCONV - Pv
-
-         ! Pressure (dry) at top edge of grid box [Pa]
-         PEDGE_DRY_TOP = PEDGE_WET_TOP * PCONV - Pv
-
-         ! Pressure (dry) difference between top & bottom edges [hPa]
-         State_Met%DELP_DRY( I,J,L ) = ( State_Met%PEDGE_DRY(I,J,L)  
-     &                                  - PEDGE_DRY_TOP ) / PCONV
-
-         ! Pressure (dry) at mid-point of grid box [hPa]
-         State_Met%PMID_DRY( I,J,L ) = 0.5e+0_fp * 
-     &                                 ( State_Met%PEDGE_DRY(I,J,L) 
-     &                                   + PEDGE_DRY_TOP ) / PCONV
+         ! Partial pressure of dry air at mid-point of grid box [hPa]
+         State_Met%PMID_DRY( I,J,L ) = State_Met%PMID( I,J,L ) 
+     &                                 - Pv / PCONV
 
          !===========================================================
-         ! Set grid box air density [kg/m3] (wet air)
+         ! Set grid box wet air density [kg/m3] 
          !==========================================================
 
          !  MAIRDEN = density of moist air [kg/m^3],
@@ -449,7 +437,7 @@
 
 
          !===========================================================
-         ! Set grid box density [kg/m3] (dry air) (area-independent)
+         ! Set grid box dry air density [kg/m3] (area-independent)
          !==========================================================
          State_Met%AIRDEN(I,J,L) = ( State_Met%PMID_DRY(I,J,L) * PCONV 
      &                   * AIRMW ) * MCONV
@@ -470,8 +458,8 @@
 
          State_Met%BXHEIGHT( I,J,L ) = Rdg0 
      &                                 * State_Met%T(I,J,L) 
-     &                                 * LOG( State_Met%PEDGE_DRY(I,J,L) 
-     &                                        / PEDGE_DRY_TOP )
+     &                                 * LOG( State_Met%PEDGE(I,J,L) 
+     &                                        / PEDGE_WET_TOP )
 
          !=============================================================
          ! Set grid box surface area [m2]
