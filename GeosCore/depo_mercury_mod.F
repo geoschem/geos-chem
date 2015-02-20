@@ -36,7 +36,8 @@
 !  
       PUBLIC :: DD_HG2, DD_HGP, WD_HG2, WD_HGP
       PUBLIC :: HG2mth_wd, HG0mth_dd, HG2mth_dd
-      PUBLIC :: SNOW_HG
+      PUBLIC :: SNOW_HG_OC
+      PUBLIC :: SNOW_HG_LN
       PUBLIC :: LHGSNOW
       REAL*8,  ALLOCATABLE :: DD_Hg2(:,:,:)
       REAL*8,  ALLOCATABLE :: DD_HgP(:,:,:)
@@ -45,7 +46,8 @@
       REAL*8,  ALLOCATABLE :: HG0mth_dd(:,:)
       REAL*8,  ALLOCATABLE :: HG2mth_dd(:,:)
       REAL*8,  ALLOCATABLE :: HG2mth_wd(:,:)
-      REAL*8,  ALLOCATABLE :: SNOW_HG(:,:,:) !CDH Hg stored in snow+ice
+      REAL*8,  ALLOCATABLE :: SNOW_HG_OC(:,:,:)
+      REAL*8,  ALLOCATABLE :: SNOW_HG_LN(:,:,:)
       REAL*8,  ALLOCATABLE :: Hg0dryGEOS(:,:), HgIIdryGEOS(:,:), 
      &                        HgIIwetGEOS(:,:)
 !
@@ -59,6 +61,7 @@
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -320,6 +323,7 @@
 !                              derived type object
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,7 +331,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      REAL*8  :: FRAC_SNOW_OR_ICE 
+      REAL*8  :: FRAC_SNOW_OR_ICE, FRAC_O
       LOGICAL :: IS_SNOW_OR_ICE 
       INTEGER :: NN
 
@@ -359,18 +363,24 @@
      &                        State_Met%FRSEAICE(I,J)  + 
      &                        State_Met%FRLANDIC(I,J), 1d0)
       IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0d0 )
+      ! Ocean fraction (vs land)
+      FRAC_O = State_Met%FROCEAN(I,J)
 
 #elif defined( GEOS_5 )
       ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
       IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
      &                    ( IS_LAND( I, J, State_Met     )  .AND. 
      &                      State_Met%SNOMAS(I,J) > 10d0 ))
+      ! Ocean fraction (vs land)
+      FRAC_O = State_Met%FROCEAN(I,J)
 
 #else
       ! Use GEOS1-4 snow height (water equivalent) in mm
       IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
      &                    ( IS_LAND( I, J, State_Met     )  .AND. 
      &                      State_Met%SNOW(I,J)   > 10d0 ))
+      ! Ocean fraction (vs land)
+      FRAC_O = 1d0 - FRLAND(I,J)
 #endif 
 
       ! Check if there is snow on the ground, or if this is sea ice
@@ -379,8 +389,14 @@
          ! Add 60% of deposition to surface (i.e. assume 40% accumulates
          ! in surface) multiplied by the fraction of the box that is 
          ! snow or ice (i.e. 1 for all met fields but MERRA and GEOS-5.7.x)
-         SNOW_HG(I,J,NN) = SNOW_HG(I,J,NN) + 
+         SNOW_HG_OC(I,J,NN) = SNOW_HG_OC(I,J,NN) + FRAC_O *
      &                     FRAC_SNOW_OR_ICE * MAX( 0.6D0*DEP_HG2, 0D0 )
+
+         ! This is Hg in snowpack over land that can potentially be
+         ! re-emitted to atmosphere
+         SNOW_HG_LN(I,J,NN) = SNOW_HG_LN(I,J,NN) + (1d0 - FRAC_O) *
+     &                     FRAC_SNOW_OR_ICE * MAX( 0.6D0*DEP_HG2, 0D0 )
+
 
       ENDIF
 
@@ -892,6 +908,7 @@
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge   - Moved arrays allocation from 
 !                               ocean_mercury_mod.f
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -920,9 +937,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
       WD_HgP = 0d0
 
-      ALLOCATE( SNOW_HG( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW_HG' )
-      SNOW_HG = 0d0
+      ALLOCATE( SNOW_HG_OC( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_OC' )
+      SNOW_HG_OC = 0d0
+
+      ALLOCATE( SNOW_HG_LN( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_LN' )
+      SNOW_HG_LN = 0d0
 
       IF ( LGTMM ) THEN
          ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=AS )
@@ -956,6 +977,7 @@
 !
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge - Moved from ocean_mercury_mod.f
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -964,7 +986,8 @@
       IF ( ALLOCATED( DD_HgP      ) ) DEALLOCATE( DD_HgP      )
       IF ( ALLOCATED( WD_Hg2      ) ) DEALLOCATE( WD_Hg2      )
       IF ( ALLOCATED( WD_HgP      ) ) DEALLOCATE( WD_HgP      )
-      IF ( ALLOCATED( SNOW_HG     ) ) DEALLOCATE( SNOW_HG     )
+      IF ( ALLOCATED( SNOW_HG_OC  ) ) DEALLOCATE( SNOW_HG_OC  )
+      IF ( ALLOCATED( SNOW_HG_LN  ) ) DEALLOCATE( SNOW_HG_LN  )
       IF ( ALLOCATED( HG0mth_dd   ) ) DEALLOCATE( HG0mth_dd   )
       IF ( ALLOCATED( HG2mth_dd   ) ) DEALLOCATE( HG2mth_dd   )
       IF ( ALLOCATED( HG2mth_wd   ) ) DEALLOCATE( HG2mth_wd   )

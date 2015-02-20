@@ -2513,12 +2513,14 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
       USE CMN_SIZE_MOD
-      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG, CHECK_DIMENSIONS
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
+      USE DEPO_MERCURY_MOD,   ONLY : CHECK_DIMENSIONS
       USE DIRECTORY_MOD,      ONLY : RUN_DIR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -2712,10 +2714,19 @@
                NN              = GET_Hg0_CAT( NTRACER )
 
                ! Store ocean Hg(0) in Hg0aq array
-               SNOW_HG(:,:,NN)   = Hg_OCEAN(:,:,1)
+               SNOW_HG_OC(:,:,NN)   = Hg_OCEAN(:,:,1)
                
-               ! Increment NCOUNT
-!               NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
+          ELSE IF ( CATEGORY(1:7) == 'SNHG-LN' ) THEN
+               !----------
+               ! Hg in snow
+               !----------
+
+               ! Get the Hg category #
+               NN              = GET_Hg0_CAT( NTRACER )
+
+               ! Store ocean Hg(0) in Hg0aq array
+               SNOW_HG_LN(:,:,NN)   = Hg_OCEAN(:,:,1)
+
          ENDIF
       ENDDO
 
@@ -2768,6 +2779,10 @@
 
       ! HgP
       WRITE( 6, 140 ) 3, 'HgP       ', SUM( HgPaq ), 'kg'
+
+      ! Snow Hg (jaf, 6/17/11)
+      WRITE( 6, 140 ) 1, 'Reducible snow Hg',  SUM(SNOW_HG_OC), 'kg'
+      WRITE( 6, 140 ) 1, 'Reducible snow Hg land', SUM(SNOW_HG_LN), 'kg'
 
       ! Format strings
  130  FORMAT( /, 'Total masses for each ocean tracer: ' ) 
@@ -2863,11 +2878,12 @@
 !  NOTES:
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  30 May 2013 - J. Fisher   - Add land snow Hg reservoirs
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
       USE DIRECTORY_MOD,      ONLY : RUN_DIR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
@@ -3013,15 +3029,30 @@
       ENDIF
 
       !---------------------------
-      ! Total Hg in snowpack
+      ! Total reducible Hg in snowpack
       !---------------------------
          DO NN = 1, N_Hg_CATS
             CATEGORY     = 'SNOW-HG'
             N            = ID_Hg0(NN)
-            ARRAY(:,:,1) = SNOW_HG(:,:,NN)
+            ARRAY(:,:,1) = SNOW_HG_OC(:,:,NN)
 
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N, 
+     &                  UNIT,      TAU,       TAU,      RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
+
+      !-----------------------------------
+      ! Total reducible Hg in snowpack on land
+      !-----------------------------------
+         DO NN = 1, N_Hg_CATS
+            CATEGORY     = 'SNHG-LN'
+            N            = ID_Hg0(NN)
+            ARRAY(:,:,1) = SNOW_HG_LN(:,:,NN)
+
+            CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      TAU,       TAU,      RESERVED,
      &                  IIPAR,     JJPAR,     1,        IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
