@@ -178,6 +178,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  Initial code.
 !  03 Oct 2014 - C.Keller - Now check for int, real and character attributes
+!  20 Feb 2015 - R. Yantosca - Now use NF_ATT_INQ function, it's more robust
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,9 +186,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
     integer :: ierr
     integer :: varid
-    integer :: tmpint
-    real*4  :: tmpr4
-    character(len=255) :: tmpchar
+    INTEGER :: attType
+    INTEGER :: attLen
 
     ! Init
     Ncdoes_Attr_Exist = .false.
@@ -196,30 +196,12 @@ CONTAINS
     ierr = Nf_Inq_Varid (ncid, varname, varid)
 
     ! Check the attribute if variable was found
-    if (ierr == NF_NOERR) then
-
-       if ( .NOT. Ncdoes_Attr_Exist ) then
-          ierr = Nf_Get_Att_Int( ncid, varid, attname, tmpint )
-          if ( ierr == NF_NOERR ) then
-             Ncdoes_Attr_Exist = .true.
-          end if
-       endif
-
-       if ( .NOT. Ncdoes_Attr_Exist ) then
-          ierr = Nf_Get_Att_Real( ncid, varid, attname, tmpr4 )
-          if ( ierr == NF_NOERR ) then
-             Ncdoes_Attr_Exist = .true.
-          end if
-       endif
-
-       if ( .NOT. Ncdoes_Attr_Exist ) then
-          ierr = Nf_Get_Att_Text( ncid, varid, attname, tmpchar )
-          if ( ierr == NF_NOERR ) then
-             Ncdoes_Attr_Exist = .true.
-          end if
-       endif
-
-    end if
+    IF ( ierr == NF_NOERR ) THEN
+       ierr = Nf_Inq_Att( ncId, varId, attName, attType, attLen )
+       IF ( ierr == NF_NOERR ) THEN
+          NcDoes_Attr_Exist = .TRUE.
+       ENDIF
+    ENDIF
 
     return
 
