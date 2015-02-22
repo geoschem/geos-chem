@@ -93,6 +93,9 @@
 !  (8 ) Corbitt, E.S. et al. (2011), Global source-receptor relationsihps for
 !       mercury deposition under present-day and 2050 emissions scenarios,
 !       Environ. Sci. Technol., 45, 10477-10484, 2011.
+!  (9 ) Toole, J. M. et al. (2010), Influences of the ocean surface mixed layer
+!        and thermohaline stratification on Arctic Sea ice in the central
+!        Canada Basin, J. Geophys. Res., 115, C10018, doi:10.1029/2009JC005660.
 !  
 !  Nomenclature: 
 !  ============================================================================
@@ -116,6 +119,7 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -990,11 +994,11 @@
          OLDMLD     = MLDav(I,J)
          MLDav(I,J) = MLDav(I,J) + dMLD(I,J) * DTSRCE
          MLDcm      = MLDav(I,J)
-!--jaf.start
+
          ! Add error trap to prevent new MLD from being negative
          ! (jaf, 7/6/11)
          IF (MLDcm .LT. 0d0) MLDcm = 0d0
-!--jaf.end
+
 
          ! Get fractions of land and ocean in the grid box [unitless]
          ! Use fractional land type information in MERRA. Also make sure
@@ -1014,7 +1018,7 @@
          IS_OCEAN_BOX = ( IS_WATER( I, J, State_Met ) )
 #endif
 
-!--jaf.end
+
 
          ! Change ocean mass due to mixed layer depth change
          ! Keep before next IF so that we adjust mass in ice-covered boxes
@@ -1764,31 +1768,32 @@
 !  NOTES:
 !  (1 ) Modified for S. Strode's latest ocean Hg code.  Now read files
 !        from DATA_DIR_1x1/mercury_200511. (sas, cdh, bmy, 3/28/06)
+!  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1, DATA_DIR
+      USE GRID_MOD,      ONLY : GET_YMID, GET_XMID
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE TIME_MOD,	 ONLY : ITS_A_LEAPYEAR ! jaf
-      USE FILE_MOD,	 ONLY : IOERROR, IU_FILE ! jaf
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
+      USE FILE_MOD,      ONLY : IOERROR, IU_FILE
 
       USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: THISMONTH
-      INTEGER, INTENT(IN)    :: THISYEAR ! jaf
+      INTEGER, INTENT(IN)    :: THISYEAR
 
       ! Local Variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
       REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                 :: TAU
       CHARACTER(LEN=255)     :: FILENAME
-      ! Add time variables to get correct number of seconds per month
-      ! and prevent negative flow later (jaf, 12/8/11)
-      INTEGER	   :: DAYS_IN_MONTH, LASTMONTH
-      INTEGER	   :: M(12) = (/ 31, 28, 31, 30, 31, 30,
-     &                           31, 31, 30, 31, 30, 31 /)
+      INTEGER                :: I, J, X, Y
+      INTEGER                :: DAYS_IN_MONTH, LASTMONTH
+      INTEGER                :: M(12) = (/ 31, 28, 31, 30, 31, 30,
+     &                                     31, 31, 30, 31, 30, 31 /)
      
       !=================================================================
       ! OCEAN_MERCURY_READ begins here!
@@ -1963,6 +1968,34 @@
       ! convert [cm/s] to [m/s]
       UPVEL = UPVEL * 1.D-2
   
+      !-----------------------------------------------------------------
+      ! Overwrite fields with Arctic specific parameters
+      !-----------------------------------------------------------------
+
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Grid-box longitude [degrees]
+         X = GET_XMID( I, J, 1 )
+         ! Grid-box latitude [degrees]
+         Y = GET_YMID( I, J, 1 )
+
+          ! In central Arctic, overwrite MLD values where global MLD
+          ! dataset is based on very limited information. Instead use
+          ! values from climatology of Toole et al. (2010). (jaf, 11/28/11)
+          IF ( (Y >= 80d0) .OR.
+     &         ( (Y >= 70d0) .AND. (X >= 50d0 .OR. X <= 0d0) ) ) THEN
+               SELECT CASE ( THISMONTH )
+                  CASE( 7, 8, 9 ) ! summer
+                      MLD(I,J) = 15d2
+                  CASE DEFAULT    ! rest of year
+                      MLD(I,J) = 20d2
+               END SELECT
+          ENDIF
+
+      ENDDO
+      ENDDO
+
       ! Return to calling program
       END SUBROUTINE OCEAN_MERCURY_READ
 
@@ -1983,10 +2016,12 @@
 !  NOTES:
 !  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
 !  (2 ) Now use actual number of days in given month (jaf, 7/6/11)
+!  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
+      USE GRID_MOD,      ONLY : GET_YMID, GET_XMID
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
@@ -2000,6 +2035,7 @@
 
       ! Local variables
       INTEGER                :: I, J, NEXTMONTH
+      INTEGER                :: Y, X
       REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                 :: TAU
       CHARACTER(LEN=255)     :: FILENAME
@@ -2055,6 +2091,29 @@
       ! get rate of change of MLD; convert [cm/month] -> [cm/s] 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Grid-box longitude [degrees] (jaf, 11/28/11)
+         X = GET_XMID( I, J, 1 )
+         ! Grid-box latitude [degrees] (jaf, 11/28/11)
+         Y = GET_YMID( I, J, 1 )
+
+         !----------------------------------------------------------------
+         ! In central Arctic, overwrite MLD values where global MLD
+         ! dataset is based on very limited information. Instead use
+         ! values from climatology of Toole et al. (2010). (jaf, 11/28/11)
+         !----------------------------------------------------------------
+          IF ( (Y >= 80d0) .OR.
+     &         ( (Y >= 70d0) .AND. (X >= 50d0 .OR. X <= 0d0) ) ) THEN
+
+               SELECT CASE ( NEXTMONTH )
+                  CASE( 7, 8, 9 ) ! summer
+                      newMLD(I,J) = 15d2
+                  CASE DEFAULT    ! rest of year
+                      newMLD(I,J) = 20d2
+               END SELECT
+          ENDIF
+         !----------------------------------------------------------------
+
          ! This calculation can result in negative values of MLD at the
          ! end of the the month when there are more than 30.5 days in
          ! the month. Now use actual number of days per month (jaf, 
