@@ -355,7 +355,7 @@
 !
 
       INTEGER :: I,  J,  L
-      REAL(fp)  :: AREA_M2, Psat, Pv, Tc, Tv
+      REAL(fp)  :: AREA_M2, Psat, Pv, Tc, T_v
       REAL(fp)  :: PEdge_Top
       REAL(fp)  :: MassRatio_DryAirToH2O
 
@@ -378,7 +378,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-!$OMP+PRIVATE( AREA_M2, PEdge_Top, Tc, Psat, Pv, Tv )
+!$OMP+PRIVATE( AREA_M2, PEdge_Top, Tc, Psat, Pv, T_v )
 !$OMP+PRIVATE( MassRatio_DryAirToH2O )
 
       DO L = 1, LLPAR
@@ -443,7 +443,7 @@
          !===========================================================
          ! Set grid box dry air density [kg/m3] 
          !==========================================================
-         State_Met%AIRDEN(I,J,L) = ( State_Met%PMID_DRY(I,J,L) * PCONV 
+         State_Met%AIRDEN(I,J,L) = State_Met%PMID_DRY(I,J,L) * PCONV 
      &                   * AIRMW * MCONV
      &                   / RSTARG / State_Met%T(I,J,L)
 
@@ -474,7 +474,7 @@
          ! Source: Wallace and Hobbes "Atmospheric Science: An 
          !         Introductory Survey" Chapter 2
          !
-         T_v = State_Met%T(I,J,L) / (1 - Pv/State_Met%PMID 
+         T_v = State_Met%T(I,J,L) / (1 - Pv/State_Met%PMID(I,J,L) 
      &         * ( 1 - H2OMW / AIRMW ) )
 
          State_Met%BXHEIGHT( I,J,L ) = Rdg0 * T_v
@@ -632,7 +632,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PEDGE_BOTTOM, PEDGE_TOP, DELTA_TMP)
+!$OMP+PRIVATE( I, J, L, PEDGE_BOTTOM, PEDGE_TOP, DELP_TMP)
 !$OMP+PRIVATE( PMID_TMP, Tc, Psat, Pv, PMID_DRY_TMP )
       DO L = 1, LGLOB
       DO J = 1, JJPAR
@@ -659,14 +659,16 @@
          !=============================================================  
 
          ! Temperature in Celsius
-         Tc = State_Met%T( I,J,L ) + TOFFSET
+         Tc = T_FULLGRID( I,J,L ) + TOFFSET
 
          ! Empirical formulation for saturation pressure of water [hPa]
          ! (Source: ???)
          Psat = PSATC1 * 10**( PSATC2 * Tc / ( Tc + PSATC3 ) )        
 
          ! Partial pressure of water vapor [hPa]
-         Pv = State_Met%RH( I,J,L ) * RHCONV * Psat
+         ! NEED TO HAVE RH_FULLGRID(I,J,L) (ewl, 2/23/15)
+         ! Use dummy value 50% for now
+         Pv = 5.0E+2_fp * RHCONV * Psat
 
          ! Partial pressure of dry air at mid-point of grid box [hPa]
          PMID_DRY_TMP = PMID_TMP - Pv / PCONV
@@ -688,15 +690,14 @@
 !         !
 !         MAIRDEN_FULLGRID(I,J,L) = ( PMID_DRY_TMP * AIRMW 
 !     &                                + Pv * H2OMW ) * PCONV * MCONV
-!     &                                / RSTARG / State_Met%T(I,J,L)
+!     &                                / RSTARG / T_FULLGRID(I,J,L)
 !
 
          !===========================================================
          ! Set grid box dry air density [kg/m3] 
          !==========================================================
-         AIRDEN_FULLGRID(I,J,L)  = ( PMID_DRY_TMP * PCONV 
-     &                   * AIRMW * MCONV
-     &                   / RSTARG / State_Met%T(I,J,L)
+         AIRDEN_FULLGRID(I,J,L)  = PMID_DRY_TMP * PCONV * AIRMW 
+     &                             * MCONV / RSTARG / T_FULLGRID(I,J,L)
 
       ENDDO
       ENDDO
