@@ -100,9 +100,11 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC          ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller    - Initial version 
+!  12 Sep 2013 - C. Keller   - Initial version 
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  23 Feb 2015 - R. Yantosca - Now make Arr1D REAL(sp) so that we can write
+!                              out lon & lat as float instead of double
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,7 +116,7 @@ CONTAINS
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
     REAL(sp), POINTER         :: nctime(:)
-    REAL(hp), POINTER         :: Arr1D(:) => NULL()
+    REAL(sp), POINTER         :: Arr1D(:) => NULL()
     INTEGER,  POINTER         :: Int1D(:) => NULL()
     REAL(sp), POINTER         :: Arr3D(:,:,:) => NULL()
     REAL(sp), POINTER         :: Arr4D(:,:,:,:) => NULL()
