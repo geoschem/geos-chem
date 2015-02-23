@@ -352,8 +352,9 @@
 !
 
       INTEGER :: I,  J,  L
-      REAL(fp)  :: AREA_M2, Psat, Pv, Tc
-      REAL(fp)  :: PEDGE_WET_TOP
+      REAL(fp)  :: AREA_M2, Psat, Pv, Tc, Tv
+      REAL(fp)  :: PEdge_Top
+      REAL(fp)  :: MassRatio_DryAirToH2O
 
       ! Conversion factors
       REAL(fp), PARAMETER   :: TOFFSET = -2.7415e+2_fp   ! K -> deg C
@@ -374,7 +375,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-!$OMP+PRIVATE( AREA_M2, PEDGE_WET_TOP, Tc, Psat, Pv )
+!$OMP+PRIVATE( AREA_M2, PEdge_Top, Tc, Psat, Pv, Tv )
+!$OMP+PRIVATE( MassRatio_DryAirToH2O )
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -384,17 +386,17 @@
          ! Set grid box wet air pressures [hPa] (lower edge, delta, and mid)
          !=============================================================  
 
-         ! Pressure (wet) at bottom edge of grid box [hPa]
+         ! Pressure at bottom edge of grid box [hPa]
          State_Met%PEDGE( I,J,L )  = GET_PEDGE( I,J,L )
 
-         ! Pressure (wet) at top edge of grid box [hPa]
-         PEDGE_WET_TOP             = GET_PEDGE( I,J,L+1 )
+         ! Pressure at top edge of grid box [hPa]
+         PEdge_Top             = GET_PEDGE( I,J,L+1 )
 
-         ! Pressure (wet) difference between top & bottom edges [hPa]
+         ! Pressure difference between top & bottom edges [hPa]
          State_Met%DELP( I,J,L )   = State_Met%PEDGE( I,J,L ) 
-     &                                - PEDGE_WET_TOP
+     &                                - PEdge_Top
 
-         ! Pressure (wet) at mid-point of grid box [hPa]
+         ! Pressure at mid-point of grid box [hPa]
          State_Met%PMID( I,J,L )   = GET_PCENTER( I,J,L )
 
          !=============================================================
@@ -404,10 +406,11 @@
          ! Temperature in Celsius
          Tc = State_Met%T( I,J,L ) + TOFFSET
 
-         ! Empirical formulation for saturation pressure of water [Pa]
-         Psat = PSATC1 * 10**( PSATC2 * Tc / ( Tc + PSATC3 ) ) * PCONV         
+         ! Empirical formulation for saturation pressure of water [hPa]
+         ! (Source: ??? Ask Mike where he got this)
+         Psat = PSATC1 * 10**( PSATC2 * Tc / ( Tc + PSATC3 ) )        
 
-         ! Partial pressure of water vapor [Pa]
+         ! Partial pressure of water vapor [hPa]
          Pv = State_Met%RH( I,J,L ) * RHCONV * Psat
 
          ! Partial pressure of dry air at mid-point of grid box [hPa]
@@ -420,19 +423,19 @@
 
          !  MAIRDEN = density of moist air [kg/m^3],
          ! given by:
-         !
-         !             Partial      Molec     Partial       Molec
-         !             pressure   * wt of   + pressure of * wt of 
-         !             of dry air   air       water vapor   water     
-         ! Moist        [Pa]        [g/mol]     [Pa]        [g/mol]  
-         ! Air     =  ----------------------------------------------           
-         ! Density      Universal gas constant  * Temp * 1000 
-         !                     [J/K/mol]          [K]   [g/kg]
+         !           
+         !            Partial      Molec     Partial       Molec
+         !            pressure   * wt of   + pressure of * wt of 
+         !            of dry air   air       water vapor   water     
+         ! Moist      [hPa]        [g/mol]   [hPa]         [g/mol]  
+         ! Air     =  ------------------------------------------------        
+         ! Density    Universal gas constant * Temp * 1000  * 0.01
+         !                   [J/K/mol]         [K]   [g/kg]   [hPa/Pa]
          !
 
          ! Density of moist air [kg/m^3]
-         State_Met%MAIRDEN(I,J,L) = ( State_Met%PMID_DRY(I,J,L) * PCONV 
-     &                                * AIRMW + Pv * H2OMW ) * MCONV
+         State_Met%MAIRDEN(I,J,L) = ( State_Met%PMID_DRY(I,J,L) * AIRMW 
+     &                                + Pv * H2OMW ) * PCONV * MCONV
      &                                / RSTARG / State_Met%T(I,J,L)
 
 
@@ -445,21 +448,37 @@
 
 
          !=============================================================
-         ! Set grid box height [m] (dry air) (area-independent)
+         ! Set grid box height [m] 
          !=============================================================
 
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
-         ! in meters. 
+         ! in meters. It is calculated using the hypsometric equation.
+         ! A virtual temperature is calculated to enable use of 
+         ! of moist air pressure with dry air molecular weight.
+         !  
+         !              Gas constant   virtual
+         !              for dry air  * grid box
+         !              [J/K/mol]      temp [K]       bottom edge P
+         ! height [m] = ----------------------- * ln(---------------)  
+         !                     g [m/s2]                top edge P
+         !                           
+         !  where,
          !
-         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
-         ! Rd = 287 J/K/kg is the value for the ideal gas constant
-         ! R for air (M.W = 0.02897 kg/mol),  or 
-         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
+         !                         Grid box temperature [K]
+         !    Virtual  = -------------------------------------------
+         !    Temp [K]       H20 partial pressure          MW_H2O
+         !               1 - -------------------- * ( 1 - --------- )
+         !                    moist air  pressure         MW_dryair
+         !
+         ! Source: Wallace and Hobbes "Atmospheric Science: An 
+         !         Introductory Survey" Chapter 2
+         !
+         T_v = State_Met%T(I,J,L) / (1 - Pv/State_Met%PMID 
+     &         * ( 1 - H2OMW / AIRMW ) )
 
-         State_Met%BXHEIGHT( I,J,L ) = Rdg0 
-     &                                 * State_Met%T(I,J,L) 
+         State_Met%BXHEIGHT( I,J,L ) = Rdg0 * T_v
      &                                 * LOG( State_Met%PEDGE(I,J,L) 
-     &                                        / PEDGE_WET_TOP )
+     &                                        / PEdge_Top )
 
          !=============================================================
          ! Set grid box surface area [m2]
@@ -471,24 +490,40 @@
             AREA_M2                   = GET_AREA_M2( I,J,L )
 #endif
 
-         !===========================================================
-         ! Set mass of air in grid box [kg/m3] (dry air) (area-dependent)
-         !==========================================================
-
+         !===============================================================
+         ! Set mass of air in grid box [kg/m3] (dry air)
+         !==============================================================
+         !
          ! AD = mass of dry air in grid box (I,J,L) in kg, 
          ! given by:        
-         !          Dry air
-         !  Mass    pressure        100      1        Surface area 
-         !        = difference   *  ---  *  ---   *   of grid box 
-         !          in grid box      1       g          AREA_M2
+         ! 
+         !        Air pressure   Grid box   Mass       100 [Pa]   1 [s2]
+         ! Mass = difference   * surface  * ratio of * -------- * -----
+         !        across grid    area       dry air    1 [hPa]    g [m]
+         !        box [hPa]      [m2]       to H2O                  
          !
-         !   kg         mb          Pa      s^2           m^2
-         !  ----  =    ----      * ----  * -----  *      -----
-         !    1          1          mb       m             1
-         !===========================================================
-         State_Met%AD(I,J,L) = State_Met%DELP_DRY(I,J,L)
-     &                         * G0_100
-     &                         * AREA_M2
+         ! where,
+         !
+         !   Ratio of dry  
+         !   to wet air     =
+         !   mass [.]       
+         !         
+         !                   Dry air partial pressure * MW_air
+         !  -----------------------------------------------------------------
+         !  Dry air partial pressure * MW_air + H2O partial pressure * MW_H2O
+         !
+         ! NOTE: Air pressure difference across is grid box is the same for wet
+         !       air pressure (DELP) and dry air partial pressures due to
+         !       the assumption of constant relative humidity within the grid 
+         !       box.
+         !
+         !==============================================================
+         MassRatio_DryAirToH2O = State_Met%PMID_DRY(I,J,L) * AIRMW / 
+     &                           (State_Met%PMID_DRY(I,J,L) * AIRMW 
+     &                           + Pv * H2OMW )    
+
+         State_Met%AD(I,J,L) = State_Met%DELP(I,J,L) * G0_100
+     &                         * MassRatio_DryAirToH2O * AREA_M2
 
          !=============================================================
          ! Set grid box volume [m3] (dry air) (area-dependent)
