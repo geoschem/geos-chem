@@ -3751,7 +3751,7 @@
 
          !%%%%% BETA-PINENE %%%%%
          DiagnName = 'BIOGENIC_BPIN'
-         N         = 7
+         N         = 8
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
          FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
      &               CM2PERM2

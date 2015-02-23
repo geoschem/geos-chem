@@ -1751,37 +1751,35 @@
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
 
-         IF ( ExtNrSoa > 0 ) THEN
-            ! ---------------------------------------------------
-            ! a-Farnesene
-            Arr2D => FLUXFARN
-            DiagnName =  'BIOGENIC_FARN'
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
-     &                         cName=TRIM(DiagnName), Array2D=Arr2D,
-     &                         RC=RC)
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
+         ! ---------------------------------------------------
+         ! a-Farnesene
+         Arr2D => FLUXFARN
+         DiagnName =  'BIOGENIC_FARN'
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D,
+     &                      RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+         Arr2D => NULL() 
 
-            ! ---------------------------------------------------
-            ! b_Caryophyllene
-            Arr2D => FLUXBCAR
-            DiagnName =  'BIOGENIC_BCAR'
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
-     &                         cName=TRIM(DiagnName), Array2D=Arr2D,
-     &                         RC=RC)
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL()
+         ! ---------------------------------------------------
+         ! b_Caryophyllene
+         Arr2D => FLUXBCAR
+         DiagnName =  'BIOGENIC_BCAR'
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D,
+     &                      RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+         Arr2D => NULL()
 
-            ! ---------------------------------------------------
-            ! Other sesquiterpenes
-            Arr2D => FLUXOSQT
-            DiagnName =  'BIOGENIC_OSQT'
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
-     &                         cName=TRIM(DiagnName), Array2D=Arr2D,
-     &                         RC=RC)
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL()
-         ENDIF
+         ! ---------------------------------------------------
+         ! Other sesquiterpenes
+         Arr2D => FLUXOSQT
+         DiagnName =  'BIOGENIC_OSQT'
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D,
+     &                      RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+         Arr2D => NULL()
 
       ENDIF
 
@@ -1789,6 +1787,9 @@
       ! Other MEGAN biogenics
       ! Calls included here for future incorporation or
       ! specialized simulations. (dbm, 12/2012)
+      ! These diagnostics will be zero because FLUXMOHX,
+      !  FLUXETOH, FLUXFAXX, and FLUXAAXX are commented out
+      !  above (mps, 2/19/15)
       ! ---------------------------------------------------
       ! Methanol
       Arr2D => FLUXMOHX
@@ -3971,18 +3972,6 @@
             AEF_OMON(:,:) = AEF_OMON(:,:) + 
      &           ARRAY_16(:,:,ARR_IND) * PFT_EF_OMON(P)
 
-         ENDIF
-
-         ! Methanol: 100% of category
-         AEF_MOHX(:,:) = AEF_MOHX(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_MOHX(P)
-
-         ! Acetone: 100% of category
-         AEF_ACET(:,:) = AEF_ACET(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_ACET(P)
-
-         IF ( ExtNrSoa > 0 ) THEN
-
             ! a-Farnesene: 100% of category
             AEF_FARN(:,:) = AEF_FARN(:,:) + 
      &           ARRAY_16(:,:,ARR_IND) * PFT_EF_FARN(P)
@@ -3996,6 +3985,14 @@
      &           ARRAY_16(:,:,ARR_IND) * PFT_EF_OSQT(P)
 
          ENDIF
+
+         ! Methanol: 100% of category
+         AEF_MOHX(:,:) = AEF_MOHX(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_MOHX(P)
+
+         ! Acetone: 100% of category
+         AEF_ACET(:,:) = AEF_ACET(:,:) + 
+     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_ACET(P)
 
          ! Ethanol: variable fraction of category
          AEF_ETOH(:,:) = AEF_ETOH(:,:) + 
@@ -4747,6 +4744,27 @@
          ENDIF
          AEF_OMON = 0.0_hp
 
+         ALLOCATE( AEF_FARN( NX, NY ), STAT=AS )
+         IF ( AS /= 0 ) THEN 
+            CALL HCO_ERROR( 'AEF_FARN', RC )
+            RETURN
+         ENDIF
+         AEF_FARN = 0.0_hp
+
+         ALLOCATE( AEF_BCAR( NX, NY ), STAT=AS )
+         IF ( AS /= 0 ) THEN 
+            CALL HCO_ERROR( 'AEF_BCAR', RC )
+            RETURN
+         ENDIF
+         AEF_BCAR = 0.0_hp
+
+         ALLOCATE( AEF_OSQT( NX, NY ), STAT=AS )
+         IF ( AS /= 0 ) THEN 
+            CALL HCO_ERROR( 'AEF_OSQT', RC )
+            RETURN
+         ENDIF
+         AEF_OSQT = 0.0_hp
+
       ENDIF
 
       ALLOCATE( AEF_MOHX( NX, NY ), STAT=AS )
@@ -4825,31 +4843,6 @@
          RETURN
       ENDIF
       AEF_PRPE = 0.0_hp
-
-      IF ( ExtNrSoa > 0 ) THEN
-
-         ALLOCATE( AEF_FARN( NX, NY ), STAT=AS )
-         IF ( AS /= 0 ) THEN 
-            CALL HCO_ERROR( 'AEF_FARN', RC )
-            RETURN
-         ENDIF
-         AEF_FARN = 0.0_hp
-
-         ALLOCATE( AEF_BCAR( NX, NY ), STAT=AS )
-         IF ( AS /= 0 ) THEN 
-            CALL HCO_ERROR( 'AEF_BCAR', RC )
-            RETURN
-         ENDIF
-         AEF_BCAR = 0.0_hp
-
-         ALLOCATE( AEF_OSQT( NX, NY ), STAT=AS )
-         IF ( AS /= 0 ) THEN 
-            CALL HCO_ERROR( 'AEF_OSQT', RC )
-            RETURN
-         ENDIF
-         AEF_OSQT = 0.0_hp
-
-      ENDIF
 
       !=================================================================
       ! Initialize internal diagnostics. These are the restart variables

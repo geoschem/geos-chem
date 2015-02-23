@@ -2739,7 +2739,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL            :: YesOrNo
-    INTEGER            :: Cat, ExtNr, ExtNrSOA, HcoID, I, N
+    INTEGER            :: Cat, ExtNr, HcoID, I, N
     CHARACTER(LEN=1)   :: ISTR
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
@@ -2949,7 +2949,7 @@ CONTAINS
           !%%% used in the MEGAN extension!
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
           ! There are 5 manual diagnostics in MEGAN
-          DO I = 1,5
+          DO I = 1,4
    
              ! Define diagnostics names. These names have to match the
              ! names called in hcox_megan_mod.F90.
@@ -2958,10 +2958,8 @@ CONTAINS
              ELSEIF ( I == 2 ) THEN
                 DiagnName = 'BIOGENIC_AAXX'
              ELSEIF ( I == 3 ) THEN
-                DiagnName = 'BIOGENIC_OMON'
-             ELSEIF ( I == 4 ) THEN
                 DiagnName = 'BIOGENIC_MOHX'
-             ELSEIF ( I == 5 ) THEN
+             ELSEIF ( I == 4 ) THEN
                 DiagnName = 'BIOGENIC_ETOH'
              ENDIF
       
@@ -2980,7 +2978,7 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 OutOper   = 'Mean',            &
                                 WriteFreq = 'Manual',          &
-                                AutoFill  = 0,                 &
+                                AutoFill  = 1,                 &
                                 cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -3108,28 +3106,37 @@ CONTAINS
           !%%% used in the MEGAN extension!
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
           ! There are 9 manual monoterpene diagnostics in MEGAN
-          DO I = 1,9
+          DO I = 1,12
    
              ! Define diagnostics names. These names have to match the
              ! names called in hcox_megan_mod.F90.
              IF ( I == 1 ) THEN
                 DiagnName = 'BIOGENIC_MBOX'
-             ELSEIF ( I == 2 ) THEN
+             ELSEIF ( I ==  2 ) THEN
                 DiagnName = 'BIOGENIC_APIN'
-             ELSEIF ( I == 3 ) THEN
+             ELSEIF ( I ==  3 ) THEN
                 DiagnName = 'BIOGENIC_BPIN'
-             ELSEIF ( I == 4 ) THEN
+             ELSEIF ( I ==  4 ) THEN
                 DiagnName = 'BIOGENIC_LIMO'
-             ELSEIF ( I == 5 ) THEN
+             ELSEIF ( I ==  5 ) THEN
                 DiagnName = 'BIOGENIC_SABI'
-             ELSEIF ( I == 6 ) THEN
+             ELSEIF ( I ==  6 ) THEN
                 DiagnName = 'BIOGENIC_MYRC'
-             ELSEIF ( I == 7 ) THEN
+             ELSEIF ( I ==  7 ) THEN
                 DiagnName = 'BIOGENIC_CARE'
-             ELSEIF ( I == 8 ) THEN
+             ELSEIF ( I ==  8 ) THEN
                 DiagnName = 'BIOGENIC_OCIM'
-             ELSEIF ( I == 9 ) THEN
+             ELSEIF ( I ==  9 ) THEN
                 DiagnName = 'BIOGENIC_OMON'
+             ! Make diagnostic containers for SOA species to avoid errors
+             ! in diag3.F. These diagnostics will be zero if MEGAN_SOA is
+             ! turned off. (mps, 2/23/15)
+             ELSEIF ( I == 10 ) THEN
+                DiagnName = 'BIOGENIC_FARN'
+             ELSEIF ( I == 11 ) THEN
+                DiagnName = 'BIOGENIC_BCAR'
+             ELSEIF ( I == 12 ) THEN
+                DiagnName = 'BIOGENIC_OSQT'
              ENDIF
 
              ! Create diagnostics. Don't use AutoFill here since the 
@@ -3139,7 +3146,7 @@ CONTAINS
                                 HcoState,                      &
                                 cName     = TRIM( DiagnName ), &
                                 ExtNr     = ExtNr,             &
-                                Cat       = -1,                &
+                                Cat       = Cat,               &
                                 Hier      = -1,                &
                                 HcoID     = -1,                &
                                 SpaceDim  = 2,                 &
@@ -3147,59 +3154,11 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 OutOper   = 'Mean',            &
                                 WriteFreq = 'Manual',          &
-                                AutoFill  = 0,                 &
+                                AutoFill  = 1,                 &
                                 cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN 
           ENDDO
-
-          !----------------------------------------
-          ! %%%%% Biogenic SOA species %%%%%
-          !----------------------------------------
-
-          ! Extension # of MEGAN SOA option
-          ExtNrSOA = GetExtNr('MEGAN_SOA')
-          IF ( ExtNrSOA > 0 ) THEN
-
-             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-             !%%% These diagnostics are explicitly filled in hcox_megan_mod.F 
-             !%%% The diagnostics  name defined below must match the names 
-             !%%% used in the MEGAN extension!
-             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-             ! There are 3 manual monoterpene diagnostics in MEGAN
-             DO I = 1,3
-   
-                ! Define diagnostics names. These names have to match the
-                ! names called in hcox_megan_mod.F90.
-                IF ( I == 1 ) THEN
-                   DiagnName = 'BIOGENIC_FARN'
-                ELSEIF ( I == 2 ) THEN
-                   DiagnName = 'BIOGENIC_BCAR'
-                ELSEIF ( I == 3 ) THEN
-                   DiagnName = 'BIOGENIC_OSQT'
-                ENDIF
-
-                ! Create diagnostics. Don't use AutoFill here since the 
-                ! diagnostics update calls are explicitly called in 
-                ! hcox_megan_mod.F90.
-                CALL Diagn_Create( am_I_Root,                     & 
-                                   HcoState,                      &
-                                   cName     = TRIM( DiagnName ), &
-                                   ExtNr     = ExtNr,             &
-                                   Cat       = -1,                &
-                                   Hier      = -1,                &
-                                   HcoID     = -1,                &
-                                   SpaceDim  = 2,                 &
-                                   LevIDx    = -1,                &
-                                   OutUnit   = 'kg/m2/s',         &
-                                   OutOper   = 'Mean',            &
-                                   WriteFreq = 'Manual',          &
-                                   AutoFill  = 0,                 &
-                                   cID       = N,                 & 
-                                   RC        = RC                  ) 
-                IF ( RC /= HCO_SUCCESS ) RETURN 
-             ENDDO
-          ENDIF
 
        ENDIF
 
