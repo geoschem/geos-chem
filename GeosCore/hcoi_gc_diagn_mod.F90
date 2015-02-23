@@ -200,7 +200,7 @@ CONTAINS
     CALL Diagn_Biomass ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_NOSrc   ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+    CALL Diagn_NOsrc   ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL Diagn_Biofuel ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
@@ -233,7 +233,7 @@ CONTAINS
 
     ! This is for testing only. Only activate if needed.
     !IF ( .TRUE. ) THEN     ! Activated
-    IF ( .FALSE. ) THEN     ! Deactivated
+    IF ( .TRUE. ) THEN     ! Deactivated
 
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 
@@ -3299,6 +3299,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use lightning
+!  19 Feb 2015 - C. Keller   - Added entry for MTYPE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3310,7 +3311,8 @@ CONTAINS
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGN_LFLASH (hcoi_gc_diagn_mod.F90)'
+    CHARACTER(LEN=31)  :: WriteFreq = 'Manual'
+    CHARACTER(LEN=255) :: LOC       = 'DIAGN_LFLASH (hcoi_gc_diagn_mod.F90)'
 
     !=======================================================================
     ! DIAGN_LFLASH begins here!
@@ -3364,12 +3366,31 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'flashes/min/km2', &
                              OutOper   = 'Mean',            &
-                             WriteFreq = 'Manual',          &
+                             WriteFreq = TRIM(WriteFreq),   &
                              AutoFill  = 0,                 &
                              cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDDO
+
+       ! Diagnose most recent mtype
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = 'LIGHTNING_MTYPE', & 
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = '1',               &
+                          OutOper   = 'Instantaneous',   &
+                          WriteFreq = TRIM(WriteFreq),   &
+                          AutoFill  = 0,                 &
+                          cID       = N,                 & 
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
     ENDIF 
 
   END SUBROUTINE Diagn_LFlash

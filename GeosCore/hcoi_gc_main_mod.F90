@@ -685,9 +685,9 @@ CONTAINS
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL A', LOC )
  
     ! Also write all other diagnostics into restart file. Use current time.
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState,    &
-                                WriteAll=.TRUE., RC=HMRC, &
-                                UsePrevTime=.FALSE., PREFIX=RST )
+    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, WriteAll=.TRUE., &
+                                RC=HMRC, UsePrevTime=.FALSE., &
+                                OnlyIfFirst=.TRUE., PREFIX=RST )
     IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL B', LOC )
 
     ! Cleanup HCO core. this will also clean up the HEMCO emissions 

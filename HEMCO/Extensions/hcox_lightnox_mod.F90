@@ -336,7 +336,7 @@ CONTAINS
 !
     INTEGER           :: I,         J,           L,        LCHARGE
     INTEGER           :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
-    INTEGER           :: cMt 
+    INTEGER           :: cMt,       MTYPE 
     REAL*8            :: A_KM2,     A_M2,        CC,       DLNP     
     REAL*8            :: DZ,        FLASHRATE,   H0,       HBOTTOM
     REAL*8            :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
@@ -349,7 +349,7 @@ CONTAINS
     INTEGER           :: LNDTYPE, SFCTYPE
     LOGICAL, SAVE     :: FIRST   = .TRUE.
     LOGICAL, SAVE     :: DoDiagn = .FALSE.
-    REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,3)
+    REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,4)
     REAL(hp), POINTER :: Arr2D(:,:) => NULL() 
     CHARACTER(LEN=31) :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
@@ -382,6 +382,11 @@ CONTAINS
        ENDIF
        IF ( .NOT. DoDiagn ) THEN
           DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
+          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+          TmpCnt => NULL()
+       ENDIF
+       IF ( .NOT. DoDiagn ) THEN
+          DiagnName = 'LIGHTNING_MTYPE'
           CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
           TmpCnt => NULL()
        ENDIF
@@ -450,6 +455,7 @@ CONTAINS
 !$OMP PRIVATE( IC_CG_RATIO, L_MFLUX,  MFLUX,    RAIN,   RATE      ) &
 !$OMP PRIVATE( X,           TOTAL_IC, TOTAL_CG, TOTAL,  REDIST    ) &
 !$OMP PRIVATE( RATE_SAVE,   VERTPROF, SFCTYPE,  LNDTYPE, TROPP    ) &
+!$OMP PRIVATE( MTYPE                                              ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes
@@ -971,7 +977,11 @@ CONTAINS
           ! Partition the column total NOx [molec/6h] from lightnox 
           ! into the vertical using Pickering PDF functions
           CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF, &
-                          ExtState, HcoState, SFCTYPE, cMt )
+                          ExtState, HcoState, SFCTYPE, cMt, MTYPE )
+
+          IF ( DoDiagn ) THEN
+             DIAGN(I,J,4) = MTYPE
+          ENDIF
 
           ! Add vertically partitioned NOx into SLBASE array
           DO L = 1, HcoState%NZ
@@ -1000,24 +1010,29 @@ CONTAINS
 
     ! Eventually add individual diagnostics. These go by names!
     IF ( DoDiagn ) THEN
-       DiagnName =  'LIGHTNING_TOTAL_FLASHRATE'
+       DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
        Arr2D     => DIAGN(:,:,1)
        CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
-       ! Eventually add individual diagnostics. These go by names!
-       DiagnName =  'LIGHTNING_INTRACLOUD_FLASHRATE'
+       DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
        Arr2D     => DIAGN(:,:,2)
        CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
-       ! Eventually add individual diagnostics. These go by names!
-       DiagnName =  'LIGHTNING_CLOUDGROUND_FLASHRATE'
+       DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
        Arr2D     => DIAGN(:,:,3)
+       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+
+       DiagnName = 'LIGHTNING_MTYPE'
+       Arr2D     => DIAGN(:,:,4)
        CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1043,7 +1058,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE LightDist( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF, &
-                        ExtState, HcoState, SFCTYPE, cMt )
+                        ExtState, HcoState, SFCTYPE, cMt, MTYPE )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1061,7 +1076,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     REAL*8,          INTENT(OUT) :: VERTPROF(HcoState%NZ) ! Vertical profile 
-!                                                         !  of lightning NOx
+    INTEGER,         INTENT(OUT) :: MTYPE                 ! lightning type 
 !
 ! !REMARKS:
 !  References:
@@ -1108,7 +1123,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: MONTH, MTYPE, L
+    INTEGER :: L
     REAL*8  :: ZHEIGHT, YMID
     REAL*8  :: FRAC(HcoState%NZ)
 
@@ -1142,9 +1157,9 @@ CONTAINS
 
     ! Assign profile kind to grid box, following Allen et al. 
     ! [JGR, 2010] (ltm, 1/25,11)
-    MONTH = cMt
+!    MONTH = cMt
 
-    SELECT CASE (MONTH)
+    SELECT CASE (cMt)
 
        ! Southern Hemisphere Summer
        CASE ( 1,2,3,12 )

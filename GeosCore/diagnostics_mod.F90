@@ -238,7 +238,8 @@ CONTAINS
                                   WriteAll    = .TRUE.,                     &
                                   UsePrevTime = .FALSE.,                    & 
                                   PREFIX      = RST,                        &
-                                  COL         = Input_Opt%DIAG_COLLECTION,  & 
+                                  COL         = Input_Opt%DIAG_COLLECTION,  &
+                                  OnlyIfFirst = .TRUE.,                     &
                                   RC          = RC                         )
    
        IF ( RC /= HCO_SUCCESS ) THEN

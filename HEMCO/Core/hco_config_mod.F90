@@ -219,12 +219,11 @@ CONTAINS
        ! Replace tab characters in LINE (if any) w/ spaces
        CALL STRREPL( LINE, HCO_TAB(), HCO_SPC() )
 
-       ! Read extension switches. This registers all enabled extensions.
-       ! This must include the core extension. 
-       IF ( INDEX ( LINE, 'BEGIN SECTION EXTENSION SWITCHES' ) > 0 ) THEN 
+       ! Read settings if this is beginning of settings section 
+       IF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
 
           IF ( PHASE < 2 ) THEN
-             CALL ExtSwitch2Buffer( AIR, IU_HCO, EOF, RC )
+             CALL ReadSettings( AIR, IU_HCO, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -235,11 +234,12 @@ CONTAINS
              IF ( PHASE == 1 .AND. NN == 2 ) EXIT
           ENDIF
 
-       ! Read settings if this is beginning of settings section 
-       ELSEIF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
+       ! Read extension switches. This registers all enabled extensions.
+       ! This must include the core extension. 
+       ELSEIF ( INDEX ( LINE, 'BEGIN SECTION EXTENSION SWITCHES' ) > 0 ) THEN 
 
           IF ( PHASE < 2 ) THEN
-             CALL ReadSettings( AIR, IU_HCO, EOF, RC )
+             CALL ExtSwitch2Buffer( AIR, IU_HCO, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
