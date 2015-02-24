@@ -3069,32 +3069,35 @@ CONTAINS
        !%%% For ND46 diagnostic %%%
        IF ( ND46 > 0 ) THEN
 
-          !----------------------------------------
-          ! %%%%% Biogenic MONX %%%%%
-          !----------------------------------------
-
-          ! HEMCO species ID
-          HcoID = HCO_GetHcoID( 'MONX', HcoState )
-
-          ! Create diagnostic container (if MONX is defined)
-          IF ( HcoID > 0 ) THEN
-             DiagnName = 'BIOGENIC_MONX'
-             CALL Diagn_Create( am_I_Root,                     & 
-                                HcoState,                      &
-                                cName     = TRIM( DiagnName ), &
-                                ExtNr     = ExtNr,             &
-                                Cat       = Cat,               &
-                                Hier      = -1,                &
-                                HcoID     = HcoID,             &
-                                SpaceDim  = 2,                 &
-                                LevIDx    = -1,                &
-                                OutUnit   = 'kg/m2/s',         &
-                                WriteFreq = 'Manual',          &
-                                AutoFill  = 1,                 &
-                                cID       = N,                 & 
-                                RC        = RC                  ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN 
-          ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 2/23/15:
+!          !----------------------------------------
+!          ! %%%%% Biogenic MONX %%%%%
+!          !----------------------------------------
+!
+!          ! HEMCO species ID
+!          HcoID = HCO_GetHcoID( 'MONX', HcoState )
+!
+!          ! Create diagnostic container (if MONX is defined)
+!          IF ( HcoID > 0 ) THEN
+!             DiagnName = 'BIOGENIC_MONX'
+!             CALL Diagn_Create( am_I_Root,                     & 
+!                                HcoState,                      &
+!                                cName     = TRIM( DiagnName ), &
+!                                ExtNr     = ExtNr,             &
+!                                Cat       = Cat,               &
+!                                Hier      = -1,                &
+!                                HcoID     = HcoID,             &
+!                                SpaceDim  = 2,                 &
+!                                LevIDx    = -1,                &
+!                                OutUnit   = 'kg/m2/s',         &
+!                                WriteFreq = 'Manual',          &
+!                                AutoFill  = 1,                 &
+!                                cID       = N,                 & 
+!                                RC        = RC                  ) 
+!             IF ( RC /= HCO_SUCCESS ) RETURN 
+!          ENDIF
+!-----------------------------------------------------------------------------
 
           !----------------------------------------
           ! %%%%% Biogenic monoterpene species %%%%%
@@ -3128,6 +3131,10 @@ CONTAINS
                 DiagnName = 'BIOGENIC_OCIM'
              ELSEIF ( I ==  9 ) THEN
                 DiagnName = 'BIOGENIC_OMON'
+             ! Now include diagnostic for total monoterpenes (MONX)
+             ! even if tracer is not defined (mps, 2/23/15)
+             ELSEIF ( I == 10 ) THEN
+                DiagnName = 'BIOGENIC_MONX'
              ! Make diagnostic containers for SOA species to avoid errors
              ! in diag3.F. These diagnostics will be zero if MEGAN_SOA is
              ! turned off. (mps, 2/23/15)

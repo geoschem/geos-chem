@@ -851,9 +851,7 @@
      &                  EMIS_MYRC + EMIS_CARE + EMIS_OCIM + EMIS_OMON
 
             ! Add to tracer tendency array [kg C/m2/s]
-            IF ( IDTMONX > 0 ) THEN
-               FLUXMONO(I,J) = EMIS_MONO
-            ENDIF
+            FLUXMONO(I,J) = EMIS_MONO
 
          ELSE
             EMIS_MONO = 0.0_hp
@@ -1382,24 +1380,25 @@
 
       ! ----------------------------------------------------------------
       ! MONOTERPENES 
-      IF ( (ExtNrMono > 0 ) .AND. (IDTMONX > 0) ) THEN
+      IF ( ExtNrMono > 0 ) THEN
 
-         ! Add flux to emission array
-         CALL HCO_EmisAdd( HcoState, FLUXMONO, IDTMONX, RC)
-         IF ( RC /= HCO_SUCCESS ) THEN
-            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMONO', RC )
-            RETURN 
+         IF ( IDTMONX > 0 ) THEN
+            ! Add flux to emission array
+            CALL HCO_EmisAdd( HcoState, FLUXMONO, IDTMONX, RC)
+            IF ( RC /= HCO_SUCCESS ) THEN
+               CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXMONO', RC )
+               RETURN 
+            ENDIF
          ENDIF
 
-         ! Eventually update diagnostics
-         IF ( Diagn_AutoFillLevelDefined(2) ) THEN
-            Arr2D => FLUXMONO
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono,
-     &                         Cat=-1, Hier=-1, HcoID=IDTMONX,
-     &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
-            IF ( RC /= HCO_SUCCESS ) RETURN 
-            Arr2D => NULL() 
-         ENDIF
+         ! Update diagnostic even if MONX is not a tracer (mps, 2/23/15)
+         Arr2D => FLUXMONO
+         DiagnName =  'BIOGENIC_MONX'
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+     &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN 
+         Arr2D => NULL() 
+
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -1674,7 +1673,7 @@
          ! Methyl butenol
          Arr2D => FLUXMBOX
          DiagnName =  'BIOGENIC_MBOX'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1683,7 +1682,7 @@
          ! Alpha Pinene
          Arr2D => FLUXAPIN
          DiagnName =  'BIOGENIC_APIN'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1692,7 +1691,7 @@
          ! Beta Pinene
          Arr2D => FLUXBPIN
          DiagnName =  'BIOGENIC_BPIN'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1701,7 +1700,7 @@
          ! Limonene
          Arr2D => FLUXLIMO
          DiagnName =  'BIOGENIC_LIMO'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1710,7 +1709,7 @@
          ! Sabinene
          Arr2D => FLUXSABI
          DiagnName =  'BIOGENIC_SABI'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1719,7 +1718,7 @@
          ! Mycrene
          Arr2D => FLUXMYRC
          DiagnName =  'BIOGENIC_MYRC'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1728,7 +1727,7 @@
          ! 3-Carene
          Arr2D => FLUXCARE
          DiagnName =  'BIOGENIC_CARE'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1737,7 +1736,7 @@
          ! Ocimene
          Arr2D => FLUXOCIM
          DiagnName =  'BIOGENIC_OCIM'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1746,7 +1745,7 @@
          ! Other monoterpenes
          Arr2D => FLUXOMON
          DiagnName =  'BIOGENIC_OMON'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1755,7 +1754,7 @@
          ! a-Farnesene
          Arr2D => FLUXFARN
          DiagnName =  'BIOGENIC_FARN'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D,
      &                      RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1765,7 +1764,7 @@
          ! b_Caryophyllene
          Arr2D => FLUXBCAR
          DiagnName =  'BIOGENIC_BCAR'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D,
      &                      RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1775,7 +1774,7 @@
          ! Other sesquiterpenes
          Arr2D => FLUXOSQT
          DiagnName =  'BIOGENIC_OSQT'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D,
      &                      RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 

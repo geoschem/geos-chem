@@ -6203,7 +6203,7 @@
       !-------------------------------------      
       IF ( ND46 > 0 .or. DO_TIMESERIES ) THEN 
 
-         NTRAC(46) = 27
+         NTRAC(46) = 26
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)

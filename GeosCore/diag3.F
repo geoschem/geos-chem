@@ -3706,16 +3706,14 @@
 
          !%%%%% TOTAL MONOTERPENES %%%%%
          ! APIN + BPIN + LIMO + SABI + MYRC + CARE + OCIM + OMON
-         IF ( IDTMONX > 0 ) THEN
-            DiagnName = 'BIOGENIC_MONX'
-            N         = 4
-            ! Conversion factor from kgC/m2/s to atoms C/cm2/s
-            FACTOR    = Input_Opt%XNUMOL(IDTMONX) / CM2PERM2
-            FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(IDTMONX,1)
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
+         DiagnName = 'BIOGENIC_MONX'
+         N         = 4
+         ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+         FACTOR    = 10e+0_hp * GPERKG / MWC * HcoState%Phys%Avgdr / 
+     &               CM2PERM2
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !%%%%% METHYL BUTENOL %%%%%
          DiagnName = 'BIOGENIC_MBOX'
