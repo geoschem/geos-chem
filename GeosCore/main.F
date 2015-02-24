@@ -1336,7 +1336,7 @@
             !===========================================================
             !             ***** E M I S S I O N S *****
             !===========================================================
-            IF ( LEMIS ) THEN
+!            IF ( LEMIS ) THEN
                
                ! Call the HEMCO emissions modules
                ! Always call HEMCO, even if LEMIS is set to FALSE. 
@@ -1355,7 +1355,7 @@
                IF ( prtDebug ) THEN 
                   CALL DEBUG_MSG( '### MAIN: a DO_EMISSIONS' )
                ENDIF
-            ENDIF
+!            ENDIF
 
             IF ( ITS_A_FULLCHEM_SIM ) THEN
                !========================================================
