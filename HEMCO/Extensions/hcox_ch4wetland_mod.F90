@@ -72,13 +72,13 @@ MODULE HCOX_CH4WETLAND_Mod
   LOGICAL                     :: DoRice
 
   ! Pointers to data read through configuration file
-  REAL(hp), POINTER           :: RICE        (:,:) => NULL()
-  REAL(hp), POINTER           :: GWET_ANNUAL (:,:) => NULL()
-  REAL(hp), POINTER           :: GWET_MONTHLY(:,:) => NULL()
-  REAL(hp), POINTER           :: WETFRAC     (:,:) => NULL()
-  REAL(hp), POINTER           :: LITTER_C    (:,:) => NULL()
-  REAL(hp), POINTER           :: SOIL_C      (:,:) => NULL()
-  REAL(hp), POINTER           :: MEAN_T      (:,:) => NULL()
+  REAL(sp), POINTER           :: RICE        (:,:) => NULL()
+  REAL(sp), POINTER           :: GWET_ANNUAL (:,:) => NULL()
+  REAL(sp), POINTER           :: GWET_MONTHLY(:,:) => NULL()
+  REAL(sp), POINTER           :: WETFRAC     (:,:) => NULL()
+  REAL(sp), POINTER           :: LITTER_C    (:,:) => NULL()
+  REAL(sp), POINTER           :: SOIL_C      (:,:) => NULL()
+  REAL(sp), POINTER           :: MEAN_T      (:,:) => NULL()
 
 CONTAINS
 !EOC
@@ -213,14 +213,14 @@ CONTAINS
     IF ( DoDiagn ) THEN
        IF ( DoWetland ) THEN
           Arr2D => CH4wtl
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              cName=TRIM(DiagnWtl), Array2D=Arr2D, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Arr2D => NULL()
        ENDIF
        IF ( DoRice ) THEN
           Arr2D => CH4rce
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              cName=TRIM(DiagnRce), Array2D=Arr2D, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Arr2D => NULL()
@@ -240,7 +240,7 @@ CONTAINS
     ! Eventually update diagnostics
     IF ( Diagn_AutoFillLevelDefined(2) ) THEN
        Arr2D => CH4wtl
-       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                           Cat=-1, Hier=-1, HcoID=IDTtot,     &
                           AutoFill=1, Array2D=Arr2D, RC=RC   )
        IF ( RC /= HCO_SUCCESS ) RETURN 

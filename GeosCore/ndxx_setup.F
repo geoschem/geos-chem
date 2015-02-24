@@ -829,6 +829,7 @@
 
       ENDIF
 
+#if !defined( NO_BPCH )
       !=================================================================
       ! ND44: Drydep fluxes [s-1] and drydep velocities [cm/s]
       !       --> uses AD44 arrays (allocatable)
@@ -863,11 +864,13 @@
          ALLOCATE( AD44( IIPAR, JJPAR, NMAX, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
       ENDIF
+#endif
       
       !=================================================================
       ! ND45: Tracer concentrations [v/v] between HR1_OTH and HR2_OTH
       !       --> uses AD45 array (allocatable)
       !=================================================================
+#if !defined(NO_BPCH)
       IF ( ND45 > 0 ) THEN
          LD45 = MIN( ND45,        LLPAR   )
          NMAX = MIN( N_TRC_TOT+1, NNPAR+1 )
@@ -886,6 +889,7 @@
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
 
       ENDIF
+#endif
 
       !=================================================================
       ! ND47: 24-h averaged tracer concentration [v/v]

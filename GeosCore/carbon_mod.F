@@ -333,9 +333,9 @@
      &                                        31, 31, 30, 31, 30, 31 /)
 
       ! HEMCO pointers
-      REAL(hp), POINTER     :: O3(:,:,:)  => NULL()
-      REAL(hp), POINTER     :: OH(:,:,:)  => NULL()
-      REAL(hp), POINTER     :: NO3(:,:,:) => NULL()
+      REAL(sp), POINTER     :: O3(:,:,:)  => NULL()
+      REAL(sp), POINTER     :: OH(:,:,:)  => NULL()
+      REAL(sp), POINTER     :: NO3(:,:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -757,7 +757,10 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD44, AD07_BC 
+      USE DIAG_MOD,           ONLY : AD07_BC 
+#if !defined( NO_BPCH )
+      USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE GIGC_ErrCode_Mod
@@ -919,6 +922,7 @@
       ENDDO
 !$OMP END PARALLEL DO  
 
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -936,6 +940,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF      
+#endif
 
       END SUBROUTINE CHEM_BCPO
 !EOC
@@ -958,7 +963,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1110,6 +1117,7 @@
       !=================================================================
       BCCONV = 0e+0_fp
 
+#if !defined( NO_BPCH )
       !=================================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -1127,6 +1135,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF      
+#endif
 
       END SUBROUTINE CHEM_BCPI
 !EOC
@@ -1149,7 +1158,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DIAG_MOD,           ONLY : AD07_OC 
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
@@ -1311,6 +1322,7 @@
       ENDDO
 !$OMP END PARALLEL DO  
 
+#if !defined( NO_BPCH )
       !=================================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -1328,6 +1340,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF   
+#endif
 
       END SUBROUTINE CHEM_OCPO
 !EOC
@@ -1350,7 +1363,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1502,6 +1517,7 @@
       !=================================================================
       OCCONV = 0e+0_fp
 
+#if !defined( NO_BPCH )
       !=================================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -1519,6 +1535,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF    
+#endif
 
       END SUBROUTINE CHEM_OCPI
 !EOC
@@ -5125,7 +5142,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_AREA_CM2
@@ -5261,6 +5280,7 @@
       ENDDO
 !$OMP END PARALLEL DO  
 
+#if !defined( NO_BPCH )
       !=================================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -5277,7 +5297,8 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-      ENDIF    
+      ENDIF
+#endif  
 
       END SUBROUTINE SOA_DEPO
 !!EOC

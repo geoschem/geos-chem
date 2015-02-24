@@ -86,7 +86,7 @@ MODULE HCO_Calc_Mod
   ! Mask threshold. All mask values below this value will be evaluated 
   ! as zero (= outside of mask), and all values including and above this 
   ! value as inside the mask.
-  REAL(hp), PARAMETER  :: MASK_THRESHOLD = 0.5_hp
+  REAL(hp), PARAMETER  :: MASK_THRESHOLD = 0.5_sp
 !
 ! ============================================================================
 !
@@ -123,7 +123,6 @@ CONTAINS
     USE HCO_ARR_MOD,      ONLY : HCO_ArrAssert
     USE HCO_EMISLIST_MOD, ONLY : EmisList_NextCont
     USE HCO_FILEDATA_MOD, ONLY : FileData_ArrIsDefined
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -330,11 +329,25 @@ CONTAINS
           ! (only if defined in the diagnostics list).
           IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
              Diag3D => CatFlx
-             CALL Diagn_Update( am_I_Root,   HcoState, ExtNr=ExtNr,   &
+             CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
                                 Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                                AutoFill=1,  Array3D=Diag3D, RC = RC ) 
+                                AutoFill=1,  Array3D=Diag3D, RC=RC     ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
              Diag3D => NULL() 
+          ENDIF
+
+          ! verbose 
+          IF ( verb ) THEN
+             WRITE(MSG,*) 'Added category emissions to species array: '
+             CALL HCO_MSG(MSG)
+             WRITE(MSG,*) 'Species       : ', PrevSpc
+             CALL HCO_MSG(MSG)
+             WRITE(MSG,*) 'Category      : ', PrevCat
+             CALL HCO_MSG(MSG)
+             WRITE(MSG,*) 'Cat. emissions: ', SUM(CatFlx) 
+             CALL HCO_MSG(MSG)
+             WRITE(MSG,*) 'Spc. emissions: ', SUM(SpcFlx) 
+             CALL HCO_MSG(MSG)
           ENDIF
 
           ! Reset CatFlx array and the previously used hierarchy 
@@ -361,14 +374,26 @@ CONTAINS
              ! Add to OutArr
              OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
 
+             ! testing only
+             IF ( verb ) THEN
+                WRITE(MSG,*) 'Added total emissions to output array: '
+                CALL HCO_MSG(MSG)
+                WRITE(MSG,*) 'Species: ', PrevSpc
+                CALL HCO_MSG(MSG)
+                WRITE(MSG,*) 'SpcFlx : ', SUM(SpcFlx)
+                CALL HCO_MSG(MSG)
+                WRITE(MSG,*) 'OutArr : ', SUM(OutArr)
+                CALL HCO_MSG(MSG)
+             ENDIF
+
              ! Add to diagnostics at extension number level. 
              ! The same diagnostics may be updated multiple times during 
              ! the same time step, continuously adding emissions to it.
              IF ( Diagn_AutoFillLevelDefined(2) .AND. DoDiagn ) THEN 
                 Diag3D => SpcFlx
-                CALL Diagn_Update(am_I_Root, HcoState, ExtNr=ExtNr,   &
+                CALL Diagn_Update(am_I_Root, ExtNr=ExtNr,             &
                                   Cat=-1,    Hier=-1,  HcoID=PrevSpc, &
-                                  AutoFill=1,Array3D=Diag3D, RC = RC ) 
+                                  AutoFill=1,Array3D=Diag3D, RC=RC     ) 
                 IF ( RC /= HCO_SUCCESS ) RETURN
                 Diag3D => NULL()
              ENDIF
@@ -514,7 +539,7 @@ CONTAINS
        ! emissions to it. 
        IF ( Diagn_AutoFillLevelDefined(4) .AND. DoDiagn ) THEN 
           Diag3D => TmpFlx
-          CALL Diagn_Update( am_I_Root,  HcoState,       ExtNr=ExtNr,   &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=ThisCat,Hier=ThisHir,   HcoID=ThisSpc, &
                              AutoFill=1, Array3D=Diag3D, PosOnly=.TRUE.,&
                              RC=RC ) 
@@ -539,12 +564,26 @@ CONTAINS
        SpcFlx(:,:,:) = SpcFlx(:,:,:) + CatFlx(:,:,:)
        OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
 
+       ! verbose mode 
+       IF ( verb ) THEN
+          WRITE(MSG,*) 'Added category emissions to species array: '
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Species       : ', PrevSpc
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Category      : ', PrevCat
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Cat. emissions: ', SUM(CatFlx) 
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Spc. emissions: ', SUM(SpcFlx) 
+          CALL HCO_MSG(MSG)
+       ENDIF
+
        ! Diagnostics at category level
        IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
           Diag3D => CatFlx
-          CALL Diagn_Update( am_I_Root,   HcoState, ExtNr=ExtNr,   &
+          CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
                              Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                             AutoFill=1,  Array3D=Diag3D, RC = RC ) 
+                             AutoFill=1,  Array3D=Diag3D, RC = RC   ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
           Diag3D => NULL() 
        ENDIF
@@ -552,12 +591,25 @@ CONTAINS
        ! Diagnostics at extension number level
        IF ( Diagn_AutoFillLevelDefined(2) .AND. DoDiagn ) THEN 
           Diag3D => SpcFlx
-          CALL Diagn_Update( am_I_Root,  HcoState,       ExtNr=ExtNr,   &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=-1,     Hier=-1,        HcoID=PrevSpc, &
-                             AutoFill=1, Array3D=Diag3D, RC = RC         )
+                             AutoFill=1, Array3D=Diag3D, RC=RC           )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Diag3D => NULL()
        ENDIF
+
+       ! testing only
+       IF ( verb ) THEN
+          WRITE(MSG,*) 'Added total emissions to output array: '
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'Species: ', PrevSpc
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'SpcFlx : ', SUM(SpcFlx)
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) 'OutArr : ', SUM(OutArr)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
     ENDIF ! nnSpec > 0
 
     ! Make sure internal pointers are nullified 
@@ -719,7 +771,7 @@ CONTAINS
        tIDx = tIDx_GetIndx( HcoState, BaseDct%Dta, I, J )
        IF ( tIDx < 1 ) THEN
           WRITE(MSG,*) 'Cannot get time slice index at location ',I,J,&
-                       ': ', TRIM(BaseDct%cName)
+                       ': ', TRIM(BaseDct%cName), tIDx
           ERROR = 1
           EXIT
        ENDIF
@@ -784,8 +836,11 @@ CONTAINS
        ! if scale factors are only defined for a given time range and
        ! the simulation datetime is outside of this range.
        IF ( .NOT. FileData_ArrIsDefined(ScalDct%Dta) ) THEN
-          MSG = 'Scale factor not defined: ' // TRIM(ScalDct%cName)
-          CALL HCO_WARNING( MSG, RC )
+          IF ( verb ) THEN
+             MSG = 'Skip scale factor '//TRIM(ScalDct%cName)// &
+                   ' because it is not defined for this datetime.'
+             CALL HCO_MSG( MSG )
+          ENDIF
           CYCLE
        ENDIF
 
@@ -833,7 +888,9 @@ CONTAINS
           ! Get current time index for this container and at this location
           tIDx = tIDx_GetIndx( HcoState, ScalDct%Dta, I, J )
           IF ( tIDx < 1 ) THEN
-             ERROR = 1
+             WRITE(*,*) 'Cannot get time slice index at location ',I,J,&
+                          ': ', TRIM(ScalDct%cName), tIDx
+             ERROR = 3 
              EXIT
           ENDIF
 
@@ -917,6 +974,8 @@ CONTAINS
 
                 ! Return w/ error otherwise
                 ELSE
+                   WRITE(*,*) 'Negative scale factor at ',I,J,TmpLL,tidx,&
+                              ': ', TRIM(ScalDct%cName), TMPVAL
                    ERROR = 1 ! Will cause error
                    EXIT
                 ENDIF
@@ -943,6 +1002,7 @@ CONTAINS
 
              ! Return w/ error otherwise (Oper 3 is only allowed for masks!)
              ELSE
+                WRITE(*,*) 'Illegal operator for ', TRIM(ScalDct%cName), ScalDct%Oper
                 ERROR = 2 ! Will cause error
                 EXIT
              ENDIF
@@ -973,6 +1033,8 @@ CONTAINS
              MSG = 'Negative scale factor found (aborted): ' // TRIM(ScalDct%cName)
           ELSEIF ( ERROR == 2 ) THEN
              MSG = 'Illegal mathematical operator for scale factor: ' // TRIM(ScalDct%cName)
+          ELSEIF ( ERROR == 3 ) THEN
+             MSG = 'Encountered negative time index for scale factor: ' // TRIM(ScalDct%cName)
           ELSE
              MSG = 'Error when applying scale factor: ' // TRIM(ScalDct%cName)
           ENDIF

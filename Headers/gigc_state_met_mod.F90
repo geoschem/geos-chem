@@ -178,6 +178,7 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: U         (:,:,:) ! E/W component of wind [m s-1]
      REAL(fp), POINTER :: UPDE      (:,:,:) ! Updraft (entraining plume) [Pa/s]
      REAL(fp), POINTER :: UPDN      (:,:,:) ! Updraft (non-entr'n plume) [Pa/s]
+     REAL(fp), POINTER :: UPDVVEL   (:,:,:) ! Updraft vertical velocity [hPa/s]
      REAL(fp), POINTER :: V         (:,:,:) ! N/S component of wind [m s-1]
      REAL(fp), POINTER :: ZMEU      (:,:,:) ! Z/M updraft entrainment [Pa/s]
      REAL(fp), POINTER :: ZMMD      (:,:,:) ! Z/M downdraft mass flux [Pa/s]
@@ -208,6 +209,7 @@ MODULE GIGC_State_Met_Mod
 !                              is just initialized to 1.0 and not modified any
 !                              more.
 !  05 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
+!  12 Feb 2015 - C. Keller   - Added UPDVVEL (for use in wet scavenging).
 !  24 Feb 2015 - E. Lundgren - Add PEDGE_DRY, PMID_DRY, and MAIRDEN
 !EOP
 !------------------------------------------------------------------------------
@@ -733,6 +735,10 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%V        = 0.0_fp
 
+    ALLOCATE( State_Met%UPDVVEL   ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%UPDVVEL  = 0.0_fp
+
 #if defined( GCAP )
 
     !=======================================================================
@@ -1012,6 +1018,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%TAUCLI     )) DEALLOCATE( State_Met%TAUCLI     )
     IF ( ASSOCIATED( State_Met%TAUCLW     )) DEALLOCATE( State_Met%TAUCLW     ) 
     IF ( ASSOCIATED( State_Met%U          )) DEALLOCATE( State_Met%U          )
+    IF ( ASSOCIATED( State_Met%UPDVVEL    )) DEALLOCATE( State_Met%UPDVVEL    )
     IF ( ASSOCIATED( State_Met%V          )) DEALLOCATE( State_Met%V          )
 
 #if defined( GCAP )
