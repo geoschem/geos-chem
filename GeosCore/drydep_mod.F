@@ -450,7 +450,7 @@
 
 #if defined( DEVEL )
       ! Zero depositioln velocity array
-      SAVE_DEPVEL = 0.0_f8
+      SAVE_DEPVEL = 0.0_fp
 #endif
 
       ! Assume success
@@ -4152,7 +4152,6 @@
       RS   = 1.e+0_f8 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
 
       END FUNCTION DUST_SFCRSII
-
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

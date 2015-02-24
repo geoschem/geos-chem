@@ -181,15 +181,15 @@ CONTAINS
        IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V3) ) THEN
 
           ! Use pointer if types match
-          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, 0, RC )
-          CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, LL, RC )
+          CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, 0, RC )
+          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, LL, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! Pointer to data. HEMCO expects data to have surface level at
        ! index 1 ('up').
-       !Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
-       Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
+       Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
+       !Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
 
     !-----------------------------------------------------------------
     ! Read 2D data from ESMF 
@@ -215,14 +215,14 @@ CONTAINS
 
        ! Define HEMCO array pointer if not yet defined
        IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V2) ) THEN
-          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, RC )
-          CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, RC )
+          CALL FileData_ArrInit( Lct%Dct%Dta, TT, 0, 0, RC )
+          !CALL FileData_ArrInit( Lct%Dct%Dta, TT, II, JJ, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! Pointer to data
-       !Lct%Dct%Dta%V2(1)%Val => Ptr2D
-       Lct%Dct%Dta%V2(1)%Val = Ptr2D
+       Lct%Dct%Dta%V2(1)%Val => Ptr2D
+       !Lct%Dct%Dta%V2(1)%Val = Ptr2D
 
     ENDIF
  
@@ -249,6 +249,12 @@ CONTAINS
 ! !DESCRIPTION: Reads a netCDF file and returns the regridded array in proper
 ! units. This routine uses the HEMCO generic data reading and regridding
 ! routines.
+!\\
+!\\
+! Two different regridding algorithm are used: NCREGRID for 3D data with
+! vertical regridding, and map\_a2a for all other data. map\_a2a also
+! supports index-based remapping, while this feature is currently not
+! possible in combination with NCREGRID.
 !\\
 !\\
 ! 3D data is vertically regridded onto the simulation grid on the sigma 
@@ -285,10 +291,12 @@ CONTAINS
     USE HCO_Unit_Mod,       ONLY : HCO_IsIndexData
     USE HCO_Unit_Mod,       ONLY : HCO_UnitTolerance
     USE HCO_GeoTools_Mod,   ONLY : HCO_ValidateLon
-    USE Regrid_A2A_Mod,     ONLY : MAP_A2A
     USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
     USE HCO_FileData_Mod,   ONLY : FileData_Cleanup
     USE HCOIO_MESSY_MOD,    ONLY : HCO_MESSY_REGRID
+    USE HCO_INTERP_MOD,     ONLY : REGRID_MAPA2A 
+
+    USE Regrid_A2A_Mod,     ONLY : MAP_A2A
     USE HCO_INTERP_MOD,     ONLY : ModelLev_Interpolate 
 !
 ! !INPUT PARAMETERS:
@@ -310,6 +318,9 @@ CONTAINS
 !                              on GEOS-Chem levels. 
 !  31 Dec 2014 - C. Keller   - Now call ModelLev_Interpolate for model remapping
 !                              of model levels.
+!  15 Jan 2015 - C. Keller   - Now allow model level interpolation in combination
+!                              with MESSy (horizontal) regridding.
+!  03 Feb 2015 - C. Keller   - Moved map_a2a regridding to hco_interp_mod.F90.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -319,7 +330,6 @@ CONTAINS
     CHARACTER(LEN=255)            :: thisUnit, LevUnit, LevName
     CHARACTER(LEN=255)            :: MSG 
     CHARACTER(LEN=1023)           :: srcFile
-    INTEGER                       :: L, T
     INTEGER                       :: NX, NY
     INTEGER                       :: NCRC, Flag, AS
     INTEGER                       :: ncLun
@@ -329,8 +339,6 @@ CONTAINS
     INTEGER                       :: HcoID
     INTEGER                       :: nlatEdge, nlonEdge
     REAL(sp), POINTER             :: ncArr(:,:,:,:)   => NULL()
-    REAL(sp), POINTER             :: ORIG_2D(:,:)     => NULL()
-    REAL(hp), POINTER             :: REGR_2D(:,:)     => NULL()
     REAL(hp), POINTER             :: SigEdge(:,:,:)   => NULL()
     REAL(hp), POINTER             :: SigLev (:,:,:)   => NULL()
     REAL(hp), POINTER             :: LonMid   (:)     => NULL()
@@ -338,22 +346,11 @@ CONTAINS
     REAL(hp), POINTER             :: LevMid   (:)     => NULL()
     REAL(hp), POINTER             :: LonEdge  (:)     => NULL()
     REAL(hp), POINTER             :: LatEdge  (:)     => NULL()
-    REAL(sp), ALLOCATABLE         :: LonEdgeI(:)
-    REAL(sp), ALLOCATABLE         :: LatEdgeI(:)
-    REAL(sp)                      :: LonEdgeO(HcoState%NX+1) 
-    REAL(sp)                      :: LatEdgeO(HcoState%NY+1)
     LOGICAL                       :: verb
     LOGICAL                       :: IsModelLevel
-    REAL(dp)                      :: PI_180
     REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
     INTEGER                       :: UnitTolerance
     INTEGER                       :: AreaFlag, TimeFlag 
-
-    ! For vertical interpolation between native and reduced GEOS-5 levels
-    ! (47 vs. 72 levels)
-    INTEGER                       :: outlev
-    LOGICAL                       :: Inflate, Collapse
-    REAL(hp), POINTER             :: REGR_4D(:,:,:,:) => NULL()
 
     ! Use MESSy regridding routines?
     LOGICAL                       :: UseMESSy
@@ -367,9 +364,6 @@ CONTAINS
     CALL HCO_ENTER ('HCOIO_DATAREAD (hcoio_dataread_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     
-    ! To convert from deg to rad  
-    PI_180 = HcoState%Phys%PI / 180.0_dp
-
     ! Check for verbose mode
     verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
 
@@ -404,9 +398,11 @@ CONTAINS
     ! This determines the lower and upper time slice index (tidx1 
     ! and tidx2) to be read based upon the time slice information 
     ! extracted from the file and the time stamp settings set in the
-    ! HEMCO configuration file.
+    ! HEMCO configuration file. Multiple time slices are only selected
+    ! for weekdaily data or for 'autodetected' hourly data (using the
+    ! wildcard character in the configuration file time attribute).
     ! ----------------------------------------------------------------
-    CALL GET_TIMEIDX ( am_I_Root, HcoState, Lct, &
+    CALL GET_TIMEIDX ( am_I_Root, HcoState, Lct,     &
                        ncLun,     tidx1,    tidx2,   &
                        ncYr,      ncMt,     RC        )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -427,14 +423,13 @@ CONTAINS
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ELSEIF ( Lct%Dct%Dta%CycleFlag == 1 ) THEN
-          MSG = 'You broke HEMCO! Invalid time index: ' // &
-               TRIM(srcFile)
+          MSG = 'Invalid time index: ' // TRIM(srcFile)
           CALL HCO_ERROR( MSG, RC )
           RETURN
        ELSEIF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN
           CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
-          MSG = 'Simulation time is outside of time range of file ' // &
-               TRIM(srcFile) // ' - ignore these data!'
+          MSG = 'Simulation time is outside of time range provided for '//&
+               TRIM(Lct%Dct%cName) // ' - data is ignored!'
           CALL HCO_WARNING ( MSG, RC )
           CALL NC_CLOSE ( ncLun ) 
           CALL HCO_LEAVE ( RC ) 
@@ -734,9 +729,8 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Determine regridding algorithm to be applied: use NCREGRID from
-    ! MESSy only for index-based values (e.g. land types) or if we need 
-    ! to regrid vertical levels. For all other fields, use the much
-    ! faster map_a2a.
+    ! MESSy only if we need to regrid vertical levels. For all other 
+    ! fields, use the much faster map_a2a.
     ! Perform no vertical regridding if the vertical levels are model
     ! levels. Model levels are assumed to start at the surface, i.e.
     ! the first input level must correspond to the surface level. The 
@@ -746,14 +740,20 @@ CONTAINS
     ! Vertical regridding based on NCREGRID will always map the input 
     ! data onto the entire simulation grid (no extrapolation beyond
     ! the vertical input coordinates).
+    ! Index-based remapping can currently not be done with the MESSy
+    ! routines, i.e. it is not possible to vertically regrid index- 
+    ! based data.
     !-----------------------------------------------------------------
 
     UseMESSy = .FALSE.
-    IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) ) THEN
-       UseMESSy = .TRUE.
-    ENDIF
     IF ( nlev > 1 .AND. .NOT. IsModelLevel ) THEN 
        UseMESSy = .TRUE.
+    ENDIF
+    IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) .AND. UseMESSy ) THEN
+       MSG = 'Cannot do MESSy regridding for index data: ' // &
+             TRIM(srcFile)
+       CALL HCO_ERROR( MSG, RC )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------
@@ -784,8 +784,11 @@ CONTAINS
        ! mid-point levels, and the interface values are calculated 
        ! by linear interpolation of the mid-point values in a second
        ! step.
+       ! For model levels, the sigma levels don't need to be known
+       ! as vertical interpolation will be done based on subroutine
+       ! ModelLev_Interpolate (within HCO_MESSY_REGRID).
        !--------------------------------------------------------------
-       IF ( nlev > 1 ) THEN
+       IF ( nlev > 1 .AND. .NOT. IsModelLevel ) THEN
 
           ! Get sigma levels
           CALL NC_Get_Sigma_Levels ( fID     = ncLun,   &
@@ -825,9 +828,9 @@ CONTAINS
        ENDIF ! nlev>1
 
        ! Now do the regridding
-       CALL HCO_MESSY_REGRID ( am_I_Root, HcoState, NcArr,   &
-                               LonEdge,   LatEdge,  SigEdge, &
-                               Lct,       RC                  )
+       CALL HCO_MESSY_REGRID ( am_I_Root, HcoState,     NcArr,   &
+                               LonEdge,   LatEdge,      SigEdge, &
+                               Lct,       IsModelLevel, RC        )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Cleanup
@@ -842,76 +845,9 @@ CONTAINS
           CALL HCO_MSG(MSG)
        ENDIF
 
-       ! Write input grid edges to shadow variables so that map_a2a accepts them
-       ! as argument.
-       ! Also, for map_a2a, latitudes have to be sines...
-       ALLOCATE(LonEdgeI(nlonEdge), LatEdgeI(nlatEdge), STAT=AS )
-       IF ( AS /= 0 ) THEN
-          CALL HCO_ERROR( 'alloc error LonEdgeI', RC )
-          RETURN
-       ENDIF
-       LonEdgeI(:) = LonEdge
-       LatEdgeI(:) = SIN( LatEdge * PI_180 )
-      
-       ! Get output grid edges from HEMCO state
-       LonEdgeO(:) = HcoState%Grid%XEDGE%Val(:,1)
-       LatEdgeO(:) = HcoState%Grid%YSIN%Val(1,:) 
-     
-       ! Reset nlev and ntime to effective array sizes
-       nlev  = size(ncArr,3)
-       ntime = size(ncArr,4)
-
-       ! Define array to put horizontally regridded data onto. If this
-       ! is 3D data, we first regrid all vertical levels horizontally
-       ! and then pass these data to the list container. In this second
-       ! step, levels may be deflated/collapsed.
-
-       ! 2D data is directly passed to the data container 
-       IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-          CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, ntime, RC ) 
-          IF ( RC /= 0 ) RETURN
-
-       ! 3D data is first written into a temporary array
-       ELSE
-          ALLOCATE( REGR_4D(nx,ny,nlev,ntime), STAT=AS )
-          IF ( AS /= 0 ) THEN
-             CALL HCO_ERROR( 'alloc error REGR_4D', RC )
-             RETURN
-          ENDIF
-          REGR_4D = 0.0_hp
-       ENDIF
-   
-       ! Do regridding
-       DO T = 1, NTIME
-       DO L = 1, NLEV 
-   
-          ! Point to 2D slices to be regridded
-          ORIG_2D => ncArr(:,:,L,T)
-          IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
-             REGR_2D => Lct%Dct%Dta%V2(T)%Val(:,:)
-          ELSE
-             REGR_2D => REGR_4D(:,:,L,T)
-          ENDIF
-   
-          ! Do the regridding
-          CALL MAP_A2A( nlon,  NLAT, LonEdgeI, LatEdgeI, ORIG_2D, &
-                        NX,    NY,   LonEdgeO, LatEdgeO, REGR_2D, 0, 0 )
-   
-          ORIG_2D => NULL()
-          REGR_2D => NULL()
-   
-       ENDDO !L
-       ENDDO !T
-  
-       ! Eventually inflate/collapse levels onto simulation levels.
-       IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
-          CALL ModelLev_Interpolate ( am_I_Root, HcoState, REGR_4D, Lct, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF
-
-       ! Cleanup
-       DEALLOCATE(LonEdgeI, LatEdgeI)
-       IF ( ASSOCIATED( REGR_4D ) ) DEALLOCATE( REGR_4D )
+       CALL REGRID_MAPA2A ( am_I_Root, HcoState, NcArr, &
+                            LonEdge,   LatEdge,  Lct,   RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ENDIF
 
@@ -961,8 +897,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Ncdf_Mod,     ONLY : NC_Read_Time_YYYYMMDDhh
-    USE HCO_tIdx_Mod, ONLY : HCO_GetPrefTimeAttr
+    USE Ncdf_Mod,      ONLY : NC_Read_Time_YYYYMMDDhh
+    USE HCO_tIdx_Mod,  ONLY : HCO_GetPrefTimeAttr
 !
 ! !INPUT PARAMETERS:
 !
@@ -1041,17 +977,41 @@ CONTAINS
     ! Select time slices to read
     ! ---------------------------------------------------------------- 
 
-    ! ------------------------------------------------------------- 
+    ! ---------------------------------------------------------------- 
     ! Get preferred time stamp to read based upon the specs set
     ! in the config. file. 
-    ! This can return value -1 for prefHr, indicating that all 
-    ! hourly slices shall be read. Will always return a valid 
-    ! attribute for Yr, Mt, and Dy.
-    ! ------------------------------------------------------------- 
+    ! This can return value -1 for prefHr, indicating that all  
+    ! corresponding time slices shall be read.
+    ! This call will return -1 for all dates if the simulation date is
+    ! outside of the data range given in the configuration file.
+    ! ---------------------------------------------------------------- 
     CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Check if we are outside of provided range
+    IF ( prefYr < 0 .OR. prefMt < 0 .OR. prefDy < 0 ) THEN
+     
+       ! This should only happen for 'range' data (cycle flag is 2). 
+       IF ( Lct%Dct%Dta%CycleFlag /= 2 ) THEN
+          MSG = 'Cannot get preferred datetime for ' // TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR( MSG, RC )
+          RETURN
+       ENDIF
+
+       ! If this part of the code gets executed, the data associated 
+       ! with this container shall not be used at the current date.
+       ! To do so, set the time indeces to -1 and leave right here.
+       tidx1 = -1
+       tidx2 = -1
+ 
+       ! Leave w/ success
+       CALL HCO_LEAVE( RC )
+       RETURN 
+    ENDIF
+
+    ! prefYMDh is the preferred datetime
     prefYMDh = prefYr*1000000 + prefMt*10000 + &
-               prefDy*100     + max(prefHr,0)
+               prefDy*100 + max(prefHr,0)
 
     ! verbose mode
     IF ( verb ) THEN
@@ -1088,10 +1048,10 @@ CONTAINS
        ! ------------------------------------------------------------- 
        ! If tidx1 couldn't be set in the call above, re-adjust 
        ! preferred year to the closest available year in the 
-       ! time slices. Then repeat the check. Do only if time slice
-       ! cycling is enabled, i.e. CycleFlag set to 1. 
+       ! time slices. Then repeat the check. Don't do this for exact
+       ! dates. 
        ! ------------------------------------------------------------- 
-       IF ( Lct%Dct%Dta%CycleFlag == 1 ) THEN
+       IF ( Lct%Dct%Dta%CycleFlag /= 3 ) THEN
          
           ! Adjust year, month, and day (in this order).
           CNT  = 0
@@ -1107,32 +1067,18 @@ CONTAINS
                 write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
                 CALL HCO_MSG(MSG)
              ENDIF
-   
+      
              CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
-
+   
           ENDDO
-
-!          IF ( tidx1 < 0 ) THEN
-!             CALL prefYMDh_adjustYear ( nTime, availYMDh, prefYMDh )
-!   
-!             ! verbose mode 
-!             IF ( verb ) THEN
-!                write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
-!                CALL HCO_MSG(MSG)
-!             ENDIF
-!   
-!             CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
-!          ENDIF
-
        ENDIF
-
+   
        ! ------------------------------------------------------------- 
        ! If tidx1 still isn't defined, i.e. prefYMDh is still 
        ! outside the range of availYMDh, set tidx1 to the closest
-       ! available date. This must be 1 or nTime! Do only if time
-       ! slice cycling is enabled, i.e. CycleFlag set to 1. 
+       ! available date. This must be 1 or nTime! 
        ! ------------------------------------------------------------- 
-       IF ( tidx1 < 0 .AND. Lct%Dct%Dta%CycleFlag == 1 ) THEN
+       IF ( tidx1 < 0 .AND. Lct%Dct%Dta%CycleFlag /= 3 ) THEN
           IF ( prefYMDh < availYMDh(1) ) THEN
              tidx1 = 1
           ELSE
@@ -1140,6 +1086,75 @@ CONTAINS
           ENDIF
        ENDIF
  
+       ! ------------------------------------------------------------- 
+       ! If we are dealing with weekday data, pick the slice to be
+       ! used based on the current day of week. 
+       ! The ncDys flag has been set in subroutine HCO_ExtractTime
+       ! (hco_tidx_mod.F90) based upon the time attributes set in the
+       ! configuration file. It can have the following values:
+       ! >0  : specific days are given.
+       ! -1  : wildcard (autodetect)
+       ! -10 : WD (weekday). 
+       ! -999: determine from current simulation day.
+       ! For specific days or if determined from the current datetime
+       ! (flags >0 or -999), the weekday is not taken into account.
+       ! If auto-detection is enabled, days are treated as weekday if
+       ! (and only if) there are exactly 7 time slices. Otherwise, they
+       ! are interpreted as 'regular' day data. 
+       ! If flag is set to -10, e.g. time attribute is 'WD', the current 
+       ! time index is assumed to hold Sunday data, with the following 
+       ! six slices being Mon, Tue, ..., Sat. For weekdaily data, all 
+       ! seven time slices will be read into memory so that at any given
+       ! time, the local weekday can be taken (weekdaily data is always 
+       ! assumed to be in local time).
+       ! ------------------------------------------------------------- 
+
+       ! Day flag is -1: wildcard
+       IF ( Lct%Dct%Dta%ncDys(1) == -1 .AND. nTime == 7 ) THEN
+          tidx1 = 1
+          tidx2 = nTime 
+
+          ! Make sure data is treated in local time
+          Lct%Dct%Dta%IsLocTime = .TRUE.
+
+       ! Day flag is -10: WD
+       ELSEIF ( Lct%Dct%Dta%ncDys(1) == -10 ) THEN
+
+          ! There must be at least 7 time slices 
+          IF ( nTime < 7 ) THEN
+             MSG = 'Data must have exactly 7 time slices '// &
+                   'if you set day attribute to WD: '//TRIM(Lct%Dct%cName)
+             CALL HCO_ERROR ( MSG, RC )
+             RETURN
+          ENDIF
+ 
+          ! If there are exactly seven time slices, interpret them as
+          ! the seven weekdays. 
+          IF ( nTime == 7 ) THEN
+             tidx1 = 1
+             tidx2 = tidx1 + 6
+             
+          ! If there are more than 7 time slices, interpret the current
+          ! selected index as sunday of the current time frame (e.g. sunday
+          ! data of current month), and select the time slice index
+          ! accordingly. This requires that there are at least 6 more time
+          ! slices following the current one. 
+          ELSE
+             IF ( (tidx1+6) > nTime ) THEN
+                WRITE(MSG,*) 'Cannot get weekday for: ',TRIM(Lct%Dct%cName), &
+                   '. There are less than 6 additional time slices after ',  &
+                   'selected start date ', availYMDh(tidx1)
+                CALL HCO_ERROR ( MSG, RC )
+                RETURN
+             ENDIF
+             tidx2 = tidx1 + 6
+          ENDIF
+
+          ! Make sure data is treated in local time
+          Lct%Dct%Dta%IsLocTime = .TRUE.
+
+       ENDIF
+
        ! verbose mode 
        IF ( verb ) THEN
           WRITE(MSG,'(A30,I12)') 'selected tidx1: ', tidx1
@@ -1149,21 +1164,34 @@ CONTAINS
        ! ------------------------------------------------------------- 
        ! Now need to set upper time slice index tidx2. This index
        ! is only different from tidx1 if multiple hourly slices are
-       ! read (--> prefHr = -1). In this case, check if there are 
-       ! multiple time slices for the selected date (y/m/d). 
-       ! ------------------------------------------------------------- 
-       IF ( tidx1 > 0 .AND. prefHr < 0 ) THEN
-          CALL SET_TIDX2 ( nTime, availYMDH, tidx1, tidx2 ) 
-          
-          ! verbose mode 
-          IF ( verb ) THEN
-             WRITE(MSG,'(A30,I12)') 'selected tidx2: ', tidx1
-             CALL HCO_MSG(MSG)
+       ! read (--> prefHr = -1 or -10, e.g. hour attribute in config. 
+       ! file was set to wildcard character or data is in local hours). 
+       ! In this case, check if there are multiple time slices for the 
+       ! selected date (y/m/d).
+       ! tidx2 has already been set to proper value above if it's
+       ! weekday data.
+       ! -------------------------------------------------------------
+       IF ( tidx2 < 0 ) THEN
+
+          ! Check for multiple hourly data
+          IF ( tidx1 > 0 .AND. prefHr < 0 ) THEN
+             CALL SET_TIDX2 ( nTime, availYMDH, tidx1, tidx2 )    
+
+             ! Denote as local time if necessary
+             IF ( Lct%Dct%Dta%ncHrs(1) == -10 ) THEN
+                Lct%Dct%Dta%IsLocTime = .TRUE.
+             ENDIF
+          ELSE
+             tidx2 = tidx1
           ENDIF
-       ELSE
-          tidx2 = tidx1
+       ENDIF   
+
+       ! verbose mode 
+       IF ( (tidx2 /= tidx1) .AND. verb ) THEN
+          WRITE(MSG,'(A30,I12)') 'selected tidx2: ', tidx2
+          CALL HCO_MSG(MSG)
        ENDIF
-       
+
     ! ================================================================
     ! Case 3: No time slice available. Set both indeces to zero. 
     ! ================================================================
@@ -1190,7 +1218,7 @@ CONTAINS
     ! (e.g. every hour, every 3 hours, ...).
     !-----------------------------------------------------------------
     IF ( tidx2 > tidx1 ) THEN
-       Lct%Dct%Dta%DeltaT = availYMDh(tidx1+1) - availYMDh(tidx1)
+       Lct%Dct%Dta%DeltaT = YMDh2hrs( availYMDh(tidx1+1) - availYMDh(tidx1) )
     ELSE
        Lct%Dct%Dta%DeltaT = 0
     ENDIF
@@ -1199,11 +1227,13 @@ CONTAINS
     IF ( verb .and. tidx1 > 0 ) THEN
        write(MSG,'(A30,I12)') 'corresponding datetime 1: ', availYMDh(tidx1)
        CALL HCO_MSG(MSG)
-       if ( nTime > 1 ) THEN
+       if ( tidx2 > tidx1 ) THEN
           write(MSG,'(A30,I12)') 'corresponding datetime 2: ', availYMDh(tidx2)
           CALL HCO_MSG(MSG)
        endif
        write(MSG,'(A30,I12)') 'assigned delta t [h]: ', Lct%Dct%Dta%DeltaT 
+       CALL HCO_MSG(MSG)
+       write(MSG,*) 'local time? ', Lct%Dct%Dta%IsLocTime
        CALL HCO_MSG(MSG)
     ENDIF
 
@@ -1246,7 +1276,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Checks if prefYMDh is within the range of availYMDh
 ! and returns the location of the closest vector element that is in
-! the past as tidx1. tidx1 is set to -1 otherwise. 
+! the past (--> tidx1). tidx1 is set to -1 otherwise. 
 !\\
 !\\
 ! !INTERFACE:
@@ -1442,6 +1472,48 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: YMDh2hrs
+!
+! !DESCRIPTION: returns the hours of element YMDh. For simplicity, 30 days are
+! assigned to every month. At the moment, this routine is only called to
+! determine the time interval between two emission time slices (DeltaT) and 
+! this approximation is good enough.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION YMDh2hrs ( YMDh ) RESULT ( hrs ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN)  :: YMDh
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER              :: hrs
+!
+! !REVISION HISTORY:
+!  26 Jan 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=================================================================
+    ! YMDh2hrs begins here! 
+    !=================================================================
+
+    hrs = FLOOR( MOD(YMDh, 10000000000) / 1.0d6 ) * 8760 + &
+          FLOOR( MOD(YMDh, 1000000    ) / 1.0d4 ) * 720  + &
+          FLOOR( MOD(YMDh, 10000      ) / 1.0d2 ) * 24   + &
+          FLOOR( MOD(YMDh, 100        ) / 1.0d0 )
+
+  END FUNCTION YMDh2hrs 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Normalize_Area 
 !
 ! !DESCRIPTION: Subroutine Normalize\_Area normalizes the given array
@@ -1562,11 +1634,20 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    CHARACTER(LEN=255) :: MSG
 
     !======================================================================
     ! HCOIO_ReadOther begins here
     !======================================================================
   
+    ! Error check: data must be in local time 
+    IF ( .NOT. Lct%Dct%Dta%IsLocTime ) THEN
+       MSG = 'Cannot read data from file that is not in local time: ' // &
+             TRIM(Lct%Dct%cName)
+       CALL HCO_ERROR( MSG, RC, THISLOC='HCOIO_ReadOther (hcoio_dataread_mod.F90)' )
+       RETURN
+    ENDIF
+
     ! Read an ASCII file as country values
     IF ( INDEX( TRIM(Lct%Dct%Dta%ncFile), '.txt' ) > 0 ) THEN
        CALL HCOIO_ReadCountryValues ( am_I_Root, HcoState, Lct, RC )
@@ -1624,7 +1705,7 @@ CONTAINS
 !
     INTEGER               :: IUFILE, IOS
     INTEGER               :: ID1, ID2, I, NT, CID, NLINE
-    REAL(hp), POINTER     :: CNTR(:,:) => NULL()
+    REAL(sp), POINTER     :: CNTR(:,:) => NULL()
     INTEGER,  ALLOCATABLE :: CIDS(:,:)
     REAL(hp), POINTER     :: Vals(:) => NULL()
     LOGICAL               :: Verb
@@ -1740,7 +1821,7 @@ CONTAINS
        ! not yet been filled. 
        DO I = 1, NT
           IF ( CID == 0 ) THEN
-             WHERE ( Lct%Dct%Dta%V2(I)%Val <= 0.0_hp )
+             WHERE ( Lct%Dct%Dta%V2(I)%Val <= 0.0_sp )
                 Lct%Dct%Dta%V2(I)%Val = Vals(I)
              ENDWHERE
           ELSE
@@ -1767,9 +1848,16 @@ CONTAINS
     ! Close file
     CLOSE ( IUFILE )
 
-    ! Data is 2D and in local time.
+    ! Data is 2D
     Lct%Dct%Dta%SpaceDim  = 2
-    Lct%Dct%Dta%IsLocTime = .TRUE.
+
+    ! Make sure data is in local time
+    IF ( .NOT. Lct%Dct%Dta%IsLocTime ) THEN
+       Lct%Dct%Dta%IsLocTime = .TRUE.
+       MSG = 'Data assigned to mask regions will be treated in local time: '//&
+              TRIM(Lct%Dct%cName)
+       CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+    ENDIF
 
     ! Cleanup
     Cntr => NULL()
@@ -1890,9 +1978,17 @@ CONTAINS
           Lct%Dct%Dta%V2(I)%Val(1,1) = Vals(I)
        ENDDO
 
-       ! Data is 1D and as such assumed to be in local time. 
+       ! Data is 1D
        Lct%Dct%Dta%SpaceDim  = 1
-       Lct%Dct%Dta%IsLocTime = .TRUE.
+
+       ! Make sure data is in local time
+       IF ( .NOT. Lct%Dct%Dta%IsLocTime ) THEN
+          Lct%Dct%Dta%IsLocTime = .TRUE.
+          MSG = 'Scale factors read from file are treated as local time: '// &
+                 TRIM(Lct%Dct%cName)
+          CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+       ENDIF
+
     ENDIF
 
     ! Cleanup
@@ -2096,8 +2192,8 @@ CONTAINS
        ! Read selected time slice(s) into data array
        ! ----------------------------------------------------------------
        IF ( IDX2 > N ) THEN
-          WRITE(MSG,*) 'Index ', IDX2, ' is larger than number of found values: ', &
-                       TRIM(Lct%Dct%cName)
+          WRITE(MSG,*) 'Index ', IDX2, ' is larger than number of ', &
+                       'values found: ', TRIM(Lct%Dct%cName)
           CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
@@ -2272,7 +2368,7 @@ CONTAINS
             HcoState%Grid%YMID%Val(I,J) >= LAT1 .AND. &
             HcoState%Grid%YMID%Val(I,J) <= LAT2        ) THEN
 
-          Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_hp
+          Lct%Dct%Dta%V2(1)%Val(I,J) = 1.0_sp
        ENDIF 
 
     ENDDO

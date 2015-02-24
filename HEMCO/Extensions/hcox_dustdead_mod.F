@@ -89,23 +89,23 @@
       !---------------------------------------
 
       ! Time-invariant fields
-      REAL(hp), POINTER          :: ERD_FCT_GEO  (:,:) => NULL()
+      REAL(sp), POINTER          :: ERD_FCT_GEO  (:,:) => NULL()
 !      REAL,    POINTER          :: ERD_FCT_HYDRO(:,:,:,:)
 !      REAL,    POINTER          :: ERD_FCT_TOPO (:,:,:,:)
 !      REAL,    POINTER          :: ERD_FCT_UNITY(:,:,:,:)
 !      REAL,    POINTER          :: MBL_BSN_FCT  (:,:,:,:)
 
       ! GOCART source function (tdf, bmy, 1/25/07)
-      REAL(hp), POINTER          :: SRCE_FUNC(:,:) => NULL()
+      REAL(sp), POINTER          :: SRCE_FUNC(:,:) => NULL()
 
       ! Land surface that is not lake or wetland (by area)
-      REAL(hp), POINTER          :: LND_FRC_DRY  (:,:) => NULL()
-      REAL(hp), POINTER          :: MSS_FRC_CACO3(:,:) => NULL()
-      REAL(hp), POINTER          :: MSS_FRC_CLY  (:,:) => NULL()
-      REAL(hp), POINTER          :: MSS_FRC_SND  (:,:) => NULL()
-      REAL(hp), POINTER          :: SFC_TYP      (:,:) => NULL()
+      REAL(sp), POINTER          :: LND_FRC_DRY  (:,:) => NULL()
+      REAL(sp), POINTER          :: MSS_FRC_CACO3(:,:) => NULL()
+      REAL(sp), POINTER          :: MSS_FRC_CLY  (:,:) => NULL()
+      REAL(sp), POINTER          :: MSS_FRC_SND  (:,:) => NULL()
+      REAL(sp), POINTER          :: SFC_TYP      (:,:) => NULL()
 
-      REAL(hp), POINTER           :: VAI_DST(:,:) => NULL()
+      REAL(sp), POINTER           :: VAI_DST(:,:) => NULL()
 
       ! Fundamental physical constants
       REAL*8,  PARAMETER   :: GAS_CST_UNV      = 8.31441d0

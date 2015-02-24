@@ -232,7 +232,7 @@ CONTAINS
     !=======================================================================
 
     ! This is for testing only. Only activate if needed.
-   !IF ( .TRUE.  ) THEN     ! Activated
+    !IF ( .TRUE. ) THEN     ! Activated
     IF ( .FALSE. ) THEN     ! Deactivated
 
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
@@ -349,7 +349,7 @@ CONTAINS
              IF ( TRIM(SpcName) == 'NO' .and. HcoID > 0 ) THEN
 
                 ! There are 3 different categories
-                DO J = 1, 6
+                DO J = 1, 7
                    SELECT CASE ( J )
                       CASE ( 1 )
                          DiagnName = 'EMIS_NO_ANTHRO'
@@ -375,6 +375,10 @@ CONTAINS
                          DiagnName = 'EMIS_NO_BIOMASS'
                          ExtNr     = 111
                          Cat       = -1
+                      CASE ( 7 )
+                         DiagnName = 'EMIS_NO_BIOFUEL'
+                         ExtNr     = 0
+                         Cat       = 2
                       CASE DEFAULT
                          DiagnName = 'EMIS_NO_DUMMY'
                          ExtNr     = 999
@@ -407,7 +411,6 @@ CONTAINS
     RC = HCO_SUCCESS 
 
   END SUBROUTINE HCOI_GC_Diagn_Init
-
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -3317,7 +3320,7 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if we are doing a specialty simulation w/o lightning
-    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
+    !IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
 
     ! Define diagnostics
     IF ( ND56 > 0 ) THEN
@@ -3328,7 +3331,7 @@ CONTAINS
        ! Exit if LightNOx was not turned on
        IF ( ExtNr <= 0 ) THEN
           MSG = 'Lightning NOx is not enabled - cannot write diagnostics ND56!'
-          CALL HCO_Error( MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -4083,7 +4086,11 @@ CONTAINS
     ExtNr = GetExtNr( 'GFED3' )
     IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN
-       CALL HCO_Warning ( 'Biomass burning emissions not turned on!!', RC, THISLOC=LOC )
+       IF ( am_I_Root ) THEN
+          MSG = 'Biomass burning not turned on - no CH4 emissions from biomass burning!'
+          WRITE(*,*) TRIM(MSG)
+          CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+       ENDIF
     ENDIF
     IF ( ExtNr > 0 ) THEN
        IF ( IDCH4 < 0 ) THEN
@@ -4120,7 +4127,11 @@ CONTAINS
     ! HEMCO extension # for wetland ch4 
     ExtNr = GetExtNr( 'CH4_WETLANDS' )
     IF ( ExtNr <= 0 ) THEN
-       CALL HCO_Warning ( 'Wetland emissions not turned on!!', RC, THISLOC=LOC )
+       IF ( am_I_Root ) THEN
+          MSG = 'Wetland emissions not turned on - no CH4 emissions from rice!'
+          WRITE(*,*) TRIM(MSG)
+          CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+       ENDIF
     ENDIF
     IF ( ExtNr > 0 ) THEN
        IF ( IDCH4 < 0 ) THEN

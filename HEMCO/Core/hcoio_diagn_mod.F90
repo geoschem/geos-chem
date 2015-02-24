@@ -100,9 +100,11 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC          ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller    - Initial version 
+!  12 Sep 2013 - C. Keller   - Initial version 
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  23 Feb 2015 - R. Yantosca - Now make Arr1D REAL(sp) so that we can write
+!                              out lon & lat as float instead of double
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,10 +116,10 @@ CONTAINS
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
     REAL(sp), POINTER         :: nctime(:)
-    REAL(hp), POINTER         :: Arr1D(:) => NULL()
+    REAL(sp), POINTER         :: Arr1D(:) => NULL()
     INTEGER,  POINTER         :: Int1D(:) => NULL()
-    REAL(hp), POINTER         :: Arr3D(:,:,:) => NULL()
-    REAL(hp), POINTER         :: Arr4D(:,:,:,:) => NULL()
+    REAL(sp), POINTER         :: Arr3D(:,:,:) => NULL()
+    REAL(sp), POINTER         :: Arr4D(:,:,:,:) => NULL()
     TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
     INTEGER                   :: FLAG
     CHARACTER(LEN=255)        :: ncFile
@@ -160,7 +162,7 @@ CONTAINS
        Manual = .FALSE.
     ENDIF
 
-    ! Inherit data precision from HEMCO
+    ! Inherit precision from HEMCO 
     Prc = HP
 
     ! Check if there is at least one diagnostics to write:
@@ -211,8 +213,8 @@ CONTAINS
     ! Initialize mirror variables
     allocate(Arr4D(nlon,nlat,nlev,ntime))
     allocate(Arr3D(nlon,nlat,ntime))
-    Arr3D = 0.0_hp
-    Arr4D = 0.0_hp
+    Arr3D = 0.0_sp
+    Arr4D = 0.0_sp
 
     ! Construct filename: diagnostics will be written into file
     ! PREFIX.YYYYMMDDhm.nc, where PREFIX is the input argument or
@@ -251,16 +253,18 @@ CONTAINS
     ! Add longitude 
     CALL NC_VAR_DEF ( fId, lonId, -1, -1, -1, &
                       'lon', 'Longitude', 'degrees_east', Prc, VarCt )
-    Arr1D => HcoState%Grid%XMID%Val(:,1)
+    ALLOCATE( Arr1D( nLon ) )
+    Arr1D = HcoState%Grid%XMID%Val(:,1)
     CALL NC_VAR_WRITE ( fId, 'lon', Arr1D=Arr1D )
-    Arr1D => NULL()
+    DEALLOCATE( Arr1D )
     
     ! Add latitude
     CALL NC_VAR_DEF ( fId, -1, latId, -1, -1, &
                       'lat', 'Latitude', 'degrees_north', Prc, VarCt )
-    Arr1D => HcoState%Grid%YMID%Val(1,:)
+    ALLOCATE( Arr1D( nLat ) )
+    Arr1D = HcoState%Grid%YMID%Val(1,:)
     CALL NC_VAR_WRITE ( fId, 'lat', Arr1D=Arr1D )
-    Arr1D => NULL()
+    DEALLOCATE( Arr1D )
 
     ! Add level 
     CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &
@@ -352,8 +356,9 @@ CONTAINS
           levIdTmp = -1
        ENDIF
 
+       ! Write out in single precision
        CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
-            TRIM(myName), TRIM(myName), TRIM(myUnit), Prc, VarCt )
+            TRIM(myName), TRIM(myName), TRIM(myUnit), SP, VarCt )
 
        ! Additional tracer attributes: long_name and _FillValue
        CALL NcBegin_Def( fID ) ! Reopen netCDF define mode
@@ -365,10 +370,14 @@ CONTAINS
        ! order to add the time dimension. Otherwise, the data would
        ! have no time information!
        IF ( ThisDiagn%SpaceDim == 3 ) THEN
-          Arr4D(:,:,:,1) = thisdiagn%Arr3D%val
+          IF ( ASSOCIATED(ThisDiagn%Arr3D) ) THEN
+             Arr4D(:,:,:,1) = ThisDiagn%Arr3D%Val
+          ENDIF
           CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
        ELSE
-          Arr3D(:,:,1) = thisdiagn%Arr2D%val 
+          IF ( ASSOCIATED(ThisDiagn%Arr2D) ) THEN
+             Arr3D(:,:,1) = ThisDiagn%Arr2D%Val 
+          ENDIF
           CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr3D=Arr3D )
        ENDIF
 
@@ -377,6 +386,7 @@ CONTAINS
           MSG = '--- Added diagnostics: '//TRIM(myName)
           CALL HCO_MSG(MSG)
        ENDIF
+
     ENDDO
 
     !-----------------------------------------------------------------
@@ -385,7 +395,7 @@ CONTAINS
     CALL NC_CLOSE ( fId )
 
     ! Cleanup
-    deallocate(Arr3D,Arr4D)
+    Deallocate(Arr3D,Arr4D)
     ThisDiagn => NULL()
     
     ! Return 
@@ -524,18 +534,23 @@ CONTAINS
        IF ( ThisDiagn%SpaceDim == 2 ) THEN
           CALL MAPL_GetPointer ( HcoState%EXPORT, Ptr2D, &
              TRIM(ThisDiagn%cName), NotFoundOk=.TRUE., RC=STAT )
-          IF ( ASSOCIATED(Ptr2D) ) Ptr2D = ThisDiagn%Arr2D%Val
-! to use pointers, use the following instead (untested!)
-!          IF ( ASSOCIATED(Ptr2D) ) Ptr2D => ThisDiagn%Arr2D%Val
+          IF ( ASSOCIATED(Ptr2D) ) THEN
+             IF ( ASSOCIATED(ThisDiagn%Arr2D) ) THEN
+                Ptr2D = ThisDiagn%Arr2D%Val
+                !Ptr2D => ThisDiagn%Arr2D%Val
+             ENDIF
+          ENDIF
 
        ! ... or 3D
        ELSEIF ( ThisDiagn%SpaceDim == 3 ) THEN
           CALL MAPL_GetPointer ( HcoState%EXPORT, Ptr3D, &
              TRIM(ThisDiagn%cName), NotFoundOk=.TRUE., RC=STAT )
-          IF ( ASSOCIATED(Ptr3D) ) Ptr3D = ThisDiagn%Arr3D%Val
-! to use pointers, use the following instead (untested!)
-!          IF ( ASSOCIATED(Ptr3D) ) Ptr3D => ThisDiagn%Arr3D%Val
-
+          IF ( ASSOCIATED(Ptr3D) ) THEN
+             IF ( ASSOCIATED(ThisDiagn%Arr3D) ) THEN
+                Ptr3D = ThisDiagn%Arr3D%Val
+                !Ptr3D => ThisDiagn%Arr3D%Val
+             ENDIF
+          ENDIF
        ENDIF
 
        ! Free pointer

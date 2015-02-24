@@ -354,7 +354,9 @@
          IF ( ND43 >               0 ) CTOH       = 0
          IF ( ND43 >               0 ) CTO1D      = 0
          IF ( ND43 >               0 ) CTO3P      = 0
+#if !defined(NO_BPCH)
          IF ( ND45 >               0 ) CTOTH      = 0
+#endif
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0
          IF ( ND43 >               0 ) CTHO2      = 0
          ! update for arom (dkh, 06/21/07)  

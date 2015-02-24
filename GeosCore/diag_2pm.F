@@ -137,6 +137,7 @@
          !-----------------------------
          ! ND45 -- mixing ratios
          !-----------------------------
+#if !defined(NO_BPCH)
          IF ( IS_ND45 ) THEN
 
             ! Change initialization of LTOTH: only on timestep after saving

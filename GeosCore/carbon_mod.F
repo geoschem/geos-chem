@@ -333,9 +333,9 @@
      &                                        31, 31, 30, 31, 30, 31 /)
 
       ! HEMCO pointers
-      REAL(hp), POINTER     :: O3(:,:,:)  => NULL()
-      REAL(hp), POINTER     :: OH(:,:,:)  => NULL()
-      REAL(hp), POINTER     :: NO3(:,:,:) => NULL()
+      REAL(sp), POINTER     :: O3(:,:,:)  => NULL()
+      REAL(sp), POINTER     :: OH(:,:,:)  => NULL()
+      REAL(sp), POINTER     :: NO3(:,:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 

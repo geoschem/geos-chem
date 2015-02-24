@@ -249,7 +249,7 @@ CONTAINS
     ! sets the HEMCO error properties (verbose mode? log file name, 
     ! etc.) based upon the specifications in the configuration file.
     !=================================================================
-    CALL Config_ReadFile( am_I_Root, ConfigFile, RC )
+    CALL Config_ReadFile( am_I_Root, ConfigFile, 0, RC )
     IF( RC /= HCO_SUCCESS) RETURN 
 
     !=================================================================
@@ -599,7 +599,7 @@ CONTAINS
 ! !USES:
 !
     USE inquireMod,      ONLY : findfreeLUN
-    USE HCO_EXTLIST_Mod, ONLY : GetExtOpt
+    USE HCO_EXTLIST_Mod, ONLY : GetExtOpt, CoreNr
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -637,7 +637,7 @@ CONTAINS
     LOC = 'Model_GetSpecies (hcoi_standalone_mod.F90)'
 
     ! Try to get SpecFile from configuration file (in settings)
-    CALL GetExtOpt ( 0, 'SpecFile', OptValChar=MySpecFile, &
+    CALL GetExtOpt ( CoreNr, 'SpecFile', OptValChar=MySpecFile, &
                      Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) SpecFile = MySpecFile
@@ -774,7 +774,7 @@ CONTAINS
 !
     USE Grid_Mod,        ONLY : DoGridComputation
     USE inquireMod,      ONLY : findFreeLUN
-    USE HCO_ExtList_Mod, ONLY : GetExtOpt
+    USE HCO_ExtList_Mod, ONLY : GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -819,7 +819,7 @@ CONTAINS
     LOC = 'SET_GRID (hco_standalone_mod.F90)'
 
     ! Try to get GridFile from configuration file (in settings)
-    CALL GetExtOpt ( 0, 'GridFile', OptValChar=MyGridFile, &
+    CALL GetExtOpt ( CoreNr, 'GridFile', OptValChar=MyGridFile, &
                      Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) GridFile = MyGridFile
@@ -1212,7 +1212,7 @@ CONTAINS
 ! !USES:
 !
     USE inquireMod,      ONLY : findfreeLUN
-    USE HCO_Extlist_Mod, ONLY : GetExtOpt
+    USE HCO_Extlist_Mod, ONLY : GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 !
@@ -1244,7 +1244,7 @@ CONTAINS
     LOC = 'READ_TIME (hcoi_standalone_mod.F90)'
 
     ! Try to get TimeFile from configuration file (in settings)
-    CALL GetExtOpt ( 0, 'TimeFile', OptValChar=MyTimeFile, &
+    CALL GetExtOpt ( CoreNr, 'TimeFile', OptValChar=MyTimeFile, &
                      Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) TimeFile = MyTimeFile
@@ -1374,8 +1374,8 @@ CONTAINS
 !
     INTEGER                       :: AS
     LOGICAL                       :: FOUND
-    REAL(hp), POINTER             :: Ptr3D(:,:,:) => NULL()
-    CHARACTER(LEN=255), PARAMETER :: LOC = 'READ_TIME (hcoi_standalone_mod.F90)'
+    REAL(sp), POINTER             :: Ptr3D(:,:,:) => NULL()
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'ExtOpt_SetPointers (hcoi_standalone_mod.F90)'
 
     !=================================================================
     ! ExtOpt_SetPointers begins here
@@ -1392,7 +1392,7 @@ CONTAINS
     CALL HCO_GetPtr( am_I_Root, 'PEDGE', Ptr3D, RC, FOUND=FOUND )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) THEN
-       HcoState%Grid%PEDGE%Val => Ptr3D
+       HcoState%Grid%PEDGE%Val = Ptr3D
        Ptr3D => NULL()
     ENDIF
 
@@ -1550,7 +1550,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    REAL(hp), POINTER             :: Ptr2D(:,:)   => NULL()
+    REAL(sp), POINTER             :: Ptr2D(:,:)   => NULL()
 
     !=================================================================
     ! SetExtPtr_2R begins here
@@ -1559,7 +1559,7 @@ CONTAINS
     IF ( ExtDat%DoUse ) THEN
        CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC )
        IF ( RC /= 0 ) RETURN
-       ExtDat%Arr%Val => Ptr2D
+       ExtDat%Arr%Val = Ptr2D
        Ptr2D => NULL()
     ENDIF
 
@@ -1606,7 +1606,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    REAL(hp), POINTER             :: Ptr3D(:,:,:)   => NULL()
+    REAL(sp), POINTER             :: Ptr3D(:,:,:)   => NULL()
 
     !=================================================================
     ! SetExtPtr_3R begins here
@@ -1615,7 +1615,7 @@ CONTAINS
     IF ( ExtDat%DoUse ) THEN
        CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr3D, RC )
        IF ( RC /= 0 ) RETURN
-       ExtDat%Arr%Val => Ptr3D
+       ExtDat%Arr%Val = Ptr3D
        Ptr3D => NULL()
     ENDIF
 
@@ -1666,7 +1666,10 @@ CONTAINS
     ! ExtState_Update begins here
     !=================================================================
 
-    ! nothing to do for now.
+    ! Data is copied, so need to call ExtOpt_SetPointers every time
+    ! to make sure that all data is up-to-date.
+    CALL ExtOpt_SetPointers( am_I_Root, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
     RC = HCO_SUCCESS

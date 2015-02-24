@@ -592,13 +592,17 @@
                CALL HCO_ERROR( MSG, RC, THISLOC=LOC ) 
                RETURN 
             ELSE
-               CALL HCO_WARNING( MSG, RC, THISLOC=LOC ) 
+               CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+               fraction_nox = 1.0
+               int_ope      = 0.0
+               RC = HCO_SUCCESS
+               RETURN
             ENDIF
- 100     FORMAT( 'LUT: FNOX not btw 0-1: ', I3, 1x, I3 )
- 101     FORMAT( '; O3=',E11.3,'; NO=',E11.3,'; NO2=',E11.3 )
- 102     FORMAT( '; TS=',E11.3,'; JO1D=',E11.3,'; JNO2=',E11.3 )
- 103     FORMAT( '; SUNCOSmid=',E11.3,'; SUNCOSmid5=',E11.3 )
- 104     FORMAT( '; DENS=',E11.3, '; FNOX_TMP=',E11.3)
+ 100     FORMAT( 'LUT: FNOX not btw 0-1: ', I4, I4 )
+ 101     FORMAT( 'O3=',E11.3,'; NO=',E11.3,'; NO2=',E11.3 )
+ 102     FORMAT( 'TS=',E11.3,'; JO1D=',E11.3,'; JNO2=',E11.3 )
+ 103     FORMAT( 'SUNCOSmid=',E11.3,'; SUNCOSmid5=',E11.3 )
+ 104     FORMAT( 'DENS=',E11.3, '; FNOX_TMP=',E11.3)
 
          ! Update fraction_nox and intope
          ELSE

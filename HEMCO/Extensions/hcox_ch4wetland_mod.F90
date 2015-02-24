@@ -72,13 +72,13 @@ MODULE HCOX_CH4WETLAND_Mod
   LOGICAL                     :: DoRice
 
   ! Pointers to data read through configuration file
-  REAL(hp), POINTER           :: RICE        (:,:) => NULL()
-  REAL(hp), POINTER           :: GWET_ANNUAL (:,:) => NULL()
-  REAL(hp), POINTER           :: GWET_MONTHLY(:,:) => NULL()
-  REAL(hp), POINTER           :: WETFRAC     (:,:) => NULL()
-  REAL(hp), POINTER           :: LITTER_C    (:,:) => NULL()
-  REAL(hp), POINTER           :: SOIL_C      (:,:) => NULL()
-  REAL(hp), POINTER           :: MEAN_T      (:,:) => NULL()
+  REAL(sp), POINTER           :: RICE        (:,:) => NULL()
+  REAL(sp), POINTER           :: GWET_ANNUAL (:,:) => NULL()
+  REAL(sp), POINTER           :: GWET_MONTHLY(:,:) => NULL()
+  REAL(sp), POINTER           :: WETFRAC     (:,:) => NULL()
+  REAL(sp), POINTER           :: LITTER_C    (:,:) => NULL()
+  REAL(sp), POINTER           :: SOIL_C      (:,:) => NULL()
+  REAL(sp), POINTER           :: MEAN_T      (:,:) => NULL()
 
 CONTAINS
 !EOC

@@ -456,6 +456,7 @@
       IF ( ALLOCATED( LTHO2       ) ) DEALLOCATE( LTHO2       )
 #if !defined( NO_BPCH )
       IF ( ALLOCATED( LTOTH       ) ) DEALLOCATE( LTOTH       )
+#endif
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )

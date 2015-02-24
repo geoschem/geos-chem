@@ -95,6 +95,7 @@ CONTAINS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GRID_MOD,           ONLY : AREA_M2
     USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE UCX_MOD,            ONLY : DIAGINIT_UCX
 !
 ! !INPUT PARAMETERS:
 !
@@ -142,7 +143,7 @@ CONTAINS
                                  AM2       = AM2,                       &
                                  PREFIX    = DGN,                       &
                                  COL       = Input_Opt%DIAG_COLLECTION, &
-                                 OVERWRITE = .TRUE.,                    & 
+                                 OVERWRITE = .FALSE.,                   & 
                                  RC        = RC         )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP( 'Cannot overwrite collection', LOC ) 
@@ -285,6 +286,14 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_COLUMNT', LOC )
     ENDIF
 
+    ! UCX diagnostics
+    IF ( Input_Opt%LUCX ) THEN
+       CALL DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
+       IF ( RC /= GIGC_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Error in DIAGINIT_UCX', LOC ) 
+       ENDIF
+    ENDIF
+
     ! Drydep diagnostic (ND44)
     CALL DIAGINIT_DRYDEP( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) THEN
@@ -333,12 +342,17 @@ CONTAINS
 ! !IROUTINE: Diagnostics_Write
 !
 ! !DESCRIPTION: Subroutine Diagnostics\_Write writes the GEOS-Chem diagnostics
-! to disk. 
+! to disk. If the variable RESTART is set to true, all GEOS-Chem diagnostics
+! are passed to the restart file.
+!\\
+!\\
+! The Diagnostics\_Write routine is called from main.F, at the end of the time
+! loop and during cleanup (to write the restart file).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagnostics_Write( am_I_Root, Input_Opt, LAST, RC ) 
+  SUBROUTINE Diagnostics_Write ( am_I_Root, Input_Opt, RESTART, RC ) 
 !
 ! !USES:
 !
@@ -351,9 +365,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN ) :: am_I_Root  ! Are we on the root CPU?
-    TYPE(OptInput), INTENT(IN ) :: Input_Opt  ! Input Options object
-    LOGICAL,        INTENT(IN ) :: LAST       ! Is this the last call? 
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+    LOGICAL,          INTENT(IN   )  :: RESTART    ! Write restart file? 
+    TYPE(OptInput),   INTENT(IN )    :: Input_Opt  ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -386,32 +400,36 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! Write out diagnostics to file using current time stamp.
-    ! If last, save into restart file. Else, write out regular diagnostics.
+    ! RESTART: write out all diagnostics. Use current time stamp and save into
+    ! restart file.
     !-----------------------------------------------------------------------
-
-    IF ( LAST ) THEN
-       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                & 
+    IF ( RESTART ) THEN
+       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                &
                                   HcoState,                                 &
                                   WriteAll    = .TRUE.,                     &
+                                  UsePrevTime = .FALSE.,                    & 
+                                  PREFIX      = RST,                        &
+                                  COL         = Input_Opt%DIAG_COLLECTION,  & 
+                                  RC          = RC                         )
+   
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'Diagnostics restart write error', LOC ) 
+       ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Not restart: write out regular diagnostics. Use current time stamp.
+    !-----------------------------------------------------------------------
+    ELSE
+       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                & 
+                                  HcoState,                                 &
+                                  WriteAll    = .FALSE.,                    &
                                   UsePrevTime = .FALSE.,                    &
-                                  PREFIX      = RST,                        &   
                                   COL         = Input_Opt%DIAG_COLLECTION,  &
                                   RC          = RC                         )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Restart write error', LOC )
-       ENDIF
-    ELSE
-       CALL HCOIO_DIAGN_WRITEOUT( am_I_Root,                                &
-                                  HcoState,                                 &
-                                  WriteAll    = .FALSE.,                    &
-                                  UsePrevTime = .FALSE.,                    & 
-                                  COL         = Input_Opt%DIAG_COLLECTION,  & 
-                                  RC          = RC                         )
-
-       IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'Diagnostics write error', LOC ) 
        ENDIF
+
     ENDIF
 
     ! Free pointer

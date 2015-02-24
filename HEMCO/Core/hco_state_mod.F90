@@ -200,7 +200,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,    ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,    ONLY : GetExtOpt, CoreNr
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -370,7 +370,7 @@ CONTAINS
     HcoState%Options%FillBuffer    = .FALSE.
 
     ! Get negative flag value from configuration file. If not found, set to 0. 
-    CALL GetExtOpt ( 0, 'Negative values', &
+    CALL GetExtOpt ( CoreNr, 'Negative values', &
                      OptValInt=HcoState%Options%NegFlag, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%NegFlag = 0
@@ -653,7 +653,7 @@ CONTAINS
     ! Split character into species string. 
     CALL STRSPLIT( SpcStr, HCO_SEP(), SUBSTR, nSpc )
 
-    ! Find extension of interest 
+    ! nothing to do if there are no species
     IF ( nSpc == 0 ) RETURN 
 
     ! Allocate arrays 

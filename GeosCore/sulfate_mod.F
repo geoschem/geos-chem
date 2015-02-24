@@ -20,8 +20,7 @@
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
       USE inquireMod,    ONLY : findFreeLUN
 
-      USE HCO_ERROR_MOD       ! For real precisions (hp)
-
+      USE HCO_ERROR_MOD    ! For HEMCO error statements 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -302,14 +301,14 @@
       INTEGER              :: DRYLET,  DRYNH4aq
 
       ! HEMCO pointers
-      REAL(hp), POINTER    :: O3m(:,:,:)      => NULL()
-      REAL(hp), POINTER    :: PH2O2m(:,:,:)   => NULL()
-      REAL(hp), POINTER    :: JH2O2(:,:,:)    => NULL()
-      REAL(hp), POINTER    :: OH(:,:,:)       => NULL()
-      REAL(hp), POINTER    :: NO3(:,:,:)      => NULL()
-      REAL(hp), POINTER    :: HNO3(:,:,:)     => NULL()
-      REAL(hp), POINTER    :: NDENS_SALA(:,:) => NULL()
-      REAL(hp), POINTER    :: NDENS_SALC(:,:) => NULL()
+      REAL(sp), POINTER    :: O3m(:,:,:)      => NULL()
+      REAL(sp), POINTER    :: PH2O2m(:,:,:)   => NULL()
+      REAL(sp), POINTER    :: JH2O2(:,:,:)    => NULL()
+      REAL(sp), POINTER    :: OH(:,:,:)       => NULL()
+      REAL(sp), POINTER    :: NO3(:,:,:)      => NULL()
+      REAL(sp), POINTER    :: HNO3(:,:,:)     => NULL()
+      REAL(sp), POINTER    :: NDENS_SALA(:,:) => NULL()
+      REAL(sp), POINTER    :: NDENS_SALC(:,:) => NULL()
 
       ! Emission timestep (imported from HEMCO)
       REAL(fp)               :: TS_EMIS
@@ -722,7 +721,8 @@
 #if defined( UCX )
       ! Stratospheric aerosol graviational settling
       IF ( LGRAVSTRAT ) THEN
-         CALL SETTLE_STRAT_AER( Input_Opt, State_Met, State_Chm )
+         CALL SETTLE_STRAT_AER( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
          ENDIF

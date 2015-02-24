@@ -25,6 +25,9 @@
       USE DIAG_MOD,           ONLY : AD30, AD45, LTOTH
 #endif
       USE DIAG_MOD,           ONLY : AD57, AD71
+#if !defined(NO_BPCH)
+      USE DIAG_MOD,           ONLY : AD45, LTOTH
+#endif
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
       USE DIAG_MOD,           ONLY : AD71_COUNT, AD71_HRCT

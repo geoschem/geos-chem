@@ -66,8 +66,9 @@
       PUBLIC  :: KG_STRAT_AER
       PUBLIC  :: RHO_STRAT_AER
       PUBLIC  :: CHECK_NAT
-      PUBLIC  :: MAKE_PSC_FILE
+!      PUBLIC  :: MAKE_PSC_FILE
       PUBLIC  :: INIT_UCX
+      PUBLIC  :: DIAGINIT_UCX
       PUBLIC  :: CLEANUP_UCX
 !
 ! PRIVATE MEMBER FUNCTIONS:
@@ -100,6 +101,7 @@
 !                                ratios to buffer (from ASCII file).
 !                                Now map NOx coefficients onto grids other than
 !                                4x5 or 2x25.
+!  14 Jan 2014 - C. Keller     - Now read and diagnose STATE_PSC through HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -238,7 +240,9 @@
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: SAD_AER
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: NDENS_AER
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_AER
-      INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
+      !INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
+      REAL(f4),DIMENSION(:,:,:),POINTER       :: STATE_PSC => NULL()
+      LOGICAL                                 :: GOT_STATE_PSC = .FALSE.
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: KHETI_SLA
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: AERFRAC
       INTEGER,DIMENSION(:),ALLOCATABLE      :: AERFRACIND
@@ -255,7 +259,11 @@
       ! Logicals
       LOGICAL                           :: doPrint
       LOGICAL                           :: TRAC_ADD
+#if defined(ESMF_)
+      LOGICAL,PARAMETER                 :: STRAT2DCH4=.FALSE.
+#else
       LOGICAL,PARAMETER                 :: STRAT2DCH4=.TRUE.
+#endif
 
       !=================================================================
       ! Derived type object for the surface boundary conditions.
@@ -457,12 +465,14 @@
       ! Initialize GEOS-Chem tracer array [kg]
       STT => State_Chm%Tracers
 
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, 100   )
-      WRITE( 6, 110   )
-      WRITE( 6, 120   )
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, 100   )
+         WRITE( 6, 110   )
+         WRITE( 6, 120   )
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      ENDIF
+   
       ! FORMAT strings
  100  FORMAT( 'T R A C E R   I N I T I A L I Z A T I O N'   )
  110  FORMAT( 'Routine written by SEBASTIAN D. EASTHAM' )
@@ -2594,7 +2604,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETTLE_STRAT_AER( Input_Opt, State_Met, State_Chm )
+      SUBROUTINE SETTLE_STRAT_AER( am_I_Root, Input_Opt, State_Met, 
+     &                             State_Chm, RC )
 !
 ! !USES:
 !
@@ -2610,18 +2621,21 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_ErrCode_Mod
       USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTNIT,IDTBCPI,IDTH2O,IDTHNO3
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,        INTENT(INOUT) :: RC          ! Return code
 !
 ! !REVISION HISTORY: 
 !  11 Apr 2013 - S. D. Eastham - Initial version
@@ -2708,6 +2722,9 @@
       ! SETTLE_STRAT_AER begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Copy fields from INPUT_OPT
       LPRT        = Input_Opt%LPRT
       LGRAVSTRAT  = Input_Opt%LGRAVSTRAT
@@ -2727,6 +2744,11 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
+      ! Eventually get STATE_PSC
+      IF ( .NOT. GOT_STATE_PSC ) THEN
+         CALL READ_PSC_FILE( am_I_Root )
+      ENDIF
+ 
       ! For debugging
       MAXLOSS= 0e+0_fp
       D_XHNO3= 0e+0_fp
@@ -3014,7 +3036,8 @@
                ! XPSC is the number of molecules tied up in solid particles
                ! per m3 in a grid box
                L = STARTPT
-               IF (STATE_PSC(I,J,L).lt.2) THEN
+               !IF (STATE_PSC(I,J,L).lt.2) THEN
+               IF (STATE_PSC(I,J,L) < 2.0_f4 ) THEN
                   XNO3_0 = 0e+0_fp
                   XNAT_0 = 0e+0_fp
                   XICE_0 = 0e+0_fp
@@ -3032,7 +3055,8 @@
                INVAIR_0 = AIRMW/State_Met%AD(I,J,L)
                IF (L .lt. (LLPAR-1)) THEN
                   INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+1)
-                  IF (STATE_PSC(I,J,L+1).lt.2) THEN
+                  !IF (STATE_PSC(I,J,L+1).lt.2) THEN
+                  IF (STATE_PSC(I,J,L+1) < 2.0_f4 ) THEN
                      XNO3_ABOVE = 0e+0_fp
                      XNAT_ABOVE = 0e+0_fp
                      XICE_ABOVE = 0e+0_fp
@@ -3085,7 +3109,8 @@
                   
                   IF (L.lt.(LLPAR-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
-                     IF (STATE_PSC(I,J,L+2).ge.2) THEN
+                     !IF (STATE_PSC(I,J,L+2).ge.2) THEN
+                     IF (STATE_PSC(I,J,L+2) >= 2.0_f4 ) THEN
                         XNO3_ABOVE = STT(I,J,L+2,IDTNIT)*INVAIR_ABOVE/ 
      &                                TRACER_MW_G(IDTNIT)
                         XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
@@ -3485,7 +3510,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_YEDGE
+      !USE GRID_MOD,           ONLY : GET_YEDGE
+      USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTH2O
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTNIT, IDTBrNO3, IDTHBr
@@ -3572,7 +3598,7 @@
       REAL(fp)                :: HOBr_BOX_G, HOBr_BOX_L
       REAL(fp)                :: HNO3GASFRAC, HClGASFRAC, HOClGASFRAC
       REAL(fp)                :: HBrGASFRAC, HOBrGASFRAC
-      REAL(fp)                :: VOL_NAT, VOL_ICE, VOL_SLA
+      REAL(fp)                :: VOL_NAT, VOL_ICE, VOL_SLA, VOL_TOT
       REAL(fp)                :: RAD_AER_BOX,RHO_AER_BOX
       REAL(fp)                :: KG_AER_BOX,NDENS_AER_BOX,SAD_AER_BOX
       REAL(fp)                :: KG_NAT, KG_ICE, KG_NO3
@@ -3586,8 +3612,8 @@
       REAL(fp)                :: KHET_SPECIFIC
 
       ! Grid box location
-      REAL(fp)                :: BOX_LAT_S, BOX_LAT_N
-      LOGICAL               :: IS_VALID, IS_POLAR, IS_STRAT
+      REAL(fp)                :: BOX_LAT_S, BOX_LAT_N, BOX_LAT
+      LOGICAL                 :: IS_VALID, IS_POLAR, IS_STRAT
 
       ! Local properties
       REAL(fp), DIMENSION(11) :: GAMMA_BOX
@@ -3637,6 +3663,11 @@
          CALL DEBUG_MSG( '### UCX: start CALC_STRAT_AER' )
       ENDIF
 
+      ! Read in PSC state
+      IF ( .NOT. GOT_STATE_PSC ) THEN
+         CALL READ_PSC_FILE( am_I_Root )
+      ENDIF
+
       ! Partition H2SO4 before proceeding
       CALL CALC_H2SO4_GAS( Input_Opt, State_Met, State_Chm )
 
@@ -3680,15 +3711,23 @@
 !$OMP+PRIVATE( D_FRACN,      D_MAXN,             D_XH2O        )
 !$OMP+PRIVATE( D_XHNO3,      D_XNAT,             D_PPA         )
 !$OMP+PRIVATE( D_PP,         D_PS,               D_TK          )
+!$OMP+PRIVATE( VOL_TOT,      BOX_LAT                           )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
-         BOX_LAT_S = GET_YEDGE(1,J,1)
-         BOX_LAT_N = GET_YEDGE(1,J+1,1)
-         IS_POLAR = ((BOX_LAT_S.lt.PSC_MINLAT).or.
-     &               (BOX_LAT_N.gt.PSC_MAXLAT))
+!         BOX_LAT_S = GET_YEDGE(1,J,1)
+!         BOX_LAT_N = GET_YEDGE(1,J+1,1)
+!         IS_POLAR = ((BOX_LAT_S.lt.PSC_MINLAT).or.
+!     &               (BOX_LAT_N.gt.PSC_MAXLAT))
          ! Loop over longitudinal boxes
          DO I = 1, IIPAR
+
+               ! Now do IS_POLAR check for every grid box separately
+               ! and using mid-point instead of edges. This is to be
+               ! applicable to cube-sphere systems (ckeller, 1/16/15).
+               BOX_LAT  = GET_YMID(I,J,1)
+               IS_POLAR = ( (BOX_LAT <= PSC_MINLAT) .OR.
+     &                      (BOX_LAT >= PSC_MAXLAT)     )
 
                ! Get local conditions
                PCENTER    = GET_PCENTER(I,J,L) 
@@ -3731,7 +3770,8 @@
                HOBr_BOX_L   = 0.0e+0_fp
                HOBr_BOX_G   = 0.0e+0_fp
 
-               STATE_LOCAL  = STATE_PSC(I,J,L)
+               !STATE_LOCAL  = STATE_PSC(I,J,L)
+               STATE_LOCAL  = NINT(STATE_PSC(I,J,L))
 
                ! Calculate local air density
                DENAIR = AVOGADRO * PCENTER_PA / (TCENTER*R_UNIV)
@@ -3826,7 +3866,8 @@
                ENDIF
 
                ! Store state
-               STATE_PSC(I,J,L) = STATE_LOCAL
+               !STATE_PSC(I,J,L) = STATE_LOCAL
+               STATE_PSC(I,J,L) = REAL(STATE_LOCAL,f4)
 
                ! Only continue if we want online solid PSCs
                IF (LSOLIDPSC) THEN
@@ -3904,18 +3945,24 @@
                      RHO_AER_BOX  = DENSICE
                      NDENS_AER_BOX= 0e+0_fp
                   ELSE
+                     VOL_TOT = VOL_NAT + VOL_ICE
                      KG_AER_BOX = KG_NAT + KG_ICE
                      RAD_AER_BOX = MIN_RAD
-                     NDENS_AER_BOX = (3.0e+0_fp*(VOL_NAT+VOL_ICE)/
+                     NDENS_AER_BOX = (3.0e+0_fp*(VOL_TOT)/
      &                  (4.0e+0_fp*PI*(RAD_AER_BOX**3.0e+0_fp)))
                      IF (NDENS_AER_BOX.gt.MAX_NDENS) THEN
                         NDENS_AER_BOX = MAX_NDENS
-                        RAD_AER_BOX = (3.0e+0_fp*(VOL_NAT+VOL_ICE)/
+                        RAD_AER_BOX = (3.0e+0_fp*(VOL_TOT)/
      &                   (4.0e+0_fp*PI*MAX_NDENS))**(1.e+0_fp/3.e+0_fp)
                      ENDIF
-                     RHO_AER_BOX = 
-     &                  ((VOL_ICE*DENSICE)+(VOL_NAT*DENSNAT))/
-     &                                    (VOL_ICE+VOL_NAT)
+
+                     ! Prevent div-zero (ckeller, 1/16/15)
+                     IF ( VOL_TOT > 0.0_fp ) THEN
+                        RHO_AER_BOX = 
+     &                     ((VOL_ICE*DENSICE)+(VOL_NAT*DENSNAT))/VOL_TOT
+                     ELSE
+                        RHO_AER_BOX = DENSICE ! Is that correct?
+                     ENDIF
                   ENDIF
 
                   ! Calculate SAD (cm2/cm3)
@@ -4345,8 +4392,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_NAT( I, J, L, IS_NAT, IS_PSC, IS_STRAT, 
-     &                      Input_Opt, State_Met, State_Chm )
+      SUBROUTINE CHECK_NAT( am_I_Root, I, J, L, IS_NAT, IS_PSC, 
+     &                      IS_STRAT, Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 !
@@ -4358,6 +4405,7 @@
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Root CPU?
       INTEGER,        INTENT(IN)  :: I,J,L      ! Grid indices
       TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input options
       TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
@@ -4381,10 +4429,15 @@
       ! CHECK_NAT begins here!
       !=================================================================
 
+      IF ( .NOT. GOT_STATE_PSC ) THEN
+         CALL READ_PSC_FILE( am_I_Root )
+      ENDIF
+
       IS_STRAT = ITS_IN_THE_STRAT(I,J,L,State_Met)
 
       IS_PSC   = ( ( Input_Opt%LPSCCHEM ) .and.
-     &             ( STATE_PSC(I,J,L) .ge. 2 ) .and. ( IS_STRAT ) )
+!     &             ( STATE_PSC(I,J,L) .ge. 2 ) .and. ( IS_STRAT ) )
+     &             ( STATE_PSC(I,J,L) >= 2.0_f4 ) .and. ( IS_STRAT ) )
 
       IS_NAT   = ( ( IS_PSC ) .and.
      &         ( State_Chm%Tracers(I,J,L,IDTNIT) .gt. TINY(1e+0_fp) ) )
@@ -5070,39 +5123,43 @@
       RXNGAMMA(2) = TINY(1e+0_fp)
 
       ! Reactions 3/4. ClNO3 + H2O/HCl
-      c_ClNO3     =  1474.e+0_fp*SQRT(T)
-      SClNO3      =  0.306e+0_fp+24.e+0_fp/T
-      HClNO3      =  1.6e-6_fp*EXP(4710.e+0_fp/T)*EXP(-SClNO3*M_H2SO4)
-      DClNO3      =  5e-8_fp*T/h
-      kH2O        =  1.95e+10_fp*EXP(-2800.e+0_fp/T)
-      kH          =  1.22e+12_fp*EXP(-6200.e+0_fp/T)
-      khydr       =  kH2O*ACTH2O + kH*aH*ACTH2O
-      GbH2O       =  4.e+0_fp*HClNO3*0.082e+0_fp*T*SQRT(DClNO3*khydr)/
-     &               c_ClNO3
-      HHCl        =  (0.094e+0_fp-0.61e+0_fp*X+1.2e+0_fp*X*X)
-     &             *EXP(-8.68e+0_fp+(8515.e+0_fp-10718.e+0_fp*X**0.7)/T)
-      MHCl        =  HHCl *HClPP
-      kHCl        =  7.9e+11_fp*aH*DClNO3*MHCl
-      lClNO3      =  SQRT(DClNO3/(khydr+kHCl))
-      if (lClNO3.gt.(1.e+5_fp*arad)) then
-         ! Limiting rate
-         fClNO3   =  arad/(3.e+0_fp*lClNO3)
-      else
-         fClNO3   =  1.e+0_fp/tanh(arad/lClNO3)- lClNO3/arad
-      endif
-      GClNO3rxn   =  fClNO3*GbH2O *SQRT(1.e+0_fp+kHCl/khydr)
-      GbHCl       =  GClNO3rxn* kHCl/(kHCl+ khydr)
-      Gs          =  66.12e+0_fp*EXP(-1374.e+0_fp/T)*HClNO3*MHCl
-      FHCl        =  1.e+0_fp/(1.e+0_fp+0.612e+0_fp*(Gs+GbHCl)*
-     &             ClNO3PP/ HClPP)
-      Gsp         =  FHCl*Gs
-      GbHClp      =  FHCl*GbHCl
-      Gb          =  GbHClp  + GClNO3rxn* khydr/( kHCl+ khydr)
-      gClNO3      =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/(Gsp + Gb))
-      gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
-      gClNO3_H2O  =  gClNO3 - gClNO3_HCl
-
+      ! Now od only if HCl concentrations are large enough
+      ! (to avoid div-by-zero errors), ckeller, 2/10/15.
       IF (HClOK) THEN
+         c_ClNO3     =  1474.e+0_fp*SQRT(T)
+         SClNO3      =  0.306e+0_fp+24.e+0_fp/T
+         HClNO3      =  1.6e-6_fp*EXP(4710.e+0_fp/T)
+     &               *  EXP(-SClNO3*M_H2SO4)
+         DClNO3      =  5e-8_fp*T/h
+         kH2O        =  1.95e+10_fp*EXP(-2800.e+0_fp/T)
+         kH          =  1.22e+12_fp*EXP(-6200.e+0_fp/T)
+         khydr       =  kH2O*ACTH2O + kH*aH*ACTH2O
+         GbH2O       =  4_fp*HClNO3*0.082_fp*T*SQRT(DClNO3*khydr)
+     &               /  c_ClNO3
+         HHCl        =  (0.094e+0_fp-0.61e+0_fp*X+1.2e+0_fp*X*X)
+     &               *  EXP(-8.68_fp+(8515_fp-10718_fp*X**0.7)/T)
+         MHCl        =  HHCl *HClPP
+         kHCl        =  7.9e+11_fp*aH*DClNO3*MHCl
+         lClNO3      =  SQRT(DClNO3/(khydr+kHCl))
+         if (lClNO3.gt.(1.e+5_fp*arad)) then
+            ! Limiting rate
+            fClNO3   =  arad/(3.e+0_fp*lClNO3)
+         else
+            fClNO3   =  1.e+0_fp/tanh(arad/lClNO3)- lClNO3/arad
+         endif
+         GClNO3rxn   =  fClNO3*GbH2O *SQRT(1.e+0_fp+kHCl/khydr)
+         GbHCl       =  GClNO3rxn* kHCl/(kHCl+ khydr)
+         Gs          =  66.12e+0_fp*EXP(-1374.e+0_fp/T)*HClNO3*MHCl
+         FHCl        =  1.e+0_fp/(1.e+0_fp+0.612e+0_fp*(Gs+GbHCl)*
+     &                ClNO3PP/ HClPP)
+         Gsp         =  FHCl*Gs
+         GbHClp      =  FHCl*GbHCl
+         Gb          =  GbHClp  + GClNO3rxn* khydr/( kHCl+ khydr)
+         gClNO3      =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/(Gsp + Gb))
+         gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
+         gClNO3_H2O  =  gClNO3 - gClNO3_HCl
+   
+         !IF (HClOK) THEN
          RXNGAMMA(3) =  gClNO3_H2O
          RXNGAMMA(4) =  gClNO3_HCl
       ELSE
@@ -5261,161 +5318,161 @@
 
       END FUNCTION MOLEC_SPEED
 !EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!               MIT Laboratory for Aviation and the Environment               !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: make_psc_file
+!!
+!! !DESCRIPTION: Subroutine MAKE\_PSC\_FILE writes PSC state information
+!!  into a checkpoint file (binary punch file format).
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE MAKE_PSC_FILE( YYYYMMDD, HHMMSS, Input_Opt )
+!!
+!! !USES:
+!!
+!      USE BPCH2_MOD
+!      USE CMN_SIZE_MOD             ! Size parameters
+!      USE COMODE_LOOP_MOD          ! IGAS
+!      USE ERROR_MOD,          ONLY : DEBUG_MSG
+!      USE ERROR_MOD,          ONLY : ERROR_STOP
+!      USE FILE_MOD,           ONLY : IOERROR
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE GRID_MOD,           ONLY : GET_XOFFSET
+!      USE GRID_MOD,           ONLY : GET_YOFFSET
+!      USE TIME_MOD,           ONLY : EXPAND_DATE
+!      USE TIME_MOD,           ONLY : GET_TAU
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
+!      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
+!      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+!! 
+!! !REVISION HISTORY: 
+!!  28 Apr 2013 - S. D. Eastham - Initial version, based on MAKE_CSPEC_FILE
+!!  16 Apr 2014 - M. Sulprizio  - Now get PSC restart file path from Input_Opt
+!!  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER              :: IU_RST
+!      INTEGER              :: I,    I0, IOS, J,  J0, L, N, JLOOP
+!      INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
+!      CHARACTER(LEN=255)   :: FILENAME
 !
-! !IROUTINE: make_psc_file
+!      ! Temporary storage arrays for checkpointed variables
+!      REAL*4               :: TMP(ILONG, ILAT, IPVERT)
 !
-! !DESCRIPTION: Subroutine MAKE\_PSC\_FILE writes PSC state information
-!  into a checkpoint file (binary punch file format).
-!\\
-!\\
-! !INTERFACE:
+!      ! For binary punch file, version 2.0
+!      REAL*4               :: LONRES, LATRES
+!      ! make HALFPOLAR variable (hotp 2/25/09)
+!      INTEGER              :: HALFPOLAR
+!      INTEGER, PARAMETER   :: CENTER180 = 1
 !
-      SUBROUTINE MAKE_PSC_FILE( YYYYMMDD, HHMMSS, Input_Opt )
+!      CHARACTER(LEN=20)    :: MODELNAME
+!      CHARACTER(LEN=40)    :: CATEGORY
+!      CHARACTER(LEN=40)    :: UNIT     
+!      CHARACTER(LEN=40)    :: RESERVED = ''
+!      CHARACTER(LEN=80)    :: TITLE 
 !
-! !USES:
+!      ! Local variables for quantities from Input_Opt
+!      LOGICAL :: LPRT
 !
-      USE BPCH2_MOD
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_LOOP_MOD          ! IGAS
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE FILE_MOD,           ONLY : IOERROR
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GRID_MOD,           ONLY : GET_XOFFSET
-      USE GRID_MOD,           ONLY : GET_YOFFSET
-      USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE TIME_MOD,           ONLY : GET_TAU
+!      !=================================================================
+!      ! MAKE_PSC_FILE begins here!
+!      !=================================================================
 !
-! !INPUT PARAMETERS: 
+!      ! Copy fields from INPUT_OPT
+!      LPRT = Input_Opt%LPRT
 !
-      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+!      ! Copy PSC restart filename template to a local variable
+!      FILENAME = TRIM( Input_Opt%PSC_RST_FILE )
+!
+!      ! Clear some arrays 
+!      ! use minimum value instead of zero hotp 2/25/09
+!      TMP(:,:,:)   = 0
+!
+!      ! Define variables for BINARY PUNCH FILE OUTPUT
+!      TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
+!     &           'Instantaneous PSC state (unitless)'
+!      LONRES   = DISIZE
+!      LATRES   = DJSIZE
+!      ! get value of HALFPOLAR hotp 2/25/09
+!      HALFPOLAR = GET_HALFPOLAR()
+!
+!      ! Call GET_MODELNAME to return the proper model name for
+!      ! the given met data being used (bmy, 6/22/00)
+!      MODELNAME = GET_MODELNAME()
+!
+!      ! Get the nested-grid offsets
+!      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+!      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+!
+!      !=================================================================
+!      ! Open the checkpoint file for output -- binary punch format
+!      !=================================================================
+!
+!      ! Find a free file LUN
+!      IU_RST   = findFreeLUN()
+!
+!      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+!      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+!
+!      ! Add ADJ_DIR prefix to filename
+!      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
+!
+!      WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
+! 100  FORMAT( '     - MAKE_PSC_FILE: Writing ', a, ' on unit ', i4 )
+!
+!      ! Open checkpoint file for output
+!      CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )
+!
+!      !=================================================================
+!      ! Write each checkpointed quantity to the checkpoint file
+!      !=================================================================
+!
+!      ! Checkpt additional values for full chem simulation
+!      UNIT     = 'unitless'
+!      CATEGORY = 'IJ-PSC-$'
+!      N        = 1
+!    
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO L = 1, IPVERT
+!         DO J = 1, ILAT
+!         DO I = 1, ILONG
+!        
+!              TMP(I,J,L) = REAL(STATE_PSC(I,J,L))+0.1e+0_fp
+!
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
 ! 
-! !REVISION HISTORY: 
-!  28 Apr 2013 - S. D. Eastham - Initial version, based on MAKE_CSPEC_FILE
-!  16 Apr 2014 - M. Sulprizio  - Now get PSC restart file path from Input_Opt
-!  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      ! Write the data block to the CSPEC checkpoint file
+!      CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,
+!     &               HALFPOLAR, CENTER180, CATEGORY,  N,
+!     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
+!     &               ILONG,     ILAT,      IPVERT,    I0+1,
+!     &               J0+1,      1,         TMP(:,:,:) )
+! 
+!      ! Close file
+!      CLOSE( IU_RST )
 !
-! !LOCAL VARIABLES:
+!      !### Debug
+!      IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_PSC_FILE: wrote file' )
 !
-      INTEGER              :: IU_RST
-      INTEGER              :: I,    I0, IOS, J,  J0, L, N, JLOOP
-      INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
-      CHARACTER(LEN=255)   :: FILENAME
-
-      ! Temporary storage arrays for checkpointed variables
-      REAL*4               :: TMP(ILONG, ILAT, IPVERT)
-
-      ! For binary punch file, version 2.0
-      REAL*4               :: LONRES, LATRES
-      ! make HALFPOLAR variable (hotp 2/25/09)
-      INTEGER              :: HALFPOLAR
-      INTEGER, PARAMETER   :: CENTER180 = 1
-
-      CHARACTER(LEN=20)    :: MODELNAME
-      CHARACTER(LEN=40)    :: CATEGORY
-      CHARACTER(LEN=40)    :: UNIT     
-      CHARACTER(LEN=40)    :: RESERVED = ''
-      CHARACTER(LEN=80)    :: TITLE 
-
-      ! Local variables for quantities from Input_Opt
-      LOGICAL :: LPRT
-
-      !=================================================================
-      ! MAKE_PSC_FILE begins here!
-      !=================================================================
-
-      ! Copy fields from INPUT_OPT
-      LPRT = Input_Opt%LPRT
-
-      ! Copy PSC restart filename template to a local variable
-      FILENAME = TRIM( Input_Opt%PSC_RST_FILE )
-
-      ! Clear some arrays 
-      ! use minimum value instead of zero hotp 2/25/09
-      TMP(:,:,:)   = 0
-
-      ! Define variables for BINARY PUNCH FILE OUTPUT
-      TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
-     &           'Instantaneous PSC state (unitless)'
-      LONRES   = DISIZE
-      LATRES   = DJSIZE
-      ! get value of HALFPOLAR hotp 2/25/09
-      HALFPOLAR = GET_HALFPOLAR()
-
-      ! Call GET_MODELNAME to return the proper model name for
-      ! the given met data being used (bmy, 6/22/00)
-      MODELNAME = GET_MODELNAME()
-
-      ! Get the nested-grid offsets
-      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-
-      !=================================================================
-      ! Open the checkpoint file for output -- binary punch format
-      !=================================================================
-
-      ! Find a free file LUN
-      IU_RST   = findFreeLUN()
-
-      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-
-      ! Add ADJ_DIR prefix to filename
-      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
-
-      WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
- 100  FORMAT( '     - MAKE_PSC_FILE: Writing ', a, ' on unit ', i4 )
-
-      ! Open checkpoint file for output
-      CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )
-
-      !=================================================================
-      ! Write each checkpointed quantity to the checkpoint file
-      !=================================================================
-
-      ! Checkpt additional values for full chem simulation
-      UNIT     = 'unitless'
-      CATEGORY = 'IJ-PSC-$'
-      N        = 1
-    
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, IPVERT
-         DO J = 1, ILAT
-         DO I = 1, ILONG
-        
-              TMP(I,J,L) = REAL(STATE_PSC(I,J,L))+0.1e+0_fp
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
- 
-      ! Write the data block to the CSPEC checkpoint file
-      CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY,  N,
-     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
-     &               ILONG,     ILAT,      IPVERT,    I0+1,
-     &               J0+1,      1,         TMP(:,:,:) )
- 
-      ! Close file
-      CLOSE( IU_RST )
-
-      !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_PSC_FILE: wrote file' )
-
-      END SUBROUTINE MAKE_PSC_FILE
-!EOC
+!      END SUBROUTINE MAKE_PSC_FILE
+!!EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
@@ -5429,163 +5486,205 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PSC_FILE( am_I_Root, Input_Opt,
-     &                          YYYYMMDD,  HHMMSS,    
-     &                          IT_EXISTS  ) 
+      SUBROUTINE READ_PSC_FILE( am_I_Root )
+!     &                          YYYYMMDD,  HHMMSS,    
+!     &                          IT_EXISTS  ) 
 !
 ! !USES:
 !
-      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_LOOP_MOD          ! ITLOOP, IGAS
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
+!      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
+!      USE CMN_SIZE_MOD             ! Size parameters
+!      USE COMODE_LOOP_MOD          ! ITLOOP, IGAS
+!      USE ERROR_MOD,          ONLY : DEBUG_MSG
+!      USE FILE_MOD,           ONLY : IOERROR
+!      USE FILE_MOD,           ONLY : FILE_EXISTS
+!      USE TIME_MOD,           ONLY : EXPAND_DATE
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE FILE_MOD,           ONLY : IOERROR
-      USE FILE_MOD,           ONLY : FILE_EXISTS
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TIME_MOD,           ONLY : EXPAND_DATE
+
+      ! HEMCO update
+      USE HCO_ERROR_MOD
+      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!      INTEGER,        INTENT(IN)    :: YYYYMMDD    ! YYYY/MM/DD GMT date
+!      INTEGER,        INTENT(IN)    :: HHMMSS      ! hh:mm:ss   GMT time
+!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
 ! 
 ! !REVISION HISTORY: 
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on READ_CSPEC_FILE
 !  14 Feb 2014 - R. Yantosca   - Reorder DO loops for efficiency
 !  16 Apr 2014 - M. Sulprizio  - Now get PSC restart file path from Input_Opt
 !  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
+!  14 Jan 2015 - C. Keller     - Now read from HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, IOS, IU_RST, J, L, N, NN, NTL
-      REAL*4              :: TMP(ILONG,ILAT,IPVERT)
-      LOGICAL             :: IT_EXISTS 
+!      INTEGER             :: I, IOS, IU_RST, J, L, N, NN, NTL
+!      REAL*4              :: TMP(ILONG,ILAT,IPVERT)
+!      LOGICAL             :: IT_EXISTS 
 
-      REAL(fp)              :: SUMTC
-      CHARACTER(LEN=255)  :: FILENAME
-      CHARACTER(LEN=255)  :: MSG
+!      REAL(fp)              :: SUMTC
+!       CHARACTER(LEN=255)  :: FILENAME
+       CHARACTER(LEN=255)  :: MSG
      
-      ! For binary punch file, version 2.0
-      INTEGER             :: NI,     NJ,     NL
-      INTEGER             :: IFIRST, JFIRST, LFIRST
-      INTEGER             :: NTRACER,   NSKIP
-      INTEGER             :: HALFPOLAR, CENTER180
-      REAL*4              :: LONRES,    LATRES
-      REAL(fp)              :: ZTAU0,     ZTAU1
-      CHARACTER(LEN=20)   :: MODELNAME
-      CHARACTER(LEN=40)   :: CATEGORY
-      CHARACTER(LEN=40)   :: UNIT     
-      CHARACTER(LEN=40)   :: RESERVED
+!      ! For binary punch file, version 2.0
+!      INTEGER             :: NI,     NJ,     NL
+!      INTEGER             :: IFIRST, JFIRST, LFIRST
+!      INTEGER             :: NTRACER,   NSKIP
+!      INTEGER             :: HALFPOLAR, CENTER180
+!      REAL*4              :: LONRES,    LATRES
+!      REAL(fp)              :: ZTAU0,     ZTAU1
+!      CHARACTER(LEN=20)   :: MODELNAME
+!      CHARACTER(LEN=40)   :: CATEGORY
+!      CHARACTER(LEN=40)   :: UNIT     
+!      CHARACTER(LEN=40)   :: RESERVED
 
-      ! Local variables for quantities from Input_Opt
-      LOGICAL :: LPRT
+!      ! Local variables for quantities from Input_Opt
+!      LOGICAL :: LPRT
+
+      ! HEMCO update
+      LOGICAL            :: IT_EXISTS 
+      INTEGER            :: RC
+      REAL(sp), POINTER  :: Ptr3D(:,:,:) => NULL()
+      CHARACTER(LEN=255) :: cName 
 
       !=================================================================
       ! READ_PSC_FILE begins here!
       !=================================================================
 
-      ! Copy fields from INPUT_OPT
-      LPRT = Input_Opt%LPRT
-
-      ! Copy PSC restart filename template to a local variable
-      FILENAME = TRIM( Input_Opt%PSC_RST_FILE )
-
-      ! Initialize some variables
-      TMP(:,:,:) = 0
-
-      !=================================================================
-      ! Open checkpoint file and read top-of-file header
-      !=================================================================
-
-      ! Find a free file LUN
-      IU_RST   = findFreeLUN()
-     
-      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-
-      ! Add ADJ_DIR prefix to name
-      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
-
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
+      ! Now read restart file through HEMCO
+      cName = 'STATE_PSC'
+      CALL HCO_GetPtr( am_I_Root, TRIM(cName), Ptr3D, RC, 
+     &                 FOUND=IT_EXISTS )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         MSG = 'Cannot read PSC initial state: '//TRIM(cName)
+         CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
       ENDIF
- 100  FORMAT( '     - READ_PSC_FILE: Reading ', a, ' on unit ', i4 )
- 
-      ! Check to see if PSC restart file exists
-      IT_EXISTS = FILE_EXISTS( FILENAME )
-      IF ( .not. IT_EXISTS ) THEN 
-         RETURN
-      ENDIF 
 
-      ! Open the binary punch file for input
-      CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
-
-      ! Read the values of STATE_PSC
-      READ( IU_RST, IOSTAT=IOS )
-     &    MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
-
-      ! IOS < 0 is end-of-file, so exit
-      IF ( IOS < 0 ) GOTO 555
-
-      ! IOS > 0 is a real I/O error -- print error message
-      IF ( IOS > 0 ) 
-     &   CALL IOERROR( IOS,IU_RST,'read_psc_file:13' )
-
-      ! Read data block header
-      READ( IU_RST, IOSTAT=IOS )
-     &      CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
-     &      NTL,      NN,       NL,   IFIRST, JFIRST, LFIRST,
-     &      NSKIP
-
-      ! Error check
-      IF ( IOS /= 0 ) 
-     &   CALL IOERROR(IOS,IU_RST,'read_psc_file:14' )
-
-      ! Read data block
-      READ( IU_RST, IOSTAT=IOS )
-     &    ( ( ( TMP(I,J,L), I= 1, NTL), J=1,NN ), L = 1, NL)
-
-      ! Error check
-      IF ( IOS /= 0 ) 
-     &   CALL IOERROR( IOS,IU_RST,'read_psc_file:16' )
-
-      !==============================================================
-      ! Assign data from the TMP array to STATE_PSC
-      !==============================================================
-
-      ! Only process PSC data 
-      IF ( CATEGORY(1:8) == 'IJ-PSC-$' .and.
-     &     NTL           == ILONG      .and. 
-     &     NN            == ILAT       .and. 
-     &     NL            == IPVERT            ) THEN
-
-         DO L = 1, NL
-         DO J = 1, NN
-         DO I = 1, NTL
-            STATE_PSC(I,J,L) = INT( FLOOR( TMP(I,J,L) ) )
-         ENDDO
-         ENDDO
-         ENDDO
-
+      ! If restart exists, point to this field. Eventually deallocate
+      ! pointer first.
+      IF ( IT_EXISTS ) THEN
+         STATE_PSC(:,:,:) = Ptr3D(:,:,:)
+         IF (am_I_Root ) THEN
+            WRITE(6,*) '    - UCX: Initialize PSC from restart' 
+         ENDIF
       ELSE
-         CALL ERROR_STOP(' Restart data is not correct ', 
-     &                   ' reading STATE_PSC, UCX_mod')
-
+         IF (am_I_Root ) THEN
+         WRITE(6,*) 
+     &     '    - UCX: PSC restart not found, initialize PSC-free'
+         ENDIF
       ENDIF
 
- 555  CONTINUE
+      ! Cleanup
+      Ptr3D => NULL()
 
-      ! Close file
-      CLOSE( IU_RST )      
+      ! Update flag
+      GOT_STATE_PSC = .TRUE.
 
-      !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### READ_PSC_FILE: read file' )
+!      ! Copy fields from INPUT_OPT
+!      LPRT = Input_Opt%LPRT
+!
+!      ! Copy PSC restart filename template to a local variable
+!      FILENAME = TRIM( Input_Opt%PSC_RST_FILE )
+!
+!      ! Initialize some variables
+!      TMP(:,:,:) = 0
+!
+!      !=================================================================
+!      ! Open checkpoint file and read top-of-file header
+!      !=================================================================
+!
+!      ! Find a free file LUN
+!      IU_RST   = findFreeLUN()
+!     
+!      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+!      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+!
+!      ! Add ADJ_DIR prefix to name
+!      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
+!
+!      IF ( am_I_Root ) THEN
+!         WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
+!      ENDIF
+! 100  FORMAT( '     - READ_PSC_FILE: Reading ', a, ' on unit ', i4 )
+! 
+!      ! Check to see if PSC restart file exists
+!      IT_EXISTS = FILE_EXISTS( FILENAME )
+!      IF ( .not. IT_EXISTS ) THEN 
+!         RETURN
+!      ENDIF 
+!
+!      ! Open the binary punch file for input
+!      CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
+!
+!      ! Read the values of STATE_PSC
+!      READ( IU_RST, IOSTAT=IOS )
+!     &    MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
+!
+!      ! IOS < 0 is end-of-file, so exit
+!      IF ( IOS < 0 ) GOTO 555
+!
+!      ! IOS > 0 is a real I/O error -- print error message
+!      IF ( IOS > 0 ) 
+!     &   CALL IOERROR( IOS,IU_RST,'read_psc_file:13' )
+!
+!      ! Read data block header
+!      READ( IU_RST, IOSTAT=IOS )
+!     &      CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
+!     &      NTL,      NN,       NL,   IFIRST, JFIRST, LFIRST,
+!     &      NSKIP
+!
+!      ! Error check
+!      IF ( IOS /= 0 ) 
+!     &   CALL IOERROR(IOS,IU_RST,'read_psc_file:14' )
+!
+!      ! Read data block
+!      READ( IU_RST, IOSTAT=IOS )
+!     &    ( ( ( TMP(I,J,L), I= 1, NTL), J=1,NN ), L = 1, NL)
+!
+!      ! Error check
+!      IF ( IOS /= 0 ) 
+!     &   CALL IOERROR( IOS,IU_RST,'read_psc_file:16' )
+!
+!      !==============================================================
+!      ! Assign data from the TMP array to STATE_PSC
+!      !==============================================================
+!
+!      ! Only process PSC data 
+!      IF ( CATEGORY(1:8) == 'IJ-PSC-$' .and.
+!     &     NTL           == ILONG      .and. 
+!     &     NN            == ILAT       .and. 
+!     &     NL            == IPVERT            ) THEN
+!
+!         DO L = 1, NL
+!         DO J = 1, NN
+!         DO I = 1, NTL
+!            STATE_PSC(I,J,L) = INT( FLOOR( TMP(I,J,L) ) )
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!
+!      ELSE
+!         CALL ERROR_STOP(' Restart data is not correct ', 
+!     &                   ' reading STATE_PSC, UCX_mod')
+!
+!      ENDIF
+!
+! 555  CONTINUE
+!
+!      ! Close file
+!      CLOSE( IU_RST )      
+!
+!      !### Debug
+!      IF ( LPRT ) CALL DEBUG_MSG( '### READ_PSC_FILE: read file' )
 
       END SUBROUTINE READ_PSC_FILE
 !EOC
@@ -6638,7 +6737,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, YYYYMMDD, HHMMSS )
+      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt )
+      !SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, YYYYMMDD, HHMMSS )
 !
 ! !USES:
 !
@@ -6653,8 +6753,8 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
+!      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
+!      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !OUTPUT VARIABLES:
@@ -6669,7 +6769,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: N, AS
-      LOGICAL :: IT_EXISTS, USE2DDATA
+      LOGICAL :: USE2DDATA
       CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC
       INTEGER            :: JIN, JOUT
       REAL(fp)             :: JMIN_IN, JMAX_IN, JDIF_IN
@@ -6723,12 +6823,14 @@
 !      LBASICEMIS   = Input_Opt%LBASICEMIS
 
       ! Set module variable doPrint for use in internal functions
-      doPrint      = LPRT
+      doPrint      = LPRT .AND. am_I_Root
 
-      WRITE( 6,'(a)') REPEAT( '=', 79 )
-      WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
-      WRITE( 6,'(a)') 'Routines written by SEBASTIAN D. EASTHAM'
-      WRITE( 6,'(a)') REPEAT( '=', 79 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6,'(a)') REPEAT( '=', 79 )
+         WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
+         WRITE( 6,'(a)') 'Routines written by SEBASTIAN D. EASTHAM'
+         WRITE( 6,'(a)') REPEAT( '=', 79 )
+      ENDIF
 
       ! Don't use BASICEMIS switch in check below (ckeller, 05/12/14)
       USE2DDATA = ( LSETOCS     .or. LSETCFC      .or. LSETCL     .or.
@@ -6745,6 +6847,7 @@
 #if !defined(GRID4x5) && !defined(GRID2x25)
        DBGMSG = 'Zonal means preprocessed only for 2x2.5 and 4x5 grid.'
        CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
+       RETURN
 #endif
       ENDIF
 
@@ -6752,9 +6855,10 @@
       ! Regridding of netCDF input data is currently not supported.
       IF (UCXNETCDF) THEN
 #if !defined(GRID4x5) && !defined(GRID2x25)
-         DBGMSG = 'NOx coeffs only preprocessed for 2x25 and 4x5 '//
-     &            '- try setting the module variable UCXNETCDF=.FALSE.'
+         DBGMSG = 'NetCDF NOx coeffs only preprocessed for 2x25 and '//
+     &     ' 4x5 - try setting the module variable UCXNETCDF=.FALSE.'
          CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
+       RETURN
 #endif
          WRITE( AVG_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%DATA_DIR_1x1),
@@ -7001,7 +7105,8 @@
       
       ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
-      STATE_PSC = 0e+0_fp
+      !STATE_PSC = 0e+0_fp
+      STATE_PSC     = 0.0_f4
       
       ! Mass fraction of tracers contained in liquid aerosol
       ! Indices: 1 - SO4
@@ -7030,16 +7135,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'KHETI_SLA' )
       KHETI_SLA = 0e+0_fp
      
-      ! Read in PSC state
-      CALL READ_PSC_FILE( am_I_Root, Input_Opt,
-     &                    YYYYMMDD,  HHMMSS,
-     &                    IT_EXISTS  )
-
-      IF ((am_I_Root).and.(.not.IT_EXISTS)) THEN
-         WRITE(6,*) 
-     &  '    - UCX: PSC restart not found, initialize PSC-free'
-      ENDIF
-
       ! H2SO4 photolysis rate at the top of the chemgrid
       ALLOCATE( SO4_TOPPHOT( IIPAR,JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_TOPPHOT' )
@@ -7114,6 +7209,79 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: diaginit_ucx
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_UCX initializes diagnostics containers
+! for the UCX module. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_ERROR_MOD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY: 
+!  14 Jan 2015 - C. Keller     - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      INTEGER            :: N
+      CHARACTER(LEN= 63) :: DiagnName 
+      CHARACTER(LEN=255) :: MSG
+      CHARACTER(LEN=255) :: LOC = 'DIAGINIT_DRYDEP (drydep_mod.F)' 
+
+      !=================================================================
+      ! DIAGINIT_UCX begins here!
+      !=================================================================
+      
+      ! Add diagnostics
+      DiagnName = 'STATE_PSC'
+      CALL Diagn_Create ( am_I_Root, 
+     &                    cName     = TRIM(DiagnName), 
+     &                    ExtNr     = -1, 
+     &                    Cat       = -1, 
+     &                    Hier      = -1, 
+     &                    HcoID     = -1, 
+     &                    SpaceDim  =  3, 
+     &                    AutoFill  =  0, 
+     &                    OutUnit   = 'count',
+     &                    OutOper   = 'Instantaneous',
+     &                    Trgt3D    = STATE_PSC,
+     &                    WriteFreq = 'End',
+     &                    cID       = N,
+     &                    RC        = RC,
+     &                    COL       = Input_Opt%DIAG_COLLECTION )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         MSG = 'Cannot created diagnostics: ' // TRIM(DiagnName)
+         CALL ERROR_STOP ( MSG, LOC ) 
+      ENDIF
+
+      ! Return w/ success
+      RC = GIGC_SUCCESS
+
+      END SUBROUTINE DIAGINIT_UCX
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: cleanup_ucx
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_UCX deallocates module variables.
@@ -7140,7 +7308,8 @@
       IF ( ALLOCATED( SAD_AER    ) ) DEALLOCATE( SAD_AER    )
       IF ( ALLOCATED( KG_AER     ) ) DEALLOCATE( KG_AER     )
       IF ( ALLOCATED( RHO_AER    ) ) DEALLOCATE( RHO_AER    )
-      IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )
+      !IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )
+      IF ( ASSOCIATED( STATE_PSC ) ) DEALLOCATE( STATE_PSC  )
       IF ( ALLOCATED( NDENS_AER  ) ) DEALLOCATE( NDENS_AER  )
       IF ( ALLOCATED( AERFRAC    ) ) DEALLOCATE( AERFRAC    )
       IF ( ALLOCATED( AERFRACIND ) ) DEALLOCATE( AERFRACIND )
