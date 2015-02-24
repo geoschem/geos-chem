@@ -330,7 +330,9 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HG2_DD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_DD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Br,  AD03_Hg2_OH
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
@@ -1030,6 +1032,7 @@
      &              DEP_HG2g_DRY + DEP_Hg2p_DRY, State_Met )
             ENDIF           
 
+#if !defined( NO_BPCH )
             !=================================================================
             ! ND44 diagnostic: drydep flux of Hg(II) [molec/cm2/s]
             !=================================================================
@@ -1062,8 +1065,8 @@
                AD44(I,J,ID_HGP(N),1) = AD44(I,J,ID_HGP(N),1) +
      &              DEP_DRY_FLX
 
-
             ENDIF
+#endif
 
             !==============================================================
             ! ND03 diagnostic: Hg(II) production [kg]
@@ -3197,7 +3200,7 @@
 
       ! HEMCO update
       CHARACTER(LEN= 63)       :: DgnName
-      REAL(hp), POINTER        :: Ptr2D(:,:) => NULL()  
+      REAL(sp), POINTER        :: Ptr2D   (:,:) => NULL()  
       TYPE(HCO_STATE), POINTER :: HcoState   => NULL()
 
       CHARACTER(LEN=255) :: MSG
@@ -3299,7 +3302,7 @@
       IF ( RC /= HCO_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to HG0_SOILDIST', LOC )
       ENDIF
-      EHg0_dist = Ptr2D(:,:) 
+      EHg0_dist =  Ptr2D(:,:) 
       Ptr2D     => NULL()
 
       ! Free pointer

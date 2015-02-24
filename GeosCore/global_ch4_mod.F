@@ -134,8 +134,8 @@
       REAL(fp),  ALLOCATABLE         :: TAVG(:,:,:)
 
       ! HEMCO pointers
-      REAL(hp), POINTER            :: BOH    (:,:,:) => NULL() ! Get from HEMCO
-      REAL(hp), POINTER            :: CH4LOSS(:,:,:) => NULL() ! Get from HEMCO
+      REAL(sp), POINTER            :: BOH    (:,:,:) => NULL() ! Get from HEMCO
+      REAL(sp), POINTER            :: CH4LOSS(:,:,:) => NULL() ! Get from HEMCO
 
       ! Online CH4 only
       REAL(fp),  ALLOCATABLE         :: SUMANTHRO(:,:)
@@ -411,7 +411,7 @@
       INTEGER                   :: FLAG, ERR
       CHARACTER(LEN= 63)        :: DgnName
       TYPE(HCO_STATE), POINTER  :: HcoState   => NULL()
-      REAL(hp), POINTER         :: Ptr2D(:,:) => NULL()
+      REAL(sp), POINTER         :: Ptr2D(:,:) => NULL()
 
       CHARACTER(LEN=255)        :: MSG
       CHARACTER(LEN=255)        :: LOC = 'EMISSCH4 (global_ch4_mod.F)'

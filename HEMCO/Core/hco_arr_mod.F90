@@ -54,9 +54,13 @@ MODULE HCO_Arr_Mod
 !
   PRIVATE :: HCO_ArrInit_3D_Hp
   PRIVATE :: HCO_ArrInit_2D_Hp
+  PRIVATE :: HCO_ArrInit_3D_Sp
+  PRIVATE :: HCO_ArrInit_2D_Sp
   PRIVATE :: HCO_ArrInit_2D_I
   PRIVATE :: HCO_ArrVecInit_3D_Hp
   PRIVATE :: HCO_ArrVecInit_2D_Hp
+  PRIVATE :: HCO_ArrVecInit_3D_Sp
+  PRIVATE :: HCO_ArrVecInit_2D_Sp
   PRIVATE :: HCO_ValInit
   PRIVATE :: HCO_ValInit_3D_Sp
   PRIVATE :: HCO_ValInit_3D_Dp
@@ -65,11 +69,17 @@ MODULE HCO_Arr_Mod
   PRIVATE :: HCO_ValInit_2D_I
   PRIVATE :: HCO_ArrAssert_2D_Hp
   PRIVATE :: HCO_ArrAssert_3D_Hp
+  PRIVATE :: HCO_ArrAssert_2D_Sp
+  PRIVATE :: HCO_ArrAssert_3D_Sp
   PRIVATE :: HCO_ArrCleanup_3D_Hp
   PRIVATE :: HCO_ArrCleanup_2D_Hp
+  PRIVATE :: HCO_ArrCleanup_3D_Sp
+  PRIVATE :: HCO_ArrCleanup_2D_Sp
   PRIVATE :: HCO_ArrCleanup_2D_I
   PRIVATE :: HCO_ArrVecCleanup_3D_Hp
   PRIVATE :: HCO_ArrVecCleanup_2D_Hp
+  PRIVATE :: HCO_ArrVecCleanup_3D_Sp
+  PRIVATE :: HCO_ArrVecCleanup_2D_Sp
   PRIVATE :: HCO_ValCleanup_3D_Sp
   PRIVATE :: HCO_ValCleanup_3D_Dp
   PRIVATE :: HCO_ValCleanup_2D_Sp
@@ -89,20 +99,34 @@ MODULE HCO_Arr_Mod
      LOGICAL           :: Alloc       ! Allocated?
   END TYPE Arr2D_I
 
+  TYPE, PUBLIC :: Arr2D_Sp
+     REAL(sp), POINTER :: Val(:,:)    ! x,y
+     LOGICAL           :: Alloc       ! Allocated?
+  END TYPE Arr2D_Sp
+
   ! 3D arrays
   TYPE, PUBLIC :: Arr3D_Hp
      REAL(hp), POINTER :: Val(:,:,:)  ! x,y,z
      LOGICAL           :: Alloc       ! Allocated?
   END TYPE Arr3D_Hp
+
+  TYPE, PUBLIC :: Arr3D_Sp
+     REAL(sp), POINTER :: Val(:,:,:)  ! x,y,z
+     LOGICAL           :: Alloc       ! Allocated?
+  END TYPE Arr3D_Sp
 !
 ! !PRIVATE TYPES:
 !
   INTERFACE HCO_ArrInit 
      MODULE PROCEDURE HCO_ArrInit_3D_Hp
      MODULE PROCEDURE HCO_ArrInit_2D_Hp
+     MODULE PROCEDURE HCO_ArrInit_3D_Sp
+     MODULE PROCEDURE HCO_ArrInit_2D_Sp
      MODULE PROCEDURE HCO_ArrInit_2D_I
      MODULE PROCEDURE HCO_ArrVecInit_3D_Hp
      MODULE PROCEDURE HCO_ArrVecInit_2D_Hp
+     MODULE PROCEDURE HCO_ArrVecInit_3D_Sp
+     MODULE PROCEDURE HCO_ArrVecInit_2D_Sp
   END INTERFACE HCO_ArrInit
 
   INTERFACE HCO_ValInit 
@@ -116,14 +140,20 @@ MODULE HCO_Arr_Mod
   INTERFACE HCO_ArrAssert
      MODULE PROCEDURE HCO_ArrAssert_2D_Hp
      MODULE PROCEDURE HCO_ArrAssert_3D_Hp
+     MODULE PROCEDURE HCO_ArrAssert_2D_Sp
+     MODULE PROCEDURE HCO_ArrAssert_3D_Sp
   END INTERFACE HCO_ArrAssert
 
   INTERFACE HCO_ArrCleanup
      MODULE PROCEDURE HCO_ArrCleanup_3D_Hp
      MODULE PROCEDURE HCO_ArrCleanup_2D_Hp
      MODULE PROCEDURE HCO_ArrCleanup_2D_I
+     MODULE PROCEDURE HCO_ArrCleanup_3D_Sp
+     MODULE PROCEDURE HCO_ArrCleanup_2D_Sp
      MODULE PROCEDURE HCO_ArrVecCleanup_3D_Hp
      MODULE PROCEDURE HCO_ArrVecCleanup_2D_Hp
+     MODULE PROCEDURE HCO_ArrVecCleanup_3D_Sp
+     MODULE PROCEDURE HCO_ArrVecCleanup_2D_Sp
   END INTERFACE HCO_ArrCleanup
 
   INTERFACE HCO_ValCleanup
@@ -191,6 +221,54 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_ArrInit_2D_Hp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_ArrInit_2D_Sp
+!
+! !DESCRIPTION: Subroutine HCO\_ArrInit\_2D\_Sp initializes the given data
+! container 2D array. nx and ny denote the array size dimensions. If nx is 
+! set to 0, no data is allocated but Val is set to a (nullified) pointer 
+! instead. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ArrInit_2D_Sp( Arr, nx, ny, RC )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Arr2D_Sp), POINTER       :: Arr       ! Array 
+    INTEGER,        INTENT(IN)    :: nx        ! x-dim
+    INTEGER,        INTENT(IN)    :: ny        ! y-dim
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  01 Oct 2014 - C. Keller - Added Alloc flag
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! ================================================================
+    ! HCO_ArrInit_2D_Sp begins here
+    ! ================================================================
+    
+    NULLIFY (Arr)
+    ALLOCATE(Arr)
+    CALL HCO_ValInit( Arr%Val, nx, ny, Arr%Alloc, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Leave
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_ArrInit_2D_Sp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -293,6 +371,54 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: HCO_ArrInit_3D_Sp
+!
+! !DESCRIPTION: Subroutine HCO\_ArrInit\_3D\_Sp initializes the given data
+! container 3D array. nx and ny denote the array size dimensions. If nx is 
+! set to 0, no data is allocated but Val is set to a (nullified) pointer 
+! instead. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ArrInit_3D_Sp( Arr, nx, ny, nz, RC )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Arr3D_Sp), POINTER       :: Arr   ! Array 
+    INTEGER,        INTENT(IN)    :: nx        ! x-dim
+    INTEGER,        INTENT(IN)    :: ny        ! y-dim
+    INTEGER,        INTENT(IN)    :: nz        ! z-dim
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  01 Oct 2014 - C. Keller - Added Alloc flag
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    ! ================================================================
+    ! HCO_ArrInit_3D_Hp begins here
+    ! ================================================================
+
+    NULLIFY (Arr)
+    ALLOCATE(Arr)
+    CALL HCO_ValInit( Arr%Val, nx, ny, nz, Arr%Alloc, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    
+    ! Leave
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_ArrInit_3D_Sp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: HCO_ArrVecInit_2D_Hp
 !
 ! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_2D\_Hp initializes the given data
@@ -346,6 +472,65 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_ArrVecInit_2D_Hp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_ArrVecInit_2D_Sp
+!
+! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_2D\_Sp initializes the given data
+! container 2D array vector. nn denotes the number of 2D arrays, and nx and ny 
+! denote the array size dimensions. If nx is set to 0, no data is allocated but 
+! Val is set to a (nullified) pointer instead. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ArrVecInit_2D_Sp( ArrVec, nn, nx, ny, RC )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Arr2D_Sp),   POINTER       :: ArrVec(:) ! Array vector
+    INTEGER,          INTENT(IN)    :: nn        ! vector length 
+    INTEGER,          INTENT(IN)    :: nx        ! x-dim
+    INTEGER,          INTENT(IN)    :: ny        ! y-dim
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT) :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  01 Oct 2014 - C. Keller - Added Alloc flag
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I
+
+    ! ================================================================
+    ! HCO_ArrVecInit_2D_Sp begins here
+    ! ================================================================
+
+    ! Init
+    NULLIFY(ArrVec)
+   
+    IF ( nn > 0 ) THEN
+       IF ( .NOT. ASSOCIATED(ArrVec) ) ALLOCATE(ArrVec(nn))
+       DO I = 1, nn
+          CALL HCO_ValInit( ArrVec(I)%Val, nx, ny, ArrVec(I)%Alloc, RC )
+          IF ( RC/=HCO_SUCCESS ) RETURN
+       ENDDO
+    ENDIF
+
+    ! Leave
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_ArrVecInit_2D_Sp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -406,6 +591,66 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_ArrVecInit_3D_Hp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_ArrVecInit_3D_Sp
+!
+! !DESCRIPTION: Subroutine HCO\_ArrVecInit\_3D\_Sp initializes the given data
+! container 3D array vector. nn denotes the number of 2D arrays, and nx and ny 
+! denote the array size dimensions. If nx is set to 0, no data is allocated but 
+! Val is set to a (nullified) pointer instead. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ArrVecInit_3D_Sp( ArrVec, nn, nx, ny, nz, RC )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Arr3D_Sp),   POINTER       :: ArrVec(:) ! Array vector
+    INTEGER,          INTENT(IN)    :: nn        ! vector length 
+    INTEGER,          INTENT(IN)    :: nx        ! x-dim
+    INTEGER,          INTENT(IN)    :: ny        ! y-dim
+    INTEGER,          INTENT(IN)    :: nz        ! z-dim
+!
+! !INPUT/OUTPUT PARAMETERS:
+!          
+    INTEGER,          INTENT(INOUT) :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  01 Oct 2014 - C. Keller - Added Alloc flag
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I
+
+    ! ================================================================
+    ! HCO_ArrVecInit_3D_Sp begins here
+    ! ================================================================
+
+    ! Init
+    NULLIFY( ArrVec ) 
+  
+    IF ( nn > 0 ) THEN 
+       IF ( .NOT. ASSOCIATED(ArrVec) ) ALLOCATE(ArrVec(nn))
+       DO I = 1, nn
+          CALL HCO_ValInit( ArrVec(I)%Val, nx, ny, nz, ArrVec(I)%Alloc, RC )
+          IF ( RC/=HCO_SUCCESS ) RETURN
+       ENDDO
+    ENDIF
+
+    ! Leave
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_ArrVecInit_3D_Sp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -767,6 +1012,58 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: HCO_ArrAssert_3D_Sp 
+!
+! !DESCRIPTION: Routine HCO\_ArrAssert\_3D\_Sp makes sure that the passed 
+! 3D array is allocated. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ArrAssert_3D_Sp( ThisArr3D, I, J, L, RC )
+!
+! !INPUT PARAMETERS:
+! 
+    TYPE(Arr3D_Sp),  POINTER         :: ThisArr3D ! 3D array
+    INTEGER,         INTENT(IN   )   :: I, J, L   ! Array dims 
+!
+! !INPUT/OUTPUT PARAMETERS:
+! 
+
+    INTEGER,         INTENT(INOUT)   :: RC        ! Return code
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  01 May 2013 - C. Keller - Initial version
+!  01 Oct 2014 - C. Keller - Added Alloc flag
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=====================================================================
+    ! HCO_ArrAssert_3D_Sp begins here!
+    !=====================================================================
+  
+    ! Check flux array
+    IF ( .NOT. ASSOCIATED ( ThisArr3D ) ) THEN
+       CALL HCO_ArrInit( ThisArr3D, I, J, L, RC )
+       IF ( RC/= HCO_SUCCESS ) RETURN
+    ELSEIF ( .NOT. ASSOCIATED ( ThisArr3D%Val ) ) THEN
+       CALL HCO_ValInit ( ThisArr3D%Val, I, J, L, ThisArr3D%Alloc, RC )
+       IF ( RC/= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_ArrAssert_3D_Sp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: HCO_ArrAssert_2D_Hp 
 !
 ! !DESCRIPTION: Routine HCO\_ArrAssert\_2D\_Hp makes sure that the passed 
@@ -818,6 +1115,57 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: HCO_ArrAssert_2D_Sp 
+!
+! !DESCRIPTION: Routine HCO\_ArrAssert\_2D\_Sp makes sure that the passed 
+! 2D array is allocated. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ArrAssert_2D_Sp( ThisArr2D, I, J, RC )
+!
+! !INPUT PARAMETERS:
+! 
+    TYPE(Arr2D_Sp),  POINTER         :: ThisArr2D ! 2D array
+    INTEGER,         INTENT(IN   )   :: I, J      ! Array dims 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT)   :: RC        ! Return code
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  01 May 2013 - C. Keller - Initial version
+!  01 Oct 2014 - C. Keller - Added Alloc flag
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=====================================================================
+    ! HCO_ArrAssert_2D_Sp begins here!
+    !=====================================================================
+  
+    ! Check flux array
+    IF ( .NOT. ASSOCIATED ( ThisArr2D ) ) THEN
+       CALL HCO_ArrInit( ThisArr2D, I, J, RC )
+       IF ( RC/= HCO_SUCCESS ) RETURN
+    ELSEIF ( .NOT. ASSOCIATED ( ThisArr2D%Val ) ) THEN
+       CALL HCO_ValInit ( ThisArr2D%Val, I, J, ThisArr2D%Alloc, RC )
+       IF ( RC/= HCO_SUCCESS ) RETURN
+    ENDIF
+  
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_ArrAssert_2D_Sp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: HCO_ArrCleanup_2D_Hp
 !
 ! !DESCRIPTION: Subroutine HCO\_ArrCleanup\_2D\_Hp cleans up the given 
@@ -860,6 +1208,54 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE HCO_ArrCleanup_2D_Hp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_ArrCleanup_2D_Sp
+!
+! !DESCRIPTION: Subroutine HCO\_ArrCleanup\_2D\_Sp cleans up the given 
+! container 2D array. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ArrCleanup_2D_Sp( Arr, DeepClean ) 
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Arr2D_Sp),      POINTER  :: Arr       ! Array 
+    LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate allocated array?
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  01 Oct 2014 - C. Keller - Added Alloc flag
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL :: DC
+
+    ! ================================================================
+    ! HCO_ArrCleanup_2D_Sp begins here
+    ! ================================================================
+
+    IF ( PRESENT(DeepClean) ) THEN
+       DC = DeepClean
+    ELSE
+       DC = .TRUE.
+    ENDIF
+
+    IF ( ASSOCIATED(Arr) ) THEN 
+       CALL HCO_ValCleanup( Arr%Val, Arr%Alloc, DC )
+       DEALLOCATE ( Arr )
+    ENDIF
+
+  END SUBROUTINE HCO_ArrCleanup_2D_Sp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -962,6 +1358,54 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: HCO_ArrCleanup_3D_Sp
+!
+! !DESCRIPTION: Subroutine HCO\_ArrCleanup\_3D\_Sp cleans up the given 
+! container 3D array. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ArrCleanup_3D_Sp( Arr, DeepClean ) 
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Arr3D_Sp),      POINTER  :: Arr       ! Array 
+    LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate array?
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  01 Oct 2014 - C. Keller - Added Alloc flag
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL :: DC
+
+    ! ================================================================
+    ! HCO_ArrCleanup_3D_Sp begins here
+    ! ================================================================
+
+    IF ( PRESENT(DeepClean) ) THEN
+       DC = DeepClean
+    ELSE
+       DC = .TRUE.
+    ENDIF
+
+    IF ( ASSOCIATED(Arr) ) THEN 
+       CALL HCO_ValCleanup( Arr%Val, Arr%Alloc, DC )
+       DEALLOCATE ( Arr )
+    ENDIF
+
+  END SUBROUTINE HCO_ArrCleanup_3D_Sp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: HCO_ArrVecCleanup_2D_Hp
 !
 ! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_2D\_Hp cleans up the given 
@@ -1014,6 +1458,58 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: HCO_ArrVecCleanup_2D_Sp
+!
+! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_2D\_Sp cleans up the given 
+! container 2D array vector.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ArrVecCleanup_2D_Sp( ArrVec, DeepClean ) 
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Arr2D_Sp),      POINTER  :: ArrVec(:) ! Array 
+    LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate array?
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  01 Oct 2014 - C. Keller - Added Alloc flag
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL :: DC
+    INTEGER :: I
+
+    ! ================================================================
+    ! HCO_ArrVecCleanup_2D_Sp begins here
+    ! ================================================================
+
+    IF ( PRESENT(DeepClean) ) THEN
+       DC = DeepClean
+    ELSE
+       DC = .TRUE.
+    ENDIF
+
+    IF ( ASSOCIATED(ArrVec) ) THEN 
+       DO I = 1, SIZE(ArrVec,1)
+          CALL HCO_ValCleanup( ArrVec(I)%Val, ArrVec(I)%Alloc, DC )
+       ENDDO
+
+       DEALLOCATE ( ArrVec )
+    ENDIF
+
+  END SUBROUTINE HCO_ArrVecCleanup_2D_Sp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: HCO_ArrVecCleanup_3D_Hp
 !
 ! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_3D\_Hp cleans up the given 
@@ -1060,6 +1556,58 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE HCO_ArrVecCleanup_3D_Hp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_ArrVecCleanup_3D_Sp
+!
+! !DESCRIPTION: Subroutine HCO\_ArrVecCleanup\_3D\_Sp cleans up the given 
+! container 3D array vector.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_ArrVecCleanup_3D_Sp( ArrVec, DeepClean ) 
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Arr3D_Sp),      POINTER  :: ArrVec(:) ! Array 
+    LOGICAL, INTENT(IN), OPTIONAL :: DeepClean ! Deallocate array?
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  01 Oct 2014 - C. Keller - Added Alloc flag
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL :: DC
+    INTEGER :: I
+
+    ! ================================================================
+    ! HCO_ArrVecCleanup_3D_Sp begins here
+    ! ================================================================
+
+    IF ( PRESENT(DeepClean) ) THEN
+       DC = DeepClean
+    ELSE
+       DC = .TRUE.
+    ENDIF
+
+    IF ( ASSOCIATED(ArrVec) ) THEN 
+       DO I = 1, SIZE(ArrVec,1)
+          CALL HCO_ValCleanup( ArrVec(I)%Val, ArrVec(I)%Alloc, DC )
+       ENDDO
+
+       DEALLOCATE ( ArrVec )
+    ENDIF
+
+  END SUBROUTINE HCO_ArrVecCleanup_3D_Sp
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

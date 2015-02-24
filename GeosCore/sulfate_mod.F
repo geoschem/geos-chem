@@ -20,8 +20,7 @@
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
       USE inquireMod,    ONLY : findFreeLUN
 
-      USE HCO_ERROR_MOD       ! For real precisions (hp)
-
+      USE HCO_ERROR_MOD    ! For HEMCO error statements 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -302,14 +301,14 @@
       INTEGER              :: DRYLET,  DRYNH4aq
 
       ! HEMCO pointers
-      REAL(hp), POINTER    :: O3m(:,:,:)      => NULL()
-      REAL(hp), POINTER    :: PH2O2m(:,:,:)   => NULL()
-      REAL(hp), POINTER    :: JH2O2(:,:,:)    => NULL()
-      REAL(hp), POINTER    :: OH(:,:,:)       => NULL()
-      REAL(hp), POINTER    :: NO3(:,:,:)      => NULL()
-      REAL(hp), POINTER    :: HNO3(:,:,:)     => NULL()
-      REAL(hp), POINTER    :: NDENS_SALA(:,:) => NULL()
-      REAL(hp), POINTER    :: NDENS_SALC(:,:) => NULL()
+      REAL(sp), POINTER    :: O3m(:,:,:)      => NULL()
+      REAL(sp), POINTER    :: PH2O2m(:,:,:)   => NULL()
+      REAL(sp), POINTER    :: JH2O2(:,:,:)    => NULL()
+      REAL(sp), POINTER    :: OH(:,:,:)       => NULL()
+      REAL(sp), POINTER    :: NO3(:,:,:)      => NULL()
+      REAL(sp), POINTER    :: HNO3(:,:,:)     => NULL()
+      REAL(sp), POINTER    :: NDENS_SALA(:,:) => NULL()
+      REAL(sp), POINTER    :: NDENS_SALC(:,:) => NULL()
 
       ! Emission timestep (imported from HEMCO)
       REAL(fp)               :: TS_EMIS
@@ -722,7 +721,8 @@
 #if defined( UCX )
       ! Stratospheric aerosol graviational settling
       IF ( LGRAVSTRAT ) THEN
-         CALL SETTLE_STRAT_AER( Input_Opt, State_Met, State_Chm )
+         CALL SETTLE_STRAT_AER( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
          ENDIF
@@ -842,7 +842,9 @@
       USE CMN_GCTM_MOD        
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1112,6 +1114,7 @@
      &                *  TC(I,J,L+1) )
          ENDDO
          
+#if !defined( NO_BPCH )
          !==============================================================
          ! ND44 diagnostic: sea salt loss [molec/cm2/s]
          !==============================================================
@@ -1137,6 +1140,7 @@
             ! Store in AD44 array
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
          ENDIF
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1491,7 +1495,9 @@
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE CMN_GCTM_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1702,6 +1708,7 @@
       ENDDO
 !$OMP END PARALLEL DO
       
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -1719,6 +1726,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -1749,7 +1757,9 @@
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD05
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -1863,6 +1873,7 @@
 !  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  12 Jan 2015 - C. Keller   - Now allow NDENS_SALA and NDENS_SALC to be empty.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1945,11 +1956,12 @@
       ! On first call, get pointers to HEMCO diagnostics arrays.
       ! These are the sea salt aerosol number densities for the fine
       ! and coarse mode, respectively. Values are in # / surface grid
-      ! box. These values are needed in the GET_ALK call below. If the
-      ! corresponding diagnostics cannot be found (e.g. because LEMIS
-      ! is set to FALSE and HEMCO thus doesn't calculate any emissions),
-      ! the pointers NDENS_SALA and NDENS_SALC will remain nullified
-      ! and number densities of zero will be used (ckeller, 01/12/2015).
+      ! box. These values are needed in the GET_ALK call below.
+      ! If the diagnostics are not being found, e.g. because the
+      ! sea salt emissions extension is turned off (or LEMIS is 
+      ! disabled), the passed pointers NDENS_SALA and NDENS_SALC
+      ! will stay nullified. Values of zero will be used in this
+      ! case! (ckeller, 01/12/2015)
       IF ( FIRST ) THEN
 
          ! Sea salt density, fine mode
@@ -2593,6 +2605,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -2610,6 +2623,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -4256,7 +4270,9 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -4673,6 +4689,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that we get the same results w/ sp or mp 
@@ -4705,6 +4722,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointers
       NULLIFY( STT )
@@ -4871,7 +4889,9 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -5054,7 +5074,8 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-      
+
+#if !defined( NO_BPCH )
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -5072,6 +5093,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -5098,7 +5120,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
@@ -5297,6 +5321,7 @@
 !$OMP END PARALLEL DO
          ENDIF
 
+#if !defined( NO_BPCH )
          !------------------------------------------------------------
          ! (2) Save archived NH3 drydep fluxes into the AD44 array
          !------------------------------------------------------------
@@ -5313,6 +5338,7 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDIF
+#endif
       ENDIF
 
       ! Free pointer
@@ -5340,7 +5366,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -5538,6 +5566,7 @@
 !$OMP END PARALLEL DO
          ENDIF
 
+#if !defined( NO_BPCH )
          !------------------------------------------------------------
          ! (2) Save archived NH4 drydep fluxes into the AD44 array
          !------------------------------------------------------------
@@ -5555,6 +5584,7 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDIF
+#endif
       ENDIF
 
       ! Free pointer
@@ -5582,7 +5612,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
@@ -5873,6 +5905,7 @@
 !$OMP END PARALLEL DO
          ENDIF
 
+#if !defined( NO_BPCH )
          !------------------------------------------------------------
          ! (2) Save archived NIT & NITs drydep fluxes into AD44 array
          !------------------------------------------------------------
@@ -5893,6 +5926,7 @@
             ENDDO
 !$OMP END PARALLEL DO
          ENDIF         
+#endif
       ENDIF
 
       ! Free pointer
@@ -7951,11 +7985,11 @@
          ! Get number densities in # / cm3. Weight by fraction of PBL
          IF ( ASSOCIATED(NDENS_SALA) ) THEN
             N1 = NDENS_SALA(I,J) / State_Met%AIRVOL(I,J,L) 
-     &                * 1.e-6_fp * FEMIS
+     &         * 1.e-6_fp        * FEMIS
          ENDIF
          IF ( ASSOCIATED(NDENS_SALC) ) THEN
             N2 = NDENS_SALC(I,J) / State_Met%AIRVOL(I,J,L) 
-     &                * 1.e-6_fp * FEMIS
+     &         * 1.e-6_fp        * FEMIS
          ENDIF
 
       ENDIF

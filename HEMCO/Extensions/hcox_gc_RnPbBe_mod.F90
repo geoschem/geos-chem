@@ -324,7 +324,7 @@ CONTAINS
        ! Add diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => EmissRn(:,:)
-          CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,  &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                 &
                              Cat=-1,     Hier=-1,       HcoID=IDTRn,  &
                              AutoFill=1, Array2D=Arr2D, RC=RC        )
           Arr2D => NULL()
@@ -403,7 +403,7 @@ CONTAINS
        ! Add diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr3D => EmissBe7(:,:,:)
-          CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,  &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                 &
                              Cat=-1,     Hier=-1,       HcoID=IDTBe7, &
                              AutoFill=1, Array3D=Arr3D, RC=RC        )
           Arr3D => NULL()
