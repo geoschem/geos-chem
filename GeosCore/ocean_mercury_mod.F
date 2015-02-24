@@ -1972,6 +1972,10 @@
       ! Overwrite fields with Arctic specific parameters
       !-----------------------------------------------------------------
 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -1995,6 +1999,7 @@
 
       ENDDO
       ENDDO
+! OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE OCEAN_MERCURY_READ
@@ -2088,6 +2093,9 @@
       ! Convert [m] to [cm]
       newMLD = newMLD * 100d0
 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
       ! get rate of change of MLD; convert [cm/month] -> [cm/s] 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -2123,6 +2131,7 @@
      &               ( 3.6d3 *24d0 * DAYS_IN_MONTH )
       ENDDO
       ENDDO
+! OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE GET_MLD_FOR_NEXT_MONTH
@@ -3662,6 +3671,8 @@
 !        via the argument list. (cdh, sas, bmy, 2/27/06)
 !  29 Nov 2011 - R. Yantosca - Updated erroneous comment.  "Southern Ocean"
 !                               should be "South Atlantic Ocean".
+!  23 Feb 2015 - J. Fisher   - change intermediate water Hg2/HgP speciation in
+!			        Arctic so Hg2 dominates over HgP (orig. 28/11/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3709,7 +3720,9 @@
          !South Atlantic Ocean to 0.9pM total
          !ref: low end of uncertainty range Sunderland and Mason '07
          CDEEPANT = (/ 1.0d-10, 3.2d-10, 3.2d-10 /)
-         CDEEPARC = (/ 1.2d-10, 7.5d-10, 7.5d-10 /)
+         ! Redistribute Hg fractions so Hg2 /= HgP (jaf, 11/28/11)
+         !CDEEPARC = (/ 1.2d-10, 7.5d-10, 7.5d-10 /)
+         CDEEPARC = (/ 1.2d-10, 1.2d-9,  2.8d-10 /)
          CDEEPNPA = (/ 1.0d-10, 6.0d-10, 6.0d-10 /)        
       ENDIF
 
