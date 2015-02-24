@@ -489,6 +489,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Dec 2014 - C. Keller   - Initial version
+!  24 Feb 2015 - R. Yantosca - Now exit if vertical interpolation isn't needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -538,6 +539,25 @@ CONTAINS
     ! Get vertical and time dimension of input data
     nlev = SIZE(REGR_4D,3)
     nt   = SIZE(REGR_4D,4)
+
+    !===================================================================
+    ! If no vertical interpolation is needed, then (1) save the 4D
+    ! input data array to to the HEMCO list container object and
+    ! (2) exit this subroutine.
+    !===================================================================
+    IF ( nlev == nz ) THEN
+
+       CALL FileData_ArrCheck( Lct%Dct%Dta, nx, ny, nz, nt, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       DO T = 1, nt
+          Lct%Dct%Dta%V3(T)%Val(:,:,:) = REGR_4D(:,:,:,T)
+       ENDDO
+
+       ! Leave
+       CALL HCO_LEAVE( RC )
+       RETURN
+    ENDIF
 
     !===================================================================
     ! GEOS-4 mapping
