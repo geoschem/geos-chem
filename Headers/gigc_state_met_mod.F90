@@ -149,9 +149,12 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: OPTDEP    (:,:,:) ! Visible optical depth [1]
      REAL(fp), POINTER :: PEDGE     (:,:,:) ! Pressure @ level edges [hPa]
                                             ! (wet air)
+     REAL(fp), POINTER :: PEDGE_DRY (:,:,:) ! Pressure @ level edges [hPa]
+                                            ! (dry air partial pressure)
      REAL(fp), POINTER :: PMID      (:,:,:) ! Pressure @ level centers [hPa]
                                             ! (wet air)
-     REAL(fp), POINTER :: PMID_DRY  (:,:,:) ! Dry air press @ level center [hPa]
+     REAL(fp), POINTER :: PMID_DRY  (:,:,:) ! Pressure @ level center [hPa]
+                                            ! (dry air partial pressure)
      REAL(fp), POINTER :: PFICU     (:,:,:) ! Dwn flux ice prec:conv [kg/m2/s]
      REAL(fp), POINTER :: PFILSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
      REAL(fp), POINTER :: PFLCU     (:,:,:) ! Dwn flux liq prec:conv [kg/m2/s]
@@ -205,6 +208,7 @@ MODULE GIGC_State_Met_Mod
 !                              is just initialized to 1.0 and not modified any
 !                              more.
 !  05 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
+!  24 Feb 2015 - E. Lundgren - Add PEDGE_DRY, PMID_DRY, and MAIRDEN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -677,6 +681,10 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%PEDGE    = 0.0_fp
 
+    ALLOCATE( State_Met%PEDGE_DRY ( IM, JM, LM+1 ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%PEDGE_DRY = 0.0_fp
+
     ALLOCATE( State_Met%PMID      ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%PMID     = 0.0_fp
@@ -992,6 +1000,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
     IF ( ASSOCIATED( State_Met%OPTDEP     )) DEALLOCATE( State_Met%OPTDEP     )
     IF ( ASSOCIATED( State_Met%PEDGE      )) DEALLOCATE( State_Met%PEDGE      )
+    IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) DEALLOCATE( State_Met%PEDGE_DRY  )
     IF ( ASSOCIATED( State_Met%PMID       )) DEALLOCATE( State_Met%PMID       )
     IF ( ASSOCIATED( State_Met%PMID_DRY   )) DEALLOCATE( State_Met%PMID_DRY   )
     IF ( ASSOCIATED( State_Met%PV         )) DEALLOCATE( State_Met%PV         )

@@ -284,17 +284,18 @@
 !  DAO met fields updated by AIRQNT:
 !  ========================================================================
 !  (1)  PEDGE     (REAL(fp)) : Moist air pressure at grid box bottom   [hPa]
-!  (2)  DELP      (REAL(fp)) : Delta-P extent of grid box              [hPa]
+!  (2)  PEDGE_DRY (REAL(fp)) : Dry air partial pressure at box bottom  [hPa]
+!  (3)  PMID      (REAL(fp)) : Moist air pressure at grid box center   [hPa]
+!  (4)  PMID_DRY  (REAL(fp)) : Dry air partial pressure at box center  [hPa]
+!  (5)  DELP      (REAL(fp)) : Delta-P extent of grid box              [hPa]
 !                              (Same for both moist and dry air since we
 !                              assume constant water vapor pressure 
 !                              across grid box)
-!  (3)  PMID      (REAL(fp)) : Moist air pressure at grid box center   [hPa]
-!  (4)  PMID_DRY  (REAL(fp)) : Dry air partial pressure at box center  [hPa]
-!  (5)  AIRDEN    (REAL(fp)) : Density of dry air in grid box       [kg/m^3]
-!  (6)  MAIRDEN   (REAL(fp)) : Density of moist dry air in grid bo  [kg/m^3]
-!  (7)  AD        (REAL(fp)) : Mass of dry air in grid box              [kg]
-!  (8)  BXHEIGHT  (REAL(fp)) : Vertical height of grid box               [m]   
-!  (9)  AIRVOL    (REAL(fp)) : Volume of grid box                      [m^3]
+!  (6)  AIRDEN    (REAL(fp)) : Density of dry air in grid box       [kg/m^3]
+!  (7)  MAIRDEN   (REAL(fp)) : Density of moist dry air in grid box [kg/m^3]
+!  (8)  AD        (REAL(fp)) : Mass of dry air in grid box              [kg]
+!  (9)  BXHEIGHT  (REAL(fp)) : Vertical height of grid box               [m]   
+!  (10) AIRVOL    (REAL(fp)) : Volume of grid box                      [m^3]
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) AIRQNT is written in Fixed-Form Fortran 90.  Use F90 syntax
@@ -410,15 +411,20 @@
          Tc = State_Met%T( I,J,L ) + TOFFSET
 
          ! Empirical formulation for saturation pressure of water [hPa]
-         ! (Source: ???)
+         ! (Source: Nordquist, W.S., 1973: "Numerical Approximations
+         !  of Selected Meteorological Parameters for Cloud Physics
+         !  Problems." This needs to be verified.)
+
          Psat = PSATC1 * 10**( PSATC2 * Tc / ( Tc + PSATC3 ) )        
 
          ! Partial pressure of water vapor [hPa]
          Pv = State_Met%RH( I,J,L ) * RHCONV * Psat
 
+         ! Partial presure of dry air at bottom edge of grid box [hPa]
+         State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L) - Pv
+
          ! Partial pressure of dry air at mid-point of grid box [hPa]
-         State_Met%PMID_DRY( I,J,L ) = State_Met%PMID( I,J,L ) 
-     &                                 - Pv / PCONV
+         State_Met%PMID_DRY( I,J,L ) = State_Met%PMID(I,J,L) - Pv
 
          !===========================================================
          ! Set grid box wet air density [kg/m3] 
