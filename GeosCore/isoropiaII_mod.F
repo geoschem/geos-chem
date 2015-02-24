@@ -98,7 +98,7 @@
       REAL(fp),  ALLOCATABLE :: ACIDPUR_SAV(:,:,:)
 
       ! HEMCO pointers
-      REAL(hp), POINTER    :: HNO3(:,:,:) => NULL()
+      REAL(sp), POINTER    :: HNO3(:,:,:) => NULL()
 
       CONTAINS
 !EOC

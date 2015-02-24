@@ -135,8 +135,6 @@
       USE TRACERID_MOD,       ONLY : IDTNO
       USE HCO_DIAGN_MOD
       USE HCO_ERROR_MOD
-      USE HCO_STATE_MOD,    ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
 !
 ! !INPUT ARGUMENTS
 !
@@ -175,7 +173,6 @@
       CHARACTER(LEN= 63)            :: DiagnName
       CHARACTER(LEN=255)            :: MSG
       TYPE(DiagnCont), POINTER      :: DiagnCnt => NULL()
-      TYPE(HCO_State), POINTER      :: HcoState => NULL()      
       REAL(f8)                      :: FACTOR
 !
 ! !DEFINED PARAMETERS:
@@ -186,12 +183,6 @@
       !=================================================================
       ! DIAG63 begins here!
       !=================================================================
-
-      ! Get pointer to HEMCO state
-      CALL GetHcoState ( HcoState )
-      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-         CALL ERROR_STOP ( 'HcoState not defined!', LOC )
-      ENDIF 
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
@@ -287,7 +278,7 @@
 
          ! Get diagnostics from HEMCO
          DiagnCnt => NULL()
-         CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt,
+         CALL Diagn_Get( am_I_Root, .FALSE., DiagnCnt,
      &                   FLAG,  RC, cName=TRIM(DiagnName),
      &                   AutoFill=AF, InclManual=.TRUE. )
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -337,7 +328,6 @@
 
       ! Return w/ success
       DiagnCnt => NULL()
-      HcoState => NULL()
       RC = GIGC_SUCCESS
 
       END SUBROUTINE DIAG63

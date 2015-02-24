@@ -82,9 +82,9 @@
 !
       LOGICAL                 :: LDEBUG
       INTEGER                 :: I, J, L, JLOOP, IJLOOP
-#if defined( DEVEL )
-      INTEGER                 :: TMP_LEV
-#endif
+!#if defined( DEVEL )
+!      INTEGER                 :: TMP_LEV
+!#endif
 
       !! testing variables for variable tropopause
       !real(fp)  :: temp(iipar,jjpar,llpar)
@@ -101,16 +101,16 @@
       NTLOOPNCS = 0
 
       ! Loop over vertical levels (max = LLCHEM) 
-#if defined( DEVEL )
-      IF (NVERT .gt. LLPAR) THEN
-         TMP_LEV = LLPAR
-      ELSE
-         TMP_LEV = NVERT
-      ENDIF
-      DO L = 1, TMP_LEV
-#else
+!if defined( DEVEL )
+!      IF (NVERT .gt. LLPAR) THEN
+!         TMP_LEV = LLPAR
+!      ELSE
+!         TMP_LEV = NVERT
+!      ENDIF
+!      DO L = 1, TMP_LEV
+!#else
       DO L = 1, NVERT
-#endif
+!#endif
 
          ! Loop over surface grid boxes
          DO J = 1, NLAT

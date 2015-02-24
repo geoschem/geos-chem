@@ -754,7 +754,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
 !
 ! !ARGUMENTS:
 !
@@ -778,7 +778,7 @@ CONTAINS
     ! On first call, check if WildCard character has been set in settings.
     ! Use default value otherwise.
     IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'Wildcard', OptValChar=WCD, Found=FOUND, RC=myRC )
+       CALL GetExtOpt( CoreNr, 'Wildcard', OptValChar=WCD, Found=FOUND, RC=myRC )
        IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) WCD = DEF_WILDCARD 
        FIRST = .FALSE.
     ENDIF
@@ -838,7 +838,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
 !
 ! !ARGUMENTS:
 !
@@ -862,7 +862,7 @@ CONTAINS
     ! On first call, check if Separator character has been set in settings.
     ! Use default value otherwise.
     IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'Separator', OptValChar=SEP, Found=FOUND, RC=myRC )
+       CALL GetExtOpt( CoreNr, 'Separator', OptValChar=SEP, Found=FOUND, RC=myRC )
        IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) SEP = DEF_SEPARATOR
        FIRST = .FALSE.
     ENDIF
@@ -888,7 +888,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
 !
 ! !ARGUMENTS:
 !
@@ -912,7 +912,7 @@ CONTAINS
     ! On first call, check if Colon character has been set in settings.
     ! Use default value otherwise.
     IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'Colon', OptValChar=COL, Found=FOUND, RC=myRC )
+       CALL GetExtOpt( CoreNr, 'Colon', OptValChar=COL, Found=FOUND, RC=myRC )
        IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) COL = DEF_COLON
        FIRST = .FALSE.
     ENDIF
@@ -938,7 +938,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
 !
 ! !ARGUMENTS:
 !
@@ -962,7 +962,7 @@ CONTAINS
     ! On first call, check if Colon character has been set in settings.
     ! Use default value otherwise.
     IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'ROOT', OptValChar=ROOT, Found=FOUND, RC=myRC )
+       CALL GetExtOpt( CoreNr, 'ROOT', OptValChar=ROOT, Found=FOUND, RC=myRC )
        IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) ROOT = DEF_ROOT
        FIRST = .FALSE.
     ENDIF
@@ -991,7 +991,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
 !
 ! !ARGUMENTS:
 !
@@ -1015,7 +1015,7 @@ CONTAINS
     ! On first call, check if Colon character has been set in settings.
     ! Use default value otherwise.
     IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'MET', OptValChar=MET, Found=FOUND, RC=myRC )
+       CALL GetExtOpt( CoreNr, 'MET', OptValChar=MET, Found=FOUND, RC=myRC )
        IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) MET = DEF_MET
        FIRST = .FALSE.
     ENDIF
@@ -1044,7 +1044,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
 !
 ! !ARGUMENTS:
 !
@@ -1068,7 +1068,7 @@ CONTAINS
     ! On first call, check if Colon character has been set in settings.
     ! Use default value otherwise.
     IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'RES', OptValChar=RES, Found=FOUND, RC=myRC )
+       CALL GetExtOpt( CoreNr, 'RES', OptValChar=RES, Found=FOUND, RC=myRC )
        IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) RES = DEF_RES
        FIRST = .FALSE.
     ENDIF

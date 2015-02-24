@@ -387,7 +387,9 @@
 !
 ! !USES:
 ! 
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -528,6 +530,7 @@
 !               endif
 !debug-----
             ENDDO
+#if !defined( NO_BPCH )
          !========================================================      
          ! ND44: Dry deposition diagnostic [#/cm2/s]
          !========================================================
@@ -536,7 +539,7 @@
      &         AD44(I,J,Input_Opt%IDDEP(BIN),1) + FLUXN
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
             ENDIF
-
+#endif
          ENDDO
       ENDDO
       ENDDO
@@ -766,7 +769,9 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -971,10 +976,13 @@
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
                   FLUX = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
 
+#if !defined( NO_BPCH )
                   ! Save in AD44
                   AD44(I,J,Input_Opt%IDDEP(N),1) = 
      &            AD44(I,J,Input_OPt%IDDEP(N),1) + FLUX
+#endif
                ENDIF
+
             ENDDO
          ENDDO
       ENDDO
@@ -1001,7 +1009,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1090,9 +1100,11 @@
                   FLUX     = ( OLD - NEW ) / DTCHEM 
                   FLUX     = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
                
+#if !defined( NO_BPCH )
                   ! Store in AD44
                   AD44(I,J,Input_Opt%IDDEP(N),1) = 
      &            AD44(I,J,Input_Opt%IDDEP(N),1) + FLUX
+#endif
                ENDIF
 
                ! Save back into STT
@@ -1937,17 +1949,6 @@
       Input_Opt%DUSTDEN(1:NDSTBIN) = (/ 2500.e+0_fp, 2650.e+0_fp, 
      &                                  2650.e+0_fp, 2650.e+0_fp /)
 
-!-----------------------------------------------------------------------------
-! Prior to 9/29/14:
-! This is now defined in hcox_dustginoux_mod.F90 (bmy, 9/29/14)
-!      ! These only have to be allocated for the Ginoux source function
-!      IF ( .not. LDEAD ) THEN
-!         ALLOCATE( FRAC_S( NDSTBIN ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_S' )
-!         FRAC_S(1:NDSTBIN)   = (/ 0.095d0, 0.3d0, 0.3d0, 0.3d0 /)
-!      ENDIF
-!-----------------------------------------------------------------------------
-
       ! Find drydep species in DEPSAV
       IF( Input_Opt%LDRYD ) THEN
          DO N = 1, Input_Opt%NUMDEP
@@ -1973,7 +1974,7 @@
       ENDIF
 #endif 
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )
       ! EXPERIMENTAL: For archiving the dust source for GIGC
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )

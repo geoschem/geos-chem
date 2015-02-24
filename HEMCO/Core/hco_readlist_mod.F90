@@ -42,7 +42,7 @@ MODULE HCO_ReadList_Mod
   PUBLIC  :: ReadList_Set
   PUBLIC  :: ReadList_Print
   PUBLIC  :: ReadList_Cleanup
-!  PUBLIC  :: ReadList_to_EmisList
+  PUBLIC  :: ReadList_Remove
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -148,17 +148,16 @@ CONTAINS
     ENDIF
 
     ! NOTE: In an ESMF environment, data I/O is organized through 
-    ! ESMF/MAPL. These routines interpolate between all timesteps,
-    ! we hence need to update ReadList (and EmisList) every time!
-    ! The only exception to this are the one-time lists, which don't
-    ! need to be renewed at all!
-!    IF ( HcoState%isESMF ) THEN
-!       IF ( intv /= 5 ) THEN
-!          CALL DtCont_Add( ReadLists%Always, Dct )
-!       ELSE
-!          CALL DtCont_Add( ReadLists%Once,  Dct ) 
-!       ENDIF
-!    ELSE 
+    ! ESMF/MAPL. The hemco reading call (HCOIO_DATAREAD) sets a 
+    ! pointer of the data container array to the data array provided
+    ! by MAPL. These arrays are already interpolated / updated (over
+    ! time) by MAPL, and a pointer needs to be established only once.
+    ! Hence, make sure that all containers are added to the one-time
+    ! reading list! 
+    IF ( HcoState%isESMF .AND. Dct%Dta%ncRead ) THEN
+       intv = 5
+    ENDIF
+
     IF ( intv == 1 ) THEN 
        CALL DtCont_Add( ReadLists%Hour,  Dct ) 
     ELSEIF ( intv == 2 ) THEN 
@@ -243,7 +242,7 @@ CONTAINS
     ! Read all fields?
     RdAll = .FALSE.
     IF ( PRESENT(ReadAll) ) RdAll = ReadAll
-    IF ( HcoClock_First() ) RdAll = .TRUE.
+    IF ( HcoClock_First( .FALSE. ) ) RdAll = .TRUE.
 
     ! Read content from one-time list on the first call 
     IF ( RdAll ) THEN
@@ -256,7 +255,7 @@ CONTAINS
     ENDIF
 
     ! Read content from year-list if it's a new year
-    IF ( HcoClock_NewYear() .OR. RdAll ) THEN
+    IF ( HcoClock_NewYear( .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading year list!'
           CALL HCO_MSG(MSG)
@@ -266,7 +265,7 @@ CONTAINS
     ENDIF
 
     ! Read content from month-list if it's a new month
-    IF ( HcoClock_NewMonth() .OR. RdAll ) THEN
+    IF ( HcoClock_NewMonth( .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading month list!'
           CALL HCO_MSG(MSG)
@@ -276,7 +275,7 @@ CONTAINS
     ENDIF
 
     ! Read content from day-list if it's a new day 
-    IF ( HcoClock_NewDay() .OR. RdAll ) THEN
+    IF ( HcoClock_NewDay( .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading day list!'
           CALL HCO_MSG(MSG)
@@ -286,7 +285,7 @@ CONTAINS
     ENDIF
 
     ! Read content from hour-list if it's a new hour 
-    IF ( HcoClock_NewHour() .OR. RdAll ) THEN
+    IF ( HcoClock_NewHour( .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading hour list!'
           CALL HCO_MSG(MSG)
@@ -341,6 +340,7 @@ CONTAINS
     USE HCO_FileData_Mod,   ONLY : FileData_ArrIsDefined
     USE HCO_EmisList_Mod,   ONLY : EmisList_Pass
     USE HCO_DataCont_Mod,   ONLY : DataCont_Cleanup
+    USE HCO_TIDX_MOD,       ONLY : tIDx_Assign 
 !
 ! !INPUT PARAMETERS:
 !
@@ -361,6 +361,9 @@ CONTAINS
 !  23 Dec 2014 - C. Keller - Now pass container to EmisList immediately after
 !                            reading the data. Added second loop to remove
 !                            data arrays that are not used in EmisList.
+!  02 Feb 2015 - C. Keller - Now call tIDx_Assign here instead of in 
+!                            hco_emislist_mod. This way, hco_emislist_mod 
+!                            can also be used by hco_clock_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -424,6 +427,18 @@ CONTAINS
 
        ! Pass container to EmisList (only if array is defined)
        IF ( FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
+
+          ! Set time index pointer tIDx of this data container. 
+          ! tIDx will be set according to the number of time slices 
+          ! (and the tim einterval between them) hold by this data 
+          ! container. For hourly data (24 time slices), for example, 
+          ! tIDx will point to the corresponding 'HOURLY' or 
+          ! 'HOURLY_GRID' time index collection type defined in 
+          ! hco_tidx_mod. 
+          CALL tIDx_Assign ( HcoState, Lct%Dct, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Container is now read to be passed to emissions list.
           CALL EmisList_Pass( am_I_Root, HcoState, Lct, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -669,6 +684,136 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: ReadList_Remove
+!
+! !DESCRIPTION: Subroutine ReadList\_Remove removes the container given by
+! name from the ReadList. If no container with the given name exist, nothing
+! is done. This routine returns an error if the container already holds data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ReadList_Remove( am_I_Root, cName, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )   :: am_I_Root
+    CHARACTER(LEN=*), INTENT(IN   )   :: cName 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)   :: RC
+!
+! !REVISION HISTORY:
+!  13 Jan 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER                   :: I
+    TYPE(ListCont), POINTER   :: This => NULL()
+    TYPE(ListCont), POINTER   :: Prev => NULL()
+    TYPE(ListCont), POINTER   :: Next => NULL()
+    LOGICAL                   :: FOUND
+    CHARACTER(LEN=255)        :: MSG
+    CHARACTER(LEN=255)        :: LOC = 'ReadList_Remove (HCO_ReadList_Mod.F90)' 
+
+    ! ================================================================
+    ! ReadList_Remove begins here
+    ! ================================================================
+     
+    ! Assume success until otherwise
+    RC = HCO_SUCCESS
+    IF ( .NOT. ASSOCIATED(ReadLists) ) RETURN
+
+    ! Search for the given container
+    DO I = 1,6
+
+       ! Select list to be used
+       IF ( I == 1 ) This => ReadLists%Once
+       IF ( I == 2 ) This => ReadLists%Year
+       IF ( I == 3 ) This => ReadLists%Month
+       IF ( I == 4 ) This => ReadLists%Day
+       IF ( I == 5 ) This => ReadLists%Hour
+       IF ( I == 6 ) This => ReadLists%Always
+
+       ! Initialize working variables
+       FOUND = .FALSE.
+       Prev => This
+
+       ! Walk through list, looking for this container
+       DO WHILE ( ASSOCIATED(This) ) 
+       
+          ! Next container in list
+          Next => This%NextCont
+       
+          ! Is that the container of interest?
+          IF ( TRIM(This%Dct%cName) == TRIM(cName) ) THEN
+             FOUND = .TRUE.
+             EXIT
+          ENDIF   
+
+          ! Advance
+          Prev => This
+          This => Next
+       ENDDO !This
+
+       ! Advance if not found
+       IF ( .NOT. FOUND ) CYCLE
+
+       ! Check first if data has already been read. In this case, the data home
+       ! flag is updated.
+       IF ( This%Dct%DtaHome >= 0 ) THEN
+          MSG = 'Cannot remove from ReadList. Data has already been read: ' // &
+                TRIM(This%Dct%cName)
+          CALL HCO_ERROR( MSG, RC, THISLOC = LOC )
+       ENDIF
+
+       ! Connect previous container to next container in list:
+       ! - Special case that this is the first container in the list
+       IF ( Prev%Dct%cID == This%Dct%cID ) THEN
+          IF ( I == 1 ) ReadLists%Once   => Next
+          IF ( I == 2 ) ReadLists%Year   => Next
+          IF ( I == 3 ) ReadLists%Month  => Next
+          IF ( I == 4 ) ReadLists%Day    => Next
+          IF ( I == 5 ) ReadLists%Hour   => Next
+          IF ( I == 6 ) ReadLists%Always => Next
+
+       ! - Otherwise, just pop out this container from list
+       ELSE
+          Prev%NextCont => Next
+       ENDIF
+
+       ! Remove pointer to data container, detach this container from list
+       This%Dct      => NULL()
+       This%NextCont => NULL()
+
+       ! Deallocate this container 
+       DEALLOCATE(This)   
+
+       ! If we make it to here, we have successfully removed the container and
+       ! don't need to cycle thorugh the loop any more
+       EXIT        
+
+    ENDDO !
+
+    ! Free pointer
+    This => NULL()
+    Prev => NULL()
+    Next => NULL()
+
+    ! Return w/ success 
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ReadList_Remove
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: ReadList_Cleanup
 !
 ! !DESCRIPTION: Subroutine ReadList\_Cleanup removes all content of ReadList.
@@ -715,92 +860,4 @@ CONTAINS
 
   END SUBROUTINE ReadList_Cleanup
 !EOC
-!!------------------------------------------------------------------------------
-!!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: ReadList_to_EmisList 
-!!
-!! !DESCRIPTION: Subroutine ReadList\_to\_EmisList makes sure that the
-!! content of EmisList is up-to-date. Since ReadList and EmisList both
-!! point to the same data containers, this routine primarily makes sure
-!! that the data of containers with target IDs different that their 
-!! container IDs are properly set. See HCO\_EmisList\_MOD.F90 for more
-!! details.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE ReadList_to_EmisList( am_I_Root, HcoState, RC )
-!!
-!! !USES:
-!!
-!    USE HCO_Clock_Mod,    ONLY : HcoClock_First,    HcoClock_NewYear
-!    USE HCO_Clock_Mod,    ONLY : HcoClock_NewMonth, HcoClock_NewDay
-!    USE HCO_Clock_Mod,    ONLY : HcoClock_NewHour
-!    USE HCO_Emislist_Mod, ONLY : EmisList_Update
-!!
-!! !INPUT PARAMETERS:
-!!
-!    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(HCO_State), POINTER        :: HcoState   ! Hemco state object
-!    INTEGER,         INTENT(INOUT)  :: RC         ! Return Code 
-!!
-!! !REVISION HISTORY:
-!!  09 Sep 2013 - C. Keller - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!
-!    ! ================================================================
-!    ! ReadList_to_EmisList begins here
-!    ! ================================================================
-!
-!    ! Enter
-!    CALL HCO_ENTER ('ReadList_to_EmisList (hco_readlist_mod.F90)', RC)
-!    IF ( RC /= HCO_SUCCESS ) RETURN
-!
-!    ! Always add/update content from always-to-read list
-!    CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Always, RC )
-!    IF ( RC /= HCO_SUCCESS ) RETURN
-!
-!    ! Add content from one-time list on the first call 
-!    IF ( HcoClock_First() ) THEN
-!       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Once, RC )
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!    ENDIF
-!
-!    ! Add content from year-list if it's a new year
-!    IF ( HcoClock_NewYear() ) THEN
-!       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Year, RC )
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!    ENDIF
-!
-!    ! Add content from month-list if it's a new month
-!    IF ( HcoClock_NewMonth() ) THEN
-!       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Month, RC )
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!    ENDIF
-!
-!    ! Add content from day-list if it's a new day
-!    IF ( HcoClock_NewDay() ) THEN
-!       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Day, RC )
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!    ENDIF
-!
-!    ! Add content from hour-list if it's a new hour
-!    IF ( HcoClock_NewHour() ) THEN
-!       CALL EmisList_Update( am_I_Root, HcoState, ReadLists%Hour, RC )
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!    ENDIF
-!
-!    ! Leave w/ success
-!    CALL HCO_LEAVE ( RC )
-!
-!  END SUBROUTINE ReadList_to_EmisList
-!!EOC
 END MODULE HCO_ReadList_Mod

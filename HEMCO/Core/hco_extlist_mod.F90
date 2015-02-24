@@ -15,7 +15,15 @@
 ! = 0). The CORE extension is activated in every HEMCO run, while
 ! all other extensions are only activated if enabled in the 
 ! configuration file.
-! \\
+!\\
+!\\
+! Extension number -999 is used as 'wildcard' value, e.g. data
+! containers with extension number -999 will always be read by
+! HEMCO but will be ignored for emission calculation. This is
+! particularly useful for data fields that shall be used outside 
+! of HEMCO, e.g. stratospheric chemistry prod/loss rates, etc.
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_ExtList_Mod
@@ -37,6 +45,9 @@ MODULE HCO_ExtList_Mod
   PUBLIC :: SetExtNr
   PUBLIC :: ExtNrInUse
   PUBLIC :: ExtFinal
+
+  ! Core extension number
+  INTEGER, PARAMETER, PUBLIC  :: CoreNr = -1
 !
 ! !REVISION HISTORY:
 !  02 Oct 2013 - C. Keller   - Initial version
@@ -50,12 +61,14 @@ MODULE HCO_ExtList_Mod
 !
 ! !PRIVATE TYPES:
 !
+  INTEGER, PARAMETER          :: OPTLEN = 2047
+
   ! Type holding name, species, options and extension number of
   ! an extension (as defined in the HEMCO configuration file)
   TYPE Ext 
      CHARACTER(LEN=255)       :: ExtName  ! Name
-     CHARACTER(LEN=2047)      :: Spcs     ! Species
-     CHARACTER(LEN=2047)      :: Opts     ! Options
+     CHARACTER(LEN=OPTLEN)    :: Spcs     ! Species
+     CHARACTER(LEN=OPTLEN)    :: Opts     ! Options
      INTEGER                  :: ExtNr    ! Ext. number
      TYPE(Ext), POINTER       :: NextExt  ! next list item
   END TYPE Ext
@@ -165,9 +178,10 @@ CONTAINS
 !
 ! !INTERNAL VARIABLES:
 !
-    TYPE(Ext), POINTER  :: ThisExt => NULL()
-    CHARACTER(LEN=255)  :: LCname, MSG
-    CHARACTER(LEN=1023) :: NewOpt
+    INTEGER               :: LEN1, LEN2
+    TYPE(Ext), POINTER    :: ThisExt => NULL()
+    CHARACTER(LEN=255)    :: LCname, MSG
+    CHARACTER(LEN=OPTLEN) :: NewOpt
 
     !======================================================================
     ! AddExtOpt begins here
@@ -181,7 +195,17 @@ CONTAINS
     ENDDO
 
     IF ( .NOT. ASSOCIATED( ThisExt ) ) THEN
-       WRITE(MSG,*) 'Cannot find extension Nr. ', ExtNr
+       WRITE(MSG,*) 'Cannot add option to extension Nr. ', ExtNr
+       MSG = TRIM(MSG) // '. Make sure that extension is activated!'
+       CALL HCO_ERROR(MSG,RC,THISLOC='AddExtOpt (hco_extlist_mod)')
+       RETURN
+    ENDIF
+
+    ! Check for string length
+    IF ( ( LEN(TRIM(Opt)) + LEN(TRIM(ThisExt%Opts)) ) >= OPTLEN-2 ) THEN
+       WRITE(MSG,*) 'Cannot store more options for extension Nr. ', ExtNr
+       MSG = TRIM(MSG) // '. Please increase parameter OPTLEN in ' // &
+             'hco_extlist_mod.F90' 
        CALL HCO_ERROR(MSG,RC,THISLOC='AddExtOpt (hco_extlist_mod)')
        RETURN
     ENDIF
@@ -218,6 +242,7 @@ CONTAINS
 ! argument FOUND returns TRUE if the given option name was found, and 
 ! FALSE otherwise. If the FOUND argument is provided, no error is 
 ! returned if the option name is not found!
+! If the ExtNr is set to -999, the settings of all extensions are searched.
 !\\
 !\\
 ! !INTERFACE:
@@ -250,8 +275,9 @@ CONTAINS
     INTEGER,          INTENT(INOUT)            :: RC
 !
 ! !REVISION HISTORY:
-!  03 Oct 2013 - C. Keller - Initial version
+!  03 Oct 2013 - C. Keller   - Initial version
 !  13 Jan 2015 - R. Yantosca - Add optional variable of flex precision (hp)
+!  14 Feb 2015 - C. Keller   - Add option to search all extensions (ExtNr=-999).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -263,116 +289,133 @@ CONTAINS
     CHARACTER(LEN=1023)   :: STR
     INTEGER               :: N, cnt
     INTEGER               :: BGN, FIN, STRLEN, I
+    LOGICAL               :: ExtFound, OptFound
 
     !======================================================================
     ! GetExtOpt begins here
     !======================================================================
 
     ! Init
-    LOC = 'GetExtOpt (hco_extlist_mod)'
+    LOC      = 'GetExtOpt (hco_extlist_mod)'
+    ExtFound = .FALSE.
+    OptFound = .FALSE.
 
     ! Find extension of interest 
     ThisExt => ExtList
     DO WHILE ( ASSOCIATED ( ThisExt ) ) 
-       IF ( ThisExt%ExtNr == ExtNr ) EXIT 
-       ThisExt => ThisExt%NextExt
+
+       ! Check if this is the extension of interest. If extension number
+       ! is set to -999, scan throught all extensions.
+       IF ( ExtNr /= -999 .AND. ThisExt%ExtNr /= ExtNr ) THEN
+          ThisExt => ThisExt%NextExt
+          CYCLE
+       ENDIF 
+
+       ! If we made it to here, it means an extension was found.
+       ExtFound = .TRUE.
+
+       ! Opts contains all options name-value pairs for the given
+       ! extension, all separated by ':::'. Thus only check one
+       ! option per time, i.e. walk through the Opts string until
+       ! the option name of interest is found.
+       ! BGN and FIN denote the start and end of the currently checked 
+       ! Opts chunk. 
+       cnt    = 0
+       STRLEN = LEN(TRIM(ThisExt%Opts))
+       BGN    = 1
+       FIN    = STRLEN
+   
+       ! Do until option name of interest is found
+       DO
+          ! Check for out of range. 
+          IF ( BGN >= STRLEN ) EXIT 
+   
+          ! I denotes the location of next option delimiter.
+          I = INDEX( TRIM(ThisExt%Opts(BGN:FIN)), ':::' )
+          IF ( I > 0 ) THEN
+             FIN = BGN + I - 1
+          ENDIF
+    
+          ! Extract value if this is the option of interest
+          ! --> Assume here that options are separated by colon sign (:)
+          !     and that the option value is in the second column.
+          IF ( INDEX( ThisExt%Opts(BGN:FIN), TRIM(OptName) ) > 0 ) THEN
+             CALL STRSPLIT( ThisExt%Opts(BGN:FIN), ':', SUBSTR, N )
+             IF ( N < 2 ) THEN
+                MSG = 'Option has too few elements: ' // &
+                     TRIM(ThisExt%Opts(BGN:FIN)) 
+                CALL HCO_ERROR(MSG,RC,THISLOC=LOC)
+                RETURN
+             ENDIF
+   
+             ! Pass option value to output
+             IF ( PRESENT(OptValSp) ) THEN
+                READ( SUBSTR(2), * ) OptValSp
+             ELSEIF ( PRESENT(OptValDp) ) THEN
+                READ( SUBSTR(2), * ) OptValDp
+             ELSEIF ( PRESENT(OptValHp) ) THEN
+                READ( SUBSTR(2), * ) OptValHp
+             ELSEIF ( PRESENT(OptValInt) ) THEN
+                READ( SUBSTR(2), * ) OptValInt
+             ELSEIF ( PRESENT(OptValBool) ) THEN
+                CALL TRANLC( TRIM(SUBSTR(2)) )
+                IF ( INDEX( TRIM(SUBSTR(2)), 'true' ) > 0 ) THEN
+                   OptValBool = .TRUE.
+                ELSE
+                   OptValBool = .FALSE.
+                ENDIF
+             ELSEIF ( PRESENT(OptValChar) ) THEN
+                OptValChar = ADJUSTL( TRIM(SUBSTR(2)) )
+             ELSE
+                MSG = 'Invalid option output element: ' // TRIM(OptName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+   
+             ! Leave loop here
+             OptFound = .TRUE.
+             EXIT
+          ENDIF
+
+          ! Update valid string range. The new chunk now starts at end+3
+          ! (skip delimiter characters). 
+          BGN = FIN + 3 
+          FIN = STRLEN  ! End of string
+
+          ! Error trap: don't allow more than 100 iterations!
+          cnt = cnt + 1
+          IF ( cnt > 100 ) THEN
+             CALL HCO_ERROR('CNT>100',RC,THISLOC=LOC)
+             RETURN
+          ENDIF
+       ENDDO 
+
+       ! Advance to next extension
+       IF ( OptFound ) THEN
+          ThisExt => NULL()
+       ELSE
+          ThisExt => ThisExt%NextExt
+       ENDIF
     ENDDO
 
     ! Error if extension not found
-    IF ( .NOT. ASSOCIATED( ThisExt ) ) THEN
+    IF ( .NOT. ExtFound ) THEN
        WRITE(MSG,*) 'Cannot find extension Nr. ', ExtNr
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
 
-    ! Opts contains all options name-value pairs for the given
-    ! extension, all separated by ':::'. Thus only check one
-    ! option per time, i.e. walk through the Opts string until
-    ! the option name of interest is found.
-    ! BGN and FIN denote the start and end of the currently checked 
-    ! Opts chunk. 
-    cnt    = 0
-    STRLEN = LEN(TRIM(ThisExt%Opts))
-    BGN    = 1
-    FIN    = STRLEN
-
-    ! Do until option name of interest is found
-    DO
-       ! Check for out of range. Error handling depends on presence
-       ! of output argument FOUND.
-       IF ( BGN >= STRLEN ) THEN
-          IF ( PRESENT(FOUND) ) THEN
-             FOUND   =  .FALSE.
-             ThisExt => NULL()
-             RC      =  HCO_SUCCESS
-             RETURN
-          ELSE
-             MSG = '(A) Cannot find option ' // TRIM(OptName) // &
-                   ' in ' // TRIM(ThisExt%Opts)
-             CALL HCO_ERROR(MSG,RC,THISLOC=LOC )
-             RETURN
-          ENDIF
-       ENDIF
-
-       ! I denotes the location of next option delimiter.
-       I = INDEX( TRIM(ThisExt%Opts(BGN:FIN)), ':::' )
-       IF ( I > 0 ) THEN
-          FIN = BGN + I - 1
-       ENDIF
- 
-       ! Extract value if this is the option of interest
-       ! --> Assume here that options are separated by colon sign (:)
-       !     and that the option value is in the second column.
-       IF ( INDEX( ThisExt%Opts(BGN:FIN), TRIM(OptName) ) > 0 ) THEN
-          CALL STRSPLIT( ThisExt%Opts(BGN:FIN), ':', SUBSTR, N )
-          IF ( N < 2 ) THEN
-             MSG = 'Option has too few elements: ' // &
-                  TRIM(ThisExt%Opts(BGN:FIN)) 
-             CALL HCO_ERROR(MSG,RC,THISLOC=LOC)
-             RETURN
-          ENDIF
-
-          ! Pass option value to output
-          IF ( PRESENT(OptValSp) ) THEN
-             READ( SUBSTR(2), * ) OptValSp
-          ELSEIF ( PRESENT(OptValDp) ) THEN
-             READ( SUBSTR(2), * ) OptValDp
-          ELSEIF ( PRESENT(OptValHp) ) THEN
-             READ( SUBSTR(2), * ) OptValHp
-          ELSEIF ( PRESENT(OptValInt) ) THEN
-             READ( SUBSTR(2), * ) OptValInt
-          ELSEIF ( PRESENT(OptValBool) ) THEN
-             CALL TRANLC( TRIM(SUBSTR(2)) )
-             IF ( INDEX( TRIM(SUBSTR(2)), 'true' ) > 0 ) THEN
-                OptValBool = .TRUE.
-             ELSE
-                OptValBool = .FALSE.
-             ENDIF
-          ELSEIF ( PRESENT(OptValChar) ) THEN
-             OptValChar = ADJUSTL( TRIM(SUBSTR(2)) )
-          ELSE
-             MSG = 'Invalid option output element: ' // TRIM(OptName)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-             RETURN
-          ENDIF
-
-          ! Leave loop here
-          IF ( PRESENT(FOUND) ) FOUND = .TRUE.
-          EXIT
-       ENDIF
-
-       ! Update valid string range. The new chunk now starts at end+3
-       ! (skip delimiter characters). 
-       BGN = FIN + 3 
-       FIN = STRLEN  ! End of string
-
-       ! Error trap: don't allow more than 100 iterations!
-       cnt = cnt + 1
-       IF ( cnt > 100 ) THEN
-          CALL HCO_ERROR('CNT>100',RC,THISLOC=LOC)
-          RETURN
-       ENDIF
-    ENDDO 
+    ! Check if option was found. Handling depends on presence
+    ! of argument 'FOUND'. If FOUND is not present and option
+    ! was not found, return with error. 
+    IF ( PRESENT(FOUND) ) THEN
+       FOUND = OptFound
+    ELSEIF ( .NOT. OptFound ) THEN
+       WRITE(MSG,*) '(A) Cannot find option ', TRIM(OptName),  &
+       ' in extension ', ExtNr 
+       CALL HCO_ERROR(MSG,RC,THISLOC=LOC )
+       RETURN
+    ENDIF
 
     ! Cleanup and leave
     ThisExt => NULL()
@@ -388,7 +431,7 @@ CONTAINS
 ! !IROUTINE: GetExtNr 
 !
 ! !DESCRIPTION: Function GetExtNr returns the extension number of
-! extension ExtName. Returns -1 if no extension with the given name is
+! extension ExtName. Returns -999 if no extension with the given name is
 ! found. 
 !\\
 !\\
@@ -426,14 +469,14 @@ CONTAINS
     ! Pass name to module 
     LCname = TRIM(ExtName)
 
+    ! Set to lower case
+    CALL TRANLC( LCname )
+
     ! Init output
-    ExtNr = -1 
+    ExtNr = -999
 
     ! Point to header of extensions list
     ThisExt => ExtList
-
-    ! Set to lower case
-    CALL TRANLC( LCname )
 
     ! Loop over all used extensions and check if any of them matches
     ! ExtName.
@@ -601,7 +644,7 @@ CONTAINS
 
        ! If argument is not given, overwrite all extensions except for
        ! HEMCO core
-       ELSEIF ( ThisExt%ExtNr /= 0 ) THEN
+       ELSEIF ( ThisExt%ExtNr /= CoreNr ) THEN
           overwrite = .TRUE.
        ENDIF
 
@@ -664,6 +707,12 @@ CONTAINS
     !======================================================================
     ! ExtNrInUse begins here
     !======================================================================
+
+    ! Use number -999 for wildcard values
+    IF ( ExtNr == -999 ) THEN
+       InUse = .TRUE.
+       RETURN
+    ENDIF
 
     ! Init output
     InUse = .FALSE.
@@ -743,4 +792,3 @@ CONTAINS
   END SUBROUTINE ExtFinal
 !EOC
 END MODULE HCO_ExtList_Mod 
-!EOM

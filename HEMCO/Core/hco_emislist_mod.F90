@@ -79,7 +79,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_TIDX_MOD,      ONLY : tIDx_Assign 
     USE HCO_DATACONT_MOD,  ONLY : ListCont_Find
     USE HCO_LOGFILE_MOD,   ONLY : HCO_PrintDataCont
 !
@@ -95,6 +94,9 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller - Initialization
+!  02 Feb 2015 - C. Keller - Moved tIDx_Assign call to hco_readlist_mod
+!                            so that this module can also be used by
+!                            hco_clock_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,17 +136,6 @@ CONTAINS
     ALLOCATE ( Lct ) 
     Lct%NextCont => NULL()
     Lct%Dct      => Dct
-
-    ! ----------------------------------------------------------------
-    ! Set time index pointer tIDx of this data container. tIDx will
-    ! be set according to the number of time slices (and the time
-    ! interval between them) hold by this data container. For hourly
-    ! data (24 time slices), for example, tIDx will point to the 
-    ! corresponding 'HOURLY' or 'HOURLY_GRID' time index collection 
-    ! type defined in hco\_tidx\_mod. 
-    ! ----------------------------------------------------------------
-    CALL tIDx_Assign ( HcoState, Lct, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
     ! Add the new container to EmisList. The container will be placed
@@ -757,7 +748,7 @@ CONTAINS
 !                                                             ! (default=1)
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),         POINTER               :: Ptr3D(:,:,:)   ! output array
+    REAL(sp),         POINTER               :: Ptr3D(:,:,:)   ! output array
     LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND          ! cont. found?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -867,7 +858,7 @@ CONTAINS
 !                                                          ! (default=1)
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),         POINTER               :: Ptr2D(:,:)  ! output array
+    REAL(sp),         POINTER               :: Ptr2D(:,:)  ! output array
     LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND          ! cont. found?
 !
 ! !INPUT/OUTPUT PARAMETERS:

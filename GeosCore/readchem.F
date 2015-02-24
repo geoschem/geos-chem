@@ -177,10 +177,6 @@
 
       INTEGER             :: IU_CHEMDAT ! GLOBCHEM.DAT LUN
 
-!#if defined( DEVEL )
-!      INTEGER, ALLOCATABLE :: INTVAL(:)
-!#endif
-
       !=================================================================
       ! READCHEM begins here!
       !=================================================================
@@ -777,10 +773,6 @@
        GOTO 310 
       ENDIF
 
-!#if defined( DEVEL ) || defined ( ESMF_ ) 
-!      CALL GIGC_READCHEM_BCAST( C1,    CSTRAT, CTROPL, CTROPS, CURBAN, 
-!    &                       ININT, IORD,   NCOF,   RC              )
-!#endif
 !
 ! *********************************************************************
 ! *      UPDATE REACTION NUMBER FOR REACTIONS THAT ARE USED           *
