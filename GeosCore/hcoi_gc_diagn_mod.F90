@@ -2814,7 +2814,7 @@ CONTAINS
           IF ( HcoID > 0 ) THEN
              DiagnName = 'BIOGENIC_ALD2'
              CALL Diagn_Create( am_I_Root,                     & 
-                                HcoState,                      &
+                                HcoState  = HcoState,          &
                                 cName     = TRIM( DiagnName ), &
                                 ExtNr     = ExtNr,             &
                                 Cat       = Cat,               &
@@ -2966,7 +2966,7 @@ CONTAINS
              ! diagnostics update calls are explicitly called in 
              ! hcox_megan_mod.F90.
              CALL Diagn_Create( am_I_Root,                     & 
-                                HcoState,                      &
+                                HcoState  = HcoState,          &
                                 cName     = TRIM( DiagnName ), &
                                 ExtNr     = ExtNr,             &
                                 Cat       = -1,                &
@@ -3067,36 +3067,6 @@ CONTAINS
 
        !%%% For ND46 diagnostic %%%
        IF ( ND46 > 0 ) THEN
-
-!-----------------------------------------------------------------------------
-! Prior to 2/23/15:
-!          !----------------------------------------
-!          ! %%%%% Biogenic MONX %%%%%
-!          !----------------------------------------
-!
-!          ! HEMCO species ID
-!          HcoID = HCO_GetHcoID( 'MONX', HcoState )
-!
-!          ! Create diagnostic container (if MONX is defined)
-!          IF ( HcoID > 0 ) THEN
-!             DiagnName = 'BIOGENIC_MONX'
-!             CALL Diagn_Create( am_I_Root,                     & 
-!                                HcoState,                      &
-!                                cName     = TRIM( DiagnName ), &
-!                                ExtNr     = ExtNr,             &
-!                                Cat       = Cat,               &
-!                                Hier      = -1,                &
-!                                HcoID     = HcoID,             &
-!                                SpaceDim  = 2,                 &
-!                                LevIDx    = -1,                &
-!                                OutUnit   = 'kg/m2/s',         &
-!                                WriteFreq = 'Manual',          &
-!                                AutoFill  = 1,                 &
-!                                cID       = N,                 & 
-!                                RC        = RC                  ) 
-!             IF ( RC /= HCO_SUCCESS ) RETURN 
-!          ENDIF
-!-----------------------------------------------------------------------------
 
           !----------------------------------------
           ! %%%%% Biogenic monoterpene species %%%%%

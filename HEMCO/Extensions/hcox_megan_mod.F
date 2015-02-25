@@ -209,14 +209,14 @@
       ! These fields are obtained from ext. data (from config file)
       ! These arrays represent the base emission values in kg(C)/m2/s
       ! that will be scaled based upon meteorological conditions.
-      REAL(hp), POINTER       :: AEF_ISOP(:,:)  => NULL()   ! Isoprene 
-      REAL(hp), POINTER       :: AEF_MBOX(:,:)  => NULL()   ! Methyl butenol
-      REAL(hp), POINTER       :: AEF_BPIN(:,:)  => NULL()   ! Beta-pinene
-      REAL(hp), POINTER       :: AEF_CARE(:,:)  => NULL()   ! 3-Carene
-      REAL(hp), POINTER       :: AEF_LIMO(:,:)  => NULL()   ! Limonene
-      REAL(hp), POINTER       :: AEF_OCIM(:,:)  => NULL()   ! Ocimene
-      REAL(hp), POINTER       :: AEF_SABI(:,:)  => NULL()   ! Sabinene
-      REAL(hp), POINTER       :: GEIA_ORVC(:,:) => NULL()   ! Organic carbon
+      REAL(sp), POINTER       :: AEF_ISOP(:,:)  => NULL()   ! Isoprene 
+      REAL(sp), POINTER       :: AEF_MBOX(:,:)  => NULL()   ! Methyl butenol
+      REAL(sp), POINTER       :: AEF_BPIN(:,:)  => NULL()   ! Beta-pinene
+      REAL(sp), POINTER       :: AEF_CARE(:,:)  => NULL()   ! 3-Carene
+      REAL(sp), POINTER       :: AEF_LIMO(:,:)  => NULL()   ! Limonene
+      REAL(sp), POINTER       :: AEF_OCIM(:,:)  => NULL()   ! Ocimene
+      REAL(sp), POINTER       :: AEF_SABI(:,:)  => NULL()   ! Sabinene
+      REAL(sp), POINTER       :: GEIA_ORVC(:,:) => NULL()   ! Organic carbon
 
       ! Annual emission factors arrays
       ! These fields are not read from file, but are computed in CALC_AEF
@@ -239,22 +239,22 @@
       REAL(hp), ALLOCATABLE   :: AEF_OSQT(:,:)              ! Other sesquiterp.
 
       ! Pointers to CLM4 plant functional types
-      REAL(hp), POINTER       :: PFT_BARE(:,:)                => NULL()
-      REAL(hp), POINTER       :: PFT_NDLF_EVGN_TMPT_TREE(:,:) => NULL()
-      REAL(hp), POINTER       :: PFT_NDLF_EVGN_BORL_TREE(:,:) => NULL()
-      REAL(hp), POINTER       :: PFT_NDLF_DECD_BORL_TREE(:,:) => NULL()
-      REAL(hp), POINTER       :: PFT_BDLF_EVGN_TROP_TREE(:,:) => NULL()
-      REAL(hp), POINTER       :: PFT_BDLF_EVGN_TMPT_TREE(:,:) => NULL()
-      REAL(hp), POINTER       :: PFT_BDLF_DECD_TROP_TREE(:,:) => NULL()
-      REAL(hp), POINTER       :: PFT_BDLF_DECD_TMPT_TREE(:,:) => NULL()
-      REAL(hp), POINTER       :: PFT_BDLF_DECD_BORL_TREE(:,:) => NULL()
-      REAL(hp), POINTER       :: PFT_BDLF_EVGN_SHRB(:,:)      => NULL()
-      REAL(hp), POINTER       :: PFT_BDLF_DECD_TMPT_SHRB(:,:) => NULL()
-      REAL(hp), POINTER       :: PFT_BDLF_DECD_BORL_SHRB(:,:) => NULL()
-      REAL(hp), POINTER       :: PFT_C3_ARCT_GRSS(:,:)        => NULL()
-      REAL(hp), POINTER       :: PFT_C3_NARC_GRSS(:,:)        => NULL()
-      REAL(hp), POINTER       :: PFT_C4_GRSS(:,:)             => NULL()
-      REAL(hp), POINTER       :: PFT_CROP(:,:)                => NULL()
+      REAL(sp), POINTER       :: PFT_BARE(:,:)                => NULL()
+      REAL(sp), POINTER       :: PFT_NDLF_EVGN_TMPT_TREE(:,:) => NULL()
+      REAL(sp), POINTER       :: PFT_NDLF_EVGN_BORL_TREE(:,:) => NULL()
+      REAL(sp), POINTER       :: PFT_NDLF_DECD_BORL_TREE(:,:) => NULL()
+      REAL(sp), POINTER       :: PFT_BDLF_EVGN_TROP_TREE(:,:) => NULL()
+      REAL(sp), POINTER       :: PFT_BDLF_EVGN_TMPT_TREE(:,:) => NULL()
+      REAL(sp), POINTER       :: PFT_BDLF_DECD_TROP_TREE(:,:) => NULL()
+      REAL(sp), POINTER       :: PFT_BDLF_DECD_TMPT_TREE(:,:) => NULL()
+      REAL(sp), POINTER       :: PFT_BDLF_DECD_BORL_TREE(:,:) => NULL()
+      REAL(sp), POINTER       :: PFT_BDLF_EVGN_SHRB(:,:)      => NULL()
+      REAL(sp), POINTER       :: PFT_BDLF_DECD_TMPT_SHRB(:,:) => NULL()
+      REAL(sp), POINTER       :: PFT_BDLF_DECD_BORL_SHRB(:,:) => NULL()
+      REAL(sp), POINTER       :: PFT_C3_ARCT_GRSS(:,:)        => NULL()
+      REAL(sp), POINTER       :: PFT_C3_NARC_GRSS(:,:)        => NULL()
+      REAL(sp), POINTER       :: PFT_C4_GRSS(:,:)             => NULL()
+      REAL(sp), POINTER       :: PFT_CROP(:,:)                => NULL()
 
       ! Normalization factor
       REAL(hp), ALLOCATABLE   :: NORM_FAC(:)
@@ -321,7 +321,6 @@
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_First 
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_NewHour 
       USE HCO_CLOCK_MOD,       ONLY : HcoClock_NewDay
-      USE HCO_EMISLIST_MOD,    ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1251,7 +1250,7 @@
          ! Update diagnostic even if MONX is not a tracer (mps, 2/23/15)
          Arr2D => FLUXMONO
          DiagnName =  'BIOGENIC_MONX'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1272,7 +1271,7 @@
          ! Eventually update diagnostics
          IF ( Diagn_AutoFillLevelDefined(2) ) THEN
             Arr2D => FLUXALD2
-            CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+            CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
      &                         Cat=-1, Hier=-1, HcoID=IDTALD2,
      &                         AutoFill=1, Array2D=Arr2D, RC=RC   )
             IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1475,7 +1474,7 @@
          ! Methyl butenol
          Arr2D => FLUXMBOX
          DiagnName =  'BIOGENIC_MBOX'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1484,7 +1483,7 @@
          ! Alpha Pinene
          Arr2D => FLUXAPIN
          DiagnName =  'BIOGENIC_APIN'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1493,7 +1492,7 @@
          ! Beta Pinene
          Arr2D => FLUXBPIN
          DiagnName =  'BIOGENIC_BPIN'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1502,7 +1501,7 @@
          ! Limonene
          Arr2D => FLUXLIMO
          DiagnName =  'BIOGENIC_LIMO'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1511,7 +1510,7 @@
          ! Sabinene
          Arr2D => FLUXSABI
          DiagnName =  'BIOGENIC_SABI'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1520,7 +1519,7 @@
          ! Mycrene
          Arr2D => FLUXMYRC
          DiagnName =  'BIOGENIC_MYRC'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1529,7 +1528,7 @@
          ! 3-Carene
          Arr2D => FLUXCARE
          DiagnName =  'BIOGENIC_CARE'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1538,7 +1537,7 @@
          ! Ocimene
          Arr2D => FLUXOCIM
          DiagnName =  'BIOGENIC_OCIM'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1547,7 +1546,7 @@
          ! Other monoterpenes
          Arr2D => FLUXOMON
          DiagnName =  'BIOGENIC_OMON'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
          Arr2D => NULL() 
@@ -1556,7 +1555,7 @@
          ! a-Farnesene
          Arr2D => FLUXFARN
          DiagnName =  'BIOGENIC_FARN'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D,
      &                      RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1566,7 +1565,7 @@
          ! b_Caryophyllene
          Arr2D => FLUXBCAR
          DiagnName =  'BIOGENIC_BCAR'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D,
      &                      RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1576,7 +1575,7 @@
          ! Other sesquiterpenes
          Arr2D => FLUXOSQT
          DiagnName =  'BIOGENIC_OSQT'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNrMono, 
+         CALL Diagn_Update( am_I_Root, ExtNr=ExtNrMono, 
      &                      cName=TRIM(DiagnName), Array2D=Arr2D,
      &                      RC=RC)
          IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1597,7 +1596,7 @@
       ! Methanol
       Arr2D => FLUXMOHX
       DiagnName =  'BIOGENIC_MOHX'
-      CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+      CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
      &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
       Arr2D => NULL() 
@@ -1606,7 +1605,7 @@
       ! Ethanol
       Arr2D => FLUXETOH
       DiagnName =  'BIOGENIC_ETOH'
-      CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+      CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
      &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
       Arr2D => NULL() 
@@ -1615,7 +1614,7 @@
       ! Formic acid
       Arr2D => FLUXFAXX
       DiagnName =  'BIOGENIC_FAXX'
-      CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+      CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
      &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
       Arr2D => NULL() 
@@ -1624,7 +1623,7 @@
       ! Acetic acid
       Arr2D => FLUXAAXX
       DiagnName =  'BIOGENIC_AAXX'
-      CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, 
+      CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, 
      &                   cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
       Arr2D => NULL() 
@@ -2267,8 +2266,8 @@
       TYPE(HCO_State), POINTER    :: HcoState
       TYPE(Ext_State), POINTER    :: ExtState
       INTEGER,         INTENT(IN) :: I,  J             ! Lon & lat indices 
-      REAL(hp),        INTENT(IN) :: HCOPARDR_AVG_SIM  ! Avg direct PAR [W/m2]
-      REAL(hp),        INTENT(IN) :: HCOPARDF_AVG_SIM  ! Avg diffuse PAR [W/m2]
+      REAL(sp),        INTENT(IN) :: HCOPARDR_AVG_SIM  ! Avg direct PAR [W/m2]
+      REAL(sp),        INTENT(IN) :: HCOPARDF_AVG_SIM  ! Avg diffuse PAR [W/m2]
       REAL(hp),        INTENT(IN) :: Q_DIR_2           ! Direct PAR [umol/m2/s]
       REAL(hp),        INTENT(IN) :: Q_DIFF_2          ! Diffuse PAR [umol/m2/s]
 !
@@ -2528,11 +2527,11 @@
       REAL(hp), INTENT(IN) :: T        
 
        ! Average leaf temperature over the past 15 days
-      REAL(hp), INTENT(IN) :: PT_15
+      REAL(sp), INTENT(IN) :: PT_15
 
       ! Average leaf temperature over the past arbitray day(s).
       ! This is not used at present
-      REAL(hp), INTENT(IN) :: PT_1
+      REAL(sp), INTENT(IN) :: PT_1
 
       ! Compound-specific parameters for light-dependent temperature activity
       ! factor (dbm, 6/21/2012)
@@ -2692,7 +2691,7 @@
       REAL(hp), INTENT(IN) :: CMLAI     ! Current month's LAI [cm2/cm2]
       REAL(hp), INTENT(IN) :: PMLAI     ! Previous months LAI [cm2/cm2]
       REAL(hp), INTENT(IN) :: DBTWN     ! Number of days between 
-      REAL(hp), INTENT(IN) :: TT        ! Daily average temperature [K]
+      REAL(sp), INTENT(IN) :: TT        ! Daily average temperature [K]
       REAL(hp), INTENT(IN) :: AN        ! Relative emiss factor (new leaves)
       REAL(hp), INTENT(IN) :: AG        ! Relative emiss factor (growing leaves)
       REAL(hp), INTENT(IN) :: AM        ! Relative emiss factor (mature leaves)
@@ -2813,7 +2812,7 @@
       END FUNCTION GET_GAMMA_AGE
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2887,7 +2886,7 @@
 
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3368,7 +3367,7 @@
       END SUBROUTINE UPDATE_HCOT_15_AVG
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
