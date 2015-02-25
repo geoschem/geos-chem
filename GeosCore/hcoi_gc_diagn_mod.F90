@@ -233,7 +233,7 @@ CONTAINS
 
     ! This is for testing only. Only activate if needed.
     !IF ( .TRUE. ) THEN     ! Activated
-    IF ( .TRUE. ) THEN     ! Deactivated
+    IF ( .FALSE. ) THEN     ! Deactivated
 
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 
@@ -1060,6 +1060,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use sulfur
+!  23 Feb 2015 - C. Keller   - Split volcano into eruptive and degassing.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1193,22 +1194,40 @@ CONTAINS
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
-       ! ... from volcanoes ...
-       DiagnName = 'AD13_SO2_VOLCANO'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = CATEGORY_VOLCANO,  &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 3,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg',              &
-                          WriteFreq = 'Manual',          &
-                          AutoFill  = 1,                 &
-                          cID       = N,                 & 
-                          RC        = RC                  )
+       ! ... from volcanoes (eruptive) ...
+       DiagnName = 'AD13_SO2_VOLCANO_ERUPT'
+       CALL Diagn_Create( am_I_Root,                           & 
+                          HcoState  = HcoState,                &
+                          cName     = TRIM( DiagnName ),       &
+                          ExtNr     = ExtNr,                   &
+                          Cat       = CATEGORY_VOLCANO_ERUPT,  &
+                          Hier      = -1,                      &
+                          HcoID     = HcoID,                   &
+                          SpaceDim  = 3,                       &
+                          LevIDx    = -1,                      &
+                          OutUnit   = 'kg',                    &
+                          WriteFreq = 'Manual',                &
+                          AutoFill  = 1,                       &
+                          cID       = N,                       & 
+                          RC        = RC                        )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       ! ... from volcanoes (non-eruptive / degassing) ...
+       DiagnName = 'AD13_SO2_VOLCANO_DEGAS'
+       CALL Diagn_Create( am_I_Root,                           & 
+                          HcoState  = HcoState,                &
+                          cName     = TRIM( DiagnName ),       &
+                          ExtNr     = ExtNr,                   &
+                          Cat       = CATEGORY_VOLCANO_DEGAS,  &
+                          Hier      = -1,                      &
+                          HcoID     = HcoID,                   &
+                          SpaceDim  = 3,                       &
+                          LevIDx    = -1,                      &
+                          OutUnit   = 'kg',                    &
+                          WriteFreq = 'Manual',                &
+                          AutoFill  = 1,                       &
+                          cID       = N,                       & 
+                          RC        = RC                        )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... from ships ...
@@ -3325,7 +3344,7 @@ CONTAINS
     !IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
 
     ! Define diagnostics
-    IF ( ND56 > 0 ) THEN
+    IF ( Input_Opt%ND56 > 0 ) THEN
 
        ! Extension number
        ExtNr = GetExtNr('LightNOx')

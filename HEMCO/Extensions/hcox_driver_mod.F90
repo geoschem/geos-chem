@@ -702,43 +702,43 @@ CONTAINS
        DGN_WLI     = 0.0_sp
        DGN_TROPP   = 0.0_sp
 
-       CALL DgnDefine ( am_I_Root, HcoState, 'T2M', DGN_T2M, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_T2M', DGN_T2M, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL DgnDefine ( am_I_Root, HcoState, 'GWET', DGN_GWET, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_GWET', DGN_GWET, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL DgnDefine ( am_I_Root, HcoState, 'SUNCOS', DGN_SUNCOS, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_SUNCOS', DGN_SUNCOS, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'LAI', DGN_LAI, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_LAI', DGN_LAI, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'U10M', DGN_U10M, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_U10M', DGN_U10M, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'V10M', DGN_V10M, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_V10M', DGN_V10M, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'PARDR', DGN_PARDR, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_PARDR', DGN_PARDR, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'PARDF', DGN_PARDF, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_PARDF', DGN_PARDF, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'SZAFACT', DGN_SZAFACT, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_SZAFACT', DGN_SZAFACT, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'CLDFRC', DGN_CLDFRC, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_CLDFRC', DGN_CLDFRC, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'ALBD', DGN_ALBD, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_ALBD', DGN_ALBD, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'WLI', DGN_WLI, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_WLI', DGN_WLI, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
    
-       CALL DgnDefine ( am_I_Root, HcoState, 'TROPP', DGN_TROPP, RC ) 
+       CALL DgnDefine ( am_I_Root, HcoState, 'HCO_TROPP', DGN_TROPP, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDIF

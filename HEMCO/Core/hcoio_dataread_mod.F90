@@ -2502,6 +2502,7 @@ CONTAINS
 !
     USE HCO_TIDX_MOD,         ONLY : HCO_GetPrefTimeAttr
     USE HCO_CHARTOOLS_MOD,    ONLY : HCO_CharParse
+    USE HCO_CLOCK_MOD,        ONLY : HcoClock_Get
 !
 ! !INPUT PARAMETERS:
 !
@@ -2519,6 +2520,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Oct 2014 - C. Keller - Initial version
+!  23 Feb 2015 - C. Keller - Now check for negative return values in
+!                            HCO_GetPrefTimeAttr 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2537,6 +2540,24 @@ CONTAINS
     ! Get preferred dates (to be passed to parser
     CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Make sure dates are not negative 
+    IF ( prefYr <= 0 ) THEN
+       CALL HcoClock_Get( cYYYY = prefYr, RC = RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+    IF ( prefMt <= 0 ) THEN
+       CALL HcoClock_Get( cMM   = prefMt, RC = RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+    IF ( prefDy <= 0 ) THEN
+       CALL HcoClock_Get( cDD   = prefDy, RC = RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+    IF ( prefHr <  0 ) THEN
+       CALL HcoClock_Get( cH    = prefHr, RC = RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF 
 
     ! Call the parser
     CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, RC )

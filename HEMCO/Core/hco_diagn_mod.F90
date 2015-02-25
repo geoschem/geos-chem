@@ -2130,7 +2130,8 @@ CONTAINS
     ! Check if dimensions match. Also, containers with pointers must not
     ! be set to AutoFill
     IF ( DgnCont%AutoFill == 1 ) THEN
-       MSG = 'Cannot link AutoFill container: ' // TRIM(DgnCont%cName)
+       MSG = 'Cannot link AutoFill container - please set AutoFill flag to 0: ' &
+           // TRIM(DgnCont%cName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
