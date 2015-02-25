@@ -30,7 +30,7 @@
       USE COMODE_MOD,           ONLY : JLOP_PREVIOUS
       USE COMODE_MOD,           ONLY : TAREA
       USE COMODE_LOOP_MOD
-      USE DAO_MOD,              ONLY : MAKE_AVGW
+!      USE DAO_MOD,              ONLY : MAKE_AVGW  ! (ewl, 2/25/15)
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
       USE DUST_MOD,             ONLY : RDUST_ONLINE
@@ -328,10 +328,12 @@
       ! (mpayer, 12/6/12)
       STT       => State_Chm%Tracers
 
-      !=================================================================
-      ! Compute AVGW, the mixing ratio of water vapor
-      !=================================================================
-      CALL MAKE_AVGW( State_Met )
+! (removed by ewl, 2/25/15, since AVGW now computed in AIRQNT)
+! Investigate why this is called here.
+!      !=================================================================
+!      ! Compute AVGW, the mixing ratio of water vapor
+!      !=================================================================
+!      CALL MAKE_AVGW( State_Met )
 
       !=================================================================
       ! Open "smv2.log" output file and read chem mechanism switches

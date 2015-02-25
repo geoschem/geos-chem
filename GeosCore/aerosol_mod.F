@@ -128,7 +128,7 @@
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
-      USE DAO_MOD,            ONLY : MAKE_AVGW
+!      USE DAO_MOD,            ONLY : MAKE_AVGW  ! (ewl, 2/25/15)
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
 
@@ -184,8 +184,9 @@
       NVERT  = IVERT
       NPVERT = NVERT
 
-      ! Create AVGW field -- mixing ratio of water [v/v]
-      CALL MAKE_AVGW( State_Met )
+!      ! Create AVGW field -- mixing ratio of water [v/v]
+!      ! (removed by ewl, 2/25/15. AVGW now calculated in AIRQNT)
+!      CALL MAKE_AVGW( State_Met )
 
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call
