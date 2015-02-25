@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Mon Jun  2 11:01:28 2014
+! Time                 : Wed Jan 21 16:45:04 2015
 ! Working directory    : /home/mpayer/KPP
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -270,7 +270,7 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: NJVRP = 864 
 
 ! NSTOICM - Length of Sparse Stoichiometric Matrix
-  INTEGER, PARAMETER :: NSTOICM = 2218 
+  INTEGER, PARAMETER :: NSTOICM = 2219 
 
 END MODULE gckpp_Parameters
 
