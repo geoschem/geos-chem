@@ -70,6 +70,7 @@ CONTAINS
     USE HCO_Calc_Mod,     ONLY : HCO_CalcEmis
     USE HCO_ReadList_Mod, ONLY : ReadList_Read 
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
+    USE HCO_Clock_Mod,    ONLY : HcoClock_InitTzPtr
 !
 ! !INPUT PARAMETERS:
 !
@@ -86,13 +87,17 @@ CONTAINS
 !  23 Dec 2014 - C. Keller   - ReadList_to_EmisList is now obsolete. 
 !                              Containers are added to EmisList within
 !                              routine ReadList_Read.
+!  23 Feb 2015 - R. Yantosca - Now call HcoClock_InitTzPtr on the first
+!                              emissions timestep to initialize the pointer 
+!                              to the timezones data (i.e. hours from UTC)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL     :: IsEmisTime
+    LOGICAL       :: IsEmisTime
+    LOGICAL, SAVE :: FIRST = .TRUE.
 
     !=================================================================
     ! HCO_RUN begins here!
@@ -118,6 +123,19 @@ CONTAINS
     ! Update data, as specified in ReadList.
     CALL ReadList_Read( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If we are reading timezone data (i.e. offsets from UTC in hours)
+    ! from a file, then we need to initialize the TIMEZONES pointer 
+    ! variable in hco_clock_mod.F90.  This has to be done only on the
+    ! very first emissions timestep, after the call to READLIST_READ.
+    ! We must leave this call here (instead of in the more customary
+    ! initialization routine HCO_INIT) because the HEMCO configuration
+    ! file has to be read in its entirety before the timezone data
+    ! is loaded into a data container. (bmy, 2/23/15)
+    IF ( FIRST ) THEN
+       CALL HcoClock_InitTzPtr( RC )
+       FIRST = .FALSE.
+    ENDIF
 
     !-----------------------------------------------------------------
     ! 3. Calculate the emissions for current time stamp based on the

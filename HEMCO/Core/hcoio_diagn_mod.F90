@@ -107,10 +107,12 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC          ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller    - Initial version 
+!  12 Sep 2013 - C. Keller   - Initial version 
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  19 Feb 2015 - C. Keller   - Added optional argument OnlyIfFirst
+!  23 Feb 2015 - R. Yantosca - Now make Arr1D REAL(sp) so that we can write
+!                              out lon & lat as float instead of double
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -122,7 +124,7 @@ CONTAINS
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
     REAL(sp), POINTER         :: nctime(:)
-    REAL(hp), POINTER         :: Arr1D(:) => NULL()
+    REAL(sp), POINTER         :: Arr1D(:) => NULL()
     INTEGER,  POINTER         :: Int1D(:) => NULL()
     REAL(sp), POINTER         :: Arr3D(:,:,:) => NULL()
     REAL(sp), POINTER         :: Arr4D(:,:,:,:) => NULL()
@@ -259,16 +261,18 @@ CONTAINS
     ! Add longitude 
     CALL NC_VAR_DEF ( fId, lonId, -1, -1, -1, &
                       'lon', 'Longitude', 'degrees_east', Prc, VarCt )
-    Arr1D => HcoState%Grid%XMID%Val(:,1)
+    ALLOCATE( Arr1D( nLon ) )
+    Arr1D = HcoState%Grid%XMID%Val(:,1)
     CALL NC_VAR_WRITE ( fId, 'lon', Arr1D=Arr1D )
-    Arr1D => NULL()
+    DEALLOCATE( Arr1D )
     
     ! Add latitude
     CALL NC_VAR_DEF ( fId, -1, latId, -1, -1, &
                       'lat', 'Latitude', 'degrees_north', Prc, VarCt )
-    Arr1D => HcoState%Grid%YMID%Val(1,:)
+    ALLOCATE( Arr1D( nLat ) )
+    Arr1D = HcoState%Grid%YMID%Val(1,:)
     CALL NC_VAR_WRITE ( fId, 'lat', Arr1D=Arr1D )
-    Arr1D => NULL()
+    DEALLOCATE( Arr1D )
 
     ! Add level 
     CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &

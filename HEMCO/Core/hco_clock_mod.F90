@@ -57,6 +57,7 @@ MODULE HCO_Clock_Mod
 !
   ! HEMCO Clock object:
   PUBLIC :: HcoClock_Init
+  PUBLIC :: HcoClock_InitTzPtr
   PUBLIC :: HcoClock_Set
   PUBLIC :: HcoClock_Get
   PUBLIC :: HcoClock_GetLocal
@@ -82,7 +83,8 @@ MODULE HCO_Clock_Mod
 !  08 Oct 2014 - C. Keller   - Added mid-month day calculation 
 !  03 Dec 2014 - C. Keller   - Now use fixed number of time zones (24)
 !  12 Jan 2015 - C. Keller   - Added emission time variables.
-!  02 Feb 2015 - C. Keller   - Added option to get time zones from file (TIMEZONES)
+!  02 Feb 2015 - C. Keller   - Added option to get time zones from file
+!  23 Feb 2015 - R. Yantosca - Added routine HcoClock_InitTzPtr
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -182,6 +184,11 @@ MODULE HCO_Clock_Mod
 
   ! Pointer to gridded time zones. Will only hold data if a field `TIMEZONES`
   ! is provided in the HEMCO configuration file.
+  !
+  ! NOTE: This pointer is initialized by a call to HcoClock_InitTzPtr
+  ! from the HEMCO run routine (HCO_Run, in hco_driver_mod.F90).
+  ! This is necessary to avoid segmentation faults when running with
+  ! OpenMP turned on. (bmy, 2/23/15)
   REAL(sp), POINTER    :: TIMEZONES(:,:) => NULL()
 
 CONTAINS
@@ -306,12 +313,69 @@ CONTAINS
        HcoClock%nSteps     = 0
        HcoClock%nEmisSteps = 0
        HcoClock%LastEStep  = 0
+
     ENDIF
 
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
 
   END SUBROUTINE HcoClock_Init
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HcoClock_InitTzPtr
+!
+! !DESCRIPTION: Subroutine HcoClock\_InitTzPtr initializes the TIMEZONES
+!  module variable.  TIMEZONES points to the timezones data (i.e. offsets
+!  from UTC in hours) as read from disk.  If the timezones data file is not
+!  being used, then the TIMEZONES pointer will be left unassociated.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HcoClock_InitTzPtr( RC )
+!
+! !USES:
+!
+    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT)  :: RC   ! Success or failure?
+!
+! !REMARKS:
+!  This routine has to be called in the HCO_Run routine, immediately after
+!  the call to ReadList_Read.   The HEMCO configuration file has to be read 
+!  first in order to determine if we are getting our timezone information from
+!  a file, or if we are computing it just based on longitude in the default
+!  manner.
+!
+! !REVISION HISTORY:
+!  23 Feb 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL :: FOUND
+
+    ! Look for the time zone pointer 
+    CALL HCO_GetPtr ( .FALSE., 'TIMEZONES', TIMEZONES, RC, FOUND=FOUND )
+
+    ! Print a message
+    IF ( FOUND ) THEN
+       CALL HCO_MSG( &
+        'TIMEZONES (i.e. OFFSETS FROM UTC) WERE READ FROM A FILE' )
+    ELSE
+       CALL HCO_MSG( &
+        'TIMEZONES (i.e. OFFSETS FROM UTC) WERE COMPUTED FROM LONGITUDE' )
+    ENDIF
+
+  END SUBROUTINE HcoClock_InitTzPtr
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -678,7 +742,6 @@ CONTAINS
 ! !USES:
 !
     USE HCO_STATE_MOD,    ONLY : HCO_State
-    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS:
 !
@@ -698,11 +761,34 @@ CONTAINS
 !
     INTEGER,  INTENT(INOUT)           :: RC        ! Success or failure?
 !
+! !REMARKS:
+!  Module variable TIMEZONES points to the timezone data (i.e. offsets in 
+!  hours from UTC) as read from disk.  The data file containing UTC offsets 
+!  is specified in the "NON-EMISSIONS DATA" section of the HEMCO configuraiton
+!  file, under the container name "TIMEZONES".
+!
+!  The TIMEZONES module variable is initialized by calling HcoClock_InitTzPtr.
+!  in the HEMCO run method HCO_Run (in module hco_driver_mod.F90).  The call
+!  to HcoClock_InitTzPtr immediately follows the call to ReadList_Read, and 
+!  is only done on the very first emissions timestep.  The reason we have to 
+!  initialize the TIMEZONES module variable in the run method (instead of in
+!  the init method) is because the HEMCO configuration file has to be read 
+!  before the timezones  data can be loaded into a HEMCO data container.
+!
+!  If we are not reading timezone data from a file, then the TIMEZONES 
+!  module variable will remain unassociated.
+!
+!  This fix was necessary in order to avoid segmentation faults when running 
+!  with OpenMP parallelization turned on.
+!
+!     -- Bob Yantosca (23 Feb 2015)
+!
 ! !REVISION HISTORY:
-!  29 Dec 2012 - C. Keller - Initialization
+!  29 Dec 2012 - C. Keller   - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
-!  02 Feb 2015 - C. Keller   - Added option to get time zones from file
+!  23 Feb 2015 - R. Yantosca - Remove call to Hco_GetPtr: this was causing
+!                              errors on runs with OpenMP parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -715,14 +801,6 @@ CONTAINS
     !======================================================================
     ! HcoClock_GetLocal begins here!
     !======================================================================
-
-    ! On first call, see if a field with the time zones (offset to UTC)
-    ! has been set.
-    IF ( FIRST ) THEN
-       CALL HCO_GetPtr ( .FALSE., 'TIMEZONES', TIMEZONES, RC, FOUND=FOUND )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       FIRST = .FALSE.
-    ENDIF 
 
     ! Get longitude (degrees east) 
     LON = HcoState%Grid%XMID%Val(I,J)
