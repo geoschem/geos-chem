@@ -99,7 +99,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TRACERID_MOD
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
@@ -166,6 +165,9 @@
 !  18 Apr 2014 - R. Yantosca - Now use proper # of tracers for APM in the
 !                              call to DO_MERRA_CONVECTION (MERRA & GEOS-FP)
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  24 Feb 2014 - E. Lundgren - Replace GET_PEDGE, which retrieves wet
+!                              air pressure, with State_Met%PEDGE_DRY.
+!                              Remove dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -324,7 +326,7 @@
 
          ! Pressure edges
          DO L = 1, LLPAR+1
-            PEDGE(L) =  GET_PEDGE( I, J, L )
+            PEDGE(L) =  State_Met%PEDGE_DRY( I, J, L )
          ENDDO
 
          ! NOTE: For some reason the code chokes when we try
@@ -420,7 +422,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
 #if   defined( APM ) 
@@ -458,6 +459,9 @@
 !                              F array to subroutine COMPUTE_F
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt to CONVTRAN
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  24 Feb 2014 - E. Lundgren   Replace GET_PEDGE, which retrieves wet
+!                              air pressure, with State_Met%PEDGE_DRY.
+!                              Remove dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -600,8 +604,8 @@
          DO I = 1, IIPAR
                
             ! Pressure at bottom and top edges of grid box [hPa]
-            P1 = GET_PEDGE(I,J,L)
-            P2 = GET_PEDGE(I,J,L+1)
+            P1 = State_Met%PEDGE_DRY(I,J,L)
+            P2 = State_Met%PEDGE_DRY(I,J,L+1)
 
             ! DP = Pressure difference between top & bottom edges [Pa]
             DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
@@ -705,7 +709,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
 #if   defined( APM )
@@ -744,6 +747,10 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE, which 
+!                              retrieve wet air pressure, with State_Met
+!                              vars PMID_DRY and PEDGE_DRY and remove
+!                              dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -853,7 +860,7 @@
 
             ! Shut off scavenging in shallow convection for GCAP
             ! (swu, bmy, 11/1/05)
-            IF ( GET_PCENTER( I, J, L ) > 700e+0_fp ) 
+            IF ( State_Met%PMID_DRY( I, J, L ) > 700e+0_fp ) 
      &            F(I,J,L,N) = 0e+0_fp
 
             ! ND37 diagnostic: store fraction of tracer 
@@ -890,8 +897,8 @@
          DO I = 1, IIPAR
                
             ! Pressure at bottom and top edges of grid box [hPa]
-            P1 = GET_PEDGE(I,J,L)
-            P2 = GET_PEDGE(I,J,L+1)
+            P1 = State_Met%PEDGE_DRY(I,J,L)
+            P2 = State_Met%PEDGE_DRY(I,J,L+1)
 
             ! DP = Pressure difference between top & bottom edges [Pa]
             DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
@@ -1003,7 +1010,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE PRESSURE_MOD,       ONLY : GET_BP
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP 
@@ -1185,6 +1191,8 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER, which retrieves wet
+!                              air pressure, with State_Met%PMID_DRY.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1475,9 +1483,12 @@
                   ! Need to replace DSIG w/ the difference 
                   ! of pressure edges for GEOS-5 (bmy, 6/27/07)
                   QB(I,J) = 
-     &       ( Q(I,J,1,IC) * ( GET_PEDGE(I,J,1) - GET_PEDGE(I,J,2) )   + 
-     &         Q(I,J,2,IC) * ( GET_PEDGE(I,J,2) - GET_PEDGE(I,J,3) ) ) / 
-     &                       ( GET_PEDGE(I,J,1) - GET_PEDGE(I,J,3) )
+     &                      ( Q(I,J,1,IC) * ( State_Met%PEDGE_DRY(I,J,1) 
+     &                      - State_Met%PEDGE_DRY(I,J,2) )   + 
+     &                      Q(I,J,2,IC) * ( State_Met%PEDGE_DRY(I,J,2) 
+     &                      - State_Met%PEDGE_DRY(I,J,3) ) ) / 
+     &                      ( State_Met%PEDGE_DRY(I,J,1) 
+     &                      - State_Met%PEDGE_DRY(I,J,3) )
 
 #else
                   ! for GEOS-3
