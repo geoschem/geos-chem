@@ -21,6 +21,24 @@
 !  is flexible enough to automatically apply the rate to any new tracers
 !  for future simulations that share the name in tracer\_mod with the
 !  GMI name.  (See Documentation on wiki).
+!
+!  The prod rates and loss frequencies are now read via HEMCO. They are 
+!  stored in a data structure of flexible length (PLVEC). The file containing
+!  the prod rates and loss frequencies need to be specified in the HEMCO 
+!  configuration file for each species of interest. They are then automatically 
+!  read and remapped onto the simulation grid. 
+!  The field names assigned to the production and loss fields are expected to 
+!  be 'GMI\_PROD\_XXX' and 'GMI\_LOSS\_XXX', respectively, where XXX is the 
+!  species name. Production rates must be given in units of v/v/s, and loss 
+!  frequencies in s-1.
+!  The module variable PLMUSTFIND (set below) determines the behavior if no
+!  production rates and/or loss frequencies can be found for any of the GMI
+!  species defined in this module. IF PLMUSTFIND is set to TRUE, the code stops
+!  with an error if no entry is found. Otherwise, stead-state values are used
+!  for all species with no explicitly given values. 
+!
+!  The (monthly) OH concentrations are also obtained through HEMCO. The field
+!  name must be 'STRAT\_OH', and values must be in v/v.
 !\\
 !\\
 ! !INTERFACE:
@@ -46,9 +64,10 @@ MODULE STRAT_CHEM_MOD
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: Set_BryPointers
-  PRIVATE :: Get_Rates
-  PRIVATE :: Get_Rates_Interp
+  PRIVATE :: Set_PLVEC
   PRIVATE :: Do_Synoz
+!  PRIVATE :: Get_Rates
+!  PRIVATE :: Get_Rates_Interp
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -68,6 +87,8 @@ MODULE STRAT_CHEM_MOD
 !                              partitioning
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  30 Dec 2014 - C. Keller   - Now read Bry data through HEMCO
+!  16 Jan 2015 - C. Keller   - Now read all prod/loss fields and OH conc.
+!                              through HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -78,10 +99,10 @@ MODULE STRAT_CHEM_MOD
   ! 1:6 = (Br2, Br, BrO, HOBr, HBr, BrNO3) for both
   INTEGER,           PARAMETER :: br_nos(6)   = (/ 44, 45, 46, 47, 48, 50 /)
 
-  ! BrPointers is a simple derived type to hold pointers to the Bry 
-  ! day and night data.
+  ! BrPointers is a derived type to hold pointers to the Bry day 
+  ! and night data 
   TYPE :: BrPointers
-     REAL(hp), POINTER  :: MR(:,:,:) => NULL()
+     REAL(sp), POINTER  :: MR(:,:,:) => NULL()
   END TYPE BrPointers
 
   ! Vectors holding the mixing ratios (MR) of day/night Bry data.
@@ -94,6 +115,27 @@ MODULE STRAT_CHEM_MOD
   TYPE(BrPointers)      :: BrPtrDay(6) 
   TYPE(BrPointers)      :: BrPtrNight(6) 
 
+  ! PL_Pointers is a derived type to hold pointers to the production
+  ! and loss fields 
+  TYPE :: PL_Pointers 
+     REAL(sp), POINTER  :: PROD(:,:,:) => NULL() ! Production rate [v/v/s]
+     REAL(sp), POINTER  :: LOSS(:,:,:) => NULL() ! Loss frequency [s-1]
+  END TYPE PL_Pointers 
+
+  ! Monthly mean OH [v/v]
+  REAL(sp), POINTER     :: STRAT_OH(:,:,:) => NULL()
+
+  ! Vector holding the prod/loss arrays of all active strat chem 
+  ! species.
+  TYPE(PL_Pointers), POINTER :: PLVEC(:) => NULL()
+
+  ! Toggle to specify whether or not production/loss rates must be provided
+  ! for every strat chem tracer. If set to TRUE, the code will return with
+  ! an error if the production/loss rate cannot be found (through HEMCO) for
+  ! any of the species. If set to .FALSE., only a warning is prompted and a
+  ! value of 0.0 is used for every field that cannotbe found. 
+  LOGICAL, PARAMETER   :: PLMUSTFIND = .FALSE.
+
   ! Number of species from GMI model
   INTEGER, PARAMETER   :: NTR_GMI   = 120  
 !
@@ -104,9 +146,9 @@ MODULE STRAT_CHEM_MOD
   INTEGER               :: NSCHEM          ! Number of species upon which to 
                                           ! apply P's & k's in GEOS-Chem
   ! Arrays
-  REAL*4,  ALLOCATABLE, TARGET :: PROD(:,:,:,:)   ! Production rate [v/v/s]
-  REAL*4,  ALLOCATABLE, TARGET :: LOSS(:,:,:,:)   ! Loss frequency [s-1]
-  REAL*4,  ALLOCATABLE, TARGET :: STRAT_OH(:,:,:) ! Monthly mean OH [v/v]
+!  REAL*4,  ALLOCATABLE, TARGET :: PROD(:,:,:,:)   ! Production rate [v/v/s]
+!  REAL*4,  ALLOCATABLE, TARGET :: LOSS(:,:,:,:)   ! Loss frequency [s-1]
+!  REAL*4,  ALLOCATABLE, TARGET :: STRAT_OH(:,:,:) ! Monthly mean OH [v/v]
 
   CHARACTER(LEN=16)     :: GMI_TrName(NTR_GMI)     ! Tracer names in GMI
   INTEGER               :: Strat_TrID_GC(NTR_GMI)  ! Maps 1:NSCHEM to STT index
@@ -134,80 +176,80 @@ MODULE STRAT_CHEM_MOD
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
   !=================================================================
 CONTAINS
-#if defined( ESMF_ )
-  !----------------------------------------------------------------------
-  ! TEMPORARY VERSION OF DO_STRAT_CHEM -- only invoked with ESMF!
-  !
-  ! This temporary version of DO_STRAT_CHEM is only called when we are
-  ! connecting to the GEOS-5 GCM via the ESMF interface.  This temporary
-  ! version skips the normal GMI strat chem routine and calls LINOZ.
-  !
-  ! This is just a temporary situation, and is intended only for testing.
-  ! It is simpler to bring in the LINOZ chemistry to the GEOS-5 GCM
-  ! first.  The GMI strat chem package is more complicated due to the
-  ! large # of netCDF files that it has to read.  Those files all have
-  ! to be read in via ESMF/MAPL and passed as inputs to the GEOS-Chem
-  ! Chemistry Component via the Import State. (bmy, 3/18/13)
-  !
-  ! 19 Mar 2013 - R. Yantosca - Need to convert Ox to v/v before
-  !                             call to LINOZ, and then back again
-  ! 25 Mar 2013 - R. Yantosca - Now pass State_Chm to DO_LINOZ
-  ! 04 Apr 2013 - R. Yantosca - Declare State_Chm INTENT(INOUT)
-  !----------------------------------------------------------------------
-  SUBROUTINE Do_Strat_Chem( am_I_Root, Input_Opt,     &
-                            State_Met, State_Chm, RC )
+!#if defined( ESMF_ )
+!  !----------------------------------------------------------------------
+!  ! TEMPORARY VERSION OF DO_STRAT_CHEM -- only invoked with ESMF!
+!  !
+!  ! This temporary version of DO_STRAT_CHEM is only called when we are
+!  ! connecting to the GEOS-5 GCM via the ESMF interface.  This temporary
+!  ! version skips the normal GMI strat chem routine and calls LINOZ.
+!  !
+!  ! This is just a temporary situation, and is intended only for testing.
+!  ! It is simpler to bring in the LINOZ chemistry to the GEOS-5 GCM
+!  ! first.  The GMI strat chem package is more complicated due to the
+!  ! large # of netCDF files that it has to read.  Those files all have
+!  ! to be read in via ESMF/MAPL and passed as inputs to the GEOS-Chem
+!  ! Chemistry Component via the Import State. (bmy, 3/18/13)
+!  !
+!  ! 19 Mar 2013 - R. Yantosca - Need to convert Ox to v/v before
+!  !                             call to LINOZ, and then back again
+!  ! 25 Mar 2013 - R. Yantosca - Now pass State_Chm to DO_LINOZ
+!  ! 04 Apr 2013 - R. Yantosca - Declare State_Chm INTENT(INOUT)
+!  !----------------------------------------------------------------------
+!  SUBROUTINE Do_Strat_Chem( am_I_Root, Input_Opt,     &
+!                            State_Met, State_Chm, RC )
+!!
+!! !USES:
+!!
+!    USE GIGC_ErrCode_Mod
+!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!    USE GIGC_State_Met_Mod, ONLY : MetState 
+!    USE GIGC_State_Chm_Mod, ONLY : ChmState
+!    USE Linoz_Mod,          ONLY : Do_Linoz
+!    USE TracerId_Mod,       ONLY : IDTO3
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
-! !USES:
+!    ! Assume succes
+!    RC = GIGC_SUCCESS
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState 
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE Linoz_Mod,          ONLY : Do_Linoz
-    USE TracerId_Mod,       ONLY : IDTO3
+!    ! Do Linoz only if Ox tracer is defined
+!    IF ( Input_Opt%LLINOZ .and. IDTO3 > 0 ) THEN
 !
-! !INPUT PARAMETERS:
+!       ! Echo info
+!       IF ( am_I_Root ) THEN
+!          write(6,*) '    ### Shunting GMI strat chem, doing LINOZ instead'
+!       ENDIF
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!       ! Convert Ox tracer from [kg] to [v/v] before LINOZ
+!       State_Chm%TRACERS(:,:,:,IDTO3) = State_Chm%TRACERS(:,:,:,IDTO3) &
+!                                      * Input_Opt%TCVV   (      IDTO3) &
+!                                      / State_Met%AD     (:,:,:      )
 !
-! !INPUT/OUTPUT PARAMETERS:
+!       ! Do LINOZ simplified stratospheric Ox chemistry
+!       CALL Do_Linoz( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 !
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!       ! Convert ozone from [v/v] back to [kg] after LINOZ
+!       State_Chm%TRACERS(:,:,:,IDTO3) = State_Chm%TRACERS(:,:,:,IDTO3) &
+!                                      * State_Met%AD     (:,:,:      ) & 
+!                                      / Input_Opt%TCVV   (      IDTO3)
 !
-! !OUTPUT PARAMETERS:
+!    ENDIF
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-
-    ! Assume succes
-    RC = GIGC_SUCCESS
-
-    ! Do Linoz only if Ox tracer is defined
-    IF ( Input_Opt%LLINOZ .and. IDTO3 > 0 ) THEN
-
-       ! Echo info
-       IF ( am_I_Root ) THEN
-          write(6,*) '    ### Shunting GMI strat chem, doing LINOZ instead'
-       ENDIF
-
-       ! Convert Ox tracer from [kg] to [v/v] before LINOZ
-       State_Chm%TRACERS(:,:,:,IDTO3) = State_Chm%TRACERS(:,:,:,IDTO3) &
-                                      * Input_Opt%TCVV   (      IDTO3) &
-                                      / State_Met%AD     (:,:,:      )
-
-       ! Do LINOZ simplified stratospheric Ox chemistry
-       CALL Do_Linoz( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-       ! Convert ozone from [v/v] back to [kg] after LINOZ
-       State_Chm%TRACERS(:,:,:,IDTO3) = State_Chm%TRACERS(:,:,:,IDTO3) &
-                                      * State_Met%AD     (:,:,:      ) & 
-                                      / Input_Opt%TCVV   (      IDTO3)
-
-    ENDIF
-
-  END SUBROUTINE DO_STRAT_CHEM
-#else
+!  END SUBROUTINE DO_STRAT_CHEM
+!#else
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -261,8 +303,8 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: errCode     ! Success or failure
-!f
+    INTEGER,        INTENT(INOUT) :: errCode     ! Success or failure
+! 
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
@@ -356,32 +398,37 @@ CONTAINS
     ENDIF
 10  FORMAT( '     - DO_STRAT_CHEM: Linearized strat chemistry at ', a )
     
-    IF ( GET_MONTH() /= LASTMONTH ) THEN
+!    IF ( GET_MONTH() /= LASTMONTH ) THEN
+!
+!       IF ( prtDebug ) THEN 
+!          CALL DEBUG_MSG( '### STRAT_CHEM: at GET_RATES' )
+!       ENDIF
+!
+!       ! Read rates for this month
+!       IF ( IT_IS_A_FULLCHEM_SIM ) THEN
+!#if defined( GRID4x5 ) || defined( GRID2x25 )
+!          CALL GET_RATES &
+!               ( am_I_Root, Input_Opt, GET_MONTH(), State_Chm, errCode )
+!#else
+!          ! For resolutions finer than 2x2.5, nested, 
+!          ! or otherwise exotic domains and resolutions
+!          CALL GET_RATES_INTERP( am_I_Root, Input_Opt, GET_MONTH(), errCode )
+!#endif
+!       ENDIF
+!
+!       ! Save month for next iteration
+!       LASTMONTH = GET_MONTH()
+!    ENDIF
 
-       IF ( prtDebug ) THEN 
-          CALL DEBUG_MSG( '### STRAT_CHEM: at GET_RATES' )
-       ENDIF
-
-       ! Read rates for this month
-       IF ( IT_IS_A_FULLCHEM_SIM ) THEN
-#if defined( GRID4x5 ) || defined( GRID2x25 )
-          CALL GET_RATES &
-               ( am_I_Root, Input_Opt, GET_MONTH(), State_Chm, errCode )
-#else
-          ! For resolutions finer than 2x2.5, nested, 
-          ! or otherwise exotic domains and resolutions
-          CALL GET_RATES_INTERP( am_I_Root, Input_Opt, GET_MONTH(), errCode )
-#endif
-       ENDIF
-
-       ! Save month for next iteration
-       LASTMONTH = GET_MONTH()
-    ENDIF
-
-    ! On first call, establish pointers to Strat Bry data.
+    ! On first call, establish pointers to data fields read by HEMCO. These are
+    ! the stratospheric Bry fields as well as the production/loss rates.
     ! (ckeller, 12/30/2014)
     IF ( FIRST ) THEN
        CALL Set_BryPointers ( am_I_Root, Input_Opt, State_Chm, State_Met, errCode )
+       IF ( errCode /= GIGC_SUCCESS ) RETURN
+
+       CALL Set_PLVEC ( am_I_Root, Input_Opt, State_Chm, State_Met, errCode )
+       IF ( errCode /= GIGC_SUCCESS ) RETURN
     ENDIF
 
     ! SDE 2014-01-14: Allow the user to overwrite stratospheric
@@ -431,8 +478,25 @@ CONTAINS
                    IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTO3 ) CYCLE
 
                    dt = DTCHEM                              ! timestep [s]
-                   k = LOSS(I,J,L,N)                        ! loss freq [s-1]
-                   P = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
+
+                   ! original code:
+!                   k = LOSS(I,J,L,N)                        ! loss freq [s-1]
+!                   P = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
+
+                   ! loss freq [s-1] 
+                   IF ( .NOT. ASSOCIATED(PLVEC(N)%LOSS) ) THEN
+                      k = 0.0_fp
+                   ELSE
+                      k = PLVEC(N)%LOSS(I,J,L)
+                   ENDIF
+
+                   ! prod term [v/v/s --> kg/s]
+                   IF ( .NOT. ASSOCIATED(PLVEC(N)%PROD) ) THEN
+                      P = 0.0_fp 
+                   ELSE
+                      P = PLVEC(N)%PROD(I,J,L) * AD(I,J,L) / TCVV(NN) 
+                   ENDIF
+
                    M0 = STT(I,J,L,NN)                       ! initial mass [kg]
 
                    ! No prod or loss at all
@@ -547,8 +611,8 @@ CONTAINS
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = STT(I,J,L,IDTCH2Br2) * RDLOSS
                    STT(I,J,L,IDTCH2Br2) = STT(I,J,L,IDTCH2Br2) - T1L
-                   SCHEM_TEND(I,J,L,IDTCHBr3) = &
-                     SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
+                   SCHEM_TEND(I,J,L,IDTCH2Br2) = &
+                     SCHEM_TEND(I,J,L,IDTCH2Br2) - T1L
                 ENDIF
 
              ENDDO ! J
@@ -747,580 +811,580 @@ CONTAINS
     NULLIFY( T   )
 
   END SUBROUTINE DO_STRAT_CHEM
-#endif
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_rates
-!
-! !DESCRIPTION: Function GET\_RATES reads from disk the chemical production
-!  and loss rates for the species of interest
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GET_RATES( am_I_Root, Input_Opt, THISMONTH, State_Chm, RC )
-!
-! !USES:
-!
-    ! GEOS-Chem routines
-    USE BPCH2_MOD,          ONLY : GET_NAME_EXT
-    USE BPCH2_MOD,          ONLY : GET_RES_EXT
-!    USE BPCH2_MOD,          ONLY : GET_TAU0
-!    USE BPCH2_MOD,          ONLY : READ_BPCH2
-    USE CMN_SIZE_MOD
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-!    USE TIME_MOD,           ONLY : GET_MONTH
-    USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-
-    ! netCDF routines
-    USE m_netcdf_io_open
-    USE m_netcdf_io_read
-    USE m_netcdf_io_close
-
-    IMPLICIT NONE
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REVISION HISTORY: 
-!  01 Feb 2011 - L. Murray   - Initial version
-!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  26 Oct 2012 - R. Yantosca - Now pass Chemistry State object for GIGC
-!  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
-!  12 Jun 2013 - R. Yantosca - Now pass st4d, ct4d arrays to NcRd routine.
-!                              This avoids array temporaries.
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    CHARACTER(LEN=255) :: FILENAME ! , DAYFILE, NIGHTFILE
-    INTEGER            :: N,        M,       S
-    INTEGER            :: F,        NN,      fileID
-    !REAL(f8)           :: XTAU
-    INTEGER            :: N_TRACERS
-
-    ! Arrays
-    INTEGER            :: st4d(4)                        ! netCDF start
-    INTEGER            :: ct4d(4)                        ! netCDF count
-    REAL(f4)           :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
-    CHARACTER(LEN=14)  :: TRACER_NAME(Input_Opt%N_TRACERS)
-
-    ! Pointers
-    REAL(f4), POINTER  :: ptr_3D(:,:,:)
-
-    !=================================================================
-    ! GET_RATES begins here
-    !=================================================================
-   
-    ! Intialize arrays
-    LOSS = 0e0
-    PROD = 0e0
-
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-
-    !-----------------------------------------------------------------------
-    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-    !
-    ! Do nothing, since we would not be reading in data here when using
-    ! the ESMF interface.  The strat-chem data would have to come in
-    ! via the ESMF Import State. (bmy, 11/7/12)
-    !-----------------------------------------------------------------------
-
-    ! Assume success
-    RC                       = GIGC_SUCCESS
-
-#else
-    !----------------------------------------------------------------------
-    !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-    !
-    ! Current practice in the standard GEOS-Chem is to read strat chem
-    ! prod/loss data from netCDF files. (bmy, 10/26/12)
-    !----------------------------------------------------------------------
-
-    ! Assume success
-    RC = GIGC_SUCCESS
-
-    ! Copy fields from Input_Opt to Llocal variables
-    N_TRACERS                = Input_Opt%N_TRACERS
-    TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
-
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 11 ) &
-          '       - Getting new strat prod/loss rates for month: ', THISMONTH
-    ENDIF
-11  FORMAT( a, I2.2 )
-
-    M = THISMONTH
-
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ! Get stratospheric OH mixing ratio [v/v] 
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() //  &
-               '.'                              // GET_RES_EXT()  // '.nc'
-    FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
-
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 100 ) TRIM( filename )
-100    FORMAT( '         => Reading from file: ', a )
-    ENDIF
-
-    call NcOp_Rd( fileID, TRIM( FILENAME ) )
-
-    st4d = (/     1,     1,     1,  M /)                  ! Start
-    ct4d = (/ IIPAR, JJPAR, LGLOB,  1 /)                  ! Count
-    call NcRd( array, fileID, 'species', st4d, ct4d )
-    call NcCl( fileID )
-
-    ! Resize to LLPAR
-    CALL TRANSFER_3D( array, STRAT_OH )
-
-    ! Loop over the # of strat chem species
-    DO N = 1, NSCHEM
-
-       ! Get the strat chem species tracer #
-       NN = Strat_TrID_GMI(N)
-
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! Open individual species file
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-       FILENAME = 'strat_chem_201206/gmi.clim.' // &
-                  TRIM( GMI_TrName(NN) ) // '.' // & 
-                  GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
-       FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
-
-       IF ( am_I_Root ) THEN
-          WRITE( 6, 100 ) TRIM( filename )
-       ENDIF
-
-       call NcOp_Rd( fileID, TRIM( FILENAME ) )
-
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! Read production rate [v/v/s]
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       st4d = (/     1,     1,     1,  M  /)              ! Start
-       ct4d = (/ IIPAR, JJPAR, LGLOB,  1  /)              ! Count
-       call NcRd( array, fileID, 'prod', st4d, ct4d )
-
-       ! Resize the data to LLPAR levels (if necessary)
-       ptr_3D => PROD(:,:,:,N)
-       CALL TRANSFER_3D( array, ptr_3D )
-       NULLIFY( ptr_3D )
-
-       ! Special adjustment for G-C Br2 tracer, which is BrCl in the strat
-       IF ( TRIM(TRACER_NAME(Strat_TrID_GC(N))) .eq. 'Br2' ) &
-            PROD(:,:,:,N) = PROD(:,:,:,N) / 2e+0_fp
-
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! Read loss frequencies [s^-1]
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       st4d = (/     1,     1,     1,  M  /)              ! Start
-       ct4d = (/ IIPAR, JJPAR, LGLOB,  1  /)              ! Count
-       call NcRd( array, fileID, 'loss', st4d, ct4d )
-
-       ! Resize the data to LLPAR levels (if necessary)
-       ptr_3D => LOSS(:,:,:,N)
-       CALL TRANSFER_3D( array, ptr_3D )
-       NULLIFY( ptr_3D )
-
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! Close species file
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-       call NcCl( fileID )
-
-!#if defined( DEVEL ) 
-! NOTE: Comment out the strat chem fields of State_Chem for now (bmy, 11/26/12)
-!       !-----------------------------------------------------------------
-!       !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-!       !
-!       ! Call the routine GIGC_Allocate_All (located in module file
-!       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
-!       ! allocatable arrays used by GEOS-Chem.  
-!       !-----------------------------------------------------------------
-!       State_Chm%Schm_P(:,:,:,N) = PROD(:,:,:,N)
-!       State_Chm%Schm_k(:,:,:,N) = LOSS(:,:,:,N)
 !#endif
-
-    ENDDO
-
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ! Br_y species are handled differently
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    !==============================================================
-    ! Read in stored Bry species concentrations for stratosphere.
-    ! Stored by Q. Liang using the GEOS CCM. (jpp, 6/27/2011)
-    !
-    ! ==> Bry data is now read through HEMCO (ckeller, 12/30/2014)
-    !==============================================================
-
-!    ! TAU value at the beginning of this month
-!    XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
-!
-!    ! the daytime concentrations
-!    dayfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
-!         'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
-!         GET_NAME_EXT()   // '.' // GET_RES_EXT()
-!
-!    ! the nighttime concentrations
-!    nightfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
-!         'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
-!         GET_NAME_EXT()   // '.' // GET_RES_EXT()
-!    
-!    DO NN = 1, 6
-!       
-!       ! 1. Read daytime data
-!       CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN), &   
-!            XTAU,    IGLOB,      JGLOB, &  
-!            LGLOB,   Bry_temp,   QUIET=.TRUE. )
-!       
-!       ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
-!       CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_day(:,:,:,NN) )
-!      
-!       ! 2. Read nighttime data
-!       CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN), &
-!            XTAU,      IGLOB,      JGLOB, &   
-!            LGLOB,     Bry_temp,   QUIET=.TRUE. )
-!       
-!       ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
-!       CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
-! 
-!    ENDDO
-#endif
-
-  END SUBROUTINE GET_RATES
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: get_rates
+!!
+!! !DESCRIPTION: Function GET\_RATES reads from disk the chemical production
+!!  and loss rates for the species of interest
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE GET_RATES( am_I_Root, Input_Opt, THISMONTH, State_Chm, RC )
+!!
+!! !USES:
+!!
+!    ! GEOS-Chem routines
+!    USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+!    USE BPCH2_MOD,          ONLY : GET_RES_EXT
+!!    USE BPCH2_MOD,          ONLY : GET_TAU0
+!!    USE BPCH2_MOD,          ONLY : READ_BPCH2
+!    USE CMN_SIZE_MOD
+!    USE GIGC_ErrCode_Mod
+!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!    USE GIGC_State_Chm_Mod, ONLY : ChmState
+!!    USE TIME_MOD,           ONLY : GET_MONTH
+!    USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
-! !IROUTINE: get_rates_interp
+!    ! netCDF routines
+!    USE m_netcdf_io_open
+!    USE m_netcdf_io_read
+!    USE m_netcdf_io_close
 !
+!    IMPLICIT NONE
+!!
+!! !INPUT PARAMETERS: 
+!!
+!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!    INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!!
+!! !REVISION HISTORY: 
+!!  01 Feb 2011 - L. Murray   - Initial version
+!!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
+!!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!!                              running with the traditional driver main.F
+!!  26 Oct 2012 - R. Yantosca - Now pass Chemistry State object for GIGC
+!!  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
+!!  12 Jun 2013 - R. Yantosca - Now pass st4d, ct4d arrays to NcRd routine.
+!!                              This avoids array temporaries.
+!!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    ! Scalars
+!    CHARACTER(LEN=255) :: FILENAME ! , DAYFILE, NIGHTFILE
+!    INTEGER            :: N,        M,       S
+!    INTEGER            :: F,        NN,      fileID
+!    !REAL(f8)           :: XTAU
+!    INTEGER            :: N_TRACERS
 !
-! !DESCRIPTION: Function GET\_RATES\_INTERP reads from disk the chemical
-! production and loss rates for the species of interest to resolutions finer
-! than 2 x 2.5 (e.g., nested simluations) via simple nearest-neighbor mapping.
-!\\
-!\\
-! !INTERFACE:
+!    ! Arrays
+!    INTEGER            :: st4d(4)                        ! netCDF start
+!    INTEGER            :: ct4d(4)                        ! netCDF count
+!    REAL(f4)           :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
+!    CHARACTER(LEN=14)  :: TRACER_NAME(Input_Opt%N_TRACERS)
 !
-  SUBROUTINE GET_RATES_INTERP( am_I_Root, Input_Opt, THISMONTH, RC )
+!    ! Pointers
+!    REAL(f4), POINTER  :: ptr_3D(:,:,:)
 !
-! !USES:
+!    !=================================================================
+!    ! GET_RATES begins here
+!    !=================================================================
+!   
+!    ! Intialize arrays
+!    LOSS = 0e0
+!    PROD = 0e0
 !
-    ! GEOS-Chem routines
-    USE BPCH2_MOD,          ONLY : GET_NAME_EXT
-    USE BPCH2_MOD,          ONLY : GET_RES_EXT
-!    USE BPCH2_MOD,          ONLY : GET_TAU0
-!    USE BPCH2_MOD,          ONLY : READ_BPCH2
-    USE CMN_SIZE_MOD
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GRID_MOD,           ONLY : GET_XMID
-    USE GRID_MOD,           ONLY : GET_YMID
-!    USE TIME_MOD,           ONLY : GET_MONTH
-    USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-!    USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Bry
-
-    ! netCDF routines
-    USE m_netcdf_io_open
-    USE m_netcdf_io_read
-    USE m_netcdf_io_close
-
-    IMPLICIT NONE
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
-! !INPUT PARAMETERS:
+!    !-----------------------------------------------------------------------
+!    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+!    !
+!    ! Do nothing, since we would not be reading in data here when using
+!    ! the ESMF interface.  The strat-chem data would have to come in
+!    ! via the ESMF Import State. (bmy, 11/7/12)
+!    !-----------------------------------------------------------------------
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+!    ! Assume success
+!    RC                       = GIGC_SUCCESS
 !
-! !OUTPUT PARAMETERS:
+!#else
+!    !----------------------------------------------------------------------
+!    !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+!    !
+!    ! Current practice in the standard GEOS-Chem is to read strat chem
+!    ! prod/loss data from netCDF files. (bmy, 10/26/12)
+!    !----------------------------------------------------------------------
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!    ! Assume success
+!    RC = GIGC_SUCCESS
 !
-! !INPUT PARAMETERS: 
+!    ! Copy fields from Input_Opt to Llocal variables
+!    N_TRACERS                = Input_Opt%N_TRACERS
+!    TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
 !
+!    IF ( am_I_Root ) THEN
+!       WRITE( 6, 11 ) &
+!          '       - Getting new strat prod/loss rates for month: ', THISMONTH
+!    ENDIF
+!11  FORMAT( a, I2.2 )
 !
-! !REVISION HISTORY: 
-!  01 Feb 2011 - L. Murray   - Initial version
-!  18 Jul 2012 - R. Yantosca - Make sure that I is the innermost DO loop
-!                              (wherever expedient)
-!  20 Jul 2012 - R. Yantosca - Now call routine TRANSFER_3D_Bry, which takes
-!                              arrays of size (144,91,:) as input & output
-!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  26 Aug 2013 - R. Yantosca - Avoid array temporaries
-!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!    M = THISMONTH
 !
-! !LOCAL VARIABLES:
+!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!    ! Get stratospheric OH mixing ratio [v/v] 
+!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!    FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() //  &
+!               '.'                              // GET_RES_EXT()  // '.nc'
+!    FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
 !
-    ! Scalars
-    CHARACTER(LEN=255) :: FILENAME !, DAYFILE, NIGHTFILE
-    INTEGER            :: N,        M,       S 
-    INTEGER            :: F,        I,       J
-    INTEGER            :: NN,       fileID
-!    REAL(f8)           :: XTAU
-
-    ! Index arrays
-    INTEGER            :: II(1)
-    INTEGER            :: JJ(1)
-    INTEGER            :: st1d(1), st4d(4)
-    INTEGER            :: ct1d(1), ct4d(4)
-
-    ! Arrays defined on the 2 x 2.5 grid
-    REAL(f4)           :: XMID_COARSE ( 144                    )
-    REAL(f4)           :: YMID_COARSE (        91              )
-!    REAL(f4)           :: BryTemp     ( 144,   91,    LGLOB    )
-!    REAL(fp)           :: BryDay2x25  ( 144,   91,    LLPAR, 6 )
-!    REAL(fp)           :: BryNight2x25( 144,   91,    LLPAR, 6 )
-
-    ! Arrays defined on the nested grid
-    ! "f2c" = fine to coarse mapping
-    INTEGER            :: I_f2c       ( IIPAR                  )
-    INTEGER            :: J_f2c       (        JJPAR           )
-    REAL(f4)           :: COLUMN      (               LGLOB    )
-    REAL(f4)           :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
-
-    ! Pointers
-    REAL(f4), POINTER  :: ptr_3D(:,:,:)
-
-    ! For values from Input_Opt
-    INTEGER            :: N_TRACERS
-    CHARACTER(LEN=255) :: TRACER_NAME(Input_Opt%N_TRACERS)
-
-    !=================================================================
-    ! GET_RATES_INTERP begins here
-    !=================================================================
-
-    ! Copy values from Input_Opt
-    N_TRACERS   = Input_Opt%N_TRACERS
-    TRACER_NAME = Input_Opt%TRACER_NAME(1:N_TRACERS)
-
-    ! Intialize arrays
-    LOSS = 0e+0_fp
-    PROD = 0e+0_fp
-
-    ! Path to input data, use 2 x 2.5 file
-    FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() // '.2x25.nc'
-    FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // TRIM( FILENAME )
-
-    ! Echo info
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 11 ) THISMONTH
-    ENDIF
-11  FORMAT( '       - Getting new strat prod/loss rates for month: ', I2.2 )
-
-    ! Open the netCDF file containing the rates
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 12 ) TRIM( filename )
-    ENDIF
-12  FORMAT( '         => Interpolate to resolution from file: ', a )
-    call Ncop_Rd( fileID, TRIM( filename ) )
-
-    ! Get the lat and lon centers of the 2x2.5 GMI climatology
-    ! WARNING MAKE 2x25 after testing
-    st1d = (/ 1   /)
-    ct1d = (/ 144 /)
-    call NcRd( XMID_COARSE, fileID, 'longitude', st1d, ct1d )
-
-    st1d = (/ 1   /)
-    ct1d = (/ 91  /)    
-    call NcRd( YMID_COARSE, fileID, 'latitude',  st1d, ct1d )
-
-    ! For each fine grid index, determine the closest coarse (2x2.5) index
-    ! Note: This doesn't do anything special for the date line, and may 
-    ! therefore not pick the exact closest if it is on the other side.
-    ! Note: CMN_SIZE_MOD claims in its comments that IIPAR < IGLOB, but 
-    ! in actuality, IIPAR = IGLOB and JJPAR = JGLOB, the dimensions of the 
-    ! nested region.
-    DO I=1,IGLOB
-       II = MINLOC( ABS( GET_XMID(I,1,1) - XMID_COARSE ) )
-       I_f2c(I) = II(1)
-       !IF ( am_I_Root ) print*,'I:',I,'->',II(1)
-    ENDDO
-    DO J=1,JGLOB
-       JJ = MINLOC( ABS( GET_YMID(1,J,1) - YMID_COARSE ) )
-       J_f2c(J) = JJ(1)
-       !IF ( am_I_Root ) print*,'J:',J,'->',JJ(1)
-    ENDDO
-
-    M = THISMONTH
-
-    ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ! Get Stratospheric OH concentrations [v/v] 
-    ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    DO J = 1, JGLOB
-    DO I = 1, IGLOB
-
-       st4d = (/ I_f2c(I), J_f2c(J),     1, m /)
-       ct4d  =(/        1,        1, lglob, 1 /)
-       call NcRd( column, fileID, 'species', st4d, ct4d )
-       array( I, J, : ) = column
-
-    ENDDO
-    ENDDO
-    call NcCl( fileID )
-
-    ! Resize column to 1:LLPAR
-    CALL TRANSFER_3D( array, STRAT_OH )
-
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ! Get Bry concentrations [ppt]
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   
-    !==============================================================
-    ! Read in stored Bry species concentrations for stratosphere.
-    ! Stored by Q. Liang using the GEOS CCM. (jpp, 6/27/2011)
-    ! 
-    ! ==> Bry data is now read through HEMCO (ckeller, 12/30/2014)
-    !==============================================================
-
-!    ! TAU value at the beginning of this month
-!    XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
+!    IF ( am_I_Root ) THEN
+!       WRITE( 6, 100 ) TRIM( filename )
+!100    FORMAT( '         => Reading from file: ', a )
+!    ENDIF
 !
-!    ! the daytime concentrations
-!    dayfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
-!         'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
-!         GET_NAME_EXT()   // '.2x25'
-!    
-!    ! the nighttime concentrations
-!    nightfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
-!         'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
-!         GET_NAME_EXT()   // '.2x25'
-!    
-!    DO NN = 1, 6
-!       
-!       ! 1. Read daytime data on the 2 x 2.5 grid
-!       CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN), &   
-!                        XTAU,    144,        91, &  
-!                        LGLOB,   BryTemp,   QUIET=.TRUE. )
-!       
-!       ! Cast from REAL*4 to REAL(fp) and resize to LLPAR
-!       CALL TRANSFER_3D_Bry( BryTemp, BryDay2x25(:,:,:,NN) )
-!       
-!       ! 2. Read nighttime data on the 2 x 2.5 grid
-!       CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN), &
-!                        XTAU,    144,        91, &   
-!                        LGLOB,   BryTemp,   QUIET=.TRUE. )
-!       
-!       ! Cast from REAL*4 to REAL(fp) and resize to LLPAR 
-!       CALL TRANSFER_3D_Bry( BryTemp, BryNight2x25(:,:,:,NN) )
-!       
+!    call NcOp_Rd( fileID, TRIM( FILENAME ) )
+!
+!    st4d = (/     1,     1,     1,  M /)                  ! Start
+!    ct4d = (/ IIPAR, JJPAR, LGLOB,  1 /)                  ! Count
+!    call NcRd( array, fileID, 'species', st4d, ct4d )
+!    call NcCl( fileID )
+!
+!    ! Resize to LLPAR
+!    CALL TRANSFER_3D( array, STRAT_OH )
+!
+!    ! Loop over the # of strat chem species
+!    DO N = 1, NSCHEM
+!
+!       ! Get the strat chem species tracer #
+!       NN = Strat_TrID_GMI(N)
+!
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       ! Open individual species file
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+!       FILENAME = 'strat_chem_201206/gmi.clim.' // &
+!                  TRIM( GMI_TrName(NN) ) // '.' // & 
+!                  GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
+!       FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
+!
+!       IF ( am_I_Root ) THEN
+!          WRITE( 6, 100 ) TRIM( filename )
+!       ENDIF
+!
+!       call NcOp_Rd( fileID, TRIM( FILENAME ) )
+!
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       ! Read production rate [v/v/s]
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       st4d = (/     1,     1,     1,  M  /)              ! Start
+!       ct4d = (/ IIPAR, JJPAR, LGLOB,  1  /)              ! Count
+!       call NcRd( array, fileID, 'prod', st4d, ct4d )
+!
+!       ! Resize the data to LLPAR levels (if necessary)
+!       ptr_3D => PROD(:,:,:,N)
+!       CALL TRANSFER_3D( array, ptr_3D )
+!       NULLIFY( ptr_3D )
+!
+!       ! Special adjustment for G-C Br2 tracer, which is BrCl in the strat
+!       IF ( TRIM(TRACER_NAME(Strat_TrID_GC(N))) .eq. 'Br2' ) &
+!            PROD(:,:,:,N) = PROD(:,:,:,N) / 2e+0_fp
+!
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       ! Read loss frequencies [s^-1]
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       st4d = (/     1,     1,     1,  M  /)              ! Start
+!       ct4d = (/ IIPAR, JJPAR, LGLOB,  1  /)              ! Count
+!       call NcRd( array, fileID, 'loss', st4d, ct4d )
+!
+!       ! Resize the data to LLPAR levels (if necessary)
+!       ptr_3D => LOSS(:,:,:,N)
+!       CALL TRANSFER_3D( array, ptr_3D )
+!       NULLIFY( ptr_3D )
+!
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       ! Close species file
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+!       call NcCl( fileID )
+!
+!!#if defined( DEVEL ) 
+!! NOTE: Comment out the strat chem fields of State_Chem for now (bmy, 11/26/12)
+!!       !-----------------------------------------------------------------
+!!       !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+!!       !
+!!       ! Call the routine GIGC_Allocate_All (located in module file
+!!       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
+!!       ! allocatable arrays used by GEOS-Chem.  
+!!       !-----------------------------------------------------------------
+!!       State_Chm%Schm_P(:,:,:,N) = PROD(:,:,:,N)
+!!       State_Chm%Schm_k(:,:,:,N) = LOSS(:,:,:,N)
+!!#endif
+!
 !    ENDDO
 !
-!    ! Cast from global 2x2.5 to fine nested resolution
+!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!    ! Br_y species are handled differently
+!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+!    !==============================================================
+!    ! Read in stored Bry species concentrations for stratosphere.
+!    ! Stored by Q. Liang using the GEOS CCM. (jpp, 6/27/2011)
+!    !
+!    ! ==> Bry data is now read through HEMCO (ckeller, 12/30/2014)
+!    !==============================================================
+!
+!!    ! TAU value at the beginning of this month
+!!    XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
+!!
+!!    ! the daytime concentrations
+!!    dayfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
+!!         'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
+!!         GET_NAME_EXT()   // '.' // GET_RES_EXT()
+!!
+!!    ! the nighttime concentrations
+!!    nightfile = TRIM( Input_Opt%DATA_DIR ) // 'bromine_201205/' // &
+!!         'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
+!!         GET_NAME_EXT()   // '.' // GET_RES_EXT()
+!!    
+!!    DO NN = 1, 6
+!!       
+!!       ! 1. Read daytime data
+!!       CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN), &   
+!!            XTAU,    IGLOB,      JGLOB, &  
+!!            LGLOB,   Bry_temp,   QUIET=.TRUE. )
+!!       
+!!       ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+!!       CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_day(:,:,:,NN) )
+!!      
+!!       ! 2. Read nighttime data
+!!       CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN), &
+!!            XTAU,      IGLOB,      JGLOB, &   
+!!            LGLOB,     Bry_temp,   QUIET=.TRUE. )
+!!       
+!!       ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+!!       CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
+!! 
+!!    ENDDO
+!#endif
+!
+!  END SUBROUTINE GET_RATES
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: get_rates_interp
+!!
+!!
+!! !DESCRIPTION: Function GET\_RATES\_INTERP reads from disk the chemical
+!! production and loss rates for the species of interest to resolutions finer
+!! than 2 x 2.5 (e.g., nested simluations) via simple nearest-neighbor mapping.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE GET_RATES_INTERP( am_I_Root, Input_Opt, THISMONTH, RC )
+!!
+!! !USES:
+!!
+!    ! GEOS-Chem routines
+!    USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+!    USE BPCH2_MOD,          ONLY : GET_RES_EXT
+!!    USE BPCH2_MOD,          ONLY : GET_TAU0
+!!    USE BPCH2_MOD,          ONLY : READ_BPCH2
+!    USE CMN_SIZE_MOD
+!    USE GIGC_ErrCode_Mod
+!    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!    USE GRID_MOD,           ONLY : GET_XMID
+!    USE GRID_MOD,           ONLY : GET_YMID
+!!    USE TIME_MOD,           ONLY : GET_MONTH
+!    USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+!!    USE TRANSFER_MOD,       ONLY : TRANSFER_3D_Bry
+!
+!    ! netCDF routines
+!    USE m_netcdf_io_open
+!    USE m_netcdf_io_read
+!    USE m_netcdf_io_close
+!
+!    IMPLICIT NONE
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!!
+!! !INPUT PARAMETERS: 
+!!
+!!
+!! !REVISION HISTORY: 
+!!  01 Feb 2011 - L. Murray   - Initial version
+!!  18 Jul 2012 - R. Yantosca - Make sure that I is the innermost DO loop
+!!                              (wherever expedient)
+!!  20 Jul 2012 - R. Yantosca - Now call routine TRANSFER_3D_Bry, which takes
+!!                              arrays of size (144,91,:) as input & output
+!!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
+!!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!!                              running with the traditional driver main.F
+!!  26 Aug 2013 - R. Yantosca - Avoid array temporaries
+!!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    ! Scalars
+!    CHARACTER(LEN=255) :: FILENAME !, DAYFILE, NIGHTFILE
+!    INTEGER            :: N,        M,       S 
+!    INTEGER            :: F,        I,       J
+!    INTEGER            :: NN,       fileID
+!!    REAL(f8)           :: XTAU
+!
+!    ! Index arrays
+!    INTEGER            :: II(1)
+!    INTEGER            :: JJ(1)
+!    INTEGER            :: st1d(1), st4d(4)
+!    INTEGER            :: ct1d(1), ct4d(4)
+!
+!    ! Arrays defined on the 2 x 2.5 grid
+!    REAL(f4)           :: XMID_COARSE ( 144                    )
+!    REAL(f4)           :: YMID_COARSE (        91              )
+!!    REAL(f4)           :: BryTemp     ( 144,   91,    LGLOB    )
+!!    REAL(fp)           :: BryDay2x25  ( 144,   91,    LLPAR, 6 )
+!!    REAL(fp)           :: BryNight2x25( 144,   91,    LLPAR, 6 )
+!
+!    ! Arrays defined on the nested grid
+!    ! "f2c" = fine to coarse mapping
+!    INTEGER            :: I_f2c       ( IIPAR                  )
+!    INTEGER            :: J_f2c       (        JJPAR           )
+!    REAL(f4)           :: COLUMN      (               LGLOB    )
+!    REAL(f4)           :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
+!
+!    ! Pointers
+!    REAL(f4), POINTER  :: ptr_3D(:,:,:)
+!
+!    ! For values from Input_Opt
+!    INTEGER            :: N_TRACERS
+!    CHARACTER(LEN=255) :: TRACER_NAME(Input_Opt%N_TRACERS)
+!
+!    !=================================================================
+!    ! GET_RATES_INTERP begins here
+!    !=================================================================
+!
+!    ! Copy values from Input_Opt
+!    N_TRACERS   = Input_Opt%N_TRACERS
+!    TRACER_NAME = Input_Opt%TRACER_NAME(1:N_TRACERS)
+!
+!    ! Intialize arrays
+!    LOSS = 0e+0_fp
+!    PROD = 0e+0_fp
+!
+!    ! Path to input data, use 2 x 2.5 file
+!    FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() // '.2x25.nc'
+!    FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // TRIM( FILENAME )
+!
+!    ! Echo info
+!    IF ( am_I_Root ) THEN
+!       WRITE( 6, 11 ) THISMONTH
+!    ENDIF
+!11  FORMAT( '       - Getting new strat prod/loss rates for month: ', I2.2 )
+!
+!    ! Open the netCDF file containing the rates
+!    IF ( am_I_Root ) THEN
+!       WRITE( 6, 12 ) TRIM( filename )
+!    ENDIF
+!12  FORMAT( '         => Interpolate to resolution from file: ', a )
+!    call Ncop_Rd( fileID, TRIM( filename ) )
+!
+!    ! Get the lat and lon centers of the 2x2.5 GMI climatology
+!    ! WARNING MAKE 2x25 after testing
+!    st1d = (/ 1   /)
+!    ct1d = (/ 144 /)
+!    call NcRd( XMID_COARSE, fileID, 'longitude', st1d, ct1d )
+!
+!    st1d = (/ 1   /)
+!    ct1d = (/ 91  /)    
+!    call NcRd( YMID_COARSE, fileID, 'latitude',  st1d, ct1d )
+!
+!    ! For each fine grid index, determine the closest coarse (2x2.5) index
+!    ! Note: This doesn't do anything special for the date line, and may 
+!    ! therefore not pick the exact closest if it is on the other side.
+!    ! Note: CMN_SIZE_MOD claims in its comments that IIPAR < IGLOB, but 
+!    ! in actuality, IIPAR = IGLOB and JJPAR = JGLOB, the dimensions of the 
+!    ! nested region.
+!    DO I=1,IGLOB
+!       II = MINLOC( ABS( GET_XMID(I,1,1) - XMID_COARSE ) )
+!       I_f2c(I) = II(1)
+!       !IF ( am_I_Root ) print*,'I:',I,'->',II(1)
+!    ENDDO
+!    DO J=1,JGLOB
+!       JJ = MINLOC( ABS( GET_YMID(1,J,1) - YMID_COARSE ) )
+!       J_f2c(J) = JJ(1)
+!       !IF ( am_I_Root ) print*,'J:',J,'->',JJ(1)
+!    ENDDO
+!
+!    M = THISMONTH
+!
+!    ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!    ! Get Stratospheric OH concentrations [v/v] 
+!    ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 !    DO J = 1, JGLOB
 !    DO I = 1, IGLOB
-!       Bry_day  ( I, J, :, : ) = BryDay2x25  ( I_f2c(I), J_f2c(J), :, : )
-!       Bry_night( I, J, :, : ) = BryNight2x25( I_f2c(I), J_f2c(J), :, : )
+!
+!       st4d = (/ I_f2c(I), J_f2c(J),     1, m /)
+!       ct4d  =(/        1,        1, lglob, 1 /)
+!       call NcRd( column, fileID, 'species', st4d, ct4d )
+!       array( I, J, : ) = column
+!
 !    ENDDO
 !    ENDDO
-
-    DO N=1,NSCHEM
-       NN = Strat_TrID_GMI(N)
-
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! Open individual species file
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-       ! Path to input data, use 2 x 2.5 file
-       FILENAME = 'strat_chem_201206/gmi.clim.' // &
-            TRIM( GMI_TrName(NN) ) // '.' // GET_NAME_EXT() // '.2x25.nc'
-       FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // TRIM( FILENAME )
-
-       IF ( am_I_Root ) THEN
-          WRITE( 6, 12 ) TRIM( filename )
-       ENDIF
-
-       call NcOp_Rd( fileID, TRIM( FILENAME ) )
-
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! Read production rate [v/v/s]
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       array = 0.0
-       
-       DO J = 1, JGLOB
-       DO I = 1, IGLOB
-
-          st4d = (/ I_f2c(I), J_f2c(J),     1,  m /)
-          ct4d = (/        1,        1, lglob,  1 /) 
-          call NcRd( column, fileID, 'prod', st4d, ct4d )
-          array( I, J, : ) = column
-
-       ENDDO
-       ENDDO
-
-       ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR if necessary
-       ptr_3D => PROD(:,:,:,N)
-       call transfer_3D( array, ptr_3D )
-       NULLIFY( ptr_3D )
-
-       ! Special adjustment for Br2 tracer, which is BrCl in the strat
-       IF ( TRIM(TRACER_NAME(Strat_TrID_GC(N))) .eq. 'Br2' ) &
-                                  PROD(:,:,:,N) = PROD(:,:,:,N) / 2e+0_fp
-
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! Read loss frequencies [s^-1]
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       array = 0.0
-
-       DO J = 1, JGLOB
-       DO I = 1, IGLOB
-
-          st4d = (/ I_f2c(I), J_f2c(J),     1,  m /)
-          ct4d = (/        1,        1, lglob,  1 /)
-          call NcRd( column, fileID, 'loss', st4d, ct4d )
-          array( I, J, : ) = column
-
-       ENDDO
-       ENDDO
-
-       ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR if necessary
-       ptr_3d => LOSS(:,:,:,N)
-       call transfer_3D( array, ptr_3D )
-       NULLIFY( ptr_3D )
-
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! Close species file
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-       call NcCl( fileID )
-
-    ENDDO
-
-  END SUBROUTINE GET_RATES_INTERP
+!    call NcCl( fileID )
+!
+!    ! Resize column to 1:LLPAR
+!    CALL TRANSFER_3D( array, STRAT_OH )
+!
+!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!    ! Get Bry concentrations [ppt]
+!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!   
+!    !==============================================================
+!    ! Read in stored Bry species concentrations for stratosphere.
+!    ! Stored by Q. Liang using the GEOS CCM. (jpp, 6/27/2011)
+!    ! 
+!    ! ==> Bry data is now read through HEMCO (ckeller, 12/30/2014)
+!    !==============================================================
+!
+!!    ! TAU value at the beginning of this month
+!!    XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
+!!
+!!    ! the daytime concentrations
+!!    dayfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
+!!         'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'// &
+!!         GET_NAME_EXT()   // '.2x25'
+!!    
+!!    ! the nighttime concentrations
+!!    nightfile = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'bromine_201205/' // &
+!!         'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'// &
+!!         GET_NAME_EXT()   // '.2x25'
+!!    
+!!    DO NN = 1, 6
+!!       
+!!       ! 1. Read daytime data on the 2 x 2.5 grid
+!!       CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN), &   
+!!                        XTAU,    144,        91, &  
+!!                        LGLOB,   BryTemp,   QUIET=.TRUE. )
+!!       
+!!       ! Cast from REAL*4 to REAL(fp) and resize to LLPAR
+!!       CALL TRANSFER_3D_Bry( BryTemp, BryDay2x25(:,:,:,NN) )
+!!       
+!!       ! 2. Read nighttime data on the 2 x 2.5 grid
+!!       CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN), &
+!!                        XTAU,    144,        91, &   
+!!                        LGLOB,   BryTemp,   QUIET=.TRUE. )
+!!       
+!!       ! Cast from REAL*4 to REAL(fp) and resize to LLPAR 
+!!       CALL TRANSFER_3D_Bry( BryTemp, BryNight2x25(:,:,:,NN) )
+!!       
+!!    ENDDO
+!!
+!!    ! Cast from global 2x2.5 to fine nested resolution
+!!    DO J = 1, JGLOB
+!!    DO I = 1, IGLOB
+!!       Bry_day  ( I, J, :, : ) = BryDay2x25  ( I_f2c(I), J_f2c(J), :, : )
+!!       Bry_night( I, J, :, : ) = BryNight2x25( I_f2c(I), J_f2c(J), :, : )
+!!    ENDDO
+!!    ENDDO
+!
+!    DO N=1,NSCHEM
+!       NN = Strat_TrID_GMI(N)
+!
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       ! Open individual species file
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+!       ! Path to input data, use 2 x 2.5 file
+!       FILENAME = 'strat_chem_201206/gmi.clim.' // &
+!            TRIM( GMI_TrName(NN) ) // '.' // GET_NAME_EXT() // '.2x25.nc'
+!       FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // TRIM( FILENAME )
+!
+!       IF ( am_I_Root ) THEN
+!          WRITE( 6, 12 ) TRIM( filename )
+!       ENDIF
+!
+!       call NcOp_Rd( fileID, TRIM( FILENAME ) )
+!
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       ! Read production rate [v/v/s]
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       array = 0.0
+!       
+!       DO J = 1, JGLOB
+!       DO I = 1, IGLOB
+!
+!          st4d = (/ I_f2c(I), J_f2c(J),     1,  m /)
+!          ct4d = (/        1,        1, lglob,  1 /) 
+!          call NcRd( column, fileID, 'prod', st4d, ct4d )
+!          array( I, J, : ) = column
+!
+!       ENDDO
+!       ENDDO
+!
+!       ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR if necessary
+!       ptr_3D => PROD(:,:,:,N)
+!       call transfer_3D( array, ptr_3D )
+!       NULLIFY( ptr_3D )
+!
+!       ! Special adjustment for Br2 tracer, which is BrCl in the strat
+!       IF ( TRIM(TRACER_NAME(Strat_TrID_GC(N))) .eq. 'Br2' ) &
+!                                  PROD(:,:,:,N) = PROD(:,:,:,N) / 2e+0_fp
+!
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       ! Read loss frequencies [s^-1]
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       array = 0.0
+!
+!       DO J = 1, JGLOB
+!       DO I = 1, IGLOB
+!
+!          st4d = (/ I_f2c(I), J_f2c(J),     1,  m /)
+!          ct4d = (/        1,        1, lglob,  1 /)
+!          call NcRd( column, fileID, 'loss', st4d, ct4d )
+!          array( I, J, : ) = column
+!
+!       ENDDO
+!       ENDDO
+!
+!       ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR if necessary
+!       ptr_3d => LOSS(:,:,:,N)
+!       call transfer_3D( array, ptr_3D )
+!       NULLIFY( ptr_3D )
+!
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       ! Close species file
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+!       call NcCl( fileID )
+!
+!    ENDDO
+!
+!  END SUBROUTINE GET_RATES_INTERP
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1329,8 +1393,9 @@ CONTAINS
 !
 ! !IROUTINE: Set_BryPointers 
 !
-! !DESCRIPTION: Function SET\_BryPointers gets the Bry stratospheric data read
-! by HEMCO. 
+! !DESCRIPTION: Subroutine SET\_BryPointers gets the Bry stratospheric data 
+! read by HEMCO. The pointers only need to be established once. Target data
+! is automatically updated through HEMCO. 
 !\\
 !\\
 ! !INTERFACE:
@@ -1380,8 +1445,7 @@ CONTAINS
     ! Construct error message
     MSG = 'Cannot get pointer from HEMCO! Stratospheric Bry data ' // &
           'is expected to be listed in the HEMCO configuration '   // &
-          'file and the GMI_StratChem extension must be enabled. ' // &
-          'This error occured when trying to get field'
+          'file. This error occured when trying to get field'
 
     ! Do for every Bry species
     DO N = 1,6
@@ -1419,6 +1483,136 @@ CONTAINS
     RC = GIGC_SUCCESS
 
   END SUBROUTINE Set_BryPointers 
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_PLVEC
+!
+! !DESCRIPTION: Subroutine SET\_PLVEC gets the production and loss terms of
+! all strat chem tracers from HEMCO. The pointers only need to be established 
+! once. Target data is automatically updated through HEMCO. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_PLVEC ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+
+    IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorological State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY: 
+!  16 Jan 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    CHARACTER(LEN=16)   :: ThisName
+    CHARACTER(LEN=255)  :: FIELDNAME
+    CHARACTER(LEN=1023) :: MSG, ERR
+    INTEGER             :: N, TRCID
+    LOGICAL             :: FND
+
+    !=================================================================
+    ! Set_PLVEC begins here 
+    !=================================================================
+
+    ! Assume error until success
+    RC = GIGC_FAILURE
+
+    ! Construct error message
+    ERR = 'Cannot get pointer from HEMCO! GMI prod/loss data is '  // &
+          'expected to be listed in the HEMCO configuration file. '// &
+          'This error occured when trying to get field'
+
+    ! Do for every species 
+    DO N = 1,NSCHEM
+
+       ! Get GEOS-Chem tracer index
+       TRCID = Strat_TrID_GC(N)
+
+       ! Skip if tracer is not defined    
+       IF ( TRCID <= 0 ) CYCLE
+
+       ! Get species name
+       ThisName = Input_Opt%TRACER_NAME( TRCID )
+
+       ! ---------------------------------------------------------------
+       ! Get pointers to fields
+       ! ---------------------------------------------------------------
+
+       ! Production rates [v/v/s]
+       FIELDNAME = 'GMI_PROD_'//TRIM(ThisName)
+       CALL HCO_GetPtr( am_I_Root, FIELDNAME, PLVEC(N)%PROD, RC, FOUND=FND )
+       IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
+          CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
+                            'Set_PLVEC (start_chem_mod.F90)' )
+          RETURN
+       ENDIF
+       IF ( .NOT. FND .AND. AM_I_ROOT ) THEN
+          MSG = 'Cannot find archived GMI production rates for ' // &
+                TRIM(ThisName) // ' - will use value of 0.0. '   // &
+                'To use archived rates, add the following field '// &
+                'to the HEMCO configuration file: '//TRIM(FIELDNAME)
+          WRITE(6,*) TRIM(MSG)
+       ENDIF
+
+       ! Loss frequency [s-1]
+       FIELDNAME = 'GMI_LOSS_'//TRIM(ThisName)
+       CALL HCO_GetPtr( am_I_Root, FIELDNAME, PLVEC(N)%LOSS, RC, FOUND=FND )
+       IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
+          CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
+                            'Set_PLVEC (start_chem_mod.F90)' )
+          RETURN
+       ENDIF
+       IF ( .NOT. FND .AND. AM_I_ROOT ) THEN
+          MSG = 'Cannot find archived GMI loss frequencies for ' // &
+                TRIM(ThisName) // ' - will use value of 0.0. '   // &
+                'To use archived rates, add the following field '// &
+                'to the HEMCO configuration file: '//TRIM(FIELDNAME)
+          WRITE(6,*) TRIM(MSG)
+       ENDIF
+
+    ENDDO !N
+
+    ! Get pointer to STRAT_OH
+    CALL HCO_GetPtr( am_I_Root, 'STRAT_OH', STRAT_OH, RC, FOUND=FND )
+    IF ( RC /= HCO_SUCCESS .OR. .NOT. FND ) THEN
+       MSG = 'Cannot find monthly archived strat. OH field '    // &
+             '`STRAT_OH`. Please add a corresponding entry to ' // &
+             'the HEMCO configuration file.'
+       CALL ERROR_STOP ( TRIM(MSG), 'Set_PLVEC (strat_chem_mod.F90)' )
+       RETURN
+    ENDIF
+
+    ! Return w/ success
+    RC = GIGC_SUCCESS
+
+  END SUBROUTINE Set_PLVEC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1824,16 +2018,6 @@ CONTAINS
                 Strat_TrID_GC(NSCHEM)  = N  ! Maps 1:NSCHEM to STT index
                 Strat_TrID_GMI(NSCHEM) = NN ! Maps 1:NSCHEM to GMI_TrName index
 
-! NOTE: Comment out strat-chem fields of State_Chm for now (bmy, 11/26/12)
-!#if defined( DEVEL ) 
-!                !---------------------------------------------------------
-!                ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-!                !
-!                !---------------------------------------------------------
-!                State_Chm%Schm_Id(NSCHEM)   = Strat_TrID_GC(NSCHEM)
-!                State_Chm%Schm_Name(NSCHEM) = TRIM( TRACER_NAME(N) )
-!#endif
-
              ENDIF
 
           ENDDO
@@ -1847,10 +2031,10 @@ CONTAINS
           IF ( IDTCH3Br  .gt. 0 ) WRITE(6,*) 'CH3Br (from GMI OH)'
        ENDIF
 
-       ! Allocate array to hold monthly mean OH mixing ratio
-       ALLOCATE( STRAT_OH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-       IF ( AS /=0 ) CALL ALLOC_ERR( 'STRAT_OH' )
-       STRAT_OH = 0e0
+!       ! Allocate array to hold monthly mean OH mixing ratio
+!       ALLOCATE( STRAT_OH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!       IF ( AS /=0 ) CALL ALLOC_ERR( 'STRAT_OH' )
+!       STRAT_OH = 0e0
 
        !===========!
        ! Tagged Ox !
@@ -1882,15 +2066,21 @@ CONTAINS
     ! Allocate and initialize prod & loss arrays         !
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 
-    ! Allocate PROD -- array for clim. production rates [v/v/s]
-    ALLOCATE( PROD( IIPAR, JJPAR, LLPAR, NSCHEM ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'PROD' )
-    PROD = 0e0
+!    ! Allocate PROD -- array for clim. production rates [v/v/s]
+!    ALLOCATE( PROD( IIPAR, JJPAR, LLPAR, NSCHEM ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'PROD' )
+!    PROD = 0e0
+!
+!    ! Allocate LOSS -- array for clim. loss freq [s-1]
+!    ALLOCATE( LOSS( IIPAR, JJPAR, LLPAR, NSCHEM ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'LOSS' )
+!    LOSS = 0e0
 
-    ! Allocate LOSS -- array for clim. loss freq [s-1]
-    ALLOCATE( LOSS( IIPAR, JJPAR, LLPAR, NSCHEM ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'LOSS' )
-    LOSS = 0e0
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    ! Allocate and initialize prod/loss vector
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+    ALLOCATE( PLVEC( NSCHEM ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLVEC' )
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     ! Allocate and initialize arrays for STE calculation !
@@ -1957,16 +2147,27 @@ CONTAINS
 !BOC
     INTEGER :: I
 
-    IF ( ALLOCATED( PROD       ) ) DEALLOCATE( PROD       )
-    IF ( ALLOCATED( LOSS       ) ) DEALLOCATE( LOSS       )
-    IF ( ALLOCATED( STRAT_OH   ) ) DEALLOCATE( STRAT_OH   )
+!    IF ( ALLOCATED( PROD       ) ) DEALLOCATE( PROD       )
+!    IF ( ALLOCATED( LOSS       ) ) DEALLOCATE( LOSS       )
+!    IF ( ALLOCATED( STRAT_OH   ) ) DEALLOCATE( STRAT_OH   )
     IF ( ALLOCATED( MInit      ) ) DEALLOCATE( MInit      )
     IF ( ALLOCATED( TPAUSEL    ) ) DEALLOCATE( TPAUSEL    )
     IF ( ALLOCATED( SCHEM_TEND ) ) DEALLOCATE( SCHEM_TEND )
+
+    ! Cleanup pointer vectors
     DO I = 1,6
        BrPtrDay(I)%MR   => NULL()
        BrPtrNight(I)%MR => NULL()
     ENDDO
+
+    DO I = 1,NSCHEM
+       PLVEC(I)%PROD => NULL()
+       PLVEC(I)%LOSS => NULL()
+    ENDDO
+    IF ( ASSOCIATED(PLVEC) ) DEALLOCATE(PLVEC)
+
+    ! Cleanup pointer to strat. OH
+    STRAT_OH => NULL()
 
   END SUBROUTINE CLEANUP_STRAT_CHEM
 !EOC

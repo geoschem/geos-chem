@@ -153,7 +153,7 @@ CONTAINS
 
     ! Pointers
     REAL(hp), POINTER  :: Arr2D(:,:)   => NULL() 
-    REAL(hp), POINTER  :: SeaConc(:,:) => NULL()
+    REAL(sp), POINTER  :: SeaConc(:,:) => NULL()
 
     !=================================================================
     ! HCOX_SeaFlux_Run begins here!
@@ -224,7 +224,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => SOURCE 
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=HcoID,     &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -283,7 +283,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(hp),        INTENT(INOUT) :: SeaConc(HcoState%NX,HcoState%NY )
+    REAL(sp),        INTENT(INOUT) :: SeaConc(HcoState%NX,HcoState%NY )
     INTEGER,         INTENT(INOUT) :: RC                 ! Error stat 
 
 !
@@ -366,14 +366,14 @@ CONTAINS
     DO I = 1, HcoState%NX
       
        ! Make sure we have no negative seawater concentrations 
-       IF ( SeaConc(I,J) < 0d0 ) SeaConc(I,J) = 0d0
+       IF ( SeaConc(I,J) < 0.0_sp ) SeaConc(I,J) = 0.0_sp
 
        ! Assume no air-sea exchange over snow/ice (ALBEDO > 0.4)
-       IF ( ExtState%ALBD%Arr%Val(I,J) > 0.4d0 ) CYCLE
+       IF ( ExtState%ALBD%Arr%Val(I,J) > 0.4_hp ) CYCLE
 
        ! Do only over the ocean, i.e. if land fraction is less
        ! than 0.8
-       IF ( ExtState%FRCLND%Arr%Val(I,J) < 0.8 ) THEN
+       IF ( ExtState%FRCLND%Arr%Val(I,J) < 0.8_hp ) THEN
 
           !-----------------------------------------------------------
           ! Get grid box and species specific quantities

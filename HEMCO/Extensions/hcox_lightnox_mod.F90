@@ -133,6 +133,7 @@ MODULE HCOX_LightNOx_Mod
 !  22 Jul 2014 - R. Yantosca - Now hardwire the Lesley Ott et al CDF's in 
 !                              lightning_cdf_mod.F90.  This avoids having to
 !                              read an ASCII input in the ESMF environment.
+!  13 Jan 2015 - L. Murray   - Add most recent lightning updates to HEMCO version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,13 +159,14 @@ MODULE HCOX_LightNOx_Mod
   ! Scalars
   REAL*8                       :: AREA_30N
   REAL*8                       :: OTD_LIS_SCALE
-  LOGICAL                      :: LOTDLOC   ! Use OTD-LIS distribution factors?
+  LOGICAL                      :: OTD_LIS_PRESC  ! Is OTD_LIS_SCALE prescribed?
+  LOGICAL                      :: LOTDLOC        ! Use OTD-LIS distribution factors?
 
   ! Arrays
   REAL(hp),ALLOCATABLE, TARGET :: SLBASE(:,:,:)
 
   ! OTD scale factors read through configuration file
-  REAL(hp), POINTER :: OTDLIS(:,:) => NULL()
+  REAL(sp), POINTER :: OTDLIS(:,:) => NULL()
 
 CONTAINS
 !EOC
@@ -187,8 +189,6 @@ CONTAINS
 ! !USES:
 !
     USE HCO_FluxArr_Mod,  ONLY : HCO_EmisAdd 
-    USE HCO_CLOCK_MOD,    ONLY : HcoClock_Get, HcoClock_NewMonth
-    USE HCO_ExtList_Mod,  ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -225,10 +225,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     REAL(hp), POINTER   :: Arr3D(:,:,:) => NULL()
-    REAL(dp)            :: TmpScale
     INTEGER             :: Yr, Mt
     LOGICAL             :: FOUND
-    LOGICAL,  SAVE      :: FIRST = .TRUE.
 
     !=================================================================
     ! HCOX_LIGHTNOX_RUN begins here!
@@ -240,39 +238,6 @@ CONTAINS
 
     ! Return if extension disabled 
     IF ( ExtNr <= 0 ) RETURN
-
-    ! Get scaling factor to match annual average global flash rate
-    ! (ltm, 09/24/07)
-    ! This factor may change after august 2008 due to a change in the
-    ! GEOS-5 met fields. So need to add a check here to make sure that
-    ! the scale factor is updated. Also, allow factor to be set in the
-    ! configuration file directly. This is required for the GEOS-5 
-    ! implementation (ckeller, 10/7/14)
-
-    ! Reset to first if we change to September 2008.
-    CALL HcoClock_Get ( cYYYY=Yr, cMM=Mt, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( Yr==2008 .AND. Mt==9 .AND. HcoClock_NewMonth() ) FIRST = .TRUE.
-
-    ! Get scale factor. 
-    IF ( FIRST ) THEN
-
-       ! Try to read from configuration file first.
-       CALL GetExtOpt ( ExtNr, 'OTD-LIS scaling', &
-                        OptValDp = TmpScale, FOUND=FOUND, RC=RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IF ( FOUND ) THEN
-          OTD_LIS_SCALE = TmpScale
-
-       ! Get according to compiler switches otherwise
-       ELSE
-          CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF
-
-       ! Reset first flag
-       FIRST = .FALSE.
-    ENDIF
 
     ! Update lightnox NOx emissions (fill SLBASE) 
     CALL LIGHTNOX ( am_I_Root, HcoState, ExtState, RC )
@@ -293,7 +258,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr3D => SLBASE
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IDTNO,     &
                              AutoFill=1, Array3D=Arr3D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -326,6 +291,7 @@ CONTAINS
     USE HCO_EmisList_Mod, ONLY : HCO_GetPtr      
     USE HCO_GeoTools_Mod, ONLY : HCO_LANDTYPE
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
+    USE HCO_ExtList_Mod,  ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -362,6 +328,7 @@ CONTAINS
 !                              derived type object
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  06 Oct 2014 - C. Keller   - Now calculate pressure centers from edges.
+!  16 Jan 2015 - R. Yantosca - Bug fix: TmpScale should be REAL(dp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -388,6 +355,7 @@ CONTAINS
     CHARACTER(LEN=31) :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
     REAL(hp)          :: TROPP
+    REAL(dp)          :: TmpScale
 
     !=================================================================
     ! LIGHTNOX begins here!
@@ -425,6 +393,19 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
+       ! Get scale factor. 
+       ! - Try to read from configuration file first.
+       CALL GetExtOpt ( ExtNr, 'OTD-LIS scaling', &
+                        OptValDp = TmpScale, FOUND=OTD_LIS_PRESC, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( OTD_LIS_PRESC ) THEN
+          OTD_LIS_SCALE = TmpScale
+       ! - Get according to compiler switches otherwise
+       ELSE
+          CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
        ! Update first flag
        FIRST = .FALSE.
     ENDIF
@@ -437,12 +418,19 @@ CONTAINS
     LMAX   = HcoState%NZ - 1
 
 #if defined( GEOS_5 ) 
+    ! Get scaling factor to match annual average global flash rate
+    ! (ltm, 09/24/07)
     ! Because of different convection in GEOS 5.1.0 and GEOS 5.2.0,
     ! this value is different before and after Sept 1, 2008. 
     ! So reset value at start of each month, just in case it's
     ! a 2008 simulation. (ltm,1/26/11)
-    CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Added option to prescribe OTD_LIS_SCALE in configuration file. 
+    ! In this case, never call GET_OTD_LIS_SCALE but always use the 
+    ! prescribed value. (ckeller,1/13/15)
+    IF ( .NOT. OTD_LIS_PRESC ) THEN
+       CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 #endif
 
     ! Get current month (to be passed to LIGHTDIST)
@@ -1015,7 +1003,7 @@ CONTAINS
     IF ( DoDiagn ) THEN
        DiagnName =  'LIGHTNING_TOTAL_FLASHRATE'
        Arr2D     => DIAGN(:,:,1)
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
@@ -1023,7 +1011,7 @@ CONTAINS
        ! Eventually add individual diagnostics. These go by names!
        DiagnName =  'LIGHTNING_INTRACLOUD_FLASHRATE'
        Arr2D     => DIAGN(:,:,2)
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
@@ -1031,7 +1019,7 @@ CONTAINS
        ! Eventually add individual diagnostics. These go by names!
        DiagnName =  'LIGHTNING_CLOUDGROUND_FLASHRATE'
        Arr2D     => DIAGN(:,:,3)
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
+       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
@@ -1486,6 +1474,7 @@ CONTAINS
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  04 Nov 2014 - Y. X. Wang  - Define BETA, ANN_AVG_FLASHRATE for the
 !                              GEOS-FP 025x03125 NESTED_CH grid
+!  14 Jan 2015 - L. Murray   - Updated GEOS-FP files through Oct 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1572,11 +1561,12 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 11/07/13).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 82.003230d0
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2014-12-10).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 82.373293d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1586,12 +1576,12 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 01/15/14).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 257.93269d0
-    ENDIF
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2014-12-10).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 260.40253d0
 
 #elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
 
@@ -1601,7 +1591,7 @@ CONTAINS
 
     ! Constrained with simulated "climatology" for
     ! Jan 2013 - Dec 2013. Will need to be updated as more
-    ! met fields become available (ltm, 10/22/14).
+    ! met fields become available (ltm, 2014-10-22).
     IF ( ( cYr .eq. 2013 .and. cMt .ge. 1  )   .or. &
          ( cYr .eq. 2013 .and. cMt .le. 12 ) ) THEN
        BETA = ANN_AVG_FLASHRATE / 1052.6366d0
@@ -1614,11 +1604,12 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 11/14/13).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 652.44105d0
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2015-01-13).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 720.10258d0
     ENDIF
 
 #elif defined( MERRA ) && defined( GRID2x25 )
@@ -1651,9 +1642,9 @@ CONTAINS
 
     ! Discourage users from using lightning outside the constraint period.
     ! You may comment out these lines, but should verify that lightning
-    ! doesn't become unreasonably high anywere in the domain. (ltm, 11/07/13)
-    IF (   cYr .ge. 2014 .or. &
-         ( cYr .eq. 2013 .and. cMt .gt. 5 ) ) BETA = 1d0
+    ! doesn't become unreasonably high anywere in the domain. (ltm, 2015-01-15)
+    IF (   cYr .gt. 2014 .or. &
+         ( cYr .eq. 2014 .and. cMt .gt. 10 ) ) BETA = 1d0
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_CH)
 
@@ -1760,6 +1751,7 @@ CONTAINS
     USE HCO_STATE_MOD,    ONLY : HCO_GetHcoID
     USE HCO_STATE_MOD,    ONLY : HCO_GetExtHcoID
     USE HCO_ExtList_Mod,  ONLY : GetExtNr, GetExtOpt
+    USE HCO_ReadList_Mod, ONLY : ReadList_Remove
 !
 ! !INPUT PARAMETERS:
 !
@@ -1823,13 +1815,22 @@ CONTAINS
     CALL GetExtOpt ( ExtNr, 'OTD-LIS factor', &
                      OptValBool=LOTDLOC, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If OTD-LIS factor are not being used, make sure that the corresponding
+    ! gridded data will be ignored (e.g. not read) by HEMCO.
+    IF ( .NOT. LOTDLOC ) THEN
+       CALL ReadList_Remove ( am_I_Root, 'LIGHTNOX_OTDLIS', RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    ! Note: the OTD-LIS scale factor will be determined during run time
+    ! as it requires the current time information.
  
-    ! Get global scale factor
     ! Get species ID
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( nSpc /= 1 ) THEN
-       MSG = 'Lightning NOx module must have only one species!' 
+       MSG = 'Lightning NOx module must have exactly one species!' 
        CALL HCO_ERROR ( MSG, RC )
        RETURN
     ENDIF
