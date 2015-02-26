@@ -19,6 +19,8 @@
 #
 # !REVISION HISTORY: 
 #  11 Aug 2014 - R. Yantosca - Initial version
+#  26 Feb 2015 - R. Yantosca - Remove lightdist script, we now read CDF table
+#                              data from a file to reduce compilation time
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -44,10 +46,6 @@ FINN_CO2  ?=$(HEMCO_DATA_ROOT)/FINN/v2014-07/FINN_EFratios_CO2.csv
 FINN_VOC  ?=$(HEMCO_DATA_ROOT)/FINN/v2014-07/FINN_VOC_speciation.csv
 FINN_OUT  ?=$(HCOX)/hcox_finn_include.H
 
-# Files for Lightning CDF
-LDIST_IN  ?=$(HEMCO_DATA_ROOT)/LIGHTNOX/v2014-07/light_dist.ott2010.dat
-LDIST_OUT ?=$(HCOX)/lightning_cdf_include.H
-
 ###############################################################################
 ###                                                                         ###
 ###  Makefile targets: type "make help" for a complete listing!             ###
@@ -69,11 +67,4 @@ finn:
 	@echo "%%% FINN........creating '$(FINN_OUT)'"
 	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 	./finn.pl $(FINN_CO2) $(FINN_VOC) $(FINN_OUT)
-
-lightdist:
-	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	@echo "%%% LIGHTDIST...creating '$(LDIST_OUT)'"
-	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	./lightdist.pl $(LDIST_IN) $(LDIST_OUT)
-
 #EOC
