@@ -6972,6 +6972,8 @@
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
+!                              tracers (C. Friedman)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7177,7 +7179,13 @@
             ! WETLOSS is the amount of tracer mass in 
             ! grid box (I,J,L) that is lost to washout.
             ! (Eq. 16, Jacob et al, 2000)
-            WETLOSS = MASS_WASH * WASHFRAC -DSTT(NN,L+1,I,J)
+!------------------------------------------------------------------------------
+! Prior to 2/4/15:
+! Bug fix: Make sure mass of scavenged tracer passed to depo_mercury_mod.F
+! is the same as mass archived in ND39 (clf, mps, 2/4/15)
+!            WETLOSS = MASS_WASH * WASHFRAC -DSTT(NN,L+1,I,J)
+!------------------------------------------------------------------------------
+            WETLOSS = ( MASS_WASH - DSTT(NN,L+1,I,J) ) * WASHFRAC
 
             ! The tracer left in grid box (I,J,L) is what was
             ! in originally in the non-precipitating fraction 
