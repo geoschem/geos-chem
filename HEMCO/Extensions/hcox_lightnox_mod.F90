@@ -1881,59 +1881,54 @@ CONTAINS
     ! Obtain lightning CDF's from Ott et al [JGR, 2010]. (ltm, 1/25/11)
     !=======================================================================
 
-    ! NOTE: Only read the ASCII file on the root CPU; we will have
-    ! to MPI broadcast manually to the other CPUs!
-    IF ( am_I_Root ) THEN
+    ! Get filename from configuration file
+    CALL GetExtOpt ( ExtNr, 'CDF table', OptValChar=FILENAME, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Get filename from configuration file
-       CALL GetExtOpt ( ExtNr, 'CDF table', OptValChar=FILENAME, RC=RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
+    ! There shouldn't be any date token in there ($YYYY, etc.), so just
+    ! provide some dummy variables here
+    CALL HCO_CharParse( FILENAME, -999, -1, -1, -1, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
-       ! There shouldn't be any date token in there ($YYYY, etc.), so just
-       ! provide some dummy variables here
-       CALL HCO_CharParse( FILENAME, -999, -1, -1, -1, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Echo info
+    WRITE( MSG, 100 ) TRIM( FILENAME )
+    CALL HCO_MSG(MSG)
+100 FORMAT( '     - INIT_LIGHTNOX: Reading ', a )
 
-       ! Echo info
-       WRITE( MSG, 100 ) TRIM( FILENAME )
-       CALL HCO_MSG(MSG)
-100    FORMAT( '     - INIT_LIGHTNOX: Reading ', a )
-
-       ! Find a free file LUN
-       IU_FILE = findFreeLUN()
+    ! Find a free file LUN
+    IU_FILE = findFreeLUN()
       
-       ! Open file containing lightnox PDF data
-       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+    ! Open file containing lightnox PDF data
+    OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+    IF ( IOS /= 0 ) THEN
+       MSG = 'IOERROR: LightDist: 1'
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
+
+    ! Read 12 header lines
+    DO III = 1, 12
+       READ( IU_FILE, '(a)', IOSTAT=IOS ) 
        IF ( IOS /= 0 ) THEN
-          MSG = 'IOERROR: LightDist: 1'
+          MSG = 'IOERROR: LightDist: 2'
           CALL HCO_ERROR ( MSG, RC )
           RETURN
        ENDIF
-
-       ! Read 12 header lines
-       DO III = 1, 12
-          READ( IU_FILE, '(a)', IOSTAT=IOS ) 
-          IF ( IOS /= 0 ) THEN
-             MSG = 'IOERROR: LightDist: 2'
-             CALL HCO_ERROR ( MSG, RC )
-             RETURN
-          ENDIF
-       ENDDO
+    ENDDO
          
-       ! Read NNLIGHT types of lightnox profiles
-       DO III = 1, NNLIGHT
-          READ( IU_FILE,*,IOSTAT=IOS) (PROFILE(III,JJJ),JJJ=1,NLTYPE)
-          IF ( IOS /= 0 ) THEN
-             MSG = 'IOERROR: LightDist: 3'
-             CALL HCO_ERROR ( MSG, RC )
-             RETURN
-          ENDIF
-       ENDDO
+    ! Read NNLIGHT types of lightnox profiles
+    DO III = 1, NNLIGHT
+       READ( IU_FILE,*,IOSTAT=IOS) (PROFILE(III,JJJ),JJJ=1,NLTYPE)
+       IF ( IOS /= 0 ) THEN
+          MSG = 'IOERROR: LightDist: 3'
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
+       ENDIF
+    ENDDO
          
-       ! Close file
-       CLOSE( IU_FILE )
-    ENDIF
+    ! Close file
+    CLOSE( IU_FILE )
 
     !=======================================================================
     ! Further HEMCO setup
