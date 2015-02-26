@@ -35,7 +35,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
@@ -127,6 +126,8 @@
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,7 +216,7 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-                  CONST = GET_PCENTER(IX,IY,IZ) * 1000e+0_fp / 
+                  CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp / 
      &                  ( State_Met%T(IX,IY,IZ) * BK )
                 
                   !------------------------------
@@ -283,7 +284,7 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-                  CONST = GET_PCENTER(IX,IY,IZ) * 1000e+0_fp /
+                  CONST = State_Met%PMID_DRY(IX,IY,IZ) * 1000e+0_fp /
      &                  ( State_Met%T(IX,IY,IZ) * BK )
                 
                   ! Copy default background conc. from "globchem.dat" to CSPEC

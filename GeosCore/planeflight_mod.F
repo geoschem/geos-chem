@@ -1239,7 +1239,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD
       USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
       USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
@@ -1288,6 +1287,8 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  19 Nov 2014 - M. Yannetti - Edited OCEAN_MERCURY_MOD Fp to OMMFP
 !  12 Jan 2015 - L. Schiferl - Allow for more precision in TAUE computation
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1513,7 +1514,7 @@
                   ! GMAO sfc pressure [hPa]
                   !--------------------------
                   CASE ( 1004 )
-                     VARI(V) = GET_PEDGE(I,J,1)
+                     VARI(V) = State_Met%PEDGE(I,J,1)
 
                   !-------------------------
                   ! GMAO U-wind [m/s]
@@ -1748,7 +1749,6 @@
 !
       USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : JLOP
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1782,6 +1782,8 @@
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  08 Sep 2011 - L. Schiferl - Added correct definitions for I and J 
 !                              based on nested regions
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1818,7 +1820,7 @@
       ! Get L corresponding to PRESS(IND)
       L = 1
       DO IL = 1, LLPAR
-         IF ( GET_PEDGE(I,J,IL) <= PPRESS(IND) .AND..NOT. FOUND ) THEN
+         IF ( State_Met%PEDGE(I,J,IL) <= PPRESS(IND) .AND..NOT. FOUND ) THEN
             L     = IL-1
             FOUND =.TRUE.
             EXIT

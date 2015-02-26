@@ -27,10 +27,6 @@
 !  (5 ) CONVTRAN           : ZHANG/MCFARLANE convection scheme routine
 !  (6 ) WHENFGT            : Returns index array of points > a reference value
 !
-!  GEOS-CHEM modules referenced by fvdas_convect_mod.f:
-!  ============================================================================
-!  (1 ) pressure_mod.f     : Module containing routines to compute P(I,J,L)
-!
 !  NOTES: 
 !  (1 ) Contains new updates for GEOS-4/fvDAS convection.  Also added OpenMP
 !        parallel loop over latitudes in FVDAS_CONVECT. (swu, bmy, 1/21/04)
@@ -53,6 +49,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  28 Oct 2013 - R. Yantosca - Now avoid array temporaries
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -106,8 +104,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-
       USE CMN_SIZE_MOD  ! Size parameters
 !
 ! !INPUT PARAMETERS:
@@ -134,7 +130,7 @@
       ! Construct array of pressure edges [hPa] for column (I,J) 
       DO L = 1, LLPAR+1
          L2       = (LLPAR+1) - L + 1
-         HYPI(L2) = GET_PEDGE(I,J,L)
+         HYPI(L2) = State_Met%PEDGE(I,J,L)
       ENDDO
 
       ! Limit convection to regions below 40 hPa

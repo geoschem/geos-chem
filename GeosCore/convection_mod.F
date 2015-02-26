@@ -165,9 +165,8 @@
 !  18 Apr 2014 - R. Yantosca - Now use proper # of tracers for APM in the
 !                              call to DO_MERRA_CONVECTION (MERRA & GEOS-FP)
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
-!  24 Feb 2014 - E. Lundgren - Replace GET_PEDGE, which retrieves wet
-!                              air pressure, with State_Met%PEDGE_DRY.
-!                              Remove dependency on PRESSURE_MOD.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -326,7 +325,7 @@
 
          ! Pressure edges
          DO L = 1, LLPAR+1
-            PEDGE(L) =  State_Met%PEDGE_DRY( I, J, L )
+            PEDGE(L) =  State_Met%PEDGE( I, J, L )
          ENDDO
 
          ! NOTE: For some reason the code chokes when we try
@@ -459,9 +458,8 @@
 !                              F array to subroutine COMPUTE_F
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt to CONVTRAN
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
-!  24 Feb 2014 - E. Lundgren   Replace GET_PEDGE, which retrieves wet
-!                              air pressure, with State_Met%PEDGE_DRY.
-!                              Remove dependency on PRESSURE_MOD.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -604,8 +602,8 @@
          DO I = 1, IIPAR
                
             ! Pressure at bottom and top edges of grid box [hPa]
-            P1 = State_Met%PEDGE_DRY(I,J,L)
-            P2 = State_Met%PEDGE_DRY(I,J,L+1)
+            P1 = State_Met%PEDGE(I,J,L)
+            P2 = State_Met%PEDGE(I,J,L+1)
 
             ! DP = Pressure difference between top & bottom edges [Pa]
             DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
@@ -747,10 +745,9 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
-!  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE, which 
-!                              retrieve wet air pressure, with State_Met
-!                              vars PMID_DRY and PEDGE_DRY and remove
-!                              dependency on PRESSURE_MOD.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
+!                              State_Met%PEDGE and State_Met%PMID.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -860,7 +857,7 @@
 
             ! Shut off scavenging in shallow convection for GCAP
             ! (swu, bmy, 11/1/05)
-            IF ( State_Met%PMID_DRY( I, J, L ) > 700e+0_fp ) 
+            IF ( State_Met%PMID( I, J, L ) > 700e+0_fp ) 
      &            F(I,J,L,N) = 0e+0_fp
 
             ! ND37 diagnostic: store fraction of tracer 
@@ -897,8 +894,8 @@
          DO I = 1, IIPAR
                
             ! Pressure at bottom and top edges of grid box [hPa]
-            P1 = State_Met%PEDGE_DRY(I,J,L)
-            P2 = State_Met%PEDGE_DRY(I,J,L+1)
+            P1 = State_Met%PEDGE(I,J,L)
+            P2 = State_Met%PEDGE(I,J,L+1)
 
             ! DP = Pressure difference between top & bottom edges [Pa]
             DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
@@ -1191,8 +1188,8 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
-!  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER, which retrieves wet
-!                              air pressure, with State_Met%PMID_DRY.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1483,12 +1480,12 @@
                   ! Need to replace DSIG w/ the difference 
                   ! of pressure edges for GEOS-5 (bmy, 6/27/07)
                   QB(I,J) = 
-     &                      ( Q(I,J,1,IC) * ( State_Met%PEDGE_DRY(I,J,1) 
-     &                      - State_Met%PEDGE_DRY(I,J,2) )   + 
-     &                      Q(I,J,2,IC) * ( State_Met%PEDGE_DRY(I,J,2) 
-     &                      - State_Met%PEDGE_DRY(I,J,3) ) ) / 
-     &                      ( State_Met%PEDGE_DRY(I,J,1) 
-     &                      - State_Met%PEDGE_DRY(I,J,3) )
+     &                      ( Q(I,J,1,IC) * ( State_Met%PEDGE(I,J,1) 
+     &                      - State_Met%PEDGE(I,J,2) )   + 
+     &                      Q(I,J,2,IC) * ( State_Met%PEDGE(I,J,2) 
+     &                      - State_Met%PEDGE(I,J,3) ) ) / 
+     &                      ( State_Met%PEDGE(I,J,1) 
+     &                      - State_Met%PEDGE(I,J,3) )
 
 #else
                   ! for GEOS-3

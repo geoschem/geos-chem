@@ -165,7 +165,6 @@
 !
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 
@@ -197,6 +196,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  17 Sep 2014 - C. Keller   - Removed legacy code (unused variables).
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,7 +287,7 @@
       DO I = 1, IIPAR
                   
          ! Archive pressure
-         Pavg(I,J,L) = Pavg(I,J,L) + GET_PCENTER(I,J,L)
+         Pavg(I,J,L) = Pavg(I,J,L) + State_Met%PMID(I,J,L)
 
          ! Archive temperature
          Tavg(I,J,L) = Tavg(I,J,L) + State_Met%T(I,J,L)

@@ -94,7 +94,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
@@ -206,6 +205,9 @@
 !  05 Mar 2014 - R. Yantosca - Cosmetic changes
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE. Remove
+!                              dependency on pressure_mod and redundant PEDGE 
+!                              pre-preprocessor block if EXTERNAL_GRID.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -304,17 +306,11 @@
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
             CSZA            = State_Met%SUNCOSmid(NLON,NLAT)
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            ! Define the P array here, using GCM pressures
+            ! Define the P array here, using Ap and Bp from GEOS-Chem
+            ! or GCM pressures
             DO L = 1, LLPAR+1
                P_CTM(L)     = State_Met%PEDGE( NLON, NLAT, L )
             ENDDO
-#else
-            ! Define the P array here, using Ap and Bp from GEOS-Chem
-            DO L = 1, LLPAR+1
-               P_CTM(L)     = GET_PEDGE( NLON, NLAT, L )
-            ENDDO
-#endif
 
             ! Top edge of P_CTM is top of atmosphere (bmy, 2/13/07)
             P_CTM(LLPAR+2)  = 0e+0_fp

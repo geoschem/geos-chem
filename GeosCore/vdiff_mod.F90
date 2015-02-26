@@ -1820,7 +1820,6 @@ contains
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
                                    GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
-    USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS
     USE TRACERID_MOD
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
@@ -1887,6 +1886,9 @@ contains
 !  25 Jun 2014 - R. Yantosca - Now get N_MEMBERS from input_mod.F
 !  16 Oct 2014 - C. Keller   - Bug fix: now add deposition rates instead of
 !                              overwriting them.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
+!                              State_Met%PEDGE and State_Met%PMID.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2014,12 +2016,12 @@ contains
 
     ! calculate variables related to pressure
     do L = 1, LLPAR
-       pmid(I,J,L) = GET_PCENTER(I,J,L)*100.e+0_fp ! hPa -> Pa
-       pint(I,J,L) = GET_PEDGE(I,J,L)*100.e+0_fp   ! hPa -> Pa
+       pmid(I,J,L) = State_Met%PMID(I,J,L)*100.e+0_fp ! hPa -> Pa
+       pint(I,J,L) = State_Met%PEDGE(I,J,L)*100.e+0_fp   ! hPa -> Pa
        ! calculate potential temperature
        thp(I,J,L) = State_Met%T(I,J,L)*(p0/pmid(I,J,L))**cappa
     enddo
-    pint(I,J,LLPAR+1) = GET_PEDGE(I,J,LLPAR+1)
+    pint(I,J,LLPAR+1) = State_Met%PEDGE(I,J,LLPAR+1)
     
     enddo
     enddo

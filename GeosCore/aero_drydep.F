@@ -30,7 +30,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTNK1, IDTH2SO4
       USE TOMAS_MOD
@@ -67,6 +66,8 @@
 !  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to routines
 !  05 Nov 2014 - M. Yannetti - PRECISION_MOD convert REAL*8 to REAL(fp)
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,7 +211,7 @@ cdbg      print *, dryd(:)
          DO L = 1, LLPAR
             
             ! Get P [kPa], T [K], and P*DP
-            P    = GET_PCENTER(I,J,L) * 0.1d0  ![=] kPa
+            P    = State_Met%PMID(I,J,L) * 0.1d0  ![=] kPa
             TEMP = T(I,J,L)          ![=] K
             PDP  = P * DP
 

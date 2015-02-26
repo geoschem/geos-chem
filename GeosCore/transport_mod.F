@@ -260,7 +260,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
+      USE PRESSURE_MOD,       ONLY : SET_FLOATING_PRESSURE
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,      ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
@@ -301,6 +301,7 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -386,7 +387,7 @@
       DO I = 1, IIPAR
 
          ! True surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PEDGE(I,J,1)
+         P_TP1(I,J) = State_Met%PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
          P_TP2(I,J) = State_Met%PSC2(I,J)    
@@ -565,7 +566,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
+      USE PRESSURE_MOD,       ONLY : SET_FLOATING_PRESSURE
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
 #if   defined( APM )
@@ -605,6 +606,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !  04 Sep 2014 - R. Yantosca - Avoid div-by-zero errors in division w/ SUMADA
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -696,7 +698,7 @@
       DO I = 1, IIPAR
 
          ! Psurface - PTOP at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
+         P_TP1(I,J) = State_Met%PEDGE(I,J,1) - PTOP
 
          ! Psurface - PTOP at end of dynamic timestep [hPa]
          P_TP2(I,J) = State_Met%PSC2(I,J) - PTOP
@@ -878,7 +880,6 @@
       USE GIGC_State_Met_Mod,        ONLY : MetState
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET 
       USE PJC_PFIX_GEOS5_WINDOW_MOD, ONLY : DO_PJC_PFIX_GEOS5_WINDOW
-      USE PRESSURE_MOD,              ONLY : GET_PEDGE
       USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
       USE TIME_MOD,                  ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
@@ -918,6 +919,7 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1008,7 +1010,7 @@
       DO I = 1, IIPAR
 
          ! True surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PEDGE(I,J,1)
+         P_TP1(I,J) = State_Met%PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
          P_TP2(I,J) = State_Met%PSC2(I,J)
@@ -1139,7 +1141,6 @@
       USE GIGC_State_Chm_Mod,        ONLY : ChmState
       USE GIGC_State_Met_Mod,        ONLY : MetState
       USE PJC_PFIX_GEOSFP_WINDOW_MOD,ONLY : DO_PJC_PFIX_GEOSFP_WINDOW
-      USE PRESSURE_MOD,              ONLY : GET_PEDGE
       USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
       USE TIME_MOD,                  ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
@@ -1176,6 +1177,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1263,7 +1265,7 @@
       DO I = 1, IIPAR
 
          ! True surface pressure at midpoint of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PEDGE(I,J,1)
+         P_TP1(I,J) = State_Met%PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
          P_TP2(I,J) = State_Met%PSC2(I,J)

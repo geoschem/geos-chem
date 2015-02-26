@@ -218,8 +218,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2   
       USE TRACERID_MOD                          
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 !
 ! !INPUT PARAMETERS:
 !
@@ -260,6 +258,9 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  06 Nov 2013 - R. Yantosca - Now activate the parallel loop.  Unit testing
 !                              revealed that this no longer causes errors.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with
+!                              State_Met%PMID and State_Met%PEDGE. Remove
+!                              dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -397,7 +398,7 @@
 
             LBOT = GET_CHEMGRID_LEVEL( I, J, State_Met )+1
             LPOS = 1
-            DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3e+0_f8)
+            DO WHILE (State_Met%PEDGE(I,J,LPOS+1) .GE. 0.3e+0_f8)
                LPOS = LPOS +1
             ENDDO
             LPOS = LPOS-1
@@ -496,9 +497,9 @@
                ! LINOX valid only up to 58 km, so do not use above 0.3 hPa
                ! dbj: impose exponential fall off of mixing ratio 
                ! between 0.3 and 0.01 hPa (with fall off of a scale height)
-               IF (GET_PEDGE(I,J,L) .LE. 0.3e+0_f8) THEN
+               IF (State_Met%PEDGE(I,J,L) .LE. 0.3e+0_f8) THEN
                   STT(I,J,L,NTRACER) = 
-     &                (GET_PCENTER(I,J,L)/GET_PCENTER(I,J,LPOS-1)) * 
+     &                (State_Met%PMID(I,J,L)/State_Met%PMID(I,J,LPOS-1)) * 
      &                STT(I,J,LPOS-1,NTRACER)
                ELSE
                   STT(I,J,L,NTRACER) = STT(I,J,L,NTRACER)+DMASS 

@@ -354,7 +354,6 @@
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER       
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
@@ -476,6 +475,8 @@
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -769,7 +770,7 @@
          ! Oxidation rate by Br, 1/s (accounts for HgBr intermediate)
          IF (LBRCHEM) THEN
             K_BR = GET_HGBR_RATE( C_BR, T(I,J,L), 
-     &           GET_PCENTER(I,J,L), C_OH, METHOD )
+     &           GET_PMID(I,J,L), C_OH, METHOD )
          ELSE
             K_BR = 0e+0_fp
          ENDIF
@@ -6199,8 +6200,6 @@
 ! !USES:
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6224,6 +6223,9 @@
 !                                    looping over (I,J,L) in CHEM_Hg0_Hg2
 !  09 Nov 2012 - M. Payer          - Replaced all met field arrays with 
 !                                    State_Met derived type object
+!  26 Feb 2015 - E. Lundgren       - Replace GET_PCENTER and GET_PEDGE with 
+!                                    State_Met%PMID and State_Met%PEDGE. 
+!                                    Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6241,10 +6243,10 @@
       !=================================================================
      
       ! Surface pressure
-      PSFC = GET_PEDGE(I,J,1)         
+      PSFC = State_Met%PEDGE(I,J,1)         
 
       ! Pressure at center of grid box L
-      PRES = GET_PCENTER(I,J,L)
+      PRES = State_Met%PMID(I,J,L)
         
       ! RH (from "dao_mod.f") is relative humidity [%]
       ! Convert to fraction and store in RH2
@@ -6430,7 +6432,6 @@
       USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
       USE GRID_MOD,           ONLY : GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_LOCALTIME 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -6455,6 +6456,7 @@
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod (not used)
 !EOP
 !------------------------------------------------------------------------------
 !BOC

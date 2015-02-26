@@ -119,7 +119,7 @@
       REAL(fp), ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
 #if defined( ESMF_ )
       REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
-                                                    !  external grid
+                                                      !  external grid
 #endif
       CONTAINS
 !EOC
