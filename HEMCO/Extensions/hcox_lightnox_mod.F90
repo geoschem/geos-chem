@@ -1582,6 +1582,7 @@ CONTAINS
          ( cYr .eq. 2013                   ) .or. &
          ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
        BETA = ANN_AVG_FLASHRATE / 260.40253d0
+    ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
 
