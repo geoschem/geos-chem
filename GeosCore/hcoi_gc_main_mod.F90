@@ -917,6 +917,9 @@ CONTAINS
     IF ( ExtState%TSKIN%DoUse ) THEN
        ExtState%TSKIN%Arr%Val => State_Met%TSKIN
     ENDIF
+    IF ( ExtState%GWETROOT%DoUse ) THEN
+       ExtState%GWETROOT%Arr%Val => State_Met%GWETROOT
+    ENDIF
     IF ( ExtState%GWETTOP%DoUse ) THEN
        ExtState%GWETTOP%Arr%Val => State_Met%GWETTOP
     ENDIF
