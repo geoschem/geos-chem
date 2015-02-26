@@ -125,7 +125,8 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: AREA_M2   (:,:,:) ! Grid box surface area [cm2]
      REAL(fp), POINTER :: AIRDEN    (:,:,:) ! Dry air density [kg/m3]
      REAL(fp), POINTER :: MAIRDEN   (:,:,:) ! Moist air density [kg/m3]
-     REAL(fp), POINTER :: AVGW      (:,:,:) ! Mixing ratio of water vapor
+     REAL(fp), POINTER :: AVGW      (:,:,:) ! Water vapor volume mixing ratio
+                                            ! [vol H2O / vol dry air]
      REAL(fp), POINTER :: BXHEIGHT  (:,:,:) ! Grid box height [m] (dry air)
      REAL(fp), POINTER :: CLDF      (:,:,:) ! 3-D cloud fraction [1]
      REAL(fp), POINTER :: CMFMC     (:,:,:) ! Cloud mass flux [kg/m2/s]
@@ -161,13 +162,15 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: PFLLSAN   (:,:,:) ! Dwn flux ice prec:LS+anv [kg/m2/s]
      REAL(fp), POINTER :: PV        (:,:,:) ! Potential vort [kg*m2/kg/s]
      REAL(fp), POINTER :: QI        (:,:,:) ! Ice mixing ratio [kg/kg]
-     REAL(fp), POINTER :: QL        (:,:,:) ! Water mixing ratio [kg/kg]
+     REAL(fp), POINTER :: QL        (:,:,:) ! Water mixing ratio 
+                                            ! [kg H2O / kg dry air]
      REAL(fp), POINTER :: REEVAPCN  (:,:,:) ! Evap of precip conv [kg/kg/s]
      REAL(fp), POINTER :: REEVAPLS  (:,:,:) ! Evap of precip LS+anvil [kg/kg/s]
      REAL(fp), POINTER :: RH        (:,:,:) ! Relative humidity [%]
      REAL(fp), POINTER :: RH1       (:,:,:) ! RH at timestep start [%]
      REAL(fp), POINTER :: RH2       (:,:,:) ! RH at timestep end [%]
-     REAL(fp), POINTER :: SPHU      (:,:,:) ! Specific humidity [g/kg]
+     REAL(fp), POINTER :: SPHU      (:,:,:) ! Specific humidity 
+                                            ! [g H2O /kg moist air]
      REAL(fp), POINTER :: SPHU1     (:,:,:) ! Spec hum at timestep start [g/kg]
      REAL(fp), POINTER :: SPHU2     (:,:,:) ! Spec hum at timestep end [g/kg]
      REAL(fp), POINTER :: T         (:,:,:) ! Temperature [K]

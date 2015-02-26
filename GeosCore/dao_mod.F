@@ -139,6 +139,11 @@
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  23 Feb 2015 - E. Lundgren - Change AIRQNT and AIRQNT_FULLGRID formulas
 !                              to account for the presence of water vapor
+!  26 Feb 2015 - E. Lundgren - Move calculations of RH and AVGW from MAKE_RH
+!                              and MAKE_AVGW to AIRQNT. Update algorithms
+!                              to account for the presence of water vapor
+!                              and to use [g water / kg moist air] for the
+!                              definition of specific humidity (SPHU).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1538,6 +1543,7 @@
 !!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !!                              derived type object
+!  26 Feb 2014 - E. Lundgren - Move calculation of RH to AIRQNT in dao_mod.F
 !!EOP
 !!------------------------------------------------------------------------------
 !!BOC
@@ -1630,10 +1636,7 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
-!  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
-!                              remove dependency on PRESSURE_MOD.
-!                              Move routine contents to AIRQNT due to
-!                              interdependency.
+!  26 Feb 2014 - E. Lundgren - Move calculation of RH to AIRQNT in dao_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
