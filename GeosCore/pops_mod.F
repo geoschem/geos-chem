@@ -66,10 +66,10 @@
       REAL(fp),  ALLOCATABLE :: COSZM(:,:)
 
       ! HEMCO pointers
-      REAL(hp), POINTER    :: C_OC(:,:,:) => NULL()
-      REAL(hp), POINTER    :: C_BC(:,:,:) => NULL()
-      REAL(hp), POINTER    :: O3(:,:,:)   => NULL()
-      REAL(hp), POINTER    :: OH(:,:,:)   => NULL()
+      REAL(sp), POINTER    :: C_OC(:,:,:) => NULL()
+      REAL(sp), POINTER    :: C_BC(:,:,:) => NULL()
+      REAL(sp), POINTER    :: O3(:,:,:)   => NULL()
+      REAL(sp), POINTER    :: OH(:,:,:)   => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -338,7 +338,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DIAG53_MOD,         ONLY : AD53_PG_OC_NEG
       USE DIAG53_MOD,         ONLY : AD53_PG_BC_NEG
       USE DIAG53_MOD,         ONLY : AD53_PG_OC_POS
@@ -1014,6 +1016,7 @@
             DEP_POPP_BC_DRY  = DEP_POPP_BC 
          ENDIF
 
+#if !defined( NO_BPCH )
          !=================================================================
          ! ND44 diagnostic: drydep flux of POPG and POPP [molec/cm2/s]
          !=================================================================
@@ -1050,7 +1053,7 @@
 
 
          ENDIF
-           
+#endif
 
          !==============================================================
          ! ND53 diagnostic: Oxidized POPG (OH-POPG) production [kg]

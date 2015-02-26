@@ -21,7 +21,9 @@
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field subroutines
+#if !defined( NO_BPCH )
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
+#endif
       USE ERROR_MOD                             ! Error handling routines
       USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE PBL_MIX_MOD                           ! Boundary layer quantities
@@ -284,9 +286,9 @@
       CHARACTER(LEN=14)     :: DEPNAME (MAXDEP   )
 
       ! Allocatable arrays
-      REAL(fp), ALLOCATABLE :: DEPSAV  (:,:,:    )   ! Drydep frequencies
-      REAL(f8), ALLOCATABLE :: DMID    (:        )   ! 
-      REAL(f8), ALLOCATABLE :: SALT_V  (:        )
+      REAL(fp), ALLOCATABLE, TARGET :: DEPSAV  (:,:,:    )   ! Drydep frequencies
+      REAL(f8), ALLOCATABLE         :: DMID    (:        )   ! 
+      REAL(f8), ALLOCATABLE         :: SALT_V  (:        )
       
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -317,6 +319,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE HCO_ERROR_MOD
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 !
 ! !INPUT PARAMETERS:
 !
@@ -392,6 +396,7 @@
 !  26 Feb 2013 - R. Yantosca - Now use Input_Opt fields where possible.  This
 !                              facilitates connection to the GEOS-5 GCM.   
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt & State_Chm to DEPVEL
+!  15 Jan 2015 - R. Yantosca - Add new netCDF diagnostics structure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -431,9 +436,22 @@
       LOGICAL       :: LNLPBL
       LOGICAL       :: LPRT
 
+#if defined( DEVEL )
+      ! Variables for netCDF diagnostics routines
+      INTEGER           :: HCRC
+      CHARACTER(LEN=30) :: DiagnName
+      REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,Input_Opt%NUMDEP)
+      REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
+#endif
+
       !=================================================================
       ! DO_DRYDEP begins here!
       !=================================================================
+
+#if defined( DEVEL )
+      ! Zero depositioln velocity array
+      SAVE_DEPVEL = 0.0_fp
+#endif
 
       ! Assume success
       RC     = GIGC_SUCCESS
@@ -525,14 +543,63 @@
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,N) = ( DVZ / 100.e+0_f8 ) / THIK
 
+#if defined( DEVEL )
+            ! Need to save dep velocity into 2-D array for netCDF diags
+            SAVE_DEPVEL(I,J,N) = DVZ
+#endif
+
+#if !defined( NO_BPCH )
             ! ND44 diagnostic: drydep velocity [cm/s]
             IF ( ND44 > 0 ) THEN 
                AD44(I,J,N,2) = AD44(I,J,N,2) + DVZ
             ENDIF
+#endif
          ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      !=================================================================
+      ! Update drydep velocity into new diagnostics structure
+      !=================================================================
+      IF ( Input_Opt%ND44 > 0 ) THEN
+
+         ! Loop over all depositing species
+         DO N = 1, Input_Opt%NUMDEP
+
+            ! Get the corresponding GEOS-Chem tracer number
+            NN = Input_Opt%NTRAIND(N)
+
+            ! If this tracer number NN is scheduled for output in input.geos, 
+            ! then archive the latest depvel data into the diagnostic structure
+            IF ( ANY( Input_Opt%TINDEX(44,:) == NN ) ) THEN
+
+               ! Construct diagnostic name
+               DiagnName = 'DEPVEL_' // TRIM( Input_Opt%DEPNAME(N) )
+            
+               ! Point to the proper slice of the DEPSAV array
+               Ptr2D => SAVE_DEPVEL(:,:,N)
+
+               ! Update the deposition velocity diagostics 
+               CALL Diagn_Update( am_I_Root,
+     &                            cName   = TRIM( DiagnName ),
+     &                            Array2D = Ptr2D,
+     &                            COL     = Input_Opt%DIAG_COLLECTION,
+     &                            RC      = HCRC )
+
+               ! Free the pointer
+               Ptr2D => NULL()
+
+               ! Stop with error if the diagnostics were unsuccessful
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP( 'Cannot update Depvel diagnostics',
+     &                             'DO_DRYDEP (drydep_mod.F)')
+               ENDIF
+            ENDIF
+         ENDDO
+      ENDIF
+#endif
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
@@ -950,14 +1017,15 @@
                     
                ! Convert TDRYFX from [molec] to [molec/cm2/s]        
                TDRYFX        = TDRYFX / ( AREA_CM2 * DTCHEM ) 
-                    
+              
+#if !defined( NO_BPCH )
 !$OMP CRITICAL
                ! Save into AD44 diagnostic array
                IF ( ND44 > 0 ) THEN 
                   AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
                ENDIF 
 !$OMP END CRITICAL
-
+#endif
                ! Archive dry deposited N species for use in soil_nox_mod
                IF ( Input_Opt%LSOILNOX ) THEN
                   CALL SOIL_DRYDEP( I, J, L, NN, TDRYFX )
@@ -1126,13 +1194,14 @@
                AMT_LOST = STT(I,J,L,NN) * FRACLOST
             ENDIF
 
+#if !defined( NO_BPCH )
             ! ND44 diagnostic: drydep flux [kg/s]
             IF ( ND44 > 0 ) THEN
 !$OMP CRITICAL
                AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
 !$OMP END CRITICAL
             ENDIF
-
+#endif
             ! Subtract AMT_LOST from the STT array [kg]
             STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
 
@@ -4162,6 +4231,7 @@
 !                              prevents XMW=0e+0_f8 from being passed to function
 !                              DIFFG, where it is in the denominator.
 !  04 Sep 2013 - R. Yantosca - Improve printout of drydep species
+!  15 Jan 2015 - R. Yantosca - Now save NTRAIND to Input_Opt%NTRAIND
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4183,7 +4253,12 @@
       RC = GIGC_SUCCESS
      
       ! For GEOS-5, we need to do this only on the root CPU
-      IF ( am_I_Root ) THEN
+      ! Note: in an ESMF environment, only the Input_Opt drydep
+      ! variables (NUMDEP, NDVZIND, DEPNAME) are broadcasted from the
+      ! root CPU. To make sure that all the private module variables
+      ! become properly filled, we still need to call all of the code
+      ! below (ckeller, 1/14/2015).
+!      IF ( am_I_Root ) THEN
 
       ! Is this a mercury simulation?
       IS_Hg      = Input_Opt%ITS_A_MERCURY_SIM
@@ -6043,9 +6118,11 @@
           ENDIF
 
       ENDIF
-      ELSE
-         NUMDEP  = Input_Opt%NUMDEP
-      ENDIF
+
+      ! Root CPU: still call all of the code above
+!      ELSE
+!         NUMDEP  = Input_Opt%NUMDEP
+!      ENDIF
 
       !=================================================================
       ! Allocate arrays
@@ -6063,14 +6140,21 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0e+0_f8
 
-!      ALLOCATE( SHIPO3DEP( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SHIPO3DEP' )
-!      SHIPO3DEP = 0e+0_f8
-
+      ! If we are not on the root CPU, don't pass variables to
+      ! Input_Opt but check if local NUMDEP matches the value
+      ! set in Input_Opt (ckeller, 1/14/2015).
       IF ( am_I_Root ) THEN
          Input_Opt%NUMDEP            = NUMDEP
          Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
          Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
+         Input_Opt%NTRAIND(1:NUMDEP) = NTRAIND(1:NUMDEP)
+
+      ELSE
+         IF ( Input_Opt%NUMDEP /= NUMDEP ) THEN
+            WRITE(MSG,*) 'NUMDEP /= Input_Opt%NUMDEP: ', NUMDEP,
+     &                   Input_Opt%NUMDEP
+            CALL ERROR_STOP( MSG, 'INIT_DRYDEP (drydep_mod.F)' )
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -6133,8 +6217,8 @@
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS( Input_Opt )
       
-      ! Need to save NUMDEP into Input_Opt
-      Input_Opt%NUMDEP = NUMDEP
+      ! Need to save NUMDEP into Input_Opt (already done above)
+!      Input_Opt%NUMDEP = NUMDEP
 
       END SUBROUTINE INIT_DRYDEP
 !EOC

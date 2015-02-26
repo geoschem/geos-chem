@@ -261,6 +261,8 @@ CONTAINS
          CALL HCO_MSG(MSG)
          write(MSG,*) '   -->Delta t[h]      : ', Dct%Dta%DeltaT
          CALL HCO_MSG(MSG)
+         write(MSG,*) '   -->Local time?       ', Dct%Dta%IsLocTime
+         CALL HCO_MSG(MSG)
          IF ( ASSOCIATED(Dct%Dta%tIDx) ) THEN
             write(MSG,*) '   -->Tempres         : ', &
                TRIM(Dct%Dta%tIDx%TempRes)

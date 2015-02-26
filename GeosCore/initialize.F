@@ -189,8 +189,10 @@
          IF ( ND38 > 0 ) AD38     = 0e0
          IF ( ND39 > 0 ) AD39     = 0e0
          IF ( ND43 > 0 ) AD43     = 0e0
+#if !defined( NO_BPCH )
          IF ( ND44 > 0 ) AD44     = 0e0
          IF ( ND45 > 0 ) AD45     = 0e0
+#endif
          IF ( ND47 > 0 ) AD47     = 0e0
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
@@ -348,7 +350,9 @@
          IF ( ND43 >               0 ) CTOH       = 0
          IF ( ND43 >               0 ) CTO1D      = 0
          IF ( ND43 >               0 ) CTO3P      = 0
+#if !defined(NO_BPCH)
          IF ( ND45 >               0 ) CTOTH      = 0
+#endif
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0
          IF ( ND43 >               0 ) CTHO2      = 0
          ! update for arom (dkh, 06/21/07)  

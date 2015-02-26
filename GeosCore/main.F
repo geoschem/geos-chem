@@ -83,6 +83,9 @@
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
+#if defined( DEVEL )
+      USE DIAGNOSTICS_MOD       ! New diagnostics module (C. Keller)
+#endif
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -664,7 +667,8 @@
 
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
-         CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
+         !CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
+         CALL INIT_UCX( am_I_Root, Input_Opt )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
       ENDIF
 
@@ -716,6 +720,16 @@
 #endif
 !-----------------------------------------------------------------------------
 
+      !=================================================================
+      !      ***** INITIALIZE DIAGNOSTICS ***** 
+      !=================================================================      
+
+#if defined( DEVEL )
+      ! Initialize all diagnostics (ckeller, 1/13/15).
+      CALL Diagnostics_Init( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
+#endif 
+ 
       !=================================================================
       !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
       !=================================================================      
@@ -828,10 +842,11 @@
      &                                  NHMS,      State_Chm, RC    )
                ENDIF 
 
-#if defined( UCX )
-               ! Write PSC data
-               CALL MAKE_PSC_FILE( NYMD, NHMS, Input_Opt )
-#endif
+! This is now done through HEMCO diagnostics (ckeller, 1/14/2015).
+!#if defined( UCX )
+!               ! Write PSC data
+!               CALL MAKE_PSC_FILE( NYMD, NHMS, Input_Opt )
+!#endif
 
                !### Debug
                IF ( prtDebug ) THEN
@@ -1257,22 +1272,18 @@
             !
             ! http://wiki-geos-chem.org/Distributing_emissions_in_the_PBL
             !===========================================================
-            !IF ( LEMIS ) THEN
 
-               ! HEMCO driver.  NOTE, we will have to make sure that
-               ! the specialty simulations work with HEMCO (bmy, 6/25/14)
-               ! Always call HEMCO, even if LEMIS is set to FALSE. 
-               ! This is to make sure that HEMCO can still be used to read
-               ! non-emission data such as stratospheric Bry fields. 
-               ! (ckeller, 1/12/15).
-               CALL EMISSIONS_RUN( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
+            ! Always call the HEMCO driver, even if emissions are turned
+            ! off in the input.geos file (i.e. LEMIS=F).  This is to make 
+            ! sure that HEMCO can still be used to read non-emission data 
+            ! such as stratospheric Bry fields. (ckeller, 1/12/15).
+            CALL EMISSIONS_RUN( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
 
-               ! Stop the run if the HEMCO run sequence dies w/ an error
-               IF ( RC /= GIGC_SUCCESS ) THEN
-                  CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
-               ENDIF
-            !ENDIF
+            ! Stop the run if the HEMCO run sequence dies w/ an error
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
+            ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! Legacy Code
@@ -1401,7 +1412,7 @@
             !===========================================================
             !             ***** E M I S S I O N S *****
             !===========================================================
-            IF ( LEMIS ) THEN
+!            IF ( LEMIS ) THEN
                
                ! Call the HEMCO emissions modules
                ! Always call HEMCO, even if LEMIS is set to FALSE. 
@@ -1420,7 +1431,7 @@
                IF ( prtDebug ) THEN 
                   CALL DEBUG_MSG( '### MAIN: a DO_EMISSIONS' )
                ENDIF
-            ENDIF
+!            ENDIF
 
             IF ( ITS_A_FULLCHEM_SIM ) THEN
                !========================================================
@@ -1634,6 +1645,13 @@
          !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
+#if defined( DEVEL )
+         ! Write diagnostic data to the GEOS-Chem diagnostics netCDF file.
+         ! Each diagnostic has a specified averaging period specified 
+         ! in Input_Opt. (ckeller, bmy, 1/15/15)
+         CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC )
+#endif
+
          !### After diagnostics
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
 
@@ -1699,6 +1717,13 @@
 
       ! Print the mass-weighted mean OH concentration (if applicable)
       CALL PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
+
+#if defined( DEVEL )
+      ! Write diagnostic data to the GEOS-Chem restart netCDF file.
+      ! Each diagnostic has a specified averaging period specified 
+      ! in Input_Opt. (ckeller, bmy, 1/15/15)
+      CALL Diagnostics_Write( am_I_Root, Input_Opt, .TRUE., RC )
+#endif
 
       ! For model benchmarking, save final masses of 
       ! Rn,Pb,Be or Ox to a binary punch file 

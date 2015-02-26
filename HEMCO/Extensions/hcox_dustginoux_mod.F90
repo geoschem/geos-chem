@@ -99,12 +99,12 @@ MODULE HCOX_DustGinoux_Mod
   REAL,    ALLOCATABLE :: DUSTREFF(:)       ! effective radius [um] 
 
   ! Source functions (get from HEMCO core) 
-  REAL(hp), POINTER    :: SRCE_SAND(:,:) => NULL()
-  REAL(hp), POINTER    :: SRCE_SILT(:,:) => NULL()
-  REAL(hp), POINTER    :: SRCE_CLAY(:,:) => NULL()
+  REAL(sp), POINTER    :: SRCE_SAND(:,:) => NULL()
+  REAL(sp), POINTER    :: SRCE_SILT(:,:) => NULL()
+  REAL(sp), POINTER    :: SRCE_CLAY(:,:) => NULL()
 
   ! Transfer coefficient (grid-dependent)
-  REAL*8               :: CH_DUST 
+  REAL(dp)             :: CH_DUST 
 
 CONTAINS
 !EOC
@@ -358,7 +358,7 @@ CONTAINS
           ! Eventually update diagnostics
           IF ( Diagn_AutoFillLevelDefined(2) ) THEN
              Arr2D => FLUX(:,:,N)
-             CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+             CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                                 Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
                                 AutoFill=1, Array2D=Arr2D, RC=RC   )
              IF ( RC /= HCO_SUCCESS ) RETURN 

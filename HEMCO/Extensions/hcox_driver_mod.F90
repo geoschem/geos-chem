@@ -270,6 +270,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_Clock_Mod,          ONLY : HcoClock_Get
     USE HCOX_Custom_Mod,        ONLY : HCOX_Custom_Run
     USE HCOX_SeaFlux_Mod,       ONLY : HCOX_SeaFlux_Run 
     USE HCOX_ParaNox_Mod,       ONLY : HCOX_ParaNox_Run 
@@ -316,6 +317,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255) :: MSG
+    LOGICAL            :: IsEmisTime
 
     !=======================================================================
     ! HCOX_RUN begins here!
@@ -324,6 +326,16 @@ CONTAINS
     ! For error handling
     CALL HCO_ENTER ('HCOX_RUN (hcox_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Is it time for emissions?
+    CALL HcoClock_Get ( IsEmisTime=IsEmisTime, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Can leave here if it's not time for emissions
+    IF ( .NOT. IsEmisTime ) THEN
+       CALL HCO_LEAVE ( RC )
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------------
     ! Customized emissions 

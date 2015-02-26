@@ -440,7 +440,6 @@
 ! !USES:
 !
       USE BPCH2_MOD
-      USE DIAG_MOD,      ONLY : AD39, AD44, AD38
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TRACERID_MOD,  ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
@@ -777,7 +776,10 @@
 ! 
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD38,   AD39,   AD44
+      USE DIAG_MOD,     ONLY : AD38,   AD39
+#if !defined( NO_BPCH )
+      USE DIAG_MOD,     ONLY : AD44
+#endif
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM 
       USE TRACERID_MOD, ONLY : IDTHg0, IDTHg2
 !
@@ -809,6 +811,7 @@
      &                          SUM(AD39(:,:,:,NN), DIM=3) )
      &                      / SCALEDYN
 
+#if !defined( NO_BPCH )
       ! Hg0 total dry deposition at the surface
       N = IDTHg0
       HG0mth_dd = HG0mth_dd + AD44(:,:,N,1) / SCALECHEM
@@ -816,6 +819,7 @@
       ! Hg2 total dry deposition at the surface
       N = IDTHg2
       HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
+#endif
 
       END SUBROUTINE UPDATE_DEP
 !EOC
