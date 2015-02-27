@@ -5001,7 +5001,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
-!
+
+#if !defined(NO_BPCH)
 !******************************************************************************
 !  ND68: Grid box diagnostics
 !
@@ -5038,6 +5039,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD68) )
          ENDDO
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND69: Grid Box Surface Areas

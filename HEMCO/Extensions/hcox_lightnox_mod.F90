@@ -616,12 +616,11 @@ CONTAINS
        ! unable to create the necessary dipole.  Therefore, if 
        ! T(I,J,LTOP) >= -40 C, go to the next (I,J) location. 
        !
-       ! (ltm, bmy, 5/10/06, 12/11/06)
-       !
        ! To be easily translatable to an ESMF environment, we now 
        ! use the convective cloud mass flux to determine LTOP.
        ! Use the same definition as used in GEOS-Chem.
-       ! (ckeller, 10/7/14)
+       !
+       ! (ltm, bmy, 5/10/06, 12/11/06)
        !===========================================================
 
        ! Cloud top level
