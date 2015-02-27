@@ -1394,7 +1394,8 @@
 
             ! Return grid box indices for the chemistry region
             ! NOTE: PCHEM and JLOOP are only defined for SMVGEAR runs!
-            CALL TEST_VALID( M, PCHEM, JLOOP, I, J, L, Input_Opt )
+            CALL TEST_VALID( M, PCHEM, JLOOP, I, J, L, 
+     &                       Input_Opt, State_Met )
 
             ! Initialize SMVGEAR reaction counter
             R = 0
@@ -1743,7 +1744,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TEST_VALID( IND, PCHEM, JLOOP, I, J, L, Input_Opt ) 
+      SUBROUTINE TEST_VALID( IND, PCHEM, JLOOP, I, J, L, 
+     &                       Input_Opt, State_Met ) 
 !
 ! !USES:
 !
@@ -1752,11 +1754,13 @@
       USE GRID_MOD,           ONLY : GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN) :: IND         ! # of the flight track point
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1820,7 +1824,8 @@
       ! Get L corresponding to PRESS(IND)
       L = 1
       DO IL = 1, LLPAR
-         IF ( State_Met%PEDGE(I,J,IL) <= PPRESS(IND) .AND..NOT. FOUND ) THEN
+         IF ( State_Met%PEDGE(I,J,IL) <= PPRESS(IND) 
+     &                            .AND..NOT. FOUND ) THEN
             L     = IL-1
             FOUND =.TRUE.
             EXIT

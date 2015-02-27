@@ -92,7 +92,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_FVDAS_CONVECT( am_I_Root )
+      SUBROUTINE INIT_FVDAS_CONVECT( am_I_Root, State_Met )
 !
 !******************************************************************************
 !  Subroutine INIT_FVDAS_CONVECT initializes the HACK and 
@@ -105,10 +105,12 @@
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD  ! Size parameters
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL, INTENT(IN)         :: am_I_Root   ! Are we on the root CPU?
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !LOCAL VARIABLES:
 !

@@ -531,7 +531,7 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_FVDAS_CONVECT( am_I_Root )
+         CALL INIT_FVDAS_CONVECT( am_I_Root, State_Met )
          FIRST = .FALSE.
       ENDIF
 

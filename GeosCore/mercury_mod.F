@@ -770,7 +770,7 @@
          ! Oxidation rate by Br, 1/s (accounts for HgBr intermediate)
          IF (LBRCHEM) THEN
             K_BR = GET_HGBR_RATE( C_BR, T(I,J,L), 
-     &           GET_PMID(I,J,L), C_OH, METHOD )
+     &           State_Met%PMID(I,J,L), C_OH, METHOD )
          ELSE
             K_BR = 0e+0_fp
          ENDIF

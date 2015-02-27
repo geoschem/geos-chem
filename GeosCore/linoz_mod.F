@@ -499,8 +499,8 @@
                ! between 0.3 and 0.01 hPa (with fall off of a scale height)
                IF (State_Met%PEDGE(I,J,L) .LE. 0.3e+0_f8) THEN
                   STT(I,J,L,NTRACER) = 
-     &                (State_Met%PMID(I,J,L)/State_Met%PMID(I,J,LPOS-1)) * 
-     &                STT(I,J,LPOS-1,NTRACER)
+     &                (State_Met%PMID(I,J,L)/State_Met%PMID(I,J,LPOS-1)) 
+     &                * STT(I,J,LPOS-1,NTRACER)
                ELSE
                   STT(I,J,L,NTRACER) = STT(I,J,L,NTRACER)+DMASS 
                ENDIF
