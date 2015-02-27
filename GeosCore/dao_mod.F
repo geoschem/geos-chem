@@ -364,6 +364,7 @@
       REAL(fp)  :: PEdge_Top, Esat, Pv, Ev, Tc   
       REAL(fp)  :: EsatA, EsatB, EsatC, EsatD, EsatE 
       REAL(fp)  :: Tv, AREA_M2
+      REAL(fp)  :: Ev_temp, RH_temp, SPHU ! debugging
 
       ! Conversion factors
       REAL(fp), PARAMETER   :: TOFFSET = -2.7315e+2_fp   ! K -> deg C
@@ -382,9 +383,11 @@
       REAL(fp), PARAMETER   :: ESATP3  = 8.1328e-3_fp    
       REAL(fp), PARAMETER   :: ESATP4  = 3.49149e+0_fp     
       REAL(fp), PARAMETER   :: ESATP5  = -1.3028844e+3_fp
+
       REAL(fp), PARAMETER   :: ESATP6  = -1.3816e-7_fp
       REAL(fp), PARAMETER   :: ESATP7  = 1.1344e+1_fp
-      REAL(fp), PARAMETER   :: ESATP8  = 3.03998e-2_fp
+      REAL(fp), PARAMETER   :: ESATP8  = -3.03998e-2_fp
+
       REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
 
       !=================================================================
@@ -400,6 +403,7 @@
 !$OMP+PRIVATE( PEdge_Top, Esat, Pv, Ev, Tc )
 !$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD, EsatE )
 !$OMP+PRIVATE( Tv, AREA_M2 )
+!$OMP+PRIVATE( Ev_temp, RH_temp, SPHU )
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -435,7 +439,7 @@
          EsatE = ESATP9 / State_Met%T(I,J,L)
 
          ! Saturation water vapor pressure [mb]
-         Esat = 10**( EsatA + EsatB + EsatC + EsatD + EsatE )    
+         Esat = 10**( EsatA + EsatB + EsatD + EsatC + EsatE )    
 
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
          !=============================================================
@@ -459,7 +463,7 @@
          !  Ev   =  moist air * -------------------------------------- 
          ! [hPa]    pressure       SPHU * AIRMW + (1 - SPHU) * H2OMW 
          !          [hPa]       
-         !                           
+         !                          
          Ev = State_Met%PMID(I,J,L) * State_Met%SPHU(I,J,L) * MCONV 
      &        * AIRMW / ( State_Met%SPHU(I,J,L) * MCONV * AIRMW + 
      &        ( 1 - State_Met%SPHU(I,J,L) * MCONV ) * H2OMW )
@@ -467,33 +471,13 @@
          State_Met%RH(I,J,L) = ( Ev / Esat ) * 100e+0_fp 
 #endif
 
-         !=============================================================
-         ! Set water vapor mixing ratio [vol H2O / vol dry air]
-         !=============================================================  
-         !*** Check where this is called to make sure it's not in a
-         ! pre-processor block
-         !
-         !***Check on how this is used.  Is it meant to be per moist air 
-         !   or dry air?
-         !   The current conversion assumes specific humidity is
-         !   per dry air which is not the classic definition of 
-         !   specific humidity.
-         !
-         ! The conversion from SPHU [g H2O/kg moist air] to 
-         ! [vol H2O / vol dry air] mixing ratio is:
-         !
-         ! vol H2O       dry air    H2O         kg H2O      kg wet air
-         ! ----------  = molec wt / molec wt * ---------- * ---------
-         ! vol dry air   [g/mol]    [g/mol]    kg wet air   kg dry air
-         !
-         !      thus AVGW = AIRMW / H2OMW * SPHU / (1-SPHU)
-         !
-         ! where, 
-         !        SPHU is converted from [g/kg] to [kg/kg]
-         !
-         State_Met%AVGW(I,J,L) = AIRMW / H2OMW * State_Met%SPHU(I,J,L)
-     &                           * MCONV / (1 - State_Met%SPHU(I,J,L) 
-     &                           * MCONV )
+         ! DEBUGGING (ewl, 2/27/15)
+         Ev_temp = State_Met%PMID(I,J,L) * State_Met%SPHU(I,J,L) * MCONV 
+     &        * AIRMW / ( State_Met%SPHU(I,J,L) * MCONV * AIRMW + 
+     &        ( 1 - State_Met%SPHU(I,J,L) * MCONV ) * H2OMW )
+ 
+         RH_temp = ( Ev_temp / Esat ) * 100e+0_fp 
+         ! END DEBUGGING
 
          !=============================================================
          ! Set grid box center dry air partial pressure [hPa]
@@ -504,6 +488,7 @@
          Tc = State_Met%T( I,J,L ) + TOFFSET
 
          ! Partial pressure of water vapor [hPa]
+         ! NOTE: RH needs to be calculated if using MERRA or GEOS-4.
          Pv = State_Met%RH( I,J,L ) * RHCONV * Esat
 
          ! Partial presure of dry air at bottom edge of grid box [hPa]
@@ -619,9 +604,9 @@
          !
          ! where,
          !
-         !   Ratio of dry  
-         !   to wet air     =  1 - specific humidity [kg H2O / kg wet air]
-         !   mass [.]       
+         !  Ratio of dry     mass density of dry air 
+         !  to wet air   =  --------------------------
+         !  mass [.]         mass density of moist air
          !
          ! NOTES: 
          !    (1) Air pressure difference across grid box is the same for 
@@ -630,9 +615,89 @@
          !    (2) Specific humidity in GEOS-Chem (SPHU) is stored in [g/kg]
          !
          !==============================================================
-         State_Met%AD(I,J,L) = State_Met%DELP(I,J,L) * G0_100
-     &                         * (1 - State_Met%SPHU(I,J,L) * MCONV ) 
-     &                         * AREA_M2
+         State_Met%AD(I,J,L) = State_Met%DELP(I,J,L) * G0_100 * AREA_M2
+     &                         * State_Met%AIRDEN(I,J,L) 
+     &                         / State_Met%MAIRDEN(I,J,L)
+
+         !=============================================================
+         ! Set water vapor mixing ratio [vol H2O / vol dry air]
+         !=============================================================  
+         !*** Check where this is called to make sure it's not in a
+         ! pre-processor block
+         !
+         !***Check on how this is used.  Is it meant to be per moist air 
+         !   or dry air?
+         !   The current conversion assumes specific humidity is
+         !   per dry air which is not the classic definition of 
+         !   specific humidity.
+         !
+         ! The conversion from SPHU [g H2O/kg moist air] to 
+         ! [vol H2O / vol dry air] mixing ratio is:
+         !
+         ! vol H2O       dry air    H2O         kg H2O      kg wet air
+         ! ----------  = molec wt / molec wt * ---------- * ---------
+         ! vol dry air   [g/mol]    [g/mol]    kg wet air   kg dry air
+         !
+         !      thus AVGW = AIRMW / H2OMW * SPHU / (1-SPHU)
+         !
+         ! where, 
+         !        SPHU is converted from [g/kg] to [kg/kg]
+         !
+
+         ! SPHU not always available. Figure out a different way.
+         ! Check on when AVGW is calculated...Maybe only for certain
+         ! GMAO products?
+         State_Met%AVGW(I,J,L) = AIRMW / H2OMW * State_Met%SPHU(I,J,L)
+     &                           * MCONV / (1 - State_Met%SPHU(I,J,L) 
+     &                           * MCONV )
+
+         ! DEBUGGING (ewl, 2/27/15)
+         IF (I == 25 .and. J == 25 .and. L == 2 ) THEN
+            PRINT *, " "
+            PRINT *, "New air quants for (25,25,2)"
+            PRINT *, "   Bottom edge pressure [hPa]:"
+            PRINT *, "       ", State_Met%PEDGE(I,J,L)
+            PRINT *, "   Bottom edge dry air partial pressure [hPa]:"
+            PRINT *, "       ", State_Met%PEDGE_DRY(I,J,L)
+            PRINT *, "   Top edge pressure [hPa]:"
+            PRINT *, "       ", PEdge_Top
+            PRINT *, "   Delta pressure [hPa]:"
+            PRINT *, "       ", State_Met%DELP(I,J,L)
+            PRINT *, "   Box height [m]:"
+            PRINT *, "       ", State_Met%BXHEIGHT(I,J,L)            
+            PRINT *, "   Mass in grid box [kg]:"
+            PRINT *, "       ", State_Met%AD(I,J,L)           
+            PRINT *, "   Air volume [m3]:"
+            PRINT *, "       ", State_Met%AIRVOL(I,J,L)            
+            PRINT *, "   Dry air density [kg/m3]:"
+            PRINT *, "       ", State_Met%AIRDEN(I,J,L) 
+            PRINT *, "   Moist air density [kg/m3]:"
+            PRINT *, "       ", State_Met%MAIRDEN(I,J,L) 
+            PRINT *, "   Temperature [K]:"
+            PRINT *, "       ", State_Met%T(I,J,L)
+            PRINT *, "   Virtual temperature [K]:"
+            PRINT *, "       ", Tv
+            PRINT *, "   Specific humidity (State_Met) [g/kg]:"
+            PRINT *, "       ", State_Met%SPHU(I,J,L)
+            PRINT *, "   Water vapor volume mixing ratio [v/v]:"
+            PRINT *, "       ", State_Met%AVGW(I,J,L)
+            PRINT *, "   Mid-point pressure [hPa]:"
+            PRINT *, "       ", State_Met%PMID(I,J,L)
+            PRINT *, "   Mid-point dry air partial pressure [hPa]:"
+            PRINT *, "       ", State_Met%PMID_DRY(I,J,L)
+            PRINT *, "   Saturation water vapor pressure [mb]:"
+            PRINT *, "       ", Esat
+            PRINT *, "   Water vapor pressure from State_Met RH [mb]:"
+            PRINT *, "       ", Pv
+            PRINT *, "   Water vapor pressure (if geos-4 or gcap) [mb]:"
+            PRINT *, "       ", Ev_temp
+            PRINT *, "   State_Met relative humidity [%]:"
+            PRINT *, "       ", State_Met%RH(I,J,L)
+            PRINT *, "   New calculated RH (if geos-4 or gcap) [%]:"
+            PRINT *, "       ", RH_temp
+            PRINT *, " "
+         ENDIF
+         ! END DEBUGGING
 
       ENDDO
       ENDDO
