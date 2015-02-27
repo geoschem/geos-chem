@@ -797,7 +797,7 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to 1, select the time attributes
+    ! If CycleFlag is anything else, select the time attributes
     ! as specified in the configuration file and closest to 
     ! current simulation date.
     ! ------------------------------------------------------------- 
@@ -845,6 +845,8 @@ CONTAINS
     IF ( readYr < 0 ) readYr = cYr 
     IF ( readMt < 0 ) readMt = cMt
     IF ( readDy < 0 ) readDy = cDy
+
+    ! RC already set to HCO_SUCCESS at the beginning
 
   END SUBROUTINE HCO_GetPrefTimeAttr
 !EOC

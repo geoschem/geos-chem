@@ -443,6 +443,7 @@ CONTAINS
 !  29 Dec 2014 - C. Keller - Added optional 11th element for scale factors. This
 !                            value will be interpreted as mask field (applied to
 !                            this scale factor only).
+!  27 Feb 2015 - C. Keller - Added CycleFlag 4 (interpolation)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -717,13 +718,16 @@ CONTAINS
 #endif
 
           ! Set time cycling behaviour. Possible values are: 
-          ! - "C": cycling (CycleFlag = 1) --> Default
-          ! - "R": range   (CycleFlag = 2)
-          ! - "E": exact   (CycleFlag = 3)
+          ! - "C": cycling     (CycleFlag = 1) --> Default
+          ! - "R": range       (CycleFlag = 2)
+          ! - "E": exact       (CycleFlag = 3)
+          ! - "I": interpolate (CycleFlag = 4)
           IF ( TRIM(TmCycle) == "R" ) THEN
              Dta%CycleFlag = 2
           ELSEIF ( TRIM(TmCycle) == "E" ) THEN
              Dta%CycleFlag = 3
+          ELSEIF ( TRIM(TmCycle) == "I" ) THEN
+             Dta%CycleFlag = 4
           ELSEIF ( TRIM(TmCycle) == "C" ) THEN
              Dta%CycleFlag = 1
           ELSEIF ( TRIM(TmCycle) == "-" ) THEN
