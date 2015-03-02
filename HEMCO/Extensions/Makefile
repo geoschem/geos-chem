@@ -136,7 +136,6 @@ hcox_gc_POPs_mod.o          : hcox_gc_POPs_mod.F90            \
                               hcox_state_mod.o		      
 
 hcox_gc_RnPbBe_mod.o        : hcox_gc_RnPbBe_mod.F90          \
-                              hcox_gc_RnPbBe_include.H        \
                               hcox_state_mod.o                
 
 hcox_gfed3_mod.o            : hcox_gfed3_mod.F90              \
@@ -148,8 +147,7 @@ hcox_finn_mod.o             : hcox_finn_mod.F90               \
                               hcox_state_mod.o		      
 
 hcox_lightnox_mod.o         : hcox_lightnox_mod.F90           \
-                              hcox_state_mod.o                \
-                              lightning_cdf_mod.o	      
+                              hcox_state_mod.o
 
 hcox_megan_mod.o            : hcox_megan_mod.F                \
                               hcox_state_mod.o                \
@@ -173,9 +171,6 @@ hcox_state_mod.o            : hcox_state_mod.F90
 
 hcox_tomas_seasalt_mod.o    : hcox_tomas_seasalt_mod.F90      \
                               hcox_state_mod.o
-
-lightning_cdf_mod.o         : lightning_cdf_mod.F90           \
-                              lightning_cdf_include.H
 
 ocean_toolbox_mod.o         : ocean_toolbox_mod.F90
 
