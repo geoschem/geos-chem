@@ -203,7 +203,9 @@
          IF ( ND64 > 0 ) AD64     = 0e0
          IF ( ND66 > 0 ) AD66     = 0e0
          IF ( ND67 > 0 ) AD67     = 0e0
+#if !defined( NO_BPCH )
          IF ( ND68 > 0 ) AD68     = 0e0
+#endif
          IF ( ND69 > 0 ) AD69     = 0e0
 
          ! Daily max mean hourly surface v/v

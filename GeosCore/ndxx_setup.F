@@ -1127,9 +1127,10 @@
       !=================================================================
       IF ( ND68 > 0 ) THEN
          LD68 = MIN( ND68, LLPAR )
-
+#if !defined(NO_BPCH)
          ALLOCATE( AD68( IIPAR, JJPAR, LD68, PD68 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD68' )
+#endif
       ENDIF
 
       !=================================================================

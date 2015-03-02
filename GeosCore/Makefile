@@ -528,6 +528,7 @@ diag63_mod.o                : diag63_mod.F                                   \
 diagnostics_mod.o           : diagnostics_mod.F90                            \
                               drydep_mod.o                                   \
                               hcoi_gc_main_mod.o                             \
+                              tracer_mod.o                                   \
                               ucx_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
