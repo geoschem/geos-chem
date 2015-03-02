@@ -1162,13 +1162,6 @@
             ! Reset State_Met air mass quantities
             CALL AIRQNT( am_I_root, State_Met, RC )
 
-!      ! Moved calculation of RH from MAKE-RH to AIRQNT (ewl, 2/24/15)
-!!defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
-!      ! Get relative humidity (after recomputing pressures)
-!      ! NOTE: for GEOS-5 we'll read this from disk instead
-!      CALL MAKE_RH( State_Met )
-!
-
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
 #if defined ( TOMAS )
