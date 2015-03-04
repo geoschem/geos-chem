@@ -295,8 +295,6 @@ CONTAINS
     USE HCO_FileData_Mod,   ONLY : FileData_Cleanup
     USE HCOIO_MESSY_MOD,    ONLY : HCO_MESSY_REGRID
     USE HCO_INTERP_MOD,     ONLY : REGRID_MAPA2A 
-
-    USE Regrid_A2A_Mod,     ONLY : MAP_A2A
     USE HCO_INTERP_MOD,     ONLY : ModelLev_Interpolate 
 !
 ! !INPUT PARAMETERS:
@@ -415,24 +413,24 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Check for negative tidx1. tidx1 can still be negative if: 
-    ! (a) CycleFlag is set to 2 and the current simulation time is 
-    ! outside of the data time range. In this case, we prompt a 
-    ! warning and make sure that there is no data associated with
-    ! this FileData container.
-    ! (b) CycleFlag is set to 3 and none of the data time stamps 
-    ! matches the current simulation time exactly. Return with 
-    ! error!
+    ! (a) CycleFlag is set to range and the current simulation 
+    ! time is outside of the data time range. In this case, we 
+    ! prompt a warning and make sure that there is no data 
+    ! associated with this FileData container.
+    ! (b) CycleFlag is set to exact and none of the data time 
+    ! stamps matches the current simulation time exactly. Return 
+    ! with error!
     !-----------------------------------------------------------------
     IF ( tidx1 < 0 ) THEN
-       IF ( Lct%Dct%Dta%CycleFlag == 3 ) THEN
+       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
           MSG = 'Exact time not found in ' // TRIM(srcFile) 
           CALL HCO_ERROR( MSG, RC )
           RETURN
-       ELSEIF ( Lct%Dct%Dta%CycleFlag == 1 ) THEN
+       ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_CYCLE ) THEN
           MSG = 'Invalid time index: ' // TRIM(srcFile)
           CALL HCO_ERROR( MSG, RC )
           RETURN
-       ELSEIF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN
+       ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
           CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
           MSG = 'Simulation time is outside of time range provided for '//&
                TRIM(Lct%Dct%cName) // ' - data is ignored!'
@@ -547,11 +545,28 @@ CONTAINS
                       varUnit = thisUnit,           &
                       wgt1    = wgt1,               &
                       wgt2    = wgt2,               &
+                      MissVal = HCO_MISSVAL,        &
                       RC      = NCRC                 )
 
     IF ( NCRC /= 0 ) THEN
        CALL HCO_ERROR( 'NC_READ_ARRAY', RC )
        RETURN 
+    ENDIF
+
+    ! Check for missing values: set base emissions and masks to 0, and
+    ! scale factors to 1. This will make sure that these entries will
+    ! be ignored.
+    IF ( ANY(ncArr == HCO_MISSVAL) ) THEN
+       ! Base emissions
+       IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
+          WHERE(ncArr == HCO_MISSVAL) ncArr = 0.0_hp
+       ! Scale factor
+       ELSEIF ( Lct%Dct%DctType == HCO_DCTTYPE_SCAL ) THEN
+          WHERE(ncArr == HCO_MISSVAL) ncArr = 1.0_hp
+       ! Mask
+       ELSEIF ( Lct%Dct%DctType == HCO_DCTTYPE_MASK ) THEN
+          WHERE(ncArr == HCO_MISSVAL) ncArr = 0.0_hp
+       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
@@ -895,12 +910,13 @@ CONTAINS
 !\\
 ! Return arguments wgt1 and wgt2 denote the weights to be given to
 ! the two time slices. This is only of relevance for data that shall
-! be interpolated between two (consecutive) time slices. In all other
-! cases, the returned weights are negative and will be ignored.
+! be interpolated between two (not necessarily consecutive) time slices. 
+! In all other cases, the returned weights are negative and will be 
+! ignored.
 !\\
 !\\
 ! Also returns the time slice year and month, as these values may be
-! used for unit conversion! 
+! used for unit conversion. 
 !\\
 !\\
 ! !INTERFACE:
@@ -946,12 +962,13 @@ CONTAINS
 !
     CHARACTER(LEN=255)    :: MSG
     CHARACTER(LEN=1023)   :: MSG_LONG
+    INTEGER               :: tidx1a
     INTEGER               :: nTime,  T, CNT, NCRC 
     INTEGER               :: prefYr, prefMt, prefDy, prefHr
     INTEGER               :: refYear
-    INTEGER               :: prefYMDh
-    INTEGER               :: diff1, diff2
+    INTEGER               :: origYMDh, prefYMDh
     INTEGER, POINTER      :: availYMDh(:) => NULL() 
+    LOGICAL               :: ExitSearch 
     LOGICAL               :: verb
 
     !=================================================================
@@ -977,17 +994,18 @@ CONTAINS
        RETURN 
     ENDIF
 
-    ! Return warning if reference year prior to 1801: it seems like
-    ! the time slices may be off by one day!
-    IF ( refYear <= 1900 ) THEN
-       msg = 'ncdf reference year is prior to 1901 - ' // &
+    ! Return warning if netCDF reference year prior to 1901: it seems 
+    ! like there are some problems with that and the time slices can be 
+    ! off by one day!
+    IF ( (refYear <= 1900) .AND. (nTime > 0) ) THEN
+       MSG = 'ncdf reference year is prior to 1901 - ' // &
             'time stamps may be wrong!'
        CALL HCO_WARNING ( MSG, RC )
     ENDIF
 
     ! verbose mode 
     IF ( verb ) THEN
-       write(MSG,'(A30,I12)') '# time slices read: ', nTime
+       write(MSG,'(A30,I12)') '# time slices found: ', nTime
        CALL HCO_MSG(MSG)
        IF ( nTime > 0 ) THEN
           write(MSG,'(A30,I12,I12)') '# time slice range: ', &
@@ -1005,8 +1023,9 @@ CONTAINS
     ! config. file. 
     ! This can return value -1 for prefHr, indicating that all  
     ! corresponding time slices shall be read.
-    ! This call will return -1 for all dates if the simulation date is
-    ! outside of the data range given in the configuration file.
+    ! This call will return -1 for all date attributes if the 
+    ! simulation date is outside of the data range given in the 
+    ! configuration file.
     ! ---------------------------------------------------------------- 
     CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1014,8 +1033,8 @@ CONTAINS
     ! Check if we are outside of provided range
     IF ( prefYr < 0 .OR. prefMt < 0 .OR. prefDy < 0 ) THEN
      
-       ! This should only happen for 'range' data (cycle flag is 2). 
-       IF ( Lct%Dct%Dta%CycleFlag /= 2 ) THEN
+       ! This should only happen for 'range' data 
+       IF ( Lct%Dct%Dta%CycleFlag /= HCO_CFLAG_RANGE ) THEN
           MSG = 'Cannot get preferred datetime for ' // TRIM(Lct%Dct%cName)
           CALL HCO_ERROR( MSG, RC )
           RETURN
@@ -1032,9 +1051,12 @@ CONTAINS
        RETURN 
     ENDIF
 
-    ! prefYMDh is the preferred datetime
-    prefYMDh = prefYr*1000000 + prefMt*10000 + &
+    ! origYMDh is the preferred datetime. Store into shadow variable
+    ! prefYMDh. prefYMDh may be adjusted if origYMDh is outside of the
+    ! netCDF datetime range.
+    origYMDh = prefYr*1000000 + prefMt*10000 + &
                prefDy*100 + max(prefHr,0)
+    prefYMDh = origYMDh
 
     ! verbose mode
     IF ( verb ) THEN
@@ -1056,47 +1078,76 @@ CONTAINS
     ELSEIF ( nTime > 1 ) THEN
 
        ! Init
-       tidx1 = -1
-       tidx2 = -1 
+       tidx1   = -1
+       tidx2   = -1 
 
        ! ------------------------------------------------------------- 
-       ! Check if preferred datetime is within the range of available
-       ! time slices. In this case, set tidx1 to the index of the 
-       ! closest time slice that is not in the future. If CycleFlag
-       ! is set to 3 (= exact match), tidx1 is only set if the file
-       ! time stamp exactly matches with prefYMDh!
+       ! Check if preferred datetime prefYMDh is within the range
+       ! available time slices, e.g. it falls within the interval
+       ! of availYMDh. In this case, set tidx1 to the index of the 
+       ! closest time slice that is not in the future. 
        ! ------------------------------------------------------------- 
-       CALL Check_AvailYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
+       CALL Check_AvailYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1a )
 
        ! ------------------------------------------------------------- 
-       ! If tidx1 couldn't be set in the call above, re-adjust 
-       ! preferred year, then month, then day to the closest available 
-       ! year (month, day) in the time slices, and repeat the check
-       ! each time. Don't do this for exact dates or for interpolated
-       ! data.
+       ! Check if we need to continue search. Even if the call above
+       ! returned a time slice, it may be possible to continue looking
+       ! for a better suited time stamp. This is only the case if
+       ! there are discontinuities in the time stamps, e.g. if a file
+       ! contains monthly data for 2005 and 2020. In that case, the
+       ! call above would return the index for Dec 2005 for any 
+       ! simulation date between 2005 and 2010 (e.g. July 2010),
+       ! whereas it makes more sense to use July 2005 (and eventually
+       ! interpolate between the July 2005 and July 2020 data).
+       ! The IsClosest command checks if there are any netCDF time
+       ! stamps (prior to the selected one) that are closer to each
+       ! other than the difference between the preferred time stamp
+       ! prefYMDh and the currently selected time stamp 
+       ! availYMDh(tidx1a). In that case, it continues the search by
+       ! updating prefYMDh so that it falls within the range of the
+       ! 'high-frequency' interval.
        ! ------------------------------------------------------------- 
-       IF ( tidx1 <= 0 ) THEN
-          IF ( (Lct%Dct%Dta%CycleFlag/=3) .AND. (Lct%Dct%Dta%CycleFlag/=4) ) THEN
+       ExitSearch = .FALSE.
+       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
+          ExitSearch = .TRUE.
+       ELSE IF ( tidx1a > 0 ) THEN 
+          ExitSearch = IsClosest( prefYMDh, availYMDh, nTime, tidx1a )
+       ENDIF 
+
+       ! Write to tidx1 if this is the best match. 
+       IF ( ExitSearch ) THEN
+          tidx1 = tidx1a
+
+       ! ------------------------------------------------------------- 
+       ! If search shall be continued, adjust preferred year, then 
+       ! month, then day to the closest available year (month, day) 
+       ! in the time slices, and check if this is a better match.
+       ! ------------------------------------------------------------- 
+       ELSE
          
-             ! Adjust year, month, and day (in this order).
-             CNT  = 0
-             DO 
-                CNT = CNT + 1
-                IF ( tidx1 > 0 .OR. CNT > 3 ) EXIT
+          ! Adjust year, month, and day (in this order).
+          CNT  = 0
+          DO 
+             CNT = CNT + 1
+             IF ( ExitSearch .OR. CNT > 3 ) EXIT
 
-                ! Adjust prefYMDh at the given level (1=Y, 2=M, 3=D)
-                CALL prefYMDh_Adjust ( nTime, availYMDh, prefYMDh, CNT )
+             ! Adjust prefYMDh at the given level (1=Y, 2=M, 3=D)
+             CALL prefYMDh_Adjust ( nTime, availYMDh, prefYMDh, CNT, tidx1a )
 
-                ! verbose mode 
-                IF ( verb ) THEN
-                   write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
-                   CALL HCO_MSG(MSG)
-                ENDIF
+             ! verbose mode 
+             IF ( verb ) THEN
+                write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
+                CALL HCO_MSG(MSG)
+             ENDIF
       
-                CALL Check_AvailYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
-   
-             ENDDO
-          ENDIF
+             ! check for time stamp with updated date/time
+             CALL Check_AvailYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1a )
+ 
+             ! Can we leave now?
+             ExitSearch = IsClosest( prefYMDh, availYMDh, nTime, tidx1a )
+             IF ( ExitSearch ) tidx1 = tidx1a 
+ 
+          ENDDO
        ENDIF   
 
        ! ------------------------------------------------------------- 
@@ -1104,7 +1155,7 @@ CONTAINS
        ! outside the range of availYMDh, set tidx1 to the closest
        ! available date. This must be 1 or nTime! 
        ! ------------------------------------------------------------- 
-       IF ( tidx1 <= 0 .AND. Lct%Dct%Dta%CycleFlag /= 3 ) THEN
+       IF ( .NOT. ExitSearch ) THEN 
           IF ( prefYMDh < availYMDh(1) ) THEN
              tidx1 = 1
           ELSE
@@ -1158,7 +1209,7 @@ CONTAINS
           ! the seven weekdays. 
           IF ( nTime == 7 ) THEN
              tidx1 = 1
-             tidx2 = tidx1 + 6
+             tidx2 = 7
              
           ! If there are more than 7 time slices, interpret the current
           ! selected index as sunday of the current time frame (e.g. sunday
@@ -1166,6 +1217,13 @@ CONTAINS
           ! accordingly. This requires that there are at least 6 more time
           ! slices following the current one. 
           ELSE
+             IF ( tidx1 < 0 ) THEN
+                WRITE(MSG,*) 'Cannot get weekday slices for: ', &
+                   TRIM(Lct%Dct%cName), '. Cannot find first time slice.' 
+                CALL HCO_ERROR ( MSG, RC )
+                RETURN
+             ENDIF
+
              IF ( (tidx1+6) > nTime ) THEN
                 WRITE(MSG,*) 'Cannot get weekday for: ',TRIM(Lct%Dct%cName), &
                    '. There are less than 6 additional time slices after ',  &
@@ -1199,23 +1257,13 @@ CONTAINS
        IF ( tidx2 < 0 ) THEN
 
           ! Interpolate between dates
-          IF ( Lct%Dct%Dta%CycleFlag == 4 ) THEN
-         
-             ! Set second time slice tidx2. Only different from tidx1
-             ! if we are within the available data range.
-             IF ( (prefYMDh<availYMDh(1)) .OR. (tidx1==nTime) ) THEN
-                tidx2 = tidx1
-
-             ! tidx2 is simply the next time slice
-             ELSE
-                tidx2 = tidx1 + 1
-       
-                ! Calculate weights
-                diff1 = availYMDh(tidx2) - prefYMDh
-                diff2 = availYMDh(tidx2) - availYMDh(tidx1)
-                wgt1  = REAL(diff1,kind=sp) / REAL(diff2,kind=sp)
-                wgt2  = 1.0 - wgt1 
-             ENDIF
+          IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_INTER ) THEN
+        
+             CALL GetIndex2Interp( am_I_Root, Lct,      nTime,    &
+                                   availYMDh, prefYMDh, origYMDh, &
+                                   tidx1,     tidx2,    wgt1,     &
+                                   wgt2,      RC                   )
+             IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Check for multiple hourly data
           ELSEIF ( tidx1 > 0 .AND. prefHr < 0 ) THEN
@@ -1231,18 +1279,27 @@ CONTAINS
        ENDIF   
 
     ! ================================================================
-    ! Case 3: No time slice available. Set both indeces to zero. 
+    ! Case 3: No time slice available. Set both indeces to zero. Data
+    ! with no time stamp must have CycleFlag 'Cycling'.
     ! ================================================================
     ELSE
+       IF ( Lct%Dct%Dta%CycleFlag /= HCO_CFLAG_CYCLE ) THEN
+          MSG = 'Field has no time/date variable - cycle flag must' // &
+                'be set to `C` in the HEMCO configuration file:'    // &
+                TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
+       ENDIF
+
        tidx1 = 0
        tidx2 = 0 
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Sanity check: if CycleFlag is set to 3, the file time stamp
+    ! Sanity check: if CycleFlag is set to 'Exact', the file time stamp
     ! must exactly match the current time.
     !-----------------------------------------------------------------
-    IF ( Lct%Dct%Dta%CycleFlag == 3 .AND. tidx1 > 0 ) THEN
+    IF ( (Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT) .AND. (tidx1 > 0) ) THEN
        IF ( availYMDh(tidx1) /= prefYMDh ) THEN
           tidx1 = -1
           tidx2 = -1
@@ -1255,7 +1312,7 @@ CONTAINS
     ! cycling between the slices will be done at the correct rate 
     ! (e.g. every hour, every 3 hours, ...).
     !-----------------------------------------------------------------
-    IF ( (tidx2>tidx1) .AND. (Lct%Dct%Dta%CycleFlag/=4) ) THEN
+    IF ( (tidx2>tidx1) .AND. (Lct%Dct%Dta%CycleFlag/=HCO_CFLAG_INTER) ) THEN
        Lct%Dct%Dta%DeltaT = YMDh2hrs( availYMDh(tidx1+1) - availYMDh(tidx1) )
     ELSE
        Lct%Dct%Dta%DeltaT = 0
@@ -1378,7 +1435,9 @@ CONTAINS
        ! Check if next time slice is in the future, in which case the
        ! current slice is selected. Don't do this for a CycleFlag of
        ! 3 (==> exact match).
-       IF ( (availYMDh(I+1) > prefYMDh) .AND. (Lct%Dct%Dta%CycleFlag /= 3) ) THEN
+!       IF ( availYMDh(I+1) > prefYMDh ) THEN 
+       IF ( (availYMDh(I+1)        >  prefYMDh       ) .AND. &
+            (Lct%Dct%Dta%CycleFlag /= HCO_CFLAG_EXACT) ) THEN
           tidx1 = I
           EXIT
        ENDIF
@@ -1399,13 +1458,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE prefYMDh_Adjust( N, availYMDh, prefYMDh, level ) 
+  SUBROUTINE prefYMDh_Adjust( N, availYMDh, prefYMDh, level, tidx1 ) 
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN)     :: N
     INTEGER, INTENT(IN)     :: availYMDh(N)
     INTEGER, INTENT(IN)     :: level
+    INTEGER, INTENT(IN)     :: tidx1
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1420,19 +1480,17 @@ CONTAINS
 ! 
 ! !LOCAL VARIABLES:
 !
-    INTEGER  :: IDX, origYr, origMt, origDy, origHr, newAttr
+    
+    INTEGER          :: I, IMIN, IMAX
+    INTEGER          :: origYr,  origMt,  origDy, origHr
+    INTEGER          :: refAttr, tmpAttr, newAttr
+    INTEGER          :: iDiff,   minDiff
+    INTEGER(8)       :: modVal
+    REAL(dp)         :: div
 
     !=================================================================
     ! prefYMDh_Adjust begins here! 
     !=================================================================
-
-    ! Are we taking the first or the last element of the available
-    ! time slice?
-    IF ( prefYMDh < availYMDh(1) ) THEN
-       IDX = 1 
-    ELSE
-       IDX = N
-    ENDIF
 
     ! Get original Yr, Mt, Dy and Hr
     origYr = FLOOR( MOD(prefYMDh, 10000000000) / 1.0d6 )
@@ -1440,20 +1498,77 @@ CONTAINS
     origDy = FLOOR( MOD(prefYMDh, 10000      ) / 1.0d2 )
     origHr = FLOOR( MOD(prefYMDh, 100        ) / 1.0d0 )
 
-    ! Extract new attribute from availYMDh and insert into prefYMDh
+    ! Extract new attribute from availYMDh and insert into prefYMDh. Pick
+    ! closest available value.
+    SELECT CASE ( level ) 
+       ! --- Year
+       CASE ( 1 )
+          modVal  = 10000000000
+          div     = 1.0d6
+          refAttr = origYr
+
+       ! --- Month
+       CASE ( 2 )
+          modVal  = 1000000
+          div     = 1.0d4
+          refAttr = origMt
+
+       ! --- Day 
+       CASE ( 3 )
+          modVal  = 10000
+          div     = 1.0d2
+          refAttr = origMt
+
+       CASE DEFAULT
+          RETURN
+    END SELECT
+
+    ! Maximum loop number:
+    ! If tidx1 is already set, only search values in the past.
+    IF ( tidx1 > 0 ) THEN
+       IMIN = 1
+       IMAX = tidx1
+
+    ! If tidx1 is not yet set, prefYMDh must be outside the range of availYMDh.
+    ! Pick only the closest available time stamp.
+    ELSE
+       IF ( prefYMDh > availYMDh(1) ) THEN
+          IMIN = N
+          IMAX = N
+       ELSE
+          IMIN = 1
+          IMAX = 1
+       ENDIF
+    ENDIF
+
+    ! Select current minimum value
+    minDiff = 10000000000000000
+    newAttr = -1
+    DO I = IMIN, IMAX 
+       tmpAttr = FLOOR( MOD(availYMDh(I),modVal) / div )
+       iDiff   = ABS( tmpAttr - refAttr )
+       IF ( iDiff < minDiff ) THEN
+          newAttr = tmpAttr
+          minDiff = iDiff
+       ENDIF
+    ENDDO
+
+    ! Just reuse current value if no better value could be found
+    IF ( newAttr < 0 ) THEN
+       newAttr = refAttr
+    ENDIF
+
+    ! Update variable
     ! --- Year
     IF ( level == 1 ) THEN
-       newAttr  = FLOOR( MOD(availYMDh(IDX),10000000000) / 1.0d6 )
        prefYMDh = newAttr * 1000000 + origMt * 10000 + origDy * 100 + origHr
 
     ! --- Month 
     ELSEIF ( level == 2 ) THEN
-       newAttr  = FLOOR( MOD(availYMDh(IDX),1000000) / 1.0d4 )
        prefYMDh = origYr * 1000000 + newAttr * 10000 + origDy * 100 + origHr
 
     ! --- Day
     ELSEIF ( level == 3 ) THEN
-       newAttr  = FLOOR( MOD(availYMDh(IDX),10000) / 1.0d2 )
        prefYMDh = origYr * 1000000 + origMt * 10000 + newAttr * 100 + origHr
     ENDIF
 
@@ -1520,6 +1635,253 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE Set_tIdx2
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: IsClosest 
+!
+! !DESCRIPTION: function IsClosest returns true if the selected time index
+! is the 'closest' one. It is defined as being closest if: 
+! (a) the currently selected index exactly matches the preferred one.
+! (b) the time gap between the preferred time stamp and the currently selected 
+! index is at least as small as any other gap of consecutive prior time stamps.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION IsClosest ( prefYMDh, availYMDh, nTime, ctidx1 ) RESULT ( Closest )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN)  :: prefYMDh 
+    INTEGER, INTENT(IN)  :: availYMDh(nTime)
+    INTEGER, INTENT(IN)  :: nTime
+    INTEGER, INTENT(IN)  :: ctidx1
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL              :: Closest
+!
+! !REVISION HISTORY:
+!  03 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER :: N
+    INTEGER :: diff, idiff
+
+    !=================================================================
+    ! IsClosest begins here! 
+    !=================================================================
+
+    ! Init
+    Closest = .TRUE.
+
+    ! It's not closest if index is not defined
+    IF ( ctidx1 <= 0 ) THEN
+       Closest = .FALSE.
+       RETURN
+    ENDIF
+
+    ! It's closest if it is the first index
+    IF ( ctidx1 == 1 ) RETURN
+
+    ! It's closest if it matches date exactly
+    IF ( availYMDh(ctidx1) == prefYMDh ) RETURN
+
+    ! It's closest if current select one is in the future
+    IF ( availYMDh(ctidx1) > prefYMDh ) RETURN
+
+    ! Check if any of the time stamps in the past have closer intervals
+    ! than the current select time stamp to it's previous one
+    diff = prefYMDh - availYMDh(ctidx1)
+    DO N = 2, ctidx1
+       idiff = availYMDh(N) - availYMDh(N-1)
+       IF ( idiff < diff ) THEN
+          Closest = .FALSE.
+          RETURN
+       ENDIF
+    ENDDO
+
+  END FUNCTION IsClosest 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetIndex2Interp 
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetIndex2Interp ( am_I_Root, Lct, nTime, availYMDh, &
+                               prefYMDh,  origYMDh,   tidx1,     &
+                               tidx2,     wgt1,       wgt2,  RC   ) 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN)    :: am_I_Root
+    TYPE(ListCont),   POINTER       :: Lct
+    INTEGER,          INTENT(IN)    :: nTime
+    INTEGER,          INTENT(IN)    :: availYMDh(nTime)
+    INTEGER,          INTENT(IN)    :: prefYMDh
+    INTEGER,          INTENT(IN)    :: origYMDh
+    INTEGER,          INTENT(IN)    :: tidx1
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: tidx2
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(sp),         INTENT(INOUT) :: wgt1
+    REAL(sp),         INTENT(INOUT) :: wgt2
+    INTEGER,          INTENT(INOUT) :: RC
+!
+! !REVISION HISTORY:
+!  02 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: I, tmpYMDh
+    INTEGER             :: diff1, diff2
+    LOGICAL             :: verb
+    CHARACTER(LEN=255)  :: MSG
+    CHARACTER(LEN=255)  :: LOC = 'GetIndex2Interp (hcoio_dataread_mod.F90)'
+
+    !=================================================================
+    ! GetIndex2Interp begins here
+    !=================================================================
+
+    ! Verbose mode?
+    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+
+    ! If the originally wanted datetime was outside the available data
+    ! range, do not interpolate.
+    IF ( origYMDh <= availYMDh(1) .OR. origYMDh >= availYMDh(nTime) ) THEN 
+       tidx2 = tidx1 
+
+    ! No interpolation needed if there is a time slices that exactly 
+    ! matches the (originally) preferred datetime.
+    ELSEIF( origYMDh == availYMDh(tidx1) ) THEN
+       tidx2 = tidx1 
+
+    ! If we are inside the data range but none of the time slices 
+    ! matches the preferred datetime, get the second time slices that
+    ! shall be used for data interpolation. This not necessarily needs
+    ! to be the consecutive time slice. For instance, imagine a data
+    ! set that contains montlhly data for years 2005 and 2010. For
+    ! Feb 2007, we would want to interpolate between Feb 2005 and Feb 
+    ! 2010 data. The index tidx1 already points to Feb 2005, but the
+    ! upper index tidx2 needs to be set accordingly.
+    ELSE
+
+       ! Init
+       tidx2 = -1
+
+       ! Search for a time slice in the future that has the same 
+       ! month/day/hour as currently selected time slice.
+       tmpYMDh = availYMDh(tidx1)
+       DO 
+          ! Increase by one year
+          tmpYMDh = tmpYMDh + 1000000
+ 
+          ! Exit if we are beyond available dates
+          IF ( tmpYMDh > availYMDh(nTime) ) EXIT
+ 
+          ! Check if there is a time slice with that date
+          DO I = tidx1,nTime
+             write(*,*) 'comparing against ', availYMDh(I)
+             IF ( tmpYMDh == availYMDh(I) ) THEN
+                write(*,*) 'match!!'
+                tidx2 = I
+                EXIT
+             ENDIF
+          ENDDO
+          IF ( tidx2 > 0 ) EXIT
+       ENDDO 
+
+       ! Repeat above but now only modify month. 
+       IF ( tidx2 < 0 ) THEN
+          tmpYMDh = availYMDh(tidx1)
+          DO 
+             ! Increase by one month
+             tmpYMDh = tmpYMDh + 10000
+           
+             ! Exit if we are beyond available dates
+             IF ( tmpYMDh > availYMDh(nTime) ) EXIT
+    
+             ! Check if there is a time slice with that date
+             DO I = tidx1,nTime
+                IF ( tmpYMDh == availYMDh(I) ) THEN
+                   tidx2 = I
+                   EXIT
+                ENDIF
+             ENDDO
+             IF ( tidx2 > 0 ) EXIT
+          ENDDO 
+       ENDIF
+
+       ! Repeat above but now only modify day 
+       IF ( tidx2 < 0 ) THEN
+          tmpYMDh = availYMDh(tidx1)
+          DO 
+             ! Increase by one day
+             tmpYMDh = tmpYMDh + 100
+           
+             ! Exit if we are beyond available dates
+             IF ( tmpYMDh > availYMDh(nTime) ) EXIT
+    
+             ! Check if there is a time slice with that date
+             DO I = tidx1,nTime
+                IF ( tmpYMDh == availYMDh(I) ) THEN
+                   tidx2 = I
+                   EXIT
+                ENDIF
+             ENDDO
+             IF ( tidx2 > 0 ) EXIT
+          ENDDO 
+       ENDIF          
+
+       ! If all of those tests failed, simply get the next time
+       ! slice. 
+       IF ( tidx2 < 0 ) THEN
+          tidx2 = tidx1 + 1
+
+          ! Prompt warning
+          WRITE(MSG,*) 'Having problems in finding the next time slice ', &
+                'to interpolate from, just take the next available ',     &
+                'slice. Interpolation will be performed from ',           &
+                availYMDh(tidx1), ' to ', availYMDh(tidx2), '. Data ',    &
+                'container: ', TRIM(Lct%Dct%cName)
+          CALL HCO_WARNING(MSG,RC,THISLOC=LOC)
+       ENDIF
+       
+       ! Calculate weights wgt1 and wgt2 to be given to slice 1 and 
+       ! slice2, respectively.
+       diff1 = availYMDh(tidx2) - origYMDh
+       diff2 = availYMDh(tidx2) - availYMDh(tidx1)
+       wgt1  = REAL(diff1,kind=sp) / REAL(diff2,kind=sp)
+       wgt2  = 1.0 - wgt1 
+
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GetIndex2Interp 
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -2010,7 +2372,7 @@ CONTAINS
 
     ! For masks, interpret data as mask corners (lon1/lat1/lon2/lat2) 
     ! with no time dimension 
-    IF ( Lct%Dct%DctType == 3 ) THEN
+    IF ( Lct%Dct%DctType == HCO_DCTTYPE_MASK ) THEN
 
        ! Make sure data is allocated
        CALL FileData_ArrCheck( Lct%Dct%Dta, HcoState%NX, HcoState%NY, 1, RC )
@@ -2150,7 +2512,7 @@ CONTAINS
     ! box, e.g. there must be four values. Masks are time-independent
     ! and unitless
     ! ---------------------------------------------------------------- 
-    IF ( Lct%Dct%DctType == 3 ) THEN
+    IF ( Lct%Dct%DctType == HCO_DCTTYPE_MASK ) THEN
 
        ! There must be exactly four values
        IF ( N /= 4 ) THEN
@@ -2503,18 +2865,19 @@ CONTAINS
 
     ! Check for cycle flags:
 
-    ! Data cycle set to 2 (within range) or 3 (exact date): in these 
-    ! cases, the preferred date will be equal to the current date, so 
-    ! check if the preferred date is indeed within the available range 
-    ! (lowDt, uppDt).
-    ! For data only to be used within the specified range, set index 
-    ! to -1. This will force the scale factors to be set to zero!
+    ! Data cycle set to range or exact date: in these cases, the 
+    ! the preferred date will be equal to the current date, so 
+    ! check if the preferred date is indeed within the available 
+    ! range (lowDt, uppDt).
+    ! For data only to be used within the specified range, set 
+    ! index to -1. This will force the scale factors to be set to
+    ! zero!
     IF ( prefDt < lowDt .OR. prefDt > uppDt ) THEN
-       IF ( Lct%Dct%Dta%CycleFlag == 3 ) THEN ! Exact match
+       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN ! Exact match
           MSG = 'Data is not on exact date: ' // TRIM(Lct%Dct%cName)
           CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
           RETURN 
-       ELSEIF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN ! w/in range
+       ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN ! w/in range
           IDX = -1
           RETURN
        ELSE

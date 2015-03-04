@@ -206,7 +206,7 @@ CONTAINS
     NewFDta%ncMts(:)     = -999
     NewFDta%ncDys(:)     = -999
     NewFDta%ncHrs(:)     = -999
-    NewFDta%CycleFlag    = 1
+    NewFDta%CycleFlag    = HCO_CFLAG_CYCLE
     NewFDta%ncRead       = .TRUE.
     NewFDta%Cover        = -999 
     NewFDta%DeltaT       = 0

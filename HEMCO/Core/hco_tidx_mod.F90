@@ -721,11 +721,11 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to 2 (range), the preferred datetime is 
+    ! If CycleFlag is set to range, the preferred datetime is 
     ! the current date if we are within the provided range, and 
     ! invalid otherwise.
     ! ------------------------------------------------------------- 
-    IF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN
+    IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
 
        ! Check if we are inside of valid range
        InRange = .TRUE.
@@ -779,10 +779,10 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to 3 (exact), the preferred datetime is 
+    ! If CycleFlag is set to exact, the preferred datetime is 
     ! always the current date.
     ! ------------------------------------------------------------- 
-    IF ( Lct%Dct%Dta%CycleFlag == 3 ) THEN
+    IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
        readYr = cYr
        readMt = cMt
        readDy = cDy

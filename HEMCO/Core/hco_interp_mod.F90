@@ -350,11 +350,10 @@ CONTAINS
           ! Do the regridding
           CALL MAP_A2A( NX,      NY, LonEdgeI,    LatEdgeI, ORIG_2D,  &
                         HcoState%NX, HcoState%NY, LonEdgeO, LatEdgeO, &
-                        REGR_2D,     0, 0 )
-   
+                        REGR_2D, 0, 0 )
           ORIG_2D => NULL()
           REGR_2D => NULL()
-   
+ 
        ENDDO !L
        ENDDO !T
      

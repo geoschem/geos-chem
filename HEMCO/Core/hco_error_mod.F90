@@ -74,13 +74,36 @@ MODULE HCO_Error_Mod
   INTEGER, PARAMETER, PUBLIC  :: HCO_SUCCESS = 0
   INTEGER, PARAMETER, PUBLIC  :: HCO_FAIL    = -999
 
-  ! Tiny value for math operations
-  REAL(hp), PARAMETER, PUBLIC :: HCO_TINY = 1.0e-32_hp
+  ! Tiny value for math operations: 
+  ! --> deprecated. Use TINY(1.0_hp) instead!
+  REAL(hp), PARAMETER, PUBLIC :: HCO_TINY    = 1.0e-32_hp
+
+  ! Missing value
+  ! Note: define missing value as single precision because all data arrays
+  ! are read/stored in single precision.
+  REAL(sp), PARAMETER, PUBLIC :: HCO_MISSVAL = -9.99999e-31_sp
+
+  ! Cycle flags. Used to determine the temporal behavior of data
+  ! fields. For example, data set to 'cycle' will be recycled if
+  ! the simulation date is outside of the datetime range of the
+  ! source data. See data reading routine (hcoio_dataread_mod.F90)
+  ! for more details. 
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_CYCLE = 1
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_RANGE = 2
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_EXACT = 3
+  INTEGER, PARAMETER, PUBLIC  :: HCO_CFLAG_INTER = 4
+
+  ! Data container types. These are used to distinguish between
+  ! base emissions, scale factors and masks.
+  INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_BASE = 1
+  INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_SCAL = 2
+  INTEGER, PARAMETER, PUBLIC  :: HCO_DCTTYPE_MASK = 3
 !
 ! !REVISION HISTORY:
-!  23 Sep 2013 - C. Keller - Initialization
+!  23 Sep 2013 - C. Keller   - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  03 Mar 2015 - C. Keller   - Added HCO_CFLAG_* and HCO_DCTTYPE_*
 !EOP
 !------------------------------------------------------------------------------
 !BOC

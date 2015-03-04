@@ -879,6 +879,11 @@ CONTAINS
     ! NC_READ_TIME_YYYYMMDDhh begins here 
     !=================================================================
 
+    ! Init values
+    RC = 0
+    IF ( PRESENT(TimeUnit) ) TimeUnit = ''
+    IF ( PRESENT(refYear ) ) refYear  = 0
+
     ! Read time vector
     CALL NC_READ_TIME ( fID, nTime, ncUnit, timeVec=tVec, RC=RC ) 
     IF ( RC/=0 ) RETURN 
