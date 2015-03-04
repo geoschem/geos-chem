@@ -1205,7 +1205,6 @@ CONTAINS
 !
     USE GIGC_State_Met_Mod,    ONLY : MetState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
-    USE PRESSURE_MOD,          ONLY : GET_PEDGE
 
 ! !INPUT PARAMETERS:
 !
@@ -1217,6 +1216,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Oct 2014 - C. Keller   - Initial version
+!  03 Mar 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1237,9 +1237,10 @@ CONTAINS
     DO I = 1, IIPAR
 
        ! Get pressure edges [Pa] and pass to HEMCO grid. 
-       HcoState%Grid%PEDGE%Val(I,J,L) = GET_PEDGE(I,J,L) * 100.0_hp
+       HcoState%Grid%PEDGE%Val(I,J,L) = State_Met%PEDGE(I,J,L) * 100.0_hp
        IF ( L==LLPAR ) THEN
-          HcoState%Grid%PEDGE%Val(I,J,L+1) = GET_PEDGE(I,J,L+1) * 100.0_hp
+          HcoState%Grid%PEDGE%Val(I,J,L+1) = State_Met%PEDGE(I,J,L+1)  & 
+                                             * 100.0_hp
        ENDIF
     ENDDO
     ENDDO

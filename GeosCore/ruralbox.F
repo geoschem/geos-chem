@@ -73,7 +73,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
@@ -196,7 +196,7 @@
             T3(JLOOP)      = State_Met%T(I,J,L)
 
             ! PRESS3 = pressure in bar, multiply mb * 1000
-            PRESS3(JLOOP)  = State_Met%PMID(I,J,L) * 1000e+0_fp
+            PRESS3(JLOOP)  = State_Met%PMID_DRY(I,J,L) * 1000e+0_fp
 
             ! Get relative humidity (here is absolute #H2O/cc air)
             ! AVGW is the mixing ratio of water vapor [v/v]

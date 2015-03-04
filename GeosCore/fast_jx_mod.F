@@ -205,9 +205,10 @@
 !  05 Mar 2014 - R. Yantosca - Cosmetic changes
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE. Remove
-!                              dependency on pressure_mod and redundant PEDGE 
-!                              pre-preprocessor block if EXTERNAL_GRID.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE_DRY. 
+!                              Remove dependency on pressure_mod and 
+!                              redundant PEDGE pre-preprocessor block if 
+!                              EXTERNAL_GRID.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -306,10 +307,10 @@
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
             CSZA            = State_Met%SUNCOSmid(NLON,NLAT)
 
-            ! Define the P array here, using Ap and Bp from GEOS-Chem
-            ! or GCM pressures
+            ! Define the P array here
             DO L = 1, LLPAR+1
-               P_CTM(L)     = State_Met%PEDGE( NLON, NLAT, L )
+               ! Now use dry air partial pressure [hPa] (ewl, 3/2/15)
+               P_CTM(L)     = State_Met%PEDGE_DRY( NLON, NLAT, L )
             ENDDO
 
             ! Top edge of P_CTM is top of atmosphere (bmy, 2/13/07)

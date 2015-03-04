@@ -360,8 +360,8 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with 
-!                              State_Met%PMID and State_Met%PEDGE. Remove
-!                              dependency on pressure_mod.
+!                              State_Met%PMID and State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 
 !EOP
 !------------------------------------------------------------------------------
@@ -888,7 +888,7 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
-!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
@@ -995,7 +995,8 @@
          DO L = 1, LLPAR
 
             ! Pressure at center of the level [kPa]
-            P       = State_Met%PMID(I,J,L) * 0.1e+0_fp
+            ! Now using dry air partial pressure [hPa] (ewl, 3/2/15)
+            P       = State_Met%PMID_DRY(I,J,L) * 0.1e+0_fp
 
             ! Temperature [K]
             TEMP    = State_Met%T(I,J,L)

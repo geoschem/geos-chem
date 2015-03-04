@@ -458,8 +458,9 @@
 !                              F array to subroutine COMPUTE_F
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt to CONVTRAN
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!                              Remove dependency on pressure_mod.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with 
+!                              State_Met%DELP.Remove dependency on 
+!                              pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -601,12 +602,10 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
                
-            ! Pressure at bottom and top edges of grid box [hPa]
-            P1 = State_Met%PEDGE(I,J,L)
-            P2 = State_Met%PEDGE(I,J,L+1)
-
             ! DP = Pressure difference between top & bottom edges [Pa]
-            DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
+            ! Now use DELP, equivalent to delta pressure level [hPa]
+            ! (ewl, 3/2/15)
+            DP(I,J,L2) = State_Met%DELP(I,J,L) * 100.0e+0_fp
 
             ! RPDEL = reciprocal of DP [1/hPa]
             RPDEL(I,J,L2) = 100.0e+0_fp / DP(I,J,L2) 
@@ -745,8 +744,8 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
-!                              State_Met%PEDGE and State_Met%PMID.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!                              Replace PEDGE difference with State_Met%DELP.
 !                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
@@ -893,12 +892,10 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
                
-            ! Pressure at bottom and top edges of grid box [hPa]
-            P1 = State_Met%PEDGE(I,J,L)
-            P2 = State_Met%PEDGE(I,J,L+1)
-
-            ! DP = Pressure difference between top & bottom edges [Pa]
-            DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
+             ! DP = Pressure difference between top & bottom edges [Pa]
+             ! Now use DELP, equivalent to delta pressure level [hPa]
+             ! (ewl, 3/2/15)
+             DP(I,J,L2) = State_Met%DELP(I,J,L) * 100.0e+0_fp
          ENDDO
          ENDDO
       ENDDO
@@ -1188,8 +1185,9 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!                              Remove dependency on pressure_mod.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with
+!                              State_Met%DELP.Remove dependency on 
+!                              pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1479,13 +1477,13 @@
 
                   ! Need to replace DSIG w/ the difference 
                   ! of pressure edges for GEOS-5 (bmy, 6/27/07)
+                  ! Now use DELP, equivalent to delta pressure level [hPa]
+                  ! (ewl, 3/2/15)
                   QB(I,J) = 
-     &                      ( Q(I,J,1,IC) * ( State_Met%PEDGE(I,J,1) 
-     &                      - State_Met%PEDGE(I,J,2) )   + 
-     &                      Q(I,J,2,IC) * ( State_Met%PEDGE(I,J,2) 
-     &                      - State_Met%PEDGE(I,J,3) ) ) / 
-     &                      ( State_Met%PEDGE(I,J,1) 
-     &                      - State_Met%PEDGE(I,J,3) )
+     &                      ( Q(I,J,1,IC) * State_Met%DELP(I,J,1) + 
+     &                      Q(I,J,2,IC) * State_Met%DELP(I,J,2) ) / 
+     &                      ( State_Met%DELP(I,J,1) 
+     &                      + State_Met%DELP(I,J,2) )
 
 #else
                   ! for GEOS-3

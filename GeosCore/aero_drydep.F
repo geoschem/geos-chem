@@ -66,7 +66,7 @@
 !  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to routines
 !  05 Nov 2014 - M. Yannetti - PRECISION_MOD convert REAL*8 to REAL(fp)
-!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
@@ -211,7 +211,8 @@ cdbg      print *, dryd(:)
          DO L = 1, LLPAR
             
             ! Get P [kPa], T [K], and P*DP
-            P    = State_Met%PMID(I,J,L) * 0.1d0  ![=] kPa
+            ! Now using dry air partial pressure [hPa] (ewl, 3/2/2015)
+            P    = State_Met%PMID_DRY(I,J,L) * 0.1d0  ![=] kPa
             TEMP = T(I,J,L)          ![=] K
             PDP  = P * DP
 

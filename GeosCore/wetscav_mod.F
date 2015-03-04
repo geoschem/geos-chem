@@ -8802,7 +8802,7 @@
 !                              EXTERNAL_GRID || EXTERNAL_FORCING
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
-!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
 !                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
@@ -8920,7 +8920,7 @@
          
             ! Compute Temp [K] and Pressure [hPa]
             TK = State_Met%T(I,J,L)
-            PL = State_Met%PMID(I,J,L)
+            PL = State_Met%PMID_DRY(I,J,L)
          
             !==============================================================
             ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)
