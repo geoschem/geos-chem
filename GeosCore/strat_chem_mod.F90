@@ -2309,6 +2309,7 @@ CONTAINS
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
 !                              State_Met%PEDGE and State_Met%PMID. Remove
 !                              dependency on pressure_mod.
+!  03 Mar 2015 - E. Lundgren - Use virtual temperature in hypsometric eqn
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2510,8 +2511,10 @@ CONTAINS
           ! ZUP is the height from the sigma center of the 
           ! (L70mb-1)th layer
           !============================================================== 
-          T2   = State_Met%T(I,J,L70mb  )
-          T1   = State_Met%T(I,J,L70mb-1)
+
+          ! Use virtual temperature for hypsometric equation (ewl, 3/3/15)
+          T2   = State_Met%TV(I,J,L70mb  )
+          T1   = State_Met%TV(I,J,L70mb-1)
 
           DZ   = Rdg0 * ( (T1 + T2) / 2e+0_fp ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
@@ -2661,6 +2664,7 @@ CONTAINS
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
 !                              State_Met%PEDGE and State_Met%PMID.
 !                              Remove dependency on pressure_mod.
+!  03 Mar 2015 - E. Lundgren - Use virtual temperature in hypsometric eqn
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2818,8 +2822,10 @@ CONTAINS
           ! ZUP is the height from the sigma center of the 
           ! (L70mb-1)th layer
           !=========================================================== 
-          T2   = State_Met%T(I,J,L70mb  )
-          T1   = State_Met%T(I,J,L70mb-1)
+ 
+          ! Use virtual temperature in hypsometric equ (ewl, 3/3/15)
+          T2   = State_Met%TV(I,J,L70mb  )
+          T1   = State_Met%TV(I,J,L70mb-1)
 
           DZ   = Rdg0 * ( (T1 + T2) / 2e+0_fp ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )

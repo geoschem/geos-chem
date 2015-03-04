@@ -174,6 +174,7 @@ MODULE GIGC_State_Met_Mod
      REAL(fp), POINTER :: SPHU1     (:,:,:) ! Spec hum at timestep start [g/kg]
      REAL(fp), POINTER :: SPHU2     (:,:,:) ! Spec hum at timestep end [g/kg]
      REAL(fp), POINTER :: T         (:,:,:) ! Temperature [K]
+     REAL(fp), POINTER :: TV        (:,:,:) ! Virtual temperature [K]
      REAL(fp), POINTER :: TAUCLI    (:,:,:) ! Opt depth of ice clouds [1]
      REAL(fp), POINTER :: TAUCLW    (:,:,:) ! Opt depth of H2O clouds [1]
      REAL(fp), POINTER :: TMPU1     (:,:,:) ! Temperature at timestep start [K]
@@ -214,6 +215,7 @@ MODULE GIGC_State_Met_Mod
 !  05 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
 !  12 Feb 2015 - C. Keller   - Added UPDVVEL (for use in wet scavenging).
 !  24 Feb 2015 - E. Lundgren - Add PEDGE_DRY, PMID_DRY, and MAIRDEN
+!  03 Mar 2015 - E. Lundgren - Add TV (virtual temperature)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -721,6 +723,10 @@ CONTAINS
     ALLOCATE( State_Met%T         ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
     State_Met%T        = 0.0_fp
+
+    ALLOCATE( State_Met%TV        ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%TV       = 0.0_fp
                                                
     ALLOCATE( State_Met%TAUCLI    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
@@ -1018,6 +1024,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%RH         )) DEALLOCATE( State_Met%RH         )
     IF ( ASSOCIATED( State_Met%SPHU       )) DEALLOCATE( State_Met%SPHU       )
     IF ( ASSOCIATED( State_Met%T          )) DEALLOCATE( State_Met%T          )
+    IF ( ASSOCIATED( State_Met%TV         )) DEALLOCATE( State_Met%TV         )
     IF ( ASSOCIATED( State_Met%TAUCLI     )) DEALLOCATE( State_Met%TAUCLI     )
     IF ( ASSOCIATED( State_Met%TAUCLW     )) DEALLOCATE( State_Met%TAUCLW     ) 
     IF ( ASSOCIATED( State_Met%U          )) DEALLOCATE( State_Met%U          )

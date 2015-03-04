@@ -471,6 +471,7 @@
             IF ( AVGW_ALLOCATED ) THEN
                AD68(I,J,L,3) = AD68(I,J,L,3) + State_Met%AVGW(I,J,L)
             ENDIF
+
          ENDDO
          ENDDO
          ENDDO

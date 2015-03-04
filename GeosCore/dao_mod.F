@@ -353,6 +353,7 @@
 !  23 Feb 2015 - E. Lundgren - Change box height formula to include water vapor
 !  24 Feb 2015 - E. Lundgren - Add calculation of RH to subroutine. Use new
 !                              formulate for H20 saturation pressure.
+!  03 Mar 2015 - E. Lundgren - Set State_Met%TV (virtual temperature)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -362,7 +363,7 @@
       INTEGER :: I,  J,  L
       REAL(fp)  :: PEdge_Top, Esat, Ev, Tc   
       REAL(fp)  :: EsatA, EsatB, EsatC, EsatD, EsatE 
-      REAL(fp)  :: Tv, AREA_M2, SPHU_kgkg
+      REAL(fp)  :: AREA_M2, SPHU_kgkg
 
       ! Conversion factors
       REAL(fp), PARAMETER   :: TOFFSET = -2.7315e+2_fp   ! K -> deg C
@@ -398,7 +399,7 @@
 !$OMP+PRIVATE( I, J, L )
 !$OMP+PRIVATE( PEdge_Top, Esat, Ev, Tc )
 !$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD, EsatE )
-!$OMP+PRIVATE( Tv, AREA_M2, SPHU_kgkg )
+!$OMP+PRIVATE( AREA_M2, SPHU_kgkg )
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -505,7 +506,6 @@
          ! Temperature in Celsius
          Tc = State_Met%T( I,J,L ) + TOFFSET
 
-
          ! Partial presure of dry air at bottom edge of grid box [hPa]
          State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L) - Ev
 
@@ -564,10 +564,11 @@
          ! Source: Wallace and Hobbes "Atmospheric Science: An 
          !         Introductory Survey" 
          !
-         Tv = State_Met%T(I,J,L) / (1 - Ev / State_Met%PMID(I,J,L) 
-     &         * ( 1 - H2OMW / AIRMW ) )
+         State_Met%TV( I,J,L ) = State_Met%T(I,J,L) / (1 -  
+     &                           Ev / State_Met%PMID(I,J,L) 
+                                 * ( 1 - H2OMW / AIRMW ) )
 
-         State_Met%BXHEIGHT( I,J,L ) = Rdg0 * Tv
+         State_Met%BXHEIGHT( I,J,L ) = Rdg0 * State_Met%TV(I,J,L)
      &                                 * LOG( State_Met%PEDGE(I,J,L) 
      &                                 / PEdge_Top )
 
@@ -662,7 +663,7 @@
             PRINT *, "   Temperature [K]:"
             PRINT *, "       ", State_Met%T(I,J,L)
             PRINT *, "   Virtual temperature [K]:"
-            PRINT *, "       ", Tv
+            PRINT *, "       ", State_Met%TV(I,J,L)
             PRINT *, "   Mid-point pressure [hPa]:"
             PRINT *, "       ", State_Met%PMID(I,J,L)
             PRINT *, "   Mid-point dry air partial pressure [hPa]:"

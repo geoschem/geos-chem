@@ -1889,6 +1889,7 @@ contains
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
 !                              State_Met%PEDGE and State_Met%PMID.
 !                              Remove dependency on pressure_mod.
+!                              Use virtual temperature in hypsometric eqn.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2031,13 +2032,13 @@ contains
     do J = 1, JJPAR
     do I = 1, IIPAR
     do L = 1, LLPAR
-    ! Corrected calculation of zm.
-    ! Use temperature instead of virtual temperature to be consistent with 
-    ! the calculation of BXHEIGHT. (lin, 06/02/08)
-    !zm(I,J,L) = sum(BXHEIGHT(I,J,1:L))
+       ! Corrected calculation of zm.
+       ! Box height calculation now uses virtual temperature.
+       ! Therefore, use virtual temperature in hypsometric equation.
+       ! (ewl, 3/3/15)
        zm(I,J,L) = sum( State_Met%BXHEIGHT(I,J,1:L)) &
                  - log( pmid(I,J,L)/pint(I,J,L+1) )  &
-                 * r_g * State_Met%T(I,J,L)
+                 * r_g * State_Met%TV(I,J,L)
     enddo
     enddo
     enddo
