@@ -7,9 +7,10 @@
 !
 ! !DESCRIPTION: Module UNITCONV\_MOD contains routines which are used to 
 !  convert the units of tracer concentrations between mass mixing ratio 
-!  [kg/kg], mass per grid box [kg], molar mixing ratio [vol/vol], and molecular 
-!  number density [molecules/cm3]. All mixing ratios are per quantity of
-!  dry air.
+!  [kg/kg], mass per grid box [kg], molar mixing ratio [vol/vol], and 
+!  molecular number density [molecules/cm3]. All mixing ratios are per 
+!  quantity of dry air. Dependency on mass per grid box will be phased out 
+!  for grid-independence.
 !\\  
 !\\
 ! !INTERFACE: 
@@ -43,15 +44,18 @@ MODULE UnitConv_Mod
 !  concentrations in various GEOS-Chem routines. Tracer concentrations 
 !  are stored primarily in units of mass mixing ratio [kg/kg] but some
 !  subroutines  require tracer units in mass per grid box [kg], 
-!  molar mixing ratio [vol/vol], molecular number density [molecules/cm3]
-!  for certain calculation. 
+!  molar mixing ratio [vol/vol], or molecular number density [molecules/cm3]
+!  for certain calculation. Use of mass per grid box will be phased out
+!  for grid-independence.
 !
 !  Species concentrations are stored in units of molecular number density
 !  and the unit conversion routines within this module may therefore be 
-!  used to convert species concentration units in the future, if needed.
+!  used to convert species concentration units as well.
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - E. Lundgren - Initial version
+!  04 Mar 2015 - E. Lundgren - Change conversions to use dry air quantities
+!                              following air quantity updates.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -62,28 +66,28 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convert_mmr_to_vr
+! !IROUTINE: convert_mmr_to_vmr
 !
 ! !DESCRIPTION: Subroutine Convert\_MMR\_to\_VR converts the units of 
-!  tracer concentrations from mass mixing ratio (MMR) [kg/kg] to 
-!  volume ratio (VR) [vol/vol] (same as molar ratio [mol/mol]). 
+!  tracer concentrations from mass mixing ratio [kg tracer / kg dry
+!  air] to volume mixing ratio [vol tracer /vol dry air]. 
 !\\
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_MMR_to_VR( N_TRACERS, TCVV, STT ) 
+    SUBROUTINE Convert_MMR_to_VMR( N_TRACERS, TCVV, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
     ! Number of tracers
     INTEGER, INTENT(IN)      :: N_TRACERS 
 
-    ! Array containing ratio of air to tracer molecular weights
+    ! Array containing ratio of dry air to tracer molecular weights
     REAL(fp),  INTENT(IN)    :: TCVV(N_TRACERS)
 
 ! !OUTPUT PARAMETERS:
 !
-    ! Array containing tracer concentration [vol/vol]
+    ! Array containing tracer volume mixing ratio [vol/vol]
     REAL(fp),  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
 ! !REMARKS (edit this)
@@ -102,16 +106,16 @@ CONTAINS
     INTEGER :: I, J, L, N
 
     !=================================================================
-    ! Convert_MMR_to_VR begins here!
+    ! Convert_MMR_to_VMR begins here!
     !=================================================================
 
          !==============================================================
          !
          !  The conversion is as follows:
          !
-         !   kg tracer(N)    g air      mol tracer(N)    
-         !   -----------  * -------  *  -------------  
-         !     kg air       mol air      g tracer(N)          
+         !   kg tracer(N)    g dry air      mol tracer(N)    
+         !   -----------  * -----------  *  -------------  
+         !   kg dry air     mol dry air      g tracer(N)          
          !
          !   = mass mixing ratio * ratio of air to tracer molecular weights  
          !   
@@ -119,7 +123,7 @@ CONTAINS
          !
          ! Therefore, with:
          !
-         !  TCVV(N) = air molecular wt / tracer molecular wt 
+         !  TCVV(N) = dry air molecular wt / tracer molecular wt 
          !     
          ! the conversion is:
          ! 
@@ -144,7 +148,7 @@ CONTAINS
       !$OMP END PARALLEL DO
 
     ! Return to calling program
-    END SUBROUTINE Convert_MMR_to_VR
+    END SUBROUTINE Convert_MMR_to_VMR
 !EOC
 
 !------------------------------------------------------------------------------
@@ -152,16 +156,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: convert_vr_to_mmr
+! !IROUTINE: convert_vmr_to_mmr
 !
-! !DESCRIPTION: Subroutine Convert\_VR\_to\_MMR converts the units of 
-!  tracer concentrations from volume ratio (VR) [vol/vol] (same 
-!  as molar mixing ratio [mol/mol]) to mass mixing ratio (MMR) [kg/kg]. 
+! !DESCRIPTION: Subroutine Convert\_VMR\_to\_MMR converts the units of 
+!  tracer concentrations from volume mixing ratio [vol tracer /vol dry air] 
+!  to mass mixing ratio [kg tracer / kg dry air]. 
 !\\
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE Convert_VR_to_MMR( N_TRACERS, TCVV, STT ) 
+    SUBROUTINE Convert_VMR_to_MMR( N_TRACERS, TCVV, STT ) 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -192,16 +196,16 @@ CONTAINS
     INTEGER :: I, J, L, N
 
     !=================================================================
-    ! Convert_VR_to_MMR begins here!
+    ! Convert_VMR_to_MMR begins here!
     !=================================================================
 
          !==============================================================
          !
          !  The conversion is as follows:
          !
-         !   mol tracer(N)  mol air     g tracer(N)         
-         !   -----------  * -------  *  -------------  
-         !     mol air       g air      mol tracer(N)           
+         !   mol tracer(N)  mol dry air     g tracer(N)         
+         !   -----------  * -----------  *  -------------  
+         !     mol air       g dry air      mol tracer(N)           
          !
          !   = volume ratio / ratio of air to tracer molecular wts  
          !   
@@ -209,7 +213,7 @@ CONTAINS
          !
          ! Therefore, with:
          !
-         !  TCVV(N) = air molecular wt / tracer molecular wt 
+         !  TCVV(N) = dry air molecular wt / tracer molecular wt 
          !     
          ! the conversion is:
          ! 
@@ -234,7 +238,7 @@ CONTAINS
       !$OMP END PARALLEL DO
 
     ! Return to calling program
-    END SUBROUTINE Convert_VR_to_MMR
+    END SUBROUTINE Convert_VMR_to_MMR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -247,7 +251,7 @@ CONTAINS
 !  tracer concentrations from mass mixing ratio (MMR) 
 !  [kg tracer/kg dry air] to tracer mass per grid box [kg]. 
 !
-!  NOTE: This will go away in the future.
+!  NOTE: This will go away in the future with grid-independence.
 !\\
 !\\
 ! !INTERFACE:
@@ -438,7 +442,7 @@ CONTAINS
     ! Number of tracers
     INTEGER, INTENT(IN)      :: N_TRACERS 
 
-    ! Array containing grid box air density [kg/m3]
+    ! Array containing grid box dry air density [kg/m3]
     REAL(fp),  INTENT(IN)    :: AIRDEN(IIPAR,JJPAR,LLPAR)
 
     ! Array containing molecules tracer / kg tracer
@@ -470,9 +474,9 @@ CONTAINS
          !
          !  The conversion is as follows:
          !
-         !   kg tracer(N)    kg air          m3        molecules tracer(N)     
-         !   -----------  * --------  *  ---------  *  ------------------      
-         !     kg air          m3         1E6 cm3        kg tracer(N)  
+         !   kg tracer(N)   kg dry air     m3        molecules tracer(N)
+         !   -----------  * ---------- * -------  *  ------------------      
+         !     kg air          m3        1E6 cm3        kg tracer(N)  
          !
          !   = mass mixing ratio * dry air density * molecules / kg tracer
          !   
@@ -572,7 +576,7 @@ CONTAINS
          !
          ! Therefore, with:
          !
-         !  XNUMOL(N)       = molecules tracer / kg tracer
+         !  XNUMOL(N)      = molecules tracer / kg tracer
          !  AIRDEN(I,J,L)  = grid box dry air density [kg/m3]
          !     
          ! the conversion is:
