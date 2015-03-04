@@ -111,6 +111,12 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
+    ! Skip unless we are doing a fullchem or aerosol-only simulation
+    IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) .and. &
+         ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+       RETURN
+    ENDIF
+
     ! Nullify pointer
     Ptr2D => NULL()
 

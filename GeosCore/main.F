@@ -1227,7 +1227,7 @@
      &                          State_Met, State_Chm, RC )
 
             ! Copy UV Albedo data (for photolysis) into State_Met%UVALBEDO
-            ! NOTE: This has to be done after the HEMCO run method
+            ! NOTE: This has to be done after the HEMCO run method!
             IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
                CALL GET_UVALBEDO( am_I_Root, Input_Opt, State_Met, RC )
             ENDIF

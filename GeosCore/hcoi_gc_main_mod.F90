@@ -2322,7 +2322,7 @@ CONTAINS
        ELSE
           OptName = '+UValbedo+ : false'
        ENDIF
-       CALL AddExtOpt( TRIM(OptName), 0, RC ) 
+       CALL AddExtOpt( TRIM(OptName), 0, RC )      
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt +Uvalbedo+', LOC )
        ENDIF
@@ -2356,7 +2356,7 @@ CONTAINS
        ELSE
           OptName = '+LinStratChem+ : false'
        ENDIF
-       CALL AddExtOpt( TRIM(OptName), 0, RC ) 
+       CALL AddExtOpt( TRIM(OptName), 0, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt +LinStratChem+', LOC )
        ENDIF
