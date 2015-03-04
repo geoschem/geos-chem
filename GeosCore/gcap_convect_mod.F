@@ -20,10 +20,6 @@
 !  (5 ) CONVTRAN           : ZHANG/MCFARLANE convection scheme routine
 !  (6 ) WHENFGT            : Test funtion
 !
-!  GEOS-CHEM modules referenced by fvdas_convect_mod.f:
-!  ============================================================================
-!  (1 ) pressure_mod.f     : Module containing routines to compute P(I,J,L)
-!
 !  NOTES:  
 !  (1 ) Rewrote parallel loops to avoid problems w/ OpenMP (bmy, 12/13/05)
 !  (2 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
@@ -33,6 +29,7 @@
 !  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod (not used)
 !******************************************************************************
 !  
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -435,7 +432,6 @@
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD38, CONVFLUP
       USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD 

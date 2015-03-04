@@ -2195,7 +2195,6 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE PRESSURE_MOD,       ONLY : GET_PEDGE,   GET_PCENTER
     USE TAGGED_Ox_MOD,      ONLY : ADD_STRAT_POX
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
     USE TRACERID_MOD,       ONLY : IDTO3,       IDTO3Strt
@@ -2307,6 +2306,10 @@ CONTAINS
 !  05 Nov 2013 - R. Yantosca - Rename IDTOxStrt to IDTO3Strt
 !  23 Jan 2014 - M. Sulprizio- Linoz does not call UPBDFLX_O3. Synoz does. 
 !                              Now uncomment ADD_STRAT_POx (jtl,hyl,dbj,11/3/11)
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
+!                              State_Met%PEDGE and State_Met%PMID. Remove
+!                              dependency on pressure_mod.
+!  03 Mar 2015 - E. Lundgren - Use virtual temperature in hypsometric eqn
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2483,7 +2486,7 @@ CONTAINS
           DO L = 1, LLPAR
 
              ! P2 = pressure [hPa] at the sigma center of level L70mb
-             P2 = GET_PCENTER(I,J,L) 
+             P2 = State_Met%PMID(I,J,L) 
 
              IF ( P2 < P70mb ) THEN
                 L70mb = L
@@ -2492,10 +2495,10 @@ CONTAINS
           ENDDO
 
           ! P1 = pressure [hPa] at the sigma center of level L70mb - 1   
-          P1 = GET_PCENTER(I,J,L70mb-1) 
+          P1 = State_Met%PMID(I,J,L70mb-1) 
 
           ! P3 = pressure [hPa] at the lower sigma edge of level L70mb
-          P3 = GET_PEDGE(I,J,L70mb) 
+          P3 = State_Met%PEDGE(I,J,L70mb) 
 
           !==============================================================
           ! T2 = temperature (K)  at the sigma center of level L70mb
@@ -2508,8 +2511,10 @@ CONTAINS
           ! ZUP is the height from the sigma center of the 
           ! (L70mb-1)th layer
           !============================================================== 
-          T2   = State_Met%T(I,J,L70mb  )
-          T1   = State_Met%T(I,J,L70mb-1)
+
+          ! Use virtual temperature for hypsometric equation (ewl, 3/3/15)
+          T2   = State_Met%TV(I,J,L70mb  )
+          T1   = State_Met%TV(I,J,L70mb-1)
 
           DZ   = Rdg0 * ( (T1 + T2) / 2e+0_fp ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
@@ -2608,7 +2613,6 @@ CONTAINS
 ! !USES:
 !
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE TRACERID_MOD,       ONLY : IDTHD, IDTH2
@@ -2657,6 +2661,10 @@ CONTAINS
 !  25 Mar 2013 - R. Yantosca - Now use explicit numbers for J30S, J30N
 !  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocessor switch
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
+!                              State_Met%PEDGE and State_Met%PMID.
+!                              Remove dependency on pressure_mod.
+!  03 Mar 2015 - E. Lundgren - Use virtual temperature in hypsometric eqn
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2792,7 +2800,7 @@ CONTAINS
           ! P2 = pressure [ mb ] at the sigma center     of level L70mb
           !===========================================================
           DO L = 1, LLPAR
-             P2 = GET_PCENTER(I,J,L) 
+             P2 = State_Met%PMID(I,J,L) 
 
              IF ( P2 < P70mb ) THEN
                 L70mb = L
@@ -2800,8 +2808,8 @@ CONTAINS
              ENDIF
           ENDDO
 
-          P1 = GET_PCENTER(I,J,L70mb-1) 
-          P3 = GET_PEDGE(I,J,L70mb) 
+          P1 = State_Met%PMID(I,J,L70mb-1) 
+          P3 = State_Met%PEDGE(I,J,L70mb) 
 
           !===========================================================
           ! T2 = temperature (K)  at the sigma center of level L70mb
@@ -2814,8 +2822,10 @@ CONTAINS
           ! ZUP is the height from the sigma center of the 
           ! (L70mb-1)th layer
           !=========================================================== 
-          T2   = State_Met%T(I,J,L70mb  )
-          T1   = State_Met%T(I,J,L70mb-1)
+ 
+          ! Use virtual temperature in hypsometric equ (ewl, 3/3/15)
+          T2   = State_Met%TV(I,J,L70mb  )
+          T1   = State_Met%TV(I,J,L70mb-1)
 
           DZ   = Rdg0 * ( (T1 + T2) / 2e+0_fp ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )

@@ -338,8 +338,6 @@
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS:
 !
@@ -361,6 +359,10 @@
 !  14 Nov 2012 - R. Yantosca - Added am_I_Root, RC arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with 
+!                              State_Met%PMID and State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -393,10 +395,10 @@
       DO I = 1, IIPAR
 	
          ! Surface pressure
-         PSFC = GET_PEDGE(I,J,1)
+         PSFC = State_Met%PEDGE(I,J,1)
 
          ! Pressure at the center of the grid box
-         PRES = GET_PCENTER(I,J,L)
+         PRES = State_Met%PMID(I,J,L)
 
          ! RH (from "dao_mod.f") is relative humidity [%]
          ! Convert to fraction and store in RH2
@@ -850,7 +852,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTSO4s
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
@@ -887,6 +888,8 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  06 Jan 2015 - M. Yannetti - Changed some variables to f8 as needed
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -992,7 +995,8 @@
          DO L = 1, LLPAR
 
             ! Pressure at center of the level [kPa]
-            P       = GET_PCENTER(I,J,L) * 0.1e+0_fp
+            ! Now using dry air partial pressure [hPa] (ewl, 3/2/15)
+            P       = State_Met%PMID_DRY(I,J,L) * 0.1e+0_fp
 
             ! Temperature [K]
             TEMP    = State_Met%T(I,J,L)
@@ -1770,7 +1774,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TRACERID_MOD,       ONLY : IDTH2O2
@@ -1874,6 +1877,8 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  12 Jan 2015 - C. Keller   - Now allow NDENS_SALA and NDENS_SALC to be empty.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2010,7 +2015,7 @@
          O3     = GET_O3( I, J, L, Input_Opt, State_Met )
 
          ! PATM  : Atmospheric pressure in atm
-         PATM   = GET_PCENTER( I, J, L ) / 1013.25e+0_fp
+         PATM   = State_Met%PMID( I, J, L ) / 1013.25e+0_fp
 
          ! TK : Temperature [K]
          TK     = State_Met%T(I,J,L)

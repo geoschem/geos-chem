@@ -1029,7 +1029,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -1054,6 +1053,9 @@
 !                                parallel DO loop.  Switch loop order to L-J-I.
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
+!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
+!                                air pressure, with State_Met%PMID_DRY.
+!                                Remove dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1271,7 +1273,8 @@
          TINV  = 1.e+0_fp/T3K
 
          ! Calculate air number density (molec/cm3)
-         NDAIR = GET_PCENTER(I,J,L)*1.d-4*AVOGADRO/(R_UNIV*T3K)
+         ! Now using dry air partial pressure (ewl, 3/2/15)
+         NDAIR = State_Met%PMID_DRY(I,J,L)*1.d-4*AVOGADRO/(R_UNIV*T3K)
          XAIR  = NDAIR / State_Met%AD(I,J,L)
 
          ! Calculate local NOx, N2O and O3 number density
@@ -1409,7 +1412,6 @@
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1426,6 +1428,9 @@
 !  14 Feb 2014 - R. Yantosca   - Parallelize main DO loop 
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt and State_Met objects via
 !                                the arg list
+!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
+!                                air pressure, with State_Met%PMID and
+!                                remove dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1654,7 +1659,7 @@
             IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) CYCLE
 
             ! Pressure at center of cell
-            PCENTER = GET_PCENTER(I,J,L)
+            PCENTER = State_Met%PMID(I,J,L)
             FOUNDLEV = (PCENTER.gt.UCX_PLEVS(VERTCOUNT))
             DO WHILE (.not. FOUNDLEV)
                IF (VERTCOUNT.eq.1) THEN
@@ -1732,7 +1737,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1756,6 +1760,9 @@
 !  14 Feb 2014 - R. Yantosca   - Now parallelize main DO loop
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
+!                                air pressure, with State_Met%PMID_DRY and
+!                                remove dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1916,7 +1923,8 @@
                   SET_CELL = .TRUE.
                ENDIF
                ! Pressure at center of cell
-               PCENTER = GET_PCENTER(I,J,L)
+               ! Now using dry air partial pressure (ewl, 3/2/15)
+               PCENTER = State_Met%PMID_DRY(I,J,L)
                FOUNDLEV = (PCENTER.gt.UCX_PLEVS(VERTCOUNT))
                DO WHILE (.not. FOUNDLEV)
                   IF (VERTCOUNT.eq.1) THEN
@@ -2622,7 +2630,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_ErrCode_Mod
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE TRACERID_MOD,       ONLY : IDTNIT,IDTBCPI,IDTH2O,IDTHNO3
 !
@@ -2643,6 +2650,12 @@
 !  07 Feb 2014 - R. Yantosca - Cosmetic changes
 !  21 Feb 2014 - M. Sulprizio- Now pass Input_Opt, State_Met, and State_Chm 
 !                              objects via the arg list
+!  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE, which 
+!                              retrieve wet air pressure, with State_Met
+!                              vars PMID and PEDGE and remove
+!                              dependency on PRESSURE_MOD. In some cases,
+!                              use State_Met%DELP in place of difference of
+!                              adjacent level PEDGE.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2817,7 +2830,8 @@
             TEMP    = State_Met%T(I,J,L)
  
             ! Pressure at center of the level [kPa]
-            P       = GET_PCENTER(I,J,L) * 0.1e+0_fp
+            ! Now using dry air partial pressure (ewl, 3/2/15)
+            P       = State_Met%PMID_DRY(I,J,L)  * 0.1e+0_fp
 
             RUNCALC = ITS_IN_THE_STRATMESO(I,J,L,State_Met)
 
@@ -3051,7 +3065,7 @@
      &                     State_Met%AD(I,J,L))
                ENDIF
                XPSC_0   = XNAT_0 + XICE_0
-               P_0      = 100.0e+0_fp * GET_PCENTER(I,J,L)
+               P_0      = 100.0e+0_fp * State_Met%PMID(I,J,L) 
                INVAIR_0 = AIRMW/State_Met%AD(I,J,L)
                IF (L .lt. (LLPAR-1)) THEN
                   INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+1)
@@ -3072,10 +3086,14 @@
      &                   STT(I,J,L+1,IDTNIT)))*INVAIR_ABOVE/ICEMW
                   ENDIF
                   XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
-                  P_ABOVE    = 100.0e+0_fp * GET_PCENTER(I,J,L+1)
-                  PSEDABOVE  = VNAT(L+1)*SEDSTEP*1.e+2_fp*
-     &                         (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))/
-     &                         State_Met%BXHEIGHT(I,J,L+1)
+                  P_ABOVE    = 100.0e+0_fp * State_Met%PMID(I,J,L+1)
+
+                  ! Replace PEDGE(I,J,L+1) - PEDGE(I,J,L+2)
+                  ! with equivalent State_Met%DELP(I,J,L+1)
+                  ! (ewl, 3/2/15)
+                  PSEDABOVE  = VNAT(L+1) * SEDSTEP * 1.e+2_fp *
+     &                         State_Met%DELP(I,J,L+1)
+     &                         / State_Met%BXHEIGHT(I,J,L+1)
 !                  PSEDABOVE=g0 * (1.0d3*AIRMW) * P_ABOVE * 
 !     &               VNAT(L+1) / (Rd * T(I,J,L+1))*SEDSTEP
                ELSE
@@ -3084,7 +3102,7 @@
                   XNAT_ABOVE = 0.0e+0_fp
                   XICE_ABOVE = 0.0e+0_fp
                   XPSC_ABOVE = 0.0e+0_fp
-                  P_ABOVE = GET_PEDGE(I,J,L+2) * 100.0e+0_fp
+                  P_ABOVE = State_Met%PEDGE(I,J,L+2) * 100.0e+0_fp
                   PSEDABOVE = 0.0e+0_fp
                ENDIF
                ABOVEGRAD = (XPSC_ABOVE-XPSC_0)/(P_0-P_ABOVE)
@@ -3123,10 +3141,15 @@
                         XICE_ABOVE = 0e+0_fp
                      ENDIF
                      XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
-                     P_ABOVE    = GET_PCENTER(I,J,L+2) * 100.0e+0_fp
-                     PSEDABOVE  = VNAT(L+2)*SEDSTEP*1.e+2_fp*
-     &                          (GET_PEDGE(I,J,L+2)-GET_PEDGE(I,J,L+3))/
-     &                          State_Met%BXHEIGHT(I,J,L+2)
+                     P_ABOVE    = State_Met%PMID(I,J,L+2) 
+     &                            * 100.0e+0_fp
+
+                     ! Replace PEDGE(I,J,L+2) - PEDGE(I,J,L+3) 
+                     ! with equivalent State_Met%DELP(I,J,L+2)
+                     ! (ewl, 3/2/15)
+                     PSEDABOVE  = VNAT(L+2) * SEDSTEP * 1.e+2_fp *
+                                   State_Met%DELP(I,J,L+2)
+     &                            / State_Met%BXHEIGHT(I,J,L+2)
 !                     PSEDABOVE = g0 * (1.0d3*AIRMW) * P_ABOVE *
 !     &                  VNAT(L+2)/(Rd * T(I,J,L+2))*SEDSTEP
                   ELSE
@@ -3135,7 +3158,8 @@
                      XNAT_ABOVE = 0.0e+0_fp
                      XICE_ABOVE = 0.0e+0_fp
                      XPSC_ABOVE = 0.0e+0_fp
-                     P_ABOVE = GET_PEDGE(I,J,L+2) * 100.0e+0_fp
+                     P_ABOVE = State_Met%PEDGE(I,J,L+2) 
+     &                         * 100.0e+0_fp
                      PSEDABOVE = 0.0e+0_fp
                   ENDIF
                   ! Note reversal of pressure values as pressure falls with
@@ -3195,12 +3219,16 @@
                   ! Note conversion from hPa to Pa for denominator, ie
                   ! multiply numerator by (1/100)
                   IF (L .ne. LLPAR) THEN
+
+                     ! Replace PEDGE(I,J,L+1) - PEDGE(I,J,L+2) 
+                     ! with equivalent State_Met%DELP(I,J,L+1)
+                     ! (ewl, 3/2/15)
                      SEDQUANT = (1.e-2_fp) * SEDQUANT /
-     &                  (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+     &                          State_Met%DELP(I,J,L+1)
                      SEDNO3 = (1.e-2_fp) * SEDNO3 / 
-     &                  (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+     &                          State_Met%DELP(I,J,L+1)
                      SEDICE = (1.e-2_fp) * SEDICE / 
-     &                  (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+     &                          State_Met%DELP(I,J,L+1)
                   ELSE
                      ! This shouldn't be possible?
                      CALL ERROR_STOP('Unknown sedimentation error',
@@ -3321,7 +3349,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTSO4
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 !
 ! !INPUT PARAMETERS:
 !
@@ -3336,6 +3363,9 @@
 !                                which is the most efficient configuration
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
+!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
+!                                air pressure, with State_Met%PMID_DRY and
+!                                remove dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3400,8 +3430,9 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          ! Only interested in low-pressure boxes
-         PCENTER = GET_PCENTER(I,J,L)
          TCENTER = State_Met%T(I,J,L)
+         ! Now using dry air partial pressure (ewl, 3/2/15)
+         PCENTER = State_Met%PMID_DRY
          INVAIR  = AIRMW / State_Met%AD(I,J,L)
          IF (PCENTER.ge.1.e+2_fp) THEN
             AERFRAC(I,J,L,1) = 1e+0_fp
@@ -3512,7 +3543,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       !USE GRID_MOD,           ONLY : GET_YEDGE
       USE GRID_MOD,           ONLY : GET_YMID
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTH2O
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTNIT, IDTBrNO3, IDTHBr
       USE TRACERID_MOD,       ONLY : IDTHOBr, IDTHCl, IDTClNO3, IDTHOCl
@@ -3538,6 +3568,9 @@
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
 !  06 Nov 2014 - R. Yantosca   - Now use State_Met%CLDF(I,J,L)
+!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
+!                                air pressure, with State_Met%PMID_DRY and
+!                                remove dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3730,7 +3763,8 @@
      &                      (BOX_LAT >= PSC_MAXLAT)     )
 
                ! Get local conditions
-               PCENTER    = GET_PCENTER(I,J,L) 
+               ! Now using dry air partial pressure (ewl, 3/2/15)
+               PCENTER    = State_Met%PMID_DRY(I,J,L)
                PCENTER_PA = PCENTER*1.e+2_fp
                TCENTER    = State_Met%T(I,J,L)
                TINV       = 1.e+0_fp/TCENTER
@@ -5783,7 +5817,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTH2O
 !
 ! !INPUT PARAMETERS:
@@ -5801,6 +5834,8 @@
 !  14 Feb 2014 - R. Yantosca   - Reordered DO loop for efficiency
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
+!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID and
+!                                remove dependency on PRESSURE_MOD.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5850,7 +5885,7 @@
      &                              State_Met%AD(I,J,L)
 
             ! Pressure at midpoint of box (I,J,L)
-            PRES = GET_PCENTER(I,J,L)
+            PRES = State_Met%PMID(I,J,L)
 
             ! Temperature at grid box (I,J,L)
             TEMP = State_Met%T(I,J,L)

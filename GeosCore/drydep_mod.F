@@ -27,7 +27,6 @@
       USE ERROR_MOD                             ! Error handling routines
       USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE PBL_MIX_MOD                           ! Boundary layer quantities
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE      ! Pressure @ level edges
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
       USE TRACERID_MOD                          ! Tracer ID flags
 #if   defined( TOMAS )
@@ -190,6 +189,8 @@
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jul 2014 - R. Yantosca - Removed reference to commsoil_mod.F
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD, changed REAL*8 to REAL(fp)
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE_DRY.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -809,7 +810,8 @@
          CZ1(IJLOOP)    = THIK / 2.0e+0_f8
 
          ! Local surface pressure [hPa] (mpayer, 1/10/12)
-         SP             = GET_PEDGE(I,J,1)
+         ! Now using dry air partial pressure [hPa] (ewl, 3/2/15)
+         SP             = State_Met%PEDGE_DRY(I,J,1)
 
          ! Convert from hPa to Pa for SFCPRESS
          PRESSU(IJLOOP) = SP * 1.e+2_f8

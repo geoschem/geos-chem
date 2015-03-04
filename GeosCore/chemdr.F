@@ -30,7 +30,6 @@
       USE COMODE_MOD,           ONLY : JLOP_PREVIOUS
       USE COMODE_MOD,           ONLY : TAREA
       USE COMODE_LOOP_MOD
-      USE DAO_MOD,              ONLY : MAKE_AVGW
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
       USE DUST_MOD,             ONLY : RDUST_ONLINE
@@ -249,6 +248,8 @@
 !                              semivolatile POA simulations (H. Pye)
 !  23 Jul 2014 - R. Yantosca - Removed reference to obsolete CMN_NOX_mod.F
 !  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  02 Mar 2015 - E. Lundgren - Remove MAKE_AVGW call. State_Met%AVGW now 
+!                              set in AIRQNT within dao_mod.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,11 +328,6 @@
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT       => State_Chm%Tracers
-
-      !=================================================================
-      ! Compute AVGW, the mixing ratio of water vapor
-      !=================================================================
-      CALL MAKE_AVGW( State_Met )
 
       !=================================================================
       ! Open "smv2.log" output file and read chem mechanism switches

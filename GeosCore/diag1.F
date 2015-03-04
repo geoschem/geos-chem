@@ -34,8 +34,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTO3
@@ -140,6 +138,8 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  20 Jan 2015 - R. Yantosca - Added new netCDF diagnostics
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE and
+!                              GET_PCENTER with State_Met%PMID.
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -282,7 +282,7 @@
          DO L = 1, LD31
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD31(I,J,L) = AD31(I,J,L) + GET_PEDGE( I, J, L ) 
+            AD31(I,J,L) = AD31(I,J,L) + State_Met%PEDGE( I, J, L ) 
          ENDDO
          ENDDO
          ENDDO
@@ -415,10 +415,10 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            P0          = GET_PEDGE(I,J,1)
+            P0          = State_Met%PEDGE(I,J,1)
 
             AD57(I,J,L) = AD57(I,J,L) + State_Met%T(I,J,L) *
-     &                  ( P0 / GET_PCENTER( I, J, L ) )**0.286
+     &                    ( P0 / State_Met%PMID( I, J, L ) )**0.286
 
          ENDDO
          ENDDO
@@ -435,8 +435,9 @@
 
             ! PBL is in [m], use hydrostatic law to get [hPa]
             AD67(I,J,13) = AD67(I,J,13) + 
-     &                   ( GET_PEDGE(I,J,1) * EXP( -State_Met%PBLH(I,J)
-     &                   / SCALE_HEIGHT ) )
+     &                     ( State_Met%PEDGE(I,J,1) 
+     &                     * EXP( -State_Met%PBLH(I,J)
+     &                     / SCALE_HEIGHT ) )
 
          ENDDO
          ENDDO
@@ -470,6 +471,7 @@
             IF ( AVGW_ALLOCATED ) THEN
                AD68(I,J,L,3) = AD68(I,J,L,3) + State_Met%AVGW(I,J,L)
             ENDIF
+
          ENDDO
          ENDDO
          ENDDO

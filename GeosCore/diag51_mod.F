@@ -406,7 +406,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TIME_MOD,           ONLY : GET_TS_DIAG, GET_TS_EMIS
@@ -473,6 +472,8 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -735,7 +736,7 @@
                ! CLOUD TOP HEIGHTS [mb]
                !--------------------------------------
                IF ( K == 1 ) THEN
-                  TMP        = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
+                  TMP      = State_Met%PEDGE(I,J,State_Met%CLDTOPS(I,J))
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( TMP * GOOD(I) )
                ENDIF
 
@@ -791,7 +792,8 @@
                !--------------------------------------
                ! PEDGE-$ (prs @ level edges) [hPa]
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( GET_PEDGE(I,J,K) * GOOD(I) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &                      ( State_Met%PEDGE(I,J,K) * GOOD(I) )
 
             ELSE IF ( N == 163 .and. IS_SLP ) THEN
 

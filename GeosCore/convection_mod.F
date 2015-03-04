@@ -99,7 +99,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TRACERID_MOD
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
@@ -166,6 +165,8 @@
 !  18 Apr 2014 - R. Yantosca - Now use proper # of tracers for APM in the
 !                              call to DO_MERRA_CONVECTION (MERRA & GEOS-FP)
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -324,7 +325,7 @@
 
          ! Pressure edges
          DO L = 1, LLPAR+1
-            PEDGE(L) =  GET_PEDGE( I, J, L )
+            PEDGE(L) =  State_Met%PEDGE( I, J, L )
          ENDDO
 
          ! NOTE: For some reason the code chokes when we try
@@ -420,7 +421,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
 #if   defined( APM ) 
@@ -458,6 +458,9 @@
 !                              F array to subroutine COMPUTE_F
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt to CONVTRAN
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with 
+!                              State_Met%DELP.Remove dependency on 
+!                              pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -529,7 +532,7 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_FVDAS_CONVECT( am_I_Root )
+         CALL INIT_FVDAS_CONVECT( am_I_Root, State_Met )
          FIRST = .FALSE.
       ENDIF
 
@@ -599,12 +602,10 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
                
-            ! Pressure at bottom and top edges of grid box [hPa]
-            P1 = GET_PEDGE(I,J,L)
-            P2 = GET_PEDGE(I,J,L+1)
-
             ! DP = Pressure difference between top & bottom edges [Pa]
-            DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
+            ! Now use DELP, equivalent to delta pressure level [hPa]
+            ! (ewl, 3/2/15)
+            DP(I,J,L2) = State_Met%DELP(I,J,L) * 100.0e+0_fp
 
             ! RPDEL = reciprocal of DP [1/hPa]
             RPDEL(I,J,L2) = 100.0e+0_fp / DP(I,J,L2) 
@@ -705,7 +706,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
 #if   defined( APM )
@@ -744,6 +744,9 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!                              Replace PEDGE difference with State_Met%DELP.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -853,7 +856,7 @@
 
             ! Shut off scavenging in shallow convection for GCAP
             ! (swu, bmy, 11/1/05)
-            IF ( GET_PCENTER( I, J, L ) > 700e+0_fp ) 
+            IF ( State_Met%PMID( I, J, L ) > 700e+0_fp ) 
      &            F(I,J,L,N) = 0e+0_fp
 
             ! ND37 diagnostic: store fraction of tracer 
@@ -889,12 +892,10 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
                
-            ! Pressure at bottom and top edges of grid box [hPa]
-            P1 = GET_PEDGE(I,J,L)
-            P2 = GET_PEDGE(I,J,L+1)
-
-            ! DP = Pressure difference between top & bottom edges [Pa]
-            DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
+             ! DP = Pressure difference between top & bottom edges [Pa]
+             ! Now use DELP, equivalent to delta pressure level [hPa]
+             ! (ewl, 3/2/15)
+             DP(I,J,L2) = State_Met%DELP(I,J,L) * 100.0e+0_fp
          ENDDO
          ENDDO
       ENDDO
@@ -1003,7 +1004,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE PRESSURE_MOD,       ONLY : GET_BP
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP 
@@ -1185,6 +1185,9 @@
 !  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
 !                              F array to subroutine COMPUTE_F
 !  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE differences with
+!                              State_Met%DELP.Remove dependency on 
+!                              pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1474,10 +1477,13 @@
 
                   ! Need to replace DSIG w/ the difference 
                   ! of pressure edges for GEOS-5 (bmy, 6/27/07)
+                  ! Now use DELP, equivalent to delta pressure level [hPa]
+                  ! (ewl, 3/2/15)
                   QB(I,J) = 
-     &       ( Q(I,J,1,IC) * ( GET_PEDGE(I,J,1) - GET_PEDGE(I,J,2) )   + 
-     &         Q(I,J,2,IC) * ( GET_PEDGE(I,J,2) - GET_PEDGE(I,J,3) ) ) / 
-     &                       ( GET_PEDGE(I,J,1) - GET_PEDGE(I,J,3) )
+     &                      ( Q(I,J,1,IC) * State_Met%DELP(I,J,1) + 
+     &                      Q(I,J,2,IC) * State_Met%DELP(I,J,2) ) / 
+     &                      ( State_Met%DELP(I,J,1) 
+     &                      + State_Met%DELP(I,J,2) )
 
 #else
                   ! for GEOS-3

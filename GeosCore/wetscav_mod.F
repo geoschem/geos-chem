@@ -8614,7 +8614,6 @@
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE DAO_MOD,            ONLY : IS_WATER
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -8626,7 +8625,8 @@
       REAL(fp)                      :: VUD     ! Vertical updraft velocity in m/s. 
 ! 
 ! !REVISION HISTORY:
-!  12 Feb 2015 - C. Keller   - Initial version 
+!  12 Feb 2015 - C. Keller   - Initial version
+!  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod since not used. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8689,7 +8689,6 @@
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE DAO_MOD,            ONLY : IS_WATER
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -8703,6 +8702,7 @@
 ! 
 ! !REVISION HISTORY:
 !  12 Feb 2015 - C. Keller   - Initial version 
+!  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod since not used.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8755,7 +8755,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTH2O2, IDTSO2
 !
 ! !INPUT PARAMETERS:
@@ -8803,6 +8802,8 @@
 !                              EXTERNAL_GRID || EXTERNAL_FORCING
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8919,7 +8920,7 @@
          
             ! Compute Temp [K] and Pressure [hPa]
             TK = State_Met%T(I,J,L)
-            PL = GET_PCENTER(I,J,L)
+            PL = State_Met%PMID_DRY(I,J,L)
          
             !==============================================================
             ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)

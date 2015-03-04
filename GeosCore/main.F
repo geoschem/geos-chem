@@ -252,9 +252,7 @@
 !  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
 !  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
-!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers. Change primary
-!                              tracer units to kg tracer/kg dry air. Remove
-!                              legacy CONVERT_UNITS subroutine calls.
+!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -318,9 +316,6 @@
       ! (mlong, bmy, 7/30/12)
       !
       LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
-      !
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       !
       ! Define shadow variables for fields in Input_Opt (bmy, 6/25/14)
       LOGICAL                  :: ITS_A_FULLCHEM_SIM 
@@ -521,12 +516,10 @@
       ! N_TRACERS, which is obtained by reading the input.geos file.
       !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, Input_Opt, State_Chm )
-      !
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field.  This will let us convert
       ! HEMCO emissions [kg/m2/s] to [kg] in various routines 
       ! without the overhead of many function calls. (bmy, 8/22/14)
-      ! REMOVE??? (elundgren, 2/15/15)
       State_Met%AREA_M2 =  AREA_M2
 
       !-----------------------------------------------------------------
@@ -1118,10 +1111,6 @@
          ! Get the overhead column O3 for use with FAST-J
          CALL GET_OVERHEAD_O3_FOR_FASTJ( am_I_Root )
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Legacy Code
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          !==============================================================
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
@@ -1151,7 +1140,6 @@
 !         CALL CONVERT_KG_to_MMR( N_TRACERS, State_Met%AD, 
 !     &                           State_Chm%TRACERS )
 !!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
          !==============================================================
          !              ***** T R A N S P O R T *****
@@ -1189,29 +1177,14 @@
 #endif
 !-----------------------------------------------------------------------------
 
-            ! Call the appropritate version of TPCORE
+            ! Call the appropriate version of TPCORE
             IF ( LTRAN ) THEN 
                CALL DO_TRANSPORT
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
             ! Reset State_Met air mass quantities
-            ! (ewl, 2/18/2015 - should this go after MAKE_RH call?)
             CALL AIRQNT( am_I_root, State_Met, RC )
-
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
-            ! Get relative humidity (after recomputing pressures)
-            ! NOTE: for GEOS-5 we'll read this from disk instead
-            CALL MAKE_RH( State_Met )
-#endif
-
-
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!! TEMPORARY - ewl, 2/17/15
-!! Convert kg/kg back to kg
-!         CALL CONVERT_MMR_to_KG( N_TRACERS, State_Met%AD, 
-!     &                           State_Chm%TRACERS )
-!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
@@ -1239,18 +1212,9 @@
          !-------------------------------
          IF ( LNLPBL .AND. ITS_TIME_FOR_EMIS() ) THEN
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Legacy Code
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             IF ( ITS_TIME_FOR_UNIT() )  ! v/v -> kg
      &         CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV,
      &                             State_Met%AD, State_Chm%TRACERS )
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! End Legacy Code - ewl, 2/17/15
-! Expecting kg starts here
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
@@ -1285,18 +1249,9 @@
                CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
             ENDIF
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Legacy Code
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             IF ( ITS_TIME_FOR_UNIT() ) ! kg -> v/v
      &         CALL CONVERT_UNITS( 1, N_TRACERS, Input_Opt%TCVV, 
      &                             State_Met%AD, State_Chm%TRACERS ) 
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! End Legacy Code (ewl, 2/17/15)
-! Expecting vol/vol starts here
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
             IF ( ITS_A_FULLCHEM_SIM ) THEN
@@ -1370,10 +1325,6 @@
             ENDIF 
          ENDIF 
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Legacy Code
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          !==============================================================
          !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
          !==============================================================
@@ -1386,12 +1337,6 @@
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
             ENDIF
          ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! End Legacy Code (ewl, 2/17/15)
-! Expecting kg starts here for the rest of main.F
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
          !-------------------------------
          ! Test for emission timestep

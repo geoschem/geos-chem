@@ -178,7 +178,6 @@
       USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH,   OH
       USE GLOBAL_NOX_MOD,     ONLY : GET_GLOBAL_NOX,  BNOX
       USE GRID_MOD,           ONLY : GET_YMID
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
@@ -262,6 +261,8 @@
 !  10 Jul 2014 - J.A. Fisher - Moved ALPHA definitions out of code
 !  27 Aug 2014 - R. Yantosca - Bug fix: pass Input_Opt to GET_GLOBAL_CH4
 !  21 Oct 2014 - C. Keller   - Now use GetHcoVal instead ot Trac_Tend array
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
+!                              Remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
