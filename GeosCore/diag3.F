@@ -679,7 +679,7 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
       
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
                   ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) 
      &                         * FACTOR * HcoState%Grid%AREA_M2%Val(:,:)
@@ -713,7 +713,7 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
       
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
                   ARRAY(:,:,1) = ARRAY(:,:,1) 
      &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR 
@@ -794,7 +794,7 @@
 
             ! Add units
             UNIT   = 'kg'
-            FACTOR = SCALESRCE
+            FACTOR = SECONDS
 
             !------------------------------
             ! MTPA
@@ -816,9 +816,10 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
 
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:)
+     &                         * FACTOR * HcoState%Grid%AREA_M2%Val(:,:)
                ELSE
                   ARRAY(:,:,1) = 0.0
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
@@ -839,10 +840,11 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
 
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = ARRAY(:,:,1) +
-     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+                  ARRAY(:,:,1) = ARRAY(:,:,1)
+     &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR
+     &                         *   HcoState%Grid%AREA_M2%Val(:,:) )
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                   MSG = TRIM(MSG) // ' - will write zeros!'
@@ -862,10 +864,11 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
 
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = ARRAY(:,:,1) +
-     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+                  ARRAY(:,:,1) = ARRAY(:,:,1)
+     &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR
+     &                         *   HcoState%Grid%AREA_M2%Val(:,:) )
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                   MSG = TRIM(MSG) // ' - will write zeros!'
@@ -885,10 +888,11 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
 
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = ARRAY(:,:,1) +
-     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+                  ARRAY(:,:,1) = ARRAY(:,:,1)
+     &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR
+     &                         *   HcoState%Grid%AREA_M2%Val(:,:) )
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                   MSG = TRIM(MSG) // ' - will write zeros!'
@@ -904,7 +908,7 @@
             ENDIF
 
             !------------------------------
-            ! LIMO
+            ! LIMO (kg/m2/s --> kg)
             !------------------------------
             IF ( IDTLIMO > 0 ) THEN
                CATEGORY  = 'OC-LIMO'
@@ -912,7 +916,7 @@
                DiagnName = 'BIOGENIC_LIMO'
                CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                         UNIT,      NN, 1, -1, .TRUE.,   FACTOR,
-     &                         RC )
+     &                         RC,        AreaScal=1 )
                IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
             ENDIF
 
@@ -936,9 +940,10 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
 
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:)
+     &                         * FACTOR * HcoState%Grid%AREA_M2%Val(:,:)
                ELSE
                   ARRAY(:,:,1) = 0.0
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
@@ -959,10 +964,11 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
 
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = ARRAY(:,:,1) +
-     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+                  ARRAY(:,:,1) = ARRAY(:,:,1)
+     &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR
+     &                         *   HcoState%Grid%AREA_M2%Val(:,:) )
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                   MSG = TRIM(MSG) // ' - will write zeros!'
@@ -982,10 +988,11 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
 
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = ARRAY(:,:,1) +
-     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+                  ARRAY(:,:,1) = ARRAY(:,:,1)
+     &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR
+     &                         *   HcoState%Grid%AREA_M2%Val(:,:) )
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                   MSG = TRIM(MSG) // ' - will write zeros!'
@@ -1020,9 +1027,10 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
 
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:)
+     &                         * FACTOR * HcoState%Grid%AREA_M2%Val(:,:)
                ELSE
                   ARRAY(:,:,1) = 0.0
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
@@ -1043,10 +1051,11 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
 
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = ARRAY(:,:,1) +
-     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+                  ARRAY(:,:,1) = ARRAY(:,:,1)
+     &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR
+     &                         *   HcoState%Grid%AREA_M2%Val(:,:) )
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                   MSG = TRIM(MSG) // ' - will write zeros!'
@@ -1066,10 +1075,11 @@
                   CALL ERROR_STOP ( MSG, LOC ) 
                ENDIF
 
-               ! Save into ARRAY. Convert to units
+               ! Save into ARRAY and convert units from kg/m2/s to kg
                IF ( FLAG == HCO_SUCCESS ) THEN
-                  ARRAY(:,:,1) = ARRAY(:,:,1) +
-     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+                  ARRAY(:,:,1) = ARRAY(:,:,1)
+     &                         + ( DiagnCnt%Arr2D%Val(:,:) * FACTOR
+     &                         *   HcoState%Grid%AREA_M2%Val(:,:) ) 
                ELSE
                   MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
                   MSG = TRIM(MSG) // ' - will write zeros!'
@@ -3875,7 +3885,9 @@
          !%%% which is stored in Input_Opt%TRACER_COEFF. (bmy, 8/14/14)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+         !-----------------------------------------------------------
          !%%%%% ISOPRENE %%%%%
+         !-----------------------------------------------------------
          IF ( IDTISOP > 0 ) THEN
             DiagnName = 'BIOGENIC_ISOP'
             N         = 1         
@@ -3887,7 +3899,9 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
+         !-----------------------------------------------------------
          !%%%%% ACETONE %%%%%
+         !-----------------------------------------------------------
          IF ( IDTACET > 0 ) THEN
             N      = 2
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -3949,7 +3963,9 @@
 
          ENDIF
 
+         !-----------------------------------------------------------
          !%%%%% ALKENES %%%%%
+         !-----------------------------------------------------------
          IF ( IDTPRPE > 0 ) THEN
             DiagnName = 'BIOGENIC_PRPE'
             N         = 3
@@ -3961,8 +3977,11 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
+         !-----------------------------------------------------------
          !%%%%% TOTAL MONOTERPENES %%%%%
+         !
          ! APIN + BPIN + LIMO + SABI + MYRC + CARE + OCIM + OMON
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MONX'
          N         = 4
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -3972,7 +3991,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% METHYL BUTENOL %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MBOX'
          N         = 5
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -3982,7 +4003,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% ETHENE %%%%%
+         !-----------------------------------------------------------
          IF ( IDTC2H4 > 0 ) THEN
             DiagnName = 'BIOGENIC_C2H4'
             N         = 6
@@ -3994,7 +4017,9 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
  
+         !-----------------------------------------------------------
          !%%%%% ALPHA-PINENE %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_APIN'
          N         = 7
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4004,7 +4029,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% BETA-PINENE %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_BPIN'
          N         = 8
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4014,7 +4041,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% LIMONENE %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_LIMO'
          N         = 9
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4024,7 +4053,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% SABINENE %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_SABI'
          N         = 10
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4034,7 +4065,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% MYRCENE %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MYRC'
          N         = 11
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4044,7 +4077,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% 3-CARENE %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_CARE'
          N         = 12
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4054,7 +4089,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% OCIMENE %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_OCIM'
          N         = 13
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4064,25 +4101,31 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% FORMIC ACID %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_FAXX'
          N         = 14
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    = ( 6.022e+23_hp / 46.025e+0_hp ) / CM2PERM2
+         FACTOR    = ( HcoState%Phys%Avgdr / 46.025e+0_hp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% ACETIC ACID %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_AAXX'
          N         = 15
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    = ( 6.022e+23_hp / 60.052e+0_hp ) / CM2PERM2
+         FACTOR    = ( HcoState%Phys%Avgdr / 60.052e+0_hp ) / CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% ACETALDEHYDE %%%%%
+         !-----------------------------------------------------------
          IF ( IDTALD2 > 0 ) THEN
             DiagnName = 'BIOGENIC_ALD2'
             N         = 16
@@ -4094,7 +4137,9 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
+         !-----------------------------------------------------------
          !%%%%% OTHER MONOTERPENES %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_OMON'
          N         = 17
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4104,16 +4149,20 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% METHANOL %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_MOHX'
          N         = 18
          ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    =  ( 6.022e+23_hp / 32.042e+0_hp )/ CM2PERM2
+         FACTOR    =  ( HcoState%Phys%Avgdr / 32.042e+0_hp )/ CM2PERM2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% ETHANOL %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_ETOH'
          N         = 19
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4123,7 +4172,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% FARNESENE %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_FARN'
          N         = 20
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4133,7 +4184,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% B-CARYOPHYLLENE %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_BCAR'
          N         = 21
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4143,7 +4196,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% OTHER SESQUITERPENES %%%%%
+         !-----------------------------------------------------------
          DiagnName = 'BIOGENIC_OSQT'
          N         = 22
          ! Conversion factor from kgC/m2/s to atoms C/cm2/s
@@ -4153,7 +4208,9 @@
      &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
+         !-----------------------------------------------------------
          !%%%%% CHBr3 %%%%%
+         !-----------------------------------------------------------
          IF ( IDTCHBr3 > 0 ) THEN
             DiagnName = 'BIOGENIC_CHBR3'
             N         = 23
@@ -4163,7 +4220,9 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
  
+         !-----------------------------------------------------------
          !%%%%% CH2Br2 %%%%%
+         !-----------------------------------------------------------
          IF ( IDTCH2Br2 > 0 ) THEN
             DiagnName = 'BIOGENIC_CH2BR2'
             N         = 24
@@ -4173,7 +4232,9 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
  
+         !-----------------------------------------------------------
          !%%%%% Br2 %%%%%
+         !-----------------------------------------------------------
          IF ( IDTBr2 > 0 ) THEN
             DiagnName = 'SEASALT_BR2'
             N         = 25
@@ -4181,6 +4242,87 @@
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
+         !-----------------------------------------------------------
+         !%%%%% CH4 %%%%%
+         !
+         ! Total biogenic CH4 = wetlands + other natural - soil absorb
+         !-----------------------------------------------------------
+         IF ( IDTCH4 > 0 ) THEN
+            N         = 26
+            ! Conversion factor from kg/m2/s to molec/cm2/s
+            FACTOR    = Input_Opt%XNUMOL(IDTCH4) / CM2PERM2
+
+            ! (1) Wetlands
+            DiagnName = 'CH4_WETLANDS'
+            DiagnCnt  => NULL()
+
+            ! Get diagnostics from HEMCO
+            CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                      FLAG, RC,   cName=TRIM(DiagnName), 
+     &                      AutoFill=0, InclManual=.TRUE. )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
+
+            ! Save into ARRAY and convert units from kg/m2/s to molec/cm2/s
+            IF ( FLAG == HCO_SUCCESS ) THEN
+               ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+            ELSE
+               ARRAY(:,:,1) = 0.0
+               MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+               MSG = TRIM(MSG) // ' - will write zeros!'
+               CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ENDIF
+
+            ! (2) Other natural
+            DiagnName = 'CH4_OTHERNATUR'
+            DiagnCnt  => NULL()
+
+            ! Get diagnostics from HEMCO
+            CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                      FLAG, RC,   cName=TRIM(DiagnName), 
+     &                      AutoFill=0, InclManual=.TRUE. )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
+
+            ! Save into ARRAY and convert units from kg/m2/s to molec/cm2/s
+            IF ( FLAG == HCO_SUCCESS ) THEN
+               ARRAY(:,:,1) = ARRAY(:,:,1) +
+     &                      ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+            ELSE
+               MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+               MSG = TRIM(MSG) // ' - will write zeros!'
+               CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ENDIF
+
+            ! (3) Soil absorption (sink)
+            DiagnName = 'CH4_SOILABSORB'
+            DiagnCnt  => NULL()
+
+            ! Get diagnostics from HEMCO
+            CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                      FLAG, RC,   cName=TRIM(DiagnName), 
+     &                      AutoFill=0, InclManual=.TRUE. )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+               CALL ERROR_STOP ( MSG, LOC ) 
+            ENDIF
+
+            ! Subtract from ARRAY and convert units from kg/m2/s to molec/cm2/s
+            IF ( FLAG == HCO_SUCCESS ) THEN
+               ARRAY(:,:,1) = ARRAY(:,:,1) -
+     &                      ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+            ELSE
+               MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+               MSG = TRIM(MSG) // ' - will write zeros!'
+               CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+            ENDIF
+
          ENDIF
 
       ENDIF
