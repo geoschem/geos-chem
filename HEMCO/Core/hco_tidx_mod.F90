@@ -70,6 +70,7 @@ MODULE HCO_tIdx_Mod
   PUBLIC :: tIDx_Init
   PUBLIC :: tIDx_GetIndx
   PUBLIC :: tIDx_Cleanup
+  PUBLIC :: tIDx_IsInRange
   PUBLIC :: HCO_GetPrefTimeAttr
   PUBLIC :: HCO_ExtractTime
 !
@@ -657,6 +658,77 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !ROUTINE: tIDx_IsInRange
+!
+! !DESCRIPTION: Subroutine tIDx\_IsInRange returns true if the passed datetime
+! is within the range of the date ranges of the data container.
+!\\
+! !INTERFACE:
+!
+  FUNCTION tIDx_IsInRange ( Lct, Yr, Mt, Dy, Hr ) RESULT ( InRange )
+!
+! !USES:
+!
+    USE HCO_DATACONT_MOD, ONLY : ListCont
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ListCont),  POINTER    :: Lct       ! File data object 
+    INTEGER,         INTENT(IN) :: Yr
+    INTEGER,         INTENT(IN) :: Mt
+    INTEGER,         INTENT(IN) :: Dy
+    INTEGER,         INTENT(IN) :: Hr
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL                     :: InRange
+!
+! !REVISION HISTORY:
+!  04 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Init 
+    InRange = .TRUE.
+
+    IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
+       IF ( Yr < Lct%Dct%Dta%ncYrs(1) .OR. &
+            Yr > Lct%Dct%Dta%ncYrs(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
+       IF ( Mt < Lct%Dct%Dta%ncMts(1) .OR. &
+            Mt > Lct%Dct%Dta%ncMts(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
+       IF ( Dy < Lct%Dct%Dta%ncDys(1) .OR. &
+            Dy > Lct%Dct%Dta%ncDys(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
+       IF ( Hr < Lct%Dct%Dta%ncHrs(1) .OR. &
+            Hr > Lct%Dct%Dta%ncHrs(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+  END FUNCTION tIDx_IsInRange
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: HCO_GetPrefTimeAttr
 !
 ! !DESCRIPTION: Subroutine HCO\_GetPrefTimeAttr returns the preferred time
@@ -721,43 +793,15 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to 2 (range), the preferred datetime is 
+    ! If CycleFlag is set to range, the preferred datetime is 
     ! the current date if we are within the provided range, and 
     ! invalid otherwise.
     ! ------------------------------------------------------------- 
-    IF ( Lct%Dct%Dta%CycleFlag == 2 ) THEN
+    IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
 
-       ! Check if we are inside of valid range
-       InRange = .TRUE.
+       ! Are we in range?
+       InRange = tIDx_IsInRange ( Lct, cYr, cMt, cDy, cHr )
 
-       IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
-          IF ( cYr < Lct%Dct%Dta%ncYrs(1) .OR. &
-               cYr > Lct%Dct%Dta%ncYrs(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
-
-       IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
-          IF ( cMt < Lct%Dct%Dta%ncMts(1) .OR. &
-               cMt > Lct%Dct%Dta%ncMts(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
-
-       IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
-          IF ( cDy < Lct%Dct%Dta%ncDys(1) .OR. &
-               cDy > Lct%Dct%Dta%ncDys(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
-
-       IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
-          IF ( cHr < Lct%Dct%Dta%ncHrs(1) .OR. &
-               cHr > Lct%Dct%Dta%ncHrs(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
- 
        IF ( InRange ) THEN
           readYr = cYr
           readMt = cMt
@@ -779,10 +823,10 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to 3 (exact), the preferred datetime is 
+    ! If CycleFlag is set to exact, the preferred datetime is 
     ! always the current date.
     ! ------------------------------------------------------------- 
-    IF ( Lct%Dct%Dta%CycleFlag == 3 ) THEN
+    IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
        readYr = cYr
        readMt = cMt
        readDy = cDy
