@@ -2502,6 +2502,18 @@
             DiagnCnt => NULL()
    
          ENDIF
+
+         !%%%%% CH4 %%%%%
+         IF ( IDTCH4 > 0 ) THEN
+            DiagnName = 'BIOMASS_CH4'
+            UNIT      = 'molec/cm2/s'
+            N         = IDTCH4
+            FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
       ENDIF
 !
 !******************************************************************************
@@ -3138,6 +3150,12 @@
                N         = IDTC2H6 
                FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
                FACTOR    = FACTOR * Input_Opt%TRACER_COEFF(N,1)
+
+            ELSE IF ( I == IDTCH4 ) THEN
+               DiagnName = 'ANTHROPOGENIC_CH4'
+               UNIT      = 'molec/cm2/s'
+               N         = IDTCH4
+               FACTOR    = Input_Opt%XNUMOL(N) / CM2PERM2
 
             ENDIF
 
