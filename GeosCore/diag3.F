@@ -5189,25 +5189,28 @@
      &                   IIPAR,     JJPAR,     1,        IFIRST,
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
              !for other outputs check species has been selected
-             ELSE IF ((IS.GE.2).AND.(LSPECRADMENU(IS-1).EQ.1)) THEN
-              DO I=1,IIPAR
-               DO J=1,JJPAR
-                !store as difference in flux from baseline
-                ARRAY(I,J,1) = (AD72(I,J,(N-1)*NSPECOUT+1) - 
-     &                          AD72(I,J,NN))/SCALEX
+             ELSE IF (IS.GE.2) THEN
+              IF (LSPECRADMENU(IS-1).EQ.1) THEN
+               DO I=1,IIPAR
+                DO J=1,JJPAR
+                 !store as difference in flux from baseline
+                 ARRAY(I,J,1) = (AD72(I,J,(N-1)*NSPECOUT+1) - 
+     &                           AD72(I,J,NN))/SCALEX
+                ENDDO
                ENDDO
-              ENDDO
              
-              CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                   HALFPOLAR, CENTER180, CATEGORY, NN,
      &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                   IIPAR,     JJPAR,     1,        IFIRST,
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
+              ENDIF
              ENDIF
             ! N > 8 so we are outputting optics
             ! but only for turned on species and only for aerosols
             ! i.e. skip IS=2 and IS=3
-            ELSE IF ((IS.GE.4).AND.(LSPECRADMENU(IS-1).EQ.1)) THEN
+            ELSE IF (IS.GE.4) THEN
+             IF (LSPECRADMENU(IS-1).EQ.1) THEN
              !output optics
               ARRAY(:,:,1) = AD72(:,:,NN) / SCALEX
               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -5215,6 +5218,7 @@
      &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                   IIPAR,     JJPAR,     1,        IFIRST,
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
+             ENDIF
             ENDIF !flux vs optics check
            ENDDO
           ENDIF !all-sky, clear-sky check

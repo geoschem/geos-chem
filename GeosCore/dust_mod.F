@@ -1175,7 +1175,7 @@
 !
       LOGICAL            :: LINTERP
       INTEGER            :: I, J, JLOOP, L, N, NOUT, W
-      INTEGER            :: IWV, IIWV, NWVS
+      INTEGER            :: IWV, IIWV, NWVS, IDST
       REAL*8             :: MSDENS(NDUST), XTAU
 
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
@@ -1190,6 +1190,11 @@
 
       ! Assume success
       RC        =  GIGC_SUCCESS
+      IDST = 6 !index for dust in ODAER and LUT arrays
+
+#if defined( UCX )
+      IDST = 8
+#endif
 
       ! Dust density 
       MSDENS(1) = 2500.0d0
@@ -1276,17 +1281,17 @@
 
             ! dust stored in the 6th species bin of LUT variables
             ODMDUST(I,J,L,IWV,N) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
-     &                             DUST(I,J,L,N) * QQAA(IWV,N,6)  / 
-     &                           ( MSDENS(N) * RDAA(N,6) * 1.0D-6 )
+     &                             DUST(I,J,L,N) * QQAA(IWV,N,IDST)  / 
+     &                           ( MSDENS(N) * RDAA(N,IDST) * 1.0D-6 )
 
 #if defined ( RRTMG )
             !add dust optics to the RT code arrays
             !SSA and ASYM copying seems a little redundant...
             !will keep this way for uniformity for now but
             !possibly could deal with SSA and ASYM in RT module
-            RTODAER(I,J,L,IWV,NAER+4+N) = ODMDUST(I,J,L,IWV,N)
-            RTSSAER(I,J,L,IWV,NAER+4+N) = SSAA(IWV,N,6)
-            RTASYMAER(I,J,L,IWV,NAER+4+N) = ASYMAA(IWV,N,6)
+            RTODAER(I,J,L,IWV,NAER+2+N) = ODMDUST(I,J,L,IWV,N)
+            RTSSAER(I,J,L,IWV,NAER+2+N) = SSAA(IWV,N,IDST)
+            RTASYMAER(I,J,L,IWV,NAER+2+N) = ASYMAA(IWV,N,IDST)
 #endif
 
          ENDDO

@@ -7328,6 +7328,10 @@
                   NAME (T,72) = TRIM(NAME0) // 'PM' // TRIM(NAME1)
                   FNAME(T,72) = 'All aerosol ' // TRIM(FNAME0)
                   UNIT (T,72) = 'W/m2'
+               CASE( 12 )
+                  NAME (T,72) = TRIM(NAME0) // 'ST' // TRIM(NAME1)
+                  FNAME(T,72) = 'Strat aer ' // TRIM(FNAME0)
+                  UNIT (T,72) = 'W/m2'
                END SELECT
 
 

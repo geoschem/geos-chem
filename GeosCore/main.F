@@ -1438,7 +1438,8 @@
 
                !First call for baseline (all aerosol and ozone)
                CALL DO_RRTMG_RAD_TRANSFER( DAY, MONTH, ICLD, 0, ISEED,
-     &                                     Input_Opt, State_Met )
+     &                                     Input_Opt, State_Met,
+     &                                     State_Chm)
 
                !Second call with aerosols or ozone if requested
                DO N = 1, NSPECRADMENU
@@ -1447,7 +1448,7 @@
                      CALL SET_SPECMASK(N)
                      CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD,
      &                                          N,   ISEED, Input_Opt,
-     &                                          State_Met )
+     &                                          State_Met, State_Chm )
                   ENDIF
                ENDDO
 

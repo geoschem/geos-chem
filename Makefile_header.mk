@@ -285,12 +285,15 @@ endif
 #------------------------------------------------------------------------------
 # RRTMG radiative transfer model settings
 #------------------------------------------------------------------------------
-
+#
+# # %%%%% RRTMG %%%%%
+ RRTMG_NEEDED         :=0
+ REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
+   RRTMG_NEEDED       :=1
+     USER_DEFS          += -DRRTMG
+     endif
 # %%%%% RRTMG %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DRRTMG
-endif
 
 #------------------------------------------------------------------------------
 # Met field settings
@@ -612,7 +615,11 @@ NCL                  := $(NC_LINK_CMD)
 ifeq ($(GTMM_NEEDED),1)
   LINK               :=-L$(LIB) -lHg
 else
+ifeq ($(RRTMG_NEEDED),1)
+  LINK               :=-L$(LIB) -lrad
+else
   LINK               :=-L$(LIB)
+endif
 endif
 LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
 LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
