@@ -26,7 +26,7 @@
 #endif
       USE DIAG_MOD,           ONLY : AD57, AD71
 #if !defined(NO_BPCH)
-      USE DIAG_MOD,           ONLY : AD45, LTOTH
+      USE DIAG_MOD,           ONLY : AD45, AD68, LTOTH
 #endif
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
@@ -445,6 +445,7 @@
          ENDDO
       ENDIF
 
+#if !defined( NO_BPCH )
       !================================================================= 
       ! ND68: Quantity 1: BXHEIGHT(I,J,L) in meters 
       !       Quantity 2: AD(I,J,L)       in kg
@@ -478,6 +479,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       !================================================================= 
       ! ND69: Grid box surface areas [m2]
@@ -636,6 +638,57 @@
      &                 'DIAG1 (diag1.F)')
                ENDIF
             ENDIF
+         ENDDO
+      ENDIF
+
+      !================================================================= 
+      ! ND68: Quantity 1: BXHEIGHT(I,J,L) in meters 
+      !       Quantity 2: AD(I,J,L)       in kg
+      !       Quantity 3: AVGW(I,J,L)     in v/v
+      !       Quantity 4: N_AIR(I,J,L)    in molecules air / m3
+      !
+      ! NOTE: AVGW is now an allocatable array from "dao_mod.f"
+      !================================================================= 
+      IF ( ND68 > 0 ) THEN
+
+         ! There are four diagnostics
+         DO I = 1,4
+
+            ! Construct diagnostic name and get proper array
+            SELECT CASE ( I ) 
+               CASE ( 1 ) 
+                  DiagnName = 'BOXHEIGHT'
+                  Ptr3D => State_Met%BXHEIGHT
+               CASE ( 2 ) 
+                  DiagnName = 'AIRMASS'
+                  Ptr3D => State_Met%AD
+               CASE ( 3 ) 
+                  DiagnName = 'AIRDENS'
+                  Ptr3D => State_Met%AIRDEN
+               CASE ( 4 ) 
+                  IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE 
+                  DiagnName = 'AVGW'
+                  Ptr3D => State_Met%BXHEIGHT
+            END SELECT
+ 
+            ! Update diagnostics
+            IF ( ASSOCIATED(Ptr3D) ) THEN 
+               CALL Diagn_Update( am_I_Root,
+     &                            cName   = TRIM( DiagnName ),
+     &                            Array3D = Ptr3D,
+     &                            COL     = Input_Opt%DIAG_COLLECTION,
+     &                            RC      = HCRC )
+
+               ! Free the pointer
+               Ptr3D => NULL()
+   
+               ! STOP with error if the diagnostics were unsuccessful
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP(
+     &                 'Cannot update diagnostics '//TRIM(DiagnName),  
+     &                 'DIAG1 (diag1.F)')
+               ENDIF
+            ENDIF   
          ENDDO
       ENDIF
 #endif

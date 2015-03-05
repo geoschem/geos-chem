@@ -150,11 +150,19 @@ MODULE HCOX_SoilNOx_Mod
   ! DRYCOEFF (if read from settings in configuration file)
   REAL(hp), ALLOCATABLE, TARGET :: DRYCOEFF(:)
 
-  ! Max. # of allowed drycoeff vars
-  INTEGER,  PARAMETER           :: MaxDryCoeff = 50 
+  ! Diagnostics to write out the pulse (testing only)
+#if defined(DEVEL) 
+  REAL(sp), ALLOCATABLE, TARGET :: DGN_PULSE    (:,:  )
+#endif
 !
 ! !DEFINED PARAMETERS:
 !
+  ! Diagnostics output frequency
+  CHARACTER(LEN=31), PARAMETER  :: WriteFreq = 'End'
+
+  ! Max. # of allowed drycoeff vars
+  INTEGER,  PARAMETER           :: MaxDryCoeff = 50 
+
   ! Canopy wind extinction coefficients
   ! (cf. Yienger & Levy [1995], Sec 5), now a function of the
   ! MODIS/KOPPEN biometype (J.D. Maasakkers)
@@ -703,55 +711,60 @@ CONTAINS
 !    INST_FERT     = 0e+0_hp
     CANOPYNOX     = 0e+0_hp
 
+#if defined(DEVEL)
+    ALLOCATE( DGN_PULSE(I,J) )
+    DGN_PULSE = 0.0_sp
+#endif
+
     ! ---------------------------------------------------------------------- 
     ! Set diagnostics 
     ! ---------------------------------------------------------------------- 
-    CALL Diagn_Create ( am_I_Root,                &
-                        HcoState   = HcoState,    & 
-                        cName      = 'PFACTOR',   &
-                        ExtNr      = ExtNr,       &
-                        Cat        = -1,          &
-                        Hier       = -1,          &
-                        HcoID      = IDTNO,       &
-                        SpaceDim   = 2,           &
-                        OutUnit    = 'unitless',  &
-                        WriteFreq  = 'End',       &
-                        AutoFill   = 0,           &
-                        Trgt2D     = PFACTOR,     &
-                        cID        = II,          &
-                        RC         = RC            )
+    CALL Diagn_Create ( am_I_Root,                    &
+                        HcoState   = HcoState,        & 
+                        cName      = 'PFACTOR',       &
+                        ExtNr      = ExtNr,           &
+                        Cat        = -1,              &
+                        Hier       = -1,              &
+                        HcoID      = IDTNO,           &
+                        SpaceDim   = 2,               &
+                        OutUnit    = 'unitless',      &
+                        WriteFreq  = TRIM(WriteFreq), & 
+                        AutoFill   = 0,               &
+                        Trgt2D     = PFACTOR,         &
+                        cID        = II,              &
+                        RC         = RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root,                  &
-                        HcoState   = HcoState,      & 
-                        cName      = 'DRYPERIOD',   &
-                        ExtNr      = ExtNr,         &
-                        Cat        = -1,            &
-                        Hier       = -1,            &
-                        HcoID      = IDTNO,         &
-                        SpaceDim   = 2,             &
-                        OutUnit    = 'unitless',    &
-                        WriteFreq  = 'End',         &
-                        AutoFill   = 0,             &
-                        Trgt2D     = DRYPERIOD,     &
-                        cID        = II,            &
-                        RC         = RC              )
+    CALL Diagn_Create ( am_I_Root,                    &
+                        HcoState   = HcoState,        & 
+                        cName      = 'DRYPERIOD',     &
+                        ExtNr      = ExtNr,           &
+                        Cat        = -1,              &
+                        Hier       = -1,              &
+                        HcoID      = IDTNO,           &
+                        SpaceDim   = 2,               &
+                        OutUnit    = 'unitless',      &
+                        WriteFreq  = TRIM(WriteFreq), & 
+                        AutoFill   = 0,               &
+                        Trgt2D     = DRYPERIOD,       &
+                        cID        = II,              &
+                        RC         = RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root,                  &
-                        HcoState   = HcoState,      & 
-                        cName      = 'GWET_PREV',   &
-                        ExtNr      = ExtNr,         &
-                        Cat        = -1,            &
-                        Hier       = -1,            &
-                        HcoID      = IDTNO,         &
-                        SpaceDim   = 2,             &
-                        OutUnit    = 'unitless',    &
-                        WriteFreq  = 'End',         &
-                        AutoFill   = 0,             &
-                        Trgt2D     = GWET_PREV,     &
-                        cID        = II,            &
-                        RC         = RC              )
+    CALL Diagn_Create ( am_I_Root,                    &
+                        HcoState   = HcoState,        & 
+                        cName      = 'GWET_PREV',     &
+                        ExtNr      = ExtNr,           &
+                        Cat        = -1,              &
+                        Hier       = -1,              &
+                        HcoID      = IDTNO,           &
+                        SpaceDim   = 2,               &
+                        OutUnit    = 'unitless',      &
+                        WriteFreq  = TRIM(WriteFreq), & 
+                        AutoFill   = 0,               &
+                        Trgt2D     = GWET_PREV,       &
+                        cID        = II,              &
+                        RC         = RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL Diagn_Create ( am_I_Root,                      &
@@ -763,13 +776,31 @@ CONTAINS
                         HcoID      = IDTNO,             &
                         SpaceDim   = 2,                 &
                         OutUnit    = 'kg/m3',           &
-                        WriteFreq  = 'End',             &
+                        WriteFreq  = TRIM(WriteFreq),   & 
                         AutoFill   = 0,                 &
                         Trgt2D     = DEP_RESERVOIR,     &
                         cID        = II,                &
                         RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+#if defined(DEVEL)
+    CALL Diagn_Create ( am_I_Root,                      &
+                        HcoState   = HcoState,          & 
+                        cName      = 'SOILNO_PULSE',    &
+                        ExtNr      = ExtNr,             &
+                        Cat        = -1,                &
+                        Hier       = -1,                &
+                        HcoID      = IDTNO,             &
+                        SpaceDim   = 2,                 &
+                        OutUnit    = '1',               &
+                        WriteFreq  = TRIM(WriteFreq),   & 
+                        AutoFill   = 0,                 &
+                        Trgt2D     = DGN_PULSE,         &
+                        cID        = II,                &
+                        RC         = RC                  )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+#endif 
+ 
     ! ---------------------------------------------------------------------- 
     ! Set HEMCO extensions variables 
     ! ---------------------------------------------------------------------- 
@@ -995,6 +1026,10 @@ CONTAINS
     ! Cumulative multiplication factor (over baseline emissions) 
     ! that accounts for soil pulsing
     PULSE = PULSING( GWET, TS_EMIS, GWET_PREV, PFACTOR, DRYPERIOD )
+
+#if defined(DEVEL)
+    DGN_PULSE(I,J) = PULSE
+#endif
 
     ! ------Loop Over MODIS/Koppen  Landtypes
     DO K = 1, 24

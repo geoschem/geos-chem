@@ -935,27 +935,18 @@
      &           ITS_AN_AEROSOL_SIM   .or.
      &           ITS_A_CH3I_SIM     ) THEN
 
-               ! Read UV albedoes for FAST-J
-               CALL READ_UVALBEDO
-     &              ( am_I_Root, Input_Opt, MONTH, State_Met, RC )
+!-----------------------------------------------------------------------------
+! Prior to 3/4/15:
+! Move this call below the call to EMISSIONS_RUN.  The HEMCO data has to
+! be read from disk before the UVALBEDO data can be copied. (bmy, 3/4/15)
+!               ! Read UV albedoes for FAST-J
+!               CALL READ_UVALBEDO
+!     &              ( am_I_Root, Input_Opt, MONTH, State_Met, RC )
+!-----------------------------------------------------------------------------
 
                ! Read TOMS overhead O3 columns for FAST-J
                CALL READ_TOMS( am_I_Root, Input_Opt, MONTH, YEAR, RC )
             ENDIF
-         ENDIF
-
-         ! Fossil fuel emissions (SMVGEAR)
-         ! NOTE: Only call ANTHROEMS if it's time to do emissions;
-         ! this will function properly for the central chemistry time step
-         ! (bmy, 10/14/11)
-         IF ( ITS_A_FULLCHEM_SIM .or. ITS_A_TAGCO_SIM ) THEN
-            IF ( ITS_TIME_FOR_EMIS() ) THEN 
-               IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
-!                  CALL ANTHROEMS( SEASON, Input_Opt )              
-               ENDIF
-            ENDIF
-
-
          ENDIF
 
          ! Read data required for Hg2 gas-particle partitioning 
@@ -1234,6 +1225,12 @@
             ! such as stratospheric Bry fields. (ckeller, 1/12/15).
             CALL EMISSIONS_RUN( am_I_Root, Input_Opt, 
      &                          State_Met, State_Chm, RC )
+
+            ! Copy UV Albedo data (for photolysis) into State_Met%UVALBEDO
+            ! NOTE: This has to be done after the HEMCO run method!
+            IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
+               CALL GET_UVALBEDO( am_I_Root, Input_Opt, State_Met, RC )
+            ENDIF
 
             ! Stop the run if the HEMCO run sequence dies w/ an error
             IF ( RC /= GIGC_SUCCESS ) THEN

@@ -384,29 +384,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD09_em' )
       ENDIF
 
-!------------------------------------------------------------------------------
-!%%% Prior to 8/18/14:
-!%%% THE H2/HD SIMULATION IS OBSOLETE.  YOU CAN RESTORE IT IF YOU WANT.
-!%%% UNTIL THEN, LEAVE THIS COMMENTED OUT. (bmy, 8/18/14)
-!      !=================================================================
-!      ! ND10: H2/HD prod, loss, sources
-!      !=================================================================
-!      IF ( ND10 > 0 ) THEN
-!
-!         ! number of emissions tracers
-!         NEMISS = 5
-!
-!         ! Accumulating diagnostic array
-!         ALLOCATE( AD10( IIPAR, JJPAR, LD10, (PD10-NEMISS) ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD10' )
-!
-!         ! Accumulating diagnostic array
-!         ALLOCATE( AD10em( IIPAR, JJPAR, NEMISS ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD10em' )
-!
-!      ENDIF
-!------------------------------------------------------------------------------
-      
       !=================================================================
       ! ND12: Distribution of emissions in boundary layer [fraction]
       !       --> uses AD12 array (allocatable)
@@ -1138,9 +1115,10 @@
       !=================================================================
       IF ( ND68 > 0 ) THEN
          LD68 = MIN( ND68, LLPAR )
-
+#if !defined(NO_BPCH)
          ALLOCATE( AD68( IIPAR, JJPAR, LD68, PD68 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD68' )
+#endif
       ENDIF
 
       !=================================================================

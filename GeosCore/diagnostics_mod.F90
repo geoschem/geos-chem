@@ -36,9 +36,6 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagInit_Tracer_Conc   ! ND45 init
   PRIVATE :: DiagInit_Pb_Emiss      ! ND01 init
   PRIVATE :: DiagInit_Rn_Decay      ! ND02 init
-!  PRIVATE :: DiagInit_Hg_Source     ! ND03 init
-!  PRIVATE :: DiagInit_Sulfate_PL    ! ND05 init
-!  PRIVATE :: DiagInit_C_AerSrc      ! ND07 init
   PRIVATE :: DiagInit_BL_Frac       ! ND12 init
   PRIVATE :: DiagInit_CldConv_Flx   ! ND14 init
   PRIVATE :: DiagInit_BlMix_Flx     ! ND15 init
@@ -46,14 +43,12 @@ MODULE Diagnostics_Mod
   PRIVATE :: DiagInit_Rain_Frac     ! ND17 init
   PRIVATE :: DiagInit_Wash_Frac     ! ND18 init
   PRIVATE :: DiagInit_CH4_Loss      ! ND19 init
-!  PRIVATE :: DiagInit_Cld_OD        ! ND21 init
-!  PRIVATE :: DiagInit_Photolysis    ! ND22 init
   PRIVATE :: DiagInit_EW_Flx        ! ND24 init
   PRIVATE :: DiagInit_NS_Flx        ! ND25 init
   PRIVATE :: DiagInit_Vert_Flx      ! ND26 init
   PRIVATE :: DiagInit_Strat_Flx     ! ND27 init
   PRIVATE :: DiagInit_Landmap       ! ND30 init
-
+  PRIVATE :: DiagInit_GridBox       ! General init
 !
 ! !DEFINED PARAMETERS:x
 !
@@ -329,6 +324,12 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_MIXING', LOC )
     ENDIF
 
+    ! Grid box quantities (ND68)
+    CALL DIAGINIT_GRIDBOX( am_I_Root, Input_Opt, State_Met, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_GRIDBOX', LOC )
+    ENDIF
+
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -409,7 +410,8 @@ CONTAINS
                                   WriteAll    = .TRUE.,                     &
                                   UsePrevTime = .FALSE.,                    & 
                                   PREFIX      = RST,                        &
-                                  COL         = Input_Opt%DIAG_COLLECTION,  & 
+                                  COL         = Input_Opt%DIAG_COLLECTION,  &
+                                  OnlyIfFirst = .TRUE.,                     &
                                   RC          = RC                         )
    
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -718,7 +720,6 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE DiagInit_Tracer_Conc
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -3565,7 +3566,123 @@ CONTAINS
 
   END SUBROUTINE DiagnUpdate_NTracers_3D
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_gridbox
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_GRIDBOX initializes the grid box quantity 
+!  diagnostic (aka ND68).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DIAGINIT_GRIDBOX( am_I_Root, Input_Opt, State_Met, RC )
+!
+! !USES:
+!
+    USE TRACER_MOD,         ONLY : XNUMOLAIR
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(MetState), INTENT(IN   ) :: State_Met  ! Met state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  21 Jan 2015 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: cId, Collection, N
+    REAL(hp)           :: ScaleFact
+    CHARACTER(LEN=15)  :: OutOper, OutUnit, WriteFreq
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_GRIDBOX (diagnostics_mod.F90)' 
 
+    !=======================================================================
+    ! DIAGINIT_GRIDBOX begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
 
+    ! Skip if ND68 diagnostic is turned off
+    IF ( Input_Opt%ND68 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND68_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND68_OUTPUT_FREQ
+      
+    ! There are four diagnostics 
+    DO N = 1, 4 
+
+       !----------------------------------------------------------------
+       ! Create containers
+       !----------------------------------------------------------------
+
+       SELECT CASE ( N )
+          CASE ( 1 )
+             DiagnName = 'BOXHEIGHT'
+             OutUnit   = 'm'
+             ScaleFact = 1.0_hp
+          CASE ( 2 )
+             DiagnName = 'AIRMASS'
+             OutUnit   = 'kg'
+             ScaleFact = 1.0_hp
+          CASE ( 3 )
+             DiagnName = 'AIRDENS'
+             OutUnit   = 'molecules air m-3'
+             ScaleFact = XNUMOLAIR 
+          CASE ( 4 )
+             IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE
+             DiagnName = 'AVGW'
+             OutUnit   = 'v/v'
+             ScaleFact = 1.0_hp
+       END SELECT
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  3,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = TRIM( OutUnit   ), &
+                          OutOper   = TRIM( OutOper   ), &
+                          WriteFreq = TRIM( WriteFreq ), &
+                          ScaleFact = ScaleFact,         &
+                          cId       = cId,               &
+                          RC        = RC )
+
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE DiagInit_GridBox
+!EOC
 END MODULE Diagnostics_Mod
 #endif

@@ -244,6 +244,7 @@
 !  04 Dec 2014 - R. Yantosca - No longer crashes if BIOGENIC_OCPI=0 everywhere
 !  12 Dec 2014 - M. Yannetti - Converted HEMCO Precision updates
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  23 Feb 2015 - C. Keller   - Split volcano SO2 into eruptive & degassing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1420,9 +1421,17 @@
      &                   UNIT, IDTSO2, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
-         !%%%%% Volcano SO2 (now lump eruptive + non-eruptive %%%%%
-         DiagnName = 'AD13_SO2_VOLCANO'
+         !%%%%% Volcano SO2 (eruptive) %%%%%
+         DiagnName = 'AD13_SO2_VOLCANO_ERUPT'
          CATEGORY  = 'SO2-EV-$'
+         FACTOR    = S_SO2
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTSO2, 1, LLPAR, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
+
+         !%%%%% Volcano SO2 (degassing) %%%%%
+         DiagnName = 'AD13_SO2_VOLCANO_DEGAS'
+         CATEGORY  = 'SO2-NV-$'
          FACTOR    = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTSO2, 1, LLPAR, .TRUE., FACTOR, RC )
@@ -5447,7 +5456,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
-!
+
+#if !defined(NO_BPCH)
 !******************************************************************************
 !  ND68: Grid box diagnostics
 !
@@ -5484,6 +5494,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD68) )
          ENDDO
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND69: Grid Box Surface Areas

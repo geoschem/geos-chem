@@ -219,7 +219,9 @@
       REAL*4,  ALLOCATABLE :: AD67(:,:,:)      
 
       ! For ND68 -- BXHEIGHT, AD, AVGW diagnostic
+#if !defined( NO_BPCH )
       REAL*4,  ALLOCATABLE :: AD68(:,:,:,:)      
+#endif
 
       ! For ND69 -- DXYP diagnostic
       REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
@@ -414,7 +416,9 @@
 #endif
       IF ( ALLOCATED( AD64        ) ) DEALLOCATE( AD64        )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
+#if !defined( NO_BPCH )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
+#endif
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
       IF ( ALLOCATED( AD71        ) ) DEALLOCATE( AD71        )
       IF ( ALLOCATED( AD71_HR     ) ) DEALLOCATE( AD71_HR     )
