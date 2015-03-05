@@ -619,9 +619,10 @@
 !             RTSSAER(I,J,L,IBX,IS)   = 0.99
 !             RTASYMAER(I,J,L,IBX,IS) = 0.50
 
-          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
+!          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
 !#endif    
            !MAKE SURE WE HAVE SENSIBLE DATA
+           !DONT WASTE TIME IF VIRTUALLY NO AEROSOL
            IF (RTODAER(I,J,L,IBX,IS).GT.1e-12) THEN
             IF (IB.LE.16) THEN !LW
              IF (SPECMASK(IS).EQ.1) THEN
@@ -656,7 +657,7 @@
              ENDIF
             ENDIF
            ENDIF 
-          ENDIF
+!          ENDIF
          ENDDO
          ENDDO
          ENDDO
@@ -683,7 +684,7 @@
 !          IF ((INTROP(IJLOOP,L).EQ..TRUE.).OR.
 !     &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
 !#else
-          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
+!          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
 !#endif
 
            IF ((TAUAER_SW(IJLOOP,L,IB_SW).GT.0).AND.
@@ -708,7 +709,7 @@
      &                                     TAUAERDIAG(IJLOOP,L,IB_SW)
 !            write(6,*) 'SSA',SSAAERDIAG(IJLOOP,L,IB_SW)
            ENDIF
-          ENDIF
+!          ENDIF
          ENDDO
          ENDDO
          ENDDO
@@ -734,7 +735,7 @@
 !          IF ((INTROP(IJLOOP,L).EQ..TRUE.).OR.
 !     &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
 !#else
-          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
+!          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
 !#endif
           IF (IB.LE.16) THEN
            TAUAER_LW(IJLOOP,L,IB)    = 0.0
@@ -744,9 +745,9 @@
            ASMAER(IJLOOP,L,IB_SW)    = 0.02D0
            TAUAERDIAG(IJLOOP,L,IB_SW) = 0.0D0
            SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99D0
-           ASMAERDIAG(IJLOOP,L,IB_SW) = 0.02D0
+           ASMAERDIAG(IJLOOP,L,IB_SW) = 0.2D0
           ENDIF
-         ENDIF
+!         ENDIF
         ENDDO
         ENDDO
         ENDDO
@@ -762,24 +763,33 @@
         DO I = 1, IIPAR
          ! 1-D INDEX
          IJLOOP = (J-1)*IIPAR+I
-              IF (ASMAER(IJLOOP,L,IB_SW).GT.1.0d0) THEN
-!               write(6,*) 'GDAMN ASMAER',I,J,L,IB_SW
-               ASMAER(IJLOOP,L,IB_SW) = 0.5
+              IF (ASMAER(IJLOOP,L,IB_SW).GT.0.999d0) THEN
+               ASMAER(IJLOOP,L,IB_SW) = 0.999d0
               ENDIF
-              IF (ASMAER(IJLOOP,L,IB_SW).EQ.0.0d0) THEN
-!               write(6,*) 'GDAMN ASMAER',I,J,L,IB_SW
-               ASMAER(IJLOOP,L,IB_SW) = 0.01
-              ENDIF
-
+!              IF (ASMAER(IJLOOP,L,IB_SW).LT.0.001d0) THEN
+!               ASMAER(IJLOOP,L,IB_SW) = 0.001
+!              ENDIF
               IF ((SSAAER(IJLOOP,L,IB_SW).LT.0.001d0).OR.
      &            (SSAAER(IJLOOP,L,IB_SW).GT.1.0d0)) THEN
-!               write(6,*) 'GDAMN SSAAER',I,J,L,IB_SW
                SSAAER(IJLOOP,L,IB_SW) = 0.99
               ENDIF
               IF (TAUAER_SW(IJLOOP,L,IB_SW).GT.1.0) THEN
-!               write(6,*) 'GDAMN TAUAER',I,J,L,IB_SW
                TAUAER_SW(IJLOOP,L,IB_SW) = 1.0
               ENDIF
+              IF (ASMAERDIAG(IJLOOP,L,IB_SW).GT.0.999d0) THEN
+               ASMAER(IJLOOP,L,IB_SW) = 0.999d0
+              ENDIF
+!              IF (ASMAERDIAG(IJLOOP,L,IB_SW).LT.0.001d0) THEN
+!               ASMAER(IJLOOP,L,IB_SW) = 0.001
+!              ENDIF
+              IF ((SSAAERDIAG(IJLOOP,L,IB_SW).LT.0.001d0).OR.
+     &            (SSAAERDIAG(IJLOOP,L,IB_SW).GT.1.0d0)) THEN
+               SSAAER(IJLOOP,L,IB_SW) = 0.99
+              ENDIF
+              IF (TAUAERDIAG(IJLOOP,L,IB_SW).GT.1.0) THEN
+               TAUAER_SW(IJLOOP,L,IB_SW) = 1.0
+              ENDIF
+
         ENDDO
         ENDDO
         ENDDO
