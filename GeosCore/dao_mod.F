@@ -635,53 +635,53 @@
      &                         * State_Met%AIRDEN(I,J,L) 
      &                         / State_Met%MAIRDEN(I,J,L)
 
-         ! DEBUGGING (ewl, 2/27/15)
-         IF (I == 25 .and. J == 25 .and. L == 2 ) THEN
-            PRINT *, " "
-            PRINT *, "New air quants for (25,25,2)"
-            PRINT *, "   Bottom edge pressure [hPa]:"
-            PRINT *, "       ", State_Met%PEDGE(I,J,L)
-            PRINT *, "   Bottom edge dry air partial pressure [hPa]:"
-            PRINT *, "       ", State_Met%PEDGE_DRY(I,J,L)
-            PRINT *, "   Top edge pressure [hPa]:"
-            PRINT *, "       ", PEdge_Top
-            PRINT *, "   Delta pressure [hPa]:"
-            PRINT *, "       ", State_Met%DELP(I,J,L)
-            PRINT *, "   Box height [m]:"
-            PRINT *, "       ", State_Met%BXHEIGHT(I,J,L)            
-            PRINT *, "   Mass in grid box [kg]:"
-            PRINT *, "       ", State_Met%AD(I,J,L)           
-            PRINT *, "   Air volume [m3]:"
-            PRINT *, "       ", State_Met%AIRVOL(I,J,L)            
-            PRINT *, "   Dry air density [kg/m3]:"
-            PRINT *, "       ", State_Met%AIRDEN(I,J,L) 
-            PRINT *, "   Dry air density calculated as AD/vol [kg/m3]:"
-            PRINT *, "       ", State_Met%AD(I,J,L)
-     &                          /State_Met%AIRVOL(I,J,L)
-            PRINT *, "   Moist air density [kg/m3]:"
-            PRINT *, "       ", State_Met%MAIRDEN(I,J,L) 
-            PRINT *, "   Temperature [K]:"
-            PRINT *, "       ", State_Met%T(I,J,L)
-            PRINT *, "   Virtual temperature [K]:"
-            PRINT *, "       ", State_Met%TV(I,J,L)
-            PRINT *, "   Mid-point pressure [hPa]:"
-            PRINT *, "       ", State_Met%PMID(I,J,L)
-            PRINT *, "   Mid-point dry air partial pressure [hPa]:"
-            PRINT *, "       ", State_Met%PMID_DRY(I,J,L)
-            PRINT *, "   Saturation water vapor pressure [mb]:"
-            PRINT *, "       ", Esat
-            PRINT *, "   Water vapor pressure from State_Met RH [mb]:"
-            PRINT *, "       ", Pv
-            PRINT *, "   State_Met relative humidity [%]:"
-            PRINT *, "       ", State_Met%RH(I,J,L)
-
-            PRINT *, "   Specific humidity (State_Met) [g/kg]:"
-            PRINT *, "       ", State_Met%SPHU(I,J,L)
-            PRINT *, "   Water vapor volume mixing ratio [v/v]:"
-            PRINT *, "       ", State_Met%AVGW(I,J,L)           
-            PRINT *, " "
-         ENDIF
-         ! END DEBUGGING
+!         ! DEBUGGING (ewl, 2/27/15)
+!         IF (I == 25 .and. J == 25 .and. L == 2 ) THEN
+!            PRINT *, " "
+!            PRINT *, "New air quants for (25,25,2)"
+!            PRINT *, "   Bottom edge pressure [hPa]:"
+!            PRINT *, "       ", State_Met%PEDGE(I,J,L)
+!            PRINT *, "   Bottom edge dry air partial pressure [hPa]:"
+!            PRINT *, "       ", State_Met%PEDGE_DRY(I,J,L)
+!            PRINT *, "   Top edge pressure [hPa]:"
+!            PRINT *, "       ", PEdge_Top
+!            PRINT *, "   Delta pressure [hPa]:"
+!            PRINT *, "       ", State_Met%DELP(I,J,L)
+!            PRINT *, "   Box height [m]:"
+!            PRINT *, "       ", State_Met%BXHEIGHT(I,J,L)            
+!            PRINT *, "   Mass in grid box [kg]:"
+!            PRINT *, "       ", State_Met%AD(I,J,L)           
+!            PRINT *, "   Air volume [m3]:"
+!            PRINT *, "       ", State_Met%AIRVOL(I,J,L)            
+!            PRINT *, "   Dry air density [kg/m3]:"
+!            PRINT *, "       ", State_Met%AIRDEN(I,J,L) 
+!            PRINT *, "   Dry air density calculated as AD/vol [kg/m3]:"
+!            PRINT *, "       ", State_Met%AD(I,J,L)
+!     &                          /State_Met%AIRVOL(I,J,L)
+!            PRINT *, "   Moist air density [kg/m3]:"
+!            PRINT *, "       ", State_Met%MAIRDEN(I,J,L) 
+!            PRINT *, "   Temperature [K]:"
+!            PRINT *, "       ", State_Met%T(I,J,L)
+!            PRINT *, "   Virtual temperature [K]:"
+!            PRINT *, "       ", State_Met%TV(I,J,L)
+!            PRINT *, "   Mid-point pressure [hPa]:"
+!            PRINT *, "       ", State_Met%PMID(I,J,L)
+!            PRINT *, "   Mid-point dry air partial pressure [hPa]:"
+!            PRINT *, "       ", State_Met%PMID_DRY(I,J,L)
+!            PRINT *, "   Saturation water vapor pressure [mb]:"
+!            PRINT *, "       ", Esat
+!            PRINT *, "   Water vapor pressure from State_Met RH [mb]:"
+!            PRINT *, "       ", Pv
+!            PRINT *, "   State_Met relative humidity [%]:"
+!            PRINT *, "       ", State_Met%RH(I,J,L)
+!
+!            PRINT *, "   Specific humidity (State_Met) [g/kg]:"
+!            PRINT *, "       ", State_Met%SPHU(I,J,L)
+!            PRINT *, "   Water vapor volume mixing ratio [v/v]:"
+!            PRINT *, "       ", State_Met%AVGW(I,J,L)           
+!            PRINT *, " "
+!         ENDIF
+!         ! END DEBUGGING
 
       ENDDO
       ENDDO
@@ -1549,192 +1549,6 @@
  999  CONTINUE
 
       END FUNCTION IS_NEAR
-!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: make_avgw
-!!
-!! !DESCRIPTION: Subroutine MAKE\_AVGW converts DAO specific humidity SPHU 
-!!  to AVGW, which is the mixing ratio of water vapor. 
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE MAKE_AVGW( State_Met )
-!!
-!! !USES:
-!!
-!      USE GIGC_State_Met_Mod,   ONLY : MetState
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-!! 
-!! !REVISION HISTORY: 
-!!  30 Jan 1998 - R. Yantosca - Initial version
-!!  (1 ) AVGW was originally indexed by (L,I,J).  Reorder the indexing to
-!!        (I,J,L) to take advantage of the way FORTRAN stores by columns.
-!!        An (L,I,J) ordering can lead to excessive disk swapping.
-!!  (2 ) Now dimension AVGW as (IIPAR,JJPAR,LLPAR).  Also use parallel
-!!        DO-loop to compute AVGW.  Updated comments. (bmy, 9/24/01)
-!!  (3 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
-!!  (4 ) SPHU and AVGW are declared w/in "dao_mod.f", so we don't need to pass
-!!        these as arguments anymore (bmy, 11/15/02)
-!!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!!                              derived type object
-!!  26 Feb 2014 - E. Lundgren - Move calculation of AVGW to AIRQNT in dao_mod.F
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER             :: I, IREF, J, JREF, L      
-!!
-!! !DEFINED PARAMETERS:
-!!
-!      ! Conversion factor
-!      REAL(fp), PARAMETER   :: HCONV = 28.97e-3_fp / 18.0e+0_fp 
-!
-!      !=================================================================
-!      ! MAKE_AVGW begins here!
-!      !
-!      ! In the original Harvard/GISS/Irvine CTM subroutines, 
-!      !    AVGW = log10( mixing ratio of water vapor ).  
-!      !
-!      ! In order to avoid costly log and exponentiation operations, 
-!      ! redefine AVGW, so that AVGW is the actual mixing ratio of water 
-!      ! vapor, and not the log10 of the mixing ratio.
-!      !
-!      ! The conversion from SPHU [g H2O/kg air] to [v/v] mixing ratio is:
-!      !
-!      !   g H2O  | mol H2O  | 28.97e-3 kg air    mol H2O     vol H2O
-!      ! ---------+----------+---------------- = --------- = ---------
-!      !   kg air | 18 g H2O |    mol air         mol air     vol air
-!      !
-!      !      thus AVGW (V/V) = SPHU (g/kg) * HCONV, 
-!      !
-!      ! where HCONV = the conversion factor ( 28.97e-3 / 18.0 ), 
-!      ! which is defined as a parameter at the top of this routine.
-!      !=================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!      DO L = 1, LLPAR
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!         State_Met%AVGW(I,J,L) = HCONV * State_Met%SPHU(I,J,L)
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!      END SUBROUTINE MAKE_AVGW
-!!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: make_rh
-!
-! !DESCRIPTION: Subroutine MAKE\_RH computes relative humidity from specific 
-!  humidity and temperature. 
-!\\
-!\\
-! !INTERFACE:
-!
-!     SUBROUTINE MAKE_RH( State_Met )
-!
-! !USES:
-!
-!     USE GIGC_State_Met_Mod,   ONLY : MetState
-!
-! !INPUT PARAMETERS: 
-!
-!     TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-!
-! !REMARKS:
-!  Module variables used:
-!  ===========================================================================
-!  (1 ) SPHU (REAL(fp)) : Array containing 3-D specific humidity [g H2O/kg air]
-!  (2 ) TMPU (REAL(fp)) : Array containing 3-D temperature field [K]
-!  (3 ) RH   (REAL(fp)) : Output array for relative humidity     [%]
-! 
-! !REVISION HISTORY: 
-!  13 Oct 1999 - R. Yantosca - Initial version
-!  (1 ) Use F90 syntax for declarations, etc. 
-!  (2 ) Cosmetic changes (bmy, 10/12/99)
-!  (3 ) Now use GET_PCENTER from "pressure_mod.f" to compute the pressure
-!        at the midpoint of grid box (I,J,L).  Updated comments, cosmetic
-!        changes.  Added parallel DO-loops.  Remove reference to "CMN" 
-!        header file.  Added to "dao_mod.f" (dsa, bdf, bmy, 8/27/02)
-!  (4 ) Removed obsolete code from 8/02 (bmy, 9/18/02)
-!  (5 ) Now remove SPHU, TMPU, RH from the arg list, since these are now
-!        all contained w/in this dao_mod.f as module variables. (bmy, 9/23/02)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  26 Feb 2014 - E. Lundgren - Move calculation of RH to AIRQNT in dao_mod.F
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-!     REAL(fp)              :: ESAT, SHMB, PRES, TEMP
-!     INTEGER             :: I, J, L
-!
-! !DEFINED PARAMETERS:
-!
-!     REAL(fp), PARAMETER   :: A =   23.5518e+0_fp
-!     REAL(fp), PARAMETER   :: B = 2937.4e+0_fp
-!     REAL(fp), PARAMETER   :: C =   -4.9283e+0_fp
-!
-!     !=================================================================
-!     ! MAKE_RH begins here!
-!     !=================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, PRES, TEMP, ESAT, SHMB )
-!     DO L = 1, LLPAR
-!     DO J = 1, JJPAR
-!     DO I = 1, IIPAR
-!
-!        ! Pressure at midpoint of box (I,J,L)
-!        PRES = State_Met%PMID(I,J,L)
-!
-!        ! Temperature at grid box (I,J,L)
-!        TEMP = State_Met%T(I,J,L)
-!
-!        ! Saturation water vapor pressure in mbar 
-!        ! (from NASA GTE PEM-Tropics handbook)
-!        ESAT = ( 10e+0_fp**( A - ( B / TEMP ) ) ) * ( TEMP**C )
-!           
-!        ! DEBUGGING (ewl, 2/24/15)
-!        IF ( I == 25 .and. J == 25 .and. L == 2 ) THEN
-!           PRINT *, " "
-!           PRINT *, "ESAT calculated in MAKE_RH at box (25,25,2) [mb]:"
-!           PRINT *, "   ", Psat       
-!        ENDIF
-!        ! END DEBUGGING
-!
-!        ! Specific humidity in mb
-!        SHMB = State_Met%SPHU(I,J,L) * 1.6072e-3_fp * PRES
-!           
-!        ! Relative humidity as a percentage
-!        State_Met%RH(I,J,L) = ( SHMB / ESAT ) * 100e+0_fp 
-!
-!     ENDDO
-!     ENDDO
-!     ENDDO  
-!!$OMP END PARALLEL DO
-!
-!      END SUBROUTINE MAKE_RH
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
