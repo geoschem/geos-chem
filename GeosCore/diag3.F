@@ -4323,6 +4323,13 @@
                CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
             ENDIF
 
+            ! Write combined biogenic CH4 emissions to disk
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
          ENDIF
 
       ENDIF
