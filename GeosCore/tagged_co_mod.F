@@ -1187,6 +1187,13 @@
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
 ! 
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+
 ! !REVISION HISTORY: 
 !  13 Sep 2000 - B. Duncan   - Initial version
 !  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
@@ -1206,6 +1213,7 @@
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1231,7 +1239,8 @@
       ! Construct filename and open file
       FILENAME = 'strat_chem_201206/gmi.clim.CO.' // 
      &                GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
+     &           TRIM( Input_Opt%RES_DIR  ) // TRIM( FILENAME )
 
       call NcOp_Rd( fileID, TRIM( FILENAME ) )
 

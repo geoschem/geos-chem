@@ -2447,6 +2447,7 @@
 !
 ! !REVISION HISTORY: 
 !  15 Jul 2014 - R. Yantosca - Initial version
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2470,7 +2471,12 @@
       RC  = GIGC_SUCCESS
 
       ! Directory where netCDF ifles are found
-      DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'HEMCO/MAP_A2A/v2014-07/'
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+!      DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'HEMCO/MAP_A2A/v2014-07/'
+!-----------------------------------------------------------------------------
+      DIR = TRIM( Input_Opt%DATA_DIR ) // 'HEMCO/MAP_A2A/v2014-07/'
+
 
       ! Initialize longitudes [deg]
       DO I = 1, IIPAR+1
