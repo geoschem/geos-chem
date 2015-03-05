@@ -17,8 +17,7 @@
 ! !USES:
 !
 !
-      USE HCO_ERROR_MOD       ! For real precisions (hp)
-      USE PRECISION_MOD       ! For GEOS-Chem Precisions (fp)
+      USE PRECISION_MOD   ! For GEOS-Chem Precisions (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -332,10 +331,11 @@
       INTEGER               :: NDAYS(12) = (/ 31, 28, 31, 30, 31, 30, 
      &                                        31, 31, 30, 31, 30, 31 /)
 
-      ! HEMCO pointers
-      REAL(sp), POINTER     :: O3(:,:,:)  => NULL()
-      REAL(sp), POINTER     :: OH(:,:,:)  => NULL()
-      REAL(sp), POINTER     :: NO3(:,:,:) => NULL()
+      ! Pointers to fields contained in the HEMCO data structure
+      ! These must all be declared as REAL(f4), aka REAL*4.
+      REAL(f4), POINTER     :: O3(:,:,:)  => NULL()
+      REAL(f4), POINTER     :: OH(:,:,:)  => NULL()
+      REAL(f4), POINTER     :: NO3(:,:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 

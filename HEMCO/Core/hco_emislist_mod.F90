@@ -859,7 +859,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     REAL(sp),         POINTER               :: Ptr2D(:,:)  ! output array
-    LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND          ! cont. found?
+    LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND       ! cont. found?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !

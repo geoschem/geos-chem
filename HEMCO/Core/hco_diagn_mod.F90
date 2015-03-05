@@ -119,6 +119,7 @@ MODULE HCO_Diagn_Mod
      INTEGER                     :: AreaFlag       ! 2=per area, 3=per volume, 0 otherwise 
      REAL(hp)                    :: AreaScal       ! Scale factor for area
      REAL(hp)                    :: MassScal       ! Scale factor for mass
+     REAL(hp)                    :: ScaleFact      ! Uniform scale factor 
      INTEGER                     :: TimeAvg        ! Scale flag for time unit 
      INTEGER                     :: Counter        ! time steps since 
                                                    !  last output
@@ -323,6 +324,10 @@ CONTAINS
 !      determine unit conversion factors. Not needed for target 
 !      containers or if argument OutOper is specified. Can be omitted
 !      if HcoState is given.
+!\item ScaleFact: constant scale factor. If provided, the diagnostics
+!      are scaled uniformly by this value before outputting. Will be
+!      applied on top of any other unit conversions. Does not work on 
+!      data pointers.
 !\item cID: assigned container ID. Useful for later reference to this
 !      diagnostics container.
 !\item RC: HEMCO return code.
@@ -336,7 +341,7 @@ CONTAINS
                            WriteFreq, OutOper,    LevIdx,     &
                            AutoFill,  Trgt2D,     Trgt3D,     &
                            MW_g,      EmMW_g,     MolecRatio, &
-                           cID,       RC,         COL          )
+                           ScaleFact, cID,        RC,     COL  )
 !
 ! !USES:
 !
@@ -372,6 +377,7 @@ CONTAINS
     REAL(hp),         INTENT(IN   ), OPTIONAL :: MW_g          ! species MW (g/mol) 
     REAL(hp),         INTENT(IN   ), OPTIONAL :: EmMW_g        ! emission MW (g/mol)
     REAL(hp),         INTENT(IN   ), OPTIONAL :: MolecRatio    ! molec. emission ratio
+    REAL(hp),         INTENT(IN   ), OPTIONAL :: ScaleFact     ! uniform scale factor 
     INTEGER,          INTENT(IN   ), OPTIONAL :: COL           ! Collection number 
 !
 ! !OUTPUT PARAMETERS:
@@ -526,7 +532,19 @@ CONTAINS
     ! non-standard units, e.g. unitless data. 
     ! Don't need to be done for pointer data, which ignores all time 
     ! averaging, unit conversions, etc.
-      !----------------------------------------------------------------------
+    !----------------------------------------------------------------------
+
+    ! Uniform scale factor
+    IF ( PRESENT(ScaleFact) ) THEN
+       IF ( ThisDiagn%DtaIsPtr ) THEN
+          MSG = 'Cannot use scale factor on diagnostics that '// &
+                'are pointers to other data: '//TRIM(cName)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       ENDIF
+       ThisDiagn%ScaleFact = ScaleFact
+    ENDIF
+
+    ! Unit conversion factors don't need be defined for pointers
     IF ( .NOT. ThisDiagn%DtaIsPtr ) THEN
  
        ! Enforce specified output operator 
@@ -1652,8 +1670,9 @@ CONTAINS
     DgnCont%AutoFill =  1
 
     ! Default values for unit conversion factors 
-    DgnCont%MassScal  = 1.0_dp
-    DgnCont%AreaScal  = 1.0_dp
+    DgnCont%MassScal  = 1.0_hp
+    DgnCont%AreaScal  = 1.0_hp
+    DgnCont%ScaleFact = 1.0_hp
     DgnCont%AreaFlag  = 2
     DgnCont%Counter   = 0
     DgnCont%TimeAvg   = -1   
@@ -1876,7 +1895,11 @@ CONTAINS
     ENDIF
 
     ! totscal is the combined scale factor
-    totscal = mult1 / norm1 * DgnCont%MassScal * DgnCont%AreaScal 
+    totscal = mult1             &
+            / norm1             &
+            * DgnCont%MassScal  &
+            * DgnCont%AreaScal  &
+            * DgnCont%ScaleFact
 
     ! For 3D:
     IF ( DgnCont%SpaceDim == 3 ) THEN
@@ -2130,7 +2153,8 @@ CONTAINS
     ! Check if dimensions match. Also, containers with pointers must not
     ! be set to AutoFill
     IF ( DgnCont%AutoFill == 1 ) THEN
-       MSG = 'Cannot link AutoFill container: ' // TRIM(DgnCont%cName)
+       MSG = 'Cannot link AutoFill container - please set AutoFill flag to 0: ' &
+           // TRIM(DgnCont%cName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
@@ -2352,6 +2376,8 @@ CONTAINS
        WRITE(MSG,*) '   --> Used level index   : ', Dgn%LevIdx 
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) '   --> Output unit        : ', TRIM(Dgn%OutUnit)
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   --> Uniform scaling    : ', Dgn%ScaleFact
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) '   --> Write frequency    : ', TRIM(WriteFreq)
        CALL HCO_MSG(MSG)
