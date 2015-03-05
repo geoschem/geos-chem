@@ -3148,7 +3148,7 @@
                      ! with equivalent State_Met%DELP(I,J,L+2)
                      ! (ewl, 3/2/15)
                      PSEDABOVE  = VNAT(L+2) * SEDSTEP * 1.e+2_fp *
-                                   State_Met%DELP(I,J,L+2)
+     &                            State_Met%DELP(I,J,L+2)
      &                            / State_Met%BXHEIGHT(I,J,L+2)
 !                     PSEDABOVE = g0 * (1.0d3*AIRMW) * P_ABOVE *
 !     &                  VNAT(L+2)/(Rd * T(I,J,L+2))*SEDSTEP
@@ -3432,7 +3432,7 @@
          ! Only interested in low-pressure boxes
          TCENTER = State_Met%T(I,J,L)
          ! Now using dry air partial pressure (ewl, 3/2/15)
-         PCENTER = State_Met%PMID_DRY
+         PCENTER = State_Met%PMID_DRY(I,J,L)
          INVAIR  = AIRMW / State_Met%AD(I,J,L)
          IF (PCENTER.ge.1.e+2_fp) THEN
             AERFRAC(I,J,L,1) = 1e+0_fp

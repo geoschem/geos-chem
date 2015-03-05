@@ -566,7 +566,7 @@
          !
          State_Met%TV( I,J,L ) = State_Met%T(I,J,L) / (1 -  
      &                           Ev / State_Met%PMID(I,J,L) 
-                                 * ( 1 - H2OMW / AIRMW ) )
+     &                           * ( 1 - H2OMW / AIRMW ) )
 
          State_Met%BXHEIGHT( I,J,L ) = Rdg0 * State_Met%TV(I,J,L)
      &                                 * LOG( State_Met%PEDGE(I,J,L) 
