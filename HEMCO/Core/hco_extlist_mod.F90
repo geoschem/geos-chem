@@ -653,7 +653,7 @@ CONTAINS
           ThisExt%ExtNr = ExtNr
           IF ( verb ) THEN
              WRITE(MSG,*) 'Force ExtNr of extension ', TRIM(ThisExt%ExtName), &
-                          'to ', ExtNr
+                          ' to ', ExtNr
              CALL HCO_MSG(MSG)
           ENDIF
        ENDIF
