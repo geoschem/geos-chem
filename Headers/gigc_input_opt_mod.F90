@@ -759,6 +759,7 @@ CONTAINS
 !  25 Jun 2014 - R. Yantosca - Now initialize Input_Opt%SIM_TYPE field
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  05 Mar 2015 - R. Yantosca - Added RES_DIR, CHEM_INPUTS_DIR fields
+!  06 Mar 2015 - R. Yantosca - Now initialize directory names with './'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -786,21 +787,21 @@ CONTAINS
     Input_Opt%NHMSb                  = 0
     Input_Opt%NYMDe                  = 0
     Input_Opt%NHMSe                  = 0
-    Input_Opt%RUN_DIR                = ''
+    Input_Opt%RUN_DIR                = './'
     Input_Opt%IN_RST_FILE            = ''
     Input_Opt%LSVGLB                 = .FALSE.
     Input_Opt%OUT_RST_FILE           = ''
-    Input_Opt%DATA_DIR               = ''
-    Input_Opt%RES_DIR                = ''
-    Input_Opt%CHEM_INPUTS_DIR        = ''
-    Input_Opt%RES_DIR                = ''
-    Input_Opt%GCAP_DIR               = ''
-    Input_Opt%GEOS_4_DIR             = ''
-    Input_Opt%GEOS_5_DIR             = ''
-    Input_Opt%GEOS_FP_DIR            = ''
-    Input_Opt%MERRA_DIR              = ''
-    Input_Opt%DATA_DIR_1x1           = ''        ! NOTE: Now deprecated!
-    Input_Opt%TEMP_DIR               = ''
+    Input_Opt%DATA_DIR               = './'
+    Input_Opt%RES_DIR                = './'
+    Input_Opt%CHEM_INPUTS_DIR        = './'
+    Input_Opt%RES_DIR                = './'
+    Input_Opt%GCAP_DIR               = './'
+    Input_Opt%GEOS_4_DIR             = './'
+    Input_Opt%GEOS_5_DIR             = './'
+    Input_Opt%GEOS_FP_DIR            = './'
+    Input_Opt%MERRA_DIR              = './'
+    Input_Opt%DATA_DIR_1x1           = './'      ! NOTE: Now deprecated!
+    Input_Opt%TEMP_DIR               = './'
     Input_Opt%LUNZIP                 = .FALSE.   ! NOTE: Now deprecated!
     Input_Opt%LWAIT                  = .FALSE.   ! NOTE: Now deprecated!
     Input_Opt%LVARTROP               = .FALSE.
@@ -1301,15 +1302,15 @@ CONTAINS
     Input_Opt%LWINDO                 = .FALSE.
     Input_Opt%LWINDO2x25             = .FALSE.
     Input_Opt%LWINDO_NA              = .FALSE.
-    Input_Opt%TPBC_DIR_NA            = ''
+    Input_Opt%TPBC_DIR_NA            = './'
     Input_Opt%LWINDO_EU              = .FALSE.
-    Input_Opt%TPBC_DIR_EU            = ''
+    Input_Opt%TPBC_DIR_EU            = './'
     Input_Opt%LWINDO_CH              = .FALSE.
-    Input_Opt%TPBC_DIR_CH            = ''
+    Input_Opt%TPBC_DIR_CH            = './'
     Input_Opt%LWINDO_SE              = .FALSE.
-    Input_Opt%TPBC_DIR_SE            = ''
+    Input_Opt%TPBC_DIR_SE            = './'
     Input_Opt%LWINDO_CU              = 0
-    Input_Opt%TPBC_DIR               = ''
+    Input_Opt%TPBC_DIR               = './'
     Input_Opt%NESTED_TS              = 0
     Input_Opt%NESTED_I1              = 0
     Input_Opt%NESTED_J1              = 0
@@ -1328,12 +1329,12 @@ CONTAINS
     !----------------------------------------
     ! ARCHIVED OH MENU fields
     !----------------------------------------
-    Input_Opt%OH_DIR                 = ''
+    Input_Opt%OH_DIR                 = './'
 
     !----------------------------------------
     ! O3PL MENU fields
     !----------------------------------------
-    Input_Opt%O3PL_DIR               = ''
+    Input_Opt%O3PL_DIR               = './'
 
     !----------------------------------------
     ! MERCURY MENU fields
