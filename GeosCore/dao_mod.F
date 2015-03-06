@@ -364,6 +364,7 @@
       REAL(fp)  :: PEdge_Top, Esat, Ev, Tc   
       REAL(fp)  :: EsatA, EsatB, EsatC, EsatD, EsatE 
       REAL(fp)  :: AREA_M2, SPHU_kgkg
+      REAL(fp)  :: RH_temp, Ev_temp    ! debugging (ewl, 3/6/15)
 
       ! Conversion factors
       REAL(fp), PARAMETER   :: TOFFSET = -2.7315e+2_fp   ! K -> deg C
@@ -400,6 +401,7 @@
 !$OMP+PRIVATE( PEdge_Top, Esat, Ev, Tc )
 !$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD, EsatE )
 !$OMP+PRIVATE( AREA_M2, SPHU_kgkg )
+!$OMP+PRIVATE( RH_temp, Ev_temp )
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -481,7 +483,7 @@
          ! [hPa]    pressure       SPHU * H2OMW + (1 - SPHU) * AIRMW 
          !          [hPa]       
          !                             
-         ! WAter vapor partial pressure [hPa]
+         ! Water vapor partial pressure [hPa]
          Ev = State_Met%PMID(I,J,L) * SPHU_kgkg * H2)MW 
      &        / ( SPHU_kgkg * H2OMW + ( 1 - SPHU_kgkg ) * AIRMW )
  
@@ -489,6 +491,20 @@
          State_Met%RH(I,J,L) = ( Ev / Esat ) * 100e+0_fp 
 
 #elif defined( GEOS_5 ) || defined ( MERRA ) || defined( GEOS_FP )
+
+         ! DEBUGGING (ewl, 3/6/15)
+         ! Check calculations of Ev and RH when using GEOS-4/MERRA
+
+         ! Water vapor partial pressure [hPa]
+         Ev_temp = State_Met%PMID(I,J,L) * SPHU_kgkg * H2)MW 
+     &        / ( SPHU_kgkg * H2OMW + ( 1 - SPHU_kgkg ) * AIRMW )
+ 
+         ! Relative humidity [%]
+         RH_temp = ( Ev / Esat ) * 100e+0_fp 
+         
+         ! END DEBUGGING
+
+
          !=============================================================
          ! Calculate water vapor partial pressure [hPa] from relative
          ! humidity if using GEOS-5, MERRA, or GEOS-FP
@@ -635,52 +651,56 @@
      &                         * State_Met%AIRDEN(I,J,L) 
      &                         / State_Met%MAIRDEN(I,J,L)
 
-!         ! DEBUGGING (ewl, 2/27/15)
-!         IF (I == 25 .and. J == 25 .and. L == 2 ) THEN
-!            PRINT *, " "
-!            PRINT *, "New air quants for (25,25,2)"
-!            PRINT *, "   Bottom edge pressure [hPa]:"
-!            PRINT *, "       ", State_Met%PEDGE(I,J,L)
-!            PRINT *, "   Bottom edge dry air partial pressure [hPa]:"
-!            PRINT *, "       ", State_Met%PEDGE_DRY(I,J,L)
-!            PRINT *, "   Top edge pressure [hPa]:"
-!            PRINT *, "       ", PEdge_Top
-!            PRINT *, "   Delta pressure [hPa]:"
-!            PRINT *, "       ", State_Met%DELP(I,J,L)
-!            PRINT *, "   Box height [m]:"
-!            PRINT *, "       ", State_Met%BXHEIGHT(I,J,L)            
-!            PRINT *, "   Mass in grid box [kg]:"
-!            PRINT *, "       ", State_Met%AD(I,J,L)           
-!            PRINT *, "   Air volume [m3]:"
-!            PRINT *, "       ", State_Met%AIRVOL(I,J,L)            
-!            PRINT *, "   Dry air density [kg/m3]:"
-!            PRINT *, "       ", State_Met%AIRDEN(I,J,L) 
-!            PRINT *, "   Dry air density calculated as AD/vol [kg/m3]:"
-!            PRINT *, "       ", State_Met%AD(I,J,L)
-!     &                          /State_Met%AIRVOL(I,J,L)
-!            PRINT *, "   Moist air density [kg/m3]:"
-!            PRINT *, "       ", State_Met%MAIRDEN(I,J,L) 
-!            PRINT *, "   Temperature [K]:"
-!            PRINT *, "       ", State_Met%T(I,J,L)
-!            PRINT *, "   Virtual temperature [K]:"
-!            PRINT *, "       ", State_Met%TV(I,J,L)
-!            PRINT *, "   Mid-point pressure [hPa]:"
-!            PRINT *, "       ", State_Met%PMID(I,J,L)
-!            PRINT *, "   Mid-point dry air partial pressure [hPa]:"
-!            PRINT *, "       ", State_Met%PMID_DRY(I,J,L)
-!            PRINT *, "   Saturation water vapor pressure [mb]:"
-!            PRINT *, "       ", Esat
-!            PRINT *, "   Water vapor pressure from State_Met RH [mb]:"
-!            PRINT *, "       ", Ev            
-!            PRINT *, "   State_Met relative humidity [%]:"
-!            PRINT *, "       ", State_Met%RH(I,J,L)
-!            PRINT *, "   Specific humidity (State_Met) [g/kg]:"
-!            PRINT *, "       ", State_Met%SPHU(I,J,L)
-!            PRINT *, "   Water vapor volume mixing ratio [v/v]:"
-!            PRINT *, "       ", State_Met%AVGW(I,J,L)           
-!            PRINT *, " "
-!         ENDIF
-!         ! END DEBUGGING
+         ! DEBUGGING (ewl, 2/27/15)
+         IF (I == 25 .and. J == 25 .and. L == 2 ) THEN
+            PRINT *, " "
+            PRINT *, "New air quants for (25,25,2)"
+            PRINT *, "   Bottom edge pressure [hPa]:"
+            PRINT *, "       ", State_Met%PEDGE(I,J,L)
+            PRINT *, "   Bottom edge dry air partial pressure [hPa]:"
+            PRINT *, "       ", State_Met%PEDGE_DRY(I,J,L)
+            PRINT *, "   Top edge pressure [hPa]:"
+            PRINT *, "       ", PEdge_Top
+            PRINT *, "   Delta pressure [hPa]:"
+            PRINT *, "       ", State_Met%DELP(I,J,L)
+            PRINT *, "   Box height [m]:"
+            PRINT *, "       ", State_Met%BXHEIGHT(I,J,L)            
+            PRINT *, "   Mass in grid box [kg]:"
+            PRINT *, "       ", State_Met%AD(I,J,L)           
+            PRINT *, "   Air volume [m3]:"
+            PRINT *, "       ", State_Met%AIRVOL(I,J,L)            
+            PRINT *, "   Dry air density from ideal gas law [kg/m3]:"
+            PRINT *, "       ", State_Met%AIRDEN(I,J,L) 
+            PRINT *, "   Dry air density calculated as AD/vol [kg/m3]:"
+            PRINT *, "       ", State_Met%AD(I,J,L)
+     &                          /State_Met%AIRVOL(I,J,L)
+            PRINT *, "   Moist air density from ideal gas law [kg/m3]:"
+            PRINT *, "       ", State_Met%MAIRDEN(I,J,L) 
+            PRINT *, "   Temperature (Met field) [K]:"
+            PRINT *, "       ", State_Met%T(I,J,L)
+            PRINT *, "   Virtual temperature [K]:"
+            PRINT *, "       ", State_Met%TV(I,J,L)
+            PRINT *, "   Mid-point pressure [hPa]:"
+            PRINT *, "       ", State_Met%PMID(I,J,L)
+            PRINT *, "   Mid-point dry air partial pressure [hPa]:"
+            PRINT *, "       ", State_Met%PMID_DRY(I,J,L)
+            PRINT *, "   Saturation water vapor pressure [mb]:"
+            PRINT *, "       ", Esat
+            PRINT *, "   H2O pressure from State_Met RH [mb]:"
+            PRINT *, "       ", Ev     
+            PRINT *, "   H2O pressure from SPHU (geos4/merra) [mb]:"
+            PRINT *, "       ", Ev_temp
+            PRINT *, "   Relative humidity (Met field) [%]:"
+            PRINT *, "       ", State_Met%RH(I,J,L)
+            PRINT *, "   Relative humidity from SPHU (geos4/merra) [%]:"
+            PRINT *, "       ", RH_temp
+            PRINT *, "   Specific humidity (Met field) [g/kg]:"
+            PRINT *, "       ", State_Met%SPHU(I,J,L)
+            PRINT *, "   Water vapor volume mixing ratio [v/v]:"
+            PRINT *, "       ", State_Met%AVGW(I,J,L)           
+            PRINT *, " "
+         ENDIF
+         ! END DEBUGGING
 
       ENDDO
       ENDDO
