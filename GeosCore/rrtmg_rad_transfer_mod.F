@@ -134,6 +134,7 @@
       USE CMN_FJX_MOD,         ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
+      USE CMN_GCTM_MOD,        ONLY : AIRMW, PI
       USE COMODE_MOD,          ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_LOOP_MOD,     ONLY : ICH4, AVG, WTAIR
       USE DIAG_MOD,            ONLY : AD72
@@ -144,7 +145,7 @@
       USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
-      USE TRACERID_MOD,        ONLY : IDTO3
+      USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -305,6 +306,9 @@
       REAL (KIND=RB)      :: AIR_CLIM(LLPAR)
       REAL (KIND=RB)      :: T_CTM(LLPAR+1)
       REAL (KIND=RB)      :: P_CTM(LLPAR+2)
+      INTEGER             :: N_TRACERS
+      REAL*8              :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL*8              :: TRACER_MW_G(Input_Opt%N_TRACERS)
 
       !-----------------------------------------------------------------
       ! SW SOLAR VARIABLES
@@ -395,6 +399,15 @@
       REAL(KIND=RB)       :: FSFCLD0(NBNDSW,1,LLPAR)
 
       !=================================================================
+      ! DO_RRTMG_RAD_TRANSFER begins here!
+      !=================================================================
+
+      ! Get fields from Input_Opt
+      N_TRACERS   = Input_Opt%N_TRACERS
+      XNUMOL      = Input_Opt%XNUMOL
+      TRACER_MW_G = Input_Opt%TRACER_MW_G(1:N_TRACERS)
+
+      !=================================================================
       ! PREPARE INPUTS FOR RAD_DRIVER
       !=================================================================
 
@@ -437,8 +450,8 @@
       SSAAER(:,:,:)      = 0.0
       ASMAER(:,:,:)      = 0.0
       TAUAERDIAG(:,:,:)  = 0.0D0
-      SSAAERDIAG(:,:,:)  = 0.0D0
-      ASMAERDIAG(:,:,:)  = 0.0D0
+      SSAAERDIAG(:,:,:)  = 1.0D0
+      ASMAERDIAG(:,:,:)  = 0.2D0
       UFLX(:,:)          = 0.0
       DFLX(:,:)          = 0.0
       HR(:,:)            = 0.0
@@ -553,7 +566,7 @@
        ! CTM ozone densities (molec/cm3)
        O3_CTM          = 0d0
        L               = GET_CHEMGRID_LEVEL(I,J,State_Met)
-       O3_CTM(1:L)     = State_Chm%Tracers(I,J,1:L,IDTO3)
+       O3_CTM(1:L)     = CSPEC(JLOOP,IDO3)
        
       DO L = 1, LLPAR
 
@@ -586,11 +599,36 @@
             ! THEREFORE CSPEC WILL ONLY BE DEFINED IN THE TROP
             ! 1-D INDEX FOR CSPEC ARRAY
             JLOOP = JLOP(I,J,L)
+!            write(6,*) 'JLOOP', JLOOP, I,J,L
+            IF (JLOOP.EQ.0) THEN 
+             JLOOP=1
+            ENDIF
             !IF O3 REQUESTED THEN SPECMASK WILL BE SET TO ZERO
             !SO THAT O3 WILL BE REMOVED RELATIVE TO THE BASELINE CASE
             !(WHEN SPECMASK DEFAULTS TO 1)
             !I.E. WE WANT TO RUN WITHOUT THE GAS IF IT HAS BEEN
             !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
+#if defined( UCX )
+            IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
+             O3VMR(IJLOOP,L)  = State_Chm%Tracers(I,J,L,IDTO3)*AIRMW /
+     &                     (TRACER_MW_G(IDTO3)*State_Met%AD(I,J,L))
+            ENDIF
+            IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
+             CH4VMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTCH4)*AIRMW /
+     &                     (TRACER_MW_G(IDTCH4)*State_Met%AD(I,J,L))
+            ENDIF
+            N2OVMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTN2O)*AIRMW /
+     &                     (TRACER_MW_G(IDTN2O)*State_Met%AD(I,J,L))
+            CFC11VMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTCFC11)*
+     &                 AIRMW/(TRACER_MW_G(IDTCFC11)*State_Met%AD(I,J,L))
+            CFC12VMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTCFC12)*
+     &                 AIRMW/(TRACER_MW_G(IDTCFC12)*State_Met%AD(I,J,L))
+            CCL4VMR(IJLOOP,L)  = State_Chm%Tracers(I,J,L,IDTCCL4)*
+     &                 AIRMW/(TRACER_MW_G(IDTCCL4)*State_Met%AD(I,J,L))
+            CFC22VMR(IJLOOP,L) =State_Chm%Tracers(I,J,L,IDTHCFC22)*
+     &                AIRMW/(TRACER_MW_G(IDTHCFC22)*State_Met%AD(I,J,L))
+
+#else
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
              O3VMR(IJLOOP,L)  = CSPEC(JLOOP,IDO3)/AIRDENS(JLOOP)
             ENDIF
@@ -604,22 +642,55 @@
             CFC12VMR(IJLOOP,L) = CFC12CLIM(I,J,L)/1E9
             CCL4VMR(IJLOOP,L)  = CCL4CLIM(I,J,L)/1E9
             CFC22VMR(IJLOOP,L) = CFC22CLIM(I,J,L)/1E9
+#endif
        ELSE
            !-----------------------------
            ! WE ARE IN THE STRATOSPHERE
            !-----------------------------
 
-           !! DENSITY OF AIR IN G/CM2
-           AIR_TMP = State_Met%AIRDEN(L,I,J)*
-     &               State_Met%BXHEIGHT(I,J,L)*1.0E-1
-           !! DENSITY OF AIR IN MOLEC/CM2
-           AIR_TMP = AVG*AIR_TMP/WTAIR
+#if defined( UCX )
+            !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
+            !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
+             O3VMR(IJLOOP,L)  = State_Chm%Tracers(I,J,L,IDTO3)*AIRMW /
+     &                     (TRACER_MW_G(IDTO3)*State_Met%AD(I,J,L))
+             CH4VMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTCH4)*AIRMW /
+     &                     (TRACER_MW_G(IDTCH4)*State_Met%AD(I,J,L))
+            N2OVMR(IJLOOP,L) = State_Chm%Tracers(I,J,L,IDTN2O)*AIRMW /
+     &                     (TRACER_MW_G(IDTN2O)*State_Met%AD(I,J,L))
+            CFC11VMR(IJLOOP,L) =State_Chm%Tracers(I,J,L,IDTCFC11)*
+     &       AIRMW/(TRACER_MW_G(IDTCFC11)*State_Met%AD(I,J,L))
+            CFC12VMR(IJLOOP,L) =State_Chm%Tracers(I,J,L,IDTCFC12)*
+     &       AIRMW/(TRACER_MW_G(IDTCFC12)*State_Met%AD(I,J,L))
+            CCL4VMR(IJLOOP,L)  =State_Chm%Tracers(I,J,L,IDTCCL4)*
+     &       AIRMW/(TRACER_MW_G(IDTCCL4)*State_Met%AD(I,J,L))
+            CFC22VMR(IJLOOP,L) =State_Chm%Tracers(I,J,L,IDTHCFC22)*
+     &       AIRMW/(TRACER_MW_G(IDTHCFC22)*State_Met%AD(I,J,L))
 
-           CALL SET_PROF_O3 (YLAT,THISMONTH,THISDAY,
-     &                       T_CTM,  P_CTM,
-     &                       O3_CTM, O3COL, T_CLIM,
-     &                       O3_CLIM,  Z_CLIM,  AIR_CLIM, Input_Opt)
-           O3VMR(IJLOOP,L) = O3_CLIM(L)/AIR_TMP
+
+! TEST IMPACT OF STRAT CHEM
+!            O3VMR(IJLOOP,L)  = 0.0d0
+!            CH4VMR(IJLOOP,L) = 0.0d0
+!            N2OVMR(IJLOOP,L) = 0.0d0
+!            CFC11VMR(IJLOOP,L) = 0.0d0
+!            CFC12VMR(IJLOOP,L) = 0.0d0
+!            CCL4VMR(IJLOOP,L)  = 0.0d0
+!            CFC22VMR(IJLOOP,L) = 0.0d0
+
+#else      
+            !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
+            !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
+
+            !! DENSITY OF AIR IN G/CM2
+            AIR_TMP = State_Met%AIRDEN(L,I,J)*
+     &                State_Met%BXHEIGHT(I,J,L)*1.0E-1
+            !! DENSITY OF AIR IN MOLEC/CM2
+            AIR_TMP = AVG*AIR_TMP/WTAIR
+
+            CALL SET_PROF_O3 (YLAT,THISMONTH,THISDAY,
+     &                        T_CTM,  P_CTM,
+     &                        O3_CTM, O3COL, T_CLIM,
+     &                        O3_CLIM,  Z_CLIM,  AIR_CLIM, Input_Opt)
+            O3VMR(IJLOOP,L) = O3_CLIM(L)/AIR_TMP
 
             !GET SCALINGS IF THIS IS THE FIRST LEVEL IN THE STRAT
             IF (FLG_FIRST_STRAT(IJLOOP).EQ.0) THEN
@@ -639,10 +710,12 @@
             CFC12VMR(IJLOOP,L) = CFC12CLIM(I,J,L)/1E9
             CCL4VMR(IJLOOP,L)  = CCL4CLIM(I,J,L)/1E9
             CFC22VMR(IJLOOP,L) = CFC22CLIM(I,J,L)/1E9
+#endif
        ENDIF
       ENDDO
       ENDDO
       ENDDO
+
 !OMP END PARALLEL DO
 
       IF (DOAERAD) THEN
@@ -672,34 +745,50 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
           ! 1-D INDEX
-          IJLOOP = (J-1)*IIPAR+I       
-          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN 
-           IF (IB.LE.16) THEN !LW
-            IF (SPECMASK(IS).EQ.1) THEN
-                  TAUAER_LW(IJLOOP,L,IB) = TAUAER_LW(IJLOOP,L,IB) +
-     &                           RTODAER(I,J,L,IBX,IS)
-            ENDIF
-           ELSE !SW
-            !IF SPECMASK(IS)=1 THEN WE AGGREGATE THAT SPECIES FOR RRTMG
-            !IF SPECMASK(IS)>1 THEN WE SAVE THAT SPECIES FOR DIAG OUTPUT
-            IF (SPECMASK(IS).EQ.1) THEN
-             TAUAER_SW(IJLOOP,L,IB_SW)=TAUAER_SW(IJLOOP,L,IB_SW)+
-     &                                 RTODAER(I,J,L,IBX,IS)
-             SSAAER(IJLOOP,L,IB_SW) =  SSAAER(IJLOOP,L,IB_SW) + 
-     &                       RTSSAER(I,J,L,IBX,IS)*RTODAER(I,J,L,IBX,IS)
-             ASMAER(IJLOOP,L,IB_SW) = ASMAER(IJLOOP,L,IB_SW) +
-     &                                RTASYMAER(I,J,L,IBX,IS) *
-     &                     RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
+          IJLOOP = (J-1)*IIPAR+I
 
-            ENDIF 
-            IF (SPECMASK(IS).GT.1) THEN
-             TAUAERDIAG(IJLOOP,L,IB_SW)=TAUAERDIAG(IJLOOP,L,IB_SW)+
-     &                       RTODAER(I,J,L,IBX,IS)
-             SSAAERDIAG(IJLOOP,L,IB_SW) = SSAAERDIAG(IJLOOP,L,IB_SW) +
+#if defined( UCX )
+          !if UCX on, we need to go above the tropopause to get 
+          !the strat AOD, but only for IS=8 and IS=9
+          IF ((INTROP(IJLOOP,L).EQ..TRUE.).OR.
+     &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
+#else
+          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
+#endif    
+           !MAKE SURE WE HAVE SENSIBLE DATA
+           !DONT WASTE TIME IF VIRTUALLY NO AEROSOL
+           IF (RTODAER(I,J,L,IBX,IS).GT.1e-10) THEN
+            IF (IB.LE.16) THEN !LW
+             IF (SPECMASK(IS).EQ.1) THEN
+                   TAUAER_LW(IJLOOP,L,IB) = TAUAER_LW(IJLOOP,L,IB) +
+     &                            RTODAER(I,J,L,IBX,IS)
+             ENDIF
+            ELSE !SW
+             !IF SPECMASK(IS)=1 THEN WE AGGREGATE THAT SPECIES FOR RRTMG
+             !IF SPECMASK(IS)>1 THEN WE SAVE THAT SPECIES FOR DIAG OUTPUT
+             IF (SPECMASK(IS).EQ.1) THEN
+              TAUAER_SW(IJLOOP,L,IB_SW)=TAUAER_SW(IJLOOP,L,IB_SW)+
+     &                                  RTODAER(I,J,L,IBX,IS)
+              SSAAER(IJLOOP,L,IB_SW) =  SSAAER(IJLOOP,L,IB_SW) + 
      &                       RTSSAER(I,J,L,IBX,IS)*RTODAER(I,J,L,IBX,IS)
-             ASMAERDIAG(IJLOOP,L,IB_SW) = ASMAERDIAG(IJLOOP,L,IB_SW) +
-     &                     RTASYMAER(I,J,L,IBX,IS) *
-     &                     RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
+              ASMAER(IJLOOP,L,IB_SW) = ASMAER(IJLOOP,L,IB_SW) +
+     &                                 RTASYMAER(I,J,L,IBX,IS) *
+     &                      RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
+              IF ((IS.EQ.8).AND.(L.GT.30).AND.
+     &           (RTODAER(I,J,L,IBX,IS).GT.0.0d0)) THEN
+!               write(6,*) 'STS',I,J,L,IBX,IS,RTODAER(I,J,L,IBX,IS)
+              ENDIF
+             ENDIF 
+             IF (SPECMASK(IS).GT.1) THEN
+              TAUAERDIAG(IJLOOP,L,IB_SW)=TAUAERDIAG(IJLOOP,L,IB_SW)+
+     &                        RTODAER(I,J,L,IBX,IS)
+              SSAAERDIAG(IJLOOP,L,IB_SW) = SSAAERDIAG(IJLOOP,L,IB_SW) +
+     &                       RTSSAER(I,J,L,IBX,IS)*RTODAER(I,J,L,IBX,IS)
+              ASMAERDIAG(IJLOOP,L,IB_SW) = ASMAERDIAG(IJLOOP,L,IB_SW) +
+     &                      RTASYMAER(I,J,L,IBX,IS) *
+     &                      RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
+!              write(6,*) 'SSA0',I,J,L,IBX,IS,RTSSAER(I,J,L,IBX,IS)
+             ENDIF
             ENDIF
            ENDIF 
           ENDIF
@@ -723,7 +812,15 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          IJLOOP = (J-1)*IIPAR+I       
-          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN 
+#if defined( UCX )
+          !if UCX on, we need to go above the tropopause to get
+          !the strat AOD, but only for IS=8 and IS=9
+          IF ((INTROP(IJLOOP,L).EQ..TRUE.).OR.
+     &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
+#else
+          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
+#endif
+
            IF ((TAUAER_SW(IJLOOP,L,IB_SW).GT.0).AND.
      $        (    SSAAER(IJLOOP,L,IB_SW).GT.0)) THEN
               !DIVIDE SUM(ASYM*SSA*OD) BY SUM(SSA*OD) TO GET 
@@ -744,6 +841,7 @@
               !DIVIDE SUM(SSA*OD) BY SUM(OD) TO GET OD WEIGHTED SSA
               SSAAERDIAG(IJLOOP,L,IB_SW) = SSAAERDIAG(IJLOOP,L,IB_SW) /
      &                                     TAUAERDIAG(IJLOOP,L,IB_SW)
+!            write(6,*) 'SSA',SSAAERDIAG(IJLOOP,L,IB_SW)
            ENDIF
           ENDIF
          ENDDO
@@ -765,7 +863,14 @@
         DO I = 1, IIPAR
          ! 1-D INDEX
          IJLOOP = (J-1)*IIPAR+I       
-         IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN 
+#if defined( UCX )
+          !if UCX on, we need to go above the tropopause to get
+          !the strat AOD, but only for IS=8 and IS=9
+          IF ((INTROP(IJLOOP,L).EQ..TRUE.).OR.
+     &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
+#else
+          IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN
+#endif
           IF (IB.LE.16) THEN
            TAUAER_LW(IJLOOP,L,IB)    = 0.0
           ELSE
@@ -774,7 +879,7 @@
            ASMAER(IJLOOP,L,IB_SW)    = 0.02D0
            TAUAERDIAG(IJLOOP,L,IB_SW) = 0.0D0
            SSAAERDIAG(IJLOOP,L,IB_SW) = 0.99D0
-           ASMAERDIAG(IJLOOP,L,IB_SW) = 0.02D0
+           ASMAERDIAG(IJLOOP,L,IB_SW) = 0.2D0
           ENDIF
          ENDIF
         ENDDO
@@ -784,7 +889,46 @@
 !OMP END PARALLEL DO 
       ENDIF
 
-      ! RAD_DRIVER IS THE INTERFACE BETWEEN G-C AND RRTMG
+! checking values
+       DO IB= NBNDLW+1, NBNDS
+        IB_SW = IB-NBNDLW
+        DO L = 1, LLPAR
+        DO J = 1, JJPAR
+        DO I = 1, IIPAR
+         ! 1-D INDEX
+         IJLOOP = (J-1)*IIPAR+I
+              IF (ASMAER(IJLOOP,L,IB_SW).GT.0.999d0) THEN
+               ASMAER(IJLOOP,L,IB_SW) = 0.999d0
+              ENDIF
+!              IF (ASMAER(IJLOOP,L,IB_SW).LT.0.001d0) THEN
+!               ASMAER(IJLOOP,L,IB_SW) = 0.001
+!              ENDIF
+              IF ((SSAAER(IJLOOP,L,IB_SW).LT.0.001d0).OR.
+     &            (SSAAER(IJLOOP,L,IB_SW).GT.1.0d0)) THEN
+               SSAAER(IJLOOP,L,IB_SW) = 0.99
+              ENDIF
+              IF (TAUAER_SW(IJLOOP,L,IB_SW).GT.1.0) THEN
+               TAUAER_SW(IJLOOP,L,IB_SW) = 1.0
+              ENDIF
+              IF (ASMAERDIAG(IJLOOP,L,IB_SW).GT.0.999d0) THEN
+               ASMAER(IJLOOP,L,IB_SW) = 0.999d0
+              ENDIF
+!              IF (ASMAERDIAG(IJLOOP,L,IB_SW).LT.0.001d0) THEN
+!               ASMAER(IJLOOP,L,IB_SW) = 0.001
+!              ENDIF
+              IF ((SSAAERDIAG(IJLOOP,L,IB_SW).LT.0.001d0).OR.
+     &            (SSAAERDIAG(IJLOOP,L,IB_SW).GT.1.0d0)) THEN
+               SSAAER(IJLOOP,L,IB_SW) = 0.99
+              ENDIF
+              IF (TAUAERDIAG(IJLOOP,L,IB_SW).GT.1.0) THEN
+               TAUAER_SW(IJLOOP,L,IB_SW) = 1.0
+              ENDIF
+
+        ENDDO
+        ENDDO
+        ENDDO
+       ENDDO
+
       DOY = GET_DAY_OF_YEAR()
       NCOL = IIPAR*JJPAR
       ONECOL = 1
@@ -910,7 +1054,6 @@
       DO IL=1, NCOL
  
       IF (Input_Opt%LLWRAD) THEN
-        
         CALL RRTMG_LW 
      &       (ONECOL,LLPAR,ICLDMCL,IDRV, 
      &        PCENTER(IL,:) ,PLEV(IL,:) ,TLAY(IL,:)    ,TLEV(IL,:) ,
@@ -924,6 +1067,7 @@
      &        CLWPMCL_LW(:,IL,:),REICMCL(IL,:),RELQMCL(IL,:), 
      &        TAUAER_LW(IL,:,:),UFLX,DFLX,HR,UFLXC,DFLXC,HRC, 
      &        DUFLX_DT,DUFLXC_DT)
+
         LW_UFLUX(IL,:) = UFLX(1,:)
         LW_DFLUX(IL,:) = DFLX(1,:)
         LW_UFLUXC(IL,:) = UFLXC(1,:)
@@ -934,6 +1078,9 @@
         IJLOOP         = (J-1)*IIPAR+I
         I = IL - (J-1)*IIPAR
         I = MOD(IL,IIPAR)
+!        write(6,*) 'SWSHIZ',TAUAER_SW(IL,1,5),SWUFLX(1,1),SWDFLX(1,1),
+!     &         SWUFLXC(1,1),SWDFLXC(1,1)
+
         CALL RRTMG_SW 
      &       (ONECOL    ,LLPAR    ,ICLDMCL , 
      &        PCENTER(IL,:)    ,PLEV(IL,:),TLAY(IL,:),TLEV(IL,:),
@@ -1039,14 +1186,14 @@
            SSATMP=SNGL( CCOEF_RTWV(W)*
      &            SSAAERDIAG(IJLOOP,LL,IRTWVSELECT(2,W))+
      &            (1.0D0-CCOEF_RTWV(W))*
-     &            SSAAERDIAG(IJLOOP,LL,IRTWVSELECT(1,W)))*AODTMP
+     &            SSAAERDIAG(IJLOOP,LL,IRTWVSELECT(1,W)))
            ASYMTMP=SNGL( CCOEF_RTWV(W)*
      &            ASMAERDIAG(IJLOOP,LL,IRTWVSELECT(2,W))+
      &            (1.0D0-CCOEF_RTWV(W))*
-     &            ASMAERDIAG(IJLOOP,LL,IRTWVSELECT(1,W)))*SSATMP
+     &            ASMAERDIAG(IJLOOP,LL,IRTWVSELECT(1,W)))
            AODOUT=AODOUT+AODTMP
            SSAOUT=SSAOUT+SSATMP*AODTMP
-           ASYMOUT=ASYMOUT+ASYMTMP*SSATMP
+           ASYMOUT=ASYMOUT+ASYMTMP*SSATMP*AODTMP
           ENDIF
          ENDDO !LLPAR
          !WE ARE SAVING COLUMN AVERAGED VALUES FOR EACH SPECIES
@@ -1109,12 +1256,24 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: N0,N,I,II
+      INTEGER                :: N0,N,I,II,NXTRA
 
       !=================================================================
       ! SET_SPECMASK begins here!
       !=================================================================
 
+      !ISPECRADMENU IS THE INDEX OF THE SPECIES WITHIN THE INPUT MENU
+      !THE INDEX OF SPECMASK INDICATES THE POSITION OF THE SPECIES IN
+      !THE RT OPTICS ARRAY FOR THE AEROSOL 
+      !E.G. SO4 = 1 I.E. RTODAER(*,*,*,*,1)
+      !
+      !===FUNCTIONALITY FOR ADDING NEW SPECIES===
+      !EXTRA SPECIES ARE ADDED AFTER NAER (BEFORE NDUST AND GASES)
+      !SO WE NEED TO BUMP ALL THE SPECIES AFTER THAT BY NXTRA
+      !WHERE NXTRA=NUMBER OF NEW SPECIES ADDED ABOVE THE STANDARD CODE
+      !E.G. IF UCX=YES THEN NASPECRAD=18 AND STS AND NAT ARE INCLUDED
+      !IN RTODAER INDEX 8 AND 9, BEFORE DUST
+      NXTRA=NASPECRAD-16
       !CONVERT THE CURRENT SPECIES SELECTION FROM THE INPUT MENU INTO
       !THE REQUIRED SPECIES TO BE INCLUDED IN THE RRTMG CALCULATION
       SPECMASK(:)=1
@@ -1126,56 +1285,51 @@
        SELECT CASE( ISPECRADMENU )
        !OZONE
        CASE( 1 ) 
-        SPECMASK(17)=0
-        !WRITE(6,*) 'RT:OZONE'
+        SPECMASK(15+NXTRA)=0
        !METHANE
        CASE( 2 )
-        SPECMASK(18)=0
-        !WRITE(6,*) 'RT:CH4'
+        SPECMASK(16+NXTRA)=0
        !SU
        CASE( 3 )
         SPECMASK(1)=3
-        !WRITE(6,*) 'RT:SU'
        !NI
        CASE( 4 )
         SPECMASK(2)=4
-        !WRITE(6,*) 'RT:NI'
        !AM
        CASE( 5 )
         SPECMASK(3)=5
-        !WRITE(6,*) 'RT:AM'
        !BC
        CASE( 6 )
+        !Hydrophillic+phobic
         SPECMASK(4)=6
-        SPECMASK(8)=6
-        !WRITE(6,*) 'RT:BC'
        !OA
        CASE( 7 )
+        !Hydrophillic+phobic
         SPECMASK(5)=7
-        SPECMASK(9)=7
-        !WRITE(6,*) 'RT:OA'
        !SS
        CASE( 8 )
         SPECMASK(6)=8
         SPECMASK(7)=8
-        !WRITE(6,*) 'RT:SS'
        !DUST
        CASE( 9 )
-        SPECMASK(10)=9
-        SPECMASK(11)=9
-        SPECMASK(12)=9
-        SPECMASK(13)=9
-        SPECMASK(14)=9
-        SPECMASK(15)=9
-        SPECMASK(16)=9
-        !WRITE(6,*) 'RT:DU'
-       !PM - ALL AEROSOL
+        SPECMASK(8+NXTRA)=9
+        SPECMASK(9+NXTRA)=9
+        SPECMASK(10+NXTRA)=9
+        SPECMASK(11+NXTRA)=9
+        SPECMASK(12+NXTRA)=9
+        SPECMASK(13+NXTRA)=9
+        SPECMASK(14+NXTRA)=9
        CASE( 10 )
         !SET ALL BUT GASES TO 10
         DO II = 1, NASPECRAD
          SPECMASK(II)=10
         ENDDO
-       ! WRITE(6,*) 'RT:PM'
+       !STRAT AEROSOL 
+       CASE( 11 )
+        !LSA
+        SPECMASK(8) = 11
+        !NAT
+        SPECMASK(9) = 11
        END SELECT
        ENDIF    
       ENDIF
@@ -1768,7 +1922,7 @@
 !BOC
 !
       !=================================================================
-      ! CLEANUP_DAO begins here!
+      ! CLEANUP_SURFACE_RAD begins here!
       !=================================================================
       IF ( ALLOCATED( ALBDIR          ) ) DEALLOCATE( ALBDIR          )
       IF ( ALLOCATED( ALBDIF          ) ) DEALLOCATE( ALBDIF          )

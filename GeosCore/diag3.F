@@ -1568,13 +1568,18 @@
             END SELECT
 
            !Only output extra wavelengths if they are requested
-           IF (( N < 28 ) .OR. 
-     &         ( N > 27 .AND. N < 41 .AND. NWVSELECT > 1 ) .OR.
-     &         ( N > 40 .AND. NWVSELECT > 2 )) THEN 
+           !standard is 5+3*NAER+NDUST but then each extra wavelength
+           !adds NAER+NDUST+1 <-- +1 for TOTALDUST
+           IF (( N < (6+NAER*3+NDUST) ) .OR. 
+     &         ( N > (5+NAER*3+NDUST) .AND. N < (7+NAER*4+NDUST*2) .AND.
+     &           NWVSELECT > 1 ) .OR.
+     &         ( N > (6+NAER*4+NDUST*2) .AND. NWVSELECT > 2 )) THEN 
 
             !Dust arrays
-            IF (( N > 3 .AND. N < 6 ) .OR. (N > 20 .AND. N < 28) .OR. 
-     &         ( N > 32 .AND. N < 40 ) .OR. (N > 44)) THEN
+            IF (( N > 3 .AND. N < 6 ) .OR. (N > 5+NAER*3 .AND. 
+     &            N < 13+NAER*3) .OR. 
+     &         ( N > 5+NAER*4+NDUST .AND. N < (7+NAER*4+NDUST*2) ) .OR. 
+     &         ( N > (6+NAER*5+NDUST*2))) THEN
 
                ! Online or offline dust fields?
                IF ( Input_Opt%LDUST ) THEN
@@ -5189,25 +5194,28 @@
      &                   IIPAR,     JJPAR,     1,        IFIRST,
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
              !for other outputs check species has been selected
-             ELSE IF ((IS.GE.2).AND.(LSPECRADMENU(IS-1).EQ.1)) THEN
-              DO I=1,IIPAR
-               DO J=1,JJPAR
-                !store as difference in flux from baseline
-                ARRAY(I,J,1) = (AD72(I,J,(N-1)*NSPECOUT+1) - 
-     &                          AD72(I,J,NN))/SCALEX
+             ELSE IF (IS.GE.2) THEN
+              IF (LSPECRADMENU(IS-1).EQ.1) THEN
+               DO I=1,IIPAR
+                DO J=1,JJPAR
+                 !store as difference in flux from baseline
+                 ARRAY(I,J,1) = (AD72(I,J,(N-1)*NSPECOUT+1) - 
+     &                           AD72(I,J,NN))/SCALEX
+                ENDDO
                ENDDO
-              ENDDO
              
-              CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                   HALFPOLAR, CENTER180, CATEGORY, NN,
      &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                   IIPAR,     JJPAR,     1,        IFIRST,
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
+              ENDIF
              ENDIF
             ! N > 8 so we are outputting optics
             ! but only for turned on species and only for aerosols
             ! i.e. skip IS=2 and IS=3
-            ELSE IF ((IS.GE.4).AND.(LSPECRADMENU(IS-1).EQ.1)) THEN
+            ELSE IF (IS.GE.4) THEN
+             IF (LSPECRADMENU(IS-1).EQ.1) THEN
              !output optics
               ARRAY(:,:,1) = AD72(:,:,NN) / SCALEX
               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -5215,6 +5223,7 @@
      &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                   IIPAR,     JJPAR,     1,        IFIRST,
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
+             ENDIF
             ENDIF !flux vs optics check
            ENDDO
           ENDIF !all-sky, clear-sky check

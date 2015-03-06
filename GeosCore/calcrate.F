@@ -2193,7 +2193,6 @@ c new OH+CO rate from JPL2006.
       NULLIFY( QL        )
       NULLIFY( SUNCOSmid )
       NULLIFY( T         )
-
 !
 ! *********************************************************************
 !                     RETURN TO CALLING PROGRAM

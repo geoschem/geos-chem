@@ -690,7 +690,6 @@
 
       ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
       WAVELENGTH = 0
-
       CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &            MONTH,     YEAR,      WAVELENGTH      )
 

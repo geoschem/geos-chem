@@ -199,7 +199,7 @@
 !  27 Mar 2013 - S.D. Eastham- Rolled in FAST_JX_MOD
 !  21 Feb 2014 - M. Sulprizio- Replaced all met field arrays with State_Met
 !                              derived type object
-!  28 Feb 2014 - M. Sulprizio- Now obtain O3_CTM directly from State_Chm%Tracers
+!  28 Feb 2014 - M. Sulprizio- Now obtain O3_CTM directly from CSPEC
 !  05 Mar 2014 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
@@ -214,7 +214,7 @@
       REAL*8        :: O3_CTM(LLPAR+1)
       REAL*8        :: T_CTM(LLPAR+1), OPTD(LLPAR)
       REAL*8        :: OPTDUST(LLPAR,NDUST)
-      REAL*8        :: OPTAER(LLPAR,NALLAER)
+      REAL*8        :: OPTAER(LLPAR,A_)
 
       ! Local variables for cloud overlap (hyl, phs)
       INTEGER       :: NUMB, KK, I
@@ -331,7 +331,7 @@
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
             O3_CTM          = 0d0
             L               = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
-            O3_CTM(1:L)     = State_Chm%Tracers(NLON,NLAT,1:L,IDTO3)
+            O3_CTM(1:L)     = CSPEC(JLOOP,IDO3)
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
 !------------------------------------------------------------------------------
@@ -346,7 +346,6 @@
             DO N = 1, NAER
             DO L = 1, LLPAR
                IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
-               !WRITE(6,*) 'IOPT',N,IRHARR(NLON,NLAT,L),IOPT
                OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,IWV1000,N)
             ENDDO
             ENDDO
@@ -362,7 +361,6 @@
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD            = State_Met%OPTD(1:LLPAR,NLON,NLAT)
-
             !-----------------------------------------------------------
             !### If you want to exclude aerosol OD, mineral dust OD,
             !### or cloud OD, then uncomment the following lines:
@@ -567,7 +565,6 @@
 !$OMP END PARALLEL DO
 
       FIRST=.FALSE.
-
       !-----------------------------------------------------------
       ! END OF SUBROUTINE FAST-J
       !-----------------------------------------------------------
@@ -2217,7 +2214,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
       INTEGER :: I, J, K, N, NAA2, NWV, NR
       INTEGER :: IOS, NSPEC
-      CHARACTER*30 :: SPECFIL(6)
+      CHARACTER*30 :: SPECFIL(8)
 
       CHARACTER*78 TITLE0
       CHARACTER*20 TITLEA(NAA)   ! TITLEAA: Title for scattering data
@@ -2227,15 +2224,16 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       !================================================================
 
       ! aerosol_mod.f expects aerosol in this order now
-      DATA SPECFIL /"so4.dat","soot.dat","org.dat",
-     &              "ssa.dat","ssc.dat","dust.dat"/
-      !NWV=61 !number of wavelengths, maybe wants to be in common block
-      !NR=7   !number of aerosol size bins in LUT
-      !NSPEC = 6 !number of different species, in separate txt files
+      ! extra two LUT dat files for strat H2SO4 and NAT particles
+      DATA SPECFIL /"so4.dat","soot.dat","org.dat","ssa.dat","ssc.dat",
+#if defined( UCX )
+! add in dummy optics LUT tables for now
+! needs to be H2SO4 and something ice-like for NAT (DAR 03/2015)
+     &              "so4.dat","so4.dat",
+#endif
+     &              "dust.dat"/
       !array of filenames
       DO k = 1, NSPAA
-       !get name of next species datafile
-       !NAMFIL=SPECFIL(k)
 
        ! open file
        OPEN( NJ1, FILE=TRIM( SPECFIL(k) ), STATUS='OLD', IOSTAT=IOS )
@@ -2739,7 +2737,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       REAL*8,  INTENT(IN),DIMENSION(L1_)            :: T_COL
       REAL*8,  INTENT(IN),DIMENSION(L1_)            :: O3_COL
       REAL*8,  INTENT(IN)                           :: O3_TOMS
-      REAL*8,  INTENT(IN),DIMENSION(L_,NALLAER)     :: ODAER_COL
+      REAL*8,  INTENT(IN),DIMENSION(L_,A_)          :: ODAER_COL
       REAL*8,  INTENT(IN),DIMENSION(L_,NDUST)       :: ODMDUST_COL
       REAL*8,  INTENT(IN),DIMENSION(L_)             :: ODCLOUD_COL_IN
       LOGICAL, INTENT(IN)                           :: AOD999
@@ -2781,7 +2779,7 @@ c------------key arrays AFTER solving for J's---------------------------
       real*8   FFF(W_,JXL_),VALJ(X_)
       real*8   VALJL(JXL_,X_) !2-D array of J_s returned by JRATET
 
-      integer  L2EDGE, I,J,K,L,M,KMIE,IDXAER
+      integer  L2EDGE, I,J,K,L,M,KMIE,IDXAER,IM
       INTEGER  KMIE2, IR
       real*8   XQO3,XQO2,WAVE, TTTX
 C-----------------------------------------------------------------------
@@ -2905,7 +2903,8 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
                       QSCALING = QAA(KMIE,IDXAER)/QAA(IND999,IDXAER)
                    ELSE
                       ! Aerosol/dust (550 nm scaling)
-                      QSCALING = QAA(KMIE,IDXAER)/QAA_AOD(IDXAER)
+                      ! currently using 600nm as that's all we have
+                      QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
                    ENDIF
                    LOCALOD = QSCALING*AERX_COL(M,L)
                    LOCALSSA = SAA(KMIE,IDXAER)*LOCALOD
@@ -2917,25 +2916,31 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
                    ENDDO ! I (Phase function)
                 ENDIF
              ENDDO ! M (Aerosol)
+             !transpose wavelength indices from the mie LUT
+             !to the new speciated LUT
+             KMIE2=LUTIDX(KMIE)
 
 #if defined( UCX )
              ! Strat aerosols
              IM=10+(NRHAER*NRH)+1
              DO M=IM,IM+1
+                IDXAER=M-IM+7
                 IF (AERX_COL(M,L).gt.0d0) THEN
-                   IDXAER=MIEDX(M)
+                   
                    IF (IDXAER.lt.15) THEN
                       ! Cloud (600 nm scaling)
                       QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
                    ELSEIF (AOD999) THEN
                       ! Aerosol/dust (999 nm scaling)
-                      QSCALING = QAA(KMIE,IDXAER)/QAA(IND999,IDXAER)
+                      QSCALING = QQAA(KMIE2,1,IDXAER)/
+     &                           QQAA(10,1,IDXAER)
                    ELSE
                       ! Aerosol/dust (550 nm scaling)
-                      QSCALING = QAA(KMIE,IDXAER)/QAA_AOD(IDXAER)
+                      QSCALING = QQAA(KMIE2,1,IDXAER)/
+     &                           QQAA(5,1,IDXAER)
                    ENDIF
                    LOCALOD = QSCALING*AERX_COL(M,L)
-                   LOCALSSA = SAA(KMIE,IDXAER)*LOCALOD
+                   LOCALSSA = SSAA(KMIE2,1,IDXAER)**LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                    SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
                    DO I=1,8
@@ -2947,14 +2952,13 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
 
 #endif
              
-             KMIE2=LUTIDX(KMIE)
+             
              ! Mineral dust (from new optics LUT)
              DO M=4,10
                 IF (AERX_COL(M,L).gt.0d0) THEN
                    IDXAER=6
                    IR=M-3
                    IF (AOD999) THEN
-                      !write(6,*) L,KMIE2,IR,IDXAER,QQAA(KMIE2,IR,IDXAER)
                       QSCALING = QQAA(KMIE2,IR,IDXAER)/
      &                           QQAA(10,IR,IDXAER) !1000nm in new .dat
                    ELSE
@@ -3901,7 +3905,7 @@ C---Always does PL(2) = P[1]
       REAL*8, INTENT(IN)         :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
       REAL*8, INTENT(INOUT)      :: CLDOD(L_)         ! Cloud optical depth
       REAL*8, INTENT(IN)         :: DSTOD(L_,NDUST)   ! Mineral dust OD
-      REAL*8, INTENT(IN)         :: AEROD(L_,NALLAER) ! Aerosol OD
+      REAL*8, INTENT(IN)         :: AEROD(L_,A_)      ! Aerosol OD
       REAL*8, INTENT(IN)         :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
       TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
 !
@@ -4044,13 +4048,13 @@ C---Always does PL(2) = P[1]
          ENDDO
         
          ! Also add in other aerosol optical depth columns (rvm, bmy, 2/27/02)
-         DO N = 1, NALLAER
+         DO N = 1, NAER
             AERCOL(3+N+NDUST,I) = AEROD(I,N)
          ENDDO
 
       ENDDO
 
-      DO K = 1,(3+NDUST+(NALLAER))
+      DO K = 1,(3+NDUST+(NAER))
          AERCOL(K,L1_    ) = 0.D0
       ENDDO
 

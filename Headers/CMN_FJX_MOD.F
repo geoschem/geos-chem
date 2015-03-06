@@ -30,7 +30,14 @@
       INTEGER, PARAMETER :: IND999  = 5
 
       ! Required size of aerosol arrays
-      INTEGER, PARAMETER :: NALLAER = (NRHAER*NRH)+NSTRATAER
+!------------------------------------------------------------------------------
+! Prior to 12/5/14:
+! Now we're storing RH indices references ODAER can be smaller (dar,mps,12/5/14)
+!      INTEGER, PARAMETER :: NALLAER = (NRHAER*NRH)+NSTRATAER
+! Now unnecessary - stored as A_ and NAER = NRHAER+NSTRATAER
+! (defined in CMN_SIZE_mod.F) All references in code removed. DAR 02/2015
+!      INTEGER, PARAMETER :: NALLAER = NRHAER+NSTRATAER
+!------------------------------------------------------------------------------
 
       INTEGER            :: L_             ! Number of CTM layers
 
@@ -247,12 +254,19 @@
       INTEGER, PARAMETER :: NWVAA0  = 11     !number of non-RRTMG wavelengths
       INTEGER, PARAMETER :: NWVAART = NWVAA-NWVAA0 !number of RRTMG wvs
       INTEGER, PARAMETER :: NRAA    = 7      !number of aer sizes in LUT
-      INTEGER, PARAMETER :: NSPAA   = 6      !number of species in LUT
-      INTEGER, PARAMETER :: NALBD   = 2
-      INTEGER, PARAMETER :: NEMISS  = 16
-      INTEGER, PARAMETER :: NSPECRADMENU =10 !number of choices for RT flux
+#if defined( UCX )
+      INTEGER, PARAMETER :: NSPAA   = 8      !number of species in LUT
       INTEGER, PARAMETER :: NASPECRAD = 16   !aerosol species in RT
       INTEGER, PARAMETER :: NSPECRAD  = 18   !aerosol+gas species in RT
+      INTEGER, PARAMETER :: NSPECRADMENU = 11!number of choices for RT flux
+#else
+      INTEGER, PARAMETER :: NSPAA     = 6    !number of species in LUT
+      INTEGER, PARAMETER :: NASPECRAD = 14   !aerosol species in RT
+      INTEGER, PARAMETER :: NSPECRAD  = 16   !aerosol+gas species in RT
+      INTEGER, PARAMETER :: NSPECRADMENU = 10!number of choices for RT flux
+#endif
+      INTEGER, PARAMETER :: NALBD   = 2
+      INTEGER, PARAMETER :: NEMISS  = 16
 
       ! New optical arrays
       REAL*8  :: WVAA(NWVAA,NSPAA)
@@ -379,15 +393,16 @@
       IRHARR = 0d0
 
 #if defined( RRTMG )
-      ALLOCATE( RTODAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+4+NDUST), STAT=RC )
+      ! +2 to split SNA into SU, NI and AM
+      ALLOCATE( RTODAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
       RTODAER = 0d0
 
-      ALLOCATE( RTSSAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+4+NDUST), STAT=RC )
+      ALLOCATE( RTSSAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
       RTSSAER = 0d0
 
-      ALLOCATE( RTASYMAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+4+NDUST),STAT=RC)
+      ALLOCATE( RTASYMAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST),STAT=RC)
       IF ( RC /= GIGC_SUCCESS ) RETURN
       RTASYMAER = 0d0
 #endif
