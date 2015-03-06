@@ -332,7 +332,7 @@
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!   5 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !
 !  ##########################################################################
 !  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
