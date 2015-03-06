@@ -1884,6 +1884,9 @@ CONTAINS
     !----------------------------------------------
     IF ( ND28 > 0 .OR. ND32 > 0 ) THEN
 
+       ! testing only
+       write(*,*) 'now calling BIOMASS_NO'
+
        ! NO is only defined for the full chemistry simulation
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
@@ -1994,7 +1997,7 @@ CONTAINS
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGN_BIOMASS (hcoi_gc_diagn_mod.F90)'
+    CHARACTER(LEN=255) :: LOC = 'DIAGN_NOSRC (hcoi_gc_diagn_mod.F90)'
 
     !=======================================================================
     ! DIAGN_NOSRC begins here!
@@ -2006,145 +2009,150 @@ CONTAINS
     ! Exit if we are doing a specialty simulation w/o NO
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
 
-    ! Extension number
-    ExtNr = 0
+    ! Only if diagnostics are defined ...
+    IF ( ND32 > 0 ) THEN
 
-    ! HEMCO species ID
-    HcoID = GetHemcoId( 'NO', HcoState, LOC, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !----------------------------------------------
-    ! %%%%% Aircraft NO %%%%%
-    !----------------------------------------------
-    DiagnName = 'AIRCRAFT_NO'
-    CALL Diagn_Create( am_I_Root,                      & 
-                       HcoState  = HcoState,           &
-                       cName     = TRIM( DiagnName ),  &
-                       ExtNr     = ExtNr,              &
-                       Cat       = CATEGORY_AIRCRAFT,  &
-                       Hier      = -1,                 &
-                       HcoID     = HcoID,              &
-                       SpaceDim  = 3,                  &
-                       LevIDx    = -1,                 &
-                       OutUnit   = 'kg/m2/s',          &
-                       WriteFreq = 'Manual',           &
-                       AutoFill  = 1,                  &
-                       cID       = N,                  & 
-                       RC        = RC                   )
-    IF ( RC /= HCO_SUCCESS ) RETURN 
-
-
-    !----------------------------------------------
-    ! %%%%% Ship NO %%%%%
-    !
-    ! ==> Only define if ParaNOx is not used. 
-    !     SHIP_NO from ParaNOx is defined in ND63.
-    !----------------------------------------------
-    Cat   = -1
-    ExtNr = GetExtNr( 'ParaNOx' )
-
-    IF ( ExtNr <= 0 ) THEN
-       ExtNr     = 0
-       Cat       = CATEGORY_SHIP
-       DiagnName = 'SHIP_NO'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = Cat,               &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
-                          WriteFreq = 'Manual',          &
-                          AutoFill  = 1,                 &
-                          cID       = N,                 & 
-                          RC        = RC                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-    ENDIF
-
-    !----------------------------------------------
-    ! %%%%% Lightning NO %%%%%
-    !
-    ! ==> Only define if LightNox is turned on
-    !----------------------------------------------
-    Cat   = -1
-    ExtNr = GetExtNr('LightNOx')
-    IF ( ExtNr > 0 ) THEN
-       DiagnName = 'LIGHTNING_NO'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = Cat,               &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 3,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
-                          WriteFreq = 'Manual',          &
-                          AutoFill  = 1,                 &
-                          cID       = N,                 & 
-                          RC        = RC                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-    ENDIF
-      
-
-    !----------------------------------------------
-    ! %%%%% Soil and Fertilizer NO %%%%%
-    !
-    ! ==> Only define if SoilNox is turned on
-    !----------------------------------------------
-    Cat   = -1
-    ExtNr = GetExtNr('SoilNOx')
-    IF ( ExtNr > 0 ) THEN
-
-       ! %%%%%% Soil NO %%%%%%
-       DiagnName = 'SOIL_NO'
-       CALL Diagn_Create ( am_I_Root,                     & 
-                           HcoState  = HcoState,          &
-                           cName     = TRIM( DiagnName ), &
-                           ExtNr     = ExtNr,             &
-                           Cat       = Cat,               &
-                           Hier      = -1,                &
-                           HcoID     = HcoID,             &
-                           SpaceDim  = 2,                 &
-                           LevIDx    = -1,                &
-                           OutUnit   = 'kg/m2/s',         &
-                           WriteFreq = 'Manual',          &
-                           AutoFill  = 1,                 &
-                           cID       = N,                 & 
-                           RC        = RC                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-
-       ! %%%%%% Fertilizer NO %%%%%%
-       CALL GetExtOpt( ExtNr, 'Use fertilizer', OptValBool=YesOrNo, RC=RC )
+       ! Extension number
+       ExtNr = 0
+   
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'NO', HcoState, LOC, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-
-       IF ( YesOrNo == .FALSE. ) THEN
-          MSG = 'Fertilizer NOx disabled - diagnostics will be zero!'
-          CALL HCO_Warning( MSG, RC, THISLOC=LOC )
-       ENDIF
-
-       DiagnName = 'FERTILIZER_NO'
-       CALL Diagn_Create ( am_I_Root,                     & 
-                           HcoState  = HcoState,          &
-                           cName     = TRIM( DiagnName ), &
-                           ExtNr     = ExtNr,             &
-                           Cat       = Cat,               &
-                           Hier      = -1,                &
-                           HcoID     = HcoID,             &
-                           SpaceDim  = 2,                 &
-                           LevIDx    = -1,                &
-                           OutUnit   = 'kg/m2/s',         &
-                           WriteFreq = 'Manual',          &
-                           AutoFill  = 0,                 &
-                           cID       = N,                 & 
-                           RC        = RC                  )
+   
+       !----------------------------------------------
+       ! %%%%% Aircraft NO %%%%%
+       !----------------------------------------------
+       DiagnName = 'AIRCRAFT_NO'
+       CALL Diagn_Create( am_I_Root,                      & 
+                          HcoState  = HcoState,           &
+                          cName     = TRIM( DiagnName ),  &
+                          ExtNr     = ExtNr,              &
+                          Cat       = CATEGORY_AIRCRAFT,  &
+                          Hier      = -1,                 &
+                          HcoID     = HcoID,              &
+                          SpaceDim  = 3,                  &
+                          LevIDx    = -1,                 &
+                          OutUnit   = 'kg/m2/s',          &
+                          WriteFreq = 'Manual',           &
+                          AutoFill  = 1,                  &
+                          cID       = N,                  & 
+                          RC        = RC                   )
        IF ( RC /= HCO_SUCCESS ) RETURN 
-    ENDIF
-
+   
+   
+       !----------------------------------------------
+       ! %%%%% Ship NO %%%%%
+       !
+       ! ==> Only define if ParaNOx is not used. 
+       !     SHIP_NO from ParaNOx is defined in ND63.
+       !----------------------------------------------
+       Cat   = -1
+       ExtNr = GetExtNr( 'ParaNOx' )
+   
+       IF ( ExtNr <= 0 ) THEN
+          ExtNr     = 0
+          Cat       = CATEGORY_SHIP
+          DiagnName = 'SHIP_NO'
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = Cat,               &
+                             Hier      = -1,                &
+                             HcoID     = HcoID,             &
+                             SpaceDim  = 2,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/m2/s',         &
+                             WriteFreq = 'Manual',          &
+                             AutoFill  = 1,                 &
+                             cID       = N,                 & 
+                             RC        = RC                  )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF
+   
+       !----------------------------------------------
+       ! %%%%% Lightning NO %%%%%
+       !
+       ! ==> Only define if LightNox is turned on
+       !----------------------------------------------
+       Cat   = -1
+       ExtNr = GetExtNr('LightNOx')
+       IF ( ExtNr > 0 ) THEN
+          DiagnName = 'LIGHTNING_NO'
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             ExtNr     = ExtNr,             &
+                             Cat       = Cat,               &
+                             Hier      = -1,                &
+                             HcoID     = HcoID,             &
+                             SpaceDim  = 3,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/m2/s',         &
+                             WriteFreq = 'Manual',          &
+                             AutoFill  = 1,                 &
+                             cID       = N,                 & 
+                             RC        = RC                  )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF
+         
+      
+       !----------------------------------------------
+       ! %%%%% Soil and Fertilizer NO %%%%%
+       !
+       ! ==> Only define if SoilNox is turned on
+       !----------------------------------------------
+       Cat   = -1
+       ExtNr = GetExtNr('SoilNOx')
+       IF ( ExtNr > 0 ) THEN
+   
+          ! %%%%%% Soil NO %%%%%%
+          DiagnName = 'SOIL_NO'
+          CALL Diagn_Create ( am_I_Root,                     & 
+                              HcoState  = HcoState,          &
+                              cName     = TRIM( DiagnName ), &
+                              ExtNr     = ExtNr,             &
+                              Cat       = Cat,               &
+                              Hier      = -1,                &
+                              HcoID     = HcoID,             &
+                              SpaceDim  = 2,                 &
+                              LevIDx    = -1,                &
+                              OutUnit   = 'kg/m2/s',         &
+                              WriteFreq = 'Manual',          &
+                              AutoFill  = 1,                 &
+                              cID       = N,                 & 
+                              RC        = RC                  )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+   
+          ! %%%%%% Fertilizer NO %%%%%%
+          CALL GetExtOpt( ExtNr, 'Use fertilizer', OptValBool=YesOrNo, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+   
+          IF ( YesOrNo == .FALSE. ) THEN
+             MSG = 'Fertilizer NOx disabled - diagnostics will be zero!'
+             CALL HCO_Warning( MSG, RC, THISLOC=LOC )
+          ENDIF
+   
+          DiagnName = 'FERTILIZER_NO'
+          CALL Diagn_Create ( am_I_Root,                     & 
+                              HcoState  = HcoState,          &
+                              cName     = TRIM( DiagnName ), &
+                              ExtNr     = ExtNr,             &
+                              Cat       = Cat,               &
+                              Hier      = -1,                &
+                              HcoID     = HcoID,             &
+                              SpaceDim  = 2,                 &
+                              LevIDx    = -1,                &
+                              OutUnit   = 'kg/m2/s',         &
+                              WriteFreq = 'Manual',          &
+                              AutoFill  = 0,                 &
+                              cID       = N,                 & 
+                              RC        = RC                  )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF
+  
+    ENDIF !ND32
+ 
   END SUBROUTINE Diagn_NOsrc
 !EOC
 !------------------------------------------------------------------------------

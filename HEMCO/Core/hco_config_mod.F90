@@ -203,7 +203,7 @@ CONTAINS
     ! module is used by all HEMCO simulations, and the overall
     ! HEMCO settings are stored as options of this extension.
     IF ( .NOT. ExtNrInUse( CoreNr ) ) THEN
-       CALL AddExt ( 'CORE', CoreNr, 'all' )
+       CALL AddExt ( 'CORE', CoreNr, HCO_WCD() )
     ENDIF
 
     ! NN counts how many sections have ben read already

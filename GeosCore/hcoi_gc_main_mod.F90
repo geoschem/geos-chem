@@ -1576,7 +1576,7 @@ CONTAINS
     USE HCO_Config_Mod,     ONLY : Config_GetSpecNames
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE Charpak_Mod,        ONLY : STRSPLIT 
-    USE HCO_ExtList_Mod,    ONLY : GetExtSpcStr
+    USE HCO_ExtList_Mod,    ONLY : CoreNr, GetExtSpcStr
     USE HCO_Chartools_Mod,  ONLY : HCO_SEP, HCO_WCD
 !
 ! !INPUT/OUTPUT PARAMETERS
@@ -1616,10 +1616,18 @@ CONTAINS
     ! Get_nHcoSpc begins here
     !=================================================================
 
-    ! Get all species names belonging to extension Nr. 0. Only those
-    ! will be used. 
-    CALL GetExtSpcStr( 0, SpcStr, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Get all species names belonging to HEMCO base. Only those will
+    ! be used.
+    ! If emissions are turned off, set species string to wildcard
+    ! character (base extension is undefined and GetExtSpcStr would
+    ! return an error). 
+    IF ( Input_Opt%LEMIS ) THEN
+       CALL GetExtSpcStr( 0, SpcStr, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ELSE
+       CALL GetExtSpcStr( CoreNr, SpcStr, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 
     ! If species string is set to wildcard character, use all possible
     ! species, i.e. all species with an entry in the configuration file
@@ -1641,11 +1649,7 @@ CONTAINS
 
     ! If there is no species in the HEMCO configuration file, there
     ! are no matching species!
-    ! Set number of HEMCO species to zero if emissions shall not be 
-    ! used. This approach will make it possible to use HEMCO still
-    ! for reading/writing non-emission data, e.g. stratospheric Bry
-    ! fields (ckeller, 01/12/15).
-    IF ( nConfigSpec == 0 .OR. .NOT. Input_Opt%LEMIS ) THEN
+    IF ( nConfigSpec == 0 ) THEN
        nHcoSpec = 0
 
        ! To prevent out of bounds error
@@ -2241,6 +2245,7 @@ CONTAINS
 
     USE HCO_ExtList_Mod,    ONLY : GetExtNr,  SetExtNr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt, AddExtOpt 
+    USE HCO_ExtList_Mod,    ONLY : CoreNr 
 !
 ! !INPUT PARAMETERS:
 !
@@ -2286,9 +2291,10 @@ CONTAINS
     ! input.geos. This will enable/disable all fields in input.geos
     ! that are bracketed by '+LinStratChem+'. Check first if this bracket
     ! values has been set explicitly in the HEMCO configuration file,
-    ! in which case it's not being changed.
+    ! in which case it's not being changed. Search through all
+    ! extensions (--> ExtNr = -999).
     !-----------------------------------------------------------------
-    CALL GetExtOpt( 0, '+LinStratChem+', OptValBool=LTMP, &
+    CALL GetExtOpt( -999, '+LinStratChem+', OptValBool=LTMP, &
                     FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
     IF ( FOUND ) THEN
@@ -2305,16 +2311,16 @@ CONTAINS
        ELSE
           OptName = '+LinStratChem+ : false'
        ENDIF
-       CALL AddExtOpt( TRIM(OptName), 0, RC ) 
+       CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
        IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'AddExtOpt', LOC )
     ENDIF 
 
     !-----------------------------------------------------------------
     ! Make sure that the SHIPNO_BASE toggle is disabled if PARANOx is
     ! being used. This is to avoid double-counting of ship NO 
-    ! emissions.
+    ! emissions. Search through all extensions (--> ExtNr = -999).
     !-----------------------------------------------------------------
-    CALL GetExtOpt( 0, 'SHIPNO_BASE', OptValBool=LTMP, &
+    CALL GetExtOpt( -999, 'SHIPNO_BASE', OptValBool=LTMP, &
                     FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
     ExtNr = GetExtNr( 'ParaNOx' )
@@ -2332,9 +2338,10 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Make sure that BOND_BIOMASS toggle is disabled if GFED3 or FINN
     ! are being used. This is to avoid double-counting of biomass
-    ! burning emissions. 
+    ! burning emissions. Search through all extensions (--> ExtNr = 
+    ! -999).
     !-----------------------------------------------------------------
-    CALL GetExtOpt( 0, 'BOND_BIOMASS', OptValBool=LTMP, &
+    CALL GetExtOpt( -999, 'BOND_BIOMASS', OptValBool=LTMP, &
                     FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
     ExtNr = GetExtNr( 'ParaNOx' )

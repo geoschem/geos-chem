@@ -32,6 +32,7 @@ MODULE Diagnostics_Mod
 !
   PRIVATE :: DiagInit_Drydep
   PRIVATE :: DiagInit_Tracer_Conc
+  PRIVATE :: DiagInit_Tracer_Emis
   PRIVATE :: DiagInit_GridBox
 !
 ! !DEFINED PARAMETERS:
@@ -165,6 +166,11 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_GRIDBOX', LOC )
     ENDIF
 
+    ! Tracer emission diagnostics (NEW)
+    CALL DIAGINIT_TRACER_EMIS( am_I_Root, Input_Opt, State_Met, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_EMIS', LOC ) 
+    ENDIF
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -673,6 +679,117 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE DIAGINIT_GRIDBOX
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagInit_Tracer_Emis
+!
+! !DESCRIPTION: Subroutine DiagInit\_Tracer\_Emis initializes diagnostics for 
+!  total species emissions diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Tracer_Emis( am_I_Root, Input_Opt, State_Met, RC ) 
+!
+! !USES:
+!
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input Options object
+    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  05 Mar 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+    !=======================================================================
+    ! Define diagnostics (total emissions)
+    !=======================================================================
+
+    ! Assume success
+    RC = HCO_SUCCESS
+
+    INTEGER            :: cId,      Collection, N
+    CHARACTER(LEN=15)  :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_TRACER_EMIS (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_TRACER_CONC begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Get diagnostic parameters from the Input_Opt object
+    ! Use same output frequency and operations as for tracer concentrations.
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND45_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND45_OUTPUT_FREQ
+ 
+    ! Loop over # of species 
+    DO N = 1, Input_Opt%N_TRACERS
+         
+       ! If this is an emission tracer, add diagnostics for emissions. 
+       IF ( GetHcoID( TrcID=N ) > 0 ) THEN 
+
+          !----------------------------------------------------------------
+          ! Create container for emission flux (m/s) 
+          !----------------------------------------------------------------
+
+          ! Diagnostic name
+          DiagnName = 'TRACER_EMIS_' // TRIM( Input_Opt%TRACER_NAME(N) )
+
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/m2/s',         &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             cId       = cId,               &
+                             RC        = RC                  )
+
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagInit_Tracer_Emis
 !EOC
 END MODULE Diagnostics_Mod
 #endif

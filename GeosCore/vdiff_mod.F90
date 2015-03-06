@@ -2095,6 +2095,12 @@ contains
        !----------------------------------------------------------------
        DO N = 1, N_TRACERS
 
+!          ! Exclude dust (ckeller 3/5/15)
+!          IF ( NN == IDTDST1 .OR. &
+!               NN == IDTDST2 .OR. &
+!               NN == IDTDST3 .OR. &
+!               NN == IDTDST4       ) CYCLE
+
           ! Add total emissions in the PBL to the EFLX array
           ! which tracks emission fluxes.  Units are [kg/m2/s].
           tmpflx = 0.0e+0_fp
@@ -2184,11 +2190,11 @@ contains
           NN   = NTRAIND(N)
           if (NN == 0) CYCLE
 
-          ! Now include sea salt dry deposition (jaegle 5/11/11)
-          IF ( NN == IDTDST1 .OR. &
-               NN == IDTDST2 .OR. &
-               NN == IDTDST3 .OR. &
-               NN == IDTDST4       ) CYCLE
+!          ! Now include sea salt dry deposition (jaegle 5/11/11)
+!          IF ( NN == IDTDST1 .OR. &
+!               NN == IDTDST2 .OR. &
+!               NN == IDTDST3 .OR. &
+!               NN == IDTDST4       ) CYCLE
 
 !          IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
 !              TRIM( DEPNAME(N) ) == 'DST2'.OR. &
@@ -2488,11 +2494,12 @@ contains
 
           ! Locate position of each tracer in DEPSAV
           NN = NTRAIND(N)
-          IF (NN == 0 .OR.       &
-              NN == IDTDST1 .OR. & 
-              NN == IDTDST2 .OR. &
-              NN == IDTDST3 .OR. &
-              NN == IDTDST4       ) CYCLE
+          IF ( NN == 0 ) CYCLE 
+!          IF (NN == 0 .OR.       &
+!              NN == IDTDST1 .OR. & 
+!              NN == IDTDST2 .OR. &
+!              NN == IDTDST3 .OR. &
+!              NN == IDTDST4       ) CYCLE
 
 #if !defined( NO_BPCH )
                 ! only for the lowest model layer
