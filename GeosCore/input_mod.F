@@ -717,6 +717,7 @@
       INTEGER            :: N,       NDIAGTIME
       INTEGER            :: NYMDb,   NHMSb 
       INTEGER            :: NYMDe,   NHMSe
+      INTEGER            :: C
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -785,9 +786,16 @@
 !### (3) ExtData/CHEM_INPUTS is where non-HEMCO chemistry files are located
 !### (4) Resolution-dependent files are now in ExtData/GEOS_4x5, etc.
       
+      !-----------------------------------------------------------------
+      ! Make sure DATA-DIR ends with a "/" character
+      !-----------------------------------------------------------------
+      C = LEN_TRIM( Input_Opt%DATA_DIR )
+      IF ( Input_Opt%DATA_DIR(C:C) /= '/' ) THEN
+         Input_Opt%DATA_DIR = TRIM( Input_Opt%DATA_DIR ) // '/'
+      ENDIF
 
       !-----------------------------------------------------------------
-      ! CHEM_INPUTS directory
+      ! Create CHEM_INPUTS directory
       !-----------------------------------------------------------------
       Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) // 
      &                            'CHEM_INPUTS/'
