@@ -454,7 +454,7 @@
 
          ! Water vapor volume mixing ratio [vol H2O vapor / vol dry air]
          State_Met%AVGW(I,J,L) = AIRMW * SPHU_kgkg 
-     &                           / ( (1 - SPHU_kgkg ) * H2OMW )
+     &                           / ( H2OMW * (1 - SPHU_kgkg ) )
 
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP )
          !=============================================================
@@ -472,18 +472,18 @@
          !
          ! Specific humidity is defined as the mass ratio of water vapor 
          ! to moist air and is stored in GEOS-Chem as [g/kg]. Convert 
-         ! to [kg/kg] and use the following relation to calculate 
-         ! the partial pressure of water vapor [hPa].
+         ! to [kg/kg] and use the following relation derived from the
+         ! the ideal gas law to calculate the partial pressure of water 
+         ! vapor [hPa].
          !    
-         !          Grid box                 SPHU * AIRMW
+         !          Grid box                 SPHU * H2OMW
          !  Ev   =  moist air * -------------------------------------- 
-         ! [hPa]    pressure       SPHU * AIRMW + (1 - SPHU) * H2OMW 
+         ! [hPa]    pressure       SPHU * H2OMW + (1 - SPHU) * AIRMW 
          !          [hPa]       
          !                             
-
-         ! Partial pressure of water vapor [hPa]
-         Ev = State_Met%PMID(I,J,L) * SPHU_kgkg * AIRMW 
-     &        / ( SPHU_kgkg * AIRMW + ( 1 - SPHU_kgkg ) * H2OMW )
+         ! WAter vapor partial pressure [hPa]
+         Ev = State_Met%PMID(I,J,L) * SPHU_kgkg * H2)MW 
+     &        / ( SPHU_kgkg * H2OMW + ( 1 - SPHU_kgkg ) * AIRMW )
  
          ! Relative humidity [%]
          State_Met%RH(I,J,L) = ( Ev / Esat ) * 100e+0_fp 
@@ -493,13 +493,11 @@
          ! Calculate water vapor partial pressure [hPa] from relative
          ! humidity if using GEOS-5, MERRA, or GEOS-FP
          !============================================================= 
-
-         ! Partial pressure of water vapor [hPa]
          Ev = State_Met%RH( I,J,L ) * RHCONV * Esat
 #endif
 
          !=============================================================
-         ! Set grid box center dry air partial pressure [hPa]
+         ! Set grid box dry air partial pressures [hPa]
          ! (lower edge and center)
          !=============================================================  
 
@@ -564,10 +562,12 @@
          ! Source: Wallace and Hobbes "Atmospheric Science: An 
          !         Introductory Survey" 
          !
+         ! Grid box virtual temperature [K]
          State_Met%TV( I,J,L ) = State_Met%T(I,J,L) / (1 -  
      &                           Ev / State_Met%PMID(I,J,L) 
      &                           * ( 1 - H2OMW / AIRMW ) )
 
+         ! Grid box box height [m]
          State_Met%BXHEIGHT( I,J,L ) = Rdg0 * State_Met%TV(I,J,L)
      &                                 * LOG( State_Met%PEDGE(I,J,L) 
      &                                 / PEdge_Top )
@@ -671,10 +671,9 @@
 !            PRINT *, "   Saturation water vapor pressure [mb]:"
 !            PRINT *, "       ", Esat
 !            PRINT *, "   Water vapor pressure from State_Met RH [mb]:"
-!            PRINT *, "       ", Pv
+!            PRINT *, "       ", Ev            
 !            PRINT *, "   State_Met relative humidity [%]:"
 !            PRINT *, "       ", State_Met%RH(I,J,L)
-!
 !            PRINT *, "   Specific humidity (State_Met) [g/kg]:"
 !            PRINT *, "       ", State_Met%SPHU(I,J,L)
 !            PRINT *, "   Water vapor volume mixing ratio [v/v]:"
