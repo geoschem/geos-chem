@@ -5888,12 +5888,12 @@ ccc
       ! EMISSCARBON begins here!
       !=================================================================
 
-      ! Assume failure until successful return
-      RC       = GIGC_FAILURE
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Reset POAEMISS
       POAEMISS = 0e+0_fp
- 
+
       ! Get pointer to HEMCO state object
       CALL GetHcoState ( HcoState )
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
@@ -5904,7 +5904,12 @@ ccc
       IF ( SESQID == -999 ) THEN
          SESQID = GetHcoID( 'SESQ' )
       ENDIF
-
+      IF ( SESQID > 0 ) THEN
+         IF ( .NOT. ASSOCIATED(HcoState%Spc(SESQID)%Emis%Val) ) THEN
+            SESQID = -1
+         ENDIF
+      ENDIF
+ 
       ! Get HEMCO ID of tracer POA1 and POG1
       HCOPOA1 = GetHcoID( TrcID=IDTPOA1 )
       HCOPOG1 = GetHcoID( TrcID=IDTPOG1 )
@@ -5921,6 +5926,9 @@ ccc
          ENDIF
       ENDIF
 
+      ! Nothing to do if none of the species is defined
+      IF ( SESQID <= 0 .AND. HCOPOA1 <= 0 .AND. HCOPOG1 <= 0 ) RETURN
+ 
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
 
@@ -5967,9 +5975,6 @@ ccc
       ! not double-counted (when doing PBL mixing) 
       IF ( HCOPOA1>0) HcoState%Spc(HCOPOA1)%Emis%Val = 0.0d0
       IF ( HCOPOG1>0) HcoState%Spc(HCOPOG1)%Emis%Val = 0.0d0
-
-      ! Return w/ success
-      RC = GIGC_SUCCESS
 
       END SUBROUTINE EMISSCARBON
 !EOC

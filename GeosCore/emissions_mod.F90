@@ -164,7 +164,7 @@ CONTAINS
     ! Run HEMCO
     CALL HCOI_GC_RUN( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
     IF ( RC /= GIGC_SUCCESS ) RETURN 
-  
+ 
 !    ! PBL mixing is not applied to dust emissions. Instead, they become 
 !    ! directly added to the tracer arrays.
 !    CALL DUSTMIX( am_I_Root, Input_Opt, State_Met, State_Chm, RC )

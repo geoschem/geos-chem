@@ -577,7 +577,7 @@ CONTAINS
 
     ! Loop over all species names
     DO N = 1, HcoState%nSpc
-
+ 
        ! Return the index of the sought-for species
        IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
           Indx = N 

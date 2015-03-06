@@ -102,12 +102,12 @@ MODULE HCO_Config_Mod
   ! be added to ConfigList
   TYPE(ListCont), POINTER     :: ConfigList => NULL()
 
-  ! Configuration file read or not? 
-  LOGICAL              :: ConfigFileRead = .FALSE. 
-
   ! SetReadList called or not?
   LOGICAL              :: SetReadListCalled = .FALSE.
 
+  ! Configuration file read or not? 
+  LOGICAL              :: ConfigFileRead = .FALSE.
+ 
   !----------------------------------------------------------------
   ! MODULE ROUTINES follow below
   !----------------------------------------------------------------
@@ -135,9 +135,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE inquireMod,       ONLY : findFreeLUN
-    USE CharPak_Mod,      ONLY : STRREPL
-    USE HCO_EXTLIST_MOD,  ONLY : AddExt, CoreNr, ExtNrInUse 
+    USE inquireMod,        ONLY : findFreeLUN
+    USE CharPak_Mod,       ONLY : STRREPL
+    USE HCO_EXTLIST_MOD,   ONLY : AddExt, CoreNr, ExtNrInUse 
 !
 ! !INPUT PARAMETERS:
 !
@@ -199,11 +199,13 @@ CONTAINS
        RETURN 
     ENDIF 
 
-    ! Register HEMCO core as extension Nr. 0 (default). The core 
-    ! module is used by all HEMCO simulations, and the overall
+    ! Register HEMCO core as extension Nr. CoreNr (default). The 
+    ! core module is used by all HEMCO simulations, and the overall
     ! HEMCO settings are stored as options of this extension.
+    ! Note: cannot use HCO_WCD for species here because HCO_WCD is
+    ! linked to the core extension...
     IF ( .NOT. ExtNrInUse( CoreNr ) ) THEN
-       CALL AddExt ( 'CORE', CoreNr, HCO_WCD() )
+       CALL AddExt ( 'CORE', CoreNr, 'all' )
     ENDIF
 
     ! NN counts how many sections have ben read already

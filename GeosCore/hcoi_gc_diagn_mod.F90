@@ -1884,9 +1884,6 @@ CONTAINS
     !----------------------------------------------
     IF ( ND28 > 0 .OR. ND32 > 0 ) THEN
 
-       ! testing only
-       write(*,*) 'now calling BIOMASS_NO'
-
        ! NO is only defined for the full chemistry simulation
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
