@@ -1369,7 +1369,6 @@
       ! Loop over types of aerosol with hygroscopic growth
       ! (this will include strat aerosol if UCX=yes)
       DO N = 1, NAER 
-         !write(6,*),'AEROTYPE',N
          !index for strat aerosol (only >0 for strat aero)
          ISTRAT=N-NRHAER
 
@@ -1623,7 +1622,6 @@
                SCALER                 = REFF / RW(1)
                SCALEVOL               = SCALER**3
                ERADIUS(JLOOP,NDUST+N) = 1.0D-4 * REFF
-               !write(6,*),'N, ERADIUS',N,ERADIUS(JLOOP,NDUST+N)
 
                ! Store aerosol surface areas in TAREA, and be sure
                ! to list them following the dust surface areas

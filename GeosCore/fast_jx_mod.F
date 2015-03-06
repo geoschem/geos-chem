@@ -269,7 +269,6 @@
 
       ! Was AOD calculated at 999 nm or reference?
       AOD999    = ( WLAOD == 0 )
-            write(6,*) 'FASTJX'
 
       !=================================================================
       ! For each (NLON,NLAT) location, call subroutine PHOTO_JX (in a 
@@ -333,7 +332,6 @@
             O3_CTM          = 0d0
             L               = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
             O3_CTM(1:L)     = State_Chm%Tracers(NLON,NLAT,1:L,IDTO3)
-            !write(6,*) 'FASTJX a'
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
 !------------------------------------------------------------------------------
@@ -348,7 +346,6 @@
             DO N = 1, NAER
             DO L = 1, LLPAR
                IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
-               !write(6,*) 'IOPT',N,IRHARR(NLON,NLAT,L),IOPT
                OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,IWV1000,N)
             ENDDO
             ENDDO
@@ -361,11 +358,9 @@
 !------------------------------------------------------------------------------
             ! and at 1000nm, IWV1000 (DAR)
             OPTDUST(:,:)    = ODMDUST(NLON,NLAT,:,IWV1000,:)
-            !write(6,*) 'FASTJX b'
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD            = State_Met%OPTD(1:LLPAR,NLON,NLAT)
-            !write(6,*) 'FASTJX c'
             !-----------------------------------------------------------
             !### If you want to exclude aerosol OD, mineral dust OD,
             !### or cloud OD, then uncomment the following lines:
@@ -432,7 +427,6 @@
             OPTD = OPTD * SQRT( CLDF1D )
 
 #endif
-            !write(6,*) 'FASTJX d'
 
             ! Call FAST-JX routines to compute J-values
             CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
@@ -440,7 +434,6 @@
      &                     OPTDUST,   OPTD,      NLON,   NLAT,
      &                     YLAT,      DAY_OF_YR, MONTH,  DAY,
      &                     am_I_Root, Input_Opt  )
-            !write(6,*) 'FASTJX e',NLON,NLAT
 
 #elif defined( USE_MAXIMUM_RANDOM_OVERLAP )
             !===========================================================
@@ -572,7 +565,6 @@
 !$OMP END PARALLEL DO
 
       FIRST=.FALSE.
-      write(6,*) 'FASTJXEND'
       !-----------------------------------------------------------
       ! END OF SUBROUTINE FAST-J
       !-----------------------------------------------------------
@@ -2236,7 +2228,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       DATA SPECFIL /"so4.dat","soot.dat","org.dat","ssa.dat","ssc.dat",
 #if defined( UCX )
 ! add in dummy optics LUT tables for now
-! needs to be H2SO4 and something ice-like for NAT
+! needs to be H2SO4 and something ice-like for NAT (DAR 03/2015)
      &              "so4.dat","so4.dat",
 #endif
      &              "dust.dat"/
@@ -2920,8 +2912,6 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
                    LOCALSSA = SAA(KMIE,IDXAER)*LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                    SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
-!                  write(6,*) M,L,IDXAER,QAA(KMIE,IDXAER),
-!     &            QAA(4,IDXAER),AERX_COL(M,L),SAA(KMIE,IDXAER)
                    DO I=1,8
                       SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + 
      &                            (PAA(I,KMIE,IDXAER)*LOCALSSA)
@@ -2937,8 +2927,6 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
              IM=10+(NRHAER*NRH)+1
              DO M=IM,IM+1
                 IDXAER=M-IM+7
-!                write(6,*) 'UCX ',L,KMIE2,1,IDXAER,QQAA(KMIE2,1,IDXAER)
-                
                 IF (AERX_COL(M,L).gt.0d0) THEN
                    
                    IF (IDXAER.lt.15) THEN
@@ -2957,8 +2945,6 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
                    LOCALSSA = SSAA(KMIE2,1,IDXAER)**LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                    SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
-                  write(6,*) M,L,IDXAER,QQAA(KMIE2,1,IDXAER),
-     &            QQAA(10,1,IDXAER),AERX_COL(M,L),SSAA(KMIE2,1,IDXAER)
                    DO I=1,8
                       SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
      &                            (PAA(I,KMIE,IDXAER)*LOCALSSA)
@@ -2975,7 +2961,6 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
                    IDXAER=6
                    IR=M-3
                    IF (AOD999) THEN
-                      !write(6,*) L,KMIE2,IR,IDXAER,QQAA(KMIE2,IR,IDXAER)
                       QSCALING = QQAA(KMIE2,IR,IDXAER)/
      &                           QQAA(10,IR,IDXAER) !1000nm in new .dat
                    ELSE
@@ -2987,8 +2972,6 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
                    LOCALSSA = SSAA(KMIE2,IR,IDXAER)*LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                    SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
-!                  write(6,*) M,L,IDXAER,QQAA(KMIE2,IR,IDXAER),
-!     &            QQAA(10,IR,IDXAER),AERX_COL(M,L),SSAA(KMIE2,IR,IDXAER)
                    DO I=1,8
                       SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
      &                            (PHAA(KMIE2,IR,IDXAER,I)*LOCALSSA)
@@ -3000,7 +2983,6 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
              DO M=1,5
                 DO IR=1,5
                   IDXAER=10+(M-1)*NRH+IR
-                  !write(6,*) L,KMIE2,IR,M,QQAA(KMIE2,IR,M)
                   IF (AERX_COL(IDXAER,L).gt.0d0) THEN
                    IF (AOD999) THEN
                       QSCALING = QQAA(KMIE2,IR,M)/
@@ -3014,8 +2996,6 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
                    LOCALSSA = SSAA(KMIE2,IR,M)*LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                    SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
-!                  write(6,*)M,L,IDXAER,QQAA(KMIE2,IR,M),
-!     &            QQAA(10,IR,M),AERX_COL(M,L),SSAA(KMIE2,IR,M)
                    DO I=1,8
                       SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
      &                            (PHAA(KMIE2,IR,M,I)*LOCALSSA)
