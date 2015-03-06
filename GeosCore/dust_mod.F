@@ -1808,13 +1808,13 @@
             ENDIF
             SELECT CASE(W)
                CASE(1)
-                  NOUT=21+(N-1)
+                  NOUT=6+3*NAER+(N-1)
                CASE(2)
-                  NOUT=21+NAER+NDUST+(N-1)
+                  NOUT=6+3*NAER+NAER+NDUST+(N-1)
                CASE(3)
-                  NOUT=21+2*(NAER+NDUST)+(N-1)
+                  NOUT=6+3*NAER+2*(NAER+NDUST)+(N-1)
                CASE DEFAULT
-                  NOUT=21+(N-1)
+                  NOUT=6+3*NAER+(N-1)
             END SELECT
 
             DO L = 1, LD21

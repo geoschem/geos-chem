@@ -1568,13 +1568,18 @@
             END SELECT
 
            !Only output extra wavelengths if they are requested
-           IF (( N < 28 ) .OR. 
-     &         ( N > 27 .AND. N < 41 .AND. NWVSELECT > 1 ) .OR.
-     &         ( N > 40 .AND. NWVSELECT > 2 )) THEN 
+           !standard is 5+3*NAER+NDUST but then each extra wavelength
+           !adds NAER+NDUST+1 <-- +1 for TOTALDUST
+           IF (( N < (6+NAER*3+NDUST) ) .OR. 
+     &         ( N > (5+NAER*3+NDUST) .AND. N < (7+NAER*4+NDUST*2) .AND.
+     &           NWVSELECT > 1 ) .OR.
+     &         ( N > (6+NAER*4+NDUST*2) .AND. NWVSELECT > 2 )) THEN 
 
             !Dust arrays
-            IF (( N > 3 .AND. N < 6 ) .OR. (N > 20 .AND. N < 28) .OR. 
-     &         ( N > 32 .AND. N < 40 ) .OR. (N > 44)) THEN
+            IF (( N > 3 .AND. N < 6 ) .OR. (N > 5+NAER*3 .AND. 
+     &            N < 13+NAER*3) .OR. 
+     &         ( N > 5+NAER*4+NDUST .AND. N < (7+NAER*4+NDUST*2) ) .OR. 
+     &         ( N > (6+NAER*5+NDUST*2))) THEN
 
                ! Online or offline dust fields?
                IF ( Input_Opt%LDUST ) THEN

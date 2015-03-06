@@ -260,7 +260,7 @@
       INTEGER, PARAMETER :: NSPECRAD  = 18   !aerosol+gas species in RT
       INTEGER, PARAMETER :: NSPECRADMENU = 11!number of choices for RT flux
 #else
-      INTEGER, PARAMETER :: NSPAA     = 8    !number of species in LUT
+      INTEGER, PARAMETER :: NSPAA     = 6    !number of species in LUT
       INTEGER, PARAMETER :: NASPECRAD = 14   !aerosol species in RT
       INTEGER, PARAMETER :: NSPECRAD  = 16   !aerosol+gas species in RT
       INTEGER, PARAMETER :: NSPECRADMENU = 10!number of choices for RT flux

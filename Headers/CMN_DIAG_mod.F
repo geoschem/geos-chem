@@ -76,6 +76,7 @@
       ! Added PD64 and set to W_ from FAST-JX (SDE 2013-10-25)
       ! Changed PD22 from 22 to 23 for ACET (mps, 4/25/14)
       ! Changed PD22 from 23 to 28 for ALD2, MVK, MACR, HAC, GLYC (mps, 5/27/14)
+      ! Changed PD21 to be dynamically related to NAER and NDUST (dar, 3/6/15)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -96,7 +97,7 @@
       INTEGER, PARAMETER :: PD18=8
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
-      INTEGER, PARAMETER :: PD21=57
+      INTEGER, PARAMETER :: PD21=5+NAER*3+NDUST+2*(NDUST+NAER)
       INTEGER, PARAMETER :: PD22=28
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        

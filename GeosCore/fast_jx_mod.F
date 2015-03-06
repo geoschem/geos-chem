@@ -2234,8 +2234,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
      &              "dust.dat"/
       !array of filenames
       DO k = 1, NSPAA
-       !get name of next species datafile
-       !NAMFIL=SPECFIL(k)
 
        ! open file
        OPEN( NJ1, FILE=TRIM( SPECFIL(k) ), STATUS='OLD', IOSTAT=IOS )
