@@ -442,12 +442,14 @@ CONTAINS
 !  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
 !  13 Jan 2015 - C. Keller   - Now check if it's time for emissions. Added
 !                              call to HcoClock_EmissionsDone.
+!  06 Mar 2015 - R. Yantosca - Now create splash page for HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL, SAVE                  :: FIRST = .TRUE.
     INTEGER                        :: HMRC 
     LOGICAL                        :: IsEmisTime
     CHARACTER(LEN=255), PARAMETER  :: LOC='HCOI_GC_RUN (hcoi_gc_main_mod.F90)'
@@ -460,6 +462,15 @@ CONTAINS
     ! preserved throughout all HCO calls, otherwise an error
     ! will be returned!
     HMRC = HCO_SUCCESS
+
+    ! Create a splash page
+    IF ( am_I_Root .and. FIRST ) THEN 
+       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+       WRITE( 6, 100   ) 'HEMCO: Harvard-NASA Emissions Component'
+       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+ 100   FORMAT( '%%%%%', 15x, a, 15x, '%%%%%' )
+       FIRST = .FALSE.
+    ENDIF
 
     !=======================================================================
     ! Make sure HEMCO time is in sync with simulation time

@@ -332,6 +332,13 @@
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 !*****************************************************************************
 !
 ! !USES:
@@ -406,6 +413,7 @@
 #if defined( GRID4x5 ) || defined( GRID2x25 )
       ! tropospheric aerosols (v8-02-03, GEOS5, 4x5)
       FILENAME = TRIM( Input_Opt%DATA_DIR )        //
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201007/Hg_partitioning/' //
      &           'aero.IJ_AVG.2007.'               //
      &           GET_NAME_EXT()     // '.'         //
@@ -736,6 +744,13 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!   5 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1787,6 +1802,13 @@
 !        from DATA_DIR_1x1/mercury_200511. (sas, cdh, bmy, 3/28/06)
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 !******************************************************************************
 !
 ! !USES:
@@ -1851,11 +1873,13 @@
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
       FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201203/MLD_DReqDT.'      // 
      &           GET_NAME_EXT()    // '.'          //
      &           GET_RES_EXT()
 #else
       FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201007/MLD_DReqDT.geos.' // 
      &           GET_RES_EXT()
 #endif
@@ -1897,12 +1921,14 @@
       ! Chl file name
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201203/Chl_2003.'        // 
      &           GET_NAME_EXT()     // '.'         //
      &           GET_RES_EXT()
 #else
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
       FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201007/Chl_2003.geos.'   //
      &           GET_RES_EXT()
 #endif
@@ -1938,11 +1964,13 @@
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
       FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201203/NPP_2003.'        // 
      &          GET_NAME_EXT()     // '.'          //
      &          GET_RES_EXT()  
 #else
       FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201007/NPP_2003.geos.'   //
      &           GET_RES_EXT()
 #endif
@@ -1972,6 +2000,7 @@
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
       FILENAME = TRIM( Input_Opt%DATA_DIR )         // 
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201203/ekman_upvel.'      // 
      &           GET_NAME_EXT()    // '.'           //
      &           GET_RES_EXT() 
@@ -2028,6 +2057,13 @@
 !  (2 ) Now use actual number of days in given month (jaf, 7/6/11)
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2077,11 +2113,13 @@
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
       FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201203/MLD_DReqDT.'      // 
      &           GET_NAME_EXT()    // '.'          //
      &           GET_RES_EXT()   
 #else
       FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201007/MLD_DReqDT.geos.' //
      &            GET_RES_EXT()
 #endif
@@ -2142,6 +2180,13 @@
 !  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2179,11 +2224,13 @@
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
       FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201203/MLD_DReqDT.'      // 
      &           GET_NAME_EXT()    // '.'          //
      &           GET_RES_EXT()   
 #else
       FILENAME = TRIM( Input_Opt%DATA_DIR )        //
+     &           TRIM( Input_Opt%RES_DIR  )        //
      &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()
 #endif
 

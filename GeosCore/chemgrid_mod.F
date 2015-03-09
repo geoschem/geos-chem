@@ -341,6 +341,13 @@
 !
       INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 ! 
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY: 
 !  13 Dec 1999 - Q. Li, R. Yantosca - Initial version
 !  (1 ) Call READ_BPCH2 to read in the annual mean tropopause data
@@ -374,6 +381,7 @@
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -396,6 +404,7 @@
 
       ! Create filename
       FILENAME = TRIM( Input_Opt%DATA_DIR )            // 
+     &           TRIM( Input_Opt%RES_DIR  )            //
      &           'ann_mean_trop_200202/ann_mean_trop.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
