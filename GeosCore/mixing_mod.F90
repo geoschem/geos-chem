@@ -266,7 +266,9 @@ CONTAINS
     INTEGER,          INTENT(INOUT)           :: RC           ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  04 Mar 2015 - C. Keller    - Initial version 
+!  04 Mar 2015 - C. Keller   - Initial version 
+!  09 Mar 2015 - R. Yantosca - Bug fix: Use the drydep ID number instead of the
+!                              tracer number to index the AD44 drydep array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -479,8 +481,8 @@ CONTAINS
                    ! Diagnostics are in molec/cm2/s.
 #if !defined( NO_BPCH )
                    ! ND44 diagnostics
-                   IF ( ND44 > 0 ) THEN
-                      AD44(I,J,N,1) = AD44(I,J,N,1) + FLUX
+                   IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
+                      AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX
                    ENDIF
 #endif
                    ! Eventually add to SOIL_DRYDEP
