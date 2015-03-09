@@ -418,6 +418,11 @@
          ! Pressure at top edge of grid box [hPa]
          PEdge_Top                 = GET_PEDGE( I,J,L+1 )
 
+         ! Set edge pressure for level LLPAR+1
+         IF (L == LLPAR) THEN
+            State_Met%PEDGE( I,J,L+1 ) = PEdge_Top
+         ENDIF
+
          ! Pressure difference between top & bottom edges [hPa]
          State_Met%DELP( I,J,L )   = State_Met%PEDGE( I,J,L ) 
      &                                - PEdge_Top
@@ -478,31 +483,28 @@
          ! the ideal gas law to calculate the partial pressure of water 
          ! vapor [hPa].
          !    
-         !          Grid box                 SPHU * H2OMW
+         !          Grid box                 SPHU * AIRMW
          !  Ev   =  moist air * -------------------------------------- 
-         ! [hPa]    pressure       SPHU * H2OMW + (1 - SPHU) * AIRMW 
+         ! [hPa]    pressure       SPHU * AIRMW + (1 - SPHU) * H2OMW 
          !          [hPa]       
          !                             
          ! Water vapor partial pressure [hPa]
-         Ev = State_Met%PMID(I,J,L) * SPHU_kgkg * H2)MW 
-     &        / ( SPHU_kgkg * H2OMW + ( 1 - SPHU_kgkg ) * AIRMW )
+         Ev = State_Met%PMID(I,J,L) * SPHU_kgkg * AIRMW 
+     &        / ( SPHU_kgkg * AIRMW + ( 1 - SPHU_kgkg ) * H2OMW )
  
          ! Relative humidity [%]
          State_Met%RH(I,J,L) = ( Ev / Esat ) * 100e+0_fp 
 
 #elif defined( GEOS_5 ) || defined ( MERRA ) || defined( GEOS_FP )
 
-         ! DEBUGGING (ewl, 3/6/15)
-         ! Check calculations of Ev and RH when using GEOS-4/MERRA
-
-         ! Water vapor partial pressure [hPa]
-         Ev_temp = State_Met%PMID(I,J,L) * SPHU_kgkg * H2)MW 
-     &        / ( SPHU_kgkg * H2OMW + ( 1 - SPHU_kgkg ) * AIRMW )
- 
-         ! Relative humidity [%]
-         RH_temp = ( Ev / Esat ) * 100e+0_fp 
-         
-         ! END DEBUGGING
+!         ! DEBUGGING (ewl, 3/6/15)
+!         ! Check calculations of Ev and RH when using GEOS-4/MERRA
+!         ! Water vapor partial pressure [hPa]
+!         Ev_temp = State_Met%PMID(I,J,L) * SPHU_kgkg * AIRMW 
+!     &        / ( SPHU_kgkg * AIRMW + ( 1 - SPHU_kgkg ) * H2OMW )
+!         ! Relative humidity [%]
+!         RH_temp = ( Ev_temp / Esat ) * 100e+0_fp          
+!         ! END DEBUGGING
 
 
          !=============================================================
@@ -522,6 +524,11 @@
 
          ! Partial presure of dry air at bottom edge of grid box [hPa]
          State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L) - Ev
+
+         ! Set edge dry air partial pressure for level LLPAR+1
+         IF ( L == LLPAR ) THEN
+            State_Met%PEDGE_DRY( I,J,L+1 ) = PEdge_Top - Ev
+         ENDIF
 
          ! Partial pressure of dry air at mid-point of grid box [hPa]
          State_Met%PMID_DRY( I,J,L ) = State_Met%PMID(I,J,L) - Ev
