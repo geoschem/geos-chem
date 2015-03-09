@@ -49,6 +49,10 @@
 ! number is set to 1.
 !\\
 !\\
+! Individual diagnostics are identified by its name and/or container ID.
+! Both are specified when creating the diagnostics (Diagn\_Create). 
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_Diagn_Mod 
@@ -119,6 +123,7 @@ MODULE HCO_Diagn_Mod
      INTEGER                     :: AreaFlag       ! 2=per area, 3=per volume, 0 otherwise 
      REAL(hp)                    :: AreaScal       ! Scale factor for area
      REAL(hp)                    :: MassScal       ! Scale factor for mass
+     REAL(hp)                    :: ScaleFact      ! Uniform scale factor 
      INTEGER                     :: TimeAvg        ! Scale flag for time unit 
      INTEGER                     :: Counter        ! time steps since 
                                                    !  last output
@@ -323,6 +328,10 @@ CONTAINS
 !      determine unit conversion factors. Not needed for target 
 !      containers or if argument OutOper is specified. Can be omitted
 !      if HcoState is given.
+!\item ScaleFact: constant scale factor. If provided, the diagnostics
+!      are scaled uniformly by this value before outputting. Will be
+!      applied on top of any other unit conversions. Does not work on 
+!      data pointers.
 !\item cID: assigned container ID. Useful for later reference to this
 !      diagnostics container.
 !\item RC: HEMCO return code.
@@ -336,7 +345,7 @@ CONTAINS
                            WriteFreq, OutOper,    LevIdx,     &
                            AutoFill,  Trgt2D,     Trgt3D,     &
                            MW_g,      EmMW_g,     MolecRatio, &
-                           cID,       RC,         COL          )
+                           ScaleFact, cID,        RC,     COL  )
 !
 ! !USES:
 !
@@ -372,19 +381,17 @@ CONTAINS
     REAL(hp),         INTENT(IN   ), OPTIONAL :: MW_g          ! species MW (g/mol) 
     REAL(hp),         INTENT(IN   ), OPTIONAL :: EmMW_g        ! emission MW (g/mol)
     REAL(hp),         INTENT(IN   ), OPTIONAL :: MolecRatio    ! molec. emission ratio
+    REAL(hp),         INTENT(IN   ), OPTIONAL :: ScaleFact     ! uniform scale factor 
     INTEGER,          INTENT(IN   ), OPTIONAL :: COL           ! Collection number 
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(  OUT)           :: cID           ! Assigned 
-                                                               !  container ID
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID           ! Container ID 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(INOUT)           :: RC            ! Return code 
 !
 ! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
+!  19 Dec 2013 - C. Keller - Initialization
+!  05 Mar 2015 - C. Keller - container ID can now be set by the user
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -526,7 +533,19 @@ CONTAINS
     ! non-standard units, e.g. unitless data. 
     ! Don't need to be done for pointer data, which ignores all time 
     ! averaging, unit conversions, etc.
-      !----------------------------------------------------------------------
+    !----------------------------------------------------------------------
+
+    ! Uniform scale factor
+    IF ( PRESENT(ScaleFact) ) THEN
+       IF ( ThisDiagn%DtaIsPtr ) THEN
+          MSG = 'Cannot use scale factor on diagnostics that '// &
+                'are pointers to other data: '//TRIM(cName)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       ENDIF
+       ThisDiagn%ScaleFact = ScaleFact
+    ENDIF
+
+    ! Unit conversion factors don't need be defined for pointers
     IF ( .NOT. ThisDiagn%DtaIsPtr ) THEN
  
        ! Enforce specified output operator 
@@ -658,16 +677,37 @@ CONTAINS
     ENDIF ! .NOT. DtaIsPtr
    
     !-----------------------------------------------------------------------
-    ! Make sure that there is no duplicate entry (for AutoFill only)
-    ! Now allow multiple autofill diagnostics with same ExtNr, Cat, Hier, 
-    ! and species ID (ckeller, 09/25/2014).
+    ! Make sure that there is no other diagnostics with this name 
     !-----------------------------------------------------------------------
     CALL DiagnCont_Find( -1, -1, -1, -1, -1, &
-                         Trim(cName), 1, FOUND, TmpDiagn, COL=PS )
+                        Trim(cName), -1, FOUND, TmpDiagn, COL=PS )
     IF ( FOUND ) THEN
        MSG = 'There is already a diagnostics with this name: ' // TRIM(cName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Set container ID (if defined). There must not be two containers with
+    ! the same container ID. 
+    !-----------------------------------------------------------------------
+    IF ( PRESENT(cID) ) THEN
+       IF ( cID > 0 ) THEN
+
+          ! Check if there is already a diagnostics with this container ID.
+          TmpDiagn => NULL()
+          CALL DiagnCont_Find( cID, -1, -1, -1, -1, '', -1, FOUND, TmpDiagn, COL=PS )
+          IF ( FOUND ) THEN
+             WRITE(MSG,*) 'Diagnostics ', TRIM(TmpDiagn%cName), ' already has ID ', &
+                cID, ' - cannot create diagnostics ', TRIM(cName)
+             
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+
+          ! Set container ID
+          ThisDiagn%cID = cID 
+       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -681,7 +721,6 @@ CONTAINS
 
     ! Increase diagnostics counter and set container ID accordingly.
     Collections(PS)%nnDiagn = Collections(PS)%nnDiagn + 1
-    ThisDiagn%cID           = Collections(PS)%nnDiagn
 
     ! Verbose mode
     IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
@@ -691,7 +730,7 @@ CONTAINS
     ENDIF
 
     ! Return
-    cID = ThisDiagn%cID 
+!    cID = ThisDiagn%cID 
     RC  = HCO_SUCCESS
     ThisDiagn => NULL()
 
@@ -1652,8 +1691,9 @@ CONTAINS
     DgnCont%AutoFill =  1
 
     ! Default values for unit conversion factors 
-    DgnCont%MassScal  = 1.0_dp
-    DgnCont%AreaScal  = 1.0_dp
+    DgnCont%MassScal  = 1.0_hp
+    DgnCont%AreaScal  = 1.0_hp
+    DgnCont%ScaleFact = 1.0_hp
     DgnCont%AreaFlag  = 2
     DgnCont%Counter   = 0
     DgnCont%TimeAvg   = -1   
@@ -1667,7 +1707,7 @@ CONTAINS
     DgnCont%nnGetCalls  = 0
 
     ! Default container ID 
-    DgnCont%cID         = 0 
+    DgnCont%cID         = -1 ! 0
 
     ! Pass to output container
     OutCont => DgnCont
@@ -1876,7 +1916,11 @@ CONTAINS
     ENDIF
 
     ! totscal is the combined scale factor
-    totscal = mult1 / norm1 * DgnCont%MassScal * DgnCont%AreaScal 
+    totscal = mult1             &
+            / norm1             &
+            * DgnCont%MassScal  &
+            * DgnCont%AreaScal  &
+            * DgnCont%ScaleFact
 
     ! For 3D:
     IF ( DgnCont%SpaceDim == 3 ) THEN
@@ -2130,7 +2174,8 @@ CONTAINS
     ! Check if dimensions match. Also, containers with pointers must not
     ! be set to AutoFill
     IF ( DgnCont%AutoFill == 1 ) THEN
-       MSG = 'Cannot link AutoFill container: ' // TRIM(DgnCont%cName)
+       MSG = 'Cannot link AutoFill container - please set AutoFill flag to 0: ' &
+           // TRIM(DgnCont%cName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
@@ -2352,6 +2397,8 @@ CONTAINS
        WRITE(MSG,*) '   --> Used level index   : ', Dgn%LevIdx 
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) '   --> Output unit        : ', TRIM(Dgn%OutUnit)
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) '   --> Uniform scaling    : ', Dgn%ScaleFact
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) '   --> Write frequency    : ', TRIM(WriteFreq)
        CALL HCO_MSG(MSG)

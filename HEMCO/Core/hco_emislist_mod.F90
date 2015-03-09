@@ -228,7 +228,7 @@ CONTAINS
     ! Special case where the linked list consists of scale factors
     ! only: In this case, we can place the new container at the 
     ! beginning no matter of its content! 
-    IF ( EmisList%Dct%DctType > 1 ) THEN
+    IF ( EmisList%Dct%DctType /= HCO_DCTTYPE_BASE ) THEN
        Lct%NextCont => EmisList 
        EmisList     => Lct
        CALL HCO_LEAVE( RC )
@@ -277,15 +277,15 @@ CONTAINS
     ! as the new container; (b) a container with higher species ID; 
     ! (c) scale factors. From there, we can determine where to place 
     ! the container exactly.
-    IF ( Lct%Dct%DctType == 1 ) THEN
+    IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
 
        ! Loop over list
        DO WHILE ( ASSOCIATED ( TmpLct%NextCont ) )
              
           ! Check if next container's species ID is higher or if it's a
           ! scale factor, in which case we have to exit.
-          IF ( TmpLct%NextCont%Dct%HcoID    > NEWSPC .OR. & 
-               TmpLct%NextCont%Dct%DctType > 1             ) THEN
+          IF ( TmpLct%NextCont%Dct%HcoID   >  NEWSPC          .OR. & 
+               TmpLct%NextCont%Dct%DctType /= HCO_DCTTYPE_BASE      ) THEN
              EXIT
           ENDIF
  
@@ -315,7 +315,7 @@ CONTAINS
        DO WHILE ( ASSOCIATED ( TmpLct%NextCont ) )
 
           ! Check if next container is scale factor 
-          IF ( TmpLct%NextCont%Dct%DctType > 1 ) EXIT
+          IF ( TmpLct%NextCont%Dct%DctType /= HCO_DCTTYPE_BASE ) EXIT
 
           ! Advance in list
           TmpLct => TmpLct%NextCont
@@ -662,7 +662,8 @@ CONTAINS
           ENDIF
    
           ! Error check: cannot add masks if operator is 3
-          IF ( Lct%Dct%DctType == 3 .AND. Lct%Dct%Oper == 3 ) THEN
+          IF ( Lct%Dct%DctType == HCO_DCTTYPE_MASK .AND. &
+               Lct%Dct%Oper    == 3                       ) THEN
              MSG = 'Cannot add masks if operator is 3: ' // &
                   TRIM(Lct%Dct%cName)
              CALL HCO_ERROR( MSG, RC )
@@ -859,7 +860,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     REAL(sp),         POINTER               :: Ptr2D(:,:)  ! output array
-    LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND          ! cont. found?
+    LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND       ! cont. found?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !

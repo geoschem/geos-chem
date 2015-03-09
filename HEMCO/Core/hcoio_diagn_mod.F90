@@ -44,7 +44,8 @@ MODULE HCOIO_DIAGN_MOD
 ! !DEFINED PARAMETERS:
 !
   ! Fill value used in HEMCO diagnostics netCDF files.
-  REAL(hp), PARAMETER :: FillValue = 1.e-31_hp
+!  REAL(hp), PARAMETER :: FillValue = 1.e-31_hp
+  REAL(sp), PARAMETER :: FillValue = HCO_MISSVAL 
 
 CONTAINS
 !EOC
@@ -64,13 +65,19 @@ CONTAINS
 ! time averaging interval are written. For example, if the current month
 ! is different from the previous (emissions) month, all diagnostics with 
 ! hourly, daily and monthly time averaging intervals are written out.
+! If the optional argument OnlyIfFirst is set to TRUE, diagnostics will
+! only be written out if its nnGetCalls is 1. This can be used to avoid
+! that diagnostics will be written out twice. The nnGetCalls is reset to
+! zero the first time a diagnostics is updated. For diagnostics that
+! point to data stored somewhere else (i.e. that simply contain a data
+! pointer, nnGetCalls is never reset and keeps counting.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root,  HcoState, WriteAll,    &
-                                   RC,         PREFIX,   UsePrevTime, &
-                                   InclManual, COL                     )
+  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root,  HcoState,    WriteAll,    &
+                                   RC,         PREFIX,      UsePrevTime, &
+                                   InclManual, OnlyIfFirst, COL           )
 !
 ! !USES:
 !
@@ -92,6 +99,7 @@ CONTAINS
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: UsePrevTime ! Use previous time 
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: InclManual  ! Get manual diagn. too? 
+    LOGICAL,          OPTIONAL, INTENT(IN   ) :: OnlyIfFirst ! Only write if nnDiagn is 1
     INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr. 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -103,6 +111,7 @@ CONTAINS
 !  12 Sep 2013 - C. Keller   - Initial version 
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  19 Feb 2015 - C. Keller   - Added optional argument OnlyIfFirst
 !  23 Feb 2015 - R. Yantosca - Now make Arr1D REAL(sp) so that we can write
 !                              out lon & lat as float instead of double
 !EOP
@@ -322,8 +331,10 @@ CONTAINS
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
        ! Only write diagnostics if this is the first Diagn_Get call for
-       ! this container and time step. 
-       IF ( ThisDiagn%nnGetCalls > 1 ) CYCLE
+       ! this container and time step.
+       IF ( PRESENT( OnlyIfFirst ) ) THEN
+          IF ( OnlyIfFirst .AND. ThisDiagn%nnGetCalls > 1 ) CYCLE
+       ENDIF 
 
        ! Define variable
        myName = ThisDiagn%cName
@@ -413,9 +424,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root, HcoState, WriteAll,    &
-                                   RC,        PREFIX,   UsePrevTime, &
-                                   InclManual, COL                    )
+  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root,  HcoState,    WriteAll,    &
+                                   RC,         PREFIX,      UsePrevTime, &
+                                   InclManual, OnlyIfFirst, COL           )
 !
 ! !USES:
 !
@@ -434,6 +445,7 @@ CONTAINS
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: UsePrevTime ! Use previous time 
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: InclManual  ! Get manual diagn. too? 
+    LOGICAL,          OPTIONAL, INTENT(IN   ) :: OnlyIfFirst !  
     INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr. 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -503,8 +515,10 @@ CONTAINS
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
        ! Only write diagnostics if this is the first Diagn_Get call for
-       ! this container and time step. 
-       IF ( ThisDiagn%nnGetCalls > 1 ) CYCLE
+       ! this container and time step.
+       IF ( PRESENT(OnlyIfFirst) ) THEN 
+          IF ( OnlyIfFirst .AND. ThisDiagn%nnGetCalls > 1 ) CYCLE
+       ENDIF
 
        ! Get pointer to ESMF EXPORT field and pass data to it (if found):
 

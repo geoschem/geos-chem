@@ -1179,7 +1179,6 @@ CONTAINS
                            OutUnit   = 'kg/m2/s',             &
                            WriteFreq = 'Monthly',             &
                            AutoFill  = 1,                     &
-                           cID       = cID,                   &
                            RC        = RC                      )
        IF ( RC /= HCO_SUCCESS ) RETURN
 

@@ -294,6 +294,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LDRYD
      LOGICAL                     :: LWETD
      LOGICAL                     :: USE_OLSON_2001
+     LOGICAL                     :: PBL_DRYDEP      
 
      !----------------------------------------
      ! GAMAP MENU fields
@@ -1085,6 +1086,7 @@ CONTAINS
     Input_Opt%LDRYD                  = .FALSE.
     Input_Opt%LWETD                  = .FALSE.
     Input_Opt%USE_OLSON_2001         = .FALSE.
+    Input_Opt%PBL_DRYDEP             = .FALSE.
 
     !----------------------------------------
     ! GAMAP_MENU fields

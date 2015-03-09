@@ -244,7 +244,7 @@
 !  04 Dec 2014 - R. Yantosca - No longer crashes if BIOGENIC_OCPI=0 everywhere
 !  12 Dec 2014 - M. Yannetti - Converted HEMCO Precision updates
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  22 Jan 2014 - M. Yannetti - Catch for emissions being disabled
+!  23 Feb 2015 - C. Keller   - Split volcano SO2 into eruptive & degassing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -797,44 +797,292 @@
             FACTOR = SCALESRCE
 
             !------------------------------
-            ! NVOC SOURCE diagnostics
+            ! MTPA
             !------------------------------
-            ! SOAupdate: Only 11 now (hotp 5/20/10) new mtp
-            DO N = 8, 11
+            IF ( IDTMTPA > 0 ) THEN
+               CATEGORY  = 'OC-MTPA'
+               NN        = IDTMTPA
 
-               SELECT CASE ( N )
+               ! (1) ALPHA-PINENE
+               DiagnName = 'BIOGENIC_APIN'
+               DiagnCnt  => NULL()
 
-                  ! MTPA
-                  CASE ( 8 )
-                     CATEGORY  = 'OC-MTPA'
-                     NN        = 10 
-                     DiagnName = 'BIOGENIC_MTPA'
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
 
-                  ! LIMO
-                  CASE ( 9 )
-                     CATEGORY  = 'OC-LIMO'
-                     NN        = 11
-                     DiagnName = 'BIOGENIC_LIMO'
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+               ELSE
+                  ARRAY(:,:,1) = 0.0
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
 
-                  ! MTPO
-                  CASE ( 10 )
-                     CATEGORY  = 'OC-MTPO'
-                     NN        = 12 
-                     DiagnName = 'BIOGENIC_MTPO'
+               ! (2) BETA-PINENE
+               DiagnName = 'BIOGENIC_BPIN'
+               DiagnCnt  => NULL()
 
-                  ! SESQ
-                  CASE ( 11 )
-                     CATEGORY  = 'OC-SESQ'
-                     NN        = 13
-                     DiagnName = 'BIOGENIC_SESQ'
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
 
-               END SELECT
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = ARRAY(:,:,1) +
+     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+               ELSE
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
 
+               ! (3) Sabinene
+               DiagnName = 'BIOGENIC_SABI'
+               DiagnCnt  => NULL()
+
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = ARRAY(:,:,1) +
+     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+               ELSE
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+
+               ! (4) CARENE
+               DiagnName = 'BIOGENIC_CARE'
+               DiagnCnt  => NULL()
+
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = ARRAY(:,:,1) +
+     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+               ELSE
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+
+               ! Write combined BIOGENIC MTPA to disk
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                     UNIT ,     DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     1,        IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+            ENDIF
+
+            !------------------------------
+            ! LIMO
+            !------------------------------
+            IF ( IDTLIMO > 0 ) THEN
+               CATEGORY  = 'OC-LIMO'
+               NN        = IDTLIMO
+               DiagnName = 'BIOGENIC_LIMO'
                CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                UNIT, NN, 1, -1, .FALSE., FACTOR, RC, AreaScal=1 )
+     &                         UNIT,      NN, 1, -1, .TRUE.,   FACTOR,
+     &                         RC )
                IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+            ENDIF
 
-            ENDDO
+            !------------------------------
+            ! MTPO
+            !------------------------------
+            IF ( IDTMTPO > 0 ) THEN
+               CATEGORY  = 'OC-MTPO'
+               NN        = IDTMTPO
+
+               ! (1) MYRCENE
+               DiagnName = 'BIOGENIC_MYRC'
+               DiagnCnt  => NULL()
+
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+               ELSE
+                  ARRAY(:,:,1) = 0.0
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+
+               ! (2) OCIMENE
+               DiagnName = 'BIOGENIC_OCIM'
+               DiagnCnt  => NULL()
+
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = ARRAY(:,:,1) +
+     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+               ELSE
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+
+               ! (3) OTHER MONOTERPENES
+               DiagnName = 'BIOGENIC_OMON'
+               DiagnCnt  => NULL()
+
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = ARRAY(:,:,1) +
+     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+               ELSE
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+
+               ! Write combined BIOGENIC MTPO to disk
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                     UNIT ,     DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     1,        IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+            ENDIF
+
+            !------------------------------
+            ! SESQ
+            !------------------------------
+            IF ( IDTLIMO > 0 ) THEN
+               CATEGORY  = 'OC-SESQ'
+               NN        = IDTLIMO + 3
+
+               ! (1) FARNESENE
+               DiagnName = 'BIOGENIC_FARN'
+               DiagnCnt  => NULL()
+
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = DiagnCnt%Arr2D%Val(:,:) * FACTOR 
+               ELSE
+                  ARRAY(:,:,1) = 0.0
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+
+               ! (2) BETA-CARYOPHYLLENE
+               DiagnName = 'BIOGENIC_BCAR'
+               DiagnCnt  => NULL()
+
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = ARRAY(:,:,1) +
+     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+               ELSE
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+
+               ! (3) OTHER SESQUITERPENES
+               DiagnName = 'BIOGENIC_OSQT'
+               DiagnCnt  => NULL()
+
+               ! Get diagnostics from HEMCO
+               CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
+     &                         FLAG, RC,   cName=TRIM(DiagnName), 
+     &                         AutoFill=1, InclManual=.TRUE. )
+               IF ( RC /= HCO_SUCCESS ) THEN
+                  MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
+                  CALL ERROR_STOP ( MSG, LOC ) 
+               ENDIF
+
+               ! Save into ARRAY. Convert to units
+               IF ( FLAG == HCO_SUCCESS ) THEN
+                  ARRAY(:,:,1) = ARRAY(:,:,1) +
+     &                         ( DiagnCnt%Arr2D%Val(:,:) * FACTOR )
+               ELSE
+                  MSG = 'No diagnostics returned: ' // TRIM(DiagnName)
+                  MSG = TRIM(MSG) // ' - will write zeros!'
+                  CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+               ENDIF
+
+               ! Write combined BIOGENIC SESQ to disk
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                     UNIT ,     DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     1,        IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+            ENDIF
          
             !-----------------------------------------------
             ! SOA Production from NVOC oxidation [kg]
@@ -1168,9 +1416,17 @@
      &                   UNIT, IDTSO2, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
-         !%%%%% Volcano SO2 (now lump eruptive + non-eruptive %%%%%
-         DiagnName = 'AD13_SO2_VOLCANO'
+         !%%%%% Volcano SO2 (eruptive) %%%%%
+         DiagnName = 'AD13_SO2_VOLCANO_ERUPT'
          CATEGORY  = 'SO2-EV-$'
+         FACTOR    = S_SO2
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
+     &                   UNIT, IDTSO2, 1, LLPAR, .TRUE., FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
+
+         !%%%%% Volcano SO2 (degassing) %%%%%
+         DiagnName = 'AD13_SO2_VOLCANO_DEGAS'
+         CATEGORY  = 'SO2-NV-$'
          FACTOR    = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &                   UNIT, IDTSO2, 1, LLPAR, .TRUE., FACTOR, RC )
@@ -4028,7 +4284,7 @@
             !---------------------------------------------------------
             ! (1) Get OC POP emissions from HEMCO data structure
             !---------------------------------------------------------
-            DiagnName = 'AD01_POPPOC_SOURCE'
+            DiagnName = 'AD53_POPPOC_SOURCE'
             N         = 1
             DiagnCnt  => NULL()
 
@@ -4056,7 +4312,7 @@
             !---------------------------------------------------------
             ! (2) Get BC POP emissions from HEMCO data structure
             !---------------------------------------------------------
-            DiagnName = 'AD01_POPPBC_SOURCE'
+            DiagnName = 'AD53_POPPBC_SOURCE'
             DiagnCnt  => NULL()
 
             ! Get diagnostics from HEMCO
@@ -4080,7 +4336,7 @@
             !---------------------------------------------------------
             ! (3) Get gaseous POP emissions from HEMCO data structure
             !---------------------------------------------------------
-            DiagnName = 'AD01_POPG_SOURCE'
+            DiagnName = 'AD53_POPG_SOURCE'
             DiagnCnt  => NULL()
 
             ! Get diagnostics from HEMCO
@@ -4118,7 +4374,7 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! OC-sorbed POP emissions
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            DiagnName = 'AD01_POPPOC_SOURCE'
+            DiagnName = 'AD53_POPPOC_SOURCE'
             N         = 2
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4132,7 +4388,7 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! BC-sorbed POP emissions
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            DiagnName = 'AD01_POPPBC_SOURCE'
+            DiagnName = 'AD53_POPPBC_SOURCE'
             N         = 3
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4146,7 +4402,7 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! Gas-phase POP emissions
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            DiagnName = 'AD01_POPG_SOURCE'
+            DiagnName = 'AD53_POPG_SOURCE'
             N         = 4
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -5176,7 +5432,8 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
-!
+
+#if !defined(NO_BPCH)
 !******************************************************************************
 !  ND68: Grid box diagnostics
 !
@@ -5213,6 +5470,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD68) )
          ENDDO
       ENDIF
+#endif
 !
 !******************************************************************************
 !  ND69: Grid Box Surface Areas

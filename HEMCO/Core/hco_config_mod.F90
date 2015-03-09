@@ -102,12 +102,12 @@ MODULE HCO_Config_Mod
   ! be added to ConfigList
   TYPE(ListCont), POINTER     :: ConfigList => NULL()
 
-  ! Configuration file read or not? 
-  LOGICAL              :: ConfigFileRead = .FALSE. 
-
   ! SetReadList called or not?
   LOGICAL              :: SetReadListCalled = .FALSE.
 
+  ! Configuration file read or not? 
+  LOGICAL              :: ConfigFileRead = .FALSE.
+ 
   !----------------------------------------------------------------
   ! MODULE ROUTINES follow below
   !----------------------------------------------------------------
@@ -135,9 +135,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE inquireMod,       ONLY : findFreeLUN
-    USE CharPak_Mod,      ONLY : STRREPL
-    USE HCO_EXTLIST_MOD,  ONLY : AddExt, CoreNr, ExtNrInUse 
+    USE inquireMod,        ONLY : findFreeLUN
+    USE CharPak_Mod,       ONLY : STRREPL
+    USE HCO_EXTLIST_MOD,   ONLY : AddExt, CoreNr, ExtNrInUse 
 !
 ! !INPUT PARAMETERS:
 !
@@ -199,9 +199,11 @@ CONTAINS
        RETURN 
     ENDIF 
 
-    ! Register HEMCO core as extension Nr. 0 (default). The core 
-    ! module is used by all HEMCO simulations, and the overall
+    ! Register HEMCO core as extension Nr. CoreNr (default). The 
+    ! core module is used by all HEMCO simulations, and the overall
     ! HEMCO settings are stored as options of this extension.
+    ! Note: cannot use HCO_WCD for species here because HCO_WCD is
+    ! linked to the core extension...
     IF ( .NOT. ExtNrInUse( CoreNr ) ) THEN
        CALL AddExt ( 'CORE', CoreNr, 'all' )
     ENDIF
@@ -219,12 +221,11 @@ CONTAINS
        ! Replace tab characters in LINE (if any) w/ spaces
        CALL STRREPL( LINE, HCO_TAB(), HCO_SPC() )
 
-       ! Read extension switches. This registers all enabled extensions.
-       ! This must include the core extension. 
-       IF ( INDEX ( LINE, 'BEGIN SECTION EXTENSION SWITCHES' ) > 0 ) THEN 
+       ! Read settings if this is beginning of settings section 
+       IF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
 
           IF ( PHASE < 2 ) THEN
-             CALL ExtSwitch2Buffer( AIR, IU_HCO, EOF, RC )
+             CALL ReadSettings( AIR, IU_HCO, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -235,11 +236,12 @@ CONTAINS
              IF ( PHASE == 1 .AND. NN == 2 ) EXIT
           ENDIF
 
-       ! Read settings if this is beginning of settings section 
-       ELSEIF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
+       ! Read extension switches. This registers all enabled extensions.
+       ! This must include the core extension. 
+       ELSEIF ( INDEX ( LINE, 'BEGIN SECTION EXTENSION SWITCHES' ) > 0 ) THEN 
 
           IF ( PHASE < 2 ) THEN
-             CALL ReadSettings( AIR, IU_HCO, EOF, RC )
+             CALL ExtSwitch2Buffer( AIR, IU_HCO, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -256,7 +258,7 @@ CONTAINS
 
           ! Read data and write into container
           IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-             CALL Config_ReadCont( AIR, IU_HCO, 1, EOF, RC )
+             CALL Config_ReadCont( AIR, IU_HCO, HCO_DCTTYPE_BASE, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -268,7 +270,7 @@ CONTAINS
        ! scale factor.
        ELSE IF ( INDEX ( LINE, 'BEGIN SECTION SCALE FACTORS' ) > 0 ) THEN
 
-          CALL Config_ReadCont( AIR, IU_HCO, 2, EOF, RC )
+          CALL Config_ReadCont( AIR, IU_HCO, HCO_DCTTYPE_SCAL, EOF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( EOF ) EXIT
 
@@ -276,7 +278,7 @@ CONTAINS
        ELSE IF ( INDEX ( LINE, 'BEGIN SECTION MASKS' ) > 0 ) THEN
 
           IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-             CALL Config_ReadCont( AIR, IU_HCO, 3, EOF, RC )
+             CALL Config_ReadCont( AIR, IU_HCO, HCO_DCTTYPE_MASK, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -443,6 +445,7 @@ CONTAINS
 !  29 Dec 2014 - C. Keller - Added optional 11th element for scale factors. This
 !                            value will be interpreted as mask field (applied to
 !                            this scale factor only).
+!  27 Feb 2015 - C. Keller - Added CycleFlag 4 (interpolation)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -501,7 +504,7 @@ CONTAINS
        ! configuration file input parameter, need to use a different
        ! call for the three data types.
        !==============================================================
-       IF ( DctType == 1 ) THEN
+       IF ( DctType == HCO_DCTTYPE_BASE ) THEN
           CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
                                    srcFile,   3,      srcVar,   4,  &
                                    srcTime,   5,      TmCycle,  6,  &
@@ -512,7 +515,7 @@ CONTAINS
                                    Int3,      1,      STAT,         &
                                    OutLine=LINE                      )
 
-       ELSE IF ( DctType == 2 ) THEN
+       ELSEIF ( DctType == HCO_DCTTYPE_SCAL ) THEN
           CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
                                    srcFile,   3,      srcVar,   4,  &
                                    srcTime,   5,      TmCycle,  6,  &
@@ -523,7 +526,7 @@ CONTAINS
                                    Int3,     10,      STAT,         &
                                    optcl=10                          )
   
-       ELSE IF ( DctType == 3 ) THEN
+       ELSEIF ( DctType == HCO_DCTTYPE_MASK ) THEN
           CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
                                    srcFile,   3,      srcVar,   4,  &
                                    srcTime,   5,      TmCycle,  6,  &
@@ -564,7 +567,7 @@ CONTAINS
        ! Check for emission shortcuts. Base emissions can be bracketed
        ! into 'collections'. 
        ! -------------------------------------------------------------
-       IF ( DctType == 1 ) THEN
+       IF ( DctType == HCO_DCTTYPE_BASE ) THEN
 
           CALL BracketCheck( am_I_Root, STAT, LINE, SKIP, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -588,7 +591,7 @@ CONTAINS
        ! use. Otherwise, we can ignore this line completely! The 
        ! extension switches are read and evaluated prior to the 
        ! extension data!
-       IF ( DctType == 1 .AND. .NOT. ExtNrInUse( Int3 ) ) CYCLE 
+       IF ( DctType == HCO_DCTTYPE_BASE .AND. .NOT. ExtNrInUse( Int3 ) ) CYCLE 
 
        !==============================================================
        ! Create and fill list container and add to ConfigList 
@@ -608,7 +611,7 @@ CONTAINS
        Lct%Dct%cName        = cName
 
        ! Base container specific attributes
-       IF ( DctType == 1 ) THEN       
+       IF ( DctType == HCO_DCTTYPE_BASE ) THEN       
   
           ! Set species name, extension number, emission category, 
           ! hierarchy
@@ -643,7 +646,8 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
     
        ! Scale factor & mask specific attributes
-       ELSE IF ( DctType == 2 .OR. DctType == 3 ) THEN
+       ELSE IF ( DctType == HCO_DCTTYPE_SCAL .OR. &
+                 DctType == HCO_DCTTYPE_MASK       ) THEN
             
           ! Set scale factor ID and data operator
           Lct%Dct%ScalID = Int1 
@@ -717,17 +721,20 @@ CONTAINS
 #endif
 
           ! Set time cycling behaviour. Possible values are: 
-          ! - "C": cycling (CycleFlag = 1) --> Default
-          ! - "R": range   (CycleFlag = 2)
-          ! - "E": exact   (CycleFlag = 3)
+          ! - "C": cycling     (CycleFlag = 1) --> Default
+          ! - "R": range       (CycleFlag = 2)
+          ! - "E": exact       (CycleFlag = 3)
+          ! - "I": interpolate (CycleFlag = 4)
           IF ( TRIM(TmCycle) == "R" ) THEN
-             Dta%CycleFlag = 2
+             Dta%CycleFlag = HCO_CFLAG_RANGE
           ELSEIF ( TRIM(TmCycle) == "E" ) THEN
-             Dta%CycleFlag = 3
+             Dta%CycleFlag = HCO_CFLAG_EXACT
+          ELSEIF ( TRIM(TmCycle) == "I" ) THEN
+             Dta%CycleFlag = HCO_CFLAG_INTER
           ELSEIF ( TRIM(TmCycle) == "C" ) THEN
-             Dta%CycleFlag = 1
+             Dta%CycleFlag = HCO_CFLAG_CYCLE
           ELSEIF ( TRIM(TmCycle) == "-" ) THEN
-             Dta%CycleFlag = 1
+             Dta%CycleFlag = HCO_CFLAG_CYCLE
           ELSE
              MSG = 'Invalid time cycling attribute: ' // &
                   TRIM(TmCycle) // ' --> ' // TRIM(cName)
@@ -748,7 +755,7 @@ CONTAINS
           ! factor. In this case, pass mask ID to first slot of Scal_cID
           ! vector. This value will be set to the container ID of the
           ! corresponding mask field lateron.
-          IF ( DctType == 2 .AND. Int3 > 0 ) THEN
+          IF ( DctType == HCO_DCTTYPE_SCAL .AND. Int3 > 0 ) THEN
              ALLOCATE ( Lct%Dct%Scal_cID(SclMax) )
              Lct%Dct%Scal_cID(:) = -999
              Lct%Dct%Scal_cID(1) = Int3
@@ -757,7 +764,7 @@ CONTAINS
           ! For masks: extract grid box edges. These will be used later 
           ! on to determine if emissions have to be considered by this
           ! CPU.
-          IF ( DctType == 3 ) THEN
+          IF ( DctType == HCO_DCTTYPE_MASK ) THEN
                
              ! Extract grid box edges. Need to be four values.
              CALL HCO_CharSplit ( Char1, HCO_SEP(), HCO_WCD(), & 
@@ -1152,7 +1159,7 @@ CONTAINS
        ! Add new container to configuration list and set data container
        ! attributes. 
        CALL ConfigList_AddCont ( Lct, ConfigList )
-       Lct%Dct%DctType      = 2
+       Lct%Dct%DctType      = HCO_DCTTYPE_SCAL 
        Lct%Dct%cName        = 'DUMMYSCALE_ZERO' 
        Lct%Dct%ScalID       = ZeroScalID 
        Lct%Dct%Oper         = 1
@@ -1162,7 +1169,7 @@ CONTAINS
        Dta%ncFile    = '0.0'
        Dta%ncPara    = '-'
        Dta%OrigUnit  = 'unitless'
-       Dta%CycleFlag = 1
+       Dta%CycleFlag = HCO_CFLAG_CYCLE 
        Dta%SpaceDim  = 2
        Dta%ncRead    = .FALSE.
        Dta%IsLocTime = .TRUE.
@@ -1609,7 +1616,7 @@ CONTAINS
  
        ! For base fields or data fields used in one of the HEMCO
        ! extensions:
-       IF ( Lct%Dct%DctType == 1 ) THEN
+       IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
 
           ! Only do for entries that will be used! 
           IF ( ExtNrInUse( Lct%Dct%ExtNr ) ) THEN
@@ -1632,8 +1639,8 @@ CONTAINS
           ENDIF
 
        ! Calculate coverage for masks 
-       ELSE IF ( Lct%Dct%DctType   == 3    .AND. &
-                 Lct%Dct%Dta%Cover == -999        ) THEN
+       ELSE IF ( Lct%Dct%DctType   == HCO_DCTTYPE_MASK .AND. &
+                 Lct%Dct%Dta%Cover == -999                   ) THEN
 
           ! Get mask edges
           lon1 = Lct%Dct%Dta%ncYrs(1)
@@ -1740,7 +1747,7 @@ CONTAINS
        ENDIF
 
        ! Skip entry if it's not a base field 
-       IF ( (Lct%Dct%DctType /= 1) ) THEN
+       IF ( (Lct%Dct%DctType /= HCO_DCTTYPE_BASE) ) THEN
           CALL GetNextCont ( Lct, FLAG ); CYCLE
        ENDIF
 
@@ -1948,7 +1955,7 @@ CONTAINS
        ENDIF
  
        ! Return w/ error if container not scale factor or mask
-       IF ( Lct%Dct%DctType == 1 ) THEN
+       IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
           WRITE ( strID, * ) ThisScalID 
           MSG = 'Container ID belongs to base field: ' // strID
           CALL HCO_ERROR ( MSG, RC)
@@ -2138,7 +2145,7 @@ CONTAINS
 
        ! Check if this is a mask with zero coverage over this CPU, in
        ! which case we don't need to consider the base field at all! 
-       IF ( (mskLct%Dct%DctType  == 3 ) .AND. &
+       IF ( (mskLct%Dct%DctType  == HCO_DCTTYPE_MASK ) .AND. &
             (mskLct%Dct%Dta%Cover == 0 )        ) THEN 
           targetID = -999 
           IF ( verb ) THEN 
@@ -2176,7 +2183,7 @@ CONTAINS
        ENDIF
 
        ! Advance to next container if this is not a base field
-       IF ( tmpLct%Dct%DctType /= 1 ) THEN
+       IF ( tmpLct%Dct%DctType /= HCO_DCTTYPE_BASE ) THEN
           CALL GetNextCont ( tmpLct, FLAG1 ); CYCLE
        ENDIF
 
@@ -2228,7 +2235,7 @@ CONTAINS
           ! Note: If one mask has only partial coverage, retain that
           ! value! If we encounter a mask with no coverage, set coverage
           ! to zero and leave immediately. 
-          IF ( (mskLct%Dct%DctType == 3) ) THEN
+          IF ( (mskLct%Dct%DctType == HCO_DCTTYPE_MASK) ) THEN
              IF ( mskLct%Dct%Dta%Cover == -1 ) THEN
                 tmpCov = -1
              ELSEIF ( mskLct%Dct%Dta%Cover == 0 ) THEN

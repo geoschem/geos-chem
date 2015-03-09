@@ -305,7 +305,7 @@ CONTAINS
     DO WHILE ( ASSOCIATED ( ThisExt ) ) 
 
        ! Check if this is the extension of interest. If extension number
-       ! is set to -999, scan throught all extensions.
+       ! is set to -999, scan through all extensions.
        IF ( ExtNr /= -999 .AND. ThisExt%ExtNr /= ExtNr ) THEN
           ThisExt => ThisExt%NextExt
           CYCLE
@@ -400,7 +400,8 @@ CONTAINS
 
     ! Error if extension not found
     IF ( .NOT. ExtFound ) THEN
-       WRITE(MSG,*) 'Cannot find extension Nr. ', ExtNr
+       MSG = 'Error when looking up option ' // TRIM(OptName)
+       WRITE(MSG,*) TRIM(MSG) // ' - cannot find extension Nr. ', ExtNr
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF
@@ -653,7 +654,7 @@ CONTAINS
           ThisExt%ExtNr = ExtNr
           IF ( verb ) THEN
              WRITE(MSG,*) 'Force ExtNr of extension ', TRIM(ThisExt%ExtName), &
-                          'to ', ExtNr
+                          ' to ', ExtNr
              CALL HCO_MSG(MSG)
           ENDIF
        ENDIF

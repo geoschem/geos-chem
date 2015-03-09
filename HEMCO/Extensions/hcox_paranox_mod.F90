@@ -59,6 +59,23 @@
 !               Defined as MOE = L(CH4) / E(NOx).
 !\\
 !\\
+! The historic solar elevation angles are internally stored in array SC5. The
+! values become automatically updated as simulation time progresses. The values
+! to be used at the beginning of a simulation can be provided as restart 
+! variables in the HEMCO configuration file. They must be listed in section
+! base emissions, for example:
+! # --- PARANOx restart variables 
+!102 PARANOX_SUNCOS1 HEMCO_Restart.$YYYY$MM$DD$HH00.nc PARANOX_SUNCOS1 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
+!102 PARANOX_SUNCOS2 HEMCO_Restart.$YYYY$MM$DD$HH00.nc PARANOX_SUNCOS2 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
+!102 PARANOX_SUNCOS3 HEMCO_Restart.$YYYY$MM$DD$HH00.nc PARANOX_SUNCOS3 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
+!102 PARANOX_SUNCOS4 HEMCO_Restart.$YYYY$MM$DD$HH00.nc PARANOX_SUNCOS4 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1
+!102 PARANOX_SUNCOS5 HEMCO_Restart.$YYYY$MM$DD$HH00.nc PARANOX_SUNCOS5 $YYYY/$MM/$DD/$HH E xy 1 * - 1 1 
+! If any of these variables is not found in the configuration file, the corresponding 
+! SC5 slice is filled with the current suncos value, which may result in erroneous results
+! for the first 5 simulation hours. The above listed parameters are automatically written
+! into the HEMCO restart file, allowing for a 'warm' restart from the simulation end date.
+!\\
+!\\
 ! !INTERFACE:
 !
 MODULE HCOX_ParaNOx_MOD 
@@ -106,6 +123,8 @@ MODULE HCOX_ParaNOx_MOD
 !                              Holmes (input data in netCDF format, include
 !                              wind speed, calculated dry deposition freq. 
 !                              using whole troposheric column mass).
+!  23 Feb 2015 - C. Keller   - Historic j-values can now be provided through
+!                              HEMCO configuration file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -128,8 +147,7 @@ MODULE HCOX_ParaNOx_MOD
   REAL(hp), ALLOCATABLE, TARGET :: ShipNO(:,:,:)
 
   ! For SunCosMid 5hrs ago
-  REAL(hp), ALLOCATABLE         :: SC5(:,:,:)
-  INTEGER                       :: SC5ID
+  REAL(sp), ALLOCATABLE, TARGET :: SC5(:,:,:)
 
   ! Number of values for each variable in the look-up table
   INTEGER, PARAMETER ::  nT=4, nJ=4, nO3=4, nNOx=5, nSEA=12, nWS=5
@@ -282,6 +300,7 @@ CONTAINS
     USE HCO_FluxArr_mod,  ONLY : HCO_EmisAdd
     USE HCO_FluxArr_mod,  ONLY : HCO_DepvAdd
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
+    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS:
 !
@@ -313,10 +332,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: I, J, L
+    LOGICAL            :: verb
     LOGICAL            :: ERR
+    LOGICAL            :: FOUND 
     LOGICAL, SAVE      :: FIRST = .TRUE.
     REAL(hp)           :: iFlx, TMP
     CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: DgnName 
+    CHARACTER(LEN=1)   :: CHAR1
 
     ! Arrays
     REAL(hp), TARGET   :: FLUXNO  (HcoState%NX,HcoState%NY)
@@ -328,6 +351,7 @@ CONTAINS
 
     ! Pointers
     REAL(hp), POINTER  :: Arr2D(:,:) => NULL()
+    REAL(sp), POINTER  :: Ptr2D(:,:) => NULL()
 
     ! For diagnostics
     REAL(hp), TARGET   :: DIAGN   (HcoState%NX,HcoState%NY,4)
@@ -367,6 +391,9 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! verbose mode?
+    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+
     ! Get simulation month
     CALL HcoClock_Get( cH=HH, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -395,36 +422,61 @@ CONTAINS
           TmpCnt => NULL()
        ENDIF  
 
-       ! Also make sure that the SC5 array holds values. Initialize them to
+       ! Also make sure that the SC5 array holds values. First check if the values
+       ! were provided in the HEMCO configuration file. If not, initialize them to 
        ! current one until we have gone through an entire 5-hour simulation cycle.
-       DO I = 1,6
-          SC5(:,:,I) = ExtState%SUNCOSmid%Arr%Val(:,:)
-       ENDDO
+       DO I=1,5
 
-       ! Not first call any more...
-       FIRST = .FALSE.  
+          ! Get diagnostics name
+          WRITE(CHAR1,'(I1)') I
+          DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
+
+          ! Get diagnostics array
+          CALL HCO_GetPtr( am_I_Root, TRIM(DiagnName), Ptr2D, RC, FOUND=FOUND )
+
+          ! fill SC5 slice if array exists ...
+          IF ( FOUND ) THEN
+             SC5(:,:,I+1) = Ptr2D(:,:)
+             Ptr2D => NULL()
+
+             ! verbose mode
+             IF ( verb ) THEN
+                MSG = '- Variable read from restart: ' // TRIM(DiagnName)
+                CALL HCO_MSG(MSG)
+             ENDIF 
+
+          ! ... use current value otherwise
+          ELSE
+             SC5(:,:,I+1) = ExtState%SUNCOSmid%Arr%Val(:,:)
+
+             ! verbose mode
+             IF ( verb ) THEN
+                MSG = '- Variable set to current value: ' // TRIM(DiagnName)
+                CALL HCO_MSG(MSG)
+             ENDIF 
+          ENDIF 
+
+       ENDDO !I
+
+       ! First slice is always current one
+       SC5(:,:,1) = ExtState%SUNCOSmid%Arr%Val(:,:)
+
     ENDIF
     IF ( DoDiagn ) DIAGN(:,:,:) = 0.0_hp
 
-    ! Update current active index in array SC5. This array holds the
-    ! SUNCOSmid values of the past 5 runs. They become stored chronologically, 
-    ! i.e. on the first time step, we archive the current SUNCOS in slice 1, on
-    ! the second time step in slice 2, etc. Index SC5ID refers to the slice 
-    ! that holds the SUNCOS value from 5 hours ago. It becomes moved forward
-    ! every time the simulation hour changes, and the SUNCOS values from the
-    ! previous time step become written into the formerly active index. This 
-    ! index will again become SC5ID in 5 hours from now!
-    IF ( HH /= lastHH ) THEN
+    ! SC5 holds the SUNCOSmid values of the past 5 hours. Slice 1 helds 
+    ! current hour (CH), slice 2 CH-1, ... slice 6 CH-5.
+    IF ( HH /= lastHH .AND. .NOT. FIRST ) THEN
    
-       ! Copy SUNCOSmid from last time step from buffer into current slot
-       SC5(:,:,SC5ID) = SC5(:,:,6)
+       ! Move all slices down by one
+       SC5(:,:,6) = SC5(:,:,5)
+       SC5(:,:,5) = SC5(:,:,4)
+       SC5(:,:,4) = SC5(:,:,3)
+       SC5(:,:,3) = SC5(:,:,2)
+       SC5(:,:,2) = SC5(:,:,1)
 
        ! Archive current SUNCOSmid for future.
-       SC5(:,:,6) = ExtState%SUNCOSmid%Arr%Val(:,:)
-
-       ! Increase index by 1. Cycle back to one if we hit end of array
-       SC5ID = SC5ID + 1
-       IF ( SC5ID > 5 ) SC5ID = 1
+       SC5(:,:,1) = ExtState%SUNCOSmid%Arr%Val(:,:)
 
     ENDIF       
 
@@ -519,13 +571,18 @@ CONTAINS
           ! Deposition flux in kg/m2/s.
           iFlx = ShipNoEmis(I,J,1) * SHIP_DNOx * ( MW_HNO3 / MW_NO )
 
-          ! Get total tropospheric column mass of species 
-          iMass = 0.0_hp
-          DO L = 1, HcoState%NZ
-             IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
-             iMass = iMass + ( ExtState%HNO3%Arr%Val(I,J,L) *       &
-                               ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
-          ENDDO
+          ! Get mass of species. This can either be the total PBL
+          ! column mass or the first layer only, depending on the 
+          ! HEMCO setting.
+          iMass = ExtState%HNO3%Arr%Val(I,J,1) & 
+                * ExtState%FRAC_OF_PBL%Arr%Val(I,J,1) 
+          IF ( HcoState%Options%PBL_DRYDEP ) THEN 
+             DO L = 1, HcoState%NZ
+                IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
+                iMass = iMass + ( ExtState%HNO3%Arr%Val(I,J,L) *       &
+                                  ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
+             ENDDO
+          ENDIF
 
           ! Calculate deposition velocity (1/s) from flux
           ! NOTE: the calculated deposition flux is in kg/m2/s,
@@ -533,7 +590,7 @@ CONTAINS
           ! [kg] of the entire tropospheric column (PARANOx values are
           ! for the entire column).
           ! Now avoid div-zero error (ckeller, 11/10/2014).
-          IF ( iMass > 0.0_hp ) THEN
+          IF ( iMass > TINY(1.0_hp) ) THEN
              TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
 
              ! Check if it's safe to do division
@@ -541,14 +598,14 @@ CONTAINS
                 DEPHNO3(I,J) = TMP / iMass
              ENDIF
 
-             ! Sanity check: if deposition velocities are above one, 
-             ! something must have gone wrong (they are on the order
-             ! of <1e-9)
-             IF ( DEPHNO3(I,J) > 1.0_hp ) THEN
-                WRITE(MSG,*) 'HNO3 deposition velocity > 1., set to zero', &
+             ! Sanity check: if deposition velocity is above 10, the tracer
+             ! concentration is probably very low. Restrict value to 10. 
+             ! This is completely arbitrarily.
+             IF ( DEPHNO3(I,J) > 10.0_hp ) THEN
+                WRITE(MSG,*) 'HNO3 deposition velocity > 10., set to zero', &
                    I, J, DEPHNO3(I,J), TMP, ABS(iFlx), iMass 
                 CALL HCO_WARNING(MSG, RC)
-                DEPHNO3(I,J) = 0.0_hp
+                DEPHNO3(I,J) = 10.0_hp
              ENDIF
           ENDIF
 
@@ -575,20 +632,25 @@ CONTAINS
           ! array
           ELSE
 
-             ! Get total tropospheric column mass of species 
-             iMass = 0.0_hp
-             DO L = 1, HcoState%NZ
-                IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
-                iMass = iMass + ( ExtState%O3%Arr%Val(I,J,L) *       &
-                                  ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
-             ENDDO
+             ! Get mass of species. This can either be the total PBL
+             ! column mass or the first layer only, depending on the 
+             ! HEMCO setting.
+             iMass = ExtState%O3%Arr%Val(I,J,1) &
+                   * ExtState%FRAC_OF_PBL%Arr%Val(I,J,1)
+             IF ( HcoState%Options%PBL_DRYDEP ) THEN 
+                DO L = 1, HcoState%NZ
+                   IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
+                   iMass = iMass + ( ExtState%O3%Arr%Val(I,J,L) *       &
+                                     ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
+                ENDDO
+             ENDIF
 
              ! Calculate deposition velocity (1/s) from flux
              ! NOTE: the calculated deposition flux is in kg/m2/s,
              ! which has to be converted to 1/s. Use here the O3 conc.
              ! [kg] of the lowest model box.
              ! Now avoid div-zero error (ckeller, 11/10/2014).
-             IF ( iMass > 0.0_hp ) THEN
+             IF ( iMass > TINY(1.0_hp) ) THEN
                 TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
 
                 ! Check if it's safe to do division
@@ -596,14 +658,14 @@ CONTAINS
                    DEPO3(I,J) = TMP / iMass 
                 ENDIF
 
-                ! Sanity check: if deposition velocities are above one, 
-                ! something must have gone wrong (they are on the order
-                ! of <1e-9)
-                IF ( DEPO3(I,J) > 1.0_hp ) THEN
-                   WRITE(MSG,*) 'O3 deposition velocity > 1., set to zero', &
+                ! Sanity check: if deposition velocity is above 10, the tracer
+                ! concentration is probably very low. Restrict value to 10. 
+                ! This is completely arbitrarily.
+                IF ( DEPO3(I,J) > 10.0_hp ) THEN
+                   WRITE(MSG,*) 'O3 deposition velocity > 10., set to zero', &
                       I, J, DEPO3(I,J), TMP, ABS(iFlx), iMass 
                    CALL HCO_WARNING(MSG, RC)
-                   DEPO3(I,J) = 0.0_hp
+                   DEPO3(I,J) = 10.0_hp
                 ENDIF
              ENDIF
 
@@ -769,6 +831,9 @@ CONTAINS
     ! Update last hour to current one for next call.
     lastHH = HH
 
+    ! Not first call any more
+    FIRST = .FALSE.  
+
     ! Return w/ success
     CALL HCO_LEAVE ( RC )
 
@@ -824,11 +889,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   INTEGER                        :: AS, I, tmpID, nSpc
+   INTEGER                        :: AS, I, NN, tmpID, nSpc
    INTEGER,           ALLOCATABLE :: HcoIDs(:)
    CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
    CHARACTER(LEN=31)              :: Dummy
+   CHARACTER(LEN=31)              :: DiagnName
    CHARACTER(LEN=255)             :: MSG, LOC
+   CHARACTER(LEN= 1)              :: CHAR1 
+   REAL(sp), POINTER              :: Trgt2D(:,:) => NULL()
 
    !========================================================================
    ! HCOX_PARANOX_INIT begins here!
@@ -1138,12 +1206,9 @@ CONTAINS
    ShipNO = 0.0_hp
 
    ! Allocate variables for SunCosMid from 5 hours ago. We internally store 
-   ! the SunCosMid values from the past 5 hours in array SC5 and cycle through 
-   ! that array to get the SUNCOS value from 5 hours ago. The variable SC5ID 
-   ! is used to identify the slice representing the values from 5 hours ago for
-   ! the given time. It is updated every time the simulation hour changes. 
-   ! The sixth slice acts as a 'buffer' that holds the SUNCOS value from the 
-   ! last time step.
+   ! the SunCosMid values from the past 5 hours in array SC5. Slice 1 holds
+   ! the current suncos values, slice 2 current hour -1, ..., slice 6 current
+   ! hour -5.  
    ! We assume explicitly that the chemistry time step is not larger that 60 
    ! mins, i.e. that PARANOX is called at least once per hour. If that's not
    ! the case, the SC5 array will hold values from further back!
@@ -1152,8 +1217,7 @@ CONTAINS
       CALL HCO_ERROR ( 'SC5', RC )
       RETURN
    ENDIF
-   SC5   = 0.0_hp
-   SC5ID = 1
+   SC5 = 0.0_sp
 
    ! Prompt warning if chemistry time step is more than 60 mins
    IF ( HcoState%TS_CHEM > 3600.0_hp ) THEN
@@ -1166,6 +1230,43 @@ CONTAINS
 
    ! Molecular weight of AIR
    MW_AIR = HcoState%Phys%AIRMW
+
+   !------------------------------------------------------------------------
+   ! Define restart variables. These will be written to disk automatically
+   ! and can then be used for a 'warm' restart. 
+   !------------------------------------------------------------------------ 
+
+   ! Do for the last 5 hours:
+   DO I = 1, 5
+
+      ! This slice
+      Trgt2D => SC5(:,:,I+1)
+
+      ! Construct name
+      WRITE(CHAR1,'(I1)') I
+      DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
+
+      ! Add diagnostics
+      CALL Diagn_Create ( am_I_Root,                  &
+                          HcoState = HcoState,        &
+                          cName    = TRIM(DiagnName), &
+                          ExtNr    = ExtNr,           &
+                          Cat      = -1,              &
+                          Hier     = -1,              &
+                          HcoID    = -1,              &
+                          SpaceDim = 2,               &
+                          OutUnit  = '1',             &
+                          WriteFreq= 'End',           &
+                          Trgt2D   = Trgt2D,          &
+                          AutoFill = 0,               &
+                          RC       = RC                )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      Trgt2D => NULL()
+   ENDDO
+
+   !------------------------------------------------------------------------ 
+   ! Set HEMCO extension variables
+   !------------------------------------------------------------------------ 
 
    ! Met. data required by module
    ExtState%O3%DoUse          = .TRUE.
@@ -2319,7 +2420,7 @@ CONTAINS
    ! thus SEA = arcsin( cos( SZA ) )
 !   VARS(4) = ASIND( State_Met%SUNCOSmid5(I,J) )
 !   VARS(5) = ASIND( State_Met%SUNCOSmid(I,J)  )
-   VARS(4) = ASIND( SC5(I,J,SC5ID) )
+   VARS(4) = ASIND( SC5(I,J,6) )
    VARS(5) = ExtState%SUNCOSmid%Arr%Val(I,J)
 
    ! J(OH)/J(NO2), unitless

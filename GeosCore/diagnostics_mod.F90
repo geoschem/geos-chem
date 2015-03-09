@@ -32,6 +32,8 @@ MODULE Diagnostics_Mod
 !
   PRIVATE :: DiagInit_Drydep
   PRIVATE :: DiagInit_Tracer_Conc
+  PRIVATE :: DiagInit_Tracer_Emis
+  PRIVATE :: DiagInit_GridBox
 !
 ! !DEFINED PARAMETERS:
 !
@@ -158,6 +160,17 @@ CONTAINS
        CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_CONC', LOC ) 
     ENDIF
 
+    ! Grid box quantities (ND68)
+    CALL DIAGINIT_GRIDBOX( am_I_Root, Input_Opt, State_Met, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_GRIDBOX', LOC )
+    ENDIF
+
+    ! Tracer emission diagnostics (NEW)
+    CALL DIAGINIT_TRACER_EMIS( am_I_Root, Input_Opt, State_Met, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_TRACER_EMIS', LOC ) 
+    ENDIF
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -238,7 +251,8 @@ CONTAINS
                                   WriteAll    = .TRUE.,                     &
                                   UsePrevTime = .FALSE.,                    & 
                                   PREFIX      = RST,                        &
-                                  COL         = Input_Opt%DIAG_COLLECTION,  & 
+                                  COL         = Input_Opt%DIAG_COLLECTION,  &
+                                  OnlyIfFirst = .TRUE.,                     &
                                   RC          = RC                         )
    
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -406,7 +420,6 @@ CONTAINS
                              OutUnit   = 's-1',             &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
-                             cID       = cId,               &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -435,7 +448,6 @@ CONTAINS
                              OutUnit   = 'cm-2 s-1',        &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
-                             cID       = cId,               &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -536,7 +548,6 @@ CONTAINS
                              OutUnit   = 'v/v',             &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
-                             cId       = cId,               &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -547,6 +558,253 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE DiagInit_Tracer_Conc
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_gridbox
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_GRIDBOX initializes the grid box quantity 
+!  diagnostic (aka ND68).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DIAGINIT_GRIDBOX( am_I_Root, Input_Opt, State_Met, RC )
+!
+! !USES:
+!
+    USE TRACER_MOD,         ONLY : XNUMOLAIR
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE HCO_Error_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(MetState), INTENT(IN   ) :: State_Met  ! Met state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  24 Feb 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: cId, Collection, N
+    REAL(hp)           :: ScaleFact
+    CHARACTER(LEN=15)  :: OutOper, OutUnit, WriteFreq
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_GRIDBOX (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_TRACER_CONC begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND68 diagnostic is turned off
+    IF ( Input_Opt%ND68 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND68_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND68_OUTPUT_FREQ
+      
+    ! There are four diagnostics 
+    DO N = 1, 4 
+
+       !----------------------------------------------------------------
+       ! Create containers
+       !----------------------------------------------------------------
+
+       SELECT CASE ( N )
+          CASE ( 1 )
+             DiagnName = 'BOXHEIGHT'
+             OutUnit   = 'm'
+             ScaleFact = 1.0_hp
+          CASE ( 2 )
+             DiagnName = 'AIRMASS'
+             OutUnit   = 'kg'
+             ScaleFact = 1.0_hp
+          CASE ( 3 )
+             DiagnName = 'AIRDENS'
+             OutUnit   = 'molecules air m-3'
+             ScaleFact = XNUMOLAIR 
+          CASE ( 4 )
+             IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE
+             DiagnName = 'AVGW'
+             OutUnit   = 'v/v'
+             ScaleFact = 1.0_hp
+       END SELECT
+
+       ! Create container
+       CALL Diagn_Create( am_I_Root,                     &
+                          Col       = Collection,        & 
+                          cName     = TRIM( DiagnName ), &
+                          AutoFill  = 0,                 &
+                          ExtNr     = -1,                &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  =  3,                &
+                          LevIDx    = -1,                &
+                          OutUnit   = TRIM( OutUnit   ), &
+                          OutOper   = TRIM( OutOper   ), &
+                          WriteFreq = TRIM( WriteFreq ), &
+                          ScaleFact = ScaleFact,         &
+                          RC        = RC )
+
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DIAGINIT_GRIDBOX
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagInit_Tracer_Emis
+!
+! !DESCRIPTION: Subroutine DiagInit\_Tracer\_Emis initializes diagnostics for 
+!  total species emissions diagnostics. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagInit_Tracer_Emis( am_I_Root, Input_Opt, State_Met, RC ) 
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE HCO_Error_Mod
+    USE Error_Mod,          ONLY : Error_Stop
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
+    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
+    USE TRACERID_MOD
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input Options object
+    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  05 Mar 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: ID
+    INTEGER            :: cId,      Collection, N
+    CHARACTER(LEN=15)  :: OutOper,  WriteFreq
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_TRACER_EMIS (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_TRACER_CONC begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Get diagnostic parameters from the Input_Opt object
+    ! Use same output frequency and operations as for tracer concentrations.
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND45_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND45_OUTPUT_FREQ
+ 
+    ! Loop over # of species 
+    DO N = 1, Input_Opt%N_TRACERS
+       
+       ! HEMCO ID
+       ID = GetHcoID( TrcID = N )
+ 
+       ! Restrict diagnostics to these species
+       IF ( N /= IDTNO    .AND. N /= IDTCO     .AND. &
+            N /= IDTALK4  .AND. N /= IDTISOP   .AND. &
+            N /= IDTHNO3  .AND. N /= IDTACET   .AND. &
+            N /= IDTMEK   .AND. N /= IDTALD2   .AND. &
+            N /= IDTPRPE  .AND. N /= IDTC3H8   .AND. &
+            N /= IDTC2H6  .AND. N /= IDTDMS    .AND. &
+            N /= IDTSO2   .AND. N /= IDTSO4    .AND. &
+            N /= IDTNH3   .AND. N /= IDTBCPI   .AND. &
+            N /= IDTOCPI  .AND. N /= IDTBCPO   .AND. &
+            N /= IDTOCPO  .AND. N /= IDTDST1   .AND. &
+            N /= IDTDST2  .AND. N /= IDTDST3   .AND. &
+            N /= IDTDST4  .AND. N /= IDTSALA   .AND. &
+            N /= IDTSALC  .AND. N /= IDTBr2    .AND. &
+            N /= IDTBrO   .AND. N /= IDTCH2Br2 .AND. &
+            N /= IDTCH3Br                              ) THEN
+          ID = -1
+       ENDIF
+ 
+       ! If this is an emission tracer, add diagnostics for emissions. 
+       IF ( ID > 0 ) THEN 
+
+          !----------------------------------------------------------------
+          ! Create container for emission flux (m/s) 
+          !----------------------------------------------------------------
+
+          ! Diagnostic name
+          DiagnName = 'TRACER_EMIS_' // TRIM( Input_Opt%TRACER_NAME(N) )
+
+          ! Diagnostics ID
+          cID = 10000 + ID
+
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             cID       = cID,               &
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = ID,                &
+                             SpaceDim  =  3,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/m2/s',         &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             RC        = RC                  )
+
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagInit_Tracer_Emis
 !EOC
 END MODULE Diagnostics_Mod
 #endif
