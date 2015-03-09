@@ -44,7 +44,8 @@ MODULE HCOIO_DIAGN_MOD
 ! !DEFINED PARAMETERS:
 !
   ! Fill value used in HEMCO diagnostics netCDF files.
-  REAL(hp), PARAMETER :: FillValue = 1.e-31_hp
+!  REAL(hp), PARAMETER :: FillValue = 1.e-31_hp
+  REAL(sp), PARAMETER :: FillValue = HCO_MISSVAL 
 
 CONTAINS
 !EOC
