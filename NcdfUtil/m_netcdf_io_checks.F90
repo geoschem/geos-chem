@@ -151,7 +151,7 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  function Ncdoes_Attr_Exist (ncid, varname, attname)
+  function Ncdoes_Attr_Exist (ncid, varname, attname, attType)
 !
     implicit none
 !
@@ -164,6 +164,12 @@ CONTAINS
     integer,           intent (in)   :: ncid
     character (len=*), intent (in)   :: varname
     character (len=*), intent (in)   :: attname
+!
+! !OUTPUT PARAMETERS:
+!
+!! attType  : Attribute type.  This value is will be set to one of the
+!! following: NF_BYTE, NF_CHAR, NF_SHORT, NF_INT, NF_FLOAT, or NF_DOUBLE.
+    INTEGER,           INTENT(OUT)   :: attType
 !
 ! !DESCRIPTION: Checks a given netCDF file to see if a given netCDF variable 
 !  exists in it.
@@ -178,6 +184,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  Initial code.
 !  03 Oct 2014 - C.Keller - Now check for int, real and character attributes
+!  20 Feb 2015 - R. Yantosca - Now use NF_ATT_INQ function, it's more robust
+!  20 Feb 2015 - R. Yantosca - Now return attribute type to calling routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,41 +193,22 @@ CONTAINS
 ! !LOCAL VARIABLES:
     integer :: ierr
     integer :: varid
-    integer :: tmpint
-    real*4  :: tmpr4
-    character(len=255) :: tmpchar
+    INTEGER :: attLen
 
     ! Init
     Ncdoes_Attr_Exist = .false.
+    attType           = -1
 
     ! First check the variable
     ierr = Nf_Inq_Varid (ncid, varname, varid)
 
     ! Check the attribute if variable was found
-    if (ierr == NF_NOERR) then
-
-       if ( .NOT. Ncdoes_Attr_Exist ) then
-          ierr = Nf_Get_Att_Int( ncid, varid, attname, tmpint )
-          if ( ierr == NF_NOERR ) then
-             Ncdoes_Attr_Exist = .true.
-          end if
-       endif
-
-       if ( .NOT. Ncdoes_Attr_Exist ) then
-          ierr = Nf_Get_Att_Real( ncid, varid, attname, tmpr4 )
-          if ( ierr == NF_NOERR ) then
-             Ncdoes_Attr_Exist = .true.
-          end if
-       endif
-
-       if ( .NOT. Ncdoes_Attr_Exist ) then
-          ierr = Nf_Get_Att_Text( ncid, varid, attname, tmpchar )
-          if ( ierr == NF_NOERR ) then
-             Ncdoes_Attr_Exist = .true.
-          end if
-       endif
-
-    end if
+    IF ( ierr == NF_NOERR ) THEN
+       ierr = Nf_Inq_Att( ncId, varId, attName, attType, attLen )
+       IF ( ierr == NF_NOERR ) THEN
+          NcDoes_Attr_Exist = .TRUE.
+       ENDIF
+    ENDIF
 
     return
 

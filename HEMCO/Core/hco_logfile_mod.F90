@@ -261,6 +261,8 @@ CONTAINS
          CALL HCO_MSG(MSG)
          write(MSG,*) '   -->Delta t[h]      : ', Dct%Dta%DeltaT
          CALL HCO_MSG(MSG)
+         write(MSG,*) '   -->Local time?       ', Dct%Dta%IsLocTime
+         CALL HCO_MSG(MSG)
          IF ( ASSOCIATED(Dct%Dta%tIDx) ) THEN
             write(MSG,*) '   -->Tempres         : ', &
                TRIM(Dct%Dta%tIDx%TempRes)
@@ -274,7 +276,7 @@ CONTAINS
          CALL HCO_MSG(MSG)
 
          ! For base emissions
-         IF ( Dct%DctType==1 ) THEN
+         IF ( Dct%DctType==HCO_DCTTYPE_BASE ) THEN
             write(MSG,*) '   -->Extension Nr    : ', Dct%ExtNr
             CALL HCO_MSG(MSG)
             write(MSG,*) '   -->Species name    : ',TRIM(Dct%SpcName)
@@ -287,7 +289,7 @@ CONTAINS
          CALL HCO_MSG(MSG)
 
          ! For scale factors
-         ELSEIF ( Dct%DctType>1 ) THEN
+         ELSE
             write(MSG,*) '   -->Scal ID         : ', Dct%ScalID
             CALL HCO_MSG(MSG)
             write(MSG,*) '   -->Operator        : ', Dct%Oper

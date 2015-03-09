@@ -51,6 +51,7 @@
       PRIVATE :: WASHFRAC_COARSE_AEROSOL
       PRIVATE :: WASHFRAC_LIQ_GAS
       PRIVATE :: WASHFRAC_HNO3
+      PRIVATE :: GET_VUD
 !
 ! !REMARKS:
 !  References:
@@ -145,6 +146,12 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 Feb 2015 - C. Keller   - Added GET_F and GET_VUD. VUD is now stored in
+!                              State_Met. In an ESMF environment, it's values
+!                              are directly taken from the GEOS-5 model. In 
+!                              the traditional GEOS-Chem, the updraft velocity
+!                              is still calculated in the old manner (5 m/s 
+!                              over land/ice, 10 m/s over water).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,7 +175,10 @@
       INTEGER, PARAMETER   :: NSOLMAX = 110     ! Max # of soluble tracers
                                                 !  for regular G-C runs
 #endif
-      REAL(fp),  PARAMETER   :: EPSILON = 1e-32_fp   ! A very small positive #
+      !REAL(fp),  PARAMETER   :: EPSILON = 1e-32_fp   ! A very small positive #
+
+      ! TINY number
+      REAL(fp), PARAMETER :: TINY_FP = TINY(1.0_fp)
 !
 ! !LOCAL VARIABLES:
 !
@@ -177,7 +187,7 @@
 
       ! Arrays
       INTEGER              :: IDWETD(NSOLMAX)   ! Index array for WETDEP
-      REAL(fp),  ALLOCATABLE :: Vud(:,:)          ! Updraft velocity [m/s]
+!      REAL(fp),  ALLOCATABLE :: Vud(:,:)          ! Updraft velocity [m/s]
       REAL(fp),  ALLOCATABLE :: C_H2O(:,:,:)      ! Mixing ratio of H2O [v/v]
       REAL(fp),  ALLOCATABLE :: CLDICE(:,:,:)     ! Cloud ice mixing ratio
                                                 !  [cm3 ice/cm3 air]
@@ -730,7 +740,11 @@
       !=================================================================
       
       ! Saturation vap press of Ice [Pa] -- divide by 100 for [hPa]
-      VALUE = ( 10e+0_fp**( A/TK + B ) ) / 100e+0_fp 
+      IF ( TK <= TINY_FP ) THEN
+         VALUE = 0.0_fp
+      ELSE
+         VALUE = ( 10e+0_fp**( A/TK + B ) ) / 100e+0_fp 
+      ENDIF
 
       END FUNCTION E_ICE
 !EOC
@@ -925,7 +939,8 @@
 !
       ! Scalars
       INTEGER             :: I, J, L, NN, N_TRACERS
-      REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
+      !REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, TMP, SO2LOSS
+      REAL(fp)           :: L2G, I2G, C_TOT, F_L, F_I, K, SO2LOSS
 #if defined( TOMAS )
       ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
       REAL(fp)           :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
@@ -933,7 +948,7 @@
 #endif
 
       ! Pointers
-      REAL(fp), POINTER     :: BXHEIGHT(:,:,:)
+!      REAL(fp), POINTER     :: BXHEIGHT(:,:,:)
       REAL(fp), POINTER     :: T       (:,:,:)
 !
 ! !DEFINED PARAMETERS:
@@ -959,7 +974,7 @@
       !=================================================================
 
       ! Initialize
-      BXHEIGHT  => State_Met%BXHEIGHT
+!      BXHEIGHT  => State_Met%BXHEIGHT
       T         => State_Met%T
       N_TRACERS =  Input_Opt%N_TRACERS
 
@@ -1025,12 +1040,9 @@
                   
             ENDIF
 
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-            
             ! Compute F, the fraction of scavenged H2O2.
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1078,13 +1090,10 @@
                K = 0e+0_fp
 
             ENDIF
-
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of CH2O scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1139,13 +1148,10 @@
                K = 0.e+0_fp
                   
             ENDIF
-
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of HOBr scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1197,13 +1203,9 @@
                   
             ENDIF
 
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of HCl scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
-
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1264,12 +1266,9 @@
                   
             ENDIF
 
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of HBr scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
 
          ENDDO
@@ -1326,12 +1325,9 @@
             ENDIF
 
 
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-                  
             ! F is the fraction of Br2 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1382,13 +1378,10 @@
                K = 0e+0_fp
 
             ENDIF
-
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of GLYX scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1439,12 +1432,9 @@
 
             ENDIF
 
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-               
             ! F is the fraction of MGLY scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1494,13 +1484,10 @@
                K = 0e+0_fp
 
             ENDIF
-
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of MGLY scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1549,12 +1536,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of CH3OOH scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1586,7 +1570,7 @@
 
             ! Make sure to deplete H2O2s the same as SO2s. 
             ! (dkh, rjp, bmy, 11/17/05)
-            IF ( SO2s(I,J,L) > EPSILON ) THEN
+            IF ( SO2s(I,J,L) > TINY_FP ) THEN
        
                ! Limit F
                SO2LOSS      = MIN( H2O2s(I,J,L), SO2s(I,J,L) )
@@ -1595,7 +1579,7 @@
         
                ! Update saved H2O2 concentration
                H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * F(I,J,L) )
-               H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
+               H2O2s(I,J,L) = MAX( H2O2s(I,J,L), TINY_FP )
         
             ELSE
 
@@ -1606,7 +1590,7 @@
 
             ! Update SO2
             SO2s(I,J,L)     = SO2s(I,J,L) * ( 1e+0_fp - F(I,J,L) )
-            SO2s(I,J,L)     = MAX( SO2s(I,J,L), EPSILON )
+            SO2s(I,J,L)     = MAX( SO2s(I,J,L), TINY_FP )
               
          ENDDO
          ENDDO
@@ -1678,7 +1662,7 @@
   
             ! F is the fraction of NH3 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * BXHEIGHT(I,J,L) / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1785,12 +1769,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of MTPA scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1836,13 +1817,10 @@
                K = 0e+0_fp
 
             ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1894,12 +1872,9 @@
 
             ENDIF
 
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of MTPO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -1950,12 +1925,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of POG scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -2010,12 +1982,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of GAS1 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -2110,12 +2079,9 @@
                K = 0e+0_fp
             ENDIF
 
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-              
             ! F is the fraction of HgCl2 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -2324,12 +2290,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of POP scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -2404,12 +2367,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -2459,12 +2419,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -2513,12 +2470,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -2567,12 +2521,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -2617,12 +2568,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -2662,12 +2610,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -2708,12 +2653,9 @@
 
             ENDIF
                
-            ! Distance between grid box centers [m]
-            TMP = 0.5e+0_fp * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1e+0_fp - EXP( -K * TMP / Vud(I,J) )
+            F(I,J,L) = GET_F( State_Met, I, J, L, K )
 
          ENDDO
          ENDDO
@@ -2732,7 +2674,7 @@
       ENDIF
 
       ! Free pointers
-      NULLIFY( BXHEIGHT )
+!      NULLIFY( BXHEIGHT )
       NULLIFY( T        )
 
       END SUBROUTINE COMPUTE_F
@@ -2790,7 +2732,6 @@
 !
       INTEGER             :: I, J, L
       REAL(fp)              :: TMP
-      REAL(fp), PARAMETER   :: TINY1 = 1.0e-20_fp
 
       !=================================================================
       ! F_AEROSOL begins here!
@@ -2807,26 +2748,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
                 
-         ! Distance between grid box centers [m]
-         TMP = 0.5e+0_fp * ( State_Met%BXHEIGHT(I,J,L-1) +
-     &                   State_Met%BXHEIGHT(I,J,L) ) 
-       
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
-#if defined( TOMAS ) || defined( ESMF_ )
-         !-------------------------------------
-         ! TOMAS: set F=1 if Vud is too small
-         !-------------------------------------
-         IF ( Vud(I,J) < TINY1 ) THEN
-            F(I,J,L) = 1e+0_fp
-         ELSE
-            F(I,J,L) = 1e+0_fp - EXP( -KC * TMP / Vud(I,J) )
-         ENDIF
-#else
-         !-------------------------------------
-         ! STD G-C: Preserve existing code
-         !-------------------------------------
-         F(I,J,L) = 1e+0_fp - EXP( -KC * TMP / Vud(I,J) )
-#endif
+         F(I,J,L) = GET_F( State_Met, I, J, L, KC )
 
          ! snow vs rain (qq, 10/11/2011)
          IF ( State_Met%T(I,J,L) >= 258e+0_fp .and. N == IDTBCPO) THEN
@@ -3931,7 +3854,8 @@
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
   
             ! Update SO2 and H2O2
-            IF ( SO2s(I,J,L) > EPSILON ) THEN 
+            !IF ( SO2s(I,J,L) > EPSILON ) THEN 
+            IF ( SO2s(I,J,L) > TINY_FP ) THEN 
             
                ! Limit RAINFRAC 
                SO2LOSS      = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
@@ -3940,7 +3864,8 @@
          
                ! Update saved H2O2 concentration
                H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * RAINFRAC )
-               H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
+               !H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
+               H2O2s(I,J,L) = MAX( H2O2s(I,J,L), TINY_FP )
            
             ELSE
                RAINFRAC = 0e+0_fp
@@ -3949,7 +3874,8 @@
            
             ! Update saved SO2 concentration
             SO2s(I,J,L) = SO2s(I,J,L) * ( 1.e+0_fp - RAINFRAC )
-            SO2s(I,J,L) = MAX( SO2s(I,J,L), EPSILON )         
+            !SO2s(I,J,L) = MAX( SO2s(I,J,L), EPSILON )         
+            SO2s(I,J,L) = MAX( SO2s(I,J,L), TINY_FP )
   
          !----------------------------
          ! SO4 and SO4aq (aerosol)
@@ -4614,7 +4540,8 @@
          ! of H2O2 in the precipitating grid box.  Then scavenge the 
          ! soluble SO2 at the same rate as sulfate.
          !==============================================================
-         IF ( TK >= 268e+0_fp .AND. SO2s  > EPSILON ) THEN
+         !IF ( TK >= 268e+0_fp .AND. SO2s  > EPSILON ) THEN
+         IF ( TK >= 268e+0_fp .AND. SO2s > TINY_FP ) THEN
          
             ! Adjust WASHFRAC
             SO2LOSS  = MIN( SO2s, H2O2s )
@@ -4623,7 +4550,8 @@
                   
             ! Deplete H2O2s the same as SO2s (dkh, rjp, bmy, 11/17/05)
             H2O2s = H2O2s - ( SO2s * WASHFRAC )
-            H2O2s = MAX( H2O2s, EPSILON )
+            !H2O2s = MAX( H2O2s, EPSILON )
+            H2O2s = MAX( H2O2s, TINY_FP )
 
          ELSE
             WASHFRAC = 0e+0_fp
@@ -4632,7 +4560,8 @@
          
          ! Update saved SO2 concentration 
          SO2s = SO2s * ( 1e+0_fp - WASHFRAC )
-         SO2s = MAX( SO2s, EPSILON ) 
+         !SO2s = MAX( SO2s, EPSILON ) 
+         SO2s = MAX( SO2s, TINY_FP ) 
           
       !------------------------------
       ! SO4 and SO4aq (aerosol)
@@ -7043,6 +6972,8 @@
 !                              derived type object
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
+!                              tracers (C. Friedman)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7248,7 +7179,7 @@
             ! WETLOSS is the amount of tracer mass in 
             ! grid box (I,J,L) that is lost to washout.
             ! (Eq. 16, Jacob et al, 2000)
-            WETLOSS = MASS_WASH * WASHFRAC -DSTT(NN,L+1,I,J)
+            WETLOSS = ( MASS_WASH - DSTT(NN,L+1,I,J) ) * WASHFRAC
 
             ! The tracer left in grid box (I,J,L) is what was
             ! in originally in the non-precipitating fraction 
@@ -8663,6 +8594,140 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_vud
+!
+! !DESCRIPTION: Function GET\_VUD returns the vertical updraft velocity in
+!  m/s at location I, J, L. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_VUD( State_Met, I, J, L ) RESULT( VUD )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: I, J, L     ! Location 
+!
+! !RETURN VALUE:
+!
+      REAL(fp)                      :: VUD     ! Vertical updraft velocity in m/s. 
+! 
+! !REVISION HISTORY:
+!  12 Feb 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      !=================================================================
+      ! GET_VUD begins here!
+      !=================================================================
+
+#if defined(ESMF_)
+      !=================================================================
+      ! GEOS-5: Use vertical updraft velocity from GEOS-5. This array
+      ! is stored in State_Met object UPDVVEL, in hPa/s. Convert to
+      ! m/s here.
+      !=================================================================
+
+      ! Convert VUD from hPa/s to m/s
+      IF ( State_Met%DELP(I,J,L) <= TINY_FP ) THEN
+         ! Something is weird if pressure is zero, so set vud to zero
+         VUD = 0.0_fp 
+      ELSE
+         ! We need the positive velocity, so use absolute values!
+         VUD = State_Met%UPDVVEL (I,J,L) 
+     &       * State_Met%BXHEIGHT(I,J,L) 
+     &       / State_Met%DELP    (I,J,L) 
+      ENDIF
+
+#else
+      !=================================================================
+      ! Traditional GEOS-Chem:
+      ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)
+      ! Assume Vud is the same at all altitudes; the array can be 2-D
+      !=================================================================
+      IF ( IS_WATER( I, J, State_Met ) ) THEN
+         VUD = 5e+0_fp
+      ELSE
+         VUD = 10e+0_fp
+      ENDIF
+#endif     
+
+      END FUNCTION GET_VUD
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_f
+!
+! !DESCRIPTION: Function GET\_F returns the scavenged fraction at location
+! I, J, L and for the given rate constant K.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_F( State_Met, I, J, L, K ) RESULT( F )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: I, J, L     ! Location
+      REAL(fp),       INTENT(IN)    :: K           ! rate constant
+!
+! !RETURN VALUE:
+!
+      REAL(fp)                      :: F           ! Vertical updraft velocity in m/s. 
+! 
+! !REVISION HISTORY:
+!  12 Feb 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(fp)    :: TMP, VUD
+
+      !=================================================================
+      ! GET_F begins here!
+      !=================================================================
+
+      ! Distance between grid box centers [m]
+      TMP = 0.5e+0_fp 
+     &    * ( State_Met%BXHEIGHT(I,J,L-1) + State_Met%BXHEIGHT(I,J,L) )
+               
+      ! F is the fraction scavenged out of the updraft
+      Vud = GET_VUD( State_Met, I, J, L )
+      IF ( Vud <= TINY_FP) THEN
+         F = 0.0_fp
+      ELSE
+         F = 1e+0_fp - EXP( -K * TMP / Vud )
+      ENDIF
+
+      END FUNCTION GET_F
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: init_wetscav
 !
 ! !DESCRIPTION: Subroutine INIT\_WETSCAV initializes updraft velocity, cloud 
@@ -8678,7 +8743,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : IS_WATER
+!      USE DAO_MOD,            ONLY : IS_WATER
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -8738,9 +8803,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER       :: I, J, L
-      REAL(fp)        :: PL, TK
-      LOGICAL, SAVE :: FIRST = .TRUE.      
+      INTEGER             :: I, J, L
+      REAL(fp)            :: PL, TK
+      LOGICAL,  SAVE      :: FIRST = .TRUE.      
             
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -8785,10 +8850,10 @@
 
          ! Only allocate these if wetdep or convection is turned on
          IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
-            ! Allocate Vud on first call
-            ALLOCATE( Vud( IIPAR, JJPAR ), STAT=RC )
-            IF ( RC /= 0 ) CALL ALLOC_ERR( 'Vud' )
-            Vud = 0e+0_fp
+!            ! Allocate Vud on first call
+!            ALLOCATE( Vud( IIPAR, JJPAR ), STAT=RC )
+!            IF ( RC /= 0 ) CALL ALLOC_ERR( 'Vud' )
+!            Vud = 0e+0_fp
             
             ! Allocate C_H2O on first call
             ALLOCATE( C_H2O( IIPAR, JJPAR, LLPAR ), STAT=RC )
@@ -8811,15 +8876,19 @@
 
       ENDIF
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
       ! Skip computation of Vud, CLDICE, CLDLIQ, C_H2O.  These would 
       ! have to be computed at a higher level and passed through the
       ! import state. (bmy, 10/31/12)
+      ! 
+      ! Still calculate CLDICE, CLDLIQ and C_H2O in GEOS-5, but get 
+      ! Vud from GEOS-5 convection component. Vud is now obtained 
+      ! through function GET_VUD (see above). (ckeller, 2/12/15)
       !-----------------------------------------------------------------
-#else
+!#else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
       !
@@ -8849,14 +8918,16 @@
             !==============================================================
             ! Compute Vud -- 5 m/s over oceans, 10 m/s over land (or ice?)
             ! Assume Vud is the same at all altitudes; the array can be 2-D
+            ! ==> Now done in function GET_VUD (ckeller, 2/12/15).
             !==============================================================
-            IF ( L == 1 ) THEN
-               IF ( IS_WATER( I, J, State_Met ) ) THEN
-                  Vud(I,J) = 5e+0_fp
-               ELSE
-                  Vud(I,J) = 10e+0_fp
-               ENDIF
-            ENDIF
+
+!            IF ( L == 1 ) THEN
+!               IF ( IS_WATER( I, J, State_Met ) ) THEN
+!                  Vud(I,J) = 5e+0_fp
+!               ELSE
+!                  Vud(I,J) = 10e+0_fp
+!               ENDIF
+!            ENDIF
          
             !==============================================================
             ! CLDLIQ, the cloud liquid water content [cm3 H2O/cm3 air], 
@@ -8898,14 +8969,18 @@
             !       of ice [hPa] at temperature Tk(I,J,L) -- computed in 
             !       routine E_ICE above.
             !==============================================================
-            C_H2O(I,J,L) = E_ICE( TK ) / PL
-         
+            IF ( PL <= TINY_FP ) THEN
+               C_H2O(I,J,L) = 0.0_fp 
+            ELSE
+               C_H2O(I,J,L) = E_ICE( TK ) / PL
+            ENDIF         
+
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-#endif
+!#endif
       END SUBROUTINE INIT_WETSCAV
 !EOC
 !------------------------------------------------------------------------------
@@ -8931,7 +9006,7 @@
       !=================================================================
       ! CLEANUP_WETSCAV begins here!
       !=================================================================
-      IF ( ALLOCATED( Vud    ) ) DEALLOCATE( Vud    )
+!      IF ( ALLOCATED( Vud    ) ) DEALLOCATE( Vud    )
       IF ( ALLOCATED( C_H2O  ) ) DEALLOCATE( C_H2O  )
       IF ( ALLOCATED( CLDLIQ ) ) DEALLOCATE( CLDLIQ )
       IF ( ALLOCATED( CLDICE ) ) DEALLOCATE( CLDICE )

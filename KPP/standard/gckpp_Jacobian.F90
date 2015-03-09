@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Jacobian.f90
-! Time                 : Mon Jun  2 11:25:04 2014
+! Time                 : Wed Jan 21 16:35:34 2015
 ! Working directory    : /home/mpayer/KPP
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -2301,7 +2301,7 @@ SUBROUTINE Jac_SP ( V, F, RCT, JVS )
 ! JVS(482) = Jac_FULL(95,121)
   JVS(482) = 0.5*B(168)+0.39*B(249)
 ! JVS(483) = Jac_FULL(95,123)
-  JVS(483) = 0.05*B(72)+B(515)+B(615)+B(616)
+  JVS(483) = 0.05*B(72)+B(515)+0.88*B(615)+B(616)
 ! JVS(484) = Jac_FULL(95,124)
   JVS(484) = 0.569*B(295)+B(630)
 ! JVS(485) = Jac_FULL(95,126)
@@ -3492,7 +3492,7 @@ SUBROUTINE Jac_SP ( V, F, RCT, JVS )
 ! JVS(1075) = Jac_FULL(129,122)
   JVS(1075) = -B(395)-B(417)
 ! JVS(1076) = Jac_FULL(129,123)
-  JVS(1076) = 0.95*B(72)+B(74)+B(515)
+  JVS(1076) = 0.95*B(72)+B(74)+B(515)+0.12*B(615)
 ! JVS(1077) = Jac_FULL(129,124)
   JVS(1077) = B(630)
 ! JVS(1078) = Jac_FULL(129,125)
@@ -3590,7 +3590,7 @@ SUBROUTINE Jac_SP ( V, F, RCT, JVS )
 ! JVS(1123) = Jac_FULL(130,122)
   JVS(1123) = -B(229)+B(395)
 ! JVS(1124) = Jac_FULL(130,123)
-  JVS(1124) = B(615)
+  JVS(1124) = 0.88*B(615)
 ! JVS(1125) = Jac_FULL(130,124)
   JVS(1125) = 0
 ! JVS(1126) = Jac_FULL(130,125)

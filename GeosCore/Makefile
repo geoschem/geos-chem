@@ -430,7 +430,7 @@ cleanup.o                   : cleanup.F                                      \
                               diag51b_mod.o           diag53_mod.o           \
                               diag_oh_mod.o           diag_pl_mod.o          \
                               drydep_mod.o            dust_mod.o             \
-                              emissions_mod.o                                \
+                              diagnostics_mod.o       emissions_mod.o        \
                               global_ch4_mod.o        global_nox_mod.o       \
                               global_oh_mod.o         hcn_ch3cn_mod.o        \
                               isoropiaII_mod.o        land_mercury_mod.o     \
@@ -525,6 +525,13 @@ diag63_mod.o                : diag63_mod.F                                   \
                               diag_mod.o              pbl_mix_mod.o          \
                               tracerid_mod.o          hcoi_gc_main_mod.o
 
+diagnostics_mod.o           : diagnostics_mod.F90                            \
+                              drydep_mod.o                                   \
+                              hcoi_gc_main_mod.o                             \
+                              tracer_mod.o                                   \
+                              tracerid_mod.o                                 \
+                              ucx_mod.o
+
 diag_2pm.o                  : diag_2pm.F                                     \
                               chemgrid_mod.o          diag_mod.o
 
@@ -554,6 +561,7 @@ dust_mod.o                  : dust_mod.F                                     \
                               tomas_mod.o             tracerid_mod.o
 
 emissions_mod.o             : emissions_mod.F90                              \
+                              bromocarb_mod.o                                \
                               carbon_mod.o            co2_mod.o              \
                               dust_mod.o              global_ch4_mod.o       \
                               hcoi_gc_main_mod.o      tracerid_mod.o         \
@@ -703,10 +711,11 @@ lump.o                      : lump.F                                         \
 
 main.o                      : main.F                                         \
                               a3_read_mod.o           a6_read_mod.o          \
-                              benchmark_mod.o         bromocarb_mod.o        \
+                              benchmark_mod.o                                \
                               chemgrid_mod.o          chemistry_mod.o        \
                               carbon_mod.o            convection_mod.o       \
                               comode_mod.o            diag_mod.o             \
+                              diagnostics_mod.o                              \
                               diag41_mod.o            diag42_mod.o           \
                               diag48_mod.o            diag49_mod.o           \
                               diag50_mod.o            diag51_mod.o           \
@@ -728,7 +737,8 @@ main.o                      : main.F                                         \
                               tpcore_bc_mod.o         uvalbedo_mod.o         \
                               tracerid_mod.o          wetscav_mod.o          \
                               ucx_mod.o               vdiff_mod.o            \
-                              emissions_mod.o         cleanup.o
+                              emissions_mod.o         cleanup.o              \
+                              mixing_mod.o
 
 mapping_mod.o               : mapping_mod.F90                              
 
@@ -752,6 +762,17 @@ merra_cn_mod.o              : merra_cn_mod.F                                 \
                               diag_mod.o
 
 merra_i6_mod.o              : merra_i6_mod.F
+
+mixing_mod.o                : mixing_mod.F90                                 \
+                              chemgrid_mod.o                                 \
+                              dao_mod.o                                      \
+                              diag_mod.o                                     \
+                              drydep_mod.o                                   \
+                              hcoi_gc_main_mod.o                             \
+                              get_ndep_mod.o                                 \
+                              pbl_mix_mod.o                                  \
+                              tracerid_mod.o                                 \
+                              vdiff_mod.o                                    
 
 modis_lai_mod.o             : modis_lai_mod.F90       mapping_mod.o
 
@@ -916,6 +937,8 @@ transport_mod.o             : transport_mod.F                                \
                               pjc_pfix_geosfp_window_mod.o
 
 update.o                    : update.F
+
+uvalbedo_mod.o              : uvalbedo_mod.F90
 
 vdiff_pre_mod.o             : vdiff_pre_mod.F90
 ifeq ($(COMPILER),sun)

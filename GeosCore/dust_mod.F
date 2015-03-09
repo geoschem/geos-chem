@@ -24,7 +24,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CHEMDUST      
-      PUBLIC  :: DUSTMIX
+!      PUBLIC  :: DUSTMIX
 #if   defined( TOMAS )
       PUBLIC  :: SETTLEDUST
 #endif
@@ -209,163 +209,164 @@
 
       !----------------------
       ! Dust deposition
+      ! This is now done in mixing_mod.F90 (ckeller, 3/5/15)
       !----------------------
-      IF ( LDRYD ) THEN
-         CALL DRY_DEPOSITION( am_I_Root,                  Input_Opt, 
-     &                        STT(:,:,:,IDTDST1:IDTDST4), RC         )
+!      IF ( LDRYD ) THEN
+!         CALL DRY_DEPOSITION( am_I_Root,                  Input_Opt, 
+!     &                        STT(:,:,:,IDTDST1:IDTDST4), RC         )
 
-         ! Debug print
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMDUST: a DRY_DEPOSITION' )
-         ENDIF
-      ENDIF
+!         ! Debug print
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMDUST: a DRY_DEPOSITION' )
+!         ENDIF
+!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
 
       END SUBROUTINE CHEMDUST
 !EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: DustMix 
-!
-! !DESCRIPTION: Subroutine DustMix adds the HEMCO dust emissions directly
-! to the GEOS-Chem tracer array and resets HEMCO dust emissions to zero.
-! This ensures that dust is not mixed twice.
-!\\
-!\\
-! This routine also checks for dry deposition rates calculated by HEMCO
-! and applies them here if necessary. There shouldn't be any dust drydep
-! rates calculated by HEMCO as only air-sea exchange and PARANOX deposition
-! rates are covered by HEMCO.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DUSTMIX ( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
-!
-! !USES:
-!
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-      USE GIGC_State_Chm_Mod,    ONLY : ChmState
-      USE GIGC_State_Met_Mod,    ONLY : MetState
-      USE TRACERID_MOD,          ONLY : IDTDST1, IDTDST2
-      USE TRACERID_MOD,          ONLY : IDTDST3, IDTDST4
-      USE HCOI_GC_MAIN_MOD,      ONLY : GetHcoState, GetHcoID
-      USE HCO_STATE_MOD,         ONLY : HCO_STATE
-      USE HCO_ERROR_MOD
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Root CPU?
-      TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
-      TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
-      INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
-!
-! !REMARKS:
-!  For a detailed discussion of how emissions get added from HEMCO into
-!  GEOS-Chem (and how emissions are distributed throughout the boundary
-!  layer), please see this wiki page:
-!  http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: DustMix 
+!!
+!! !DESCRIPTION: Subroutine DustMix adds the HEMCO dust emissions directly
+!! to the GEOS-Chem tracer array and resets HEMCO dust emissions to zero.
+!! This ensures that dust is not mixed twice.
+!!\\
+!!\\
+!! This routine also checks for dry deposition rates calculated by HEMCO
+!! and applies them here if necessary. There shouldn't be any dust drydep
+!! rates calculated by HEMCO as only air-sea exchange and PARANOX deposition
+!! rates are covered by HEMCO.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE DUSTMIX ( am_I_Root, Input_Opt, 
+!     &                     State_Met, State_Chm, RC )
+!!
+!! !USES:
+!!
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod,    ONLY : OptInput
+!      USE GIGC_State_Chm_Mod,    ONLY : ChmState
+!      USE GIGC_State_Met_Mod,    ONLY : MetState
+!      USE TRACERID_MOD,          ONLY : IDTDST1, IDTDST2
+!      USE TRACERID_MOD,          ONLY : IDTDST3, IDTDST4
+!      USE HCOI_GC_MAIN_MOD,      ONLY : GetHcoState, GetHcoID
+!      USE HCO_STATE_MOD,         ONLY : HCO_STATE
+!      USE HCO_ERROR_MOD
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Root CPU?
+!      TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
+!      TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
+!      INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
+!!
+!! !REMARKS:
+!!  For a detailed discussion of how emissions get added from HEMCO into
+!!  GEOS-Chem (and how emissions are distributed throughout the boundary
+!!  layer), please see this wiki page:
+!!  http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
+!!  
+!! !REVISION HISTORY:
+!!  21 Oct 2014 - C. Keller   - Initial Version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! LOCAL VARIABLES:
+!!
+!      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+!      INTEGER                  :: I, L, TrcID, HcoID
 !  
-! !REVISION HISTORY:
-!  21 Oct 2014 - C. Keller   - Initial Version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      !=======================================================================
+!      ! DUSTMIX begins here
+!      !=======================================================================
+!  
+!      ! Assume success until otherwise
+!      RC = GIGC_SUCCESS
+! 
+!      ! Get pointer to HEMCO state object
+!      CALL GetHcoState ( HcoState )
+!      IF ( .NOT. ASSOCIATED(HcoState) ) RETURN
 !
-! LOCAL VARIABLES:
+!      ! Do for all four dust tracers
+!      DO I = 1, 4
+!  
+!         ! Select dust tracer
+!         SELECT CASE ( I )
+!            CASE ( 1 ) 
+!               HcoID = GetHcoID( TrcID=IDTDST1 )
+!               TrcID = IDTDST1
+!            CASE ( 2 ) 
+!               HcoID = GetHcoID( TrcID=IDTDST2 )
+!               TrcID = IDTDST2
+!            CASE ( 3 ) 
+!               HcoID = GetHcoID( TrcID=IDTDST3 )
+!               TrcID = IDTDST3
+!            CASE ( 4 ) 
+!               HcoID = GetHcoID( TrcID=IDTDST4 )
+!               TrcID = IDTDST4
+!            CASE DEFAULT
+!               HcoID = -1
+!               TrcID = -1 
+!         END SELECT
+!         IF ( HcoID <= 0 .OR. TrcID <= 0 ) CYCLE
+!  
+!         ! There shouldn't be any dry deposition values defined for dust, but check
+!         ! for safety's sake. If found, apply them here and set deposition rate to
+!         ! zero afterwards.
+!         ! Do this before emissions because we want to apply dry deposition on the 
+!         ! 'original' tracer concentration (before emissions applied to it).
+!         IF ( ASSOCIATED(HcoState%Spc(HcoID)%Depv%Val) ) THEN
+!  
+!            ! Deposition rates are in 1/s. Convert to kg. 
+!            State_Chm%Tracers(:,:,1,TrcID) 
+!     &      = State_Chm%Tracers(:,:,1,TrcID)
+!     &      * ( 1 - ( HcoState%Spc(HcoID)%Depv%Val(:,:)
+!     &              * HcoState%TS_EMIS ) )
 !
-      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
-      INTEGER                  :: I, L, TrcID, HcoID
-  
-      !=======================================================================
-      ! DUSTMIX begins here
-      !=======================================================================
-  
-      ! Assume success until otherwise
-      RC = GIGC_SUCCESS
- 
-      ! Get pointer to HEMCO state object
-      CALL GetHcoState ( HcoState )
-      IF ( .NOT. ASSOCIATED(HcoState) ) RETURN
-
-      ! Do for all four dust tracers
-      DO I = 1, 4
-  
-         ! Select dust tracer
-         SELECT CASE ( I )
-            CASE ( 1 ) 
-               HcoID = GetHcoID( TrcID=IDTDST1 )
-               TrcID = IDTDST1
-            CASE ( 2 ) 
-               HcoID = GetHcoID( TrcID=IDTDST2 )
-               TrcID = IDTDST2
-            CASE ( 3 ) 
-               HcoID = GetHcoID( TrcID=IDTDST3 )
-               TrcID = IDTDST3
-            CASE ( 4 ) 
-               HcoID = GetHcoID( TrcID=IDTDST4 )
-               TrcID = IDTDST4
-            CASE DEFAULT
-               HcoID = -1
-               TrcID = -1 
-         END SELECT
-         IF ( HcoID <= 0 .OR. TrcID <= 0 ) CYCLE
-  
-         ! There shouldn't be any dry deposition values defined for dust, but check
-         ! for safety's sake. If found, apply them here and set deposition rate to
-         ! zero afterwards.
-         ! Do this before emissions because we want to apply dry deposition on the 
-         ! 'original' tracer concentration (before emissions applied to it).
-         IF ( ASSOCIATED(HcoState%Spc(HcoID)%Depv%Val) ) THEN
-  
-            ! Deposition rates are in 1/s. Convert to kg. 
-            State_Chm%Tracers(:,:,1,TrcID) 
-     &      = State_Chm%Tracers(:,:,1,TrcID)
-     &      * ( 1 - ( HcoState%Spc(HcoID)%Depv%Val(:,:)
-     &              * HcoState%TS_EMIS ) )
-
-            ! Make sure it's not negative          
-            WHERE( State_Chm%Tracers(:,:,:,TrcID) < 0.0e+0_fp )
-     &         State_Chm%Tracers(:,:,:,TrcID) = 0.0e+0_fp
-  
-            ! Reset to zero
-            HcoState%Spc(HcoID)%Depv%Val = 0.0_hp
-         ENDIF
-  
-         ! If defined, add emissions to tracers array.
-         IF ( ASSOCIATED(HcoState%Spc(HcoID)%Emis%Val) ) THEN
-  
-            ! Emissions are in kg/m2/s. Convert to kg. 
-            ! Dust emissions are currently only emitted into the first level, so only
-            ! loop over the surface level...
-            DO L = 1, 1 !HcoState%NZ
-               State_Chm%Tracers(:,:,L,TrcID) 
-     &         = State_Chm%Tracers(:,:,L,TrcID)
-     &         + ( HcoState%Spc(HcoID)%Emis%Val(:,:,L)
-     &         *   HcoState%Grid%AREA_M2%Val(:,:)
-     &         *   HcoState%TS_EMIS
-     &           )
-            ENDDO
- 
-            ! Reset to zero
-            HcoState%Spc(HcoID)%Emis%Val = 0.0_hp
-         ENDIF
-  
-      ENDDO !I
-  
-      END SUBROUTINE DUSTMIX
-!EOC
+!            ! Make sure it's not negative          
+!            WHERE( State_Chm%Tracers(:,:,:,TrcID) < 0.0e+0_fp )
+!     &         State_Chm%Tracers(:,:,:,TrcID) = 0.0e+0_fp
+!  
+!            ! Reset to zero
+!            HcoState%Spc(HcoID)%Depv%Val = 0.0_hp
+!         ENDIF
+!  
+!         ! If defined, add emissions to tracers array.
+!         IF ( ASSOCIATED(HcoState%Spc(HcoID)%Emis%Val) ) THEN
+!  
+!            ! Emissions are in kg/m2/s. Convert to kg. 
+!            ! Dust emissions are currently only emitted into the first level, so only
+!            ! loop over the surface level...
+!            DO L = 1, 1 !HcoState%NZ
+!               State_Chm%Tracers(:,:,L,TrcID) 
+!     &         = State_Chm%Tracers(:,:,L,TrcID)
+!     &         + ( HcoState%Spc(HcoID)%Emis%Val(:,:,L)
+!     &         *   HcoState%Grid%AREA_M2%Val(:,:)
+!     &         *   HcoState%TS_EMIS
+!     &           )
+!            ENDDO
+! 
+!            ! Reset to zero
+!            HcoState%Spc(HcoID)%Emis%Val = 0.0_hp
+!         ENDIF
+!  
+!      ENDDO !I
+!  
+!      END SUBROUTINE DUSTMIX
+!!EOC
 #if   defined( TOMAS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -387,7 +388,9 @@
 !
 ! !USES:
 ! 
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -528,6 +531,7 @@
 !               endif
 !debug-----
             ENDDO
+#if !defined( NO_BPCH )
          !========================================================      
          ! ND44: Dry deposition diagnostic [#/cm2/s]
          !========================================================
@@ -536,7 +540,7 @@
      &         AD44(I,J,Input_Opt%IDDEP(BIN),1) + FLUXN
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
             ENDIF
-
+#endif
          ENDDO
       ENDDO
       ENDDO
@@ -766,7 +770,9 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -971,10 +977,13 @@
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
                   FLUX = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
 
+#if !defined( NO_BPCH )
                   ! Save in AD44
                   AD44(I,J,Input_Opt%IDDEP(N),1) = 
      &            AD44(I,J,Input_OPt%IDDEP(N),1) + FLUX
+#endif
                ENDIF
+
             ENDDO
          ENDDO
       ENDDO
@@ -1001,7 +1010,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1090,9 +1101,11 @@
                   FLUX     = ( OLD - NEW ) / DTCHEM 
                   FLUX     = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
                
+#if !defined( NO_BPCH )
                   ! Store in AD44
                   AD44(I,J,Input_Opt%IDDEP(N),1) = 
      &            AD44(I,J,Input_Opt%IDDEP(N),1) + FLUX
+#endif
                ENDIF
 
                ! Save back into STT
@@ -1937,17 +1950,6 @@
       Input_Opt%DUSTDEN(1:NDSTBIN) = (/ 2500.e+0_fp, 2650.e+0_fp, 
      &                                  2650.e+0_fp, 2650.e+0_fp /)
 
-!-----------------------------------------------------------------------------
-! Prior to 9/29/14:
-! This is now defined in hcox_dustginoux_mod.F90 (bmy, 9/29/14)
-!      ! These only have to be allocated for the Ginoux source function
-!      IF ( .not. LDEAD ) THEN
-!         ALLOCATE( FRAC_S( NDSTBIN ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_S' )
-!         FRAC_S(1:NDSTBIN)   = (/ 0.095d0, 0.3d0, 0.3d0, 0.3d0 /)
-!      ENDIF
-!-----------------------------------------------------------------------------
-
       ! Find drydep species in DEPSAV
       IF( Input_Opt%LDRYD ) THEN
          DO N = 1, Input_Opt%NUMDEP
@@ -1973,7 +1975,7 @@
       ENDIF
 #endif 
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )
       ! EXPERIMENTAL: For archiving the dust source for GIGC
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )

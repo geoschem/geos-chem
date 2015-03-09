@@ -27,6 +27,7 @@ MODULE HCOI_ESMF_MOD
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
   PUBLIC :: HCO_SetServices 
+  PUBLIC :: HCO_SetExtState_ESMF
   !PUBLIC :: HCOI_ESMF_DIAGNCREATE
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -113,7 +114,7 @@ CONTAINS
       ! Read file into buffer
       ! ---------------------------------------------------------------------
 
-      CALL Config_ReadFile( am_I_Root, TRIM(ConfigFile), STATUS )
+      CALL Config_ReadFile( am_I_Root, TRIM(ConfigFile), 0, STATUS )
       ASSERT_(STATUS==HCO_SUCCESS)
 
       ! ---------------------------------------------------------------------
@@ -311,6 +312,66 @@ CONTAINS
       RC = HCO_SUCCESS 
 
       END SUBROUTINE Diagn2Exp
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: HCO_SetExtState_ESMF
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE HCO_SetExtState_ESMF( am_I_Root, HcoState, ExtState, RC )
+!
+! !USES:
+!
+      USE HCO_STATE_MOD,   ONLY : Hco_State
+      USE HCOX_STATE_MOD,  ONLY : Ext_State
+!
+! !ARGUMENTS:
+!
+      LOGICAL,             INTENT(IN   )   :: am_I_Root
+      TYPE(HCO_State),     POINTER         :: HcoState
+      TYPE(Ext_State),     POINTER         :: ExtState
+      INTEGER,             INTENT(INOUT)   :: RC
+!
+! !REVISION HISTORY:
+!  06 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                      :: STAT
+      TYPE(ESMF_STATE), POINTER    :: IMPORT       => NULL()
+      REAL,             POINTER    :: Ptr3D(:,:,:) => NULL()
+      REAL,             POINTER    :: Ptr2D(:,:)   => NULL()
+
+      ! ================================================================
+      ! HCO_SetExtState_ESMF begins here
+      ! ================================================================
+
+      ! For MAPL/ESMF error handling (defines Iam and STATUS)
+      __Iam__('HCO_SetExtState_ESMF (HCOI_ESMF_MOD.F90)')
+
+      ! Point to ESMF IMPORT object
+      IMPORT => HcoState%IMPORT
+      ASSERT_(ASSOCIATED(IMPORT))
+
+      ! Get pointers to fields
+      CALL MAPL_GetPointer( IMPORT, ExtState%BYNCY%Arr%Val   , 'BYNCY'   , __RC__ )
+      CALL MAPL_GetPointer( IMPORT, ExtState%RCCODE%Arr%Val  , 'RCCODE'  , __RC__ )
+      CALL MAPL_GetPointer( IMPORT, ExtState%CNV_TOPP%Arr%Val, 'CNV_TOPP', __RC__ )
+
+      ! Return success
+      RC = HCO_SUCCESS 
+
+      END SUBROUTINE HCO_SetExtState_ESMF 
 !EOC
 #endif
 END MODULE HCOI_ESMF_MOD

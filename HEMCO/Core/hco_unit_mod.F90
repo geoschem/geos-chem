@@ -64,7 +64,7 @@ MODULE HCO_Unit_Mod
   ! add more units if you don't want HEMCO to attempt to convert data
   ! in these units.
   ! All characters in this list should be lower case!
-  INTEGER,           PARAMETER :: NUL = 19
+  INTEGER,           PARAMETER :: NUL = 21
   CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',        &
                                                'count',    &
                                                'unitless', &
@@ -73,7 +73,9 @@ MODULE HCO_Unit_Mod
                                                'scale',    &
                                                'hours',    &
                                                'v/v',      &
+                                               'v/v/s',    &
                                                's-1',      &
+                                               's^-1',     &
                                                'm2/m2',    & 
                                                'k',        & 
                                                'w/m2',     & 
@@ -910,7 +912,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -936,7 +938,7 @@ CONTAINS
     ! On first call, try to get unit tolerance value from core settings.
     ! Use value of zero if not specified in the configuration file.
     IF ( Tolerance < 0 ) THEN
-       CALL GetExtOpt ( 0, 'Unit tolerance', OptValInt=Tolerance, &
+       CALL GetExtOpt ( CoreNr, 'Unit tolerance', OptValInt=Tolerance, &
                         FOUND=FOUND, RC=RC )
        IF ( .NOT. FOUND ) Tolerance = 0
 

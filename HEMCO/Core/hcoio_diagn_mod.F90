@@ -44,7 +44,8 @@ MODULE HCOIO_DIAGN_MOD
 ! !DEFINED PARAMETERS:
 !
   ! Fill value used in HEMCO diagnostics netCDF files.
-  REAL(hp), PARAMETER :: FillValue = 1.e-31_hp
+!  REAL(hp), PARAMETER :: FillValue = 1.e-31_hp
+  REAL(sp), PARAMETER :: FillValue = HCO_MISSVAL 
 
 CONTAINS
 !EOC
@@ -64,13 +65,19 @@ CONTAINS
 ! time averaging interval are written. For example, if the current month
 ! is different from the previous (emissions) month, all diagnostics with 
 ! hourly, daily and monthly time averaging intervals are written out.
+! If the optional argument OnlyIfFirst is set to TRUE, diagnostics will
+! only be written out if its nnGetCalls is 1. This can be used to avoid
+! that diagnostics will be written out twice. The nnGetCalls is reset to
+! zero the first time a diagnostics is updated. For diagnostics that
+! point to data stored somewhere else (i.e. that simply contain a data
+! pointer, nnGetCalls is never reset and keeps counting.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root, HcoState, WriteAll,    &
-                                   RC,        PREFIX,   UsePrevTime, &
-                                   InclManual                         )
+  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root,  HcoState,    WriteAll,    &
+                                   RC,         PREFIX,      UsePrevTime, &
+                                   InclManual, OnlyIfFirst, COL           )
 !
 ! !USES:
 !
@@ -92,6 +99,8 @@ CONTAINS
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: UsePrevTime ! Use previous time 
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: InclManual  ! Get manual diagn. too? 
+    LOGICAL,          OPTIONAL, INTENT(IN   ) :: OnlyIfFirst ! Only write if nnDiagn is 1
+    INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr. 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -99,24 +108,27 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC          ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller    - Initial version 
+!  12 Sep 2013 - C. Keller   - Initial version 
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  19 Feb 2015 - C. Keller   - Added optional argument OnlyIfFirst
+!  23 Feb 2015 - R. Yantosca - Now make Arr1D REAL(sp) so that we can write
+!                              out lon & lat as float instead of double
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                   :: I, CNT, levIdTmp
+    INTEGER                   :: I, PS, CNT, levIdTmp
     REAL(dp)                  :: GMT, JD1, JD1985, JD_DELTA, THISDAY
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
     REAL(sp), POINTER         :: nctime(:)
-    REAL(hp), POINTER         :: Arr1D(:) => NULL()
+    REAL(sp), POINTER         :: Arr1D(:) => NULL()
     INTEGER,  POINTER         :: Int1D(:) => NULL()
-    REAL(hp), POINTER         :: Arr3D(:,:,:) => NULL()
-    REAL(hp), POINTER         :: Arr4D(:,:,:,:) => NULL()
+    REAL(sp), POINTER         :: Arr3D(:,:,:) => NULL()
+    REAL(sp), POINTER         :: Arr4D(:,:,:,:) => NULL()
     TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
     INTEGER                   :: FLAG
     CHARACTER(LEN=255)        :: ncFile
@@ -131,6 +143,7 @@ CONTAINS
     INTEGER                   :: Prc
     INTEGER                   :: MinResetFlag, MaxResetFlag
     LOGICAL                   :: EOI, PrevTime, Manual
+    LOGICAL                   :: verb
  
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)' 
     !=================================================================
@@ -138,8 +151,13 @@ CONTAINS
     !=================================================================
   
     ! Init
-    RC  = HCO_SUCCESS
-    CNT = 0
+    RC   = HCO_SUCCESS
+    CNT  = 0
+    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+
+    ! Collection number
+    PS = 1
+    IF ( PRESENT(COL) ) PS = COL
 
     ! Get manual containers? Only of relevance for WriteAll
     IF ( PRESENT(InclManual) ) THEN
@@ -153,7 +171,7 @@ CONTAINS
        Manual = .FALSE.
     ENDIF
 
-    ! Inherit data precision from HEMCO
+    ! Inherit precision from HEMCO 
     Prc = HP
  
     ! Check if there is at least one diagnostics to write:
@@ -171,7 +189,7 @@ CONTAINS
        MinResetFlag = HcoClock_GetMinResetFlag()
        EOI = .TRUE.
     ENDIF
-    MaxResetFlag = Diagn_GetMaxResetFlag()
+    MaxResetFlag = Diagn_GetMaxResetFlag( COL=PS )
     IF ( MinResetFlag > MaxResetFlag ) RETURN
 
     ! Get PrevTime flag from input argument or set to default (=> TRUE)
@@ -204,8 +222,8 @@ CONTAINS
     ! Initialize mirror variables
     allocate(Arr4D(nlon,nlat,nlev,ntime))
     allocate(Arr3D(nlon,nlat,ntime))
-    Arr3D = 0.0_hp
-    Arr4D = 0.0_hp
+    Arr3D = 0.0_sp
+    Arr4D = 0.0_sp
 
     ! Construct filename: diagnostics will be written into file
     ! PREFIX.YYYYMMDDhm.nc, where PREFIX is the input argument or
@@ -222,10 +240,16 @@ CONTAINS
     IF ( PRESENT(PREFIX) ) THEN
        Pfx = PREFIX
     ELSE
-       CALL Diagn_GetDiagnPrefix( Pfx, RC )
+       CALL Diagn_GetDiagnPrefix( Pfx, RC, COL=PS )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
     ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
+
+    ! verbose
+    IF ( verb .AND. PS==1 ) THEN
+       MSG = 'Write diagnostics into file '//TRIM(ncFile)
+       CALL HCO_MSG( MSG )
+    ENDIF
 
     ! Create output file
     CALL NC_CREATE( ncFile, nLon,  nLat,  nLev,  nTime, &
@@ -238,16 +262,18 @@ CONTAINS
     ! Add longitude 
     CALL NC_VAR_DEF ( fId, lonId, -1, -1, -1, &
                       'lon', 'Longitude', 'degrees_east', Prc, VarCt )
-    Arr1D => HcoState%Grid%XMID%Val(:,1)
+    ALLOCATE( Arr1D( nLon ) )
+    Arr1D = HcoState%Grid%XMID%Val(:,1)
     CALL NC_VAR_WRITE ( fId, 'lon', Arr1D=Arr1D )
-    Arr1D => NULL()
+    DEALLOCATE( Arr1D )
     
     ! Add latitude
     CALL NC_VAR_DEF ( fId, -1, latId, -1, -1, &
                       'lat', 'Latitude', 'degrees_north', Prc, VarCt )
-    Arr1D => HcoState%Grid%YMID%Val(1,:)
+    ALLOCATE( Arr1D( nLat ) )
+    Arr1D = HcoState%Grid%YMID%Val(1,:)
     CALL NC_VAR_WRITE ( fId, 'lat', Arr1D=Arr1D )
-    Arr1D => NULL()
+    DEALLOCATE( Arr1D )
 
     ! Add level 
     CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &
@@ -299,14 +325,16 @@ CONTAINS
        ! Get next diagnostics in list. This will return the next 
        ! diagnostics container that contains content to be written
        ! out on this time step.
-       CALL Diagn_Get ( am_I_Root, HcoState, EOI, ThisDiagn, FLAG, RC, &
-                        InclManual=Manual )
+       CALL Diagn_Get ( am_I_Root, EOI, ThisDiagn, FLAG, RC, &
+                        InclManual=Manual, COL=PS )
        IF ( RC /= HCO_SUCCESS ) RETURN 
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
        ! Only write diagnostics if this is the first Diagn_Get call for
-       ! this container and time step. 
-       IF ( ThisDiagn%nnGetCalls > 1 ) CYCLE
+       ! this container and time step.
+       IF ( PRESENT( OnlyIfFirst ) ) THEN
+          IF ( OnlyIfFirst .AND. ThisDiagn%nnGetCalls > 1 ) CYCLE
+       ENDIF 
 
        ! Define variable
        myName = ThisDiagn%cName
@@ -317,8 +345,9 @@ CONTAINS
           levIdTmp = -1
        ENDIF
 
+       ! Write out in single precision
        CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
-            TRIM(myName), TRIM(myName), TRIM(myUnit), Prc, VarCt )
+            TRIM(myName), TRIM(myName), TRIM(myUnit), SP, VarCt )
 
        ! Additional tracer attributes: long_name and _FillValue
        CALL NcBegin_Def( fID ) ! Reopen netCDF define mode
@@ -330,11 +359,21 @@ CONTAINS
        ! order to add the time dimension. Otherwise, the data would
        ! have no time information!
        IF ( ThisDiagn%SpaceDim == 3 ) THEN
-          Arr4D(:,:,:,1) = thisdiagn%Arr3D%val
+          IF ( ASSOCIATED(ThisDiagn%Arr3D) ) THEN
+             Arr4D(:,:,:,1) = ThisDiagn%Arr3D%Val
+          ENDIF
           CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
        ELSE
-          Arr3D(:,:,1) = thisdiagn%Arr2D%val 
+          IF ( ASSOCIATED(ThisDiagn%Arr2D) ) THEN
+             Arr3D(:,:,1) = ThisDiagn%Arr2D%Val 
+          ENDIF
           CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr3D=Arr3D )
+       ENDIF
+
+       ! verbose
+       IF ( verb .AND. PS==1 ) THEN
+          MSG = '--- Added diagnostics: '//TRIM(myName)
+          CALL HCO_MSG(MSG)
        ENDIF
 
     ENDDO
@@ -345,7 +384,7 @@ CONTAINS
     CALL NC_CLOSE ( fId )
 
     ! Cleanup
-    deallocate(Arr3D,Arr4D)
+    Deallocate(Arr3D,Arr4D)
     ThisDiagn => NULL()
     
     ! Return 
@@ -361,17 +400,33 @@ CONTAINS
 !
 ! !IROUTINE: HCOIO_Diagn_WriteOut
 !
-! !DESCRIPTION: This is the ESMF environment for the diagnostics writeout.
-! For now, just get all diagnostics for this time step (to make sure that
-! the internal pointers are reset properly) but don't do anything with the
-! data.
+! !DESCRIPTION: Subroutine HCOIO\_Diagn\_WriteOut is the interface routine to
+! link the HEMCO diagnostics arrays to the corresponding data pointers of the
+! MAPL/ESMF history component. 
+!\\
+!\\
+! Since the history component internally organizes many diagnostics tasks such
+! as output scheduling, file writing, and data averaging, all HEMCO diagnostics
+! are made available to the history component on every time step, e.g. the 
+! entire content of the HEMCO diagnostics list is 'flushed' every time this
+! subroutine is called. 
+!\\
+!\\
+! For now, all diagnostics data is copied to the corresponding MAPL data
+! pointer so that this routine works for cases where the HEMCO precision is
+! not equal to the ESMF precision.
+!\\
+!\\
+! Once the HEMCO precision is pegged to the ESMF precision, we can just 
+! establish pointers between the export arrays and the diagnostics the first
+! time this routine is called.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root, HcoState, WriteAll,    &
-                                   RC,        PREFIX,   UsePrevTime, &
-                                   InclManual                         )
+  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root,  HcoState,    WriteAll,    &
+                                   RC,         PREFIX,      UsePrevTime, &
+                                   InclManual, OnlyIfFirst, COL           )
 !
 ! !USES:
 !
@@ -390,6 +445,8 @@ CONTAINS
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: UsePrevTime ! Use previous time 
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: InclManual  ! Get manual diagn. too? 
+    LOGICAL,          OPTIONAL, INTENT(IN   ) :: OnlyIfFirst !  
+    INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr. 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -405,14 +462,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     TYPE(DiagnCont), POINTER  :: ThisDiagn => NULL()
-    INTEGER                   :: FLAG, STAT
+    INTEGER                   :: PS, FLAG, STAT
     CHARACTER(LEN=255)        :: MSG
     INTEGER                   :: MinResetFlag, MaxResetFlag
     LOGICAL                   :: EOI, PrevTime, Manual
     REAL, POINTER             :: Ptr2D(:,:)   => NULL()
     REAL, POINTER             :: Ptr3D(:,:,:) => NULL()
+    LOGICAL, SAVE             :: FIRST = .TRUE.
 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)'
+
     !=================================================================
     ! HCOIO_DIAGN_WRITEOUT begins here!
     !=================================================================
@@ -420,34 +479,17 @@ CONTAINS
     ! Assume success until otherwise 
     RC  = HCO_SUCCESS
 
-    ! Get manual containers? Only of relevance for WriteAll
-    IF ( PRESENT(InclManual) ) THEN
-       Manual = InclManual
-    ELSE
-       Manual = .FALSE.
-    ENDIF
-    IF ( Manual .AND. .NOT. WriteAll ) THEN
-       MSG = 'InclManual option enabled, but WriteAll is not set to true!!'
-       CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
-       Manual = .FALSE.
-    ENDIF
+    ! If pointers are used, we need to call this routine only once
+!    IF ( .NOT. FIRST ) RETURN
 
-    ! Check if there is at least one diagnostics to write:
-    ! If current time stamp is not at the end of an interval - or
-    ! if there is no diagnostics container in the list with a reset
-    ! flag smaller or equal to MinResetFlag - there will be no matching
-    ! container whatsoever. Can leave right here.
-    ! EOI is the end-of-interval flag that will be used by routine
-    ! Diagn_Get. If set to true, only the containers at the end of
-    ! their averaging interval are returned.
+    ! Collection number
+    PS = 1
+    IF ( PRESENT(COL) ) PS = COL
 
     ! In an ESMF environment, always get all diagnostics since output
     ! is scheduled through MAPL History!
-    MinResetFlag = -1
-    MaxResetFlag = Diagn_GetMaxResetFlag()
-    EOI          = .FALSE.
-    Manual       = .TRUE.
-    IF ( MinResetFlag > MaxResetFlag ) RETURN
+    EOI    = .FALSE.
+    Manual = .TRUE.
 
     ! Get PrevTime flag from input argument or set to default (=> TRUE)
     IF ( PRESENT(UsePrevTime) ) THEN
@@ -467,14 +509,16 @@ CONTAINS
        ! Get next diagnostics in list. This will return the next 
        ! diagnostics container that contains content to be written
        ! out on this time step.
-       CALL Diagn_Get ( am_I_Root, HcoState, EOI, ThisDiagn, FLAG, RC, &
-                        InclManual=Manual )
+       CALL Diagn_Get ( am_I_Root, EOI, ThisDiagn, FLAG, RC, &
+                        InclManual=Manual, COL=PS )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
        ! Only write diagnostics if this is the first Diagn_Get call for
-       ! this container and time step. 
-       IF ( ThisDiagn%nnGetCalls > 1 ) CYCLE
+       ! this container and time step.
+       IF ( PRESENT(OnlyIfFirst) ) THEN 
+          IF ( OnlyIfFirst .AND. ThisDiagn%nnGetCalls > 1 ) CYCLE
+       ENDIF
 
        ! Get pointer to ESMF EXPORT field and pass data to it (if found):
 
@@ -482,14 +526,23 @@ CONTAINS
        IF ( ThisDiagn%SpaceDim == 2 ) THEN
           CALL MAPL_GetPointer ( HcoState%EXPORT, Ptr2D, &
              TRIM(ThisDiagn%cName), NotFoundOk=.TRUE., RC=STAT )
-          IF ( ASSOCIATED(Ptr2D) ) Ptr2D = ThisDiagn%Arr2D%Val
+          IF ( ASSOCIATED(Ptr2D) ) THEN
+             IF ( ASSOCIATED(ThisDiagn%Arr2D) ) THEN
+                Ptr2D = ThisDiagn%Arr2D%Val
+                !Ptr2D => ThisDiagn%Arr2D%Val
+             ENDIF
+          ENDIF
 
        ! ... or 3D
        ELSEIF ( ThisDiagn%SpaceDim == 3 ) THEN
           CALL MAPL_GetPointer ( HcoState%EXPORT, Ptr3D, &
              TRIM(ThisDiagn%cName), NotFoundOk=.TRUE., RC=STAT )
-          IF ( ASSOCIATED(Ptr3D) ) Ptr3D = ThisDiagn%Arr3D%Val
-
+          IF ( ASSOCIATED(Ptr3D) ) THEN
+             IF ( ASSOCIATED(ThisDiagn%Arr3D) ) THEN
+                Ptr3D = ThisDiagn%Arr3D%Val
+                !Ptr3D => ThisDiagn%Arr3D%Val
+             ENDIF
+          ENDIF
        ENDIF
 
        ! Free pointer
@@ -499,6 +552,7 @@ CONTAINS
 
     ! Cleanup
     ThisDiagn => NULL()
+    FIRST     = .FALSE.
 
     ! Return 
     RC = HCO_SUCCESS

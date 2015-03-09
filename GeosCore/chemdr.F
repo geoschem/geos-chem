@@ -532,7 +532,7 @@
       ! to see if there are any plane flight points to be processed
       !=================================================================
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -745,13 +745,17 @@
 
       !=================================================================  
       ! Call SETEMIS which sets emission rates REMIS 
+      ! WARNING: As of Mar 5, emissions are now entirely done outside
+      ! of chemistry, i.e. all emission fluxes have already been added
+      ! to the tracers array (in mixing_mod.F90). The SETEMIS call is
+      ! therefore not needed anymore. It will just set REMIS to zero.
       !=================================================================
       CALL SETEMIS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-      
-      !### Debug
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
-      ENDIf
+!      
+!      !### Debug
+!      IF ( prtDebug ) THEN
+!         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
+!      ENDIf
 
       !================================================================
       ! Call chemistry routines

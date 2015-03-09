@@ -258,7 +258,7 @@ ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
-# Grid-Independent GEOS-Chem settings
+# Grid-Independent GEOS-Chem (aka "Mega-Chem") settings
 #------------------------------------------------------------------------------
 
 # %%%%% DEVEL %%%%%
@@ -286,6 +286,12 @@ REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DEXTERNAL_FORCING
   NO_GRID_NEEDED     :=1
+endif
+
+# %%%%% NO_BPCH (for disabling old diagnostic arrays) %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(NO_BPCH)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DNO_BPCH
 endif
 
 #------------------------------------------------------------------------------

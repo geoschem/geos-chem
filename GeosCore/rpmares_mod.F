@@ -52,9 +52,7 @@
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD  ! For real precisions (hp)
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
 
@@ -79,8 +77,9 @@
       !=================================================================
       REAL(fp), ALLOCATABLE :: HNO3_sav(:,:,:)
 
-      ! HEMCO pointers
-      REAL(hp), POINTER   :: HNO3(:,:,:) => NULL()
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared with REAL(f4), aka REAL*4.
+      REAL(f4), POINTER     :: HNO3(:,:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement

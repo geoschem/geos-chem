@@ -179,7 +179,7 @@ CONTAINS
        ! Eventually add to diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => FLUXWIND
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=OcWindIDs(N), &
                              AutoFill=1, Array2D=Arr2D, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -197,7 +197,7 @@ CONTAINS
        ! Eventually add to diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => FLUXICE
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IceSrcIDs(N), &
                              AutoFill=1, Array2D=Arr2D, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN

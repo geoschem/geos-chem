@@ -29,7 +29,10 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE DIAG_MOD,           ONLY : LTJV,  CTJV
-      USE DIAG_MOD,           ONLY : LTOH,  CTOH,  LTOTH, CTOTH
+      USE DIAG_MOD,           ONLY : LTOH,  CTOH
+#if !defined( NO_BPCH )
+      USE DIAG_MOD,           ONLY : LTOTH, CTOTH
+#endif
       USE DIAG_MOD,           ONLY : LTHO2, CTHO2
       USE DIAG_MOD,           ONLY : CTO3_24h
       USE DIAG_MOD,           ONLY : CTO1D,    LTO1D
@@ -134,6 +137,7 @@
          !-----------------------------
          ! ND45 -- mixing ratios
          !-----------------------------
+#if !defined(NO_BPCH)
          IF ( IS_ND45 ) THEN
 
             ! Change initialization of LTOTH: only on timestep after saving
@@ -155,6 +159,7 @@
 
             ENDIF
          ENDIF
+#endif
 
          !-----------------------------
          ! ND47_O3 / ND65 -- "chemistry all day long" counter

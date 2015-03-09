@@ -79,7 +79,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_TIDX_MOD,      ONLY : tIDx_Assign 
     USE HCO_DATACONT_MOD,  ONLY : ListCont_Find
     USE HCO_LOGFILE_MOD,   ONLY : HCO_PrintDataCont
 !
@@ -95,6 +94,9 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller - Initialization
+!  02 Feb 2015 - C. Keller - Moved tIDx_Assign call to hco_readlist_mod
+!                            so that this module can also be used by
+!                            hco_clock_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,17 +136,6 @@ CONTAINS
     ALLOCATE ( Lct ) 
     Lct%NextCont => NULL()
     Lct%Dct      => Dct
-
-    ! ----------------------------------------------------------------
-    ! Set time index pointer tIDx of this data container. tIDx will
-    ! be set according to the number of time slices (and the time
-    ! interval between them) hold by this data container. For hourly
-    ! data (24 time slices), for example, tIDx will point to the 
-    ! corresponding 'HOURLY' or 'HOURLY_GRID' time index collection 
-    ! type defined in hco\_tidx\_mod. 
-    ! ----------------------------------------------------------------
-    CALL tIDx_Assign ( HcoState, Lct, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
     ! Add the new container to EmisList. The container will be placed
@@ -237,7 +228,7 @@ CONTAINS
     ! Special case where the linked list consists of scale factors
     ! only: In this case, we can place the new container at the 
     ! beginning no matter of its content! 
-    IF ( EmisList%Dct%DctType > 1 ) THEN
+    IF ( EmisList%Dct%DctType /= HCO_DCTTYPE_BASE ) THEN
        Lct%NextCont => EmisList 
        EmisList     => Lct
        CALL HCO_LEAVE( RC )
@@ -286,15 +277,15 @@ CONTAINS
     ! as the new container; (b) a container with higher species ID; 
     ! (c) scale factors. From there, we can determine where to place 
     ! the container exactly.
-    IF ( Lct%Dct%DctType == 1 ) THEN
+    IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
 
        ! Loop over list
        DO WHILE ( ASSOCIATED ( TmpLct%NextCont ) )
              
           ! Check if next container's species ID is higher or if it's a
           ! scale factor, in which case we have to exit.
-          IF ( TmpLct%NextCont%Dct%HcoID    > NEWSPC .OR. & 
-               TmpLct%NextCont%Dct%DctType > 1             ) THEN
+          IF ( TmpLct%NextCont%Dct%HcoID   >  NEWSPC          .OR. & 
+               TmpLct%NextCont%Dct%DctType /= HCO_DCTTYPE_BASE      ) THEN
              EXIT
           ENDIF
  
@@ -324,7 +315,7 @@ CONTAINS
        DO WHILE ( ASSOCIATED ( TmpLct%NextCont ) )
 
           ! Check if next container is scale factor 
-          IF ( TmpLct%NextCont%Dct%DctType > 1 ) EXIT
+          IF ( TmpLct%NextCont%Dct%DctType /= HCO_DCTTYPE_BASE ) EXIT
 
           ! Advance in list
           TmpLct => TmpLct%NextCont
@@ -671,7 +662,8 @@ CONTAINS
           ENDIF
    
           ! Error check: cannot add masks if operator is 3
-          IF ( Lct%Dct%DctType == 3 .AND. Lct%Dct%Oper == 3 ) THEN
+          IF ( Lct%Dct%DctType == HCO_DCTTYPE_MASK .AND. &
+               Lct%Dct%Oper    == 3                       ) THEN
              MSG = 'Cannot add masks if operator is 3: ' // &
                   TRIM(Lct%Dct%cName)
              CALL HCO_ERROR( MSG, RC )
@@ -757,7 +749,7 @@ CONTAINS
 !                                                             ! (default=1)
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),         POINTER               :: Ptr3D(:,:,:)   ! output array
+    REAL(sp),         POINTER               :: Ptr3D(:,:,:)   ! output array
     LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND          ! cont. found?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -867,8 +859,8 @@ CONTAINS
 !                                                          ! (default=1)
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp),         POINTER               :: Ptr2D(:,:)  ! output array
-    LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND          ! cont. found?
+    REAL(sp),         POINTER               :: Ptr2D(:,:)  ! output array
+    LOGICAL,          INTENT(OUT), OPTIONAL :: FOUND       ! cont. found?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !

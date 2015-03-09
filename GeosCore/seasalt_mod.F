@@ -154,9 +154,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPNAME
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE DRYDEP_MOD,         ONLY : NUMDEP
+!      USE DRYDEP_MOD,         ONLY : DEPNAME
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -242,16 +242,17 @@
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
       ENDIF
 
-      ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
-      ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
-      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
-         CALL DRY_DEPOSITION( am_I_Root,          Input_Opt, 
-     &                        STT(:,:,:,IDTSALA), 1,         RC )
-
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
-         ENDIF
-      ENDIF
+!      ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
+!      ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
+!      ! Now always do dry-deposition outside of seasalt_mod.F (ckeller, 3/5/15)
+!      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
+!         CALL DRY_DEPOSITION( am_I_Root,          Input_Opt, 
+!     &                        STT(:,:,:,IDTSALA), 1,         RC )
+!
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
+!         ENDIF
+!      ENDIF
 
       !-------------------
       ! Coarse mode
@@ -265,14 +266,15 @@
 
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
       ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
-      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
-         CALL DRY_DEPOSITION( am_I_Root,          Input_Opt,
-     &                        STT(:,:,:,IDTSALC), 2,         RC )
-
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
-         ENDIF
-      ENDIF
+      ! Now always do dry-deposition outside of seasalt_mod.F (ckeller, 3/5/15)
+!      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
+!         CALL DRY_DEPOSITION( am_I_Root,          Input_Opt,
+!     &                        STT(:,:,:,IDTSALC), 2,         RC )
+!
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
+!         ENDIF
+!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -300,8 +302,10 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+#endif
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -694,7 +698,8 @@
      &                * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1
      &                *  TC(I,J,L+1) )
          ENDDO
-         
+
+#if !defined( NO_BPCH )
          !==============================================================
          ! ND44 diagnostic: sea salt loss [molec/cm2/s]
          !==============================================================
@@ -720,6 +725,7 @@
             ! Store in AD44 array
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
          ENDIF
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -746,7 +752,9 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -887,6 +895,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if !defined( NO_BPCH )
       !====================================================================
       ! ND44 diagnostic: save into AD44 array, summing in the vertical
       !====================================================================
@@ -902,6 +911,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       END SUBROUTINE DRY_DEPOSITION
 !EOC

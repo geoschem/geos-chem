@@ -48,8 +48,8 @@
 !       emission array.
 ! \item IsLocTime: Set to true if data is in local time. Defaults to
 !       false and becomes only true if data is scalar (e.g. uniform
-!       diurnal scale factors) or country-specific data (read from
-!       ASCII).
+!       diurnal scale factors), country-specific data (read from
+!       ASCII), or weekdaily data.
 ! \item V3: vector of 3D fields. For 3D-data, this vector will hold
 !       the 3D arrays of all time slices kept in memory (e.g. 24
 !       elements for hourly data).
@@ -122,8 +122,8 @@ MODULE HCO_FileData_Mod
      INTEGER                     :: ncHrs(2)  ! hour range
      INTEGER                     :: CycleFlag ! cycle flag
      LOGICAL                     :: ncRead    ! read from source?
-     TYPE(Arr3D_HP),     POINTER :: V3(:)     ! vector of 3D fields
-     TYPE(Arr2D_HP),     POINTER :: V2(:)     ! vector of 2D fields
+     TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
+     TYPE(Arr2D_SP),     POINTER :: V2(:)     ! vector of 2D fields
      TYPE(TimeIdx),      POINTER :: tIDx      ! for time slice indexing 
      CHARACTER(LEN= 31)          :: OrigUnit  ! original data units 
      INTEGER                     :: Cover     ! data coverage
@@ -206,7 +206,7 @@ CONTAINS
     NewFDta%ncMts(:)     = -999
     NewFDta%ncDys(:)     = -999
     NewFDta%ncHrs(:)     = -999
-    NewFDta%CycleFlag    = 1
+    NewFDta%CycleFlag    = HCO_CFLAG_CYCLE
     NewFDta%ncRead       = .TRUE.
     NewFDta%Cover        = -999 
     NewFDta%DeltaT       = 0
