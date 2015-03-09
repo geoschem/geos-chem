@@ -70,6 +70,7 @@ MODULE HCO_tIdx_Mod
   PUBLIC :: tIDx_Init
   PUBLIC :: tIDx_GetIndx
   PUBLIC :: tIDx_Cleanup
+  PUBLIC :: tIDx_IsInRange
   PUBLIC :: HCO_GetPrefTimeAttr
   PUBLIC :: HCO_ExtractTime
 !
@@ -85,6 +86,8 @@ MODULE HCO_tIdx_Mod
 !  03 Dec 2014 - C. Keller   - Major update: now calculate the time slice
 !                              indeces on the fly instead of storing them in
 !                              precalculated vectors.
+!  25 Feb 2015 - R. Yantosca - Comment out WEEKDAY_GRID, it is not used
+!                              anymore.  This avoids seg faults.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,13 +95,17 @@ MODULE HCO_tIdx_Mod
 ! !PRIVATE TYPES:
 !
   ! The TimeIdxCollection derived type contains the pointers with the
-  ! current valid vector indeces for all defined cycling intervals.
+  ! current valid vector indices for all defined cycling intervals.
   TYPE ::  TimeIdxCollection
      TYPE(TimeIdx), POINTER :: CONSTANT
      TYPE(TimeIdx), POINTER :: HOURLY
      TYPE(TimeIdx), POINTER :: HOURLY_GRID 
      TYPE(TimeIdx), POINTER :: WEEKDAY
-     TYPE(TimeIdx), POINTER :: WEEKDAY_GRID
+!------------------------------------------------------------------------------
+! Prior to 2/25/15:
+! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
+!     TYPE(TimeIdx), POINTER :: WEEKDAY_GRID
+!------------------------------------------------------------------------------
      TYPE(TimeIdx), POINTER :: MONTHLY
   END TYPE TimeIdxCollection
 
@@ -182,12 +189,16 @@ CONTAINS
     AlltIDx%WEEKDAY%TypeID       = 7
     AlltIDx%WEEKDAY%TempRes      = "Weekday"
 
+!------------------------------------------------------------------------------
+! Prior to 2/25/15:
+! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
 !    ! ----------------------------------------------------------------
 !    ! "WEEKDAY_GRID" => changes every weekday, longitude-independent
 !    ! ----------------------------------------------------------------
 !    ALLOCATE ( AlltIDx%WEEKDAY_GRID )
 !    AlltIDx%WEEKDAY_GRID%TypeID       = 71
 !    AlltIDx%WEEKDAY_GRID%TempRes      = "Weekday_Grid"
+!------------------------------------------------------------------------------
 
     ! ----------------------------------------------------------------
     ! "MONTHLY" => changes every month, longitude-dependent
@@ -255,8 +266,12 @@ CONTAINS
        CASE ( 7 )
           ctIDx => AlltIDx%WEEKDAY
 
+!------------------------------------------------------------------------------
+! Prior to 2/25/15:
+! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
 !       CASE ( 71 )
 !          ctIDx => AlltIDx%WEEKDAY_GRID
+!------------------------------------------------------------------------------
 
        CASE ( 12 )
           ctIDx => AlltIDx%MONTHLY
@@ -311,9 +326,13 @@ CONTAINS
           DEALLOCATE(AlltIDx%WEEKDAY) 
        ENDIF
 
-       IF ( ASSOCIATED(AlltIDx%WEEKDAY_GRID) ) THEN
-          DEALLOCATE(AlltIDx%WEEKDAY_GRID) 
-       ENDIF
+!------------------------------------------------------------------------------
+! Prior to 2/25/15:
+! This is not used anymore.  Comment out until further notice (bmy, 2/25/15)
+!       IF ( ASSOCIATED(AlltIDx%WEEKDAY_GRID) ) THEN
+!          DEALLOCATE(AlltIDx%WEEKDAY_GRID) 
+!       ENDIF
+!------------------------------------------------------------------------------
   
        IF ( ASSOCIATED(AlltIDx%MONTHLY) ) THEN
           DEALLOCATE(AlltIDx%MONTHLY) 
@@ -657,6 +676,77 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !ROUTINE: tIDx_IsInRange
+!
+! !DESCRIPTION: Subroutine tIDx\_IsInRange returns true if the passed datetime
+! is within the range of the date ranges of the data container.
+!\\
+! !INTERFACE:
+!
+  FUNCTION tIDx_IsInRange ( Lct, Yr, Mt, Dy, Hr ) RESULT ( InRange )
+!
+! !USES:
+!
+    USE HCO_DATACONT_MOD, ONLY : ListCont
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ListCont),  POINTER    :: Lct       ! File data object 
+    INTEGER,         INTENT(IN) :: Yr
+    INTEGER,         INTENT(IN) :: Mt
+    INTEGER,         INTENT(IN) :: Dy
+    INTEGER,         INTENT(IN) :: Hr
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL                     :: InRange
+!
+! !REVISION HISTORY:
+!  04 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Init 
+    InRange = .TRUE.
+
+    IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
+       IF ( Yr < Lct%Dct%Dta%ncYrs(1) .OR. &
+            Yr > Lct%Dct%Dta%ncYrs(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
+       IF ( Mt < Lct%Dct%Dta%ncMts(1) .OR. &
+            Mt > Lct%Dct%Dta%ncMts(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
+       IF ( Dy < Lct%Dct%Dta%ncDys(1) .OR. &
+            Dy > Lct%Dct%Dta%ncDys(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+    IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
+       IF ( Hr < Lct%Dct%Dta%ncHrs(1) .OR. &
+            Hr > Lct%Dct%Dta%ncHrs(2)       ) THEN 
+          InRange = .FALSE.
+       ENDIF
+    ENDIF
+
+  END FUNCTION tIDx_IsInRange
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: HCO_GetPrefTimeAttr
 !
 ! !DESCRIPTION: Subroutine HCO\_GetPrefTimeAttr returns the preferred time
@@ -727,37 +817,9 @@ CONTAINS
     ! ------------------------------------------------------------- 
     IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
 
-       ! Check if we are inside of valid range
-       InRange = .TRUE.
+       ! Are we in range?
+       InRange = tIDx_IsInRange ( Lct, cYr, cMt, cDy, cHr )
 
-       IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
-          IF ( cYr < Lct%Dct%Dta%ncYrs(1) .OR. &
-               cYr > Lct%Dct%Dta%ncYrs(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
-
-       IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
-          IF ( cMt < Lct%Dct%Dta%ncMts(1) .OR. &
-               cMt > Lct%Dct%Dta%ncMts(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
-
-       IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
-          IF ( cDy < Lct%Dct%Dta%ncDys(1) .OR. &
-               cDy > Lct%Dct%Dta%ncDys(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
-
-       IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
-          IF ( cHr < Lct%Dct%Dta%ncHrs(1) .OR. &
-               cHr > Lct%Dct%Dta%ncHrs(2)       ) THEN 
-             InRange = .FALSE.
-          ENDIF
-       ENDIF
- 
        IF ( InRange ) THEN
           readYr = cYr
           readMt = cMt

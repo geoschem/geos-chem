@@ -41,9 +41,8 @@ MODULE HCOX_LightNOx_Mod
 !
   USE HCO_Error_Mod
   USE HCO_Diagn_Mod
-  USE HCO_State_Mod,     ONLY : HCO_State
-  USE HCOX_State_MOD,    ONLY : Ext_State
-  USE Lightning_CDF_Mod 
+  USE HCO_State_Mod,  ONLY : HCO_State
+  USE HCOX_State_MOD, ONLY : Ext_State
 
   IMPLICIT NONE
   PRIVATE
@@ -133,36 +132,43 @@ MODULE HCOX_LightNOx_Mod
 !  22 Jul 2014 - R. Yantosca - Now hardwire the Lesley Ott et al CDF's in 
 !                              lightning_cdf_mod.F90.  This avoids having to
 !                              read an ASCII input in the ESMF environment.
+!  13 Jan 2015 - L. Murray   - Add most recent lightning updates to HEMCO version
+!  26 Feb 2015 - R. Yantosca - Restore reading the lightning CDF's from an
+!                              ASCII file into the PROFILE array.  This helps
+!                              to reduce compilation time.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-  REAL*8,  PARAMETER           :: RFLASH_MIDLAT = 3.011d26   ! 500 mol/flash
-  REAL*8,  PARAMETER           :: RFLASH_TROPIC = 1.566d26   ! 260 mol/flash
-  REAL*8,  PARAMETER           :: EAST_WEST_DIV = -30d0
-  REAL*8,  PARAMETER           :: WEST_NS_DIV   =  23d0
-  REAL*8,  PARAMETER           :: EAST_NS_DIV   =  35d0
-  REAL*8,  PARAMETER           :: T_NEG_BOT     = 273.0d0    !   0 C 
-  REAL*8,  PARAMETER           :: T_NEG_CTR     = 258.0d0    ! -15 C
-  REAL*8,  PARAMETER           :: T_NEG_TOP     = 233.0d0    ! -40 C
+  INTEGER, PARAMETER            :: NLTYPE        = 4
+  INTEGER, PARAMETER            :: NNLIGHT       = 3200
+  REAL*8,  PARAMETER            :: RFLASH_MIDLAT = 3.011d26   ! 500 mol/flash
+  REAL*8,  PARAMETER            :: RFLASH_TROPIC = 1.566d26   ! 260 mol/flash
+  REAL*8,  PARAMETER            :: EAST_WEST_DIV = -30d0
+  REAL*8,  PARAMETER            :: WEST_NS_DIV   =  23d0
+  REAL*8,  PARAMETER            :: EAST_NS_DIV   =  35d0
+  REAL*8,  PARAMETER            :: T_NEG_BOT     = 273.0d0    !   0 C 
+  REAL*8,  PARAMETER            :: T_NEG_CTR     = 258.0d0    ! -15 C
+  REAL*8,  PARAMETER            :: T_NEG_TOP     = 233.0d0    ! -40 C
                                
   ! testing only               
-  integer, parameter           :: ix = -1 !30 !19 
-  integer, parameter           :: iy = -1 !6  !33 
-  integer, parameter           :: iz = -1 !9  !9
+  integer, parameter            :: ix = -1 !30 !19 
+  integer, parameter            :: iy = -1 !6  !33 
+  integer, parameter            :: iz = -1 !9  !9
 !
 ! !PRIVATE TYPES:
 !
   ! Scalars
-  REAL*8                       :: AREA_30N
-  REAL*8                       :: OTD_LIS_SCALE
-  LOGICAL                      :: OTD_LIS_PRESC  ! Is OTD_LIS_SCALE prescribed?
-  LOGICAL                      :: LOTDLOC        ! Use OTD-LIS distribution factors?
+  REAL*8                        :: AREA_30N
+  REAL*8                        :: OTD_LIS_SCALE
+  LOGICAL                       :: OTD_LIS_PRESC ! Is OTD_LIS_SCALE prescribed?
+  LOGICAL                       :: LOTDLOC       ! Use OTD-LIS dist factors?
 
   ! Arrays
-  REAL(hp),ALLOCATABLE, TARGET :: SLBASE(:,:,:)
+  REAL(dp), ALLOCATABLE, TARGET :: PROFILE(:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: SLBASE(:,:,:)
 
   ! OTD scale factors read through configuration file
   REAL(sp), POINTER :: OTDLIS(:,:) => NULL()
@@ -356,6 +362,10 @@ CONTAINS
     REAL(hp)          :: TROPP
     REAL(dp)          :: TmpScale
 
+    ! for testing in an ESMF environment
+    INTEGER           :: LTOPtmp
+    REAL(hp), TARGET  :: TOPDIAGN(HcoState%NX,HcoState%NY,5)
+
     !=================================================================
     ! LIGHTNOX begins here!
     !=================================================================
@@ -369,27 +379,11 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( FIRST ) THEN
 
-       ! See if we have to write out manual diagnostics
-       IF ( .NOT. DoDiagn ) THEN
-          DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-          TmpCnt => NULL()
-       ENDIF
-       IF ( .NOT. DoDiagn ) THEN
-          DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-          TmpCnt => NULL()
-       ENDIF
-       IF ( .NOT. DoDiagn ) THEN
-          DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-          TmpCnt => NULL()
-       ENDIF
-       IF ( .NOT. DoDiagn ) THEN
-          DiagnName = 'LIGHTNING_MTYPE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-          TmpCnt => NULL()
-       ENDIF
+       ! See if we have to write out manual diagnostics. These are all
+       ! defined together, so check only for one diagnostics.
+       DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
+       CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+       TmpCnt => NULL()
 
        ! Eventually get OTD-LIS local redistribution factors from HEMCO.
        IF ( LOTDLOC ) THEN
@@ -416,7 +410,10 @@ CONTAINS
 
     ! Reset arrays 
     SLBASE = 0.0_hp
-    IF (DoDiagn) DIAGN = 0.0_hp
+    IF (DoDiagn) THEN
+       DIAGN    = 0.0_hp
+       TOPDIAGN = 0.0_hp
+    ENDIF
 
     ! LMAX: the highest L-level to look for lightnox (usually LLPAR-1)
     LMAX   = HcoState%NZ - 1
@@ -455,7 +452,7 @@ CONTAINS
 !$OMP PRIVATE( IC_CG_RATIO, L_MFLUX,  MFLUX,    RAIN,   RATE      ) &
 !$OMP PRIVATE( X,           TOTAL_IC, TOTAL_CG, TOTAL,  REDIST    ) &
 !$OMP PRIVATE( RATE_SAVE,   VERTPROF, SFCTYPE,  LNDTYPE, TROPP    ) &
-!$OMP PRIVATE( MTYPE                                              ) &
+!$OMP PRIVATE( MTYPE,       LTOPtmp                               ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes
@@ -632,6 +629,75 @@ CONTAINS
           ENDIF
        ENDDO 
 
+       ! Diagnose 'traditional' LTOP
+       IF ( DoDiagn .AND. LTOP >= LCHARGE ) THEN
+          TOPDIAGN(I,J,1) = MIN(LTOP,LMAX)
+       ENDIF
+
+       !----------------------------------------------------------------
+       ! In an ESMF environment
+       !----------------------------------------------------------------
+
+       ! To determine cloud top height from convective cloud
+       ! top height diagnostics.
+       IF ( ASSOCIATED( ExtState%CNV_TOPP%Arr%Val ) ) THEN
+          LTOPtmp = 0
+          DO L = 1, HcoState%NZ
+             IF (  HcoState%Grid%PEDGE%Val(I,J,L+1) &
+                <= ExtState%CNV_TOPP%Arr%Val(I,J) ) THEN
+                LTOPtmp = L + 1
+                EXIT
+             ENDIF
+          ENDDO
+     
+          ! Write to diagnostics
+          TOPDIAGN(I,J,2) = LTOPtmp
+       ENDIF
+
+       ! First level with positive buoyancy
+       IF ( ASSOCIATED( ExtState%BYNCY%Arr%Val ) ) THEN
+          LTOPtmp = 0
+          DO L = HcoState%NZ, 1, -1
+             IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN 
+                LTOPtmp = L + 1
+                EXIT
+             ENDIF
+          ENDDO
+     
+          ! Write to diagnostics
+          TOPDIAGN(I,J,3) = LTOPtmp
+       ENDIF
+
+       ! Top level with return code = 7, plus one
+       IF ( ASSOCIATED( ExtState%RCCODE%Arr%Val ) ) THEN
+          LTOPtmp = 0
+          DO L = HcoState%NZ, 1, -1
+             IF ( ExtState%RCCODE%Arr%Val(I,J,L) > 6.9_sp ) THEN 
+                LTOPtmp = L + 1
+                EXIT
+             ENDIF
+          ENDDO
+     
+          ! Write to diagnostics
+          TOPDIAGN(I,J,4) = LTOPtmp
+       ENDIF
+
+       ! Use a merged product
+       IF ( LTOP == 0 ) THEN
+          IF ( TOPDIAGN(I,J,4) > 0.0_sp ) THEN
+             LTOP = NINT(TOPDIAGN(I,J,3))
+          ENDIF
+       ENDIF
+
+       ! Diagnose 'updated' LTOP
+       IF ( DoDiagn .AND. LTOP >= LCHARGE ) THEN
+          TOPDIAGN(I,J,5) = MIN(LTOP,LMAX)
+       ENDIF
+  
+       !----------------------------------------------------------------
+       ! Error checks for LTOP 
+       !----------------------------------------------------------------
+
        ! Error check LTOP
        IF ( LTOP == 0 ) CYCLE
 
@@ -639,11 +705,10 @@ CONTAINS
        IF ( LTOP        >  LMAX      ) LTOP = LMAX
        IF ( LTOP        <  LCHARGE   ) CYCLE
 
-#if    defined( GEOS_4 )
-
        !--------------------------
        ! GEOS-4 only
        !--------------------------
+#if    defined( GEOS_4 )
        ! Shallow-cloud inhibition trap (see Murray et al. [2011])
        IF ( ExtState%TK%Arr%Val(I,J,LTOP) >= T_NEG_TOP ) CYCLE
 
@@ -1030,12 +1095,41 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
 
-       DiagnName = 'LIGHTNING_MTYPE'
-       Arr2D     => DIAGN(:,:,4)
-       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
+       DiagnName = 'TRAD_TOP'
+       Arr2D     => TOPDIAGN(:,:,1)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
+       
+       DiagnName = 'CNV_TOP'
+       Arr2D     => TOPDIAGN(:,:,2)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+       
+       DiagnName = 'BYNCY_TOP'
+       Arr2D     => TOPDIAGN(:,:,3)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+       
+       DiagnName = 'RCCODE_TOP'
+       Arr2D     => TOPDIAGN(:,:,4)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+
+       DiagnName = 'TRAD_BYNCY_TOP'
+       Arr2D     => TOPDIAGN(:,:,5)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+
     ENDIF
 
     ! Return w/ success
@@ -1487,6 +1581,7 @@ CONTAINS
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  04 Nov 2014 - Y. X. Wang  - Define BETA, ANN_AVG_FLASHRATE for the
 !                              GEOS-FP 025x03125 NESTED_CH grid
+!  14 Jan 2015 - L. Murray   - Updated GEOS-FP files through Oct 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1573,11 +1668,12 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 11/07/13).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 82.003230d0
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2014-12-10).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 82.373293d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1587,11 +1683,12 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 01/15/14).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 257.93269d0
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2014-12-10).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 260.40253d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
@@ -1602,7 +1699,7 @@ CONTAINS
 
     ! Constrained with simulated "climatology" for
     ! Jan 2013 - Dec 2013. Will need to be updated as more
-    ! met fields become available (ltm, 10/22/14).
+    ! met fields become available (ltm, 2014-10-22).
     IF ( ( cYr .eq. 2013 .and. cMt .ge. 1  )   .or. &
          ( cYr .eq. 2013 .and. cMt .le. 12 ) ) THEN
        BETA = ANN_AVG_FLASHRATE / 1052.6366d0
@@ -1615,11 +1712,12 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 11/14/13).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 652.44105d0
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2015-01-13).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 720.10258d0
     ENDIF
 
 #elif defined( MERRA ) && defined( GRID2x25 )
@@ -1652,9 +1750,9 @@ CONTAINS
 
     ! Discourage users from using lightning outside the constraint period.
     ! You may comment out these lines, but should verify that lightning
-    ! doesn't become unreasonably high anywere in the domain. (ltm, 11/07/13)
-    IF (   cYr .ge. 2014 .or. &
-         ( cYr .eq. 2013 .and. cMt .gt. 5 ) ) BETA = 1d0
+    ! doesn't become unreasonably high anywere in the domain. (ltm, 2015-01-15)
+    IF (   cYr .gt. 2014 .or. &
+         ( cYr .eq. 2014 .and. cMt .gt. 10 ) ) BETA = 1d0
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_CH)
 
@@ -1758,10 +1856,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD,    ONLY : HCO_GetHcoID
-    USE HCO_STATE_MOD,    ONLY : HCO_GetExtHcoID
-    USE HCO_ExtList_Mod,  ONLY : GetExtNr, GetExtOpt
-    USE HCO_ReadList_Mod, ONLY : ReadList_Remove
+    USE HCO_Chartools_Mod, ONLY : HCO_CharParse
+    USE HCO_ExtList_Mod,   ONLY : GetExtNr
+    USE HCO_ExtList_Mod,   ONLY : GetExtOpt
+    USE HCO_State_Mod,     ONLY : HCO_GetHcoID
+    USE HCO_State_Mod,     ONLY : HCO_GetExtHcoID
+    USE HCO_ReadList_Mod,  ONLY : ReadList_Remove
+    USE inquireMod,        ONLY : findfreeLUN
 !
 ! !INPUT PARAMETERS:
 !
@@ -1794,6 +1895,8 @@ CONTAINS
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Removed reference to GET_YEDGE
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
+!  26 Feb 2015 - R. Yantosca - Now re-introduce reading the CDF table from an
+!                              ASCII file (reduces compilation time)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1854,9 +1957,21 @@ CONTAINS
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) 'Use OTD-LIS factors from file? ', LOTDLOC 
        CALL HCO_MSG(MSG)
-    ENDIF    
+    ENDIF
 
-    ! Allocate SLBASE
+    !-----------------
+    ! Allocate arrays
+    !-----------------
+
+    ! Allocate PROFILE (holds the CDF table)
+    ALLOCATE( PROFILE( NNLIGHT, NLTYPE ), STAT=AS )
+    IF( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'PROFILE', RC )
+       RETURN
+    ENDIF
+    PROFILE = 0d0
+
+    ! Allocate SLBASE (holds NO emissins from lightning)
     ALLOCATE( SLBASE(HcoState%NX,HcoState%NY,HcoState%NZ), STAT=AS )
     IF( AS /= 0 ) THEN
        CALL HCO_ERROR ( 'SLBASE', RC )
@@ -1868,14 +1983,54 @@ CONTAINS
     ! Obtain lightning CDF's from Ott et al [JGR, 2010]. (ltm, 1/25/11)
     !=======================================================================
 
-    ! Initialize the cumulative distribution functions (CDF's) that are 
-    ! used to partition the column LNOx emissions into the vertical.
-    ! We hardwire this now in include file "lightning_cdf_include.H",
-    ! which is inlined into lightning_cdf_mod.F90.  This lets us avoid 
-    ! reading an ASCII file in the ESMF/MAPL environment.  You can 
-    ! regenerate "lightning_cdf_include.H" with the Perl script
-    ! HEMCO/Extensions/Preprocess/lightdist.pl  (bmy, 8/14/14)
-    CALL Init_Lightning_CDF()
+    ! Get filename from configuration file
+    CALL GetExtOpt ( ExtNr, 'CDF table', OptValChar=FILENAME, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
+    ! There shouldn't be any date token in there ($YYYY, etc.), so just
+    ! provide some dummy variables here
+    CALL HCO_CharParse( FILENAME, -999, -1, -1, -1, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Echo info
+    WRITE( MSG, 100 ) TRIM( FILENAME )
+    CALL HCO_MSG(MSG)
+100 FORMAT( '     - INIT_LIGHTNOX: Reading ', a )
+
+    ! Find a free file LUN
+    IU_FILE = findFreeLUN()
+      
+    ! Open file containing lightnox PDF data
+    OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+    IF ( IOS /= 0 ) THEN
+       MSG = 'IOERROR: LightDist: 1'
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
+
+    ! Read 12 header lines
+    DO III = 1, 12
+       READ( IU_FILE, '(a)', IOSTAT=IOS ) 
+       IF ( IOS /= 0 ) THEN
+          MSG = 'IOERROR: LightDist: 2'
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
+       ENDIF
+    ENDDO
+         
+    ! Read NNLIGHT types of lightnox profiles
+    DO III = 1, NNLIGHT
+       READ( IU_FILE,*,IOSTAT=IOS) (PROFILE(III,JJJ),JJJ=1,NLTYPE)
+       IF ( IOS /= 0 ) THEN
+          MSG = 'IOERROR: LightDist: 3'
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
+       ENDIF
+    ENDDO
+         
+    ! Close file
+    CLOSE( IU_FILE )
 
     !=======================================================================
     ! Further HEMCO setup
@@ -1924,6 +2079,8 @@ CONTAINS
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  22 Jul 2014 - R. Yantosca - PROFILE is now set in lightning_cdf_mod.F90
+!  26 Feb 2015 - R. Yantosca - Now re-introduce PROFILE, as we read the CDF
+!                              table from an ASCII file (reduces compile time)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1934,7 +2091,9 @@ CONTAINS
 
     ! Free pointer
     OTDLIS => NULL()
-    IF ( ALLOCATED( SLBASE ) ) DEALLOCATE( SLBASE )
+
+    IF ( ALLOCATED( PROFILE ) ) DEALLOCATE( PROFILE )
+    IF ( ALLOCATED( SLBASE  ) ) DEALLOCATE( SLBASE  )
 
   END SUBROUTINE HCOX_LightNOx_Final
 !EOC

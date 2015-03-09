@@ -571,13 +571,18 @@ CONTAINS
           ! Deposition flux in kg/m2/s.
           iFlx = ShipNoEmis(I,J,1) * SHIP_DNOx * ( MW_HNO3 / MW_NO )
 
-          ! Get total tropospheric column mass of species 
-          iMass = 0.0_hp
-          DO L = 1, HcoState%NZ
-             IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
-             iMass = iMass + ( ExtState%HNO3%Arr%Val(I,J,L) *       &
-                               ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
-          ENDDO
+          ! Get mass of species. This can either be the total PBL
+          ! column mass or the first layer only, depending on the 
+          ! HEMCO setting.
+          iMass = ExtState%HNO3%Arr%Val(I,J,1) & 
+                * ExtState%FRAC_OF_PBL%Arr%Val(I,J,1) 
+          IF ( HcoState%Options%PBL_DRYDEP ) THEN 
+             DO L = 1, HcoState%NZ
+                IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
+                iMass = iMass + ( ExtState%HNO3%Arr%Val(I,J,L) *       &
+                                  ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
+             ENDDO
+          ENDIF
 
           ! Calculate deposition velocity (1/s) from flux
           ! NOTE: the calculated deposition flux is in kg/m2/s,
@@ -585,7 +590,7 @@ CONTAINS
           ! [kg] of the entire tropospheric column (PARANOx values are
           ! for the entire column).
           ! Now avoid div-zero error (ckeller, 11/10/2014).
-          IF ( iMass > 0.0_hp ) THEN
+          IF ( iMass > TINY(1.0_hp) ) THEN
              TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
 
              ! Check if it's safe to do division
@@ -593,14 +598,14 @@ CONTAINS
                 DEPHNO3(I,J) = TMP / iMass
              ENDIF
 
-             ! Sanity check: if deposition velocities are above one, 
-             ! something must have gone wrong (they are on the order
-             ! of <1e-9)
-             IF ( DEPHNO3(I,J) > 1.0_hp ) THEN
-                WRITE(MSG,*) 'HNO3 deposition velocity > 1., set to zero', &
+             ! Sanity check: if deposition velocity is above 10, the tracer
+             ! concentration is probably very low. Restrict value to 10. 
+             ! This is completely arbitrarily.
+             IF ( DEPHNO3(I,J) > 10.0_hp ) THEN
+                WRITE(MSG,*) 'HNO3 deposition velocity > 10., set to zero', &
                    I, J, DEPHNO3(I,J), TMP, ABS(iFlx), iMass 
                 CALL HCO_WARNING(MSG, RC)
-                DEPHNO3(I,J) = 0.0_hp
+                DEPHNO3(I,J) = 10.0_hp
              ENDIF
           ENDIF
 
@@ -627,20 +632,25 @@ CONTAINS
           ! array
           ELSE
 
-             ! Get total tropospheric column mass of species 
-             iMass = 0.0_hp
-             DO L = 1, HcoState%NZ
-                IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
-                iMass = iMass + ( ExtState%O3%Arr%Val(I,J,L) *       &
-                                  ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
-             ENDDO
+             ! Get mass of species. This can either be the total PBL
+             ! column mass or the first layer only, depending on the 
+             ! HEMCO setting.
+             iMass = ExtState%O3%Arr%Val(I,J,1) &
+                   * ExtState%FRAC_OF_PBL%Arr%Val(I,J,1)
+             IF ( HcoState%Options%PBL_DRYDEP ) THEN 
+                DO L = 1, HcoState%NZ
+                   IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) == 0.0_hp ) EXIT
+                   iMass = iMass + ( ExtState%O3%Arr%Val(I,J,L) *       &
+                                     ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) )
+                ENDDO
+             ENDIF
 
              ! Calculate deposition velocity (1/s) from flux
              ! NOTE: the calculated deposition flux is in kg/m2/s,
              ! which has to be converted to 1/s. Use here the O3 conc.
              ! [kg] of the lowest model box.
              ! Now avoid div-zero error (ckeller, 11/10/2014).
-             IF ( iMass > 0.0_hp ) THEN
+             IF ( iMass > TINY(1.0_hp) ) THEN
                 TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
 
                 ! Check if it's safe to do division
@@ -648,14 +658,14 @@ CONTAINS
                    DEPO3(I,J) = TMP / iMass 
                 ENDIF
 
-                ! Sanity check: if deposition velocities are above one, 
-                ! something must have gone wrong (they are on the order
-                ! of <1e-9)
-                IF ( DEPO3(I,J) > 1.0_hp ) THEN
-                   WRITE(MSG,*) 'O3 deposition velocity > 1., set to zero', &
+                ! Sanity check: if deposition velocity is above 10, the tracer
+                ! concentration is probably very low. Restrict value to 10. 
+                ! This is completely arbitrarily.
+                IF ( DEPO3(I,J) > 10.0_hp ) THEN
+                   WRITE(MSG,*) 'O3 deposition velocity > 10., set to zero', &
                       I, J, DEPO3(I,J), TMP, ABS(iFlx), iMass 
                    CALL HCO_WARNING(MSG, RC)
-                   DEPO3(I,J) = 0.0_hp
+                   DEPO3(I,J) = 10.0_hp
                 ENDIF
              ENDIF
 
@@ -1249,7 +1259,6 @@ CONTAINS
                           WriteFreq= 'End',           &
                           Trgt2D   = Trgt2D,          &
                           AutoFill = 0,               &
-                          cID      = NN,              &
                           RC       = RC                )
       IF ( RC /= HCO_SUCCESS ) RETURN
       Trgt2D => NULL()
