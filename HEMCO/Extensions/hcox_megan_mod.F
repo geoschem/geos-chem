@@ -4433,7 +4433,6 @@
      &                    WriteFreq  = 'End', 
      &                    AutoFill   = 0,      
      &                    Trgt2D     = HCOT_15_AVG, 
-     &                    cID        = I,    
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4449,7 +4448,6 @@
      &                    WriteFreq  = 'End', 
      &                    AutoFill   = 0,     
      &                    Trgt2D     = T_PREVDAY, 
-     &                    cID        = I,      
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4465,7 +4463,6 @@
      &                    WriteFreq  = 'End',
      &                    AutoFill   = 0,    
      &                    Trgt2D     = LAI_PREVDAY,
-     &                    cID        = I,    
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4481,7 +4478,6 @@
      &                    WriteFreq  = 'End', 
      &                    AutoFill   = 0,   
      &                    Trgt2D     = HCOPARDR_15_AVG,
-     &                    cID        = I,
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4497,7 +4493,6 @@
      &                    WriteFreq  = 'End',
      &                    AutoFill   = 0,   
      &                    Trgt2D     = HCOPARDF_15_AVG,
-     &                    cID        = I,
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 

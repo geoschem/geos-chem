@@ -91,7 +91,7 @@
       !-----------------------------------------------------------------
       USE CONVECTION_MOD        ! For deep cloud convection
       USE LINOZ_MOD             ! For LINOX linear strat chemistry
-      USE PBL_MIX_MOD           ! For full PBL mixing (TURBDAY)
+      USE PBL_MIX_MOD           ! To compute PBL height 
       USE TPCORE_BC_MOD         ! For nested-grid boundary conditions
       USE TRANSPORT_MOD         ! Driver routines for advection
       USE CHEMGRID_MOD          ! For the dynamic tropopause
@@ -101,8 +101,9 @@
       ! GEOS-Chem emissions modules
       !-----------------------------------------------------------------
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
-      USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
+!      USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
       USE EMISSIONS_MOD         ! For interfacing with HEMCO emissions
+      USE MIXING_MOD            ! performs tracer mixing
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -614,17 +615,19 @@
       CALL Compute_Olson_Landmap( am_I_Root, mapping,   State_Met )
       CALL Cleanup_Olson_Landmap( am_I_Root                       )
 
-      ! Initialize PBL quantities but do not do mixing
-      ! Add option for non-local PBL (Lin, 03/31/09) 
-      IF ( .NOT. LNLPBL ) THEN
-         CALL DO_PBL_MIX  ( .FALSE., Input_Opt, State_Met, State_Chm )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
-      ELSE
-         CALL DO_PBL_MIX_2( am_I_Root, .FALSE.,   Input_Opt,
-     &                      State_Met, State_Chm, RC )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
-      ENDIF
-
+!      ! Initialize PBL quantities but do not do mixing
+!      ! Add option for non-local PBL (Lin, 03/31/09) 
+       CALL INIT_MIXING ( am_I_Root, Input_Opt, 
+     &                    State_Met, State_Chm, RC ) 
+!      IF ( .NOT. LNLPBL ) THEN
+!         CALL DO_PBL_MIX  ( .FALSE., Input_Opt, State_Met, State_Chm )
+!         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+!      ELSE
+!         CALL DO_PBL_MIX_2( am_I_Root, .FALSE.,   Input_Opt,
+!     &                      State_Met, State_Chm, RC )
+!         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
+!      ENDIF
+ 
       ! Initialize chemistry
       ! Moved here (from chemistry_mod.F and chemdr.F) because some
       ! of the variables are used for non-local PBL mixing BEFORE 
@@ -642,15 +645,13 @@
       ! non-emission data such as stratospheric Bry fields. If LEMIS
       ! is set to FALSE, the emissions driver routines will make sure
       ! that HEMCO does not calculate any emissions (ckeller, 1/12/15).
-!      IF ( LEMIS ) THEN
-         CALL EMISSIONS_INIT( am_I_Root, Input_Opt,
-     &                        State_Met, State_Chm, RC )
+      CALL EMISSIONS_INIT( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
 
-         ! Stop the run if the HEMCO init sequence dies w/ an error
-         IF ( RC /= GIGC_SUCCESS ) THEN
-            CALL ERROR_STOP( 'Error in EMISSIONS_INIT!', 'main.F' )
-         ENDIF
-!      ENDIF
+      ! Stop the run if the HEMCO init sequence dies w/ an error
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP( 'Error in EMISSIONS_INIT!', 'main.F' )
+      ENDIF
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
@@ -1189,10 +1190,21 @@
             CALL SET_CLOCK_TRAC( GET_TS_DYN(), State_Chm )
          ENDIF
 
-         !-------------------------------
+         !--------------------------------------------------------------
+         ! Compute PBL height
+         ! Move this call from the PBL mixing routines because the PBL
+         ! height is used by drydep and some of the emissions routines.
+         ! (ckeller, 3/5/15) 
+         !--------------------------------------------------------------
+         CALL COMPUTE_PBL_HEIGHT ( State_Met )
+
+         !--------------------------------------------------------------
          ! Test for emission timestep
-         !-------------------------------
-         IF ( LNLPBL .AND. ITS_TIME_FOR_EMIS() ) THEN
+         ! Now always do emissions here, even for full-mixing
+         ! (ckeller, 3/5/15)
+         !--------------------------------------------------------------
+         IF ( ITS_TIME_FOR_EMIS() ) THEN
+!         IF ( LNLPBL .AND. ITS_TIME_FOR_EMIS() ) THEN
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV,
@@ -1241,30 +1253,31 @@
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
      &                             State_Met%AD, STT ) ! kg -> v/v
 
-            IF ( ITS_A_FULLCHEM_SIM ) THEN
-               !========================================================
-               !jpp, 2/12/08: putting a call to SET_CH3Br
-               !              which is in bromocarb_mod.f
-               !       ***** Fix CH3Br Concentration in PBL *****
-               ! Kludge: eventually I want to keep the concentration
-               !         entirely fixed! Ask around on how to...
-               !========================================================
-               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
-                  CALL SET_CH3Br( am_I_Root, Input_Opt, 
-     &                            State_Met, ITS_TIME_FOR_UNIT(),
-     &                            State_Chm, RC                    )
-
-              ENDIF
-
-               ! ----------------------------------------------------
-               ! If selected in input.geos, then set the MBL
-               ! concentration of BrO equal to 1 pptv during daytime.
-               ! ----------------------------------------------------
-               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
-                  CALL SET_BRO( am_I_Root, Input_Opt, State_Met, 
-     &                          ITS_TIME_FOR_UNIT(), State_Chm, RC  )
-               ENDIF
-            ENDIF
+             ! --> now set in EMISSIONS_RUN (ckeller, 3/4/15)
+!            IF ( ITS_A_FULLCHEM_SIM ) THEN
+!               !========================================================
+!               !jpp, 2/12/08: putting a call to SET_CH3Br
+!               !              which is in bromocarb_mod.f
+!               !       ***** Fix CH3Br Concentration in PBL *****
+!               ! Kludge: eventually I want to keep the concentration
+!               !         entirely fixed! Ask around on how to...
+!               !========================================================
+!               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
+!                  CALL SET_CH3Br( am_I_Root, Input_Opt, 
+!     &                            State_Met, ITS_TIME_FOR_UNIT(),
+!     &                            State_Chm, RC                    )
+!
+!              ENDIF
+!
+!               ! ----------------------------------------------------
+!               ! If selected in input.geos, then set the MBL
+!               ! concentration of BrO equal to 1 pptv during daytime.
+!               ! ----------------------------------------------------
+!               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
+!                  CALL SET_BRO( am_I_Root, Input_Opt, State_Met, 
+!     &                          ITS_TIME_FOR_UNIT(), State_Chm, RC  )
+!               ENDIF
+!            ENDIF
          ENDIF
 
          !-------------------------------
@@ -1278,22 +1291,38 @@
             !===========================================================
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
-            ! Add option for non-local PBL. (Lin, 03/31/09)
-            ! Note that some emission arrays are initialized with chemistry 
-            ! (due to legacy code), so there are *no emissions* on the first
-            ! mixing and convection timestep when using non-local mixing
-            ! scheme (LNLPBL), although this is not reflected in the 
-            ! diagnostics. The instant mixing scheme is unaffected by this
-            ! bug since emissions then occur with chemistry. (cdh, 5/1/2013)
-            IF ( .NOT. LNLPBL ) THEN
-               CALL DO_PBL_MIX( LTURB, Input_Opt, State_Met, State_Chm )
-               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
-            ELSE
-               CALL DO_PBL_MIX_2( am_I_Root, LTURB,     Input_Opt,
-     &                            State_Met, State_Chm, RC         )
-               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
+
+            ! Note: mixing routine expects tracers in v/v
+            ! DO_MIXING applies the tracer tendencies (dry deposition,
+            ! emission rates) to the tracer arrays and performs PBL
+            ! mixing. 
+            ! In the non-local PBL scheme, dry deposition and emission
+            ! fluxes below the PBL are handled within the PBL mixing
+            ! routine. Otherwise, tracer concentrations are first updated
+            ! and the full-mixing is then applied.
+            ! (ckeller, 3/5/15)
+            CALL DO_MIXING ( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP( 'Error in MIX_TRACERS!', 'main.F' )
             ENDIF
 
+!            ! Add option for non-local PBL. (Lin, 03/31/09)
+!            ! Note that some emission arrays are initialized with chemistry 
+!            ! (due to legacy code), so there are *no emissions* on the first
+!            ! mixing and convection timestep when using non-local mixing
+!            ! scheme (LNLPBL), although this is not reflected in the 
+!            ! diagnostics. The instant mixing scheme is unaffected by this
+!            ! bug since emissions then occur with chemistry. (cdh, 5/1/2013)
+!            IF ( .NOT. LNLPBL ) THEN
+!               CALL DO_PBL_MIX( LTURB, Input_Opt, State_Met, State_Chm )
+!               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+!            ELSE
+!               CALL DO_PBL_MIX_2( am_I_Root, LTURB,     Input_Opt,
+!     &                            State_Met, State_Chm, RC         )
+!               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
+!            ENDIF
+ 
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
 
             !===========================================================
@@ -1325,72 +1354,72 @@
             ENDIF
          ENDIF
 
-         !-------------------------------
-         ! Test for emission timestep
-         !-------------------------------
-         IF ( ( .NOT. LNLPBL ) .AND. ITS_TIME_FOR_EMIS() ) THEN
-
-            ! Increment emission counter
-            CALL SET_CT_EMIS( INCREMENT=.TRUE. )
-
-            !===========================================================
-            !         ***** D R Y   D E P O S I T I O N *****
-            !===========================================================
-            IF ( LDRYD ) THEN
-               CALL DO_DRYDEP
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            ENDIF
-
-            !===========================================================
-            !             ***** E M I S S I O N S *****
-            !===========================================================
-!            IF ( LEMIS ) THEN
-               
-               ! Call the HEMCO emissions modules
-               ! Always call HEMCO, even if LEMIS is set to FALSE. 
-               ! This is to make sure that HEMCO can still be used to read
-               ! non-emission data such as stratospheric Bry fields. 
-               ! (ckeller, 1/12/15).
-               CALL EMISSIONS_RUN ( am_I_Root, Input_Opt, 
-     &                              State_Met, State_Chm, RC )
-
-               ! Return upon error in HEMCO
-               IF ( RC /= GIGC_SUCCESS ) THEN
-                  CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
-               ENDIF
-
-               !### Debug
-               IF ( prtDebug ) THEN 
-                  CALL DEBUG_MSG( '### MAIN: a DO_EMISSIONS' )
-               ENDIF
+!         !-------------------------------
+!         ! Test for emission timestep
+!         !-------------------------------
+!         IF ( ( .NOT. LNLPBL ) .AND. ITS_TIME_FOR_EMIS() ) THEN
+!
+!            ! Increment emission counter
+!            CALL SET_CT_EMIS( INCREMENT=.TRUE. )
+!
+!            !===========================================================
+!            !         ***** D R Y   D E P O S I T I O N *****
+!            !===========================================================
+!            IF ( LDRYD ) THEN
+!               CALL DO_DRYDEP
+!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 !            ENDIF
+!
+!            !===========================================================
+!            !             ***** E M I S S I O N S *****
+!            !===========================================================
+!!            IF ( LEMIS ) THEN
+!               
+!               ! Call the HEMCO emissions modules
+!               ! Always call HEMCO, even if LEMIS is set to FALSE. 
+!               ! This is to make sure that HEMCO can still be used to read
+!               ! non-emission data such as stratospheric Bry fields. 
+!               ! (ckeller, 1/12/15).
+!               CALL EMISSIONS_RUN ( am_I_Root, Input_Opt, 
+!     &                              State_Met, State_Chm, RC )
+!
+!               ! Return upon error in HEMCO
+!               IF ( RC /= GIGC_SUCCESS ) THEN
+!                  CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
+!               ENDIF
+!
+!               !### Debug
+!               IF ( prtDebug ) THEN 
+!                  CALL DEBUG_MSG( '### MAIN: a DO_EMISSIONS' )
+!               ENDIF
+!!            ENDIF
 
-            IF ( ITS_A_FULLCHEM_SIM ) THEN
-               !========================================================
-               !jpp, 2/12/08: putting a call to SET_CH3Br
-               !              which is in bromocarb_mod.f
-               !       ***** Fix CH3Br Concentration in PBL *****
-               ! Kludge: eventually I want to keep the concentration
-               !         entirely fixed! Ask around on how to...
-               !========================================================
-               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
-                  CALL SET_CH3Br( am_I_Root, Input_Opt, State_Met, 
-     &                            .FALSE.,   State_Chm, RC         )
-
-               ENDIF
-
-               ! ----------------------------------------------------
-               ! If selected in input.geos, then set the MBL
-               ! concentration of BrO equal to 1 pptv during daytime.
-               ! ----------------------------------------------------
-               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
-                  CALL SET_BrO( am_I_Root, Input_Opt, State_Met, 
-     &                          .FALSE.,   State_Chm, RC  )
-
-
-               ENDIF
-            ENDIF
-         ENDIF
+             ! --> now set in EMISSIONS_RUN (ckeller, 3/4/15)
+!            IF ( ITS_A_FULLCHEM_SIM ) THEN
+!               !========================================================
+!               !jpp, 2/12/08: putting a call to SET_CH3Br
+!               !              which is in bromocarb_mod.f
+!               !       ***** Fix CH3Br Concentration in PBL *****
+!               ! Kludge: eventually I want to keep the concentration
+!               !         entirely fixed! Ask around on how to...
+!               !========================================================
+!               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
+!                  CALL SET_CH3Br( am_I_Root, Input_Opt, State_Met, 
+!     &                            .FALSE.,   State_Chm, RC         )
+!
+!               ENDIF
+!
+!               ! ----------------------------------------------------
+!               ! If selected in input.geos, then set the MBL
+!               ! concentration of BrO equal to 1 pptv during daytime.
+!               ! ----------------------------------------------------
+!               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
+!                  CALL SET_BrO( am_I_Root, Input_Opt, State_Met, 
+!     &                          .FALSE.,   State_Chm, RC  )
+!               ENDIF
+!            ENDIF
+!
+!         ENDIF
 
          !==============================================================
          !               ***** C H E M I S T R Y *****

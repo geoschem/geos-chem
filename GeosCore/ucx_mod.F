@@ -6981,7 +6981,6 @@
      &                    OutOper   = 'Instantaneous',
      &                    Trgt3D    = STATE_PSC,
      &                    WriteFreq = 'End',
-     &                    cID       = N,
      &                    RC        = RC,
      &                    COL       = Input_Opt%DIAG_COLLECTION )
       IF ( RC /= HCO_SUCCESS ) THEN

@@ -94,8 +94,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE DRYDEP_MOD,         ONLY : DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -126,6 +126,7 @@
 !                              these fields are now read in HEMCO
 !  10 Sep 2014 - M. Sulprizio- Now get global concentrations of OH, O3, OC, and
 !                              BC from HEMCO
+!  03 Mar 2015 - C. Keller   - Now do dry-deposition always outside of chempops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -199,117 +200,118 @@
       
 
       ! Add option for non-local PBL (cdh, 08/27/09)
-      IF ( LNLPBL ) THEN
+      ! Dry deposition now occurs in mixing_mod.F90 (ckeller (3/5/15)
+!      IF ( LNLPBL ) THEN
 
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
-         CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
-     &                    am_I_Root, Input_Opt, State_Met,
-     &                    State_Chm, RC )
+      CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
+     &                 am_I_Root, Input_Opt, State_Met,
+     &                 State_Chm, RC )
          
-      ELSE
-
-         IF ( DRYPOPG    > 0   .and. DRYPOPP_OC > 0 .and.
-     &        DRYPOPP_BC > 0 ) THEN
-         
-            ! Dry deposition active for both POP-Gas and POP-Particle; 
-            ! pass drydep frequency to CHEM_POPGP (NOTE: DEPSAV has units 1/s)
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),   
-     &                       DEPSAV(:,:,DRYPOPP_OC),
-     &                       DEPSAV(:,:,DRYPOPP_BC),
-     &                       am_I_Root, 
-     &                       Input_Opt, 
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-
-         ELSEIF ( DRYPOPG > 0 .and. DRYPOPP_OC > 0 .and. 
-     &            DRYPOPP_BC  .le.  0 ) THEN
-
-            ! Only POPG and POPP_OC dry deposition are active
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
-     &                       DEPSAV(:,:,DRYPOPP_OC), 
-     &                       ZERO_DVEL,
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-
-         ELSEIF ( DRYPOPG    > 0   .and. DRYPOPP_OC .le. 0 .and. 
-     &            DRYPOPP_BC > 0 ) THEN
-
-            ! Only POPG and POPP_BC dry deposition are active
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
-     &                       ZERO_DVEL, 
-     &                       DEPSAV(:,:,DRYPOPP_BC),
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-         
-         ELSEIF ( DRYPOPG > 0 .and. DRYPOPP_OC .le. 0 .and. 
-     &            DRYPOPP_BC  .le.  0 ) THEN
-
-            ! Only POPG dry deposition is active
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
-     &                       ZERO_DVEL,
-     &                       ZERO_DVEL,
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-            
-         ELSEIF ( DRYPOPG   <= 0   .and. DRYPOPP_OC > 0 .and. 
-     &           DRYPOPP_BC >  0 ) THEN
-
-            ! Only POPP dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
-     &                       DEPSAV(:,:,DRYPOPP_OC), 
-     &                       DEPSAV(:,:,DRYPOPP_BC),
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-
-         ELSEIF ( DRYPOPG    <= 0   .and. DRYPOPP_OC > 0 .and. 
-     &            DRYPOPP_BC <= 0 ) THEN
-
-            ! Only POPP_OC dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
-     &                       DEPSAV(:,:,DRYPOPP_OC), 
-     &                       ZERO_DVEL,
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-
-         ELSEIF ( DRYPOPG    <= 0   .and. DRYPOPP_OC <= 0 .and. 
-     &            DRYPOPP_BC >  0 ) THEN
-
-            ! Only POPP_OC dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
-     &                       ZERO_DVEL, 
-     &                       DEPSAV(:,:,DRYPOPP_BC),
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-         ELSE
-
-            ! No dry deposition, pass zero deposition frequency
-            CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
-     &                       am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, RC )
-
-         ENDIF
-
-      ENDIF
+!      ELSE
+!
+!         IF ( DRYPOPG    > 0   .and. DRYPOPP_OC > 0 .and.
+!     &        DRYPOPP_BC > 0 ) THEN
+!         
+!            ! Dry deposition active for both POP-Gas and POP-Particle; 
+!            ! pass drydep frequency to CHEM_POPGP (NOTE: DEPSAV has units 1/s)
+!            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),   
+!     &                       DEPSAV(:,:,DRYPOPP_OC),
+!     &                       DEPSAV(:,:,DRYPOPP_BC),
+!     &                       am_I_Root, 
+!     &                       Input_Opt, 
+!     &                       State_Met,
+!     &                       State_Chm,
+!     &                       RC )
+!
+!         ELSEIF ( DRYPOPG > 0 .and. DRYPOPP_OC > 0 .and. 
+!     &            DRYPOPP_BC  .le.  0 ) THEN
+!
+!            ! Only POPG and POPP_OC dry deposition are active
+!            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
+!     &                       DEPSAV(:,:,DRYPOPP_OC), 
+!     &                       ZERO_DVEL,
+!     &                       am_I_Root, 
+!     &                       Input_Opt,
+!     &                       State_Met,
+!     &                       State_Chm,
+!     &                       RC )
+!
+!         ELSEIF ( DRYPOPG    > 0   .and. DRYPOPP_OC .le. 0 .and. 
+!     &            DRYPOPP_BC > 0 ) THEN
+!
+!            ! Only POPG and POPP_BC dry deposition are active
+!            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
+!     &                       ZERO_DVEL, 
+!     &                       DEPSAV(:,:,DRYPOPP_BC),
+!     &                       am_I_Root, 
+!     &                       Input_Opt,
+!     &                       State_Met,
+!     &                       State_Chm,
+!     &                       RC )
+!         
+!         ELSEIF ( DRYPOPG > 0 .and. DRYPOPP_OC .le. 0 .and. 
+!     &            DRYPOPP_BC  .le.  0 ) THEN
+!
+!            ! Only POPG dry deposition is active
+!            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
+!     &                       ZERO_DVEL,
+!     &                       ZERO_DVEL,
+!     &                       am_I_Root, 
+!     &                       Input_Opt,
+!     &                       State_Met,
+!     &                       State_Chm,
+!     &                       RC )
+!            
+!         ELSEIF ( DRYPOPG   <= 0   .and. DRYPOPP_OC > 0 .and. 
+!     &           DRYPOPP_BC >  0 ) THEN
+!
+!            ! Only POPP dry deposition is active
+!            CALL CHEM_POPGP( ZERO_DVEL,
+!     &                       DEPSAV(:,:,DRYPOPP_OC), 
+!     &                       DEPSAV(:,:,DRYPOPP_BC),
+!     &                       am_I_Root, 
+!     &                       Input_Opt,
+!     &                       State_Met,
+!     &                       State_Chm,
+!     &                       RC )
+!
+!         ELSEIF ( DRYPOPG    <= 0   .and. DRYPOPP_OC > 0 .and. 
+!     &            DRYPOPP_BC <= 0 ) THEN
+!
+!            ! Only POPP_OC dry deposition is active
+!            CALL CHEM_POPGP( ZERO_DVEL,
+!     &                       DEPSAV(:,:,DRYPOPP_OC), 
+!     &                       ZERO_DVEL,
+!     &                       am_I_Root, 
+!     &                       Input_Opt,
+!     &                       State_Met,
+!     &                       State_Chm,
+!     &                       RC )
+!
+!         ELSEIF ( DRYPOPG    <= 0   .and. DRYPOPP_OC <= 0 .and. 
+!     &            DRYPOPP_BC >  0 ) THEN
+!
+!            ! Only POPP_OC dry deposition is active
+!            CALL CHEM_POPGP( ZERO_DVEL,
+!     &                       ZERO_DVEL, 
+!     &                       DEPSAV(:,:,DRYPOPP_BC),
+!     &                       am_I_Root, 
+!     &                       Input_Opt,
+!     &                       State_Met,
+!     &                       State_Chm,
+!     &                       RC )
+!         ELSE
+!
+!            ! No dry deposition, pass zero deposition frequency
+!            CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
+!     &                       am_I_Root, Input_Opt, State_Met,
+!     &                       State_Chm, RC )
+!
+!         ENDIF
+!
+!      ENDIF
 
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMPOPS: a CHEM_GASPART' )
    

@@ -3819,6 +3819,11 @@
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  25 Jun 2014 - R. Yantosca - Now set USE_OLSON_2001 = T for GEOS-FP met;
 !                              this was originally done in INIT_INPUT
+!  05 Mar 2015 - C. Keller   - Added PBL_DRYDEP to define if dry 
+!                              deposition rates are calculated over
+!                              full PBL or 1st model level only.
+!                              Set to .TRUE. (full PBL) if full PBL
+!                              mixing is used, to false otherwise.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3880,6 +3885,17 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #endif
 
+      ! Set the PBL drydep flag. This determines if dry deposition is 
+      ! applied (and drydep frequencies are calculated) over the entire 
+      ! PBL or the first model layer only. For now, set this value 
+      ! automatically based upon the selected PBL scheme: 1st model layer 
+      ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
+      IF ( Input_Opt%LNLPBL ) THEN 
+         Input_Opt%PBL_DRYDEP = .FALSE.
+      ELSE
+         Input_Opt%PBL_DRYDEP = .TRUE.
+      ENDIF 
+
       ! Return success
       RC = GIGC_SUCCESS
 
@@ -3891,6 +3907,8 @@
          WRITE( 6, '(  a)' ) '---------------'
          WRITE( 6, 100     ) 'Turn on dry deposition?     : ', 
      &                        Input_Opt%LDRYD
+         WRITE( 6, 100     ) 'Dry dep over full PBL?      : ', 
+     &                        Input_Opt%PBL_DRYDEP
          WRITE( 6, 100     ) 'Turn on wet deposition?     : ', 
      &                        Input_Opt%LWETD
          WRITE( 6, 100     ) 'Use Olson 2001 land map?    : ', 
@@ -4746,6 +4764,10 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:66' )
       READ( SUBSTRS(1), * ) ND68
       CALL SET_TINDEX( am_I_Root, 68, ND68, SUBSTRS(2:N), N-1, PD68 )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND68_OUTPUT_FREQ = 'Daily'   ! Note, can change later
+      Input_Opt%ND68_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND69: Surface areas

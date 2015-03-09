@@ -338,10 +338,10 @@
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR, ND03 
       USE DIAG03_MOD,         ONLY : AD03_Br
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE DRYDEP_MOD,         ONLY : DRYHg0
-      USE DRYDEP_MOD,         ONLY : DRYHg2
-      USE DRYDEP_MOD,         ONLY : DRYHgP
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DRYHg0
+!      USE DRYDEP_MOD,         ONLY : DRYHg2
+!      USE DRYDEP_MOD,         ONLY : DRYHgP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -660,11 +660,13 @@
          ! they are defined. If using non-local PBL mixing
          ! then drydep will happen in vdiff_mod and dry
          ! deposition here should be zero.
-         IF (.NOT. LNLPBL) THEN
-            IF (DRYHG0 > 0) K_DRYD0  = DEPSAV(I,J,DRYHG0)
-            IF (DRYHG2 > 0) K_DRYD2G = DEPSAV(I,J,DRYHG2)
-            IF (DRYHGP > 0) K_DRYD2P = DEPSAV(I,J,DRYHGP)
-         ENDIF
+         ! dry-deposition is now handled in mixing_mod.F90 
+         ! (ckeller, 3/5/15).
+!         IF (.NOT. LNLPBL) THEN
+!            IF (DRYHG0 > 0) K_DRYD0  = DEPSAV(I,J,DRYHG0)
+!            IF (DRYHG2 > 0) K_DRYD2G = DEPSAV(I,J,DRYHG2)
+!            IF (DRYHGP > 0) K_DRYD2P = DEPSAV(I,J,DRYHGP)
+!         ENDIF
 
          !------------------------------------------------------
          ! Sea-salt aerosol uptake

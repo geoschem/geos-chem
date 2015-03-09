@@ -92,7 +92,7 @@
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
       USE COMODE_LOOP_MOD     
-      USE DRYDEP_MOD,         ONLY : DRYFLX
+!      USE DRYDEP_MOD,         ONLY : DRYFLX
       USE DRYDEP_MOD,         ONLY : DRYFLXRnPbBe
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
@@ -400,9 +400,11 @@
             ! ND44 drydep fluxes
             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
             ! PBL is used ( Lin, 03/31/09) 
-            IF ( .not. LNLPBL ) THEN
-               CALL DRYFLX( am_I_Root, Input_Opt, RC )
-            ENDIF
+            ! Dry deposition diagnostics is now done in mixing_mod.F for 
+            ! cases where full-mixing is used (ckeller, 3/5/15).
+!            IF ( .not. LNLPBL ) THEN
+!               CALL DRYFLX( am_I_Root, Input_Opt, RC )
+!            ENDIF
 
             ! ND43 chemical production
             CALL DIAGOH
