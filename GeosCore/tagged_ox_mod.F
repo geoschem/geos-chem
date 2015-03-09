@@ -16,8 +16,7 @@
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD   ! HEMCO precision definition and error handling
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -28,12 +27,6 @@
 !%%% tracers. (bmy, 4/11/14)
 !#define USE_ALL_TAGO3_TRACERS 1
 !%%%
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% If you want to read archived O3 prod/loss data from a different year
-!%%% than the met field dates, then use this #ifdef.  You can also leave this
-!%%% flag commented out and set its value by compiling with the TAGO3YR=2004
-!%%% (etc. for other years) Makefile option.  (bmy, 4/24/14)
-!#define USE_THIS_O3_YEAR 2004
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -111,20 +104,23 @@
 !                              subroutine READ_POX_LOX obsolete.
 !  06 Nov 2014 - R. Yantosca - Removed code orphaned by HEMCO
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!   4 Mar 2015 - R. Yantosca - Declare pointer args to HCO_GetPtr with REAL(f4)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      REAL(sp), POINTER        :: P24H(:,:,:) => NULL() ! O3 production rate
-      REAL(sp), POINTER        :: L24H(:,:,:) => NULL() ! O3 loss rate
+      ! These are pointers to fields in the HEMCO data structure.
+      ! Declare these with REAL(f4), aka REAL*4. (bmy, 3/4/15)
+      REAL(f4), POINTER   :: P24H(:,:,:) => NULL() ! O3 production rate
+      REAL(f4), POINTER   :: L24H(:,:,:) => NULL() ! O3 loss rate
 
       ! Emission timestep (will be imported from HEMCO)
-      REAL(fp)                   :: TS_EMIS
+      REAL(fp)            :: TS_EMIS
 
       ! To convert m3 to cm3
-      REAL(fp), PARAMETER        :: CM3PERM3 = 1.0e+6_fp
+      REAL(fp), PARAMETER :: CM3PERM3 = 1.0e+6_fp
 !
 ! !DEFINED PARAMETERS:
 ! 
@@ -580,12 +576,12 @@
 
          ! Get pointer to O3 production
          CALL HCO_GetPtr ( am_I_Root, 'O3_PROD', P24H, RC )
-         IF ( RC /= HCO_SUCCESS ) 
+         IF ( RC /= GIGC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to O3_PROD', LOC )
 
          ! Get pointer to O3 loss
          CALL HCO_GetPtr ( am_I_Root, 'O3_LOSS', L24H, RC )
-         IF ( RC /= HCO_SUCCESS ) 
+         IF ( RC /= GIGC_SUCCESS ) 
      &      CALL ERROR_STOP ( 'Cannot get pointer to O3_LOSS', LOC )
 
          ! Get emissions timestep (seconds)

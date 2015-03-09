@@ -252,17 +252,6 @@
             AD09_em  = 0e0
          ENDIF
  
-!----------------------------------------------------------------------------- 
-!%%% Prior to 8/18/14
-!%%% THE H2/HD SIMULATION IS OBSOLETE.  YOU CAN RESTORE IT IF YOU WANT. 
-!%%% UNTIL THEN WE WILL LEAVE THIS COMMENTED OUT.  (bmy, 8/18/14)
-!         ! For ND10 -- H2 & HD simulation (phs, 9/18/07)
-!         IF ( ND10 > 0 ) THEN 
-!            AD10    = 0e0
-!            AD10em  = 0e0
-!         ENDIF
-!----------------------------------------------------------------------------- 
-
          ! ND21 -- optical depths
          IF ( ND21 > 0 ) THEN
             AD21 = 0e0

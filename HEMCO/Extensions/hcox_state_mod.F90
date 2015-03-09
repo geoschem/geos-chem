@@ -110,6 +110,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: WLI         ! 0=water, 1=land, 2=ice
      TYPE(ExtDat_2R),  POINTER :: T2M         ! 2m Sfce temperature [K] 
      TYPE(ExtDat_2R),  POINTER :: TSKIN       ! Surface skin temperature [K]
+     TYPE(ExtDat_2R),  POINTER :: GWETROOT    ! Root soil wetness [1]
      TYPE(ExtDat_2R),  POINTER :: GWETTOP     ! Top soil moisture [-]
      TYPE(ExtDat_2R),  POINTER :: SNOWHGT     ! Snow height [mm H2O] 
      TYPE(ExtDat_2R),  POINTER :: SNODP       ! Snow depth [m ] 
@@ -296,6 +297,9 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%TSKIN, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%GWETROOT, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Init ( ExtState%GWETTOP, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -448,6 +452,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%WLI        )
        CALL ExtDat_Cleanup( ExtState%T2M        )
        CALL ExtDat_Cleanup( ExtState%TSKIN      )
+       CALL ExtDat_Cleanup( ExtState%GWETROOT   )
        CALL ExtDat_Cleanup( ExtState%GWETTOP    )
        CALL ExtDat_Cleanup( ExtState%SNOWHGT    )
        CALL ExtDat_Cleanup( ExtState%SNODP      )

@@ -938,6 +938,8 @@ transport_mod.o             : transport_mod.F                                \
 
 update.o                    : update.F
 
+uvalbedo_mod.o              : uvalbedo_mod.F90
+
 vdiff_pre_mod.o             : vdiff_pre_mod.F90
 ifeq ($(COMPILER),sun)
 	$(F90) -O3 -c $<

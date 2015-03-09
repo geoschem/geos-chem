@@ -15,10 +15,7 @@
 ! 
 ! !USES:
 !
-      USE HCO_ERROR_MOD   ! For real precisions (hp)
-
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -39,15 +36,16 @@
 !  20 Sep 2010 - N.E. Selin    - Initial Version
 !  04 Jan 2011 - C.L. Friedman - Expansion on initial version
 !  21 Aug 2014 - M. Sulprizio  - Removed emissions routines now handled by HEMCO
+!  04 Mar 2015 - R. Yantosca   - Use REAL(f4) for pointer args to HCO_GetPtr 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp),  PARAMETER   :: XNUMOL_OH = 6.022e+23_fp / 17e-3_fp  ! molec OH / kg OH
-      REAL(fp),  PARAMETER   :: CM3PERM3  = 1.e+6_fp
-      REAL(fp),  PARAMETER   :: SMALLNUM  = 1e-20_fp
+      REAL(fp), PARAMETER  :: XNUMOL_OH = 6.022e+23_fp / 17e-3_fp  ! molec OH / kg OH
+      REAL(fp), PARAMETER  :: CM3PERM3  = 1.e+6_fp
+      REAL(fp), PARAMETER  :: SMALLNUM  = 1e-20_fp
 
       !=================================================================
       ! MODULE VARIABLES
@@ -60,16 +58,17 @@
       ! ZERO_DVEL : Array with zero dry deposition velocity [cm/s]
       ! COSZM     : Max daily value of COS(S.Z. angle) [unitless]
       !=================================================================
-      REAL(fp),  ALLOCATABLE :: TCOSZ(:,:)
-      REAL(fp),  ALLOCATABLE :: TTDAY(:,:)
-      REAL(fp),  ALLOCATABLE :: ZERO_DVEL(:,:)
-      REAL(fp),  ALLOCATABLE :: COSZM(:,:)
+      REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
+      REAL(fp), ALLOCATABLE :: TTDAY(:,:)
+      REAL(fp), ALLOCATABLE :: ZERO_DVEL(:,:)
+      REAL(fp), ALLOCATABLE :: COSZM(:,:)
 
-      ! HEMCO pointers
-      REAL(sp), POINTER    :: C_OC(:,:,:) => NULL()
-      REAL(sp), POINTER    :: C_BC(:,:,:) => NULL()
-      REAL(sp), POINTER    :: O3(:,:,:)   => NULL()
-      REAL(sp), POINTER    :: OH(:,:,:)   => NULL()
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER     :: C_OC(:,:,:) => NULL()
+      REAL(f4), POINTER     :: C_BC(:,:,:) => NULL()
+      REAL(f4), POINTER     :: O3(:,:,:)   => NULL()
+      REAL(f4), POINTER     :: OH(:,:,:)   => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 

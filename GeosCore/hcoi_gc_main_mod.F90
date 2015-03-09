@@ -887,6 +887,9 @@ CONTAINS
     IF ( ExtState%TSKIN%DoUse ) THEN
        ExtState%TSKIN%Arr%Val => State_Met%TSKIN
     ENDIF
+    IF ( ExtState%GWETROOT%DoUse ) THEN
+       ExtState%GWETROOT%Arr%Val => State_Met%GWETROOT
+    ENDIF
     IF ( ExtState%GWETTOP%DoUse ) THEN
        ExtState%GWETTOP%Arr%Val => State_Met%GWETTOP
     ENDIF
@@ -1891,7 +1894,9 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY:
-!  18 Feb 2015 - C. Keller - Initial Version
+!  18 Feb 2015 - C. Keller   - Initial Version
+!  04 Mar 2015 - R. Yantosca - Now determine if we need to read UV albedo
+!                              data from the settings in input.geos
 !EOP
 !------------------------------------------------------------------------------
 
@@ -1903,32 +1908,79 @@ CONTAINS
     CHARACTER(LEN=255)            :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'CheckSettings (hcoi_gc_main_mod.F90'
 
-    !=================================================================
+    !=======================================================================
     ! CheckSettings begins here
-    !=================================================================
+    !=======================================================================
 
-    !-----------------------------------------------------------------
-    ! If emissions shall not be used, reset all extension numbers to
-    ! -999. This will make sure that none of the extensions will be
-    ! initialized and none of the input data related to any of the
-    ! extensions will be used.
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
+    ! If emissions shall not be used, reset all extension numbers to -999. 
+    ! This will make sure that none of the extensions will be initialized 
+    ! and none of the input data related to any of the extensions will be 
+    ! used.  The only exception is the NON-EMISSIONS DATA.
+    !-----------------------------------------------------------------------
     IF ( .NOT. Input_Opt%LEMIS ) THEN
        CALL SetExtNr( am_I_Root, -999, RC=RC )
        IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'SetExtNr', LOC )
     ENDIF
 
-    !-----------------------------------------------------------------
-    ! Set stratospheric chemistry toggle according to options in 
-    ! input.geos. This will enable/disable all fields in input.geos
-    ! that are bracketed by '+LinStratChem+'. Check first if this bracket
-    ! values has been set explicitly in the HEMCO configuration file,
-    ! in which case it's not being changed. Search through all
-    ! extensions (--> ExtNr = -999).
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
+    ! NON-EMISSIONS DATA #1: UV Albedoes
+    !
+    ! Set the UV albedo toggle according to options in input.geos.  This 
+    ! will enable/disable all fields in input.geos that are  bracketed by 
+    ! '+UValbedo+'.  Check first if this bracket values has been set 
+    ! explicitly in the HEMCO configuration file, in which case it will
+    ! not be changed.
+    !
+    ! UV albedoes are needed for photolysis.  Photolysis is only used in 
+    ! fullchem and aerosol-only simulations that have chemistry switched on.
+    ! Now search through full list of extensions (ExtNr = -999).
+    !-----------------------------------------------------------------------
+    CALL GetExtOpt( -999, '+UValbedo+',  OptValBool=LTMP, &
+                            FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'GetExtOpt +UvAlbedo+', LOC )
+    ENDIF
+    IF ( FOUND ) THEN
+       IF ( Input_Opt%LSCHEM /= LTMP ) THEN
+          WRITE(6,'(a)')  ' '
+          WRITE(6,'(a)') 'Setting +UValbedo+ in the HEMCO configuration'
+          WRITE(6,'(a)') 'file does not agree with the chemistry settings'
+          WRITE(6,'(a)') 'in input.geos. This may be inefficient and/or'
+          WRITE(6,'(a)') 'yield incorrect results!' 
+       ENDIF
+    ELSE
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
+            Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+          IF ( Input_Opt%LCHEM ) THEN
+             OptName = '+UValbedo+ : true'
+          ELSE
+             OptName = '+UValbedo+ : false'
+          ENDIF
+       ELSE
+          OptName = '+UValbedo+ : false'
+       ENDIF
+       CALL AddExtOpt( TRIM(OptName), CoreNr, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'AddExtOpt +Uvalbedo+', LOC )
+       ENDIF
+    ENDIF 
+
+    !-----------------------------------------------------------------------
+    ! NON-EMISSIONS DATA #2: GMI linear stratospheric chemistry
+    !
+    ! Set stratospheric chemistry toggle according to options in the
+    ! input.geos file.  This will enable/disable all fields in the HEMCO 
+    ! configuration file that are bracketed by '+LinStratChem+'.  Check 
+    ! first if +LinStratChem+  has been set explicitly in the HEMCO 
+    ! configuration file, in which case it will not be changed. Search
+    ! through all extensions (--> ExtNr = -999).
+    !-----------------------------------------------------------------------
     CALL GetExtOpt( -999, '+LinStratChem+', OptValBool=LTMP, &
-                    FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
+                           FOUND=FOUND,     RC=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'GetExtOpt +LinStratChem+', LOC )
+    ENDIF
     IF ( FOUND ) THEN
        IF ( Input_Opt%LSCHEM /= LTMP ) THEN
           WRITE(*,*) ' '
@@ -1944,7 +1996,9 @@ CONTAINS
           OptName = '+LinStratChem+ : false'
        ENDIF
        CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
-       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'AddExtOpt', LOC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'AddExtOpt +LinStratChem+', LOC )
+       ENDIF
     ENDIF 
 
     !-----------------------------------------------------------------
@@ -1954,7 +2008,9 @@ CONTAINS
     !-----------------------------------------------------------------
     CALL GetExtOpt( -999, 'SHIPNO_BASE', OptValBool=LTMP, &
                     FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'GetExtOpt SHIPNO_BASE', LOC )
+    ENDIF
     ExtNr = GetExtNr( 'ParaNOx' )
 
     ! It is not recommended to set +SHIPNO+ explicitly in the HEMCO
@@ -1975,11 +2031,15 @@ CONTAINS
     !-----------------------------------------------------------------
     CALL GetExtOpt( -999, 'BOND_BIOMASS', OptValBool=LTMP, &
                     FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( 'GetExtOpt', LOC )
-    ExtNr = GetExtNr( 'ParaNOx' )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'GetExtOpt BOND_BIOMASS', LOC )
+    ENDIF
+    ExtNr = GetExtNr( 'FINN' )
+    IF ( ExtNr <= 0 ) THEN
+       ExtNr = GetExtNr( 'GFED3' )
+    ENDIF
 
-    ! It is not recommended to set +SHIPNO+ explicitly in the HEMCO
-    ! configuration file!
+    ! Error check
     IF ( FOUND ) THEN
        IF ( ExtNr > 0 .AND. LTMP ) THEN
           MSG = 'Cannot use BOND_BIOMASS together with GFED3 or FINN:' // &
