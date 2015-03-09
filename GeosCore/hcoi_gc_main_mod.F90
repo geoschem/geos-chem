@@ -282,6 +282,11 @@ CONTAINS
     ! HEMCO configuration file
     HcoState%ConfigFile = Input_Opt%HcoConfigFile
 
+    ! Set deposition length scale. This determines if dry deposition
+    ! frequencies are calculated over the entire PBL or the first
+    ! model layer only.
+    HcoState%Options%PBL_DRYDEP = Input_Opt%PBL_DRYDEP
+
     !=================================================================
     ! Initialize HEMCO internal lists and variables. All data
     ! information is written into internal lists (ReadList) and 
@@ -774,6 +779,11 @@ CONTAINS
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,      ONLY : GC_LAI
 #endif
+
+#if defined(ESMF_) 
+    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+#endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -832,7 +842,7 @@ CONTAINS
        ExtState%FRAC_OF_PBL%Arr%Val => HCO_FRAC_OF_PBL
     ENDIF
 
-    HCO_PBL_MAX = 0d0
+    HCO_PBL_MAX = 0
     ExtState%PBL_MAX => HCO_PBL_MAX
 
     ! ----------------------------------------------------------------
@@ -1008,6 +1018,19 @@ CONTAINS
     ENDIF
     IF ( DoDryCoeff ) ExtState%DRYCOEFF => DRYCOEFF
 
+    ! ----------------------------------------------------------------
+    ! ESMF environment: get pointers to some additional variables 
+    ! ----------------------------------------------------------------
+#if defined( ESMF )
+    CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
+    ENDIF
+#endif
+
+    ! Leave with success
+    RC = GIGC_SUCCESS
+
   END SUBROUTINE ExtState_SetPointers
 !EOC
 !------------------------------------------------------------------------------
@@ -1039,6 +1062,10 @@ CONTAINS
     USE FAST_JX_MOD,           ONLY : FJXFUNC
     USE COMODE_LOOP_MOD,       ONLY : NCS, JPHOTRAT, NRATES
     USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
+
+#if defined(ESMF_) 
+!    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1140,6 +1167,16 @@ CONTAINS
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
+
+!    ! ----------------------------------------------------------------
+!    ! ESMF environment: get pointers to some additional variables 
+!    ! ----------------------------------------------------------------
+#if defined( ESMF )
+!    CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
+!    IF ( RC /= HCO_SUCCESS ) THEN
+!       CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
+!    ENDIF
+#endif
 
   END SUBROUTINE ExtState_UpdtPointers
 !EOC
@@ -1344,10 +1381,11 @@ CONTAINS
              HcoState%Spc(N)%HenryK0     = 0.0_hp
              HcoState%Spc(N)%HenryCR     = 0.0_hp
              HcoState%Spc(N)%HenryPKa    = 0.0_hp
+
+             ! Write to logfile
+             IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
           ENDIF
 
-          ! Write to logfile
-          IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
 
           ! Add line to log-file
           IF ( am_I_Root ) CALL HCO_MSG(SEP1='-')

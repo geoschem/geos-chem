@@ -782,8 +782,6 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 
-    INTEGER :: II
-
     CALL Diagn_Create ( am_I_Root,                      &
                         HcoState   = HcoState,          & 
                         cName      = TRIM(DgnName),     &
@@ -796,7 +794,6 @@ CONTAINS
                         WriteFreq  = TRIM(WriteFreq),   &
                         AutoFill   = 0,                 &
                         Trgt2D     = Trgt2D,            &
-                        cID        = II,                &
                         RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

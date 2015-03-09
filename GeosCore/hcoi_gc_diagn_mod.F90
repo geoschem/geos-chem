@@ -338,8 +338,7 @@ CONTAINS
                                     OutUnit   = 'kg/m2/s',              &
                                     WriteFreq = Default_WriteFreq,      &
                                     AutoFill  = 1,                      &
-                                    cID       = N,                      & 
-                                 RC        = RC ) 
+                                    RC        = RC ) 
                 IF ( RC /= HCO_SUCCESS ) RETURN
              ENDIF
 
@@ -397,7 +396,6 @@ CONTAINS
                                        OutUnit   = 'kg/m2/s',         & 
                                        WriteFreq = Default_WriteFreq, &
                                        AutoFill  = 1,                 &
-                                       cID       = N,                 & 
                                        RC        = RC ) 
                    IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -507,7 +505,6 @@ CONTAINS
                           OutUnit   = 'kg/s',            &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -533,7 +530,6 @@ CONTAINS
                           OutUnit   = 'kg/s',            &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
@@ -660,7 +656,6 @@ CONTAINS
                              OutUnit   = 'kg',              &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDDO 
@@ -787,7 +782,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -902,7 +896,6 @@ CONTAINS
                               OutUnit   = 'kg',              &
                               WriteFreq = 'Manual',          &
                               AutoFill  = 1,                 &
-                              cID       = N,                 & 
                               RC        = RC                  ) 
 
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -1008,7 +1001,6 @@ CONTAINS
                               OutUnit   = 'kg/m2/s',         &
                               WriteFreq = 'Manual',          &
                               AutoFill  = 1,                 &
-                              cID       = N,                 & 
                               RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
@@ -1126,7 +1118,6 @@ CONTAINS
                              OutUnit   = 'kg',              &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1154,7 +1145,6 @@ CONTAINS
                           OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -1172,7 +1162,6 @@ CONTAINS
                           OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -1190,7 +1179,6 @@ CONTAINS
                           OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -1208,7 +1196,6 @@ CONTAINS
                           OutUnit   = 'kg',                    &
                           WriteFreq = 'Manual',                &
                           AutoFill  = 1,                       &
-                          cID       = N,                       & 
                           RC        = RC                        )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -1226,7 +1213,6 @@ CONTAINS
                           OutUnit   = 'kg',                    &
                           WriteFreq = 'Manual',                &
                           AutoFill  = 1,                       &
-                          cID       = N,                       & 
                           RC        = RC                        )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -1244,7 +1230,6 @@ CONTAINS
                           OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -1271,7 +1256,6 @@ CONTAINS
                           OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -1290,7 +1274,6 @@ CONTAINS
                           OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -1309,7 +1292,6 @@ CONTAINS
                           OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -1336,7 +1318,6 @@ CONTAINS
                           OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1355,7 +1336,6 @@ CONTAINS
                           OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
@@ -1467,7 +1447,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1494,7 +1473,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1521,7 +1499,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1548,7 +1525,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1575,7 +1551,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1602,7 +1577,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1629,7 +1603,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1655,7 +1628,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1678,7 +1650,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1706,7 +1677,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1742,7 +1712,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1769,7 +1738,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
              
@@ -1791,7 +1759,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
@@ -1818,7 +1785,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1840,7 +1806,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1873,7 +1838,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1905,7 +1869,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',       &
                              WriteFreq = 'Manual',        &
                              AutoFill  = 1,               &
-                             cID       = N,               & 
                              RC        = RC                ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -1933,7 +1896,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',       &
                           WriteFreq = 'Manual',        &
                           AutoFill  = 1,               &
-                          cID       = N,               & 
                           RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
@@ -2032,7 +1994,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',          &
                           WriteFreq = 'Manual',           &
                           AutoFill  = 1,                  &
-                          cID       = N,                  & 
                           RC        = RC                   )
        IF ( RC /= HCO_SUCCESS ) RETURN 
    
@@ -2062,7 +2023,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
@@ -2088,7 +2048,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
@@ -2117,7 +2076,6 @@ CONTAINS
                               OutUnit   = 'kg/m2/s',         &
                               WriteFreq = 'Manual',          &
                               AutoFill  = 1,                 &
-                              cID       = N,                 & 
                               RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN 
    
@@ -2143,7 +2101,6 @@ CONTAINS
                               OutUnit   = 'kg/m2/s',         &
                               WriteFreq = 'Manual',          &
                               AutoFill  = 0,                 &
-                              cID       = N,                 & 
                               RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
@@ -2274,7 +2231,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
@@ -2307,7 +2263,6 @@ CONTAINS
                             OutUnit   = 'kg/m2/s',         &
                             WriteFreq = 'Manual',          &
                             AutoFill  = 1,                 &
-                            cID       = N,                 & 
                             RC        = RC                  ) 
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
@@ -2340,7 +2295,6 @@ CONTAINS
                             OutUnit   = 'kg/m2/s',         &
                             WriteFreq = 'Manual',          &
                             AutoFill  = 1,                 &
-                            cID       = N,                 & 
                             RC        = RC                  ) 
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
@@ -2450,7 +2404,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -2476,7 +2429,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -2502,7 +2454,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -2528,7 +2479,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -2554,7 +2504,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -2580,7 +2529,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -2606,7 +2554,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -2632,7 +2579,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
@@ -2663,7 +2609,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -2696,7 +2641,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -2820,7 +2764,6 @@ CONTAINS
                                  OutUnit   = 'kg/m2/s',         &
                                  WriteFreq = 'Manual',          &
                                  AutoFill  = 1,                 &
-                                 cID       = N,                 & 
                                  RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
@@ -2847,7 +2790,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
@@ -2874,7 +2816,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
@@ -2903,7 +2844,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
@@ -2932,7 +2872,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
@@ -2963,7 +2902,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
@@ -3002,7 +2940,6 @@ CONTAINS
                                    OutUnit   = 'kg/m2/s',         &
                                    WriteFreq = 'Manual',          &
                                    AutoFill  = 0,                 &
-                                   cID       = N,                 & 
                                    RC        = RC                  ) 
                 IF ( RC /= HCO_SUCCESS ) RETURN 
              ENDDO
@@ -3043,7 +2980,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN 
           ENDIF
@@ -3074,7 +3010,6 @@ CONTAINS
                                 OutUnit   = 'kg/m2/s',         &
                                 WriteFreq = 'Manual',          &
                                 AutoFill  = 1,                 &
-                                cID       = N,                 & 
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN 
           ENDIF
@@ -3105,7 +3040,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
@@ -3145,7 +3079,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',        &
                              WriteFreq = 'Manual',         &
                              AutoFill  = 1,                &
-                             cID       = N,                & 
                              RC        = RC                 ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
@@ -3171,7 +3104,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',        &
                              WriteFreq = 'Manual',         &
                              AutoFill  = 1,                &
-                             cID       = N,                & 
                              RC        = RC                 ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
@@ -3196,7 +3128,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',        &
                              WriteFreq = 'Manual',         &
                              AutoFill  = 1,                &
-                             cID       = N,                & 
                              RC        = RC                 ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
@@ -3222,7 +3153,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',        &
                              WriteFreq = 'Manual',         &
                              AutoFill  = 1,                &
-                             cID       = N,                & 
                              RC        = RC                 ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
@@ -3269,7 +3199,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',        &
                           WriteFreq = 'Manual',         &
                           AutoFill  = 1,                &
-                          cID       = N,                & 
                           RC        = RC                 ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -3345,16 +3274,14 @@ CONTAINS
     ! Assume success
     RC = HCO_SUCCESS
 
-    ! Exit if we are doing a specialty simulation w/o lightning
-    !IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
-
     ! Define diagnostics
     IF ( Input_Opt%ND56 > 0 ) THEN
 
        ! Extension number
        ExtNr = GetExtNr('LightNOx')
 
-       ! Exit if LightNOx was not turned on
+       ! Exit if LightNOx is not turned on - the lightning NOx extension
+       ! must be enabled in the HEMCO configuration file.
        IF ( ExtNr <= 0 ) THEN
           MSG = 'Lightning NOx is not enabled - cannot write diagnostics ND56!'
           CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
@@ -3390,32 +3317,98 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'flashes/min/km2', &
                              OutOper   = 'Mean',            &
-                             WriteFreq = TRIM(WriteFreq),   &
+                             WriteFreq = 'Manual',          &
+!                             WriteFreq = TRIM(WriteFreq),   &
                              AutoFill  = 0,                 &
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDDO
+ 
+       ! ------------------------------------------------------ 
+       ! Some more diagnostics
+       ! ------------------------------------------------------ 
 
-       ! Diagnose most recent mtype
        CALL Diagn_Create( am_I_Root,                     & 
                           HcoState  = HcoState,          &
-                          cName     = 'LIGHTNING_MTYPE', & 
+                          cName     = 'RCCODE_TOP',      & 
                           ExtNr     = ExtNr,             &
                           Cat       = -1,                &
                           Hier      = -1,                &
-                          HcoID     = HcoID,             &
+                          HcoID     = -1,                &
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = '1',               &
                           OutOper   = 'Instantaneous',   &
                           WriteFreq = TRIM(WriteFreq),   &
                           AutoFill  = 0,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ENDIF 
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = 'BYNCY_TOP',       & 
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = '1',               &
+                          OutOper   = 'Instantaneous',   &
+                          WriteFreq = TRIM(WriteFreq),   &
+                          AutoFill  = 0,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = 'CNV_TOP',         & 
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = '1',               &
+                          OutOper   = 'Instantaneous',   &
+                          WriteFreq = TRIM(WriteFreq),   &
+                          AutoFill  = 0,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = 'TRAD_TOP',        & 
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = '1',               &
+                          OutOper   = 'Instantaneous',   &
+                          WriteFreq = TRIM(WriteFreq),   &
+                          AutoFill  = 0,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = 'TRAD_BYNCY_TOP',  & 
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = '1',               &
+                          OutOper   = 'Instantaneous',   &
+                          WriteFreq = TRIM(WriteFreq),   &
+                          AutoFill  = 0,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ENDIF ! ND56 
 
   END SUBROUTINE Diagn_LFlash
 !EOC
@@ -3518,7 +3511,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 &
-                             cID       = N,                 & 
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -3542,7 +3534,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 0,                 &
-                             cID       = N,                 & 
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
   
@@ -3560,7 +3551,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 0,                 &
-                             cID       = N,                 & 
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
  
@@ -3578,7 +3568,6 @@ CONTAINS
                              OutOper   = 'Mean',            &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 0,                 &
-                             cID       = N,                 & 
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
   
@@ -3596,7 +3585,6 @@ CONTAINS
                              OutOper   = 'Mean',            &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 0,                 &
-                             cID       = N,                 & 
                              RC        = RC                  )
           IF ( RC /= HCO_SUCCESS ) RETURN
  
@@ -3701,7 +3689,6 @@ CONTAINS
 !                          OutUnit   = 'kg',              &
 !                          WriteFreq = 'Manual',          &
 !                          AutoFill  = 1,                 &
-!                          cID       = N,                 & 
 !                          RC        = RC                  ) 
 !       IF ( RC /= HCO_SUCCESS ) RETURN 
 !------------------------------------------------------------------------------
@@ -3728,7 +3715,6 @@ CONTAINS
                           OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -3754,7 +3740,6 @@ CONTAINS
                           OutUnit   = 'kg',            &
                           WriteFreq = 'Manual',        &
                           AutoFill  = 1,               &
-                          cID       = N,               & 
                           RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -3781,7 +3766,6 @@ CONTAINS
                           OutUnit   = 'kg',              &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
@@ -3894,7 +3878,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -3926,7 +3909,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -3958,7 +3940,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF   
@@ -3990,7 +3971,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF   
@@ -4022,7 +4002,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -4054,7 +4033,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -4086,7 +4064,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -4118,7 +4095,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 1,                 &
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -4159,7 +4135,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 1,                 & 
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF     
@@ -4200,7 +4175,6 @@ CONTAINS
                              OutUnit   = 'kg/m2/s',         &
                              WriteFreq = 'Manual',          &
                              AutoFill  = 0,                 &  ! Manually filled !!
-                             cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF     
@@ -4224,7 +4198,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',         &
                           WriteFreq = 'Manual',          &
                           AutoFill  = 0,                 &  ! Manually filled !!
-                          cID       = N,                 & 
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF     
@@ -4315,7 +4288,6 @@ CONTAINS
                        OutUnit   = 'kg/m2/s',       &
                        WriteFreq = 'Manual',        &
                        AutoFill  = 1,               &
-                       cID       = N,               & 
                        RC        = RC                ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4338,7 +4310,6 @@ CONTAINS
                        OutUnit   = 'kg/m2/s',       &
                        WriteFreq = 'Manual',        &
                        AutoFill  = 1,               &
-                       cID       = N,               & 
                        RC        = RC                ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4363,7 +4334,6 @@ CONTAINS
                        OutUnit   = 'kg/m2/s',       &
                        WriteFreq = 'Manual',        &
                        AutoFill  = 1,               &
-                       cID       = N,               & 
                        RC        = RC                ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4386,7 +4356,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',       &
                           WriteFreq = 'Manual',        &
                           AutoFill  = 1,               &
-                          cID       = N,               & 
                           RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
@@ -4410,7 +4379,6 @@ CONTAINS
                           OutUnit   = 'kg/m2/s',       &
                           WriteFreq = 'Manual',        &
                           AutoFill  = 1,               &
-                          cID       = N,               & 
                           RC        = RC                ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF

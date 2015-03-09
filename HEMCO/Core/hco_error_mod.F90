@@ -81,7 +81,7 @@ MODULE HCO_Error_Mod
   ! Missing value
   ! Note: define missing value as single precision because all data arrays
   ! are read/stored in single precision.
-  REAL(sp), PARAMETER, PUBLIC :: HCO_MISSVAL = -9.99999e-31_sp
+  REAL(sp), PARAMETER, PUBLIC :: HCO_MISSVAL = -1.e-31_sp
 
   ! Cycle flags. Used to determine the temporal behavior of data
   ! fields. For example, data set to 'cycle' will be recycled if

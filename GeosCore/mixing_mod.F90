@@ -149,6 +149,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    LOGICAL       :: OnlyAbovePBL
 
     !=================================================================
     ! DO_MIXING begins here!
@@ -161,11 +162,16 @@ CONTAINS
     ! Do non-local PBL mixing. This will apply the tracer tendencies
     ! (emission fluxes and dry deposition rates) below the PBL.
     ! This is done for all species with defined emissions / dry
-    ! deposition rates, including dust. 
+    ! deposition rates, including dust.
+    ! Set OnlyAbovePBL flag (used below by DO_TEND) to indicate that
+    ! fluxes within the PBL have already been applied. 
     ! ------------------------------------------------------------------
-    IF ( Input_Opt%LNLPBL ) THEN
+    IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
        CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt, &
                           State_Met, State_Chm,       RC          )
+       OnlyAbovePBL = .TRUE.
+    ELSE
+       OnlyAbovePBL = .FALSE.
     ENDIF
 
     ! ------------------------------------------------------------------
@@ -183,7 +189,8 @@ CONTAINS
                         State_Met%AD, State_Chm%Tracers ) 
 
     ! Apply tendencies
-    CALL DO_TEND ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    CALL DO_TEND ( am_I_Root, Input_Opt,    State_Met, &
+                   State_Chm, OnlyAbovePBL, RC          )
 
     ! Convert back: kg --> v/v
     CALL CONVERT_UNITS( 1, Input_Opt%N_TRACERS, Input_Opt%TCVV, &
@@ -193,7 +200,7 @@ CONTAINS
     ! Do full pbl mixing. This fully mixes the updated tracer 
     ! concentrations within the PBL. 
     ! ------------------------------------------------------------------
-    IF ( .NOT. Input_Opt%LNLPBL ) THEN
+    IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
        CALL DO_PBL_MIX( Input_Opt%LTURB, Input_Opt, State_Met, State_Chm )
     ENDIF
 
@@ -212,7 +219,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_TEND ( am_I_Root, Input_Opt, State_Met, State_Chm, RC, DT ) 
+  SUBROUTINE DO_TEND ( am_I_Root, Input_Opt,    State_Met, &
+                       State_Chm, OnlyAbovePBL, RC,    DT   ) 
 !
 ! !USES:
 !
@@ -225,6 +233,8 @@ CONTAINS
     USE TRACERID_MOD,       ONLY : IDTMACR, IDTRCHO, IDTACET, IDTALD2
     USE TRACERID_MOD,       ONLY : IDTALK4, IDTC2H6, IDTC3H8, IDTCH2O
     USE TRACERID_MOD,       ONLY : IDTPRPE
+    USE TRACERID_MOD,       ONLY : IDTBrO,  IDTBr2,  IDTBr,   IDTHOBr
+    USE TRACERID_MOD,       ONLY : IDTHBr,  IDTBrNO3 
     USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
     USE TIME_MOD,           ONLY : GET_TS_DYN
@@ -244,15 +254,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root  ! root CPU?
-    TYPE(OptInput),   INTENT(IN   )           :: Input_Opt  ! Input opts
-    TYPE(MetState),   INTENT(IN   )           :: State_Met  ! Met state
-    REAL(fp),         INTENT(IN   ), OPTIONAL :: DT         ! Time step [s]
+    LOGICAL,          INTENT(IN   )           :: am_I_Root    ! root CPU?
+    TYPE(OptInput),   INTENT(IN   )           :: Input_Opt    ! Input opts
+    TYPE(MetState),   INTENT(IN   )           :: State_Met    ! Met state
+    LOGICAL,          INTENT(IN   )           :: OnlyAbovePBL ! Only above PBL?
+    REAL(fp),         INTENT(IN   ), OPTIONAL :: DT           ! Time step [s]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState),   INTENT(INOUT)           :: State_Chm  ! Chemistry state 
-    INTEGER,          INTENT(INOUT)           :: RC         ! Failure or success
+    TYPE(ChmState),   INTENT(INOUT)           :: State_Chm    ! Chemistry state 
+    INTEGER,          INTENT(INOUT)           :: RC           ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  04 Mar 2015 - C. Keller    - Initial version 
@@ -264,17 +275,19 @@ CONTAINS
 !
     INTEGER            :: I, J, L, L1, L2, N, NN
     INTEGER            :: DRYDEPID
-    INTEGER            :: PBL_TOP
+    INTEGER            :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)           :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
     REAL(fp)           :: MWkg 
     LOGICAL            :: FND
+    LOGICAL            :: PBL_DRYDEP, LSCHEM, ChemGridOnly
+    LOGICAL            :: LEMIS,      LDRYD
+    LOGICAL            :: DryDepSpec, EmisSpec
 
     ! For diagnostics
 #if defined( DEVEL )
-    INTEGER            :: HCRC
-    CHARACTER(LEN=255) :: DiagnName
-    REAL(fp), POINTER  :: Ptr3D(:,:,:,:) => NULL()
-    REAL(fp), POINTER  :: EMIS(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) 
+    INTEGER            :: cID, HCRC
+    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp), TARGET   :: EMIS(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) 
 #endif
 
     !=================================================================
@@ -286,6 +299,12 @@ CONTAINS
 
     ! Special case that there is no dry deposition and emissions
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
+
+    ! Shadow variables
+    LSCHEM     = Input_Opt%LSCHEM
+    LEMIS      = Input_Opt%LEMIS 
+    LDRYD      = Input_Opt%LDRYD 
+    PBL_DRYDEP = Input_Opt%PBL_DRYDEP
 
     ! Get time step [s]
     IF ( PRESENT(DT) ) THEN
@@ -303,29 +322,46 @@ CONTAINS
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT ( SHARED )                                               &
 !$OMP PRIVATE( I, J, L, L1, L2, N, NN, PBL_TOP, FND, TMP, DRYDEPID   ) &
-!$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg                 )  
+!$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg, ChemGridOnly   ) & 
+!$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP             )
     DO N = 1, Input_Opt%N_TRACERS
 
-       ! Get dry deposition index DRYDEPID. This is the ID used by
-       ! dry deposition for this species. 
-       DRYDEPID = -1
-       IF ( L1 == 1 ) THEN
-          DO NN = 1, Input_Opt%NUMDEP
-             IF ( NTRAIND(NN) == N ) THEN
-                DRYDEPID = NN
-                EXIT
-             ENDIF
-          ENDDO !NN
+       ! Check if we need to do dry deposition for this species 
+       DryDepSpec = .FALSE.
+
+       ! Only if dry deposition is turned on and we do want to consider
+       ! processes below the PBL...
+       IF ( LDRYD .AND. .NOT. OnlyAbovePBL ) THEN
+
+          ! Get dry deposition index DRYDEPID. This is the ID used by
+          ! drydep_mod.F90 for this species. 
+          DRYDEPID = -1
+          IF ( L1 == 1 ) THEN
+             DO NN = 1, Input_Opt%NUMDEP
+                IF ( NTRAIND(NN) == N ) THEN
+                   DRYDEPID = NN
+                   EXIT
+                ENDIF
+             ENDDO !NN
+          ENDIF
+
+          ! Check if this is a HEMCO drydep species 
+          DryDepSpec = ( DRYDEPID > 0 )
+          IF ( .NOT. DryDepSpec ) THEN
+             CALL GetHcoVal ( N, 1, 1, 1, DryDepSpec, dep = TMP )
+          ENDIF
        ENDIF
 
-       ! Check if this species is indeed defined
-       FND = ( DRYDEPID > 0 )
-       IF ( .NOT. FND ) CALL GetHcoVal ( N, 1, 1, 1, FND, dep  = TMP )
-       IF ( .NOT. FND ) CALL GetHcoVal ( N, 1, 1, 1, FND, emis = TMP )
+       ! Check if we need to do emisisons for this species 
+       IF ( LEMIS ) THEN
+          CALL GetHcoVal ( N, 1, 1, 1, EmisSpec, emis = TMP )
+       ELSE
+          EmisSpec = .FALSE.
+       ENDIF
 
        ! Can go to next species if this species does not have dry deposition
        ! and/or emissions
-       IF ( .NOT. FND ) CYCLE
+       IF ( .NOT. DryDepSpec .AND. .NOT. EmisSpec ) CYCLE
 
        ! Loop over all grid boxes
        DO J = 1, JJPAR    
@@ -341,31 +377,62 @@ CONTAINS
           MWkg = Input_Opt%TRACER_MW_KG(N)
 
           ! Determine lower level L1 to be used: 
-          ! for the non-local PBL scheme, only apply emissions above the 
-          ! PBL_TOP, as all other emissions have already been added in 
-          ! the pbl mixing routine. This will also disable dry deposition,
-          ! which is only applied if L = 1. 
-          IF ( Input_Opt%LNLPBL ) THEN 
+          ! If specified so, apply emissions only above the PBL_TOP.
+          ! This will also disable dry deposition. 
+          IF ( OnlyAbovePBL ) THEN 
              L1 = PBL_TOP + 1
           ELSE
              L1 = 1 
           ENDIF
 
-          ! Determine upper level:
+          ! Set dry deposition top level based on PBL_DRYDEP flag of
+          ! Input_Opt.
+          IF ( PBL_DRYDEP ) THEN
+             DRYD_TOP = PBL_TOP 
+          ELSE
+             DRYD_TOP = 1
+          ENDIF
+
+          ! Set emissions top level:
           ! This is the top of atmosphere unless concentration build-up
           ! in stratosphere wants to be avoided.
-          ! Set emissions to zero fo the following VOCs (adopted from
-          ! aeic_mod.F).
+          ChemGridOnly = .FALSE.
+
+          ! Set emissions to zero above chemistry grid for the following 
+          ! VOCs (adopted from aeic_mod.F).
           IF ( N == IDTMACR .OR. N == IDTRCHO .OR. &
                N == IDTACET .OR. N == IDTALD2 .OR. & 
                N == IDTALK4 .OR. N == IDTC2H6 .OR. & 
                N == IDTC3H8 .OR. N == IDTCH2O .OR. & 
                N == IDTPRPE                         ) THEN 
-             L2 = GET_CHEMGRID_LEVEL( I, J, State_Met )
-             L2 = MIN(LLPAR,L2)
-          ELSE
-             L2 = LLPAR
+             ChemGridOnly = .TRUE. 
           ENDIF
+
+          ! Bry concentrations become prescribed in lin. strat. chemistry.
+          ! Therefore avoid any emissions of these compounds above the 
+          ! chemistry grid (lin. strat. chem. applies above chemistry grid
+          ! only).
+          IF ( LSCHEM ) THEN
+             IF ( N == IDTBrO  .OR. N == IDTBr2   .OR. &
+                  N == IDTBr   .OR. N == IDTHOBr  .OR. & 
+                  N == IDTHBr  .OR. N == IDTBrNO3       ) THEN
+                ChemGridOnly = .TRUE.
+             ENDIF
+          ENDIF
+
+          ! Restrict to chemistry grid
+          IF ( ChemGridOnly ) THEN
+             EMIS_TOP = GET_CHEMGRID_LEVEL( I, J, State_Met )
+             EMIS_TOP = MIN(LLPAR,EMIS_TOP)
+          ELSE
+             EMIS_TOP = LLPAR
+          ENDIF
+
+          ! L2 is the upper level index to loop over
+          L2 = MAX(DRYD_TOP, EMIS_TOP)
+
+          ! This should not happen:
+          IF ( L2 < L1 ) CYCLE
 
           ! Loop over selected vertical levels 
           DO L = L1, L2
@@ -374,7 +441,7 @@ CONTAINS
              ! Apply dry deposition frequencies to all levels below the
              ! PBL top.
              !-----------------------------------------------------------
-             IF ( Input_Opt%LDRYD .AND. ( L <= PBL_TOP ) ) THEN
+             IF ( DryDepSpec .AND. ( L <= DRYD_TOP ) ) THEN
 
                 ! Init
                 FRQ = 0.0_fp
@@ -394,6 +461,7 @@ CONTAINS
                 ! Add to dry dep frequency from drydep_mod.F
                 IF ( FND ) FRQ = FRQ + TMP
 
+                ! Apply dry deposition
                 IF ( FRQ > 0.0_fp ) THEN
 
                    ! Compute exponential loss term
@@ -427,9 +495,8 @@ CONTAINS
              ! Apply emissions.
              ! These are always taken from HEMCO
              !-----------------------------------------------------------
-          
-             IF ( Input_Opt%LEMIS ) THEN
-   
+             IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
+    
                 ! Get HEMCO emissions. Units are [kg/m2/s].
                 CALL GetHcoVal ( N, I, J, L, FND, emis=TMP )
            
@@ -445,7 +512,7 @@ CONTAINS
 
                    ! Update diagnostics
 #if defined( DEVEL )
-                   EMIS(I,J,L,N) = FLUX
+                   EMIS(I,J,L,N) = TMP 
 #endif
                 ENDIF
              ENDIF
@@ -461,17 +528,18 @@ CONTAINS
     DO N = 1, Input_Opt%N_TRACERS
 
        ! Only if HEMCO tracer is defined
-       IF ( GetHcoID( TrcID=N ) <= 0 ) CYCLE
+       cID = GetHcoID( TrcID=N )
+       IF ( cID <= 0 ) CYCLE
 
        ! Define diagnostics name
-       DiagnName = 'TRACER_EMIS_' // TRIM( Input_Opt%TRACER_NAME(N) )
+       cID = 10000 + cID
 
        ! Point to species slice 
        Ptr3D => EMIS(:,:,:,N)
 
        ! Update the emissions diagnostics
        CALL Diagn_Update( am_I_Root,                           &
-                          cName   = TRIM( DiagnName ),         &
+                          cID     = cID,                       &
                           Array3D = Ptr3D,                     &
                           COL     = Input_Opt%DIAG_COLLECTION, &
                           RC      = HCRC                        )
@@ -481,8 +549,9 @@ CONTAINS
 
        ! Error check
        IF ( HCRC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ('Error updating diagnostics: '//TRIM(DiagnName), &
-                           'DO_TEND (mixing_mod.F90)'
+          CALL ERROR_STOP ('Error updating diagnostics: '// &
+                           'TRACER_EMIS_'//TRIM(Input_Opt%TRACER_NAME(N)), &
+                           'DO_TEND (mixing_mod.F90)' )
        ENDIF
     ENDDO
 #endif

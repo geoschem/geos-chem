@@ -164,6 +164,14 @@ MODULE HCOX_STATE_MOD
      REAL(dp)                  :: POP_KOA     ! POP octanol-water partition coef
      REAL(dp)                  :: POP_KBC     ! POP BC-air partition coeff.
 
+     !----------------------------------------------------------------------
+     ! Fields used in ESMF environment only. These arrays won't be used
+     ! in a classic environment. 
+     !----------------------------------------------------------------------
+     TYPE(ExtDat_2R),  POINTER :: CNV_TOPP    ! Convective cloud top height 
+     TYPE(ExtDat_3R),  POINTER :: RCCODE      ! Convection return code
+     TYPE(ExtDat_3R),  POINTER :: BYNCY       ! Buoyancy 
+
   END TYPE Ext_State
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -386,6 +394,15 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%WET_TOTN, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%CNV_TOPP, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%RCCODE, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%BYNCY, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Return w/ success
     RC = HCO_SUCCESS
 
@@ -463,6 +480,9 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%HNO3       )
        CALL ExtDat_Cleanup( ExtState%DRY_TOTN   )
        CALL ExtDat_Cleanup( ExtState%WET_TOTN   )
+       CALL ExtDat_Cleanup( ExtState%CNV_TOPP   )
+       CALL ExtDat_Cleanup( ExtState%RCCODE     )
+       CALL ExtDat_Cleanup( ExtState%BYNCY      )
 
        ExtState%DRYCOEFF   => NULL()
        ExtState%PBL_MAX    => NULL()

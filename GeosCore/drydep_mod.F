@@ -434,7 +434,8 @@
 #endif
 
       ! For ESMF, need to assign these from Input_Opt
-      LOGICAL       :: LNLPBL
+      LOGICAL       :: PBL_DRYDEP 
+!      LOGICAL       :: LNLPBL
       LOGICAL       :: LPRT
 
 #if defined( DEVEL )
@@ -458,8 +459,9 @@
       RC     = GIGC_SUCCESS
       
       ! Copy values from the Input Options object to local variables
-      LNLPBL  = Input_Opt%LNLPBL
-      LPRT    = Input_Opt%LPRT
+      PBL_DRYDEP = Input_Opt%PBL_DRYDEP
+!      LNLPBL     = Input_Opt%LNLPBL
+      LPRT       = Input_Opt%LPRT
 
       ! Be careful only to copy NUMDEP values from Input_Opt%NDVZIND
       ! to the NDVZIND local array.  This will prevent an OOB error.
@@ -501,8 +503,9 @@
          ! Make sure that the PBL depth is greater than or equal 
          ! to the thickness of the 1st layer (rjp, bmy, 7/21/03)
          ! Add option for non-local PBL mixing scheme: THIK must
-         ! be the first box height. (Lin, 03/31/09) 
-         IF (.NOT. LNLPBL) THIK    = MAX( ZH(IJLOOP), THIK )
+         ! be the first box height. (Lin, 03/31/09)
+         ! Now use PBL_DRYDEP instead of LNLPBL (ckeller, 3/5/15). 
+         IF (PBL_DRYDEP) THIK = MAX( ZH(IJLOOP), THIK )
 
          ! Loop over drydep species
          DO N = 1, NUMDEP
@@ -1142,11 +1145,15 @@
       DTCHEM  = GET_TS_CHEM() * 60e+0_f8
 
       ! Maximum extent of the PBL [model layers]
-      PBL_MAX = GET_PBL_MAX_L() 
+      ! PBL_MAX = GET_PBL_MAX_L() 
 
       ! Add option for non-local PBL mixing scheme: only done at the surface
       ! (Lin, 03/31/09) 
-      IF ( Input_Opt%LNLPBL ) PBL_MAX = 1
+      IF ( Input_Opt%PBL_DRYDEP ) THEN
+         PBL_MAX = GET_PBL_MAX_L()
+      ELSE
+         PBL_MAX = 1
+      ENDIF
 
       ! Loop over drydep species
 !$OMP PARALLEL DO
@@ -1172,10 +1179,13 @@
             FRACLOST = DEPSAV(I,J,N) * F_UNDER_TOP * DTCHEM
 
             ! add option for non-local PBL mixing scheme: only the surface
-            ! (Lin, 03/31/09) 
-            IF ( Input_Opt%LNLPBL) THEN
-               FRACLOST = DEPSAV(I,J,N) * DTCHEM
-            ENDIF
+            ! (Lin, 03/31/09)
+            ! This is not needed any more. If the non-local PBL scheme
+            ! is used, PBL_MAX is 1 and F_UNDER_TOP for level 1 should 
+            ! always be one. 
+!            IF ( Input_Opt%LNLPBL) THEN
+!               FRACLOST = DEPSAV(I,J,N) * DTCHEM
+!            ENDIF
 
             !===========================================================
             ! Proceed as follows:
@@ -1514,6 +1524,13 @@
       !=================================================================
       ! DEPVEL begins here!
       !=================================================================
+
+      ! Error check: PBL_DRYDEP must not be used together with non-local
+      ! PBL mixing. 
+      IF ( Input_Opt%LNLPBL .AND. Input_Opt%PBL_DRYDEP ) THEN 
+         CALL ERROR_STOP( 'PBL_DRYDEP must be disabled for LNLPBL', 
+     &                    'DEPVEL (drydep_mod.F)')
+      ENDIF
 
       ! Initialize pointers
       IREG  => State_Met%IREG

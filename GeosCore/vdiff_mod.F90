@@ -1796,7 +1796,7 @@ contains
 !
 ! !INTERFACE:
 !
-  SUBROUTINE VDIFFDR( as2, Input_Opt, State_Met, State_Chm )
+  SUBROUTINE VDIFFDR( am_I_Root, as2, Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 ! 
@@ -1828,12 +1828,18 @@ contains
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     ! HEMCO update
-    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID, GetHcoVal
+#if defined( DEVEL )
+    USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+#endif
 
     implicit none
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+    ! is this the root CPU?
+    LOGICAL,        INTENT(IN)            :: am_I_Root
+
     ! Input options object
     TYPE(OptInput), INTENT(IN)            :: Input_Opt
     
@@ -1957,6 +1963,12 @@ contains
     LOGICAL            :: FND
     REAL(fp)           :: TMPFLX, EMIS, DEP
     INTEGER            :: TOPMIX
+
+    ! For HEMCO diagnostics
+#if defined( DEVEL )
+    REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    INTEGER            :: cID, HCRC
+#endif
 
     !=================================================================
     ! vdiffdr begins here!
@@ -2475,6 +2487,34 @@ contains
     enddo
 #endif
 
+    ! Write (surface) emissions into diagnostics
+#if defined( DEVEL )
+
+    ! Allocate temporary data array
+    ALLOCATE(Ptr3D(IIPAR,JJPAR,LLPAR))
+    Ptr3D = 0.0_fp
+
+    DO N = 1, N_TRACERS
+       IF ( ANY(eflx(:,:,N) > 0.0_fp ) ) THEN
+          Ptr3D(:,:,1) = eflx(:,:,N)
+          cID = GetHcoID ( TrcID=N )
+          IF ( cID > 0 ) THEN
+             cID = 10000 + cID
+             CALL Diagn_Update( am_I_Root,                           &
+                                cID     = cID,                       &
+                                Array3D = Ptr3D,                     &
+                                COL     = Input_Opt%DIAG_COLLECTION, &
+                                RC      = HCRC                        )
+             Ptr3D = 0.0_fp
+          ENDIF
+       ENDIF
+    ENDDO
+
+    DEALLOCATE(Ptr3D)
+
+#endif
+
+
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
     ! for aerosols -- 
@@ -2793,11 +2833,12 @@ contains
     ENDIF
 
     ! Compute PBL height and related quantities
-    CALL COMPUTE_PBL_HEIGHT( State_Met )
+    ! -> now done in main.F (ckeller, 3/5/15)
+!    CALL COMPUTE_PBL_HEIGHT( State_Met )
 
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_VDIFF ) THEN
-       CALL VDIFFDR( STT, Input_Opt, State_Met, State_Chm )
+       CALL VDIFFDR( am_I_Root, STT, Input_Opt, State_Met, State_Chm )
        IF( LPRT .and. am_I_Root ) THEN
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF

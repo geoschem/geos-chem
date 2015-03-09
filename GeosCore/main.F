@@ -91,7 +91,7 @@
       !-----------------------------------------------------------------
       USE CONVECTION_MOD        ! For deep cloud convection
       USE LINOZ_MOD             ! For LINOX linear strat chemistry
-      USE PBL_MIX_MOD           ! For full PBL mixing (TURBDAY)
+      USE PBL_MIX_MOD           ! To compute PBL height 
       USE TPCORE_BC_MOD         ! For nested-grid boundary conditions
       USE TRANSPORT_MOD         ! Driver routines for advection
       USE CHEMGRID_MOD          ! For the dynamic tropopause
@@ -1198,6 +1198,14 @@
          IF ( IDTCLOCK .ne. 0 ) THEN
             CALL SET_CLOCK_TRAC( GET_TS_DYN(), State_Chm )
          ENDIF
+
+         !--------------------------------------------------------------
+         ! Compute PBL height
+         ! Move this call from the PBL mixing routines because the PBL
+         ! height is used by drydep and some of the emissions routines.
+         ! (ckeller, 3/5/15) 
+         !--------------------------------------------------------------
+         CALL COMPUTE_PBL_HEIGHT ( State_Met )
 
          !--------------------------------------------------------------
          ! Test for emission timestep

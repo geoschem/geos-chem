@@ -420,7 +420,6 @@ CONTAINS
                              OutUnit   = 's-1',             &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
-                             cID       = cId,               &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -449,7 +448,6 @@ CONTAINS
                              OutUnit   = 'cm-2 s-1',        &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
-                             cID       = cId,               &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -550,7 +548,6 @@ CONTAINS
                              OutUnit   = 'v/v',             &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
-                             cId       = cId,               &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -669,7 +666,6 @@ CONTAINS
                           OutOper   = TRIM( OutOper   ), &
                           WriteFreq = TRIM( WriteFreq ), &
                           ScaleFact = ScaleFact,         &
-                          cId       = cId,               &
                           RC        = RC )
 
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -697,13 +693,14 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE Error_Mod,          ONLY : Error_Stop
     USE GIGC_ErrCode_Mod
+    USE HCO_Error_Mod
+    USE Error_Mod,          ONLY : Error_Stop
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
     USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE HCO_Error_Mod
+    USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -725,14 +722,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-
-    !=======================================================================
-    ! Define diagnostics (total emissions)
-    !=======================================================================
-
-    ! Assume success
-    RC = HCO_SUCCESS
-
+    INTEGER            :: ID
     INTEGER            :: cId,      Collection, N
     CHARACTER(LEN=15)  :: OutOper,  WriteFreq
     CHARACTER(LEN=60)  :: DiagnName
@@ -754,9 +744,31 @@ CONTAINS
  
     ! Loop over # of species 
     DO N = 1, Input_Opt%N_TRACERS
-         
+       
+       ! HEMCO ID
+       ID = GetHcoID( TrcID = N )
+ 
+       ! Restrict diagnostics to these species
+       IF ( N /= IDTNO    .AND. N /= IDTCO     .AND. &
+            N /= IDTALK4  .AND. N /= IDTISOP   .AND. &
+            N /= IDTHNO3  .AND. N /= IDTACET   .AND. &
+            N /= IDTMEK   .AND. N /= IDTALD2   .AND. &
+            N /= IDTPRPE  .AND. N /= IDTC3H8   .AND. &
+            N /= IDTC2H6  .AND. N /= IDTDMS    .AND. &
+            N /= IDTSO2   .AND. N /= IDTSO4    .AND. &
+            N /= IDTNH3   .AND. N /= IDTBCPI   .AND. &
+            N /= IDTOCPI  .AND. N /= IDTBCPO   .AND. &
+            N /= IDTOCPO  .AND. N /= IDTDST1   .AND. &
+            N /= IDTDST2  .AND. N /= IDTDST3   .AND. &
+            N /= IDTDST4  .AND. N /= IDTSALA   .AND. &
+            N /= IDTSALC  .AND. N /= IDTBr2    .AND. &
+            N /= IDTBrO   .AND. N /= IDTCH2Br2 .AND. &
+            N /= IDTCH3Br                              ) THEN
+          ID = -1
+       ENDIF
+ 
        ! If this is an emission tracer, add diagnostics for emissions. 
-       IF ( GetHcoID( TrcID=N ) > 0 ) THEN 
+       IF ( ID > 0 ) THEN 
 
           !----------------------------------------------------------------
           ! Create container for emission flux (m/s) 
@@ -765,21 +777,24 @@ CONTAINS
           ! Diagnostic name
           DiagnName = 'TRACER_EMIS_' // TRIM( Input_Opt%TRACER_NAME(N) )
 
+          ! Diagnostics ID
+          cID = 10000 + ID
+
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
                              Col       = Collection,        & 
+                             cID       = cID,               &
                              cName     = TRIM( DiagnName ), &
                              AutoFill  = 0,                 &
                              ExtNr     = -1,                &
                              Cat       = -1,                &
                              Hier      = -1,                &
-                             HcoID     = -1,                &
+                             HcoID     = ID,                &
                              SpaceDim  =  3,                &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/m2/s',         &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
-                             cId       = cId,               &
                              RC        = RC                  )
 
           IF ( RC /= HCO_SUCCESS ) THEN
