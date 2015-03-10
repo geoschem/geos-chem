@@ -665,7 +665,8 @@ CONTAINS
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
-    CALL HCOX_FINAL ( ExtState ) 
+    CALL HCOX_FINAL ( am_I_Root, HcoState, ExtState, HMRC ) 
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOX_FINAL', LOC )
 
     ! Cleanup HcoState object 
     CALL HcoState_Final ( HcoState ) 

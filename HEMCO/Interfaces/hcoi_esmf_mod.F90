@@ -26,6 +26,8 @@ MODULE HCOI_ESMF_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
+
+  ! ESMF environment only:
   PUBLIC :: HCO_SetServices 
   PUBLIC :: HCO_SetExtState_ESMF
   !PUBLIC :: HCOI_ESMF_DIAGNCREATE
@@ -320,7 +322,8 @@ CONTAINS
 !
 ! !ROUTINE: HCO_SetExtState_ESMF
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Subroutine HCO\_SetExtState\_ESMF tries to populate some
+! fields of the ExtState object from the ESMF import state. 
 !\\
 !\\
 ! !INTERFACE:
@@ -364,9 +367,17 @@ CONTAINS
       ASSERT_(ASSOCIATED(IMPORT))
 
       ! Get pointers to fields
-      CALL MAPL_GetPointer( IMPORT, ExtState%BYNCY%Arr%Val   , 'BYNCY'   , __RC__ )
-      CALL MAPL_GetPointer( IMPORT, ExtState%RCCODE%Arr%Val  , 'RCCODE'  , __RC__ )
-      CALL MAPL_GetPointer( IMPORT, ExtState%CNV_TOPP%Arr%Val, 'CNV_TOPP', __RC__ )
+      CALL MAPL_GetPointer( IMPORT, Ptr3D, 'BYNCY', notFoundOK=.TRUE., __RC__ )
+      IF ( ASSOCIATED(Ptr3D) ) ExtState%BYNCY%Arr%Val => Ptr3D
+      Ptr3D => NULL()
+
+      CALL MAPL_GetPointer( IMPORT, Ptr3D, 'RCCODE', notFoundOK=.TRUE., __RC__ )
+      IF ( ASSOCIATED(Ptr3D) ) ExtState%RCCODE%Arr%Val => Ptr3D
+      Ptr3D => NULL()
+
+      CALL MAPL_GetPointer( IMPORT, Ptr2D, 'CNV_TOPP', notFoundOK=.TRUE., __RC__ )
+      IF ( ASSOCIATED(Ptr3D) ) ExtState%CNV_TOPP%Arr%Val => Ptr2D
+      Ptr2D => NULL()
 
       ! Return success
       RC = HCO_SUCCESS 

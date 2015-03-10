@@ -562,7 +562,8 @@ CONTAINS
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
-    CALL HCOX_FINAL( ExtState ) 
+    CALL HCOX_FINAL( am_I_Root, HcoState, ExtState, RC ) 
+    IF (RC /= HCO_SUCCESS) RETURN 
 
     ! Deallocate module arrays/pointers
     IF ( ALLOCATED( XMID    ) ) DEALLOCATE ( XMID    )

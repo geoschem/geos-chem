@@ -157,9 +157,6 @@ MODULE HCOX_SoilNOx_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Diagnostics output frequency
-  CHARACTER(LEN=31), PARAMETER  :: WriteFreq = 'End'
-
   ! Max. # of allowed drycoeff vars
   INTEGER,  PARAMETER           :: MaxDryCoeff = 50 
 
@@ -264,6 +261,7 @@ CONTAINS
     USE HCO_FLuxArr_Mod,    ONLY : HCO_EmisAdd
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+    USE HCO_Restart_Mod,    ONLY : HCO_RestartGet
 !
 ! !INPUT PARAMETERS:
 !
@@ -291,7 +289,6 @@ CONTAINS
     REAL*4                   :: TSEMIS
     REAL(hp)                 :: UNITCONV, IJFLUX
     REAL(dp), ALLOCATABLE    :: VecDp(:)
-    REAL(sp), POINTER        :: TmpArr(:,:) => NULL()
     REAL(hp), POINTER        :: Arr2D (:,:) => NULL()
     LOGICAL, SAVE            :: FIRST = .TRUE.
     LOGICAL                  :: aIR, FOUND
@@ -380,39 +377,51 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     
        !---------------------------------------------------------------
-       ! Also initialize variables obtained from the restart file specified 
-       ! in the configuration file. 
+       ! Fill restart variables. Restart variables can be specified 
+       ! in the HEMCO configuration file. In an ESMF environment, they
+       ! can also be defined as internal state fields. The internal 
+       ! state fields take precedence over fields read through the 
+       ! HEMCO interface. 
        !---------------------------------------------------------------
 
        ! DEP_RESERVOIR. Read in kg NO/m3.
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_DEPRES', TmpArr, RC )
+       CALL HCO_RestartGet( am_I_Root, HcoState, 'DEP_RESERVOIR', &
+                            DEP_RESERVOIR, RC,   FOUND=FOUND       )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       DEP_RESERVOIR(:,:) = TmpArr(:,:)
-       TmpArr => NULL()
-
+       IF ( .NOT. FOUND ) THEN
+          DEP_RESERVOIR = 1.0e-4_sp
+          MSG = 'Cannot find DEP_RESERVOIR restart variable - initialized to 1e-4!'
+          CALL HCO_WARNING(MSG,RC)
+       ENDIF
+    
        ! GWET_PREV [unitless]
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_GWET', TmpArr, RC )
+       CALL HCO_RestartGet( am_I_Root, HcoState, 'GWET_PREV', &
+                            GWET_PREV, RC,   FOUND=FOUND       )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       GWET_PREV(:,:) = TmpArr(:,:)
-       TmpArr => NULL()
-          
+       IF ( .NOT. FOUND ) THEN
+          GWET_PREV = 0.0_sp
+          MSG = 'Cannot find GWET_PREV restart variable - initialized to 0.0!'
+          CALL HCO_WARNING(MSG,RC)
+       ENDIF
+
        ! PFACTOR [unitless]
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_PFACT', TmpArr, RC )
+       CALL HCO_RestartGet( am_I_Root, HcoState, 'PFACTOR', &
+                            PFACTOR,   RC,   FOUND=FOUND     )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       PFACTOR(:,:) = TmpArr(:,:)
-       TmpArr => NULL()
+       IF ( .NOT. FOUND ) THEN
+          PFACTOR = 1.0_sp
+          MSG = 'Cannot find PFACTOR restart variable - initialized to 1.0!'
+          CALL HCO_WARNING(MSG,RC)
+       ENDIF
    
        ! DRYPERIOD [unitless]
-       CALL HCO_GetPtr ( aIR, 'SOILNOX_DRYPER', TmpArr, RC )
+       CALL HCO_RestartGet( am_I_Root, HcoState, 'DRYPERIOD', &
+                            DRYPERIOD, RC,   FOUND=FOUND     )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       DRYPERIOD(:,:) = TmpArr(:,:)
-       TmpArr => NULL()
-
-       ! Print a warning
-       IF ( am_I_Root ) THEN
-          MSG = 'Restart variables obtained from restart file - ' // &
-                'I hope the correct time stamp is used!'
-          CALL HCO_WARNING( MSG, RC )
+       IF ( .NOT. FOUND ) THEN
+          DRYPERIOD = 0.0_sp
+          MSG = 'Cannot find DRYPERIOD restart variable - initialized to 0.0!'
+          CALL HCO_WARNING(MSG,RC)
        ENDIF
 
        ! Check if ExtState variables DRYCOEFF is defined. Otherwise, try to
@@ -563,6 +572,7 @@ CONTAINS
 !
     USE HCO_ExtList_Mod,        ONLY : GetExtNr, GetExtOpt
     USE HCO_STATE_MOD,          ONLY : HCO_GetExtHcoID
+    USE HCO_Restart_Mod,        ONLY : HCO_RestartDefine
 !
 ! !ARGUMENTS:
 !
@@ -717,82 +727,27 @@ CONTAINS
 #endif
 
     ! ---------------------------------------------------------------------- 
-    ! Set diagnostics 
-    ! ---------------------------------------------------------------------- 
-    CALL Diagn_Create ( am_I_Root,                    &
-                        HcoState   = HcoState,        & 
-                        cName      = 'PFACTOR',       &
-                        ExtNr      = ExtNr,           &
-                        Cat        = -1,              &
-                        Hier       = -1,              &
-                        HcoID      = IDTNO,           &
-                        SpaceDim   = 2,               &
-                        OutUnit    = 'unitless',      &
-                        WriteFreq  = TRIM(WriteFreq), & 
-                        AutoFill   = 0,               &
-                        Trgt2D     = PFACTOR,         &
-                        RC         = RC                )
+    ! Set diagnostics
+    ! ----------------------------------------------------------------------
+    CALL HCO_RestartDefine( am_I_Root, HcoState, 'PFACTOR', &
+                            PFACTOR,   '1',      RC          )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+    CALL HCO_RestartDefine( am_I_Root, HcoState, 'DRYPERIOD', &
+                            DRYPERIOD, '1',      RC          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root,                    &
-                        HcoState   = HcoState,        & 
-                        cName      = 'DRYPERIOD',     &
-                        ExtNr      = ExtNr,           &
-                        Cat        = -1,              &
-                        Hier       = -1,              &
-                        HcoID      = IDTNO,           &
-                        SpaceDim   = 2,               &
-                        OutUnit    = 'unitless',      &
-                        WriteFreq  = TRIM(WriteFreq), & 
-                        AutoFill   = 0,               &
-                        Trgt2D     = DRYPERIOD,       &
-                        RC         = RC                )
+    CALL HCO_RestartDefine( am_I_Root, HcoState, 'GWET_PREV', &
+                            GWET_PREV, '1',      RC          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root,                    &
-                        HcoState   = HcoState,        & 
-                        cName      = 'GWET_PREV',     &
-                        ExtNr      = ExtNr,           &
-                        Cat        = -1,              &
-                        Hier       = -1,              &
-                        HcoID      = IDTNO,           &
-                        SpaceDim   = 2,               &
-                        OutUnit    = 'unitless',      &
-                        WriteFreq  = TRIM(WriteFreq), & 
-                        AutoFill   = 0,               &
-                        Trgt2D     = GWET_PREV,       &
-                        RC         = RC                )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    CALL Diagn_Create ( am_I_Root,                      &
-                        HcoState   = HcoState,          & 
-                        cName      = 'DEP_RESERVOIR',   &
-                        ExtNr      = ExtNr,             &
-                        Cat        = -1,                &
-                        Hier       = -1,                &
-                        HcoID      = IDTNO,             &
-                        SpaceDim   = 2,                 &
-                        OutUnit    = 'kg/m3',           &
-                        WriteFreq  = TRIM(WriteFreq),   & 
-                        AutoFill   = 0,                 &
-                        Trgt2D     = DEP_RESERVOIR,     &
-                        RC         = RC                  )
+    CALL HCO_RestartDefine( am_I_Root,     HcoState, 'DEP_RESERVOIR', &
+                            DEP_RESERVOIR, 'kg/m3',  RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
 #if defined(DEVEL)
-    CALL Diagn_Create ( am_I_Root,                      &
-                        HcoState   = HcoState,          & 
-                        cName      = 'SOILNO_PULSE',    &
-                        ExtNr      = ExtNr,             &
-                        Cat        = -1,                &
-                        Hier       = -1,                &
-                        HcoID      = IDTNO,             &
-                        SpaceDim   = 2,                 &
-                        OutUnit    = '1',               &
-                        WriteFreq  = TRIM(WriteFreq),   & 
-                        AutoFill   = 0,                 &
-                        Trgt2D     = DGN_PULSE,         &
-                        RC         = RC                  )
+    CALL HCO_RestartDefine( am_I_Root, HcoState, 'SOILNO_PULSE', &
+                            DGN_PULSE, '1',      RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif 
  
@@ -838,7 +793,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SoilNOx_Final()
+  SUBROUTINE HCOX_SoilNOx_Final( am_I_Root, HcoState, RC )
+!
+! !USES
+!
+    USE HCO_Restart_Mod,  ONLY : HCO_RestartWrite
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root     ! Root CPU?
+    TYPE(HCO_State), POINTER        :: HcoState      ! HEMCO State obj
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
 !  05 Nov 2013 - C. Keller - Initial Version
@@ -855,6 +823,37 @@ CONTAINS
     !=================================================================
     ! HCOX_SoilNOx_FINAL begins here!
     !=================================================================
+
+    ! ----------------------------------------------------------------
+    ! Eventually copy internal values to ESMF internal state object
+    ! ----------------------------------------------------------------
+
+    ! DEP_RESERVOIR [kg/m3]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'DEP_RESERVOIR', DEP_RESERVOIR, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! GWET_PREV [unitless]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'GWET_PREV', GWET_PREV, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+          
+    ! PFACTOR [unitless]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'PFACTOR', PFACTOR, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+   
+    ! DRYPERIOD [unitless]
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'DRYPERIOD', DRYPERIOD, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+#if defined(DEVEL)
+    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
+                          'SOILNO_PULSE', DGN_PULSE, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( ALLOCATED(DGN_PULSE) ) DEALLOCATE(DGN_PULSE)
+#endif
 
     ! Deallocate arrays
     IF ( ALLOCATED (DRYPERIOD    ) ) DEALLOCATE ( DRYPERIOD     )

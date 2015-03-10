@@ -335,14 +335,12 @@ CONTAINS
           ! Get dry deposition index DRYDEPID. This is the ID used by
           ! drydep_mod.F90 for this species. 
           DRYDEPID = -1
-          IF ( L1 == 1 ) THEN
-             DO NN = 1, Input_Opt%NUMDEP
-                IF ( NTRAIND(NN) == N ) THEN
-                   DRYDEPID = NN
-                   EXIT
-                ENDIF
-             ENDDO !NN
-          ENDIF
+          DO NN = 1, Input_Opt%NUMDEP
+             IF ( NTRAIND(NN) == N ) THEN
+                DRYDEPID = NN
+                EXIT
+             ENDIF
+          ENDDO !NN
 
           ! Check if this is a HEMCO drydep species 
           DryDepSpec = ( DRYDEPID > 0 )

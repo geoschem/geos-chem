@@ -74,10 +74,11 @@ MODULE HCO_State_Mod
      LOGICAL                     :: isESMF     ! Are we using ESMF?
      TYPE(HcoOpt),       POINTER :: Options    ! HEMCO run options
 
-     !%%%%%  ESMF state objects
+     !%%%%%  ESMF objects
 #if defined(ESMF_)
-     TYPE(ESMF_State),   POINTER :: IMPORT
-     TYPE(ESMF_State),   POINTER :: EXPORT
+     TYPE(ESMF_GridComp), POINTER :: GridComp 
+     TYPE(ESMF_State),    POINTER :: IMPORT
+     TYPE(ESMF_State),    POINTER :: EXPORT
 #endif
   END TYPE HCO_State
 !
@@ -384,8 +385,13 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%PBL_DRYDEP = .FALSE. 
 
-    !-----------------------------------------------------------------
-    ! Initialize variables 
+    ! Make sure ESMF pointers are not dangling around
+#if defined(ESMF_)
+    HcoState%GridComp => NULL()
+    HcoState%IMPORT   => NULL()
+    HcoState%EXPORT   => NULL()
+#endif
+
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
@@ -466,8 +472,9 @@ CONTAINS
     IF ( ASSOCIATED ( HcoState%Phys    ) ) DEALLOCATE ( HcoState%Phys    )
 
 #if defined(ESMF_)
-    HcoState%IMPORT => NULL()
-    HcoState%EXPORT => NULL()
+    HcoState%GridComp => NULL()
+    HcoState%IMPORT   => NULL()
+    HcoState%EXPORT   => NULL()
 #endif
 
   END SUBROUTINE HcoState_Final

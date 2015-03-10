@@ -524,7 +524,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Final( ExtState )
+  SUBROUTINE HCOX_Final( am_I_Root, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -547,15 +547,23 @@ CONTAINS
     USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Final
 #endif
 !
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+!
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(Ext_State),  POINTER :: ExtState     ! Extension options object 
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
+    TYPE(Ext_State),  POINTER        :: ExtState   ! Extension options object 
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
 !  07 Jul 2014 - R. Yantosca - Now finalize GEOS-Chem Rn-Pb-Be emissions pkg
 !  20 Aug 2014 - M. Sulprizio- Now finalize GEOS-Chen POPs emissions module
 !  01 Oct 2014 - R. Yantosca - Now finalize TOMAS sea salt emissions module
+!  09 Mar 2015 - C. Keller   - Now pass HcoState since it is needed by some
+!                              finalization calls.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -575,14 +583,14 @@ CONTAINS
        ! Call individual cleanup routines
        IF ( ExtState%Custom        ) CALL HCOX_Custom_Final()
        IF ( ExtState%SeaFlux       ) CALL HCOX_SeaFlux_Final()
-       IF ( ExtState%ParaNOx       ) CALL HCOX_PARANOX_Final()
+       IF ( ExtState%ParaNOx       ) CALL HCOX_PARANOX_Final(am_I_Root,HcoState,RC)
        IF ( ExtState%LightNOx      ) CALL HCOX_LIGHTNOX_Final()
        IF ( ExtState%DustDead      ) CALL HCOX_DustDead_Final()
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
        IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
-       IF ( ExtState%Megan         ) CALL HCOX_Megan_Final()
+       IF ( ExtState%Megan         ) CALL HCOX_Megan_Final(am_I_Root,HcoState,RC)
        IF ( ExtState%GFED3         ) CALL HCOX_GFED3_Final()
-       IF ( ExtState%SoilNOx       ) CALL HCOX_SoilNox_Final()  
+       IF ( ExtState%SoilNOx       ) CALL HCOX_SoilNox_Final(am_I_Root,HcoState,RC)
        IF ( ExtState%FINN          ) CALL HcoX_FINN_Final
        IF ( ExtState%GC_RnPbBe     ) CALL HCOX_GC_RnPbBe_Final()
        IF ( ExtState%GC_POPs       ) CALL HCOX_GC_POPs_Final()
