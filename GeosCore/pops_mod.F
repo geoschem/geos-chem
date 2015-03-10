@@ -200,15 +200,21 @@
       
 
       ! Add option for non-local PBL (cdh, 08/27/09)
-      ! Dry deposition now occurs in mixing_mod.F90 (ckeller (3/5/15)
+!------------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Dry deposition now occurs in mixing_mod.F90 (ckeller (3/5/15)
 !      IF ( LNLPBL ) THEN
+!------------------------------------------------------------------------------
 
-         ! Dry deposition occurs with PBL mixing,
-         ! pass zero deposition frequency
+      ! Dry deposition occurs with PBL mixing,
+      ! pass zero deposition frequency
       CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
      &                 am_I_Root, Input_Opt, State_Met,
      &                 State_Chm, RC )
          
+!------------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Dry deposition now occurs in mixing_mod.F90 (ckeller (3/5/15)
 !      ELSE
 !
 !         IF ( DRYPOPG    > 0   .and. DRYPOPP_OC > 0 .and.
@@ -312,6 +318,7 @@
 !         ENDIF
 !
 !      ENDIF
+!------------------------------------------------------------------------------
 
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMPOPS: a CHEM_GASPART' )
    
@@ -1546,6 +1553,7 @@
 !  25 Aug 2014 - M. Sulprizio- Now accept am_I_Root and RC arguments
 !  10 Sep 2014 - M. Sulprizio- Remove calls to GET_GLOBAL_OC and GET_GLOBAL_BC,
 !                              these fields are now read in HEMCO
+!  10 Mar 2015 - R. Yantosca - Now always allocate ZERO_DVEL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1584,13 +1592,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTDAY' )
       TTDAY = 0e+0_fp
 
-      ! Allocate ZERO_DVEL if we use non-local PBL mixing or
-      ! if drydep is turned off 
-      IF ( LNLPBL .OR. (.not. LDRYD) ) THEN
-         ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZERO_DVEL' )
-         ZERO_DVEL = 0e+0_fp
-      ENDIF
+      ! Now always allocate ZERO_DVEL.  This is needed because the calls
+      ! to CHEM_POPGP have been modified in the CHEMPOPS routine above.
+      ! (bmy, 3/10/15)
+      ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZERO_DVEL' )
+      ZERO_DVEL = 0e+0_fp
 
       END SUBROUTINE INIT_POPS
 !EOC
