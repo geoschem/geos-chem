@@ -133,7 +133,7 @@ CONTAINS
     ! file has to be read in its entirety before the timezone data
     ! is loaded into a data container. (bmy, 2/23/15)
     IF ( FIRST ) THEN
-       CALL HcoClock_InitTzPtr( RC )
+       CALL HcoClock_InitTzPtr( am_I_Root, RC )
        FIRST = .FALSE.
     ENDIF
 

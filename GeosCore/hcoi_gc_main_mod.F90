@@ -1025,7 +1025,7 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! ESMF environment: get pointers to some additional variables 
     ! ----------------------------------------------------------------
-#if defined( ESMF )
+#if defined( ESMF_ )
     CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )

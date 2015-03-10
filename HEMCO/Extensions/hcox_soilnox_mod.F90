@@ -390,8 +390,10 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           DEP_RESERVOIR = 1.0e-4_sp
-          MSG = 'Cannot find DEP_RESERVOIR restart variable - initialized to 1e-4!'
-          CALL HCO_WARNING(MSG,RC)
+          IF ( am_I_Root ) THEN
+             MSG = 'Cannot find DEP_RESERVOIR restart variable - initialized to 1e-4!'
+             CALL HCO_WARNING(MSG,RC)
+          ENDIF
        ENDIF
     
        ! GWET_PREV [unitless]
@@ -400,8 +402,10 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           GWET_PREV = 0.0_sp
-          MSG = 'Cannot find GWET_PREV restart variable - initialized to 0.0!'
-          CALL HCO_WARNING(MSG,RC)
+          IF ( am_I_Root ) THEN
+             MSG = 'Cannot find GWET_PREV restart variable - initialized to 0.0!'
+             CALL HCO_WARNING(MSG,RC)
+          ENDIF
        ENDIF
 
        ! PFACTOR [unitless]
@@ -410,8 +414,10 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           PFACTOR = 1.0_sp
-          MSG = 'Cannot find PFACTOR restart variable - initialized to 1.0!'
-          CALL HCO_WARNING(MSG,RC)
+          IF ( am_I_Root ) THEN
+             MSG = 'Cannot find PFACTOR restart variable - initialized to 1.0!'
+             CALL HCO_WARNING(MSG,RC)
+          ENDIF
        ENDIF
    
        ! DRYPERIOD [unitless]
@@ -420,8 +426,10 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           DRYPERIOD = 0.0_sp
-          MSG = 'Cannot find DRYPERIOD restart variable - initialized to 0.0!'
-          CALL HCO_WARNING(MSG,RC)
+          IF ( am_I_Root ) THEN
+             MSG = 'Cannot find DRYPERIOD restart variable - initialized to 0.0!'
+             CALL HCO_WARNING(MSG,RC)
+          ENDIF
        ENDIF
 
        ! Check if ExtState variables DRYCOEFF is defined. Otherwise, try to

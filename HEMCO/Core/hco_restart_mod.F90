@@ -289,7 +289,6 @@ CONTAINS
     LOGICAL,             INTENT(IN   )           :: am_I_Root
     TYPE(HCO_State),     POINTER                 :: HcoState
     CHARACTER(LEN=*),    INTENT(IN   )           :: Name 
-    REAL(sp),            INTENT(IN   )           :: Arr2D(HcoState%NX,HcoState%NY)
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -297,6 +296,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
+    REAL(sp),            INTENT(INOUT)           :: Arr2D(HcoState%NX,HcoState%NY)
     INTEGER,             INTENT(INOUT)           :: RC
 !
 ! !REVISION HISTORY:
