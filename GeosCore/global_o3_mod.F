@@ -88,7 +88,11 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  This will be made obsolete with the implementation of HEMCO.
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 !
 ! !REVISION HISTORY: 
 !  23 Mar 2003 - R. Yantosca - Initial version
@@ -112,6 +116,7 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  20 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod
 !  05 Sep 2014 - R. Yantosca - Add hack to read GCAP met field, for unit tests
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -147,10 +152,12 @@
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to handle the nested-resolution file, Y. Zhang 11/1/2011
       FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
+     &           TRIM( Input_Opt%RES_DIR  )                 //
      &           'mercury_201203/MERGE.O3.47L.'             //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 #else
       FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
+     &           TRIM( Input_Opt%RES_DIR  )                 //
      &           'sulfate_sim_200508/offline/MERGE.O3.47L.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 #endif
@@ -159,6 +166,7 @@
 
       ! Filename for 72-level model
       FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
+     &           TRIM( Input_Opt%RES_DIR  )                 //
      &           'sulfate_sim_200508/offline/MERGE.O3.'     //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
@@ -170,6 +178,7 @@
       ! GCAP
       !----------------------------------------------------------------
       FILENAME = TRIM( Input_Opt%DATA_DIR ) //  
+     &           TRIM( Input_Opt%RES_DIR  ) //
      &           'POPs_201209/MERGE.O3.gcap.4x5'
 
 #else
@@ -181,6 +190,7 @@
 
       ! Filename for 30-level model
       FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
+     &           TRIM( Input_Opt%RES_DIR  )                 //
      &           'sulfate_sim_200508/offline/MERGE.O3.30L.' // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
@@ -189,6 +199,7 @@
 
       ! Filename for full vertical grid
       FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
+     &           TRIM( Input_Opt%RES_DIR  )                 //
      &           'sulfate_sim_200508/offline/MERGE.O3.'     // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 

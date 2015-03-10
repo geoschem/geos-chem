@@ -15,8 +15,8 @@
 !
 ! !USES:
 !
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-      USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
+      USE PRECISION_MOD                ! For GEOS-Chem Precision (fp, f4, f8)
+      USE ERROR_MOD, ONLY : DEBUG_MSG  ! Routine for debug output
 
       IMPLICIT NONE
       PRIVATE
@@ -1091,6 +1091,7 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  15 Mar 2013 - R. Yantosca - Now call INIT_LINOZ from GIGC_Init_Extra
+!   5 Mar 2015 - R. Yantosca - Now read data relative to ExtData/CHEM_INPUTS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1100,7 +1101,7 @@
       ! Scalars
       INTEGER            :: IU_FILE, K,     J
       INTEGER            :: M,       NTBLS, IOS
-      REAL(fp)             :: TMAX,    TMIN
+      REAL(fp)           :: TMAX,    TMIN
 
       ! Dimension sizes
       INTEGER            :: NFIELDS_LINOZ
@@ -1127,7 +1128,13 @@
       NMONTHS_LINOZ  = Input_Opt%LINOZ_NMONTHS
 
       ! Filename
-      FILENAME       = TRIM( Input_Opt%DATA_DIR_1x1 ) //
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Now reference the Linoz data from the CHEM_INPUTS directory (bmy, 3/5/15)
+!      FILENAME       = TRIM( Input_Opt%DATA_DIR_1x1 ) //
+!     &                 'Linoz_200910/Linoz_March2007.dat'
+!-----------------------------------------------------------------------------
+      FILENAME       = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
      &                 'Linoz_200910/Linoz_March2007.dat'
 
       ! Echo info

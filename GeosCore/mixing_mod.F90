@@ -265,7 +265,11 @@ CONTAINS
     INTEGER,          INTENT(INOUT)           :: RC           ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  04 Mar 2015 - C. Keller    - Initial version 
+!  04 Mar 2015 - C. Keller   - Initial version 
+!  09 Mar 2015 - R. Yantosca - Bug fix: Use the drydep ID number instead of the
+!                              tracer number to index the AD44 drydep array
+!  09 Mar 2015 - R. Yantosca - Bug fix: Remove an IF ( L1 == 1 ) block where
+!                              we define DRYDEPID.  This isn't needed here.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -325,8 +329,13 @@ CONTAINS
 !$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP             )
     DO N = 1, Input_Opt%N_TRACERS
 
+       !----------------------------------------------------------------
        ! Check if we need to do dry deposition for this species 
+       !----------------------------------------------------------------
+
+       ! Initialize
        DryDepSpec = .FALSE.
+       DryDepID   = -1
 
        ! Only if dry deposition is turned on and we do want to consider
        ! processes below the PBL...
@@ -334,7 +343,6 @@ CONTAINS
 
           ! Get dry deposition index DRYDEPID. This is the ID used by
           ! drydep_mod.F90 for this species. 
-          DRYDEPID = -1
           DO NN = 1, Input_Opt%NUMDEP
              IF ( NTRAIND(NN) == N ) THEN
                 DRYDEPID = NN
@@ -349,20 +357,28 @@ CONTAINS
           ENDIF
        ENDIF
 
+       !----------------------------------------------------------------
        ! Check if we need to do emisisons for this species 
+       !----------------------------------------------------------------
        IF ( LEMIS ) THEN
           CALL GetHcoVal ( N, 1, 1, 1, EmisSpec, emis = TMP )
        ELSE
           EmisSpec = .FALSE.
        ENDIF
 
-       ! Can go to next species if this species does not have dry deposition
-       ! and/or emissions
+       !----------------------------------------------------------------
+       ! Can go to next species if this species does not have 
+       ! dry deposition and/or emissions
+       !----------------------------------------------------------------
        IF ( .NOT. DryDepSpec .AND. .NOT. EmisSpec ) CYCLE
 
        ! Loop over all grid boxes
        DO J = 1, JJPAR    
        DO I = 1, IIPAR    
+
+          !------------------------------------------------------------
+          ! Define various quantities before computing tendencies
+          !------------------------------------------------------------
 
           ! Get PBL_TOP at this grid box
           PBL_TOP = State_Met%PBL_TOP_L(I,J)
@@ -434,10 +450,10 @@ CONTAINS
           ! Loop over selected vertical levels 
           DO L = L1, L2
 
-             !-----------------------------------------------------------
+             !----------------------------------------------------------
              ! Apply dry deposition frequencies to all levels below the
              ! PBL top.
-             !-----------------------------------------------------------
+             !----------------------------------------------------------
              IF ( DryDepSpec .AND. ( L <= DRYD_TOP ) ) THEN
 
                 ! Init
@@ -476,7 +492,7 @@ CONTAINS
                    ! Diagnostics are in molec/cm2/s.
 #if !defined( NO_BPCH )
                    ! ND44 diagnostics
-                   IF ( ND44 > 0 .AND. DryDepID > 0 ) THEN
+                   IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
                       AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX
                    ENDIF
 #endif
@@ -488,10 +504,10 @@ CONTAINS
 
              ENDIF ! L <= PBLTOP
 
-             !-----------------------------------------------------------
+             !----------------------------------------------------------
              ! Apply emissions.
              ! These are always taken from HEMCO
-             !-----------------------------------------------------------
+             !----------------------------------------------------------
              IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
     
                 ! Get HEMCO emissions. Units are [kg/m2/s].
@@ -520,8 +536,14 @@ CONTAINS
     ENDDO !N
 !$OMP END PARALLEL DO
 
-    ! Update diagnostics. These are defined in diagnostics_mod.F90
 #if defined( DEVEL )
+    !-------------------------------------------------------------------
+    ! Update diagnostics that will get saved to netCDF files.
+    ! These are defined in diagnostics_mod.F90
+    ! 
+    ! NOTE: For now, this is only activated by compiling with DEVEL=y,
+    ! but in the future this will replace the bpch diagnostics!
+    !-------------------------------------------------------------------
     DO N = 1, Input_Opt%N_TRACERS
 
        ! Only if HEMCO tracer is defined

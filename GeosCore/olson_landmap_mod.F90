@@ -606,6 +606,7 @@ CONTAINS
 !  29 Nov 2012 - R. Yantosca - Add am_I_Root to the argument list
 !  26 Feb 2013 - M. Long     - Now pass DATA_DIR_1x1 via the argument list
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt, RC via the arg list
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -673,8 +674,13 @@ CONTAINS
     !======================================================================
 
     ! Construct file path from directory & file name
-    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
-    nc_path = TRIM( nc_dir )                 // TRIM( nc_file )
+!------------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Now read data w/r/t ExtData/CHEM_INPUTS path (bmy, 3/5/15)
+!    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
+!------------------------------------------------------------------------------
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'Olson_Land_Map_201203/'
+    nc_path = TRIM( nc_dir )                    // TRIM( nc_file )
 
     ! Open file for read
     CALL Ncop_Rd( fId, TRIM(nc_path) )

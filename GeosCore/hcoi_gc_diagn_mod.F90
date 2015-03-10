@@ -2699,6 +2699,7 @@ CONTAINS
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use MEGAN
 !  18 Feb 2015 - M. Sulprizio- Add manual diagnostics for individual MEGAN
 !                              species (MBOX, APIN, BPIN, etc.)
+!  10 Mar 2015 - R. Yantosca - Remove double-definition of BIOGENIC_LIMO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3156,118 +3157,128 @@ CONTAINS
        ENDIF
     ENDIF ! Megan mono
 
-    !=======================================================================
-    ! These diagnostics use the MEGAN SOA extension
-    !=======================================================================
-    IF ( Input_Opt%LSOA .AND. ( ND46 > 0 .OR. ND07 > 0 ) ) THEN
-
-       ! Extension # of MEGAN SOA
-       ExtNr = GetExtNr('MEGAN_SOA')
-       IF ( ExtNr < 0 ) THEN
-          MSG = 'MEGAN SOA emissions are not turned on!'
-          CALL HCO_Error( MSG, RC, THISLOC=LOC )
-          RETURN      
-       ENDIF
-         
-       !----------------------------------------
-       ! %%%%% Biogenic MTPA %%%%%
-       !----------------------------------------
-
-       ! HEMCO species ID
-       HcoID = HCO_GetHcoID( 'MTPA', HcoState )
-
-       IF ( HcoID > 0 ) THEN
-          ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                    & 
-                             HcoState  = HcoState,         &
-                             cName     = 'BIOGENIC_MTPA',  &
-                             ExtNr     = ExtNr,            &
-                             Cat       = -1,               &
-                             Hier      = -1,               &
-                             HcoID     = HcoID,            &
-                             SpaceDim  = 2,                &
-                             LevIDx    = -1,               &
-                             OutUnit   = 'kg/m2/s',        &
-                             WriteFreq = 'Manual',         &
-                             AutoFill  = 1,                &
-                             RC        = RC                 ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-       ENDIF
-
-       !----------------------------------------
-       ! %%%%% Biogenic MTPO %%%%%
-       !----------------------------------------
-
-       ! HEMCO species ID
-       HcoID = HCO_GetHcoId( 'MTPO', HcoState )
-
-       IF ( HcoID > 0 ) THEN
-          ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                    & 
-                             HcoState  = HcoState,         &
-                             cName     = 'BIOGENIC_MTPO',  &
-                             ExtNr     = ExtNr,            &
-                             Cat       = -1,               &
-                             Hier      = -1,               &
-                             HcoID     = HcoID,            &
-                             SpaceDim  = 2,                &
-                             LevIDx    = -1,               &
-                             OutUnit   = 'kg/m2/s',        &
-                             WriteFreq = 'Manual',         &
-                             AutoFill  = 1,                &
-                             RC        = RC                 ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-       ENDIF
-       !----------------------------------------
-       ! %%%%% Biogenic LIMO %%%%%
-       !----------------------------------------
-
-       ! HEMCO species ID
-       HcoID = HCO_GetHcoId( 'LIMO', HcoState )
-
-       IF ( HcoID > 0 ) THEN
-          ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                    & 
-                             HcoState  = HcoState,         &
-                             cName     = 'BIOGENIC_LIMO',  &
-                             ExtNr     = ExtNr,            &
-                             Cat       = -1,               &
-                             Hier      = -1,               &
-                             HcoID     = HcoID,            &
-                             SpaceDim  = 2,                &
-                             LevIDx    = -1,               &
-                             OutUnit   = 'kg/m2/s',        &
-                             WriteFreq = 'Manual',         &
-                             AutoFill  = 1,                &
-                             RC        = RC                 ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-       ENDIF
-
-       !----------------------------------------
-       ! %%%%% Biogenic C2H6 %%%%%
-       !----------------------------------------
-
-       ! HEMCO species ID
-       HcoID = HCO_GetHcoID( 'SESQ', HcoState ) 
-
-       IF ( HcoID > 0 ) THEN
-          ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                    & 
-                             HcoState  = HcoState,         &
-                             cName     = 'BIOGENIC_SESQ',  &
-                             ExtNr     = ExtNr,            &
-                             Cat       = -1,               &
-                             Hier      = -1,               &
-                             HcoID     = HcoID,            &
-                             SpaceDim  = 2,                &
-                             LevIDx    = -1,               &
-                             OutUnit   = 'kg/m2/s',        &
-                             WriteFreq = 'Manual',         &
-                             AutoFill  = 1,                &
-                             RC        = RC                 ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-       ENDIF
-    ENDIF ! SOA simulation
+!------------------------------------------------------------------------------
+! Prior to 3/10/15:
+! Melissa Sulprizio wrote: "We can go ahead and remove the lines for 
+! BIOGENIC_LIMO under the MEGAN_SOA and keep the definition in the loop over 
+! I=1,13).  We want to define BIOGENIC_LIMO even if MEGAN_SOA is turned off.
+! We don't use BIOGENIC_MTPA, BIOGENIC_MTPO, or BIOGENIC_SESQ anymore.  We now 
+! get the indivual species and add them together in diag3.F." (bmy, 3/10/15)
+!
+!    !=======================================================================
+!    ! These diagnostics use the MEGAN SOA extension
+!    !=======================================================================
+!    IF ( Input_Opt%LSOA .AND. ( ND46 > 0 .OR. ND07 > 0 ) ) THEN
+!
+!       ! Extension # of MEGAN SOA
+!       ExtNr = GetExtNr('MEGAN_SOA')
+!       IF ( ExtNr < 0 ) THEN
+!          MSG = 'MEGAN SOA emissions are not turned on!'
+!          CALL HCO_Error( MSG, RC, THISLOC=LOC )
+!          RETURN      
+!       ENDIF
+!         
+!       !----------------------------------------
+!       ! %%%%% Biogenic MTPA %%%%%
+!       !----------------------------------------
+!
+!       ! HEMCO species ID
+!       HcoID = HCO_GetHcoID( 'MTPA', HcoState )
+!
+!       IF ( HcoID > 0 ) THEN
+!          ! Create diagnostic container
+!          CALL Diagn_Create( am_I_Root,                    & 
+!                             HcoState  = HcoState,         &
+!                             cName     = 'BIOGENIC_MTPA',  &
+!                             ExtNr     = ExtNr,            &
+!                             Cat       = -1,               &
+!                             Hier      = -1,               &
+!                             HcoID     = HcoID,            &
+!                             SpaceDim  = 2,                &
+!                             LevIDx    = -1,               &
+!                             OutUnit   = 'kg/m2/s',        &
+!                             WriteFreq = 'Manual',         &
+!                             AutoFill  = 1,                &
+!                             RC        = RC                 ) 
+!          IF ( RC /= HCO_SUCCESS ) RETURN 
+!       ENDIF
+!
+!       !----------------------------------------
+!       ! %%%%% Biogenic MTPO %%%%%
+!       !----------------------------------------
+!
+!       ! HEMCO species ID
+!       HcoID = HCO_GetHcoId( 'MTPO', HcoState )
+!
+!       IF ( HcoID > 0 ) THEN
+!          ! Create diagnostic container
+!          CALL Diagn_Create( am_I_Root,                    & 
+!                             HcoState  = HcoState,         &
+!                             cName     = 'BIOGENIC_MTPO',  &
+!                             ExtNr     = ExtNr,            &
+!                             Cat       = -1,               &
+!                             Hier      = -1,               &
+!                             HcoID     = HcoID,            &
+!                             SpaceDim  = 2,                &
+!                             LevIDx    = -1,               &
+!                             OutUnit   = 'kg/m2/s',        &
+!                             WriteFreq = 'Manual',         &
+!                             AutoFill  = 1,                &
+!                             RC        = RC                 ) 
+!          IF ( RC /= HCO_SUCCESS ) RETURN 
+!       ENDIF
+!
+!       !----------------------------------------
+!       ! %%%%% Biogenic LIMO %%%%%
+!       !----------------------------------------
+!
+!       ! HEMCO species ID
+!       HcoID = HCO_GetHcoId( 'LIMO', HcoState )
+!
+!       IF ( HcoID > 0 ) THEN
+!          ! Create diagnostic container
+!          CALL Diagn_Create( am_I_Root,                    & 
+!                             HcoState  = HcoState,         &
+!                             cName     = 'BIOGENIC_LIMO',  &
+!                             ExtNr     = ExtNr,            &
+!                             Cat       = -1,               &
+!                             Hier      = -1,               &
+!                             HcoID     = HcoID,            &
+!                             SpaceDim  = 2,                &
+!                             LevIDx    = -1,               &
+!                             OutUnit   = 'kg/m2/s',        &
+!                             WriteFreq = 'Manual',         &
+!                             AutoFill  = 1,                &
+!                             RC        = RC                 ) 
+!          IF ( RC /= HCO_SUCCESS ) RETURN 
+!       ENDIF
+!
+!       !----------------------------------------
+!       ! %%%%% Biogenic C2H6 %%%%%
+!       !----------------------------------------
+!
+!       ! HEMCO species ID
+!       HcoID = HCO_GetHcoID( 'SESQ', HcoState ) 
+!
+!       IF ( HcoID > 0 ) THEN
+!          ! Create diagnostic container
+!          CALL Diagn_Create( am_I_Root,                    & 
+!                             HcoState  = HcoState,         &
+!                             cName     = 'BIOGENIC_SESQ',  &
+!                             ExtNr     = ExtNr,            &
+!                             Cat       = -1,               &
+!                             Hier      = -1,               &
+!                             HcoID     = HcoID,            &
+!                             SpaceDim  = 2,                &
+!                             LevIDx    = -1,               &
+!                             OutUnit   = 'kg/m2/s',        &
+!                             WriteFreq = 'Manual',         &
+!                             AutoFill  = 1,                &
+!                             RC        = RC                 ) 
+!          IF ( RC /= HCO_SUCCESS ) RETURN 
+!       ENDIF
+!    ENDIF ! SOA simulation
+!------------------------------------------------------------------------------
 
     !=======================================================================
     ! These diagnostics use the SeaSalt extension
