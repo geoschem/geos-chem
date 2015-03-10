@@ -361,7 +361,7 @@ CONTAINS
     ! Here, we need to make sure that these pointers are properly 
     ! connected.
     !-----------------------------------------------------------------
-    CALL ExtState_SetPointers( State_Met, State_Chm, RC )
+    CALL ExtState_SetPointers( am_I_Root, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -758,7 +758,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetPointers( State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtState_SetPointers( am_I_Root, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
@@ -788,6 +788,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
 !
