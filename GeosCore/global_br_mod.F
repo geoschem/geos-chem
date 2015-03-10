@@ -109,7 +109,11 @@
 !  THIS IS A NEW VERSION OF THIS SUBROUTINE WHICH COMBINES Br CONCENTRATIONS
 !  FROM MULTIPLE DATA SOURCES
 !                                                                             .
-!  NOTE: The bpch file input will eventually be replaced by netCDF input.
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 ! 
 ! !REVISION HISTORY: 
 !  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
@@ -120,6 +124,7 @@
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_3D_TROP with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -155,7 +160,8 @@
 
       ! EDS NOTE (4/19/12): need to move Br to directory, note the years used,
       ! and regrid for other resolutions
-      BR_DIR = TRIM( Input_Opt%DATA_DIR ) // 'mercury_201007/'
+      BR_DIR = TRIM( Input_Opt%DATA_DIR ) //
+     &         TRIM( Input_Opt%RES_DIR  ) // 'mercury_201007/'
 
       IF ( LGCBROMINE ) THEN
 
@@ -167,6 +173,7 @@
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
          ! Need to read emission file at nested-resolution
          FILENAME = TRIM( Input_Opt%DATA_DIR )   // 
+     &              TRIM( Input_Opt%RES_DIR  )   //
      &              'mercury_201203/BrOx.GC.'    //
      &              GET_NAME_EXT()               // '.' // GET_RES_EXT()
 #else
@@ -216,6 +223,7 @@
          ! Filename
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
          FILENAME = TRIM( Input_Opt%DATA_DIR )             //
+     &              TRIM( Input_Opt%RES_DIR  )             //
      &              'mercury_201203/BrOx.TOMCAT_org.'      //
      &              GET_NAME_EXT() // '.' // GET_RES_EXT()
 #else
@@ -261,6 +269,7 @@
       ! Filename
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       FILENAME = TRIM( Input_Opt%DATA_DIR )    //
+     &           TRIM( Input_Opt%RES_DIR  )    //
      &           'mercury_201203/BrOx.GMI.'    //
      &           GET_NAME_EXT() // '.'         // GET_RES_EXT()
 #else

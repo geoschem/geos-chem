@@ -681,10 +681,13 @@
                IF ( F_UNDER_TOP > 0e+0_fp ) THEN
                
                   ! Ox Drydep frequency [1/s]
-                  FREQ = DEPSAV(I,J,1) * F_UNDER_TOP
+                  !FREQ = DEPSAV(I,J,1) * F_UNDER_TOP
 
                   ! Add option for non-local PBL (Lin, 03/31/09)  
-                  IF (LNLPBL) FREQ = 0.e+0_fp
+                  !IF (LNLPBL) FREQ = 0.e+0_fp
+
+                  ! Dry-dep is now done in mixing_mod.F90 (ckeller, 3/5/15)
+                  FREQ = 0.0_fp
 
                   ! Only proceed if drydep frequency is nonzero
                   IF ( FREQ > 0e+0_fp ) THEN
@@ -727,25 +730,27 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-#if !defined( NO_BPCH )
-         !==============================================================
-         ! ND44: Sum drydep fluxes by level into the AD44 array in
-         ! order to ensure that  we get the same results w/ sp or mp 
-         !==============================================================
-         IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-            DO L = 1, PBL_MAX
-               AD44(I,J,N,1) = AD44(I,J,N,1) + ND44_TMP(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-#endif
+! Now always done in mixing_mod.F90 (ckeller, 3/5/15) 
+!#if !defined( NO_BPCH )
+!         !==============================================================
+!         ! ND44: Sum drydep fluxes by level into the AD44 array in
+!         ! order to ensure that  we get the same results w/ sp or mp 
+!         !==============================================================
+!         IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!            DO L = 1, PBL_MAX
+!               AD44(I,J,N,1) = AD44(I,J,N,1) + ND44_TMP(I,J,L)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!#endif
+
       ENDDO
 
       ! Free pointer

@@ -362,6 +362,10 @@ CONTAINS
     REAL(hp)          :: TROPP
     REAL(dp)          :: TmpScale
 
+    ! for testing in an ESMF environment
+    INTEGER           :: LTOPtmp
+    REAL(hp), TARGET  :: TOPDIAGN(HcoState%NX,HcoState%NY,5)
+
     !=================================================================
     ! LIGHTNOX begins here!
     !=================================================================
@@ -375,27 +379,11 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( FIRST ) THEN
 
-       ! See if we have to write out manual diagnostics
-       IF ( .NOT. DoDiagn ) THEN
-          DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-          TmpCnt => NULL()
-       ENDIF
-       IF ( .NOT. DoDiagn ) THEN
-          DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-          TmpCnt => NULL()
-       ENDIF
-       IF ( .NOT. DoDiagn ) THEN
-          DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-          TmpCnt => NULL()
-       ENDIF
-       IF ( .NOT. DoDiagn ) THEN
-          DiagnName = 'LIGHTNING_MTYPE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-          TmpCnt => NULL()
-       ENDIF
+       ! See if we have to write out manual diagnostics. These are all
+       ! defined together, so check only for one diagnostics.
+       DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
+       CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+       TmpCnt => NULL()
 
        ! Eventually get OTD-LIS local redistribution factors from HEMCO.
        IF ( LOTDLOC ) THEN
@@ -422,7 +410,10 @@ CONTAINS
 
     ! Reset arrays 
     SLBASE = 0.0_hp
-    IF (DoDiagn) DIAGN = 0.0_hp
+    IF (DoDiagn) THEN
+       DIAGN    = 0.0_hp
+       TOPDIAGN = 0.0_hp
+    ENDIF
 
     ! LMAX: the highest L-level to look for lightnox (usually LLPAR-1)
     LMAX   = HcoState%NZ - 1
@@ -461,7 +452,7 @@ CONTAINS
 !$OMP PRIVATE( IC_CG_RATIO, L_MFLUX,  MFLUX,    RAIN,   RATE      ) &
 !$OMP PRIVATE( X,           TOTAL_IC, TOTAL_CG, TOTAL,  REDIST    ) &
 !$OMP PRIVATE( RATE_SAVE,   VERTPROF, SFCTYPE,  LNDTYPE, TROPP    ) &
-!$OMP PRIVATE( MTYPE                                              ) &
+!$OMP PRIVATE( MTYPE,       LTOPtmp                               ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes
@@ -638,6 +629,75 @@ CONTAINS
           ENDIF
        ENDDO 
 
+       ! Diagnose 'traditional' LTOP
+       IF ( DoDiagn .AND. LTOP >= LCHARGE ) THEN
+          TOPDIAGN(I,J,1) = MIN(LTOP,LMAX)
+       ENDIF
+
+       !----------------------------------------------------------------
+       ! In an ESMF environment
+       !----------------------------------------------------------------
+
+       ! To determine cloud top height from convective cloud
+       ! top height diagnostics.
+       IF ( ASSOCIATED( ExtState%CNV_TOPP%Arr%Val ) ) THEN
+          LTOPtmp = 0
+          DO L = 1, HcoState%NZ
+             IF (  HcoState%Grid%PEDGE%Val(I,J,L+1) &
+                <= ExtState%CNV_TOPP%Arr%Val(I,J) ) THEN
+                LTOPtmp = L + 1
+                EXIT
+             ENDIF
+          ENDDO
+     
+          ! Write to diagnostics
+          TOPDIAGN(I,J,2) = LTOPtmp
+       ENDIF
+
+       ! First level with positive buoyancy
+       IF ( ASSOCIATED( ExtState%BYNCY%Arr%Val ) ) THEN
+          LTOPtmp = 0
+          DO L = HcoState%NZ, 1, -1
+             IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN 
+                LTOPtmp = L + 1
+                EXIT
+             ENDIF
+          ENDDO
+     
+          ! Write to diagnostics
+          TOPDIAGN(I,J,3) = LTOPtmp
+       ENDIF
+
+       ! Top level with return code = 7, plus one
+       IF ( ASSOCIATED( ExtState%RCCODE%Arr%Val ) ) THEN
+          LTOPtmp = 0
+          DO L = HcoState%NZ, 1, -1
+             IF ( ExtState%RCCODE%Arr%Val(I,J,L) > 6.9_sp ) THEN 
+                LTOPtmp = L + 1
+                EXIT
+             ENDIF
+          ENDDO
+     
+          ! Write to diagnostics
+          TOPDIAGN(I,J,4) = LTOPtmp
+       ENDIF
+
+       ! Use a merged product
+       IF ( LTOP == 0 ) THEN
+          IF ( TOPDIAGN(I,J,4) > 0.0_sp ) THEN
+             LTOP = NINT(TOPDIAGN(I,J,3))
+          ENDIF
+       ENDIF
+
+       ! Diagnose 'updated' LTOP
+       IF ( DoDiagn .AND. LTOP >= LCHARGE ) THEN
+          TOPDIAGN(I,J,5) = MIN(LTOP,LMAX)
+       ENDIF
+  
+       !----------------------------------------------------------------
+       ! Error checks for LTOP 
+       !----------------------------------------------------------------
+
        ! Error check LTOP
        IF ( LTOP == 0 ) CYCLE
 
@@ -645,11 +705,10 @@ CONTAINS
        IF ( LTOP        >  LMAX      ) LTOP = LMAX
        IF ( LTOP        <  LCHARGE   ) CYCLE
 
-#if    defined( GEOS_4 )
-
        !--------------------------
        ! GEOS-4 only
        !--------------------------
+#if    defined( GEOS_4 )
        ! Shallow-cloud inhibition trap (see Murray et al. [2011])
        IF ( ExtState%TK%Arr%Val(I,J,LTOP) >= T_NEG_TOP ) CYCLE
 
@@ -1036,12 +1095,41 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
 
-       DiagnName = 'LIGHTNING_MTYPE'
-       Arr2D     => DIAGN(:,:,4)
-       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
+       DiagnName = 'TRAD_TOP'
+       Arr2D     => TOPDIAGN(:,:,1)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
+       
+       DiagnName = 'CNV_TOP'
+       Arr2D     => TOPDIAGN(:,:,2)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+       
+       DiagnName = 'BYNCY_TOP'
+       Arr2D     => TOPDIAGN(:,:,3)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+       
+       DiagnName = 'RCCODE_TOP'
+       Arr2D     => TOPDIAGN(:,:,4)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+
+       DiagnName = 'TRAD_BYNCY_TOP'
+       Arr2D     => TOPDIAGN(:,:,5)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
+                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+
     ENDIF
 
     ! Return w/ success

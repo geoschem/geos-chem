@@ -717,6 +717,7 @@
       INTEGER            :: N,       NDIAGTIME
       INTEGER            :: NYMDb,   NHMSb 
       INTEGER            :: NYMDe,   NHMSe
+      INTEGER            :: C
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -777,6 +778,82 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR_1x1
 
+!##############################################################################
+!### Modifications to facilitate high-performance GEOS-Chem (bmy, 3/5/15)
+!### 
+!### (1) DATA_DIR now poings to the ExtData directory 
+!### (2) ExtData/HEMCO is where the HEMCO data files are located
+!### (3) ExtData/CHEM_INPUTS is where non-HEMCO chemistry files are located
+!### (4) Resolution-dependent files are now in ExtData/GEOS_4x5, etc.
+      
+      !-----------------------------------------------------------------
+      ! Make sure DATA-DIR ends with a "/" character
+      !-----------------------------------------------------------------
+      C = LEN_TRIM( Input_Opt%DATA_DIR )
+      IF ( Input_Opt%DATA_DIR(C:C) /= '/' ) THEN
+         Input_Opt%DATA_DIR = TRIM( Input_Opt%DATA_DIR ) // '/'
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Create CHEM_INPUTS directory
+      !-----------------------------------------------------------------
+      Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) // 
+     &                            'CHEM_INPUTS/'
+
+      !-----------------------------------------------------------------
+      ! Define resolution-specific directory name RES_DIR
+      !-----------------------------------------------------------------
+#if   defined( GRID4x5 )
+# if defined( GCAP )
+      Input_Opt%RES_DIR = 'GCAP_4x5/'
+# else
+      Input_Opt%RES_DIR = 'GEOS_4x5/'
+# endif
+#elif defined( GRID2x25 ) 
+      Input_Opt%RES_DIR = 'GEOS_2x2.5/'
+#elif defined( GRID1x125 ) 
+      Input_Opt%RES_DIR = 'GEOS_1x1.25/'
+#elif defined( GRID1x1 ) 
+      Input_Opt%RES_DIR = 'GEOS_1x1/'
+#elif defined( GRID05x0666 ) && defined( NESTED_CH )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_CH/'
+#elif defined( GRID05x0666 ) && defined( NESTED_EU )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_EU/'
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_NA/'
+#elif defined( GRID05x0666 ) && defined( NESTED_SE )
+      Input_Opt%RES_DIR = 'GEOS_0.5x0.666_SE/'
+#elif defined( GRID025x03125 ) && defined( NESTED_CH ) 
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH'
+#elif defined( GRID025x03125 ) && defined( NESTED_EU ) 
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_EU'
+#elif defined( GRID025x03125 ) && defined( NESTED_NA ) 
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA'
+#elif defined( GRID025x03125 ) && defined( NESTED_SE ) 
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_SE'
+#endif
+
+      !-----------------------------------------------------------------
+      ! Append the resolution specific directory name 
+      ! to each of the met field subdirectories
+      !-----------------------------------------------------------------
+      Input_Opt%GCAP_DIR    = 'GCAP_4x5/'                   // 
+     &                        TRIM( Input_Opt%GCAP_DIR    )
+
+      Input_Opt%GEOS_4_DIR  = TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%GEOS_4_DIR  )
+
+      Input_Opt%GEOS_5_DIR  = TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%GEOS_5_DIR  )
+
+      Input_Opt%GEOS_FP_DIR = TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%GEOS_FP_DIR )
+
+      Input_Opt%MERRA_DIR  =  TRIM( Input_Opt%RES_DIR     ) //
+     &                        TRIM( Input_Opt%MERRA_DIR   )
+
+!##############################################################################
+
       ! Temp dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TEMP_DIR
@@ -800,6 +877,9 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
+
+
+      ! 
 
       !=================================================================
       ! Add safety checks for logical switches
@@ -878,6 +958,10 @@
      &                    TRIM( Input_Opt% RUN_DIR )
          WRITE( 6, 110 ) 'Data Directory              : ',
      &                    TRIM( Input_Opt%DATA_DIR )
+         WRITE( 6, 110 ) 'CHEM_INPUTS directory       : ',
+     &                    TRIM( Input_Opt%CHEM_INPUTS_DIR )
+         WRITE( 6, 110 ) 'Resolution-specific dir     : ',
+     &                    TRIM( Input_Opt%RES_DIR )
          WRITE( 6, 110 ) 'GCAP       sub-directory    : ', 
      &                    TRIM( Input_Opt%GCAP_DIR )
          WRITE( 6, 110 ) 'GEOS-4     sub-directory    : ', 
@@ -3819,6 +3903,11 @@
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  25 Jun 2014 - R. Yantosca - Now set USE_OLSON_2001 = T for GEOS-FP met;
 !                              this was originally done in INIT_INPUT
+!  05 Mar 2015 - C. Keller   - Added PBL_DRYDEP to define if dry 
+!                              deposition rates are calculated over
+!                              full PBL or 1st model level only.
+!                              Set to .TRUE. (full PBL) if full PBL
+!                              mixing is used, to false otherwise.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3880,6 +3969,17 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #endif
 
+      ! Set the PBL drydep flag. This determines if dry deposition is 
+      ! applied (and drydep frequencies are calculated) over the entire 
+      ! PBL or the first model layer only. For now, set this value 
+      ! automatically based upon the selected PBL scheme: 1st model layer 
+      ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
+      IF ( Input_Opt%LNLPBL ) THEN 
+         Input_Opt%PBL_DRYDEP = .FALSE.
+      ELSE
+         Input_Opt%PBL_DRYDEP = .TRUE.
+      ENDIF 
+
       ! Return success
       RC = GIGC_SUCCESS
 
@@ -3891,6 +3991,8 @@
          WRITE( 6, '(  a)' ) '---------------'
          WRITE( 6, 100     ) 'Turn on dry deposition?     : ', 
      &                        Input_Opt%LDRYD
+         WRITE( 6, 100     ) 'Dry dep over full PBL?      : ', 
+     &                        Input_Opt%PBL_DRYDEP
          WRITE( 6, 100     ) 'Turn on wet deposition?     : ', 
      &                        Input_Opt%LWETD
          WRITE( 6, 100     ) 'Use Olson 2001 land map?    : ', 
@@ -4746,6 +4848,10 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:66' )
       READ( SUBSTRS(1), * ) ND68
       CALL SET_TINDEX( am_I_Root, 68, ND68, SUBSTRS(2:N), N-1, PD68 )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND68_OUTPUT_FREQ = 'Daily'   ! Note, can change later
+      Input_Opt%ND68_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND69: Surface areas
@@ -7651,6 +7757,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  20 Jun 2014 - R. Yantosca - Now use fields from Input_Opt
+!  05 Mar 2015 - R. Yantosca - Now also check CHEM_INPUTS_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7672,11 +7779,12 @@
       NYMDe = GET_NYMDe()
 
       ! Check directories
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR     )
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR_1x1 )
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%RUN_DIR      )
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%OH_DIR       )
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%O3PL_DIR     )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR        )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR_1x1    )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%CHEM_INPUTS_DIR )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%RUN_DIR         )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%OH_DIR          )
+      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%O3PL_DIR        )
 
       ! Only validate the TEMP_DIR if we are unzipping met fields
       IF ( Input_Opt%LUNZIP ) THEN

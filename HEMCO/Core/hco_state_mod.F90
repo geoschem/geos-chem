@@ -127,6 +127,9 @@ MODULE HCO_State_Mod
                               ! 2 = allow negative values
                               ! 1 = set neg. values to zero and prompt warning 
                               ! 0 = return w/ error if neg. value
+     LOGICAL :: PBL_DRYDEP    ! If true, dry deposition frequencies will
+                              ! be calculated over the full PBL. If false, 
+                              ! they are calculated over the first layer only.
   END TYPE HcoOpt
 
   !=========================================================================
@@ -375,6 +378,12 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%NegFlag = 0
 
+    ! Get negative flag value from configuration file. If not found, set to 0. 
+    CALL GetExtOpt ( CoreNr, 'PBL dry deposition', &
+                     OptValBool=HcoState%Options%PBL_DRYDEP, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%PBL_DRYDEP = .FALSE. 
+
     !-----------------------------------------------------------------
     ! Initialize variables 
     ! Leave w/ success
@@ -577,7 +586,7 @@ CONTAINS
 
     ! Loop over all species names
     DO N = 1, HcoState%nSpc
-
+ 
        ! Return the index of the sought-for species
        IF( TRIM( name ) == TRIM( HcoState%Spc(N)%SpcName ) ) THEN
           Indx = N 

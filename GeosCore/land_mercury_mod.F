@@ -771,12 +771,19 @@
 !   and land surface evapotranspiration derived from observed
 !   precipitation and surface air temperature." J. Appl. Meteorol. 32 (8), 
 !  1305-1334. 
+!
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 ! 
 ! !REVISION HISTORY: 
 !  15 Sep 2006 - N. E. Selin - Initial version
 !  30 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -802,6 +809,7 @@
       MONTH = GET_MONTH() 
      
       FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
+     &           TRIM( Input_Opt%RES_DIR  ) //
      &           'mercury_201007/nasatransp_' 
      &           // GET_RES_EXT() // '.'// CMONTH(MONTH) // '.bpch'
 
@@ -999,9 +1007,17 @@
       ! Success or failure?
       INTEGER,        INTENT(OUT) :: RC
 ! 
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  05 Mar 2015 - R. Yantosca - Now add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1074,7 +1090,8 @@
       IU_FILE  = findFreeLun()
 
       ! File name
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'mercury_201007/' //
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) //
+     &           TRIM( Input_Opt%RES_DIR  ) // 'mercury_201007/' //
      &           'mean_metfields/' // GET_NAME_EXT() // 
      &           '/mean_YYYYMM.bpch'
 

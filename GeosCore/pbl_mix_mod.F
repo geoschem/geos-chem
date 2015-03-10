@@ -184,7 +184,8 @@
       ENDIF
          
       ! Compute PBL height and related quantities
-      CALL COMPUTE_PBL_HEIGHT( State_Met )
+      ! -> now done in main.F (ckeller, 3/5/15)
+!      CALL COMPUTE_PBL_HEIGHT( State_Met )
 
       ! Do complete mixing of tracers in the PBL (if necessary)
       IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV, State_Met )
