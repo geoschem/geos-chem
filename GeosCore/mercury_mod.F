@@ -4157,12 +4157,17 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
 ! 
 ! !REMARKS:
-!  Binary punch file input is slated to be replaced by netCDF input soon.
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 !
 ! !REVISION HISTORY: 
 !  25 Nov 2009 - C. Holmes   - Initial version
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4182,11 +4187,13 @@
       ! Filename for full-level GEOS5 model
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       FILENAME = TRIM( Input_Opt%DATA_DIR )     // 
+     &           TRIM( Input_Opt%RES_DIR  )     //
      &           'mercury_201203/jvalues.noon.' //
      &           GET_NAME_EXT()    // '.' // GET_RES_EXT()
 #else
       FILENAME = 
      &           TRIM( Input_Opt%DATA_DIR )     // 
+     &           TRIM( Input_Opt%RES_DIR  )     //
      &           'mercury_201007/jvalues.noon.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 #endif
@@ -4558,13 +4565,18 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  Bpch file input shall be replaced with netCDF file input shortly
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 !
 ! !REVISION HISTORY: 
 !  11 Jan 2011 - Y. Zhang    - Initial version
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4594,7 +4606,8 @@
       XTAU     = GET_TAU0( 1, 1, 2005 )
 
       ! Read power plant emissions
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'mercury_201203/' //
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) //
+     &           TRIM( Input_Opt%RES_DIR  ) // 'mercury_201203/' //
      &           'CFPP_NEI2005_NPRI2005_Hg2.'    //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
      &           '.YYYY'

@@ -1419,6 +1419,13 @@
 !
       INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 !
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
 !  (2 ) Don't worry about rewinding the binary file...reading from
@@ -1481,6 +1488,7 @@
 !                              derived type object
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1517,7 +1525,8 @@
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )
          
          ! Select proper dust file name for GEOS-1, GEOS-3, or GEOS-4
-         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'dust_200203/dust.' //
+         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
+     &              TRIM( Input_Opt%RES_DIR  ) // 'dust_200203/dust.' //
      &              GET_NAME_EXT()             // '.'                 // 
      &              GET_RES_EXT()
 
