@@ -84,6 +84,7 @@
 #  08 Jul 2014 - R. Yantosca - Removed obsolete routines from the list
 #  06 Jan 2015 - M. Sulprizio- Remove additional routines made obsolete by HEMCO
 #  07 Jan 2015 - R. Yantosca - Added exchange_mod (i.e. 2-way nesting)
+#  04 Mar 2015 - R. Yantosca - Add uvalbedo_mod.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -172,6 +173,7 @@ $(CORE)/tpcore_fvdas_mod.F90          \
 $(CORE)/tpcore_geos5_window_mod.F90   \
 $(CORE)/transport_mod.F               \
 $(CORE)/ucx_mod.F                     \
+$(CORE)/uvalbedo_mod.F90              \
 $(CORE)/vdiff_mod.F90                 \
 $(CORE)/vdiff_pre_mod.F90             \
 ./subs.geos-chem                      \

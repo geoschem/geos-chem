@@ -66,7 +66,6 @@
       PUBLIC  :: KG_STRAT_AER
       PUBLIC  :: RHO_STRAT_AER
       PUBLIC  :: CHECK_NAT
-!      PUBLIC  :: MAKE_PSC_FILE
       PUBLIC  :: INIT_UCX
       PUBLIC  :: DIAGINIT_UCX
       PUBLIC  :: CLEANUP_UCX
@@ -3148,7 +3147,7 @@
                      ! with equivalent State_Met%DELP(I,J,L+2)
                      ! (ewl, 3/2/15)
                      PSEDABOVE  = VNAT(L+2) * SEDSTEP * 1.e+2_fp *
-                                   State_Met%DELP(I,J,L+2)
+     &                            State_Met%DELP(I,J,L+2)
      &                            / State_Met%BXHEIGHT(I,J,L+2)
 !                     PSEDABOVE = g0 * (1.0d3*AIRMW) * P_ABOVE *
 !     &                  VNAT(L+2)/(Rd * T(I,J,L+2))*SEDSTEP
@@ -3432,7 +3431,7 @@
          ! Only interested in low-pressure boxes
          TCENTER = State_Met%T(I,J,L)
          ! Now using dry air partial pressure (ewl, 3/2/15)
-         PCENTER = State_Met%PMID_DRY
+         PCENTER = State_Met%PMID_DRY(I,J,L)
          INVAIR  = AIRMW / State_Met%AD(I,J,L)
          IF (PCENTER.ge.1.e+2_fp) THEN
             AERFRAC(I,J,L,1) = 1e+0_fp
@@ -5352,161 +5351,6 @@
 
       END FUNCTION MOLEC_SPEED
 !EOC
-!!------------------------------------------------------------------------------
-!!               MIT Laboratory for Aviation and the Environment               !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: make_psc_file
-!!
-!! !DESCRIPTION: Subroutine MAKE\_PSC\_FILE writes PSC state information
-!!  into a checkpoint file (binary punch file format).
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE MAKE_PSC_FILE( YYYYMMDD, HHMMSS, Input_Opt )
-!!
-!! !USES:
-!!
-!      USE BPCH2_MOD
-!      USE CMN_SIZE_MOD             ! Size parameters
-!      USE COMODE_LOOP_MOD          ! IGAS
-!      USE ERROR_MOD,          ONLY : DEBUG_MSG
-!      USE ERROR_MOD,          ONLY : ERROR_STOP
-!      USE FILE_MOD,           ONLY : IOERROR
-!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE GRID_MOD,           ONLY : GET_XOFFSET
-!      USE GRID_MOD,           ONLY : GET_YOFFSET
-!      USE TIME_MOD,           ONLY : EXPAND_DATE
-!      USE TIME_MOD,           ONLY : GET_TAU
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      INTEGER,        INTENT(IN) :: YYYYMMDD    ! YYYY/MM/DD GMT date
-!      INTEGER,        INTENT(IN) :: HHMMSS      ! hh:mm:ss   GMT time
-!      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
-!! 
-!! !REVISION HISTORY: 
-!!  28 Apr 2013 - S. D. Eastham - Initial version, based on MAKE_CSPEC_FILE
-!!  16 Apr 2014 - M. Sulprizio  - Now get PSC restart file path from Input_Opt
-!!  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER              :: IU_RST
-!      INTEGER              :: I,    I0, IOS, J,  J0, L, N, JLOOP
-!      INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
-!      CHARACTER(LEN=255)   :: FILENAME
-!
-!      ! Temporary storage arrays for checkpointed variables
-!      REAL*4               :: TMP(ILONG, ILAT, IPVERT)
-!
-!      ! For binary punch file, version 2.0
-!      REAL*4               :: LONRES, LATRES
-!      ! make HALFPOLAR variable (hotp 2/25/09)
-!      INTEGER              :: HALFPOLAR
-!      INTEGER, PARAMETER   :: CENTER180 = 1
-!
-!      CHARACTER(LEN=20)    :: MODELNAME
-!      CHARACTER(LEN=40)    :: CATEGORY
-!      CHARACTER(LEN=40)    :: UNIT     
-!      CHARACTER(LEN=40)    :: RESERVED = ''
-!      CHARACTER(LEN=80)    :: TITLE 
-!
-!      ! Local variables for quantities from Input_Opt
-!      LOGICAL :: LPRT
-!
-!      !=================================================================
-!      ! MAKE_PSC_FILE begins here!
-!      !=================================================================
-!
-!      ! Copy fields from INPUT_OPT
-!      LPRT = Input_Opt%LPRT
-!
-!      ! Copy PSC restart filename template to a local variable
-!      FILENAME = TRIM( Input_Opt%PSC_RST_FILE )
-!
-!      ! Clear some arrays 
-!      ! use minimum value instead of zero hotp 2/25/09
-!      TMP(:,:,:)   = 0
-!
-!      ! Define variables for BINARY PUNCH FILE OUTPUT
-!      TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
-!     &           'Instantaneous PSC state (unitless)'
-!      LONRES   = DISIZE
-!      LATRES   = DJSIZE
-!      ! get value of HALFPOLAR hotp 2/25/09
-!      HALFPOLAR = GET_HALFPOLAR()
-!
-!      ! Call GET_MODELNAME to return the proper model name for
-!      ! the given met data being used (bmy, 6/22/00)
-!      MODELNAME = GET_MODELNAME()
-!
-!      ! Get the nested-grid offsets
-!      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-!      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-!
-!      !=================================================================
-!      ! Open the checkpoint file for output -- binary punch format
-!      !=================================================================
-!
-!      ! Find a free file LUN
-!      IU_RST   = findFreeLUN()
-!
-!      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-!      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-!
-!      ! Add ADJ_DIR prefix to filename
-!      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
-!
-!      WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
-! 100  FORMAT( '     - MAKE_PSC_FILE: Writing ', a, ' on unit ', i4 )
-!
-!      ! Open checkpoint file for output
-!      CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )
-!
-!      !=================================================================
-!      ! Write each checkpointed quantity to the checkpoint file
-!      !=================================================================
-!
-!      ! Checkpt additional values for full chem simulation
-!      UNIT     = 'unitless'
-!      CATEGORY = 'IJ-PSC-$'
-!      N        = 1
-!    
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!         DO L = 1, IPVERT
-!         DO J = 1, ILAT
-!         DO I = 1, ILONG
-!        
-!              TMP(I,J,L) = REAL(STATE_PSC(I,J,L))+0.1e+0_fp
-!
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-! 
-!      ! Write the data block to the CSPEC checkpoint file
-!      CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,
-!     &               HALFPOLAR, CENTER180, CATEGORY,  N,
-!     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
-!     &               ILONG,     ILAT,      IPVERT,    I0+1,
-!     &               J0+1,      1,         TMP(:,:,:) )
-! 
-!      ! Close file
-!      CLOSE( IU_RST )
-!
-!      !### Debug
-!      IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_PSC_FILE: wrote file' )
-!
-!      END SUBROUTINE MAKE_PSC_FILE
-!!EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
@@ -5521,33 +5365,16 @@
 ! !INTERFACE:
 !
       SUBROUTINE READ_PSC_FILE( am_I_Root )
-!     &                          YYYYMMDD,  HHMMSS,    
-!     &                          IT_EXISTS  ) 
 !
 ! !USES:
 !
-!      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
-!      USE CMN_SIZE_MOD             ! Size parameters
-!      USE COMODE_LOOP_MOD          ! ITLOOP, IGAS
-!      USE ERROR_MOD,          ONLY : DEBUG_MSG
-!      USE FILE_MOD,           ONLY : IOERROR
-!      USE FILE_MOD,           ONLY : FILE_EXISTS
-!      USE TIME_MOD,           ONLY : EXPAND_DATE
       USE ERROR_MOD,          ONLY : ERROR_STOP
-
-      ! HEMCO update
-      USE HCO_ERROR_MOD
+      USE GIGC_ErrCode_Mod
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-!      INTEGER,        INTENT(IN)    :: YYYYMMDD    ! YYYY/MM/DD GMT date
-!      INTEGER,        INTENT(IN)    :: HHMMSS      ! hh:mm:ss   GMT time
-!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
 ! 
 ! !REVISION HISTORY: 
 !  28 Apr 2013 - S. D. Eastham - Initial version, based on READ_CSPEC_FILE
@@ -5555,40 +5382,25 @@
 !  16 Apr 2014 - M. Sulprizio  - Now get PSC restart file path from Input_Opt
 !  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
 !  14 Jan 2015 - C. Keller     - Now read from HEMCO
+!   4 Mar 2015 - R. Yantosca   - Declare pointer args to HCO_GetPtr w/ REAL(f4)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-!
-!      INTEGER             :: I, IOS, IU_RST, J, L, N, NN, NTL
-!      REAL*4              :: TMP(ILONG,ILAT,IPVERT)
-!      LOGICAL             :: IT_EXISTS 
-
-!      REAL(fp)              :: SUMTC
-!       CHARACTER(LEN=255)  :: FILENAME
-       CHARACTER(LEN=255)  :: MSG
-     
-!      ! For binary punch file, version 2.0
-!      INTEGER             :: NI,     NJ,     NL
-!      INTEGER             :: IFIRST, JFIRST, LFIRST
-!      INTEGER             :: NTRACER,   NSKIP
-!      INTEGER             :: HALFPOLAR, CENTER180
-!      REAL*4              :: LONRES,    LATRES
-!      REAL(fp)              :: ZTAU0,     ZTAU1
-!      CHARACTER(LEN=20)   :: MODELNAME
-!      CHARACTER(LEN=40)   :: CATEGORY
-!      CHARACTER(LEN=40)   :: UNIT     
-!      CHARACTER(LEN=40)   :: RESERVED
-
-!      ! Local variables for quantities from Input_Opt
-!      LOGICAL :: LPRT
-
-      ! HEMCO update
+!     
+      ! Scalars
       LOGICAL            :: IT_EXISTS 
+      LOGICAL            :: LPRT
       INTEGER            :: RC
-      REAL(sp), POINTER  :: Ptr3D(:,:,:) => NULL()
+
+      ! Strings
+      CHARACTER(LEN=255) :: MSG
       CHARACTER(LEN=255) :: cName 
+ 
+      ! Pointer to fields in the HEMCO data structure.
+      ! Declare this with REAL(f4), aka REAL*4. (bmy, 3/4/15)
+      REAL(f4), POINTER  :: Ptr3D(:,:,:) => NULL()
 
       !=================================================================
       ! READ_PSC_FILE begins here!
@@ -5598,7 +5410,7 @@
       cName = 'STATE_PSC'
       CALL HCO_GetPtr( am_I_Root, TRIM(cName), Ptr3D, RC, 
      &                 FOUND=IT_EXISTS )
-      IF ( RC /= HCO_SUCCESS ) THEN
+      IF ( RC /= GIGC_SUCCESS ) THEN
          MSG = 'Cannot read PSC initial state: '//TRIM(cName)
          CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
       ENDIF
@@ -5623,102 +5435,7 @@
       ! Update flag
       GOT_STATE_PSC = .TRUE.
 
-!      ! Copy fields from INPUT_OPT
-!      LPRT = Input_Opt%LPRT
-!
-!      ! Copy PSC restart filename template to a local variable
-!      FILENAME = TRIM( Input_Opt%PSC_RST_FILE )
-!
-!      ! Initialize some variables
-!      TMP(:,:,:) = 0
-!
-!      !=================================================================
-!      ! Open checkpoint file and read top-of-file header
-!      !=================================================================
-!
-!      ! Find a free file LUN
-!      IU_RST   = findFreeLUN()
-!     
-!      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-!      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-!
-!      ! Add ADJ_DIR prefix to name
-!      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
-!
-!      IF ( am_I_Root ) THEN
-!         WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
-!      ENDIF
-! 100  FORMAT( '     - READ_PSC_FILE: Reading ', a, ' on unit ', i4 )
-! 
-!      ! Check to see if PSC restart file exists
-!      IT_EXISTS = FILE_EXISTS( FILENAME )
-!      IF ( .not. IT_EXISTS ) THEN 
-!         RETURN
-!      ENDIF 
-!
-!      ! Open the binary punch file for input
-!      CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
-!
-!      ! Read the values of STATE_PSC
-!      READ( IU_RST, IOSTAT=IOS )
-!     &    MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
-!
-!      ! IOS < 0 is end-of-file, so exit
-!      IF ( IOS < 0 ) GOTO 555
-!
-!      ! IOS > 0 is a real I/O error -- print error message
-!      IF ( IOS > 0 ) 
-!     &   CALL IOERROR( IOS,IU_RST,'read_psc_file:13' )
-!
-!      ! Read data block header
-!      READ( IU_RST, IOSTAT=IOS )
-!     &      CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
-!     &      NTL,      NN,       NL,   IFIRST, JFIRST, LFIRST,
-!     &      NSKIP
-!
-!      ! Error check
-!      IF ( IOS /= 0 ) 
-!     &   CALL IOERROR(IOS,IU_RST,'read_psc_file:14' )
-!
-!      ! Read data block
-!      READ( IU_RST, IOSTAT=IOS )
-!     &    ( ( ( TMP(I,J,L), I= 1, NTL), J=1,NN ), L = 1, NL)
-!
-!      ! Error check
-!      IF ( IOS /= 0 ) 
-!     &   CALL IOERROR( IOS,IU_RST,'read_psc_file:16' )
-!
-!      !==============================================================
-!      ! Assign data from the TMP array to STATE_PSC
-!      !==============================================================
-!
-!      ! Only process PSC data 
-!      IF ( CATEGORY(1:8) == 'IJ-PSC-$' .and.
-!     &     NTL           == ILONG      .and. 
-!     &     NN            == ILAT       .and. 
-!     &     NL            == IPVERT            ) THEN
-!
-!         DO L = 1, NL
-!         DO J = 1, NN
-!         DO I = 1, NTL
-!            STATE_PSC(I,J,L) = INT( FLOOR( TMP(I,J,L) ) )
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!
-!      ELSE
-!         CALL ERROR_STOP(' Restart data is not correct ', 
-!     &                   ' reading STATE_PSC, UCX_mod')
-!
-!      ENDIF
-!
-! 555  CONTINUE
-!
-!      ! Close file
-!      CLOSE( IU_RST )      
-!
-!      !### Debug
-!      IF ( LPRT ) CALL DEBUG_MSG( '### READ_PSC_FILE: read file' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### READ_PSC_FILE: read file' )
 
       END SUBROUTINE READ_PSC_FILE
 !EOC

@@ -113,7 +113,7 @@ CONTAINS
       ! Read file into buffer
       ! ---------------------------------------------------------------------
 
-      CALL Config_ReadFile( am_I_Root, TRIM(ConfigFile), STATUS )
+      CALL Config_ReadFile( am_I_Root, TRIM(ConfigFile), 0, STATUS )
       ASSERT_(STATUS==HCO_SUCCESS)
 
       ! ---------------------------------------------------------------------

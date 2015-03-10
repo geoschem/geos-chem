@@ -338,6 +338,8 @@ CONTAINS
     INTEGER                       :: tidx1,  tidx2, ncYr, ncMt
     INTEGER                       :: HcoID
     INTEGER                       :: nlatEdge, nlonEdge
+    REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
+    REAL(sp)                      :: wgt1,   wgt2
     REAL(sp), POINTER             :: ncArr(:,:,:,:)   => NULL()
     REAL(hp), POINTER             :: SigEdge(:,:,:)   => NULL()
     REAL(hp), POINTER             :: SigLev (:,:,:)   => NULL()
@@ -348,7 +350,6 @@ CONTAINS
     REAL(hp), POINTER             :: LatEdge  (:)     => NULL()
     LOGICAL                       :: verb
     LOGICAL                       :: IsModelLevel
-    REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
     INTEGER                       :: UnitTolerance
     INTEGER                       :: AreaFlag, TimeFlag 
 
@@ -400,11 +401,16 @@ CONTAINS
     ! extracted from the file and the time stamp settings set in the
     ! HEMCO configuration file. Multiple time slices are only selected
     ! for weekdaily data or for 'autodetected' hourly data (using the
-    ! wildcard character in the configuration file time attribute).
+    ! wildcard character in the configuration file time attribute) or
+    ! if data shall be interpolated between two (consecutive) time 
+    ! slices. The weights to be assigned to those two time slices is
+    ! also calculated in GET_TIMEIDX and returned as variables wgt1 
+    ! and wgt2, respectively.
     ! ----------------------------------------------------------------
     CALL GET_TIMEIDX ( am_I_Root, HcoState, Lct,     &
                        ncLun,     tidx1,    tidx2,   &
-                       ncYr,      ncMt,     RC        )
+                       wgt1,      wgt2,     ncYr,    &
+                       ncMt,      RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -539,6 +545,8 @@ CONTAINS
                       time2   = tidx2,              &
                       ncArr   = ncArr,              &
                       varUnit = thisUnit,           &
+                      wgt1    = wgt1,               &
+                      wgt2    = wgt2,               &
                       RC      = NCRC                 )
 
     IF ( NCRC /= 0 ) THEN
@@ -885,6 +893,12 @@ CONTAINS
 ! simulation date.
 !\\
 !\\
+! Return arguments wgt1 and wgt2 denote the weights to be given to
+! the two time slices. This is only of relevance for data that shall
+! be interpolated between two (consecutive) time slices. In all other
+! cases, the returned weights are negative and will be ignored.
+!\\
+!\\
 ! Also returns the time slice year and month, as these values may be
 ! used for unit conversion! 
 !\\
@@ -893,7 +907,8 @@ CONTAINS
 !
   SUBROUTINE Get_TimeIdx( am_I_Root, HcoState, Lct,     &
                           ncLun,     tidx1,    tidx2,   &
-                          ncYr,      ncMt,     RC        )
+                          wgt1,      wgt2,     ncYr,    &
+                          ncMt,      RC                  )
 !
 ! !USES:
 !
@@ -911,6 +926,8 @@ CONTAINS
 !
     INTEGER,          INTENT(  OUT)  :: tidx1     ! lower time idx
     INTEGER,          INTENT(  OUT)  :: tidx2     ! upper time idx
+    REAL(sp),         INTENT(  OUT)  :: wgt1      ! weight to tidx1
+    REAL(sp),         INTENT(  OUT)  :: wgt2      ! weight to tidx2
     INTEGER,          INTENT(  OUT)  :: ncYr      ! time slice year
     INTEGER,          INTENT(  OUT)  :: ncMt      ! time slice month
 !
@@ -920,6 +937,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Mar 2013 - C. Keller - Initial version
+!  27 Feb 2015 - C. Keller - Added weigths
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -932,6 +950,7 @@ CONTAINS
     INTEGER               :: prefYr, prefMt, prefDy, prefHr
     INTEGER               :: refYear
     INTEGER               :: prefYMDh
+    INTEGER               :: diff1, diff2
     INTEGER, POINTER      :: availYMDh(:) => NULL() 
     LOGICAL               :: verb
 
@@ -943,6 +962,10 @@ CONTAINS
     CALL HCO_ENTER ('GET_TIMEIDX (hco_dataread_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     verb = HCO_VERBOSE_CHECK() 
+
+    ! Initialize weights to -1.0 (= invalid)
+    wgt1 = -1.0
+    wgt2 = -1.0
  
     ! ---------------------------------------------------------------- 
     ! Extract netCDF time slices (YYYYMMDDhh) 
@@ -978,8 +1001,8 @@ CONTAINS
     ! ---------------------------------------------------------------- 
 
     ! ---------------------------------------------------------------- 
-    ! Get preferred time stamp to read based upon the specs set
-    ! in the config. file. 
+    ! Get preferred time stamp to read based upon the specs set in the
+    ! config. file. 
     ! This can return value -1 for prefHr, indicating that all  
     ! corresponding time slices shall be read.
     ! This call will return -1 for all dates if the simulation date is
@@ -1043,42 +1066,45 @@ CONTAINS
        ! is set to 3 (= exact match), tidx1 is only set if the file
        ! time stamp exactly matches with prefYMDh!
        ! ------------------------------------------------------------- 
-       CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
+       CALL Check_AvailYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
 
        ! ------------------------------------------------------------- 
        ! If tidx1 couldn't be set in the call above, re-adjust 
-       ! preferred year to the closest available year in the 
-       ! time slices. Then repeat the check. Don't do this for exact
-       ! dates. 
+       ! preferred year, then month, then day to the closest available 
+       ! year (month, day) in the time slices, and repeat the check
+       ! each time. Don't do this for exact dates or for interpolated
+       ! data.
        ! ------------------------------------------------------------- 
-       IF ( Lct%Dct%Dta%CycleFlag /= 3 ) THEN
+       IF ( tidx1 <= 0 ) THEN
+          IF ( (Lct%Dct%Dta%CycleFlag/=3) .AND. (Lct%Dct%Dta%CycleFlag/=4) ) THEN
          
-          ! Adjust year, month, and day (in this order).
-          CNT  = 0
-          DO 
-             CNT = CNT + 1
-             IF ( tidx1 > 0 .OR. CNT > 3 ) EXIT
+             ! Adjust year, month, and day (in this order).
+             CNT  = 0
+             DO 
+                CNT = CNT + 1
+                IF ( tidx1 > 0 .OR. CNT > 3 ) EXIT
 
-             ! Adjust prefYMDh at the given level (1=Y, 2=M, 3=D)
-             CALL prefYMDh_Adjust ( nTime, availYMDh, prefYMDh, CNT )
+                ! Adjust prefYMDh at the given level (1=Y, 2=M, 3=D)
+                CALL prefYMDh_Adjust ( nTime, availYMDh, prefYMDh, CNT )
 
-             ! verbose mode 
-             IF ( verb ) THEN
-                write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
-                CALL HCO_MSG(MSG)
-             ENDIF
+                ! verbose mode 
+                IF ( verb ) THEN
+                   write(MSG,'(A30,I12)') 'adjusted preferred datetime: ', prefYMDh
+                   CALL HCO_MSG(MSG)
+                ENDIF
       
-             CALL Check_availYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
+                CALL Check_AvailYMDh ( Lct, nTime, availYMDh, prefYMDh, tidx1 )
    
-          ENDDO
-       ENDIF
-   
+             ENDDO
+          ENDIF
+       ENDIF   
+
        ! ------------------------------------------------------------- 
        ! If tidx1 still isn't defined, i.e. prefYMDh is still 
        ! outside the range of availYMDh, set tidx1 to the closest
        ! available date. This must be 1 or nTime! 
        ! ------------------------------------------------------------- 
-       IF ( tidx1 < 0 .AND. Lct%Dct%Dta%CycleFlag /= 3 ) THEN
+       IF ( tidx1 <= 0 .AND. Lct%Dct%Dta%CycleFlag /= 3 ) THEN
           IF ( prefYMDh < availYMDh(1) ) THEN
              tidx1 = 1
           ELSE
@@ -1155,26 +1181,44 @@ CONTAINS
 
        ENDIF
 
-       ! verbose mode 
-       IF ( verb ) THEN
-          WRITE(MSG,'(A30,I12)') 'selected tidx1: ', tidx1
-          CALL HCO_MSG(MSG)
-       ENDIF
-
        ! ------------------------------------------------------------- 
        ! Now need to set upper time slice index tidx2. This index
-       ! is only different from tidx1 if multiple hourly slices are
-       ! read (--> prefHr = -1 or -10, e.g. hour attribute in config. 
-       ! file was set to wildcard character or data is in local hours). 
-       ! In this case, check if there are multiple time slices for the 
-       ! selected date (y/m/d).
+       ! is only different from tidx1 if:
+       ! (1) We interpolate between two time slices, i.e. TimeCycle
+       !     attribute is set to 'I'. In this case, we simply pick 
+       !     the next higher time slice index and calculate the 
+       !     weights for time1 and time2 based on the current time.
+       ! (2) Multiple hourly slices are read (--> prefHr = -1 or -10, 
+       !     e.g. hour attribute in config. file was set to wildcard 
+       !     character or data is in local hours). In this case, 
+       !     check if there are multiple time slices for the selected 
+       !     date (y/m/d).
        ! tidx2 has already been set to proper value above if it's
        ! weekday data.
        ! -------------------------------------------------------------
        IF ( tidx2 < 0 ) THEN
 
+          ! Interpolate between dates
+          IF ( Lct%Dct%Dta%CycleFlag == 4 ) THEN
+         
+             ! Set second time slice tidx2. Only different from tidx1
+             ! if we are within the available data range.
+             IF ( (prefYMDh<availYMDh(1)) .OR. (tidx1==nTime) ) THEN
+                tidx2 = tidx1
+
+             ! tidx2 is simply the next time slice
+             ELSE
+                tidx2 = tidx1 + 1
+       
+                ! Calculate weights
+                diff1 = availYMDh(tidx2) - prefYMDh
+                diff2 = availYMDh(tidx2) - availYMDh(tidx1)
+                wgt1  = REAL(diff1,kind=sp) / REAL(diff2,kind=sp)
+                wgt2  = 1.0 - wgt1 
+             ENDIF
+
           ! Check for multiple hourly data
-          IF ( tidx1 > 0 .AND. prefHr < 0 ) THEN
+          ELSEIF ( tidx1 > 0 .AND. prefHr < 0 ) THEN
              CALL SET_TIDX2 ( nTime, availYMDH, tidx1, tidx2 )    
 
              ! Denote as local time if necessary
@@ -1185,12 +1229,6 @@ CONTAINS
              tidx2 = tidx1
           ENDIF
        ENDIF   
-
-       ! verbose mode 
-       IF ( (tidx2 /= tidx1) .AND. verb ) THEN
-          WRITE(MSG,'(A30,I12)') 'selected tidx2: ', tidx2
-          CALL HCO_MSG(MSG)
-       ENDIF
 
     ! ================================================================
     ! Case 3: No time slice available. Set both indeces to zero. 
@@ -1217,23 +1255,39 @@ CONTAINS
     ! cycling between the slices will be done at the correct rate 
     ! (e.g. every hour, every 3 hours, ...).
     !-----------------------------------------------------------------
-    IF ( tidx2 > tidx1 ) THEN
+    IF ( (tidx2>tidx1) .AND. (Lct%Dct%Dta%CycleFlag/=4) ) THEN
        Lct%Dct%Dta%DeltaT = YMDh2hrs( availYMDh(tidx1+1) - availYMDh(tidx1) )
     ELSE
        Lct%Dct%Dta%DeltaT = 0
     ENDIF
 
-    ! verbose 
-    IF ( verb .and. tidx1 > 0 ) THEN
-       write(MSG,'(A30,I12)') 'corresponding datetime 1: ', availYMDh(tidx1)
+    ! verbose mode 
+    IF ( verb ) THEN
+       WRITE(MSG,'(A30,I12)') 'selected tidx1: ', tidx1
        CALL HCO_MSG(MSG)
-       if ( tidx2 > tidx1 ) THEN
-          write(MSG,'(A30,I12)') 'corresponding datetime 2: ', availYMDh(tidx2)
+       IF ( tidx1 > 0 ) THEN
+          WRITE(MSG,'(A30,I12)') 'corresponding datetime 1: ', availYMDh(tidx1)
           CALL HCO_MSG(MSG)
-       endif
-       write(MSG,'(A30,I12)') 'assigned delta t [h]: ', Lct%Dct%Dta%DeltaT 
+          IF ( wgt1 >= 0.0 ) THEN
+             WRITE(MSG,*) 'weight1: ', wgt1
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ENDIF
+
+       IF ( (tidx2 /= tidx1) ) THEN
+          WRITE(MSG,'(A30,I12)') 'selected tidx2: ', tidx2
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,'(A30,I12)') 'corresponding datetime 2: ', availYMDh(tidx2)
+          CALL HCO_MSG(MSG)
+          IF ( wgt1 >= 0.0 ) THEN
+             WRITE(MSG,*) 'weight2: ', wgt2
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ENDIF
+
+       WRITE(MSG,'(A30,I12)') 'assigned delta t [h]: ', Lct%Dct%Dta%DeltaT 
        CALL HCO_MSG(MSG)
-       write(MSG,*) 'local time? ', Lct%Dct%Dta%IsLocTime
+       WRITE(MSG,*) 'local time? ', Lct%Dct%Dta%IsLocTime
        CALL HCO_MSG(MSG)
     ENDIF
 
@@ -1324,7 +1378,7 @@ CONTAINS
        ! Check if next time slice is in the future, in which case the
        ! current slice is selected. Don't do this for a CycleFlag of
        ! 3 (==> exact match).
-       IF ( availYMDh(I+1) > prefYMDh .AND. Lct%Dct%Dta%CycleFlag < 3 ) THEN
+       IF ( (availYMDh(I+1) > prefYMDh) .AND. (Lct%Dct%Dta%CycleFlag /= 3) ) THEN
           tidx1 = I
           EXIT
        ENDIF
@@ -2502,6 +2556,7 @@ CONTAINS
 !
     USE HCO_TIDX_MOD,         ONLY : HCO_GetPrefTimeAttr
     USE HCO_CHARTOOLS_MOD,    ONLY : HCO_CharParse
+    USE HCO_CLOCK_MOD,        ONLY : HcoClock_Get
 !
 ! !INPUT PARAMETERS:
 !
@@ -2519,6 +2574,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Oct 2014 - C. Keller - Initial version
+!  23 Feb 2015 - C. Keller - Now check for negative return values in
+!                            HCO_GetPrefTimeAttr 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2537,6 +2594,24 @@ CONTAINS
     ! Get preferred dates (to be passed to parser
     CALL HCO_GetPrefTimeAttr ( Lct, prefYr, prefMt, prefDy, prefHr, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Make sure dates are not negative 
+    IF ( prefYr <= 0 ) THEN
+       CALL HcoClock_Get( cYYYY = prefYr, RC = RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+    IF ( prefMt <= 0 ) THEN
+       CALL HcoClock_Get( cMM   = prefMt, RC = RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+    IF ( prefDy <= 0 ) THEN
+       CALL HcoClock_Get( cDD   = prefDy, RC = RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+    IF ( prefHr <  0 ) THEN
+       CALL HcoClock_Get( cH    = prefHr, RC = RC ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF 
 
     ! Call the parser
     CALL HCO_CharParse ( srcFile, prefYr, prefMt, prefDy, prefHr, RC )

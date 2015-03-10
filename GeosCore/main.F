@@ -711,6 +711,7 @@
 
 # endif
 #endif
+
 !-----------------------------------------------------------------------------
 
       !=================================================================
@@ -722,7 +723,7 @@
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
 #endif 
- 
+
       !=================================================================
       !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
       !=================================================================      
@@ -801,6 +802,7 @@
                ! Flush file units
                CALL CTM_FLUSH
             ENDIF
+
             !===========================================================
             !    *****  W R I T E   R E S T A R T   F I L E S  *****
             !===========================================================
@@ -845,6 +847,7 @@
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### MAIN: a MAKE_RESTART_FILE' )
                ENDIF
+
             ENDIF
 
             ! Set time at beginning of next diagnostic timestep
@@ -854,7 +857,9 @@
             !        ***** Z E R O   D I A G N O S T I C S *****
             !===========================================================
             CALL INITIALIZE( am_I_Root, Input_Opt, 2, RC )  ! Zero diag arrays
+
             CALL INITIALIZE( am_I_Root, Input_Opt, 3, RC )  ! Zero counters
+
          ENDIF
 
          !=============================================================
@@ -932,27 +937,18 @@
      &           ITS_AN_AEROSOL_SIM   .or.
      &           ITS_A_CH3I_SIM     ) THEN
 
-               ! Read UV albedoes for FAST-J
-               CALL READ_UVALBEDO
-     &              ( am_I_Root, Input_Opt, MONTH, State_Met, RC )
+!-----------------------------------------------------------------------------
+! Prior to 3/4/15:
+! Move this call below the call to EMISSIONS_RUN.  The HEMCO data has to
+! be read from disk before the UVALBEDO data can be copied. (bmy, 3/4/15)
+!               ! Read UV albedoes for FAST-J
+!               CALL READ_UVALBEDO
+!     &              ( am_I_Root, Input_Opt, MONTH, State_Met, RC )
+!-----------------------------------------------------------------------------
 
                ! Read TOMS overhead O3 columns for FAST-J
                CALL READ_TOMS( am_I_Root, Input_Opt, MONTH, YEAR, RC )
             ENDIF
-         ENDIF
-
-         ! Fossil fuel emissions (SMVGEAR)
-         ! NOTE: Only call ANTHROEMS if it's time to do emissions;
-         ! this will function properly for the central chemistry time step
-         ! (bmy, 10/14/11)
-         IF ( ITS_A_FULLCHEM_SIM .or. ITS_A_TAGCO_SIM ) THEN
-            IF ( ITS_TIME_FOR_EMIS() ) THEN 
-               IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
-!                  CALL ANTHROEMS( SEASON, Input_Opt )              
-               ENDIF
-            ENDIF
-
-
          ENDIF
 
          ! Read data required for Hg2 gas-particle partitioning 
@@ -1110,7 +1106,7 @@
 
          ! Get the overhead column O3 for use with FAST-J
          CALL GET_OVERHEAD_O3_FOR_FASTJ( am_I_Root )
-
+         
          !==============================================================
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
@@ -1165,7 +1161,7 @@
                CALL EXCHANGE_GLOBAL_POST
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
-            
+
 # elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( NESTED_SE )
 
             ! Exchange the position of POST (nested-grid simulations)
@@ -1173,6 +1169,7 @@
                CALL EXCHANGE_NESTED_POST
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
+
 # endif
 #endif
 !-----------------------------------------------------------------------------
@@ -1192,6 +1189,7 @@
             ! ... TOMAS microphysics: Always call INIT_WETSCAV ...
             CALL INIT_WETSCAV
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
 #else 
             ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
             ! ... convection or wet scavenging or chemistry are turned on ...
@@ -1199,6 +1197,7 @@
                CALL INIT_WETSCAV
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
+
 #endif
          ENDIF
 
@@ -1244,6 +1243,12 @@
             CALL EMISSIONS_RUN( am_I_Root, Input_Opt, 
      &                          State_Met, State_Chm, RC )
 
+            ! Copy UV Albedo data (for photolysis) into State_Met%UVALBEDO
+            ! NOTE: This has to be done after the HEMCO run method!
+            IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
+               CALL GET_UVALBEDO( am_I_Root, Input_Opt, State_Met, RC )
+            ENDIF
+
             ! Stop the run if the HEMCO run sequence dies w/ an error
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
@@ -1266,8 +1271,7 @@
                   CALL SET_CH3Br( am_I_Root, Input_Opt, 
      &                            State_Met, ITS_TIME_FOR_UNIT(),
      &                            State_Chm, RC                    )
-
-              ENDIF
+               ENDIF
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
@@ -1300,7 +1304,7 @@
             ! bug since emissions then occur with chemistry. (cdh, 5/1/2013)
             IF ( .NOT. LNLPBL ) THEN
                CALL DO_PBL_MIX( LTURB, Input_Opt, State_Met, State_Chm )
-               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1')
             ELSE
                CALL DO_PBL_MIX_2( am_I_Root, LTURB,     Input_Opt,
      &                            State_Met, State_Chm, RC         )
@@ -1328,6 +1332,7 @@
          !==============================================================
          !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
          !==============================================================
+
          IF ( ITS_TIME_FOR_UNIT() ) THEN 
             CALL CONVERT_UNITS( 2, N_TRACERS, Input_Opt%TCVV, 
      &                          State_Met%AD, State_Chm%TRACERS )
@@ -1392,7 +1397,7 @@
 
                ENDIF
 
-               ! ----------------------------------------------------
+              ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
@@ -1402,6 +1407,7 @@
 
 
                ENDIF
+
             ENDIF
          ENDIF
 
@@ -1439,7 +1445,6 @@
          CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
 #endif 
 
-
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
@@ -1448,7 +1453,7 @@
             ! Do wet deposition
             CALL DO_WETDEP
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            
+
          ENDIF
 
          !==============================================================
@@ -1595,6 +1600,7 @@
          ! Each diagnostic has a specified averaging period specified 
          ! in Input_Opt. (ckeller, bmy, 1/15/15)
          CALL Diagnostics_Write( am_I_Root, Input_Opt, .FALSE., RC )
+
 #endif
 
          !### After diagnostics

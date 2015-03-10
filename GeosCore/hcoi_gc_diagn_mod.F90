@@ -200,7 +200,7 @@ CONTAINS
     CALL Diagn_Biomass ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_NOSrc   ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+    CALL Diagn_NOsrc   ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL Diagn_Biofuel ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
@@ -1060,6 +1060,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use sulfur
+!  23 Feb 2015 - C. Keller   - Split volcano into eruptive and degassing.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1193,22 +1194,40 @@ CONTAINS
                           RC        = RC                  )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
-       ! ... from volcanoes ...
-       DiagnName = 'AD13_SO2_VOLCANO'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = CATEGORY_VOLCANO,  &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 3,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg',              &
-                          WriteFreq = 'Manual',          &
-                          AutoFill  = 1,                 &
-                          cID       = N,                 & 
-                          RC        = RC                  )
+       ! ... from volcanoes (eruptive) ...
+       DiagnName = 'AD13_SO2_VOLCANO_ERUPT'
+       CALL Diagn_Create( am_I_Root,                           & 
+                          HcoState  = HcoState,                &
+                          cName     = TRIM( DiagnName ),       &
+                          ExtNr     = ExtNr,                   &
+                          Cat       = CATEGORY_VOLCANO_ERUPT,  &
+                          Hier      = -1,                      &
+                          HcoID     = HcoID,                   &
+                          SpaceDim  = 3,                       &
+                          LevIDx    = -1,                      &
+                          OutUnit   = 'kg',                    &
+                          WriteFreq = 'Manual',                &
+                          AutoFill  = 1,                       &
+                          cID       = N,                       & 
+                          RC        = RC                        )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       ! ... from volcanoes (non-eruptive / degassing) ...
+       DiagnName = 'AD13_SO2_VOLCANO_DEGAS'
+       CALL Diagn_Create( am_I_Root,                           & 
+                          HcoState  = HcoState,                &
+                          cName     = TRIM( DiagnName ),       &
+                          ExtNr     = ExtNr,                   &
+                          Cat       = CATEGORY_VOLCANO_DEGAS,  &
+                          Hier      = -1,                      &
+                          HcoID     = HcoID,                   &
+                          SpaceDim  = 3,                       &
+                          LevIDx    = -1,                      &
+                          OutUnit   = 'kg',                    &
+                          WriteFreq = 'Manual',                &
+                          AutoFill  = 1,                       &
+                          cID       = N,                       & 
+                          RC        = RC                        )
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... from ships ...
@@ -3078,7 +3097,7 @@ CONTAINS
           !%%% used in the MEGAN extension!
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
           ! There are 9 manual monoterpene diagnostics in MEGAN
-          DO I = 1,12
+          DO I = 1,13
    
              ! Define diagnostics names. These names have to match the
              ! names called in hcox_megan_mod.F90.
@@ -3107,11 +3126,11 @@ CONTAINS
              ! Make diagnostic containers for SOA species to avoid errors
              ! in diag3.F. These diagnostics will be zero if MEGAN_SOA is
              ! turned off. (mps, 2/23/15)
-             ELSEIF ( I == 10 ) THEN
-                DiagnName = 'BIOGENIC_FARN'
              ELSEIF ( I == 11 ) THEN
-                DiagnName = 'BIOGENIC_BCAR'
+                DiagnName = 'BIOGENIC_FARN'
              ELSEIF ( I == 12 ) THEN
+                DiagnName = 'BIOGENIC_BCAR'
+             ELSEIF ( I == 13 ) THEN
                 DiagnName = 'BIOGENIC_OSQT'
              ENDIF
 
@@ -3295,6 +3314,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use lightning
+!  19 Feb 2015 - C. Keller   - Added entry for MTYPE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3306,7 +3326,8 @@ CONTAINS
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGN_LFLASH (hcoi_gc_diagn_mod.F90)'
+    CHARACTER(LEN=31)  :: WriteFreq = 'Manual'
+    CHARACTER(LEN=255) :: LOC       = 'DIAGN_LFLASH (hcoi_gc_diagn_mod.F90)'
 
     !=======================================================================
     ! DIAGN_LFLASH begins here!
@@ -3319,7 +3340,7 @@ CONTAINS
     !IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
 
     ! Define diagnostics
-    IF ( ND56 > 0 ) THEN
+    IF ( Input_Opt%ND56 > 0 ) THEN
 
        ! Extension number
        ExtNr = GetExtNr('LightNOx')
@@ -3360,12 +3381,31 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'flashes/min/km2', &
                              OutOper   = 'Mean',            &
-                             WriteFreq = 'Manual',          &
+                             WriteFreq = TRIM(WriteFreq),   &
                              AutoFill  = 0,                 &
                              cID       = N,                 & 
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDDO
+
+       ! Diagnose most recent mtype
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = 'LIGHTNING_MTYPE', & 
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = '1',               &
+                          OutOper   = 'Instantaneous',   &
+                          WriteFreq = TRIM(WriteFreq),   &
+                          AutoFill  = 0,                 &
+                          cID       = N,                 & 
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
     ENDIF 
 
   END SUBROUTINE Diagn_LFlash
@@ -3626,37 +3666,6 @@ CONTAINS
           RETURN      
        ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 8/27/14:
-! Comment out for now -- Need to figure out how to track total POPs emissions
-! in HEMCO (mps/8/27/14)
-!       !-------------------------------------------
-!       ! %%%%% Total POP %%%%%
-!       !-------------------------------------------
-! 
-!       ! HEMCO species ID
-!       HcoID = GetHemcoId( 'POPG', HcoState, LOC, RC )
-!       IF ( RC /= HCO_SUCCESS ) RETURN
-!
-!       ! Create diagnostic container
-!       DiagnName = 'AD01_POPT_SOURCE'
-!       CALL Diagn_Create( am_I_Root,                     & 
-!                          HcoState  = HcoState,          &
-!                          cName     = TRIM( DiagnName ), &
-!                          ExtNr     = ExtNr,             &
-!                          Cat       = -1,                &
-!                          Hier      = -1,                &
-!                          HcoID     = HcoID,             &
-!                          SpaceDim  = 2,                 &
-!                          LevIDx    = -1,                &
-!                          OutUnit   = 'kg',              &
-!                          WriteFreq = 'Manual',          &
-!                          AutoFill  = 1,                 &
-!                          cID       = N,                 & 
-!                          RC        = RC                  ) 
-!       IF ( RC /= HCO_SUCCESS ) RETURN 
-!------------------------------------------------------------------------------
-
        !-------------------------------------------
        ! %%%%% OC-phase POP %%%%%
        !-------------------------------------------
@@ -3666,7 +3675,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Create diagnostic container
-       DiagnName = 'AD01_POPPOC_SOURCE'
+       DiagnName = 'AD53_POPPOC_SOURCE'
        CALL Diagn_Create( am_I_Root,                     & 
                           HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
@@ -3692,7 +3701,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Create diagnostic container
-       DiagnName = 'AD01_POPPBC_SOURCE'
+       DiagnName = 'AD53_POPPBC_SOURCE'
        CALL Diagn_Create( am_I_Root,                   & 
                           HcoState  = HcoState,        &
                           cName     = TRIM(DiagnName), &
@@ -3719,7 +3728,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Create diagnostic container
-       DiagnName = 'AD01_POPG_SOURCE'
+       DiagnName = 'AD53_POPG_SOURCE'
        CALL Diagn_Create( am_I_Root,                     & 
                           HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &

@@ -528,6 +528,7 @@ diag63_mod.o                : diag63_mod.F                                   \
 diagnostics_mod.o           : diagnostics_mod.F90                            \
                               drydep_mod.o                                   \
                               hcoi_gc_main_mod.o                             \
+                              tracer_mod.o                                   \
                               ucx_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
@@ -922,6 +923,8 @@ transport_mod.o             : transport_mod.F                                \
                               pjc_pfix_geosfp_window_mod.o
 
 update.o                    : update.F
+
+uvalbedo_mod.o              : uvalbedo_mod.F90
 
 vdiff_pre_mod.o             : vdiff_pre_mod.F90
 ifeq ($(COMPILER),sun)
