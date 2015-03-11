@@ -334,6 +334,9 @@ CONTAINS
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  06 Oct 2014 - C. Keller   - Now calculate pressure centers from edges.
 !  16 Jan 2015 - R. Yantosca - Bug fix: TmpScale should be REAL(dp)
+!  11 Mar 2015 - C. Keller   - Now determine LTOP from buoyancy for grid boxes
+!                              where convection is explicitly resolved. For now,
+!                              this will only work in an ESMF environment.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,18 +356,18 @@ CONTAINS
     REAL*8            :: XMID
     REAL*8            :: VERTPROF(HcoState%NZ)
     INTEGER           :: LNDTYPE, SFCTYPE
+    INTEGER           :: DiagnID
     LOGICAL, SAVE     :: FIRST   = .TRUE.
     LOGICAL, SAVE     :: DoDiagn = .FALSE.
     REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,4)
     REAL(hp), POINTER :: Arr2D(:,:) => NULL() 
-    CHARACTER(LEN=31) :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
     REAL(hp)          :: TROPP
     REAL(dp)          :: TmpScale
 
-    ! for testing in an ESMF environment
+    ! 'Hybrid' cloud top height in an ESMF environment 
     INTEGER           :: LTOPtmp
-    REAL(hp), TARGET  :: TOPDIAGN(HcoState%NX,HcoState%NY,5)
+    REAL(hp), TARGET  :: TOPDIAGN(HcoState%NX,HcoState%NY,3)
 
     !=================================================================
     ! LIGHTNOX begins here!
@@ -381,8 +384,8 @@ CONTAINS
 
        ! See if we have to write out manual diagnostics. These are all
        ! defined together, so check only for one diagnostics.
-       DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
-       CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
+       DiagnID = 56001
+       CALL DiagnCont_Find ( DiagnID, -1, -1, -1, -1, '', 0, DoDiagn, TmpCnt )
        TmpCnt => NULL()
 
        ! Eventually get OTD-LIS local redistribution factors from HEMCO.
@@ -618,55 +621,60 @@ CONTAINS
        ! Use the same definition as used in GEOS-Chem.
        !
        ! (ltm, bmy, 5/10/06, 12/11/06)
+       !
+       ! GEOS-5 diagnoses the convective cloud top height directly.
+       ! If available, now use this parameter to determine LTOP.
+       ! The result is basically identical to the traditional 
+       ! definition of LTOP (ckeller, 3/11/15).
        !===========================================================
 
-       ! Cloud top level
-       LTOP = 1
-       DO L = HcoState%NZ, 1, -1
-          IF ( ExtState%CNV_MFC%Arr%Val(I,J,L) > 0.0_hp ) THEN
-             LTOP = L + 1
-             EXIT
-          ENDIF
-       ENDDO 
+       ! To determine cloud top height from convective cloud
+       ! top height diagnostics.
+       IF ( ASSOCIATED( ExtState%CNV_TOPP%Arr%Val ) ) THEN
+          LTOP = 1
+          DO L = 1, HcoState%NZ
+             IF (  HcoState%Grid%PEDGE%Val(I,J,L+1) &
+                <= ExtState%CNV_TOPP%Arr%Val(I,J) ) THEN
+                LTOP = L + 1
+                EXIT
+             ENDIF
+          ENDDO
+
+       ! 'Traditional' definition
+       ELSE
+
+          ! Cloud top level
+          LTOP = 1
+          DO L = HcoState%NZ, 1, -1
+             IF ( ExtState%CNV_MFC%Arr%Val(I,J,L) > 0.0_hp ) THEN
+                LTOP = L + 1
+                EXIT
+             ENDIF
+          ENDDO 
+       ENDIF
 
        ! Diagnose 'traditional' LTOP
        IF ( DoDiagn .AND. LTOP >= LCHARGE ) THEN
           TOPDIAGN(I,J,1) = MIN(LTOP,LMAX)
        ENDIF
 
-       !----------------------------------------------------------------
-       ! In an ESMF environment
-       !----------------------------------------------------------------
-
-       ! To determine cloud top height from convective cloud
-       ! top height diagnostics.
-       IF ( ASSOCIATED( ExtState%CNV_TOPP%Arr%Val ) ) THEN
-          LTOPtmp = 0
-          DO L = 1, HcoState%NZ
-             IF (  HcoState%Grid%PEDGE%Val(I,J,L+1) &
-                <= ExtState%CNV_TOPP%Arr%Val(I,J) ) THEN
-                LTOPtmp = L + 1
-                EXIT
-             ENDIF
-          ENDDO
-     
-          ! Write to diagnostics
-          TOPDIAGN(I,J,2) = LTOPtmp
-       ENDIF
-
-       ! First level with positive buoyancy
-       IF ( ASSOCIATED( ExtState%BYNCY%Arr%Val ) ) THEN
-          LTOPtmp = 0
-          DO L = HcoState%NZ, 1, -1
-             IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN 
-                LTOPtmp = L + 1
-                EXIT
-             ENDIF
-          ENDDO
-     
-          ! Write to diagnostics
-          TOPDIAGN(I,J,3) = LTOPtmp
-       ENDIF
+       !------------------------------------------------------------------
+       ! Check for grid boxes where convection is not parameterized but
+       ! explicitly resolved. In these cases, the convective mass flux
+       ! is zero and LTOP won't be defined with the definition above.
+       ! Below, we check if this grid box explicitly resolves convection 
+       ! based on the RCCODE parameter (returned from the GEOS-5 moist 
+       ! component). If RCCODE is 7 in any layer, convection has been shut 
+       ! down for this grid box and the uppermost level of positive 
+       ! buoyancy is used to approximate the convective cloud top level. 
+       ! The buoyancy is defined throughout all grid boxes. Its uppermost 
+       ! positive level agrees very well with the highest level where 
+       ! convective mass flux is non-zero (ckeller, 3/11/15).
+       !
+       ! NOTE: At the moment, RCCODE and BYNCY are only defined within
+       ! GEOS-5, e.g. the code snipped below will only be in effect for
+       ! simulations within the GEOS-5 system. 
+       !-----------------------------------------------------------------
 
        ! Top level with return code = 7, plus one
        IF ( ASSOCIATED( ExtState%RCCODE%Arr%Val ) ) THEN
@@ -677,23 +685,26 @@ CONTAINS
                 EXIT
              ENDIF
           ENDDO
-     
-          ! Write to diagnostics
-          TOPDIAGN(I,J,4) = LTOPtmp
-       ENDIF
 
-       ! Use a merged product
-       IF ( LTOP == 0 ) THEN
-          IF ( TOPDIAGN(I,J,4) > 0.0_sp ) THEN
-             LTOP = NINT(TOPDIAGN(I,J,3))
+          IF ( LTOPtmp > 0 ) THEN
+             ! First level with positive buoyancy
+             IF ( ASSOCIATED( ExtState%BYNCY%Arr%Val ) ) THEN
+                LTOP = 0
+                DO L = HcoState%NZ, 1, -1
+                   IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN 
+                      LTOP = L + 1
+                      EXIT
+                   ENDIF
+                ENDDO
+     
+                ! Write to diagnostics
+                IF ( DoDiagn .AND. LTOP >= LCHARGE ) THEN
+                   TOPDIAGN(I,J,2) = MIN(LTOP,LMAX)
+                ENDIF
+             ENDIF
           ENDIF
        ENDIF
-
-       ! Diagnose 'updated' LTOP
-       IF ( DoDiagn .AND. LTOP >= LCHARGE ) THEN
-          TOPDIAGN(I,J,5) = MIN(LTOP,LMAX)
-       ENDIF
-  
+ 
        !----------------------------------------------------------------
        ! Error checks for LTOP 
        !----------------------------------------------------------------
@@ -704,6 +715,11 @@ CONTAINS
        ! Error check LTOP as described above
        IF ( LTOP        >  LMAX      ) LTOP = LMAX
        IF ( LTOP        <  LCHARGE   ) CYCLE
+
+       ! Diagnose used LTOP
+       IF ( DoDiagn ) THEN 
+          TOPDIAGN(I,J,3) = LTOP
+       ENDIF
 
        !--------------------------
        ! GEOS-4 only
@@ -1074,59 +1090,40 @@ CONTAINS
 
     ! Eventually add individual diagnostics. These go by names!
     IF ( DoDiagn ) THEN
-       DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
-       Arr2D     => DIAGN(:,:,1)
-       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       DiagnID =  56001
+       Arr2D   => DIAGN(:,:,1)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
-       DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
+       DiagnID =  56002
        Arr2D     => DIAGN(:,:,2)
-       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
-       DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
+       DiagnID =  56003
        Arr2D     => DIAGN(:,:,3)
-       CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr, &
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
 
-       DiagnName = 'TRAD_TOP'
+       DiagnID =  56004
        Arr2D     => TOPDIAGN(:,:,1)
-       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
        
-       DiagnName = 'CNV_TOP'
+       DiagnID =  56005
        Arr2D     => TOPDIAGN(:,:,2)
-       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
+                          
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
        
-       DiagnName = 'BYNCY_TOP'
+       DiagnID =  56006
        Arr2D     => TOPDIAGN(:,:,3)
-       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
-       
-       DiagnName = 'RCCODE_TOP'
-       Arr2D     => TOPDIAGN(:,:,4)
-       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
-
-       DiagnName = 'TRAD_BYNCY_TOP'
-       Arr2D     => TOPDIAGN(:,:,5)
-       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
 

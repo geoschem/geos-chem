@@ -48,11 +48,17 @@ MODULE HCOX_STATE_MOD
   ! HCO\_ERROR\_MOD.  You can add more types if necessary.
   !=========================================================================
  
-  ! 2D real
+  ! 2D real, default precision
   TYPE, PUBLIC :: ExtDat_2R
      TYPE(Arr2D_HP), POINTER :: Arr
      LOGICAL                 :: DoUse
   END TYPE ExtDat_2R
+
+  ! 2D real, single precision
+  TYPE, PUBLIC :: ExtDat_2S
+     TYPE(Arr2D_SP), POINTER :: Arr
+     LOGICAL                 :: DoUse
+  END TYPE ExtDat_2S
 
   ! 2D integer
   TYPE, PUBLIC :: ExtDat_2I
@@ -60,12 +66,17 @@ MODULE HCOX_STATE_MOD
      LOGICAL                 :: DoUse
   END TYPE ExtDat_2I
 
-  ! 3D real
+  ! 3D real, default precision
   TYPE, PUBLIC :: ExtDat_3R
      TYPE(Arr3D_HP), POINTER :: Arr
      LOGICAL                 :: DoUse
   END TYPE ExtDat_3R
 
+  ! 3D real, single precision
+  TYPE, PUBLIC :: ExtDat_3S
+     TYPE(Arr3D_SP), POINTER :: Arr
+     LOGICAL                 :: DoUse
+  END TYPE ExtDat_3S
   !=========================================================================
   ! Ext_State: Derived type declaration for the State object containing 
   ! pointers to all met fields and related quantities used by the HEMCO 
@@ -167,11 +178,13 @@ MODULE HCOX_STATE_MOD
 
      !----------------------------------------------------------------------
      ! Fields used in ESMF environment only. These arrays won't be used
-     ! in a classic environment. 
+     ! in a classic environment. They become filled in HCO_SetExtState_ESMF
+     ! in hcoi_esmf_mod.F90 (called from within hcoi_gc_main_mod.F90). 
+     ! Note: CNV_TOPP is currently not being used. 
      !----------------------------------------------------------------------
-     TYPE(ExtDat_2R),  POINTER :: CNV_TOPP    ! Convective cloud top height 
-     TYPE(ExtDat_3R),  POINTER :: RCCODE      ! Convection return code
-     TYPE(ExtDat_3R),  POINTER :: BYNCY       ! Buoyancy 
+     TYPE(ExtDat_2S),  POINTER :: CNV_TOPP    ! Convective cloud top height 
+     TYPE(ExtDat_3S),  POINTER :: RCCODE      ! Convection return code
+     TYPE(ExtDat_3S),  POINTER :: BYNCY       ! Buoyancy 
 
   END TYPE Ext_State
 !
@@ -188,6 +201,9 @@ MODULE HCOX_STATE_MOD
 !  20 Aug 2014 - M. Sulprizio- Modified for GEOS-Chem POPs emissions module
 !  01 Oct 2014 - R. Yantosca - Modified for TOMAS sea salt emissions module
 !  11 Dec 2014 - M. Yannetti - Updated DRYCOEFF to REAL(hp)
+!  10 Mar 2015 - C. Keller   - Fields can now be in HEMCO precision or single
+!                              precision. Single precision is useful for 
+!                              fields used in ESMF setting. 
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -196,14 +212,18 @@ MODULE HCOX_STATE_MOD
 !
   INTERFACE ExtDat_Init
      MODULE PROCEDURE ExtDat_Init_2R
+     MODULE PROCEDURE ExtDat_Init_2S
      MODULE PROCEDURE ExtDat_Init_2I
      MODULE PROCEDURE ExtDat_Init_3R
+     MODULE PROCEDURE ExtDat_Init_3S
   END INTERFACE ExtDat_Init
   
   INTERFACE ExtDat_Cleanup
      MODULE PROCEDURE ExtDat_Cleanup_2R
+     MODULE PROCEDURE ExtDat_Cleanup_2S
      MODULE PROCEDURE ExtDat_Cleanup_2I
      MODULE PROCEDURE ExtDat_Cleanup_3R
+     MODULE PROCEDURE ExtDat_Cleanup_3S
   END INTERFACE ExtDat_Cleanup
 
 CONTAINS
@@ -547,6 +567,52 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: ExtDat_Init_2S
+!
+! !DESCRIPTION: Subroutine ExtDat\_Init\_2S initializes the given ExtDat type. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ExtDat_Init_2S ( ExtDat, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ExtDat_2S), POINTER       :: ExtDat
+    INTEGER,         INTENT(INOUT) :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  23 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  23 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! ================================================================
+    ! ExtDat_Init_2S begins here
+    ! ================================================================
+
+    ExtDat     => NULL()
+    ALLOCATE(ExtDat)
+    ExtDat%Arr => NULL()
+
+    ! Establish pointer to ExtDat%Arr%Val
+    CALL HCO_ArrInit( ExtDat%Arr, 0, 0, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ExtDat%DoUse = .FALSE.
+
+    ! Leave
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ExtDat_Init_2S
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: ExtDat_Init_2I
 !
 ! !DESCRIPTION: Subroutine ExtDat\_Init\_2I initializes the given ExtDat type. 
@@ -638,6 +704,51 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: ExtDat_Init_3S
+!
+! !DESCRIPTION: Subroutine ExtDat\_Init\_3S initializes the given ExtDat type. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ExtDat_Init_3S ( ExtDat, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ExtDat_3S), POINTER       :: ExtDat
+    INTEGER,         INTENT(INOUT) :: RC        ! Return code
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  23 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  23 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    ! ================================================================
+    ! ExtDat_Init_3S begins here
+    ! ================================================================
+
+    ExtDat => NULL()
+    ALLOCATE(ExtDat)
+    ExtDat%Arr => NULL()
+
+    ! Establish pointer to ExtDat%Arr%Val
+    CALL HCO_ArrInit( ExtDat%Arr, 0, 0, 0, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ExtDat%DoUse = .FALSE.
+
+    ! Leave
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE ExtDat_Init_3S
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: ExtDat_Cleanup_2R
 !
 ! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_2R removes the given ExtDat type.
@@ -668,6 +779,42 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE ExtDat_Cleanup_2R
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ExtDat_Cleanup_2S
+!
+! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_2S removes the given ExtDat type.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ExtDat_Cleanup_2S ( ExtDat ) 
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ExtDat_2S), POINTER       :: ExtDat
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  23 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  23 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    ! ================================================================
+    ! ExtDat_Cleanup_2S begins here
+    ! ================================================================
+
+    IF ( ASSOCIATED( ExtDat) ) THEN 
+       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. ) 
+       DEALLOCATE ( ExtDat )
+    ENDIF
+
+  END SUBROUTINE ExtDat_Cleanup_2S
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -740,5 +887,41 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE ExtDat_Cleanup_3R
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ExtDat_Cleanup_3S
+!
+! !DESCRIPTION: Subroutine ExtDat\_Cleanup\_3S removes the given ExtDat type. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ExtDat_Cleanup_3S( ExtDat ) 
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(ExtDat_3S), POINTER       :: ExtDat
+!
+! !REVISION HISTORY:
+!  20 Apr 2013 - C. Keller - Initial version
+!  23 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  23 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    ! ================================================================
+    ! ExtDat_Cleanup_3S begins here
+    ! ================================================================
+
+    IF ( ASSOCIATED( ExtDat) ) THEN 
+       CALL HCO_ArrCleanup( ExtDat%Arr, DeepClean=.TRUE. ) 
+       DEALLOCATE ( ExtDat )
+    ENDIF
+
+  END SUBROUTINE ExtDat_Cleanup_3S
 !EOC
 END MODULE HCOX_STATE_MOD

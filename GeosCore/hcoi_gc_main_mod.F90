@@ -558,7 +558,7 @@ CONTAINS
     ! just in case that some ExtState variables are defined using data from
     ! the HEMCO configuration file (which becomes only updated in HCO_RUN).
     !=======================================================================
-    CALL ExtState_UpdtPointers ( State_Met, State_Chm, HMRC )
+    CALL ExtState_UpdtPointers ( am_I_Root, State_Met, State_Chm, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('ExtState_UpdtPointers', LOC )
        RETURN 
@@ -791,11 +791,6 @@ CONTAINS
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,      ONLY : GC_LAI
 #endif
-
-#if defined(ESMF_) 
-    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
-#endif
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -1034,16 +1029,6 @@ CONTAINS
     ENDIF
     IF ( DoDryCoeff ) ExtState%DRYCOEFF => DRYCOEFF
 
-    ! ----------------------------------------------------------------
-    ! ESMF environment: get pointers to some additional variables 
-    ! ----------------------------------------------------------------
-#if defined( ESMF_ )
-    CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
-    ENDIF
-#endif
-
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -1063,11 +1048,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdtPointers( State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtState_UpdtPointers( am_I_Root, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+    USE ERROR_MOD,             ONLY : ERROR_STOP
     USE GIGC_State_Met_Mod,    ONLY : MetState
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
@@ -1080,11 +1066,12 @@ CONTAINS
     USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
 
 #if defined(ESMF_) 
-!    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
 #endif
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
 !
@@ -1110,6 +1097,9 @@ CONTAINS
 
     CHARACTER(LEN=255), PARAMETER :: &
        LOC = 'ExtState_UpdtPointers (hcoi_gc_main_mod.F90)'
+
+    ! Is this the first time?
+    LOGICAL, SAVE                 :: FIRST = .TRUE.
 
     !=================================================================
     ! ExtState_UpdtPointers begins here
@@ -1184,15 +1174,23 @@ CONTAINS
     ENDDO
 !$OMP END PARALLEL DO
 
-!    ! ----------------------------------------------------------------
-!    ! ESMF environment: get pointers to some additional variables 
-!    ! ----------------------------------------------------------------
-#if defined( ESMF )
-!    CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
-!    IF ( RC /= HCO_SUCCESS ) THEN
-!       CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
-!    ENDIF
+    ! ----------------------------------------------------------------
+    ! ESMF environment: add some additional variables to ExtState.
+    ! These values must be defined here and not in the initialization
+    ! because it seems like the IMPORT state is not yet properly
+    ! defined during initialization. 
+    ! ----------------------------------------------------------------
+#if defined( ESMF_ )
+    IF ( FIRST ) THEN
+       CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
+       ENDIF
+    ENDIF
 #endif
+
+    ! Not first time any more
+    FIRST = .FALSE.
 
   END SUBROUTINE ExtState_UpdtPointers
 !EOC

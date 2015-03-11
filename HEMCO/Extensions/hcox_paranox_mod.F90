@@ -331,41 +331,47 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L
-    LOGICAL            :: verb
-    LOGICAL            :: ERR
-    LOGICAL            :: FOUND 
-    LOGICAL, SAVE      :: FIRST = .TRUE.
-    REAL(hp)           :: iFlx, TMP
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: DgnName 
-    CHARACTER(LEN=1)   :: CHAR1
+    INTEGER                  :: I, J, L
+    LOGICAL                  :: verb
+    LOGICAL                  :: ERR
+    LOGICAL                  :: FOUND 
+    LOGICAL, SAVE            :: FIRST = .TRUE.
+    REAL(hp)                 :: iFlx, TMP
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: DgnName 
+    CHARACTER(LEN=1)         :: CHAR1
 
     ! Arrays
-    REAL(hp), TARGET   :: FLUXNO  (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: FLUXNO2 (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: FLUXHNO3(HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: FLUXO3  (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: DEPO3   (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: DEPHNO3 (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: FLUXNO  (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: FLUXNO2 (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: FLUXHNO3(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: FLUXO3  (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: DEPO3   (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: DEPHNO3 (HcoState%NX,HcoState%NY)
 
     ! Pointers
-    REAL(hp), POINTER  :: Arr2D(:,:) => NULL()
+    REAL(hp), POINTER        :: Arr2D(:,:) => NULL()
 
     ! For diagnostics
-    REAL(hp), TARGET   :: DIAGN   (HcoState%NX,HcoState%NY,4)
-    LOGICAL, SAVE      :: DODIAGN = .FALSE.
-    CHARACTER(LEN=31)  :: DiagnName
+    REAL(hp), TARGET         :: DIAGN   (HcoState%NX,HcoState%NY,4)
+    LOGICAL, SAVE            :: DODIAGN = .FALSE.
+    CHARACTER(LEN=31)        :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
 
     ! For internal SC5 array
-    INTEGER            :: HH
-    INTEGER, SAVE      :: lastHH = -1
+    INTEGER                  :: HH
+    INTEGER, SAVE            :: lastHH = -1
 
     ! Paranox update
-    REAL(dp)           :: SHIP_FNOx, SHIP_DNOx, SHIP_OPE, SHIP_MOE
-    REAL(dp)           :: FNO_NOx
-    REAL(hp)           :: iMass
+    REAL(dp)                 :: SHIP_FNOx, SHIP_DNOx, SHIP_OPE, SHIP_MOE
+    REAL(dp)                 :: FNO_NOx
+    REAL(hp)                 :: iMass
+    REAL(hp)                 :: ExpVal 
+
+    ! Highest possible dry deposition value: DepVel * TS_EMIS will be restricted
+    ! to this value. Arbitrarily set to 20. This will ensure complete depletion:
+    ! exp(-20) = 2e-9.
+    REAL(hp), PARAMETER      :: MaxExp = 20.0_hp
 
 !------------------------------------------------------------------------------
 !### DEBUG -- COMMENT OUT FOR NOW
@@ -548,9 +554,23 @@ CONTAINS
                         * ( MW_HNO3 / MW_NO )
        ENDIF
 
-       !---------------------------
+       !--------------------------------------------------------------------
        ! NOy deposition (as HNO3) from the sub-grid plume. 
-       !---------------------------
+       ! The calculated deposition flux is in kg/m2/s, which has to be 
+       ! converted to 1/s. The species mass is either the species mass in 
+       ! the first grid box or of the entire PBL column, depending on the
+       ! HEMCO setting 'PBL_DRYDEP'. 
+       ! 
+       ! NOTE: the calculation of DEPHNO3 can cause precision problems for 
+       ! small HNO3 grid box concentrations. In particular, unrealisticly 
+       ! high deposition frequencies can occur if the grid box concentration
+       ! is almost zero. Typical deposition frequencies seem to be in the 
+       ! order of max. 1.0e-4. To avoid over/underflow problems in the 
+       ! drydep calculations, we limit the deposition frequency to a value
+       ! that will make sure that the drydep exponent (exp(-depvel * dt) is
+       ! still small enough to remove basically all species. The upper limit 
+       ! of depvel*dt is defined above as MaxExp. 
+       !--------------------------------------------------------------------
        IF ( (IDTHNO3 > 0) .AND. (SHIP_DNOx > 0.0_dp) ) THEN 
 
           ! Deposition flux in kg/m2/s.
@@ -570,10 +590,6 @@ CONTAINS
           ENDIF
 
           ! Calculate deposition velocity (1/s) from flux
-          ! NOTE: the calculated deposition flux is in kg/m2/s,
-          ! which has to be converted to 1/s. Use here the HNO3 conc.
-          ! [kg] of the entire tropospheric column (PARANOx values are
-          ! for the entire column).
           ! Now avoid div-zero error (ckeller, 11/10/2014).
           IF ( iMass > TINY(1.0_hp) ) THEN
              TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
@@ -586,11 +602,12 @@ CONTAINS
              ! Sanity check: if deposition velocity is above 10, the tracer
              ! concentration is probably very low. Restrict value to 10. 
              ! This is completely arbitrarily.
-             IF ( DEPHNO3(I,J) > 10.0_hp ) THEN
-                WRITE(MSG,*) 'HNO3 deposition velocity > 10., set to zero', &
-                   I, J, DEPHNO3(I,J), TMP, ABS(iFlx), iMass 
-                CALL HCO_WARNING(MSG, RC)
-                DEPHNO3(I,J) = 10.0_hp
+             ExpVal = DEPHNO3(I,J) * HcoState%TS_EMIS
+             IF ( ExpVal > MaxExp ) THEN
+!                WRITE(MSG,*) 'HNO3 deposition velocity > 10., set to zero', &
+!                   I, J, DEPHNO3(I,J), TMP, ABS(iFlx), iMass 
+!                CALL HCO_WARNING(MSG, RC)
+                DEPHNO3(I,J) = MaxExp / HcoState%TS_EMIS
              ENDIF
           ENDIF
 
@@ -614,7 +631,7 @@ CONTAINS
 
           ! For negative fluxes, calculate deposition velocity based
           ! on current surface O3 concentration and pass to deposition
-          ! array
+          ! array. See comment on dry dep calculation of HNO3 above.
           ELSE
 
              ! Get mass of species. This can either be the total PBL
@@ -631,9 +648,6 @@ CONTAINS
              ENDIF
 
              ! Calculate deposition velocity (1/s) from flux
-             ! NOTE: the calculated deposition flux is in kg/m2/s,
-             ! which has to be converted to 1/s. Use here the O3 conc.
-             ! [kg] of the lowest model box.
              ! Now avoid div-zero error (ckeller, 11/10/2014).
              IF ( iMass > TINY(1.0_hp) ) THEN
                 TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
@@ -643,14 +657,13 @@ CONTAINS
                    DEPO3(I,J) = TMP / iMass 
                 ENDIF
 
-                ! Sanity check: if deposition velocity is above 10, the tracer
-                ! concentration is probably very low. Restrict value to 10. 
-                ! This is completely arbitrarily.
-                IF ( DEPO3(I,J) > 10.0_hp ) THEN
-                   WRITE(MSG,*) 'O3 deposition velocity > 10., set to zero', &
-                      I, J, DEPO3(I,J), TMP, ABS(iFlx), iMass 
-                   CALL HCO_WARNING(MSG, RC)
-                   DEPO3(I,J) = 10.0_hp
+                ! Sanity check 
+                ExpVal = DEPHNO3(I,J) * HcoState%TS_EMIS
+                IF ( ExpVal > MaxExp ) THEN
+!                   WRITE(MSG,*) 'O3 deposition velocity > 10., set to zero', &
+!                      I, J, DEPO3(I,J), TMP, ABS(iFlx), iMass 
+!                   CALL HCO_WARNING(MSG, RC)
+                   DEPO3(I,J) = MaxExp / HcoState%TS_EMIS 
                 ENDIF
              ENDIF
 

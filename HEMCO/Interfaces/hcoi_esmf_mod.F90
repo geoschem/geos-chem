@@ -310,8 +310,8 @@ CONTAINS
          ASSERT_(.FALSE.)
       ENDIF
 
-      ! Return success
-      RC = HCO_SUCCESS 
+      ! Return w/ success
+      RC = HCO_SUCCESS
 
       END SUBROUTINE Diagn2Exp
 !EOC
@@ -362,21 +362,31 @@ CONTAINS
       ! For MAPL/ESMF error handling (defines Iam and STATUS)
       __Iam__('HCO_SetExtState_ESMF (HCOI_ESMF_MOD.F90)')
 
+      ! Assume failure until otherwise
+      RC = HCO_FAIL
+
       ! Point to ESMF IMPORT object
       IMPORT => HcoState%IMPORT
-      ASSERT_(ASSOCIATED(IMPORT))
+      IF ( .NOT. ASSOCIATED(IMPORT) ) RETURN 
 
       ! Get pointers to fields
       CALL MAPL_GetPointer( IMPORT, Ptr3D, 'BYNCY', notFoundOK=.TRUE., __RC__ )
-      IF ( ASSOCIATED(Ptr3D) ) ExtState%BYNCY%Arr%Val => Ptr3D
+      IF ( ASSOCIATED(Ptr3D) ) THEN
+         ExtState%BYNCY%Arr%Val => Ptr3D(:,:,HcoState%NZ:1:-1)
+      ENDIF
       Ptr3D => NULL()
 
       CALL MAPL_GetPointer( IMPORT, Ptr3D, 'RCCODE', notFoundOK=.TRUE., __RC__ )
-      IF ( ASSOCIATED(Ptr3D) ) ExtState%RCCODE%Arr%Val => Ptr3D
+      IF ( ASSOCIATED(Ptr3D) ) THEN
+         ExtState%RCCODE%Arr%Val => Ptr3D(:,:,HcoState%NZ:1:-1)
+      ENDIF
       Ptr3D => NULL()
 
-      CALL MAPL_GetPointer( IMPORT, Ptr2D, 'CNV_TOPP', notFoundOK=.TRUE., __RC__ )
-      IF ( ASSOCIATED(Ptr3D) ) ExtState%CNV_TOPP%Arr%Val => Ptr2D
+      ! Not needed at the moment
+!      CALL MAPL_GetPointer( IMPORT, Ptr2D, 'CNV_TOPP', notFoundOK=.TRUE., __RC__ )
+!      IF ( ASSOCIATED(Ptr2D) ) THEN
+!         ExtState%CNV_TOPP%Arr%Val => Ptr2D
+!      ENDIF
       Ptr2D => NULL()
 
       ! Return success
