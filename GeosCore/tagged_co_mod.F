@@ -181,7 +181,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
-      USE GLOBAL_NOX_MOD,     ONLY : GET_GLOBAL_NOX,  BNOX
       USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
@@ -312,6 +311,9 @@
       ! To get HEMCO values
       REAL(fp)               :: Emis
       LOGICAL                :: FOUND
+
+      ! Strings
+      CHARACTER(LEN=255)     :: LOC='CHEM_TAGGED_CO (tagged_co_mod.F)'
 !
 ! !DEFINED PARAMETERS:
 !
@@ -365,22 +367,11 @@
          MONTH = GET_MONTH()
 
          ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
-         CALL HCO_GetPtr( aIR, 'GLOBAL_OH', OH,   RC )
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
          IF ( RC /= GIGC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 3/11/15:
-! Remove reference to global_nox_mod.F.  This option has not been used
-! in many years.  (bmy, 3/11/15)
-!         ! Global NOx -- need this to determine 
-!         ! ALPHA_ISOP which is a function of NOx
-!         IF ( ALPHA_ISOP_FROM_NOX ) THEN
-!           CALL GET_GLOBAL_NOX( MONTH, Input_Opt )
-!         ENDIF
-!------------------------------------------------------------------------------
-            
          ! Read in the loss/production of CO in the stratosphere.
          CALL READ_PCO_LCO_STRAT( am_I_Root, Input_Opt, MONTH, RC )
             
@@ -589,11 +580,7 @@
             !===========================================================
 
             ! Get CO yield from isoprene
-            IF ( ALPHA_ISOP_FROM_NOX ) THEN
-               ALPHA_ISOP = GET_ALPHA_ISOP( .TRUE., BNOX(I,J,L) )      
-            ELSE
-               ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
-            ENDIF
+            ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
 
             ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
             ! Convert from [molec ISOP/box] to [molec CO/cm3]
