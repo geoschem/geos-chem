@@ -841,9 +841,8 @@ CONTAINS
     LOC = 'ExtState_SetPointers (hcoi_gc_main_mod.F90)'
 
     ! ----------------------------------------------------------------
-    ! HCO_SZAFACT aren't defined as 3D 
-    ! arrays in Met_State. Hence need to construct here so that we 
-    ! can point to them.
+    ! HCO_SZAFACT aren't defined as 3D arrays in Met_State.  Hence 
+    ! need to construct here so that we can point to them.
     !
     ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
     ! simulation (mps, 8/20/14)

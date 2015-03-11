@@ -368,9 +368,10 @@
 
       ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
       IF ( ITS_A_NEW_MONTH() ) THEN 
-         CALL HCO_GetPtr( aIR, 'GLOBAL_OH', OH,   RC )
-         IF ( RC /= GIGC_SUCCESS ) 
-         CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+         ENDIF
       ENDIF
      
       ! Compute number of tracers to process

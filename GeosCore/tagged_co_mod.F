@@ -122,6 +122,7 @@
 !  10 Jul 2014 - J.A. Fisher - Change FIRSTEMISS to FIRSTTIME to allow
 !                              initialisation when emissions are off
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  11 Mar 2015 - R. Yantosca - Add OH pointer for HEMCO data input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -175,6 +176,7 @@
       USE CMN_DIAG_MOD
       USE DIAG_PL_MOD,        ONLY : AD65
       USE ERROR_MOD,          ONLY : CHECK_VALUE
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -266,6 +268,7 @@
 !  27 Aug 2014 - R. Yantosca - Bug fix: pass Input_Opt to GET_GLOBAL_CH4
 !  21 Oct 2014 - C. Keller   - Now use GetHcoVal instead ot Trac_Tend array
 !  11 Mar 2015 - R. Yantosca - Remove references to global_nox_mod.F
+!  11 Mar 2015 - R. Yantosca - Now get OH via the HEMCO data structure
 !EOP
 !------------------------------------------------------------------------------
 !BOC

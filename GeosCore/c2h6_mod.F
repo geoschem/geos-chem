@@ -106,6 +106,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE Error_Mod,          ONLY : Error_Stop
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -176,7 +177,6 @@
       ! Get fields from Input_Opt
       LSPLIT    = Input_Opt%LSPLIT
       N_TRACERS = Input_Opt%N_TRACERS
-
 
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.  ! save for future use?
