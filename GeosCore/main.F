@@ -936,15 +936,6 @@
      &           ITS_AN_AEROSOL_SIM   .or.
      &           ITS_A_CH3I_SIM     ) THEN
 
-!-----------------------------------------------------------------------------
-! Prior to 3/4/15:
-! Move this call below the call to EMISSIONS_RUN.  The HEMCO data has to
-! be read from disk before the UVALBEDO data can be copied. (bmy, 3/4/15)
-!               ! Read UV albedoes for FAST-J
-!               CALL READ_UVALBEDO
-!     &              ( am_I_Root, Input_Opt, MONTH, State_Met, RC )
-!-----------------------------------------------------------------------------
-
                ! Read TOMS overhead O3 columns for FAST-J
                CALL READ_TOMS( am_I_Root, Input_Opt, MONTH, YEAR, RC )
             ENDIF
@@ -2500,12 +2491,7 @@
       RC  = GIGC_SUCCESS
 
       ! Directory where netCDF ifles are found
-!-----------------------------------------------------------------------------
-! Prior to 3/5/15:
-!      DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'HEMCO/MAP_A2A/v2014-07/'
-!-----------------------------------------------------------------------------
       DIR = TRIM( Input_Opt%DATA_DIR ) // 'HEMCO/MAP_A2A/v2014-07/'
-
 
       ! Initialize longitudes [deg]
       DO I = 1, IIPAR+1

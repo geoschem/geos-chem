@@ -128,13 +128,17 @@
 !
 ! !PRIVATE TYPES:
 !
-      REAL*4,    ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
-      REAL*4,    ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
-      REAL(fp),  ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
-      REAL(fp),  ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
-      REAL(fp),  ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
-      REAL(fp),  ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
-      REAL(fp),  ALLOCATABLE :: TCOSZ     (:,:  )   ! Daily sum COS(SZA)
+      REAL(f4), ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
+      REAL(f4), ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
+      REAL(fp), ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
+      REAL(fp), ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
+      REAL(fp), ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
+      REAL(fp), ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
+      REAL(fp), ALLOCATABLE :: TCOSZ     (:,:  )   ! Daily sum COS(SZA)
+
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER     :: OH(:,:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -175,14 +179,14 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH,   OH
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
       USE GLOBAL_NOX_MOD,     ONLY : GET_GLOBAL_NOX,  BNOX
       USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
 !
 ! !INPUT PARAMETERS:
 !
@@ -262,6 +266,7 @@
 !  10 Jul 2014 - J.A. Fisher - Moved ALPHA definitions out of code
 !  27 Aug 2014 - R. Yantosca - Bug fix: pass Input_Opt to GET_GLOBAL_CH4
 !  21 Oct 2014 - C. Keller   - Now use GetHcoVal instead ot Trac_Tend array
+!  11 Mar 2015 - R. Yantosca - Remove references to global_nox_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -359,15 +364,22 @@
          ! Get current month
          MONTH = GET_MONTH()
 
-         ! Global OH 
-         CALL GET_GLOBAL_OH
-     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
-
-         ! Global NOx -- need this to determine 
-         ! ALPHA_ISOP which is a function of NOx
-         IF ( ALPHA_ISOP_FROM_NOX ) THEN
-            CALL GET_GLOBAL_NOX( MONTH, Input_Opt )
+         ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
+         CALL HCO_GetPtr( aIR, 'GLOBAL_OH', OH,   RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
+
+!------------------------------------------------------------------------------
+! Prior to 3/11/15:
+! Remove reference to global_nox_mod.F.  This option has not been used
+! in many years.  (bmy, 3/11/15)
+!         ! Global NOx -- need this to determine 
+!         ! ALPHA_ISOP which is a function of NOx
+!         IF ( ALPHA_ISOP_FROM_NOX ) THEN
+!           CALL GET_GLOBAL_NOX( MONTH, Input_Opt )
+!         ENDIF
+!------------------------------------------------------------------------------
             
          ! Read in the loss/production of CO in the stratosphere.
          CALL READ_PCO_LCO_STRAT( am_I_Root, Input_Opt, MONTH, RC )
@@ -1485,6 +1497,7 @@
 !        fields make these no longer necessary (bmy, 8/21/09)
 !  (3 ) Now remove IJLOOP_CO (bmy, 7/20/04)
 !  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  11 Mar 2015 - R. Yantosca - Now free the OH pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1499,6 +1512,9 @@
       IF ( ALLOCATED( CO_PRODS   ) ) DEALLOCATE( CO_PRODS   )
       IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
       IF ( ALLOCATED( CO_LOSSS   ) ) DEALLOCATE( CO_LOSSS   )
+
+      ! Free OH pointer
+      OH => NULL()
 
       END SUBROUTINE CLEANUP_TAGGED_CO
 !EOC

@@ -23,7 +23,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: GET_C2H6_ANTHRO
-!      PUBLIC  :: EMISSC2H6
       PUBLIC  :: CHEMC2H6
       PUBLIC  :: CLEANUP_C2H6
       PUBLIC  :: INIT_C2H6
@@ -80,6 +79,9 @@
       ! Global monthly mean natural gas C2H6 emissions
       REAL(fp), ALLOCATABLE :: NGASC2H6(:,:)
 
+      ! Pointer to the OH field in the HEMCO list
+      REAL(f4), POINTER     :: OH (:,:,:) => NULL()
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -108,7 +110,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : OH,        GET_GLOBAL_OH
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
 
 ! !INPUT PARAMETERS:
@@ -141,6 +143,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  06 Nov 2014 - M. Yannetti - Converted REAL*8 to REAL(fp)
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,19 +151,20 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
-      INTEGER, SAVE          :: LASTMONTH = -99
+      LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
+      INTEGER, SAVE      :: LASTMONTH = -99
 
       ! Scalars
-      LOGICAL                :: LSPLIT
-      INTEGER                :: N_TRACERS
-      INTEGER                :: I, J, L, N
-      REAL(fp)                 :: DTCHEM, KRATE
+      LOGICAL            :: LSPLIT
+      INTEGER            :: N_TRACERS, MONTH
+      INTEGER            :: I, J, L, N
+      REAL(fp)           :: DTCHEM, KRATE
+
+      ! Strings
+      CHARACTER(LEN=255) :: LOC = 'CHEMPOPS (pops_mod.F)'
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: STT(:,:,:,:) => NULL()
 
       !=================================================================
       ! CHEMC2H6 begins here! 
@@ -185,14 +189,22 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
+      ! Get current month
+      MONTH = GET_MONTH()
+
       !=================================================================
       ! Read in the tropospheric OH fields of the (LMN)th month
       ! OH data will be saved into the OH array of "global_oh_mod.f" 
       !=================================================================
-      IF ( GET_MONTH() /= LASTMONTH ) THEN
-         CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, 
-     &                       State_Met, GET_MONTH(), RC )
-         LASTMONTH = GET_MONTH()
+      IF ( MONTH /= LASTMONTH ) THEN
+         
+         ! Get a pointer to the HEMCO data structure (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,  RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+         ENDIF
+
+         LASTMONTH = MONTH
       ENDIF
 
       !=================================================================
@@ -372,6 +384,9 @@
       !=================================================================
 
       IF ( ALLOCATED( NGASC2H6 ) ) DEALLOCATE( NGASC2H6 )
+
+      ! Free the OH pointer
+      OH => NULL()
 
       END SUBROUTINE CLEANUP_C2H6
 !EOC
