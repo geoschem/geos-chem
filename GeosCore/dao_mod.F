@@ -361,9 +361,9 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I,  J,  L
-      REAL(fp)  :: PEdge_Top, Esat, Ev  
+      REAL(fp)  :: PEdge_Top, Esat, Ev_mid, Ev_edge  
       REAL(fp)  :: EsatA, EsatB, EsatC, EsatD, EsatE 
-      REAL(fp)  :: AREA_M2, SPHU_kgkg
+      REAL(fp)  :: AREA_M2, SPHU_kgkg, AVGW_moist
 
       ! Conversion factors
       REAL(fp), PARAMETER   :: TOFFSET = -2.7315e+2_fp   ! K -> deg C
@@ -397,9 +397,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-!$OMP+PRIVATE( PEdge_Top, Esat, Ev )
+!$OMP+PRIVATE( PEdge_Top, Esat, Ev_mid, Ev_edge )
 !$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD, EsatE )
-!$OMP+PRIVATE( AREA_M2, SPHU_kgkg )
+!$OMP+PRIVATE( AREA_M2, SPHU_kgkg, AVGW_moist )
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -474,55 +474,79 @@
          ! water vapor partial pressure from specific humidity.
          ! Then use it with the saturation pressure of water
          ! calculated above to set RH.
-         !
-         ! Specific humidity is defined as the mass ratio of water vapor 
-         ! to moist air and is stored in GEOS-Chem as [g/kg]. Convert 
-         ! to [kg/kg] and use the following relation derived from the
-         ! the ideal gas law to calculate the partial pressure of water 
-         ! vapor [hPa].
          !    
-         !          Grid box                 SPHU * AIRMW
-         !  Ev   =  moist air * -------------------------------------- 
-         ! [hPa]    pressure       SPHU * AIRMW + (1 - SPHU) * H2OMW 
+         !          Grid box           mol H2O
+         !  Ev   =  moist air * ---------------------- 
+         ! [hPa]    pressure     mol H2O + mol dry air 
          !          [hPa]       
          !                             
-         ! Water vapor partial pressure [hPa]
-         Ev = State_Met%PMID(I,J,L) * SPHU_kgkg * AIRMW 
+         !          H2O vapor partial pressure
+         !  RH   =  -------------------------- * 100
+         !           H2O saturation pressure
+         !
+
+         ! Mol water vapor volume per mol moist air 
+         AVGW_moist = SPHU_kgkg * AIRMW 
      &        / ( SPHU_kgkg * AIRMW + ( 1 - SPHU_kgkg ) * H2OMW )
+
+         ! Water vapor partial pressures [hPa]
+         Ev_mid = State_Met%PMID(I,J,L) * AVGW_moist
  
          ! Relative humidity [%]
-         State_Met%RH(I,J,L) = ( Ev / Esat ) * 100e+0_fp 
+         State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp 
 
 #elif defined( GEOS_5 ) || defined ( MERRA ) || defined( GEOS_FP )
          !=============================================================
-         ! Calculate water vapor partial pressure [hPa] from relative
+         ! Calculate water vapor partial pressures [hPa] from relative
          ! humidity if using GEOS-5, MERRA, or GEOS-FP
          !============================================================= 
-         Ev = State_Met%RH( I,J,L ) * RHCONV * Esat
+         Ev_mid = State_Met%RH( I,J,L ) * RHCONV * Esat
 #endif
+
+         ! NOTE: Calculating the partial pressure of water vapor using
+         ! met-field RH and met-field specific humidity may yield different
+         ! results. This may be worth investigating in the future.
 
          !=============================================================
          ! Set grid box dry air partial pressures [hPa]
-         ! (lower edge and center)
+         ! at center of grid box
          !=============================================================  
 
+         ! Partial pressure of dry air at mid-point of grid box [hPa]
+         State_Met%PMID_DRY( I,J,L ) = State_Met%PMID(I,J,L) - Ev_mid
+
+         !=============================================================
+         ! Set grid box dry air partial pressures [hPa]
+         ! at edges of grid box
+         !=============================================================  
+
+         ! Assume humidity is constant throughout grid box
+         ! for calculation of edge water vapor partial pressure [hPa]
+         Ev_edge = State_Met%PEDGE(I,J,L) * Ev_mid 
+     &             / State_Met%PMID(I,J,L)
+
          ! Partial presure of dry air at bottom edge of grid box [hPa]
-         State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L) - Ev
+         State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L) - Ev_edge
 
          ! Set edge dry air partial pressure for level LLPAR+1
          IF ( L == LLPAR ) THEN
-            State_Met%PEDGE_DRY( I,J,L+1 ) = PEdge_Top - Ev
+            
+            ! Calculate water vapor partial pressure at level LLPAR+1
+            ! bottom edge using LLPAR top edge moist air pressure
+            ! with air quantities of LLPAR grid box.
+            Ev_edge = State_MET%PEDGE(I,J,L+1) * Ev_mid 
+     &                / State_Met%PMID(I,J,L)
+            
+            State_Met%PEDGE_DRY( I,J,L+1 ) = State_Met%PEDGE(I,J,L+1) 
+     &                                       - Ev_edge
          ENDIF
-
-         ! Partial pressure of dry air at mid-point of grid box [hPa]
-         State_Met%PMID_DRY( I,J,L ) = State_Met%PMID(I,J,L) - Ev
 
          !===========================================================
          ! Set grid box wet air density [kg/m3] 
          !==========================================================
 
          !  MAIRDEN = density of moist air [kg/m^3],
-         ! given by:
+         !  given by:
          !           
          !            Partial      Molec     Partial       Molec
          !            pressure   * wt of   + pressure of * wt of 
@@ -533,7 +557,7 @@
          !                   [J/K/mol]         [K]   [g/kg]   [hPa/Pa]
          !
          State_Met%MAIRDEN(I,J,L) = ( State_Met%PMID_DRY(I,J,L) * AIRMW 
-     &                                + Ev * H2OMW ) * PCONV * MCONV
+     &                                + Ev_mid * H2OMW ) * PCONV * MCONV
      &                                / RSTARG / State_Met%T(I,J,L)
 
          !===========================================================
@@ -571,7 +595,7 @@
          !
          ! Grid box virtual temperature [K]
          State_Met%TV( I,J,L ) = State_Met%T(I,J,L) / (1 -  
-     &                           Ev / State_Met%PMID(I,J,L) 
+     &                           Ev_mid / State_Met%PMID(I,J,L) 
      &                           * ( 1 - H2OMW / AIRMW ) )
 
          ! Grid box box height [m]
@@ -646,6 +670,20 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! DEBUGGING (ewl, 3/11/15)
+            PRINT *, "At I == 47 and J == 30 in dao_mod"
+            PRINT *, " State_Met%PEDGE(47,30,:): ", 
+     &               State_Met%PEDGE(47,30,:)
+            PRINT *, " State_Met%PEDGE_DRY(47,30,:): ", 
+     &               State_Met%PEDGE_DRY(47,30,:)
+            PRINT *, " State_Met%PMID(47,30,:): ", 
+     &               State_Met%PMID(47,30,:)
+            PRINT *, " State_Met%PMID_DRY(47,30,:): ", 
+     &               State_Met%PMID_DRY(47,30,:)
+      ! END DEBUGGING
+
+
 
       END SUBROUTINE AIRQNT
 !EOC
