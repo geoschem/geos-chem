@@ -671,20 +671,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! DEBUGGING (ewl, 3/11/15)
-            PRINT *, "At I == 47 and J == 30 in dao_mod"
-            PRINT *, " State_Met%PEDGE(47,30,:): ", 
-     &               State_Met%PEDGE(47,30,:)
-            PRINT *, " State_Met%PEDGE_DRY(47,30,:): ", 
-     &               State_Met%PEDGE_DRY(47,30,:)
-            PRINT *, " State_Met%PMID(47,30,:): ", 
-     &               State_Met%PMID(47,30,:)
-            PRINT *, " State_Met%PMID_DRY(47,30,:): ", 
-     &               State_Met%PMID_DRY(47,30,:)
-      ! END DEBUGGING
-
-
-
       END SUBROUTINE AIRQNT
 !EOC
 !------------------------------------------------------------------------------

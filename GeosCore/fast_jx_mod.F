@@ -3640,17 +3640,6 @@ C---Always does PL(2) = P[1]
             ENDIF
          ENDDO
          T_CLIM(I)  = T0
-
-            ! DEBUGGING (ewl, 3/11/15)
-            IF (T0 == 0) THEN
-               PRINT *, "In SET_PROF, T0 == 0"
-               PRINT *, " PC: ", PC
-               PRINT *, " PB: ", PB
-               PRINT *, " P_CTM: ", P_CTM
-               PRINT *, " PSTD: ", PSTD
-            ENDIF
-            ! END DEBUGGING
-
          O3_CLIM(I) = F0 * 1.e-6_fp
       ENDDO
 
@@ -3663,19 +3652,6 @@ C---Always does PL(2) = P[1]
 
          Z_CLIM(I+1) = Z_CLIM(I) - 
      &        ( LOG( P_CTM(I+1) / P_CTM(I) ) * SCALEH )
-
-         ! DEBUGGING (ewl, 3/11/15)
-         IF (Z_CLIM(I) == Z_CLIM(I+1)) THEN
-            PRINT *, "In SET_PROF: ZCLIM(I) == ZCLIM(I+1) at ", I
-            PRINT *, " ZCLIM: ", Z_CLIM
-            PRINT *, " T_CLIM(I): ", T_CLIM(I)
-            PRINT *, " MASFAC: ", MASFAC
-            PRINT *, " P_CTM(I+1): ", P_CTM(I+1)
-            PRINT *, " P_CTM(I): ", P_CTM(I)
-            PRINT *, " ZZHT: " , ZZHT
-         ENDIF
-       ! END DEBUGGING
-
       ENDDO
       Z_CLIM(L1_+1)=Z_CLIM(L1_) + ZZHT
 
