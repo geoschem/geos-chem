@@ -821,6 +821,8 @@ CONTAINS
 !  02 Oct 2014 - C. Keller    - PEDGE is now in HcoState%Grid
 !  16 Oct 2014 - C. Keller    - Removed SUNCOSmid5. This is now calculated
 !                               internally in Paranox.
+!  12 Mar 2015 - R. Yantosca  - Allocate SUMCOSZA array for SZAFACT
+!  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -847,18 +849,23 @@ CONTAINS
     ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
     ! simulation (mps, 8/20/14)
     ! ----------------------------------------------------------------
-
     IF ( ExtState%SZAFACT%DoUse ) THEN 
-       ALLOCATE(HCO_SZAFACT(IIPAR,JJPAR      ),STAT=AS)
+
+       ALLOCATE( SUMCOSZA( IIPAR, JJPAR ), STAT=AS )
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'SUMCOSZA', LOC )
+       SUMCOSZA = 0.0e0_fp
+
+       ALLOCATE( HCO_SZAFACT( IIPAR, JJPAR      ),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_SZAFACT', LOC )
-       HCO_SZAFACT = 0d0
+       HCO_SZAFACT = 0e0_hp
+
        ExtState%SZAFACT%Arr%Val => HCO_SZAFACT
     ENDIF
 
     IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN 
        ALLOCATE(HCO_FRAC_OF_PBL(IIPAR,JJPAR,LLPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_FRAC_OF_PBL', LOC )
-       HCO_FRAC_OF_PBL = 0d0
+       HCO_FRAC_OF_PBL = 0.0_hp
        ExtState%FRAC_OF_PBL%Arr%Val => HCO_FRAC_OF_PBL
     ENDIF
 
@@ -872,14 +879,14 @@ CONTAINS
     IF ( ExtState%JNO2%DoUse ) THEN 
        ALLOCATE( JNO2(IIPAR,JJPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'JNO2', LOC )
-       JNO2 = 0d0
+       JNO2 = 0.0e0_hp
        ExtState%JNO2%Arr%Val => JNO2 
     ENDIF
 
     IF ( ExtState%JO1D%DoUse ) THEN 
        ALLOCATE( JO1D(IIPAR,JJPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'JO1D', LOC )
-       JO1D = 0d0
+       JO1D = 0.0e0_hp
        ExtState%JO1D%Arr%Val => JO1D 
     ENDIF
 
