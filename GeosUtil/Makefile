@@ -182,7 +182,8 @@ time_mod.o        : time_mod.F            \
 transfer_mod.o    : transfer_mod.F        \
                     error_mod.o
 
-unitconv_mod.o	  : unitconv_mod.F90
+unitconv_mod.o	  : unitconv_mod.F90      \
+                    error_mod.o
 
 #%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 
