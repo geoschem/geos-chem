@@ -58,7 +58,6 @@
       PRIVATE :: MERCURY_READYR
       PRIVATE :: OHNO3TIME
       PRIVATE :: CALC_HG2_SEASALT_LOSSRATE
-      PRIVATE :: GET_GLOBAL_JNO2
       PRIVATE :: RED_INPLUME_GRID
       PRIVATE :: DO_RED_INPLUME
       PRIVATE :: GET_HGBR_RATE
@@ -176,6 +175,8 @@
 !  03 Jun 2013 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 Mar 2015 - R. Yantosca - Now get JNO2 from the HEMCO data structure
+!  12 Mar 2015 - R. Yantosca - Remove GET_GLOBAL_JNO2 routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -288,7 +289,6 @@
       REAL(fp), ALLOCATABLE :: TTDAY(:,:)
       REAL(fp), ALLOCATABLE :: ZERO_DVEL(:,:)
       REAL(fp), ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) 
-      REAL(fp), ALLOCATABLE :: JNO2(:,:,:) 
 
       ! For now, we need an emission array for the HG simulation
       ! that can be passed to vdiff_mod.F90 since Trac_Tend does 
@@ -297,8 +297,9 @@
 
       ! Pointers to fields in the HEMCO data structure.
       ! These need to be declared REAL(f4), aka REAL*4.
-      REAL(f4), POINTER :: O3(:,:,:) => NULL()
-      REAL(f4), POINTER :: OH(:,:,:) => NULL()
+      REAL(f4), POINTER :: O3  (:,:,:) => NULL()
+      REAL(f4), POINTER :: OH  (:,:,:) => NULL()
+      REAL(f4), POINTER :: JNO2(:,:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -482,6 +483,7 @@
 !
 ! !LOCAL VARIABLES:
 
+      LOGICAL, SAVE   :: FIRST = .TRUE.
       INTEGER         :: I, J, L, K, N, MONTH, NSTEPS
       REAL(fp)        :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
       REAL(fp)        :: C_OH, C_O3, C_BR, C_BRO
@@ -506,7 +508,7 @@
       LOGICAL         :: LPRT
       LOGICAL         :: LSPLIT
       INTEGER         :: N_TRACERS
-      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)        :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
@@ -583,6 +585,15 @@
       STT      => State_Chm%Tracers
       T        => State_Met%T
 
+      ! Override the default value of LGCBROMINE and LRED_JNO2 depending 
+      ! on the settings in the HEMCO configuration file.  NOTE: This cannot
+      ! be done in INIT_MERCURY because at that time the HEMCO configuration 
+      ! file has not been read yet. (bmy, 3/12/15)
+      IF ( FIRST ) THEN
+         CALL SET_OPTIONS_FROM_HEMCO( RC )
+         FIRST = .FALSE.
+      ENDIF
+
       !=================================================================
       ! Read monthly mean Br, OH, O3, and J_NO2 fields
       !=================================================================
@@ -606,10 +617,11 @@
          CALL GET_GLOBAL_BR( am_I_Root, Input_Opt, State_Met, MONTH, RC)
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
-         IF (LRED_JNO2) THEN
-            CALL GET_GLOBAL_JNO2( am_I_Root, Input_Opt, MONTH, RC )
-            IF ( LPRT ) THEN
-               CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_JNO2' )
+         ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
+         IF ( LRED_JNO2 ) THEN
+            CALL HCO_GetPtr( am_I_Root, 'JNO2', JNO2,  RC )
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP ( 'Cannot get pointer to JNO2', LOC )
             ENDIF
          ENDIF
 
@@ -4134,121 +4146,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_global_jno2 
-!
-! !DESCRIPTION: Subroutine GET\_GLOBAL\_JNO2 reads monthly mean JNO2 data 
-!  fields.  These are needed for Hg sim. (cdh, 11/25/09
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GET_GLOBAL_JNO2( am_I_Root, Input_Opt, THISMONTH, RC )
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-
-      IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
-! 
-! !REMARKS:
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
-!
-! !REVISION HISTORY: 
-!  25 Nov 2009 - C. Holmes   - Initial version
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL(f4)           :: ARRAY2(IIPAR,JJPAR,LLPAR)
-      REAL(f8)           :: XTAU
-      CHARACTER(LEN=255) :: FILENAME
-
-      !=================================================================
-      ! GET_GLOBAL_JNO2 begins here!
-      !=================================================================
-
-      !CDH -WE EVENTUALLY NEED TO SUPPORT OTHER MODEL RESOLUTIONS
-      ! Filename for full-level GEOS5 model
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( Input_Opt%DATA_DIR )     // 
-     &           TRIM( Input_Opt%RES_DIR  )     //
-     &           'mercury_201203/jvalues.noon.' //
-     &           GET_NAME_EXT()    // '.' // GET_RES_EXT()
-#else
-      FILENAME = 
-     &           TRIM( Input_Opt%DATA_DIR )     // 
-     &           TRIM( Input_Opt%RES_DIR  )     //
-     &           'mercury_201007/jvalues.noon.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-#endif
-
-      ! Echo some information to the standard output
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 110 ) TRIM( FILENAME )
- 110     FORMAT( '     - GET_GLOBAL_JNO2: Reading ', a )
-      ENDIF
-
-      ! Get the TAU0 value for the start of the given month
-      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
-      XTAU = GET_TAU0( THISMONTH, 1, 2005 )
-
-#if   defined( GRIDREDUCED )
- 
-      ! Read O3 data (v/v) from the binary punch file (tracer #51)
-      CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 1,     
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable O3
-      CALL TRANSFER_3D( ARRAY, JNO2 )
-
-#else
-
-      ! Read O3 data (v/v) from the binary punch file (tracer #51)
-      CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 1,      
-     &                 XTAU,      IIPAR,     JJPAR,
-     &                 LLPAR,     ARRAY2,    QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable O3
-      ! (don't have to fold layers in the stratosphere)
-      JNO2 = ARRAY2
-
-#endif
-
-
-      ! Return to calling program
-      END SUBROUTINE GET_GLOBAL_JNO2
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: get_jno2
 !
 ! !DESCRIPTION: Function GET\_JNO2 returns monthly mean JNO2 and imposes a 
@@ -4699,23 +4596,22 @@
 !  11 Apr 2012 - R. Yantosca - Now retire lai_mod.F; remove call to INIT_LAI
 !  11 Apr 2012 - R. Yantosca - Now move LAI initialization to main.F
 !  03 Jun 2013 - R. Yantosca - Now use fields from Input_Opt
+!  12 Mar 2015 - R. Yantosca - Now test if HEMCO_Collections are defined
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       LOGICAL, SAVE       :: IS_INIT = .FALSE. 
-      INTEGER             :: AS, N
-      CHARACTER(LEN=255)  :: LOCATION
-
-
-      ! For fields from Input_Opt
       LOGICAL             :: LSPLIT
       LOGICAL             :: LDRYD
       LOGICAL             :: LNLPBL
       LOGICAL             :: LGTMM
       INTEGER             :: N_TRACERS
+      INTEGER             :: AS, N
+      CHARACTER(LEN=255)  :: LOCATION
 
       !=================================================================
       ! INIT_MERCURY begins here!
@@ -5042,10 +4938,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2_SEASALT_LOSSRATE' )
       HG2_SEASALT_LOSSRATE = 0e+0_fp
 
-      ALLOCATE( JNO2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'JNO2' )
-      JNO2 = 0e+0_fp
-
       !=================================================================
       ! Allocate & initialize arrays for tagged tracer indices
       !=================================================================
@@ -5152,6 +5044,107 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: 
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_OPTIONS_FROM_HEMCO( RC )
+!
+! !USES:
+!
+      USE ERROR_MOD,       ONLY : ERROR_STOP
+      USE HCO_ERROR_MOD
+      USE HCO_ExtList_Mod, ONLY : GetExtOpt
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC   ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      LOGICAL :: LGC
+      LOGICAL :: LTOMCAT
+      LOGICAL :: FOUND
+
+      ! Strings
+      CHARACTER(LEN=255) :: LOC='SET_OPTIONS_FROM_HEMCO (mercury_mod.F)'
+
+      !-----------------------------------------------------------------
+      ! Set the value of LRED_JNO2 depending on whether or not
+      ! the HEMCO collection LRED_JNO2 is activated
+      !-----------------------------------------------------------------
+      CALL GetExtOpt( -999, 'LRED_JNO2',  OptValBool=LRED_JNO2, 
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LRED_JNO2', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LRED_JNO2 = .FALSE.
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Set the value of LGCBROMINE depending on the values of the
+      ! HEMCO collections BrOx_GC and BrOx_TOMCAT
+      !-----------------------------------------------------------------
+
+      ! First look for BrOx_GC
+      CALL GetExtOpt( -999, 'BrOx_GC',    OptValBool=LGC,
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt BrOx_GC', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LGC = .FALSE.
+      ENDIF
+
+      ! Then look for BrOx_TOMCAT
+      CALL GetExtOpt( -999, 'BrOx_TOMCAT', OptValBool=LTOMCAT,
+     &                       FOUND=FOUND,  RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt BrOx_TOMCAT', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LTOMCAT = .FALSE.
+      ENDIF
+      
+      ! Cannot have both BrOx_GC and BrOx_TOMCAT on at the same time
+      IF ( LGC .eqv. LTOMCAT ) THEN
+         CALL ERROR_STOP( 
+     &    'BrOx_GC and BrOx_TOMCAT cannot be both turned on!', LOC )
+      ENDIF
+         
+      ! Set LGCBROMINE = .TRUE. if BrOx_GC is true
+      LGCBROMINE = LGC
+
+      ! Echo output
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      WRITE( 6, 100   )
+      WRITE( 6, 110   ) LRED_JNO2
+      WRITE( 6, 120   ) LGCBROMINE
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+ 100  FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
+ 110  FORMAT( 'LRED_JNO2  is set to ', L1                          )
+ 120  FORMAT( 'LGCBROMINE is set to ', L1                          )
+      
+      END SUBROUTINE SET_OPTIONS_FROM_HEMCO
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: cleanup_mercury
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_MERCURY deallocates all module arrays.
@@ -5246,12 +5239,12 @@
       IF ( ALLOCATED( ZERO_DVEL) ) DEALLOCATE( ZERO_DVEL )
       IF ( ALLOCATED( HG2_SEASALT_LOSSRATE ) ) 
      &     DEALLOCATE( HG2_SEASALT_LOSSRATE   ) 
-      IF ( ALLOCATED( JNO2      ) ) DEALLOCATE( JNO2      ) 
       IF ( ALLOCATED( HG_EMIS   ) ) DEALLOCATE( HG_EMIS   ) 
   
-      ! Free OH and O3 pointers
-      O3 => NULL()
-      OH => NULL()
+      ! Free pointers to HEMCO fields
+      O3   => NULL()
+      OH   => NULL()
+      JNO2 => NULL()
 
       END SUBROUTINE CLEANUP_MERCURY
 !EOC
