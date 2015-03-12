@@ -205,7 +205,7 @@
 !  05 Mar 2014 - R. Yantosca - Cosmetic changes
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE_DRY. 
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE. 
 !                              Remove dependency on pressure_mod and 
 !                              redundant PEDGE pre-preprocessor block if 
 !                              EXTERNAL_GRID.
@@ -309,8 +309,7 @@
 
             ! Define the P array here
             DO L = 1, LLPAR+1
-               ! Now use dry air partial pressure [hPa] (ewl, 3/2/15)
-               P_CTM(L)     = State_Met%PEDGE_DRY( NLON, NLAT, L )
+               P_CTM(L)     = State_Met%PEDGE( NLON, NLAT, L )
             ENDDO
 
             ! Top edge of P_CTM is top of atmosphere (bmy, 2/13/07)
@@ -2563,7 +2562,7 @@ c                        or         99.0                 80 km
          PPJ(L) = P_COL(L)
          T_INPUT(L) = T_COL(L)
       ENDDO
-      
+
       ! Ensure TOA pressure is zero
       PPJ(L1_+1) = 0.e+0_fp
       T_INPUT(L1_+1) = T_CLIM(L1_)
@@ -3641,6 +3640,17 @@ C---Always does PL(2) = P[1]
             ENDIF
          ENDDO
          T_CLIM(I)  = T0
+
+            ! DEBUGGING (ewl, 3/11/15)
+            IF (T0 == 0) THEN
+               PRINT *, "In SET_PROF, T0 == 0"
+               PRINT *, " PC: ", PC
+               PRINT *, " PB: ", PB
+               PRINT *, " P_CTM: ", P_CTM
+               PRINT *, " PSTD: ", PSTD
+            ENDIF
+            ! END DEBUGGING
+
          O3_CLIM(I) = F0 * 1.e-6_fp
       ENDDO
 
@@ -3650,8 +3660,22 @@ C---Always does PL(2) = P[1]
       Z_CLIM(1) = 0.e+0_fp
       DO I = 1, L_   
          SCALEH = 1.3806e-19_fp * MASFAC * T_CLIM(I)
+
          Z_CLIM(I+1) = Z_CLIM(I) - 
      &        ( LOG( P_CTM(I+1) / P_CTM(I) ) * SCALEH )
+
+         ! DEBUGGING (ewl, 3/11/15)
+         IF (Z_CLIM(I) == Z_CLIM(I+1)) THEN
+            PRINT *, "In SET_PROF: ZCLIM(I) == ZCLIM(I+1) at ", I
+            PRINT *, " ZCLIM: ", Z_CLIM
+            PRINT *, " T_CLIM(I): ", T_CLIM(I)
+            PRINT *, " MASFAC: ", MASFAC
+            PRINT *, " P_CTM(I+1): ", P_CTM(I+1)
+            PRINT *, " P_CTM(I): ", P_CTM(I)
+            PRINT *, " ZZHT: " , ZZHT
+         ENDIF
+       ! END DEBUGGING
+
       ENDDO
       Z_CLIM(L1_+1)=Z_CLIM(L1_) + ZZHT
 
