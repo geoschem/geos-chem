@@ -941,17 +941,22 @@
             ENDIF
          ENDIF
 
-         ! Read data required for Hg2 gas-particle partitioning 
-         ! (H Amos, 25 Oct 2011)
-         ! NOTE: Renamed to READ_Hg2_Partitioning (cdh, 6/3/13)
-         IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
-     &        ITS_A_NEW_MONTH()           ) THEN
-            CALL READ_Hg2_PARTITIONING
-     &         ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
-            IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONGING')
-            ENDIF
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 3/12/15:
+! This has to be moved after the HEMCO run call, so that the Configuration
+! file will be read (bmy, 3/12/15)
+!         ! Read data required for Hg2 gas-particle partitioning 
+!         ! (H Amos, 25 Oct 2011)
+!         ! NOTE: Renamed to READ_Hg2_Partitioning (cdh, 6/3/13)
+!         IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
+!     &        ITS_A_NEW_MONTH()           ) THEN
+!            CALL READ_Hg2_PARTITIONING
+!     &         ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
+!            IF ( prtDebug ) THEN
+!               CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONGING')
+!            ENDIF
+!         ENDIF
+!-----------------------------------------------------------------------------
 
          !==============================================================
          !              ***** D A I L Y   D A T A *****
@@ -1235,6 +1240,18 @@
                CALL GET_UVALBEDO( am_I_Root, Input_Opt, State_Met, RC )
             ENDIF
 
+            ! Read data required for Hg2 gas-particle partitioning 
+            ! (H Amos, 25 Oct 2011)
+            ! NOTE: This has to be done after the HEMCO run method!
+            IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
+     &           ITS_A_NEW_MONTH()           ) THEN
+               CALL READ_Hg2_PARTITIONING
+     &              ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
+               IF ( prtDebug ) THEN
+                  CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONGING')
+               ENDIF
+            ENDIF
+
             ! Stop the run if the HEMCO run sequence dies w/ an error
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
@@ -1243,32 +1260,6 @@
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
      &                             State_Met%AD, STT ) ! kg -> v/v
-
-             ! --> now set in EMISSIONS_RUN (ckeller, 3/4/15)
-!            IF ( ITS_A_FULLCHEM_SIM ) THEN
-!               !========================================================
-!               !jpp, 2/12/08: putting a call to SET_CH3Br
-!               !              which is in bromocarb_mod.f
-!               !       ***** Fix CH3Br Concentration in PBL *****
-!               ! Kludge: eventually I want to keep the concentration
-!               !         entirely fixed! Ask around on how to...
-!               !========================================================
-!               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
-!                  CALL SET_CH3Br( am_I_Root, Input_Opt, 
-!     &                            State_Met, ITS_TIME_FOR_UNIT(),
-!     &                            State_Chm, RC                    )
-!
-!              ENDIF
-!
-!               ! ----------------------------------------------------
-!               ! If selected in input.geos, then set the MBL
-!               ! concentration of BrO equal to 1 pptv during daytime.
-!               ! ----------------------------------------------------
-!               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
-!                  CALL SET_BRO( am_I_Root, Input_Opt, State_Met, 
-!     &                          ITS_TIME_FOR_UNIT(), State_Chm, RC  )
-!               ENDIF
-!            ENDIF
          ENDIF
 
          !-------------------------------

@@ -5128,15 +5128,32 @@
       ! Set LGCBROMINE = .TRUE. if BrOx_GC is true
       LGCBROMINE = LGC
 
+      !-----------------------------------------------------------------
+      ! Set the value of LNEI2005 depending on whether or not
+      ! the HEMCO collection NEI2005 is activated
+      !-----------------------------------------------------------------
+      CALL GetExtOpt( -999, 'NEI2005',  OptValBool=LNEI2005,
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LNEI2005', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LNEI2005 = .FALSE.
+      ENDIF
+
+      !-----------------------------------------------------------------
       ! Echo output
+      !-----------------------------------------------------------------
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100   )
       WRITE( 6, 110   ) LRED_JNO2
       WRITE( 6, 120   ) LGCBROMINE
+      WRITE( 6, 130   ) LNEI2005
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
  100  FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
  110  FORMAT( 'LRED_JNO2  is set to ', L1                          )
  120  FORMAT( 'LGCBROMINE is set to ', L1                          )
+ 130  FORMAT( 'LNEI2005   is set to ', L1                          )
       
       END SUBROUTINE SET_OPTIONS_FROM_HEMCO
 !EOC
