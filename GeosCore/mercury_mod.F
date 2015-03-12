@@ -593,8 +593,9 @@
 
          ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
-         IF ( RC /= GIGC_SUCCESS ) 
-     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+         ENDIF
 
          ! Get a pointer to the monthly mean O3 from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, 'GLOBAL_O3', O3,  RC )
