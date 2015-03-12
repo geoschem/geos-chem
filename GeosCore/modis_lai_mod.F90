@@ -566,11 +566,6 @@ CONTAINS
     ENDIF
 
     ! Construct file path from directory & file name
-!-----------------------------------------------------------------------------
-! Prior to 3/5/15:
-! Now read the MODIS data from the CHEM_INPUTS directory (bmy, 3/5/15)
-!    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'MODIS_LAI_201204/'
-!-----------------------------------------------------------------------------
     nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'MODIS_LAI_201204/'
 
     !======================================================================

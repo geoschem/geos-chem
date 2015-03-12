@@ -216,84 +216,89 @@
       REAL(fp),  PARAMETER   :: SMALLNUM = 1e-20_fp
 
       ! Arrays
-      INTEGER, ALLOCATABLE :: AN_Hg0(:,:)
-      INTEGER, ALLOCATABLE :: AN_Hg2(:,:)
-      INTEGER, ALLOCATABLE :: AN_HgP(:,:)
-      REAL(fp),  ALLOCATABLE :: COSZM(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_an(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_can(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_usa(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_cam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_sam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_waf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_eaf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_saf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_naf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_eur(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_eeu(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_mde(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_sov(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_sas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_eas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_sea(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_jpn(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_oce(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_am(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_an(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_can(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_usa(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_cam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_sam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_waf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_eaf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_saf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_naf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_eur(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_eeu(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_mde(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_sov(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_sas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_eas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_sea(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_jpn(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_oce(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_an(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_can(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_usa(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_cam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_sam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_waf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_eaf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_saf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_naf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_eur(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_eeu(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_mde(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_sov(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_sas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_eas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_sea(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_jpn(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_oce(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_oc(:,:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_ln(:,:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_dist(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_geo(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_bb(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_vg(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_so(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_gtm(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_snow(:,:,:)
-      REAL(fp),  ALLOCATABLE :: TCOSZ(:,:)
-      REAL(fp),  ALLOCATABLE :: TTDAY(:,:)
-      REAL(fp),  ALLOCATABLE :: ZERO_DVEL(:,:)
-      REAL(fp),  ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) 
-      REAL(fp),  ALLOCATABLE :: JNO2(:,:,:) 
+      INTEGER,  ALLOCATABLE :: AN_Hg0(:,:)
+      INTEGER,  ALLOCATABLE :: AN_Hg2(:,:)
+      INTEGER,  ALLOCATABLE :: AN_HgP(:,:)
+      REAL(fp), ALLOCATABLE :: COSZM(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_an(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_can(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_usa(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_cam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_waf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eaf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_saf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_naf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eur(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eeu(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_mde(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sov(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sea(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_jpn(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_oce(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_am(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_an(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_can(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_usa(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_cam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_waf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eaf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_saf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_naf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eur(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eeu(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_mde(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sov(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sea(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_jpn(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_oce(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_an(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_can(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_usa(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_cam(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sam(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_waf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eaf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_saf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_naf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eur(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eeu(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_mde(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sov(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sas(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eas(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sea(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_jpn(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_oce(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_oc(:,:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_ln(:,:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_dist(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_geo(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_bb(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_vg(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_so(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_gtm(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_snow(:,:,:)
+      REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
+      REAL(fp), ALLOCATABLE :: TTDAY(:,:)
+      REAL(fp), ALLOCATABLE :: ZERO_DVEL(:,:)
+      REAL(fp), ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) 
+      REAL(fp), ALLOCATABLE :: JNO2(:,:,:) 
 
       ! For now, we need an emission array for the HG simulation
       ! that can be passed to vdiff_mod.F90 since Trac_Tend does 
       ! not exist anymore (ckeller, 10/21/2014).
-      REAL(fp),  ALLOCATABLE, PUBLIC :: HG_EMIS(:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: HG_EMIS(:,:,:)
+
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER :: O3(:,:,:) => NULL()
+      REAL(f4), POINTER :: OH(:,:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -338,10 +343,6 @@
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR, ND03 
       USE DIAG03_MOD,         ONLY : AD03_Br
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
-!      USE DRYDEP_MOD,         ONLY : DRYHg0
-!      USE DRYDEP_MOD,         ONLY : DRYHg2
-!      USE DRYDEP_MOD,         ONLY : DRYHgP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -349,8 +350,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
@@ -512,6 +512,9 @@
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
       REAL(fp), POINTER :: T(:,:,:)
+
+      ! Strings
+      CHARACTER(LEN=255) :: LOC = 'CHEMMERCURY (mercury_mod.F)'
 !
 ! !DEFINED PARAMETERS:
 !
@@ -589,12 +592,16 @@
          ! Get the current month
          MONTH = GET_MONTH()
 
-         ! Read monthly mean OH and O3 from disk
-         CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, State_Met, MONTH, RC)
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_OH' )
+         ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
+         IF ( RC /= GIGC_SUCCESS ) 
+     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
 
-         CALL GET_GLOBAL_O3( am_I_Root, Input_Opt, MONTH, RC )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
+         ! Get a pointer to the monthly mean O3 from HEMCO (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_O3', O3,  RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
+         ENDIF
 
          CALL GET_GLOBAL_BR( am_I_Root, Input_Opt, State_Met, MONTH, RC)
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
@@ -644,6 +651,7 @@
 !$OMP+PRIVATE( GROSS_RED, NET_OX )
 !$OMP+PRIVATE( AREA_CM2,  DEP_DRY_FLX )
 !$OMP+PRIVATE( F_HG0_DEP )
+!%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
       DO I=1, IIPAR
       DO J=1, JJPAR
       DO L=1, LLPAR
@@ -3492,7 +3500,6 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_O3_MOD,      ONLY : O3
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3503,7 +3510,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                      :: O3_MOLEC_CM3   ! O3 conc [molec/cm3]
+      REAL(fp)                    :: O3_MOLEC_CM3   ! O3 conc [molec/cm3]
 ! 
 ! !REVISION HISTORY: 
 !  06 Dec 2002 - R. Yantosca - Initial version
@@ -3512,6 +3519,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  11 Mar 2015 - R. Yantosca - Remove reference to GLOBAL_O3_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3554,7 +3562,6 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : OH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -3566,12 +3573,14 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                      :: OH_MOLEC_CM3   ! OH conc [molec/cm3]
+      REAL(fp)                    :: OH_MOLEC_CM3   ! OH conc [molec/cm3]
 !
 ! !REVISION HISTORY: 
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  28 Nov 2012 - R. Yantosca - Now pass State_Met via the argument list
+!  11 Mar 2015 - R. Yantosca - Remove reference to GLOBAL_OH_MOD
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4031,7 +4040,6 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_M
-!      USE RNPBBE_MOD,         ONLY : SLQ
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5242,6 +5250,10 @@
       IF ( ALLOCATED( JNO2      ) ) DEALLOCATE( JNO2      ) 
       IF ( ALLOCATED( HG_EMIS   ) ) DEALLOCATE( HG_EMIS   ) 
   
+      ! Free OH and O3 pointers
+      O3 => NULL()
+      OH => NULL()
+
       END SUBROUTINE CLEANUP_MERCURY
 !EOC
       END MODULE MERCURY_MOD

@@ -29,6 +29,7 @@ MODULE HCOI_GC_Main_Mod
   USE HCO_Error_Mod
   USE HCOX_State_Mod, ONLY : Ext_State 
   USE HCO_State_Mod,  ONLY : HCO_State
+  USE Precision_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -46,8 +47,10 @@ MODULE HCOI_GC_Main_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+  PRIVATE :: Calc_SumCosZa
   PRIVATE :: ExtState_SetPointers
   PRIVATE :: ExtState_UpdtPointers
+  PRIVATE :: Get_SzaFact
   PRIVATE :: GridEdge_Set
   PRIVATE :: Set_Grid
   PRIVATE :: CheckSettings
@@ -69,6 +72,9 @@ MODULE HCOI_GC_Main_Mod
 !  18 Feb 2015 - C. Keller   - Added routine CheckSettings.
 !  04 Mar 2015 - C. Keller   - Now register all GEOS-Chem species as HEMCO
 !                              species. 
+!  11 Mar 2015 - R. Yantosca - Now move computation of SUMCOSZA here from 
+!                              the obsolete global_oh_mod.F.  Add routines
+!                              GET_SZAFACT and CALC_SUMCOSA.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -100,11 +106,15 @@ MODULE HCOI_GC_Main_Mod
 
   ! Sigma coordinate (temporary)
   REAL(hp), ALLOCATABLE, TARGET :: ZSIGMA(:,:,:)
+
+  ! Sum of cosine of the solar zenith angle. Used to impose a
+  ! diurnal variability on OH concentrations
+  REAL(fp), ALLOCATABLE         :: SUMCOSZA(:,:)
 !
 ! !DEFINED PARAMETERS:
 !
   ! Temporary toggle for diagnostics
-  LOGICAL,            PARAMETER :: DoDiagn = .TRUE.
+  LOGICAL,  PARAMETER           :: DoDiagn = .TRUE.
 
 CONTAINS
 !EOC
@@ -682,12 +692,12 @@ CONTAINS
     CALL HcoState_Final ( HcoState ) 
 
     ! Module variables
-    IF ( ALLOCATED  ( ZSIGMA          ) ) DEALLOCATE ( ZSIGMA          )
-    IF ( ALLOCATED  ( HCO_FRAC_OF_PBL ) ) DEALLOCATE ( HCO_FRAC_OF_PBL )
-    IF ( ALLOCATED  ( HCO_SZAFACT     ) ) DEALLOCATE ( HCO_SZAFACT     )
-    IF ( ALLOCATED  ( JNO2            ) ) DEALLOCATE ( JNO2            )
-    IF ( ALLOCATED  ( JO1D            ) ) DEALLOCATE ( JO1D            )
-!    IF ( ASSOCIATED ( M2HID           ) ) DEALLOCATE ( M2HID           )
+    IF ( ALLOCATED ( ZSIGMA          ) ) DEALLOCATE( ZSIGMA          )
+    IF ( ALLOCATED ( HCO_FRAC_OF_PBL ) ) DEALLOCATE( HCO_FRAC_OF_PBL )
+    IF ( ALLOCATED ( HCO_SZAFACT     ) ) DEALLOCATE( HCO_SZAFACT     )
+    IF ( ALLOCATED ( JNO2            ) ) DEALLOCATE( JNO2            )
+    IF ( ALLOCATED ( JO1D            ) ) DEALLOCATE( JO1D            )
+    IF ( ALLOCATED ( SUMCOSZA        ) ) DEALLOCATE( SUMCOSZA        ) 
 
   END SUBROUTINE HCOI_GC_Final
 !EOC
@@ -811,6 +821,8 @@ CONTAINS
 !  02 Oct 2014 - C. Keller    - PEDGE is now in HcoState%Grid
 !  16 Oct 2014 - C. Keller    - Removed SUNCOSmid5. This is now calculated
 !                               internally in Paranox.
+!  12 Mar 2015 - R. Yantosca  - Allocate SUMCOSZA array for SZAFACT
+!  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -831,25 +843,29 @@ CONTAINS
     LOC = 'ExtState_SetPointers (hcoi_gc_main_mod.F90)'
 
     ! ----------------------------------------------------------------
-    ! HCO_SZAFACT aren't defined as 3D 
-    ! arrays in Met_State. Hence need to construct here so that we 
-    ! can point to them.
+    ! HCO_SZAFACT aren't defined as 3D arrays in Met_State.  Hence 
+    ! need to construct here so that we can point to them.
     !
     ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
     ! simulation (mps, 8/20/14)
     ! ----------------------------------------------------------------
-
     IF ( ExtState%SZAFACT%DoUse ) THEN 
-       ALLOCATE(HCO_SZAFACT(IIPAR,JJPAR      ),STAT=AS)
+
+       ALLOCATE( SUMCOSZA( IIPAR, JJPAR ), STAT=AS )
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'SUMCOSZA', LOC )
+       SUMCOSZA = 0.0e0_fp
+
+       ALLOCATE( HCO_SZAFACT( IIPAR, JJPAR      ),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_SZAFACT', LOC )
-       HCO_SZAFACT = 0d0
+       HCO_SZAFACT = 0e0_hp
+
        ExtState%SZAFACT%Arr%Val => HCO_SZAFACT
     ENDIF
 
     IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN 
        ALLOCATE(HCO_FRAC_OF_PBL(IIPAR,JJPAR,LLPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_FRAC_OF_PBL', LOC )
-       HCO_FRAC_OF_PBL = 0d0
+       HCO_FRAC_OF_PBL = 0.0_hp
        ExtState%FRAC_OF_PBL%Arr%Val => HCO_FRAC_OF_PBL
     ENDIF
 
@@ -863,14 +879,14 @@ CONTAINS
     IF ( ExtState%JNO2%DoUse ) THEN 
        ALLOCATE( JNO2(IIPAR,JJPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'JNO2', LOC )
-       JNO2 = 0d0
+       JNO2 = 0.0e0_hp
        ExtState%JNO2%Arr%Val => JNO2 
     ENDIF
 
     IF ( ExtState%JO1D%DoUse ) THEN 
        ALLOCATE( JO1D(IIPAR,JJPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'JO1D', LOC )
-       JO1D = 0d0
+       JO1D = 0.0e0_hp
        ExtState%JO1D%Arr%Val => JO1D 
     ENDIF
 
@@ -1070,7 +1086,6 @@ CONTAINS
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
 
-    USE GLOBAL_OH_MOD,         ONLY : GET_SZAFACT
     USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
 
     USE FAST_JX_MOD,           ONLY : FJXFUNC
@@ -1094,6 +1109,7 @@ CONTAINS
 !  23 Oct 2012 - C. Keller   - Initial Version
 !  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
 !  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
+!  11 Mar 2015 - R. Yantosca - Now call GET_SZAFACT in this module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1116,6 +1132,15 @@ CONTAINS
     ! Init
     RC = GIGC_SUCCESS
 
+    ! If we need to use the SZAFACT scale factor (i.e. to put a diurnal
+    ! variation on monthly mean OH concentrations), then call CALC_SUMCOSZA
+    ! here.  CALC_SUMCOSZA computes the sum of cosine of the solar zenith
+    ! angle over a 24 hour day, as well as the total length of daylight.
+    ! This information is required by GET_SZAFACT. (bmy, 3/11/15)
+    IF ( ExtState%SZAFACT%DoUse ) THEN
+       CALL Calc_SumCosZa()
+    ENDIF
+
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J, L, K, NK, KMAX, SPECNAME )
@@ -1124,7 +1149,9 @@ CONTAINS
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
-       ! current SZA divided by total daily SZA (2D field only)
+       ! Current SZA divided by total daily SZA (2D field only)
+       ! (This is mostly needed for offline simulations where a diurnal
+       ! scale factor has to be imposed on monthly mean OH concentrations.)
        IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
           HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
        ENDIF
@@ -2064,5 +2091,213 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE CheckSettings 
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_szafact
+!
+! !DESCRIPTION:
+!  Subroutine GET\_SZAFACT returns diurnal scale factors from dividing
+!  the sza by the sum of the total sza per day. These factors are mainly
+!  imposed to the monthly OH climatology. 
+!  However, the same scale factors are dimensionless and can hence be 
+!  applied to other compounds too (e.g. O3).
+!\\
+! !INTERFACE:
+!
+  FUNCTION Get_SzaFact( I, J, State_Met ) RESULT( FACT )
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Time_Mod,           ONLY : Get_TS_Chem
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN) :: I, J
+    TYPE(MetState), INTENT(IN) :: State_Met
+!
+! !RETURN VALUE:
+!
+    REAL(fp)                   :: FACT
+!
+! !REMARKS:
+!  Moved here from the obsolete global_oh_mod.F.
+!
+! !REVISION HISTORY: 
+!  01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where these
+!                            calculations are done w/in GET_OH
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=======================================================================
+    ! GET_SZAFACT begins here!
+    !=======================================================================
+
+    ! Test for sunlight...
+    IF ( State_Met%SUNCOSmid(I,J) > 0e+0_fp  .AND. & 
+         SUMCOSZA(I,J)            > 0e+0_fp ) THEN
+
+       ! Impose a diurnal variation on OH during the day
+       FACT = ( State_Met%SUNCOSmid(I,J) / SUMCOSZA(I,J) ) &
+            *  ( 1440e+0_fp              / GET_TS_CHEM() )
+
+    ELSE
+
+       ! At night, OH goes to zero
+       FACT = 0e+0_fp
+
+    ENDIF
+
+  END FUNCTION Get_SzaFact
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_sumcosza
+!
+! !DESCRIPTION:
+!  Subroutine CALC\_SUMCOSZA computes the sum of cosine of the solar zenith
+!  angle over a 24 hour day, as well as the total length of daylight. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Calc_SumCosZa
+!
+! !USES:
+!
+    USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
+    USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+    USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+
+    USE CMN_SIZE_MOD  ! Size parameters
+    USE CMN_GCTM_MOD
+!
+! !REMARKS:
+!  Moved here from the obsolete global_oh_mod.F.
+!
+! !REVISION HISTORY: 
+! 01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where it's
+! called OHNO3TIME
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER, SAVE :: SAVEDOY = -1
+    INTEGER       :: I, IJLOOP, J, L, N, NT, NDYSTEP
+    REAL(fp)      :: A0, A1, A2, A3, B1, B2, B3
+    REAL(fp)      :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+    REAL(fp)      :: SUNTMP(MAXIJ)
+
+    !=======================================================================
+    ! CALC_SUMCOSZA begins here!
+    !=======================================================================
+
+    !  Solar declination angle (low precision formula, good enough for us):
+    A0 = 0.006918
+    A1 = 0.399912
+    A2 = 0.006758
+    A3 = 0.002697
+    B1 = 0.070257
+    B2 = 0.000907
+    B3 = 0.000148
+    R  = 2.* PI * float( GET_DAY_OF_YEAR() - 1 ) / 365.
+
+    DEC = A0 - A1*cos(  R) + B1*sin(  R) & 
+             - A2*cos(2*R) + B2*sin(2*R) &
+             - A3*cos(3*R) + B3*sin(3*R)
+
+    LHR0 = int(float( GET_NHMSb() )/10000.)
+
+    ! Only do the following at the start of a new day
+    IF ( SAVEDOY /= GET_DAY_OF_YEAR() ) THEN 
+
+       ! Zero arrays
+       SUMCOSZA(:,:) = 0e+0_fp
+
+       ! NDYSTEP is # of chemistry time steps in this day
+       NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()      
+
+       ! NT is the elapsed time [s] since the beginning of the run
+       NT = GET_ELAPSED_SEC()
+
+       ! Loop forward through NDYSTEP "fake" timesteps for this day 
+       DO N = 1, NDYSTEP
+            
+          ! Zero SUNTMP array
+          SUNTMP(:) = 0e+0_fp
+
+          ! Loop over surface grid boxes
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+
+             ! Grid box latitude center [radians]
+             YMID_R = GET_YMID_R( I, J, 1 )
+
+             ! Increment IJLOOP
+             IJLOOP = ( (J-1) * IIPAR ) + I
+             TIMLOC = real(LHR0) + real(NT)/3600.0 + &
+                      GET_XMID( I, J, 1 ) / 15.0
+         
+             DO WHILE (TIMLOC .lt. 0)
+                TIMLOC = TIMLOC + 24.0
+             ENDDO
+
+             DO WHILE (TIMLOC .gt. 24.0)
+                TIMLOC = TIMLOC - 24.0
+             ENDDO
+
+             AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
+
+             !===========================================================
+             ! The cosine of the solar zenith angle (SZA) is given by:
+             !     
+             !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+             !                   
+             ! where LAT = the latitude angle, 
+             !       DEC = the solar declination angle,  
+             !       AHR = the hour angle, all in radians. 
+             !
+             ! If SUNCOS < 0, then the sun is below the horizon, and 
+             ! therefore does not contribute to any solar heating.  
+             !===========================================================
+
+             ! Compute Cos(SZA)
+             SUNTMP(IJLOOP) = sin(YMID_R) * sin(DEC) +          &
+                              cos(YMID_R) * cos(DEC) * cos(AHR)
+
+             ! SUMCOSZA is the sum of SUNTMP at location (I,J)
+             ! Do not include negative values of SUNTMP
+             SUMCOSZA(I,J) = SUMCOSZA(I,J) +             &
+                             MAX(SUNTMP(IJLOOP),0e+0_fp)
+
+         ENDDO
+         ENDDO
+!!$OMP END PARALLEL DO
+
+         ! Increment elapsed time [sec]
+         NT = NT + ( GET_TS_CHEM() * 60 )             
+      ENDDO
+
+      ! Set saved day of year to current day of year 
+      SAVEDOY = GET_DAY_OF_YEAR()
+
+   ENDIF
+
+   ! Return to calling program
+ END SUBROUTINE Calc_SumCosZa
 !EOC
 END MODULE HCOI_GC_MAIN_MOD

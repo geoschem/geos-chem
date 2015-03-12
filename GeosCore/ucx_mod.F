@@ -6612,18 +6612,6 @@
          CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
        RETURN
 #endif
-!------------------------------------------------------------------------------
-! Prior to 3/5/15:
-!         WRITE( AVG_FILE_ROOT,'(a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1),
-!     &      'UCX_201403/Init2D/DiurnalAvg.nc'
-!         WRITE( NOON_FILE_ROOT,'(a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1), 
-!     &        'UCX_201403/Init2D/Noontime.nc'
-!         WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1), 
-!     &        'UCX_201403/Init1D/Montreal.nc'
-!------------------------------------------------------------------------------
          WRITE( AVG_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
      &      'UCX_201403/Init2D/DiurnalAvg.nc'
@@ -6645,18 +6633,6 @@
 #else
          GRIDSPEC = 'Grid2x25/InitCFC_'
 #endif
-!------------------------------------------------------------------------------
-! Prior to 3/5/15:
-!         WRITE( AVG_FILE_ROOT,'(a,a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1),
-!     &      'UCX_201403/DiurnalAvg/', TRIM(GRIDSPEC)
-!         WRITE(   NOON_FILE_ROOT,'(a,a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1), 
-!     &        'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
-!         WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1), 
-!     &      'UCX_201403/Montreal/'
-!------------------------------------------------------------------------------
          WRITE( AVG_FILE_ROOT,'(a,a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
      &      'UCX_201403/DiurnalAvg/', TRIM(GRIDSPEC)

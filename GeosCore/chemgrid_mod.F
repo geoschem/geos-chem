@@ -325,11 +325,6 @@
 !
 ! !USES:
 !
-!----------------------------------------------------------------------------
-! Prior to 3/6/15:
-! Retire bpch input (bmy, 3/6/15)
-!      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
-!----------------------------------------------------------------------------
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
@@ -417,28 +412,6 @@
       
       ! Assume success
       RC = GIGC_SUCCESS
-
-!-----------------------------------------------------------------------------
-! Prior to 3/6/15:
-! Now read from netCDF files; retire bpch input (bmy, 3/6/15)
-!      ! Create filename
-!      FILENAME = TRIM( Input_Opt%DATA_DIR )            // 
-!     &           TRIM( Input_Opt%RES_DIR  )            //
-!     &           'ann_mean_trop_200202/ann_mean_trop.' //
-!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-!
-!      ! Write file name to stdout
-!      IF ( am_I_Root ) THEN
-!         WRITE( 6, 110 ) TRIM( FILENAME )
-! 110     FORMAT( '     - READ_TROPOPAUSE: Reading ', a )
-!      ENDIF
-!
-!      ! Annual mean tropopause is tracer #1  
-!      CALL READ_BPCH2( FILENAME, 'TR-PAUSE', 1, 
-!     &                 0e+0_f8,   IIPAR,     JJPAR,     
-!     &                 1,         ARRAY,     QUIET=.TRUE. )
-!
-!-----------------------------------------------------------------------------
 
       !=================================================================
       ! Open and read data from the netCDF file

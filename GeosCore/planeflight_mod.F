@@ -1343,11 +1343,6 @@
       DO M = PPOINT, NPOINTS
 
          ! Starting & end times of chemistry interval
-!-----------------------------------------------------------------------------
-! Prior to 1/12/15:
-! Allow for more accurate computation of PTAUE (L. Schiferl, 1/12/15)
-!        PTAUE = GET_TAU()
-!-----------------------------------------------------------------------------
          PTAUE = GET_TAU0( MONTH, DAY, YEAR, HOUR, MINUTE, 0 )
          PTAUS = PTAUE - ( GET_TS_DIAG() / 60e+0_fp )
 
