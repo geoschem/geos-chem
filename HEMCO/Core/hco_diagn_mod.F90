@@ -763,12 +763,15 @@ CONTAINS
 ! intermediate emission fields created in HCO\_CALC\_Mod.F90.
 !\\
 !\\
-! Note that for a given time step, the same diagnostics container can 
-! be updated multiple times.
-!\\
-!\\
-! If the passed array is empty (i.e. not associated), it is treated as
-! empty values (i.e. zeros).
+! Notes:
+! - For a given time step, the same diagnostics container can be 
+!   updated multiple times. The field average is always defined as
+!   temporal average, e.g. multiple updates on the same time step
+!   will not increase the averaging weight of that time step.
+! - If the passed array is empty (i.e. not associated), it is 
+!   treated as empty values (i.e. zeros).
+! - The collection number can be set to -1 to scan trough all 
+!   existing diagnostic collections.
 !\\
 !\\
 ! !INTERFACE:
@@ -815,6 +818,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
 !  25 Sep 2014 - C. Keller: Now allow updating multiple diagnostics
+!  11 Mar 2015 - C. Keller: Now allow scanning of all diagnostic collections
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -838,8 +842,9 @@ CONTAINS
     INTEGER                  :: DgnHier, DgnHcoID
     INTEGER                  :: MinResetFlag, ThisUpdateID
     INTEGER                  :: AutoFlag
-    INTEGER                  :: PS, CNT
+    INTEGER                  :: PS, lPS, uPS, CNT
     LOGICAL                  :: Found, OnlyPos, VertSum, IsAssoc, IsNewTS
+    LOGICAL                  :: SearchAll
 
     !======================================================================
     ! Diagn_Update begins here!
@@ -858,8 +863,22 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Check if we need to scan through all collections. This is only the
+    ! case if PS is set to -1
+    IF ( PS == -1 ) THEN
+       SearchAll = .TRUE.
+       lPS       = 1
+       uPS       = MaxCollections
+    ELSE
+       SearchAll = .FALSE.
+       lPS       = PS
+       uPS       = PS
+    ENDIF
+
     ! Nothing to do if this collection is empty
-    IF ( .NOT. Collections(PS)%InUse ) RETURN 
+    IF ( .NOT. SearchAll ) THEN
+       IF ( .NOT. Collections(PS)%InUse ) RETURN 
+    ENDIF
 
     !----------------------------------------------------------------------
     ! Make sure all attributes are defined
@@ -885,325 +904,333 @@ CONTAINS
     MinResetFlag = HcoClock_GetMinResetFlag()
     CALL HcoClock_Get( nSteps = ThisUpdateID, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-  
+
+    ! Count # of containers that are updated
+    CNT = 0 
+
     !-----------------------------------------------------------------
-    ! Do for every container in the diagnostics list that matches the 
-    ! specified arguments (ID, ExtNr, etc.). This can be more than one
-    ! container (ckeller, 09/25/2014).
+    ! Loop over collections
     !-----------------------------------------------------------------
-    CNT = 0 ! Count # of containers that are updated
-    DO
+    DO PS = lPS, uPS
 
-       ! Search for diagnostics that matches the given arguments.
-       ! If ThisDiagn is empty (first call), the search will start
-       ! at the first diagnostics container. Otherwise, the search
-       ! will resume from this diagnostics container.
-       CALL DiagnCont_Find( DgncID,    DgnExtNr, DgnCat,   DgnHier, &
-                            DgnHcoID,  DgnName,  AutoFlag, Found,   &
-                            ThisDiagn, RESUME=.TRUE., COL=PS         )
-
-       ! Exit while loop if no diagnostics found
-       IF ( .NOT. Found ) EXIT
-
-       ! If container holds just a pointer to external data, don't do
-       ! anything!
-       IF ( ThisDiagn%DtaIsPtr ) THEN
-          MSG = 'You try to update a container that holds a '  // &
-               'pointer to data - this should never happen! ' // &
-               TRIM(ThisDiagn%cName)
-          CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
-          CYCLE 
-       ENDIF
-  
-       ! Increase counter
-       CNT = CNT + 1
- 
-       !----------------------------------------------------------------------
-       ! Sanity check: if data is beyond its averaging interval, it should
-       ! be in output format. Otherwise, the content of this diagnostics has 
-       ! never been passed to the output yet (via routine Diagn\_Get) and 
-       ! will thus be lost!
-       !----------------------------------------------------------------------
-       IF ( (ThisDiagn%ResetFlag >= MinResetFlag) .AND. &
-            .NOT. ThisDiagn%IsOutFormat .AND. (ThisDiagn%Counter > 0) ) THEN
-          MSG = 'Diagnostics is at end of its output interval '      // &
-                'but was not passed to output - data will be lost: ' // &
-                TRIM(ThisDiagn%cName)
-          CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
-       ENDIF
+       !-----------------------------------------------------------------
+       ! Do for every container in the diagnostics list that matches the 
+       ! specified arguments (ID, ExtNr, etc.). This can be more than one
+       ! container (ckeller, 09/25/2014).
+       !-----------------------------------------------------------------
+       DO
    
-       !----------------------------------------------------------------------
-       ! If data is in output format, set counter to zero. This will make
-       ! sure that the new data is not added to the existing data.
-       !----------------------------------------------------------------------
-       IF ( ThisDiagn%IsOutFormat ) THEN
-          ThisDiagn%Counter    = 0
-       ENDIF
+          ! Search for diagnostics that matches the given arguments.
+          ! If ThisDiagn is empty (first call), the search will start
+          ! at the first diagnostics container. Otherwise, the search
+          ! will resume from this diagnostics container.
+          CALL DiagnCont_Find( DgncID,    DgnExtNr, DgnCat,   DgnHier, &
+                               DgnHcoID,  DgnName,  AutoFlag, Found,   &
+                               ThisDiagn, RESUME=.TRUE., COL=PS         )
    
-       !----------------------------------------------------------------------
-       ! Determine scale factor to be applied to data. Diagnostics are
-       ! stored in kg/m2, hence need to multiply HEMCO emissions, which
-       ! are in kg/m2/s, by emission time step. Don't do anything for 
-       ! data with non-standard units (e.g. unitless factors) or pointers.
-       ! Note: conversion to final output units is done when writing out
-       ! the diagnostics.
-       !----------------------------------------------------------------------
-       IF ( ThisDiagn%AvgFlag > 0 ) THEN
-          Fact = 1.0_hp 
-       ELSE
-          Fact = Collections(PS)%TS
-       ENDIF
-       
-       !----------------------------------------------------------------------
-       ! Check if this is a new time step for this diagnostics. 
-       !----------------------------------------------------------------------
-       IsNewTS = .TRUE.
-       IF ( ThisDiagn%LastUpdateID == ThisUpdateID ) IsNewTS = .FALSE. 
-
-       !----------------------------------------------------------------------
-       ! Fill shadow arrays. Cast any input data to single precision, as this
-       ! is the default diagnostics precision. 
-       !----------------------------------------------------------------------
-
-       ! Only need to do this on first container. Afterwards, arrays are
-       ! already set!
-       IF ( CNT == 1 ) THEN
-
-          ! 3D array
-          IF ( PRESENT(Array3D_SP) ) THEN
-             Arr3D => Array3D_SP
-          ELSEIF( PRESENT(Array3D) ) THEN
-             IF ( ASSOCIATED(Array3D) ) THEN
-                ALLOCATE( Arr3D( Collections(PS)%NX,  Collections(PS)%NY, &
-                                 Collections(PS)%NZ), STAT=AS )
-                IF ( AS /= 0 ) THEN
-                   CALL HCO_ERROR( 'Allocation error Arr3D', RC, THISLOC=LOC )
-                   RETURN
-                ENDIF
-                Arr3D = Array3D
-             ENDIF
+          ! Exit while loop if no diagnostics found
+          IF ( .NOT. Found ) EXIT
+   
+          ! If container holds just a pointer to external data, don't do
+          ! anything!
+          IF ( ThisDiagn%DtaIsPtr ) THEN
+             MSG = 'You try to update a container that holds a '  // &
+                  'pointer to data - this should never happen! ' // &
+                  TRIM(ThisDiagn%cName)
+             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+             CYCLE 
           ENDIF
-  
-          ! 2D array 
-          IF ( PRESENT(Array2D_SP) ) THEN
-             Arr2D => Array2D_SP
-          ELSEIF( PRESENT(Array2D) ) THEN
-             IF ( ASSOCIATED(Array2D) ) THEN
-                ALLOCATE( Arr2D( Collections(PS)%NX, Collections(PS)%NY), STAT=AS ) 
-                IF ( AS /= 0 ) THEN
-                   CALL HCO_ERROR( 'Allocation error Arr2D', RC, THISLOC=LOC )
-                   RETURN
-                ENDIF
-                Arr2D = Array2D
-             ENDIF
-          ENDIF
-  
-          ! Scalar
-          IF ( PRESENT(Scalar_SP) ) THEN
-             TmpScalar = Scalar_SP
-          ELSEIF ( PRESENT(Scalar) ) THEN
-             TmpScalar = Scalar
-          ENDIF
-
-       ENDIF ! Counter = 1
+     
+          ! Increase counter
+          CNT = CNT + 1
     
-       !----------------------------------------------------------------------
-       ! To add 3D array
-       !----------------------------------------------------------------------
-       IF ( ThisDiagn%SpaceDim == 3 ) THEN
-   
-          ! Make sure dimensions agree and diagnostics array is allocated
-          IF ( .NOT. PRESENT(Array3D_SP) .AND. .NOT. PRESENT(Array3D) ) THEN
-             MSG = 'Diagnostics must be 3D: ' // TRIM(ThisDiagn%cName)
-             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-             RETURN
+          !----------------------------------------------------------------------
+          ! Sanity check: if data is beyond its averaging interval, it should
+          ! be in output format. Otherwise, the content of this diagnostics has 
+          ! never been passed to the output yet (via routine Diagn\_Get) and 
+          ! will thus be lost!
+          !----------------------------------------------------------------------
+          IF ( (ThisDiagn%ResetFlag >= MinResetFlag) .AND. &
+               .NOT. ThisDiagn%IsOutFormat .AND. (ThisDiagn%Counter > 0) ) THEN
+             MSG = 'Diagnostics is at end of its output interval '      // &
+                   'but was not passed to output - data will be lost: ' // &
+                   TRIM(ThisDiagn%cName)
+             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
           ENDIF
-   
-          ! By default, write into single precision array 
-          CALL HCO_ArrAssert( ThisDiagn%Arr3D,    Collections(PS)%NX,   &
-                              Collections(PS)%NY, Collections(PS)%NZ, RC ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-            
-          ! Pass array to diagnostics: reset to zero if counter 
-          ! is zero, add to it otherwise.
-          ! Never reset containers with cumulative sums!
-          IF ( ThisDiagn%Counter == 0 .AND. &
-               ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Arr3D%Val = 0.0_sp
-
-          ! Always reset containers with instantaneous values if it's a new
-          ! time step.
-          IF ( ThisDiagn%AvgFlag == AvgFlagInst .AND. IsNewTS ) ThisDiagn%Arr3D%Val = 0.0_sp
-
-          ! Only if associated ...
-          IF ( ASSOCIATED(Arr3D) ) THEN
-             IF ( OnlyPos ) THEN
-                WHERE ( Arr3D >= 0.0_sp )
-                   ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + ( Arr3D * Fact )
-                END WHERE
-             ELSE
-                ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + ( Arr3D * Fact )
-             ENDIF
+      
+          !----------------------------------------------------------------------
+          ! If data is in output format, set counter to zero. This will make
+          ! sure that the new data is not added to the existing data.
+          !----------------------------------------------------------------------
+          IF ( ThisDiagn%IsOutFormat ) THEN
+             ThisDiagn%Counter    = 0
           ENDIF
-  
-       !----------------------------------------------------------------------
-       ! To add 2D array
-       !----------------------------------------------------------------------
-       ELSEIF ( ThisDiagn%SpaceDim == 2 ) THEN
-   
-          ! Make sure dimensions agree and diagnostics array is allocated
-          CALL HCO_ArrAssert( ThisDiagn%Arr2D,    Collections(PS)%NX, &
-                              Collections(PS)%NY, RC                   ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-            
-          ! Pass array to diagnostics: ignore existing data if counter 
-          ! is zero, add to it otherwise.
-          ! Never reset containers with cumulative sums!
-          IF ( ThisDiagn%Counter == 0 .AND. &
-               ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Arr2D%Val = 0.0_sp
-   
-          ! Always reset containers with instantaneous values if it's a new time step
-          IF ( ThisDiagn%AvgFlag == AvgFlagInst .AND. IsNewTS ) ThisDiagn%Arr2D%Val = 0.0_sp
-
-          ! Assume that we don't have to take the vertical sum
-          VertSum = .FALSE.
-   
-          ! Assume data pointer is associated
-          IsAssoc = .TRUE.
-   
-          ! Convert 3D array to 2D if necessary - only use first level!!
-          IF ( PRESENT(Array2D) .OR. PRESENT(Array2D_SP) ) THEN
-             IF ( .NOT. ASSOCIATED(Arr2D) ) THEN
-                IsAssoc = .FALSE.
-             ELSE
-                Tmp2D => Arr2D
-             ENDIF
-          ELSEIF ( PRESENT(Array3D) .OR. PRESENT(Array3D_SP) ) THEN
-             IF ( .NOT. ASSOCIATED(Arr3D) ) THEN
-                IsAssoc = .FALSE.
-             ELSE
-                IF ( ThisDiagn%LevIdx == -1 ) THEN
-                   VertSum = .TRUE.
-                ELSE
-                   Tmp2D => Arr3D(:,:,ThisDiagn%LevIdx)
-                ENDIF
-             ENDIF
+      
+          !----------------------------------------------------------------------
+          ! Determine scale factor to be applied to data. Diagnostics are
+          ! stored in kg/m2, hence need to multiply HEMCO emissions, which
+          ! are in kg/m2/s, by emission time step. Don't do anything for 
+          ! data with non-standard units (e.g. unitless factors) or pointers.
+          ! Note: conversion to final output units is done when writing out
+          ! the diagnostics.
+          !----------------------------------------------------------------------
+          IF ( ThisDiagn%AvgFlag > 0 ) THEN
+             Fact = 1.0_hp 
           ELSE
-             MSG = 'No array passed for updating ' // TRIM(ThisDiagn%cName)
-             CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-             RETURN
+             Fact = Collections(PS)%TS
           ENDIF
+          
+          !----------------------------------------------------------------------
+          ! Check if this is a new time step for this diagnostics. 
+          !----------------------------------------------------------------------
+          IsNewTS = .TRUE.
+          IF ( ThisDiagn%LastUpdateID == ThisUpdateID ) IsNewTS = .FALSE. 
    
-          ! Do only if data pointer associated ...
-          IF ( IsAssoc ) THEN
+          !----------------------------------------------------------------------
+          ! Fill shadow arrays. Cast any input data to single precision, as this
+          ! is the default diagnostics precision. 
+          !----------------------------------------------------------------------
    
-             ! only positive values
-             IF ( OnlyPos ) THEN
-      
-                ! need to do vertical summation
-                IF ( VertSum ) THEN
-                   DO J=1,Collections(PS)%NY
-                   DO I=1,Collections(PS)%NX
-                      TMP = 0.0_hp
-                      DO L=1,Collections(PS)%NZ
-                         IF ( Arr3D(I,J,L) >= 0.0_sp ) &
-                            TMP = TMP + ( Arr3D(I,J,L) * Fact )
-                      ENDDO
-                      ThisDiagn%Arr2D%Val(I,J) = &
-                         ThisDiagn%Arr2D%Val(I,J) + TMP
-                   ENDDO
-                   ENDDO
-      
-                ! no vertical summation
-                ELSE
-                   WHERE ( Tmp2D >= 0.0_sp )
-                      ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Tmp2D * Fact )
-                   END WHERE
+          ! Only need to do this on first container. Afterwards, arrays are
+          ! already set!
+          IF ( CNT == 1 ) THEN
+   
+             ! 3D array
+             IF ( PRESENT(Array3D_SP) ) THEN
+                Arr3D => Array3D_SP
+             ELSEIF( PRESENT(Array3D) ) THEN
+                IF ( ASSOCIATED(Array3D) ) THEN
+                   ALLOCATE( Arr3D( Collections(PS)%NX,  Collections(PS)%NY, &
+                                    Collections(PS)%NZ), STAT=AS )
+                   IF ( AS /= 0 ) THEN
+                      CALL HCO_ERROR( 'Allocation error Arr3D', RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF
+                   Arr3D = Array3D
                 ENDIF
-      
-             ! all values
-             ELSE
+             ENDIF
+     
+             ! 2D array 
+             IF ( PRESENT(Array2D_SP) ) THEN
+                Arr2D => Array2D_SP
+             ELSEIF( PRESENT(Array2D) ) THEN
+                IF ( ASSOCIATED(Array2D) ) THEN
+                   ALLOCATE( Arr2D( Collections(PS)%NX, Collections(PS)%NY), STAT=AS ) 
+                   IF ( AS /= 0 ) THEN
+                      CALL HCO_ERROR( 'Allocation error Arr2D', RC, THISLOC=LOC )
+                      RETURN
+                   ENDIF
+                   Arr2D = Array2D
+                ENDIF
+             ENDIF
+     
+             ! Scalar
+             IF ( PRESENT(Scalar_SP) ) THEN
+                TmpScalar = Scalar_SP
+             ELSEIF ( PRESENT(Scalar) ) THEN
+                TmpScalar = Scalar
+             ENDIF
+   
+          ENDIF ! Counter = 1
        
-                ! need to do vertical summation
-                IF ( VertSum ) THEN
-                   DO J=1,Collections(PS)%NY
-                   DO I=1,Collections(PS)%NX
-                      TMP = SUM(Arr3D(I,J,:)) * Fact
-                      ThisDiagn%Arr2D%Val(I,J) = &
-                         ThisDiagn%Arr2D%Val(I,J) + TMP
-                   ENDDO
-                   ENDDO
+          !----------------------------------------------------------------------
+          ! To add 3D array
+          !----------------------------------------------------------------------
+          IF ( ThisDiagn%SpaceDim == 3 ) THEN
       
-                ! no vertical summation
+             ! Make sure dimensions agree and diagnostics array is allocated
+             IF ( .NOT. PRESENT(Array3D_SP) .AND. .NOT. PRESENT(Array3D) ) THEN
+                MSG = 'Diagnostics must be 3D: ' // TRIM(ThisDiagn%cName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+      
+             ! By default, write into single precision array 
+             CALL HCO_ArrAssert( ThisDiagn%Arr3D,    Collections(PS)%NX,   &
+                                 Collections(PS)%NY, Collections(PS)%NZ, RC ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN 
+               
+             ! Pass array to diagnostics: reset to zero if counter 
+             ! is zero, add to it otherwise.
+             ! Never reset containers with cumulative sums!
+             IF ( ThisDiagn%Counter == 0 .AND. &
+                  ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Arr3D%Val = 0.0_sp
+   
+             ! Always reset containers with instantaneous values if it's a new
+             ! time step.
+             IF ( ThisDiagn%AvgFlag == AvgFlagInst .AND. IsNewTS ) ThisDiagn%Arr3D%Val = 0.0_sp
+   
+             ! Only if associated ...
+             IF ( ASSOCIATED(Arr3D) ) THEN
+                IF ( OnlyPos ) THEN
+                   WHERE ( Arr3D >= 0.0_sp )
+                      ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + ( Arr3D * Fact )
+                   END WHERE
                 ELSE
-                   ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Tmp2D * Fact )
+                   ThisDiagn%Arr3D%Val = ThisDiagn%Arr3D%Val + ( Arr3D * Fact )
                 ENDIF
              ENDIF
-          ENDIF ! pointer is associated
+     
+          !----------------------------------------------------------------------
+          ! To add 2D array
+          !----------------------------------------------------------------------
+          ELSEIF ( ThisDiagn%SpaceDim == 2 ) THEN
+      
+             ! Make sure dimensions agree and diagnostics array is allocated
+             CALL HCO_ArrAssert( ThisDiagn%Arr2D,    Collections(PS)%NX, &
+                                 Collections(PS)%NY, RC                   ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN 
+               
+             ! Pass array to diagnostics: ignore existing data if counter 
+             ! is zero, add to it otherwise.
+             ! Never reset containers with cumulative sums!
+             IF ( ThisDiagn%Counter == 0 .AND. &
+                  ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Arr2D%Val = 0.0_sp
+      
+             ! Always reset containers with instantaneous values if it's a new time step
+             IF ( ThisDiagn%AvgFlag == AvgFlagInst .AND. IsNewTS ) ThisDiagn%Arr2D%Val = 0.0_sp
    
-       !----------------------------------------------------------------------
-       ! To add scalar (1D) 
-       !----------------------------------------------------------------------
-       ELSEIF ( ThisDiagn%SpaceDim == 1 ) THEN
+             ! Assume that we don't have to take the vertical sum
+             VertSum = .FALSE.
+      
+             ! Assume data pointer is associated
+             IsAssoc = .TRUE.
+      
+             ! Convert 3D array to 2D if necessary - only use first level!!
+             IF ( PRESENT(Array2D) .OR. PRESENT(Array2D_SP) ) THEN
+                IF ( .NOT. ASSOCIATED(Arr2D) ) THEN
+                   IsAssoc = .FALSE.
+                ELSE
+                   Tmp2D => Arr2D
+                ENDIF
+             ELSEIF ( PRESENT(Array3D) .OR. PRESENT(Array3D_SP) ) THEN
+                IF ( .NOT. ASSOCIATED(Arr3D) ) THEN
+                   IsAssoc = .FALSE.
+                ELSE
+                   IF ( ThisDiagn%LevIdx == -1 ) THEN
+                      VertSum = .TRUE.
+                   ELSE
+                      Tmp2D => Arr3D(:,:,ThisDiagn%LevIdx)
+                   ENDIF
+                ENDIF
+             ELSE
+                MSG = 'No array passed for updating ' // TRIM(ThisDiagn%cName)
+                CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+      
+             ! Do only if data pointer associated ...
+             IF ( IsAssoc ) THEN
+      
+                ! only positive values
+                IF ( OnlyPos ) THEN
+         
+                   ! need to do vertical summation
+                   IF ( VertSum ) THEN
+                      DO J=1,Collections(PS)%NY
+                      DO I=1,Collections(PS)%NX
+                         TMP = 0.0_hp
+                         DO L=1,Collections(PS)%NZ
+                            IF ( Arr3D(I,J,L) >= 0.0_sp ) &
+                               TMP = TMP + ( Arr3D(I,J,L) * Fact )
+                         ENDDO
+                         ThisDiagn%Arr2D%Val(I,J) = &
+                            ThisDiagn%Arr2D%Val(I,J) + TMP
+                      ENDDO
+                      ENDDO
+         
+                   ! no vertical summation
+                   ELSE
+                      WHERE ( Tmp2D >= 0.0_sp )
+                         ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Tmp2D * Fact )
+                      END WHERE
+                   ENDIF
+         
+                ! all values
+                ELSE
+          
+                   ! need to do vertical summation
+                   IF ( VertSum ) THEN
+                      DO J=1,Collections(PS)%NY
+                      DO I=1,Collections(PS)%NX
+                         TMP = SUM(Arr3D(I,J,:)) * Fact
+                         ThisDiagn%Arr2D%Val(I,J) = &
+                            ThisDiagn%Arr2D%Val(I,J) + TMP
+                      ENDDO
+                      ENDDO
+         
+                   ! no vertical summation
+                   ELSE
+                      ThisDiagn%Arr2D%Val = ThisDiagn%Arr2D%Val + ( Tmp2D * Fact )
+                   ENDIF
+                ENDIF
+             ENDIF ! pointer is associated
+      
+          !----------------------------------------------------------------------
+          ! To add scalar (1D) 
+          !----------------------------------------------------------------------
+          ELSEIF ( ThisDiagn%SpaceDim == 1 ) THEN
+      
+             ! Make sure dimensions agree and diagnostics array is allocated
+             IF ( .NOT. PRESENT(Scalar_SP) .AND. .NOT. PRESENT(Scalar) ) THEN
+                MSG = 'Diagnostics must be scalar: '// TRIM(ThisDiagn%cName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
    
-          ! Make sure dimensions agree and diagnostics array is allocated
-          IF ( .NOT. PRESENT(Scalar_SP) .AND. .NOT. PRESENT(Scalar) ) THEN
-             MSG = 'Diagnostics must be scalar: '// TRIM(ThisDiagn%cName)
+             ! Pass array to diagnostics: ignore existing data if counter 
+             ! is zero, add to it otherwise.
+             ! Never reset containers with cumulative sums!
+             IF ( ThisDiagn%Counter == 0 .AND. &
+                  ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Scalar = 0.0_sp
+   
+             ! Always reset containers with instantaneous values if it's a new time step
+             IF ( ThisDiagn%AvgFlag == AvgFlagInst .AND. IsNewTS ) ThisDiagn%Scalar = 0.0_sp
+   
+             ! Update scalar value
+             IF ( OnlyPos ) THEN
+                IF ( TmpScalar >= 0.0_sp ) & 
+                   ThisDiagn%Scalar = ThisDiagn%Scalar + ( TmpScalar * Fact )
+             ELSE
+                ThisDiagn%Scalar = ThisDiagn%Scalar + ( TmpScalar * Fact )  
+             ENDIF
+      
+          !----------------------------------------------------------------------
+          ! Diangostics space dimension must be 1-3. 
+          !----------------------------------------------------------------------
+          ELSE
+             WRITE(MSG,*) 'Space dimension must be 1-3: ',TRIM(ThisDiagn%cName), &
+                          '--> dimension is ', ThisDiagn%SpaceDim
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
-
-          ! Pass array to diagnostics: ignore existing data if counter 
-          ! is zero, add to it otherwise.
-          ! Never reset containers with cumulative sums!
-          IF ( ThisDiagn%Counter == 0 .AND. &
-               ThisDiagn%AvgFlag /= AvgFlagCumsum ) ThisDiagn%Scalar = 0.0_sp
-
-          ! Always reset containers with instantaneous values if it's a new time step
-          IF ( ThisDiagn%AvgFlag == AvgFlagInst .AND. IsNewTS ) ThisDiagn%Scalar = 0.0_sp
-
-          ! Update scalar value
-          IF ( OnlyPos ) THEN
-             IF ( TmpScalar >= 0.0_sp ) & 
-                ThisDiagn%Scalar = ThisDiagn%Scalar + ( TmpScalar * Fact )
-          ELSE
-             ThisDiagn%Scalar = ThisDiagn%Scalar + ( TmpScalar * Fact )  
+      
+          !----------------------------------------------------------------------
+          ! Update counter ==> Do only if last update time is not equal to 
+          ! current one! This allows the same diagnostics to be updated
+          ! multiple time on the same time step without increasing the
+          ! time step counter.
+          !----------------------------------------------------------------------
+          IF ( IsNewTS ) THEN
+             ThisDiagn%Counter      = ThisDiagn%Counter + 1
+             ThisDiagn%LastUpdateID = ThisUpdateID
           ENDIF
-   
-       !----------------------------------------------------------------------
-       ! Diangostics space dimension must be 1-3. 
-       !----------------------------------------------------------------------
-       ELSE
-          WRITE(MSG,*) 'Space dimension must be 1-3: ',TRIM(ThisDiagn%cName), &
-                       '--> dimension is ', ThisDiagn%SpaceDim
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-   
-       !----------------------------------------------------------------------
-       ! Update counter ==> Do only if last update time is not equal to 
-       ! current one! This allows the same diagnostics to be updated
-       ! multiple time on the same time step without increasing the
-       ! time step counter.
-       !----------------------------------------------------------------------
-       IF ( IsNewTS ) THEN
-          ThisDiagn%Counter      = ThisDiagn%Counter + 1
-          ThisDiagn%LastUpdateID = ThisUpdateID
-       ENDIF
-   
-       !----------------------------------------------------------------------
-       ! Data is not in output format and hasn't been called yet by Diagn_Get.
-       !----------------------------------------------------------------------
-       ThisDiagn%IsOutFormat = .FALSE.
-       ThisDiagn%nnGetCalls  = 0
+      
+          !----------------------------------------------------------------------
+          ! Data is not in output format and hasn't been called yet by Diagn_Get.
+          !----------------------------------------------------------------------
+          ThisDiagn%IsOutFormat = .FALSE.
+          ThisDiagn%nnGetCalls  = 0
 
-       ! Verbose mode 
-       IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
-          WRITE(MSG,'(a,a,a,I3,a)') 'Successfully updated diagnostics: ', &
-             TRIM(ThisDiagn%cName), ' (counter:', ThisDiagn%Counter, ')'
-          CALL HCO_MSG ( MSG )
-       ENDIF
+          ! Verbose mode 
+          IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
+             WRITE(MSG,'(a,a,a,I3,a)') 'Successfully updated diagnostics: ', &
+                TRIM(ThisDiagn%cName), ' (counter:', ThisDiagn%Counter, ')'
+             CALL HCO_MSG ( MSG )
+          ENDIF
 
-    ENDDO
+       ENDDO ! loop over containers in collection
+    ENDDO ! loop over collections
 
     ! Cleanup
     IF (PRESENT(Array3D_SP) ) THEN

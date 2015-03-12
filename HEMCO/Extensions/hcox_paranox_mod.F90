@@ -301,6 +301,7 @@ CONTAINS
     USE HCO_FluxArr_mod,  ONLY : HCO_DepvAdd
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
     USE HCO_Restart_Mod,  ONLY : HCO_RestartGet
+    USE HCO_Calc_Mod,     ONLY : HCO_CheckDepv
 !
 ! !INPUT PARAMETERS:
 !
@@ -367,11 +368,6 @@ CONTAINS
     REAL(dp)                 :: FNO_NOx
     REAL(hp)                 :: iMass
     REAL(hp)                 :: ExpVal 
-
-    ! Highest possible dry deposition value: DepVel * TS_EMIS will be restricted
-    ! to this value. Arbitrarily set to 20. This will ensure complete depletion:
-    ! exp(-20) = 2e-9.
-    REAL(hp), PARAMETER      :: MaxExp = 20.0_hp
 
 !------------------------------------------------------------------------------
 !### DEBUG -- COMMENT OUT FOR NOW
@@ -560,16 +556,6 @@ CONTAINS
        ! converted to 1/s. The species mass is either the species mass in 
        ! the first grid box or of the entire PBL column, depending on the
        ! HEMCO setting 'PBL_DRYDEP'. 
-       ! 
-       ! NOTE: the calculation of DEPHNO3 can cause precision problems for 
-       ! small HNO3 grid box concentrations. In particular, unrealisticly 
-       ! high deposition frequencies can occur if the grid box concentration
-       ! is almost zero. Typical deposition frequencies seem to be in the 
-       ! order of max. 1.0e-4. To avoid over/underflow problems in the 
-       ! drydep calculations, we limit the deposition frequency to a value
-       ! that will make sure that the drydep exponent (exp(-depvel * dt) is
-       ! still small enough to remove basically all species. The upper limit 
-       ! of depvel*dt is defined above as MaxExp. 
        !--------------------------------------------------------------------
        IF ( (IDTHNO3 > 0) .AND. (SHIP_DNOx > 0.0_dp) ) THEN 
 
@@ -599,16 +585,8 @@ CONTAINS
                 DEPHNO3(I,J) = TMP / iMass
              ENDIF
 
-             ! Sanity check: if deposition velocity is above 10, the tracer
-             ! concentration is probably very low. Restrict value to 10. 
-             ! This is completely arbitrarily.
-             ExpVal = DEPHNO3(I,J) * HcoState%TS_EMIS
-             IF ( ExpVal > MaxExp ) THEN
-!                WRITE(MSG,*) 'HNO3 deposition velocity > 10., set to zero', &
-!                   I, J, DEPHNO3(I,J), TMP, ABS(iFlx), iMass 
-!                CALL HCO_WARNING(MSG, RC)
-                DEPHNO3(I,J) = MaxExp / HcoState%TS_EMIS
-             ENDIF
+             ! Check deposition velocity 
+             CALL HCO_CheckDepv( am_I_Root, HcoState, DEPHNO3(I,J), RC )
           ENDIF
 
        ENDIF
@@ -657,14 +635,8 @@ CONTAINS
                    DEPO3(I,J) = TMP / iMass 
                 ENDIF
 
-                ! Sanity check 
-                ExpVal = DEPHNO3(I,J) * HcoState%TS_EMIS
-                IF ( ExpVal > MaxExp ) THEN
-!                   WRITE(MSG,*) 'O3 deposition velocity > 10., set to zero', &
-!                      I, J, DEPO3(I,J), TMP, ABS(iFlx), iMass 
-!                   CALL HCO_WARNING(MSG, RC)
-                   DEPO3(I,J) = MaxExp / HcoState%TS_EMIS 
-                ENDIF
+                ! Check deposition velocity 
+                CALL HCO_CheckDepv( am_I_Root, HcoState, DEPO3(I,J), RC )
              ENDIF
 
           ENDIF
@@ -765,6 +737,14 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! TODO: Add deposition diagnostics
+       Arr2D => DEPHNO3
+       CALL Diagn_Update( am_I_Root,               &
+                          cName   = 'DEPVEL_HNO3', &
+                          Array2D = Arr2D,         &
+                          COL     = -1,            &
+                          RC      = RC              ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL()
     ENDIF
 
     ! O3 
@@ -791,7 +771,12 @@ CONTAINS
        CALL HCO_DepvAdd( HcoState, DEPO3, IDTO3, RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
-       ! TODO: Add deposition diagnostics
+       ! Eventually add to diagnostics
+       CALL Diagn_Update( am_I_Root,               &
+                          cName   = 'DEPVEL_O3',   &
+                          Array2D = Arr2D,         &
+                          COL     = -1,            &
+                          RC      = RC              ) 
     ENDIF
 
 

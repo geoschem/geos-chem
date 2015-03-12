@@ -3428,7 +3428,7 @@ CONTAINS
           END SELECT
 
           ! Define diagnostics ID
-          N = 56000 + N 
+          N = 56000 + I
 
           ! Create diagnostic container
           CALL Diagn_Create( am_I_Root,                     & 
@@ -3475,7 +3475,7 @@ CONTAINS
           END SELECT
 
           ! Define diagnostics ID
-          N = 56000 + N + 3
+          N = 56000 + I + 3
 
           ! Create diagnostic container
           CALL Diagn_Create( am_I_Root,                     & 

@@ -76,6 +76,7 @@ MODULE HCO_Calc_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: HCO_CalcEmis
+  PUBLIC  :: HCO_CheckDepv
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -627,6 +628,61 @@ CONTAINS
     CALL HCO_LEAVE ( RC )
 
   END SUBROUTINE HCO_CalcEmis
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_CheckDepv
+!
+! !DESCRIPTION: Subroutine HCO\_CheckDepv is a simple routine to check the
+! dry deposition frequency value. This is to avoid unrealistically high
+! deposition frequencies that may occur if grid box concentrations are very
+! low. The deposition frequency is limited to a value that will make sure
+! that the drydep exponent ( exp( -depfreq * dt ) ) is still small enough to
+! remove all species mass. The maximum limit of depfreq * dt can be defined 
+! as a HEMCO option (MaxDepExp). Its default value is 20.0.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_CheckDepv( am_I_Root, HcoState, Depv, RC )
+!
+! !USES:
+!
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! Root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State), POINTER        :: HcoState   ! HEMCO state object
+    REAL(hp),        INTENT(INOUT)  :: Depv       ! Deposition velocity 
+    INTEGER,         INTENT(INOUT)  :: RC         ! Return code
+!
+! !REVISION HISTORY:
+!  11 Mar 2015 - C. Keller   - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL(hp)  :: ExpVal
+
+    !=================================================================
+    ! HCO_CheckDepv begins here!
+    !=================================================================
+
+    ExpVal = Depv * HcoState%TS_EMIS
+    IF ( ExpVal > HcoState%Options%MaxDepExp ) THEN
+       Depv = HcoState%Options%MaxDepExp / HcoState%TS_EMIS
+    ENDIF
+
+  END SUBROUTINE HCO_CheckDepv
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

@@ -10,29 +10,41 @@
 !\\
 !\\
 ! Restart variables are required by some of the HEMCO extensions. The
-! HEMCO restart variables are organized through the HEMCO diagnostics module. 
-! . At the end of a simulation, a HEMCO restart file is written that contains 
+! HEMCO restart variables are organized through the HEMCO diagnostics module: 
+! At the end of a simulation, a HEMCO restart file is written that contains 
 ! all diagnostics that have not been written out yet. In particular, all 
-! diagnostic fields with assigned output frequency 'End' are added to the 
-! HEMCO restart file. The fields in the HEMCO restart file can then be used for 
-! a 'warm' restart by referencing to them in the HEMCO configuration file. 
-! Within a module, the fields can be fetched on the first run time step via
-! HCO\_GetPtr.
+! diagnostic fields with an assigned output frequency 'End' are added to the 
+! HEMCO restart file. 
+! All fields in a restart file can be easily read into HEMCO via the HEMCO
+! I/O infrastructure, i.e. by listing it in the HEMCO configuration file and
+! by fetching the field within the desired module via routine HCO\_GetPtr.
+! An example of this approach can be found in several extensions, e.g. the
+! soil NOx extension (hcox\_soilnox\_mod.F90). 
 !\\
 !\\
-! In an ESMF/MAPL environment, it is also possible to store the restart 
-! fields in the ESMF internal state object. In this case, the fields must
-! be copied from the internal state object on the first run time step, and be
-! passed back to the internal state upon finalization.
+! In an ESMF/MAPL environment, another option to organize restart fields is
+! via the ESMF internal state object. In this case, the fields are obtained
+! from / written to the ESMF internal state rather than the HEMCO restart 
+! file. This can be very handy given that the writeout of HEMCO diagnostics
+! files is not entirely automated (as in a 'standard' environment) but 
+! occurs via the HISTORY component, e.g. each desired HEMCO diagnostics 
+! needs to be listed as an export variable of its gridded component and
+! also needs to be added to HISTORY.rc
 !\\
 !\\
 ! This module contains wrapper routines to define, obtain and write restart
-! fields for the two aforementioned restart types. In an ESMF environment, it
-! is always checked first if a given variable exists in the internal state, in
-! which case this field is obtained/written. If no internal state object exist,
-! an attempt is made to obtain the field through the HEMCO data list, i.e. it
+! fields for the two aforementioned restart types. In an ESMF environment, the
+! first check is always performed within the internal state, e.g. it is first
+! checked if the given field variable exists in the internal state of the
+! gridded component that HEMCO sits in. If so, the field is obtained from /
+! written to the internal state. If no internal state object exist, an
+! attempt is made to obtain the field through the HEMCO data list, i.e. it
 ! is checked if the restart variable is specified in the HEMCO configuration
 ! file.
+!\\
+!\\
+! At the moment, the restart module only works on 2D fields, but it can be
+! easily expanded to cover 3D fields as well.
 !\\
 !\\
 ! !INTERFACE: 
@@ -74,6 +86,11 @@ CONTAINS
 ! !ROUTINE: HCO_RestartDefine
 !
 ! !DESCRIPTION: Subroutine HCO\_RestartDefine defines a restart diagnostics.
+! This adds a diagnostics with output frequency 'End' to the HEMCO diagnostics 
+! list. Arr2D is the 2D field of interest. The diagnostics will not copy the
+! current content of Arr2D but establish a 'link' (e.g. pointer) to it. This
+! way, any updates to Arr2D will automatically be seen by the diagnostics
+! and there is no need to explicitly update the content of the diagnostics. 
 !\\
 !\\
 ! !INTERFACE:
@@ -88,15 +105,16 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,             INTENT(IN   )         :: am_I_Root
-    TYPE(HCO_State),     POINTER               :: HcoState
-    CHARACTER(LEN=*),    INTENT(IN   )         :: Name 
+    LOGICAL,             INTENT(IN   )         :: am_I_Root ! Root CPU?
+    TYPE(HCO_State),     POINTER               :: HcoState  ! HEMCO state obj.
+    CHARACTER(LEN=*),    INTENT(IN   )         :: Name      ! Name of restart variable
+    ! Array with data of interest
     REAL(sp),            INTENT(IN   ), TARGET :: Arr2D(HcoState%NX,HcoState%NY)
-    CHARACTER(LEN=*),    INTENT(IN   )         :: Unit 
+    CHARACTER(LEN=*),    INTENT(IN   )         :: Unit      ! Units of Arr2D
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
-    INTEGER,             INTENT(INOUT)         :: RC
+    INTEGER,             INTENT(INOUT)         :: RC        ! Return code
 !
 ! !REVISION HISTORY:
 !  29 Aug 2013 - C. Keller - Initial version
@@ -159,20 +177,24 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,             INTENT(IN   )           :: am_I_Root
-    TYPE(HCO_State),     POINTER                 :: HcoState
-    CHARACTER(LEN=*),    INTENT(IN   )           :: Name 
+    LOGICAL,             INTENT(IN   )           :: am_I_Root ! Root CPU?
+    TYPE(HCO_State),     POINTER                 :: HcoState  ! HEMCO state object
+    CHARACTER(LEN=*),    INTENT(IN   )           :: Name      ! Name of restart variable
+    ! Default value to be used if restart variable could not be found
     REAL(sp),            INTENT(IN   ), OPTIONAL :: Def2D(HcoState%NX,HcoState%NY)
+    ! Default uniform value to be used if restart variable could not be found and
+    ! Def2D is not defined.
     REAL(sp),            INTENT(IN   ), OPTIONAL :: DefVal
 !
 ! !OUTPUT ARGUMENTS:
 !
-    LOGICAL,             INTENT(  OUT), OPTIONAL :: FOUND
+    LOGICAL,             INTENT(  OUT), OPTIONAL :: FOUND     ! Was the restart variable found?
 !
 ! !INPUT/OUTPUT ARGUMENTS:
 !
+    ! Data field with restart variable
     REAL(sp),            INTENT(INOUT)           :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,             INTENT(INOUT)           :: RC
+    INTEGER,             INTENT(INOUT)           :: RC       ! Return code
 !
 ! !REVISION HISTORY:
 !  29 Aug 2013 - C. Keller - Initial version
