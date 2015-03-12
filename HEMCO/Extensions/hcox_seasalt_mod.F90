@@ -747,7 +747,6 @@ CONTAINS
                         WriteFreq  = 'Manual',              &
                         AutoFill   = 0,                     &
                         Trgt2D     = NDENS_SALA,            &
-                        cID        = N,                     &
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -763,7 +762,6 @@ CONTAINS
                         WriteFreq  = 'Manual',              &
                         AutoFill   = 0,                     &
                         Trgt2D     = NDENS_SALC,            &
-                        cID        = N,                     &
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

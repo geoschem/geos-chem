@@ -37,11 +37,7 @@ MODULE Modis_Lai_Mod
 !
 ! !PUBLIC DATA MEMBERS:
 !
-!  INTEGER, PUBLIC,              TARGET :: DAYS_BTW_MON    ! Days btw LAI midmonths
-   REAL(fp),  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI   (:,:)  ! Daily        LAI, G-C grid
-!  REAL(fp),  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_PM(:,:)  ! Prev month's LAI, G-C grid
-!  REAL(fp),  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_CM(:,:)  ! Curr month's LAI, G-C grid
-!  REAL(fp),  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI_NM(:,:)  ! Next month's LAI, G-C grid
+   REAL(fp),  PUBLIC, ALLOCATABLE, TARGET :: GC_LAI(:,:)  ! DailyLAI, G-C grid
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -168,7 +164,6 @@ MODULE Modis_Lai_Mod
                                               
   ! Arrays                                    
   REAL*4,  ALLOCATABLE :: MODIS_LAI   (:,:)   ! Daily LAI on the MODIS grid
-!  REAL*4,  ALLOCATABLE :: MODIS_LAI_PM(:,:)   ! MODIS LAI for previous month 
   REAL*4,  ALLOCATABLE :: MODIS_LAI_CM(:,:)   ! MODIS LAI for current month 
   REAL*4,  ALLOCATABLE :: MODIS_LAI_NM(:,:)   ! MODIS LAI for next month 
 
@@ -510,6 +505,7 @@ CONTAINS
 !  05 Jun 2013 - R. Yantosca - Bug fix, use "mm" for current month index
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  09 Oct 2014 - C. Keller   - MODIS_LAI_PM not needed anymore.
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -570,7 +566,7 @@ CONTAINS
     ENDIF
 
     ! Construct file path from directory & file name
-    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'MODIS_LAI_201204/'
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'MODIS_LAI_201204/'
 
     !======================================================================
     ! Read current month's LAI

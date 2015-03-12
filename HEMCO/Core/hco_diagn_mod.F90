@@ -49,6 +49,10 @@
 ! number is set to 1.
 !\\
 !\\
+! Individual diagnostics are identified by its name and/or container ID.
+! Both are specified when creating the diagnostics (Diagn\_Create). 
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE HCO_Diagn_Mod 
@@ -379,18 +383,15 @@ CONTAINS
     REAL(hp),         INTENT(IN   ), OPTIONAL :: MolecRatio    ! molec. emission ratio
     REAL(hp),         INTENT(IN   ), OPTIONAL :: ScaleFact     ! uniform scale factor 
     INTEGER,          INTENT(IN   ), OPTIONAL :: COL           ! Collection number 
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(  OUT)           :: cID           ! Assigned 
-                                                               !  container ID
+    INTEGER,          INTENT(IN   ), OPTIONAL :: cID           ! Container ID 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(INOUT)           :: RC            ! Return code 
 !
 ! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
+!  19 Dec 2013 - C. Keller - Initialization
+!  05 Mar 2015 - C. Keller - container ID can now be set by the user
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -676,16 +677,37 @@ CONTAINS
     ENDIF ! .NOT. DtaIsPtr
    
     !-----------------------------------------------------------------------
-    ! Make sure that there is no duplicate entry (for AutoFill only)
-    ! Now allow multiple autofill diagnostics with same ExtNr, Cat, Hier, 
-    ! and species ID (ckeller, 09/25/2014).
+    ! Make sure that there is no other diagnostics with this name 
     !-----------------------------------------------------------------------
     CALL DiagnCont_Find( -1, -1, -1, -1, -1, &
-                         Trim(cName), 1, FOUND, TmpDiagn, COL=PS )
+                        Trim(cName), -1, FOUND, TmpDiagn, COL=PS )
     IF ( FOUND ) THEN
        MSG = 'There is already a diagnostics with this name: ' // TRIM(cName)
        CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
        RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Set container ID (if defined). There must not be two containers with
+    ! the same container ID. 
+    !-----------------------------------------------------------------------
+    IF ( PRESENT(cID) ) THEN
+       IF ( cID > 0 ) THEN
+
+          ! Check if there is already a diagnostics with this container ID.
+          TmpDiagn => NULL()
+          CALL DiagnCont_Find( cID, -1, -1, -1, -1, '', -1, FOUND, TmpDiagn, COL=PS )
+          IF ( FOUND ) THEN
+             WRITE(MSG,*) 'Diagnostics ', TRIM(TmpDiagn%cName), ' already has ID ', &
+                cID, ' - cannot create diagnostics ', TRIM(cName)
+             
+             CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+             RETURN
+          ENDIF
+
+          ! Set container ID
+          ThisDiagn%cID = cID 
+       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -699,7 +721,6 @@ CONTAINS
 
     ! Increase diagnostics counter and set container ID accordingly.
     Collections(PS)%nnDiagn = Collections(PS)%nnDiagn + 1
-    ThisDiagn%cID           = Collections(PS)%nnDiagn
 
     ! Verbose mode
     IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
@@ -709,7 +730,7 @@ CONTAINS
     ENDIF
 
     ! Return
-    cID = ThisDiagn%cID 
+!    cID = ThisDiagn%cID 
     RC  = HCO_SUCCESS
     ThisDiagn => NULL()
 
@@ -1686,7 +1707,7 @@ CONTAINS
     DgnCont%nnGetCalls  = 0
 
     ! Default container ID 
-    DgnCont%cID         = 0 
+    DgnCont%cID         = -1 ! 0
 
     ! Pass to output container
     OutCont => DgnCont

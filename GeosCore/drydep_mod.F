@@ -42,7 +42,7 @@
 !
       PUBLIC :: CLEANUP_DRYDEP     
       PUBLIC :: DO_DRYDEP
-      PUBLIC :: DRYFLX   
+!      PUBLIC :: DRYFLX   
       PUBLIC :: DRYFLXRnPbBe       
       PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP
@@ -190,7 +190,7 @@
 !  25 Jul 2014 - R. Yantosca - Removed reference to commsoil_mod.F
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD, changed REAL*8 to REAL(fp)
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE_DRY.
-!                              Remove dependency on pressure_mod.
+!  03 Mar 2015 - C. Keller   - Disabled DRYFLX. Now done in mixing_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -434,7 +434,8 @@
 #endif
 
       ! For ESMF, need to assign these from Input_Opt
-      LOGICAL       :: LNLPBL
+      LOGICAL       :: PBL_DRYDEP 
+!      LOGICAL       :: LNLPBL
       LOGICAL       :: LPRT
 
 #if defined( DEVEL )
@@ -458,8 +459,9 @@
       RC     = GIGC_SUCCESS
       
       ! Copy values from the Input Options object to local variables
-      LNLPBL  = Input_Opt%LNLPBL
-      LPRT    = Input_Opt%LPRT
+      PBL_DRYDEP = Input_Opt%PBL_DRYDEP
+!      LNLPBL     = Input_Opt%LNLPBL
+      LPRT       = Input_Opt%LPRT
 
       ! Be careful only to copy NUMDEP values from Input_Opt%NDVZIND
       ! to the NDVZIND local array.  This will prevent an OOB error.
@@ -501,8 +503,9 @@
          ! Make sure that the PBL depth is greater than or equal 
          ! to the thickness of the 1st layer (rjp, bmy, 7/21/03)
          ! Add option for non-local PBL mixing scheme: THIK must
-         ! be the first box height. (Lin, 03/31/09) 
-         IF (.NOT. LNLPBL) THIK    = MAX( ZH(IJLOOP), THIK )
+         ! be the first box height. (Lin, 03/31/09)
+         ! Now use PBL_DRYDEP instead of LNLPBL (ckeller, 3/5/15). 
+         IF (PBL_DRYDEP) THIK = MAX( ZH(IJLOOP), THIK )
 
          ! Loop over drydep species
          DO N = 1, NUMDEP
@@ -869,179 +872,186 @@
       
       END SUBROUTINE METERO
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: dryflx
+!!
+!! !DESCRIPTION: Subroutine DRYFLX sets up the dry deposition flux diagnostic
+!!  for tracers which are part of the SMVGEAR mechanism. (bmy, bdf, 4/20/99,
+!!  3/24/04)
+!!
+!!  This routine should not be called anymore as all dry deposition calculations
+!!  (and diagnostics) are now done in either vdiff\_mod.F or mixing\_mod.F90. 
+!!  (ckeller, 3/5/15)
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE DRYFLX( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!      USE CMN_SIZE_MOD
+!      USE CMN_DIAG_MOD
+!      USE COMODE_MOD
+!      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE TRACERID_MOD,       ONLY : IDTHNO3
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!! 
+!! !REMARKS:
+!!  DRYFLX is not called if non-local PBL mixing is done (i.e. when LNLPBL=F).
+!!  If using non-local PBL mixing, the drydep fluxes are archived in routine
+!!  VDIFF (GeosCore/vdiff_mod.F90).
+!!
+!! !REVISION HISTORY: 
+!!  (1 ) Bug fix -- now skip tracers for which NTDEP(N) is zero, in order
+!!        to avoid array-out-of-bounds errors. (bmy, 5/2/00)
+!!  (2 ) Now reference the CSPEC array from "comode_mod.f" instead of from
+!!        common block header "comode.h". (bmy, 7/11/00)
+!!  (3 ) Also reference JLOP and VOLUME from "comode_mod.f" (bmy, 10/19/00)
+!!  (4 ) Updated comments, cosmetic changes (bmy, 3/14/02)
+!!  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
+!!        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
+!!  (6 ) Removed reference to "comtrid.h", "CMN_SAV", "CMN_DEP", and "CMN_O3",
+!!        these are not used in this routine.  Also bundled into "drydep_mod.f"
+!!        for more convenient packaging. (bmy, 11/19/02)
+!!  (7 ) Replaced DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid"mod.f".
+!!        Also removed references to JREF and FLUXRUL.  Now use function
+!!        GET_TS_CHEM from "time_mod.f". (bmy, 2/11/03)
+!!  (8 ) Now references ERROR_STOP from "error_mod.f" (bmy, 4/28/03)
+!!  (9 ) Now sum drydep fluxes throughout the entire PBL.  Added L variable.
+!!        AREA_CM2 has now been made into a lookup table. Now implement a 
+!!        parallel DO loop for efficiency. (rjp, bmy, 7/21/03)
+!!  (10) Now bracket AD44 with a !$OMP CRITICAL block in order to avoid
+!!        multiple threads writing to the same element (bmy, 3/24/04)
+!!  (11) Now reference GET_FRAC_UNDER_PBLTOP and GET_PBL_MAX_L from 
+!!        "pbl_mix_mod.f".  Remove reference to CMN. (bmy, 2/22/05)
+!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!!  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOILNOX and Input_Opt%NUMDEP
+!!  30 Oct 2013 - M. Sulprizio- Bug fix: Hold AREA_CM2 private in !$OMP loop
+!!  25 Jul 2014 - R. Yantosca - Removed reference to commsoil_mod.F
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER  :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
+!      REAL(f8) :: DTCHEM, PBL_MAX, AREA_CM2
+!      REAL(fp) :: TDRYFX
 !
-! !IROUTINE: dryflx
+!      !=================================================================
+!      ! DRYFLX begins here!
+!      !=================================================================
 !
-! !DESCRIPTION: Subroutine DRYFLX sets up the dry deposition flux diagnostic
-!  for tracers which are part of the SMVGEAR mechanism. (bmy, bdf, 4/20/99,
-!  3/24/04)
-!\\
-!\\
-! !INTERFACE:
+!      ! Assume success
+!      RC      = GIGC_SUCCESS
 !
-      SUBROUTINE DRYFLX( am_I_Root, Input_Opt, RC )
+!      ! Return unless we have turned on ND44 drydep diagnostic
+!      !IF ( ND44 == 0 ) RETURN
 !
-! !USES:
+!      ! This routine is virtually disabled
+!      RETURN
 !
-      USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
-      USE COMODE_MOD
-      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACERID_MOD,       ONLY : IDTHNO3
+!      ! There is only drydep in the surface layer, which
+!      ! is accounted for in the "URBAN" chemistry slot
+!      NCS     = NCSURBAN
 !
-! !INPUT PARAMETERS:
+!      ! Chemistry timestep [s]
+!      DTCHEM  = GET_TS_CHEM() * 60e+0_f8
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!      !=================================================================
+!      ! ND44 diagnostic: Dry deposition flux [molec/cm2/s]
+!      !
+!      ! NOTE: DRYFLX will only archive the dry deposition fluxes for
+!      ! tracers which are SMVGEAR species.  Fluxes for sulfate tracers
+!      ! will be updated in "sulfate_mod.f". (bmy, 11/19/02)
+!      !=================================================================
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX, AREA_CM2 )
+!!$OMP+SCHEDULE( DYNAMIC )
+!      DO N = 1, Input_Opt%NUMDEP
 !
-! !OUTPUT PARAMETERS:
+!         ! Index for drydep species #N, from SMVGEAR
+!         NK = NTDEP(N)
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REMARKS:
-!  DRYFLX is not called if non-local PBL mixing is done (i.e. when LNLPBL=F).
-!  If using non-local PBL mixing, the drydep fluxes are archived in routine
-!  VDIFF (GeosCore/vdiff_mod.F90).
+!         ! Dry deposition tracer id
+!         NN =  NTRAIND(N) 
 !
-! !REVISION HISTORY: 
-!  (1 ) Bug fix -- now skip tracers for which NTDEP(N) is zero, in order
-!        to avoid array-out-of-bounds errors. (bmy, 5/2/00)
-!  (2 ) Now reference the CSPEC array from "comode_mod.f" instead of from
-!        common block header "comode.h". (bmy, 7/11/00)
-!  (3 ) Also reference JLOP and VOLUME from "comode_mod.f" (bmy, 10/19/00)
-!  (4 ) Updated comments, cosmetic changes (bmy, 3/14/02)
-!  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
-!        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-!  (6 ) Removed reference to "comtrid.h", "CMN_SAV", "CMN_DEP", and "CMN_O3",
-!        these are not used in this routine.  Also bundled into "drydep_mod.f"
-!        for more convenient packaging. (bmy, 11/19/02)
-!  (7 ) Replaced DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid"mod.f".
-!        Also removed references to JREF and FLUXRUL.  Now use function
-!        GET_TS_CHEM from "time_mod.f". (bmy, 2/11/03)
-!  (8 ) Now references ERROR_STOP from "error_mod.f" (bmy, 4/28/03)
-!  (9 ) Now sum drydep fluxes throughout the entire PBL.  Added L variable.
-!        AREA_CM2 has now been made into a lookup table. Now implement a 
-!        parallel DO loop for efficiency. (rjp, bmy, 7/21/03)
-!  (10) Now bracket AD44 with a !$OMP CRITICAL block in order to avoid
-!        multiple threads writing to the same element (bmy, 3/24/04)
-!  (11) Now reference GET_FRAC_UNDER_PBLTOP and GET_PBL_MAX_L from 
-!        "pbl_mix_mod.f".  Remove reference to CMN. (bmy, 2/22/05)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
-!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
-!  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOILNOX and Input_Opt%NUMDEP
-!  30 Oct 2013 - M. Sulprizio- Bug fix: Hold AREA_CM2 private in !$OMP loop
-!  25 Jul 2014 - R. Yantosca - Removed reference to commsoil_mod.F
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!         ! If NK <= 0, then skip to the next tracer.  
+!         ! This avoids array-out-of-bounds errors (bmy, 5/2/00)
+!         IF ( NK <= 0 ) CYCLE
 !
-! !LOCAL VARIABLES:
+!         ! Index for drydep flux in CSPEC array 
+!         JJ = IRM(NPRODLO+1,NK,NCS)
 !
-      INTEGER  :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
-      REAL(f8) :: DTCHEM, PBL_MAX, AREA_CM2
-      REAL(fp) :: TDRYFX
-
-      !=================================================================
-      ! DRYFLX begins here!
-      !=================================================================
-
-      ! Assume success
-      RC      = GIGC_SUCCESS
-
-      ! Return unless we have turned on ND44 drydep diagnostic
-      !IF ( ND44 == 0 ) RETURN
-
-      ! There is only drydep in the surface layer, which
-      ! is accounted for in the "URBAN" chemistry slot
-      NCS     = NCSURBAN
-
-      ! Chemistry timestep [s]
-      DTCHEM  = GET_TS_CHEM() * 60e+0_f8
-
-      !=================================================================
-      ! ND44 diagnostic: Dry deposition flux [molec/cm2/s]
-      !
-      ! NOTE: DRYFLX will only archive the dry deposition fluxes for
-      ! tracers which are SMVGEAR species.  Fluxes for sulfate tracers
-      ! will be updated in "sulfate_mod.f". (bmy, 11/19/02)
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX, AREA_CM2 )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, Input_Opt%NUMDEP
-
-         ! Index for drydep species #N, from SMVGEAR
-         NK = NTDEP(N)
-
-         ! Dry deposition tracer id
-         NN =  NTRAIND(N) 
-
-         ! If NK <= 0, then skip to the next tracer.  
-         ! This avoids array-out-of-bounds errors (bmy, 5/2/00)
-         IF ( NK <= 0 ) CYCLE
-
-         ! Index for drydep flux in CSPEC array 
-         JJ = IRM(NPRODLO+1,NK,NCS)
-
-         ! Error check JJ -- can't be zero
-         IF ( JJ <= 0 ) THEN 
-            CALL ERROR_STOP( 'Drydep species mis-indexing!', 
-     &                       'DRYFLX ("error_mod.f")' )
-         ENDIF
-
-         ! Loop over grid boxes
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         
-            ! Only deal w/ boxes w/in the boundary layer
-            IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0e+0_f8 ) THEN
-
-               ! Grid box surface area [cm2]
-               AREA_CM2      = GET_AREA_CM2( I, J, L )
-
-               ! 1-D grid box index for CSPEC & VOLUME
-               JLOOP         = JLOP(I,J,L)
-
-               ! Dry dep flux [molec] for species N = 
-               !  CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
-               !  [molec/cm3]     * [cm3]  
-               TDRYFX        = CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
-                    
-               ! Convert TDRYFX from [molec] to [molec/cm2/s]        
-               TDRYFX        = TDRYFX / ( AREA_CM2 * DTCHEM ) 
-              
-#if !defined( NO_BPCH )
-!$OMP CRITICAL
-               ! Save into AD44 diagnostic array
-               IF ( ND44 > 0 ) THEN 
-                  AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
-               ENDIF 
-!$OMP END CRITICAL
-#endif
-               ! Archive dry deposited N species for use in soil_nox_mod
-               IF ( Input_Opt%LSOILNOX ) THEN
-                  CALL SOIL_DRYDEP( I, J, L, NN, TDRYFX )
-               ENDIF
-
-            ENDIF
-         ENDDO           
-         ENDDO               
-         ENDDO  
-      ENDDO                     
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE DRYFLX
-!EOC
+!         ! Error check JJ -- can't be zero
+!         IF ( JJ <= 0 ) THEN 
+!            CALL ERROR_STOP( 'Drydep species mis-indexing!', 
+!     &                       'DRYFLX ("error_mod.f")' )
+!         ENDIF
+!
+!         ! Loop over grid boxes
+!         DO L = 1, LLPAR
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         
+!            ! Only deal w/ boxes w/in the boundary layer
+!            IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0e+0_f8 ) THEN
+!
+!               ! Grid box surface area [cm2]
+!               AREA_CM2      = GET_AREA_CM2( I, J, L )
+!
+!               ! 1-D grid box index for CSPEC & VOLUME
+!               JLOOP         = JLOP(I,J,L)
+!
+!               ! Dry dep flux [molec] for species N = 
+!               !  CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
+!               !  [molec/cm3]     * [cm3]  
+!               TDRYFX        = CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
+!                    
+!               ! Convert TDRYFX from [molec] to [molec/cm2/s]        
+!               TDRYFX        = TDRYFX / ( AREA_CM2 * DTCHEM ) 
+!              
+!#if !defined( NO_BPCH )
+!!$OMP CRITICAL
+!               ! Save into AD44 diagnostic array
+!               IF ( ND44 > 0 ) THEN 
+!                  AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
+!               ENDIF 
+!!$OMP END CRITICAL
+!#endif
+!               ! Archive dry deposited N species for use in soil_nox_mod
+!               IF ( Input_Opt%LSOILNOX ) THEN
+!                  CALL SOIL_DRYDEP( I, J, L, NN, TDRYFX )
+!               ENDIF
+!
+!            ENDIF
+!         ENDDO           
+!         ENDDO               
+!         ENDDO  
+!      ENDDO                     
+!!$OMP END PARALLEL DO
+!
+!      END SUBROUTINE DRYFLX
+!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1136,11 +1146,15 @@
       DTCHEM  = GET_TS_CHEM() * 60e+0_f8
 
       ! Maximum extent of the PBL [model layers]
-      PBL_MAX = GET_PBL_MAX_L() 
+      ! PBL_MAX = GET_PBL_MAX_L() 
 
       ! Add option for non-local PBL mixing scheme: only done at the surface
       ! (Lin, 03/31/09) 
-      IF ( Input_Opt%LNLPBL ) PBL_MAX = 1
+      IF ( Input_Opt%PBL_DRYDEP ) THEN
+         PBL_MAX = GET_PBL_MAX_L()
+      ELSE
+         PBL_MAX = 1
+      ENDIF
 
       ! Loop over drydep species
 !$OMP PARALLEL DO
@@ -1166,10 +1180,13 @@
             FRACLOST = DEPSAV(I,J,N) * F_UNDER_TOP * DTCHEM
 
             ! add option for non-local PBL mixing scheme: only the surface
-            ! (Lin, 03/31/09) 
-            IF ( Input_Opt%LNLPBL) THEN
-               FRACLOST = DEPSAV(I,J,N) * DTCHEM
-            ENDIF
+            ! (Lin, 03/31/09)
+            ! This is not needed any more. If the non-local PBL scheme
+            ! is used, PBL_MAX is 1 and F_UNDER_TOP for level 1 should 
+            ! always be one. 
+!            IF ( Input_Opt%LNLPBL) THEN
+!               FRACLOST = DEPSAV(I,J,N) * DTCHEM
+!            ENDIF
 
             !===========================================================
             ! Proceed as follows:
@@ -1508,6 +1525,13 @@
       !=================================================================
       ! DEPVEL begins here!
       !=================================================================
+
+      ! Error check: PBL_DRYDEP must not be used together with non-local
+      ! PBL mixing. 
+      IF ( Input_Opt%LNLPBL .AND. Input_Opt%PBL_DRYDEP ) THEN 
+         CALL ERROR_STOP( 'PBL_DRYDEP must be disabled for LNLPBL', 
+     &                    'DEPVEL (drydep_mod.F)')
+      ENDIF
 
       ! Initialize pointers
       IREG  => State_Met%IREG

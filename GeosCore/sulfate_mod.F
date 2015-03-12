@@ -471,7 +471,7 @@
 !
       USE CMN_SIZE_MOD                   
       USE DAO_MOD,            ONLY : CONVERT_UNITS
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -763,18 +763,26 @@
       ENDIF
 
       ! NH3
-      CALL CHEM_NH3( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
-      ENDIF
+      ! CHEM_NH3 applies dry deposition only. Dry deposition is now done
+      ! in mixing_mod, so no need to call this routine any more 
+      ! (ckeller, 3/5/15).
+!      CALL CHEM_NH3( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!      IF ( prtDebug ) THEN
+!         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
+!      ENDIF
 
       ! NH4 (gas-phase)
-      CALL CHEM_NH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
-      ENDIF
+      ! CHEM_NH4 applies dry deposition only. Dry deposition is now done
+      ! in mixing_mod, so no need to call this routine any more 
+      ! (ckeller, 3/5/15).
+!      CALL CHEM_NH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!      IF ( prtDebug ) THEN
+!         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
+!      ENDIF
 
-      ! Sulfur Nitrate
+      ! Sulfur Nitrate.
+      ! CHEM_NIT includes a source term from sea salt aerosols, so keep
+      ! here.
       CALL CHEM_NIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
@@ -816,7 +824,7 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -1144,7 +1152,7 @@
       USE CMN_DIAG_MOD         
       USE CMN_SIZE_MOD         
       USE DIAG_MOD,           ONLY : AD05
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1471,7 +1479,7 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
 #endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -1629,10 +1637,13 @@
 
          ! H2O2 drydep frequency [1/s].  Account for the fraction
          ! of grid box (I,J,L) that is located beneath the PBL top.
-         FREQ  = DEPSAV(I,J,DRYH2O2) * GET_FRAC_UNDER_PBLTOP( I, J, L ) 
+!         FREQ  = DEPSAV(I,J,DRYH2O2) * GET_FRAC_UNDER_PBLTOP( I, J, L ) 
 
          ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) FREQ = 0.e+0_fp
+!         IF ( LNLPBL ) FREQ = 0.e+0_fp
+
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         FREQ = 0.e+0_fp
 
          ! 1-D grid box index for SUNCOS
          JLOOP = ( (J-1) * IIPAR ) + I
@@ -1662,44 +1673,46 @@
          ! Store final H2O2 in STT
          STT(I,J,L,IDTH2O2) = H2O2
 
+! Now done in mixing_mod.F90 (ckeller, 3/5/15) 
          !==============================================================
          ! ND44 diagnostics: H2O2 drydep loss [molec/cm2/s]
          !==============================================================
-         IF ( ND44 > 0 .AND. FREQ > 0e+0_fp ) THEN
-
-            ! Convert H2O2 from [v/v] to H2O2 [molec/cm2/s]
-            FLUX = H2O20 * FREQ * DT / ( 1.e+0_fp + FREQ * DT )
-            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTH2O2)
-            FLUX = FLUX * XNUMOL(IDTH2O2) 
-     &            / ( GET_AREA_CM2( I, J, L ) * DT )
-
-            ! Save dryd flx in ND44_TMP as a placeholder
-            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-         ENDIF
+!         IF ( ND44 > 0 .AND. FREQ > 0e+0_fp ) THEN
+!
+!            ! Convert H2O2 from [v/v] to H2O2 [molec/cm2/s]
+!            FLUX = H2O20 * FREQ * DT / ( 1.e+0_fp + FREQ * DT )
+!            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTH2O2)
+!            FLUX = FLUX * XNUMOL(IDTH2O2) 
+!     &            / ( GET_AREA_CM2( I, J, L ) * DT )
+!
+!            ! Save dryd flx in ND44_TMP as a placeholder
+!            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+!         ENDIF
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-      
-#if !defined( NO_BPCH )
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
+
+! Now done in mixing_mod.F90 (ckeller, 3/5/15) 
+!#if !defined( NO_BPCH )
+!      !===============================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that  we get the same results w/ sp or mp 
+!      !===============================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!            AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + ND44_TMP(I,J,L)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF
+!#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -1733,7 +1746,7 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GIGC_ErrCode_Mod
@@ -2013,12 +2026,15 @@
 
          ENDIF
 
-         ! SO2 drydep frequency [1/s].  Also accounts for the fraction
-         ! of grid box (I,J,L) that is located beneath the PBL top.
-         RK2    = DEPSAV(I,J,DRYSO2) * GET_FRAC_UNDER_PBLTOP( I, J, L )
+!         ! SO2 drydep frequency [1/s].  Also accounts for the fraction
+!         ! of grid box (I,J,L) that is located beneath the PBL top.
+!         RK2    = DEPSAV(I,J,DRYSO2) * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) RK2 = 0.e+0_fp
+!         ! Add option for non-local PBL (Lin, 03/31/09)
+!         IF ( LNLPBL ) RK2 = 0.e+0_fp
+
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         RK2  = 0.e+0_fp
 
          ! RK: total reaction rate [1/s]
          RK     = ( RK1 + RK2 )
@@ -2579,25 +2595,26 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if !defined( NO_BPCH )
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
+! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
+!#if !defined( NO_BPCH )
+!      !===============================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that  we get the same results w/ sp or mp 
+!      !===============================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!            AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + ND44_TMP(I,J,L)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF
+!#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -4247,7 +4264,7 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -4457,12 +4474,15 @@
          ! (CASE 2) SO4 production from SO2 with no SO4 loss by drydep
          !==============================================================
 
-         ! SO4 drydep frequency [1/s].  Also accounts for the fraction
-         ! of each vertical level that is located below the PBL top
-         RKT  = DEPSAV(I,J,DRYSO4)  * GET_FRAC_UNDER_PBLTOP( I, J, L )
+!         ! SO4 drydep frequency [1/s].  Also accounts for the fraction
+!         ! of each vertical level that is located below the PBL top
+!         RKT  = DEPSAV(I,J,DRYSO4)  * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-         ! Add option for non-local PBL (Lin, 03/31/09) 
-         IF ( LNLPBL ) RKT = 0.e+0_fp
+!         ! Add option for non-local PBL (Lin, 03/31/09) 
+!         IF ( LNLPBL ) RKT = 0.e+0_fp
+
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         RKT = 0.e+0_fp
 
          ! RKT > 0 denotes that we have SO4 drydep occurring
          IF ( RKT > 0e+0_fp ) THEN
@@ -4538,12 +4558,15 @@
          ! (CASE 4) SO4s prod from seasalt w/ no SO4s loss by drydep
          !==============================================================
 
-         ! SO4s drydep frequency [1/s].   Also accounts for the fraction
-         ! of each vertical level that is located below the PBL top
-         RKTs = DEPSAV(I,J,DRYSO4s) * GET_FRAC_UNDER_PBLTOP( I, J, L )
+!         ! SO4s drydep frequency [1/s].   Also accounts for the fraction
+!         ! of each vertical level that is located below the PBL top
+!         RKTs = DEPSAV(I,J,DRYSO4s) * GET_FRAC_UNDER_PBLTOP( I, J, L )
+!
+!         ! Add option for non-local PBL (Lin, 03/31/09)
+!         IF ( LNLPBL ) RKTs = 0.e+0_fp
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) RKTs = 0.e+0_fp
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         RKTs = 0.e+0_fp
         
          ! RKTs > 0 indicates that SO4s drydep occurs
          IF ( RKTs > 0e+0_fp ) THEN
@@ -4663,23 +4686,24 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if !defined( NO_BPCH )
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
 
-            ! Sum SO4, SO4s drydep fluxes in the vertical [molec/cm2/s]
-            AD44(I,J,DRYSO4, 1) = AD44(I,J,DRYSO4, 1) + T44(I,J,L,1)
-            AD44(I,J,DRYSO4s,1) = AD44(I,J,DRYSO4s,1) + T44(I,J,L,2)
-
+!#if !defined( NO_BPCH )
+!      !===============================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that we get the same results w/ sp or mp 
+!      !===============================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!
+!            ! Sum SO4, SO4s drydep fluxes in the vertical [molec/cm2/s]
+!            AD44(I,J,DRYSO4, 1) = AD44(I,J,DRYSO4, 1) + T44(I,J,L,1)
+!            AD44(I,J,DRYSO4s,1) = AD44(I,J,DRYSO4s,1) + T44(I,J,L,2)
+!
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
 !%%%             ! Sum SO4aq, AS, AHS, LET drydep fluxes (if necessary)
@@ -4690,13 +4714,13 @@
 !%%%                AD44(I,J,DRYLET,  1) = AD44(I,J,DRYLET,  1)+T44(I,J,L,6)
 !%%%             ENDIF
 !------------------------------------------------------------------------------
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
+!
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF
+!#endif
 
       ! Free pointers
       NULLIFY( STT )
@@ -4866,7 +4890,7 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -4999,12 +5023,15 @@
          ! Initial MSA [v/v]
          MSA0 = STT(I,J,L,IDTMSA) 
 
-         ! MSA drydep frequency [1/s].  Also accounts for the fraction
-         ! of each grid box (I,J,L) that is located beneath the PBL top
-         RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
+!         ! MSA drydep frequency [1/s].  Also accounts for the fraction
+!         ! of each grid box (I,J,L) that is located beneath the PBL top
+!         RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
+!
+!         ! Add option for non-local PBL (Lin, 03/31/09)
+!         IF ( LNLPBL ) RKT = 0.e+0_fp
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF ( LNLPBL ) RKT = 0.e+0_fp
+         ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+         RKT = 0.e+0_fp
          
          ! RKT > 0 denotes that we have drydep occurring
          IF ( RKT > 0.e+0_fp ) THEN
@@ -5049,25 +5076,26 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if !defined( NO_BPCH )
-      !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
-      !===============================================================
-      IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-            AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
+! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
+!#if !defined( NO_BPCH )
+!      !===============================================================
+!      ! ND44: Sum drydep fluxes by level into the AD44 array in
+!      ! order to ensure that  we get the same results w/ sp or mp 
+!      !===============================================================
+!      IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!         DO L = 1, LLPAR
+!            AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO
+!      ENDIF
+!#endif
 
       ! Free pointer
       NULLIFY( STT )
@@ -5097,7 +5125,7 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -5129,6 +5157,9 @@
 !                                                                             .
 !  If you are using the full TURBDAY PBL mixing scheme, then we have to 
 !  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!
+!  Dry deposition is now done in mixing_mod.F90, so we don't need this routine
+!  here altogether (ckeller, 3/5/15).
 !                                                                             .
 !  Reaction List:
 !  ============================================================================
@@ -5228,12 +5259,15 @@
          ! Only apply drydep to boxes w/in the PBL
          IF ( F_UNDER_TOP > 0e+0_fp ) THEN
 
-            ! NH3 drydep frequency [1/s].  Also accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYNH3) * F_UNDER_TOP
+!            ! NH3 drydep frequency [1/s].  Also accounts for the fraction
+!            ! of each grid box (I,J,L) that is located beneath the PBL top
+!            FREQ = DEPSAV(I,J,DRYNH3) * F_UNDER_TOP
 
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQ = 0.e+0_fp
+!            ! Add option for non-local PBL (Lin, 03/31/09)
+!            IF ( LNLPBL ) FREQ = 0.e+0_fp
+
+            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+            FREQ = 0.e+0_fp
 
             ! Only compute drydep loss if FREQ is nonzero
             IF ( FREQ > 0e+0_fp ) THEN
@@ -5273,47 +5307,48 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+!! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
       !===============================================================
       ! If we are not using the non-local PBL scheme, then:
       !===============================================================
-      IF ( .not. LNLPBL ) THEN 
-
-         !------------------------------------------------------------
-         ! (1) Call SOIL_DRYDEP to archive the NH3 drydep fluxes.
-         !------------------------------------------------------------
-         IF ( LSOILNOX ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IDTNH3 )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               CALL SOIL_DRYDEP( I, J, L, IDTNH3, DRYD_FLX(I,J,L) )
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-
-#if !defined( NO_BPCH )
-         !------------------------------------------------------------
-         ! (2) Save archived NH3 drydep fluxes into the AD44 array
-         !------------------------------------------------------------
-         IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-            DO L = 1, LLPAR
-               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + DRYD_FLX(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-#endif
-      ENDIF
+!      IF ( .not. LNLPBL ) THEN 
+!
+!         !------------------------------------------------------------
+!         ! (1) Call SOIL_DRYDEP to archive the NH3 drydep fluxes.
+!         !------------------------------------------------------------
+!         IF ( LSOILNOX ) THEN
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, IDTNH3 )
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               CALL SOIL_DRYDEP( I, J, L, IDTNH3, DRYD_FLX(I,J,L) )
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!
+!#if !defined( NO_BPCH )
+!         !------------------------------------------------------------
+!         ! (2) Save archived NH3 drydep fluxes into the AD44 array
+!         !------------------------------------------------------------
+!         IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!            DO L = 1, LLPAR
+!               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + DRYD_FLX(I,J,L)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!#endif
+!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -5343,7 +5378,7 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -5375,6 +5410,9 @@
 !                                                                             .
 !  If you are using the full TURBDAY PBL mixing scheme, then we have to 
 !  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!                                                                             .
+!  Dry deposition is now done in mixing_mod.F90, so we don't need this routine
+!  here altogether (ckeller, 3/5/15).
 !                                                                             .
 !  Reaction List:
 !  ============================================================================
@@ -5474,12 +5512,15 @@
          ! Only apply drydep to boxes w/in the PBL
          IF ( F_UNDER_TOP > 0e+0_fp ) THEN
 
-            ! NH4 drydep frequency [1/s].  Also accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYNH4) * F_UNDER_TOP
+!            ! NH4 drydep frequency [1/s].  Also accounts for the fraction
+!            ! of each grid box (I,J,L) that is located beneath the PBL top
+!            FREQ = DEPSAV(I,J,DRYNH4) * F_UNDER_TOP
 
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQ = 0.D0
+!            ! Add option for non-local PBL (Lin, 03/31/09)
+!            IF ( LNLPBL ) FREQ = 0.D0
+
+            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+            FREQ = 0.e+0_fp
 
             ! Only apply drydep loss if FREQ is nonzero
             IF ( FREQ > 0e+0_fp ) THEN
@@ -5518,48 +5559,49 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !===============================================================
-      ! If we are not using the non-local PBL scheme, then:
-      !===============================================================
-      IF ( .not. LNLPBL ) THEN 
-
-         !------------------------------------------------------------
-         ! (1) Call SOIL_DRYDEP to archive the NH4 drydep fluxes.
-         !------------------------------------------------------------
-         IF ( LSOILNOX ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IDTNH4 )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               CALL SOIL_DRYDEP( I, J, L, IDTNH4, DRYD_FLX(I,J,L) )
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-
-#if !defined( NO_BPCH )
-         !------------------------------------------------------------
-         ! (2) Save archived NH4 drydep fluxes into the AD44 array
-         !------------------------------------------------------------
-         IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-            DO L = 1, LLPAR
-               AD44(I,J,DRYNH4,1) = 
-     &         AD44(I,J,DRYNH4,1) + DRYD_FLX(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-#endif
-      ENDIF
+!! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
+!      !===============================================================
+!      ! If we are not using the non-local PBL scheme, then:
+!      !===============================================================
+!      IF ( .not. LNLPBL ) THEN 
+!
+!         !------------------------------------------------------------
+!         ! (1) Call SOIL_DRYDEP to archive the NH4 drydep fluxes.
+!         !------------------------------------------------------------
+!         IF ( LSOILNOX ) THEN
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, IDTNH4 )
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               CALL SOIL_DRYDEP( I, J, L, IDTNH4, DRYD_FLX(I,J,L) )
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!
+!#if !defined( NO_BPCH )
+!         !------------------------------------------------------------
+!         ! (2) Save archived NH4 drydep fluxes into the AD44 array
+!         !------------------------------------------------------------
+!         IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!            DO L = 1, LLPAR
+!               AD44(I,J,DRYNH4,1) = 
+!     &         AD44(I,J,DRYNH4,1) + DRYD_FLX(I,J,L)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!#endif
+!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -5589,7 +5631,7 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
 #endif
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -5745,12 +5787,15 @@
             ! NIT chemistry
             !===========================================================
 
-            ! NIT drydep frequency [1/s].  Also accounts for the fraction
-            ! of each vertical level that is located below the PBL top
-            FREQ  = DEPSAV(I,J,DRYNIT)  * F_UNDER_TOP
+!            ! NIT drydep frequency [1/s].  Also accounts for the fraction
+!            ! of each vertical level that is located below the PBL top
+!            FREQ  = DEPSAV(I,J,DRYNIT)  * F_UNDER_TOP
 
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQ = 0.e+0_fp
+!            ! Add option for non-local PBL (Lin, 03/31/09)
+!            IF ( LNLPBL ) FREQ = 0.e+0_fp
+
+            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+            FREQ = 0.e+0_fp
 
             ! If there is drydep ...
             IF ( FREQ > 0e+0_fp ) THEN
@@ -5781,12 +5826,15 @@
             ! NITs chemistry
             !===========================================================
 
-            ! NITs drydep frequency [1/s].  Also accounts for the fraction
-            ! of each vertical level that is located below the PBL top
-            FREQs = DEPSAV(I,J,DRYNITs) * F_UNDER_TOP
+!            ! NITs drydep frequency [1/s].  Also accounts for the fraction
+!            ! of each vertical level that is located below the PBL top
+!            FREQs = DEPSAV(I,J,DRYNITs) * F_UNDER_TOP
                
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQs = 0.e+0_fp
+!            ! Add option for non-local PBL (Lin, 03/31/09)
+!            IF ( LNLPBL ) FREQs = 0.e+0_fp
+
+            ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
+            FREQs = 0.e+0_fp
 
             ! If there is drydep ...
             IF ( FREQs > 0e+0_fp ) THEN
@@ -5856,52 +5904,53 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !===============================================================
-      ! If we are not using the non-local PBL scheme, then:
-      !===============================================================
-      IF ( .not. LNLPBL ) THEN 
-
-         !------------------------------------------------------------
-         ! (1) Call SOIL_DRYDEP to archive NIT & NITs drydep fluxes
-         !------------------------------------------------------------
-         IF ( LSOILNOX ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IDTNIT, IDTNITs )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               CALL SOIL_DRYDEP( I, J, L, IDTNIT,  DRYD_FLX(I,J,L,1) )
-               CALL SOIL_DRYDEP( I, J, L, IDTNITs, DRYD_FLX(I,J,L,2) )
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-
-#if !defined( NO_BPCH )
-         !------------------------------------------------------------
-         ! (2) Save archived NIT & NITs drydep fluxes into AD44 array
-         !------------------------------------------------------------
-         IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-            DO L = 1, LLPAR
-               AD44(I,J,DRYNIT, 1) = 
-     &         AD44(I,J,DRYNIT, 1) + DRYD_FLX(I,J,L,1)
-
-               AD44(I,J,DRYNITs,1) = 
-     &         AD44(I,J,DRYNITs,1) + DRYD_FLX(I,J,L,2)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF         
-#endif
-      ENDIF
+!! This is now done in mixing_mod.F90 (ckeller, 3/5/15) 
+!      !===============================================================
+!      ! If we are not using the non-local PBL scheme, then:
+!      !===============================================================
+!      IF ( .not. LNLPBL ) THEN 
+!
+!         !------------------------------------------------------------
+!         ! (1) Call SOIL_DRYDEP to archive NIT & NITs drydep fluxes
+!         !------------------------------------------------------------
+!         IF ( LSOILNOX ) THEN
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, IDTNIT, IDTNITs )
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               CALL SOIL_DRYDEP( I, J, L, IDTNIT,  DRYD_FLX(I,J,L,1) )
+!               CALL SOIL_DRYDEP( I, J, L, IDTNITs, DRYD_FLX(I,J,L,2) )
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!
+!#if !defined( NO_BPCH )
+!         !------------------------------------------------------------
+!         ! (2) Save archived NIT & NITs drydep fluxes into AD44 array
+!         !------------------------------------------------------------
+!         IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!            DO L = 1, LLPAR
+!               AD44(I,J,DRYNIT, 1) = 
+!     &         AD44(I,J,DRYNIT, 1) + DRYD_FLX(I,J,L,1)
+!
+!               AD44(I,J,DRYNITs,1) = 
+!     &         AD44(I,J,DRYNITs,1) + DRYD_FLX(I,J,L,2)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF         
+!#endif
+!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )

@@ -731,7 +731,6 @@ CONTAINS
                         WriteFreq  = TRIM(WriteFreq), & 
                         AutoFill   = 0,               &
                         Trgt2D     = PFACTOR,         &
-                        cID        = II,              &
                         RC         = RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -747,7 +746,6 @@ CONTAINS
                         WriteFreq  = TRIM(WriteFreq), & 
                         AutoFill   = 0,               &
                         Trgt2D     = DRYPERIOD,       &
-                        cID        = II,              &
                         RC         = RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -763,7 +761,6 @@ CONTAINS
                         WriteFreq  = TRIM(WriteFreq), & 
                         AutoFill   = 0,               &
                         Trgt2D     = GWET_PREV,       &
-                        cID        = II,              &
                         RC         = RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -779,7 +776,6 @@ CONTAINS
                         WriteFreq  = TRIM(WriteFreq),   & 
                         AutoFill   = 0,                 &
                         Trgt2D     = DEP_RESERVOIR,     &
-                        cID        = II,                &
                         RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -796,7 +792,6 @@ CONTAINS
                         WriteFreq  = TRIM(WriteFreq),   & 
                         AutoFill   = 0,                 &
                         Trgt2D     = DGN_PULSE,         &
-                        cID        = II,                &
                         RC         = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif 

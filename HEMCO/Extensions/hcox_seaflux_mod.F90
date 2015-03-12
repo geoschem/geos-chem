@@ -14,6 +14,18 @@
 ! dimensionless air over water Henry constant.
 !\\
 !\\
+! This module calculates the source and sink terms separately. The source
+! is given as flux, the sink as deposition rate:
+! source = Kg * H * Cwater     [kg m-2 s-1]
+! sink   = Kg / DEPHEIGHT      [s-1]
+!
+! The deposition rate is obtained by dividing the exchange velocity Kg 
+! by the deposition height DEPHEIGHT, e.g. the height over which 
+! deposition occurs. This can be either the first grid box only, or the
+! entire planetary boundary layer. The HEMCO option 'PBL_DRYDEP' determines
+! which option is being used. 
+!\\
+!\\
 ! Kg is calculated following Johnson, 2010, which is largely based on
 ! the work of Nightingale et al., 2000a/b.
 ! The salinity and seawater pH are currently set to constant global values 
@@ -98,9 +110,9 @@ MODULE HCOX_SeaFlux_Mod
   END TYPE OcSpec
 
   ! Variables carrying information about ocean species 
-  INTEGER                     :: ExtNr
-  INTEGER                     :: nOcSpc            ! # of ocean species
-  TYPE(OcSpec), POINTER       :: OcSpecs(:)
+  INTEGER               :: ExtNr
+  INTEGER               :: nOcSpc            ! # of ocean species
+  TYPE(OcSpec), POINTER :: OcSpecs(:)
 
 CONTAINS
 !EOC
@@ -230,9 +242,6 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN 
           Arr2D => NULL() 
        ENDIF
-
-       ! TODO: update depostion diagnostics
- 
     ENDDO !SpcID
 
     ! Leave w/ success
@@ -300,21 +309,24 @@ CONTAINS
 !  03 Oct 2014 - C. Keller - Added surface temperature limit of 45 degrees C
 !                            to avoid negative Schmidt numbers.
 !  07 Oct 2014 - C. Keller - Now use skin temperature instead of air temperature
+!  06 Mar 2015 - C. Keller - Now calculate deposition rate over entire PBL.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: I, J, L
+    INTEGER             :: I, J, L, N
     REAL*8              :: IJSRC
     INTEGER             :: SCW
     REAL*8              :: P, V, VB, MW, KG
     REAL*8              :: K0, CR, PKA
     REAL*8              :: KH, HEFF
     REAL*8              :: TK, TC
-    INTEGER, SAVE       :: WARN = 0
+    REAL(hp)            :: DEP_HEIGHT
     INTEGER             :: OLDWARN
+    INTEGER             :: PBL_MAX
+    INTEGER, SAVE       :: WARN = 0
 
     ! For now, hardcode salinity
     REAL(dp), PARAMETER :: S = 35.0_dp
@@ -356,10 +368,10 @@ CONTAINS
 
 !$OMP PARALLEL DO                                                   &
 !$OMP DEFAULT( SHARED )                                             &
-!$OMP PRIVATE( I,           J,        TK                          ) &
+!$OMP PRIVATE( I,           J,        N,        TK                ) &
 !$OMP PRIVATE( TC,          P,        MW,       VB                ) &
 !$OMP PRIVATE( V,           KH,       RC,       HEFF,   SCW       ) &
-!$OMP PRIVATE( KG,          IJSRC                                 ) &
+!$OMP PRIVATE( KG,          IJSRC,    PBL_MAX,  DEP_HEIGHT        ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     DO J = 1, HcoState%NY
@@ -474,11 +486,26 @@ CONTAINS
           SOURCE(I,J) = IJSRC
 
           !-----------------------------------------------------------
-          ! Calculate deposition velocity to the ocean (s-1):
+          ! Calculate deposition rate to the ocean (s-1):
           !-----------------------------------------------------------
 
-          ! Pass to deposition array
-          SINK(I,J) = KG / HcoState%Grid%BXHEIGHT_M%Val(I,J,1)
+          ! Determine deposition height based on HEMCO option regarding
+          ! the deposition length scale. 
+          IF ( HcoState%Options%PBL_DRYDEP ) THEN
+             DO N = HcoState%NZ, 1, -1
+                IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,N) > 0.0_hp ) THEN
+                   PBL_MAX = N
+                   EXIT
+                ENDIF
+             ENDDO
+          ELSE
+             PBL_MAX = 1
+          ENDIF
+          DEP_HEIGHT = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:PBL_MAX))
+
+          ! Now calculate deposition rate from velocity and deposition
+          ! height: [s-1] = [m s-1] / [m].
+          SINK(I,J) = KG / DEP_HEIGHT 
 
        ENDIF !Over ocean
     ENDDO !I
@@ -725,11 +752,12 @@ CONTAINS
     ENDDO !I
 
     ! Set met fields
-    ExtState%U10M%DoUse   = .TRUE.
-    ExtState%V10M%DoUse   = .TRUE.
-    ExtState%TSKIN%DoUse  = .TRUE.
-    ExtState%ALBD%DoUse   = .TRUE.
-    ExtState%FRCLND%DoUse = .TRUE.
+    ExtState%U10M%DoUse        = .TRUE.
+    ExtState%V10M%DoUse        = .TRUE.
+    ExtState%TSKIN%DoUse       = .TRUE.
+    ExtState%ALBD%DoUse        = .TRUE.
+    ExtState%FRCLND%DoUse      = .TRUE.
+    ExtState%FRAC_OF_PBL%DoUse = .TRUE.
     
     ! Enable extensions
     ExtState%SeaFlux = .TRUE.
