@@ -2481,6 +2481,7 @@
 !                              land map (skim, 1/27/14)
 !  18 Dec 2014 - R. Yantosca - Now read DRYCOEFF at REAL*8 precision and
 !                              then cast to flexible precision
+!  13 Mar 2015 - R. Yantosca - Replace DATA_DIR_1x1 w/ CHEM_INPUTS_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2518,7 +2519,7 @@
       ENDIF
 
       ! Open file for reading (construct full data path)
-      nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+      nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 
      &          'Olson_Land_Map_201203/'
       nc_path = TRIM( nc_dir ) // TRIM( nc_file )
       CALL Ncop_Rd( fId, TRIM(nc_path) )
