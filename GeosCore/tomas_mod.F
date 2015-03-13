@@ -5880,6 +5880,7 @@ c
 !   (2 ) IDIAG is introduced.  IDIAG=2 for NH4 and H2O (win, 9/26/08)
 !  23 Apr 2013 - R. Yantosca - Now get unit # with findFreeLUN
 !  30 Jan 2014 - R. Yantosca - Now read big files from shared disk space
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5916,7 +5917,12 @@ c
 
       ! Now read large TOMAS input files from a common disk directory
       ! (bmy, 1/30/14)
-      DATA_DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'TOMAS_201402/'
+!------------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Now read data w/r/t ExtData/CHEM_INPUTS (bmy, 3/5/15)
+!      DATA_DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'TOMAS_201402/'
+!------------------------------------------------------------------------------
+      DATA_DIR = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'TOMAS_201402/'
 
 #if    defined( TOMAS40 )
       Mo = 1.0e-21_fp*2.e+0_fp**(-10)     

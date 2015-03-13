@@ -338,6 +338,7 @@
 !  09 Oct 2014 - C. Keller - Now use only GC_LAI. This makes days between months
 !                            obsolete
 !  16 Oct 2014 - C. Keller - Initialize flux arrays to avoid float invalid
+!   9 Mar 2015 - R. Yantosca - Bug fix: add EMIS_ALD2 to $OMP PRIVATE clause
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -490,7 +491,7 @@
 !$OMP+PRIVATE( EMIS_LIMO, EMIS_SABI, EMIS_MYRC, EMIS_CARE, EMIS_OCIM   )
 !$OMP+PRIVATE( EMIS_OMON, EMIS_MONO, EMIS_MOHX, EMIS_ETOH, EMIS_FAXX   )
 !$OMP+PRIVATE( EMIS_AAXX, EMIS_ACET, EMIS_PRPE, EMIS_C2H4              )
-!$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT                         )
+!$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT, EMIS_ALD2              )
 !$OMP+PRIVATE( MONO_MOL,  TMP,       MBOX_MOL                          )
 !$OMP+PRIVATE( DIURFACT, DIURORVC, BIOG_ALPH                           ) 
 !$OMP+PRIVATE( BIOG_LIMO, BIOG_ALCO, X, Y, RC                          )
@@ -4433,7 +4434,6 @@
      &                    WriteFreq  = 'End', 
      &                    AutoFill   = 0,      
      &                    Trgt2D     = HCOT_15_AVG, 
-     &                    cID        = I,    
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4449,7 +4449,6 @@
      &                    WriteFreq  = 'End', 
      &                    AutoFill   = 0,     
      &                    Trgt2D     = T_PREVDAY, 
-     &                    cID        = I,      
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4465,7 +4464,6 @@
      &                    WriteFreq  = 'End',
      &                    AutoFill   = 0,    
      &                    Trgt2D     = LAI_PREVDAY,
-     &                    cID        = I,    
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4481,7 +4479,6 @@
      &                    WriteFreq  = 'End', 
      &                    AutoFill   = 0,   
      &                    Trgt2D     = HCOPARDR_15_AVG,
-     &                    cID        = I,
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4497,7 +4494,6 @@
      &                    WriteFreq  = 'End',
      &                    AutoFill   = 0,   
      &                    Trgt2D     = HCOPARDF_15_AVG,
-     &                    cID        = I,
      &                    RC         = RC            )
       IF ( RC /= HCO_SUCCESS ) RETURN
 

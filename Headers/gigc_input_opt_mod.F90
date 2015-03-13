@@ -60,6 +60,8 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSVGLB             
      CHARACTER(LEN=255)          :: OUT_RST_FILE       
      CHARACTER(LEN=255)          :: DATA_DIR           
+     CHARACTER(LEN=255)          :: CHEM_INPUTS_DIR
+     CHARACTER(LEN=255)          :: RES_DIR
      CHARACTER(LEN=255)          :: GCAP_DIR           
      CHARACTER(LEN=255)          :: GEOS_4_DIR         
      CHARACTER(LEN=255)          :: GEOS_5_DIR         
@@ -135,71 +137,14 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! EMISSIONS MENU fields
      !----------------------------------------
-
-! --- TODO --- !
-! Almost all of the emissions switches are obsolete
-! under HEMCO. Keep them in here because many parts
-! of the code (diagnostics, chemistry, etc.) still
-! depend on them. We have to rehaul these parts soon!
-! ckeller, 05/21/14.
-
      LOGICAL                     :: LEMIS
      INTEGER                     :: TS_EMIS
-     LOGICAL                     :: LANTHRO
-     LOGICAL                     :: FSCALYR
-     LOGICAL                     :: LEMEP 
-     LOGICAL                     :: LBRAVO
-     LOGICAL                     :: LEDGAR
-     LOGICAL                     :: LSTREETS
-     LOGICAL                     :: LCAC
-     LOGICAL                     :: LNEI05
-     LOGICAL                     :: LNEI08
-     LOGICAL                     :: LRETRO
-     LOGICAL                     :: LNEI99
-     LOGICAL                     :: LICARTT
-     LOGICAL                     :: LVISTAS
-     LOGICAL                     :: LBIOFUEL
-     LOGICAL                     :: LBIOGENIC
-     LOGICAL                     :: LMEGAN
-     LOGICAL                     :: LPECCA 
-     LOGICAL                     :: LMEGANMONO
-     REAL(fp)                    :: ISOP_SCALING 
-     LOGICAL                     :: LBIOMASS 
-     LOGICAL                     :: LBBSEA
-     LOGICAL                     :: LTOMSAI
-     LOGICAL                     :: LGFED2BB
-     LOGICAL                     :: L8DAYBB
-     LOGICAL                     :: L3HRBB
-     LOGICAL                     :: LSYNOPBB 
-     LOGICAL                     :: LGFED3BB
-     LOGICAL                     :: LDAYBB3
-     LOGICAL                     :: L3HRBB3
-     LOGICAL                     :: LAEIC
-     LOGICAL                     :: LLIGHTNOX
+     INTEGER                     :: LBIOFUEL
      LOGICAL                     :: LOTDLOC
      LOGICAL                     :: LSOILNOX
-     CHARACTER(LEN=255)          :: SOIL_RST_FILE
-     LOGICAL                     :: LFERTILIZERNOX
-     REAL(fp)                    :: NOx_SCALING
-     LOGICAL                     :: LEDGARSHIP
-     LOGICAL                     :: LICOADSSHIP
-     LOGICAL                     :: LEMEPSHIP
-     LOGICAL                     :: LSHIPSO2
-     LOGICAL                     :: LARCSHIP
-     LOGICAL                     :: LCOOKE
-     LOGICAL                     :: LHIST
-     LOGICAL                     :: HISTYR
      LOGICAL                     :: LWARWICK_VSLS
      LOGICAL                     :: LSSABr2
      LOGICAL                     :: LFIX_PBL_BRO
-     REAL(fp)                    :: Br_SCALING
-     LOGICAL                     :: LEDGARNOx
-     LOGICAL                     :: LEDGARCO
-     LOGICAL                     :: LEDGARSOx
-     LOGICAL                     :: LRCP
-     LOGICAL                     :: LRCPSHIP
-     LOGICAL                     :: LRCPAIR
-     LOGICAL                     :: LFIXEDYR
      LOGICAL                     :: LCH4EMIS
      LOGICAL                     :: LCH4SBC
      LOGICAL                     :: LOCSEMIS
@@ -294,6 +239,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LDRYD
      LOGICAL                     :: LWETD
      LOGICAL                     :: USE_OLSON_2001
+     LOGICAL                     :: PBL_DRYDEP      
 
      !----------------------------------------
      ! GAMAP MENU fields
@@ -813,6 +759,8 @@ CONTAINS
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
 !  25 Jun 2014 - R. Yantosca - Now initialize Input_Opt%SIM_TYPE field
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  05 Mar 2015 - R. Yantosca - Added RES_DIR, CHEM_INPUTS_DIR fields
+!  06 Mar 2015 - R. Yantosca - Now initialize directory names with './'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -840,20 +788,23 @@ CONTAINS
     Input_Opt%NHMSb                  = 0
     Input_Opt%NYMDe                  = 0
     Input_Opt%NHMSe                  = 0
-    Input_Opt%RUN_DIR                = ''
+    Input_Opt%RUN_DIR                = './'
     Input_Opt%IN_RST_FILE            = ''
     Input_Opt%LSVGLB                 = .FALSE.
     Input_Opt%OUT_RST_FILE           = ''
-    Input_Opt%DATA_DIR               = ''
-    Input_Opt%GCAP_DIR               = ''
-    Input_Opt%GEOS_4_DIR             = ''
-    Input_Opt%GEOS_5_DIR             = ''
-    Input_Opt%GEOS_FP_DIR            = ''
-    Input_Opt%MERRA_DIR              = ''
-    Input_Opt%DATA_DIR_1x1           = ''
-    Input_Opt%TEMP_DIR               = ''
-    Input_Opt%LUNZIP                 = .FALSE.
-    Input_Opt%LWAIT                  = .FALSE.
+    Input_Opt%DATA_DIR               = './'
+    Input_Opt%RES_DIR                = './'
+    Input_Opt%CHEM_INPUTS_DIR        = './'
+    Input_Opt%RES_DIR                = './'
+    Input_Opt%GCAP_DIR               = './'
+    Input_Opt%GEOS_4_DIR             = './'
+    Input_Opt%GEOS_5_DIR             = './'
+    Input_Opt%GEOS_FP_DIR            = './'
+    Input_Opt%MERRA_DIR              = './'
+    Input_Opt%DATA_DIR_1x1           = './'      ! NOTE: Now deprecated!
+    Input_Opt%TEMP_DIR               = './'
+    Input_Opt%LUNZIP                 = .FALSE.   ! NOTE: Now deprecated!
+    Input_Opt%LWAIT                  = .FALSE.   ! NOTE: Now deprecated!
     Input_Opt%LVARTROP               = .FALSE.
     Input_Opt%NESTED_I0              = 0
     Input_Opt%NESTED_J0              = 0
@@ -936,61 +887,10 @@ CONTAINS
     !----------------------------------------
     Input_Opt%LEMIS                  = .FALSE.
     Input_Opt%TS_EMIS                = 0
-     Input_Opt%LANTHRO                = .FALSE.
-     Input_Opt%FSCALYR                = .FALSE.
-     Input_Opt%LEMEP                  = .FALSE.
-     Input_Opt%LBRAVO                 = .FALSE.
-     Input_Opt%LEDGAR                 = .FALSE.
-     Input_Opt%LSTREETS               = .FALSE.
-     Input_Opt%LCAC                   = .FALSE.
-     Input_Opt%LNEI05                 = .FALSE.
-     Input_Opt%LNEI08                 = .FALSE.
-     Input_Opt%LRETRO                 = .FALSE.
-     Input_Opt%LNEI99                 = .FALSE.
-     Input_Opt%LICARTT                = .FALSE.
-     Input_Opt%LVISTAS                = .FALSE.
-     Input_Opt%LBIOFUEL               = .FALSE.
-     Input_Opt%LBIOGENIC              = .FALSE.
-     Input_Opt%LMEGAN                 = .FALSE.
-     Input_Opt%LPECCA                 = .FALSE.
-     Input_Opt%LMEGANMONO             = .FALSE.
-     Input_Opt%ISOP_SCALING           = 0e+0_fp
-     Input_Opt%LBIOMASS               = .FALSE.
-     Input_Opt%LBBSEA                 = .FALSE.
-     Input_Opt%LTOMSAI                = .FALSE.
-     Input_Opt%LGFED2BB               = .FALSE.
-     Input_Opt%L8DAYBB                = .FALSE.
-     Input_Opt%L3HRBB                 = .FALSE.
-     Input_Opt%LSYNOPBB               = .FALSE.
-     Input_Opt%LGFED3BB               = .FALSE.
-     Input_Opt%LDAYBB3                = .FALSE.
-     Input_Opt%L3HRBB3                = .FALSE.
-     Input_Opt%LAEIC                  = .FALSE.
-     Input_Opt%LLIGHTNOX              = .FALSE.
-     Input_Opt%LOTDLOC                = .FALSE.
     Input_Opt%LSOILNOX               = .FALSE.
-     Input_Opt%SOIL_RST_FILE          = ''
-     Input_Opt%LFERTILIZERNOX         = .FALSE.
-     Input_Opt%NOx_SCALING            = 0e+0_fp
-     Input_Opt%LEDGARSHIP             = .FALSE.
-     Input_Opt%LICOADSSHIP            = .FALSE.
-     Input_Opt%LEMEPSHIP              = .FALSE.
-     Input_Opt%LSHIPSO2               = .FALSE.
-     Input_Opt%LARCSHIP               = .FALSE.
-     Input_Opt%LCOOKE                 = .FALSE.
-     Input_Opt%LHIST                  = .FALSE.
-     Input_Opt%HISTYR                 = .FALSE.
     Input_Opt%LWARWICK_VSLS          = .FALSE.
     Input_Opt%LSSABr2                = .FALSE.
     Input_Opt%LFIX_PBL_BRO           = .FALSE.
-     Input_Opt%Br_SCALING             = 0e+0_fp    
-     Input_Opt%LEDGARNOx              = .FALSE.
-     Input_Opt%LEDGARCO               = .FALSE. 
-     Input_Opt%LEDGARSOX              = .FALSE.
-     Input_Opt%LRCP                   = .FALSE.
-     Input_Opt%LRCPSHIP               = .FALSE.
-     Input_Opt%LRCPAIR                = .FALSE.
-     Input_Opt%LFIXEDYR               = .FALSE.
     Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LOCSEMIS               = .FALSE.
@@ -1085,6 +985,7 @@ CONTAINS
     Input_Opt%LDRYD                  = .FALSE.
     Input_Opt%LWETD                  = .FALSE.
     Input_Opt%USE_OLSON_2001         = .FALSE.
+    Input_Opt%PBL_DRYDEP             = .FALSE.
 
     !----------------------------------------
     ! GAMAP_MENU fields
@@ -1403,15 +1304,15 @@ CONTAINS
     Input_Opt%LWINDO                 = .FALSE.
     Input_Opt%LWINDO2x25             = .FALSE.
     Input_Opt%LWINDO_NA              = .FALSE.
-    Input_Opt%TPBC_DIR_NA            = ''
+    Input_Opt%TPBC_DIR_NA            = './'
     Input_Opt%LWINDO_EU              = .FALSE.
-    Input_Opt%TPBC_DIR_EU            = ''
+    Input_Opt%TPBC_DIR_EU            = './'
     Input_Opt%LWINDO_CH              = .FALSE.
-    Input_Opt%TPBC_DIR_CH            = ''
+    Input_Opt%TPBC_DIR_CH            = './'
     Input_Opt%LWINDO_SE              = .FALSE.
-    Input_Opt%TPBC_DIR_SE            = ''
+    Input_Opt%TPBC_DIR_SE            = './'
     Input_Opt%LWINDO_CU              = 0
-    Input_Opt%TPBC_DIR               = ''
+    Input_Opt%TPBC_DIR               = './'
     Input_Opt%NESTED_TS              = 0
     Input_Opt%NESTED_I1              = 0
     Input_Opt%NESTED_J1              = 0
@@ -1430,12 +1331,12 @@ CONTAINS
     !----------------------------------------
     ! ARCHIVED OH MENU fields
     !----------------------------------------
-    Input_Opt%OH_DIR                 = ''
+    Input_Opt%OH_DIR                 = './'
 
     !----------------------------------------
     ! O3PL MENU fields
     !----------------------------------------
-    Input_Opt%O3PL_DIR               = ''
+    Input_Opt%O3PL_DIR               = './'
 
     !----------------------------------------
     ! MERCURY MENU fields

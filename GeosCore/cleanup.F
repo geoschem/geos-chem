@@ -37,8 +37,6 @@
       USE ERROR_MOD,               ONLY : DEBUG_MSG
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
-      USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
-      USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
       USE GRID_MOD,                ONLY : CLEANUP_GRID
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
@@ -234,6 +232,8 @@
 !  23 Sep 2014 - M. Sulprizio- Remove references to global_hno3_mod.F and
 !                              global_no3_mod.F
 !  12 Jan 2015 - R. Yantosca - Remove CLEANUP_UVALBEDO routine
+!  11 Mar 2015 - R. Yantosca - Remove call to CLEANUP_GLOBAL_OH
+!  11 Mar 2015 - R. Yantosca - Remove call to CLEANUP_GLOBAL_NOX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,8 +278,6 @@
       CALL CLEANUP_DRYDEP()
       CALL CLEANUP_DUST()
       CALL CLEANUP_GLOBAL_CH4()
-      CALL CLEANUP_GLOBAL_NOX()
-      CALL CLEANUP_GLOBAL_OH()
       CALL CLEANUP_GRID()
       CALL CLEANUP_HCN_CH3CN()
       CALL CLEANUP_HDF()

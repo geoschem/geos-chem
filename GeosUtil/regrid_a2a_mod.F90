@@ -253,7 +253,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Map_A2A_r8r8( im, jm, lon1, sin1, q1, &
-                           in, jn, lon2, sin2, q2, ig, iv)
+                           in, jn, lon2, sin2, q2, ig, iv, missval)
 !
 ! !INPUT PARAMETERS:
 !
@@ -279,11 +279,16 @@ CONTAINS
 
     ! Quantity on INPUT grid
     REAL*8,  INTENT(IN)  :: q1(im,jm)
+
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Regridded quantity on OUTPUT grid
     REAL*8,  INTENT(OUT) :: q2(in,jn)
+!
+! !OPTIONAL ARGUMENTS
+!
+    REAL*8,  INTENT(IN), OPTIONAL :: missval
 !
 ! !REMARKS:
 !  This routine is overloaded by the MAP_A2A interface.
@@ -295,6 +300,7 @@ CONTAINS
 !      Also updated comments. (bmy, 9/21/00)
 !  21 Sep 2000 - R. Yantosca - Initial version
 !  27 Aug 2012 - R. Yantosca - Add parallel DO loops
+!  02 Mar 2015 - C. Keller   - Added optional argument missval
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -303,6 +309,15 @@ CONTAINS
 !
     INTEGER :: i,j,k
     REAL*8  :: qtmp(in,jm)
+
+    ! Init
+    IF ( PRESENT(missval) ) THEN
+       qtmp = missval
+       q2   = missval
+    ELSE
+       qtmp = 0.0d0
+       q2   = 0.0d0
+    ENDIF
 
     !===================================================================
     ! E-W regridding
@@ -373,7 +388,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Map_A2A_r4r4( im, jm, lon1, sin1, q1, &
-                           in, jn, lon2, sin2, q2, ig, iv)
+                           in, jn, lon2, sin2, q2, ig, iv, missval)
 !
 ! !INPUT PARAMETERS:
 !
@@ -405,6 +420,10 @@ CONTAINS
     ! Regridded quantity on OUTPUT grid
     REAL*4,  INTENT(OUT) :: q2(in,jn)
 !
+! !OPTIONAL ARGUMENTS
+!
+    REAL*4,  INTENT(IN), OPTIONAL :: missval
+!
 ! !REMARKS:
 !  This routine is overloaded by the MAP_A2A interface.
 !
@@ -415,6 +434,7 @@ CONTAINS
 !      Also updated comments. (bmy, 9/21/00)
 !  21 Sep 2000 - R. Yantosca - Initial version
 !  27 Aug 2012 - R. Yantosca - Add parallel DO loops
+!  02 Mar 2015 - C. Keller   - Added optional argument missval
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -423,6 +443,15 @@ CONTAINS
 !
     INTEGER :: i,j,k
     REAL*4  :: qtmp(in,jm)
+
+    ! Init
+    IF ( PRESENT(missval) ) THEN
+       qtmp = missval
+       q2   = missval
+    ELSE
+       qtmp = 0.0
+       q2   = 0.0
+    ENDIF
 
     !===================================================================
     ! E-W regridding
@@ -494,7 +523,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Map_A2A_r4r8( im, jm, lon1, sin1, q1, &
-                           in, jn, lon2, sin2, q2, ig, iv)
+                           in, jn, lon2, sin2, q2, ig, iv, missval)
 !
 ! !INPUT PARAMETERS:
 !
@@ -526,6 +555,10 @@ CONTAINS
     ! Regridded quantity on OUTPUT grid
     REAL*8,  INTENT(OUT) :: q2(in,jn)
 !
+! !OPTIONAL ARGUMENTS
+!
+    REAL*8,  INTENT(IN), OPTIONAL :: missval
+!
 ! !REMARKS:
 !  This routine is overloaded by the MAP_A2A interface.
 !
@@ -536,6 +569,7 @@ CONTAINS
 !      Also updated comments. (bmy, 9/21/00)
 !  21 Sep 2000 - R. Yantosca - Initial version
 !  27 Aug 2012 - R. Yantosca - Add parallel DO loops
+!  02 Mar 2015 - C. Keller   - Added optional argument missval
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -544,6 +578,15 @@ CONTAINS
 !
     INTEGER :: i,j,k
     REAL*8  :: qtmp(in,jm)
+
+    ! Init
+    IF ( PRESENT(missval) ) THEN
+       qtmp = missval
+       q2   = missval
+    ELSE
+       qtmp = 0.0d0
+       q2   = 0.0d0
+    ENDIF
 
     !===================================================================
     ! E-W regridding
@@ -615,7 +658,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Map_A2A_r8r4( im, jm, lon1, sin1, q1, &
-                           in, jn, lon2, sin2, q2, ig, iv)
+                           in, jn, lon2, sin2, q2, ig, iv, missval)
 !
 ! !INPUT PARAMETERS:
 !
@@ -647,6 +690,10 @@ CONTAINS
     ! Regridded quantity on OUTPUT grid
     REAL*4,  INTENT(OUT) :: q2(in,jn)
 !
+! !OPTIONAL ARGUMENTS
+!
+    REAL*4,  INTENT(IN), OPTIONAL :: missval
+!
 ! !REMARKS:
 !  This routine is overloaded by the MAP_A2A interface.
 !
@@ -657,6 +704,7 @@ CONTAINS
 !      Also updated comments. (bmy, 9/21/00)
 !  21 Sep 2000 - R. Yantosca - Initial version
 !  27 Aug 2012 - R. Yantosca - Add parallel DO loops
+!  02 Mar 2015 - C. Keller   - Added optional argument missval
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -665,6 +713,15 @@ CONTAINS
 !
     INTEGER :: i,j,k
     REAL*4  :: qtmp(in,jm)
+
+    ! Init
+    IF ( PRESENT(missval) ) THEN
+       qtmp = missval
+       q2   = missval
+    ELSE
+       qtmp = 0.0
+       q2   = 0.0
+    ENDIF
 
     !===================================================================
     ! E-W regridding
@@ -1502,6 +1559,7 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:n2,:)
+    q2   =  0.0d0
     
     !===================================================================
     ! check to see if ghosting is necessary
@@ -1744,6 +1802,7 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:n2,:)
+    q2   =  0.0
 
     ! shadow variables to selected range
  
@@ -1988,6 +2047,7 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:n2,:)
+    q2   =  0.0d0
     
     !===================================================================
     ! check to see if ghosting is necessary
@@ -2230,6 +2290,7 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:n2,:)
+    q2   =  0.0
     
     !===================================================================
     ! check to see if ghosting is necessary

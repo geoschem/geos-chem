@@ -65,6 +65,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
 !  05 Nov 2014 - M. Yannetti - PRECISION_MOD Changed REAL*8 to REAL(fp)
+!  05 Mar 2015 - R. Yantosca - Remove DO_READ_DATA option.  We can no longer
+!                              have binary punch input in HPC environments.
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -864,6 +866,8 @@
 !  27 Mar 2013 - S.D. Eastham- Upgraded from Fast-J to Fast-JX
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Remove DO_READ_DATA option.  We can no longer
+!                              have binary punch input in HPC environments.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -871,12 +875,20 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: FIRST = .TRUE.
-      LOGICAL             :: IT_IS_A_FULLCHEM_SIM
-      LOGICAL             :: DO_READ_DATA
-      CHARACTER(LEN=255)  :: FILENAME
-      INTEGER             :: THISMONTH, THISYEAR
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!      LOGICAL             :: IT_IS_A_FULLCHEM_SIM
+!      LOGICAL             :: DO_READ_DATA
+!      CHARACTER(LEN=255)  :: FILENAME
+!      INTEGER             :: THISMONTH, THISYEAR
+!-----------------------------------------------------------------------------
       INTEGER             :: I, J, L, N, R, JLOOP, IRH, IRHN
-      INTEGER, SAVE       :: MONTH_LAST = -999
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!      INTEGER, SAVE       :: MONTH_LAST = -999
+!-----------------------------------------------------------------------------
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
       REAL(fp)            :: TEMP2(IIPAR,JJPAR,LLPAR)
       REAL(fp)            :: MSDENS(NAER), DRYAREA
@@ -923,7 +935,11 @@
 #endif
 
       ! Local variables for quantities from Input_Opt
-      CHARACTER(LEN=255)  :: DATA_DIR
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!      CHARACTER(LEN=255)  :: DATA_DIR
+!-----------------------------------------------------------------------------
       LOGICAL             :: LCARB
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
@@ -940,8 +956,12 @@
       RC                   = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      DATA_DIR             = Input_Opt%DATA_DIR
-      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!      DATA_DIR             = Input_Opt%DATA_DIR
+!      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+!-----------------------------------------------------------------------------
       LCARB                = Input_Opt%LCARB
       LSSALT               = Input_Opt%LSSALT
       LSULF                = Input_Opt%LSULF
@@ -950,37 +970,41 @@
       ! Initialize pointers
       BXHEIGHT            => State_Met%BXHEIGHT
 
-      ! Copy MONTH argument to local variable THISMONTH
-      IF ( PRESENT( MONTH ) ) THEN
-         THISMONTH = MONTH
-      ELSE
-         THISMONTH = 0
-      ENDIF
-
-      ! Copy YEAR argument to local variable THISYEAR
-      IF ( PRESENT( YEAR ) ) THEN
-         THISYEAR = YEAR
-      ELSE
-         THISYEAR = 0
-      ENDIF
-
-      ! Set a logical flag if we have to read data from disk
-      ! (once per month, for full-chemistry simulations)
-      DO_READ_DATA = ( IT_IS_A_FULLCHEM_SIM .and. ITS_A_NEW_MONTH() )
-
-      !=================================================================
-      ! For full-chemistry runs w/ offline fields, define filename
-      !=================================================================
-      IF ( DO_READ_DATA ) THEN
-   
-         ! Filename
-         FILENAME = TRIM( DATA_DIR ) // 'aerosol_200106/aerosol.' // 
-     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
-
-         ! Use the "generic" year 1996
-         XTAU = GET_TAU0( THISMONTH, 1, 1996 )
-
-      ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!      ! Copy MONTH argument to local variable THISMONTH
+!      IF ( PRESENT( MONTH ) ) THEN
+!         THISMONTH = MONTH
+!      ELSE
+!         THISMONTH = 0
+!      ENDIF
+!
+!      ! Copy YEAR argument to local variable THISYEAR
+!      IF ( PRESENT( YEAR ) ) THEN
+!         THISYEAR = YEAR
+!      ELSE
+!         THISYEAR = 0
+!      ENDIF
+!
+!      ! Set a logical flag if we have to read data from disk
+!      ! (once per month, for full-chemistry simulations)
+!      DO_READ_DATA = ( IT_IS_A_FULLCHEM_SIM .and. ITS_A_NEW_MONTH() )
+!
+!      !=================================================================
+!      ! For full-chemistry runs w/ offline fields, define filename
+!      !=================================================================
+!      IF ( DO_READ_DATA ) THEN
+!   
+!         ! Filename
+!         FILENAME = TRIM( DATA_DIR ) // 'aerosol_200106/aerosol.' // 
+!     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
+!
+!         ! Use the "generic" year 1996
+!         XTAU = GET_TAU0( THISMONTH, 1, 1996 )
+!
+!      ENDIF
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! S U L F A T E   A E R O S O L S
@@ -1018,23 +1042,27 @@
 
       ELSE 
 
-         !-----------------------------------
-         ! Read from disk -- fullchem only
-         !-----------------------------------
-         IF ( DO_READ_DATA ) THEN
-            
-            ! Print filename
-            IF ( am_I_Root ) WRITE( 6, 105 ) TRIM( FILENAME )
- 105        FORMAT( '     - RDAER: Reading SULFATE from ', a )
-
-            ! Read data
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 1,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            ! Cast to REAL(fp) and resize
-            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,1) )
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!         !-----------------------------------
+!         ! Read from disk -- fullchem only
+!         !-----------------------------------
+!         IF ( DO_READ_DATA ) THEN
+!            
+!            ! Print filename
+!            IF ( am_I_Root ) WRITE( 6, 105 ) TRIM( FILENAME )
+! 105        FORMAT( '     - RDAER: Reading SULFATE from ', a )
+!
+!            ! Read data
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 1,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            ! Cast to REAL(fp) and resize
+!            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,1) )
+!         ENDIF
+!-----------------------------------------------------------------------------
       ENDIF
 
       !=================================================================
@@ -1087,51 +1115,55 @@
 
       ELSE 
 
-         !-----------------------------------
-         ! Read from disk -- fullchem only
-         !-----------------------------------
-         IF ( DO_READ_DATA ) THEN
-
-            ! Print filename
-            IF ( am_I_Root ) WRITE( 6, 115 ) TRIM( FILENAME )
- 115        FORMAT( '     - RDAER: Reading BC and OC from ', a )
-
-            !--------------------------------
-            ! Read Hydrophobic BC
-            !--------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 2,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,1) )
-
-            !---------------------------------
-            ! Read Hydrophilic BC
-            !---------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 3,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,2) )
-
-            !---------------------------------
-            ! Read Hydrophobic OC
-            !---------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 4,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,2) )
-
-            !---------------------------------
-            ! Read Hydrophilic OC
-            !---------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 5,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,3) )
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!         !-----------------------------------
+!         ! Read from disk -- fullchem only
+!         !-----------------------------------
+!         IF ( DO_READ_DATA ) THEN
+!
+!            ! Print filename
+!            IF ( am_I_Root ) WRITE( 6, 115 ) TRIM( FILENAME )
+! 115        FORMAT( '     - RDAER: Reading BC and OC from ', a )
+!
+!            !--------------------------------
+!            ! Read Hydrophobic BC
+!            !--------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 2,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,1) )
+!
+!            !---------------------------------
+!            ! Read Hydrophilic BC
+!            !---------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 3,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,2) )
+!
+!            !---------------------------------
+!            ! Read Hydrophobic OC
+!            !---------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 4,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,2) )
+!
+!            !---------------------------------
+!            ! Read Hydrophilic OC
+!            !---------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 5,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,3) )
+!         ENDIF
+!-----------------------------------------------------------------------------
       ENDIF
 
       !=================================================================
@@ -1179,58 +1211,61 @@
 
       ELSE
             
-         !-----------------------------------
-         ! Read from disk -- fullchem only
-         !-----------------------------------
-         IF ( DO_READ_DATA ) THEN
-
-            ! Print filename
-            IF ( am_I_Root ) WRITE( 6, 125 ) TRIM( FILENAME )
- 125        FORMAT( '     - RDAER: Reading SEASALT from ', a )
-
-            !----------------------------------
-            ! Offline -- read Sea Salt (accum)
-            !----------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 6,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,4) )
-
-            !----------------------------------
-            ! Offline -- read Sea Salt (coarse)
-            !----------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 7,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,5) )
-
-            !----------------------------------
-            ! Offline -- read Sea Salt (coarse)
-            !----------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 8,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, TEMP2 )
-
-            ! Accumulate into one size bin
-            WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
-
-            !----------------------------------
-            ! Offline -- read Sea Salt (coarse)
-            !----------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 9,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, TEMP2 )
-
-            ! Accumulate into one size bin
-            WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
-
-         ENDIF   
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!         !-----------------------------------
+!         ! Read from disk -- fullchem only
+!         !-----------------------------------
+!         IF ( DO_READ_DATA ) THEN
+!
+!            ! Print filename
+!            IF ( am_I_Root ) WRITE( 6, 125 ) TRIM( FILENAME )
+! 125        FORMAT( '     - RDAER: Reading SEASALT from ', a )
+!
+!            !----------------------------------
+!            ! Offline -- read Sea Salt (accum)
+!            !----------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 6,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,4) )
+!
+!            !----------------------------------
+!            ! Offline -- read Sea Salt (coarse)
+!            !----------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 7,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,5) )
+!
+!            !----------------------------------
+!            ! Offline -- read Sea Salt (coarse)
+!            !----------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 8,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, TEMP2 )
+!
+!            ! Accumulate into one size bin
+!            WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
+!
+!            !----------------------------------
+!            ! Offline -- read Sea Salt (coarse)
+!            !----------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 9,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, TEMP2 )
+!
+!            ! Accumulate into one size bin
+!            WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
+!         ENDIF   
+!-----------------------------------------------------------------------------
       ENDIF 
 
 #if defined( UCX )

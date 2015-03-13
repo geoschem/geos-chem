@@ -196,6 +196,7 @@
 !  23 Jun 2014 - R. Yantosca - Now use Input_Opt%DATA_DIR_1x1
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -268,7 +269,7 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
       ! Now prefix the data directory
-      FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // TRIM( FILENAME )
+      FILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // TRIM( FILENAME )
 
       ! Echo filename
       WRITE( 6, 110 ) TRIM( FILENAME )
