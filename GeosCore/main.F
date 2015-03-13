@@ -1251,8 +1251,8 @@
             ENDIF
 
             IF ( ITS_TIME_FOR_UNIT() )
-     &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
-     &                             State_Met%AD, STT ) ! kg -> v/v
+     &         CALL CONVERT_UNITS( 1, N_TRACERS, Input_Opt%TCVV, 
+     &                             State_Met%AD, State_Chm%TRACERS )! kg->v/v
          ENDIF
 
          !-------------------------------
