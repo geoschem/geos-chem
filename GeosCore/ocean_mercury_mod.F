@@ -333,12 +333,7 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
+!  13 Mar 2015 - R. Yantosca - Now remove bpch input
 !*****************************************************************************
 !
 ! !USES:
@@ -383,7 +378,7 @@
       REAL(f4)                :: ARRAYconc(IGLOB,JGLOB,LGLOB)  ! concentration
 
       ! Local variables
-      INTEGER                 :: I, J, L, NN
+      INTEGER                 :: I, J, L, NN, LL
       CHARACTER(LEN=155)      :: FILENAME
       CHARACTER(LEN=2)        :: MON                 ! for months 10-12
       CHARACTER(LEN=1)        :: SMON                ! for months 1-9
@@ -399,6 +394,8 @@
       ! Assume success
       RC        =  GIGC_SUCCESS
 
+      ! Initialize
+      
       !----------------------------------------!
       ! Molecular weights, for unit conversion !
       !----------------------------------------!
@@ -466,8 +463,13 @@
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_BCPO', LOC )
       ENDIF
 
+      ! First get the size of ARRAYbcpi.  ARRAYbcpo is the same size
+      ! since they are both stored in the same file (bmy, 3/13/15)
+      LL = size( ARRAYbcpi, 3 )
+
       ! convert REAL*4 to REAL(fpp) 
-      ARRAYtemp = ARRAYbcpi + ARRAYbcpo
+      ARRAYtemp                 = 0.e0_f4
+      ARRAYtemp(:,:,1:LL)       = ARRAYbcpi + ARRAYbcpo
       BC_CONC(:,:,1:LLCHEM_FIX) = ARRAYtemp(:,:,1:LLCHEM_FIX)
 
       !---------------------------
@@ -486,8 +488,13 @@
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_OCPO', LOC )
       ENDIF
 
+      ! First get the size of ARRAYbcpi.  ARRAYbcpo is the same size
+      ! since they are both stored in the same file (bmy, 3/13/15)
+      LL = size( ARRAYocpi, 3 )
+
       ! convert REAL*4 to REAL(fpp) 
-      ARRAYtemp = ARRAYocpi + ARRAYocpo
+      ARRAYtemp                 = 0.e0_f4
+      ARRAYtemp(:,:,1:LL)       = ARRAYocpi + ARRAYocpo
       OC_CONC(:,:,1:LLCHEM_FIX) = ARRAYtemp(:,:,1:LLCHEM_FIX)
 
       !---------------------------
