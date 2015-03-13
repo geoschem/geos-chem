@@ -43,6 +43,7 @@ MODULE HCO_Unit_Mod
 !  24 Jul 2014 - C. Keller   - Now define unitless & 'standard' units as
 !                              parameter
 !  13 Aug 2014 - C. Keller   - Interface for sp & dp arrays
+!  13 Mar 2015 - R. Yantosca - Add m and m2 to the "unitless" list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -64,7 +65,7 @@ MODULE HCO_Unit_Mod
   ! add more units if you don't want HEMCO to attempt to convert data
   ! in these units.
   ! All characters in this list should be lower case!
-  INTEGER,           PARAMETER :: NUL = 21
+  INTEGER,           PARAMETER :: NUL = 23
   CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',        &
                                                'count',    &
                                                'unitless', &
@@ -85,6 +86,8 @@ MODULE HCO_Unit_Mod
                                                'ppb',      & 
                                                'ppmv',     & 
                                                'ppm',      & 
+                                               'm/s',      &
+                                               'm',        &
                                                'cm2cm-2'    /)
 
   ! Accepted units for data on HEMCO standard units. No unit conversion 
