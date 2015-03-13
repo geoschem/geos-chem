@@ -816,9 +816,10 @@ CONTAINS
     INTEGER,          INTENT(INOUT)           :: RC                ! Return code 
 !
 ! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
-!  25 Sep 2014 - C. Keller: Now allow updating multiple diagnostics
-!  11 Mar 2015 - C. Keller: Now allow scanning of all diagnostic collections
+!  19 Dec 2013 - C. Keller - Initialization
+!  25 Sep 2014 - C. Keller - Now allow updating multiple diagnostics
+!  11 Mar 2015 - C. Keller - Now allow scanning of all diagnostic collections
+!  13 Mar 2015 - C. Keller - Bug fix: only prompt warning if it's a new timestep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -945,19 +946,27 @@ CONTAINS
           CNT = CNT + 1
     
           !----------------------------------------------------------------------
+          ! Check if this is a new time step for this diagnostics. 
+          !----------------------------------------------------------------------
+          IsNewTS = .TRUE.
+          IF ( ThisDiagn%LastUpdateID == ThisUpdateID ) IsNewTS = .FALSE. 
+   
+          !----------------------------------------------------------------------
           ! Sanity check: if data is beyond its averaging interval, it should
           ! be in output format. Otherwise, the content of this diagnostics has 
           ! never been passed to the output yet (via routine Diagn\_Get) and 
           ! will thus be lost!
           !----------------------------------------------------------------------
-          IF ( (ThisDiagn%ResetFlag >= MinResetFlag) .AND. &
-               .NOT. ThisDiagn%IsOutFormat .AND. (ThisDiagn%Counter > 0) ) THEN
-             MSG = 'Diagnostics is at end of its output interval '      // &
-                   'but was not passed to output - data will be lost: ' // &
-                   TRIM(ThisDiagn%cName)
+          IF ( (ThisDiagn%ResetFlag >= MinResetFlag) &
+               .AND. .NOT. ThisDiagn%IsOutFormat     &
+               .AND.      (ThisDiagn%Counter > 0)    &
+               .AND.       IsNewTS                    ) THEN
+             MSG = 'Diagnostics is at end of its output interval '    // &
+                   'but was not passed to output - data may be lost ' // &
+                   'or diagnostics may be wrong: ' // TRIM(ThisDiagn%cName)
              CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
           ENDIF
-      
+ 
           !----------------------------------------------------------------------
           ! If data is in output format, set counter to zero. This will make
           ! sure that the new data is not added to the existing data.
@@ -980,12 +989,6 @@ CONTAINS
              Fact = Collections(PS)%TS
           ENDIF
           
-          !----------------------------------------------------------------------
-          ! Check if this is a new time step for this diagnostics. 
-          !----------------------------------------------------------------------
-          IsNewTS = .TRUE.
-          IF ( ThisDiagn%LastUpdateID == ThisUpdateID ) IsNewTS = .FALSE. 
-   
           !----------------------------------------------------------------------
           ! Fill shadow arrays. Cast any input data to single precision, as this
           ! is the default diagnostics precision. 

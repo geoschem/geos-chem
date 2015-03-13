@@ -103,7 +103,7 @@ CONTAINS
     USE HCOX_DustDead_Mod,      ONLY : HCOX_DustDead_Init
     USE HCOX_DustGinoux_Mod,    ONLY : HCOX_DustGinoux_Init
     USE HCOX_SeaSalt_Mod,       ONLY : HCOX_SeaSalt_Init
-    USE HCOX_GFED3_Mod,         ONLY : HCOX_GFED3_Init
+    USE HCOX_GFED_Mod,          ONLY : HCOX_GFED_Init
     USE HCOX_MEGAN_Mod,         ONLY : HCOX_MEGAN_Init
     USE HCOX_Finn_Mod,          ONLY : HCOX_FINN_Init
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Init
@@ -215,9 +215,9 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------------
-    ! GFED3 extension
+    ! GFED extension
     !-----------------------------------------------------------------------
-    CALL HCOX_GFED3_Init( amIRoot, HcoState, 'GFED3', ExtState, RC ) 
+    CALL HCOX_GFED_Init( amIRoot, HcoState, 'GFED', ExtState, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------------
@@ -313,7 +313,7 @@ CONTAINS
     USE HCOX_DustGinoux_Mod,    ONLY : HCOX_DustGinoux_Run 
     USE HCOX_SeaSalt_Mod,       ONLY : HCOX_SeaSalt_Run 
     USE HCOX_Megan_Mod,         ONLY : HCOX_Megan_Run 
-    USE HCOX_GFED3_Mod,         ONLY : HCOX_GFED3_Run 
+    USE HCOX_GFED_Mod,          ONLY : HCOX_GFED_Run 
     USE HcoX_FINN_Mod,          ONLY : HcoX_FINN_Run 
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Run
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Run
@@ -443,10 +443,10 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! GFED3 biomass burning emissions 
+    ! GFED biomass burning emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%GFED3 ) THEN
-       CALL HCOX_GFED3_Run( amIRoot, ExtState, HcoState, RC )
+    IF ( ExtState%GFED ) THEN
+       CALL HCOX_GFED_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
@@ -538,7 +538,7 @@ CONTAINS
     USE HCOX_DustGinoux_Mod,    ONLY : HCOX_DustGinoux_Final
     USE HCOX_SeaSalt_Mod,       ONLY : HCOX_SeaSalt_Final
     USE HCOX_MEGAN_Mod,         ONLY : HCOX_MEGAN_Final
-    USE HCOX_GFED3_Mod,         ONLY : HCOX_GFED3_Final
+    USE HCOX_GFED_Mod,          ONLY : HCOX_GFED_Final
     USE HcoX_FINN_Mod,          ONLY : HcoX_FINN_Final
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Final
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Final
@@ -589,7 +589,7 @@ CONTAINS
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
        IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
        IF ( ExtState%Megan         ) CALL HCOX_Megan_Final(am_I_Root,HcoState,RC)
-       IF ( ExtState%GFED3         ) CALL HCOX_GFED3_Final()
+       IF ( ExtState%GFED          ) CALL HCOX_GFED_Final()
        IF ( ExtState%SoilNOx       ) CALL HCOX_SoilNox_Final(am_I_Root,HcoState,RC)
        IF ( ExtState%FINN          ) CALL HcoX_FINN_Final
        IF ( ExtState%GC_RnPbBe     ) CALL HCOX_GC_RnPbBe_Final()

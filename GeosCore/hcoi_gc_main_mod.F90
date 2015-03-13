@@ -2035,7 +2035,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Make sure that BOND_BIOMASS toggle is disabled if GFED3 or FINN
+    ! Make sure that BOND_BIOMASS toggle is disabled if GFED or FINN
     ! are being used. This is to avoid double-counting of biomass
     ! burning emissions. Search through all extensions (--> ExtNr = 
     ! -999).
@@ -2047,13 +2047,13 @@ CONTAINS
     ENDIF
     ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN
-       ExtNr = GetExtNr( 'GFED3' )
+       ExtNr = GetExtNr( 'GFED' )
     ENDIF
 
     ! Error check
     IF ( FOUND ) THEN
        IF ( ExtNr > 0 .AND. LTMP ) THEN
-          MSG = 'Cannot use BOND_BIOMASS together with GFED3 or FINN:' // &
+          MSG = 'Cannot use BOND_BIOMASS together with GFED or FINN:' // &
           'This would double-count biomass burning emissions!'
           CALL ERROR_STOP( MSG, LOC ) 
        ENDIF

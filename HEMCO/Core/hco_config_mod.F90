@@ -824,7 +824,23 @@ CONTAINS
 ! !IROUTINE: BracketCheck
 !
 ! !DESCRIPTION: Subroutine BracketCheck checks if base emission data is within
-! a bracket and if that field shall be ignored or not. 
+! a bracket and if that field shall be ignored or not. Brackets can be used to
+! lump entires of the HEMCO configuration file into collections that can be
+! collectively enabled or disabled. The first entry of a collection is marked
+! adding an 'opening bracket' to the HEMCO configuration file (on the line
+! above the entry). Opening brackets must start with three opening brackets,
+! e.g.: '(((TEST'. Similarly, the end of a collection is marked by placing a
+! closing bracket after the last entry of the collection: '))))TEST'. 
+! Brackets can be enabled / disabled in the EXTENSION SWITCH section of the
+! HEMCO configuration file:
+! # ExtNr ExtName           on/off  Species 
+! 0       Base              : on    *
+!     --> TEST              :       true
+!\\
+!\\
+! It is also possible to use 'opposite' brackets, e.g. to use a collection 
+! only if the given setting is *disabled*. This can be achieved by appending
+! '--' to the collection name, e.g. '(((--TEST' and ')))--TEST'.
 !\\
 !\\
 ! !INTERFACE:
@@ -848,6 +864,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Feb 2015 - C. Keller   - Initial version.
+!  12 Mar 2015 - C. Keller   - Added 'mirror' option. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -860,10 +877,11 @@ CONTAINS
     LOGICAL                       :: FOUND
     LOGICAL                       :: UseBracket
     LOGICAL                       :: verb
+    LOGICAL                       :: REV
     INTEGER, SAVE                 :: NEST      = 0
     INTEGER, SAVE                 :: SKIPLEVEL = 0
     CHARACTER(LEN=255), SAVE      :: AllBrackets(MAXBRACKNEST) = ''
-    CHARACTER(LEN=255)            :: MSG, TmpBracket
+    CHARACTER(LEN=255)            :: MSG, TmpBracket, CheckBracket
 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'BracketCheck (hco_config_mod.F90)'
 
@@ -905,22 +923,36 @@ CONTAINS
        ! if this is a nested bracket in an already skipped bracket. 
        IF ( .NOT. SKIP ) THEN
 
+          ! Check for 'inverse' bracket. These start with '--'
+          IF ( TmpBracket(1:2) == '--' ) THEN
+             STRLEN = LEN(TmpBracket)
+             CheckBracket = TmpBracket(3:STRLEN)
+             REV          = .TRUE.
+          ELSE
+             CheckBracket = TmpBracket
+             REV          = .FALSE.
+          ENDIF
+
           ! Check if this bracket has been registered as being used.
           ! Scan all extensions, including the core one.
-          CALL GetExtOpt( -999, TRIM(TmpBracket), &
+          CALL GetExtOpt( -999, TRIM(CheckBracket), &
              OptValBool=UseBracket, FOUND=FOUND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! If bracket name not found in options, skip content.
           IF ( .NOT. FOUND ) THEN
-             MSG = 'This data collection is not defined - skip: '// &
-                   TRIM(TmpBracket)
-             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+!             MSG = 'This data collection is not defined - skip: '// &
+!                   TRIM(CheckBracket)
+!             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
              SKIP = .TRUE.
-
           ! Use value defined in HEMCO configuration file.
           ELSE
             SKIP = .NOT. UseBracket
+          ENDIF
+
+          ! Eventually reverse the skip flag 
+          IF ( REV ) THEN
+             SKIP = .NOT. SKIP
           ENDIF
 
           ! If bracket is skipped, adjust skip level accordingly.

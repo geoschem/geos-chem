@@ -100,7 +100,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                   :: Megan          ! MEGAN biogenic emissions
      LOGICAL                   :: SeaFlux        ! air-sea exchange
      LOGICAL                   :: SeaSalt        ! Seasalt emissions
-     LOGICAL                   :: GFED3          ! GFED3 biomass burning
+     LOGICAL                   :: GFED           ! GFED biomass burning
      LOGICAL                   :: FINN           ! FINN biomass burning
      LOGICAL                   :: GC_RnPbBe      ! GEOS-Chem Rn-Pb-Be simulation
      LOGICAL                   :: GC_POPs        ! GEOS-Chem POPs simulation
@@ -279,7 +279,7 @@ CONTAINS
     ExtState%Megan         = .FALSE.
     ExtState%SeaFlux       = .FALSE.
     ExtState%SeaSalt       = .FALSE.
-    ExtState%GFED3         = .FALSE.
+    ExtState%GFED          = .FALSE.
     ExtState%FINN          = .FALSE.
     ExtState%GC_RnPbBe     = .FALSE.
     ExtState%GC_POPs       = .FALSE.

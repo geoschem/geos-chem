@@ -1412,10 +1412,10 @@ CONTAINS
     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) RETURN
     IF ( Input_Opt%ITS_A_TAGOX_SIM  ) RETURN
 
-    ! First test if GFED3 is used.  If not, then test if FINN is used.
+    ! First test if GFED is used.  If not, then test if FINN is used.
     ! If not, then use extension # 0 and the default biomass category.
     Cat   = -1
-    ExtNr = GetExtNr( 'GFED3' )
+    ExtNr = GetExtNr( 'GFED' )
     IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN
        ExtNr = 0
@@ -4192,7 +4192,7 @@ CONTAINS
     !--------------------------------------------------------------------------
 
     ! HEMCO extension # for wetland ch4 
-    ExtNr = GetExtNr( 'GFED3' )
+    ExtNr = GetExtNr( 'GFED' )
     IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN
        IF ( am_I_Root ) THEN
