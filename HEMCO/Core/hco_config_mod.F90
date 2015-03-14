@@ -131,7 +131,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_ReadFile( am_I_Root, ConfigFile, Phase, RC )
+  SUBROUTINE Config_ReadFile( am_I_Root, ConfigFile, Phase, RC, IsNest )
 !
 ! !USES:
 !
@@ -141,15 +141,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN)    :: am_I_Root   ! root CPU?
-    CHARACTER(LEN=*),   INTENT(IN)    :: ConfigFile  ! Full file name
-    INTEGER,            INTENT(IN)    :: Phase       ! 0: all
-                                                     ! 1: Settings and switches only
-                                                     ! 2: fields only 
+    LOGICAL,            INTENT(IN)              :: am_I_Root  ! root CPU?
+    CHARACTER(LEN=*),   INTENT(IN)              :: ConfigFile ! Full file name
+    INTEGER,            INTENT(IN)              :: Phase      ! 0: all
+                                                              ! 1: Settings and switches only
+                                                              ! 2: fields only
+    LOGICAL,            INTENT(IN   ), OPTIONAL :: IsNest     ! Nested call? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,            INTENT(INOUT) :: RC          ! Success?
+    INTEGER,            INTENT(INOUT)           :: RC         ! Success?
 !
 ! !REVISION HISTORY:
 !  17 Sep 2012 - C. Keller   - Initialization
@@ -167,6 +168,7 @@ CONTAINS
     INTEGER              :: NN
     INTEGER              :: IU_HCO, IOS
     LOGICAL              :: AIR,    EOF
+    LOGICAL              :: EXISTS, NEST
     CHARACTER(LEN=255)   :: MSG,    LOC
     CHARACTER(LEN=2047)  :: LINE
 
@@ -183,17 +185,33 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Nested call?
+    IF ( PRESENT(IsNest) ) THEN
+       NEST = IsNest
+    ELSE
+       NEST = .FALSE.
+    ENDIF
+
     ! For convenience only
     AIR = am_I_Root
 
     ! Find free LUN
     IU_HCO = findFreeLUN()
 
+    INQUIRE( FILE=TRIM(ConfigFile), EXIST=EXISTS )
+    IF ( .NOT. EXISTS ) THEN
+       IF ( am_I_Root ) THEN
+          WRITE(*,*) 'Cannot read file - it does not exist: ', TRIM(ConfigFile)
+       ENDIF
+       RC = HCO_FAIL
+       RETURN
+    ENDIF
+
     ! Open configuration file
     OPEN ( IU_HCO, FILE=TRIM( ConfigFile ), STATUS='OLD', IOSTAT=IOS )
     IF ( IOS /= 0 ) THEN
        IF ( am_I_Root ) THEN
-          WRITE(*,*) 'Error reading ' // TRIM(ConfigFile)
+          WRITE(*,*) 'Error reading ', TRIM(ConfigFile)
        ENDIF 
        RC = HCO_FAIL
        RETURN 
@@ -224,7 +242,7 @@ CONTAINS
        ! Read settings if this is beginning of settings section 
        IF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
 
-          IF ( PHASE < 2 ) THEN
+          IF ( PHASE < 2 .AND. .NOT. Nest ) THEN
              CALL ReadSettings( AIR, IU_HCO, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
@@ -291,7 +309,7 @@ CONTAINS
 
     ! Check if we caught all sections. Do that only for phase 1. 
     ! Sections SETTINGS and extension switches are needed.
-    IF ( PHASE == 1 .AND. NN /= 2 ) THEN
+    IF ( PHASE == 1 .AND. NN /= 2 .AND. .NOT. NEST ) THEN
        WRITE(*,*) 'Expected 2 sections, found/read ', NN
        WRITE(*,*) 'Should read SETTINGS and EXTENSION SWITCHES'
        RC = HCO_FAIL
@@ -307,8 +325,10 @@ CONTAINS
     ENDIF 
 
     ! Configuration file is now read
-    IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-       ConfigFileRead = .TRUE.
+    IF ( .NOT. NEST ) THEN
+       IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
+          ConfigFileRead = .TRUE.
+       ENDIF
     ENDIF
 
     ! Leave w/ success
@@ -446,6 +466,7 @@ CONTAINS
 !                            value will be interpreted as mask field (applied to
 !                            this scale factor only).
 !  27 Feb 2015 - C. Keller - Added CycleFlag 4 (interpolation)
+!  13 Mar 2015 - C. Keller - Added include files (nested configuration files).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -524,7 +545,7 @@ CONTAINS
                                    Char2,    -1,                    &
                                    Int1,      1,      Int2,     9,  &
                                    Int3,     10,      STAT,         &
-                                   optcl=10                          )
+                                   optcl=10    ,      OutLine=LINE   )
   
        ELSEIF ( DctType == HCO_DCTTYPE_MASK ) THEN
           CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
@@ -534,7 +555,8 @@ CONTAINS
                                    SpcName,  -1,      Char1,   10,  &
                                    Char2,    -1,                    &
                                    Int1,      1,      Int2,     9,  &
-                                   Int3,     -1,      STAT           )
+                                   Int3,     -1,      STAT,         &
+                                   OutLine=LINE                      )
        ENDIF
 
        !--------------------------------------------------------------
@@ -556,7 +578,7 @@ CONTAINS
        IF ( STAT == 10 ) THEN
           EXIT
        ENDIF
-               
+       
        ! Error if not enough entries found 
        IF ( STAT == 100 ) THEN
           CALL HCO_ERROR ( 'STAT == 100', RC, THISLOC=LOC )
@@ -579,6 +601,18 @@ CONTAINS
           ! else to do with this line.
           IF ( STAT == 5 .OR. STAT == 6 ) CYCLE
 
+       ENDIF
+
+       ! Read include file. Configuration files can be 'nested', e.g. 
+       ! configuration files can be included into the 'main' configuration
+       ! file. These files must be listed as '>>>include FileName', where
+       ! FileName is the actual path of the file. 
+       IF ( STAT == 1000 ) THEN
+          CALL Config_ReadFile( am_I_Root, LINE, 0, RC, IsNest=.TRUE. )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! All done with this line
+          CYCLE
        ENDIF
 
        ! Output status should be 0 if none of the statuses above applies 
@@ -2527,13 +2561,14 @@ CONTAINS
 !  11 Dec 2013 - C. Keller - Added optional arguments inLine and outLine 
 !  29 Dec 2014 - C. Keller - Added optional argument optcl. Now use wrapper
 !                            routines READCHAR and READINT. 
+!  13 Mar 2015 - C. Keller - Added check for include files.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: N, OPT
+    INTEGER               :: N, OPT, STRLEN
     CHARACTER(LEN=255)    :: LINE
     CHARACTER(LEN=255)    :: SUBSTR(255) 
     LOGICAL               :: EOF
@@ -2573,8 +2608,11 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Get string length
+    STRLEN = LEN(TRIM(LINE))
+
     ! Return here with flag = 5 is line is opening a (shortcut) bracket.
-    IF ( LEN(TRIM(LINE)) > 3 ) THEN
+    IF ( STRLEN > 3 ) THEN
        IF ( LINE(1:3) == '(((' ) THEN
           STAT = 5
           RETURN
@@ -2586,6 +2624,15 @@ CONTAINS
           RETURN
        ENDIF 
     ENDIF
+
+    ! Return with flag = 1000 if this is a link to an include file.
+    IF ( STRLEN > 11 ) THEN
+       IF ( LINE(1:10) == '>>>include' ) THEN
+          IF ( PRESENT(outLINE) ) outLINE = outLINE(12:STRLEN)
+          STAT = 1000
+          RETURN
+       ENDIF
+    ENDIF 
 
     ! Split line into columns
     CALL STRREPL ( LINE, HCO_TAB(), HCO_SPC() )
