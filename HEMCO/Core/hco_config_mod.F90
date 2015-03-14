@@ -247,6 +247,12 @@ CONTAINS
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
+             ! Call the chartool routines that may be defined
+             ! in the settings. This is to maek sure that they
+             ! are correctly initialized.
+             CALL HCO_Char_Set( RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+
              ! Increase counter
              NN = NN + 1
 
