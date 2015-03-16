@@ -8291,11 +8291,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
-!------------------------------------------------------------------------------
-! Prior to 3/16/15:
-! This module has been moved to the obsolete directory. (bmy, 3/16/15)
-!      USE HCN_CH3CN_Mod,      ONLY : Init_HCN_CH3CN
-!------------------------------------------------------------------------------
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
       USE POPs_Mod,           ONLY : Init_POPs
@@ -8303,6 +8298,7 @@
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
       USE Tagged_Ox_Mod,      ONLY : Init_Tagged_Ox
+      USE Toms_Mod,           ONLY : Init_Toms
       USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
 !
 ! !INPUT PARAMETERS:
@@ -8340,6 +8336,7 @@
 !  25 Jun 2014 - R. Yantosca - Now call INIT_MODIS_LAI      
 !  25 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES (vdiff_pre_mod.F90)
 !  25 Aug 2014 - M. Sulprizio- Now call INIT_POPS
+!  16 Mar 2015 - R. Yantosca - Now call INIT_TOMS here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8359,16 +8356,14 @@
       prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
 
       ! Initialize the MODIS leaf area index module
-      CALL INIT_MODIS_LAI( am_I_Root, Input_Opt, RC )
+      CALL Init_Modis_LAI( am_I_Root, Input_Opt, RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
       ! Call SET_VDIFF_VALUES so that we can pass several values from 
       ! Input_Opt to the vdiff_mod.F90.  This replaces the funcitionality
       ! of logical_mod.F and tracer_mod.F..  This has to be called
       ! after the input.geos file has been read from disk.
-      CALL Set_VDIFF_VALUES( am_I_Root, Input_Opt, RC )
-
-      !%%% NOTE: Should call INIT_PBL_MIX etc from here %%%
+      CALL Set_Vdiff_Values( am_I_Root, Input_Opt, RC )
 
       ! Initialize "carbon_mod.F"
       IF ( Input_Opt%LCARB ) THEN
@@ -8408,13 +8403,17 @@
 
       ! Initialize "linoz_mod.F"
       IF ( Input_Opt%LLINOZ ) THEN
-         CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
+         CALL Init_Linoz( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
       ENDIF
 
       ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
-      CALL INIT_CHEMGRID( am_I_Root, Input_Opt, RC )
+      CALL Init_ChemGrid( am_I_Root, Input_Opt, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CHEMGRID' )
+
+      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
+      CALL Init_Toms( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_TOMS' )
 
       !-----------------------------------------------------------------
       ! Also initialize specialty simulation modules here
@@ -8426,36 +8425,27 @@
       ! Initialize "c2h6_mod.F"
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. 
      &     Input_Opt%ITS_A_C2H6_SIM     ) THEN
-         CALL INIT_C2H6( am_I_Root, Input_Opt, RC )
+         CALL Init_C2H6( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Initialize "global_ch4_mod.F"
       IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-         CALL INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
+         CALL Init_Global_Ch4( am_I_Root, Input_Opt, RC )
       ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 3/16/15:
-! This module has been moved to the obsolete directory. (bmy, 3/16/15)
-!      ! Initialize "hcn_ch3cn_mod.F"
-!      IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
-!         CALL INIT_HCN_CH3CN( am_I_Root, Input_Opt, RC )
-!      ENDIF
-!------------------------------------------------------------------------------
 
       ! Initialize "tagged_co_mod.F"
       IF ( Input_Opt%ITS_A_TAGCO_SIM   .or.
      &     Input_Opt%ITS_A_H2HD_SIM  ) THEN
-         CALL INIT_TAGGED_CO( am_I_Root, Input_Opt, RC )
+         CALL Init_Tagged_CO( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Initialize "tagged_ox_mod.F"
       IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-         CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
+         CALL Init_Tagged_Ox( am_I_Root, Input_Opt, RC )
       ENDIF
 
       IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-         CALL INIT_POPS( am_I_Root, Input_Opt, RC )
+         CALL Init_POPs( am_I_Root, Input_Opt, RC )
       ENDIF
 
       END SUBROUTINE GIGC_Init_Extra

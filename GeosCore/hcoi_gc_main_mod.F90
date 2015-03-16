@@ -1935,6 +1935,8 @@ CONTAINS
 !  18 Feb 2015 - C. Keller   - Initial Version
 !  04 Mar 2015 - R. Yantosca - Now determine if we need to read UV albedo
 !                              data from the settings in input.geos
+!  16 Mar 2015 - R. Yantosca - Now also toggle TOMS_SBUV_O3 based on
+!                              met field type and input.geos settings
 !EOP
 !------------------------------------------------------------------------------
 
@@ -1979,15 +1981,24 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP( 'GetExtOpt +UvAlbedo+', LOC )
     ENDIF
+
     IF ( FOUND ) THEN
-       IF ( Input_Opt%LSCHEM /= LTMP ) THEN
+
+       ! Print a warning if this collection is defined in the HEMCO config
+       ! file, but is set to an value inconsistent with input.geos file.
+       IF ( Input_Opt%LCHEM /= LTMP ) THEN
           WRITE(6,'(a)')  ' '
           WRITE(6,'(a)') 'Setting +UValbedo+ in the HEMCO configuration'
           WRITE(6,'(a)') 'file does not agree with the chemistry settings'
           WRITE(6,'(a)') 'in input.geos. This may be inefficient and/or'
-          WRITE(6,'(a)') 'yield incorrect results!' 
+          WRITE(6,'(a)') 'may yield incorrect results!' 
        ENDIF
+
     ELSE
+
+       ! If this collection is not found in the HEMCO config file, then
+       ! activate it for those simulations requiring photolysis (i.e. 
+       ! fullchem or aerosols), and only if chemistry is turned on.
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
             Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
           IF ( Input_Opt%LCHEM ) THEN
@@ -2002,6 +2013,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt +Uvalbedo+', LOC )
        ENDIF
+
     ENDIF 
 
     !-----------------------------------------------------------------------
@@ -2019,15 +2031,24 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP( 'GetExtOpt +LinStratChem+', LOC )
     ENDIF
+
     IF ( FOUND ) THEN
+
+       ! Print a warning if this collection is defined in the HEMCO config
+       ! file, but is set to an value inconsistent with input.geos file.
        IF ( Input_Opt%LSCHEM /= LTMP ) THEN
           WRITE(*,*) ' '
           WRITE(*,*) 'Setting +LinStratChem+ in the HEMCO configuration'
           WRITE(*,*) 'file does not agree with stratospheric chemistry'
           WRITE(*,*) 'settings in input.geos. This may be inefficient' 
-          WRITE(*,*) 'and/or yield to wrong results!' 
+          WRITE(*,*) 'and/or may yield wrong results!' 
        ENDIF
+
     ELSE
+
+       ! If this collection is not found in the HEMCO config file, then
+       ! activate it only if stratospheric chemistry is turned on in
+       ! the input.geos file.
        IF ( Input_Opt%LSCHEM ) THEN
           OptName = '+LinStratChem+ : true'
        ELSE
@@ -2037,7 +2058,76 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt +LinStratChem+', LOC )
        ENDIF
+
     ENDIF 
+
+    !-----------------------------------------------------------------------
+    ! NON-EMISSIONS DATA #3: TOMS/SBUV overhead O3 columns
+    !
+    ! If we are using the GEOS-FP met fields, then we will not read in 
+    ! the TOMS/SBUV O3 columns.  We will instead use the O3 columns from
+    ! the GEOS-FP met fields.  In this case, we will toggle the 
+    ! +TOMS_SBUV_O3+ collection OFF.
+    !
+    ! All other met fields use the TOMS/SBUV data in one way or another,
+    ! so we will have to read these data from netCDF files.  In this
+    ! case, toggle the +TOMS_SBUV_O3+ collection ON if wphotolysis is
+    ! required (i.e. for fullchem/aerosol simulations w/ chemistry on).
+    !-----------------------------------------------------------------------
+    CALL GetExtOpt( -999, '+TOMS_SBUV_O3+', OptValBool=LTMP, &
+                           FOUND=FOUND,     RC=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'GetExtOpt +TOMS_SBUV_O3+', LOC )
+    ENDIF
+
+#if defined( GEOS_FP )
+    
+    ! Disable for GEOS-FP met fields, no matter what it is set to
+    ! in the HEMCO configuration file.
+    IF ( FOUND ) THEN
+       OptName = '+TOMS_SBUV_O3+ : false'
+       CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC )
+       ENDIF
+    ENDIF
+
+#else
+
+    IF ( FOUND ) THEN
+
+       ! Print a warning if this collection is defined in the HEMCO config
+       ! file, but is set to an value inconsistent with input.geos file.
+       IF ( Input_Opt%LCHEM /= LTMP ) THEN
+          WRITE(*,*) ' '
+          WRITE(*,*) 'Setting +TOMS_SBUV_O3+ in the HEMCO configuration'
+          WRITE(*,*) 'file does not agree with the chemistry settings'
+          WRITE(*,*) 'in input.geos. This may be inefficient and/or' 
+          WRITE(*,*) 'may yield wrong results!' 
+       ENDIF
+
+    ELSE
+
+       ! If this collection is not found in the HEMCO config file, then
+       ! activate it only for those simulations that use photolysis 
+       ! (e.g. fullchem or aerosol) and only when chemistry is turned on.
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
+            Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+          IF ( Input_Opt%LCHEM ) THEN
+             OptName = '+TOMS_SBUV_O3+ : true'
+          ELSE
+             OptName = '+TOMS_SBUV_O3+ : false'
+          ENDIF
+       ELSE
+          OptName = '+TOMS_SBUV_O3+ : false'
+       ENDIF
+       CALL AddExtOpt( TRIM(OptName), CoreNr, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'AddExtOpt +Uvalbedo+', LOC )
+       ENDIF
+    ENDIF 
+
+#endif
 
     !-----------------------------------------------------------------
     ! Make sure that the SHIPNO_BASE toggle is disabled if PARANOx is
