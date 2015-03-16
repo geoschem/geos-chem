@@ -179,7 +179,7 @@ CONTAINS
     IF ( .NOT. ExtState%SeaFlux ) RETURN
 
     ! Verbose?
-    VERBOSE = am_I_Root .AND. HCO_VERBOSE_CHECK() 
+    verbose = HCO_IsVerb(1) 
 
     ! ---------------------------------------------------------------
     ! Calculate emissions

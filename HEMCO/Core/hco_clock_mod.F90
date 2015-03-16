@@ -565,7 +565,7 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Verbose mode
     ! ----------------------------------------------------------------
-    IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
+    IF ( HCO_IsVerb( 1 ) ) THEN
        IF ( NewStep ) THEN
           WRITE(MSG,110) HcoClock%ThisYear, HcoClock%ThisMonth, &
                          HcoClock%ThisDay,  HcoClock%ThisHour,  &

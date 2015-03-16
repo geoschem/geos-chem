@@ -199,7 +199,7 @@ CONTAINS
     IF(RC /= HCO_SUCCESS) RETURN
 
     ! verb mode? 
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+    verb = HCO_IsVerb( 1 )
 
     !-----------------------------------------------------------------
     ! Initialize variables 
@@ -777,7 +777,7 @@ CONTAINS
     IF(RC /= HCO_SUCCESS) RETURN
 
     ! Verbose mode 
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root 
+    verb = HCO_IsVerb( 1 ) 
 
     ! testing only:
     IX = 25 !-1 
@@ -1227,7 +1227,7 @@ CONTAINS
     IF(RC /= HCO_SUCCESS) RETURN
 
     ! testing only
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+    verb = HCO_IsVerb( 1 ) 
     IX = 60 !40 !19 43 61
     IY = 32 !36 !33 26 37
 

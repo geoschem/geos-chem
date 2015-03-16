@@ -218,9 +218,6 @@ CONTAINS
     IF ( am_I_Root ) THEN
        CALL HCO_LOGFILE_OPEN( RC=HMRC ) 
        IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Open Logfile', LOC )
-    ELSE
-       ! If this is not the root CPU, always disable verbose mode.
-       CALL HCO_VERBOSE_SET ( .FALSE. )
     ENDIF
 
     !=================================================================

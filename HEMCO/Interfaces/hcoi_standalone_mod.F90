@@ -258,9 +258,6 @@ CONTAINS
     IF ( am_I_Root ) THEN
        CALL HCO_LogFile_Open( RC=RC ) 
        IF (RC /= HCO_SUCCESS) RETURN 
-    ELSE
-       ! If this is not the root CPU, always disable verbose mode.
-       CALL HCO_Verbose_Set( .FALSE. )
     ENDIF
 
     !=================================================================

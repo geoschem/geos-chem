@@ -333,7 +333,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                  :: I, J, L
-    LOGICAL                  :: verb
     LOGICAL                  :: ERR
     LOGICAL                  :: FOUND 
     LOGICAL, SAVE            :: FIRST = .TRUE.
@@ -391,9 +390,6 @@ CONTAINS
        RC = HCO_SUCCESS 
        RETURN
     ENDIF
-
-    ! verbose mode?
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
 
     ! Get simulation month
     CALL HcoClock_Get( cH=HH, RC=RC )

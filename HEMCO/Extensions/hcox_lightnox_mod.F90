@@ -1904,7 +1904,6 @@ CONTAINS
     INTEGER, ALLOCATABLE           :: HcoIDs(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
     CHARACTER(LEN=255)             :: MSG, LOC, FILENAME
-    LOGICAL                        :: verb
 
     !=======================================================================
     ! HCOX_LightNOX_Init begins here!
@@ -1917,7 +1916,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER( 'HCOX_LightNOx_Init (hcox_lightnox_mod.F90)', RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
 
     ! Read settings specified in configuration file
     ! Note: the specified strings have to match those in 
@@ -1991,8 +1989,10 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Echo info
-    WRITE( MSG, 100 ) TRIM( FILENAME )
-    CALL HCO_MSG(MSG)
+    IF ( am_I_Root ) THEN
+       WRITE( MSG, 100 ) TRIM( FILENAME )
+       CALL HCO_MSG(MSG)
+    ENDIF
 100 FORMAT( '     - INIT_LIGHTNOX: Reading ', a )
 
     ! Find a free file LUN

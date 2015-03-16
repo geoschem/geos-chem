@@ -29,6 +29,7 @@ MODULE HCO_CharTools_Mod
   PUBLIC :: HCO_CharSplit
   PUBLIC :: HCO_CharMatch
   PUBLIC :: HCO_CharParse
+  PUBLIC :: HCO_GetBase
   PUBLIC :: IsInWord
   PUBLIC :: NextCharPos
   PUBLIC :: HCO_WCD
@@ -647,6 +648,70 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_CharParse
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_GetBase
+!
+! !DESCRIPTION: Routine HCO\_GetBase returns the base location of the given
+! file. This is the entire file path up to the last forward slash, e.g. for
+! file '/home/dir/Config.rc', the base is '/home/dir/'
+!
+! !INTERFACE:
+!
+  SUBROUTINE HCO_GetBase ( str, base, RC ) 
+!
+! !USES:
+!
+    USE CharPak_Mod, ONLY : StrSplit
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN   )  :: str   ! string to be checked 
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(  OUT)  :: base  ! base 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC         ! return code
+!
+! !REVISION HISTORY:
+!  16 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: I, N
+    CHARACTER(LEN=255)  :: SUBSTR(255)
+
+    !=================================================================
+    ! HCO_GetBase begins here
+    !=================================================================
+
+    CALL STRSPLIT( str, '/', SUBSTR, N )
+    IF ( N <= 1 ) THEN
+       base = '.'
+    ELSE
+       base = '/' // TRIM(SUBSTR(1)) 
+       IF ( N > 2 ) THEN
+          DO I = 2,(N-1)
+             base = TRIM(base) // '/' // TRIM(SUBSTR(I)) 
+          ENDDO
+       ENDIF
+    ENDIF
+
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_GetBase
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

@@ -943,7 +943,7 @@ CONTAINS
        IF ( .NOT. FOUND ) Tolerance = 0
 
        ! Verbose mode: write to log file
-       IF ( HCO_VERBOSE_CHECK() ) THEN
+       IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) 'Unit tolerance set to ', Tolerance
           CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
        ENDIF

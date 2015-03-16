@@ -242,6 +242,14 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
+    ! Eventually write out emission totals to GEOS-Chem logfile
+    !-----------------------------------------------------------------------
+    CALL TotalsToLogfile( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN 
+       CALL ERROR_STOP ('Error in TotalsToLogfile', LOC ) 
+    ENDIF
+
+    !-----------------------------------------------------------------------
     ! RESTART: write out all diagnostics. Use current time stamp and save into
     ! restart file.
     !-----------------------------------------------------------------------
@@ -805,6 +813,120 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE DiagInit_Tracer_Emis
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: TotalsToLogfile 
+!
+! !DESCRIPTION: Subroutine TotalsToLogfile is a helper routine to print the 
+! monthly emission totals to the GEOS-Chem logfile.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE TotalsToLogfile( am_I_Root, Input_Opt, RC ) 
+!
+! !USES:
+!
+    USE HCO_ERROR_MOD
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
+    USE HCO_DIAGN_MOD,      ONLY : Diagn_TotalGet
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input opts
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REVISION HISTORY: 
+!  15 Mar 2015 - C. Keller    - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER       :: I, cID, HCRC
+    INTEGER       :: YEAR, MONTH 
+    INTEGER, SAVE :: SAVEMONTH = -999
+    REAL(sp)      :: TOTAL
+    LOGICAL       :: FOUND
+
+    !=================================================================
+    ! TotalsToLogfile begins here!
+    !=================================================================
+
+    ! Assume success
+    RC = GIGC_SUCCESS
+
+    ! Don't do anything if not root
+    IF ( .NOT. Am_I_Root ) RETURN
+
+    ! Get this month
+    MONTH = GET_MONTH()
+
+    ! Print totals if it's a new month, but not on first call
+    IF ( (SAVEMONTH /= MONTH) .AND. (SAVEMONTH > 0) ) THEN 
+
+       ! Get year/month of previous month
+       YEAR = GET_YEAR()
+       IF ( MONTH == 1 ) THEN
+          YEAR  = YEAR -1
+          MONTH = 12
+       ELSE
+          MONTH = MONTH - 1
+       ENDIF
+
+       ! Print header
+       WRITE(6,*    ) ''
+       WRITE(6,'(a)') REPEAT( '-', 79 )
+       WRITE(6,100  ) MONTH, YEAR
+
+       ! Loop over all tracers
+       DO I = 1, Input_Opt%N_TRACERS
+
+          ! Only if it's a HEMCO species...
+          cID = GetHcoID( TrcID=I )
+          IF ( cID <= 0 ) CYCLE
+          
+          ! Define diagnostics ID
+          cID = 10000 + cID
+
+          ! Get the total [kg] 
+          CALL Diagn_TotalGet( am_I_Root,                         & 
+                             cID     = cID,                       &
+                             Found   = Found,                     &
+                             Total   = Total,                     &
+                             COL     = Input_Opt%DIAG_COLLECTION, &
+                             Reset   = .TRUE.,                    &
+                             RC      = HCRC                        )
+          IF ( .NOT. FOUND ) CYCLE
+
+          ! Only if there have been any emissions...
+          IF ( Total == 0.0_fp ) CYCLE
+   
+          ! Convert total from kg to Mg
+          Total = Total / 1000.0_fp
+
+          ! Write out
+          WRITE(6,101) TRIM(Input_Opt%TRACER_NAME(I)), Total
+       ENDDO
+    ENDIF
+    
+    ! Update month counter
+    SAVEMONTH = MONTH
+
+100 FORMAT( 'Emissions in month ', i2, ' of year ', i4, ':')
+101 FORMAT( a9, ': ', e11.3, ' Mg/month')
+
+  END SUBROUTINE TotalsToLogfile 
 !EOC
 END MODULE Diagnostics_Mod
 #endif
