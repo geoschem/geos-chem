@@ -4452,12 +4452,12 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
       IMPLICIT NONE
@@ -4470,34 +4470,28 @@
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
-! !REMARKS:
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
-!
 ! !REVISION HISTORY: 
 !  11 Jan 2011 - Y. Zhang    - Initial version
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path'
+!  16 Mar 2015 - R. Yantosca - Remove bpch input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: NYMD, I, J
-      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-      REAL(fp)            :: E_ELECTRICITY_Hg2(IIPAR,JJPAR)
-      REAL(f8)            :: XTAU
-      REAL(fp)            :: rFACTOR
+      ! Scalars
+      INTEGER             :: I, J
       REAL(fp)            :: E_plant
 
-      ! For filename
-      CHARACTER(LEN=255)  :: FILENAME
+      ! Strings
+      CHARACTER(LEN=255)  :: LOC = 'DO_RED_INPLUME (mercury_mod.F)'
+
+      ! Pointers
+      REAL(f4), POINTER   :: E_ELEC_Hg2(:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -4506,47 +4500,30 @@
       !=================================================================
       ! DO_RED_INPLUME begins here!
       !=================================================================
-
-      ! Mercury data is for 2005
-      NYMD     = ( 2005 * 10000 ) + 0101
-      XTAU     = GET_TAU0( 1, 1, 2005 )
-
-      ! Read power plant emissions
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) //
-     &           TRIM( Input_Opt%RES_DIR  ) // 'mercury_201203/' //
-     &           'CFPP_NEI2005_NPRI2005_Hg2.'    //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
-     
-      ! Add year to the filename
-      CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-     
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 50 ) TRIM( FILENAME )
- 50      FORMAT( '     - RED_INPLUME: Reading ', a )
+      
+      ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
+      CALL HCO_GetPtr( am_I_Root, 'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 
+     &      'Cannot get pointer to CFPP_NEI2005_Hg2!', LOC )
       ENDIF
 
-      ! Read data in [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'HG-SRCE',     6,
-     &                 XTAU,      IIPAR,        JJPAR,
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-     
-      ! Regrid to the current grid
-      E_ELECTRICITY_Hg2 = ARRAY(:,:,1)
-
-      DO J=1,JJPAR
-      DO I=1,IIPAR
-
-         ! Transfer unit to kg/s
-         ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
-         E_plant = E_ELECTRICITY_Hg2(I,J) / SEC_PER_YR
+      ! Do the reduction
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
              
+         ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
+         ! Convert [kg/m2/s] --> [kg/s]
+         E_plant = E_ELEC_Hg2(I,J) * GET_AREA_M2(I,J,1)
+
          ! Reduce the Hg2 from plume
          CALL RED_INPLUME_GRID( I, J, E_plant )
 
       ENDDO
       ENDDO
+
+      ! Free npointer
+      E_ELEC_Hg2 => NULL()
 
       ! Return to calling program
       END SUBROUTINE DO_RED_INPLUME
@@ -5142,6 +5119,20 @@
       ENDIF
 
       !-----------------------------------------------------------------
+      ! Set the value of LInPlume depending on whether or not
+      ! the HEMCO collection NEI2005 is activated
+      !-----------------------------------------------------------------
+      CALL GetExtOpt( -999, 'LRED_INPLUME',  OptValBool=LInPlume,
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LInPlume5', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LInPlume = .FALSE.
+      ENDIF
+
+
+      !-----------------------------------------------------------------
       ! Echo output
       !-----------------------------------------------------------------
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -5149,11 +5140,13 @@
       WRITE( 6, 110   ) LRED_JNO2
       WRITE( 6, 120   ) LGCBROMINE
       WRITE( 6, 130   ) LNEI2005
+      WRITE( 6, 140   ) LInPlume
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
  100  FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
  110  FORMAT( 'LRED_JNO2  is set to ', L1                          )
  120  FORMAT( 'LGCBROMINE is set to ', L1                          )
  130  FORMAT( 'LNEI2005   is set to ', L1                          )
+ 140  FORMAT( 'LInPlume   is set to ', L1                          )
       
       END SUBROUTINE SET_OPTIONS_FROM_HEMCO
 !EOC

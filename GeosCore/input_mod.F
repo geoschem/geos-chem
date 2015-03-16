@@ -8291,7 +8291,11 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
-      USE HCN_CH3CN_Mod,      ONLY : Init_HCN_CH3CN
+!------------------------------------------------------------------------------
+! Prior to 3/16/15:
+! This module has been moved to the obsolete directory. (bmy, 3/16/15)
+!      USE HCN_CH3CN_Mod,      ONLY : Init_HCN_CH3CN
+!------------------------------------------------------------------------------
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
       USE POPs_Mod,           ONLY : Init_POPs
@@ -8430,10 +8434,14 @@
          CALL INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
       ENDIF
 
-      ! Initialize "hcn_ch3cn_mod.F"
-      IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
-         CALL INIT_HCN_CH3CN( am_I_Root, Input_Opt, RC )
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 3/16/15:
+! This module has been moved to the obsolete directory. (bmy, 3/16/15)
+!      ! Initialize "hcn_ch3cn_mod.F"
+!      IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
+!         CALL INIT_HCN_CH3CN( am_I_Root, Input_Opt, RC )
+!      ENDIF
+!------------------------------------------------------------------------------
 
       ! Initialize "tagged_co_mod.F"
       IF ( Input_Opt%ITS_A_TAGCO_SIM   .or.

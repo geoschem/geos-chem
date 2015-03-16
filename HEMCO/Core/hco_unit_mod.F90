@@ -44,6 +44,7 @@ MODULE HCO_Unit_Mod
 !                              parameter
 !  13 Aug 2014 - C. Keller   - Interface for sp & dp arrays
 !  13 Mar 2015 - R. Yantosca - Add m and m2 to the "unitless" list
+!  16 Mar 2015 - R. Yantosca - Also allow "kg m-2 s-1" and similar units
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -65,7 +66,7 @@ MODULE HCO_Unit_Mod
   ! add more units if you don't want HEMCO to attempt to convert data
   ! in these units.
   ! All characters in this list should be lower case!
-  INTEGER,           PARAMETER :: NUL = 23
+  INTEGER,           PARAMETER :: NUL = 26
   CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',        &
                                                'count',    &
                                                'unitless', &
@@ -78,8 +79,10 @@ MODULE HCO_Unit_Mod
                                                's-1',      &
                                                's^-1',     &
                                                'm2/m2',    & 
+                                               'm2m-2',    &
                                                'k',        & 
                                                'w/m2',     & 
+                                               'wm-2',     &
                                                'pptv',     & 
                                                'ppt',      & 
                                                'ppbv',     & 
@@ -87,6 +90,7 @@ MODULE HCO_Unit_Mod
                                                'ppmv',     & 
                                                'ppm',      & 
                                                'm/s',      &
+                                               'ms-1',     &
                                                'm',        &
                                                'cm2cm-2'    /)
 
@@ -95,10 +99,13 @@ MODULE HCO_Unit_Mod
   ! All characters in this list should be lower case!
 
   ! Emission units
-  INTEGER,           PARAMETER :: NHE = 3
-  CHARACTER(LEN=15), PARAMETER :: HE(NHE) = (/ 'kg/m2/s',   &
-                                               'kgc/m2/s',  &
-                                               'kg(c)/m2/s'  /)
+  INTEGER,           PARAMETER :: NHE = 6
+  CHARACTER(LEN=15), PARAMETER :: HE(NHE) = (/ 'kg/m2/s',    &
+                                               'kgc/m2/s',   &
+                                               'kg(c)/m2/s', &
+                                               'kgm-2s-1',   &
+                                               'kgcm-2s-1',  &
+                                               'kg(c)m-2s-1' /)
 
   ! Concentration units
   INTEGER,           PARAMETER :: NHC = 3

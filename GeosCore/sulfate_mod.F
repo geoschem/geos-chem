@@ -1467,7 +1467,6 @@
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT
       USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0
-      USE BPCH2_MOD,          ONLY : READ_BPCH2
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
@@ -1475,7 +1474,6 @@
 #if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44 
 #endif
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState

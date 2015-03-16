@@ -1168,9 +1168,8 @@
 !
       ! GEOS-Chem modules
       USE CMN_SIZE_MOD   
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
