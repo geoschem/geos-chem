@@ -171,6 +171,12 @@
 !                                                                             .
 !  This methodology was originally adopted by Mat Evans.
 !  
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY: 
 !  10 Dec 2002 - M. Evans - Initial version
 !  (1 ) Bundled into "toms_mod.f" (bmy, 7/14/03)
@@ -280,7 +286,7 @@
       !=================================================================
 
       ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) //
+      LLFILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       !-----------------------------

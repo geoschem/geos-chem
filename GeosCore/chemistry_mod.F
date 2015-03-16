@@ -92,7 +92,6 @@
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
       USE COMODE_LOOP_MOD     
-!      USE DRYDEP_MOD,         ONLY : DRYFLX
       USE DRYDEP_MOD,         ONLY : DRYFLXRnPbBe
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
@@ -102,7 +101,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
-      USE HCN_CH3CN_MOD,      ONLY : CHEM_HCN_CH3CN
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
       USE MERCURY_MOD,        ONLY : CHEMMERCURY
       USE OPTDEPTH_MOD,       ONLY : OPTDEPTH
@@ -513,21 +511,21 @@
             ENDIF
 
 !-----------------------------------------------------------------------------
-! This simulation is now obsolete.  You can reactivate it if you want.
+! These simulations are now obsolete.  You can reactivate them if you want.
 !         !---------------------------------
 !         ! CH3I
 !         !---------------------------------
 !         ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
 !            CALL CHEMCH3I
 !     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+! 
+!         !---------------------------------            
+!         ! HCN
+!         !---------------------------------
+!         ELSE IF ( IT_IS_A_HCN_SIM ) THEN
+!            CALL CHEM_HCN_CH3CN
+!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 !-----------------------------------------------------------------------------
- 
-         !---------------------------------            
-         ! HCN
-         !---------------------------------
-         ELSE IF ( IT_IS_A_HCN_SIM ) THEN
-            CALL CHEM_HCN_CH3CN
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
  
          !---------------------------------
          ! Tagged O3

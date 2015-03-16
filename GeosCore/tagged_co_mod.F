@@ -122,19 +122,24 @@
 !  10 Jul 2014 - J.A. Fisher - Change FIRSTEMISS to FIRSTTIME to allow
 !                              initialisation when emissions are off
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  11 Mar 2015 - R. Yantosca - Add OH pointer for HEMCO data input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      REAL*4,    ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
-      REAL*4,    ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
-      REAL(fp),  ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
-      REAL(fp),  ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
-      REAL(fp),  ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
-      REAL(fp),  ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
-      REAL(fp),  ALLOCATABLE :: TCOSZ     (:,:  )   ! Daily sum COS(SZA)
+      REAL(f4), ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
+      REAL(f4), ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
+      REAL(fp), ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
+      REAL(fp), ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
+      REAL(fp), ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
+      REAL(fp), ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
+      REAL(fp), ALLOCATABLE :: TCOSZ     (:,:  )   ! Daily sum COS(SZA)
+
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER     :: OH(:,:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -171,18 +176,18 @@
       USE CMN_DIAG_MOD
       USE DIAG_PL_MOD,        ONLY : AD65
       USE ERROR_MOD,          ONLY : CHECK_VALUE
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH,   OH
-      USE GLOBAL_NOX_MOD,     ONLY : GET_GLOBAL_NOX,  BNOX
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
       USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
 !
 ! !INPUT PARAMETERS:
 !
@@ -262,6 +267,8 @@
 !  10 Jul 2014 - J.A. Fisher - Moved ALPHA definitions out of code
 !  27 Aug 2014 - R. Yantosca - Bug fix: pass Input_Opt to GET_GLOBAL_CH4
 !  21 Oct 2014 - C. Keller   - Now use GetHcoVal instead ot Trac_Tend array
+!  11 Mar 2015 - R. Yantosca - Remove references to global_nox_mod.F
+!  11 Mar 2015 - R. Yantosca - Now get OH via the HEMCO data structure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,6 +314,9 @@
       ! To get HEMCO values
       REAL(fp)               :: Emis
       LOGICAL                :: FOUND
+
+      ! Strings
+      CHARACTER(LEN=255)     :: LOC='CHEM_TAGGED_CO (tagged_co_mod.F)'
 !
 ! !DEFINED PARAMETERS:
 !
@@ -359,16 +369,12 @@
          ! Get current month
          MONTH = GET_MONTH()
 
-         ! Global OH 
-         CALL GET_GLOBAL_OH
-     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
-
-         ! Global NOx -- need this to determine 
-         ! ALPHA_ISOP which is a function of NOx
-         IF ( ALPHA_ISOP_FROM_NOX ) THEN
-            CALL GET_GLOBAL_NOX( MONTH, Input_Opt )
+         ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
-            
+
          ! Read in the loss/production of CO in the stratosphere.
          CALL READ_PCO_LCO_STRAT( am_I_Root, Input_Opt, MONTH, RC )
             
@@ -577,11 +583,7 @@
             !===========================================================
 
             ! Get CO yield from isoprene
-            IF ( ALPHA_ISOP_FROM_NOX ) THEN
-               ALPHA_ISOP = GET_ALPHA_ISOP( .TRUE., BNOX(I,J,L) )      
-            ELSE
-               ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
-            ENDIF
+            ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
 
             ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
             ! Convert from [molec ISOP/box] to [molec CO/cm3]
@@ -1166,9 +1168,8 @@
 !
       ! GEOS-Chem modules
       USE CMN_SIZE_MOD   
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
@@ -1485,6 +1486,7 @@
 !        fields make these no longer necessary (bmy, 8/21/09)
 !  (3 ) Now remove IJLOOP_CO (bmy, 7/20/04)
 !  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  11 Mar 2015 - R. Yantosca - Now free the OH pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1499,6 +1501,9 @@
       IF ( ALLOCATED( CO_PRODS   ) ) DEALLOCATE( CO_PRODS   )
       IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
       IF ( ALLOCATED( CO_LOSSS   ) ) DEALLOCATE( CO_LOSSS   )
+
+      ! Free OH pointer
+      OH => NULL()
 
       END SUBROUTINE CLEANUP_TAGGED_CO
 !EOC

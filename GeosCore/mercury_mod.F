@@ -58,7 +58,6 @@
       PRIVATE :: MERCURY_READYR
       PRIVATE :: OHNO3TIME
       PRIVATE :: CALC_HG2_SEASALT_LOSSRATE
-      PRIVATE :: GET_GLOBAL_JNO2
       PRIVATE :: RED_INPLUME_GRID
       PRIVATE :: DO_RED_INPLUME
       PRIVATE :: GET_HGBR_RATE
@@ -176,6 +175,8 @@
 !  03 Jun 2013 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 Mar 2015 - R. Yantosca - Now get JNO2 from the HEMCO data structure
+!  12 Mar 2015 - R. Yantosca - Remove GET_GLOBAL_JNO2 routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -216,84 +217,89 @@
       REAL(fp),  PARAMETER   :: SMALLNUM = 1e-20_fp
 
       ! Arrays
-      INTEGER, ALLOCATABLE :: AN_Hg0(:,:)
-      INTEGER, ALLOCATABLE :: AN_Hg2(:,:)
-      INTEGER, ALLOCATABLE :: AN_HgP(:,:)
-      REAL(fp),  ALLOCATABLE :: COSZM(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_an(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_can(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_usa(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_cam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_sam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_waf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_eaf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_saf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_naf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_eur(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_eeu(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_mde(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_sov(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_sas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_eas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_sea(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_jpn(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_oce(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_am(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_an(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_can(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_usa(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_cam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_sam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_waf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_eaf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_saf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_naf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_eur(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_eeu(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_mde(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_sov(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_sas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_eas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_sea(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_jpn(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg2_oce(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_an(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_can(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_usa(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_cam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_sam(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_waf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_eaf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_saf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_naf(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_eur(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_eeu(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_mde(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_sov(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_sas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_eas(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_sea(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_jpn(:,:)
-      REAL(fp),  ALLOCATABLE :: EHgP_oce(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_oc(:,:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_ln(:,:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_dist(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_geo(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_bb(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_vg(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_so(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_gtm(:,:)
-      REAL(fp),  ALLOCATABLE :: EHg0_snow(:,:,:)
-      REAL(fp),  ALLOCATABLE :: TCOSZ(:,:)
-      REAL(fp),  ALLOCATABLE :: TTDAY(:,:)
-      REAL(fp),  ALLOCATABLE :: ZERO_DVEL(:,:)
-      REAL(fp),  ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) 
-      REAL(fp),  ALLOCATABLE :: JNO2(:,:,:) 
+      INTEGER,  ALLOCATABLE :: AN_Hg0(:,:)
+      INTEGER,  ALLOCATABLE :: AN_Hg2(:,:)
+      INTEGER,  ALLOCATABLE :: AN_HgP(:,:)
+      REAL(fp), ALLOCATABLE :: COSZM(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_an(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_can(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_usa(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_cam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_waf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eaf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_saf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_naf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eur(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eeu(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_mde(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sov(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sea(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_jpn(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_oce(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_am(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_an(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_can(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_usa(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_cam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_waf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eaf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_saf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_naf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eur(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eeu(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_mde(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sov(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sea(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_jpn(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_oce(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_an(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_can(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_usa(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_cam(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sam(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_waf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eaf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_saf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_naf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eur(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eeu(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_mde(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sov(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sas(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eas(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sea(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_jpn(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_oce(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_oc(:,:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_ln(:,:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_dist(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_geo(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_bb(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_vg(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_so(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_gtm(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_snow(:,:,:)
+      REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
+      REAL(fp), ALLOCATABLE :: TTDAY(:,:)
+      REAL(fp), ALLOCATABLE :: ZERO_DVEL(:,:)
+      REAL(fp), ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) 
 
       ! For now, we need an emission array for the HG simulation
       ! that can be passed to vdiff_mod.F90 since Trac_Tend does 
       ! not exist anymore (ckeller, 10/21/2014).
-      REAL(fp),  ALLOCATABLE, PUBLIC :: HG_EMIS(:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: HG_EMIS(:,:,:)
+
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER :: O3  (:,:,:) => NULL()
+      REAL(f4), POINTER :: OH  (:,:,:) => NULL()
+      REAL(f4), POINTER :: JNO2(:,:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -338,10 +344,6 @@
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR, ND03 
       USE DIAG03_MOD,         ONLY : AD03_Br
-!      USE DRYDEP_MOD,         ONLY : DEPSAV
-!      USE DRYDEP_MOD,         ONLY : DRYHg0
-!      USE DRYDEP_MOD,         ONLY : DRYHg2
-!      USE DRYDEP_MOD,         ONLY : DRYHgP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -349,8 +351,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
@@ -482,6 +483,7 @@
 !
 ! !LOCAL VARIABLES:
 
+      LOGICAL, SAVE   :: FIRST = .TRUE.
       INTEGER         :: I, J, L, K, N, MONTH, NSTEPS
       REAL(fp)        :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
       REAL(fp)        :: C_OH, C_O3, C_BR, C_BRO
@@ -506,11 +508,14 @@
       LOGICAL         :: LPRT
       LOGICAL         :: LSPLIT
       INTEGER         :: N_TRACERS
-      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)        :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
       REAL(fp), POINTER :: T(:,:,:)
+
+      ! Strings
+      CHARACTER(LEN=255) :: LOC = 'CHEMMERCURY (mercury_mod.F)'
 !
 ! !DEFINED PARAMETERS:
 !
@@ -580,6 +585,15 @@
       STT      => State_Chm%Tracers
       T        => State_Met%T
 
+      ! Override the default value of LGCBROMINE and LRED_JNO2 depending 
+      ! on the settings in the HEMCO configuration file.  NOTE: This cannot
+      ! be done in INIT_MERCURY because at that time the HEMCO configuration 
+      ! file has not been read yet. (bmy, 3/12/15)
+      IF ( FIRST ) THEN
+         CALL SET_OPTIONS_FROM_HEMCO( RC )
+         FIRST = .FALSE.
+      ENDIF
+
       !=================================================================
       ! Read monthly mean Br, OH, O3, and J_NO2 fields
       !=================================================================
@@ -588,20 +602,26 @@
          ! Get the current month
          MONTH = GET_MONTH()
 
-         ! Read monthly mean OH and O3 from disk
-         CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, State_Met, MONTH, RC)
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_OH' )
+         ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+         ENDIF
 
-         CALL GET_GLOBAL_O3( am_I_Root, Input_Opt, MONTH, RC )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
+         ! Get a pointer to the monthly mean O3 from HEMCO (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_O3', O3,  RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
+         ENDIF
 
          CALL GET_GLOBAL_BR( am_I_Root, Input_Opt, State_Met, MONTH, RC)
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
-         IF (LRED_JNO2) THEN
-            CALL GET_GLOBAL_JNO2( am_I_Root, Input_Opt, MONTH, RC )
-            IF ( LPRT ) THEN
-               CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_JNO2' )
+         ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
+         IF ( LRED_JNO2 ) THEN
+            CALL HCO_GetPtr( am_I_Root, 'JNO2', JNO2,  RC )
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP ( 'Cannot get pointer to JNO2', LOC )
             ENDIF
          ENDIF
 
@@ -643,6 +663,7 @@
 !$OMP+PRIVATE( GROSS_RED, NET_OX )
 !$OMP+PRIVATE( AREA_CM2,  DEP_DRY_FLX )
 !$OMP+PRIVATE( F_HG0_DEP )
+!%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
       DO I=1, IIPAR
       DO J=1, JJPAR
       DO L=1, LLPAR
@@ -3490,7 +3511,6 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_O3_MOD,      ONLY : O3
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3501,7 +3521,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                      :: O3_MOLEC_CM3   ! O3 conc [molec/cm3]
+      REAL(fp)                    :: O3_MOLEC_CM3   ! O3 conc [molec/cm3]
 ! 
 ! !REVISION HISTORY: 
 !  06 Dec 2002 - R. Yantosca - Initial version
@@ -3510,6 +3530,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  11 Mar 2015 - R. Yantosca - Remove reference to GLOBAL_O3_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3552,7 +3573,6 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : OH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -3564,12 +3584,14 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                      :: OH_MOLEC_CM3   ! OH conc [molec/cm3]
+      REAL(fp)                    :: OH_MOLEC_CM3   ! OH conc [molec/cm3]
 !
 ! !REVISION HISTORY: 
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  28 Nov 2012 - R. Yantosca - Now pass State_Met via the argument list
+!  11 Mar 2015 - R. Yantosca - Remove reference to GLOBAL_OH_MOD
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4029,7 +4051,6 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_M
-!      USE RNPBBE_MOD,         ONLY : SLQ
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4119,121 +4140,6 @@
 
       ! Return to calling program
       END SUBROUTINE CALC_HG2_SEASALT_LOSSRATE
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_global_jno2 
-!
-! !DESCRIPTION: Subroutine GET\_GLOBAL\_JNO2 reads monthly mean JNO2 data 
-!  fields.  These are needed for Hg sim. (cdh, 11/25/09
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GET_GLOBAL_JNO2( am_I_Root, Input_Opt, THISMONTH, RC )
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-
-      IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
-! 
-! !REMARKS:
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
-!
-! !REVISION HISTORY: 
-!  25 Nov 2009 - C. Holmes   - Initial version
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL(f4)           :: ARRAY2(IIPAR,JJPAR,LLPAR)
-      REAL(f8)           :: XTAU
-      CHARACTER(LEN=255) :: FILENAME
-
-      !=================================================================
-      ! GET_GLOBAL_JNO2 begins here!
-      !=================================================================
-
-      !CDH -WE EVENTUALLY NEED TO SUPPORT OTHER MODEL RESOLUTIONS
-      ! Filename for full-level GEOS5 model
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( Input_Opt%DATA_DIR )     // 
-     &           TRIM( Input_Opt%RES_DIR  )     //
-     &           'mercury_201203/jvalues.noon.' //
-     &           GET_NAME_EXT()    // '.' // GET_RES_EXT()
-#else
-      FILENAME = 
-     &           TRIM( Input_Opt%DATA_DIR )     // 
-     &           TRIM( Input_Opt%RES_DIR  )     //
-     &           'mercury_201007/jvalues.noon.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-#endif
-
-      ! Echo some information to the standard output
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 110 ) TRIM( FILENAME )
- 110     FORMAT( '     - GET_GLOBAL_JNO2: Reading ', a )
-      ENDIF
-
-      ! Get the TAU0 value for the start of the given month
-      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
-      XTAU = GET_TAU0( THISMONTH, 1, 2005 )
-
-#if   defined( GRIDREDUCED )
- 
-      ! Read O3 data (v/v) from the binary punch file (tracer #51)
-      CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 1,     
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable O3
-      CALL TRANSFER_3D( ARRAY, JNO2 )
-
-#else
-
-      ! Read O3 data (v/v) from the binary punch file (tracer #51)
-      CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 1,      
-     &                 XTAU,      IIPAR,     JJPAR,
-     &                 LLPAR,     ARRAY2,    QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable O3
-      ! (don't have to fold layers in the stratosphere)
-      JNO2 = ARRAY2
-
-#endif
-
-
-      ! Return to calling program
-      END SUBROUTINE GET_GLOBAL_JNO2
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4546,12 +4452,12 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
       IMPLICIT NONE
@@ -4564,34 +4470,28 @@
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
-! !REMARKS:
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
-!
 ! !REVISION HISTORY: 
 !  11 Jan 2011 - Y. Zhang    - Initial version
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path'
+!  16 Mar 2015 - R. Yantosca - Remove bpch input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: NYMD, I, J
-      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-      REAL(fp)            :: E_ELECTRICITY_Hg2(IIPAR,JJPAR)
-      REAL(f8)            :: XTAU
-      REAL(fp)            :: rFACTOR
+      ! Scalars
+      INTEGER             :: I, J
       REAL(fp)            :: E_plant
 
-      ! For filename
-      CHARACTER(LEN=255)  :: FILENAME
+      ! Strings
+      CHARACTER(LEN=255)  :: LOC = 'DO_RED_INPLUME (mercury_mod.F)'
+
+      ! Pointers
+      REAL(f4), POINTER   :: E_ELEC_Hg2(:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
@@ -4600,47 +4500,30 @@
       !=================================================================
       ! DO_RED_INPLUME begins here!
       !=================================================================
-
-      ! Mercury data is for 2005
-      NYMD     = ( 2005 * 10000 ) + 0101
-      XTAU     = GET_TAU0( 1, 1, 2005 )
-
-      ! Read power plant emissions
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) //
-     &           TRIM( Input_Opt%RES_DIR  ) // 'mercury_201203/' //
-     &           'CFPP_NEI2005_NPRI2005_Hg2.'    //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
-     
-      ! Add year to the filename
-      CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-     
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 50 ) TRIM( FILENAME )
- 50      FORMAT( '     - RED_INPLUME: Reading ', a )
+      
+      ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
+      CALL HCO_GetPtr( am_I_Root, 'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 
+     &      'Cannot get pointer to CFPP_NEI2005_Hg2!', LOC )
       ENDIF
 
-      ! Read data in [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'HG-SRCE',     6,
-     &                 XTAU,      IIPAR,        JJPAR,
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-     
-      ! Regrid to the current grid
-      E_ELECTRICITY_Hg2 = ARRAY(:,:,1)
-
-      DO J=1,JJPAR
-      DO I=1,IIPAR
-
-         ! Transfer unit to kg/s
-         ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
-         E_plant = E_ELECTRICITY_Hg2(I,J) / SEC_PER_YR
+      ! Do the reduction
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
              
+         ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
+         ! Convert [kg/m2/s] --> [kg/s]
+         E_plant = E_ELEC_Hg2(I,J) * GET_AREA_M2(I,J,1)
+
          ! Reduce the Hg2 from plume
          CALL RED_INPLUME_GRID( I, J, E_plant )
 
       ENDDO
       ENDDO
+
+      ! Free npointer
+      E_ELEC_Hg2 => NULL()
 
       ! Return to calling program
       END SUBROUTINE DO_RED_INPLUME
@@ -4690,23 +4573,22 @@
 !  11 Apr 2012 - R. Yantosca - Now retire lai_mod.F; remove call to INIT_LAI
 !  11 Apr 2012 - R. Yantosca - Now move LAI initialization to main.F
 !  03 Jun 2013 - R. Yantosca - Now use fields from Input_Opt
+!  12 Mar 2015 - R. Yantosca - Now test if HEMCO_Collections are defined
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       LOGICAL, SAVE       :: IS_INIT = .FALSE. 
-      INTEGER             :: AS, N
-      CHARACTER(LEN=255)  :: LOCATION
-
-
-      ! For fields from Input_Opt
       LOGICAL             :: LSPLIT
       LOGICAL             :: LDRYD
       LOGICAL             :: LNLPBL
       LOGICAL             :: LGTMM
       INTEGER             :: N_TRACERS
+      INTEGER             :: AS, N
+      CHARACTER(LEN=255)  :: LOCATION
 
       !=================================================================
       ! INIT_MERCURY begins here!
@@ -5033,10 +4915,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2_SEASALT_LOSSRATE' )
       HG2_SEASALT_LOSSRATE = 0e+0_fp
 
-      ALLOCATE( JNO2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'JNO2' )
-      JNO2 = 0e+0_fp
-
       !=================================================================
       ! Allocate & initialize arrays for tagged tracer indices
       !=================================================================
@@ -5143,6 +5021,140 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: 
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_OPTIONS_FROM_HEMCO( RC )
+!
+! !USES:
+!
+      USE ERROR_MOD,       ONLY : ERROR_STOP
+      USE HCO_ERROR_MOD
+      USE HCO_ExtList_Mod, ONLY : GetExtOpt
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC   ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      LOGICAL :: LGC
+      LOGICAL :: LTOMCAT
+      LOGICAL :: FOUND
+
+      ! Strings
+      CHARACTER(LEN=255) :: LOC='SET_OPTIONS_FROM_HEMCO (mercury_mod.F)'
+
+      !-----------------------------------------------------------------
+      ! Set the value of LRED_JNO2 depending on whether or not
+      ! the HEMCO collection LRED_JNO2 is activated
+      !-----------------------------------------------------------------
+      CALL GetExtOpt( -999, 'LRED_JNO2',  OptValBool=LRED_JNO2, 
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LRED_JNO2', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LRED_JNO2 = .FALSE.
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Set the value of LGCBROMINE depending on the values of the
+      ! HEMCO collections BrOx_GC and BrOx_TOMCAT
+      !-----------------------------------------------------------------
+
+      ! First look for BrOx_GC
+      CALL GetExtOpt( -999, 'BrOx_GC',    OptValBool=LGC,
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt BrOx_GC', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LGC = .FALSE.
+      ENDIF
+
+      ! Then look for BrOx_TOMCAT
+      CALL GetExtOpt( -999, 'BrOx_TOMCAT', OptValBool=LTOMCAT,
+     &                       FOUND=FOUND,  RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt BrOx_TOMCAT', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LTOMCAT = .FALSE.
+      ENDIF
+      
+      ! Cannot have both BrOx_GC and BrOx_TOMCAT on at the same time
+      IF ( LGC .eqv. LTOMCAT ) THEN
+         CALL ERROR_STOP( 
+     &    'BrOx_GC and BrOx_TOMCAT cannot be both turned on!', LOC )
+      ENDIF
+         
+      ! Set LGCBROMINE = .TRUE. if BrOx_GC is true
+      LGCBROMINE = LGC
+
+      !-----------------------------------------------------------------
+      ! Set the value of LNEI2005 depending on whether or not
+      ! the HEMCO collection NEI2005 is activated
+      !-----------------------------------------------------------------
+      CALL GetExtOpt( -999, 'NEI2005',  OptValBool=LNEI2005,
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LNEI2005', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LNEI2005 = .FALSE.
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Set the value of LInPlume depending on whether or not
+      ! the HEMCO collection NEI2005 is activated
+      !-----------------------------------------------------------------
+      CALL GetExtOpt( -999, 'LRED_INPLUME',  OptValBool=LInPlume,
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LInPlume5', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LInPlume = .FALSE.
+      ENDIF
+
+
+      !-----------------------------------------------------------------
+      ! Echo output
+      !-----------------------------------------------------------------
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      WRITE( 6, 100   )
+      WRITE( 6, 110   ) LRED_JNO2
+      WRITE( 6, 120   ) LGCBROMINE
+      WRITE( 6, 130   ) LNEI2005
+      WRITE( 6, 140   ) LInPlume
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+ 100  FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
+ 110  FORMAT( 'LRED_JNO2  is set to ', L1                          )
+ 120  FORMAT( 'LGCBROMINE is set to ', L1                          )
+ 130  FORMAT( 'LNEI2005   is set to ', L1                          )
+ 140  FORMAT( 'LInPlume   is set to ', L1                          )
+      
+      END SUBROUTINE SET_OPTIONS_FROM_HEMCO
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: cleanup_mercury
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_MERCURY deallocates all module arrays.
@@ -5237,9 +5249,13 @@
       IF ( ALLOCATED( ZERO_DVEL) ) DEALLOCATE( ZERO_DVEL )
       IF ( ALLOCATED( HG2_SEASALT_LOSSRATE ) ) 
      &     DEALLOCATE( HG2_SEASALT_LOSSRATE   ) 
-      IF ( ALLOCATED( JNO2      ) ) DEALLOCATE( JNO2      ) 
       IF ( ALLOCATED( HG_EMIS   ) ) DEALLOCATE( HG_EMIS   ) 
   
+      ! Free pointers to HEMCO fields
+      O3   => NULL()
+      OH   => NULL()
+      JNO2 => NULL()
+
       END SUBROUTINE CLEANUP_MERCURY
 !EOC
       END MODULE MERCURY_MOD
