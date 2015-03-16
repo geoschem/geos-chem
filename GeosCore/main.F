@@ -254,6 +254,7 @@
 !  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
 !  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers
+!  25 Feb 2015 - E. Lundgren - Remove MAKE-RH call since now in AIRQNT.
 !  16 Mar 2015 - E. Lundgren - Change tracer main units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
