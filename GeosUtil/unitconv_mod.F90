@@ -32,8 +32,8 @@ MODULE UnitConv_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Convert_MMR_to_VR     ! kg / kg       -> vol / vol
-  PUBLIC  :: Convert_VR_to_MMR     ! vol / vol     -> kg / kg
+  PUBLIC  :: Convert_MMR_to_VMR     ! kg / kg       -> vol / vol
+  PUBLIC  :: Convert_VMR_to_MMR     ! vol / vol     -> kg / kg
   PUBLIC  :: Convert_MMR_to_KG     ! kg / kg       -> kg / grid box
   PUBLIC  :: Convert_KG_to_MMR     ! kg / grid box -> kg / kg
   PUBLIC  :: Convert_MMR_to_MND    ! kg / kg       -> molec / cm3

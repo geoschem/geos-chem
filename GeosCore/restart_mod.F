@@ -229,10 +229,7 @@
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
       J0 = GET_YOFFSET( GLOBAL=.TRUE. )
 
-!      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-!      ! (mpayer, 12/6/12)
-      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
-      ! (elundgren, 2/17/15)
+      ! Initialize pointer for Chemistry State object [kg/kg] (ewl, 2/17/15)
       STT => State_Chm%Tracers
 
       !=================================================================
@@ -258,10 +255,10 @@
       ! Write each tracer to the restart file
       !=================================================================
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !  New Units (ewl, 2/17/15)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      CALL Convert_MMR_to_VR( N_TRACERS, TCVV, STT )
+!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!      !  New Units (ewl, 2/17/15)
+!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!      CALL Convert_MMR_to_VR( N_TRACERS, TCVV, STT )
 
       DO N = 1, N_TRACERS
 
@@ -272,14 +269,14 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-!            ! Old units - Convert STT from [kg] to [v/v] mixing ratio 
-!            ! and store in temporary variable TRACER
-!            TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
+            ! Old units - Convert STT from [kg] to [v/v] mixing ratio 
+            ! and store in temporary variable TRACER
+            TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
 
-             ! Convert from mass mixing ratio [kg tracer / kg dry air] to 
-             ! molar mixing ratio [vol tracer / vol dry air] and store in 
-             ! the local TRACER array (elundgren, 2/17/15)
-             TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N)
+!             ! Convert from mass mixing ratio [kg tracer / kg dry air] to 
+!             ! molar mixing ratio [vol tracer / vol dry air] and store in 
+!             ! the local TRACER array (elundgren, 2/17/15)
+!             TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N)
             
          ENDDO
          ENDDO
@@ -380,8 +377,8 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm arguments
 !  16 Dec 2014 - M. Yannetti - Changed ZTAU0 and ZTAU1 to REAL*8
-!  17 Feb 2015 - E. Lundgren - Change units from [kg] to [kg tracer/kg dry air]
-!                              Write mean kg/kg to file instead of total kg
+!  17 Feb 2015 - E. Lundgren - Change main units from kg to kg/kg.
+!                              Write mean kg/kg per tracer to log.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -424,8 +421,7 @@
       NCOUNT(:)     = 0
       TRACER(:,:,:) = 0e0
 
-      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
-      ! (elundgren, 2/17/15)
+      ! Initialize pointer for Chemistry State object [kg/kg] (ewl, 2/17/15)
       STT => State_Chm%Tracers
 
       !=================================================================
@@ -503,7 +499,7 @@
       ENDDO
 
       !=================================================================
-      ! Examine data blocks, print totals, and return
+      ! Examine data blocks and return
       !=================================================================
 
       ! Check for missing or duplicate data blocks
@@ -512,7 +508,7 @@
       ! Close file
       CLOSE( IU_RST )      
 
-      ! Print mean atmospheric vol/vol for each tracer
+      ! Print mean atmospheric kg/kg for each tracer
       WRITE( 6, 120 )
  120  FORMAT( /, 'Mean mass mixing ratio for each tracer: ' ) 
       WRITE( 6, 130 )
