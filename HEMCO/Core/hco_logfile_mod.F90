@@ -67,19 +67,15 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL             :: verb
     CHARACTER(LEN=255)  :: MSG 
 
     !=================================================================
     ! HCO_Spec2Log begins here 
     !=================================================================
 
-    ! Verbose mode?
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
-
     MSG = 'Species ' // TRIM(HcoState%Spc(ID)%SpcName)
     CALL HCO_MSG(MSG)
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(3) ) THEN
        write(MSG,*) '--> HcoID         : ', HcoState%Spc(ID)%HcoID
        CALL HCO_MSG(MSG)
        write(MSG,*) '--> ModID         : ', HcoState%Spc(ID)%ModID
@@ -121,7 +117,7 @@ CONTAINS
 ! !INPUT ARGUMENTS:
 !
       TYPE(ListCont), POINTER    :: List
-      LOGICAL,        INTENT(IN) :: Verbose
+      INTEGER,        INTENT(IN) :: Verbose
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -173,7 +169,7 @@ CONTAINS
 ! !INPUT ARGUMENTS:
 !
       TYPE(DataCont), POINTER    :: Dct
-      LOGICAL,        INTENT(IN) :: Verbose
+      INTEGER,        INTENT(IN) :: Verbose
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -226,7 +222,7 @@ CONTAINS
       CALL HCO_MSG(MSG)
 
       ! Eventually add details
-      IF ( verbose ) THEN
+      IF ( HCO_IsVerb(Verbose) ) THEN
 
          ! General information
          write(MSG,*) '   -->Data type       : ', Dct%DctType

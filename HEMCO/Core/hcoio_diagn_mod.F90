@@ -143,7 +143,6 @@ CONTAINS
     INTEGER                   :: Prc
     INTEGER                   :: MinResetFlag, MaxResetFlag
     LOGICAL                   :: EOI, PrevTime, Manual
-    LOGICAL                   :: verb
  
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DIAGN_WRITEOUT (hcoio_diagn_mod.F90)' 
     !=================================================================
@@ -153,7 +152,6 @@ CONTAINS
     ! Init
     RC   = HCO_SUCCESS
     CNT  = 0
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
 
     ! Collection number
     PS = 1
@@ -246,7 +244,7 @@ CONTAINS
     ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
     ! verbose
-    IF ( verb .AND. PS==1 ) THEN
+    IF ( HCO_IsVerb(2) .AND. PS==1 ) THEN
        MSG = 'Write diagnostics into file '//TRIM(ncFile)
        CALL HCO_MSG( MSG )
     ENDIF
@@ -371,7 +369,7 @@ CONTAINS
        ENDIF
 
        ! verbose
-       IF ( verb .AND. PS==1 ) THEN
+       IF ( HCO_IsVerb(2) .AND. PS==1 ) THEN
           MSG = '--- Added diagnostics: '//TRIM(myName)
           CALL HCO_MSG(MSG)
        ENDIF

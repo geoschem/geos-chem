@@ -336,15 +336,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_InitTzPtr( RC )
+  SUBROUTINE HcoClock_InitTzPtr( am_I_Root, RC )
 !
 ! !USES:
 !
     USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr
 !
-! !OUTPUT PARAMETERS:
+! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(INOUT)  :: RC   ! Success or failure?
+    LOGICAL, INTENT(IN   )  :: am_I_Root  ! Root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT)  :: RC         ! Success or failure?
 !
 ! !REMARKS:
 !  This routine has to be called in the HCO_Run routine, immediately after
@@ -355,6 +359,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Feb 2015 - R. Yantosca - Initial version
+!  10 Mar 2015 - C. Keller   - Packed message into am_I_Root statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -367,12 +372,14 @@ CONTAINS
     CALL HCO_GetPtr ( .FALSE., 'TIMEZONES', TIMEZONES, RC, FOUND=FOUND )
 
     ! Print a message
-    IF ( FOUND ) THEN
-       CALL HCO_MSG( &
-        'TIMEZONES (i.e. OFFSETS FROM UTC) WERE READ FROM A FILE' )
-    ELSE
-       CALL HCO_MSG( &
-        'TIMEZONES (i.e. OFFSETS FROM UTC) WERE COMPUTED FROM LONGITUDE' )
+    IF ( am_I_Root ) THEN
+       IF ( FOUND ) THEN
+          CALL HCO_MSG( &
+           'TIMEZONES (i.e. OFFSETS FROM UTC) WERE READ FROM A FILE' )
+       ELSE
+          CALL HCO_MSG( &
+           'TIMEZONES (i.e. OFFSETS FROM UTC) WERE COMPUTED FROM LONGITUDE' )
+       ENDIF
     ENDIF
 
   END SUBROUTINE HcoClock_InitTzPtr
@@ -558,7 +565,7 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Verbose mode
     ! ----------------------------------------------------------------
-    IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
+    IF ( HCO_IsVerb( 1 ) ) THEN
        IF ( NewStep ) THEN
           WRITE(MSG,110) HcoClock%ThisYear, HcoClock%ThisMonth, &
                          HcoClock%ThisDay,  HcoClock%ThisHour,  &

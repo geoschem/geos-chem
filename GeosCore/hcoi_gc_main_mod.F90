@@ -228,9 +228,6 @@ CONTAINS
     IF ( am_I_Root ) THEN
        CALL HCO_LOGFILE_OPEN( RC=HMRC ) 
        IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Open Logfile', LOC )
-    ELSE
-       ! If this is not the root CPU, always disable verbose mode.
-       CALL HCO_VERBOSE_SET ( .FALSE. )
     ENDIF
 
     !=================================================================
@@ -371,7 +368,7 @@ CONTAINS
     ! Here, we need to make sure that these pointers are properly 
     ! connected.
     !-----------------------------------------------------------------
-    CALL ExtState_SetPointers( State_Met, State_Chm, RC )
+    CALL ExtState_SetPointers( am_I_Root, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -568,7 +565,7 @@ CONTAINS
     ! just in case that some ExtState variables are defined using data from
     ! the HEMCO configuration file (which becomes only updated in HCO_RUN).
     !=======================================================================
-    CALL ExtState_UpdtPointers ( State_Met, State_Chm, HMRC )
+    CALL ExtState_UpdtPointers ( am_I_Root, State_Met, State_Chm, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('ExtState_UpdtPointers', LOC )
        RETURN 
@@ -686,7 +683,8 @@ CONTAINS
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
-    CALL HCOX_FINAL ( ExtState ) 
+    CALL HCOX_FINAL ( am_I_Root, HcoState, ExtState, HMRC ) 
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOX_FINAL', LOC )
 
     ! Cleanup HcoState object 
     CALL HcoState_Final ( HcoState ) 
@@ -778,7 +776,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetPointers( State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtState_SetPointers( am_I_Root, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
@@ -800,14 +798,10 @@ CONTAINS
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,      ONLY : GC_LAI
 #endif
-
-#if defined(ESMF_) 
-    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
-#endif
-
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
 !
@@ -1048,16 +1042,6 @@ CONTAINS
     ENDIF
     IF ( DoDryCoeff ) ExtState%DRYCOEFF => DRYCOEFF
 
-    ! ----------------------------------------------------------------
-    ! ESMF environment: get pointers to some additional variables 
-    ! ----------------------------------------------------------------
-#if defined( ESMF )
-    CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
-    ENDIF
-#endif
-
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -1077,11 +1061,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdtPointers( State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtState_UpdtPointers( am_I_Root, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+    USE ERROR_MOD,             ONLY : ERROR_STOP
     USE GIGC_State_Met_Mod,    ONLY : MetState
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
@@ -1093,11 +1078,12 @@ CONTAINS
     USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
 
 #if defined(ESMF_) 
-!    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
 #endif
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
 !
@@ -1124,6 +1110,9 @@ CONTAINS
 
     CHARACTER(LEN=255), PARAMETER :: &
        LOC = 'ExtState_UpdtPointers (hcoi_gc_main_mod.F90)'
+
+    ! Is this the first time?
+    LOGICAL, SAVE                 :: FIRST = .TRUE.
 
     !=================================================================
     ! ExtState_UpdtPointers begins here
@@ -1209,15 +1198,23 @@ CONTAINS
     ENDDO
 !$OMP END PARALLEL DO
 
-!    ! ----------------------------------------------------------------
-!    ! ESMF environment: get pointers to some additional variables 
-!    ! ----------------------------------------------------------------
-#if defined( ESMF )
-!    CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
-!    IF ( RC /= HCO_SUCCESS ) THEN
-!       CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
-!    ENDIF
+    ! ----------------------------------------------------------------
+    ! ESMF environment: add some additional variables to ExtState.
+    ! These values must be defined here and not in the initialization
+    ! because it seems like the IMPORT state is not yet properly
+    ! defined during initialization. 
+    ! ----------------------------------------------------------------
+#if defined( ESMF_ )
+    IF ( FIRST ) THEN
+       CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
+       ENDIF
+    ENDIF
 #endif
+
+    ! Not first time any more
+    FIRST = .FALSE.
 
   END SUBROUTINE ExtState_UpdtPointers
 !EOC
@@ -1979,19 +1976,19 @@ CONTAINS
     CALL GetExtOpt( -999, '+UValbedo+',  OptValBool=LTMP, &
                             FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt +UvAlbedo+', LOC )
+       CALL ERROR_STOP( 'GetExtOpt +UValbedo+', LOC )
     ENDIF
 
     IF ( FOUND ) THEN
 
-       ! Print a warning if this collection is defined in the HEMCO config
+       ! Stop the run if this collection is defined in the HEMCO config
        ! file, but is set to an value inconsistent with input.geos file.
-       IF ( Input_Opt%LCHEM /= LTMP ) THEN
-          WRITE(6,'(a)')  ' '
-          WRITE(6,'(a)') 'Setting +UValbedo+ in the HEMCO configuration'
-          WRITE(6,'(a)') 'file does not agree with the chemistry settings'
-          WRITE(6,'(a)') 'in input.geos. This may be inefficient and/or'
-          WRITE(6,'(a)') 'may yield incorrect results!' 
+       IF ( Input_Opt%LCHEM .AND. ( .NOT. LTMP ) ) THEN
+          MSG = 'Setting +UValbedo+ in the HEMCO configuration file ' // &
+                'must not be disabled if chemistry is turned on. '    // &
+                'If you don`t set that setting explicitly, it will '  // &
+                'be set automatically during run-time (recommended)'
+          CALL ERROR_STOP( MSG, LOC ) 
        ENDIF
 
     ELSE
@@ -2011,7 +2008,7 @@ CONTAINS
        ENDIF
        CALL AddExtOpt( TRIM(OptName), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt +Uvalbedo+', LOC )
+          CALL ERROR_STOP( 'AddExtOpt +UValbedo+', LOC )
        ENDIF
 
     ENDIF 
@@ -2152,7 +2149,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Make sure that BOND_BIOMASS toggle is disabled if GFED3 or FINN
+    ! Make sure that BOND_BIOMASS toggle is disabled if GFED or FINN
     ! are being used. This is to avoid double-counting of biomass
     ! burning emissions. Search through all extensions (--> ExtNr = 
     ! -999).
@@ -2164,13 +2161,13 @@ CONTAINS
     ENDIF
     ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN
-       ExtNr = GetExtNr( 'GFED3' )
+       ExtNr = GetExtNr( 'GFED' )
     ENDIF
 
     ! Error check
     IF ( FOUND ) THEN
        IF ( ExtNr > 0 .AND. LTMP ) THEN
-          MSG = 'Cannot use BOND_BIOMASS together with GFED3 or FINN:' // &
+          MSG = 'Cannot use BOND_BIOMASS together with GFED or FINN:' // &
           'This would double-count biomass burning emissions!'
           CALL ERROR_STOP( MSG, LOC ) 
        ENDIF

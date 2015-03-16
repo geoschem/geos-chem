@@ -74,10 +74,11 @@ MODULE HCO_State_Mod
      LOGICAL                     :: isESMF     ! Are we using ESMF?
      TYPE(HcoOpt),       POINTER :: Options    ! HEMCO run options
 
-     !%%%%%  ESMF state objects
+     !%%%%%  ESMF objects
 #if defined(ESMF_)
-     TYPE(ESMF_State),   POINTER :: IMPORT
-     TYPE(ESMF_State),   POINTER :: EXPORT
+     TYPE(ESMF_GridComp), POINTER :: GridComp 
+     TYPE(ESMF_State),    POINTER :: IMPORT
+     TYPE(ESMF_State),    POINTER :: EXPORT
 #endif
   END TYPE HCO_State
 !
@@ -115,21 +116,22 @@ MODULE HCO_State_Mod
   ! HcoOpt: Derived type for HEMCO run options
   !=========================================================================
   TYPE :: HcoOpt
-     INTEGER :: ExtNr         ! ExtNr to be used 
-     INTEGER :: SpcMin        ! Smallest HEMCO species ID to be considered 
-     INTEGER :: SpcMax        ! Highest HEMCO species ID to be considered
-     INTEGER :: CatMin        ! Smallest category to be considered
-     INTEGER :: CatMax        ! Highest category to be considered
-     LOGICAL :: AutoFillDiagn ! Write into AutoFill diagnostics?
-     LOGICAL :: FillBuffer    ! Write calculated emissions into buffer
+     INTEGER  :: ExtNr         ! ExtNr to be used 
+     INTEGER  :: SpcMin        ! Smallest HEMCO species ID to be considered 
+     INTEGER  :: SpcMax        ! Highest HEMCO species ID to be considered
+     INTEGER  :: CatMin        ! Smallest category to be considered
+     INTEGER  :: CatMax        ! Highest category to be considered
+     LOGICAL  :: AutoFillDiagn ! Write into AutoFill diagnostics?
+     LOGICAL  :: FillBuffer    ! Write calculated emissions into buffer
                               ! instead of emission array? 
-     INTEGER :: NegFlag       ! Negative value flag (from configfile):
+     INTEGER  :: NegFlag       ! Negative value flag (from configfile):
                               ! 2 = allow negative values
                               ! 1 = set neg. values to zero and prompt warning 
                               ! 0 = return w/ error if neg. value
-     LOGICAL :: PBL_DRYDEP    ! If true, dry deposition frequencies will
+     LOGICAL  :: PBL_DRYDEP    ! If true, dry deposition frequencies will
                               ! be calculated over the full PBL. If false, 
                               ! they are calculated over the first layer only.
+     REAL(hp) :: MaxDepExp    ! Maximum value of deposition freq. x time step.
   END TYPE HcoOpt
 
   !=========================================================================
@@ -378,14 +380,27 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%NegFlag = 0
 
-    ! Get negative flag value from configuration file. If not found, set to 0. 
+    ! Get PBL_DRYDEP flag from configuration file. If not found, set to default
+    ! value of 0. 
     CALL GetExtOpt ( CoreNr, 'PBL dry deposition', &
                      OptValBool=HcoState%Options%PBL_DRYDEP, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%PBL_DRYDEP = .FALSE. 
 
-    !-----------------------------------------------------------------
-    ! Initialize variables 
+    ! Get MaxDepExp from configuration file. If not found, set to default
+    ! value of 20. 
+    CALL GetExtOpt ( CoreNr, 'Maximum dep x ts', &
+                     OptValHp=HcoState%Options%MaxDepExp, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%MaxDepExp = 20.0_hp 
+
+    ! Make sure ESMF pointers are not dangling around
+#if defined(ESMF_)
+    HcoState%GridComp => NULL()
+    HcoState%IMPORT   => NULL()
+    HcoState%EXPORT   => NULL()
+#endif
+
     ! Leave w/ success
     CALL HCO_LEAVE ( RC ) 
 
@@ -466,8 +481,9 @@ CONTAINS
     IF ( ASSOCIATED ( HcoState%Phys    ) ) DEALLOCATE ( HcoState%Phys    )
 
 #if defined(ESMF_)
-    HcoState%IMPORT => NULL()
-    HcoState%EXPORT => NULL()
+    HcoState%GridComp => NULL()
+    HcoState%IMPORT   => NULL()
+    HcoState%EXPORT   => NULL()
 #endif
 
   END SUBROUTINE HcoState_Final

@@ -117,7 +117,7 @@ CONTAINS
     IF(RC /= HCO_SUCCESS) RETURN
 
     ! Set verbose flag
-    VERBOSE = HCO_VERBOSE_CHECK() .AND. am_I_Root
+    VERBOSE = HCO_IsVerb( 2 ) 
 
     ! ----------------------------------------------------------------
     ! Nothing to do if it's not a new container, i.e. if container 
@@ -150,7 +150,7 @@ CONTAINS
     IF ( VERBOSE ) THEN
        MSG = 'Container added to EmisList:'
        CALL HCO_MSG(MSG,SEP1='-')
-       CALL HCO_PrintDataCont( Lct%Dct, VERBOSE )
+       CALL HCO_PrintDataCont( Lct%Dct, 3 )
     ENDIF
 
     ! Leave w/ success
@@ -194,7 +194,6 @@ CONTAINS
 !
     ! Scalars
     INTEGER                   :: NEWCAT, NEWHIR, NEWSPC
-    LOGICAL                   :: verb
     CHARACTER(LEN=255)        :: MSG
 
     ! Pointers
@@ -207,9 +206,6 @@ CONTAINS
     ! Enter 
     CALL HCO_ENTER ( 'Add2EmisList', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Verbose
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
 
     ! Update number of containers in EmisList 
     nnEmisCont = nnEmisCont + 1
@@ -520,7 +516,7 @@ CONTAINS
     IF(RC /= HCO_SUCCESS) RETURN
 
     ! Verbose mode
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+    verb = HCO_IsVerb( 2 )
 
     ! Initialize Add flag. This fill only be set to FALSE
     ! if the data of the current container is added to the data of 

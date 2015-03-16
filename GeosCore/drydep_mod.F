@@ -549,7 +549,10 @@
 
 #if defined( DEVEL )
             ! Need to save dep velocity into 2-D array for netCDF diags
-            SAVE_DEPVEL(I,J,N) = DVZ
+            ! Now save out frequency instead of velocity. We can change
+            ! that if needed (ckeller, 3/11/15).
+            ! SAVE_DEPVEL(I,J,N) = DVZ
+            SAVE_DEPVEL(I,J,N) = DEPSAV(I,J,N) 
 #endif
 
 #if !defined( NO_BPCH )

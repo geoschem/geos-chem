@@ -3049,7 +3049,7 @@
 !
 ! !USES:
 !
-      USE HCO_EMISLIST_MOD,    ONLY : HCO_GetPtr
+      USE HCO_Restart_Mod,    ONLY : HCO_RestartGet
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3062,7 +3062,8 @@
       INTEGER,         INTENT(INOUT)  :: RC
 ! 
 ! !REVISION HISTORY: 
-!  19 Dec 2014 - C. Keller   - Initial version 
+!  19 Dec 2014 - C. Keller    - Initial version 
+!  09 Mar 2015 - C. Keller    - Now use HCO_RestartGet to fill restarts 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3071,7 +3072,6 @@
 !
       INTEGER           :: I
       LOGICAL           :: FND
-      REAL(sp), POINTER :: Ptr2D(:,:) => NULL()
 
       !=================================================================
       ! FILL_RESTART_VARS begins here!
@@ -3086,39 +3086,31 @@
       ! we can determine a trend in the daily average temperatures
       ! (between the long term daily averages and the most recent daily
       ! average).
+      ! We now first call HCO_CopyFromInt_ESMF to check if the variable
+      ! is found in the (ESMF) internal state object. In an non-ESMF
+      ! environment, this call will always return FND=.FALSE.
+      ! (ckeller, 3/9/15).
 
       !-----------------------------------------------------------------
       ! LAI
       !-----------------------------------------------------------------
+      CALL HCO_RestartGet( am_I_Root,     HcoState, 
+     &                     'LAI_PREVDAY', LAI_PREVDAY, RC, FOUND=FND )
 
-      ! Get data
-      CALL HCO_GetPtr( am_I_Root, 'LAI_PREVDAY', Ptr2D, RC, FOUND=FND )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      
-      ! Fill variables
+      ! Default value
       IF ( .NOT. FND ) THEN
          LAI_PREVDAY = ExtState%GC_LAI%Arr%Val
-      ELSE
-         LAI_PREVDAY = Ptr2D 
       ENDIF
-
-      ! Cleanup
-      Ptr2D => NULL()
 
       !-----------------------------------------------------------------
       ! TEMPERATURE
       !-----------------------------------------------------------------
+      CALL HCO_RestartGet( am_I_Root, HcoState, 
+     &                     'T_DAVG',  HCOT_15_AVG, RC, FOUND=FND )
 
-      ! Get data
-      CALL HCO_GetPtr( am_I_Root, 'T_DAVG', Ptr2D, RC, FOUND=FND )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-     
-      ! Set average of HCOT_15 array
-      ! Use current temperature if restart not found 
+      ! Default value
       IF ( .NOT. FND ) THEN
          HCOT_15_AVG = ExtState%T2M%Arr%Val
-      ELSE
-         HCOT_15_AVG = Ptr2D 
       ENDIF
 
       ! Set all daily averages to this value. 
@@ -3126,16 +3118,15 @@
          HCOT_15(:,:,I) = HCOT_15_AVG 
       ENDDO 
 
-      ! Cleanup
-      Ptr2D => NULL() 
+      ! -------------------------------------------------------------
+      ! Check for most recent daily average. This will overwrite the
+      ! first slice of HCOT_15.
+      CALL HCO_RestartGet( am_I_Root,   HcoState, 
+     &                     'T_PREVDAY', HCOT_15(:,:,1), RC, FOUND=FND )
 
-      ! Check for most recent daily average
-      CALL HCO_GetPtr( am_I_Root, 'T_PREVDAY', Ptr2D, RC, FOUND=FND )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      ! Eventually overwrite most recent entry in HCOT_15. 
-      IF ( FND ) THEN
-         HCOT_15(:,:,1) = Ptr2D
+      ! Default value
+      IF ( .NOT. FND ) THEN
+         HCOT_15(:,:,1) = HCOT_15_AVG
       ENDIF
 
       ! Set hourly variables
@@ -3146,60 +3137,44 @@
       !-----------------------------------------------------------------
       ! DIRECT RADIATION ( PARDR )
       !-----------------------------------------------------------------
+      CALL HCO_RestartGet( am_I_Root,    HcoState, 
+     &                     'PARDR_DAVG', HCOPARDR_15_AVG, RC, FOUND=FND)
 
-      ! Get data
-      CALL HCO_GetPtr( am_I_Root, 'PARDR_DAVG', Ptr2D, RC, FOUND=FND )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-     
-      ! Set daily average
-      ! Use current value if not found 
+      ! Default value
       IF ( .NOT. FND ) THEN
          HCOPARDR_15_AVG = ExtState%PARDR%Arr%Val
-      ELSE
-         HCOPARDR_15_AVG = Ptr2D 
       ENDIF
-
-      ! Set hourly variables
-      DO I = 1, DAY_DIM 
-         HCOPARDR_DAY(:,:,I) = HCOPARDR_15_AVG 
-      ENDDO
 
       ! Set daily averages
       DO I = 1, NUM_DAYS
          HCOPARDR_15(:,:,I) = HCOPARDR_15_AVG
       ENDDO 
 
-      ! Cleanup
-      Ptr2D => NULL()
+      ! Set hourly variables
+      DO I = 1, DAY_DIM 
+         HCOPARDR_DAY(:,:,I) = HCOPARDR_15(:,:,1) 
+      ENDDO
 
       !-----------------------------------------------------------------
       ! DIFFUSE RADIATION ( PARDF )
       !-----------------------------------------------------------------
+      CALL HCO_RestartGet( am_I_Root,    HcoState, 
+     &                     'PARDF_DAVG', HCOPARDF_15_AVG, RC, FOUND=FND)
 
-      ! Get data
-      CALL HCO_GetPtr( am_I_Root, 'PARDF_DAVG', Ptr2D, RC, FOUND=FND )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-     
-      ! Set daily average
-      ! Use current value if not found 
+      ! Default value
       IF ( .NOT. FND ) THEN
          HCOPARDF_15_AVG = ExtState%PARDF%Arr%Val
-      ELSE
-         HCOPARDF_15_AVG = Ptr2D 
       ENDIF
-
-      ! Set hourly variables
-      DO I = 1, DAY_DIM 
-         HCOPARDF_DAY(:,:,I) = HCOPARDF_15_AVG 
-      ENDDO
 
       ! Set daily averages
       DO I = 1, NUM_DAYS
          HCOPARDF_15(:,:,I) = HCOPARDF_15_AVG
       ENDDO 
 
-      ! Cleanup
-      Ptr2D => NULL()
+      ! Set hourly variables
+      DO I = 1, DAY_DIM 
+         HCOPARDF_DAY(:,:,I) = HCOPARDF_15(:,:,1)
+      ENDDO
 
       ! Return w/ success
       RC = HCO_SUCCESS
@@ -3913,6 +3888,7 @@
       USE HCO_STATE_MOD,    ONLY : Hco_GetHcoID
       USE HCO_STATE_MOD,    ONLY : HCO_GetExtHcoID
       USE HCO_ExtList_Mod,  ONLY : GetExtNr, GetExtOpt
+      USE HCO_Restart_Mod,  ONLY : HCO_RestartDefine
 !
 ! !INPUT PARAMETERS:
 !
@@ -4422,80 +4398,25 @@
       ! Initialize internal diagnostics. These are the restart variables
       ! that can be used for a 'warm' start of MEGAN.
       !=================================================================
-      CALL Diagn_Create ( am_I_Root, 
-     &                    HcoState   = HcoState,
-     &                    cName      = 'T_DAVG',
-     &                    ExtNr      = ExtNr,
-     &                    Cat        = -1,  
-     &                    Hier       = -1,
-     &                    HcoID      = -1, 
-     &                    SpaceDim   = 2,   
-     &                    OutUnit    = 'K',  
-     &                    WriteFreq  = 'End', 
-     &                    AutoFill   = 0,      
-     &                    Trgt2D     = HCOT_15_AVG, 
-     &                    RC         = RC            )
+      CALL HCO_RestartDefine ( am_I_Root, HcoState, 
+     &                         'T_DAVG',  HCOT_15_AVG, 'K', RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+   
+      CALL HCO_RestartDefine ( am_I_Root,   HcoState, 
+     &                         'T_PREVDAY', T_PREVDAY, 'K', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL Diagn_Create ( am_I_Root, 
-     &                    HcoState   = HcoState,
-     &                    cName      = 'T_PREVDAY',
-     &                    ExtNr      = ExtNr,  
-     &                    Cat        = -1,
-     &                    Hier       = -1, 
-     &                    HcoID      = -1, 
-     &                    SpaceDim   = 2,   
-     &                    OutUnit    = 'K',  
-     &                    WriteFreq  = 'End', 
-     &                    AutoFill   = 0,     
-     &                    Trgt2D     = T_PREVDAY, 
-     &                    RC         = RC            )
+      CALL HCO_RestartDefine ( am_I_Root,     HcoState, 
+     &                         'LAI_PREVDAY', LAI_PREVDAY, '1', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      CALL Diagn_Create ( am_I_Root,
-     &                    HcoState   = HcoState,
-     &                    cName      = 'LAI_PREVDAY',
-     &                    ExtNr      = ExtNr,
-     &                    Cat        = -1, 
-     &                    Hier       = -1, 
-     &                    HcoID      = -1,  
-     &                    SpaceDim   = 2,    
-     &                    OutUnit    = '1',  
-     &                    WriteFreq  = 'End',
-     &                    AutoFill   = 0,    
-     &                    Trgt2D     = LAI_PREVDAY,
-     &                    RC         = RC            )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+      CALL HCO_RestartDefine ( am_I_Root,    HcoState, 
+     &                         'PARDR_DAVG', HCOPARDR_15_AVG, 
+     &                         'W/m2',       RC )
 
-      CALL Diagn_Create ( am_I_Root,
-     &                    HcoState   = HcoState,
-     &                    cName      = 'PARDR_DAVG',
-     &                    ExtNr      = ExtNr,
-     &                    Cat        = -1, 
-     &                    Hier       = -1,
-     &                    HcoID      = -1, 
-     &                    SpaceDim   = 2,   
-     &                    OutUnit    = 'W/m2',
-     &                    WriteFreq  = 'End', 
-     &                    AutoFill   = 0,   
-     &                    Trgt2D     = HCOPARDR_15_AVG,
-     &                    RC         = RC            )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-
-      CALL Diagn_Create ( am_I_Root, 
-     &                    HcoState   = HcoState,
-     &                    cName      = 'PARDF_DAVG',
-     &                    ExtNr      = ExtNr,
-     &                    Cat        = -1,
-     &                    Hier       = -1,
-     &                    HcoID      = -1,
-     &                    SpaceDim   = 2,   
-     &                    OutUnit    = 'W/m2',
-     &                    WriteFreq  = 'End',
-     &                    AutoFill   = 0,   
-     &                    Trgt2D     = HCOPARDF_15_AVG,
-     &                    RC         = RC            )
-      IF ( RC /= HCO_SUCCESS ) RETURN
+      CALL HCO_RestartDefine ( am_I_Root,    HcoState, 
+     &                         'PARDF_DAVG', HCOPARDF_15_AVG, 
+     &                         'W/m2',       RC )
 
       !=================================================================
       ! The original MEGAN code used to read the emission factors here.
@@ -4540,18 +4461,67 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCOX_MEGAN_FINAL
+      SUBROUTINE HCOX_MEGAN_FINAL ( am_I_Root, HcoState, RC )
+!
+! !USES
+!
+      USE HCO_Restart_Mod,  ONLY : HCO_RestartWrite
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,         INTENT(IN   )  :: am_I_Root     ! Root CPU?
+      TYPE(HCO_State), POINTER        :: HcoState      ! HEMCO State obj
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,         INTENT(INOUT)  :: RC 
 ! 
 ! !REVISION HISTORY: 
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  16 Aug 2013 - C. Keller   - Now a HEMCO extension 
-!  18 Feb 2015 - M. Sulprizio- Added AEF arrays
+!  17 Dec 2009 - R. Yantosca  - Added ProTeX headers
+!  16 Aug 2013 - C. Keller    - Now a HEMCO extension 
+!  18 Feb 2015 - M. Sulprizio - Added AEF arrays
+!  09 Mar 2015 - C. Keller    - Write variables to internal state in ESMF mode
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: FOUND
+      REAL(sp), POINTER  :: Ptr2D(:,:) => NULL()
+
       !=================================================================
       ! HCOX_MEGAN_FINAL begins here!
       !=================================================================
+
+      ! ----------------------------------------------------------------
+      ! Eventually copy internal values to ESMF internal state object
+      ! ----------------------------------------------------------------
+
+      ! LAI_PREVDAY
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'LAI_PREVDAY', LAI_PREVDAY, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! T_DAVG
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'T_DAVG', HCOT_15_AVG, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! T_PREVDAY
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'T_PREVDAY', HCOT_15(:,:,1), RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! PARDR_DAVG
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'PARDR_DAVG', HCOPARDR_15_AVG, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      ! PARDF_DAVG
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'PARDF_DAVG', HCOPARDF_15_AVG, RC ) 
+      IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Nullify pointers
       GEIA_ORVC => NULL()

@@ -179,7 +179,7 @@ CONTAINS
     IF ( .NOT. ExtState%SeaFlux ) RETURN
 
     ! Verbose?
-    VERBOSE = am_I_Root .AND. HCO_VERBOSE_CHECK() 
+    verbose = HCO_IsVerb(1) 
 
     ! ---------------------------------------------------------------
     ! Calculate emissions
@@ -242,6 +242,16 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN 
           Arr2D => NULL() 
        ENDIF
+
+       ! Eventually add to dry deposition diagnostics
+       ContName = 'DEPVEL_' // TRIM(HcoState%Spc(HcoID)%SpcName)
+       Arr2D    => SINK
+       CALL Diagn_Update( am_I_Root,                &
+                          cName   = TRIM(ContName), &
+                          Array2D = Arr2D,          &
+                          COL     = -1,             &
+                          RC      = RC               ) 
+       Arr2D => NULL() 
     ENDDO !SpcID
 
     ! Leave w/ success
@@ -276,6 +286,7 @@ CONTAINS
 ! 
     USE Ocean_ToolBox_Mod,  ONLY : CALC_KG
     USE Henry_Mod,          ONLY : CALC_KH, CALC_HEFF
+    USE HCO_CALC_MOD,       ONLY : HCO_CheckDepv
 !
 ! !INPUT PARAMETERS:
 !
@@ -506,6 +517,9 @@ CONTAINS
           ! Now calculate deposition rate from velocity and deposition
           ! height: [s-1] = [m s-1] / [m].
           SINK(I,J) = KG / DEP_HEIGHT 
+
+          ! Check validity of value
+          CALL HCO_CheckDepv( am_I_Root, HcoState, SINK(I,J), RC )
 
        ENDIF !Over ocean
     ENDDO !I
