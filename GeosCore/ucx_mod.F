@@ -405,6 +405,7 @@
 !  18 Jun 2014 - S. D. Eastham - Now read data for individual NOx species
 !  24 Nov 2014 - C. Keller     - Update for stratospheric NOy (as suggested by 
 !                                Seb Eastham)
+!  16 Mar 2015 - E. Lundgren   - Update tracer units to kg/kg from kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -461,7 +462,7 @@
 
       ! Set module variable
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem tracer array [kg/kg] (ewl, 3/16/15)
       STT => State_Chm%Tracers
 
       IF ( am_I_Root ) THEN
@@ -888,6 +889,7 @@
      &                     am_I_Root, Input_Opt )
 
          ! Convert from [vv] to [kg CH4/mol air]
+         ! (ewl, 3/16/15) actually [vv] to [kg CH4/kg air]???
          C3090S = C3090S / TCVV(IDTCH4)
          C0030S = C0030S / TCVV(IDTCH4)
          C0030N = C0030N / TCVV(IDTCH4)
@@ -903,15 +905,28 @@
             ! Grid-box latitude index
             YLAT  = GET_YMID( I,J,L )
 
+! Remove conversion of mixing ratio to kg  (ewl, 3/16/15)
+!            ! Set CH4 according to latitude
+!            IF ( YLAT < -30e+0_fp ) THEN
+!               STT(I,J,L,IDTCH4) = C3090S * State_Met%AD(I,J,L)
+!            ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
+!               STT(I,J,L,IDTCH4) = C0030S * State_Met%AD(I,J,L)
+!            ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
+!               STT(I,J,L,IDTCH4) = C0030N * State_Met%AD(I,J,L)
+!            ELSE
+!               STT(I,J,L,IDTCH4) = C3090N * State_Met%AD(I,J,L)
+!            ENDIF
+
             ! Set CH4 according to latitude
+            ! STT in [kg/kg] (ewl, 3/16/15)
             IF ( YLAT < -30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C3090S * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C3090S
             ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-               STT(I,J,L,IDTCH4) = C0030S * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C0030S
             ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-               STT(I,J,L,IDTCH4) = C0030N * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C0030N
             ELSE
-               STT(I,J,L,IDTCH4) = C3090N * State_Met%AD(I,J,L)
+               STT(I,J,L,IDTCH4) = C3090N
             ENDIF
          ENDDO
          ENDDO

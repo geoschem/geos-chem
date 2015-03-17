@@ -653,14 +653,6 @@
      &                        Input_Opt, State_Met, State_Chm )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! TEMPORARY - ewl, 2/17/15
-      ! Immediately convert from kg/kg to kg for testing purposes
-      ! Note: This currently depends on AREA_M2 through AIRQNT.
-      CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
-     &                        State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
       ! Initialize stratospheric routines
       IF ( LUCX ) THEN
          !CALL INIT_UCX( am_I_Root, Input_Opt, NYMDb, NHMSb )
@@ -674,6 +666,16 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
       ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! TEMPORARY - ewl, 2/17/15
+      ! Convert from kg/kg to kg to return to traditional GC units.
+      ! All code before this expects tracer conc in kg/kg.
+      ! All code after this expects kg, until conversion to v/v.
+      ! Note: This conversion currently depends on AREA_M2 through AIRQNT.
+      CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
       IF ( LSCHEM ) THEN
@@ -692,6 +694,8 @@
       IF ( LSTDRUN ) THEN 
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
       ENDIF
+
+! ewl - end here (for now)
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
