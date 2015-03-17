@@ -1653,6 +1653,8 @@
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) The time is already updated to the next time step (ccc, 8/12/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  13 Mar 2015 - M. Sulprizio- Bug fix: Allow for temporal resolution finer
+!                              than 60 min (E. Marais)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1668,14 +1670,8 @@
       ! Current hour
       HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
 
-!--- Previous to (ccc, 8/12/09)
-!      ! Hour at the next dynamic timestep
-!      HR2      = HR1        + ( ND49_FREQ / 60d0 )
-
-      ! If the next dyn step is the start of a new day, return TRUE
-!--- Previous to (ccc, 11/11/10)
-!       HR1 varies between 00 and 23:59. So compares to 00 not 24 anymore.
-!      ITS_TIME = ( INT( HR1 ) == 24 )
+      ! Allow for temporal resolution finer than 60 min
+      HR1      = HR1 * 1e+2_fp
 
       ITS_TIME = ( INT( HR1 ) == 00 )
 

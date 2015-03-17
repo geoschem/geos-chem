@@ -624,62 +624,6 @@
 
 !------------------------------------------------------------------------------
 
-!      SUBROUTINE READ_EMISSIONS
-!!
-!!******************************************************************************
-!!  Subroutine READ_EMISSIONS reads the domestic fossil fuel emissions from
-!!  disk. (bmy, 6/29/05, 10/3/05)
-!!
-!!  Arguments as Output:
-!!  ============================================================================
-!!  (1 ) E_CO   (REAL*4) : GEIA anthro CO   (no seasonality, 1 level )
-!!
-!!  NOTES:
-!!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!******************************************************************************
-!!
-!      ! References to F90 modules
-!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-!      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-!      USE DIRECTORY_MOD, ONLY : DATA_DIR
-!      USE GEIA_MOD,      ONLY : READ_TODX
-!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-!
-!      USE CMN_SIZE_MOD   ! Size parameters
-!
-!      ! Local variables
-!      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-!      CHARACTER(LEN=255)  :: FILENAME
-!
-!      !=================================================================
-!      ! READ_EMISSIONS begins here!
-!      !=================================================================
-!
-!      ! Define the binary punch file name
-!      FILENAME = TRIM( DATA_DIR )                         //
-!     &           'HCN_200507/domfos_CO_for_TRACEP.'       // 
-!     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
-!      
-!      ! Write file name to stdout
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-! 100  FORMAT( 'READ_EMISSIONS: Reading ', a )
-!
-!      ! Read time-of-day and day-of-week scale factors for GEIA emissions
-!      CALL READ_TODX( TODN, TODH, TODB, SCNR89 )
-!
-!      ! Read CO (tracer #4): aseasonal
-!      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    4,  
-!     &                 0e+0_fp,       IIPAR,        JJPAR,     
-!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!      ! Cast to REAL(fp) and resize if necessary
-!      CALL TRANSFER_2D( ARRAY(:,:,1), EMIS_CO_df )
-!
-!      ! Return to calling program
-!      END SUBROUTINE READ_EMISSIONS
-
-!------------------------------------------------------------------------------
-
       SUBROUTINE INIT_HCN_CH3CN( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************

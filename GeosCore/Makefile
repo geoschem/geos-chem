@@ -405,11 +405,10 @@ chemgrid_mod.o              : chemgrid_mod.F                                 \
                               diag_mod.o              
 
 chemistry_mod.o             : chemistry_mod.F                                \
-                              aerosol_mod.o                                  \
+                              aerosol_mod.o           isoropiaII_mod.o       \
                               c2h6_mod.o              carbon_mod.o           \
                               comode_mod.o            dust_mod.o             \
                               drydep_mod.o            global_ch4_mod.o       \
-                              hcn_ch3cn_mod.o         isoropiaII_mod.o       \
                               mercury_mod.o           optdepth_mod.o         \
                               pops_mod.o              rpmares_mod.o          \
                               RnPbBe_mod.o            seasalt_mod.o          \
@@ -430,7 +429,7 @@ cleanup.o                   : cleanup.F                                      \
                               diag_oh_mod.o           diag_pl_mod.o          \
                               drydep_mod.o            dust_mod.o             \
                               diagnostics_mod.o       emissions_mod.o        \
-                              global_ch4_mod.o        hcn_ch3cn_mod.o        \
+                              global_ch4_mod.o        wetscav_mod.o          \
                               isoropiaII_mod.o        land_mercury_mod.o     \
                               seasalt_mod.o           linoz_mod.o            \
                               strat_chem_mod.o        mercury_mod.o          \
@@ -441,7 +440,6 @@ cleanup.o                   : cleanup.F                                      \
                               toms_mod.o              tracer_mod.o           \
                               transport_mod.o         ucx_mod.o              \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
-                              wetscav_mod.o                                  \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geosfp_window_mod.o
 
@@ -625,9 +623,6 @@ global_ch4_mod.o            : global_ch4_mod.F                               \
                               diag_oh_mod.o           tracer_mod.o           \
                               vdiff_pre_mod.o         hcoi_gc_main_mod.o
 
-hcn_ch3cn_mod.o             : hcn_ch3cn_mod.F                                \
-                              diag_mod.o
-
 hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
                               hcoi_gc_diagn_include.H                        \
                               diag_mod.o              diag53_mod.o           \
@@ -671,7 +666,7 @@ input_mod.o                 : input_mod.F                                    \
                               tracer_mod.o            transport_mod.o        \
                               wetscav_mod.o           tagged_co_mod.o        \
                               tagged_ox_mod.o         global_ch4_mod.o       \
-                              c2h6_mod.o              hcn_ch3cn_mod.o
+                              c2h6_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               chemgrid_mod.o          tracerid_mod.o

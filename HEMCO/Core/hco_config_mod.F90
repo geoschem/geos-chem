@@ -131,7 +131,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_ReadFile( am_I_Root, ConfigFile, Phase, RC )
+  SUBROUTINE Config_ReadFile( am_I_Root, ConfigFile, Phase, RC, IsNest )
 !
 ! !USES:
 !
@@ -141,15 +141,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN)    :: am_I_Root   ! root CPU?
-    CHARACTER(LEN=*),   INTENT(IN)    :: ConfigFile  ! Full file name
-    INTEGER,            INTENT(IN)    :: Phase       ! 0: all
-                                                     ! 1: Settings and switches only
-                                                     ! 2: fields only 
+    LOGICAL,            INTENT(IN)              :: am_I_Root  ! root CPU?
+    CHARACTER(LEN=*),   INTENT(IN)              :: ConfigFile ! Full file name
+    INTEGER,            INTENT(IN)              :: Phase      ! 0: all
+                                                              ! 1: Settings and switches only
+                                                              ! 2: fields only
+    LOGICAL,            INTENT(IN   ), OPTIONAL :: IsNest     ! Nested call? 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,            INTENT(INOUT) :: RC          ! Success?
+    INTEGER,            INTENT(INOUT)           :: RC         ! Success?
 !
 ! !REVISION HISTORY:
 !  17 Sep 2012 - C. Keller   - Initialization
@@ -167,7 +168,9 @@ CONTAINS
     INTEGER              :: NN
     INTEGER              :: IU_HCO, IOS
     LOGICAL              :: AIR,    EOF
+    LOGICAL              :: EXISTS, NEST
     CHARACTER(LEN=255)   :: MSG,    LOC
+    CHARACTER(LEN=2047)  :: CFDIR 
     CHARACTER(LEN=2047)  :: LINE
 
     !======================================================================
@@ -186,14 +189,48 @@ CONTAINS
     ! For convenience only
     AIR = am_I_Root
 
+    ! Nested call?
+    IF ( PRESENT(IsNest) ) THEN
+       NEST = IsNest
+    ELSE
+       NEST = .FALSE.
+    ENDIF
+
+    ! Prompt to standard output
+    IF ( am_I_Root ) THEN
+       WRITE(6,*) ' '
+       IF ( Phase == 1 ) THEN 
+          WRITE(6,*) 'Reading part 1 of HEMCO configuration file: ', TRIM(ConfigFile)
+       ELSEIF ( Phase == 2 ) THEN
+          WRITE(6,*) 'Reading part 2 of HEMCO configuration file: ', TRIM(ConfigFile)
+       ELSE
+          WRITE(6,*) 'Reading part 1+2 of HEMCO configuration file: ', TRIM(ConfigFile)
+       ENDIF
+    ENDIF
+
+    ! Extract configuration file directory. This is the directory containing the
+    ! configuration file. Any tokens $CFDIR in the given configuration file will
+    ! be replaced with the configuration file directory
+    CALL HCO_GetBase( ConfigFile, CFDIR, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Find free LUN
     IU_HCO = findFreeLUN()
+
+    INQUIRE( FILE=TRIM(ConfigFile), EXIST=EXISTS )
+    IF ( .NOT. EXISTS ) THEN
+       IF ( am_I_Root ) THEN
+          WRITE(*,*) 'Cannot read file - it does not exist: ', TRIM(ConfigFile)
+       ENDIF
+       RC = HCO_FAIL
+       RETURN
+    ENDIF
 
     ! Open configuration file
     OPEN ( IU_HCO, FILE=TRIM( ConfigFile ), STATUS='OLD', IOSTAT=IOS )
     IF ( IOS /= 0 ) THEN
        IF ( am_I_Root ) THEN
-          WRITE(*,*) 'Error reading ' // TRIM(ConfigFile)
+          WRITE(*,*) 'Error reading ', TRIM(ConfigFile)
        ENDIF 
        RC = HCO_FAIL
        RETURN 
@@ -224,7 +261,7 @@ CONTAINS
        ! Read settings if this is beginning of settings section 
        IF ( INDEX ( LINE, 'BEGIN SECTION SETTINGS' ) > 0 ) THEN
 
-          IF ( PHASE < 2 ) THEN
+          IF ( PHASE < 2 .AND. .NOT. Nest ) THEN
              CALL ReadSettings( AIR, IU_HCO, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
@@ -258,7 +295,7 @@ CONTAINS
 
           ! Read data and write into container
           IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-             CALL Config_ReadCont( AIR, IU_HCO, HCO_DCTTYPE_BASE, EOF, RC )
+             CALL Config_ReadCont( AIR, IU_HCO, CFDIR, HCO_DCTTYPE_BASE, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -270,7 +307,7 @@ CONTAINS
        ! scale factor.
        ELSE IF ( INDEX ( LINE, 'BEGIN SECTION SCALE FACTORS' ) > 0 ) THEN
 
-          CALL Config_ReadCont( AIR, IU_HCO, HCO_DCTTYPE_SCAL, EOF, RC )
+          CALL Config_ReadCont( AIR, IU_HCO, CFDIR, HCO_DCTTYPE_SCAL, EOF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( EOF ) EXIT
 
@@ -278,7 +315,7 @@ CONTAINS
        ELSE IF ( INDEX ( LINE, 'BEGIN SECTION MASKS' ) > 0 ) THEN
 
           IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-             CALL Config_ReadCont( AIR, IU_HCO, HCO_DCTTYPE_MASK, EOF, RC )
+             CALL Config_ReadCont( AIR, IU_HCO, CFDIR, HCO_DCTTYPE_MASK, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -291,7 +328,7 @@ CONTAINS
 
     ! Check if we caught all sections. Do that only for phase 1. 
     ! Sections SETTINGS and extension switches are needed.
-    IF ( PHASE == 1 .AND. NN /= 2 ) THEN
+    IF ( PHASE == 1 .AND. NN /= 2 .AND. .NOT. NEST ) THEN
        WRITE(*,*) 'Expected 2 sections, found/read ', NN
        WRITE(*,*) 'Should read SETTINGS and EXTENSION SWITCHES'
        RC = HCO_FAIL
@@ -307,8 +344,10 @@ CONTAINS
     ENDIF 
 
     ! Configuration file is now read
-    IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-       ConfigFileRead = .TRUE.
+    IF ( .NOT. NEST ) THEN
+       IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
+          ConfigFileRead = .TRUE.
+       ENDIF
     ENDIF
 
     ! Leave w/ success
@@ -417,7 +456,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_ReadCont( am_I_Root, IU_HCO, DctType, EOF, RC )
+  SUBROUTINE Config_ReadCont( am_I_Root, IU_HCO, CFDIR, DctType, EOF, RC )
 !
 ! !USES:
 !
@@ -428,17 +467,18 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL, INTENT(IN   ) :: am_I_Root  ! Root CPU?
-    INTEGER, INTENT(IN   ) :: IU_HCO     ! Logfile LUN
-    INTEGER, INTENT(IN   ) :: DctType    ! 1=base; 2=scale; 3=mask
+    LOGICAL,          INTENT(IN   ) :: am_I_Root ! Root CPU?
+    INTEGER,          INTENT(IN   ) :: IU_HCO    ! Logfile LUN
+    CHARACTER(LEN=*), INTENT(IN   ) :: CFDIR     ! Configuration file directory
+    INTEGER,          INTENT(IN   ) :: DctType   ! 1=base; 2=scale; 3=mask
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL, INTENT(INOUT) :: EOF        ! end of file encountered?
+    LOGICAL,          INTENT(INOUT) :: EOF       ! end of file encountered?
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(  OUT) :: RC         ! error code
+    INTEGER,          INTENT(  OUT) :: RC        ! error code
 ! 
 ! !REVISION HISTORY: 
 !  03 Jan 2014 - C. Keller - Initial version 
@@ -446,6 +486,8 @@ CONTAINS
 !                            value will be interpreted as mask field (applied to
 !                            this scale factor only).
 !  27 Feb 2015 - C. Keller - Added CycleFlag 4 (interpolation)
+!  13 Mar 2015 - C. Keller - Added include files (nested configuration files)
+!                            and CFDIR argument.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -462,6 +504,7 @@ CONTAINS
     INTEGER                   :: Int4
     INTEGER                   :: nCat
     INTEGER                   :: Cats(CatMax)
+    INTEGER                   :: STRLEN
     LOGICAL                   :: SKIP
     CHARACTER(LEN= 31)        :: cName
     CHARACTER(LEN=255)        :: srcFile
@@ -524,7 +567,7 @@ CONTAINS
                                    Char2,    -1,                    &
                                    Int1,      1,      Int2,     9,  &
                                    Int3,     10,      STAT,         &
-                                   optcl=10                          )
+                                   optcl=10    ,      OutLine=LINE   )
   
        ELSEIF ( DctType == HCO_DCTTYPE_MASK ) THEN
           CALL ReadAndSplit_Line ( am_I_Root, IU_HCO, cName,    2,  &
@@ -534,7 +577,8 @@ CONTAINS
                                    SpcName,  -1,      Char1,   10,  &
                                    Char2,    -1,                    &
                                    Int1,      1,      Int2,     9,  &
-                                   Int3,     -1,      STAT           )
+                                   Int3,     -1,      STAT,         &
+                                   OutLine=LINE                      )
        ENDIF
 
        !--------------------------------------------------------------
@@ -556,7 +600,7 @@ CONTAINS
        IF ( STAT == 10 ) THEN
           EXIT
        ENDIF
-               
+       
        ! Error if not enough entries found 
        IF ( STAT == 100 ) THEN
           CALL HCO_ERROR ( 'STAT == 100', RC, THISLOC=LOC )
@@ -579,6 +623,25 @@ CONTAINS
           ! else to do with this line.
           IF ( STAT == 5 .OR. STAT == 6 ) CYCLE
 
+       ENDIF
+
+       ! Read include file. Configuration files can be 'nested', e.g. 
+       ! configuration files can be included into the 'main' configuration
+       ! file. These files must be listed as '>>>include FileName', where
+       ! FileName is the actual path of the file. 
+       IF ( STAT == 1000 ) THEN
+
+          ! Call the parser. This is to make sure that any $ROOT statements
+          ! will be evaluated properly. The configuration file must not 
+          ! contain any data tokens ($YR, $MM, etc.).
+          CALL HCO_CharParse ( LINE, 0, 0, 0, 0, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          CALL Config_ReadFile( am_I_Root, LINE, 0, RC, IsNest=.TRUE. )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! All done with this line
+          CYCLE
        ENDIF
 
        ! Output status should be 0 if none of the statuses above applies 
@@ -683,11 +746,18 @@ CONTAINS
           Dta => NULL()
           CALL FileData_Init ( Dta )
 
-          ! Set source file name, file variable, and original data unit.
-          ! In an ESMF environment, the source data will be imported 
-          ! through ExtData by name, hence need to set ncFile equal to
-          ! container name!
+          ! Set source file name. Check if the read file name starts 
+          ! with the configuration file token '$CFDIR', in which case
+          ! we replace this value with the passed CFDIR value.
+          STRLEN = LEN(srcFile)
+          IF ( STRLEN > 6 ) THEN
+             IF ( srcFile(1:6) == '$CFDIR' ) THEN
+                srcFile = TRIM(CFDIR) // TRIM(srcFile(7:STRLEN))
+             ENDIF
+          ENDIF
           Dta%ncFile    = srcFile
+
+          ! Set source variable and original data unit.
           Dta%ncPara    = srcVar
           Dta%OrigUnit  = srcUnit
 
@@ -824,7 +894,23 @@ CONTAINS
 ! !IROUTINE: BracketCheck
 !
 ! !DESCRIPTION: Subroutine BracketCheck checks if base emission data is within
-! a bracket and if that field shall be ignored or not. 
+! a bracket and if that field shall be ignored or not. Brackets can be used to
+! lump entires of the HEMCO configuration file into collections that can be
+! collectively enabled or disabled. The first entry of a collection is marked
+! adding an 'opening bracket' to the HEMCO configuration file (on the line
+! above the entry). Opening brackets must start with three opening brackets,
+! e.g.: '(((TEST'. Similarly, the end of a collection is marked by placing a
+! closing bracket after the last entry of the collection: '))))TEST'. 
+! Brackets can be enabled / disabled in the EXTENSION SWITCH section of the
+! HEMCO configuration file:
+! # ExtNr ExtName           on/off  Species 
+! 0       Base              : on    *
+!     --> TEST              :       true
+!\\
+!\\
+! It is also possible to use 'opposite' brackets, e.g. to use a collection 
+! only if the given setting is *disabled*. This can be achieved by appending
+! '--' to the collection name, e.g. '(((--TEST' and ')))--TEST'.
 !\\
 !\\
 ! !INTERFACE:
@@ -848,6 +934,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Feb 2015 - C. Keller   - Initial version.
+!  12 Mar 2015 - C. Keller   - Added 'mirror' option. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -860,10 +947,11 @@ CONTAINS
     LOGICAL                       :: FOUND
     LOGICAL                       :: UseBracket
     LOGICAL                       :: verb
+    LOGICAL                       :: REV
     INTEGER, SAVE                 :: NEST      = 0
     INTEGER, SAVE                 :: SKIPLEVEL = 0
     CHARACTER(LEN=255), SAVE      :: AllBrackets(MAXBRACKNEST) = ''
-    CHARACTER(LEN=255)            :: MSG, TmpBracket
+    CHARACTER(LEN=255)            :: MSG, TmpBracket, CheckBracket
 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'BracketCheck (hco_config_mod.F90)'
 
@@ -872,7 +960,7 @@ CONTAINS
     !======================================================================
 
     ! Init
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb( 1 ) 
 
     ! Get name of this bracket
     IF ( STAT == 5 .OR. STAT == 6 ) THEN
@@ -905,22 +993,37 @@ CONTAINS
        ! if this is a nested bracket in an already skipped bracket. 
        IF ( .NOT. SKIP ) THEN
 
+          ! Check for 'inverse' bracket. These start with '.not.'
+          CheckBracket = TmpBracket
+          REV          = .FALSE.
+          IF ( STRLEN > 5 ) THEN
+             IF ( TmpBracket(1:5) == '.not.' ) THEN
+                STRLEN = LEN(TmpBracket)
+                CheckBracket = TmpBracket(6:STRLEN)
+                REV          = .TRUE.
+             ENDIF
+          ENDIF
+
           ! Check if this bracket has been registered as being used.
           ! Scan all extensions, including the core one.
-          CALL GetExtOpt( -999, TRIM(TmpBracket), &
+          CALL GetExtOpt( -999, TRIM(CheckBracket), &
              OptValBool=UseBracket, FOUND=FOUND, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! If bracket name not found in options, skip content.
           IF ( .NOT. FOUND ) THEN
-             MSG = 'This data collection is not defined - skip: '// &
-                   TRIM(TmpBracket)
-             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+!             MSG = 'This data collection is not defined - skip: '// &
+!                   TRIM(CheckBracket)
+!             CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
              SKIP = .TRUE.
-
           ! Use value defined in HEMCO configuration file.
           ELSE
             SKIP = .NOT. UseBracket
+          ENDIF
+
+          ! Eventually reverse the skip flag 
+          IF ( REV ) THEN
+             SKIP = .NOT. SKIP
           ENDIF
 
           ! If bracket is skipped, adjust skip level accordingly.
@@ -1034,7 +1137,7 @@ CONTAINS
     ENDIF
 
     ! Init
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb( 1 )  
 
     ! Get number of currently used scale factors
     N = 0
@@ -1178,7 +1281,7 @@ CONTAINS
        Lct%Dct%Dta => Dta
 
        ! verbose mode
-       IF ( am_I_Root .AND. HCO_VERBOSE_CHECK() ) THEN
+       IF ( HCO_IsVerb( 2 ) ) THEN 
           MSG = 'Created a fake scale factor with zeros'
           CALL HCO_MSG(MSG)
           MSG = 'This field will be used to artificially expand ' // &
@@ -1367,7 +1470,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER               :: I, N, POS
-    LOGICAL               :: verb, warn, track
+    INTEGER               :: verb
+    LOGICAL               :: warn
     CHARACTER(LEN=255)    :: LINE, LOC
     CHARACTER(LEN=255)    :: LogFile
     CHARACTER(LEN=255)    :: DiagnPrefix
@@ -1381,8 +1485,7 @@ CONTAINS
 
     ! Defaults
     LogFile   = 'HEMCO.log'
-    verb      = .FALSE.
-    track     = .FALSE.
+    verb      = -1
     warn      = .TRUE.
 
     !-----------------------------------------------------------------------
@@ -1419,7 +1522,7 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Verbose mode?
-    CALL GetExtOpt( CoreNr, 'Verbose', OptValBool=verb, RC=RC )
+    CALL GetExtOpt( CoreNr, 'Verbose', OptValInt=verb, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Logfile to write into
@@ -1430,17 +1533,19 @@ CONTAINS
     CALL GetExtOpt( CoreNr, 'Show warnings', OptValBool=warn, RC=RC  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Track code? 
-    CALL GetExtOpt( CoreNr, 'Track', OptValBool=track, RC=RC  )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     ! If LogFile is equal to wildcard character, set LogFile to asterik 
     ! character. This will ensure that all output is written to standard
     ! output!
     IF ( TRIM(LogFile) == HCO_WCD() ) LogFile = '*'
 
     ! We should now have everything to define the HEMCO error settings
-    CALL HCO_ERROR_SET ( LogFile, verb, warn, track, RC )
+    CALL HCO_ERROR_SET ( am_I_Root, LogFile, verb, warn, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Call the chartool routines that may be defined
+    ! in the settings. This is to make sure that they
+    ! are correctly initialized.
+    CALL HCO_Char_Set( RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave w/ success
@@ -1575,7 +1680,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! Check for verbose flag
-    verb = HCO_VERBOSE_CHECK() .and. am_I_Root
+    verb = HCO_IsVerb ( 1 ) 
 
     ! Grid boundaries on this CPU. Will be needed to calculate 
     ! coverages. 
@@ -1730,7 +1835,7 @@ CONTAINS
       ! Enter
     CALL HCO_ENTER ( 'Register_Base (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
+    Verb = HCO_IsVerb( 1 ) 
 
     ! Point to next (first) line in ConfigList 
     CALL GetNextCont ( Lct, FLAG )
@@ -1920,7 +2025,7 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ( 'Register_Scal (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
+    Verb = HCO_IsVerb( 1 )
 
     ! Loop over all scale factor ids
     TmpScalIDCont => ScalIDList
@@ -2087,7 +2192,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get verbose flag from HCO_State
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+    verb = HCO_IsVerb( 1 )
 
     ! Get Tracer ID, category and hierarchy of entry to be checked
     cID   = Lct%Dct%cID
@@ -2495,13 +2600,14 @@ CONTAINS
 !  11 Dec 2013 - C. Keller - Added optional arguments inLine and outLine 
 !  29 Dec 2014 - C. Keller - Added optional argument optcl. Now use wrapper
 !                            routines READCHAR and READINT. 
+!  13 Mar 2015 - C. Keller - Added check for include files.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: N, OPT
+    INTEGER               :: N, OPT, STRLEN
     CHARACTER(LEN=255)    :: LINE
     CHARACTER(LEN=255)    :: SUBSTR(255) 
     LOGICAL               :: EOF
@@ -2541,8 +2647,11 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Get string length
+    STRLEN = LEN(TRIM(LINE))
+
     ! Return here with flag = 5 is line is opening a (shortcut) bracket.
-    IF ( LEN(TRIM(LINE)) > 3 ) THEN
+    IF ( STRLEN > 3 ) THEN
        IF ( LINE(1:3) == '(((' ) THEN
           STAT = 5
           RETURN
@@ -2554,6 +2663,15 @@ CONTAINS
           RETURN
        ENDIF 
     ENDIF
+
+    ! Return with flag = 1000 if this is a link to an include file.
+    IF ( STRLEN > 11 ) THEN
+       IF ( LINE(1:10) == '>>>include' ) THEN
+          IF ( PRESENT(outLINE) ) outLINE = outLINE(12:STRLEN)
+          STAT = 1000
+          RETURN
+       ENDIF
+    ENDIF 
 
     ! Split line into columns
     CALL STRREPL ( LINE, HCO_TAB(), HCO_SPC() )

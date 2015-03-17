@@ -126,7 +126,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb( 2 ) 
 
     ! Add container to ReadList according to update freqency.
     ! Fields in list 'Hour' will be updated (i.e. re-read) every hour, 
@@ -175,7 +175,7 @@ CONTAINS
     IF ( Verb ) THEN
        write(MSG,*) 'New container set to ReadList:'
        CALL HCO_MSG(MSG,SEP1='-')
-       CALL HCO_PrintDataCont( Dct, Verb )
+       CALL HCO_PrintDataCont( Dct, 3 )
     ENDIF
 
     ! Leave w/ success
@@ -237,7 +237,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb( 1 ) 
 
     ! Read all fields?
     RdAll = .FALSE.
@@ -383,7 +383,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode?
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb ( 2 ) 
 
     ! Loop over all containers
     Lct => ReadList
@@ -624,26 +624,31 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Print()
+  SUBROUTINE ReadList_Print( verb )
 !
 ! !USES:
 !
     USE HCO_LOGFILE_MOD,  ONLY : HCO_PrintList
 !
+! !INPUT ARGUMENTS
+!
+    INTEGER,  INTENT(IN)    :: verb   ! verbose number
+!
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
+!  15 Mar 2015 - C. Keller - Added verbose number as input argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     CHARACTER(LEN=255) :: MSG
-    LOGICAL            :: verb
 
     ! ================================================================
     ! ReadList_Print begins here
     ! ================================================================
 
-    verb = .TRUE.
+    ! Nothing to do if HEMCO verbose level is below passed verbose number
+    IF ( .NOT. HCO_IsVerb(verb) ) RETURN
 
     ! Print content of all lists
     IF ( ASSOCIATED(ReadLists) ) THEN 

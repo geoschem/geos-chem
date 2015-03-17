@@ -4123,6 +4123,7 @@ c  Ensure all 'AN_' types are valid selections
 !                              running with the traditional driver main.F
 !  10 Apr 2013 - S. D. Eastham - Adapted for Fast-JX v7.0
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  13 Mar 2015 - R. Yantosca - Replace DATA_DIR_1x1 w/ CHEM_INPUTS_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4155,7 +4156,7 @@ c  Ensure all 'AN_' types are valid selections
       !=========================================================================
     
       ! Directory and file names
-      nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'FastJ_201204/'      
+      nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204/'      
       nc_file = 'fastj.jv_atms_dat.nc'  
       nc_path = TRIM( nc_dir ) // TRIM( nc_file )
     
