@@ -202,7 +202,7 @@
       ! SCALARS
       !-----------------------------------------------------------------
       INTEGER             :: I, J ,L, LL, N, NCOL, JLOOP, IJLOOP, W
-      INTEGER             :: IL, OMPID
+      INTEGER             :: IL, OMPID, LCHEM
       INTEGER             :: OUTIDX,IOUTWV
       INTEGER             :: IB,IBX,IB_SW,IS,NBNDS,NSPEC
       INTEGER             :: IS_ON,NASPECRAD_ON
@@ -299,13 +299,13 @@
       REAL (KIND=RB)      :: TLEV(IIPAR*JJPAR,LLPAR+1)
       REAL (KIND=RB)      :: CO2VMR(IIPAR*JJPAR,LLPAR)
       REAL (KIND=RB)      :: O2VMR(IIPAR*JJPAR,LLPAR)
-      REAL (KIND=RB)      :: O3_CTM(LLPAR)
-      REAL (KIND=RB)      :: T_CLIM(LLPAR)
-      REAL (KIND=RB)      :: O3_CLIM(LLPAR)
-      REAL (KIND=RB)      :: Z_CLIM(LLPAR)
-      REAL (KIND=RB)      :: AIR_CLIM(LLPAR)
       REAL (KIND=RB)      :: T_CTM(LLPAR+1)
       REAL (KIND=RB)      :: P_CTM(LLPAR+2)
+      REAL (KIND=RB)      :: O3_CTM(LLPAR+1)
+      REAL (KIND=RB)      :: T_CLIM(LLPAR+1)
+      REAL (KIND=RB)      :: O3_CLIM(LLPAR+1)
+      REAL (KIND=RB)      :: Z_CLIM(LLPAR+2)
+      REAL (KIND=RB)      :: AIR_CLIM(LLPAR+1)
       INTEGER             :: N_TRACERS
       REAL*8              :: XNUMOL(Input_Opt%N_TRACERS)
       REAL*8              :: TRACER_MW_G(Input_Opt%N_TRACERS)
@@ -565,8 +565,11 @@
 
        ! CTM ozone densities (molec/cm3)
        O3_CTM          = 0d0
-       L               = GET_CHEMGRID_LEVEL(I,J,State_Met)
-       O3_CTM(1:L)     = CSPEC(JLOOP,IDO3)
+       LCHEM           = GET_CHEMGRID_LEVEL(I,J,State_Met)
+       DO L = 1, LCHEM
+          JLOOP        = JLOP(I,J,L)
+          O3_CTM(L)    = CSPEC(JLOOP,IDO3)
+       ENDDO
        
       DO L = 1, LLPAR
 

@@ -95,7 +95,7 @@
       USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
-      USE TRACERID_MOD,       ONLY : IDTO3
+      USE TRACERID_MOD,       ONLY : IDO3
 
       IMPLICIT NONE
 
@@ -209,7 +209,7 @@
 !
       INTEGER, SAVE :: LASTMONTH = -1
       INTEGER       :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L, N
-      INTEGER       :: IOPT
+      INTEGER       :: IOPT, JLOOP, LCHEM
       REAL*8        :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
       REAL*8        :: O3_CTM(LLPAR+1)
       REAL*8        :: T_CTM(LLPAR+1), OPTD(LLPAR)
@@ -280,12 +280,11 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( NLAT,    NLON,   YLAT,      CSZA,   P_CTM   )
 !$OMP+PRIVATE( T_CTM,   SFCA,   O3_TOMS,   O3_CTM, OPTAER  )
-!$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                     )
+!$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D,    JLOOP           )
 !$OMP+PRIVATE( N, IOPT                                     )
 #if defined( USE_MAXIMUM_RANDOM_OVERLAP )
 !$OMP+PRIVATE( FMAX,    KK,     NUMB,      L       KBOT    )
 !$OMP+PRIVATE( KTOP     ODNEW,  INDICATOR, INDIC           )
-!$OMP+PRIVATE( O3_TOMS, P_CTM,  JLOOP                      ) 
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
 
@@ -330,8 +329,11 @@
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
             O3_CTM          = 0d0
-            L               = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
-            O3_CTM(1:L)     = CSPEC(JLOOP,IDO3)
+            LCHEM           = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
+            DO L = 1, LCHEM
+               JLOOP        = JLOP(NLON,NLAT,L)
+               O3_CTM(L)    = CSPEC(JLOOP,IDO3)
+            ENDDO
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
 !------------------------------------------------------------------------------
