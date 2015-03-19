@@ -184,14 +184,13 @@
       REAL(fpp),  ALLOCATABLE :: HgPaq_SUNK(:,:,:) !eds 5/15/12 fix
       REAL(fpp),  ALLOCATABLE :: Hgaq_tot(:,:,:)
 !--------------------------------------------------------------------
-      REAL(fpp),  ALLOCATABLE :: MLD(:,:)
+!      REAL(fpp),  ALLOCATABLE :: MLD(:,:)
       REAL(fpp),  ALLOCATABLE :: MLDav(:,:)
       REAL(fpp),  ALLOCATABLE :: newMLD(:,:)
       REAL(fpp),  ALLOCATABLE :: prevMLD(:,:) !eds 10/19/10 debugging restart
-      REAL(fpp),  ALLOCATABLE :: NPP(:,:)
+!      REAL(fpp),  ALLOCATABLE :: NPP(:,:)
       REAL(fpp),  ALLOCATABLE :: RAD(:,:)
-      REAL(fpp),  ALLOCATABLE :: UPVEL(:,:)
-      REAL(fpp),  ALLOCATABLE :: CHL(:,:)                              
+!      REAL(fpp),  ALLOCATABLE :: UPVEL(:,:)
 ! added by hma for Hg2 partitioning --------------------------------------
       REAL(fpp),  ALLOCATABLE :: BULK_CONC(:,:,:)  
       REAL(fpp),  ALLOCATABLE :: Fp(:,:,:)     
@@ -226,6 +225,13 @@
       ! CDH average ocean area per grid box: 1.67d11 m2/box
       ! used when eliminating AREA * FRAC_O
       REAL(fpp), PARAMETER :: FUDGE=1.67e+11_fpp
+
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER :: CHL   (:,:) => NULL()
+      REAL(f4), POINTER :: MLD   (:,:) => NULL()
+      REAL(f4), POINTER :: NPP   (:,:) => NULL()
+      REAL(f4), POINTER :: UPVEL (:,:) => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -333,12 +339,7 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
+!  13 Mar 2015 - R. Yantosca - Now remove bpch input
 !*****************************************************************************
 !
 ! !USES:
@@ -383,7 +384,7 @@
       REAL(f4)                :: ARRAYconc(IGLOB,JGLOB,LGLOB)  ! concentration
 
       ! Local variables
-      INTEGER                 :: I, J, L, NN
+      INTEGER                 :: I, J, L, NN, LL
       CHARACTER(LEN=155)      :: FILENAME
       CHARACTER(LEN=2)        :: MON                 ! for months 10-12
       CHARACTER(LEN=1)        :: SMON                ! for months 1-9
@@ -399,6 +400,8 @@
       ! Assume success
       RC        =  GIGC_SUCCESS
 
+      ! Initialize
+      
       !----------------------------------------!
       ! Molecular weights, for unit conversion !
       !----------------------------------------!
@@ -466,8 +469,13 @@
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_BCPO', LOC )
       ENDIF
 
+      ! First get the size of ARRAYbcpi.  ARRAYbcpo is the same size
+      ! since they are both stored in the same file (bmy, 3/13/15)
+      LL = size( ARRAYbcpi, 3 )
+
       ! convert REAL*4 to REAL(fpp) 
-      ARRAYtemp = ARRAYbcpi + ARRAYbcpo
+      ARRAYtemp                 = 0.e0_f4
+      ARRAYtemp(:,:,1:LL)       = ARRAYbcpi + ARRAYbcpo
       BC_CONC(:,:,1:LLCHEM_FIX) = ARRAYtemp(:,:,1:LLCHEM_FIX)
 
       !---------------------------
@@ -486,8 +494,13 @@
          CALL ERROR_STOP ( 'Cannot get pointer to AERO_OCPO', LOC )
       ENDIF
 
+      ! First get the size of ARRAYbcpi.  ARRAYbcpo is the same size
+      ! since they are both stored in the same file (bmy, 3/13/15)
+      LL = size( ARRAYocpi, 3 )
+
       ! convert REAL*4 to REAL(fpp) 
-      ARRAYtemp = ARRAYocpi + ARRAYocpo
+      ARRAYtemp                 = 0.e0_f4
+      ARRAYtemp(:,:,1:LL)       = ARRAYocpi + ARRAYocpo
       OC_CONC(:,:,1:LLCHEM_FIX) = ARRAYtemp(:,:,1:LLCHEM_FIX)
 
       !---------------------------
@@ -1814,22 +1827,17 @@
 !  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
+!  13 Mar 2015 - R. Yantosca - Now read netCDF data via HEMCO
 !******************************************************************************
 !
 ! !USES:
 !
-      USE BPCH2_MOD
       USE CMN_SIZE_MOD
+      USE Error_Mod,          ONLY : Error_Stop
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE TIME_MOD,	      ONLY : ITS_A_LEAPYEAR
-      USE FILE_MOD,	      ONLY : IOERROR, IU_FILE
 !
 ! !INPUT PARAMETERS:
 !
@@ -1847,14 +1855,17 @@
       ! Local Variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
       REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
-      REAL(f8)               :: TAU
-      CHARACTER(LEN=255)     :: FILENAME
+
       ! Add time variables to get correct number of seconds per month
       ! and prevent negative flow later (jaf, 12/8/11)
       INTEGER	   :: DAYS_IN_MONTH, LASTMONTH
       INTEGER	   :: M(12) = (/ 31, 28, 31, 30, 31, 30,
      &                           31, 31, 30, 31, 30, 31 /)
      
+      ! Strings
+      CHARACTER(LEN=255) :: 
+     & LOC = 'OCEAN_MERCURY_READ (GeosCore/ocean_mercury_mod.f)'
+
       !=================================================================
       ! OCEAN_MERCURY_READ begins here!
       !=================================================================
@@ -1876,176 +1887,47 @@
          DAYS_IN_MONTH = M(LASTMONTH)
       ENDIF
 
-      !------------------------------
+      !-----------------------------------------------------------------
       ! Mixed layer depth [cm]
-      !------------------------------
-
-      ! MLD file name
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           TRIM( Input_Opt%RES_DIR  )        //
-     &           'mercury_201203/MLD_DReqDT.'      // 
-     &           GET_NAME_EXT()    // '.'          //
-     &           GET_RES_EXT()
-#else
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           TRIM( Input_Opt%RES_DIR  )        //
-     &           'mercury_201007/MLD_DReqDT.geos.' // 
-     &           GET_RES_EXT()
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - OCEAN_MERCURY_READ: Reading ', a )  
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_MLD', MLD, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_MLD', LOC )
       ENDIF
-
-      ! TAU0 value (uses year 2003) !(uses year 1985, anls)
-      TAU = GET_TAU0( THISMONTH, 1, 1985 )
-
-      ! Read from disk; original units are [m]
-      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    5,  
-     &                 TAU,       IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-
-      ! Resize and cast to REAL(fpp)
-      MLD = ARRAY(:,:,1)
 
       ! Convert [m] to [cm]
-      MLD = MLD * 100e+0_fpp
+      MLD = MLD * 100e+0_f4
 
-      ! First-time only: Set MDLav [cm] to MLD of first month
-      IF ( FIRST ) THEN   
-!-eds 10/19/10 causes differences dep. on restart date -----------
-!         MLDav = MLD   
-!         dMLD  = 0.0
-!         MLDav = MLDprev
-!----------------------------------------------------------------
-         FIRST = .FALSE.
+      !-----------------------------------------------------------------
+      ! Chl from Modis [kg/m3] --> [mg/m3]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_CHLA', CHL, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_CHLA', LOC )
       ENDIF
 
-!-------------------------------------------------      (anls, 090520) chl
-! Chl from Modis [mg/m3]                                only for 4x5 for now  
-!-------------------------------------------------
+      ! Convert [kg/m3] to [mg/m3]
+      CHL = CHL * 1e6_f4
 
-      ! Chl file name
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           TRIM( Input_Opt%RES_DIR  )        //
-     &           'mercury_201203/Chl_2003.'        // 
-     &           GET_NAME_EXT()     // '.'         //
-     &           GET_RES_EXT()
-#else
-      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           TRIM( Input_Opt%RES_DIR  )        //
-     &           'mercury_201007/Chl_2003.geos.'   //
-     &           GET_RES_EXT()
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
+      !-----------------------------------------------------------------
+      ! Net primary productivity [kg/m2] -> [mg/m2]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_NPP', NPP, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_NPP', LOC )
       ENDIF
 
-      ! TAU0 values (uses year 2003)
-      TAU = GET_TAU0( THISMONTH, 1, 2003 )      
-#if defined (GRID2x25)
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'CHLO-A-$',    0,  
-     &                 TAU,       IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.FALSE. )
-#else 
+      ! Convert [kg/m2] -> [mg/m2]
+      NPP = NPP * 1e6_f4
 
-      CALL READ_BPCH2( FILENAME, 'CHLO-A-$',    1,
-     &                 TAU,       IIPAR,        JJPAR,
-     &                 1,         ARRAY(:,:,1), QUIET=.FALSE. )
-#endif
-
-      ! Resize and cast to REAL(fpp)
-      CHL = ARRAY(:,:,1)
-
-
-      !--------------------------------
-      ! Net primary productivity [mg/m2/day]
-      !--------------------------------
- 
-      ! NPP file name (anls, 100111)
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           TRIM( Input_Opt%RES_DIR  )        //
-     &           'mercury_201203/NPP_2003.'        // 
-     &          GET_NAME_EXT()     // '.'          //
-     &          GET_RES_EXT()  
-#else
-      FILENAME = TRIM( Input_Opt%DATA_DIR )        // 
-     &           TRIM( Input_Opt%RES_DIR  )        //
-     &           'mercury_201007/NPP_2003.geos.'   //
-     &           GET_RES_EXT()
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
+      !-----------------------------------------------------------------
+      ! Ekman upwelling velocity [m/s]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'OCEAN_EKMAN_V', UPVEL, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to OCEAN_EKMAN_V', LOC )
       ENDIF
 
-      ! TAU0 values (uses year 2003)
-      TAU = GET_TAU0( THISMONTH, 1, 2003 )
- 
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'GLOB-NPP',    1,  
-     &                 TAU,       IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-
-      ! Resize and cast to REAL(fpp)
-      NPP = ARRAY(:,:,1)
-  
-
-      !---------------------------------
-      ! Ekman upwelling velocity [cm/s]
-      !---------------------------------
-
-      ! NPP file name
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-      FILENAME = TRIM( Input_Opt%DATA_DIR )         // 
-     &           TRIM( Input_Opt%RES_DIR  )        //
-     &           'mercury_201203/ekman_upvel.'      // 
-     &           GET_NAME_EXT()    // '.'           //
-     &           GET_RES_EXT() 
-#else
-      FILENAME = TRIM(Input_Opt% DATA_DIR_1x1 )     // 
-     &           'mercury_200511/ekman_upvel.geos.' //
-     &           GET_RES_EXT()
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
-      ENDIF
-
-      ! TAU0 value (uses year 1985)
-      TAU = GET_TAU0( THISMONTH, 1, 1985 )
-
-      ! Read from disk; original units are [cm/s]
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    6,  
-     &                 TAU,       IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-#else
-      CALL READ_BPCH2( FILENAME, 'EKMAN-V',     1,  
-     &                 TAU,       IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-#endif
-
-      ! Resize and cast to REAL(fpp)
-      UPVEL = ARRAY(:,:,1)
-
-      ! convert [cm/s] to [m/s]
-      UPVEL = UPVEL * 1.e-2_fpp
-  
       ! Return to calling program
       END SUBROUTINE OCEAN_MERCURY_READ
 
@@ -3784,9 +3666,9 @@
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq_SUNK' )
       HgPaq = 0e+0_fpp
 
-      ALLOCATE( MLD( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLD' )
-      MLD = 0e+0_fpp
+!      ALLOCATE( MLD( IIPAR, JJPAR ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLD' )
+!      MLD = 0e+0_fpp
 
       ALLOCATE( MLDav( IIPAR, JJPAR ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLDav' )
@@ -3801,17 +3683,17 @@
       IF ( RC /=0 ) CALL ALLOC_ERR( 'prevMLD' )
       prevMLD = 0e+0_fpp
 
-      ALLOCATE( NPP( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NPP' )
-      NPP = 0e+0_fpp
+!      ALLOCATE( NPP( IIPAR, JJPAR ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NPP' )
+!      NPP = 0e+0_fpp
 
-      ALLOCATE( CHL( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CHL' )
-      CHL = 0e+0_fpp
+!      ALLOCATE( CHL( IIPAR, JJPAR ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CHL' )
+!      CHL = 0e+0_fpp
 
-      ALLOCATE( UPVEL( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'UPVEL' )
-      UPVEL = 0e+0_fpp
+!      ALLOCATE( UPVEL( IIPAR, JJPAR ), STAT=RC )
+!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'UPVEL' )
+!      UPVEL = 0e+0_fpp
 
       ALLOCATE( Fg( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fg' )
@@ -3886,13 +3768,13 @@
       IF ( ALLOCATED( Hg0aq     ) ) DEALLOCATE( Hg0aq     )  
       IF ( ALLOCATED( Hg2aq     ) ) DEALLOCATE( Hg2aq     )
       IF ( ALLOCATED( HgPaq     ) ) DEALLOCATE( HgPaq     )  
-      IF ( ALLOCATED( MLD       ) ) DEALLOCATE( MLD       )
+!      IF ( ALLOCATED( MLD       ) ) DEALLOCATE( MLD       )
       IF ( ALLOCATED( MLDav     ) ) DEALLOCATE( MLDav     )
       IF ( ALLOCATED( newMLD    ) ) DEALLOCATE( newMLD    )
       IF ( ALLOCATED( prevMLD   ) ) DEALLOCATE( prevMLD   ) !eds 10/19/10
-      IF ( ALLOCATED( NPP       ) ) DEALLOCATE( NPP       )
-      IF ( ALLOCATED( CHL       ) ) DEALLOCATE( CHL       )
-      IF ( ALLOCATED( UPVEL     ) ) DEALLOCATE( UPVEL     )
+!      IF ( ALLOCATED( NPP       ) ) DEALLOCATE( NPP       )
+!      IF ( ALLOCATED( CHL       ) ) DEALLOCATE( CHL       )
+!      IF ( ALLOCATED( UPVEL     ) ) DEALLOCATE( UPVEL     )
       IF ( ALLOCATED( BULK_CONC ) ) DEALLOCATE( BULK_CONC )
       IF ( ALLOCATED( Fg        ) ) DEALLOCATE( Fg        )
       IF ( ALLOCATED( Fp        ) ) DEALLOCATE( Fp        )
@@ -3904,6 +3786,12 @@
       IF ( ALLOCATED( DST_CONC  ) ) DEALLOCATE( DST_CONC  )
       IF ( ALLOCATED( R         ) ) DEALLOCATE( R         )
       IF ( ALLOCATED( SO4_CONC  ) ) DEALLOCATE( SO4_CONC  )
+
+      ! Free pointers
+      CHL   => NULL()
+      MLD   => NULL()
+      NPP   => NULL()
+      UPVEL => NULL()
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_OCEAN_MERCURY

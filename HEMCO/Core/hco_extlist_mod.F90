@@ -618,7 +618,7 @@ CONTAINS
     !======================================================================
 
     ! verbose?
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb( 1 ) 
 
     ! Pass name to module and set to lower case
     IF ( PRESENT(ExtName) ) THEN

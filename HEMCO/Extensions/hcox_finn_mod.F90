@@ -548,11 +548,9 @@ CONTAINS
     ENDIF
  
     ! Use daily data?
-    tmpName = TRIM(ExtName) // "_daily"
-    tmpNr   = GetExtNr( TRIM(tmpName) )
-    IF ( tmpNr > 0 ) THEN
-       UseDay = .TRUE.
-    ELSE
+    CALL GetExtOpt ( ExtNr, 'FINN_daily', OptValBool=UseDay, FOUND=FOUND, RC=RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) THEN 
        UseDay = .FALSE.
     ENDIF
 

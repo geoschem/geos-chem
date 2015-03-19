@@ -38,7 +38,6 @@
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GRID_MOD,                ONLY : CLEANUP_GRID
-      USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
@@ -234,6 +233,7 @@
 !  12 Jan 2015 - R. Yantosca - Remove CLEANUP_UVALBEDO routine
 !  11 Mar 2015 - R. Yantosca - Remove call to CLEANUP_GLOBAL_OH
 !  11 Mar 2015 - R. Yantosca - Remove call to CLEANUP_GLOBAL_NOX
+!  16 Mar 2015 - R. Yantosca - Remove call to CLEANUP_HCN_CH3CN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -279,7 +279,6 @@
       CALL CLEANUP_DUST()
       CALL CLEANUP_GLOBAL_CH4()
       CALL CLEANUP_GRID()
-      CALL CLEANUP_HCN_CH3CN()
       CALL CLEANUP_HDF()
       CALL CLEANUP_ISOROPIAII()
       CALL CLEANUP_LINOZ()

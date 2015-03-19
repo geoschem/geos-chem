@@ -199,6 +199,12 @@ hco_readlist_mod.o     : hco_readlist_mod.F90    \
                          hco_tidx_mod.o          \
                          hcoio_dataread_mod.o
 
+hco_restart_mod.o      : hco_restart_mod.F90     \
+                         hco_diagn_mod.o         \
+                         hco_emislist_mod.o      \
+                         hco_error_mod.o         \
+                         hco_state_mod.o
+
 hco_state_mod.o        : hco_state_mod.F90       \
 	                 hco_arr_mod.o           \
                          hco_chartools_mod.o     \

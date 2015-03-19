@@ -43,6 +43,9 @@ MODULE HCO_Unit_Mod
 !  24 Jul 2014 - C. Keller   - Now define unitless & 'standard' units as
 !                              parameter
 !  13 Aug 2014 - C. Keller   - Interface for sp & dp arrays
+!  13 Mar 2015 - R. Yantosca - Add m and m2 to the "unitless" list
+!  16 Mar 2015 - R. Yantosca - Also allow "kg m-2 s-1" and similar units
+!  16 Mar 2015 - R. Yantosca - Add dobsons and dobsons/day units
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -64,44 +67,54 @@ MODULE HCO_Unit_Mod
   ! add more units if you don't want HEMCO to attempt to convert data
   ! in these units.
   ! All characters in this list should be lower case!
-  INTEGER,           PARAMETER :: NUL = 21
-  CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',        &
-                                               'count',    &
-                                               'unitless', &
-                                               'fraction', &
-                                               'factor',   &
-                                               'scale',    &
-                                               'hours',    &
-                                               'v/v',      &
-                                               'v/v/s',    &
-                                               's-1',      &
-                                               's^-1',     &
-                                               'm2/m2',    & 
-                                               'k',        & 
-                                               'w/m2',     & 
-                                               'pptv',     & 
-                                               'ppt',      & 
-                                               'ppbv',     & 
-                                               'ppb',      & 
-                                               'ppmv',     & 
-                                               'ppm',      & 
-                                               'cm2cm-2'    /)
+  INTEGER,           PARAMETER :: NUL = 28
+  CHARACTER(LEN=15), PARAMETER :: UL(NUL) = (/ '1',             &
+                                               'count',         &
+                                               'unitless',      &
+                                               'fraction',      &
+                                               'factor',        &
+                                               'scale',         &
+                                               'hours',         &
+                                               'v/v',           &
+                                               'v/v/s',         &
+                                               's-1',           &
+                                               's^-1',          &
+                                               'm2/m2',         & 
+                                               'm2m-2',         &
+                                               'k',             & 
+                                               'w/m2',          & 
+                                               'wm-2',          &
+                                               'pptv',          & 
+                                               'ppt',           & 
+                                               'ppbv',          & 
+                                               'ppb',           & 
+                                               'ppmv',          & 
+                                               'ppm',           & 
+                                               'm/s',           &
+                                               'ms-1',          &
+                                               'm',             &
+                                               'cm2cm-2',       &
+                                               'dobsons',       &
+                                               'dobsons/day'  /)
 
   ! Accepted units for data on HEMCO standard units. No unit conversion 
   ! is applied to data with any of these units.
   ! All characters in this list should be lower case!
 
   ! Emission units
-  INTEGER,           PARAMETER :: NHE = 3
-  CHARACTER(LEN=15), PARAMETER :: HE(NHE) = (/ 'kg/m2/s',   &
-                                               'kgc/m2/s',  &
-                                               'kg(c)/m2/s'  /)
+  INTEGER,           PARAMETER :: NHE = 6
+  CHARACTER(LEN=15), PARAMETER :: HE(NHE) = (/ 'kg/m2/s',       &
+                                               'kgc/m2/s',      &
+                                               'kg(c)/m2/s',    &
+                                               'kgm-2s-1',      &
+                                               'kgcm-2s-1',     &
+                                               'kg(c)m-2s-1'  /)
 
   ! Concentration units
   INTEGER,           PARAMETER :: NHC = 3
-  CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m3', &
-                                               'kgm-3', &
-                                               'kgm^-3'  /)
+  CHARACTER(LEN=15), PARAMETER :: HC(NHC) = (/ 'kg/m3',         &
+                                               'kgm-3',         &
+                                               'kgm^-3'       /)
 
   ! Interfaces:
   INTERFACE HCO_UNIT_CHANGE
@@ -943,7 +956,7 @@ CONTAINS
        IF ( .NOT. FOUND ) Tolerance = 0
 
        ! Verbose mode: write to log file
-       IF ( HCO_VERBOSE_CHECK() ) THEN
+       IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) 'Unit tolerance set to ', Tolerance
           CALL HCO_MSG(MSG,SEP1=' ',SEP2=' ')
        ENDIF

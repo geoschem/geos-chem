@@ -67,19 +67,15 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL             :: verb
     CHARACTER(LEN=255)  :: MSG 
 
     !=================================================================
     ! HCO_Spec2Log begins here 
     !=================================================================
 
-    ! Verbose mode?
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
-
     MSG = 'Species ' // TRIM(HcoState%Spc(ID)%SpcName)
     CALL HCO_MSG(MSG)
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(3) ) THEN
        write(MSG,*) '--> HcoID         : ', HcoState%Spc(ID)%HcoID
        CALL HCO_MSG(MSG)
        write(MSG,*) '--> ModID         : ', HcoState%Spc(ID)%ModID
@@ -121,7 +117,7 @@ CONTAINS
 ! !INPUT ARGUMENTS:
 !
       TYPE(ListCont), POINTER    :: List
-      LOGICAL,        INTENT(IN) :: Verbose
+      INTEGER,        INTENT(IN) :: Verbose
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -173,10 +169,11 @@ CONTAINS
 ! !INPUT ARGUMENTS:
 !
       TYPE(DataCont), POINTER    :: Dct
-      LOGICAL,        INTENT(IN) :: Verbose
+      INTEGER,        INTENT(IN) :: Verbose
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
+!  16 Mar 2015 - M. Sulprizio- Now print min and max values for debugging
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,12 +182,15 @@ CONTAINS
 !
       CHARACTER(LEN=255) :: MSG 
       INTEGER            :: nx, ny, nz, nt      
-      REAL(sp)           :: sm
+      REAL(sp)           :: sm, mn, mx
 
       ! ================================================================
       ! HCO_PrintDataCont begins here
       ! ================================================================
 
+      sm = 0.0_sp 
+      mn = 0.0_sp
+      mx = 0.0_sp
       sm = 0.0_sp 
       nx = 0 
       ny = 0
@@ -202,6 +202,8 @@ CONTAINS
                nx = SIZE(Dct%Dta%V2(1)%Val,1)
                ny = SIZE(Dct%Dta%V2(1)%Val,2)
                sm = SUM(Dct%Dta%V2(1)%Val)
+               mn = MINVAL(Dct%Dta%V2(1)%Val)
+               mx = MAXVAL(Dct%Dta%V2(1)%Val)
             ENDIF
          ELSE
             IF ( ASSOCIATED(Dct%Dta%V3) ) THEN
@@ -209,6 +211,8 @@ CONTAINS
                ny = SIZE(Dct%Dta%V3(1)%Val,2)
                nz = SIZE(Dct%Dta%V3(1)%Val,3)
                sm = SUM(Dct%Dta%V3(1)%Val)
+               mn = MINVAL(Dct%Dta%V3(1)%Val)
+               mx = MAXVAL(Dct%Dta%V3(1)%Val)
             ENDIF
          ENDIF
       ENDIF
@@ -218,7 +222,7 @@ CONTAINS
       CALL HCO_MSG(MSG)
 
       ! Eventually add details
-      IF ( verbose ) THEN
+      IF ( HCO_IsVerb(Verbose) ) THEN
 
          ! General information
          write(MSG,*) '   -->Data type       : ', Dct%DctType
@@ -256,6 +260,8 @@ CONTAINS
          ENDIF
          CALL HCO_MSG(MSG)
          write(MSG,*) '   -->Array sum       : ', sm 
+         CALL HCO_MSG(MSG)
+         write(MSG,*) '   -->Array min & max : ', mn,mx
          CALL HCO_MSG(MSG)
          write(MSG,*) '   -->Time dimension  : ', nt 
          CALL HCO_MSG(MSG)
