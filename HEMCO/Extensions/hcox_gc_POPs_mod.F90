@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -72,9 +72,9 @@ MODULE HCOX_GC_POPs_Mod
   REAL*8,  PARAMETER            :: SMALLNUM = 1D-20
 
   ! Pointers to emission arrays read from disk
-  REAL(hp), POINTER             :: POP_TOT_EM(:,:) => NULL()
-  REAL(hp), POINTER             :: C_OC(:,:,:)     => NULL()
-  REAL(hp), POINTER             :: C_BC(:,:,:)     => NULL()
+  REAL(sp), POINTER             :: POP_TOT_EM(:,:) => NULL()
+  REAL(sp), POINTER             :: C_OC(:,:,:)     => NULL()
+  REAL(sp), POINTER             :: C_BC(:,:,:)     => NULL()
 
   ! Calculated emissions of OC-phase, BC-phase, and gas-phase POPs
   REAL(hp), ALLOCATABLE, TARGET :: EPOP_OC(:,:,:)
@@ -90,7 +90,7 @@ MODULE HCOX_GC_POPs_Mod
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -416,7 +416,7 @@ CONTAINS
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => SUM_OC_EM(:,:)
-          CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,     &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                    &
                              Cat=-1,     Hier=-1,       HcoID=IDTPOPPOC, &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           Arr2D => NULL() 
@@ -441,7 +441,7 @@ CONTAINS
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => SUM_BC_EM(:,:)
-          CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,     &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                    &
                              Cat=-1,     Hier=-1,       HcoID=IDTPOPPBC, &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           Arr2D => NULL() 
@@ -466,7 +466,7 @@ CONTAINS
        ! Update diagnostic
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr2D => SUM_G_EM(:,:)
-          CALL Diagn_Update( am_I_Root,  HcoState,      ExtNr=ExtNr,   &
+          CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                  &
                              Cat=-1,     Hier=-1,       HcoID=IDTPOPG, &
                              AutoFill=1, Array2D=Arr2D, RC=RC   )
           Arr2D => NULL() 
@@ -484,7 +484,7 @@ CONTAINS
   END SUBROUTINE HCOX_GC_POPs_Run
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -661,7 +661,7 @@ CONTAINS
   END SUBROUTINE HCOX_GC_POPs_Init
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !

@@ -270,6 +270,7 @@ CONTAINS
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_CN
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -332,27 +333,27 @@ CONTAINS
     ! Read FRLAKE
     v_name = "FRLAKE"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%FRLAKE )
+    State_Met%FRLAKE = Q
 
     ! Read FRLAND
     v_name = "FRLAND"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%FRLAND )
+    State_Met%FRLAND = Q
 
     ! Read FRLANDIC
     v_name = "FRLANDIC"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%FRLANDIC )
+    State_Met%FRLANDIC = Q
     
     ! Read FROCEAN
     v_name = "FROCEAN"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%FROCEAN )
+    State_Met%FROCEAN = Q
     
     ! Read PHIS
     v_name = "PHIS"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%PHIS )
+    State_Met%PHIS = Q
 
     ! Echo info
     stamp = TimeStamp_String( 20110101, 000000 )
@@ -444,6 +445,7 @@ CONTAINS
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !  02 Dec 2013 - S. Philip   - Correction for GEOS-FP boundary layer height
 !  04 Dec 2013 - R. Yantosca - Now comment out GEOS-FP BL height correction
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -531,233 +533,233 @@ CONTAINS
     ! Read ALBEDO
     v_name = "ALBEDO"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%ALBD )
+    State_Met%ALBD = Q
 
     ! Read CLDTOT
     v_name = "CLDTOT"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%CLDFRC )
+    State_Met%CLDFRC = Q
 
     ! Read EFLUX
     v_name = "EFLUX"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%EFLUX )
+    State_Met%EFLUX = Q
 
     ! Read EVAP
     v_name = "EVAP"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%EVAP )
+    State_Met%EVAP = Q
 
     ! Read FRSEAICE
     v_name = "FRSEAICE"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%FRSEAICE )
+    State_Met%FRSEAICE = Q
 
     ! Read FRSNO
     v_name = "FRSNO"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%FRSNO )
+    State_Met%FRSNO = Q
 
     ! Read GRN
     v_name = "GRN"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%GRN )
+    State_Met%GRN = Q
 
     ! Read GWETROOT
     v_name = "GWETROOT"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%GWETROOT )
+    State_Met%GWETROOT = Q
 
     ! Read GWETTOP
     v_name = "GWETTOP"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%GWETTOP )
+    State_Met%GWETTOP = Q
 
     ! Read HFLUX from file
     v_name = "HFLUX"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%HFLUX )
+    State_Met%HFLUX = Q
 
     ! Read LAI
     v_name = "LAI"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%LAI )
+    State_Met%LAI = Q
 
     ! Read LWI
     v_name = "LWI"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%LWI )
+    State_Met%LWI = Q
 
     ! Read LWGNT 
     v_name = "LWGNT"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%RADLWG )
+    State_Met%RADLWG = Q
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read LWTUP
     !v_name = "LWTUP"
     !CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    !CALL Transfer_2d( Q, State_Met%FRLAKE )
+    !State_Met%LWTUP = Q)
     !-----------------------------------------------------------------------
 
     ! Read PARDF
     v_name = "PARDF"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%PARDF )
+    State_Met%PARDF = Q
 
     ! Read PARDR
     v_name = "PARDR"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%PARDR )
+    State_Met%PARDR = Q
 
     ! Read PBLH
     v_name = "PBLH"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%PBLH )
+    State_Met%PBLH = Q
 
     ! Read PRECANV
     v_name = "PRECANV"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%PRECANV )
+    State_Met%PRECANV = Q
 
     ! Read PRECCON
     v_name = "PRECCON"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%PRECCON )
+    State_Met%PRECCON = Q
 
     ! Read PRECLSC
     v_name = "PRECLSC"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%PRECLSC )
+    State_Met%PRECLSC = Q
 
     ! Read PRECSNO
     v_name = "PRECSNO"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%PRECSNO )
+    State_Met%PRECSNO = Q
 
     ! Read PRECTOT
     v_name = "PRECTOT"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%PRECTOT )
+    State_Met%PRECTOT = Q
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read QV2M
     !v_name = "QV2M"
     !CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    !CALL Transfer_2d( Q, State_Met%QV2M )
+    !State_Met%QV2M = Q
     !-----------------------------------------------------------------------
 
     ! Read SEAICE00
     v_name = "SEAICE00"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SEAICE00 )
+    State_Met%SEAICE00 = Q
 
     ! Read SEAICE10
     v_name = "SEAICE10"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SEAICE10 )
+    State_Met%SEAICE10 = Q
 
     ! Read SEAICE20
     v_name = "SEAICE20"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SEAICE20 )
+    State_Met%SEAICE20 = Q
 
     ! Read SEAICE30
     v_name = "SEAICE30"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SEAICE30 )
+    State_Met%SEAICE30 = Q
 
     ! Read SEAICE40
     v_name = "SEAICE40"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SEAICE40 )
+    State_Met%SEAICE40 = Q
 
     ! Read SEAICE50
     v_name = "SEAICE50"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SEAICE50 )
+    State_Met%SEAICE50 = Q
 
     ! Read SEAICE60 
     v_name = "SEAICE60"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SEAICE60 )
+    State_Met%SEAICE60 = Q
 
     ! Read SEAICE70
     v_name = "SEAICE70"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SEAICE70 )
+    State_Met%SEAICE70 = Q
 
     ! Read SEAICE80
     v_name = "SEAICE80"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SEAICE80 )
+    State_Met%SEAICE80 = Q
 
     ! Read SEAICE90
     v_name = "SEAICE90"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SEAICE90 )
+    State_Met%SEAICE90 = Q
 
     ! Read SLP
     v_name = "SLP"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SLP )
+    State_Met%SLP = Q
 
     ! Read SNODP
     v_name = "SNODP"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SNODP )
+    State_Met%SNODP = Q
 
     ! Read SNOMAS
     v_name = "SNOMAS"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%SNOMAS )
+    State_Met%SNOMAS = Q
 
     ! Read SWGDN
     v_name = "SWGDN"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%RADSWG )
+    State_Met%RADSWG = Q
 
     ! Read TO3
     v_name = "TO3"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%TO3 )
+    State_Met%TO3 = Q
 
     ! Read TROPPT
     v_name = "TROPPT"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%TROPP )
+    State_Met%TROPP = Q
 
     ! Read TS
     v_name = "TS"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%TSKIN )
+    State_Met%TSKIN = Q
 
     ! Read T2M
     v_name = "T2M"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%TS )
+    State_Met%TS = Q
 
     ! Read U10M
     v_name = "U10M"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%U10M )
+    State_Met%U10M = Q
 
     ! Read USTAR
     v_name = "USTAR"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%USTAR )
+    State_Met%USTAR = Q
 
     ! Read V10M
     v_name = "V10M"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met% V10M )
+    State_Met% V10M = Q
 
     ! Read Z0M
     v_name = "Z0M"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, State_Met%Z0 )
+    State_Met%Z0 = Q
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -947,6 +949,7 @@ CONTAINS
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3Cld
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1021,12 +1024,12 @@ CONTAINS
     ! Read CLOUD
     v_name = "CLOUD"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_A6( Q, State_Met%CLDF )
+    CALL TRANSFER_3d( Q, State_Met%CLDF )
     
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_A6( Q, State_Met%OPTDEP )
+    CALL TRANSFER_3d( Q, State_Met%OPTDEP )
 
     ! Read QI
     v_name = "QI"
@@ -1634,6 +1637,7 @@ CONTAINS
 !                              State_Met%T field will be set again in INTERP.
 !  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_I3_1
 !  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_1 for offline simulations
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1715,7 +1719,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q2, State_Met%PS1 )
+    State_Met%PS1 = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
@@ -1731,7 +1735,7 @@ CONTAINS
     !! Read PV
     !v_name = "PV"
     !CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
-    !CALL Transfer_3d( Q3, !State_Met%PV )
+    !CALL Transfer_3d( Q3, State_Met%PV )
     !----------------------------------------------------------------
 
     ! Read QV
@@ -1845,6 +1849,7 @@ CONTAINS
 !  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !  26 Sep 2013 - R. Yantosca - Rename to GeosFp_Read_I3_2
 !  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_2 for offline simulations
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1926,7 +1931,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q2, State_Met%PS2 )
+    State_Met%PS2 = Q2
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)

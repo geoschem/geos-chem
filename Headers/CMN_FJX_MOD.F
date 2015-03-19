@@ -20,6 +20,8 @@
       USE CMN_SIZE_MOD,      ONLY : IIPAR, JJPAR, LLPAR, LLCHEM
       USE CMN_SIZE_MOD,      ONLY : NDUST, NAER, NRHAER, NSTRATAER, NRH
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PUBLIC
 !
@@ -67,14 +69,14 @@
       INTEGER            :: RINDEX(JVN_)                
 
       ! Output J values
-      REAL*8, ALLOCATABLE :: ZPJ(:,:,:,:)
+      REAL(fp), ALLOCATABLE :: ZPJ(:,:,:,:)
 
       !-----------------------------------------------------------------------
       ! variables used to map fast-JX J's onto CTM J's
       !-----------------------------------------------------------------------
 
       ! Multiplication factor for fast-JX calculated J
-      REAL*8             :: JFACTA(JVN_)
+      REAL(fp)             :: JFACTA(JVN_)
 
       ! Index arrays that map Jvalue(j) onto rates
       INTEGER            :: JIND(JVN_)
@@ -121,61 +123,61 @@
 
       !-----------------------------------------------------------------------
       ! 4 Gauss pts = 8-stream
-      REAL*8, DIMENSION(M_), PARAMETER  ::
-     &                   EMU = [.06943184420297d0, .33000947820757d0,
-     &                          .66999052179243d0, .93056815579703d0]
-      REAL*8, DIMENSION(M_), PARAMETER  ::
-     &                   WT  = [.17392742256873d0, .32607257743127d0,
-     &                          .32607257743127d0, .17392742256873d0]
+      REAL(fp), DIMENSION(M_), PARAMETER  ::
+     &             EMU = [.06943184420297e+0_fp, .33000947820757e+0_fp,
+     &                    .66999052179243e+0_fp, .93056815579703e+0_fp]
+      REAL(fp), DIMENSION(M_), PARAMETER  ::
+     &             WT  = [.17392742256873e+0_fp, .32607257743127e+0_fp,
+     &                    .32607257743127e+0_fp, .17392742256873e+0_fp]
       !-----------------------------------------------------------------------
 
       ! ZZHT: scale height (cm)
-      REAL*8, PARAMETER  :: ZZHT   = 5.d5
+      REAL(fp), PARAMETER  :: ZZHT   = 5.e+5_fp
 
       ! RAD: Radius of Earth (cm)
-      REAL*8, PARAMETER  :: RAD    = 6375.d5
+      REAL(fp), PARAMETER  :: RAD    = 6375.e+5_fp
 
       ! ATAU: heating rate (factor increase from one layer to the next)
-      REAL*8, PARAMETER  :: ATAU   = 1.120d0
+      REAL(fp), PARAMETER  :: ATAU   = 1.120e+0_fp
 
       ! ATAU0: minimum heating rate
-      REAL*8, PARAMETER  :: ATAU0  = 0.010d0
+      REAL(fp), PARAMETER  :: ATAU0  = 0.010e+0_fp
 
       ! JTAUMX = maximum number of divisions (i.e., may not get to ATAUMN)
       INTEGER            :: JTAUMX
 
       ! Physical constants
-      REAL*8, PARAMETER  :: UVXPLANCK = 6.62606957e-34
-      REAL*8, PARAMETER  :: UVXCCONST = 2.99792458e8
+      REAL(fp), PARAMETER  :: UVXPLANCK = 6.62606957e-34
+      REAL(fp), PARAMETER  :: UVXCCONST = 2.99792458e8
 
       ! Conversion factors from photons/cm2s to W/m2
-      REAL*8, DIMENSION(WX_) :: UVXFACTOR
+      REAL(fp), DIMENSION(WX_) :: UVXFACTOR
 
       !-----------------------------------------------------------------------
       ! Variables in file 'FJX_spec.dat' (RD_XXX)
       !-----------------------------------------------------------------------
 
       ! WBIN: Boundaries of wavelength bins
-      REAL*8             :: WBIN(WX_+1)
+      REAL(fp)             :: WBIN(WX_+1)
 
       ! WL: Centres of wavelength bins - 'effective wavelength'
-      REAL*8             :: WL(WX_)
+      REAL(fp)             :: WL(WX_)
 
       ! FL: Solar flux incident on top of atmosphere (cm-2.s-1)
-      REAL*8             :: FL(WX_)
+      REAL(fp)             :: FL(WX_)
 
-      REAL*8             :: QO2(WX_,3)   ! QO2: O2 cross-sections
-      REAL*8             :: QO3(WX_,3)   ! QO3: O3 cross-sections
-      REAL*8             :: Q1D(WX_,3)   ! Q1D: O3 => O(1D) quantum yield
+      REAL(fp)             :: QO2(WX_,3)   ! QO2: O2 cross-sections
+      REAL(fp)             :: QO3(WX_,3)   ! QO3: O3 cross-sections
+      REAL(fp)             :: Q1D(WX_,3)   ! Q1D: O3 => O(1D) quantum yield
 
       ! QQQ: Supplied cross sections in each wavelength bin (cm2)
-      REAL*8             :: QQQ(WX_,3,X_)
+      REAL(fp)             :: QQQ(WX_,3,X_)
 
       ! QRAYL: Rayleigh parameters (effective cross-section) (cm2)
-      REAL*8             :: QRAYL(WX_+1)
+      REAL(fp)             :: QRAYL(WX_+1)
 
       ! TQQ: Temperature for supplied cross sections
-      REAL*8             :: TQQ(3,X_)
+      REAL(fp)             :: TQQ(3,X_)
 
       ! LQQ = 1, 2, or 3 to determine interpolation with T or P
       INTEGER            :: LQQ(X_)
@@ -191,19 +193,19 @@
       !-----------------------------------------------------------------------
 
       ! QAA: Aerosol scattering phase functions
-      REAL*8             :: QAA(5,A_)
+      REAL(fp)             :: QAA(5,A_)
 
       ! WAA: 5 Wavelengths for the supplied phase functions
-      REAL*8             :: WAA(5,A_)
+      REAL(fp)             :: WAA(5,A_)
 
       ! PAA: Phase function: first 8 terms of expansion
-      REAL*8             :: PAA(8,5,A_)
+      REAL(fp)             :: PAA(8,5,A_)
 
       ! RAA: Effective radius associated with aerosol type
-      REAL*8             :: RAA(5,A_)
+      REAL(fp)             :: RAA(5,A_)
 
       ! SAA: Single scattering albedo
-      REAL*8             :: SAA(5,A_)
+      REAL(fp)             :: SAA(5,A_)
 
       ! NAA: Number of categories for scattering phase functions
       INTEGER            :: NAA
@@ -213,26 +215,26 @@
       !-----------------------------------------------------------------------
 
       ! QAA_AOD: Aerosol scattering phase functions
-      REAL*8             :: QAA_AOD(A_)
+      REAL(fp)             :: QAA_AOD(A_)
 
       ! WAA: 5 Wavelengths for the supplied phase functions
-      REAL*8             :: WAA_AOD(A_)
+      REAL(fp)             :: WAA_AOD(A_)
 
       ! PAA: Phase function: first 8 terms of expansion
-      REAL*8             :: PAA_AOD(8,A_)
+      REAL(fp)             :: PAA_AOD(8,A_)
 
       ! RAA: Effective radius associated with aerosol type
-      REAL*8             :: RAA_AOD(A_)
+      REAL(fp)             :: RAA_AOD(A_)
 
       ! SAA: Single scattering albedo
-      REAL*8             :: SAA_AOD(A_)
+      REAL(fp)             :: SAA_AOD(A_)
 
       !-----------------------------------------------------------------------
       ! Variables in file 'atmos_std.dat' (RD_PROF)
       !-----------------------------------------------------------------------
 
       ! T and O3 reference profiles
-      REAL*8, DIMENSION(51,18,12) :: TREF, OREF
+      REAL(fp), DIMENSION(51,18,12) :: TREF, OREF
 
       ! Interfacing indices for GC and FJX aerosols
       INTEGER, DIMENSION(AN_)     :: MIEDX
@@ -241,8 +243,8 @@
       CHARACTER*20, DIMENSION(A_) :: TITLEAA
 
       ! Dust and aerosol optical depths
-      REAL*8, ALLOCATABLE :: ODMDUST(:,:,:,:,:)
-      REAL*8, ALLOCATABLE :: ODAER(:,:,:,:,:)
+      REAL(fp), ALLOCATABLE :: ODMDUST(:,:,:,:,:)
+      REAL(fp), ALLOCATABLE :: ODAER(:,:,:,:,:)
 
       INTEGER NJX,NW1,NW2
 
@@ -374,15 +376,15 @@
 
       ALLOCATE( ZPJ( LLPAR, JVN_, IIPAR, JJPAR ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
-      ZPJ = 0d0
+      ZPJ = 0e+0_fp
 
       ALLOCATE( ODMDUST( IIPAR, JJPAR, LLPAR, NWVAA, NDUST), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
-      ODMDUST = 0d0
+      ODMDUST = 0e+0_fp
 
       ALLOCATE( ODAER( IIPAR, JJPAR, LLPAR, NWVAA, NAER), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
-      ODAER = 0d0
+      ODAER = 0e+0_fp
 
       !-----------------------------------------------------------------------
       !  Variables added for RRTMG (dar, mps, 12/5/14)

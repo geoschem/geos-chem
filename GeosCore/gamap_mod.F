@@ -20,6 +20,8 @@
       USE CMN_DIAG_MOD                    ! Diagnostic parameters
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 
@@ -87,6 +89,7 @@
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  09 Apr 2014 - R. Yantosca - Increase MAXCAT to 160 
+!  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1795,8 +1798,8 @@
       INTEGER :: N, NN, NYMDb, NHMSb, T, T0, T1
       LOGICAL :: DO_TIMESERIES
 
-      REAL*8,     SAVE      :: POP_XMW
-      REAL*8                :: DUM
+      REAL(fp),     SAVE      :: POP_XMW
+      REAL(fp)                :: DUM
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -2380,7 +2383,7 @@
          ! Loop over tracers
          DO N = 1, N_Hg_CATS
 
-         T = N + 1 + (2d0 * N_Hg_CATS)
+         T = N + 1 + (2e+0_fp * N_Hg_CATS)
 
             ! Get name and long name for each tracer
             SELECT CASE( T )
@@ -6324,7 +6327,7 @@
       !-------------------------------------      
       IF ( ND46 > 0 .or. DO_TIMESERIES ) THEN 
 
-         NTRAC(46) = 21  
+         NTRAC(46) = 26
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -6341,72 +6344,105 @@
                   NAME(T,46) = 'PRPE'
                   MOLC(T,46) = 3
                CASE( 4 )
-                  NAME(T,46) = 'MONOT'
+                  NAME(T,46) = 'MONX'
                   MOLC(T,46) = 10
                CASE( 5 )
-                  NAME(T,46) = 'MBO'
+                  NAME(T,46) = 'MBOX'
                   MOLC(T,46) = 5
                CASE( 6 )
                   NAME(T,46) = 'C2H4'
                   MOLC(T,46) = 2
                CASE( 7 )
-                  NAME(T,46) = 'APINE'
+                  NAME(T,46) = 'APIN'
                   MOLC(T,46) = 10
                CASE( 8 )
-                  NAME(T,46) = 'BPINE'
+                  NAME(T,46) = 'BPIN'
                   MOLC(T,46) = 10
                CASE( 9 )
-                  NAME(T,46) = 'LIMON'
+                  NAME(T,46) = 'LIMO'
                   MOLC(T,46) = 10
                CASE( 10)
-                  NAME(T,46) = 'SABIN'
+                  NAME(T,46) = 'SABI'
                   MOLC(T,46) = 10
                CASE( 11)
-                  NAME(T,46) = 'MYRCN'
+                  NAME(T,46) = 'MYRC'
                   MOLC(T,46) = 10
                CASE( 12)
-                  NAME(T,46) = 'CAREN'
+                  NAME(T,46) = 'CARE'
                   MOLC(T,46) = 10
                CASE( 13)
-                  NAME(T,46) = 'OCIMN'
+                  NAME(T,46) = 'OCIM'
                   MOLC(T,46) = 10
+               ! Formic acid carried in ppb and molec/cm2/s
+               CASE( 14)
+                  INDEX(T,46) = T + ( SPACING * 21 )
+                  NAME(T,46) = 'HCOOH'
+                  FNAME(T,46)= 'HCOOH emissions'
+                  MOLC(T,46) = 1
+                  UNIT(T,46) = 'molec/cm2/s'
+                  MWT (T,46) = 46d-3
+                  SCALE (T,46) = 1e0
+               ! Acetic acid carried in ppb and molec/cm2/s
+               CASE( 15)
+                  INDEX(T,46) = T + ( SPACING * 21 )
+                  NAME(T,46) = 'ACTA'
+                  FNAME(T,46)= 'ACTA emissions'
+                  MOLC(T,46) = 2
+                  UNIT(T,46) = 'molec/cm2/s'
+                  MWT (T,46) = 60d-3
+                  SCALE (T,46) = 1e0
+               CASE( 16)
+                  NAME(T,46) = 'ALD2'
+                  MOLC(T,46) = 2
+               CASE( 17)
+                  NAME(T,46) = 'OMON'
+                  MOLC(T,46) = 10
+               ! Methanol in ppb and molec/cm2/s
+               CASE( 18)
+                  INDEX(T,46) = T + ( SPACING * 21 )
+                  NAME(T,46) = 'MOHX'
+                  FNAME(T,46)= 'MOHX emissions'
+                  MOLC(T,46) = 1
+                  UNIT(T,46) = 'molec/cm2/s'
+                  MWT (T,46) = 32d-3
+                  SCALE (T,46) = 1e0
+               CASE( 19)
+                  NAME(T,46) = 'ETOH'
+                  MOLC(T,46) = 2
                ! SOAupdate: Biogenic emissions from sesq hotp 3/1/10
                ! MOLC is #C/molecule (10 for mono, 15 for sesq) hotp 5/10/10
-               CASE( 14)
+               CASE( 20)
                   NAME(T,46) = 'FARN'
                   MOLC(T,46) = 15 ! [C/molecule]
-               CASE( 15)              
+               CASE( 21)              
                   NAME(T,46) = 'BCAR'
                   MOLC(T,46) = 15 ! [C/molecule]
-               CASE( 16)              
+               CASE( 22)              
                   NAME(T,46) = 'OSQT'
                   MOLC(T,46) = 15 ! [C/molecule]
-               CASE( 17)              
-                  NAME(T,46) = 'OMTP'
-                  MOLC(T,46) = 10 ! [C/molecule]
                !jpp, 9/6/07
-               CASE( 18 )
+               CASE( 23)
                   INDEX(T,46)  = T + ( SPACING * 21 )
                   NAME  (T,46) = 'CHBr3'
                   FNAME (T,46) = 'Ocean bromoform emissions'
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 2.53e-1   !in [kg/mol]
                   SCALE(T,46) = 1e0
-               CASE( 19 )
+               CASE( 24)
                   INDEX (T,46)  = T + ( SPACING * 21 )
                   NAME  (T,46) = 'CH2Br2'
                   FNAME (T,46) = 'Ocean dibromomethane emissions'
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 1.74e-1   !in [kg/mol]
                   SCALE (T,46) = 1e0
-               CASE( 20 )
+               CASE( 25)
                   INDEX (T,46)  = T + ( SPACING * 21 )
                   NAME  (T,46) = 'SSBr2'
                   FNAME (T,46) = 'sea-salt Br2 emissions'
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 1.60e-1   !in [kg/mol]
                   SCALE (T,46) = 1e0
-               CASE( 21 )
+               CASE( 26)
                   INDEX (T,46) = T + ( SPACING * 21 )
                   NAME  (T,46) = 'CH4'
                   FNAME (T,46) = 'CH4 emissions'
@@ -6420,7 +6456,7 @@
 
             !jpp, 9/6/07: preventing these default quantities
             !             from overwriting CHBr3's info.
-            IF ( T < 18 ) THEN
+            IF ( T < 24 .and. T /= 14 .and. T /= 15 .and. T /= 18 ) THEN
                ! Define the rest of the quantities
                INDEX(T,46) = T + ( SPACING * 21 )
                FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'

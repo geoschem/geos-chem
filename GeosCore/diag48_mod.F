@@ -75,9 +75,12 @@
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND48 a local module variable
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
+
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 
@@ -162,6 +165,10 @@
 !                              derived type object
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
 !                              of removal of NOx-Ox partitioning
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !******************************************************************************
 !
       ! References to F90 modules
@@ -208,7 +215,8 @@
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: LINTERP
       INTEGER            :: GMTRC, I, I0, J, J0, L, N, K, R, TMP, W,ISPC
-      REAL*8             :: LT, TAU, Q(LLPAR), SCALEAODnm
+      REAL(fp)           :: LT, Q(LLPAR), SCALEAODnm
+      REAL(f8)           :: TAU
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
       CHARACTER(LEN=255) :: FILENAME
@@ -217,13 +225,13 @@
       INTEGER            :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
       ! For fields from Input_Opt
-      LOGICAL         :: DO_DIAG_WRITE
-      INTEGER         :: N_TRACERS
-      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL            :: DO_DIAG_WRITE
+      INTEGER            :: N_TRACERS
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL*8, POINTER :: STT(:,:,:,:)
-      REAL*8, POINTER :: AD(:,:,:)
+      REAL(fp), POINTER  :: STT(:,:,:,:)
+      REAL(fp), POINTER  :: AD(:,:,:)
 
       !=================================================================
       ! DIAG48 begins here!
@@ -345,7 +353,7 @@
             DO L = 1, K
 
                ! Initialize
-               Q(L) = 0d0
+               Q(L) = 0e+0_fp
 
                ! NO
                Q(L) = Q(L) + ( TCVV(IDTNO)         * 
@@ -416,7 +424,7 @@
             GMTRC    = 4
 
             DO L = 1, K
-               Q(L) = State_Met%CLDF(L,I,J)
+               Q(L) = State_Met%CLDF(I,J,L)
             ENDDO
 
          ELSE IF ( N == 155 .and. IS_OPTD ) THEN
@@ -428,7 +436,7 @@
             UNIT     = 'unitless'
             GMTRC    = 5
 
-            Q(1) = SUM( State_Met%OPTD(:,I,J) )
+            Q(1) = SUM( State_Met%OPTD(I,J,:) )
 
          ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN
 
@@ -453,7 +461,7 @@
             GMTRC    = 7
 
             DO L = 1, K
-               Q(L) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+               Q(L) = State_Met%AIRDEN(I,J,L) * XNUMOLAIR * 1e-6_fp
             ENDDO
 
          ELSE IF ( N == 158 .and. IS_SEASALT ) THEN

@@ -15,6 +15,8 @@ MODULE defineArrays
 ! !USES:
 !  
   USE defineConstants
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
   
   IMPLICIT NONE
 !
@@ -22,550 +24,550 @@ MODULE defineArrays
 !  
   ! in getSoilParams
   CHARACTER(5), dimension(20000) :: years 
-  REAL*8, ALLOCATABLE :: clay(:,:)
-  REAL*8, ALLOCATABLE :: silt(:,:)
-  REAL*8, ALLOCATABLE :: sand(:,:)
-  REAL*8, ALLOCATABLE :: litcn(:,:)
-  REAL*8, ALLOCATABLE :: lignin(:,:)
-  REAL*8, ALLOCATABLE :: lrage(:,:)
-  REAL*8, ALLOCATABLE :: woodage(:,:)
+  REAL(fp), ALLOCATABLE :: clay(:,:)
+  REAL(fp), ALLOCATABLE :: silt(:,:)
+  REAL(fp), ALLOCATABLE :: sand(:,:)
+  REAL(fp), ALLOCATABLE :: litcn(:,:)
+  REAL(fp), ALLOCATABLE :: lignin(:,:)
+  REAL(fp), ALLOCATABLE :: lrage(:,:)
+  REAL(fp), ALLOCATABLE :: woodage(:,:)
   
   !in getSoilMoistureParams
-  REAL*8, ALLOCATABLE :: SMparams(:,:)
-  REAL*8, ALLOCATABLE :: last_soilm(:,:)
+  REAL(fp), ALLOCATABLE :: SMparams(:,:)
+  REAL(fp), ALLOCATABLE :: last_soilm(:,:)
   
   ! in doPET
-  REAL*8, ALLOCATABLE :: PET(:,:)
-  REAL*8, ALLOCATABLE :: AHI(:,:)
-  REAL*8              :: coef(4,12)
+  REAL(fp), ALLOCATABLE :: PET(:,:)
+  REAL(fp), ALLOCATABLE :: AHI(:,:)
+  REAL(fp)              :: coef(4,12)
   
   ! in doSoilMoisture
-  REAL*8, ALLOCATABLE :: last_pack(:,:)
-  REAL*8, ALLOCATABLE :: spack(:,:)
-  REAL*8, ALLOCATABLE :: bgmoist(:,:)
-  REAL*8, ALLOCATABLE :: NPPmoist(:,:)
-  REAL*8, ALLOCATABLE :: EET(:,:)
-  REAL*8, ALLOCATABLE :: NPPmoist_temp(:,:)
-  REAL*8, ALLOCATABLE :: bgmoist_temp(:,:)
-  REAL*8, ALLOCATABLE :: bgmoistpret(:,:)
-  REAL*8, ALLOCATABLE :: NPPmoistpret(:,:)
-  REAL*8, ALLOCATABLE :: soilm(:,:)
-  REAL*8, ALLOCATABLE :: rdr(:,:)
-  REAL*8, ALLOCATABLE :: current_ppt(:,:)
-  REAL*8, ALLOCATABLE :: eeta(:,:)
-  REAL*8, ALLOCATABLE :: eetb(:,:)
-  REAL*8, ALLOCATABLE :: this_soilm(:,:)
-  REAL*8, ALLOCATABLE :: bgratio(:,:)
+  REAL(fp), ALLOCATABLE :: last_pack(:,:)
+  REAL(fp), ALLOCATABLE :: spack(:,:)
+  REAL(fp), ALLOCATABLE :: bgmoist(:,:)
+  REAL(fp), ALLOCATABLE :: NPPmoist(:,:)
+  REAL(fp), ALLOCATABLE :: EET(:,:)
+  REAL(fp), ALLOCATABLE :: NPPmoist_temp(:,:)
+  REAL(fp), ALLOCATABLE :: bgmoist_temp(:,:)
+  REAL(fp), ALLOCATABLE :: bgmoistpret(:,:)
+  REAL(fp), ALLOCATABLE :: NPPmoistpret(:,:)
+  REAL(fp), ALLOCATABLE :: soilm(:,:)
+  REAL(fp), ALLOCATABLE :: rdr(:,:)
+  REAL(fp), ALLOCATABLE :: current_ppt(:,:)
+  REAL(fp), ALLOCATABLE :: eeta(:,:)
+  REAL(fp), ALLOCATABLE :: eetb(:,:)
+  REAL(fp), ALLOCATABLE :: this_soilm(:,:)
+  REAL(fp), ALLOCATABLE :: bgratio(:,:)
   
   ! in doFPARandLAI
   !constraints used to determine the simple ratio for each
   !grid cell from code written by Sietse Los in Jan 93
-  REAL*8              :: SRMAX1  = 4.2448d0
-  REAL*8              :: SRMAX2  = 4.5970d0
-  REAL*8              :: SRMAX3  = 4.5970d0
-  REAL*8              :: SRMAX4  = 4.5970d0
-  REAL*8              :: SRMAX5  = 4.5970d0
-  REAL*8              :: SRMAX6  = 4.2448d0
-  REAL*8              :: SRMAX7  = 3.8387d0
-  REAL*8              :: SRMAX8  = 4.5970d0
-  REAL*8              :: SRMAX9  = 3.8387d0
-  REAL*8              :: SRMAX10 = 3.8387d0
-  REAL*8              :: SRMAX11 = 3.8387d0
-  REAL*8              :: SRMAX12 = 3.8387d0
-  REAL*8              :: SRMIN   = 1.0d0    ! for unvegetated land
+  REAL(fp)              :: SRMAX1  = 4.2448e+0_fp
+  REAL(fp)              :: SRMAX2  = 4.5970e+0_fp
+  REAL(fp)              :: SRMAX3  = 4.5970e+0_fp
+  REAL(fp)              :: SRMAX4  = 4.5970e+0_fp
+  REAL(fp)              :: SRMAX5  = 4.5970e+0_fp
+  REAL(fp)              :: SRMAX6  = 4.2448e+0_fp
+  REAL(fp)              :: SRMAX7  = 3.8387e+0_fp
+  REAL(fp)              :: SRMAX8  = 4.5970e+0_fp
+  REAL(fp)              :: SRMAX9  = 3.8387e+0_fp
+  REAL(fp)              :: SRMAX10 = 3.8387e+0_fp
+  REAL(fp)              :: SRMAX11 = 3.8387e+0_fp
+  REAL(fp)              :: SRMAX12 = 3.8387e+0_fp
+  REAL(fp)              :: SRMIN   = 1.0e+0_fp    ! for unvegetated land
   
   !maximum and minimum possible FPAR
-  REAL*8              :: FPARMAX=0.9500d0
-  REAL*8              :: FPARMIN=0.0000d0 ! changed from original
+  REAL(fp)              :: FPARMAX=0.9500e+0_fp
+  REAL(fp)              :: FPARMIN=0.0000e+0_fp ! changed from original
   ! code, was 0.0010
   
   !maximum possible LAI for each biome
-  REAL*8              :: LAIMAX1  = 7.0000d0
-  REAL*8              :: LAIMAX2  = 7.0000d0
-  REAL*8              :: LAIMAX3  = 7.5000d0
-  REAL*8              :: LAIMAX4  = 8.0000d0
-  REAL*8              :: LAIMAX5  = 8.0000d0
-  REAL*8              :: LAIMAX6  = 5.0000d0
-  REAL*8              :: LAIMAX7  = 5.0000d0
-  REAL*8              :: LAIMAX8  = 5.0000d0
-  REAL*8              :: LAIMAX9  = 5.0000d0
-  REAL*8              :: LAIMAX10 = 5.0000d0
-  REAL*8              :: LAIMAX11 = 5.0000d0
-  REAL*8              :: LAIMAX12 = 6.0000d0
+  REAL(fp)              :: LAIMAX1  = 7.0000e+0_fp
+  REAL(fp)              :: LAIMAX2  = 7.0000e+0_fp
+  REAL(fp)              :: LAIMAX3  = 7.5000e+0_fp
+  REAL(fp)              :: LAIMAX4  = 8.0000e+0_fp
+  REAL(fp)              :: LAIMAX5  = 8.0000e+0_fp
+  REAL(fp)              :: LAIMAX6  = 5.0000e+0_fp
+  REAL(fp)              :: LAIMAX7  = 5.0000e+0_fp
+  REAL(fp)              :: LAIMAX8  = 5.0000e+0_fp
+  REAL(fp)              :: LAIMAX9  = 5.0000e+0_fp
+  REAL(fp)              :: LAIMAX10 = 5.0000e+0_fp
+  REAL(fp)              :: LAIMAX11 = 5.0000e+0_fp
+  REAL(fp)              :: LAIMAX12 = 6.0000e+0_fp
   
-  REAL*8              :: Ae
+  REAL(fp)              :: Ae
   
   !arrays for later use
-  REAL*8, ALLOCATABLE :: srmax(:,:)
-  REAL*8, ALLOCATABLE :: LAImax(:,:)
-  REAL*8, ALLOCATABLE :: LAI_temp(:,:)
-  REAL*8, ALLOCATABLE :: FPAR(:,:)
-  REAL*8, ALLOCATABLE :: LAI(:,:)
-  REAL*8, ALLOCATABLE :: sr(:,:)
+  REAL(fp), ALLOCATABLE :: srmax(:,:)
+  REAL(fp), ALLOCATABLE :: LAImax(:,:)
+  REAL(fp), ALLOCATABLE :: LAI_temp(:,:)
+  REAL(fp), ALLOCATABLE :: FPAR(:,:)
+  REAL(fp), ALLOCATABLE :: LAI(:,:)
+  REAL(fp), ALLOCATABLE :: sr(:,:)
   !in doOptimumTemperature
-  REAL*8, ALLOCATABLE :: topt(:,:)
-  REAL*8, ALLOCATABLE :: maxlai(:,:)
-  REAL*8, ALLOCATABLE :: lais(:,:)
+  REAL(fp), ALLOCATABLE :: topt(:,:)
+  REAL(fp), ALLOCATABLE :: maxlai(:,:)
+  REAL(fp), ALLOCATABLE :: lais(:,:)
   
   !in doLeafRootShedding
-  REAL*8, ALLOCATABLE :: LTCON(:,:)
-  REAL*8, ALLOCATABLE :: LTVAR(:,:)
+  REAL(fp), ALLOCATABLE :: LTCON(:,:)
+  REAL(fp), ALLOCATABLE :: LTVAR(:,:)
   
   !in doTreeCarbon and doHerbCarbon
   INTEGER             :: n_wood_pools=13
   INTEGER             :: n_herb_pools=10
   
   !woody pools 
-  REAL*8, ALLOCATABLE :: abovewoodpool(:,:)
-  REAL*8, ALLOCATABLE :: belowwoodpool(:,:)
-  REAL*8, ALLOCATABLE :: leafpool(:,:)
-  REAL*8, ALLOCATABLE :: frootpool(:,:)
-  REAL*8, ALLOCATABLE :: cwdpool(:,:)
-  REAL*8, ALLOCATABLE :: surfstrpool(:,:)
-  REAL*8, ALLOCATABLE :: surfmetpool(:,:)
-  REAL*8, ALLOCATABLE :: surfmicpool(:,:)
-  REAL*8, ALLOCATABLE :: soilstrpool(:,:)
-  REAL*8, ALLOCATABLE :: soilmetpool(:,:)
-  REAL*8, ALLOCATABLE :: soilmicpool(:,:)
-  REAL*8, ALLOCATABLE :: slowpool(:,:)
-  REAL*8, ALLOCATABLE :: armoredpool(:,:)
+  REAL(fp), ALLOCATABLE :: abovewoodpool(:,:)
+  REAL(fp), ALLOCATABLE :: belowwoodpool(:,:)
+  REAL(fp), ALLOCATABLE :: leafpool(:,:)
+  REAL(fp), ALLOCATABLE :: frootpool(:,:)
+  REAL(fp), ALLOCATABLE :: cwdpool(:,:)
+  REAL(fp), ALLOCATABLE :: surfstrpool(:,:)
+  REAL(fp), ALLOCATABLE :: surfmetpool(:,:)
+  REAL(fp), ALLOCATABLE :: surfmicpool(:,:)
+  REAL(fp), ALLOCATABLE :: soilstrpool(:,:)
+  REAL(fp), ALLOCATABLE :: soilmetpool(:,:)
+  REAL(fp), ALLOCATABLE :: soilmicpool(:,:)
+  REAL(fp), ALLOCATABLE :: slowpool(:,:)
+  REAL(fp), ALLOCATABLE :: armoredpool(:,:)
   
   !woody pools Hg 
-  REAL*8, ALLOCATABLE :: abovewoodpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: belowwoodpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: leafpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: frootpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: cwdpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: surfstrpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: surfmetpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: surfmicpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: soilstrpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: soilmetpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: soilmicpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: slowpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: armoredpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: total_tree_hg(:,:)
+  REAL(fp), ALLOCATABLE :: abovewoodpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: belowwoodpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: leafpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: frootpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: cwdpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: surfstrpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: surfmetpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: surfmicpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: soilstrpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: soilmetpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: soilmicpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: slowpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: armoredpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: total_tree_hg(:,:)
   
   !herb pools
-  REAL*8, ALLOCATABLE :: hleafpool(:,:)
-  REAL*8, ALLOCATABLE :: hfrootpool(:,:)
-  REAL*8, ALLOCATABLE :: hsurfstrpool(:,:)
-  REAL*8, ALLOCATABLE :: hsurfmetpool(:,:)
-  REAL*8, ALLOCATABLE :: hsurfmicpool(:,:)
-  REAL*8, ALLOCATABLE :: hsoilstrpool(:,:)
-  REAL*8, ALLOCATABLE :: hsoilmetpool(:,:)
-  REAL*8, ALLOCATABLE :: hsoilmicpool(:,:)
-  REAL*8, ALLOCATABLE :: hslowpool(:,:)
-  REAL*8, ALLOCATABLE :: harmoredpool(:,:)
+  REAL(fp), ALLOCATABLE :: hleafpool(:,:)
+  REAL(fp), ALLOCATABLE :: hfrootpool(:,:)
+  REAL(fp), ALLOCATABLE :: hsurfstrpool(:,:)
+  REAL(fp), ALLOCATABLE :: hsurfmetpool(:,:)
+  REAL(fp), ALLOCATABLE :: hsurfmicpool(:,:)
+  REAL(fp), ALLOCATABLE :: hsoilstrpool(:,:)
+  REAL(fp), ALLOCATABLE :: hsoilmetpool(:,:)
+  REAL(fp), ALLOCATABLE :: hsoilmicpool(:,:)
+  REAL(fp), ALLOCATABLE :: hslowpool(:,:)
+  REAL(fp), ALLOCATABLE :: harmoredpool(:,:)
   
   !herb pools Hg
-  REAL*8, ALLOCATABLE :: hleafpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: hfrootpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: hsurfstrpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: hsurfmetpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: hsurfmicpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: hsoilstrpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: hsoilmetpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: hsoilmicpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: hslowpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: harmoredpool_Hg(:,:)
-  REAL*8, ALLOCATABLE :: total_herb_hg(:,:)
+  REAL(fp), ALLOCATABLE :: hleafpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: hfrootpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: hsurfstrpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: hsurfmetpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: hsurfmicpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: hsoilstrpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: hsoilmetpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: hsoilmicpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: hslowpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: harmoredpool_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: total_herb_hg(:,:)
   
   !max hg woody pool
-  REAL*8, ALLOCATABLE :: max_hg_leaf(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_surfstr(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_surfmet(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_surfmic(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_soilstr(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_soilmet(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_soilmic(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_slow(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_armored(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_leaf(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_surfstr(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_surfmet(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_surfmic(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_soilstr(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_soilmet(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_soilmic(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_slow(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_armored(:,:)
   
   !max hg herb pools
-  REAL*8, ALLOCATABLE :: max_hg_hleaf(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_hsurfstr(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_hsurfmet(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_hsurfmic(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_hsoilstr(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_hsoilmet(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_hsoilmic(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_hslow(:,:)
-  REAL*8, ALLOCATABLE :: max_hg_harmored(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_hleaf(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_hsurfstr(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_hsurfmet(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_hsurfmic(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_hsoilstr(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_hsoilmet(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_hsoilmic(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_hslow(:,:)
+  REAL(fp), ALLOCATABLE :: max_hg_harmored(:,:)
   
   !woody pools 
-  REAL*8, ALLOCATABLE :: abovewoodpools(:,:)
-  REAL*8, ALLOCATABLE :: belowwoodpools(:,:)
-  REAL*8, ALLOCATABLE :: leafpools(:,:)
-  REAL*8, ALLOCATABLE :: frootpools(:,:)
-  REAL*8, ALLOCATABLE :: cwdpools(:,:)
-  REAL*8, ALLOCATABLE :: surfstrpools(:,:)
-  REAL*8, ALLOCATABLE :: surfmetpools(:,:)
-  REAL*8, ALLOCATABLE :: surfmicpools(:,:)
-  REAL*8, ALLOCATABLE :: soilstrpools(:,:)
-  REAL*8, ALLOCATABLE :: soilmetpools(:,:)
-  REAL*8, ALLOCATABLE :: soilmicpools(:,:)
-  REAL*8, ALLOCATABLE :: slowpools(:,:)
-  REAL*8, ALLOCATABLE :: armoredpools(:,:)
+  REAL(fp), ALLOCATABLE :: abovewoodpools(:,:)
+  REAL(fp), ALLOCATABLE :: belowwoodpools(:,:)
+  REAL(fp), ALLOCATABLE :: leafpools(:,:)
+  REAL(fp), ALLOCATABLE :: frootpools(:,:)
+  REAL(fp), ALLOCATABLE :: cwdpools(:,:)
+  REAL(fp), ALLOCATABLE :: surfstrpools(:,:)
+  REAL(fp), ALLOCATABLE :: surfmetpools(:,:)
+  REAL(fp), ALLOCATABLE :: surfmicpools(:,:)
+  REAL(fp), ALLOCATABLE :: soilstrpools(:,:)
+  REAL(fp), ALLOCATABLE :: soilmetpools(:,:)
+  REAL(fp), ALLOCATABLE :: soilmicpools(:,:)
+  REAL(fp), ALLOCATABLE :: slowpools(:,:)
+  REAL(fp), ALLOCATABLE :: armoredpools(:,:)
   
   !herb poolss
-  REAL*8, ALLOCATABLE :: hleafpools(:,:)
-  REAL*8, ALLOCATABLE :: hfrootpools(:,:)
-  REAL*8, ALLOCATABLE :: hsurfstrpools(:,:)
-  REAL*8, ALLOCATABLE :: hsurfmetpools(:,:)
-  REAL*8, ALLOCATABLE :: hsurfmicpools(:,:)
-  REAL*8, ALLOCATABLE :: hsoilstrpools(:,:)
-  REAL*8, ALLOCATABLE :: hsoilmetpools(:,:)
-  REAL*8, ALLOCATABLE :: hsoilmicpools(:,:)
-  REAL*8, ALLOCATABLE :: hslowpools(:,:)
-  REAL*8, ALLOCATABLE :: harmoredpools(:,:)
+  REAL(fp), ALLOCATABLE :: hleafpools(:,:)
+  REAL(fp), ALLOCATABLE :: hfrootpools(:,:)
+  REAL(fp), ALLOCATABLE :: hsurfstrpools(:,:)
+  REAL(fp), ALLOCATABLE :: hsurfmetpools(:,:)
+  REAL(fp), ALLOCATABLE :: hsurfmicpools(:,:)
+  REAL(fp), ALLOCATABLE :: hsoilstrpools(:,:)
+  REAL(fp), ALLOCATABLE :: hsoilmetpools(:,:)
+  REAL(fp), ALLOCATABLE :: hsoilmicpools(:,:)
+  REAL(fp), ALLOCATABLE :: hslowpools(:,:)
+  REAL(fp), ALLOCATABLE :: harmoredpools(:,:)
   
-  REAL*8, ALLOCATABLE :: fuelshortage(:,:)
+  REAL(fp), ALLOCATABLE :: fuelshortage(:,:)
   
-  REAL*8, ALLOCATABLE :: LtN(:,:)
-  REAL*8, ALLOCATABLE :: annK_leaf(:,:)
-  REAL*8, ALLOCATABLE :: annK_leaf_hg(:,:)
-  REAL*8, ALLOCATABLE :: annK_wood(:,:)
-  REAL*8, ALLOCATABLE :: annK_froot(:,:)
-  REAL*8, ALLOCATABLE :: K_wood(:,:)
-  REAL*8, ALLOCATABLE :: K_froot(:,:)
-  REAL*8, ALLOCATABLE :: K_leaf(:,:)
-  REAL*8, ALLOCATABLE :: K_hleaf(:,:)
-  REAL*8, ALLOCATABLE :: K_hfroot(:,:)
-  REAL*8, ALLOCATABLE :: K_surfmet(:,:)
-  REAL*8, ALLOCATABLE :: K_surfstr(:,:)
-  REAL*8, ALLOCATABLE :: K_soilmet(:,:) 
-  REAL*8, ALLOCATABLE :: K_soilstr(:,:)
-  REAL*8, ALLOCATABLE :: K_cwd(:,:)
-  REAL*8, ALLOCATABLE :: K_surfmic(:,:)
-  REAL*8, ALLOCATABLE :: K_soilmic(:,:) 
-  REAL*8, ALLOCATABLE :: K_slow(:,:)
-  REAL*8, ALLOCATABLE :: K_armored(:,:)
-  REAL*8, ALLOCATABLE :: slitscalar(:,:) 
-  REAL*8, ALLOCATABLE :: shlitscalar(:,:) 
-  REAL*8, ALLOCATABLE :: srootlitscalar(:,:)
-  REAL*8, ALLOCATABLE :: sabiotic(:,:)
-  REAL*8, ALLOCATABLE :: sabiotsmc(:,:)
-  REAL*8, ALLOCATABLE :: sabiotlign(:,:)
-  REAL*8, ALLOCATABLE :: metabfract(:,:)
-  REAL*8, ALLOCATABLE :: structuralLignin(:,:)
-  REAL*8, ALLOCATABLE :: lignineffect(:,:)
-  REAL*8, ALLOCATABLE :: soilmicDecayFactor(:,:)
-  REAL*8, ALLOCATABLE :: slowDecayFactor(:,:)
-  REAL*8, ALLOCATABLE :: armoredDecayFactor(:,:)
-  REAL*8, ALLOCATABLE :: fid(:,:)
-  REAL*8, ALLOCATABLE :: decayClayFactor(:,:)
-  REAL*8, ALLOCATABLE :: eff_soilmic2slow(:,:)
+  REAL(fp), ALLOCATABLE :: LtN(:,:)
+  REAL(fp), ALLOCATABLE :: annK_leaf(:,:)
+  REAL(fp), ALLOCATABLE :: annK_leaf_hg(:,:)
+  REAL(fp), ALLOCATABLE :: annK_wood(:,:)
+  REAL(fp), ALLOCATABLE :: annK_froot(:,:)
+  REAL(fp), ALLOCATABLE :: K_wood(:,:)
+  REAL(fp), ALLOCATABLE :: K_froot(:,:)
+  REAL(fp), ALLOCATABLE :: K_leaf(:,:)
+  REAL(fp), ALLOCATABLE :: K_hleaf(:,:)
+  REAL(fp), ALLOCATABLE :: K_hfroot(:,:)
+  REAL(fp), ALLOCATABLE :: K_surfmet(:,:)
+  REAL(fp), ALLOCATABLE :: K_surfstr(:,:)
+  REAL(fp), ALLOCATABLE :: K_soilmet(:,:) 
+  REAL(fp), ALLOCATABLE :: K_soilstr(:,:)
+  REAL(fp), ALLOCATABLE :: K_cwd(:,:)
+  REAL(fp), ALLOCATABLE :: K_surfmic(:,:)
+  REAL(fp), ALLOCATABLE :: K_soilmic(:,:) 
+  REAL(fp), ALLOCATABLE :: K_slow(:,:)
+  REAL(fp), ALLOCATABLE :: K_armored(:,:)
+  REAL(fp), ALLOCATABLE :: slitscalar(:,:) 
+  REAL(fp), ALLOCATABLE :: shlitscalar(:,:) 
+  REAL(fp), ALLOCATABLE :: srootlitscalar(:,:)
+  REAL(fp), ALLOCATABLE :: sabiotic(:,:)
+  REAL(fp), ALLOCATABLE :: sabiotsmc(:,:)
+  REAL(fp), ALLOCATABLE :: sabiotlign(:,:)
+  REAL(fp), ALLOCATABLE :: metabfract(:,:)
+  REAL(fp), ALLOCATABLE :: structuralLignin(:,:)
+  REAL(fp), ALLOCATABLE :: lignineffect(:,:)
+  REAL(fp), ALLOCATABLE :: soilmicDecayFactor(:,:)
+  REAL(fp), ALLOCATABLE :: slowDecayFactor(:,:)
+  REAL(fp), ALLOCATABLE :: armoredDecayFactor(:,:)
+  REAL(fp), ALLOCATABLE :: fid(:,:)
+  REAL(fp), ALLOCATABLE :: decayClayFactor(:,:)
+  REAL(fp), ALLOCATABLE :: eff_soilmic2slow(:,:)
   
   ! rate constants for pools
   
-  REAL*8 :: annK_hleaf=2.000d0   !turnover time for grass leaves 
-  REAL*8 :: annK_hfroot=2.000d0  !turnover time for grass roots
-  REAL*8 :: annK_surfmet=14.800d0
-  REAL*8 :: annK_surfstr=3.900d0
-  REAL*8 :: annK_soilmet=18.500d0
-  REAL*8 :: annK_soilstr=4.800d0
-  REAL*8 :: annK_cwd=0.2500d0
-  REAL*8 :: annK_surfmic=6.000d0
-  REAL*8 :: annK_soilmic=7.300d0
-  REAL*8 :: annK_slow=0.200d0
-  REAL*8 :: annK_armored=0.0045d0
-  REAL*8 :: annK_hleaf_hg=2.000d0   !turnover time for grass leaves 
-  REAL*8 :: annK_surfmet_hg=14.800d0
-  REAL*8 :: annK_surfstr_hg=3.900d0
-  REAL*8 :: annK_soilmet_hg=18.500d0
-  REAL*8 :: annK_soilstr_hg=4.800d0
-  REAL*8 :: annK_surfmic_hg=6.000d0
-  REAL*8 :: annK_soilmic_hg=7.300d0
-  REAL*8 :: annK_slow_hg=0.200d0
-  REAL*8 :: annK_armored_hg=0.0045d0
+  REAL(fp) :: annK_hleaf=2.000e+0_fp   !turnover time for grass leaves 
+  REAL(fp) :: annK_hfroot=2.000e+0_fp  !turnover time for grass roots
+  REAL(fp) :: annK_surfmet=14.800e+0_fp
+  REAL(fp) :: annK_surfstr=3.900e+0_fp
+  REAL(fp) :: annK_soilmet=18.500e+0_fp
+  REAL(fp) :: annK_soilstr=4.800e+0_fp
+  REAL(fp) :: annK_cwd=0.2500e+0_fp
+  REAL(fp) :: annK_surfmic=6.000e+0_fp
+  REAL(fp) :: annK_soilmic=7.300e+0_fp
+  REAL(fp) :: annK_slow=0.200e+0_fp
+  REAL(fp) :: annK_armored=0.0045e+0_fp
+  REAL(fp) :: annK_hleaf_hg=2.000e+0_fp   !turnover time for grass leaves 
+  REAL(fp) :: annK_surfmet_hg=14.800e+0_fp
+  REAL(fp) :: annK_surfstr_hg=3.900e+0_fp
+  REAL(fp) :: annK_soilmet_hg=18.500e+0_fp
+  REAL(fp) :: annK_soilstr_hg=4.800e+0_fp
+  REAL(fp) :: annK_surfmic_hg=6.000e+0_fp
+  REAL(fp) :: annK_soilmic_hg=7.300e+0_fp
+  REAL(fp) :: annK_slow_hg=0.200e+0_fp
+  REAL(fp) :: annK_armored_hg=0.0045e+0_fp
   
   
-  REAL*8 :: eff_surfstr2slow=0.700d0
-  REAL*8 :: eff_surfstr2surfmic=0.400d0
-  REAL*8 :: eff_soilstr2slow=0.700d0
-  REAL*8 :: eff_soilstr2soilmic=0.4500d0
-  REAL*8 :: eff_cwd2slow=0.700d0
-  REAL*8 :: eff_surfmic2slow=0.400d0
-  REAL*8 :: eff_surfmet2surfmic=0.400d0
-  REAL*8 :: eff_soilmet2soilmic=0.4500d0
-  REAL*8 :: eff_slow2soilmic=0.4500d0
-  REAL*8 :: eff_armored2soilmic=0.4500d0
-  REAL*8 :: woodligninfract=0.400d0 !estimate that lignin content of
+  REAL(fp) :: eff_surfstr2slow=0.700e+0_fp
+  REAL(fp) :: eff_surfstr2surfmic=0.400e+0_fp
+  REAL(fp) :: eff_soilstr2slow=0.700e+0_fp
+  REAL(fp) :: eff_soilstr2soilmic=0.4500e+0_fp
+  REAL(fp) :: eff_cwd2slow=0.700e+0_fp
+  REAL(fp) :: eff_surfmic2slow=0.400e+0_fp
+  REAL(fp) :: eff_surfmet2surfmic=0.400e+0_fp
+  REAL(fp) :: eff_soilmet2soilmic=0.4500e+0_fp
+  REAL(fp) :: eff_slow2soilmic=0.4500e+0_fp
+  REAL(fp) :: eff_armored2soilmic=0.4500e+0_fp
+  REAL(fp) :: woodligninfract=0.400e+0_fp !estimate that lignin content of
   !wood is 40%
   
-  REAL*8, ALLOCATABLE :: latitude(:,:)
-  REAL*8, ALLOCATABLE :: latitude1(:,:)
+  REAL(fp), ALLOCATABLE :: latitude(:,:)
+  REAL(fp), ALLOCATABLE :: latitude1(:,:)
   
-  REAL*8, ALLOCATABLE :: fuelwooddemand(:,:)
+  REAL(fp), ALLOCATABLE :: fuelwooddemand(:,:)
   
   !in doNPP
-  REAL*8, ALLOCATABLE :: T1(:,:)
-  REAL*8, ALLOCATABLE :: T2low(:,:)
-  REAL*8, ALLOCATABLE :: T2high(:,:)
-  REAL*8, ALLOCATABLE :: NPPtemp(:,:)
-  REAL*8, ALLOCATABLE :: IPAR(:,:)
-  REAL*8, ALLOCATABLE :: NPP(:,:)
-  REAL*8, ALLOCATABLE :: epsilona(:,:)
-  REAL*8, ALLOCATABLE :: bgtemp(:,:)
-  REAL*8, ALLOCATABLE :: abiotic(:,:)
+  REAL(fp), ALLOCATABLE :: T1(:,:)
+  REAL(fp), ALLOCATABLE :: T2low(:,:)
+  REAL(fp), ALLOCATABLE :: T2high(:,:)
+  REAL(fp), ALLOCATABLE :: NPPtemp(:,:)
+  REAL(fp), ALLOCATABLE :: IPAR(:,:)
+  REAL(fp), ALLOCATABLE :: NPP(:,:)
+  REAL(fp), ALLOCATABLE :: epsilona(:,:)
+  REAL(fp), ALLOCATABLE :: bgtemp(:,:)
+  REAL(fp), ALLOCATABLE :: abiotic(:,:)
   
   !in doHerbivory
-  REAL*8, ALLOCATABLE :: grass_herbivory(:,:)
-  REAL*8, ALLOCATABLE :: trees_herbivory(:,:)
-  REAL*8, ALLOCATABLE :: herb_seasonality(:,:)
+  REAL(fp), ALLOCATABLE :: grass_herbivory(:,:)
+  REAL(fp), ALLOCATABLE :: trees_herbivory(:,:)
+  REAL(fp), ALLOCATABLE :: herb_seasonality(:,:)
   
   !in doLeafRootShedding
-  REAL*8, ALLOCATABLE :: MINLAI(:,:)
-  REAL*8, ALLOCATABLE :: SUMLAI(:,:)
-  REAL*8, ALLOCATABLE :: AVELAI(:,:)
-  REAL*8, ALLOCATABLE :: LTVARSUM(:,:)
-  REAL*8, ALLOCATABLE :: SUMLAInew(:,:)
-  REAL*8, ALLOCATABLE :: litterscalar(:,:)
-  REAL*8, ALLOCATABLE :: hlitterscalar(:,:)
-  REAL*8, ALLOCATABLE :: rootlitscalar(:,:)
+  REAL(fp), ALLOCATABLE :: MINLAI(:,:)
+  REAL(fp), ALLOCATABLE :: SUMLAI(:,:)
+  REAL(fp), ALLOCATABLE :: AVELAI(:,:)
+  REAL(fp), ALLOCATABLE :: LTVARSUM(:,:)
+  REAL(fp), ALLOCATABLE :: SUMLAInew(:,:)
+  REAL(fp), ALLOCATABLE :: litterscalar(:,:)
+  REAL(fp), ALLOCATABLE :: hlitterscalar(:,:)
+  REAL(fp), ALLOCATABLE :: rootlitscalar(:,:)
   
   !in getFireParams
-  REAL*8              :: CC(4,2)
-  REAL*8, ALLOCATABLE :: ccWood(:,:)
-  REAL*8, ALLOCATABLE :: ccLeaf(:,:)
-  REAL*8, ALLOCATABLE :: PET_current(:,:)
-  REAL*8, ALLOCATABLE :: CCratio_current(:,:)
-  REAL*8, ALLOCATABLE :: ccFineLitter(:,:)
-  REAL*8, ALLOCATABLE :: ccCWD(:,:)
-  REAL*8, ALLOCATABLE :: CCratio_previous(:,:)
-  REAL*8, ALLOCATABLE :: mortality_tree(:,:)
-  REAL*8, ALLOCATABLE :: mortality_hfroot(:,:)
+  REAL(fp)              :: CC(4,2)
+  REAL(fp), ALLOCATABLE :: ccWood(:,:)
+  REAL(fp), ALLOCATABLE :: ccLeaf(:,:)
+  REAL(fp), ALLOCATABLE :: PET_current(:,:)
+  REAL(fp), ALLOCATABLE :: CCratio_current(:,:)
+  REAL(fp), ALLOCATABLE :: ccFineLitter(:,:)
+  REAL(fp), ALLOCATABLE :: ccCWD(:,:)
+  REAL(fp), ALLOCATABLE :: CCratio_previous(:,:)
+  REAL(fp), ALLOCATABLE :: mortality_tree(:,:)
+  REAL(fp), ALLOCATABLE :: mortality_hfroot(:,:)
   
   !in doTreeCarbon and doHerbCarbon
-  REAL*8, ALLOCATABLE :: leafinput(:,:)
-  REAL*8, ALLOCATABLE :: woodinput(:,:)
-  REAL*8, ALLOCATABLE :: frootinput(:,:)
-  REAL*8, ALLOCATABLE :: herbivory(:,:) 
-  REAL*8, ALLOCATABLE :: carbonout_leaf(:,:) 
-  REAL*8, ALLOCATABLE :: carbonout_abovewood(:,:)
-  REAL*8, ALLOCATABLE :: carbonout_belowwood(:,:)
-  REAL*8, ALLOCATABLE :: carbonout_froot(:,:)
-  REAL*8, ALLOCATABLE :: carbonout_cwd(:,:)
-  REAL*8, ALLOCATABLE :: carbonout_surfmet(:,:)
-  REAL*8, ALLOCATABLE :: carbonout_surfstr(:,:)
-  REAL*8, ALLOCATABLE :: carbonout_soilmet(:,:)
-  REAL*8, ALLOCATABLE :: carbonout_soilstr(:,:)
-  REAL*8, ALLOCATABLE :: carbonout_surfmic(:,:)
-  REAL*8, ALLOCATABLE :: carbonout_soilmic(:,:)
-  REAL*8, ALLOCATABLE :: carbonout_slow(:,:)
-  REAL*8, ALLOCATABLE :: carbonout_armored(:,:)
+  REAL(fp), ALLOCATABLE :: leafinput(:,:)
+  REAL(fp), ALLOCATABLE :: woodinput(:,:)
+  REAL(fp), ALLOCATABLE :: frootinput(:,:)
+  REAL(fp), ALLOCATABLE :: herbivory(:,:) 
+  REAL(fp), ALLOCATABLE :: carbonout_leaf(:,:) 
+  REAL(fp), ALLOCATABLE :: carbonout_abovewood(:,:)
+  REAL(fp), ALLOCATABLE :: carbonout_belowwood(:,:)
+  REAL(fp), ALLOCATABLE :: carbonout_froot(:,:)
+  REAL(fp), ALLOCATABLE :: carbonout_cwd(:,:)
+  REAL(fp), ALLOCATABLE :: carbonout_surfmet(:,:)
+  REAL(fp), ALLOCATABLE :: carbonout_surfstr(:,:)
+  REAL(fp), ALLOCATABLE :: carbonout_soilmet(:,:)
+  REAL(fp), ALLOCATABLE :: carbonout_soilstr(:,:)
+  REAL(fp), ALLOCATABLE :: carbonout_surfmic(:,:)
+  REAL(fp), ALLOCATABLE :: carbonout_soilmic(:,:)
+  REAL(fp), ALLOCATABLE :: carbonout_slow(:,:)
+  REAL(fp), ALLOCATABLE :: carbonout_armored(:,:)
   
-  REAL*8, ALLOCATABLE :: hgout_surfmet(:,:)
-  REAL*8, ALLOCATABLE :: hgout_surfstr(:,:)
-  REAL*8, ALLOCATABLE :: hgout_leaf(:,:)
-  REAL*8, ALLOCATABLE :: hgout_soilstr(:,:)
-  REAL*8, ALLOCATABLE :: hgout_surfmic(:,:)
-  REAL*8, ALLOCATABLE :: hgout_soilmic(:,:)
-  REAL*8, ALLOCATABLE :: hgout_slow(:,:)
-  REAL*8, ALLOCATABLE :: hgout_armored(:,:)
-  REAL*8, ALLOCATABLE :: hgout_soilmet(:,:)
+  REAL(fp), ALLOCATABLE :: hgout_surfmet(:,:)
+  REAL(fp), ALLOCATABLE :: hgout_surfstr(:,:)
+  REAL(fp), ALLOCATABLE :: hgout_leaf(:,:)
+  REAL(fp), ALLOCATABLE :: hgout_soilstr(:,:)
+  REAL(fp), ALLOCATABLE :: hgout_surfmic(:,:)
+  REAL(fp), ALLOCATABLE :: hgout_soilmic(:,:)
+  REAL(fp), ALLOCATABLE :: hgout_slow(:,:)
+  REAL(fp), ALLOCATABLE :: hgout_armored(:,:)
+  REAL(fp), ALLOCATABLE :: hgout_soilmet(:,:)
   
-  REAL*8, ALLOCATABLE :: Hg_pool_fluxes1(:,:)
-  REAL*8, ALLOCATABLE :: Hg_pool_fluxes2(:,:)
-  REAL*8, ALLOCATABLE :: Hg_pool_fluxes3(:,:)
-  REAL*8, ALLOCATABLE :: Hg_pool_fluxes4(:,:)
-  REAL*8, ALLOCATABLE :: Hg_pool_fluxes5(:,:)
-  REAL*8, ALLOCATABLE :: Hg_pool_fluxes6(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_pool_fluxes1(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_pool_fluxes2(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_pool_fluxes3(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_pool_fluxes4(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_pool_fluxes5(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_pool_fluxes6(:,:)
   
-  REAL*8, ALLOCATABLE :: Hg_hpool_fluxes1(:,:)
-  REAL*8, ALLOCATABLE :: Hg_hpool_fluxes2(:,:)
-  REAL*8, ALLOCATABLE :: Hg_hpool_fluxes3(:,:)
-  REAL*8, ALLOCATABLE :: Hg_hpool_fluxes4(:,:)
-  REAL*8, ALLOCATABLE :: Hg_hpool_fluxes5(:,:)
-  REAL*8, ALLOCATABLE :: Hg_hpool_fluxes6(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_hpool_fluxes1(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_hpool_fluxes2(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_hpool_fluxes3(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_hpool_fluxes4(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_hpool_fluxes5(:,:)
+  REAL(fp), ALLOCATABLE :: Hg_hpool_fluxes6(:,:)
   
-  REAL*8, ALLOCATABLE :: resppool_surfstr_hg(:,:)
-  REAL*8, ALLOCATABLE :: resppool_surfmet_hg(:,:)
-  REAL*8, ALLOCATABLE :: resppool_surfmic_hg(:,:)
-  REAL*8, ALLOCATABLE :: resppool_soilstr_hg(:,:)
-  REAL*8, ALLOCATABLE :: resppool_soilmic_hg(:,:)
-  REAL*8, ALLOCATABLE :: resppool_soilmet_hg(:,:)
-  REAL*8, ALLOCATABLE :: resppool_slow_hg(:,:)
-  REAL*8, ALLOCATABLE :: resppool_armored_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_surfstr_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_surfmet_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_surfmic_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_soilstr_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_soilmic_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_soilmet_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_slow_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_armored_hg(:,:)
   
-  REAL*8, ALLOCATABLE :: resp_surfstr_hg(:,:)
-  REAL*8, ALLOCATABLE :: resp_surfmet_hg(:,:)
-  REAL*8, ALLOCATABLE :: resp_surfmic_hg(:,:)
-  REAL*8, ALLOCATABLE :: resp_soilstr_hg(:,:)
-  REAL*8, ALLOCATABLE :: resp_soilmic_hg(:,:)
-  REAL*8, ALLOCATABLE :: resp_soilmet_hg(:,:)
-  REAL*8, ALLOCATABLE :: resp_slow_hg(:,:)
-  REAL*8, ALLOCATABLE :: resp_armored_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resp_surfstr_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resp_surfmet_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resp_surfmic_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resp_soilstr_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resp_soilmic_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resp_soilmet_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resp_slow_hg(:,:)
+  REAL(fp), ALLOCATABLE :: resp_armored_hg(:,:)
   
-  REAL*8, ALLOCATABLE :: combusted_leaf_hg(:,:)
-  REAL*8, ALLOCATABLE :: combusted_surfstr_hg(:,:)
-  REAL*8, ALLOCATABLE :: combusted_surfmet_hg(:,:)
-  REAL*8, ALLOCATABLE :: combusted_surfmic_hg(:,:)
-  REAL*8, ALLOCATABLE :: nonCombusted_leaf_hg(:,:)
-  REAL*8, ALLOCATABLE :: combusted_soilstr_hg(:,:)
-  REAL*8, ALLOCATABLE :: combusted_soilmet_hg(:,:)
-  REAL*8, ALLOCATABLE :: combusted_soilmic_hg(:,:)
-  REAL*8, ALLOCATABLE :: combusted_slow_hg(:,:)
-  REAL*8, ALLOCATABLE :: combusted_armored_hg(:,:)
-  REAL*8, ALLOCATABLE :: fuelwoodout_hg(:,:)
-  REAL*8, ALLOCATABLE :: wresp_hg(:,:)
-  REAL*8, ALLOCATABLE :: wcomb_hg(:,:)
-  REAL*8, ALLOCATABLE :: wherb_hg(:,:)
-  REAL*8, ALLOCATABLE :: wbiof_hg(:,:)
-  REAL*8, ALLOCATABLE :: hresp_hg(:,:)
-  REAL*8, ALLOCATABLE :: hcomb_hg(:,:)
-  REAL*8, ALLOCATABLE :: hherb_hg(:,:)
-  REAL*8, ALLOCATABLE :: veg_burn(:,:)
-  REAL*8, ALLOCATABLE :: f_carbonout_surfmet(:,:)
-  REAL*8, ALLOCATABLE :: f_carbonout_surfstr(:,:)
-  REAL*8, ALLOCATABLE :: f_carbonout_leaf(:,:)
-  REAL*8, ALLOCATABLE :: f_carbonout_soilstr(:,:)
-  REAL*8, ALLOCATABLE :: f_carbonout_surfmic(:,:)
-  REAL*8, ALLOCATABLE :: f_carbonout_soilmic(:,:)
-  REAL*8, ALLOCATABLE :: f_carbonout_soilmet(:,:)
-  REAL*8, ALLOCATABLE :: f_carbonout_slow(:,:)
-  REAL*8, ALLOCATABLE :: f_carbonout_armored(:,:) 
-  REAL*8, ALLOCATABLE :: resppool_surfstr(:,:)
-  REAL*8, ALLOCATABLE :: resppool_surfmet(:,:)
-  REAL*8, ALLOCATABLE :: resppool_surfmic(:,:)
-  REAL*8, ALLOCATABLE :: resppool_soilstr(:,:)
-  REAL*8, ALLOCATABLE :: resppool_soilmet(:,:)
-  REAL*8, ALLOCATABLE :: resppool_soilmic(:,:)
-  REAL*8, ALLOCATABLE :: resppool_slow(:,:)
-  REAL*8, ALLOCATABLE :: resppool_armored(:,:)
-  REAL*8, ALLOCATABLE :: resp_surfstr(:,:)
-  REAL*8, ALLOCATABLE :: resp_surfmet(:,:)
-  REAL*8, ALLOCATABLE :: resp_surfmic(:,:)
-  REAL*8, ALLOCATABLE :: resp_soilstr(:,:)
-  REAL*8, ALLOCATABLE :: resp_soilmet(:,:)
-  REAL*8, ALLOCATABLE :: resp_soilmic(:,:)
-  REAL*8, ALLOCATABLE :: resp_slow(:,:)
-  REAL*8, ALLOCATABLE :: resp_armored(:,:)
-  REAL*8, ALLOCATABLE :: temp(:,:)
-  REAL*8, ALLOCATABLE :: combusted_leaf(:,:)
-  REAL*8, ALLOCATABLE :: combusted_abovewood(:,:)
-  REAL*8, ALLOCATABLE :: combusted_cwd(:,:)
-  REAL*8, ALLOCATABLE :: combusted_surfstr(:,:)
-  REAL*8, ALLOCATABLE :: combusted_surfmet(:,:)
-  REAL*8, ALLOCATABLE :: combusted_surfmic(:,:)
-  REAL*8, ALLOCATABLE :: combusted_soilstr(:,:)
-  REAL*8, ALLOCATABLE :: combusted_soilmet(:,:)
-  REAL*8, ALLOCATABLE :: combusted_soilmic(:,:)
-  REAL*8, ALLOCATABLE :: combusted_slow(:,:)
-  REAL*8, ALLOCATABLE :: combusted_armored(:,:)
-  REAL*8, ALLOCATABLE :: nonCombusted_leaf(:,:)
-  REAL*8, ALLOCATABLE :: nonCombusted_abovewood(:,:)
-  REAL*8, ALLOCATABLE :: nonCombusted_belowwood(:,:)
-  REAL*8, ALLOCATABLE :: nonCombusted_froot(:,:)
-  REAL*8, ALLOCATABLE :: fuelwoodout(:,:)
-  REAL*8, ALLOCATABLE :: wresp(:,:)
-  REAL*8, ALLOCATABLE :: wcomb(:,:)
-  REAL*8, ALLOCATABLE :: wherb(:,:)
-  REAL*8, ALLOCATABLE :: wbiof(:,:)
-  REAL*8, ALLOCATABLE :: hresp(:,:)
-  REAL*8, ALLOCATABLE :: hcomb(:,:)
-  REAL*8, ALLOCATABLE :: hherb(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_leaf_hg(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_surfstr_hg(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_surfmet_hg(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_surfmic_hg(:,:)
+  REAL(fp), ALLOCATABLE :: nonCombusted_leaf_hg(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_soilstr_hg(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_soilmet_hg(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_soilmic_hg(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_slow_hg(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_armored_hg(:,:)
+  REAL(fp), ALLOCATABLE :: fuelwoodout_hg(:,:)
+  REAL(fp), ALLOCATABLE :: wresp_hg(:,:)
+  REAL(fp), ALLOCATABLE :: wcomb_hg(:,:)
+  REAL(fp), ALLOCATABLE :: wherb_hg(:,:)
+  REAL(fp), ALLOCATABLE :: wbiof_hg(:,:)
+  REAL(fp), ALLOCATABLE :: hresp_hg(:,:)
+  REAL(fp), ALLOCATABLE :: hcomb_hg(:,:)
+  REAL(fp), ALLOCATABLE :: hherb_hg(:,:)
+  REAL(fp), ALLOCATABLE :: veg_burn(:,:)
+  REAL(fp), ALLOCATABLE :: f_carbonout_surfmet(:,:)
+  REAL(fp), ALLOCATABLE :: f_carbonout_surfstr(:,:)
+  REAL(fp), ALLOCATABLE :: f_carbonout_leaf(:,:)
+  REAL(fp), ALLOCATABLE :: f_carbonout_soilstr(:,:)
+  REAL(fp), ALLOCATABLE :: f_carbonout_surfmic(:,:)
+  REAL(fp), ALLOCATABLE :: f_carbonout_soilmic(:,:)
+  REAL(fp), ALLOCATABLE :: f_carbonout_soilmet(:,:)
+  REAL(fp), ALLOCATABLE :: f_carbonout_slow(:,:)
+  REAL(fp), ALLOCATABLE :: f_carbonout_armored(:,:) 
+  REAL(fp), ALLOCATABLE :: resppool_surfstr(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_surfmet(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_surfmic(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_soilstr(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_soilmet(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_soilmic(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_slow(:,:)
+  REAL(fp), ALLOCATABLE :: resppool_armored(:,:)
+  REAL(fp), ALLOCATABLE :: resp_surfstr(:,:)
+  REAL(fp), ALLOCATABLE :: resp_surfmet(:,:)
+  REAL(fp), ALLOCATABLE :: resp_surfmic(:,:)
+  REAL(fp), ALLOCATABLE :: resp_soilstr(:,:)
+  REAL(fp), ALLOCATABLE :: resp_soilmet(:,:)
+  REAL(fp), ALLOCATABLE :: resp_soilmic(:,:)
+  REAL(fp), ALLOCATABLE :: resp_slow(:,:)
+  REAL(fp), ALLOCATABLE :: resp_armored(:,:)
+  REAL(fp), ALLOCATABLE :: temp(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_leaf(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_abovewood(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_cwd(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_surfstr(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_surfmet(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_surfmic(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_soilstr(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_soilmet(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_soilmic(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_slow(:,:)
+  REAL(fp), ALLOCATABLE :: combusted_armored(:,:)
+  REAL(fp), ALLOCATABLE :: nonCombusted_leaf(:,:)
+  REAL(fp), ALLOCATABLE :: nonCombusted_abovewood(:,:)
+  REAL(fp), ALLOCATABLE :: nonCombusted_belowwood(:,:)
+  REAL(fp), ALLOCATABLE :: nonCombusted_froot(:,:)
+  REAL(fp), ALLOCATABLE :: fuelwoodout(:,:)
+  REAL(fp), ALLOCATABLE :: wresp(:,:)
+  REAL(fp), ALLOCATABLE :: wcomb(:,:)
+  REAL(fp), ALLOCATABLE :: wherb(:,:)
+  REAL(fp), ALLOCATABLE :: wbiof(:,:)
+  REAL(fp), ALLOCATABLE :: hresp(:,:)
+  REAL(fp), ALLOCATABLE :: hcomb(:,:)
+  REAL(fp), ALLOCATABLE :: hherb(:,:)
   
   !in getAgeClassBF
-  REAL*8, ALLOCATABLE :: ageClassIndex(:,:)
-  REAL*8, ALLOCATABLE :: BFallClasses(:,:)
-  REAL*8, ALLOCATABLE :: BFleftCurrentMonth(:,:)
-  REAL*8, ALLOCATABLE :: BFtemp(:,:)
-  REAL*8, ALLOCATABLE :: ageCurrentClass(:,:)
+  REAL(fp), ALLOCATABLE :: ageClassIndex(:,:)
+  REAL(fp), ALLOCATABLE :: BFallClasses(:,:)
+  REAL(fp), ALLOCATABLE :: BFleftCurrentMonth(:,:)
+  REAL(fp), ALLOCATABLE :: BFtemp(:,:)
+  REAL(fp), ALLOCATABLE :: ageCurrentClass(:,:)
   
   !in organizeAgeClasses
-  REAL*8, ALLOCATABLE :: ageClassSorted(:,:)
-  REAL*8, ALLOCATABLE :: ageClassSortedInd(:,:)
-  REAL*8, ALLOCATABLE :: tempAge(:,:)
+  REAL(fp), ALLOCATABLE :: ageClassSorted(:,:)
+  REAL(fp), ALLOCATABLE :: ageClassSortedInd(:,:)
+  REAL(fp), ALLOCATABLE :: tempAge(:,:)
   
   !in processData
-  REAL*8, ALLOCATABLE :: NPPmonthly(:,:)
-  REAL*8, ALLOCATABLE :: respmonthly(:,:)
-  REAL*8, ALLOCATABLE :: combmonthly(:,:)
-  REAL*8, ALLOCATABLE :: herbmonthly(:,:)
-  REAL*8, ALLOCATABLE :: biofmonthly(:,:)
-  REAL*8, ALLOCATABLE :: respEQ(:,:)
-  REAL*8, ALLOCATABLE :: combEQ(:,:)
-  REAL*8, ALLOCATABLE :: herbEQ(:,:)
-  REAL*8, ALLOCATABLE :: biofEQ(:,:)
-  REAL*8, ALLOCATABLE :: NPPmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: respmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: combmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: herbmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: biofmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: respEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: combEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: herbEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: biofEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: evapEQ_hg(:,:)  
-  REAL*8, ALLOCATABLE :: reemitEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: photoEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: leafpoolEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: slowpoolEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: armoredpoolEQ_hg(:,:) 
-  REAL*8, ALLOCATABLE :: surfstrpoolEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: soilstrpoolEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: surfmetpoolEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: soilmetpoolEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: surfmicpoolEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: soilmicpoolEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: HgAqEQ_hg(:,:)
-  REAL*8, ALLOCATABLE :: reemmonthly_hg(:,:) 
-  REAL*8, ALLOCATABLE :: photmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: slowmonthly(:,:)
-  REAL*8, ALLOCATABLE :: armoredmonthly(:,:)
-  REAL*8, ALLOCATABLE :: surfstrmonthly(:,:)
-  REAL*8, ALLOCATABLE :: surfmetmonthly(:,:)
-  REAL*8, ALLOCATABLE :: surfmicmonthly(:,:)
-  REAL*8, ALLOCATABLE :: soilstrmonthly(:,:)
-  REAL*8, ALLOCATABLE :: soilmetmonthly(:,:)
-  REAL*8, ALLOCATABLE :: soilmicmonthly(:,:)
-  REAL*8, ALLOCATABLE :: leafmonthly(:,:)
-  REAL*8, ALLOCATABLE :: slowmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: armoredmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: surfstrmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: surfmetmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: surfmicmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: soilstrmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: soilmetmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: soilmicmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: leafmonthly_hg(:,:)
-  REAL*8, ALLOCATABLE :: HgAqmonthly(:,:)
-  REAL*8, ALLOCATABLE :: leafpoolEQ(:,:)
-  REAL*8, ALLOCATABLE :: slowpoolEQ(:,:)
-  REAL*8, ALLOCATABLE :: armoredpoolEQ(:,:)
-  REAL*8, ALLOCATABLE :: surfstrpoolEQ(:,:)
-  REAL*8, ALLOCATABLE :: soilstrpoolEQ(:,:)
-  REAL*8, ALLOCATABLE :: surfmetpoolEQ(:,:)
-  REAL*8, ALLOCATABLE :: soilmetpoolEQ(:,:)
-  REAL*8, ALLOCATABLE :: surfmicpoolEQ(:,:)
-  REAL*8, ALLOCATABLE :: soilmicpoolEQ(:,:)
-  REAL*8, ALLOCATABLE :: biomeAnnual_Hg(:,:)
+  REAL(fp), ALLOCATABLE :: NPPmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: respmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: combmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: herbmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: biofmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: respEQ(:,:)
+  REAL(fp), ALLOCATABLE :: combEQ(:,:)
+  REAL(fp), ALLOCATABLE :: herbEQ(:,:)
+  REAL(fp), ALLOCATABLE :: biofEQ(:,:)
+  REAL(fp), ALLOCATABLE :: NPPmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: respmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: combmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: herbmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: biofmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: respEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: combEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: herbEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: biofEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: evapEQ_hg(:,:)  
+  REAL(fp), ALLOCATABLE :: reemitEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: photoEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: leafpoolEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: slowpoolEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: armoredpoolEQ_hg(:,:) 
+  REAL(fp), ALLOCATABLE :: surfstrpoolEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: soilstrpoolEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: surfmetpoolEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: soilmetpoolEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: surfmicpoolEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: soilmicpoolEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: HgAqEQ_hg(:,:)
+  REAL(fp), ALLOCATABLE :: reemmonthly_hg(:,:) 
+  REAL(fp), ALLOCATABLE :: photmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: slowmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: armoredmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: surfstrmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: surfmetmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: surfmicmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: soilstrmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: soilmetmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: soilmicmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: leafmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: slowmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: armoredmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: surfstrmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: surfmetmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: surfmicmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: soilstrmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: soilmetmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: soilmicmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: leafmonthly_hg(:,:)
+  REAL(fp), ALLOCATABLE :: HgAqmonthly(:,:)
+  REAL(fp), ALLOCATABLE :: leafpoolEQ(:,:)
+  REAL(fp), ALLOCATABLE :: slowpoolEQ(:,:)
+  REAL(fp), ALLOCATABLE :: armoredpoolEQ(:,:)
+  REAL(fp), ALLOCATABLE :: surfstrpoolEQ(:,:)
+  REAL(fp), ALLOCATABLE :: soilstrpoolEQ(:,:)
+  REAL(fp), ALLOCATABLE :: surfmetpoolEQ(:,:)
+  REAL(fp), ALLOCATABLE :: soilmetpoolEQ(:,:)
+  REAL(fp), ALLOCATABLE :: surfmicpoolEQ(:,:)
+  REAL(fp), ALLOCATABLE :: soilmicpoolEQ(:,:)
+  REAL(fp), ALLOCATABLE :: biomeAnnual_Hg(:,:)
   !in doHgDeposition
-  REAL*8, ALLOCATABLE :: Hg0dry(:,:)
-  REAL*8, ALLOCATABLE :: HgIIdry(:,:) 
-  REAL*8, ALLOCATABLE :: HgIIwet(:,:)
-  REAL*8, ALLOCATABLE :: Hg0dry_mo(:,:,:)
-  REAL*8, ALLOCATABLE :: HgIIdry_mo(:,:,:) 
-  REAL*8, ALLOCATABLE :: HgIIwet_mo(:,:,:)
-  REAL*8, ALLOCATABLE :: HgP(:,:)
-  REAL*8, ALLOCATABLE :: HgAq(:,:)
-  REAL*8, ALLOCATABLE :: hHgAq(:,:)
-  REAL*8, ALLOCATABLE :: Hg0_surf_leaf(:,:) 
-  REAL*8, ALLOCATABLE :: Hg0_surf_soil(:,:)
-  REAL*8, ALLOCATABLE :: HgII_surf_leaf(:,:)
-  REAL*8, ALLOCATABLE :: HgII_surf_soil(:,:)
-  REAL*8, ALLOCATABLE :: maxallLAI(:)
-  REAL*8, ALLOCATABLE :: fstom(:,:)
-  REAL*8, ALLOCATABLE :: fleaf(:,:)
-  REAL*8, ALLOCATABLE :: fsoil(:,:)
-  REAL*8, ALLOCATABLE :: fsum(:,:)
-  REAL*8, ALLOCATABLE :: freemitted(:,:)
-  REAL*8, ALLOCATABLE :: reemitted(:,:)
-  REAL*8, ALLOCATABLE :: temp_hg(:,:)
-  REAL*8, ALLOCATABLE :: photoreduced(:,:)
-  REAL*8, ALLOCATABLE :: Hg0out(:,:) 
+  REAL(fp), ALLOCATABLE :: Hg0dry(:,:)
+  REAL(fp), ALLOCATABLE :: HgIIdry(:,:) 
+  REAL(fp), ALLOCATABLE :: HgIIwet(:,:)
+  REAL(fp), ALLOCATABLE :: Hg0dry_mo(:,:,:)
+  REAL(fp), ALLOCATABLE :: HgIIdry_mo(:,:,:) 
+  REAL(fp), ALLOCATABLE :: HgIIwet_mo(:,:,:)
+  REAL(fp), ALLOCATABLE :: HgP(:,:)
+  REAL(fp), ALLOCATABLE :: HgAq(:,:)
+  REAL(fp), ALLOCATABLE :: hHgAq(:,:)
+  REAL(fp), ALLOCATABLE :: Hg0_surf_leaf(:,:) 
+  REAL(fp), ALLOCATABLE :: Hg0_surf_soil(:,:)
+  REAL(fp), ALLOCATABLE :: HgII_surf_leaf(:,:)
+  REAL(fp), ALLOCATABLE :: HgII_surf_soil(:,:)
+  REAL(fp), ALLOCATABLE :: maxallLAI(:)
+  REAL(fp), ALLOCATABLE :: fstom(:,:)
+  REAL(fp), ALLOCATABLE :: fleaf(:,:)
+  REAL(fp), ALLOCATABLE :: fsoil(:,:)
+  REAL(fp), ALLOCATABLE :: fsum(:,:)
+  REAL(fp), ALLOCATABLE :: freemitted(:,:)
+  REAL(fp), ALLOCATABLE :: reemitted(:,:)
+  REAL(fp), ALLOCATABLE :: temp_hg(:,:)
+  REAL(fp), ALLOCATABLE :: photoreduced(:,:)
+  REAL(fp), ALLOCATABLE :: Hg0out(:,:) 
 !
 ! !REVISION HISTORY:
 !
@@ -605,7 +607,7 @@ CONTAINS
     integer                 :: ios
 
     !Set array sizes
-    Ae=5.1*(10d0**14.0d0)
+    Ae=5.1*(10e+0_fp**14.0e+0_fp)
     
     filename(1:f_len)=filepath
     filename(f_len+1:f_len+8)='coef.csv'
@@ -878,10 +880,10 @@ CONTAINS
     ALLOCATE(mortality_tree(n_veg, 1))
     ALLOCATE(mortality_hfroot(n_veg, 1))
     
-    CC(1,:)=(/0.200d0, 0.300d0/)
-    CC(2,:)=(/0.800d0, 1.000d0/)
-    CC(3,:)=(/0.900d0, 1.000d0/)
-    CC(4,:)=(/0.200d0, 0.400d0/)
+    CC(1,:)=(/0.200e+0_fp, 0.300e+0_fp/)
+    CC(2,:)=(/0.800e+0_fp, 1.000e+0_fp/)
+    CC(3,:)=(/0.900e+0_fp, 1.000e+0_fp/)
+    CC(4,:)=(/0.200e+0_fp, 0.400e+0_fp/)
     
     !in doTreeCarbon
     ALLOCATE(leafinput(n_veg, 1))
@@ -1138,456 +1140,456 @@ CONTAINS
 !
     ! Initialize all arrays to 0.
 
-    clay = 0.d0
-    silt = 0.d0
-    sand = 0.d0
-    litcn = 0.d0
-    lignin = 0.d0
-    lrage = 0.d0
-    woodage = 0.d0
+    clay = 0.e+0_fp
+    silt = 0.e+0_fp
+    sand = 0.e+0_fp
+    litcn = 0.e+0_fp
+    lignin = 0.e+0_fp
+    lrage = 0.e+0_fp
+    woodage = 0.e+0_fp
     
-    SMparams = 0.d0
-    last_soilm = 0.d0
+    SMparams = 0.e+0_fp
+    last_soilm = 0.e+0_fp
     
-    PET = 0.d0
-    AHI = 0.d0
+    PET = 0.e+0_fp
+    AHI = 0.e+0_fp
     
-    last_pack = 0.d0
-    spack = 0.d0
-    bgmoist = 0.d0
-    NPPmoist = 0.d0
-    EET = 0.d0
-    NPPmoist_temp = 0.d0
-    bgmoist_temp = 0.d0
-    bgmoistpret = 0.d0
-    NPPmoistpret = 0.d0
-    soilm = 0.d0
-    rdr = 0.d0
-    current_ppt = 0.d0
-    eeta = 0.d0
-    eetb = 0.d0
-    this_soilm = 0.d0
-    bgratio = 0.d0
+    last_pack = 0.e+0_fp
+    spack = 0.e+0_fp
+    bgmoist = 0.e+0_fp
+    NPPmoist = 0.e+0_fp
+    EET = 0.e+0_fp
+    NPPmoist_temp = 0.e+0_fp
+    bgmoist_temp = 0.e+0_fp
+    bgmoistpret = 0.e+0_fp
+    NPPmoistpret = 0.e+0_fp
+    soilm = 0.e+0_fp
+    rdr = 0.e+0_fp
+    current_ppt = 0.e+0_fp
+    eeta = 0.e+0_fp
+    eetb = 0.e+0_fp
+    this_soilm = 0.e+0_fp
+    bgratio = 0.e+0_fp
     
-    srmax = 0.d0
-    LAImax = 0.d0
-    LAI_temp = 0.d0
-    FPAR = 0.d0
-    LAI = 0.d0
-    sr = 0.d0
+    srmax = 0.e+0_fp
+    LAImax = 0.e+0_fp
+    LAI_temp = 0.e+0_fp
+    FPAR = 0.e+0_fp
+    LAI = 0.e+0_fp
+    sr = 0.e+0_fp
     
-    topt = 0.d0
-    maxlai = 0.d0
-    lais = 0.d0
+    topt = 0.e+0_fp
+    maxlai = 0.e+0_fp
+    lais = 0.e+0_fp
     
-    LTCON = 0.d0
-    LTVAR = 0.d0
+    LTCON = 0.e+0_fp
+    LTVAR = 0.e+0_fp
     
-    abovewoodpool = 0.d0
-    belowwoodpool = 0.d0
-    leafpool = 0.d0
-    frootpool = 0.d0
-    cwdpool = 0.d0
-    surfstrpool = 0.d0
-    surfmetpool = 0.d0
-    surfmicpool = 0.d0
-    soilstrpool = 0.d0
-    soilmetpool = 0.d0
-    soilmicpool = 0.d0
-    slowpool = 0.d0
-    armoredpool = 0.d0
+    abovewoodpool = 0.e+0_fp
+    belowwoodpool = 0.e+0_fp
+    leafpool = 0.e+0_fp
+    frootpool = 0.e+0_fp
+    cwdpool = 0.e+0_fp
+    surfstrpool = 0.e+0_fp
+    surfmetpool = 0.e+0_fp
+    surfmicpool = 0.e+0_fp
+    soilstrpool = 0.e+0_fp
+    soilmetpool = 0.e+0_fp
+    soilmicpool = 0.e+0_fp
+    slowpool = 0.e+0_fp
+    armoredpool = 0.e+0_fp
     
     !woody pools Hg 
-    abovewoodpool_Hg = 0.d0
-    belowwoodpool_Hg = 0.d0
-    leafpool_Hg = 0.d0
-    frootpool_Hg = 0.d0
-    cwdpool_Hg = 0.d0
-    surfstrpool_Hg = 0.d0
-    surfmetpool_Hg = 0.d0
-    surfmicpool_Hg = 0.d0
-    soilstrpool_Hg = 0.d0
-    soilmetpool_Hg = 0.d0
-    soilmicpool_Hg = 0.d0
-    slowpool_Hg = 0.d0
-    armoredpool_Hg = 0.d0
-    total_tree_hg = 0.d0
+    abovewoodpool_Hg = 0.e+0_fp
+    belowwoodpool_Hg = 0.e+0_fp
+    leafpool_Hg = 0.e+0_fp
+    frootpool_Hg = 0.e+0_fp
+    cwdpool_Hg = 0.e+0_fp
+    surfstrpool_Hg = 0.e+0_fp
+    surfmetpool_Hg = 0.e+0_fp
+    surfmicpool_Hg = 0.e+0_fp
+    soilstrpool_Hg = 0.e+0_fp
+    soilmetpool_Hg = 0.e+0_fp
+    soilmicpool_Hg = 0.e+0_fp
+    slowpool_Hg = 0.e+0_fp
+    armoredpool_Hg = 0.e+0_fp
+    total_tree_hg = 0.e+0_fp
     
-    hleafpool = 0.d0
-    hfrootpool = 0.d0
-    hsurfstrpool = 0.d0
-    hsurfmetpool = 0.d0
-    hsurfmicpool = 0.d0
-    hsoilstrpool = 0.d0
-    hsoilmetpool = 0.d0
-    hsoilmicpool = 0.d0
-    hslowpool = 0.d0
-    harmoredpool = 0.d0
+    hleafpool = 0.e+0_fp
+    hfrootpool = 0.e+0_fp
+    hsurfstrpool = 0.e+0_fp
+    hsurfmetpool = 0.e+0_fp
+    hsurfmicpool = 0.e+0_fp
+    hsoilstrpool = 0.e+0_fp
+    hsoilmetpool = 0.e+0_fp
+    hsoilmicpool = 0.e+0_fp
+    hslowpool = 0.e+0_fp
+    harmoredpool = 0.e+0_fp
     
     !herb pools Hg
-    hleafpool_Hg = 0.d0
-    hfrootpool_Hg = 0.d0
-    hsurfstrpool_Hg = 0.d0
-    hsurfmetpool_Hg = 0.d0
-    hsurfmicpool_Hg = 0.d0
-    hsoilstrpool_Hg = 0.d0
-    hsoilmetpool_Hg = 0.d0
-    hsoilmicpool_Hg = 0.d0
-    hslowpool_Hg = 0.d0
-    harmoredpool_Hg = 0.d0
-    total_herb_hg = 0.d0
+    hleafpool_Hg = 0.e+0_fp
+    hfrootpool_Hg = 0.e+0_fp
+    hsurfstrpool_Hg = 0.e+0_fp
+    hsurfmetpool_Hg = 0.e+0_fp
+    hsurfmicpool_Hg = 0.e+0_fp
+    hsoilstrpool_Hg = 0.e+0_fp
+    hsoilmetpool_Hg = 0.e+0_fp
+    hsoilmicpool_Hg = 0.e+0_fp
+    hslowpool_Hg = 0.e+0_fp
+    harmoredpool_Hg = 0.e+0_fp
+    total_herb_hg = 0.e+0_fp
     
     !max hg woody pool
-    max_hg_leaf = 0.d0
-    max_hg_surfstr = 0.d0
-    max_hg_surfmet = 0.d0
-    max_hg_surfmic = 0.d0
-    max_hg_soilstr = 0.d0
-    max_hg_soilmet = 0.d0
-    max_hg_soilmic = 0.d0
-    max_hg_slow = 0.d0
-    max_hg_armored = 0.d0
+    max_hg_leaf = 0.e+0_fp
+    max_hg_surfstr = 0.e+0_fp
+    max_hg_surfmet = 0.e+0_fp
+    max_hg_surfmic = 0.e+0_fp
+    max_hg_soilstr = 0.e+0_fp
+    max_hg_soilmet = 0.e+0_fp
+    max_hg_soilmic = 0.e+0_fp
+    max_hg_slow = 0.e+0_fp
+    max_hg_armored = 0.e+0_fp
     
     !max hg herb pools
-    max_hg_hleaf = 0.d0
-    max_hg_hsurfstr = 0.d0
-    max_hg_hsurfmet = 0.d0
-    max_hg_hsurfmic = 0.d0
-    max_hg_hsoilstr = 0.d0
-    max_hg_hsoilmet = 0.d0
-    max_hg_hsoilmic = 0.d0
-    max_hg_hslow = 0.d0
-    max_hg_harmored = 0.d0
+    max_hg_hleaf = 0.e+0_fp
+    max_hg_hsurfstr = 0.e+0_fp
+    max_hg_hsurfmet = 0.e+0_fp
+    max_hg_hsurfmic = 0.e+0_fp
+    max_hg_hsoilstr = 0.e+0_fp
+    max_hg_hsoilmet = 0.e+0_fp
+    max_hg_hsoilmic = 0.e+0_fp
+    max_hg_hslow = 0.e+0_fp
+    max_hg_harmored = 0.e+0_fp
     
-    abovewoodpools = 0.d0
-    belowwoodpools = 0.d0
-    leafpools = 0.d0
-    frootpools = 0.d0
-    cwdpools = 0.d0
-    surfstrpools = 0.d0
-    surfmetpools = 0.d0
-    surfmicpools = 0.d0
-    soilstrpools = 0.d0
-    soilmetpools = 0.d0
-    soilmicpools = 0.d0
-    slowpools = 0.d0
-    armoredpools = 0.d0
+    abovewoodpools = 0.e+0_fp
+    belowwoodpools = 0.e+0_fp
+    leafpools = 0.e+0_fp
+    frootpools = 0.e+0_fp
+    cwdpools = 0.e+0_fp
+    surfstrpools = 0.e+0_fp
+    surfmetpools = 0.e+0_fp
+    surfmicpools = 0.e+0_fp
+    soilstrpools = 0.e+0_fp
+    soilmetpools = 0.e+0_fp
+    soilmicpools = 0.e+0_fp
+    slowpools = 0.e+0_fp
+    armoredpools = 0.e+0_fp
     
-    hleafpools = 0.d0
-    hfrootpools = 0.d0
-    hsurfstrpools = 0.d0
-    hsurfmetpools = 0.d0
-    hsurfmicpools = 0.d0
-    hsoilstrpools = 0.d0
-    hsoilmetpools = 0.d0
-    hsoilmicpools = 0.d0
-    hslowpools = 0.d0
-    harmoredpools = 0.d0
+    hleafpools = 0.e+0_fp
+    hfrootpools = 0.e+0_fp
+    hsurfstrpools = 0.e+0_fp
+    hsurfmetpools = 0.e+0_fp
+    hsurfmicpools = 0.e+0_fp
+    hsoilstrpools = 0.e+0_fp
+    hsoilmetpools = 0.e+0_fp
+    hsoilmicpools = 0.e+0_fp
+    hslowpools = 0.e+0_fp
+    harmoredpools = 0.e+0_fp
     
-    fuelshortage = 0.d0     
+    fuelshortage = 0.e+0_fp     
     
-    LtN = 0.d0
-    annK_leaf = 0.d0
-    annK_leaf_hg = 0.d0
-    annK_wood = 0.d0
-    annK_froot = 0.d0
-    K_wood = 0.d0
-    K_froot = 0.d0
-    K_leaf = 0.d0
-    K_hleaf = 0.d0
-    K_hfroot = 0.d0
-    K_surfmet = 0.d0
-    K_surfstr = 0.d0
-    K_soilmet = 0.d0 
-    K_soilstr = 0.d0
-    K_cwd = 0.d0
-    K_surfmic = 0.d0
-    K_soilmic = 0.d0 
-    K_slow = 0.d0
-    K_armored = 0.d0
-    slitscalar = 0.d0 
-    shlitscalar = 0.d0 
-    srootlitscalar = 0.d0
-    sabiotic = 0.d0
-    sabiotsmc = 0.d0
-    sabiotlign = 0.d0
-    metabfract = 0.d0
-    structuralLignin = 0.d0
-    lignineffect = 0.d0
-    soilmicDecayFactor = 0.d0
-    slowDecayFactor = 0.d0
-    armoredDecayFactor = 0.d0
-    fid = 0.d0
-    decayClayFactor = 0.d0
-    eff_soilmic2slow = 0.d0
-    latitude = 0.d0
-    latitude1 = 0.d0
-    fuelwooddemand = 0.d0
+    LtN = 0.e+0_fp
+    annK_leaf = 0.e+0_fp
+    annK_leaf_hg = 0.e+0_fp
+    annK_wood = 0.e+0_fp
+    annK_froot = 0.e+0_fp
+    K_wood = 0.e+0_fp
+    K_froot = 0.e+0_fp
+    K_leaf = 0.e+0_fp
+    K_hleaf = 0.e+0_fp
+    K_hfroot = 0.e+0_fp
+    K_surfmet = 0.e+0_fp
+    K_surfstr = 0.e+0_fp
+    K_soilmet = 0.e+0_fp 
+    K_soilstr = 0.e+0_fp
+    K_cwd = 0.e+0_fp
+    K_surfmic = 0.e+0_fp
+    K_soilmic = 0.e+0_fp 
+    K_slow = 0.e+0_fp
+    K_armored = 0.e+0_fp
+    slitscalar = 0.e+0_fp 
+    shlitscalar = 0.e+0_fp 
+    srootlitscalar = 0.e+0_fp
+    sabiotic = 0.e+0_fp
+    sabiotsmc = 0.e+0_fp
+    sabiotlign = 0.e+0_fp
+    metabfract = 0.e+0_fp
+    structuralLignin = 0.e+0_fp
+    lignineffect = 0.e+0_fp
+    soilmicDecayFactor = 0.e+0_fp
+    slowDecayFactor = 0.e+0_fp
+    armoredDecayFactor = 0.e+0_fp
+    fid = 0.e+0_fp
+    decayClayFactor = 0.e+0_fp
+    eff_soilmic2slow = 0.e+0_fp
+    latitude = 0.e+0_fp
+    latitude1 = 0.e+0_fp
+    fuelwooddemand = 0.e+0_fp
     
     !in doNPP
-    T1 = 0.d0
-    T2low = 0.d0
-    T2high = 0.d0
-    NPPtemp = 0.d0
-    IPAR = 0.d0
-    NPP = 0.d0
-    epsilona = 0.d0
-    bgtemp = 0.d0
-    abiotic = 0.d0
+    T1 = 0.e+0_fp
+    T2low = 0.e+0_fp
+    T2high = 0.e+0_fp
+    NPPtemp = 0.e+0_fp
+    IPAR = 0.e+0_fp
+    NPP = 0.e+0_fp
+    epsilona = 0.e+0_fp
+    bgtemp = 0.e+0_fp
+    abiotic = 0.e+0_fp
     
     !in doHerbivory
-    grass_herbivory = 0.d0
-    trees_herbivory = 0.d0
-    herb_seasonality = 0.d0
+    grass_herbivory = 0.e+0_fp
+    trees_herbivory = 0.e+0_fp
+    herb_seasonality = 0.e+0_fp
     
     !in doLeafRootShedding
-    MINLAI = 0.d0
-    SUMLAI = 0.d0
-    AVELAI = 0.d0
-    LTVARSUM = 0.d0
-    SUMLAInew = 0.d0
-    litterscalar = 0.d0
-    hlitterscalar = 0.d0
-    rootlitscalar = 0.d0
+    MINLAI = 0.e+0_fp
+    SUMLAI = 0.e+0_fp
+    AVELAI = 0.e+0_fp
+    LTVARSUM = 0.e+0_fp
+    SUMLAInew = 0.e+0_fp
+    litterscalar = 0.e+0_fp
+    hlitterscalar = 0.e+0_fp
+    rootlitscalar = 0.e+0_fp
     
     !in getFireParams
-    ccWood = 0.d0
-    ccLeaf = 0.d0
-    PET_current = 0.d0
-    CCratio_current = 0.d0
-    ccFineLitter = 0.d0
-    ccCWD = 0.d0
-    CCratio_previous = 0.d0
-    mortality_tree = 0.d0
-    mortality_hfroot = 0.d0
+    ccWood = 0.e+0_fp
+    ccLeaf = 0.e+0_fp
+    PET_current = 0.e+0_fp
+    CCratio_current = 0.e+0_fp
+    ccFineLitter = 0.e+0_fp
+    ccCWD = 0.e+0_fp
+    CCratio_previous = 0.e+0_fp
+    mortality_tree = 0.e+0_fp
+    mortality_hfroot = 0.e+0_fp
     
     !in doTreeCarbon
-    leafinput = 0.d0
-    woodinput = 0.d0
-    frootinput = 0.d0
-    herbivory = 0.d0
-    carbonout_leaf = 0.d0
-    carbonout_abovewood = 0.d0
-    carbonout_belowwood = 0.d0
-    carbonout_froot = 0.d0
-    carbonout_cwd = 0.d0
-    carbonout_surfmet = 0.d0
-    carbonout_surfstr = 0.d0
-    carbonout_soilmet = 0.d0
-    carbonout_soilstr = 0.d0
-    carbonout_surfmic = 0.d0
-    carbonout_soilmic = 0.d0
-    carbonout_slow = 0.d0
-    carbonout_armored = 0.d0
-    hgout_surfmet = 0.d0
-    hgout_surfstr = 0.d0
-    hgout_leaf = 0.d0
-    hgout_soilstr = 0.d0
-    hgout_surfmic = 0.d0
-    hgout_soilmic = 0.d0
-    hgout_slow = 0.d0
-    hgout_armored = 0.d0
-    hgout_soilmet = 0.d0
+    leafinput = 0.e+0_fp
+    woodinput = 0.e+0_fp
+    frootinput = 0.e+0_fp
+    herbivory = 0.e+0_fp
+    carbonout_leaf = 0.e+0_fp
+    carbonout_abovewood = 0.e+0_fp
+    carbonout_belowwood = 0.e+0_fp
+    carbonout_froot = 0.e+0_fp
+    carbonout_cwd = 0.e+0_fp
+    carbonout_surfmet = 0.e+0_fp
+    carbonout_surfstr = 0.e+0_fp
+    carbonout_soilmet = 0.e+0_fp
+    carbonout_soilstr = 0.e+0_fp
+    carbonout_surfmic = 0.e+0_fp
+    carbonout_soilmic = 0.e+0_fp
+    carbonout_slow = 0.e+0_fp
+    carbonout_armored = 0.e+0_fp
+    hgout_surfmet = 0.e+0_fp
+    hgout_surfstr = 0.e+0_fp
+    hgout_leaf = 0.e+0_fp
+    hgout_soilstr = 0.e+0_fp
+    hgout_surfmic = 0.e+0_fp
+    hgout_soilmic = 0.e+0_fp
+    hgout_slow = 0.e+0_fp
+    hgout_armored = 0.e+0_fp
+    hgout_soilmet = 0.e+0_fp
     
-    Hg_pool_fluxes1 = 0.d0
-    Hg_pool_fluxes2 = 0.d0
-    Hg_pool_fluxes3 = 0.d0
-    Hg_pool_fluxes4 = 0.d0
-    Hg_pool_fluxes5 = 0.d0
-    Hg_pool_fluxes6 = 0.d0
+    Hg_pool_fluxes1 = 0.e+0_fp
+    Hg_pool_fluxes2 = 0.e+0_fp
+    Hg_pool_fluxes3 = 0.e+0_fp
+    Hg_pool_fluxes4 = 0.e+0_fp
+    Hg_pool_fluxes5 = 0.e+0_fp
+    Hg_pool_fluxes6 = 0.e+0_fp
     
-    Hg_hpool_fluxes1 = 0.d0
-    Hg_hpool_fluxes2 = 0.d0
-    Hg_hpool_fluxes3 = 0.d0
-    Hg_hpool_fluxes4 = 0.d0
-    Hg_hpool_fluxes5 = 0.d0
-    Hg_hpool_fluxes6 = 0.d0
+    Hg_hpool_fluxes1 = 0.e+0_fp
+    Hg_hpool_fluxes2 = 0.e+0_fp
+    Hg_hpool_fluxes3 = 0.e+0_fp
+    Hg_hpool_fluxes4 = 0.e+0_fp
+    Hg_hpool_fluxes5 = 0.e+0_fp
+    Hg_hpool_fluxes6 = 0.e+0_fp
     
-    f_carbonout_surfmet = 0.d0
-    f_carbonout_surfstr = 0.d0
-    f_carbonout_leaf = 0.d0
-    f_carbonout_soilstr = 0.d0
-    f_carbonout_surfmic = 0.d0
-    f_carbonout_soilmic = 0.d0
-    f_carbonout_slow = 0.d0
-    f_carbonout_armored = 0.d0
-    f_carbonout_soilmet = 0.d0
+    f_carbonout_surfmet = 0.e+0_fp
+    f_carbonout_surfstr = 0.e+0_fp
+    f_carbonout_leaf = 0.e+0_fp
+    f_carbonout_soilstr = 0.e+0_fp
+    f_carbonout_surfmic = 0.e+0_fp
+    f_carbonout_soilmic = 0.e+0_fp
+    f_carbonout_slow = 0.e+0_fp
+    f_carbonout_armored = 0.e+0_fp
+    f_carbonout_soilmet = 0.e+0_fp
     
-    resppool_surfstr_hg = 0.d0
-    resppool_surfmet_hg = 0.d0
-    resppool_surfmic_hg = 0.d0
-    resppool_soilstr_hg = 0.d0
-    resppool_soilmic_hg = 0.d0
-    resppool_soilmet_hg = 0.d0
-    resppool_slow_hg = 0.d0
-    resppool_armored_hg = 0.d0
-    resp_surfstr_hg = 0.d0
-    resp_surfmet_hg = 0.d0
-    resp_surfmic_hg = 0.d0
-    resp_soilstr_hg = 0.d0
-    resp_soilmic_hg = 0.d0
-    resp_soilmet_hg = 0.d0
-    resp_slow_hg = 0.d0
-    resp_armored_hg = 0.d0
+    resppool_surfstr_hg = 0.e+0_fp
+    resppool_surfmet_hg = 0.e+0_fp
+    resppool_surfmic_hg = 0.e+0_fp
+    resppool_soilstr_hg = 0.e+0_fp
+    resppool_soilmic_hg = 0.e+0_fp
+    resppool_soilmet_hg = 0.e+0_fp
+    resppool_slow_hg = 0.e+0_fp
+    resppool_armored_hg = 0.e+0_fp
+    resp_surfstr_hg = 0.e+0_fp
+    resp_surfmet_hg = 0.e+0_fp
+    resp_surfmic_hg = 0.e+0_fp
+    resp_soilstr_hg = 0.e+0_fp
+    resp_soilmic_hg = 0.e+0_fp
+    resp_soilmet_hg = 0.e+0_fp
+    resp_slow_hg = 0.e+0_fp
+    resp_armored_hg = 0.e+0_fp
     
-    combusted_leaf_hg = 0.d0
-    combusted_surfstr_hg = 0.d0
-    combusted_surfmet_hg = 0.d0
-    combusted_surfmic_hg = 0.d0
-    combusted_soilstr_hg = 0.d0
-    combusted_soilmet_hg = 0.d0
-    combusted_soilmic_hg = 0.d0
-    combusted_slow_hg = 0.d0
-    combusted_armored_hg = 0.d0
-    nonCombusted_leaf_hg = 0.d0
-    fuelwoodout_hg = 0.d0
-    wresp_hg = 0.d0
-    wcomb_hg = 0.d0
-    wherb_hg = 0.d0
-    wbiof_hg = 0.d0
-    hresp_hg = 0.d0
-    hcomb_hg = 0.d0
-    hherb_hg = 0.d0
-    resppool_surfstr = 0.d0
-    resppool_surfmet = 0.d0
-    resppool_surfmic = 0.d0
-    resppool_soilstr = 0.d0
-    resppool_soilmet = 0.d0
-    resppool_soilmic = 0.d0
-    resppool_slow = 0.d0
-    resppool_armored = 0.d0
-    resp_surfstr = 0.d0
-    resp_surfmet = 0.d0
-    resp_surfmic = 0.d0
-    resp_soilstr = 0.d0
-    resp_soilmet = 0.d0
-    resp_soilmic = 0.d0
-    resp_slow = 0.d0
-    resp_armored = 0.d0
-    temp = 0.d0
-    combusted_leaf = 0.d0
-    combusted_abovewood = 0.d0
-    combusted_cwd = 0.d0
-    combusted_surfstr = 0.d0
-    combusted_surfmet = 0.d0
-    combusted_surfmic = 0.d0
-    combusted_soilstr = 0.d0
-    combusted_soilmet = 0.d0
-    combusted_soilmic = 0.d0
-    combusted_slow = 0.d0
-    combusted_armored = 0.d0
-    nonCombusted_leaf = 0.d0
-    nonCombusted_abovewood = 0.d0
-    nonCombusted_belowwood = 0.d0
-    nonCombusted_froot = 0.d0
-    fuelwoodout = 0.d0
-    wresp = 0.d0
-    wcomb = 0.d0
-    wherb = 0.d0
-    wbiof = 0.d0
-    hresp = 0.d0
-    hcomb = 0.d0
-    hherb = 0.d0
-    veg_burn = 0.d0 
+    combusted_leaf_hg = 0.e+0_fp
+    combusted_surfstr_hg = 0.e+0_fp
+    combusted_surfmet_hg = 0.e+0_fp
+    combusted_surfmic_hg = 0.e+0_fp
+    combusted_soilstr_hg = 0.e+0_fp
+    combusted_soilmet_hg = 0.e+0_fp
+    combusted_soilmic_hg = 0.e+0_fp
+    combusted_slow_hg = 0.e+0_fp
+    combusted_armored_hg = 0.e+0_fp
+    nonCombusted_leaf_hg = 0.e+0_fp
+    fuelwoodout_hg = 0.e+0_fp
+    wresp_hg = 0.e+0_fp
+    wcomb_hg = 0.e+0_fp
+    wherb_hg = 0.e+0_fp
+    wbiof_hg = 0.e+0_fp
+    hresp_hg = 0.e+0_fp
+    hcomb_hg = 0.e+0_fp
+    hherb_hg = 0.e+0_fp
+    resppool_surfstr = 0.e+0_fp
+    resppool_surfmet = 0.e+0_fp
+    resppool_surfmic = 0.e+0_fp
+    resppool_soilstr = 0.e+0_fp
+    resppool_soilmet = 0.e+0_fp
+    resppool_soilmic = 0.e+0_fp
+    resppool_slow = 0.e+0_fp
+    resppool_armored = 0.e+0_fp
+    resp_surfstr = 0.e+0_fp
+    resp_surfmet = 0.e+0_fp
+    resp_surfmic = 0.e+0_fp
+    resp_soilstr = 0.e+0_fp
+    resp_soilmet = 0.e+0_fp
+    resp_soilmic = 0.e+0_fp
+    resp_slow = 0.e+0_fp
+    resp_armored = 0.e+0_fp
+    temp = 0.e+0_fp
+    combusted_leaf = 0.e+0_fp
+    combusted_abovewood = 0.e+0_fp
+    combusted_cwd = 0.e+0_fp
+    combusted_surfstr = 0.e+0_fp
+    combusted_surfmet = 0.e+0_fp
+    combusted_surfmic = 0.e+0_fp
+    combusted_soilstr = 0.e+0_fp
+    combusted_soilmet = 0.e+0_fp
+    combusted_soilmic = 0.e+0_fp
+    combusted_slow = 0.e+0_fp
+    combusted_armored = 0.e+0_fp
+    nonCombusted_leaf = 0.e+0_fp
+    nonCombusted_abovewood = 0.e+0_fp
+    nonCombusted_belowwood = 0.e+0_fp
+    nonCombusted_froot = 0.e+0_fp
+    fuelwoodout = 0.e+0_fp
+    wresp = 0.e+0_fp
+    wcomb = 0.e+0_fp
+    wherb = 0.e+0_fp
+    wbiof = 0.e+0_fp
+    hresp = 0.e+0_fp
+    hcomb = 0.e+0_fp
+    hherb = 0.e+0_fp
+    veg_burn = 0.e+0_fp 
     !in getAgeClassBF
     
-    ageClassIndex = 0.d0
-    BFallClasses = 0.d0
-    BFleftCurrentMonth = 0.d0
-    BFtemp = 0.d0
-    ageCurrentClass = 0.d0
+    ageClassIndex = 0.e+0_fp
+    BFallClasses = 0.e+0_fp
+    BFleftCurrentMonth = 0.e+0_fp
+    BFtemp = 0.e+0_fp
+    ageCurrentClass = 0.e+0_fp
     
     !in organizeAgeClasses
-    ageClassSorted = 0.d0
-    ageClassSortedInd = 0.d0
-    tempAge = 0.d0
+    ageClassSorted = 0.e+0_fp
+    ageClassSortedInd = 0.e+0_fp
+    tempAge = 0.e+0_fp
     
     !in processData
-    NPPmonthly = 0.d0
-    respmonthly = 0.d0
-    combmonthly = 0.d0
-    herbmonthly = 0.d0
-    biofmonthly = 0.d0
-    respEQ = 0.d0
-    combEQ = 0.d0
-    herbEQ = 0.d0
-    biofEQ = 0.d0
-    NPPmonthly_hg = 0.d0
-    respmonthly_hg = 0.d0
-    combmonthly_hg = 0.d0
-    herbmonthly_hg = 0.d0
-    biofmonthly_hg = 0.d0
-    respEQ_hg = 0.d0
-    combEQ_hg = 0.d0
-    herbEQ_hg = 0.d0
-    biofEQ_hg = 0.d0    
-    evapEQ_hg = 0.d0
-    reemitEQ_hg = 0.d0
-    photoEQ_hg = 0.d0
-    leafpoolEQ_hg = 0.d0
-    slowpoolEQ_hg = 0.d0
-    armoredpoolEQ_hg = 0.d0
-    surfstrpoolEQ_hg = 0.d0
-    soilstrpoolEQ_hg = 0.d0
-    surfmetpoolEQ_hg = 0.d0
-    soilmetpoolEQ_hg = 0.d0
-    surfmicpoolEQ_hg = 0.d0
-    soilmicpoolEQ_hg = 0.d0
-    HgAqEQ_hg = 0.d0
-    biomeAnnual_Hg = 0.d0
+    NPPmonthly = 0.e+0_fp
+    respmonthly = 0.e+0_fp
+    combmonthly = 0.e+0_fp
+    herbmonthly = 0.e+0_fp
+    biofmonthly = 0.e+0_fp
+    respEQ = 0.e+0_fp
+    combEQ = 0.e+0_fp
+    herbEQ = 0.e+0_fp
+    biofEQ = 0.e+0_fp
+    NPPmonthly_hg = 0.e+0_fp
+    respmonthly_hg = 0.e+0_fp
+    combmonthly_hg = 0.e+0_fp
+    herbmonthly_hg = 0.e+0_fp
+    biofmonthly_hg = 0.e+0_fp
+    respEQ_hg = 0.e+0_fp
+    combEQ_hg = 0.e+0_fp
+    herbEQ_hg = 0.e+0_fp
+    biofEQ_hg = 0.e+0_fp    
+    evapEQ_hg = 0.e+0_fp
+    reemitEQ_hg = 0.e+0_fp
+    photoEQ_hg = 0.e+0_fp
+    leafpoolEQ_hg = 0.e+0_fp
+    slowpoolEQ_hg = 0.e+0_fp
+    armoredpoolEQ_hg = 0.e+0_fp
+    surfstrpoolEQ_hg = 0.e+0_fp
+    soilstrpoolEQ_hg = 0.e+0_fp
+    surfmetpoolEQ_hg = 0.e+0_fp
+    soilmetpoolEQ_hg = 0.e+0_fp
+    surfmicpoolEQ_hg = 0.e+0_fp
+    soilmicpoolEQ_hg = 0.e+0_fp
+    HgAqEQ_hg = 0.e+0_fp
+    biomeAnnual_Hg = 0.e+0_fp
     
     !in doHgDeposition
-    Hg0dry = 0.d0
-    HgIIdry = 0.d0 
-    HgIIwet = 0.d0
-    HgP = 0.d0
-    HgAq = 0.d0
-    hHgAq = 0.d0
-    Hg0_surf_leaf = 0.d0
-    Hg0_surf_soil = 0.d0
-    HgII_surf_leaf = 0.d0
-    HgII_surf_soil = 0.d0
-    maxallLAI = 0.d0
-    fstom = 0.d0
-    fleaf = 0.d0
-    fsoil = 0.d0
-    fsum = 0.d0
-    freemitted = 0.d0
-    reemitted = 0.d0
-    temp_hg = 0.d0
-    photoreduced = 0.d0
-    Hg0out = 0.d0 
+    Hg0dry = 0.e+0_fp
+    HgIIdry = 0.e+0_fp 
+    HgIIwet = 0.e+0_fp
+    HgP = 0.e+0_fp
+    HgAq = 0.e+0_fp
+    hHgAq = 0.e+0_fp
+    Hg0_surf_leaf = 0.e+0_fp
+    Hg0_surf_soil = 0.e+0_fp
+    HgII_surf_leaf = 0.e+0_fp
+    HgII_surf_soil = 0.e+0_fp
+    maxallLAI = 0.e+0_fp
+    fstom = 0.e+0_fp
+    fleaf = 0.e+0_fp
+    fsoil = 0.e+0_fp
+    fsum = 0.e+0_fp
+    freemitted = 0.e+0_fp
+    reemitted = 0.e+0_fp
+    temp_hg = 0.e+0_fp
+    photoreduced = 0.e+0_fp
+    Hg0out = 0.e+0_fp 
     
-    reemmonthly_hg = 0.d0 
-    photmonthly_hg = 0.d0
-    slowmonthly = 0.d0
-    armoredmonthly = 0.d0
-    surfstrmonthly = 0.d0
-    surfmetmonthly = 0.d0
-    surfmicmonthly = 0.d0
-    soilstrmonthly = 0.d0
-    soilmetmonthly = 0.d0
-    soilmicmonthly = 0.d0
-    leafmonthly = 0.d0
-    slowmonthly_hg = 0.d0
-    armoredmonthly_hg = 0.d0
-    surfstrmonthly_hg = 0.d0
-    surfmetmonthly_hg = 0.d0
-    surfmicmonthly_hg = 0.d0
-    soilstrmonthly_hg = 0.d0
-    soilmetmonthly_hg = 0.d0
-    soilmicmonthly_hg = 0.d0
-    leafmonthly_hg = 0.d0
-    leafpoolEQ = 0.d0
-    slowpoolEQ = 0.d0
-    armoredpoolEQ = 0.d0
-    surfstrpoolEQ = 0.d0
-    soilstrpoolEQ = 0.d0
-    surfmetpoolEQ = 0.d0
-    soilmetpoolEQ = 0.d0
-    surfmicpoolEQ = 0.d0
-    soilmicpoolEQ = 0.d0
-    HgAqmonthly = 0.d0
+    reemmonthly_hg = 0.e+0_fp 
+    photmonthly_hg = 0.e+0_fp
+    slowmonthly = 0.e+0_fp
+    armoredmonthly = 0.e+0_fp
+    surfstrmonthly = 0.e+0_fp
+    surfmetmonthly = 0.e+0_fp
+    surfmicmonthly = 0.e+0_fp
+    soilstrmonthly = 0.e+0_fp
+    soilmetmonthly = 0.e+0_fp
+    soilmicmonthly = 0.e+0_fp
+    leafmonthly = 0.e+0_fp
+    slowmonthly_hg = 0.e+0_fp
+    armoredmonthly_hg = 0.e+0_fp
+    surfstrmonthly_hg = 0.e+0_fp
+    surfmetmonthly_hg = 0.e+0_fp
+    surfmicmonthly_hg = 0.e+0_fp
+    soilstrmonthly_hg = 0.e+0_fp
+    soilmetmonthly_hg = 0.e+0_fp
+    soilmicmonthly_hg = 0.e+0_fp
+    leafmonthly_hg = 0.e+0_fp
+    leafpoolEQ = 0.e+0_fp
+    slowpoolEQ = 0.e+0_fp
+    armoredpoolEQ = 0.e+0_fp
+    surfstrpoolEQ = 0.e+0_fp
+    soilstrpoolEQ = 0.e+0_fp
+    surfmetpoolEQ = 0.e+0_fp
+    soilmetpoolEQ = 0.e+0_fp
+    surfmicpoolEQ = 0.e+0_fp
+    soilmicpoolEQ = 0.e+0_fp
+    HgAqmonthly = 0.e+0_fp
   END SUBROUTINE initialize
   
 END MODULE defineArrays

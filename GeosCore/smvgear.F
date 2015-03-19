@@ -31,6 +31,7 @@
 !        values are encountered in CNEW.  Do not reset negative CNEW values
 !        to zero.  (tmf, 11/1/07)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
 ! !USES:
@@ -41,6 +42,7 @@
       USE ERROR_MOD,          ONLY  : IT_IS_NAN, GEOS_CHEM_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (f8)
 
       IMPLICIT NONE
 !
@@ -275,12 +277,13 @@
       INTEGER LLOOPA,LLOOPB,JLOOP,MLOOP,M1,M2,JOLD,I1,J,I,J1,J2,J3,J4
       INTEGER J5,L3,JB,JG1,KSTEPISC,NQISC,I2,NSLP,KSTEP
 
-      REAL*8 NYLOWDEC,ORDER,HRMAX,YFAC,ERRINIT,RELTOL1,RELTOL2,RELTOL3
-      REAL*8 ABTOLER1,ABTOLER2,HRATIO,ASN1,RDELMAX,CNW,CNEWYLOW,ERRYMAX
-      REAL*8 RMSTOP,DELT1,ENQQ,EUP,EDWN,CONP3,CONP2,CONP1,HMTIM,RDELTA
-      REAL*8 CONC3J3,CONC4J4,CONC10J5,CONC5J5,DRATE,RMSERRP,DER2MAX
-      REAL*8 RMSRAT,DCON,RDELTUP,ASNQQJ,DER3MAX,RDELTSM,DER1MAX,RDELTDN
-      REAL*8 CONSMULT
+      REAL(f8) NYLOWDEC,ORDER,HRMAX,YFAC,ERRINIT,RELTOL1,RELTOL2,RELTOL3
+      REAL(f8) ABTOLER1,ABTOLER2,HRATIO,ASN1
+      REAL(f8) RDELMAX,CNW,CNEWYLOW,ERRYMAX
+      REAL(f8) RMSTOP,DELT1,ENQQ,EUP,EDWN,CONP3,CONP2,CONP1,HMTIM,RDELTA
+      REAL(f8) CONC3J3,CONC4J4,CONC10J5,CONC5J5,DRATE,RMSERRP,DER2MAX
+      REAL(f8) RMSRAT,DCON,RDELTUP,ASNQQJ,DER3MAX
+      REAL(f8) RDELTSM,DER1MAX,RDELTDN,CONSMULT
   
       !====================================
       ! Additional variable declarations
@@ -297,7 +300,7 @@
       ! ljm stop 700 trouble
       INTEGER            :: IJSAVE, JSPCSAVE(KTLOOP)
       INTEGER            :: IX, IY, IZ, JJ, JJJ, KSAVE, COUNTER
-      REAL*8             :: SPECMAX
+      REAL(f8)             :: SPECMAX
 
       ! Maximum iteration count for SMVGEAR (bmy, 4/11/03)
       INTEGER, PARAMETER :: MAX_ITERATIONS = 99999
@@ -307,8 +310,8 @@
       ! (bmy, 7/28/03)
       INTEGER            :: NSTEPS
       INTEGER            :: KGRP(KBLOOP,5), IABOVK(KBLOOP)   
-      REAL*8             :: DELY(KBLOOP),   ERRHOLD(KBLOOP)
-      REAL*8             :: YABST(KBLOOP)
+      REAL(f8)             :: DELY(KBLOOP),   ERRHOLD(KBLOOP)
+      REAL(f8)             :: YABST(KBLOOP)
 
       !-----------------------------------------------------------------------
       ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
@@ -316,8 +319,8 @@
       ! If IDTFORCE==1, then use DTFORCE as timestep instead of DELT
       ! CPREVM stores CNEW at the end of the previous successful march
       INTEGER            :: INEG, IDTFORCE 
-      REAL*8             :: DTFORCE  
-      REAL*8             :: CPREVM( KBLOOP, MXGSAER )
+      REAL(f8)             :: DTFORCE  
+      REAL(f8)             :: CPREVM( KBLOOP, MXGSAER )
       !-----------------------------------------------------------------------
 
       !=================================================================
@@ -345,7 +348,7 @@
       ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
       ! Initialize 
       IDTFORCE = 0
-      DTFORCE  = 0.d0
+      DTFORCE  = 0.e+0_f8
       !-----------------------------------------------------------------------
       ! Added for the ND65 prod/loss diagnostic, in order to prevent
       ! ND65 prod/loss families from being counted towards the 
@@ -354,16 +357,16 @@
       ORDER     = REAL( NNOFAM )
       !-----------------------------------------------------------------------
 !
-      IABOVE    = ORDER * 0.4d0
+      IABOVE    = ORDER * 0.4e+0_f8
 !
       DO 115 KLOOP   = 1, KTLOOP
        IABOVK(KLOOP) = IABOVE
  115  CONTINUE
 !
-      HRMAX     = 0.3d0
+      HRMAX     = 0.3e+0_f8
       HMAX      = HMAXUSE( NCSP)
-      YFAC      = 1.0d0
-      ERRINIT   = MIN(ERRMAX(NCS),1.0D-03)
+      YFAC      = 1.0e+0_f8
+      ERRINIT   = MIN(ERRMAX(NCS),1.0e-03_f8)
 !
 ! *********************************************************************
 !            START TIME INTERVAL OR RE-ENTER AFTER TOTAL FAILURE
@@ -373,14 +376,14 @@
  120  IDOUB     = 2
       NSLP      = MBETWEEN
       JRESTAR   = 0 
-      DELT      = 0.d0
-      XELAPS    = 0.d0
-      XELAPLAST = -1.d0 
-      TOLD      = 0.d0
+      DELT      = 0.e+0_f8
+      XELAPS    = 0.e+0_f8
+      XELAPLAST = -1.e+0_f8 
+      TOLD      = 0.e+0_f8
       TIMREMAIN = TINTERVAL
       RELTOL1   = YFAC   / ERRINIT
       RELTOL2   = YFAC   / ERRMAX(NCS)
-      RELTOL3   = 1.d0   / ERRMAX(NCS)
+      RELTOL3   = 1.e+0_f8   / ERRMAX(NCS)
       ABTOLER1  = ABTOL(6,NCS) * RELTOL1
       ABTOLER2  = ABTOL(6,NCS) * RELTOL2
 !
@@ -408,8 +411,8 @@
 !  RE-ENTER HERE IF TOTAL FAILURE OR IF RESTARTING WITH NEW CELL BLOCK 
 ! *********************************************************************
 !
- 140  HRATIO    = 0.d0
-      ASN1      = 1.d0
+ 140  HRATIO    = 0.e+0_f8
+      ASN1      = 1.e+0_f8
       IFSUCCESS = 1
       RDELMAX   = 1.0d+04
 
@@ -440,7 +443,7 @@
 ! ABTOL   = PRE-DEFINED ABSOLUTE ERROR TOLERANCES 
 !
       DO 142 KLOOP    = 1, KTLOOP
-       ERRHOLD(KLOOP) = 0.d0
+       ERRHOLD(KLOOP) = 0.e+0_f8
  142  CONTINUE 
 !
       ! EXPLANATORY NOTE: 
@@ -560,7 +563,7 @@
 ! SQRT(ERRHOLD / [ERRINIT * ORDER]) = RMSNORM OF ERROR SCALED TO ERRINIT 
 !                                * CNEW + ABTOL/RELTOL
 !
-      RMSTOP         = 0.d0
+      RMSTOP         = 0.e+0_f8
 !
       DO 151 KLOOP   = 1, KTLOOP
        IF (ERRHOLD(KLOOP).GT.RMSTOP) RMSTOP = ERRHOLD(KLOOP)   
@@ -590,7 +593,7 @@
       NQQOLD       = 0
       NQQ          = 1 
       JEVAL        = 1
-      RDELT        = 1.0d0
+      RDELT        = 1.0e+0_f8
 
 !
 ! *********************************************************************
@@ -621,9 +624,9 @@
        ENQQ                  = PERTS2(NQQ,1) * ORDER
        EUP                   = PERTS2(NQQ,2) * ORDER 
        EDWN                  = PERTS2(NQQ,3) * ORDER  
-       CONP3                 = 1.4d0 / ( EUP**ENQQ3(NQQ))
-       CONP2                 = 1.2d0 / (ENQQ**ENQQ2(NQQ))
-       CONP1                 = 1.3d0 / (EDWN**ENQQ1(NQQ))
+       CONP3                 = 1.4e+0_f8 / ( EUP**ENQQ3(NQQ))
+       CONP2                 = 1.2e+0_f8 / (ENQQ**ENQQ2(NQQ))
+       CONP1                 = 1.3e+0_f8 / (EDWN**ENQQ1(NQQ))
        NQQISC                = NQQ * ISCHAN 
       ENDIF
       counter=counter+1
@@ -655,7 +658,7 @@
        WRITE(6,233) DELT,Input_Opt%myCpu,KBLK,KTLOOP,NCS,TIME,
      &             TIMREMAIN,YFAC,ERRMAX(NCS)
        NYLOWDEC  = NYLOWDEC + 1
-       YFAC      = YFAC  * 0.01d0
+       YFAC      = YFAC  * 0.01e+0_f8
 !
        IF (NYLOWDEC.EQ.10) THEN
         LLOOPA      = 1
@@ -697,7 +700,7 @@
 ! *********************************************************************
 !
       IF (RDELT.NE.1.0) THEN
-       RDELTA            = 1.0d0
+       RDELTA            = 1.0e+0_f8
        I1                = 1
        DO 184 J          = 2, KSTEP 
         RDELTA           = RDELTA * RDELT 
@@ -725,7 +728,7 @@
 ! *********************************************************************
 !
       IF (IFSUCCESS.EQ.1) THEN
-       RDELMAX             = 10.d0
+       RDELMAX             = 10.e+0_f8
 !
 ! *********************************************************************
 !                DETERMINE NEW ABSOLUTE ERROR TOLERANCE 
@@ -802,7 +805,8 @@
         ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
         IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN
            DO 211 KLOOP         = 1, KTLOOP
-             CHOLD(KLOOP,JSPC)  = RELTOL3 / (MAX(CNEW(KLOOP,JSPC),0.D0)
+             CHOLD(KLOOP,JSPC)  = RELTOL3 
+     &                          /  (MAX(CNEW(KLOOP,JSPC),0.e+0_f8)
      1                          + YABST(KLOOP) * RELTOL2)
  211      CONTINUE 
         ENDIF
@@ -838,7 +842,7 @@
         DO 237 KLOOP    = 1, KTLOOP
          CONC(KLOOP, I) = CONC(KLOOP, I) + CONC(KLOOP,J1)
      1                  +                  CONC(KLOOP,J2)
-         CONC(KLOOP,J1) = CONC(KLOOP,J1) + CONC(KLOOP,J2) * 2.d0
+         CONC(KLOOP,J1) = CONC(KLOOP,J1) + CONC(KLOOP,J2) * 2.e+0_f8
  237    CONTINUE
  238   CONTINUE
 !
@@ -849,10 +853,11 @@
         J2              = J1 + ISCHAN
         J3              = J2 + ISCHAN
         DO 239 KLOOP    = 1, KTLOOP
-         CONC3J3        = CONC(KLOOP,J3) * 3.d0
+         CONC3J3        = CONC(KLOOP,J3) * 3.e+0_f8
          CONC(KLOOP, I) = CONC(KLOOP, I) + CONC(KLOOP,J1) 
      1                  + CONC(KLOOP,J2) + CONC(KLOOP,J3)
-         CONC(KLOOP,J1) = CONC(KLOOP,J1) + CONC(KLOOP,J2)*2.d0 + CONC3J3 
+         CONC(KLOOP,J1) = CONC(KLOOP,J1) + CONC(KLOOP,J2)*2.e+0_f8 
+     &                  + CONC3J3 
          CONC(KLOOP,J2) = CONC(KLOOP,J2) + CONC3J3
  239    CONTINUE
  240   CONTINUE
@@ -865,14 +870,15 @@
         J3              = J2 + ISCHAN
         J4              = J3 + ISCHAN
         DO 241 KLOOP    = 1, KTLOOP
-         CONC3J3        = CONC(KLOOP,J3) * 3.d0 
-         CONC4J4        = CONC(KLOOP,J4) * 4.d0
+         CONC3J3        = CONC(KLOOP,J3) * 3.e+0_f8 
+         CONC4J4        = CONC(KLOOP,J4) * 4.e+0_f8
          CONC(KLOOP, I) = CONC(KLOOP, I) + CONC(KLOOP,J1) 
      1                  + CONC(KLOOP,J2) + CONC(KLOOP,J3) 
      2                  + CONC(KLOOP,J4)
-         CONC(KLOOP,J1) = CONC(KLOOP,J1) + CONC(KLOOP,J2)*2.d0 + CONC3J3 
-     1                                   + CONC4J4
-         CONC(KLOOP,J2) = CONC(KLOOP,J2) + CONC3J3 + CONC(KLOOP,J4)*6.d0 
+         CONC(KLOOP,J1) = CONC(KLOOP,J1) + CONC(KLOOP,J2)*2.e+0_f8 
+     1                                   + CONC3J3 + CONC4J4
+         CONC(KLOOP,J2) = CONC(KLOOP,J2) + CONC3J3 + CONC(KLOOP,J4)
+     1                                   * 6.e+0_f8 
          CONC(KLOOP,J3) = CONC(KLOOP,J3) + CONC4J4
  241    CONTINUE 
  242   CONTINUE
@@ -886,17 +892,17 @@
         J4              = J3 + ISCHAN
         J5              = J4 + ISCHAN
         DO 243 KLOOP    = 1, KTLOOP
-         CONC3J3        = CONC(KLOOP,J3) * 3.d0 
-         CONC4J4        = CONC(KLOOP,J4) * 4.d0 
-         CONC5J5        = CONC(KLOOP,J5) * 5.d0 
+         CONC3J3        = CONC(KLOOP,J3) * 3.e+0_f8 
+         CONC4J4        = CONC(KLOOP,J4) * 4.e+0_f8 
+         CONC5J5        = CONC(KLOOP,J5) * 5.e+0_f8 
          CONC10J5       = CONC5J5 + CONC5J5 
          CONC(KLOOP, I) = CONC(KLOOP, I) + CONC(KLOOP,J1) 
      1                  + CONC(KLOOP,J2) + CONC(KLOOP,J3) 
      2                  + CONC(KLOOP,J4) + CONC(KLOOP,J5)
-         CONC(KLOOP,J1) = CONC(KLOOP,J1) + CONC(KLOOP,J2)*2.d0 + CONC3J3 
-     1                                   + CONC4J4 + CONC5J5
-         CONC(KLOOP,J2) = CONC(KLOOP,J2) + CONC3J3 + CONC(KLOOP,J4)*6.d0 
-     1                                   + CONC10J5
+         CONC(KLOOP,J1) = CONC(KLOOP,J1) + CONC(KLOOP,J2)*2.e+0_f8 
+     1                  + CONC3J3 + CONC4J4 + CONC5J5
+         CONC(KLOOP,J2) = CONC(KLOOP,J2) + CONC3J3 + CONC(KLOOP,J4)
+     1                  * 6.e+0_f8 + CONC10J5
          CONC(KLOOP,J3) = CONC(KLOOP,J3) + CONC4J4 + CONC10J5
          CONC(KLOOP,J4) = CONC(KLOOP,J4) + CONC5J5
  243    CONTINUE
@@ -918,7 +924,7 @@
       DO 232 JSPC         = 1, ISCHAN
        DO 230 KLOOP       = 1, KTLOOP
         CNEW(KLOOP,JSPC)  = CONC(KLOOP,JSPC)
-        DTLOS(KLOOP,JSPC) = 0.d0
+        DTLOS(KLOOP,JSPC) = 0.e+0_f8
  230   CONTINUE
  232  CONTINUE
 
@@ -937,9 +943,9 @@
 !     
        CALL DECOMP 
        JEVAL    = -1 
-       HRATIO   = 1.0d0
+       HRATIO   = 1.0e+0_f8
        NSLP     = NSTEPS + MBETWEEN
-       DRATE    = 0.7d0
+       DRATE    = 0.7e+0_f8
 
       ENDIF
 
@@ -996,10 +1002,10 @@
 ! *********************************************************************
 !
       DO 365 KLOOP     = 1, KTLOOP
-       DELY(KLOOP)     = 0.d0
+       DELY(KLOOP)     = 0.e+0_f8
  365  CONTINUE
 !
-      specmax = 0.0d0
+      specmax = 0.0e+0_f8
       IF (ASN1.EQ.1.0) THEN 
        DO 368 I         = 1, ISCHAN
            DO 366 KLOOP    = 1, KTLOOP
@@ -1049,9 +1055,9 @@
 ! *********************************************************************
 !
       RMSERRP           = RMSERR
-      DER2MAX           = 0.d0
+      DER2MAX           = 0.e+0_f8
 !
-      ksave=0d0
+      ksave=0e+0_f8
       DO 427 KLOOP      = 1, KTLOOP
        !-----------------------------------------------------------------------
        ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
@@ -1071,7 +1077,7 @@
 !
       IF (L3.GT.1) THEN
        RMSRAT            = RMSERR / RMSERRP    
-       DRATE             = MAX(0.2d0 * DRATE, RMSRAT)
+       DRATE             = MAX(0.2e+0_f8 * DRATE, RMSRAT)
       ENDIF
 !
       DCON               = RMSERR * MIN(CONPST(NQQ),CONP15(NQQ)*DRATE)
@@ -1124,7 +1130,7 @@
 
 !
  399  NFAIL            = NFAIL + 1
-      RDELMAX          = 2.0d0
+      RDELMAX          = 2.0e+0_f8
       JEVAL            = 1
       IFSUCCESS        = 0
       XELAPS           = TOLD
@@ -1151,8 +1157,8 @@
         J1              = I  + ISCHAN
         J2              = J1 + ISCHAN 
         DO 377 KLOOP    = 1, KTLOOP
-         CONC(KLOOP, I) = CONC(KLOOP, I) - CONC(KLOOP,J1)-CONC(KLOOP,J2) 
-         CONC(KLOOP,J1) = CONC(KLOOP,J1) - CONC(KLOOP,J2) * 2.d0 
+         CONC(KLOOP, I) = CONC(KLOOP, I) - CONC(KLOOP,J1)-CONC(KLOOP,J2)
+         CONC(KLOOP,J1) = CONC(KLOOP,J1) - CONC(KLOOP,J2) * 2.e+0_f8 
  377    CONTINUE
  378   CONTINUE
 !
@@ -1162,10 +1168,11 @@
         J2              = J1 + ISCHAN
         J3              = J2 + ISCHAN
         DO 379 KLOOP    = 1, KTLOOP
-         CONC3J3        = CONC(KLOOP,J3) * 3.d0 
+         CONC3J3        = CONC(KLOOP,J3) * 3.e+0_f8 
          CONC(KLOOP, I) = CONC(KLOOP, I) - CONC(KLOOP,J1) 
      1                  - CONC(KLOOP,J2) - CONC(KLOOP,J3)
-         CONC(KLOOP,J1) = CONC(KLOOP,J1) - CONC(KLOOP,J2)*2.d0 - CONC3J3 
+         CONC(KLOOP,J1) = CONC(KLOOP,J1) - CONC(KLOOP,J2)*2.e+0_f8 
+     1                  - CONC3J3 
          CONC(KLOOP,J2) = CONC(KLOOP,J2) - CONC3J3
  379    CONTINUE
  380   CONTINUE
@@ -1178,14 +1185,15 @@
         J3              = J2 + ISCHAN
         J4              = J3 + ISCHAN
         DO 381 KLOOP    = 1, KTLOOP
-         CONC3J3        = CONC(KLOOP,J3) * 3.d0 
-         CONC4J4        = CONC(KLOOP,J4) * 4.d0 
+         CONC3J3        = CONC(KLOOP,J3) * 3.e+0_f8 
+         CONC4J4        = CONC(KLOOP,J4) * 4.e+0_f8 
          CONC(KLOOP, I) = CONC(KLOOP, I) - CONC(KLOOP,J1) 
      1                  - CONC(KLOOP,J2) - CONC(KLOOP,J3)
      2                  - CONC(KLOOP,J4)
-         CONC(KLOOP,J1) = CONC(KLOOP,J1) - CONC(KLOOP,J2)*2.d0 - CONC3J3 
-     1                                   - CONC4J4
-         CONC(KLOOP,J2) = CONC(KLOOP,J2) - CONC3J3 - CONC(KLOOP,J4)*6.d0 
+         CONC(KLOOP,J1) = CONC(KLOOP,J1) - CONC(KLOOP,J2)*2.e+0_f8 
+     1                                   - CONC3J3 - CONC4J4
+         CONC(KLOOP,J2) = CONC(KLOOP,J2) - CONC3J3 - CONC(KLOOP,J4)
+     1                                   * 6.e+0_f8 
          CONC(KLOOP,J3) = CONC(KLOOP,J3) - CONC4J4
  381    CONTINUE 
  382   CONTINUE
@@ -1199,17 +1207,17 @@
         J4              = J3 + ISCHAN
         J5              = J4 + ISCHAN
         DO 383 KLOOP    = 1, KTLOOP
-         CONC3J3        = CONC(KLOOP,J3) * 3.d0 
-         CONC4J4        = CONC(KLOOP,J4) * 4.d0
-         CONC5J5        = CONC(KLOOP,J5) * 5.d0
+         CONC3J3        = CONC(KLOOP,J3) * 3.e+0_f8 
+         CONC4J4        = CONC(KLOOP,J4) * 4.e+0_f8
+         CONC5J5        = CONC(KLOOP,J5) * 5.e+0_f8
          CONC10J5       = CONC5J5 + CONC5J5 
          CONC(KLOOP, I) = CONC(KLOOP, I) - CONC(KLOOP,J1) - 
      1                    CONC(KLOOP,J2) - CONC(KLOOP,J3) - 
      2                    CONC(KLOOP,J4) - CONC(KLOOP,J5)
-         CONC(KLOOP,J1) = CONC(KLOOP,J1) - CONC(KLOOP,J2)*2.d0 - CONC3J3 
-     1                                   - CONC4J4 - CONC5J5
-         CONC(KLOOP,J2) = CONC(KLOOP,J2) - CONC3J3 - CONC(KLOOP,J4)*6.d0 
-     2                                   - CONC10J5
+         CONC(KLOOP,J1) = CONC(KLOOP,J1) - CONC(KLOOP,J2) * 2.e+0_f8 
+     1                  - CONC3J3 - CONC4J4 - CONC5J5
+         CONC(KLOOP,J2) = CONC(KLOOP,J2) - CONC3J3 - CONC(KLOOP,J4)
+     2                                   * 6.e+0_f8 - CONC10J5
          CONC(KLOOP,J3) = CONC(KLOOP,J3) - CONC4J4 - CONC10J5
          CONC(KLOOP,J4) = CONC(KLOOP,J4) - CONC5J5
  383    CONTINUE
@@ -1229,7 +1237,7 @@
 !
       IF (L3.GT.1) THEN
        DO 395 KLOOP  = 1, KTLOOP
-        DELY(KLOOP)  = 0.d0
+        DELY(KLOOP)  = 0.e+0_f8
  395   CONTINUE
 !
        DO 402 JSPC   = 1, ISCHAN     
@@ -1246,7 +1254,7 @@
         !---------------------------------------------------------------------
  402   CONTINUE
 !
-       DER2MAX       = 0.d0
+       DER2MAX       = 0.e+0_f8
 !
        DO 405 KLOOP  = 1, KTLOOP
         IF (DELY(KLOOP).GT.DER2MAX) DER2MAX = DELY(KLOOP)   
@@ -1286,10 +1294,10 @@
  417    CONTINUE
  419   CONTINUE
 !
-       RDELMAX          = 2.0d0
+       RDELMAX          = 2.0e+0_f8
        IF (JFAIL.LE.6) THEN
         IFSUCCESS       = 0 
-        RDELTUP         = 0.0d0
+        RDELTUP         = 0.0e+0_f8
 
         GOTO 540
 
@@ -1300,7 +1308,7 @@
         GOTO 170 
 
        ELSE
-        DELT            = DELT * 0.1d0
+        DELT            = DELT * 0.1e+0_f8
         RDELT           = 1.
         JFAIL           = 0
         JRESTAR         = JRESTAR + 1
@@ -1347,7 +1355,7 @@
       DO JSPC  = 1, ISCHAN
       DO KLOOP = 1, KTLOOP
          IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN
-            IF ( CNEW(KLOOP,JSPC) < 0.d0 ) INEG = INEG + 1
+            IF ( CNEW(KLOOP,JSPC) < 0.e+0_f8 ) INEG = INEG + 1
          ENDIF
       ENDDO
       ENDDO
@@ -1369,7 +1377,7 @@
          IFSUCCESS       = 0
          DTFORCE         = DELT * FRACDEC
          IDTFORCE        = 1
-         RDELT           = 1.d0
+         RDELT           = 1.e+0_f8
          JFAIL           = 0
          JRESTAR         = JRESTAR + 1
          IDOUB           = 5
@@ -1420,7 +1428,7 @@
 !
        TIMREMAIN        = TINTERVAL - XELAPS
 
-       IF (TIMREMAIN.LE.1.0d-06) GOTO 650
+       IF (TIMREMAIN.LE.1.0e-06_f8) GOTO 650
 
        ! Increment counter of internal timesteps
        ICOUNT = ICOUNT + 1
@@ -1493,7 +1501,7 @@
  525      CONTINUE
  527     CONTINUE
         ENDIF
-        RDELT               = 1.0d0
+        RDELT               = 1.0e+0_f8
 
         !---------------------------------------------------------------------
         ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
@@ -1533,7 +1541,7 @@
 !
       IF (NQQ.LT.MAXORD) THEN  
        DO 542 KLOOP  = 1, KTLOOP
-        DELY(KLOOP)  = 0.d0
+        DELY(KLOOP)  = 0.e+0_f8
  542   CONTINUE
 !
        DO 545 JSPC   = 1, ISCHAN     
@@ -1555,15 +1563,15 @@
         !---------------------------------------------------------------------
  545   CONTINUE
 !
-       DER3MAX       = 0.d0
+       DER3MAX       = 0.e+0_f8
 !
        DO 546 KLOOP  = 1, KTLOOP
         IF (DELY(KLOOP).GT.DER3MAX) DER3MAX = DELY(KLOOP)
  546   CONTINUE
 !
-       RDELTUP       = 1.0d0 / (CONP3*DER3MAX**ENQQ3(NQQ)+1.4d-6)
+       RDELTUP       = 1.0e+0_f8 / (CONP3*DER3MAX**ENQQ3(NQQ)+1.4e-6_f8)
       ELSE
-       RDELTUP       = 0.0d0
+       RDELTUP       = 0.0e+0_f8
       ENDIF
 !
 ! *********************************************************************
@@ -1571,7 +1579,7 @@
 ! *      WE CALCULATED DER2MAX DURING THE ERROR TESTS EARLIER         *  
 ! *********************************************************************
 !
- 540  RDELTSM        = 1.0d0 / (CONP2*DER2MAX**ENQQ2(NQQ)+1.2d-6)
+ 540  RDELTSM        = 1.0e+0_f8 / (CONP2*DER2MAX**ENQQ2(NQQ)+1.2e-6_f8)
 !
 ! *********************************************************************
 ! * ESTIMATE THE TIME-STEP RATIO (RDELTDN) AT ONE ORDER LOWER THAN    *
@@ -1580,7 +1588,7 @@
 !
       IF (NQQ.GT.1) THEN
        DO 552 KLOOP  = 1, KTLOOP
-        DELY(KLOOP)  = 0.d0
+        DELY(KLOOP)  = 0.e+0_f8
  552   CONTINUE
 !
        KSTEPISC      = (KSTEP - 1) * ISCHAN
@@ -1599,16 +1607,16 @@
         !---------------------------------------------------------------------
  555   CONTINUE
 !
-       DER1MAX       = 0.d0
+       DER1MAX       = 0.e+0_f8
 !
        DO 556 KLOOP = 1, KTLOOP
         IF (DELY(KLOOP).GT.DER1MAX) DER1MAX = DELY(KLOOP)   
  556   CONTINUE
         
-       RDELTDN       = 1.0d0 / (CONP1*DER1MAX**ENQQ1(NQQ)+1.3d-6)
+       RDELTDN       = 1.0e+0_f8 / (CONP1*DER1MAX**ENQQ1(NQQ)+1.3e-6_f8)
 !
       ELSE
-       RDELTDN       = 0.d0
+       RDELTDN       = 0.e+0_f8
       ENDIF
 !
 ! *********************************************************************
@@ -1725,7 +1733,7 @@
 
         IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN
 
-         IF ( CNEW(KLOOP,JSPC) .LT. 0d0 ) THEN
+         IF ( CNEW(KLOOP,JSPC) .LT. 0e+0_f8 ) THEN
             DO NK = 1, NALLRAT(NCS)
                WRITE( 6, 249 ) NK, RRATE(KSAVE,NK),TRATE(KSAVE,NK)
  250           FORMAT( 'Rxn #:', i5, ' RRATE = ', es13.6 ,

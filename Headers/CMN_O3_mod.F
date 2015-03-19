@@ -17,6 +17,7 @@
       USE CMN_SIZE_MOD, ONLY : IIPAR,     JJPAR,     LLPAR
       USE CMN_SIZE_MOD, ONLY : NEMPARA,   NEMPARB
       USE CMN_SIZE_MOD, ONLY : NOXLEVELS, NOXEXTENT
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
       
       IMPLICIT NONE
       PUBLIC
@@ -25,16 +26,16 @@
 !
       ! Rural Emissions: EMISRN = NOx (1:NOXLEVELS), EMISR = all other tracers
       ! Total Emissions: EMISTN = NOx (1:NOXLEVELS), EMIST = all other tracers
-      REAL*8, ALLOCATABLE  :: EMISR(:,:,:)
-      REAL*8, ALLOCATABLE  :: EMISRN(:,:,:)
-      REAL*8, ALLOCATABLE  :: EMIST(:,:,:)
-      REAL*8, ALLOCATABLE  :: EMISTN(:,:,:)
+      REAL(fp), ALLOCATABLE  :: EMISR(:,:,:)
+      REAL(fp), ALLOCATABLE  :: EMISRN(:,:,:)
+      REAL(fp), ALLOCATABLE  :: EMIST(:,:,:)
+      REAL(fp), ALLOCATABLE  :: EMISTN(:,:,:)
 
       ! Rural Emissions:
       ! EMISRRN = NOx emissions into sigma levels L=1,NOXEXTENT
       ! EMISRR  = All other tracer emissions into sigma level L=1
-      REAL*8, ALLOCATABLE  :: EMISRR (:,:,:)
-      REAL*8, ALLOCATABLE  :: EMISRRN(:,:,:)
+      REAL(fp), ALLOCATABLE  :: EMISRR (:,:,:)
+      REAL(fp), ALLOCATABLE  :: EMISRRN(:,:,:)
 
       !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       !
@@ -72,7 +73,7 @@
       !     ---------------------------	
 
       ! Define common block	
-      REAL*8, ALLOCATABLE  :: EMISS_BVOC(:,:,:)
+      REAL(fp), ALLOCATABLE  :: EMISS_BVOC(:,:,:)
 
       !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       ! Arrays to read emissions from updated merge file : 
@@ -102,10 +103,10 @@
 
       ! Time of day and weekday/weekend scale factors
       ! NOTE: Now SCNR89 is (3,3) because of the weekday scale factor!!!
-      REAL*8  :: TODH(6)
-      REAL*8  :: TODN(6)
-      REAL*8  :: TODB(6)
-      REAL*8  :: SCNR89(3,3)
+      REAL(fp)  :: TODH(6)
+      REAL(fp)  :: TODN(6)
+      REAL(fp)  :: TODB(6)
+      REAL(fp)  :: SCNR89(3,3)
 
 
       ! IFSCLYR = Year to use for scaling fossil fuel emissions 
@@ -120,10 +121,10 @@
 
       ! SAVEOH                  = array to save OH  fields 
       ! SAVEHO2                 = array to save HO2 fields (rvm, bmy, 2/27/02)
-      REAL*8, ALLOCATABLE ::   SAVEOH(:,:,:)
-      REAL*8, ALLOCATABLE ::   SAVEHO2(:,:,:)
-      REAL*8, ALLOCATABLE ::   SAVEO1D(:,:,:)
-      REAL*8, ALLOCATABLE ::   SAVEO3P(:,:,:)
+      REAL(fp), ALLOCATABLE ::   SAVEOH(:,:,:)
+      REAL(fp), ALLOCATABLE ::   SAVEHO2(:,:,:)
+      REAL(fp), ALLOCATABLE ::   SAVEO1D(:,:,:)
+      REAL(fp), ALLOCATABLE ::   SAVEO3P(:,:,:)
 !
 ! !REMARKS:
 !  NOTE: Now NEMPARA = max no. of anthropogenic emissions
@@ -143,6 +144,7 @@
 !                              sesquiterpenes and add EMISTNAP for SOA +
 !                              semivolatile POA simulation (H. Pye)
 !  21 Feb 2014 - M. Sulprizio- Added SAVEO1D and SAVEO3P for UCX (S.D. Eastham)
+!  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -223,13 +225,13 @@
       ALLOCATE( SAVEO3P   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
 
       ! Zero arrays
-      EMISR      = 0d0
-      EMISRN     = 0d0
-      EMIST      = 0d0
-      EMISTN     = 0d0
-      EMISRR     = 0d0
-      EMISRRN    = 0d0
-      EMISS_BVOC = 0d0
+      EMISR      = 0e+0_fp
+      EMISRN     = 0e+0_fp
+      EMIST      = 0e+0_fp
+      EMISTN     = 0e+0_fp
+      EMISRR     = 0e+0_fp
+      EMISRRN    = 0e+0_fp
+      EMISS_BVOC = 0e+0_fp
       EMISTNOX   = 0e0
       EMISTETHE  = 0e0
       EMISTCO    = 0e0
@@ -245,12 +247,12 @@
       EMISTXYLE  = 0e0
       EMISTC2H4  = 0e0
       EMISTC2H2  = 0e0
-      FTOTCO2    = 0d0
-      FLIQCO2    = 0d0
-      SAVEOH     = 0d0
-      SAVEHO2    = 0d0
-      SAVEO1D    = 0d0
-      SAVEO3P    = 0d0
+      FTOTCO2    = 0e+0_fp
+      FLIQCO2    = 0e+0_fp
+      SAVEOH     = 0e+0_fp
+      SAVEHO2    = 0e+0_fp
+      SAVEO1D    = 0e+0_fp
+      SAVEO3P    = 0e+0_fp
 
       END SUBROUTINE Init_CMN_O3
 !EOC

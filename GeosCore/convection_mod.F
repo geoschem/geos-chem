@@ -18,6 +18,7 @@
 !
       USE GIGC_Errcode_Mod
       USE CMN_GCTM_Mod
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -64,6 +65,7 @@
 !  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -173,13 +175,13 @@
       ! Scalars
       INTEGER         :: N_TOT_TRC             ! # of tracers to convect
       INTEGER         :: N_TRACERS
-      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
-      REAL*8          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_CONVECT begins here!
@@ -248,30 +250,30 @@
       
       ! Scalars          
       INTEGER         :: I, J, L, N, NN, TS_DYN
-      REAL*8          :: AREA_M2, DT
+      REAL(fp)          :: AREA_M2, DT
       LOGICAL         :: DO_ND14
       LOGICAL         :: DO_ND38
       
       ! Arrays        
-      REAL*8          :: PEDGE  (LLPAR+1)
+      REAL(fp)          :: PEDGE  (LLPAR+1)
 #if defined( APM )
       INTEGER         :: ISOL   (      Input_Opt%N_TRACERS+N_APMTRA)
-      REAL*8          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL*8          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL*8          :: F      (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL*8, TARGET  :: FSOL   ( IIPAR, JJPAR, LLPAR,   
+      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL(fp), TARGET  :: FSOL   ( IIPAR, JJPAR, LLPAR,   
      &                                 Input_Opt%N_TRACERS+N_APMTRA)
 #else
       INTEGER         :: ISOL   (      Input_Opt%N_TRACERS )
-      REAL*8          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS )
-      REAL*8          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS )
-      REAL*8          :: F      (LLPAR,Input_Opt%N_TRACERS )
-      REAL*8, TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,
+      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS )
+      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS )
+      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS )
+      REAL(fp), TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,
      &                                 Input_Opt%N_TRACERS )
 #endif
 
       ! Pointers
-      REAL*8, POINTER :: p_FSOL (:,:,:)
+      REAL(fp), POINTER :: p_FSOL (:,:,:)
 
       !-----------------------------------------------------------------
       ! Initialization
@@ -283,7 +285,7 @@
       DO_ND38   = ( Input_Opt%ND38 > 0 )          ! Should we use ND38 diag?
       TS_DYN    = GET_TS_DYN()                    ! Dynamic timestep [min]
       DT        = DBLE( TS_DYN )                  ! Dynamic timestep [min]
-      FSOL      = 0d0                             ! Zero the FSOL array
+      FSOL      = 0e+0_fp                             ! Zero the FSOL array
 
       ! Pick the proper # of tracers
 #if   defined( APM )  
@@ -465,35 +467,35 @@
       LOGICAL, SAVE   :: FIRST = .TRUE.
       INTEGER         :: I, ISOL, J, L, L2, N, NSTEP
       INTEGER         :: CONVDT
-      REAL*8          :: RPDEL(IIPAR,JJPAR,LLPAR)
-      REAL*8          :: DP(IIPAR,JJPAR,LLPAR)
-      REAL*8          :: P1, P2, TDT
+      REAL(fp)          :: RPDEL(IIPAR,JJPAR,LLPAR)
+      REAL(fp)          :: DP(IIPAR,JJPAR,LLPAR)
+      REAL(fp)          :: P1, P2, TDT
       INTEGER         :: N_TOT_TRC
 #if   defined( APM )  
       INTEGER         :: INDEXSOL(Input_Opt%N_TRACERS+N_APMTRA)
-      REAL*8, TARGET  :: F       (IIPAR,JJPAR,LLPAR,
+      REAL(fp), TARGET  :: F       (IIPAR,JJPAR,LLPAR,
      &                            Input_Opt%N_TRACERS+N_APMTRA)
 #else                 
       INTEGER         :: INDEXSOL(Input_Opt%N_TRACERS)
-      REAL*8, TARGET  :: F       (IIPAR,JJPAR,LLPAR,
+      REAL(fp), TARGET  :: F       (IIPAR,JJPAR,LLPAR,
      &                            Input_Opt%N_TRACERS)
 #endif
 
       ! For fields from Input_Opt
       LOGICAL         :: LPRT
       INTEGER         :: N_TRACERS
-      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL*8, POINTER :: STT     (:,:,:,:)   ! Ptr to State_Chm%TRACERS
-      REAL*8, POINTER :: p_HKETA (:,:,:  )   ! Ptr to HKETA  (flipped in vert)
-      REAL*8, POINTER :: p_HKBETA(:,:,:  )   ! Ptr to HKBETA (flipped in vert)
-      REAL*8, POINTER :: p_ZMMU  (:,:,:  )   ! Ptr to ZMMU   (flipped in vert)
-      REAL*8, POINTER :: p_ZMMD  (:,:,:  )   ! Ptr to ZMMD   (flipped in vert)
-      REAL*8, POINTER :: p_ZMEU  (:,:,:  )   ! Ptr to ZMEU   (flipped in vert)
-      REAL*8, POINTER :: p_STT   (:,:,:,:)   ! Ptr to STT    (flipped in vert)
-      REAL*8, POINTER :: p_F     (:,:,:,:)   ! Ptr to F      (flipped in vert)
-      REAL*8, POINTER :: p_FSOL  (:,:,:  )   ! Ptr to F      (for COMPUTE_F)
+      REAL(fp), POINTER :: STT     (:,:,:,:)   ! Ptr to State_Chm%TRACERS
+      REAL(fp), POINTER :: p_HKETA (:,:,:  )   ! Ptr to HKETA  (flipped in vert)
+      REAL(fp), POINTER :: p_HKBETA(:,:,:  )   ! Ptr to HKBETA (flipped in vert)
+      REAL(fp), POINTER :: p_ZMMU  (:,:,:  )   ! Ptr to ZMMU   (flipped in vert)
+      REAL(fp), POINTER :: p_ZMMD  (:,:,:  )   ! Ptr to ZMMD   (flipped in vert)
+      REAL(fp), POINTER :: p_ZMEU  (:,:,:  )   ! Ptr to ZMEU   (flipped in vert)
+      REAL(fp), POINTER :: p_STT   (:,:,:,:)   ! Ptr to STT    (flipped in vert)
+      REAL(fp), POINTER :: p_F     (:,:,:,:)   ! Ptr to F      (flipped in vert)
+      REAL(fp), POINTER :: p_FSOL  (:,:,:  )   ! Ptr to F      (for COMPUTE_F)
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
@@ -515,7 +517,7 @@
 #endif
 
       ! Convection timestep [s]
-      CONVDT = GET_TS_CONV() * 60d0 
+      CONVDT = GET_TS_CONV() * 60e+0_fp 
        
       ! NSTEP is the # of internal convection timesteps.  According to
       ! notes in the old convection code, 300s works well. (swu, 12/12/03)
@@ -523,7 +525,7 @@
       NSTEP  = MAX( NSTEP, 1 ) 
 
       ! TIMESTEP*2; will be divided by 2 before passing to CONVTRAN 
-      TDT    = DBLE( CONVDT ) * 2.0D0 / DBLE( NSTEP )
+      TDT    = DBLE( CONVDT ) * 2.0e+0_fp / DBLE( NSTEP )
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -571,7 +573,7 @@
             ENDIF
 
             ! GEOS-4 convection routines need the insoluble fraction
-            F(I,J,L,N) = 1d0 - F(I,J,L,N)
+            F(I,J,L,N) = 1e+0_fp - F(I,J,L,N)
          ENDDO
          ENDDO
          ENDDO
@@ -602,10 +604,10 @@
             P2 = GET_PEDGE(I,J,L+1)
 
             ! DP = Pressure difference between top & bottom edges [Pa]
-            DP(I,J,L2) = ( P1 - P2 ) * 100.0d0
+            DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
 
             ! RPDEL = reciprocal of DP [1/hPa]
-            RPDEL(I,J,L2) = 100.0d0 / DP(I,J,L2) 
+            RPDEL(I,J,L2) = 100.0e+0_fp / DP(I,J,L2) 
          ENDDO
          ENDDO
       ENDDO
@@ -659,7 +661,7 @@
       DO L = 1,LLPAR
       DO J = 1,JJPAR
       DO I = 1,IIPAR
-         STT(I,J,L,N) = MAX(STT(I,J,L,N),TINY(1d0))
+         STT(I,J,L,N) = MAX(STT(I,J,L,N),TINY(1e+0_fp))
       ENDDO
       ENDDO
       ENDDO
@@ -751,37 +753,37 @@
       LOGICAL, SAVE    :: FIRST = .TRUE.
       INTEGER          :: I, ISOL, J, L, L2, N, NSTEP  
       INTEGER          :: CONVDT    
-      REAL*8           :: DP(IIPAR,JJPAR,LLPAR)
-      REAL*8           :: P1, P2, TDT   
-      REAL*8           :: GAINMASS
+      REAL(fp)           :: DP(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: P1, P2, TDT   
+      REAL(fp)           :: GAINMASS
       INTEGER          :: N_TOT_TRC      
 #if   defined( APM )
       INTEGER          :: INDEXSOL(Input_Opt%N_TRACERS+N_APMTRA) 
-      REAL*8,  TARGET  :: F       (IIPAR,JJPAR,LLPAR,
+      REAL(fp),  TARGET  :: F       (IIPAR,JJPAR,LLPAR,
      &                            Input_Opt%N_TRACERS+N_APMTRA)
 #else
       INTEGER          :: INDEXSOL(Input_Opt%N_TRACERS) 
-      REAL*8,  TARGET  :: F       (IIPAR,JJPAR,LLPAR,
+      REAL(fp),  TARGET  :: F       (IIPAR,JJPAR,LLPAR,
      &                            Input_Opt%N_TRACERS)
 #endif
 
       ! For fields from Input_Opt
       LOGICAL          :: LPRT
       INTEGER          :: N_TRACERS
-      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL*8,  POINTER :: STT        (:,:,:,:)   ! Ptr to Tracer concentrations
-      REAL*8,  POINTER :: p_UPDE     (:,:,:  )   ! Ptr to UPDE     met field
-      REAL*8,  POINTER :: p_DNDE     (:,:,:  )   ! Ptr to DNDE     met field
-      REAL*8,  POINTER :: p_ENTRAIN  (:,:,:  )   ! Ptr to ENTRAIN  met field
-      REAL*8,  POINTER :: p_DETRAINE (:,:,:  )   ! Ptr to DETRAINE met field
-      REAL*8,  POINTER :: p_UPDN     (:,:,:  )   ! Ptr to UPDN     met field
-      REAL*8,  POINTER :: p_DNDN     (:,:,:  )   ! Ptr to DNDN     met field
-      REAL*8,  POINTER :: p_DETRAINN (:,:,:  )   ! Ptr to DETRAINN met field
-      REAL*8,  POINTER :: p_STT      (:,:,:,:)   ! Ptr to STT (flipped)
-      REAL*8,  POINTER :: p_F        (:,:,:,:)   ! Ptr to F   (flipped)
-      REAL*8,  POINTER :: p_FSOL     (:,:,:  )   ! Ptr to F   (for COMPUTE_F)
+      REAL(fp),  POINTER :: STT        (:,:,:,:)   ! Ptr to Tracer concentrations
+      REAL(fp),  POINTER :: p_UPDE     (:,:,:  )   ! Ptr to UPDE     met field
+      REAL(fp),  POINTER :: p_DNDE     (:,:,:  )   ! Ptr to DNDE     met field
+      REAL(fp),  POINTER :: p_ENTRAIN  (:,:,:  )   ! Ptr to ENTRAIN  met field
+      REAL(fp),  POINTER :: p_DETRAINE (:,:,:  )   ! Ptr to DETRAINE met field
+      REAL(fp),  POINTER :: p_UPDN     (:,:,:  )   ! Ptr to UPDN     met field
+      REAL(fp),  POINTER :: p_DNDN     (:,:,:  )   ! Ptr to DNDN     met field
+      REAL(fp),  POINTER :: p_DETRAINN (:,:,:  )   ! Ptr to DETRAINN met field
+      REAL(fp),  POINTER :: p_STT      (:,:,:,:)   ! Ptr to STT (flipped)
+      REAL(fp),  POINTER :: p_F        (:,:,:,:)   ! Ptr to F   (flipped)
+      REAL(fp),  POINTER :: p_FSOL     (:,:,:  )   ! Ptr to F   (for COMPUTE_F)
 
       !=================================================================
       ! DO_GCAP_CONVECT begins here!
@@ -803,10 +805,10 @@
 #endif
 
       ! Test??
-      GAINMASS = 0d0
+      GAINMASS = 0e+0_fp
 
       ! Convection timestep [s]
-      CONVDT = GET_TS_CONV() * 60d0 
+      CONVDT = GET_TS_CONV() * 60e+0_fp 
        
       ! NSTEP is the # of internal convection timesteps.  According to
       ! notes in the old convection code, 300s works well. (swu, 12/12/03)
@@ -814,7 +816,7 @@
       NSTEP  = MAX( NSTEP, 1 ) 
 
       ! TIMESTEP*2; will be divided by 2 before passing to CONVTRAN 
-      TDT    = DBLE( CONVDT ) * 2.0D0 / DBLE( NSTEP )
+      TDT    = DBLE( CONVDT ) * 2.0e+0_fp / DBLE( NSTEP )
          
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a INIT_FV' )
@@ -851,7 +853,8 @@
 
             ! Shut off scavenging in shallow convection for GCAP
             ! (swu, bmy, 11/1/05)
-            IF ( GET_PCENTER( I, J, L ) > 700d0 ) F(I,J,L,N) = 0d0
+            IF ( GET_PCENTER( I, J, L ) > 700e+0_fp ) 
+     &            F(I,J,L,N) = 0e+0_fp
 
             ! ND37 diagnostic: store fraction of tracer 
             ! lost in moist convective updrafts ("MC-FRC-$")
@@ -860,7 +863,7 @@
             ENDIF
 
             ! GEOS-4 convection routines need the insoluble fraction
-            F(I,J,L,N) = 1d0 - F(I,J,L,N)
+            F(I,J,L,N) = 1e+0_fp - F(I,J,L,N)
          ENDDO
          ENDDO
          ENDDO
@@ -891,7 +894,7 @@
             P2 = GET_PEDGE(I,J,L+1)
 
             ! DP = Pressure difference between top & bottom edges [Pa]
-            DP(I,J,L2) = ( P1 - P2 ) * 100.0d0
+            DP(I,J,L2) = ( P1 - P2 ) * 100.0e+0_fp
          ENDDO
          ENDDO
       ENDDO
@@ -945,7 +948,7 @@
       DO L = 1,LLPAR
       DO J = 1,JJPAR
       DO I = 1,IIPAR
-         STT(I,J,L,N) = MAX(STT(I,J,L,N),TINY(1d0))
+         STT(I,J,L,N) = MAX(STT(I,J,L,N),TINY(1e+0_fp))
       ENDDO
       ENDDO
       ENDDO
@@ -1016,10 +1019,10 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root
 
       ! CLDMAS : Cloud mass flux (at upper edges of each level) [kg/m2/s]
-      REAL*8,         INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
+      REAL(fp),         INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
 
       ! Detrainment mass flux [kg/m2/s]
-      REAL*8,         INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
+      REAL(fp),         INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -1193,30 +1196,30 @@
       INTEGER                :: I, J, K, KTOP, L, N, NDT
       INTEGER                :: IC, ISTEP, JUMP, JS, JN, NS
       INTEGER                :: IMR, JNP, NLAY, AS
-      REAL*8                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
-      REAL*8                 :: T0, T1, T2, T3, T4, TSUM, DELQ
-      REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,
+      REAL(fp)                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
+      REAL(fp)                 :: T0, T1, T2, T3, T4, TSUM, DELQ
+      REAL(fp)                 :: DTCSUM(IIPAR,JJPAR,LLPAR,
      &                          Input_Opt%N_TRACERS)
 
-      REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
+      REAL(fp), ALLOCATABLE, SAVE :: DSIG(:)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts
-      REAL*8, TARGET         :: F(IIPAR,JJPAR,LLPAR,
+      REAL(fp), TARGET         :: F(IIPAR,JJPAR,LLPAR,
      &                            Input_Opt%N_TRACERS)
 
       ! Local Work arrays
-      REAL*8                 :: BMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8                 :: QB(IIPAR,JJPAR)
-      REAL*8                 :: MB(IIPAR,JJPAR)
-      REAL*8                 :: QC(IIPAR,JJPAR) 
+      REAL(fp)                 :: BMASS(IIPAR,JJPAR,LLPAR)
+      REAL(fp)                 :: QB(IIPAR,JJPAR)
+      REAL(fp)                 :: MB(IIPAR,JJPAR)
+      REAL(fp)                 :: QC(IIPAR,JJPAR) 
 
       ! TINY = a very small number
 #if defined( TOMAS )
-      REAL*8, PARAMETER      :: TINY  = 1d-60   ! Set to 1d-60 for TOMAS code
+      REAL(fp), PARAMETER      :: TINY  = 1e-60_fp   ! Set to 1d-60 for TOMAS code
 #else
-      REAL*8, PARAMETER      :: TINY  = 1d-14   ! Leave as 1d-14 for std GEOS-Chem
+      REAL(fp), PARAMETER      :: TINY  = 1e-14_fp   ! Leave as 1d-14 for std GEOS-Chem
 #endif
-      REAL*8, PARAMETER      :: TINY2 = 1d-30 
+      REAL(fp), PARAMETER      :: TINY2 = 1e-30_fp 
 
       ! ISOL is an index for the diagnostic arrays
       INTEGER                :: ISOL
@@ -1224,27 +1227,27 @@
 
       ! QC_PRES and QC_SCAV are the amounts of tracer 
       ! preserved against and lost to wet scavenging
-      REAL*8                 :: QC_PRES, QC_SCAV 
+      REAL(fp)                 :: QC_PRES, QC_SCAV 
 
       ! DNS is the double precision value for NS
-      REAL*8                 :: DNS
+      REAL(fp)                 :: DNS
      
       ! Amt of Hg2, HgP scavenged out of the column (sas, bmy, 1/19/05)
-      REAL*8                 :: WET_Hg2
-      REAL*8                 :: WET_HgP 
+      REAL(fp)                 :: WET_Hg2
+      REAL(fp)                 :: WET_HgP 
 
       ! For fields from Input_Opt
       LOGICAL                :: ITS_A_MERCURY_SIM
       LOGICAL                :: LDYNOCEAN
       LOGICAL                :: LGTMM
       INTEGER                :: NC
-      REAL*8                 :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER        :: Q     (:,:,:,:)
-      REAL*8, POINTER        :: p_FSOL(:,:,:  ) 
+      REAL(fp), POINTER        :: Q     (:,:,:,:)
+      REAL(fp), POINTER        :: p_FSOL(:,:,:  ) 
       
       !=================================================================
       ! NFCLDMX begins here!
@@ -1301,7 +1304,7 @@
       NLAY = LLPAR
 
       ! Convection timestep [s]
-      NDT  = GET_TS_CONV() * 60d0
+      NDT  = GET_TS_CONV() * 60e+0_fp
 
       !=================================================================
       ! Define active convective region, from J = JS(outh) to 
@@ -1315,7 +1318,7 @@
       ! diagnostic is turned on.  This saves a quite a bit of time. 
       ! (bmy, 12/15/99)       
       !=================================================================
-      IF ( ND14 > 0 ) DTCSUM = 0d0
+      IF ( ND14 > 0 ) DTCSUM = 0e+0_fp
 
       KTOP = NLAY - 1
       JUMP = (JNP-1) / 20
@@ -1579,7 +1582,7 @@
                   IF ( CLDMAS(I,J,K-1) .gt. TINY ) THEN
                      CMOUT    = CLDMAS(I,J,K) + DTRN(I,J,K)
                      ENTRN    = CMOUT         - CLDMAS(I,J,K-1)
-                     QC_PRES  = QC(I,J) * ( 1d0 - F(I,J,K,IC) )
+                     QC_PRES  = QC(I,J) * ( 1e+0_fp - F(I,J,K,IC) )
                      QC_SCAV  = QC(I,J) * F(I,J,K,IC)
 !#if defined ( DEBUG )
 !       IF ( IC == 129 ) THEN
@@ -1676,7 +1679,7 @@
                      IF ( ( ND38 > 0 .or. LGTMM )
      &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
 !#if defined ( DEBUG )
-!                        if(TCVV(IC) <= 0.d0) then
+!                        if(TCVV(IC) <= 0.e+0_fp) then
 !                           print *, I, J, K, IC, ISOL, TCVV(IC)
 !                        endif
 !#endif
@@ -1752,7 +1755,7 @@
                         DELQ = ( SDT / BMASS(I,J,K) ) * (T2 + T3)
 
                         ! If DELQ > Q then do not make Q negative!!!
-                        IF ( Q(I,J,K,IC) + DELQ < 0.0d0 ) THEN 
+                        IF ( Q(I,J,K,IC) + DELQ < 0.0e+0_fp ) THEN 
                             DELQ = -Q(I,J,K,IC)
                         ENDIF
   
@@ -1870,13 +1873,13 @@
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       INTEGER,        INTENT(IN)    :: I, J        ! Lon & lat indices
       INTEGER,        INTENT(IN)    :: N_TRACERS   ! # of convected tracers
-      REAL*8,         INTENT(IN)    :: AREA_M2     ! Surface area [m2]
-      REAL*8,         INTENT(IN)    :: F(:,:)      ! Fraction of soluble tracer
+      REAL(fp),         INTENT(IN)    :: AREA_M2     ! Surface area [m2]
+      REAL(fp),         INTENT(IN)    :: F(:,:)      ! Fraction of soluble tracer
                                                    !  for updraft scavenging 
                                                    !  [unitless].  Computed by
                                                    !  routine  COMPUTE_F.
-      REAL*8,         INTENT(IN)    :: PEDGE(:)    ! P @ level box edges [hPa]
-      REAL*8,         INTENT(IN)    :: TS_DYN      ! Dynamic timestep [min]
+      REAL(fp),         INTENT(IN)    :: PEDGE(:)    ! P @ level box edges [hPa]
+      REAL(fp),         INTENT(IN)    :: TS_DYN      ! Dynamic timestep [min]
       LOGICAL,        INTENT(IN)    :: USE_DIAG14  ! Archive DIAG14?
       LOGICAL,        INTENT(IN)    :: USE_DIAG38  ! Archive DIAG38?
 !                                                  
@@ -1886,8 +1889,8 @@
 !                                                  
 ! !OUTPUT PARAMETERS:                              
 !                     
-      REAL*8,         INTENT(OUT)   :: DIAG14(:,:) ! Array for ND14 diagnostic
-      REAL*8,         INTENT(OUT)   :: DIAG38(:,:) ! Array for ND38 diagnostic
+      REAL(fp),         INTENT(OUT)   :: DIAG14(:,:) ! Array for ND14 diagnostic
+      REAL(fp),         INTENT(OUT)   :: DIAG38(:,:) ! Array for ND38 diagnostic
       INTEGER,        INTENT(OUT)   :: RC          ! Return code
 !
 ! !REMARKS:
@@ -1944,13 +1947,15 @@
 !  18 Apr 2014 - R. Yantosca - Now point to 3-D arrays internally
 !  18 Apr 2014 - R. Yantosca - Now also pass N_TRACERS (to facilitate APM)
 !  18 Apr 2014 - R. Yantosca - Remove code that we don't need anymore
+!  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
+!                              tracers below the cloud base (C. Friedman)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8, PARAMETER :: TINYNUM = 1d-14 
+      REAL(fp), PARAMETER :: TINYNUM = 1e-14_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -1959,35 +1964,35 @@
       INTEGER           :: IC,          ISTEP,    K,       KTOP
       INTEGER           :: NC,          NDT,      NLAY,    NS    
       INTEGER           :: CLDBASE
-      REAL*8            :: CMFMC_BELOW, ALPHA,    ALPHA2
-      REAL*8            :: CMOUT,       DELQ,     DQ,      DNS
-      REAL*8            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
-      REAL*8            :: SDT,         T0,       T0_SUM,  T1    
-      REAL*8            :: T2,          T3,       T4,      TCVV   
-      REAL*8            :: TCVV_DNS,    TSUM,     DT_DNS
-      REAL*8            :: LOST,        GAINED,   WETLOSS, MASS_WASH
-      REAL*8            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
-      REAL*8            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
-      REAL*8            :: MB,          QB
+      REAL(fp)            :: CMFMC_BELOW, ALPHA,    ALPHA2
+      REAL(fp)            :: CMOUT,       DELQ,     DQ,      DNS
+      REAL(fp)            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
+      REAL(fp)            :: SDT,         T0,       T0_SUM,  T1    
+      REAL(fp)            :: T2,          T3,       T4,      TCVV   
+      REAL(fp)            :: TCVV_DNS,    TSUM,     DT_DNS
+      REAL(fp)            :: LOST,        GAINED,   WETLOSS, MASS_WASH
+      REAL(fp)            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
+      REAL(fp)            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
+      REAL(fp)            :: MB,          QB
 
       ! Arrays
-      REAL*8            :: BMASS    (LLPAR        )    
-      REAL*8            :: PDOWN    (LLPAR        )
-      REAL*8            :: QB_NUM   (N_TRACERS    )
+      REAL(fp)            :: BMASS    (LLPAR        )    
+      REAL(fp)            :: PDOWN    (LLPAR        )
+      REAL(fp)            :: QB_NUM   (N_TRACERS    )
 
       ! Pointers
-      REAL*8,  POINTER  :: AD       (:            )
-      REAL*8,  POINTER  :: BXHEIGHT (:            )
-      REAL*8,  POINTER  :: CMFMC    (:            )
-      REAL*8,  POINTER  :: DQRCU    (:            )
-      REAL*8,  POINTER  :: DTRAIN   (:            )
-      REAL*8,  POINTER  :: PFICU    (:            )
-      REAL*8,  POINTER  :: PFLCU    (:            )
-      REAL*8,  POINTER  :: REEVAPCN (:            )
-      REAL*8,  POINTER  :: T        (:            )
-      REAL*8,  POINTER  :: H2O2s    (:            )
-      REAL*8,  POINTER  :: SO2s     (:            )
-      REAL*8,  POINTER  :: Q        (:,:          )
+      REAL(fp),  POINTER  :: AD       (:            )
+      REAL(fp),  POINTER  :: BXHEIGHT (:            )
+      REAL(fp),  POINTER  :: CMFMC    (:            )
+      REAL(fp),  POINTER  :: DQRCU    (:            )
+      REAL(fp),  POINTER  :: DTRAIN   (:            )
+      REAL(fp),  POINTER  :: PFICU    (:            )
+      REAL(fp),  POINTER  :: PFLCU    (:            )
+      REAL(fp),  POINTER  :: REEVAPCN (:            )
+      REAL(fp),  POINTER  :: T        (:            )
+      REAL(fp),  POINTER  :: H2O2s    (:            )
+      REAL(fp),  POINTER  :: SO2s     (:            )
+      REAL(fp),  POINTER  :: Q        (:,:          )
 
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
@@ -2028,7 +2033,7 @@
       KTOP     = NLAY - 1
 
       ! Convection timestep [s]
-      NDT      = TS_DYN * 60d0
+      NDT      = TS_DYN * 60e+0_fp
 
       ! Internal time step for convective mixing is 300 sec.
       ! Doug Rotman (LLNL) says that 450 sec works just as well.       
@@ -2048,7 +2053,7 @@
 
       ! Find the cloud base
       DO K = 1, NLAY
-         IF ( DQRCU(K) > 0d0 ) THEN
+         IF ( DQRCU(K) > 0e+0_fp ) THEN
             CLDBASE = K
             EXIT
          ENDIF
@@ -2062,8 +2067,8 @@
          ! PDOWN is the convective precipitation leaving each
          ! box [cm3 H2O/cm2 air/s].This accounts for the 
          ! contribution from both liquid & ice precip
-         PDOWN(K) = ( ( PFLCU(K) / 1000d0 ) 
-     &            +   ( PFICU(K) /  917d0 ) ) * 100d0
+         PDOWN(K) = ( ( PFLCU(K) / 1000e+0_fp ) 
+     &            +   ( PFICU(K) /  917e+0_fp ) ) * 100e+0_fp
 
          ! BMASS has units of kg/m^2 and is equivalent to AD(K) / AREA_M2
          ! This is done to keep BMASS in the same units as CMFMC * SDT
@@ -2078,8 +2083,8 @@
       !-----------------------------------------------------------------
 
       ! Zero variables
-      MB      = 0d0
-      QB_NUM  = 0d0
+      MB      = 0e+0_fp
+      QB_NUM  = 0e+0_fp
 
       ! Loop over up to just below the cloud base
       DO K  = 1, CLDBASE-1
@@ -2101,8 +2106,8 @@
       DO IC = 1, NC
 
          ! Initialize
-         DIAG14(:,IC) = 0d0                            ! ND14 diag array      
-         DIAG38(:,IC) = 0d0                            ! ND38 diag array
+         DIAG14(:,IC) = 0e+0_fp                            ! ND14 diag array      
+         DIAG38(:,IC) = 0e+0_fp                            ! ND38 diag array
          TCVV         = Input_Opt%TCVV(IC)             ! Air MW/tracer MW
          TCVV_DNS     = TCVV * DNS                     ! TCVV * DNS
 
@@ -2112,8 +2117,8 @@
          DO ISTEP = 1, NS
 
             ! Initialize
-            QC     = 0d0                      
-            T0_SUM = 0d0  
+            QC     = 0e+0_fp                      
+            T0_SUM = 0e+0_fp  
 
             !----------------------------------------------------------
             ! B e l o w   C l o u d   B a s e   (K < CLDBASE) 
@@ -2181,17 +2186,17 @@
             DO K = CLDBASE, KTOP
                
                ! Initialize
-               ALPHA   = 0d0
-               ALPHA2  = 0d0
-               CMOUT   = 0d0
-               ENTRN   = 0d0
-               QC_PRES = 0d0
-               QC_SCAV = 0d0
+               ALPHA   = 0e+0_fp
+               ALPHA2  = 0e+0_fp
+               CMOUT   = 0e+0_fp
+               ENTRN   = 0e+0_fp
+               QC_PRES = 0e+0_fp
+               QC_SCAV = 0e+0_fp
                
                ! CMFMC_BELOW is the air mass [kg/m2/s] coming into the
                ! grid box (K) from the box immediately below (K-1).
                IF ( K == 1 ) THEN
-                  CMFMC_BELOW = 0d0
+                  CMFMC_BELOW = 0e+0_fp
                ELSE
                   CMFMC_BELOW = CMFMC(K-1)
                ENDIF
@@ -2230,21 +2235,21 @@
                   ENTRN   = CMOUT - CMFMC_BELOW
 
                   ! Amount of QC preserved against scavenging
-                  QC_PRES = QC * ( 1d0 - F(K,IC) )
+                  QC_PRES = QC * ( 1e+0_fp - F(K,IC) )
 
                   ! Amount of QC lost to scavenging
                   ! QC_SCAV = 0 for non-soluble tracer
                   QC_SCAV = QC * F(K,IC)
 
                   ! - - - - - - - - FOR SOLUBLE TRACERS ONLY - - - - - - - - - 
-                  IF ( QC_SCAV > 0d0 ) THEN 
+                  IF ( QC_SCAV > 0e+0_fp ) THEN 
 
                      ! The fraction ALPHA is the fraction of raindrops that 
                      ! will re-evaporate soluble tracer while falling from 
                      ! grid box K+1 down to grid box K.  Avoid div-by-zero.
 
                      ! Initialize 
-                     ALPHA = 0d0
+                     ALPHA = 0e+0_fp
                      
                      IF ( PDOWN(K+1)  > TINYNUM ) THEN 
 
@@ -2258,18 +2263,18 @@
                            ! re-evaporate when falling from grid box
                            ! (I,J,L+1) to (I,J,L)
                            ALPHA = ( REEVAPCN(K) * AD(K)           )
-     &                           / ( PDOWN(K+1)  * AREA_M2 * 10d0  )
+     &                           / ( PDOWN(K+1)  * AREA_M2 * 10e+0_fp  )
 
                            ! Restrict ALPHA to be less than 1 
                            ! (>1 is unphysical)  (hma, 24-Dec-2010)  
-                           IF ( ALPHA > 1d0 ) THEN 
-                              ALPHA = 1d0 
+                           IF ( ALPHA > 1e+0_fp ) THEN 
+                              ALPHA = 1e+0_fp 
                            ENDIF
 
                            ! We assume that 1/2 of the soluble tracer w/in 
                            ! the raindrops actually gets resuspended into 
                            ! the atmosphere
-                           ALPHA2   = ALPHA * 0.5d0
+                           ALPHA2   = ALPHA * 0.5e+0_fp
 
                         ENDIF
 
@@ -2278,7 +2283,7 @@
                         ! but no precip is leaving grid box (ALPHA = 2 so 
                         ! that  ALPHA2 = 1)
                         IF ( PDOWN(K) < TINYNUM ) THEN
-                           ALPHA2 = 1d0
+                           ALPHA2 = 1e+0_fp
                         ENDIF
                         
                      ENDIF
@@ -2288,14 +2293,14 @@
                      QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
                     
                      ! ... then we decrement QC_SCAV accordingly
-                     QC_SCAV  = QC_SCAV * ( 1d0    - ALPHA2     )
+                     QC_SCAV  = QC_SCAV * ( 1e+0_fp    - ALPHA2     )
 
                   ENDIF
                   !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
                   ! Update QC taking entrainment into account
                   ! Prevent div by zero condition
-                  IF ( ENTRN >= 0d0 .and. CMOUT > 0d0 ) THEN
+                  IF ( ENTRN >= 0e+0_fp .and. CMOUT > 0e+0_fp ) THEN
                      QC   = ( CMFMC_BELOW * QC_PRES   + 
      &                       ENTRN       * Q(K,IC) ) / CMOUT
                   ENDIF
@@ -2422,7 +2427,7 @@
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
                   !------------------------------------------------------------
-                  IF ( USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
+                  IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC)
      &                            + ( T0 * AREA_M2 / TCVV_DNS )
 
@@ -2460,7 +2465,7 @@
                      DELQ = ( SDT / BMASS(K) ) * (T2 + T3)
 
                      ! If DELQ > Q then do not make Q negative!!!
-                     IF ( Q(K,IC) + DELQ < 0.0d0 ) THEN 
+                     IF ( Q(K,IC) + DELQ < 0.0e+0_fp ) THEN 
                         DELQ = -Q(K,IC)
                      ENDIF
   
@@ -2477,17 +2482,17 @@
             DO K = CLDBASE-1, 1, -1
 
                ! Initialize
-               QDOWN       = 0d0
-               F_WASHOUT   = 0d0
-               WASHFRAC    = 0d0
-               ALPHA       = 0d0
-               ALPHA2      = 0d0
-               GAINED      = 0d0
-               WETLOSS     = 0d0
-               LOST        = 0d0
-               MASS_WASH   = 0d0
-               MASS_NOWASH = 0d0
-               K_RAIN      = 0d0
+               QDOWN       = 0e+0_fp
+               F_WASHOUT   = 0e+0_fp
+               WASHFRAC    = 0e+0_fp
+               ALPHA       = 0e+0_fp
+               ALPHA2      = 0e+0_fp
+               GAINED      = 0e+0_fp
+               WETLOSS     = 0e+0_fp
+               LOST        = 0e+0_fp
+               MASS_WASH   = 0e+0_fp
+               MASS_NOWASH = 0e+0_fp
+               K_RAIN      = 0e+0_fp
                
                ! Check if...
                ! (1) there is precip coming into box (I,J,K) from (I,J,K+1)
@@ -2502,7 +2507,7 @@
                
                   ! Convert PDOWN the downward flux of precip leaving grid
                   ! box (K+1) from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
-                  QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100d0  )
+                  QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100e+0_fp  )
 
                   ! Compute K_RAIN and F_WASHOUT based on the flux of precip 
                   ! leaving grid box (K+1). 
@@ -2528,11 +2533,11 @@
                      ! Define ALPHA, the fraction of raindrops that 
                      ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
                      ALPHA   = ( REEVAPCN(K) * AD(K)          )
-     &                       / ( PDOWN(K+1)  * AREA_M2 * 10d0 )
+     &                       / ( PDOWN(K+1)  * AREA_M2 * 10e+0_fp )
 
                      ! ALPHA2 is the fraction of the rained-out aerosols
                      ! that gets resuspended in grid box (I,J,L)
-                     ALPHA2  = 0.5d0 * ALPHA
+                     ALPHA2  = 0.5e+0_fp * ALPHA
 
                      ! GAINED is the rained out aerosol coming down from 
                      ! grid box (I,J,L+1) that will evaporate and re-enter 
@@ -2561,7 +2566,7 @@
 
                      ! MASS_NOWASH is the amount of non-aerosol tracer in 
                      ! grid box (I,J,L) that is NOT available for washout.
-                     MASS_NOWASH = ( 1d0 - F_WASHOUT ) * Q(K,IC)
+                     MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Q(K,IC)
                
                      ! MASS_WASH is the total amount of non-aerosol tracer
                      ! that is available for washout in grid box (I,J,L).
@@ -2574,7 +2579,13 @@
                      ! WETLOSS is the amount of tracer mass in 
                      ! grid box (I,J,L) that is lost to washout.
                      ! (Eq. 16, Jacob et al, 2000)
-                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM 
+!------------------------------------------------------------------------------
+! Prior to 2/4/15:
+! Bug fix: Make sure mass of scavenged tracer passed to depo_mercury_mod.F
+! is the same as mass archived in ND38 (clf, mps, 2/4/15)
+!                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
+!------------------------------------------------------------------------------
+                     WETLOSS     = ( MASS_WASH - T0_SUM ) * WASHFRAC
                      
                      ! The tracer left in grid box (I,J,L) is what was
                      ! in originally in the non-precipitating fraction 
@@ -2607,7 +2618,7 @@
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
                   !------------------------------------------------------------
-                  IF ( USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
+                  IF ( USE_DIAG38 .and. F(K,IC) > 0e+0_fp ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC)
      &                            + ( WETLOSS * AREA_M2 / TCVV_DNS )
                   ENDIF

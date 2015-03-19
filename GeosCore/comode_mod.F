@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD  ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -39,25 +41,25 @@
       ! TAREA     : array for surface area of aerosol or dust [cm2/cm3]
       ! VOLUME    : array for grid box volume [cm3]
       !======================================================================
-      REAL*8,  ALLOCATABLE, PUBLIC :: ABSHUM(:) 
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDENS(:) 
-      REAL*8,  ALLOCATABLE, PUBLIC :: CSPEC(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CSUMA(:) 
-      REAL*8,  ALLOCATABLE, PUBLIC :: CSUMC(:) 
-      REAL*8,  ALLOCATABLE, PUBLIC :: ERADIUS(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ERRMX2(:) 
-      INTEGER, ALLOCATABLE, PUBLIC :: IXSAVE(:)
-      INTEGER, ALLOCATABLE, PUBLIC :: IYSAVE(:)
-      INTEGER, ALLOCATABLE, PUBLIC :: IZSAVE(:)
-      INTEGER, ALLOCATABLE, PUBLIC :: JLOP(:,:,:)
-      INTEGER, ALLOCATABLE, PUBLIC :: JLOP_PREVIOUS(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRESS3(:)      
-      REAL*8,  ALLOCATABLE, PUBLIC :: REMIS(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T3(:)      
-      REAL*8,  ALLOCATABLE, PUBLIC :: TAREA(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VOLUME(:)      
-      REAL*8,  ALLOCATABLE, PUBLIC :: WTAREA(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: WERADIUS(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: ABSHUM(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: AIRDENS(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: CSPEC(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: CSUMA(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: CSUMC(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: ERADIUS(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: ERRMX2(:)
+      INTEGER,  ALLOCATABLE, PUBLIC :: IXSAVE(:)
+      INTEGER,  ALLOCATABLE, PUBLIC :: IYSAVE(:)
+      INTEGER,  ALLOCATABLE, PUBLIC :: IZSAVE(:)
+      INTEGER,  ALLOCATABLE, PUBLIC :: JLOP(:,:,:)
+      INTEGER,  ALLOCATABLE, PUBLIC :: JLOP_PREVIOUS(:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: PRESS3(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: REMIS(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: T3(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: TAREA(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: VOLUME(:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: WTAREA(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: WERADIUS(:,:)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
@@ -91,6 +93,7 @@
 !  21 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  04 Apr 2013 - R. Yantosca - Removed CSPEC_FULL (now in State_Chm)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete 
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -171,31 +174,31 @@
       
          ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
-         ABSHUM = 0d0
+         ABSHUM = 0e+0_fp
       
          ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
-         AIRDENS = 0d0      
+         AIRDENS = 0e+0_fp      
 
          ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
-         CSPEC = 0d0
+         CSPEC = 0e+0_fp
 
          ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
-         CSUMA = 0d0
+         CSUMA = 0e+0_fp
       
          ALLOCATE( CSUMC( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMC' )
-         CSUMC = 0d0
+         CSUMC = 0e+0_fp
 
          ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
-         ERADIUS = 0d0      
+         ERADIUS = 0e+0_fp      
 
          ALLOCATE( ERRMX2( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERRMX2' )
-         ERRMX2 = 0d0
+         ERRMX2 = 0e+0_fp
            
          ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
@@ -220,31 +223,31 @@
 
          ALLOCATE( PRESS3( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRESS3' )
-         PRESS3 = 0d0
+         PRESS3 = 0e+0_fp
       
          ALLOCATE( REMIS( ITLOOP, MAXGL3 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'REMIS' )
-         REMIS = 0d0
+         REMIS = 0e+0_fp
       
          ALLOCATE( T3( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'T3' )
-         T3 = 0d0
+         T3 = 0e+0_fp
 
          ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
-         TAREA = 0d0      
+         TAREA = 0e+0_fp      
       
          ALLOCATE( VOLUME( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'VOLUME' )
-         VOLUME = 0d0
+         VOLUME = 0e+0_fp
 
          ALLOCATE( WTAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'WTAREA' )
-         WTAREA = 0d0      
+         WTAREA = 0e+0_fp      
 
          ALLOCATE( WERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
-         WERADIUS = 0d0      
+         WERADIUS = 0e+0_fp      
 
       ENDIF
 
@@ -255,15 +258,15 @@
 
          ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
-         ABSHUM = 0d0
+         ABSHUM = 0e+0_fp
       
          ALLOCATE( AIRDENS( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDENS' )
-         AIRDENS = 0d0      
+         AIRDENS = 0e+0_fp      
 
          ALLOCATE( ERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERADIUS' )
-         ERADIUS = 0d0      
+         ERADIUS = 0e+0_fp      
 
          ALLOCATE( IXSAVE( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'IXSAVE' )
@@ -288,15 +291,15 @@
 
          ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
-         TAREA = 0d0      
+         TAREA = 0e+0_fp      
 
          ALLOCATE( WTAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'WTAREA' )
-         WTAREA = 0d0
+         WTAREA = 0e+0_fp
 
          ALLOCATE( WERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
-         WERADIUS = 0d0      
+         WERADIUS = 0e+0_fp      
          
       ENDIF
 

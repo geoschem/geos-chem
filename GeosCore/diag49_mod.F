@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -109,6 +111,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,6 +261,10 @@
 !                              of removal of NOx-Ox partitioning
 !  13 Aug 2013 - M. Sulprizio- Add farnesene emissions for updated SOA (H. Pye)
 !  25 Jul 2014 - R. Yantosca - Remove reference to commsoil_mod.F90
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,8 +280,9 @@
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NHMS, TS_DIAG
       INTEGER                  :: ISPC
-      REAL*8                   :: TAU, TMP,   SCALEAODnm
-      REAL*8                   :: Q( ND49_NI, ND49_NJ, ND49_NL )
+      REAL(f8)                 :: TAU
+      REAL(fp)                 :: TMP, SCALEAODnm
+      REAL(fp)                 :: Q( ND49_NI, ND49_NJ, ND49_NL )
       CHARACTER(LEN=16)        :: STAMP
       CHARACTER(LEN=40)        :: CATEGORY
       CHARACTER(LEN=40)        :: UNIT
@@ -287,11 +295,11 @@
       LOGICAL                  :: LSOILNOX
       LOGICAL                  :: DO_DIAG_WRITE
       INTEGER                  :: N_TRACERS
-      REAL*8                   :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
-      REAL*8, POINTER          :: STT(:,:,:,:)
-      REAL*8, POINTER          :: AD(:,:,:)
+      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER        :: AD(:,:,:)
 
       !=================================================================
       ! DIAG49 begins here!
@@ -388,7 +396,7 @@
          N = ND49_TRACERS(W)
 
          ! Zero summing array
-         Q = 0d0
+         Q = 0e+0_fp
 
          ! Test by tracer number
          IF ( N <= N_TRACERS ) THEN
@@ -462,7 +470,7 @@
                I = GET_I( X )  
 
                ! Temp variable for accumulation
-               TMP = 0d0
+               TMP = 0e0_fp
             
                ! NO
                TMP = TMP + ( TCVV(IDTNO)         *
@@ -500,7 +508,7 @@
      &                       AD(I,J,L) )
             
                ! N2O5
-               TMP = TMP + ( 2d0 * TCVV(IDTN2O5) *
+               TMP = TMP + ( 2e+0_fp * TCVV(IDTN2O5) *
      &                       STT(I,J,L,IDTN2O5)  / 
      &                       AD(I,J,L) )
                         
@@ -561,7 +569,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Met%CLDF(K,I,J)
+               Q(X,Y,K) = State_Met%CLDF(I,J,K)
             ENDDO
             ENDDO
             ENDDO
@@ -584,7 +592,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = SUM( State_Met%OPTD(:,I,J) )
+               Q(X,Y,1) = SUM( State_Met%OPTD(I,J,:) )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -633,7 +641,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+               Q(X,Y,K) = State_Met%AIRDEN(I,J,L) * XNUMOLAIR * 1d-6
             ENDDO
             ENDDO
             ENDDO
@@ -1794,29 +1802,25 @@
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) The time is already updated to the next time step (ccc, 8/12/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  13 Mar 2015 - M. Sulprizio- Bug fix: Allow for temporal resolution finer
+!                              than 60 min (E. Marais)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: HR1
+      REAL(fp) :: HR1
 
       !=================================================================
       ! ITS_TIME_TO_CLOSE_FILE begins here!
       !=================================================================
 
       ! Current hour
-      HR1      = GET_HOUR() + ( GET_MINUTE() / 60d0 )
+      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
 
-!--- Previous to (ccc, 8/12/09)
-!      ! Hour at the next dynamic timestep
-!      HR2      = HR1        + ( ND49_FREQ / 60d0 )
-
-      ! If the next dyn step is the start of a new day, return TRUE
-!--- Previous to (ccc, 11/11/10)
-!       HR1 varies between 00 and 23:59. So compares to 00 not 24 anymore.
-!      ITS_TIME = ( INT( HR1 ) == 24 )
+      ! Allow for temporal resolution finer than 60 min
+      HR1      = HR1 * 1e+2_fp
 
       ITS_TIME = ( INT( HR1 ) == 00 )
 

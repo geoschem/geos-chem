@@ -39,6 +39,9 @@ MODULE HCOIO_MESSY_MOD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+  ! Set this value to TRUE if you want to reduce the output array
+  ! to the minimum required number of vertical levels.
+  LOGICAL, PARAMETER            :: ReduceVert = .FALSE.
 !
 ! !MODULE INTERFACES:
 !
@@ -73,25 +76,34 @@ MODULE HCOIO_MESSY_MOD
 !\\
 !\\
 ! For input data with more than one vertical level, the data is mapped
-! onto the entire 3D grid. The parameter ReduceVert can be used to 
+! onto the entire 3D grid. The module parameter ReduceVert can be used to 
 ! cap the output data at the lowest possible level. For example, if the 
 ! input grid only covers three surface levels with a minimum sigma value 
 ! of 0.75, vertical regridding is performed within this sigma range (1-0.75) 
 ! and the output grid is reduced accordingly. This option is not used in the
 ! standard HEMCO setup because problems can arise if the data array of a 
-! given container suddently changes its size (i.e. when updating data and the
-! new data covers more/less vertical levels than the data beforehand).
+! given container suddently changes its size (i.e. when updated data covers 
+! more/less vertical levels than the data beforehand).
+!\\
+!\\
+! The input argument IsModelLev denotes whether or not the vertical 
+! coordinates of the input data are on model levels. If set to yes and LevEdge
+! is not provided (i.e. a nullified pointer), the MESSy regridding routines are
+! only used for the horizontal remapping and subroutine ModelLev\_Interpolate
+! (module hco\_interp\_mod.F90) is used for the vertical remapping.
+!\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_MESSY_REGRID ( am_I_Root, HcoState, NcArr,   &
-                                LonEdge,   LatEdge,  LevEdge, &
-                                Lct,       RC                  ) 
+  SUBROUTINE HCO_MESSY_REGRID ( am_I_Root, HcoState,   NcArr,   &
+                                LonEdge,   LatEdge,    LevEdge, &
+                                Lct,       IsModelLev, RC        ) 
 !
 ! !USES:
 !
   USE HCO_FILEDATA_MOD,     ONLY : FileData_ArrCheck
   USE HCO_UNIT_MOD,         ONLY : HCO_IsIndexData
+  USE HCO_INTERP_MOD,       ONLY : ModelLev_Interpolate
   USE MESSY_NCREGRID_BASE,  ONLY : RG_INT, RG_IDX
   USE MESSY_NCREGRID_BASE,  ONLY : NREGRID
   USE MESSY_NCREGRID_BASE,  ONLY : INIT_NARRAY 
@@ -105,6 +117,7 @@ MODULE HCOIO_MESSY_MOD
     REAL(hp),         POINTER        :: LatEdge(:)      ! lat edges
     REAL(hp),         POINTER        :: LevEdge(:,:,:)  ! sigma level edges
     TYPE(ListCont),   POINTER        :: Lct             ! Target list container
+    LOGICAL,          INTENT(IN   )  :: IsModelLev      ! Are these model levels? 
     INTEGER,          INTENT(INOUT)  :: RC              ! Return code
 !
 ! !REVISION HISTORY:
@@ -115,27 +128,27 @@ MODULE HCOIO_MESSY_MOD
 ! 
 ! !ROUTINE ARGUMENTS:
 !
-    TYPE(narray), POINTER         :: narr_src(:)    => NULL()
-    TYPE(narray), POINTER         :: narr_dst(:)    => NULL()
-    TYPE(axis),   POINTER         :: axis_src(:)    => NULL()
-    TYPE(axis),   POINTER         :: axis_dst(:)    => NULL()
-    INTEGER,      POINTER         :: rg_type(:)     => NULL()
-    INTEGER,      POINTER         :: rcnt   (:)     => NULL()
-    REAL(dp),     POINTER         :: sovl   (:)     => NULL()
-    REAL(dp),     POINTER         :: dovl   (:)     => NULL()
-    REAL(hp),     POINTER         :: lon    (:)     => NULL()
-    REAL(hp),     POINTER         :: lat    (:)     => NULL()
-    REAL(hp),     POINTER         :: sigma  (:,:,:) => NULL()
+    TYPE(narray), POINTER         :: narr_src(:)      => NULL()
+    TYPE(narray), POINTER         :: narr_dst(:)      => NULL()
+    TYPE(axis),   POINTER         :: axis_src(:)      => NULL()
+    TYPE(axis),   POINTER         :: axis_dst(:)      => NULL()
+    INTEGER,      POINTER         :: rg_type(:)       => NULL()
+    INTEGER,      POINTER         :: rcnt   (:)       => NULL()
+    REAL(dp),     POINTER         :: sovl   (:)       => NULL()
+    REAL(dp),     POINTER         :: dovl   (:)       => NULL()
+    REAL(hp),     POINTER         :: lon    (:)       => NULL()
+    REAL(hp),     POINTER         :: lat    (:)       => NULL()
+    REAL(hp),     POINTER         :: sigma  (:,:,:)   => NULL()
+    REAL(sp),     POINTER         :: ArrIn  (:,:,:,:) => NULL()
+    REAL(sp),     POINTER         :: ArrOut (:,:,:,:) => NULL()
     REAL(hp), ALLOCATABLE, TARGET :: sigout (:,:,:) 
     REAL(hp)                      :: sigMin
-    INTEGER                       :: nLevIn, nLevOut, NTIME
+    INTEGER                       :: NZIN, NZOUT, NTIME
+    INTEGER                       :: NXIN, NYIN 
     INTEGER                       :: I, L, AS
+    INTEGER                       :: NCALLS
     CHARACTER(LEN=255)            :: MSG, LOC
-    LOGICAL                       :: SameGrid
-
-    ! Set this value to TRUE if you want to reduce the output array
-    ! to the minimum required number of vertical levels.
-    LOGICAL, PARAMETER            :: ReduceVert = .FALSE.
+    LOGICAL                       :: SameGrid, verb
 
     !=================================================================
     ! HCO_MESSY_REGRID begins here
@@ -146,8 +159,15 @@ MODULE HCOIO_MESSY_MOD
     CALL HCO_ENTER ( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! verbose?
+    verb = HCO_IsVerb(3) 
+
+    ! Horizontal dimension of input data
+    NXIN = SIZE(NcArr,1)
+    NYIN = SIZE(NcArr,2)
+
     ! Number of vertical levels of input data
-    nLevIn = SIZE(NcArr,3)
+    NZIN = SIZE(NcArr,3)
 
     ! Number of time slices. All time slices will be regridded 
     ! simultaneously.
@@ -173,11 +193,10 @@ MODULE HCOIO_MESSY_MOD
     SameGrid = .FALSE.
    
     ! Horizontal dimensions have to match
-    IF ( SIZE(NcArr,1) == HcoState%NX .AND. &
-         SIZE(NcArr,2) == HcoState%NY        ) THEN
+    IF ( (NXIN == HcoState%NX) .AND. (NYIN == HcoState%NY) ) THEN
 
        ! Vertical dimensions have to match or be 1
-       IF ( nLevIn == 1 .OR. nLevIn == HcoState%NZ ) THEN
+       IF ( NZIN == 1 .OR. NZIN == HcoState%NZ ) THEN
 
           ! Assume same grid
           SameGrid = .TRUE.
@@ -194,7 +213,7 @@ MODULE HCOIO_MESSY_MOD
              SameGrid = .FALSE.
           ENDIF
           ! ... Lev
-          IF ( nLevIn > 1 ) THEN
+          IF ( NZIN > 1 ) THEN
              ! TODO: Eventually need to add level check here. 
              ! For now, assume that input levels are equal to 
              ! output level if they have the same dimension!
@@ -205,7 +224,19 @@ MODULE HCOIO_MESSY_MOD
     !-----------------------------------------------------------------
     ! Define number of vertical levels on output grid
     !-----------------------------------------------------------------
-    nLevOut = nLevIn
+
+    ! Error check. If we are not on the same grid, LevEdge must be
+    ! provided or IsModelLev must be set to true for 3D data.
+    IF ( NZIN > 1 .AND. .NOT. SameGrid ) THEN 
+       IF ( .NOT. ASSOCIATED(LevEdge) .AND. .NOT. IsModelLev ) THEN
+          MSG = 'Cannot regrid '//TRIM(Lct%Dct%cName)//'. Either level '//&
+                'edges must be provided or data must be on model levels.'
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    NZOUT = NZIN
     IF ( .NOT. SameGrid .AND. ASSOCIATED(LevEdge) ) THEN
 
        ! Calculate sigma level for each grid point on the output grid. 
@@ -213,7 +244,7 @@ MODULE HCOIO_MESSY_MOD
        ! pressure @ i,j: sigma(i,j,l) = p(i,j,l) / ps(i,j)
        ALLOCATE(sigout(HcoState%NX,HcoState%NY,HcoState%NZ+1),STAT=AS)
        IF ( AS/= 0 ) THEN
-          CALL HCO_ERROR( 'Allocation of sigout', RC )
+          CALL HCO_ERROR( 'Cannot allocate sigout', RC )
           RETURN
        ENDIF
        DO l = 1, HcoState%NZ+1
@@ -231,15 +262,25 @@ MODULE HCOIO_MESSY_MOD
           ENDDO
 
           ! The output grid is at grid center, so use l-1. Must be at least one.
-          nLevOut = max(1,l-1)
+          NZOUT = max(1,l-1)
 
        ! Use full vertical grid if vertical levels shall not be restricted
        ! to range of input data (default).
        ELSE
-          nLevOut = HcoState%NZ
+          NZOUT = HcoState%NZ
        ENDIF
     ENDIF
- 
+
+    ! verbose mode 
+    IF ( verb ) THEN
+       MSG = 'Do MESSy regridding: ' // TRIM(Lct%Dct%cName)
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) ' - SameGrid     ? ', SameGrid
+       CALL HCO_MSG(MSG)
+       WRITE(MSG,*) ' - Model levels ? ', IsModelLev
+       CALL HCO_MSG(MSG)
+    ENDIF
+
     !-----------------------------------------------------------------
     ! Make sure output array is defined & allocated
     !-----------------------------------------------------------------
@@ -249,7 +290,7 @@ MODULE HCOIO_MESSY_MOD
        IF ( RC /= HCO_SUCCESS ) RETURN
     ELSEIF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
        CALL FileData_ArrCheck( Lct%Dct%Dta, HcoState%NX, HcoState%NY, &
-                               nLevOut,     NTIME,       RC            ) 
+                               NZOUT,       NTIME,       RC            ) 
        IF ( RC /= HCO_SUCCESS ) RETURN   
     ENDIF
 
@@ -263,7 +304,7 @@ MODULE HCOIO_MESSY_MOD
 
        ! For every time slice...
        DO I = 1, NTIME
-       DO L = 1, nLevOut
+       DO L = 1, NZOUT
 
           ! 3D data
           IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
@@ -281,9 +322,9 @@ MODULE HCOIO_MESSY_MOD
        RETURN
     ENDIF
 
-    !-----------------------------------------------------------------
+    !=================================================================
     ! MESSy regridding follows below
-    !-----------------------------------------------------------------
+    !=================================================================
 
     !-----------------------------------------------------------------
     ! Source grid description.
@@ -309,7 +350,7 @@ MODULE HCOIO_MESSY_MOD
     ! Get horizontal grid directly from HEMCO state
     lon   => HcoState%Grid%XEDGE%Val(:,1)
     lat   => HcoState%Grid%YEDGE%Val(1,:)
-    IF( ASSOCIATED(LevEdge) ) sigma => sigout(:,:,1:nlevout+1)
+    IF( ASSOCIATED(LevEdge) ) sigma => sigout(:,:,1:NZOUT+1)
 
     CALL AXIS_CREATE( am_I_Root, HcoState, lon, lat, sigma, axis_dst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -333,29 +374,79 @@ MODULE HCOIO_MESSY_MOD
     ALLOCATE(rg_type(NTIME))
     IF ( HCO_IsIndexData(Lct%Dct%Dta%OrigUnit) ) THEN
        rg_type(:) = RG_IDX
+       IF ( verb ) THEN
+          MSG = ' - Remap as index data.'
+          CALL HCO_MSG(MSG)
+       ENDIF
     ELSE
        rg_type(:) = RG_INT 
+       IF ( verb ) THEN
+          MSG = ' - Remap as concentration data.'
+          CALL HCO_MSG(MSG)
+       ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Map input array onto MESSy array. Different time slices are
-    ! stored as individual vector elements of narr_src.
+    ! Number of times the regridding need to be performed. If input 
+    ! data is on model levels, the data is only horizontally regridded,
+    ! e.g. the regridding routine is called for every horizontal level
+    ! separately. The vertical interpolation is done afterwards using 
+    ! routine ModelLev_Interpolate. 
     !-----------------------------------------------------------------
-    CALL HCO2MESSY( am_I_Root, NcArr, narr_src, axis_src, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    NCALLS = 1
+    IF ( IsModelLev .AND. .NOT. ASSOCIATED(LevEdge) .AND. NZIN > 1 ) THEN
+       NCALLS = NZIN
+       ALLOCATE(ArrOut(HcoState%NX,HcoState%NY,NZIN,NTIME),STAT=AS)
+       IF ( AS /= 0 ) THEN
+          CALL HCO_ERROR ( 'Cannot allocate ArrOut', RC )
+          RETURN
+       ENDIF
+       ArrOut = 0.0_sp
+    ENDIF
+
+    ! Do for all level batches ...
+    DO I = 1, NCALLS
+
+       ! ArrIn is the input array to be used
+       IF ( NCALLS /= 1 ) THEN
+          ArrIn => NcArr(:,:,I:I,:)
+       ELSE
+          ArrIn => NcArr
+       ENDIF
+
+       !-----------------------------------------------------------------
+       ! Map input array onto MESSy array. Different time slices are
+       ! stored as individual vector elements of narr_src.
+       !-----------------------------------------------------------------
+       CALL HCO2MESSY( am_I_Root, ArrIn, narr_src, axis_src, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
+       !-----------------------------------------------------------------
+       ! Do the regridding
+       !-----------------------------------------------------------------
+       CALL NREGRID(s=narr_src,      sax=axis_src, dax=axis_dst, d=narr_dst, &
+                    rg_type=rg_type, sovl=sovl,    dovl=dovl,    rcnt=rcnt    )
+   
+       !-----------------------------------------------------------------
+       ! Map the destination array narr_dst onto the data vector in the 
+       ! HEMCO list container or onto the temporary array ArrOut.
+       !-----------------------------------------------------------------
+       CALL MESSY2HCO( am_I_Root, HcoState, narr_dst, Lct, I, ArrOut, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN      
+ 
+       ! Cleanup
+       ArrIn => NULL()
+ 
+    ENDDO !NCALLS
 
     !-----------------------------------------------------------------
-    ! Do the regridding
+    ! If these are model levels, do vertical interpolation now 
     !-----------------------------------------------------------------
-    CALL NREGRID(s=narr_src,      sax=axis_src, dax=axis_dst, d=narr_dst, &
-                 rg_type=rg_type, sovl=sovl,    dovl=dovl,    rcnt=rcnt    )
-
-    !-----------------------------------------------------------------
-    ! Map the destination array narr_dst onto the data vector in the 
-    ! HEMCO list container.
-    !-----------------------------------------------------------------
-    CALL MESSY2HCO( am_I_Root, HcoState, narr_dst, Lct, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN      
+    IF ( ASSOCIATED(ArrOut) ) THEN
+       CALL ModelLev_Interpolate( am_I_Root, HcoState, ArrOut, Lct, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       DEALLOCATE(ArrOut)
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Cleanup
@@ -719,9 +810,9 @@ MODULE HCOIO_MESSY_MOD
 
   END SUBROUTINE AXIS_DELETE 
 !EOC
-!-----------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group     !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HCO2MESSY
@@ -856,18 +947,20 @@ MODULE HCOIO_MESSY_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MESSY2HCO( am_I_Root, HcoState, narr, Lct, RC )
+  SUBROUTINE MESSY2HCO( am_I_Root, HcoState, narr, Lct, LEV, Ptr4D, RC ) 
 !
 ! !USES:
 !
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
-    TYPE(HCO_State),  POINTER        :: HcoState
-    TYPE(narray),     POINTER        :: narr(:)
-    TYPE(ListCont),   POINTER        :: Lct 
-    INTEGER,          INTENT(INOUT)  :: RC
+    LOGICAL,          INTENT(IN   )          :: am_I_Root
+    TYPE(HCO_State),  POINTER                :: HcoState
+    TYPE(narray),     POINTER                :: narr(:)
+    TYPE(ListCont),   POINTER                :: Lct 
+    INTEGER,          INTENT(IN   )          :: LEV
+    REAL(sp),         POINTER                :: Ptr4D(:,:,:,:)
+    INTEGER,          INTENT(INOUT)          :: RC
 !
 ! !REVISION HISTORY:
 !  27 Jun 2014 - C. Keller - Initial version
@@ -877,9 +970,10 @@ MODULE HCOIO_MESSY_MOD
 ! 
 ! !ROUTINE ARGUMENTS:
 !
-    INTEGER        :: J, L, T
-    INTEGER        :: LOW, UPP
-    INTEGER        :: NX, NY, NZ, NT
+    INTEGER            :: J, L, T
+    INTEGER            :: LOW, UPP
+    INTEGER            :: NX, NY, NZ, NT, Z1, Z2
+    CHARACTER(LEN=255) :: MSG
 
     !=================================================================
     ! MESSY2HCO begins here
@@ -887,20 +981,45 @@ MODULE HCOIO_MESSY_MOD
 
     ! Grid dimensions
     NX = HcoState%NX
-    NY = HcoState%NY 
-    IF ( Lct%Dct%Dta%SpaceDim == 2 ) THEN
-       NZ = 1
-    ELSEIF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
-       NZ = SIZE(Lct%Dct%Dta%V3(1)%Val,3)
-    ENDIF
+    NY = HcoState%NY
     NT = SIZE(narr)
+
+    ! Vertical levels to be filled on output array. Only level LEV
+    ! is filled if NC is different than one!
+    IF ( Lct%Dct%Dta%SpaceDim == 2 ) THEN
+       Z1 = 1
+       Z2 = 1
+    ELSEIF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
+       IF ( ASSOCIATED(Ptr4D) ) THEN
+          Z1 = LEV
+          Z2 = LEV
+       ELSE
+          Z1 = 1
+          Z2 = SIZE(Lct%Dct%Dta%V3(1)%Val,3)
+       ENDIF
+    ENDIF
 
     ! Vector index counter
     LOW = 1
     UPP = 1
 
+    ! If temporary array Ptr4D is provided, make sure that its 
+    ! dimensions are correct
+    IF ( ASSOCIATED(Ptr4D) ) THEN
+       NZ = Z2 - Z1 + 1
+       IF ( ( SIZE(Ptr4D,1) /= NX ) .OR. &
+            ( SIZE(Ptr4D,2) /= NY ) .OR. &
+            ( SIZE(Ptr4D,3) /= NZ ) .OR. &
+            ( SIZE(Ptr4D,4) /= NT )       ) THEN
+          WRITE(MSG,*) 'Temporary pointer has wrong dimensions: ', &
+                       TRIM(Lct%Dct%cName)
+          CALL HCO_ERROR ( MSG, RC, THISLOC='MESSY2HCO (hcoio_messy_mod.F90)' )
+          RETURN
+       ENDIF
+    ENDIF
+
     ! Loop over all higher dimensions
-    DO L = 1, NZ  ! NZ is 1 for 2D arrays
+    DO L = Z1, Z2
     DO J = 1, NY
     
        ! Upper index of slice to be filled
@@ -908,12 +1027,23 @@ MODULE HCOIO_MESSY_MOD
       
        ! Do for every time slice
        DO T = 1, NT
-          ! 2D
-          IF ( Lct%Dct%Dta%SpaceDim == 2 ) THEN
-             Lct%Dct%Dta%V2(T)%Val(:,J) = narr(T)%vd(LOW:UPP)
-          ! 3D
-          ELSE   
-             Lct%Dct%Dta%V3(T)%Val(:,J,L) = narr(T)%vd(LOW:UPP)
+
+          ! If provided, write into temporary array
+          IF ( ASSOCIATED(Ptr4D) ) THEN
+             Ptr4D(:,J,L,T) = narr(T)%vd(LOW:UPP)
+ 
+          ! If temporary array Ptr4D is not provided, write directly
+          ! into list container array
+          ELSE
+
+             ! 2D
+             IF ( Lct%Dct%Dta%SpaceDim == 2 ) THEN
+                Lct%Dct%Dta%V2(T)%Val(:,J) = narr(T)%vd(LOW:UPP)
+             ! 3D
+             ELSE   
+                Lct%Dct%Dta%V3(T)%Val(:,J,L) = narr(T)%vd(LOW:UPP)
+             ENDIF
+
           ENDIF
        ENDDO !NT
        

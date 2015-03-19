@@ -15,7 +15,8 @@
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD   ! For real precisions (hp)
+      USE HCO_ERROR_MOD    ! For HEMCO error reporting
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -38,14 +39,14 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL*8, PARAMETER,   PUBLIC :: XNUMOL_CH4 = 6.0221d23 / 16d-3
+      REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = 6.0221d23 / 16d-3
 
 #if defined( USE_CH4_BUDGET_DIAG )
-      REAL*8, ALLOCATABLE, PUBLIC :: TCH4(:,:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: TCH4(:,:,:,:)
 #endif
 
       ! Make CH4_EMIS now public so that it can be used by vdiff_mod.F90
-      REAL*8,  ALLOCATABLE, PUBLIC :: CH4_EMIS(:,:,:)
+      REAL(fp),  ALLOCATABLE, PUBLIC :: CH4_EMIS(:,:,:)
 ! 
 ! !REVISION HISTORY: 
 !  17 Jan 2001- J. Wang, B. Duncan, R. Yantosca -- Initial version
@@ -97,6 +98,8 @@
 !                              READ_CH4LOSS (now obsolete)
 !  16 Sep 2014 - C. Keller   - Removed all references to Clarisa's OH clima-
 !                              tology (not used anywhere)
+!  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  04 Mar 2015 - R. Yantosca - Now use REAL(f4) for HCO_GetPtr pointer args
 !------------------------------------------------------------------------------
 !BOC
 !     
@@ -118,27 +121,28 @@
       !========================================================================
 
       ! Number of CH4 budget types 
-      INTEGER, PARAMETER   :: N_CH4    = 12
+      INTEGER,  PARAMETER    :: N_CH4     = 12
 
-      REAL*8, PARAMETER    :: XNUMOL_OH  = 6.0221d23 / 17d-3  ! molec OH / kg OH
-      REAL*8, PARAMETER    :: CM3PERM3   = 1.d6
+      REAL(fp), PARAMETER    :: XNUMOL_OH = 6.0221e+23_fp / 17e-3_fp  ! molec OH / kg OH
+      REAL(fp), PARAMETER    :: CM3PERM3  = 1.e+6_fp
 !
 ! !LOCAL VARIABLES:
 !
       ! Various arrays      
-      REAL*8,  ALLOCATABLE         :: BAIRDENS(:,:,:)
-      REAL*8,  ALLOCATABLE         :: PAVG(:,:,:)
-      REAL*8,  ALLOCATABLE         :: TAVG(:,:,:)
+      REAL(fp), ALLOCATABLE :: BAIRDENS(:,:,:)
+      REAL(fp), ALLOCATABLE :: PAVG(:,:,:)
+      REAL(fp), ALLOCATABLE :: TAVG(:,:,:)
 
-      ! HEMCO pointers
-      REAL(hp), POINTER            :: BOH    (:,:,:) => NULL() ! Get from HEMCO
-      REAL(hp), POINTER            :: CH4LOSS(:,:,:) => NULL() ! Get from HEMCO
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared as REAL(f4), aka REAL*4.
+      REAL(f4), POINTER     :: BOH    (:,:,:) => NULL()
+      REAL(f4), POINTER     :: CH4LOSS(:,:,:) => NULL()
 
       ! Online CH4 only
-      REAL*8,  ALLOCATABLE         :: SUMANTHRO(:,:)
-      REAL*8,  ALLOCATABLE         :: SUMBIOG(:,:)
+      REAL(fp), ALLOCATABLE :: SUMANTHRO(:,:)
+      REAL(fp), ALLOCATABLE :: SUMBIOG(:,:)
 
-      REAL*8                       :: TROPOCH4
+      REAL(fp)              :: TROPOCH4
 
       CONTAINS
 !EOC
@@ -266,8 +270,8 @@
       ! If a new 24-hr period, set Pavg = 0, and reset NNEW, NCOUNT
       !=================================================================
       IF ( NNEW == 0 ) THEN 
-         Pavg(:,:,:) = 0d0
-         Tavg(:,:,:) = 0d0
+         Pavg(:,:,:) = 0e+0_fp
+         Tavg(:,:,:) = 0e+0_fp
          NNEW        = 1
          NNCOUNT     = 0
       ENDIF
@@ -394,24 +398,29 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, I0, IREF, J, J0, JREF, N
-      REAL*8              :: DTSRCE,       AREA_M2
-      REAL*8,DIMENSION(7) :: DBGANTHRO
-      REAL*8,DIMENSION(3) :: DBGBIO
+      ! Scalars
+      INTEGER                  :: I, I0, IREF, J, J0, JREF, N
+      INTEGER                  :: FLAG, ERR
+      REAL(fp)                 :: DTSRCE, AREA_M2
+
+      ! Arrays
+      REAL(fp), DIMENSION(7)   :: DBGANTHRO
+      REAL(fp), DIMENSION(3)   :: DBGBIO
+
+      ! Strings
+      CHARACTER(LEN= 63)       :: DgnName
+      CHARACTER(LEN=255)       :: MSG
+      CHARACTER(LEN=255)       :: LOC = 'EMISSCH4 (global_ch4_mod.F)'
 
       ! For fields from Input_Opt
-      LOGICAL             :: ITS_A_CH4_SIM
-      LOGICAL             :: ITS_A_FULLCHEM_SIM
-      INTEGER             :: N_TRACERS
-      INTEGER             :: ID_TRACER(Input_Opt%N_TRACERS)
+      LOGICAL                  :: ITS_A_CH4_SIM
+      LOGICAL                  :: ITS_A_FULLCHEM_SIM
+      INTEGER                  :: N_TRACERS
+      INTEGER                  :: ID_TRACER(Input_Opt%N_TRACERS)
 
-      INTEGER                   :: FLAG, ERR
-      CHARACTER(LEN= 63)        :: DgnName
-      TYPE(HCO_STATE), POINTER  :: HcoState   => NULL()
-      REAL(hp), POINTER         :: Ptr2D(:,:) => NULL()
-
-      CHARACTER(LEN=255)        :: MSG
-      CHARACTER(LEN=255)        :: LOC = 'EMISSCH4 (global_ch4_mod.F)'
+      ! Pointers
+      TYPE(HCO_State), POINTER :: HcoState   => NULL()
+      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
 
       !=================================================================
       ! EMISSCH4 begins here!
@@ -456,7 +465,7 @@
       ! defined. 
       !                                              (ckeller, 9/12/2013)
       ! =================================================================
-      CH4_EMIS(:,:,:) = 0d0
+      CH4_EMIS(:,:,:) = 0e+0_fp
 
       ! =================================================================
       ! Pass emissions from HEMCO state to CH4_EMIS via HEMCO
@@ -748,8 +757,8 @@
          !===============================================================
 
          ! Debug counters
-         DBGANTHRO = 0d0
-         DBGBIO    = 0d0
+         DBGANTHRO = 0e+0_fp
+         DBGBIO    = 0e+0_fp
 
          DO J = 1,JJPAR
             JREF = J + J0
@@ -788,9 +797,9 @@
          ENDDO
 
          ! Convert from kg/s to kg/yr
-         DBGBIO(2)    = DBGBIO(2)*-1d0 ! Soil absorption
-         DBGANTHRO(:) = DBGANTHRO(:)*(3600.d-9*24d0*365.25d0)
-         DBGBIO(:)    = DBGBIO(:)*(3600.d-9*24d0*365.25d0)
+         DBGBIO(2)    = DBGBIO(2)*-1e+0_fp ! Soil absorption
+         DBGANTHRO(:) = DBGANTHRO(:)*(3600.e-9_fp*24e+0_fp*365.25e+0_fp)
+         DBGBIO(:)    = DBGBIO(:)*(3600.e-9_fp*24e+0_fp*365.25e+0_fp)
 
          ! SDE - Output projected annual emissions based on last output
          WRITE(6,'(a,1x,F10.4,1x,a)') 'CH4 anthrop. emissions rate:',
@@ -942,7 +951,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Weight of air (taken from "comode.h") 
-      REAL*8, PARAMETER      :: WTAIR = 28.966d0
+      REAL(fp), PARAMETER      :: WTAIR = 28.966e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -950,8 +959,8 @@
       INTEGER                :: I, J, L, K, M, N
       INTEGER                :: NPART
 
-      REAL*8                 :: PREVCH4(IIPAR, JJPAR, LLPAR)
-      REAL*8                 :: BOXVL  
+      REAL(fp)                 :: PREVCH4(IIPAR, JJPAR, LLPAR)
+      REAL(fp)                 :: BOXVL  
 
       ! Number of days per month
       INTEGER                :: NODAYS(12) = (/ 31, 28, 31, 30, 
@@ -965,7 +974,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER        :: STT(:,:,:,:)
 
       ! For error messages
       CHARACTER(LEN=255)    :: LOC = 'CHEMCH4 (global_ch4_mod.F)'
@@ -996,11 +1005,11 @@
       DO I = 1, IIPAR
 
          ! Grid box volume [cm3]
-         BOXVL           = State_Met%AIRVOL(I,J,L) * 1d6
+         BOXVL           = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
          ! Air density [molec/cm3]
-         BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1000d0   /
-     &                     BOXVL               * 6.023D23 / WTAIR
+         BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1000e+0_fp   /
+     &                     BOXVL               * 6.023e+23_fp / WTAIR
       ENDDO
       ENDDO
       ENDDO
@@ -1224,21 +1233,21 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J, L
-      REAL*8              :: DT, GCH4, STT2GCH4, KRATE
-      REAL*8              :: BOXVL
-      REAL*8              :: C_OH
+      REAL(fp)              :: DT, GCH4, STT2GCH4, KRATE
+      REAL(fp)              :: BOXVL
+      REAL(fp)              :: C_OH
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER     :: STT(:,:,:,:)
+      REAL(fp), POINTER     :: STT(:,:,:,:)
 
       !=================================================================
       ! CH4_DECAY begins here!
       !=================================================================
 
       ! Chemistry timestep in seconds
-      DT = GET_TS_CHEM() * 60d0
+      DT = GET_TS_CHEM() * 60e+0_fp
 
       !=================================================================
       ! Compute decay of CH4 by OH in the troposphere
@@ -1267,11 +1276,12 @@
 
             ! Use 24-hr avg temperature to calc. rate coeff.
             ! citation needed
-            KRATE = 2.45d-12 * EXP( -1775d0 / State_Met%T(I,J,L) )  
+            KRATE = 2.45e-12_fp * EXP( -1775e+0_fp / State_Met%T(I,J,L))
 
             ! Conversion from [kg/box] --> [molec/cm3]
             ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
-            STT2GCH4 = 1d0 / State_Met%AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4 
+            STT2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp 
+     &                 * XNUMOL_CH4 
 
             ! CH4 in [molec/cm3]
             GCH4 = STT(I,J,L,1) * STT2GCH4
@@ -1282,7 +1292,7 @@
 
 #if defined( USE_CH4_BUDGET_DIAG )
             ! Grid box volume [cm3]
-            BOXVL         = State_Met%AIRVOL(I,J,L) * 1d6
+            BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! Sum loss in TCH4(3) (molecules/box)
             TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
@@ -1303,7 +1313,7 @@
             ENDIF
 
             ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt) 
-            GCH4 = GCH4 * ( 1d0 - KRATE * C_OH * DT )
+            GCH4 = GCH4 * ( 1e+0_fp - KRATE * C_OH * DT )
 
             ! Convert back from [molec/cm3] --> [kg/box]
             STT(I,J,L,1) = GCH4 / STT2GCH4
@@ -1376,15 +1386,15 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: I, J, L
-      REAL*8               :: MASST,   AREA_CM2
-      REAL*8               :: KCLO,    LOSS,       OHMASS  
-      REAL*8               :: KCH4,    CH4LOSE,    CH4MASS
-      REAL*8               :: CH4EMIS, CH4TROPMASS
-      REAL*8               :: BOXVL
-      REAL*8               :: C_OH 
+      REAL(fp)               :: MASST,   AREA_CM2
+      REAL(fp)               :: KCLO,    LOSS,       OHMASS  
+      REAL(fp)               :: KCH4,    CH4LOSE,    CH4MASS
+      REAL(fp)               :: CH4EMIS, CH4TROPMASS
+      REAL(fp)               :: BOXVL
+      REAL(fp)               :: C_OH 
 
       ! Pointers
-      REAL*8, POINTER      :: STT(:,:,:,:)
+      REAL(fp), POINTER      :: STT(:,:,:,:)
 
       !=================================================================
       ! CH4_OHSAVE begins here!
@@ -1405,7 +1415,7 @@
          IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
 
             ! Grid box volume [cm3]
-            BOXVL  = State_Met%AIRVOL(I,J,L) * 1d6
+            BOXVL  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! OH concentration in molec/cm3. BOH is imported
             ! from HEMCO in kg/m3 (ckeller, 9/16/2014)
@@ -1419,7 +1429,7 @@
 
             ! Calculate CH3CCl3 + OH rate constant from JPL '06
             ! [cm3 / molec / s]
-            KCLO   = 1.64d-12 * EXP( -1520.d0 / State_Met%T(I,J,L) )
+            KCLO = 1.64e-12_fp * EXP( -1520.e+0_fp / State_Met%T(I,J,L))
 
             ! Calculate Loss term [molec / box / s]
             LOSS   = KCLO            * C_OH  *
@@ -1428,7 +1438,7 @@
 
             ! Calculate CH4 + OH rate constant from JPL '06
             ! [cm3 / molec / s]
-            KCH4   = 2.45d-12 * EXP( -1775d0 / State_Met%T(I,J,L) )
+            KCH4 = 2.45e-12_fp * EXP( -1775e+0_fp / State_Met%T(I,J,L) )
 
             ! Calculate CH4 mass [molec / box] from [kg / box]
             CH4TROPMASS = STT(I,J,L,1) * XNUMOL_CH4 
@@ -1443,9 +1453,9 @@
             ! Grid box surface area [cm2]
             ! HEMCO update: CH4_EMIS now in kg/m2/s (ckeller, 9/12/2014)
             IF ( L .GT. 1 ) THEN 
-               CH4EMIS = 0d0
+               CH4EMIS = 0e+0_fp
             ELSE
-               AREA_CM2 = GET_AREA_CM2( I, J, L ) / 10000.0d0         ! now in m2!!
+               AREA_CM2 = GET_AREA_CM2( I, J, L ) / 10000.0e+0_fp         ! now in m2!!
                CH4EMIS  = SUM(CH4_EMIS(I,J,2:10)) + CH4_EMIS(I,J,12)
                CH4EMIS  = CH4EMIS * AREA_CM2                          ! [kg/m2/s]  --> [kg/box/s]
                CH4EMIS  = CH4EMIS * XNUMOL_CH4                        ! [kg/box/s] --> [molec/box/s]
@@ -1453,12 +1463,12 @@
 
          ELSE
 
-            OHMASS      = 0d0
-            MASST       = 0d0
-            LOSS        = 0d0
-            CH4LOSE     = 0d0
-            CH4TROPMASS = 0d0
-            CH4EMIS     = 0d0
+            OHMASS      = 0e+0_fp
+            MASST       = 0e+0_fp
+            LOSS        = 0e+0_fp
+            CH4LOSE     = 0e+0_fp
+            CH4TROPMASS = 0e+0_fp
+            CH4EMIS     = 0e+0_fp
             CH4MASS     = STT(I,J,L,1) * XNUMOL_CH4 
 
          ENDIF
@@ -1550,13 +1560,13 @@
 ! !DEFINED PARAMETERS:
 !
       ! Weight of air (taken from "comode.h") 
-      REAL*8, PARAMETER   :: WTAIR = 28.966d0
+      REAL(fp), PARAMETER   :: WTAIR = 28.966e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J, L, BASELEV
-      REAL*8              :: DT, GCH4, STT2GCH4, LRATE
-      REAL*8              :: BOXVL
+      REAL(fp)              :: DT, GCH4, STT2GCH4, LRATE
+      REAL(fp)              :: BOXVL
 
       ! Local variables for quantities from Input_Opt
       LOGICAL             :: LUCX
@@ -1565,7 +1575,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER     :: STT(:,:,:,:)
+      REAL(fp), POINTER     :: STT(:,:,:,:)
 
 !      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
 
@@ -1584,7 +1594,7 @@
       IF ( .not. LUCX ) THEN
 
          ! Chemistry timestep [s]
-         DT  = GET_TS_CHEM() * 60d0
+         DT  = GET_TS_CHEM() * 60e+0_fp
 
          IF ( ITS_A_FULLCHEM_SIM ) THEN
             
@@ -1597,11 +1607,11 @@
             DO I = 1, IIPAR
 
                ! Grid box volume [cm3]
-               BOXVL           = State_Met%AIRVOL(I,J,L) * 1d6
+               BOXVL           = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
                ! Air density [molec/cm3]
-               BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1d3      / 
-     &                           BOXVL               * 6.023d23 /
+               BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1e+3_fp      / 
+     &                           BOXVL               * 6.023e+23_fp /
      &                           WTAIR
             ENDDO
             ENDDO
@@ -1616,7 +1626,7 @@
             !=============================================================
 !            IF ( FIRSTCHEM ) THEN
 !               ! Zero CO production array
-!               COPROD(:,:,:) = 0d0
+!               COPROD(:,:,:) = 0e+0_fp
 !               !print*,'READ_COPROD'
 !               ! Read zonally-averaged CO production [v/v/s]
 !               CALL READ_COPROD( am_I_Root, Input_Opt, RC )
@@ -1639,7 +1649,7 @@
 
                ! Conversion factor [kg/box] --> [molec/cm3]
                ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
-               STT2GCH4 = 1d0 / State_Met%AIRVOL(I,J,L) / 1d6 *
+               STT2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp *
      &                    XNUMOL_CH4
 
                ! CH4 in [molec/cm3]
@@ -1769,9 +1779,9 @@
 !
       INTEGER             :: I, J, K, L, M, NERROR, UD
 
-      REAL*8              :: STTCONV, TGS, SCALEDYN
-      REAL*8              :: NTP, NTQ, NTP2, NTQ2 
-      REAL*8              :: SOURCES, SINKS
+      REAL(fp)              :: STTCONV, TGS, SCALEDYN
+      REAL(fp)              :: NTP, NTQ, NTP2, NTQ2 
+      REAL(fp)              :: SOURCES, SINKS
 
       CHARACTER(LEN=17)   :: MERGE
 
@@ -1792,7 +1802,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CH4_BUDGET begins here!
@@ -1818,7 +1828,7 @@
 !      UNIT      = 'Tg'  !(NOTE: check w/ bnd to get the right units!!!)
 
       ! Scale factor for dynamic time steps
-      SCALEDYN  = FLOAT( GET_CT_DYN() ) + 1D-20
+      SCALEDYN  = FLOAT( GET_CT_DYN() ) + 1e-20_fp
 
       !=================================================================
       ! Store the final burden of CH4 in TCH4(2) 
@@ -1828,7 +1838,7 @@
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
-      TCH4(:,:,:,2) = 0d0
+      TCH4(:,:,:,2) = 0e+0_fp
       TCH4(:,:,:,2) = STT(:,:,:,1) * XNUMOL_CH4
 
       ! Free pointer
@@ -1843,10 +1853,10 @@
       OPEN( 189, FILE=MERGE, STATUS='UNKNOWN' )
       REWIND( 189 )
       
-      TGS     = 1.D-9
+      TGS     = 1.e-9_fp
       STTCONV = XNUMOL_CH4/TGS
-      SOURCES = 0.D0
-      SINKS   = 0.D0
+      SOURCES = 0.e+0_fp
+      SINKS   = 0.e+0_fp
       NERROR  = 0
       
       WRITE(189,18)
@@ -1888,8 +1898,8 @@
       NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,0,State_Met)
       SINKS=NTP+NTQ
 
-      WRITE(189,22) NTP,NTP/SINKS*100.D0,NTP/STTCONV
-      WRITE(189,220) NTQ,NTQ/SINKS*100.D0,NTQ/STTCONV
+      WRITE(189,22) NTP,NTP/SINKS*100.e+0_fp,NTP/STTCONV
+      WRITE(189,220) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/STTCONV
       WRITE(189,29) 
       WRITE(189,34) SINKS,SINKS/STTCONV  !Just OH sink 
       WRITE(189,18)
@@ -1900,23 +1910,23 @@
       SOURCES=NTP
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,5,5,1,State_Met)
-      WRITE(189,24) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,9,9,1,State_Met)
-      WRITE(189,27) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,6,6,1,State_Met)
-      WRITE(189,39) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,7,7,1,State_Met)
-      WRITE(189,25) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,8,8,1,State_Met)
-      WRITE(189,26) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       !jsw Following lines added by jsw.
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,10,10,1,State_Met)
-      WRITE(189,35) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,35) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       SINKS=SINKS-NTP  !Minus sign because soil absorption is negative.
 
@@ -1940,8 +1950,8 @@
       ! jsw:  I have not modified the remaining code for CH4.
       !================================================================= 
 
-      SOURCES = 0.D0
-      SINKS   = 0.D0
+      SOURCES = 0.e+0_fp
+      SINKS   = 0.e+0_fp
 
       WRITE(189,18)
       WRITE(189,18)
@@ -1968,23 +1978,24 @@
 
       ! Sinks
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
-      IF( NTP > 0d0) SINKS = SINKS + NTP
+      IF( NTP > 0e+0_fp) SINKS = SINKS + NTP
 
-      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
-      IF( NTP2 > 0d0 ) SINKS = SINKS + NTP2      
+      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/
+     &     2+1,1,LLPAR,11,11,0,State_Met)
+      IF( NTP2 > 0e+0_fp ) SINKS = SINKS + NTP2      
 
       NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,State_Met)
       NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,State_Met)
       SINKS=SINKS+NTQ+NTQ2
-      WRITE(189,22) NTQ,NTQ/SINKS*100.D0,NTQ/STTCONV
-      WRITE(189,220) NTQ2,NTQ2/SINKS*100.D0,NTQ2/STTCONV
+      WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/STTCONV
+      WRITE(189,220) NTQ2,NTQ2/SINKS*100.e+0_fp,NTQ2/STTCONV
  
-      IF(NTP.GE.0.D0) THEN
-         WRITE(189,270) NTP,NTP/SINKS*100.D0,NTP/STTCONV
+      IF(NTP.GE.0.e+0_fp) THEN
+         WRITE(189,270) NTP,NTP/SINKS*100.e+0_fp,NTP/STTCONV
       ENDIF
 
-      IF(NTP.GE.0.D0) THEN
-         WRITE(189,2700) NTP,NTP/SINKS*100.D0,NTP/STTCONV
+      IF(NTP.GE.0.e+0_fp) THEN
+         WRITE(189,2700) NTP,NTP/SINKS*100.e+0_fp,NTP/STTCONV
       ENDIF
       
       WRITE(189,29)
@@ -1997,48 +2008,49 @@
       NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0,State_Met)
       SOURCES=NTQ+NTQ2
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
-      IF(NTP.LT.0.D0) THEN
+      IF(NTP.LT.0.e+0_fp) THEN
          SOURCES=SOURCES-NTP
       ENDIF
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
-      IF(NTP.LT.0.D0) THEN
+      IF(NTP.LT.0.e+0_fp) THEN
          SOURCES=SOURCES-NTP
       ENDIF
       
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,1,State_Met)
       NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0,State_Met)
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,5,5,1,State_Met)
-      WRITE(189,24) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,6,6,1,State_Met)
-      WRITE(189,39) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,7,7,1,State_Met)
-      WRITE(189,25) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,8,8,1,State_Met)
-      WRITE(189,26) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,9,9,1,State_Met)
-      WRITE(189,27) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
       
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
-      IF(NTP.LT.0.D0) THEN
-         WRITE(189,270) -NTP,-NTP/SOURCES*100.D0,-NTP/STTCONV
+      IF(NTP.LT.0.e+0_fp) THEN
+         WRITE(189,270) -NTP,-NTP/SOURCES*100.e+0_fp,-NTP/STTCONV
       ENDIF
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
-      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
-      IF( NTP2 > 0d0 ) SINKS = SINKS + NTP2      
+      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,
+     &     JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
+      IF( NTP2 > 0e+0_fp ) SINKS = SINKS + NTP2      
 
       NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,State_Met)
       NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,State_Met)
       SINKS=SINKS+NTQ+NTQ2
-      WRITE(189,22) NTQ,NTQ/SINKS*100.D0,NTQ/STTCONV
+      WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/STTCONV
 
-      IF(NTP.LT.0.D0) THEN
-         WRITE(189,2700) -NTP,-NTP/SOURCES*100.D0,-NTP/STTCONV
+      IF(NTP.LT.0.e+0_fp) THEN
+         WRITE(189,2700) -NTP,-NTP/SOURCES*100.e+0_fp,-NTP/STTCONV
       ENDIF
       
       WRITE(189,29)
@@ -2061,8 +2073,8 @@
       ! jsw:  I have not modified the remaining code for CH4.
       !================================================================= 
 
-      SOURCES = 0.D0
-      SINKS   = 0.D0
+      SOURCES = 0.e+0_fp
+      SINKS   = 0.e+0_fp
 
       WRITE(189,18)
       WRITE(189,18)
@@ -2094,25 +2106,25 @@
       SINKS=NTQ+NTQ2
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
-      IF(NTP.LT.0.D0) THEN
+      IF(NTP.LT.0.e+0_fp) THEN
          SINKS=SINKS-NTP
       ENDIF
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
-      IF(NTP.LT.0.D0) THEN
+      IF(NTP.LT.0.e+0_fp) THEN
          SINKS=SINKS-NTP
       ENDIF
 
-      WRITE(189,22) NTQ,NTQ/SINKS*100.D0,NTQ/STTCONV
-      WRITE(189,220) NTQ2,NTQ2/SINKS*100.D0,NTQ2/STTCONV
+      WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/STTCONV
+      WRITE(189,220) NTQ2,NTQ2/SINKS*100.e+0_fp,NTQ2/STTCONV
       
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
-      IF(NTP.LT.0.D0) THEN
-         WRITE(189,270) -NTP,-NTP/SINKS*100.D0,-NTP/STTCONV
+      IF(NTP.LT.0.e+0_fp) THEN
+         WRITE(189,270) -NTP,-NTP/SINKS*100.e+0_fp,-NTP/STTCONV
       ENDIF
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
-      IF(NTP.LT.0.D0) THEN
-         WRITE(189,2700) -NTP,-NTP/SINKS*100.D0,-NTP/STTCONV
+      IF(NTP.LT.0.e+0_fp) THEN
+         WRITE(189,2700) -NTP,-NTP/SINKS*100.e+0_fp,-NTP/STTCONV
       ENDIF
 
       WRITE(189,29)
@@ -2126,11 +2138,11 @@
       SOURCES=NTQ+NTQ2
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
-      IF(NTP.GE.0.D0) THEN
+      IF(NTP.GE.0.e+0_fp) THEN
          SOURCES=SOURCES+NTP
       ENDIF
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,,State_Met0)
-      IF(NTP.GE.0.D0) THEN
+      IF(NTP.GE.0.e+0_fp) THEN
          SOURCES=SOURCES+NTP
       ENDIF
       
@@ -2139,28 +2151,28 @@
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0,State_Met)
       
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,5,5,1,State_Met)
-      WRITE(189,24) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,6,6,1,State_Met)
-      WRITE(189,39) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,7,7,1,State_Met)
-      WRITE(189,25) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,8,8,1,State_Met)
-      WRITE(189,26) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,9,9,1,State_Met)
-      WRITE(189,27) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
-      IF(NTP.GE.0.D0) THEN
-         WRITE(189,270) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      IF(NTP.GE.0.e+0_fp) THEN
+         WRITE(189,270) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
       ENDIF
 
       NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
-      IF(NTP.GE.0.D0) THEN
-         WRITE(189,2700) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
+      IF(NTP.GE.0.e+0_fp) THEN
+         WRITE(189,2700) NTP,NTP/SOURCES*100.e+0_fp,NTP/STTCONV
       ENDIF
 
       WRITE(189,29)
@@ -2216,7 +2228,7 @@
 !
 !     DO K = 1, N_CH4
 !       
-!        ! Cast REAL*8 into REAL*4, convert from molec to Tg
+!        ! Cast REAL(fp) into REAL*4, convert from molec to Tg
 !        ARRAY(:,:,:) = TCH4(:,:,:,K) / STTCONV
 !       
 !        ! Save the data block 
@@ -2234,7 +2246,7 @@
       ! of next month.  Also set TCH4 = 0 for next month.
       !=================================================================
       TCH4(:,:,:,1      ) = TCH4(:,:,:,2)
-      TCH4(:,:,:,2:N_CH4) = 0d0
+      TCH4(:,:,:,2:N_CH4) = 0e+0_fp
 	
       END SUBROUTINE CH4_BUDGET
 !EOC
@@ -2255,7 +2267,7 @@
 !\\
 ! !INTERFACE:
 !
-      REAL*8 FUNCTION SUM_CH4( I1, I2, J1, J2, L1, L2, K1, K2, UPDOWN,
+      REAL(fp) FUNCTION SUM_CH4( I1, I2, J1, J2, L1, L2, K1, K2, UPDOWN,
      &                         State_Met )
 !
 ! !USES:
@@ -2323,7 +2335,7 @@
       !print*,'L1,L2=',L1,L2
       
       ! Initialize SUM_CH4
-      SUM_CH4 = 0d0
+      SUM_CH4 = 0e+0_fp
 
       ! Test on UPDOWN
       IF ( UPDOWN == 1 ) THEN
@@ -2390,7 +2402,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8                        :: PREVCH4(IIPAR,JJPAR,LLPAR)! CH4 bef chem
+      REAL(fp)                        :: PREVCH4(IIPAR,JJPAR,LLPAR)! CH4 bef chem
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -2414,7 +2426,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !========================================================================
       ! CH4_DISTRIB begins here
@@ -2435,7 +2447,7 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            STT(I,J,L,N) = SAFE_DIV(STT(I,J,L,N),PREVCH4(I,J,L),0.d0)  
+           STT(I,J,L,N) = SAFE_DIV(STT(I,J,L,N),PREVCH4(I,J,L),0.e+0_fp)
      &                     * STT(I,J,L,1)
          ENDDO
          ENDDO
@@ -2479,7 +2491,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8 :: CH4_ANTHRO   ! Anthro CH4 emissions [molec/cm2/s]
+      REAL(fp) :: CH4_ANTHRO   ! Anthro CH4 emissions [molec/cm2/s]
 ! 
 ! !REVISION HISTORY: 
 !  24 Jan 2012 - M. Payer    - Initial version adapted from GET_RETRO_ANTHRO
@@ -2503,7 +2515,7 @@
       IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
          CH4_ANTHRO = SUMANTHRO(I,J)
       ELSE
-         CH4_ANTHRO = -1d0
+         CH4_ANTHRO = -1e+0_fp
       ENDIF
 
       END FUNCTION GET_CH4_ANTHRO
@@ -2538,7 +2550,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8  :: CH4_BIOG   ! Biogenic CH4 emissions [molec/cm2/s]
+      REAL(fp)  :: CH4_BIOG   ! Biogenic CH4 emissions [molec/cm2/s]
 ! 
 ! !REVISION HISTORY: 
 !  24 Jan 2012 - M. Payer    - Initial version adapted from GET_RETRO_ANTHRO
@@ -2562,7 +2574,7 @@
       IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
          CH4_BIOG = SUMBIOG(I,J)
       ELSE
-         CH4_BIOG = -1d0
+         CH4_BIOG = -1e+0_fp
       ENDIF
 
       END FUNCTION GET_CH4_BIOG
@@ -2625,53 +2637,53 @@
 
 !      ALLOCATE( AVGOH( NSEAS, NCMSLATS, NCMSALTS ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGOH' )
-!      AVGOH = 0d0
+!      AVGOH = 0e+0_fp
 
       ALLOCATE( BAIRDENS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BAIRDENS' )
-      BAIRDENS = 0d0
+      BAIRDENS = 0e+0_fp
 
 !      ALLOCATE( BOH( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BOH' )
-!      BOH = 0d0
+!      BOH = 0e+0_fp
 
 !      ALLOCATE( COPROD( JJPAR, LLPAR, 12 ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COPROD' )
-!      COPROD = 0d0
+!      COPROD = 0e+0_fp
 
 !      ALLOCATE( CH4LOSS( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
 !      ALLOCATE( CH4LOSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4LOSS' )
-!      CH4LOSS = 0d0
+!      CH4LOSS = 0e+0_fp
 
       ALLOCATE( PAVG( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PAVG' )
-      PAVG = 0d0
+      PAVG = 0e+0_fp
 
       ALLOCATE( TAVG( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAVG' )
-      TAVG = 0d0
+      TAVG = 0e+0_fp
 
 #if defined( USE_CH4_BUDGET_DIAG )
       ALLOCATE( TCH4( IIPAR, JJPAR, LLPAR, N_CH4 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCH4' )
-      TCH4 = 0d0      
+      TCH4 = 0e+0_fp      
 #endif
 
       ALLOCATE( CH4_EMIS( IIPAR, JJPAR, PD58), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
-      CH4_EMIS = 0d0
+      CH4_EMIS = 0e+0_fp
 
       ALLOCATE( SUMANTHRO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMANTHRO' )
-      SUMANTHRO = 0d0
+      SUMANTHRO = 0e+0_fp
 
       ALLOCATE( SUMBIOG( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMBIOG' )
-      SUMBIOG = 0d0
+      SUMBIOG = 0e+0_fp
 
       ! Initialize tropoch4 (counts total decay of CH4 due to OH)
-      TROPOCH4 = 0d0
+      TROPOCH4 = 0e+0_fp
 
       END SUBROUTINE INIT_GLOBAL_CH4
 !EOC

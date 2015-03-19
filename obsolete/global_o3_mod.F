@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -26,12 +28,12 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !            
-      PUBLIC              :: O3
-      REAL*8, ALLOCATABLE :: O3(:,:,:)        ! Global monthly mean OH field
+      PUBLIC                :: O3
+      REAL(fp), ALLOCATABLE :: O3(:,:,:)        ! Global monthly mean OH field
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE             :: INIT_GLOBAL_O3
+      PRIVATE               :: INIT_GLOBAL_O3
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references "directory_mod.f" (bmy, 7/20/04)
@@ -45,6 +47,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -85,7 +88,11 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  This will be made obsolete with the implementation of HEMCO.
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
 !
 ! !REVISION HISTORY: 
 !  23 Mar 2003 - R. Yantosca - Initial version
@@ -109,15 +116,16 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  20 Jun 2014 - R. Yantosca - Now use Input_Opt instead of directory_mod
 !  05 Sep 2014 - R. Yantosca - Add hack to read GCAP met field, for unit tests
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4               :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL*4               :: ARRAY2(IIPAR,JJPAR,LLPAR)
-      REAL*8               :: XTAU
+      REAL(f4)             :: ARRAY(IIPAR,JJPAR,LGLOB)
+      REAL(f4)             :: ARRAY2(IIPAR,JJPAR,LLPAR)
+      REAL(f8)             :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
 
       ! First time flag
@@ -144,10 +152,12 @@
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
       ! Need to handle the nested-resolution file, Y. Zhang 11/1/2011
       FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
+     &           TRIM( Input_Opt%RES_DIR  )                 //
      &           'mercury_201203/MERGE.O3.47L.'             //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 #else
       FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
+     &           TRIM( Input_Opt%RES_DIR  )                 //
      &           'sulfate_sim_200508/offline/MERGE.O3.47L.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 #endif
@@ -156,6 +166,7 @@
 
       ! Filename for 72-level model
       FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
+     &           TRIM( Input_Opt%RES_DIR  )                 //
      &           'sulfate_sim_200508/offline/MERGE.O3.'     //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
@@ -167,6 +178,7 @@
       ! GCAP
       !----------------------------------------------------------------
       FILENAME = TRIM( Input_Opt%DATA_DIR ) //  
+     &           TRIM( Input_Opt%RES_DIR  ) //
      &           'POPs_201209/MERGE.O3.gcap.4x5'
 
 #else
@@ -178,6 +190,7 @@
 
       ! Filename for 30-level model
       FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
+     &           TRIM( Input_Opt%RES_DIR  )                 //
      &           'sulfate_sim_200508/offline/MERGE.O3.30L.' // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
@@ -186,6 +199,7 @@
 
       ! Filename for full vertical grid
       FILENAME = TRIM( Input_Opt%DATA_DIR )                 // 
+     &           TRIM( Input_Opt%RES_DIR  )                 //
      &           'sulfate_sim_200508/offline/MERGE.O3.'     // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
@@ -271,7 +285,7 @@
       !=================================================================
       ALLOCATE( O3( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'O3' )
-      O3 = 0d0
+      O3 = 0e+0_fp
 
       END SUBROUTINE INIT_GLOBAL_O3
 !EOC      

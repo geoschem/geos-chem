@@ -19,12 +19,16 @@
       ! References to F90 modules
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
-      USE DIAG_MOD,           ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
-      USE DIAG_MOD,           ONLY : AD47, AD67, AD68, AD69, LTOTH
+      USE DIAG_MOD,           ONLY : AD30, AD31, AD33, AD35, AD54 
+      USE DIAG_MOD,           ONLY : AD47, AD67, AD69
       USE DIAG_MOD,           ONLY : AD57, AD71
+#if !defined(NO_BPCH)
+      USE DIAG_MOD,           ONLY : AD45, AD68, LTOTH
+#endif
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
       USE DIAG_MOD,           ONLY : AD71_COUNT, AD71_HRCT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -47,9 +51,13 @@
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! Diagnostic arrays & parameters
-      USE CMN_GCTM_MOD             ! Physical constants
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE CMN_GCTM_MOD
+
+      USE PRECISION_MOD
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+      USE HCO_ERROR_MOD
 
       IMPLICIT NONE
 !
@@ -129,6 +137,9 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  29 Aug 2013 - R. Yantosca - In ND57, we need to make ND57 !$OMP PRIVATE
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  20 Jan 2015 - R. Yantosca - Added new netCDF diagnostics
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -139,24 +150,29 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
-      INTEGER :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
-      REAL*8  :: FDTT, XLOCTM, AREA_M2
+      LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
+      INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
+      REAL(fp)           :: FDTT, XLOCTM, AREA_M2
 #if   defined( APM ) 
-      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,
-     &                  Input_Opt%N_TRACERS+N_APMTRA)
-#else
-      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
+      REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
+     &                             Input_Opt%N_TRACERS+N_APMTRA)
+#else 
+      REAL(fp), TARGET   :: STT_VV(IIPAR,JJPAR,LLPAR,
+     &                             Input_Opt%N_TRACERS)
 #endif 
 
-      !FOR ND57
       ! For FP potential temperature (hotp 7/31/09)
-      REAL*8  :: P0
+      REAL(fp)          :: P0
 
       ! For fields from Input_Opt
-      LOGICAL :: ITS_A_FULLCHEM_SIM
-      INTEGER :: N_TRACERS
-      REAL*8  :: TCVV(Input_Opt%N_TRACERS)
+      LOGICAL            :: ITS_A_FULLCHEM_SIM
+      INTEGER            :: N_TRACERS
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
+
+      ! For netCDF diagnostics via HEMCO
+      INTEGER            :: HCRC
+      REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+      CHARACTER(LEN=255) :: DiagnName
 
       !=================================================================
       ! DIAG1 begins here!
@@ -193,7 +209,7 @@
          DO I = 1, IIPAR
             STT_VV(I,J,L,N) = 
      &         MAX( State_Chm%Tracers(I,J,L,N) * TCVV(N) /
-     &              State_Met%AD(I,J,L), 0d0 )
+     &              State_Met%AD(I,J,L), 0e+0_fp )
          ENDDO
          ENDDO
          ENDDO
@@ -220,13 +236,13 @@
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
      &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
      &                      TCVV(ID_Hg2(ID_Hg_tot)) /
-     &                      State_Met%AD(I,J,L) *1D12 
+     &                      State_Met%AD(I,J,L) *1e+12_fp
 
           ! Reactive particulate mercury, PBM
           AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
      &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
      &                      TCVV(ID_HgP(ID_Hg_tot)) / 
-     &                      State_Met%AD(I,J,L) *1D12
+     &                      State_Met%AD(I,J,L) *1e+12_fp
                                                        
         ENDDO
         ENDDO
@@ -316,6 +332,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+#if !defined( NO_BPCH )
       !================================================================= 
       ! ND45: Tracer (V/V) at level 1 to level LD45, averaged over 
       !       the time period OTH_HR1 to OTH_HR2.  
@@ -344,6 +361,7 @@
          ENDDO   
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       !================================================================= 
       ! ND47: Tracer (V/V) at level 1 to level LD45, 
@@ -424,6 +442,7 @@
          ENDDO
       ENDIF
 
+#if !defined( NO_BPCH )
       !================================================================= 
       ! ND68: Quantity 1: BXHEIGHT(I,J,L) in meters 
       !       Quantity 2: AD(I,J,L)       in kg
@@ -445,7 +464,7 @@
          DO I = 1, IIPAR
             AD68(I,J,L,1) = AD68(I,J,L,1) + State_Met%BXHEIGHT(I,J,L)
             AD68(I,J,L,2) = AD68(I,J,L,2) + State_Met%AD(I,J,L)
-            AD68(I,J,L,4) = AD68(I,J,L,4) + State_Met%AIRDEN(L,I,J) *
+            AD68(I,J,L,4) = AD68(I,J,L,4) + State_Met%AIRDEN(I,J,L) *
      &                      XNUMOLAIR
 
             ! Make sure AVGW is now allocated (bmy, 9/25/01)
@@ -457,6 +476,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       !================================================================= 
       ! ND69: Grid box surface areas [m2]
@@ -521,6 +541,104 @@
          AD71_LHR = GET_HOUR()
          AD71_HRCT = AD71_HRCT + 1
       ENDIF
+
+!##############################################################################
+!###                                                                        ###
+!###   NEW GEOS-Chem DIAGNOSTICS VIA HEMCO LINKED LIST --> netCDF output    ###
+!###                                                                        ###
+!##############################################################################
+
+#if defined( DEVEL )
+      !=================================================================
+      ! ND45: Tracer concentrations (new diagnostic structure)
+      !=================================================================
+      IF ( Input_Opt%ND45 > 0 ) THEN
+
+         ! Loop over all tracers
+         DO N = 1, Input_Opt%N_TRACERS
+
+            ! If this tracer number NN is scheduled for output in input.geos,
+            ! then archive the latest depvel data into the diagnostic structure
+            IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
+
+               ! Construct diagnostic name
+               DiagnName = 'TRACER_CONC_' // 
+     &                      TRIM( Input_Opt%TRACER_NAME(N) )
+
+               ! Point to the proper slice of the DEPSAV array
+               Ptr3D => STT_VV(:,:,:,N)
+
+               ! Update the deposition velocity diagostics
+               CALL Diagn_Update( am_I_Root,
+     &                            cName   = TRIM( DiagnName ),
+     &                            Array3D = Ptr3D,
+     &                            COL     = Input_Opt%DIAG_COLLECTION,
+     &                            RC      = HCRC )
+
+               ! Free the pointer
+               Ptr3D => NULL()
+
+               ! STOP wieth error if the diagnostics were unsuccessful
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP(
+     &                 'Cannot update TRACER_CONC diag diagnostics',
+     &                 'DIAG1 (diag1.F)')
+               ENDIF
+            ENDIF
+         ENDDO
+      ENDIF
+
+      !================================================================= 
+      ! ND68: Quantity 1: BXHEIGHT(I,J,L) in meters 
+      !       Quantity 2: AD(I,J,L)       in kg
+      !       Quantity 3: AVGW(I,J,L)     in v/v
+      !       Quantity 4: N_AIR(I,J,L)    in molecules air / m3
+      !
+      ! NOTE: AVGW is now an allocatable array from "dao_mod.f"
+      !================================================================= 
+      IF ( ND68 > 0 ) THEN
+
+         ! There are four diagnostics
+         DO I = 1,4
+
+            ! Construct diagnostic name and get proper array
+            SELECT CASE ( I ) 
+               CASE ( 1 ) 
+                  DiagnName = 'BOXHEIGHT'
+                  Ptr3D => State_Met%BXHEIGHT
+               CASE ( 2 ) 
+                  DiagnName = 'AIRMASS'
+                  Ptr3D => State_Met%AD
+               CASE ( 3 ) 
+                  DiagnName = 'AIRDENS'
+                  Ptr3D => State_Met%AIRDEN
+               CASE ( 4 ) 
+                  IF ( .NOT. ASSOCIATED(State_Met%AVGW) ) CYCLE 
+                  DiagnName = 'AVGW'
+                  Ptr3D => State_Met%BXHEIGHT
+            END SELECT
+ 
+            ! Update diagnostics
+            IF ( ASSOCIATED(Ptr3D) ) THEN 
+               CALL Diagn_Update( am_I_Root,
+     &                            cName   = TRIM( DiagnName ),
+     &                            Array3D = Ptr3D,
+     &                            COL     = Input_Opt%DIAG_COLLECTION,
+     &                            RC      = HCRC )
+
+               ! Free the pointer
+               Ptr3D => NULL()
+   
+               ! STOP with error if the diagnostics were unsuccessful
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP(
+     &                 'Cannot update diagnostics '//TRIM(DiagnName),  
+     &                 'DIAG1 (diag1.F)')
+               ENDIF
+            ENDIF   
+         ENDDO
+      ENDIF
+#endif
 
       END SUBROUTINE DIAG1
 !EOC

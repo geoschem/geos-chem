@@ -25,9 +25,11 @@ MODULE HCO_CharTools_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC :: HCO_Char_Set
   PUBLIC :: HCO_CharSplit
   PUBLIC :: HCO_CharMatch
   PUBLIC :: HCO_CharParse
+  PUBLIC :: HCO_GetBase
   PUBLIC :: IsInWord
   PUBLIC :: NextCharPos
   PUBLIC :: HCO_WCD
@@ -71,6 +73,11 @@ MODULE HCO_CharTools_Mod
   CHARACTER(LEN=1), PARAMETER :: DEF_SEPARATOR = '/'
   CHARACTER(LEN=1), PARAMETER :: DEF_WILDCARD  = '*'
 
+  ! Values to be used
+  CHARACTER(LEN=1)            :: COL           = DEF_COLON
+  CHARACTER(LEN=1)            :: SEP           = DEF_SEPARATOR
+  CHARACTER(LEN=1)            :: WCD           = DEF_WILDCARD
+
   !---------------------------------------------------------------------------
   ! Default tokens
   ! HEMCO has three tokens that can be specified in the HEMCO configuration
@@ -113,6 +120,11 @@ MODULE HCO_CharTools_Mod
 #else
   CHARACTER(LEN=15),   PARAMETER :: DEF_RES = 'unknown_res'
 #endif
+
+  ! These are the values to be used
+  CHARACTER(LEN=1023)            :: ROOT = DEF_ROOT
+  CHARACTER(LEN=  15)            :: MET  = DEF_MET
+  CHARACTER(LEN=  15)            :: RES  = DEF_RES
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -642,6 +654,157 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: HCO_GetBase
+!
+! !DESCRIPTION: Routine HCO\_GetBase returns the base location of the given
+! file. This is the entire file path up to the last forward slash, e.g. for
+! file '/home/dir/Config.rc', the base is '/home/dir/'
+!
+! !INTERFACE:
+!
+  SUBROUTINE HCO_GetBase ( str, base, RC ) 
+!
+! !USES:
+!
+    USE CharPak_Mod, ONLY : StrSplit
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN   )  :: str   ! string to be checked 
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(  OUT)  :: base  ! base 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC         ! return code
+!
+! !REVISION HISTORY:
+!  16 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: I, N
+    CHARACTER(LEN=255)  :: SUBSTR(255)
+
+    !=================================================================
+    ! HCO_GetBase begins here
+    !=================================================================
+
+    CALL STRSPLIT( str, '/', SUBSTR, N )
+    IF ( N <= 1 ) THEN
+       base = '.'
+    ELSE
+       base = '/' // TRIM(SUBSTR(1)) 
+       IF ( N > 2 ) THEN
+          DO I = 2,(N-1)
+             base = TRIM(base) // '/' // TRIM(SUBSTR(I)) 
+          ENDDO
+       ENDIF
+    ENDIF
+
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_GetBase
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_Char_Set
+!
+! !DESCRIPTION: Subroutine HCO\_Char\_Set initializes the character
+!  values and tokens. They can be set specifically in the HEMCO settings 
+!  section, and HCO\_Char\_Set should thus be called after the HEMCO
+!  settings have been read. It is automatically read in HCO\_Config\_Mod 
+!  (in routine Config\_ReadFile).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCO_Char_Set ( RC )
+!
+! !USES:
+!
+    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt, CoreNr
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT) :: RC 
+! 
+! !REVISION HISTORY: 
+!  14 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL                     :: FOUND
+
+    !=================================================================
+    ! HCO_Char_Set begins here!
+    !=================================================================
+
+    ! Wildcard character
+    CALL GetExtOpt( -999, 'Wildcard', OptValChar=WCD, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND) THEN
+       WCD = DEF_WILDCARD
+    ENDIF
+
+    ! Separator
+    CALL GetExtOpt( -999, 'Separator', OptValChar=SEP, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND) THEN
+       SEP = DEF_SEPARATOR
+    ENDIF
+
+    ! Colon
+    CALL GetExtOpt( -999, 'Colon', OptValChar=COL, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND) THEN
+       COL = DEF_COLON
+    ENDIF
+
+    ! Root directory
+    CALL GetExtOpt( -999, 'ROOT', OptValChar=ROOT, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND) THEN
+       ROOT = DEF_ROOT
+    ENDIF
+
+    ! Meteorology token
+    CALL GetExtOpt( -999, 'MET', OptValChar=MET, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND) THEN
+       MET = DEF_MET
+    ENDIF
+
+    ! Resolution token
+    CALL GetExtOpt( CoreNr, 'RES', OptValChar=RES, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) THEN 
+       RES = DEF_RES
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE HCO_Char_Set
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: IsInWord
 !
 ! !DESCRIPTION: Function IsInWord checks if the word InString contains the 
@@ -754,7 +917,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
 !
 ! !ARGUMENTS:
 !
@@ -762,26 +924,13 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    LOGICAL,          SAVE      :: FIRST = .TRUE.
-    CHARACTER(LEN=1), SAVE      :: WCD
-    LOGICAL                     :: FOUND
-    INTEGER                     :: myRC
 
     !======================================================================
     ! HCO_WCD begins here 
     !======================================================================
-
-    ! On first call, check if WildCard character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'Wildcard', OptValChar=WCD, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) WCD = DEF_WILDCARD 
-       FIRST = .FALSE.
-    ENDIF
 
     ! Return
     WILDCARD = WCD
@@ -808,7 +957,6 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -836,36 +984,19 @@ CONTAINS
 !
   FUNCTION HCO_SEP() RESULT( SEPARATOR )
 !
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
-!
 ! !ARGUMENTS:
 !
     CHARACTER(LEN=1) :: SEPARATOR 
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    LOGICAL,          SAVE      :: FIRST = .TRUE.
-    CHARACTER(LEN=1), SAVE      :: SEP
-    LOGICAL                     :: FOUND
-    INTEGER                     :: myRC
 
     !======================================================================
     ! HCO_SEP begins here 
     !======================================================================
-
-    ! On first call, check if Separator character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'Separator', OptValChar=SEP, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) SEP = DEF_SEPARATOR
-       FIRST = .FALSE.
-    ENDIF
 
     ! Return wildcard character
     SEPARATOR = SEP
@@ -886,36 +1017,19 @@ CONTAINS
 !
   FUNCTION HCO_COL() RESULT( COLON )
 !
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
-!
 ! !ARGUMENTS:
 !
     CHARACTER(LEN=1) :: COLON 
 !
 ! !REVISION HISTORY:
 !  23 Sep 2013 - C. Keller - Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    LOGICAL,          SAVE      :: FIRST = .TRUE.
-    CHARACTER(LEN=1), SAVE      :: COL
-    LOGICAL                     :: FOUND
-    INTEGER                     :: myRC
 
     !======================================================================
     ! HCO_COL begins here 
     !======================================================================
-
-    ! On first call, check if Colon character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'Colon', OptValChar=COL, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) COL = DEF_COLON
-       FIRST = .FALSE.
-    ENDIF
 
     ! Return 
     COLON = COL
@@ -936,10 +1050,6 @@ CONTAINS
 !
   FUNCTION HCO_ROOTTOKEN() RESULT( ROOTOUT )
 !
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
-!
 ! !ARGUMENTS:
 !
     CHARACTER(LEN=2047) :: ROOTOUT
@@ -950,22 +1060,10 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    LOGICAL,             SAVE   :: FIRST = .TRUE.
-    CHARACTER(LEN=1023), SAVE   :: ROOT 
-    LOGICAL                     :: FOUND
-    INTEGER                     :: myRC
 
     !======================================================================
     ! HCO_ROOTTOKEN begins here 
     !======================================================================
-
-    ! On first call, check if Colon character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'ROOT', OptValChar=ROOT, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) ROOT = DEF_ROOT
-       FIRST = .FALSE.
-    ENDIF
 
     ! Return 
     ROOTOUT = ROOT
@@ -980,8 +1078,8 @@ CONTAINS
 ! !ROUTINE: HCO_METTOKEN
 !
 ! !DESCRIPTION: Function HCO\_METTOKEN returns the HEMCO met field character
-! (e.g. GEOS_FP) specified in the HEMCO configuration file settings (e.g. 
-! MET: GEOS_FP). If not set in the HEMCO config. file, a default value is 
+! (e.g. GEOS\_FP) specified in the HEMCO configuration file settings (e.g. 
+! MET: GEOS\_FP). If not set in the HEMCO config. file, a default value is 
 ! taken based on the compiler switches.
 !\\
 !\\
@@ -989,36 +1087,19 @@ CONTAINS
 !
   FUNCTION HCO_METTOKEN() RESULT( METOUT )
 !
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
-!
 ! !ARGUMENTS:
 !
     CHARACTER(LEN=15) :: METOUT
 !
 ! !REVISION HISTORY:
 !  17 Oct 2014 - C. Keller - Initialization
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    LOGICAL,           SAVE   :: FIRST = .TRUE.
-    CHARACTER(LEN=15), SAVE   :: MET
-    LOGICAL                   :: FOUND
-    INTEGER                   :: myRC
 
     !======================================================================
     ! HCO_METTOKEN begins here 
     !======================================================================
-
-    ! On first call, check if Colon character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'MET', OptValChar=MET, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) MET = DEF_MET
-       FIRST = .FALSE.
-    ENDIF
 
     ! Return 
     METOUT = MET
@@ -1042,10 +1123,6 @@ CONTAINS
 !
   FUNCTION HCO_RESTOKEN() RESULT( RESOUT )
 !
-! !USES:
-!
-    USE HCO_EXTLIST_MOD,  ONLY : GetExtOpt
-!
 ! !ARGUMENTS:
 !
     CHARACTER(LEN=15) :: RESOUT
@@ -1056,22 +1133,10 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    LOGICAL,           SAVE   :: FIRST = .TRUE.
-    CHARACTER(LEN=15), SAVE   :: RES
-    LOGICAL                   :: FOUND
-    INTEGER                   :: myRC
 
     !======================================================================
     ! HCO_RESTOKEN begins here 
     !======================================================================
-
-    ! On first call, check if Colon character has been set in settings.
-    ! Use default value otherwise.
-    IF ( FIRST ) THEN 
-       CALL GetExtOpt( 0, 'RES', OptValChar=RES, Found=FOUND, RC=myRC )
-       IF ( .NOT. FOUND .OR. myRC /= HCO_SUCCESS ) RES = DEF_RES
-       FIRST = .FALSE.
-    ENDIF
 
     ! Return 
     RESOUT = RES

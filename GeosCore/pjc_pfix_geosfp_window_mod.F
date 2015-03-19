@@ -8,24 +8,24 @@
 ! 
 !  Module Variables:
 !  ============================================================================
-!  (1 ) AI          (REAL*8 )  : Vertical coord "A" for hybrid grid [hPa]
-!  (2 ) BI          (REAL*8 )  : Vertical coord "B" for hybrid grid [unitless]
-!  (3 ) CLAT_FV     (REAL*8 )  : Grid box center latitude [radians] 
-!  (4 ) COSE_FV     (REAL*8 )  : COSINE of grid box edge latitudes [radians]
-!  (5 ) COSP_FV     (REAL*8 )  : COSINE of grid box center latitudes [radians]
-!  (6 ) DAP         (REAL*8 )  : Delta-A vertical coordinate [hPa]
-!  (7 ) DBK         (REAL*8 )  : Delta-B vertical coordinate [unitless]
-!  (8 ) DLAT_FV     (REAL*8 )  : Latitude extent of grid boxes [radians]
-!  (9 ) ELAT_FV     (REAL*8 )  : Grid box edge latitudes [radians]
-!  (10) GEOFAC      (REAL*8 )  : Geometric factor for N-S advection
-!  (11) GW_FV       (REAL*8 )  : Diff of SINE btw grid box lat edges [unitless]
-!  (12) MCOR        (REAL*8 )  : Grid box surface areas [m2]
-!  (13) REL_AREA    (REAL*8 )  : Relative surface area of grid box [fraction]
-!  (14) RGW_FV      (REAL*8 )  : Reciprocal of GW_FV [radians
-!  (15) SINE_FV     (REAL*8 )  : SINE of lat at grid box edges [unitless]
-!  (16) GEOFAC_PC   (REAL*8 )  : Geometric factor for N-S advection @ poles
-!  (17) DLON_FV     (REAL*8 )  : Longitude extent of a grid box [radians]
-!  (18) LOC_PROC    (REAL*8 )  : Local processor number
+!  (1 ) AI          (REAL(fp) )  : Vertical coord "A" for hybrid grid [hPa]
+!  (2 ) BI          (REAL(fp) )  : Vertical coord "B" for hybrid grid [unitless]
+!  (3 ) CLAT_FV     (REAL(fp) )  : Grid box center latitude [radians] 
+!  (4 ) COSE_FV     (REAL(fp) )  : COSINE of grid box edge latitudes [radians]
+!  (5 ) COSP_FV     (REAL(fp) )  : COSINE of grid box center latitudes [radians]
+!  (6 ) DAP         (REAL(fp) )  : Delta-A vertical coordinate [hPa]
+!  (7 ) DBK         (REAL(fp) )  : Delta-B vertical coordinate [unitless]
+!  (8 ) DLAT_FV     (REAL(fp) )  : Latitude extent of grid boxes [radians]
+!  (9 ) ELAT_FV     (REAL(fp) )  : Grid box edge latitudes [radians]
+!  (10) GEOFAC      (REAL(fp) )  : Geometric factor for N-S advection
+!  (11) GW_FV       (REAL(fp) )  : Diff of SINE btw grid box lat edges [unitless]
+!  (12) MCOR        (REAL(fp) )  : Grid box surface areas [m2]
+!  (13) REL_AREA    (REAL(fp) )  : Relative surface area of grid box [fraction]
+!  (14) RGW_FV      (REAL(fp) )  : Reciprocal of GW_FV [radians
+!  (15) SINE_FV     (REAL(fp) )  : SINE of lat at grid box edges [unitless]
+!  (16) GEOFAC_PC   (REAL(fp) )  : Geometric factor for N-S advection @ poles
+!  (17) DLON_FV     (REAL(fp) )  : Longitude extent of a grid box [radians]
+!  (18) LOC_PROC    (REAL(fp) )  : Local processor number
 !  (19) PR_DIAG     (LOGICAL)  : Flag for printing diagnostic message
 !  (20) IMP_NBORDER (INTEGER)  : Used for ghost zones for MPI ??? 
 !  (21) I1_GL       (INTEGER)  : ind of 1st  global lon       (no ghost zones)
@@ -87,8 +87,11 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed to pjc_pfix_geosfp_window_mod.F
+!  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 
       !=================================================================
@@ -108,27 +111,27 @@
       !=================================================================
 
       ! Allocatable arrays
-      REAL*8, ALLOCATABLE :: AI(:)
-      REAL*8, ALLOCATABLE :: BI(:)
-      REAL*8, ALLOCATABLE :: CLAT_FV(:)
-      REAL*8, ALLOCATABLE :: COSE_FV(:)
-      REAL*8, ALLOCATABLE :: COSP_FV(:)
-      REAL*8, ALLOCATABLE :: DAP(:)
-      REAL*8, ALLOCATABLE :: DBK(:)
-      REAL*8, ALLOCATABLE :: DLAT_FV(:)
-      REAL*8, ALLOCATABLE :: ELAT_FV(:)
-      REAL*8, ALLOCATABLE :: GEOFAC(:)
-      REAL*8, ALLOCATABLE :: GW_FV(:)
-      REAL*8, ALLOCATABLE :: MCOR(:,:)
-      REAL*8, ALLOCATABLE :: REL_AREA(:,:)
-      REAL*8, ALLOCATABLE :: RGW_FV(:)
-      REAL*8, ALLOCATABLE :: SINE_FV(:)
+      REAL(fp), ALLOCATABLE :: AI(:)
+      REAL(fp), ALLOCATABLE :: BI(:)
+      REAL(fp), ALLOCATABLE :: CLAT_FV(:)
+      REAL(fp), ALLOCATABLE :: COSE_FV(:)
+      REAL(fp), ALLOCATABLE :: COSP_FV(:)
+      REAL(fp), ALLOCATABLE :: DAP(:)
+      REAL(fp), ALLOCATABLE :: DBK(:)
+      REAL(fp), ALLOCATABLE :: DLAT_FV(:)
+      REAL(fp), ALLOCATABLE :: ELAT_FV(:)
+      REAL(fp), ALLOCATABLE :: GEOFAC(:)
+      REAL(fp), ALLOCATABLE :: GW_FV(:)
+      REAL(fp), ALLOCATABLE :: MCOR(:,:)
+      REAL(fp), ALLOCATABLE :: REL_AREA(:,:)
+      REAL(fp), ALLOCATABLE :: RGW_FV(:)
+      REAL(fp), ALLOCATABLE :: SINE_FV(:)
  
       ! Scalar variables
       LOGICAL             :: PR_DIAG
       INTEGER             :: LOC_PROC
-      REAL*8              :: GEOFAC_PC
-      REAL*8              :: DLON_FV
+      REAL(fp)              :: GEOFAC_PC
+      REAL(fp)              :: DLON_FV
 
       ! Dimensions for GMI code (from "imp_dims")
       INTEGER             :: IMP_NBORDER
@@ -166,16 +169,16 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) D_DYN (REAL*8) : Dynamic timestep [s]
-!  (2 ) P1    (REAL*8) : True PSurface at middle of dynamic timestep [hPa]
-!  (3 ) P2    (REAL*8) : True PSurface at end    of dynamic timestep [hPa]
-!  (4 ) UWND  (REAL*8) : Zonal (E-W) wind [m/s]
-!  (5 ) VWND  (REAL*8) : Meridional (N-S) wind [m/s]
+!  (1 ) D_DYN (REAL(fp)) : Dynamic timestep [s]
+!  (2 ) P1    (REAL(fp)) : True PSurface at middle of dynamic timestep [hPa]
+!  (3 ) P2    (REAL(fp)) : True PSurface at end    of dynamic timestep [hPa]
+!  (4 ) UWND  (REAL(fp)) : Zonal (E-W) wind [m/s]
+!  (5 ) VWND  (REAL(fp)) : Meridional (N-S) wind [m/s]
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (6 ) XMASS (REAL*8) : E-W mass fluxes [kg/s ??]
-!  (7 ) YMASS (REAL*8) : N-S mass fluxes [kg/s ??]
+!  (6 ) XMASS (REAL(fp)) : E-W mass fluxes [kg/s ??]
+!  (7 ) YMASS (REAL(fp)) : N-S mass fluxes [kg/s ??]
 !  
 !  NOTES:
 !  (1 ) Now P1 and P2 are "true" surface pressures, and not PS-PTOP.  If using
@@ -192,18 +195,18 @@
       IMPLICIT NONE
 
       ! Arguments
-      REAL*8,  INTENT(IN)  :: D_DYN
-      REAL*8,  INTENT(IN)  :: P1(IIPAR,JJPAR)
-      REAL*8,  INTENT(IN)  :: P2(IIPAR,JJPAR)
-      REAL*8,  INTENT(IN)  :: UWND(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: VWND(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT) :: XMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT) :: YMASS(IIPAR,JJPAR,LLPAR)
+      REAL(fp),  INTENT(IN)  :: D_DYN
+      REAL(fp),  INTENT(IN)  :: P1(IIPAR,JJPAR)
+      REAL(fp),  INTENT(IN)  :: P2(IIPAR,JJPAR)
+      REAL(fp),  INTENT(IN)  :: UWND(IIPAR,JJPAR,LLPAR)
+      REAL(fp),  INTENT(IN)  :: VWND(IIPAR,JJPAR,LLPAR)
+      REAL(fp),  INTENT(OUT) :: XMASS(IIPAR,JJPAR,LLPAR)
+      REAL(fp),  INTENT(OUT) :: YMASS(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J
-      REAL*8               :: P2_TMP(IIPAR,JJPAR)
+      REAL(fp)               :: P2_TMP(IIPAR,JJPAR)
  
       ! Parameters
       LOGICAL, PARAMETER   :: INTERP_WINDS     = .TRUE.  ! winds are interp'd 
@@ -260,14 +263,14 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) XMASS    (REAL*8) : E-W mass flux from pressure fixer
-!  (2 ) YMASS    (REAL*8) : N-S mass flux from pressure fixer
-!  (3 ) RGW_FV   (REAL*8) : 1 / ( SINE(J+1) - SINE(J) ) -- latitude factor
-!  (4 ) PS_NOW   (REAL*8) : Surface pressure - PTOP at current time
+!  (1 ) XMASS    (REAL(fp)) : E-W mass flux from pressure fixer
+!  (2 ) YMASS    (REAL(fp)) : N-S mass flux from pressure fixer
+!  (3 ) RGW_FV   (REAL(fp)) : 1 / ( SINE(J+1) - SINE(J) ) -- latitude factor
+!  (4 ) PS_NOW   (REAL(fp)) : Surface pressure - PTOP at current time
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (5 ) PS_AFTER (REAL*8) : Surface pressure - PTOP adjusted by P-fixer
+!  (5 ) PS_AFTER (REAL(fp)) : Surface pressure - PTOP adjusted by P-fixer
 !
 !  NOTES:
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
@@ -280,17 +283,17 @@
 
 
       ! Arguments
-      REAL*8, INTENT(IN)  :: XMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8, INTENT(IN)  :: YMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8, INTENT(IN)  :: PS_NOW(IIPAR,JJPAR)
-      REAL*8, INTENT(IN)  :: RGW_FV(JJPAR)
-      REAL*8, INTENT(OUT) :: PS_AFTER(IIPAR,JJPAR)
+      REAL(fp), INTENT(IN)  :: XMASS(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(IN)  :: YMASS(IIPAR,JJPAR,LLPAR)
+      REAL(fp), INTENT(IN)  :: PS_NOW(IIPAR,JJPAR)
+      REAL(fp), INTENT(IN)  :: RGW_FV(JJPAR)
+      REAL(fp), INTENT(OUT) :: PS_AFTER(IIPAR,JJPAR)
 
       ! Local variables
       INTEGER             :: I, J, L
-      REAL*8              :: DELP(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: DELP1(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: PE(IIPAR,LLPAR+1,JJPAR)
+      REAL(fp)              :: DELP(IIPAR,JJPAR,LLPAR)
+      REAL(fp)              :: DELP1(IIPAR,JJPAR,LLPAR)
+      REAL(fp)              :: PE(IIPAR,LLPAR+1,JJPAR)
 
       !=================================================================
       ! CALC_PRESSURE begins here!
@@ -399,10 +402,10 @@
       !Argument declarations.
       !----------------------
 
-      real*8, intent(IN)  :: mcor    (i1_gl :i2_gl, ju1_gl:j2_gl)
-      real*8, intent(OUT) :: rel_area(i1_gl :i2_gl, ju1_gl:j2_gl)
-      real*8, intent(OUT) :: geofac  (ju1_gl:j2_gl)
-      real*8, intent(OUT) :: geofac_pc
+      real(fp), intent(IN)  :: mcor    (i1_gl :i2_gl, ju1_gl:j2_gl)
+      real(fp), intent(OUT) :: rel_area(i1_gl :i2_gl, ju1_gl:j2_gl)
+      real(fp), intent(OUT) :: geofac  (ju1_gl:j2_gl)
+      real(fp), intent(OUT) :: geofac_pc
 
       !----------------------
       !Variable declarations.
@@ -411,10 +414,10 @@
       integer :: ij
  
 ! Variables not used. (ccc, 8/3/10)
-!      real*8  :: dp           ! spacing in latitude (rad)
-!      real*8  :: ri2_gl
-!      real*8  :: rj2m1
-      real*8  :: total_area
+!      real(fp)  :: dp           ! spacing in latitude (rad)
+!      real(fp)  :: ri2_gl
+!      real(fp)  :: rj2m1
+      real(fp)  :: total_area
 
       !----------------
       !Begin execution.
@@ -445,13 +448,13 @@
 ! The total area does not cover the full globe so use an other definition
 ! for the geometric factor. (lzh, ccc, 8/3/10)
       do ij = ju1_gl, j2_gl
-!        geofac(ij) = dp / (2.0d0 * rel_area(1,ij) * ri2_gl)
-        geofac(ij) = 1.d0 / COSP_FV(ij)
+!        geofac(ij) = dp / (2.0e+0_fp * rel_area(1,ij) * ri2_gl)
+        geofac(ij) = 1.e+0_fp / COSP_FV(ij)
       end do
 
 ! geofac_pc used only for polar cap so no need. (ccc, 8/3/10)
 !      geofac_pc =
-!     &  dp / (2.0d0 * Sum (rel_area(1,ju1_gl:ju1_gl+1)) * ri2_gl)
+!     &  dp / (2.0e+0_fp * Sum (rel_area(1,ju1_gl:ju1_gl+1)) * ri2_gl)
 
       ! Return to calling program
       END SUBROUTINE Calc_Advection_Factors
@@ -518,19 +521,19 @@
       integer :: advec_consrv_opt
       integer :: pmet2_opt
       integer :: press_fix_opt
-      real*8  :: tdt
-      real*8  :: geofac_pc
-      real*8  :: geofac  (ju1_gl:j2_gl)
-      real*8  :: cose    (ju1_gl:j2_gl)
-      real*8  :: cosp    (ju1_gl:j2_gl)
-      real*8  :: dap     (k1:k2)
-      real*8  :: dbk     (k1:k2)
+      real(fp)  :: tdt
+      real(fp)  :: geofac_pc
+      real(fp)  :: geofac  (ju1_gl:j2_gl)
+      real(fp)  :: cose    (ju1_gl:j2_gl)
+      real(fp)  :: cosp    (ju1_gl:j2_gl)
+      real(fp)  :: dap     (k1:k2)
+      real(fp)  :: dbk     (k1:k2)
 
       !-----------------------------------------------------------------
       !rel_area : relative surface area of grid box (fraction)
       !-----------------------------------------------------------------
  
-      real*8 :: rel_area( i1_gl:i2_gl,   ju1_gl:j2_gl)
+      real(fp) :: rel_area( i1_gl:i2_gl,   ju1_gl:j2_gl)
             
       !-----------------------------------------------------------------
       !pmet1  : Metfield surface pressure at t1 (mb)
@@ -539,7 +542,7 @@
       !pctm2  : CTM surface pressure at t1+tdt (mb)
       !-----------------------------------------------------------------
 
-      REAL*8 :: 
+      REAL(fp) :: 
      &   pmet2(ilo_gl:ihi_gl, julo_gl:jhi_gl),
      &   pctm1(ilo_gl:ihi_gl, julo_gl:jhi_gl),
      &   pctm2(ilo_gl:ihi_gl, julo_gl:jhi_gl)
@@ -549,16 +552,16 @@
       !vv : wind velocity, y direction at t1+tdt/2 (m/s)
       !-------------------------------------------------
 
-      real*8 :: uu(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
-      real*8 :: vv(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+      real(fp) :: uu(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+      real(fp) :: vv(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
 
       !--------------------------------------------------
       !xmass : horizontal mass flux in E-W direction (mb)
       !ymass : horizontal mass flux in N-S direction (mb)
       !--------------------------------------------------
 
-      real*8 :: xmass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
-      real*8 :: ymass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+      real(fp) :: xmass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+      real(fp) :: ymass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
 
       logical, save :: DO_ADJUST_PRESS_DIAG = .TRUE.
 
@@ -575,28 +578,28 @@
       !            (weighted by relative area)
       !--------------------------------------------------
 
-      real*8  :: dgpress
-      real*8  :: press_dev
+      real(fp)  :: dgpress
+      real(fp)  :: press_dev
 
       !-------------------------------------------------------------
       !dps : change of surface pressure from met field pressure (mb)
       !-------------------------------------------------------------
 
-      real*8  :: dps(i1_gl:i2_gl, ju1_gl:j2_gl)
+      real(fp)  :: dps(i1_gl:i2_gl, ju1_gl:j2_gl)
 
       !--------------------------------------------
       !dps_ctm : CTM surface pressure tendency (mb)
       !--------------------------------------------
 
-      real*8 :: dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl)
+      real(fp) :: dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl)
 
       !---------------------------------------------------------------------
       !xmass_fixed : horizontal mass flux in E-W direction after fixing (mb)
       !ymass_fixed : horizontal mass flux in N-S direction after fixing (mb)
       !---------------------------------------------------------------------
 
-      real*8  :: xmass_fixed(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1:k2)
-      real*8  :: ymass_fixed(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1:k2)
+      real(fp)  :: xmass_fixed(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1:k2)
+      real(fp)  :: ymass_fixed(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1:k2)
 
       !-------------
       !Dummy indexes
@@ -612,7 +615,7 @@
         Write (6, *) 'Adjust_Press called by ', loc_proc
       end if
 
-      dps_ctm(:,:) = 0.0d0
+      dps_ctm(:,:) = 0.0e+0_fp
 
       dgpress =  Sum ( (pmet2(i1_gl:i2_gl, ju1_gl:j2_gl) -
      &                  pctm1(i1_gl:i2_gl, ju1_gl:j2_gl)   )
@@ -741,31 +744,31 @@
 
       CHARACTER(LEN=*) :: metdata_name_org
       integer :: met_grid_type
-      real*8  :: geofac_pc
-      real*8  :: tdt
-      real*8  :: cose    (ju1_gl:j2_gl)
-      real*8  :: cosp    (ju1_gl:j2_gl)
-      real*8  :: geofac  (ju1_gl:j2_gl)
-      real*8  :: dap     (k1:k2)
-      real*8  :: dbk     (k1:k2)
+      real(fp)  :: geofac_pc
+      real(fp)  :: tdt
+      real(fp)  :: cose    (ju1_gl:j2_gl)
+      real(fp)  :: cosp    (ju1_gl:j2_gl)
+      real(fp)  :: geofac  (ju1_gl:j2_gl)
+      real(fp)  :: dap     (k1:k2)
+      real(fp)  :: dbk     (k1:k2)
 
       !-------------------------------------------------------------
       !dps : change of surface pressure from met field pressure (mb)
       !-------------------------------------------------------------
 
-      real*8  :: dps(i1_gl:i2_gl, ju1_gl:j2_gl)
+      real(fp)  :: dps(i1_gl:i2_gl, ju1_gl:j2_gl)
 
       !--------------------------------------------
       !dps_ctm : CTM surface pressure tendency (mb)
       !--------------------------------------------
 
-      real*8 :: dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl)
+      real(fp) :: dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl)
 
       !-----------------------------------------------------------------
       !rel_area : relative surface area of grid box (fraction)
       !-----------------------------------------------------------------
 
-      real*8 :: rel_area( i1_gl:i2_gl,   ju1_gl:j2_gl)
+      real(fp) :: rel_area( i1_gl:i2_gl,   ju1_gl:j2_gl)
             
       !-----------------------------------------------------------------
       !pmet1  : Metfield surface pressure at t1 (mb)
@@ -774,7 +777,7 @@
       !pctm2  : CTM surface pressure at t1+tdt (mb)
       !-----------------------------------------------------------------
 
-      REAL*8 :: 
+      REAL(fp) :: 
      &   pmet2(ilo_gl:ihi_gl, julo_gl:jhi_gl),
      &   pctm1(ilo_gl:ihi_gl, julo_gl:jhi_gl),
      &   pctm2(ilo_gl:ihi_gl, julo_gl:jhi_gl)
@@ -784,16 +787,16 @@
       ! vv : wind velocity, y direction at t1+tdt/2 (m/s)
       !--------------------------------------------------
 
-      real*8 :: uu(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
-      real*8 :: vv(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+      real(fp) :: uu(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+      real(fp) :: vv(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
 
       !--------------------------------------------------
       !xmass : horizontal mass flux in E-W direction (mb)
       !ymass : horizontal mass flux in N-S direction (mb)
       !--------------------------------------------------
 
-      real*8 :: xmass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
-      real*8 :: ymass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+      real(fp) :: xmass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+      real(fp) :: ymass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
 
       !----------------------
       !Variable declarations.
@@ -804,7 +807,7 @@
       !        motion (mb)
       !--------------------------------------------------------------
 
-      real*8  :: dpi(i1:i2, ju1:j2, k1:k2)
+      real(fp)  :: dpi(i1:i2, ju1:j2, k1:k2)
 
       !---------------------------------------------------------------------
       !crx   : Courant number in E-W direction
@@ -816,11 +819,11 @@
       !pu    : pressure at edges in "u"  (mb)
       !---------------------------------------------------------------------
 
-      real*8  :: crx  (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: cry  (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: delp1(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: delpm(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: pu   (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: crx  (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: cry  (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: delp1(ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: delpm(ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: pu   (ilo:ihi, julo:jhi, k1:k2)
 
       !----------------
       !Begin execution.
@@ -922,16 +925,16 @@
       !Argument declarations.
       !----------------------
 
-      real*8  :: geofac_pc
-      real*8  :: geofac  (ju1_gl:j2_gl)
-      real*8  :: dbk     (k1:k2)
-      real*8  :: dps     (i1:i2, ju1:j2)
-      real*8  :: dps_ctm (i1:i2, ju1:j2)
-      real*8  :: rel_area(i1:i2, ju1:j2)
-      real*8  :: xmass      (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: ymass      (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: xmass_fixed(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: ymass_fixed(ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: geofac_pc
+      real(fp)  :: geofac  (ju1_gl:j2_gl)
+      real(fp)  :: dbk     (k1:k2)
+      real(fp)  :: dps     (i1:i2, ju1:j2)
+      real(fp)  :: dps_ctm (i1:i2, ju1:j2)
+      real(fp)  :: rel_area(i1:i2, ju1:j2)
+      real(fp)  :: xmass      (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: ymass      (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: xmass_fixed(ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: ymass_fixed(ilo:ihi, julo:jhi, k1:k2)
 
       !----------------------
       !Variable declarations.
@@ -939,26 +942,26 @@
 
       integer :: il, ij, ik
 
-      real*8  :: dgpress
-      real*8  :: fxmean
-      real*8  :: ri2
+      real(fp)  :: dgpress
+      real(fp)  :: fxmean
+      real(fp)  :: ri2
 
-      real*8  :: fxintegral(i1:i2+1)
+      real(fp)  :: fxintegral(i1:i2+1)
 
-      real*8  :: mmfd(ju1:j2)
-      real*8  :: mmf (ju1:j2)
+      real(fp)  :: mmfd(ju1:j2)
+      real(fp)  :: mmf (ju1:j2)
 
-      real*8  :: ddps(i1:i2, ju1:j2)
+      real(fp)  :: ddps(i1:i2, ju1:j2)
 
       !------------------------------------------------------------------------
       !dpi : divergence at a grid point; used to calculate vertical motion (mb)
       !------------------------------------------------------------------------
 
-      real*8  :: dpi(i1:i2, ju1:j2, k1:k2)
+      real(fp)  :: dpi(i1:i2, ju1:j2, k1:k2)
 
-      real*8  :: xcolmass_fix(ilo:ihi, julo:jhi)
+      real(fp)  :: xcolmass_fix(ilo:ihi, julo:jhi)
 
-      real*8  :: xx
+      real(fp)  :: xx
 
       !----------------
       !Begin execution.
@@ -971,10 +974,10 @@
 
       ri2 = i2_gl - 2 * BUFF_SIZE
 
-      mmfd(:) = 0.0d0
-      mmf(:) = 0d0
+      mmfd(:) = 0.0e+0_fp
+      mmf(:) = 0e+0_fp
 
-      xcolmass_fix(:,:)   = 0.0d0
+      xcolmass_fix(:,:)   = 0.0e+0_fp
 
       xmass_fixed (:,:,:) = xmass(:,:,:)
       ymass_fixed (:,:,:) = ymass(:,:,:)
@@ -1059,7 +1062,7 @@ c     --------------------------------------
 !      do ij = j1p, j2p
       do ij = j1p_w, j2p_w
 
-        fxintegral(:) = 0.0d0
+        fxintegral(:) = 0.0e+0_fp
 
 !        do il = i1, i2
         do il = i1_w, i2_w
@@ -1172,12 +1175,12 @@ c     --------------------------------------
       !----------------------
 
       integer :: igd
-      real*8  :: tdt
-      real*8  :: cosp(ju1_gl:j2_gl)
-      real*8  :: crx (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: cry (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: uu  (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: vv  (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: tdt
+      real(fp)  :: cosp(ju1_gl:j2_gl)
+      real(fp)  :: crx (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: cry (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: uu  (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: vv  (ilo:ihi, julo:jhi, k1:k2)
 
       !----------------------
       !Variable declarations.
@@ -1192,27 +1195,27 @@ c     --------------------------------------
       !dp : spacing in latitude  (rad)
       !-------------------------------
 
-      real*8  :: dl
-      real*8  :: dp
+      real(fp)  :: dl
+      real(fp)  :: dp
 
-      real*8  :: ri2
-      real*8  :: rj2m1
+      real(fp)  :: ri2
+      real(fp)  :: rj2m1
 
       !------------------------
       !dtdy  : dt/dy      (s/m)
       !dtdy5 : 0.5 * dtdy (s/m)
       !------------------------
 
-      real*8, save :: dtdy
-      real*8, save :: dtdy5
+      real(fp), save :: dtdy
+      real(fp), save :: dtdy5
 
       !------------------------
       !dtdx  : dt/dx      (s/m)
       !dtdx5 : 0.5 * dtdx (s/m)
       !------------------------
 
-      real*8, allocatable, save :: dtdx (:)                   
-      real*8, allocatable, save :: dtdx5(:)             
+      real(fp), allocatable, save :: dtdx (:)                   
+      real(fp), allocatable, save :: dtdx5(:)             
 
       !----------------
       !Begin execution.
@@ -1232,36 +1235,36 @@ c     --------------------------------------
         Allocate (dtdx (ju1_gl:j2_gl))
         Allocate (dtdx5(ju1_gl:j2_gl))
 
-        dtdx = 0.0d0; dtdx5 = 0.0d0
+        dtdx = 0.0e+0_fp; dtdx5 = 0.0e+0_fp
 
         ri2   = i2_gl
         rj2m1 = j2_gl - 1
 
-        dl    = 2.0d0 * PI / 1152D0  !(dan)
-        dp    = PI /720D0            !(dan)
+        dl    = 2.0e+0_fp * PI / 1152e+0_fp  !(dan)
+        dp    = PI /720e+0_fp            !(dan)
 
         dtdy  = tdt / (Re * dp)
-        dtdy5 = 0.5d0 * dtdy
+        dtdy5 = 0.5e+0_fp * dtdy
 
 !-----lzh----------
-!        dtdx (ju1_gl) = 0.0d0
-!        dtdx5(ju1_gl) = 0.0d0
+!        dtdx (ju1_gl) = 0.0e+0_fp
+!        dtdx5(ju1_gl) = 0.0e+0_fp
 !
 !        do ij = ju1_gl + 1, j2_gl - 1
 !
 !          dtdx (ij) = tdt / (dl * Re * cosp(ij))
-!          dtdx5(ij) = 0.5d0 * dtdx(ij)
+!          dtdx5(ij) = 0.5e+0_fp * dtdx(ij)
 !
 !        end do
 !
-!        dtdx (j2_gl)  = 0.0d0
-!        dtdx5(j2_gl)  = 0.0d0
+!        dtdx (j2_gl)  = 0.0e+0_fp
+!        dtdx5(j2_gl)  = 0.0e+0_fp
 
 !-----------------------------------------------
 ! for nested NA or EA (lzh, 07/20/2010)
         do ij = ju1_gl, j2_gl
           dtdx (ij) = tdt / (dl * Re * cosp(ij))
-          dtdx5(ij) = 0.5d0 * dtdx(ij)
+          dtdx5(ij) = 0.5e+0_fp * dtdx(ij)
         end do
 !-----------------------------------------------
 
@@ -1356,14 +1359,14 @@ c     --------------------------------------
       !Argument declarations.
       !----------------------
 
-      real*8  :: tdt
-      real*8  :: cose (ju1_gl:j2_gl)
-      real*8  :: cosp (ju1_gl:j2_gl)
-      real*8  :: delpm(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: uu  (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: vv  (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: xmass(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: ymass(ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: tdt
+      real(fp)  :: cose (ju1_gl:j2_gl)
+      real(fp)  :: cosp (ju1_gl:j2_gl)
+      real(fp)  :: delpm(ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: uu  (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: vv  (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: xmass(ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: ymass(ilo:ihi, julo:jhi, k1:k2)
 
       !----------------------
       !Variable declarations.
@@ -1372,13 +1375,13 @@ c     --------------------------------------
       integer :: ij
       integer :: il
       integer :: jst, jend
-      real*8  :: dl
-      real*8  :: dp
+      real(fp)  :: dl
+      real(fp)  :: dp
 
-      real*8  :: ri2
-      real*8  :: rj2m1
-      real*8  :: factx
-      real*8  :: facty
+      real(fp)  :: ri2
+      real(fp)  :: rj2m1
+      real(fp)  :: factx
+      real(fp)  :: facty
 
       !----------------
       !Begin execution.
@@ -1391,10 +1394,10 @@ c     --------------------------------------
         ri2   = i2_gl
         rj2m1 = j2_gl - 1
 
-        dl    = 2.0d0 * PI /1152D0   !(dan) 
-        dp    = PI /720D0            !(dan) 
+        dl    = 2.0e+0_fp * PI /1152e+0_fp   !(dan) 
+        dp    = PI /720e+0_fp            !(dan) 
 
-        facty  = 0.5d0 * tdt / (Re * dp)
+        facty  = 0.5e+0_fp * tdt / (Re * dp)
 
       !-----------------------------------
       !Calculate E-W horizontal mass flux.
@@ -1402,7 +1405,7 @@ c     --------------------------------------
 
       do ij = ju1, j2
 
-       factx = 0.5d0 * tdt / (dl * Re * cosp(ij))
+       factx = 0.5e+0_fp * tdt / (dl * Re * cosp(ij))
 
        do il = i1+1, i2 
         xmass(il,ij,:) = factx *
@@ -1471,11 +1474,11 @@ c     --------------------------------------
       !----------------------
 
       logical :: do_reduction
-      real*8  :: geofac_pc
-      real*8  :: geofac(ju1_gl:j2_gl)
-      real*8  :: dpi   (i1:i2, ju1:j2, k1:k2)
-      real*8  :: xmass (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: ymass (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: geofac_pc
+      real(fp)  :: geofac(ju1_gl:j2_gl)
+      real(fp)  :: dpi   (i1:i2, ju1:j2, k1:k2)
+      real(fp)  :: xmass (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: ymass (ilo:ihi, julo:jhi, k1:k2)
 
       !----------------------
       !Variable declarations.
@@ -1584,13 +1587,13 @@ c     --------------------------------------
       !Argument declarations.
       !----------------------
 
-      real*8  :: dap  (k1:k2)
-      real*8  :: dbk  (k1:k2)
-      real*8  :: pres1(ilo:ihi, julo:jhi)
-      real*8  :: pres2(ilo:ihi, julo:jhi)
-      real*8  :: delp1(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: delpm(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: pu   (ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: dap  (k1:k2)
+      real(fp)  :: dbk  (k1:k2)
+      real(fp)  :: pres1(ilo:ihi, julo:jhi)
+      real(fp)  :: pres2(ilo:ihi, julo:jhi)
+      real(fp)  :: delp1(ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: delpm(ilo:ihi, julo:jhi, k1:k2)
+      real(fp)  :: pu   (ilo:ihi, julo:jhi, k1:k2)
 
       !----------------------
       !Variable declarations.
@@ -1614,19 +1617,19 @@ c     --------------------------------------
 
         delpm(:,:,ik) =
      &    dap(ik) + 
-     &    (dbk(ik) * 0.5d0 * (pres1(:,:) + pres2(:,:)))
+     &    (dbk(ik) * 0.5e+0_fp * (pres1(:,:) + pres2(:,:)))
 
       end do
 
       do ij = ju1, j2
         do il = i1+1, i2
           pu(il,ij,:) =
-     &      0.5d0 * (delpm(il,ij,:) + delpm(il-1,ij,:))
+     &      0.5e+0_fp * (delpm(il,ij,:) + delpm(il-1,ij,:))
         end do
 
 ! No periodicity. (ccc, 8/3/10)
 !          pu(i1,ij,:) =
-!     &      0.5d0 * (delpm(i1,ij,:) + delpm(i2,ij,:))
+!     &      0.5e+0_fp * (delpm(i1,ij,:) + delpm(i2,ij,:))
 
       end do
 
@@ -1643,12 +1646,12 @@ c     --------------------------------------
 ! 
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) P  (REAL*8)  :: 1-D vector to be averaged
+!  (1 ) P  (REAL(fp))  :: 1-D vector to be averaged
 !  (2 ) IM (INTEGER) :: Dimension of P
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (1 ) P  (REAL*8)  :: Contains average value of P in each element
+!  (1 ) P  (REAL(fp))  :: Contains average value of P in each element
 !
 !  NOTES:
 !******************************************************************************
@@ -1658,7 +1661,7 @@ c     --------------------------------------
 
       ! Arguments
       INTEGER, INTENT(IN)    :: IM
-      REAL*8,  INTENT(INOUT) :: P(IM)
+      REAL(fp),  INTENT(INOUT) :: P(IM)
 
       ! Local variables
       REAL                   :: AVG
@@ -1861,47 +1864,47 @@ c     --------------------------------------
       ENDDO
 
       ! Longitude spacing
-!clb  DLON_FV    = 2.d0 * PI / DBLE( 540 )        !(dan)
+!clb  DLON_FV    = 2.e+0_fp * PI / DBLE( 540 )        !(dan)
 !clb
 #if defined (GRID025x03125)
-      DLON_FV    = 2.d0 * PI / DBLE( 1152 )
+      DLON_FV    = 2.e+0_fp * PI / DBLE( 1152 )
 #else
-      DLON_FV    = 2.d0 * PI / DBLE( 540 )
+      DLON_FV    = 2.e+0_fp * PI / DBLE( 540 )
 #endif
 !clb
        
       ! Latitude edge at south pole [radians]
-!      ELAT_FV(1) = -0.5d0 * PI 
+!      ELAT_FV(1) = -0.5e+0_fp * PI 
 ! for nested NA or EA (lzh, 07/20/2010) 
-      ELAT_FV(1) = CLAT_FV(1) - 0.25d0 * PI/DBLE(180)
+      ELAT_FV(1) = CLAT_FV(1) - 0.25e+0_fp * PI/DBLE(180)
 
       ! SIN and COS of lat edge at south pole [unitless]
-!      SINE_FV(1) = -1.d0
-!      COSE_FV(1) =  0.d0
+!      SINE_FV(1) = -1.e+0_fp
+!      COSE_FV(1) =  0.e+0_fp
 ! for nested NA or EA (lzh, 07/20/2010) 
       SINE_FV(1) =  SIN( ELAT_FV(1) )
       COSE_FV(1) =  COS( ELAT_FV(1) )
          
       ! Latitude edges [radians] (w/ SIN & COS) at intermediate latitudes
       DO J = JU1_GL+1, J2_GL  !2, JJPAR
-         ELAT_FV(J) = 0.5d0 * ( CLAT_FV(J-1) + CLAT_FV(J) )
+         ELAT_FV(J) = 0.5e+0_fp * ( CLAT_FV(J-1) + CLAT_FV(J) )
          SINE_FV(J) = SIN( ELAT_FV(J) )
          COSE_FV(J) = COS( ELAT_FV(J) )
       ENDDO
 
       ! Latitude edge at North Pole [radians]
-!      ELAT_FV(J2_GL+1) = 0.5d0 * PI
+!      ELAT_FV(J2_GL+1) = 0.5e+0_fp * PI
 ! for nested NA or EA (lzh, 07/20/2010) 
-      ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.25d0* PI/DBLE(180)
+      ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.25e+0_fp* PI/DBLE(180)
 
       ! SIN of lat edge at North Pole
-!      SINE_FV(J2_GL+1) = 1.d0
+!      SINE_FV(J2_GL+1) = 1.e+0_fp
 ! for nested NA or EA (lzh, 07/20/2010) 
       SINE_FV(J2_GL+1) =  SIN( ELAT_FV(J2_GL+1) )
       COSE_FV(J2_GL+1) =  COS( ELAT_FV(J2_GL+1) )
        
       ! Latitude extent of South polar box [radians]
-!      DLAT_FV(1) = 2.d0 * ( ELAT_FV(2) - ELAT_FV(1) ) 
+!      DLAT_FV(1) = 2.e+0_fp * ( ELAT_FV(2) - ELAT_FV(1) ) 
 ! comment out for nested NA or EA (lzh, 07/20/2010)
 
       ! Latitude extent of boxes at intermediate latitudes [radians]
@@ -1912,14 +1915,14 @@ c     --------------------------------------
       ENDDO
 
       ! Latitude extent of North polar box [radians]
-!      DLAT_FV(J2_GL) = 2.d0 * ( ELAT_FV(J2_GL+1) - ELAT_FV(J2_GL) ) 
+!      DLAT_FV(J2_GL) = 2.e+0_fp * ( ELAT_FV(J2_GL+1) - ELAT_FV(J2_GL) ) 
 ! comment out for nested NA or EA (lzh, 07/20/2010)
 
       ! Other stuff
       DO J = JU1_GL, J2_GL
          GW_FV(J)   = SINE_FV(J+1) - SINE_FV(J)
          COSP_FV(J) = GW_FV(J)     / DLAT_FV(J)
-         RGW_FV(J)  = 1.d0         / GW_FV(J)
+         RGW_FV(J)  = 1.e+0_fp         / GW_FV(J)
       ENDDO
 
       ! Return to calling program

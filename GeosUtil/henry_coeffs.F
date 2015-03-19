@@ -13,7 +13,9 @@
       MODULE HENRY_COEFFS
 !
 ! !USES:
-! 
+!
+!      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+ 
       IMPLICIT NONE
       PRIVATE
 !
@@ -22,7 +24,9 @@
       PUBLIC :: GET_HENRY_CONSTANT
 !
 ! !REVISION HISTORY:
-!  16 Apr 2013 - C. Keller - Initial version
+!  16 Apr 2013 - C. Keller   - Initial version
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  11 Dec 2014 - M. Yannetti - Reverted PRECISION changes due to hcoi_gc_main_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -38,20 +42,20 @@
      &                                             'DMS',    ! De Bruyn et al. 1995
      &                                             'ACET' /) ! Benkelberg et al. 1995
 
-      REAL*8,            PARAMETER :: K0(N)   = (/ 8.3d4,  
+      REAL*8,          PARAMETER :: K0(N)   = (/ 8.3d+4,  
      &                                             1.4d-1,
      &                                             4.8d-1, 
-     &                                             27d0   /)
+     &                                             27d+0   /)
 
-      REAL*8,            PARAMETER :: CR(N)   = (/ 7.4d3,  
-     &                                             4.3d3,
-     &                                             3.1d3,  
-     &                                             5300d0 /) 
+      REAL*8,          PARAMETER :: CR(N)   = (/ 7.4d+3,  
+     &                                             4.3d+3,
+     &                                             3.1d+3,  
+     &                                             5300d+0 /) 
 
-      REAL*8,            PARAMETER :: PKa(N)  = (/ -999d0, 
-     &                                             -999d0,
-     &                                             -999d0, 
-     &                                             -999d0 /) 
+      REAL*8,          PARAMETER :: PKa(N)  = (/ -999d+0, 
+     &                                             -999d+0,
+     &                                             -999d+0, 
+     &                                             -999d+0 /) 
 
       CONTAINS
 !EOC
@@ -97,9 +101,9 @@
 
       ! Init
       RC      = 0
-      thisK0  = -999.0d0
-      thisCR  = -999.0d0
-      thisPKa = -999.0d0
+      thisK0  = -999.0d+0
+      thisCR  = -999.0d+0
+      thisPKa = -999.0d+0
 
       ! Loop over all species
       DO I = 1,N

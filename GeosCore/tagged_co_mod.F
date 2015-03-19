@@ -15,8 +15,14 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: CALC_DIURNAL
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -31,7 +37,7 @@
 !
       INTEGER, PUBLIC, ALLOCATABLE :: BB_REGION(:,:)   ! BB CO regions
       INTEGER, PUBLIC, ALLOCATABLE :: FF_REGION(:,:)   ! FF CO regions
-      REAL*8,  PUBLIC, ALLOCATABLE :: EMACET(:,:)      ! Acetone emissions
+      REAL(fp),  PUBLIC, ALLOCATABLE :: EMACET(:,:)      ! Acetone emissions
 !
 ! !REMARKS:
 !  Tagged CO Tracers (you can modify these as needs be!)
@@ -109,35 +115,41 @@
 !  23 Oct 2012 - R. Yantosca - Update prod/loss for new GMI strat chem
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  10 Apr 2014 - R. Yantosca - Now change CO_PRODS and CO_LOSSS to REAL*4
+!  11 Jun 2014 - J.A. Fisher - Replace SUNCOS with SUNCOSmid for MEGAN
+!  11 Jun 2014 - J.A. Fisher - Treat monoterpenes as in full chemistry
+!  12 Jun 2014 - J.A. Fisher - Add option for non-local PBL mixing
+!  10 Jul 2014 - J.A. Fisher - Add diurnal cycle for OH
+!  10 Jul 2014 - J.A. Fisher - Change FIRSTEMISS to FIRSTTIME to allow
+!                              initialisation when emissions are off
+!  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  11 Mar 2015 - R. Yantosca - Add OH pointer for HEMCO data input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      REAL*4,  ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
-      REAL*4,  ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
-      REAL*8,  ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
-      REAL*8,  ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
-      REAL*8,  ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
-      REAL*8,  ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
+      REAL(f4), ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
+      REAL(f4), ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
+      REAL(fp), ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
+      REAL(fp), ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
+      REAL(fp), ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
+      REAL(fp), ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
+      REAL(fp), ALLOCATABLE :: TCOSZ     (:,:  )   ! Daily sum COS(SZA)
+
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER     :: OH(:,:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
       ! FMOL_CO     - kg CO / mole CO
       ! XNUMOL_CO   - molecules CO / kg CO
-      REAL*8,  PARAMETER   :: FMOL_CO     = 28d-3
-      REAL*8,  PARAMETER   :: XNUMOL_CO   = 6.022d+23/FMOL_CO
+      REAL(fp),  PARAMETER   :: FMOL_CO     = 28e-3_fp
+      REAL(fp),  PARAMETER   :: XNUMOL_CO   = 6.022e+23_fp/FMOL_CO
 
-      ! FMOL_ISOP   - kg ISOP / mole ISOP
-      ! XNUMOL_ISOP - molecules ISOP / kg ISOP
-      REAL*8,  PARAMETER   :: FMOL_ISOP   = 12d-3
-      REAL*8,  PARAMETER   :: XNUMOL_ISOP = 6.022d+23/FMOL_ISOP
-
-      ! FMOL_MONO   - kg MONO / mole MONO
-      ! XNUMOL_MONO - molecules MONO / kg MONO
-      REAL*8,  PARAMETER   :: FMOL_MONO   = 12d-3
-      REAL*8,  PARAMETER   :: XNUMOL_MONO = 6.022d+23/FMOL_MONO
+      ! Molecules C / kg C
+      REAL(fp),  PARAMETER   :: XNUMOL_C    = 6.022e+23_fp/12e-3_fp 
 
       CONTAINS
 !EOC
@@ -164,18 +176,18 @@
       USE CMN_DIAG_MOD
       USE DIAG_PL_MOD,        ONLY : AD65
       USE ERROR_MOD,          ONLY : CHECK_VALUE
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH,   OH
-      USE GLOBAL_NOX_MOD,     ONLY : GET_GLOBAL_NOX,  BNOX
-      USE GRID_MOD,           ONLY : GET_YMID,        GET_AREA_CM2
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
+      USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoVal
 !
 ! !INPUT PARAMETERS:
 !
@@ -249,8 +261,14 @@
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
 !  10 Apr 2014 - R. Yantosca - Now use pointers to fields in State_Met
 !  10 Apr 2014 - R. Yantosca - Bug fix: DTSRCE should be DTCHEM
+!  10 Jul 2014 - J.A. Fisher - Add diurnal cycle for OH
+!  10 Jul 2014 - J.A. Fisher - Restore assignment of DTCHEM
+!  10 Jul 2014 - J.A. Fisher - Remove unused DTSRCE, PCO, and AREA_CM2
+!  10 Jul 2014 - J.A. Fisher - Moved ALPHA definitions out of code
 !  27 Aug 2014 - R. Yantosca - Bug fix: pass Input_Opt to GET_GLOBAL_CH4
 !  21 Oct 2014 - C. Keller   - Now use GetHcoVal instead ot Trac_Tend array
+!  11 Mar 2015 - R. Yantosca - Remove references to global_nox_mod.F
+!  11 Mar 2015 - R. Yantosca - Now get OH via the HEMCO data structure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -261,26 +279,26 @@
       INTEGER                :: N_TRACERS
       INTEGER                :: I,         J,          L
       INTEGER                :: N,         MONTH,      YEAR
-      REAL*8                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
-      REAL*8                 :: DTCHEM,    GCO,        PCO   
-      REAL*8                 :: STTCO,     KRATE,      CH4
-      REAL*8                 :: CO_CH4,    CO_ISOP,    CO_MONO
-      REAL*8                 :: CO_CH3OH,  CO_OH,      CO_ACET
-      REAL*8                 :: CH4RATE,   DENS,       ALPHA_ACET
-      REAL*8                 :: CORATE,    YMID
-      REAL*8                 :: BOXVL
+      REAL(fp)               :: ALPHA_ISOP
+      REAL(fp)               :: DTCHEM,    GCO
+      REAL(fp)               :: STTCO,     KRATE,      CH4
+      REAL(fp)               :: CO_CH4,    CO_ISOP,    CO_MONO
+      REAL(fp)               :: CO_CH3OH,  CO_OH,      CO_ACET
+      REAL(fp)               :: CH4RATE,   DENS
+      REAL(fp)               :: CORATE,    YMID
+      REAL(fp)               :: BOXVL
 
       ! Variables for new JPL 2006 rate constants (jaf, jmao, 3/4/09)
-      REAL*8                 :: KHI1,      KLO1,       XYRAT1
-      REAL*8                 :: BLOG1,     FEXP1,      KHI2
-      REAL*8                 :: KLO2,      XYRAT2,     BLOG2
-      REAL*8                 :: FEXP2,     KCO1,       KCO2
-
-      ! For storing CO sources (jaf, 3/10/09)
-      REAL*8                 :: AREA_CM2
+      REAL(fp)               :: KHI1,      KLO1,       XYRAT1
+      REAL(fp)               :: BLOG1,     FEXP1,      KHI2
+      REAL(fp)               :: KLO2,      XYRAT2,     BLOG2
+      REAL(fp)               :: FEXP2,     KCO1,       KCO2
 
       ! For saving CH4 latitudinal gradient
-      REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
+      REAL(fp),  SAVE        :: A3090S, A0030S, A0030N, A3090N
+
+      ! For OH diurnal cycle (jaf, 3/12/14)
+      REAL(fp)               :: OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS
 
       ! Avoid array temporaries in CHECK_VALUE
       INTEGER                :: ERR_LOC(4)
@@ -288,27 +306,39 @@
       CHARACTER(LEN=255)     :: ERR_MSG
 
       ! Pointers to fields in State_Met and State_Chm
-      REAL*8,  POINTER       :: AD    (:,:,:  )
-      REAL*8,  POINTER       :: AIRVOL(:,:,:  )
-      REAL*8,  POINTER       :: STT   (:,:,:,:)
-      REAL*8,  POINTER       :: T     (:,:,:  )
+      REAL(fp),  POINTER     :: AD    (:,:,:  )
+      REAL(fp),  POINTER     :: AIRVOL(:,:,:  )
+      REAL(fp),  POINTER     :: STT   (:,:,:,:)
+      REAL(fp),  POINTER     :: T     (:,:,:  )
 
       ! To get HEMCO values
-      REAL*8                 :: Emis
+      REAL(fp)               :: Emis
       LOGICAL                :: FOUND
+
+      ! Strings
+      CHARACTER(LEN=255)     :: LOC='CHEM_TAGGED_CO (tagged_co_mod.F)'
 !
 ! !DEFINED PARAMETERS:
 !
-      ! WTAIR = molecular weight of air (g/mole)
-      REAL*8,  PARAMETER     :: WTAIR = 28.966d0
-      
       ! Switch to scale yield of isoprene from NOx concentration or not
-      LOGICAL, PARAMETER     :: ALPHA_ISOP_FROM_NOX = .FALSE.
+      LOGICAL,   PARAMETER   :: ALPHA_ISOP_FROM_NOX = .FALSE.
+
+      ! MW of air (g/mol)
+      REAL(fp),  PARAMETER   :: WTAIR = 28.966e+0_fp
+
+      ! Yield of CO from CH4
+      REAL(fp),  PARAMETER   :: ALPHA_CH4  = 1e+0_fp
+
+      ! Yield of CO from monoterpenes
+      REAL(fp),  PARAMETER   :: ALPHA_MONO = 2e-1_fp
+
+      ! Yield of CO from acetone
+      REAL(fp),  PARAMETER   :: ALPHA_ACET = 2e+0_fp/3e+0_fp
 
       !=================================================================
       ! CHEM_TAGGED_CO begins here!
       !
-      ! Do the following on the first calla to CHEM_TAGGED_CO...
+      ! Do the following on the first call to CHEM_TAGGED_CO...
       !=================================================================
 
       ! Assume success
@@ -319,13 +349,17 @@
       N_TRACERS = Input_Opt%N_TRACERS
 
       ! DTCHEM is the number of seconds per chemistry timestep
-      DTCHEM    = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
 
       ! Point to fields in the State_Met and State_Chm objects (bmy, 4/10/14)
       AD        => State_Met%AD
       AIRVOL    => State_Met%AIRVOL
       STT       => State_Chm%Tracers
       T         => State_Met%T
+
+      ! Compute diurnal cycle for OH every day (check for new day inside
+      ! subroutine) - jaf 7/10/14
+      CALL CALC_DIURNAL
 
       !=================================================================
       ! Read in OH, NOx, P(CO), and L(CO) fields for the current month
@@ -335,16 +369,12 @@
          ! Get current month
          MONTH = GET_MONTH()
 
-         ! Global OH 
-         CALL GET_GLOBAL_OH
-     &        ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
-
-         ! Global NOx -- need this to determine 
-         ! ALPHA_ISOP which is a function of NOx
-         IF ( ALPHA_ISOP_FROM_NOX ) THEN
-            CALL GET_GLOBAL_NOX( MONTH, Input_Opt )
+         ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
          ENDIF
-            
+
          ! Read in the loss/production of CO in the stratosphere.
          CALL READ_PCO_LCO_STRAT( am_I_Root, Input_Opt, MONTH, RC )
             
@@ -383,7 +413,7 @@
       DO I = 1, IIPAR
 
          ! If we are using the non-local PBL mixing scheme, then
-         ! only add emissions above the PBL top.  All wmissions within
+         ! only add emissions above the PBL top.  All emissions within
          ! the PBL are handled in routine VDIFFDR in vdiff_mod.F90.
          ! Skip if we have PBL mixing completely turned off, or if
          ! we are using the TURBDAY full-mixing scheme.
@@ -398,7 +428,7 @@
          IF ( .NOT. FOUND ) CYCLE
          State_Chm%TRACERS(I,J,L,N) = State_Chm%TRACERS(I,J,L,N) 
      &                              + ( Emis
-     &                              *   State_Met%AREA_M2(I,J,L)
+     &                              *   State_Met%AREA_M2(I,J,1)
      &                              *   DTCHEM                  )
 
       ENDDO
@@ -414,12 +444,12 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED                                             ) 
 !$OMP+PRIVATE( I, J, L, N, STTCO, GCO, DENS, CH4RATE, CO_CH4, CH4 )
-!$OMP+PRIVATE( ALPHA_CH4, KRATE, CO_ISOP, CO_CH3OH, ALPHA_ISOP    )
-!$OMP+PRIVATE( CO_MONO, ALPHA_MONO, CO_ACET, ALPHA_ACET, CORATE   )
-!$OMP+PRIVATE( CO_OH, PCO, YMID                                   )
+!$OMP+PRIVATE( KRATE, CO_ISOP, CO_CH3OH, CO_MONO, CO_ACET, CORATE )
+!$OMP+PRIVATE( CO_OH, YMID, ALPHA_ISOP                            )
 !$OMP+PRIVATE( KHI1, KLO1, XYRAT1, BLOG1, FEXP1, KHI2, KLO2       )
-!$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2, AREA_CM2         )
-!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG, BOXVL                   )
+!$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2                   )
+!$OMP+PRIVATE( OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS                  )
+!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG, BOXVL )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -427,11 +457,8 @@
          ! Latitude of grid box
          YMID     = GET_YMID( I, J, L )
 
-         ! Grid box surface areas [cm2] (jaf, 3/10/09)
-         AREA_CM2 = GET_AREA_CM2( I, J, L )
-
          ! Grid box volume [cm3]
-         BOXVL    = State_Met%AIRVOL(I,J,L) * 1d6
+         BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
          !==============================================================
          ! (0) Define useful quantities
@@ -439,22 +466,41 @@
 
          ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec CO/cm3]
          ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
-         STTCO = 1d0     / AIRVOL(I,J,L) / 1d6 /
-     &           FMOL_CO * 6.023d23
+         STTCO = 1e+0_fp     / AIRVOL(I,J,L) / 1e+6_fp /
+     &           FMOL_CO * 6.023e+23_fp
 
          ! GCO is CO concentration in [molec CO/cm3]
          GCO   = STT(I,J,L,1) * STTCO
          
          ! DENS is the number density of air [molec air/cm3]
-         DENS  = AD(I,J,L) * 1000.d0   /
-     &           BOXVL     * 6.023d23  / WTAIR
+         DENS  = AD(I,J,L) * 1000.e+0_fp   /
+     &           BOXVL     * 6.023e+23_fp  / WTAIR
+
+         ! Cosine of the solar zenith angle [unitless]
+         SUNCOS = State_Met%SUNCOSmid(I,J)
+
+         ! Scaling factor for diurnal cycles - zero at night
+         IF ( SUNCOS > 0e+0_fp .and. TCOSZ(I,J) > 0e+0_fp ) THEN
+            FAC_DIURNAL = ( SUNCOS     / TCOSZ(I,J)    ) *
+     &                    ( 1440e+0_fp / GET_TS_CHEM() )
+         ELSE
+            FAC_DIURNAL = 0e+0_fp
+         ENDIF
+
+         ! Now impose a diurnal cycle on OH.
+         ! This is done in other offline simulations but was
+         ! missing from tagged CO (jaf, 3/12/14)
+         OH_MOLEC_CM3 = OH(I,J,L) * FAC_DIURNAL
+
+         ! Make sure OH is not negative
+         OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
 
          !==============================================================
          ! (1a) Production of CO by reaction with CH4
          !==============================================================
 
          ! Initialize
-         CO_CH4 = 0d0
+         CO_CH4 = 0e+0_fp
 
          ! Test level for stratosphere or troposphere
          IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
@@ -483,17 +529,14 @@
             IF ( YMID >=  30.0                   ) CH4 = A3090N
             
             ! Convert CH4 from [ppbv] to [molec CH4/cm3]
-            CH4 = CH4 * 1d-9 * DENS
-
-            ! Yield of CO from CH4: estimated to be 95-100% (acf)
-            ALPHA_CH4 = 1d0
+            CH4 = CH4 * 1e-9_fp * DENS
 
             ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
-            KRATE = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) ) 
+            KRATE = 2.45e-12_fp * EXP( -1775.e+0_fp / T(I,J,L) ) 
 
             ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt 
             ! Units are [molec CO/cm3]
-            CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH(I,J,L) * DTCHEM 
+            CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH_MOLEC_CM3 * DTCHEM 
 
          ENDIF
 
@@ -508,8 +551,8 @@
          !==============================================================
 
          ! Initialize
-         CO_ISOP  = 0d0
-         CO_CH3OH = 0d0
+         CO_ISOP  = 0e+0_fp
+         CO_CH3OH = 0e+0_fp
 
          ! Isoprene is emitted only into the surface layer 
          IF ( L == 1 ) THEN 
@@ -540,11 +583,7 @@
             !===========================================================
 
             ! Get CO yield from isoprene
-            IF ( ALPHA_ISOP_FROM_NOX ) THEN
-               ALPHA_ISOP = GET_ALPHA_ISOP( .TRUE., BNOX(I,J,L) )         
-            ELSE
-               ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
-            ENDIF
+            ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
 
             ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
             ! Convert from [molec ISOP/box] to [molec CO/cm3]
@@ -556,17 +595,17 @@
             ! Units of ALPHA_ISOP are [molec CO/molec ISOP]
             ! Units of CO_ISOP are [molec CO/cm3]
             CO_ISOP = SUMISOPCO(I,J) / BOXVL      /
-     &                5.d0           * ALPHA_ISOP
+     &                5.e+0_fp           * ALPHA_ISOP
 
             ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
             ! Units are [molec CO/cm3]
             CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL ) * 
-     &                 ( 100d0          / 397d0 ) * 
-     &                 ( 12d0           / 28d0  )
+     &                 ( 100e+0_fp          / 397e+0_fp ) * 
+     &                 ( 12e+0_fp           / 28e+0_fp  )
  
             ! Zero SUMISOPCO and SUMCH3OHCO for the next emission step
-            SUMISOPCO(I,J)  = 0d0
-            SUMCH3OHCO(I,J) = 0d0
+            SUMISOPCO(I,J)  = 0e+0_fp
+            SUMCH3OHCO(I,J) = 0e+0_fp
 
             ! Check CO_ISOP for NaN or Infinity
             ERR_LOC = (/ I, J, L, 0 /)
@@ -586,7 +625,7 @@
          !==============================================================
 
          ! Initialize
-         CO_MONO = 0.d0
+         CO_MONO = 0.e+0_fp
 
          ! Monoterpenes are emitted only into the surface layer
          IF ( L == 1 ) THEN
@@ -621,16 +660,13 @@
             ! where ALPHA_MONO = 0.2 as explained above.
             !===========================================================
 
-            ! Yield of CO from MONOTERPENES: 20% (see above)
-            ALPHA_MONO = 0.20d0
-
             ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
             ! Units are [molec CO/cm3]
             CO_MONO = ( SUMMONOCO(I,J) / BOXVL ) *
      &                ALPHA_MONO
 
             ! Zero SUMMONOCO for the next emission step
-            SUMMONOCO(I,J) = 0d0
+            SUMMONOCO(I,J) = 0e+0_fp
 
             ! Check CO_MONO for NaN or Infinity
             ERR_LOC = (/ I, J, L, 0 /)
@@ -661,19 +697,16 @@
          !==============================================================
 
          ! Initialize
-         CO_ACET = 0.d0
+         CO_ACET = 0.e+0_fp
 
          ! Biogenic acetone sources are emitted only into the surface layer
          IF ( L == 1 ) THEN
 
-            ! Yield of CO from ACETONE: 2/3 (see above)
-            ALPHA_ACET = 2.D0 / 3.D0
-            
             ! Units are [molec CO/cc]
             CO_ACET = SUMACETCO(I,J) / BOXVL * ALPHA_ACET
 
             ! Zero SUMACETCO for the next emission step
-            SUMACETCO(I,J) = 0d0
+            SUMACETCO(I,J) = 0e+0_fp
 
             ! Check CO_ACET for NaN or Infinity
             ERR_LOC = (/ I, J, L, 0 /)
@@ -735,10 +768,10 @@
                DO N = 2, N_TRACERS
 
                   ! Loss
-                  STT(I,J,L,N) = STT(I,J,L,N) * ( 1d0 - CO_OH )
+                  STT(I,J,L,N) = STT(I,J,L,N) * ( 1e+0_fp - CO_OH )
 
                   ! STT shouldn't be less than zero
-                  IF ( STT(I,J,L,N) < 0d0 ) STT(I,J,L,N) = 0d0
+                  IF ( STT(I,J,L,N) < 0e+0_fp ) STT(I,J,L,N) = 0e+0_fp
 
                   ! Error check
                   ERR_LOC = (/ I, J, L, N /)
@@ -788,39 +821,32 @@
             ! jmao (jaf, 3/4/09)
             !===========================================================
 
-            ! Pressure at the center of sigma level L,
-            ! expressed as a fraction of surface pressure in [Pa]
-            ! Don't need pressure for new rate constant (jaf, 3/4/09)
-            !PCO = GET_PCENTER(I,J,L) / 1.01325d3
-
-            ! Decay rate
-            !KRATE = ( 1.d0 + ( 0.6d0 * PCO ) ) * 1.5d-13
-
             ! Decay rate - new JPL 2006 version (jaf, 3/4/09)
             ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO1   = 5.9D-33 * ( T(I,J,L) / 300 )**(-1.4D0)
+            KLO1   = 5.9e-33_fp * ( T(I,J,L) / 300 )**(-1.4e+0_fp)
             ! KHI1 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI1   = 1.1D-12 * ( T(I,J,L) / 300 )**(1.3D0)
+            KHI1   = 1.1e-12_fp * ( T(I,J,L) / 300 )**(1.3e+0_fp)
             XYRAT1 = KLO1 * DENS / KHI1
             BLOG1  = LOG10(XYRAT1)
-            FEXP1  = 1.D0 / ( 1.D0 + BLOG1 * BLOG1 )
+            FEXP1  = 1.e+0_fp / ( 1.e+0_fp + BLOG1 * BLOG1 )
             ! KCO1 = k_f([M],T) from JPL Data Eval (page 2-1)
-            KCO1   = KLO1 * DENS * 0.6**FEXP1 / ( 1.d0 + XYRAT1 )
+            KCO1   = KLO1 * DENS * 0.6**FEXP1 / ( 1.e+0_fp + XYRAT1 )
             ! KLO2 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO2   = 1.5D-13 * ( T(I,J,L) / 300 )**(0.6D0)
+            KLO2   = 1.5e-13_fp * ( T(I,J,L) / 300 )**(0.6e+0_fp)
             ! KHI2 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI2   = 2.1D09  * ( T(I,J,L) / 300 )**(6.1D0)
+            KHI2   = 2.1e+09_fp  * ( T(I,J,L) / 300 )**(6.1e+0_fp)
             XYRAT2 = KLO2 * DENS / KHI2
             BLOG2  = LOG10(XYRAT2)
-            FEXP2  = 1.D0 / ( 1.D0 + BLOG2 * BLOG2 )
+            FEXP2  = 1.e+0_fp / ( 1.e+0_fp + BLOG2 * BLOG2 )
             ! KCO2 = k_f^ca([M],T) from JPL Data Eval (page 2-2)
-            KCO2   = KLO2 * 0.6**FEXP2 / ( 1.d0 + XYRAT2 )
+            KCO2   = KLO2 * 0.6**FEXP2 / ( 1.e+0_fp + XYRAT2 )
 
             ! KRATE is the sum of the two.
             KRATE  = KCO1 + KCO2
 
             ! CO_OH = Tropospheric loss of CO by OH [molec/cm3]
-            CO_OH = KRATE * GCO * OH(I,J,L) * DTCHEM
+            ! Now use OH_MOLEC_CM3, which includes a diurnal cycle.
+            CO_OH = KRATE * GCO * OH_MOLEC_CM3 * DTCHEM
 
             ! Handle trop loss by OH for regional CO tracers
             IF ( LSPLIT ) THEN
@@ -830,7 +856,7 @@
 
                   ! Use tropospheric rate constant 
                   STT(I,J,L,N) = STT(I,J,L,N) *
-     &                 ( 1d0 - KRATE * OH(I,J,L) * DTCHEM )
+     &                 ( 1e+0_fp - KRATE * OH_MOLEC_CM3 * DTCHEM )
 
                   ! Error check
                   ERR_LOC = (/ I, J, L, N /)
@@ -842,7 +868,7 @@
                   ! ND65 diagnostic -- loss of CO by OH for "tagged" tracers
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) + 
-     &                    ( KRATE * OH(I,J,L)*STT(I,J,L,N) * STTCO )
+     &                   ( KRATE * OH_MOLEC_CM3 * STT(I,J,L,N) * STTCO )
                   ENDIF
                ENDDO
             ENDIF
@@ -907,6 +933,147 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: calc_diurnal
+!
+! !DESCRIPTION: Subroutine CALC\_DIRUNAL computes the sume of the cosine
+!  of the solar zenith angle over a 24 hour day as well as the total
+!  length of daylight to scale the offline OH concentrations.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CALC_DIURNAL
+!
+! !USES:
+!
+      USE CMN_GCTM_MOD
+      USE CMN_SIZE_MOD
+      USE GRID_MOD, ONLY : GET_YMID_R
+      USE TIME_MOD, ONLY : ITS_A_NEW_DAY, GET_MINUTE,      GET_HOUR
+      USE TIME_MOD, ONLY : GET_TS_CHEM,   GET_DAY_OF_YEAR, GET_LOCALTIME
+! 
+! !REVISION HISTORY: 
+!  12 Mar 2014 - J. Fisher   - Copied from OHNO3TIME in carbon_mod and
+!                              COSSZA in dao_mod
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      INTEGER             :: I, J, N, NDYSTEP
+      INTEGER             :: MINUTE,  TS_SUN
+      REAL*8              :: GMT_MID, TIMLOC, FACTOR
+      REAL*8              :: R,       AHR,    DEC
+      REAL*8              :: YMID_R,  SUNTMP_MID
+!
+! !DEFINED PARAMETERS:
+!
+      ! Coefficients for solar declination angle
+      REAL*8,  PARAMETER :: A0 = 0.006918d0
+      REAL*8,  PARAMETER :: A1 = 0.399912d0
+      REAL*8,  PARAMETER :: A2 = 0.006758d0
+      REAL*8,  PARAMETER :: A3 = 0.002697d0
+      REAL*8,  PARAMETER :: B1 = 0.070257d0
+      REAL*8,  PARAMETER :: B2 = 0.000907d0
+      REAL*8,  PARAMETER :: B3 = 0.000148d0
+ 
+      !=================================================================
+      ! CALC_DIURNAL begins here!
+      !=================================================================
+
+      ! Only do at the start of a new day
+      IF ( FIRST .or. ITS_A_NEW_DAY() ) THEN 
+ 
+         ! Zero array
+         TCOSZ = 0d0
+
+         ! Get time for central chemistry timestep
+         TS_SUN = GET_TS_CHEM()                     ! Chemistry interval
+         MINUTE = GET_MINUTE()                      ! Current minutes
+         FACTOR = MINUTE / TS_SUN                   ! Multiplying factor
+
+         ! GMT at the midpoint of the chemistry time interval for first
+         ! timestep of the day
+         GMT_MID  = ( DBLE( GET_HOUR()        )      )
+     &            + ( DBLE( TS_SUN * FACTOR ) / 60d0 )
+     &            + ( DBLE( TS_SUN / 2      ) / 60d0 )
+
+         ! Solar declination angle (low precision formula):
+         ! Path length of earth's orbit traversed since Jan 1 [radians]
+         R = ( 2d0 * PI / 365d0 ) * FLOAT( GET_DAY_OF_YEAR() - 1 )
+         DEC = A0 - A1*COS(    R) + B1*SIN(    R)
+     &            - A2*COS(2d0*R) + B2*SIN(2d0*R)
+     &            - A3*COS(3d0*R) + B3*SIN(3d0*R)
+
+         ! NDYSTEP is # of chemistry time steps
+         NDYSTEP = INT( 24d0 * 60d0 / GET_TS_CHEM() )
+
+         ! Loop forward through NDYSTEP "fake" timesteps for this day
+         DO N = 1, NDYSTEP
+            
+            ! Increment GMT (hours) to midpoint of next timestep
+            IF ( N > 1 ) GMT_MID = GMT_MID + TS_SUN / 60d0
+
+            ! Loop over surface grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR, SUNTMP_MID )
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+
+               ! Zero SUNTMP_MID
+               SUNTMP_MID = 0d0
+
+               ! Grid box latitude center [radians]
+               YMID_R = GET_YMID_R( I, J, 1 )
+
+               ! Local time at box (I,J) [hours]
+               TIMLOC = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
+
+               ! Hour angle at box (I,J) [radians]
+               AHR = ABS( TIMLOC - 12d0 ) * 15d00 * PI_180
+
+               !===========================================================
+               ! The cosine of the solar zenith angle (SZA) is given by:
+               !
+               !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR)
+               !
+               ! where LAT = the latitude angle,
+               !       DEC = the solar declination angle,
+               !       AHR = the hour angle, all in radians.
+               !
+               ! If SUNCOS < 0, then the sun is below the horizon, and
+               ! therefore does not contribute to any solar heating.
+               !===========================================================
+
+               ! Compute Cos(SZA)
+               SUNTMP_MID = sin(YMID_R) * sin(DEC) +
+     &                      cos(YMID_R) * cos(DEC) * cos(AHR)
+
+               ! TCOSZ is the sum of SUNTMP_MID at location (I,J)
+               ! Do not include negative values of SUNTMP_MID
+               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP_MID, 0d0 )
+
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDDO
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE CALC_DIURNAL
+
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_alpha_isop
 !
 ! !DESCRIPTION: Function GET\_ALPHA\_ISOP returns the CO yield from 
@@ -926,11 +1093,11 @@
       LOGICAL, INTENT(IN)           :: FROM_NOX    ! If =T, will take ALPHA_ISOP
                                                    ! as f(NOx).  If =F, will set
                                                    ! ALPHA_ISOP to a constant
-      REAL*8,  INTENT(IN), OPTIONAL :: NOX         ! NOx concentration [ppbv]
+      REAL(fp),  INTENT(IN), OPTIONAL :: NOX         ! NOx concentration [ppbv]
 !
 ! !RETURN VALUE:
 !
-      REAL*8                        :: ALPHA_ISOP  ! CO yield from ISOP
+      REAL(fp)                        :: ALPHA_ISOP  ! CO yield from ISOP
 ! 
 ! !REVISION HISTORY: 
 !  13 Jun 2001 - B. Duncan - Initial version
@@ -955,11 +1122,11 @@
             ! (from group meeting (1-20-99).  Assumming linearity, 
             ! ALPHA=0.8*[NOx]+0.6, with an upper and lower limit of 2.1 
             ! and 0.8, respectively. [NOx] is concentration in ppbv !!
-            ALPHA_ISOP = ( 0.8d0 * NOX ) + 0.6D0
+            ALPHA_ISOP = ( 0.8e+0_fp * NOX ) + 0.6e+0_fp
 
             ! Force lower & upper limits
-            IF ( NOX < 0.5d0 ) ALPHA_ISOP = 0.8d0
-            IF ( NOX > 1.8d0 ) ALPHA_ISOP = 2.1d0
+            IF ( NOX < 0.5e+0_fp ) ALPHA_ISOP = 0.8e+0_fp
+            IF ( NOX > 1.8e+0_fp ) ALPHA_ISOP = 2.1e+0_fp
          
          ELSE
 
@@ -975,7 +1142,7 @@
          ! They estimate globally 105 Tg C/yr of CO is produced
          ! from isoprene oxidation.
          ! ALPHA_ISOP = (0.3 molec CO/atoms C) x (5 atoms C/molec ISOP)
-         ALPHA_ISOP = 1.5d0
+         ALPHA_ISOP = 1.5e+0_fp
 
       ENDIF
       
@@ -1001,9 +1168,8 @@
 !
       ! GEOS-Chem modules
       USE CMN_SIZE_MOD   
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
@@ -1022,12 +1188,19 @@
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
 ! 
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+
 ! !REVISION HISTORY: 
 !  13 Sep 2000 - B. Duncan   - Initial version
 !  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
 !  (2 ) Added to module "tagged_co_mod.f" (bmy, 6/13/01)
 !  (3 ) ARRAY needs to be of size (IIPAR,JJPAR).  Use TRANSFER_ZONAL from
-!        "transfer_mod.f" to cast data from REAL*4 to REAL*8, and also to
+!        "transfer_mod.f" to cast data from REAL*4 to REAL(fp), and also to
 !        copy data to an array of size (JJPAR,LLPAR).  Use 3 arguments (M/D/Y)
 !        in call to GET_TAU0.  Use JJPAR,LGLOB in call to READ_BPCH2. 
 !        (bmy, 9/28/01)
@@ -1041,6 +1214,7 @@
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1060,13 +1234,14 @@
 
       ! Initialize some variables
       ARRAY    = 0e0
-      CO_PRODS = 0d0
-      CO_LOSSS = 0d0
+      CO_PRODS = 0e+0_fp
+      CO_LOSSS = 0e+0_fp
 
       ! Construct filename and open file
       FILENAME = 'strat_chem_201206/gmi.clim.CO.' // 
      &                GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
+      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
+     &           TRIM( Input_Opt%RES_DIR  ) // TRIM( FILENAME )
 
       call NcOp_Rd( fileID, TRIM( FILENAME ) )
 
@@ -1079,7 +1254,7 @@
      &           (/     1,     1,     1, THISMONTH /),   ! Start
      &           (/ IIPAR, JJPAR, LGLOB,         1 /)  ) ! Count
 
-      ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
+      ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR
       CALL TRANSFER_3D( ARRAY, CO_PRODS )
 
       !=================================================================
@@ -1091,7 +1266,7 @@
      &           (/     1,     1,     1, THISMONTH /),   ! Start
      &           (/ IIPAR, JJPAR, LGLOB,         1 /)  ) ! Count
 
-      ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
+      ! Cast from REAL*4 to REAL(fp) and resize to 1:LLPAR
       CALL TRANSFER_3D( ARRAY, CO_LOSSS )
 
       ! Close file
@@ -1132,7 +1307,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8               :: RATE      ! CO prod [v/v/s] or loss [1/s]
+      REAL(fp)               :: RATE      ! CO prod [v/v/s] or loss [1/s]
 ! 
 ! !REVISION HISTORY: 
 !  13 Jun 2001 - B. Duncan - Initial version
@@ -1166,131 +1341,6 @@
     
       END FUNCTION GET_PCO_LCO_STRAT
 !EOC
-!------------------------------------------------------------------------------
-! Prior to 6/23/14:
-! HEMCO appears to have orphaned this routine.  Comment out for now.
-! (bmy, 6/23/14)
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_acetone
-!!
-!! !DESCRIPTION: Subroutine READ\_ACETONE reads in biogenic acetone 
-!!  emissions from a binary punch file. 
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_ACETONE( am_I_Root, Input_Opt, THISMONTH, RC )
-!!
-!! !USES:
-!!
-!      USE CMN_SIZE_MOD 
-!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-!      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
-!      USE GIGC_ErrCode_Mod
-!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!      INTEGER,        INTENT(IN)  :: THISMONTH   ! Month to read
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
-!! 
-!! !REMARKS:
-!!  This routine will be replaced by HEMCO soon. All bpch file input is being
-!!  replaced with netCDF input.
-!!
-!! !REVISION HISTORY: 
-!!  23 Oct 2012 - B. Field, B. Duncan - Initial version
-!!  (1 ) Eliminate variables that aren't used anymore.  Updated comments
-!!        and made some cosmetic changes. (bnd, bmy, 6/14/01)
-!!  (2 ) Added to "tagged_co_mod.f" (bmy, 6/14/01)
-!!  (3 ) Now read acetone file from DATA_DIR/tagged_CO_200106 (bmy, 6/19/01)
-!!  (4 ) ARRAY needs to be of size (IIPAR,JJPAR).  Use TRANSFER_2D from 
-!!        "transfer_mod.f" to cast data from REAL*4 to REAL*8, and also to 
-!!        copy data to an array of size (IIPAR,JJPAR).  Use 3 arguments (M/D/Y)
-!!        in call to GET_TAU0.  Use IIPAR,JJPAR in call to READ_BPCH2.
-!!        Added array TEMP(IIPAR,JJPAR).  Updated comments. (bmy, 9/28/01)
-!!  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
-!!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!  (7 ) Now reads data from both GEOS and GCAP grids (bmy, 8/16/05)
-!!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
-!!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER             :: I, J
-!      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-!      REAL*8              :: TEMP(IIPAR,JJPAR)
-!      REAL*8              :: XTAU
-!      CHARACTER(LEN=255)  :: FILENAME
-!     
-!      !=================================================================
-!      ! READ_ACETONE begins here!
-!      !=================================================================
-!
-!      ! Name of file with acetone data
-!      FILENAME = TRIM( Input_Opt%DATA_DIR )  // 
-!     &           'tagged_CO_200106/acetone.' // GET_NAME_EXT_2D() //
-!     &           '.'                         // GET_RES_EXT()
-!
-!      ! Echo to stdout
-!      IF ( am_I_Root ) THEN
-!         WRITE( 6, '(a)' ) 'READING ', TRIM( FILENAME )
-!      ENDIF
-!
-!      !  Initialize some variables      
-!      EMACET   = 0d0
-!       
-!      ! TAU value at the beginning of this month for 1994
-!      XTAU = GET_TAU0( THISMONTH, 1, 1994 )
-!
-!      !=================================================================
-!      ! Read direct biogenic acetone emissions [atoms C/cm2/s]
-!      !=================================================================
-!
-!      ! Initialize ARRAY
-!      ARRAY = 0e0
-!
-!      ! Read data
-!      CALL READ_BPCH2( FILENAME, 'EMISACET', 6, XTAU,
-!     &                 IIPAR,     JJPAR,     1, ARRAY )
-!
-!      ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-!      CALL TRANSFER_2D( ARRAY(:,:,1), EMACET )
-!
-!      !=================================================================
-!      ! Read acetone from grasslands [atoms C/cm2/s]
-!      !=================================================================
-!
-!      ! Initialize ARRAY
-!      ARRAY = 0e0
-!
-!      ! Read data
-!      CALL READ_BPCH2( FILENAME, 'EMISACET', 7, XTAU,
-!     &                 IIPAR,     JJPAR,     1, ARRAY )
-!
-!      ! Cast from REAL*4 to REAL*8 and add
-!      CALL TRANSFER_2D( ARRAY(:,:,1), TEMP )
-!
-!      ! Add acetone from grasslands to direct biogenic emissions
-!      EMACET(:,:) = EMACET(:,:) + TEMP(:,:)
-!
-!      END SUBROUTINE READ_ACETONE
-!!EOC
-!------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1356,18 +1406,18 @@
       ! Allocate SUMACETCO -- array for CO from isoprene
       ALLOCATE( EMACET( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMACET' )         
-      EMACET = 0d0 
+      EMACET = 0e+0_fp 
 
       ! Allocate and initialize IJLOOP_CO -- 1-D array index
       ALLOCATE( CO_PRODS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )    
-!      CO_PRODS = 0d0
+!      CO_PRODS = 0e+0_fp
       CO_PRODS = 0e0
 
       ! Allocate and initialize IJLOOP_CO -- 1-D array index
       ALLOCATE( CO_LOSSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_LOSSS' )    
-!      CO_LOSSS = 0d0
+!      CO_LOSSS = 0e+0_fp
       CO_PRODS = 0e0
 
       ! Allocate only what is needed
@@ -1386,22 +1436,27 @@
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMISOPCO' )         
-      SUMISOPCO = 0d0 
+      SUMISOPCO = 0e+0_fp 
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMMONOCO' )         
-      SUMMONOCO = 0d0 
+      SUMMONOCO = 0e+0_fp 
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
       ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMCH3OHCO' )         
-      SUMCH3OHCO = 0d0 
+      SUMCH3OHCO = 0e+0_fp 
 
       ! Allocate SUMACETCO -- array for CO from isoprene
       ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
-      SUMACETCO = 0d0 
+      SUMACETCO = 0e+0_fp 
+
+      ! Allocate TCOSZ -- array for sum of COS(SZA)
+      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )         
+      TCOSZ = 0d0 
 
 !      ! Define geographic regions for both fossil fuel & biomass burning
 !      CALL DEFINE_FF_CO_REGIONS( FF_REGION )         
@@ -1431,6 +1486,7 @@
 !        fields make these no longer necessary (bmy, 8/21/09)
 !  (3 ) Now remove IJLOOP_CO (bmy, 7/20/04)
 !  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  11 Mar 2015 - R. Yantosca - Now free the OH pointer
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1443,7 +1499,11 @@
       IF ( ALLOCATED( SUMACETCO  ) ) DEALLOCATE( SUMACETCO  )
       IF ( ALLOCATED( EMACET     ) ) DEALLOCATE( EMACET     )
       IF ( ALLOCATED( CO_PRODS   ) ) DEALLOCATE( CO_PRODS   )
+      IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
       IF ( ALLOCATED( CO_LOSSS   ) ) DEALLOCATE( CO_LOSSS   )
+
+      ! Free OH pointer
+      OH => NULL()
 
       END SUBROUTINE CLEANUP_TAGGED_CO
 !EOC

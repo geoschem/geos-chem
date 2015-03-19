@@ -17,6 +17,8 @@
 !
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -39,6 +41,7 @@
 !  03 Aug 2012 - R. Yantosca - Now make IU_I6 a private module variable
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -298,7 +301,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_CT_I6
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
 ! !INPUT PARAMETERS: 
@@ -309,8 +311,8 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: PS(IIPAR,JJPAR      )  ! Surface pressure [hPa]
-      REAL*8,  INTENT(OUT) :: RH(IIPAR,JJPAR,LLPAR)  ! Rel. humidity    [1]
+      REAL(fp),  INTENT(OUT) :: PS(IIPAR,JJPAR      )  ! Surface pressure [hPa]
+      REAL(fp),  INTENT(OUT) :: RH(IIPAR,JJPAR,LLPAR)  ! Rel. humidity    [1]
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
@@ -371,7 +373,7 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_I6, 'read_i6:2' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
-                  CALL TRANSFER_2D( Q2, PS )
+                  PS     = Q2
                   NFOUND = NFOUND + 1
                ENDIF
 
@@ -388,7 +390,7 @@
                   NFOUND = NFOUND + 1
 
                   ! Convert RH from [1] to [%] 
-                  RH = RH * 100d0
+                  RH = RH * 100e+0_fp
                ENDIF
 
             !------------------------------------

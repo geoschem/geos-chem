@@ -33,8 +33,8 @@
 # List of source code files (order is important)
 SRC2 :=                        \
 ./intro.make                   \
-$(ROOTDIR)/Makefile            \
-$(ROOTDIR)/Makefile_header.mk  \
+$(ROOT)/Makefile               \
+$(ROOT)/Makefile_header.mk     \
 $(UTIL)/Makefile               \
 $(ISO)/Makefile                \
 $(CORE)/Makefile               \

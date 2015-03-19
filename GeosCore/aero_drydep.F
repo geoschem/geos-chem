@@ -37,6 +37,7 @@
 
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE PRECISION_MOD
 
       IMPLICIT NONE
 !
@@ -65,6 +66,7 @@
 !                              derived type object
 !  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to routines
+!  05 Nov 2014 - M. Yannetti - PRECISION_MOD convert REAL*8 to REAL(fp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -72,25 +74,25 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, L, N, JC, BIN, ID, IJLOOP
-      REAL*8                 :: DTCHEM,  AREA_CM2, FLUX
-      REAL*8                 :: X, X0(IBINS, ICOMP-IDIAG+1)
-      REAL*8                 :: Y, Y0, RKT
-      REAL*8                 :: NU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL*8                 :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL*8                 :: SIZ_DIA(IIPAR*JJPAR,IBINS)
-      REAL*8                 :: SIZ_DEN(IIPAR*JJPAR,IBINS)
-      REAL*8                 :: DEN,   DP,    PDP,  TEMP,  P
-      REAL*8                 :: CONST, SLIP,  VISC, DELZ,  DELZ1
-      REAL*8                 :: TOT1,  TOT2
-      REAL*8,  PARAMETER     :: Go = 9.8d0  !Gravitational accel [m/s2]
-      REAL*8                 :: TC(LLPAR),  TC0(LLPAR)
+      REAL(fp)                 :: DTCHEM,  AREA_CM2, FLUX
+      REAL(fp)                 :: X, X0(IBINS, ICOMP-IDIAG+1)
+      REAL(fp)                 :: Y, Y0, RKT
+      REAL(fp)                 :: NU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)                 :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)                 :: SIZ_DIA(IIPAR*JJPAR,IBINS)
+      REAL(fp)                 :: SIZ_DEN(IIPAR*JJPAR,IBINS)
+      REAL(fp)                 :: DEN,   DP,    PDP,  TEMP,  P
+      REAL(fp)                 :: CONST, SLIP,  VISC, DELZ,  DELZ1
+      REAL(fp)                 :: TOT1,  TOT2
+      REAL(fp),  PARAMETER     :: Go = 9.8e+0_fp  !Gravitational accel [m/s2]
+      REAL(fp)                 :: TC(LLPAR),  TC0(LLPAR)
       INTEGER,SAVE           :: DRYD(IBINS)
       LOGICAL,SAVE           :: FIRST = .TRUE.
       INTEGER,SAVE           :: H2SO4ID
       LOGICAL                :: DOSETTLING = .TRUE.
 
       ! Settling velocity of particle (m/s)
-      REAL*8                :: VTS(LLPAR)  
+      REAL(fp)                :: VTS(LLPAR)  
       
       !debug
       integer   :: ii, jj , ix, jx, bb, ll
@@ -99,12 +101,12 @@
       ! For fields from Input_Opt
       LOGICAL         :: LPRT
       INTEGER         :: N_TRACERS
-      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL*8, POINTER :: STT(:,:,:,:)
-      REAL*8, POINTER :: BXHEIGHT(:,:,:)
-      REAL*8, POINTER :: T(:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: BXHEIGHT(:,:,:)
+      REAL(fp), POINTER :: T(:,:,:)
 
       !=================================================================
       ! AERO_DRYDEP begins here!
@@ -290,6 +292,7 @@ cdbg      print *, dryd(:)
             ENDDO
 
 
+#if !defined( NO_BPCH ) 
             !========================================================      
             ! ND44: Dry deposition diagnostic [#/cm2/s]
             !========================================================
@@ -321,6 +324,7 @@ cdbg      print *, dryd(:)
                ENDIF
                  
             ENDIF
+#endif
 
          ENDDO ! JC-loop
  
@@ -388,6 +392,9 @@ c     &           'FLUX  AD44'
             X = 0d0
             ID = IDTNK1 - 1 + BIN + (( JC-1 )* IBINS)
 
+! ******************************************************************************
+! NOTE: I'm not sure if this is now covered by dry-deposition in mixing_mod.F90
+! (ckeller, 3/5/15)
             ! RKT is drydep frequency [1/s] -- PBLFRAC accounts for the 
             ! fraction of each vertical level that is located below the PBL top
             RKT = DEPSAV(I,J,DRYD(BIN))* GET_FRAC_UNDER_PBLTOP( I, J, L)
@@ -400,7 +407,9 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             ELSE
                X = X0(BIN,JC)
             ENDIF
+! ******************************************************************************
                
+#if !defined( NO_BPCH )
             !==============================================================
             ! ND44 Diagnostic: Drydep flux of bin1,..,bin30 [molec/cm2/s]
             !==============================================================
@@ -435,6 +444,7 @@ c     &           bin==bb .and. JC==ICOMP)
 c     &          print *, L, STT(I,J,L,ID), X0(BIN,JC) - X, FLUX, 
 c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 !debug------
+#endif
 
 
             ! Swap X back into STT array
@@ -444,10 +454,15 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
          ENDDO
          ENDDO
          
+! ******************************************************************************
+! NOTE: I'm not sure if this is now covered by dry-deposition in mixing_mod.F90
+! (ckeller, 3/5/15)
          !Dry deposit H2SO4 gas (win, 5/24/06)
          Y0 = STT(I,J,L,IDTH2SO4)
          RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
          Y = Y0 * EXP(-RKT)
+! ******************************************************************************
+#if !defined( NO_BPCH )
          !==============================================================
          ! ND44 Diagnostic: Drydep flux of H2SO4 [molec/cm2/s]
          !==============================================================
@@ -463,10 +478,10 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
             AD44(I,J,H2SO4ID,1) = AD44(I,J,H2SO4ID,1) + FLUX   
 
          ENDIF
+#endif
 
          !Swap final H2SO4 back into STT array
-         STT(I,J,L,IDTH2SO4) = Y
-         
+         STT(I,J,L,IDTH2SO4) = Y         
 
       ENDDO
       ENDDO

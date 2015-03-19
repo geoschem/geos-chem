@@ -17,6 +17,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD                    ! Size parameters
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -79,16 +80,21 @@
 !  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
 !                              to GEOS-5.7.2 met data for the time being.
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  16 Mar 2015 - R. Yantosca - Retire bpch input; now read TOMS via HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-      REAL*8, PRIVATE, ALLOCATABLE :: TOMS(:,:)               
-      REAL*8, PRIVATE, ALLOCATABLE :: DTOMS1(:,:)             
-      REAL*8, PRIVATE, ALLOCATABLE :: DTOMS2(:,:)     
-      REAL*8, PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
+      ! Arrays
+      REAL(fp), PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
+
+      ! Pointers to fields in the HEMCO data structure
+      REAL(f4), PRIVATE, POINTER     :: TOMS(:,:)               
+      REAL(f4), PRIVATE, POINTER     :: DTOMS1(:,:)             
+      REAL(f4), PRIVATE, POINTER     :: DTOMS2(:,:)     
 
       CONTAINS
 !EOC
@@ -105,27 +111,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TOMS( am_I_Root, Input_Opt, 
-     &                      THISMONTH, THISYEAR, RC )
+      SUBROUTINE READ_TOMS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,      ONLY : GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0
-      USE BPCH2_MOD,      ONLY : READ_BPCH2
-      USE TIME_MOD,       ONLY : EXPAND_DATE
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+      USE Error_Mod,          ONLY : Error_Stop
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
-      INTEGER,        INTENT(IN)  :: THISYEAR    ! Current year
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -170,6 +168,12 @@
 !                                                                             .
 !  This methodology was originally adopted by Mat Evans.
 !  
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY: 
 !  10 Dec 2002 - M. Evans - Initial version
 !  (1 ) Bundled into "toms_mod.f" (bmy, 7/14/03)
@@ -193,192 +197,48 @@
 !                              grid (J. Lin)
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  23 Jun 2014 - R. Yantosca - Now use Input_Opt%DATA_DIR_1x1
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL            :: FIRST = .TRUE.
-      INTEGER            :: YYYYMMDD, YEAR
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8             :: XTAU
-      CHARACTER(LEN=255) :: FILENAME
-
-      CHARACTER(LEN=255) :: LLFILENAME
-      REAL*4             :: ARRAY1x1(I1x1,J1x1,1)
-      REAL*8             :: INGRID (I1x1,J1x1)
-
+      ! Strings
+      CHARACTER(LEN=255) :: LOC = 'READ_TOMS (GeosCore/toms_mod.F)'
 
       !=================================================================
-      ! Initialization
+      ! READ_TOMS begins here
       !=================================================================
-
-      ! Allocate arrays on the first call only
-      IF ( FIRST ) THEN
-         CALL INIT_TOMS
-         FIRST = .FALSE.
-      ENDIF
-
-      ! Only read TOMS if not using TO3 from the met fields (mpayer, 12/13/13)
+      
+      ! Exit if we are getting the overhead O3 columns from the met fields
       IF ( Input_Opt%USE_O3_FROM_MET ) RETURN
 
-      ! Always use 2002 data for GCAP
-#if   defined ( GCAP )
-      YEAR = 2002
-#else 
-      YEAR = THISYEAR
-#endif
-
-      ! Use 1979 data prior to 1979
-      IF ( YEAR < FIRST_TOMS_YEAR ) THEN
-         WRITE( 6, 100 ) YEAR
-         YEAR = FIRST_TOMS_YEAR
+      !-----------------------------------------------------------------
+      ! Read TOMS O3 columns [dobsons]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'TOMS_O3_COL', TOMS, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
       ENDIF
 
-      ! Use 2010 data after 2010
-      IF ( YEAR > LAST_TOMS_YEAR ) THEN
-         WRITE( 6, 105 ) YEAR
-         YEAR = LAST_TOMS_YEAR
+      !-----------------------------------------------------------------
+      ! Read d(TOMS)/dt, 1st half of the month [dobsons/day]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'DTOMS1_O3_COL', DTOMS1, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
       ENDIF
-      
 
-      ! FORMAT statemetns
- 100  FORMAT( '     - READ_TOMS: No data for ',i4,', using 1979!' )
- 105  FORMAT( '     - READ_TOMS: No data for ',i4,', using 2010!' )
-
-      !=================================================================
-      ! Read TOMS data from disk
-      !=================================================================
-
-      ! Get TAU0 value for first day of the MONTH 
-      XTAU     = GET_TAU0( THISMONTH, 1, YEAR )
-
-      ! Create YYYYMMDD value
-      YYYYMMDD = ( YEAR * 10000 ) + ( THISMONTH * 100 ) + 01
-     
-#if   !defined( GCAP )
-
-      ! Define filename (with replaceable tokens)
-      ! Regrid from the files on geos.1x1 grid -- Lin_20140305
-      FILENAME = 'TOMS_201203/TOMS_O3col_YYYY.geos.1x1'
-
-      ! Replace YYYY token with current year
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
-
-      ! Now prefix the data directory
-      FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // TRIM( FILENAME )
-
-      ! Echo filename
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( '     - READ_TOMS: Reading ', a )
-
-      !=================================================================
-      ! Regrid from 1x1 to model resolution
-      !=================================================================
-
-      ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) //
-     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
-
-      !-----------------------------
-      ! TOMS O3 columns
-      !-----------------------------
-      
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'TOMS-O3',  1,
-     &                 XTAU,      I1x1,      J1x1,
-     &                 1,         ARRAY1x1,  QUIET=.TRUE. )
-
-      ! Regrid to current model resolution
-      INGRID = ARRAY1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
-     &                    INGRID,     TOMS,  IS_MASS=0,
-     &                    netCDF=.TRUE.              )
-
-      !--------------------------------
-      ! d(TOMS)/dT (1st half of month)
-      !--------------------------------
-
-       ! Read data
-      CALL READ_BPCH2( FILENAME, 'TOMS-O3',  2,
-     &                 XTAU,      I1x1,      J1x1, 
-     &                 1,         ARRAY1x1,  QUIET=.TRUE. )
-
-      ! Regrid to current model resolution
-      INGRID = ARRAY1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     DTOMS1,  IS_MASS=0,
-     &                    netCDF=.TRUE.              )
-
-      !--------------------------------
-      ! d(TOMS)/dT (2nd half of month)
-      !--------------------------------
-
-       ! Read data: 
-      CALL READ_BPCH2( FILENAME, 'TOMS-O3',  3,
-     &                 XTAU,      I1x1,      J1x1,
-     &                 1,         ARRAY1x1,  QUIET=.TRUE. )
-
-      ! Regrid to current model resolution
-      INGRID = ARRAY1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     DTOMS2,  IS_MASS=0,
-     &                    netCDF=.TRUE.              )
-
-#else
-
-      ! Define filename (with replaceable tokens)
-      FILENAME = 'TOMS_200701/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
-     &           '.'                            // GET_RES_EXT()
-
-      ! Replace YYYY token with current year
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
-
-      ! Now prefix the data directory
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // TRIM( FILENAME )
-
-      ! Echo filename
-      WRITE( 6, 120 ) TRIM( FILENAME )
- 120  FORMAT( '     - READ_TOMS: Reading ', a )
-
-      !-----------------------------
-      ! TOMS O3 columns
-      !-----------------------------
-      
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'TOMS-O3',  1, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )         
-
-      ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), TOMS )
-
-      !--------------------------------
-      ! d(TOMS)/dT (1st half of month)
-      !--------------------------------
-
-       ! Read data
-      CALL READ_BPCH2( FILENAME, 'TOMS-O3',  2, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )         
-
-      ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), DTOMS1 )
-      
-      !--------------------------------
-      ! d(TOMS)/dT (2nd half of month)
-      !--------------------------------
-
-       ! Read data: 
-      CALL READ_BPCH2( FILENAME, 'TOMS-O3',  3, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )         
-
-      ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), DTOMS2 )
-
-#endif
+      !-----------------------------------------------------------------
+      ! Read d(TOMS)/dt, 2nd half of the month [dobsons/day]
+      !-----------------------------------------------------------------
+      CALL HCO_GetPtr( am_I_Root, 'DTOMS2_O3_COL', DTOMS2, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'Cannot get pointer to TOMS_O3_COL', LOC )
+      ENDIF
 
       END SUBROUTINE READ_TOMS
 !EOC
@@ -421,7 +281,7 @@
       LOGICAL, INTENT(IN)  :: USE_O3_FROM_MET
       
       ! TO3 from the met fields [Dobsons]
-      REAL*8,  INTENT(IN)  :: TO3(IIPAR,JJPAR)
+      REAL(fp),  INTENT(IN)  :: TO3(IIPAR,JJPAR)
 !
 ! !REMARKS:
 ! Reference for the TOMS/SBUV merged O3 columns:
@@ -503,7 +363,7 @@
       INTEGER       :: I, J
 
       ! Initialize
-      TO3_DAILY = 0d0
+      TO3_DAILY = 0e+0_fp
 
       !=================================================================
       ! Now weight the O3 column by the observed monthly mean TOMS.
@@ -540,8 +400,8 @@
 !$OMP+DEFAULT( SHARED )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               IF ( TOMS(I,J)   > -999d0  .AND. 
-     &              DTOMS1(I,J) > -999d0 ) THEN  
+               IF ( TOMS(I,J)   > -999e+0_f4  .AND. 
+     &              DTOMS1(I,J) > -999e+0_f4 ) THEN  
                   TO3_DAILY(I,J) = TOMS(I,J) 
      &                           + DTOMS1(I,J) * ( DAY - 15 )
                ENDIF            
@@ -557,8 +417,8 @@
 !$OMP+DEFAULT( SHARED )
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               IF ( TOMS(I,J)   > -999d0  .AND. 
-     &              DTOMS2(I,J) > -999d0 ) THEN  
+               IF ( TOMS(I,J)   > -999e+0_f4  .AND. 
+     &              DTOMS2(I,J) > -999e+0_f4 ) THEN  
                   TO3_DAILY(I,J) = TOMS(I,J) 
      &                           + DTOMS2(I,J) * ( DAY - 15 )
                ENDIF
@@ -595,7 +455,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8  :: OVERHEAD_O3   ! Total overhead O3 column [DU]
+      REAL(fp)  :: OVERHEAD_O3   ! Total overhead O3 column [DU]
 ! 
 ! !REVISION HISTORY: 
 !  06 Mar 2012 - R. Yantosca - Initial version
@@ -619,48 +479,50 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TOMS
+      SUBROUTINE INIT_TOMS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD  
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root  ! root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input opts
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC         ! Failure or success
 ! 
 ! !REVISION HISTORY: 
 !  14 Jul 2003 - R. Yantosca - Initial version
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  06 Mar 2012 - R. Yantosca - Now allocate TO3_DAILY
+!  16 Mar 2015 - R. Yantosca - TOMS, DTOMS1, DTOMS2 are now pointers
+!  16 Mar 2015 - R. Yantosca - Add Input_Opt, RC arguments for std interface
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
-
       !=================================================================
       ! INIT_TOMS begins here!
       !=================================================================
 
-      ! Allocate TOMS
-      ALLOCATE( TOMS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TOMS' )
-      TOMS = 0d0
+      ! Allocate arrays
+      ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) CALL ALLOC_ERR( 'TO3_DAILY' )
+      TO3_DAILY = 0e+0_fp
 
-      ! Allocate DTOMS
-      ALLOCATE( DTOMS1( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTOMS1' )
-      DTOMS1 = 0d0
-
-      ! Allocate DTOMS2
-      ALLOCATE( DTOMS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTOMS2' )
-      DTOMS2 = 0d0
-
-      ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3_DAILY' )
-      TO3_DAILY = 0d0
+      ! Initialize pointers
+      TOMS   => NULL()
+      DTOMS1 => NULL()
+      DTOMS2 => NULL()
 
       END SUBROUTINE INIT_TOMS
 !EOC
@@ -688,10 +550,14 @@
       !=================================================================
       ! CLEANUP_TOMS begins here!
       !=================================================================
-      IF ( ALLOCATED( TOMS      ) ) DEALLOCATE( TOMS      )
-      IF ( ALLOCATED( DTOMS1    ) ) DEALLOCATE( DTOMS1    )
-      IF ( ALLOCATED( DTOMS2    ) ) DEALLOCATE( DTOMS2    )
+
+      ! Free arrays
       IF ( ALLOCATED( TO3_DAILY ) ) DEALLOCATE( TO3_DAILY )
+
+      ! Free pointers
+      TOMS   => NULL()
+      DTOMS1 => NULL()
+      DTOMS2 => NULL()
 
       END SUBROUTINE CLEANUP_TOMS
 !EOC

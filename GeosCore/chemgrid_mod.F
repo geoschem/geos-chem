@@ -17,6 +17,8 @@
 !
       USE CMN_SIZE_MOD, ONLY : LLSTRAT
 
+      USE PRECISION_MOD   ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -66,6 +68,7 @@
 !                                and aerosol grids independently of one another
 !  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
 !  21 Feb 2014 - M. Sulprizio  - Now make INIT_CHEMGRID a public function
+!  06 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -277,7 +280,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J
-      REAL*8  :: TPAUSE_LEV(IIPAR,JJPAR)
+      REAL(fp)  :: TPAUSE_LEV(IIPAR,JJPAR)
 
       !=================================================================
       ! CHECK_VAR_TROP begins here!
@@ -323,12 +326,14 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE m_netcdf_io_open
+      USE m_netcdf_io_read
+      USE m_netcdf_io_readattr
+      USE m_netcdf_io_close
 !
 ! !INPUT PARAMETERS:
 !     
@@ -339,6 +344,13 @@
 !
       INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 ! 
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY: 
 !  13 Dec 1999 - Q. Li, R. Yantosca - Initial version
 !  (1 ) Call READ_BPCH2 to read in the annual mean tropopause data
@@ -370,6 +382,10 @@
 !  21 Feb 2014 - M. Sulprizio- Remove call to INIT_TROPOPAUSE, this is now
 !                              done in the init stage
 !  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
+!  06 Mar 2015 - R. Yantosca - Now read ann mean trop from netCDF 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -377,8 +393,15 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, J, COUNT
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,1)
       CHARACTER(LEN=255) :: FILENAME
+
+      ! Variables for netCDF
+      INTEGER            :: fId                 ! netCDF file ID
+      INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays 
+      CHARACTER(LEN=255) :: v_name              ! netCDF variable name 
+      CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
+      CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
 
       !=================================================================
       ! READ_TROPOPAUSE begins here!
@@ -390,24 +413,57 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
+      !=================================================================
+      ! Open and read data from the netCDF file
+      !=================================================================
+    
       ! Create filename
-      FILENAME = TRIM( Input_Opt%DATA_DIR )            // 
-     &           'ann_mean_trop_200202/ann_mean_trop.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+      FILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR )      // 
+     &           'ann_mean_trop_200202/ann_mean_trop.'  //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
 
-      ! Write file name to stdout
+      ! Open netCDF file
+      CALL Ncop_Rd( fId, TRIM( FILENAME ) )
+      
+      ! Echo info to stdout
       IF ( am_I_Root ) THEN
-         WRITE( 6, 110 ) TRIM( FILENAME )
- 110     FORMAT( '     - READ_TROPOPAUSE: Reading ', a )
+         WRITE( 6, 200 ) REPEAT( '%', 79 )
+         WRITE( 6, 210 ) TRIM( FILENAME )
+      ENDIF
+    
+      !----------------------------------------
+      ! VARIABLE: TP_LEVEL
+      !----------------------------------------
+
+      ! Variable and attribute names
+      v_name = "TP_LEVEL"
+      a_name = "units"
+
+      ! Read TP_LEVEL from file
+      st3d   = (/ 1,     1,     1 /)
+      ct3d   = (/ IIPAR, JJPAR, 1 /)
+      CALL NcRd( ARRAY, fId, TRIM( v_name ), st3d, ct3d )
+      
+      ! Read the TP_LEVEL:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes(fId, TRIM(v_name), TRIM(a_name), a_val)
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 220 ) TRIM(v_name), TRIM(a_val)
       ENDIF
 
-      ! Annual mean tropopause is tracer #1  
-      CALL READ_BPCH2( FILENAME, 'TR-PAUSE', 1, 
-     &                 0d0,       IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )
+      ! Close netCDF file
+      CALL NcCl( fId )
+    
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 230 )
+         WRITE( 6, 200 ) REPEAT( '%', 79 )
+      ENDIF
 
       ! Copy from REAL*4 to INTEGER and resize to (IIPAR,JJPAR)
-      CALL TRANSFER_2D( ARRAY(:,:,1), TROPOPAUSE )
+      TROPOPAUSE = ARRAY(:,:,1)
 
       !=================================================================
       ! L <  TROPOPAUSE(I,J) are tropospheric boxes  
@@ -461,6 +517,11 @@
        WRITE( 6, 150 ) ( IIPAR * JJPAR * LLPAR ) - COUNT
  150   FORMAT( '     - READ_TROPOPAUSE: # of stratospheric boxes: ', i8)
       ENDIF
+
+ 200  FORMAT( a                                              )
+ 210  FORMAT( '%% Opening file  : ',         a               )
+ 220  FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
+ 230  FORMAT( '%% Successfully closed file!'                 )
 
       END SUBROUTINE READ_TROPOPAUSE
 !EOC
@@ -716,7 +777,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: L
-      REAL*8  :: PRESS_BEDGE
+      REAL(fp)  :: PRESS_BEDGE
 
       !=================================================================
       ! GET_TPAUSE_LEVEL begins here!
@@ -820,7 +881,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: PRESS_BEDGE
+      REAL(fp) :: PRESS_BEDGE
 
       !=================================================================
       ! ITS_IN_THE_TROP begins here
@@ -1167,7 +1228,7 @@
 ! 
       ! Scalars
       INTEGER :: I, J,    L,  L_TP
-      REAL*8  :: H, FRAC, Pb, Pt
+      REAL(fp)  :: H, FRAC, Pb, Pt
 
       !=================================================================
       ! %%%%% GEOS-4, GEOS-5, MERRA met fields %%%%%
@@ -1213,7 +1274,7 @@
             ! Archive into ND55 array
             !---------------------------
             AD55(I,J,1) = AD55(I,J,1) + L_TP        ! T'pause level
-            AD55(I,J,2) = AD55(I,J,2) + H/1.0d3     ! T'pause height [km]
+            AD55(I,J,2) = AD55(I,J,2) + H/1.0e+3_fp     ! T'pause height [km]
             AD55(I,J,3) = AD55(I,J,3) +             ! T'pause pressure [hPa]
      &                    State_Met%TROPP(I,J)
 
@@ -1232,7 +1293,7 @@
       INTEGER :: I, J, L
 
       ! Arrays
-      REAL*8  :: H(IIPAR,JJPAR,LLPAR)
+      REAL(fp)  :: H(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! %%%%% ALL OTHER MET FIELDS %%%%%
@@ -1248,7 +1309,7 @@
       ! H (in m) is the height of the midpoint of layer L (hyl, 03/28/99)
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         H(I,J,1) = State_Met%BXHEIGHT(I,J,1) / 2.d0
+         H(I,J,1) = State_Met%BXHEIGHT(I,J,1) / 2.e+0_fp
       ENDDO
       ENDDO
 
@@ -1258,7 +1319,7 @@
       DO I = 1, IIPAR
          H(I,J,L+1) = H(I,J,L) + 
      &               ( State_Met%BXHEIGHT(I,J,L) +
-     &                 State_Met%BXHEIGHT(I,J,L+1) ) / 2.d0
+     &                 State_Met%BXHEIGHT(I,J,L+1) ) / 2.e+0_fp
       ENDDO
       ENDDO
       ENDDO
@@ -1282,7 +1343,7 @@
             AD55(I,J,1) = AD55(I,J,1) + L
 
             ! Archive tropopause height [km]
-            AD55(I,J,2) = AD55(I,J,2) + H(I,J,L) / 1.0d3 ! m --> km
+            AD55(I,J,2) = AD55(I,J,2) + H(I,J,L) / 1.0e+3_fp ! m --> km
 
             ! We have to estimate the tropopause pressure from the 
             ! tropopause level.  Archive the pressure at the midpoint

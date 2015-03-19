@@ -36,6 +36,8 @@
       USE OCEAN_MERCURY_MOD, ONLY : LNEI2005
       USE OCEAN_MERCURY_MOD, ONLY : LInPlume    
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -56,7 +58,6 @@
       PRIVATE :: MERCURY_READYR
       PRIVATE :: OHNO3TIME
       PRIVATE :: CALC_HG2_SEASALT_LOSSRATE
-      PRIVATE :: GET_GLOBAL_JNO2
       PRIVATE :: RED_INPLUME_GRID
       PRIVATE :: DO_RED_INPLUME
       PRIVATE :: GET_HGBR_RATE
@@ -173,6 +174,9 @@
 !  03 Jun 2013 - C. Holmes   - Extensively rewritten for simplicity
 !  03 Jun 2013 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  12 Mar 2015 - R. Yantosca - Now get JNO2 from the HEMCO data structure
+!  12 Mar 2015 - R. Yantosca - Remove GET_GLOBAL_JNO2 routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,92 +214,97 @@
       !=================================================================
 
       ! Parameters
-      REAL*8,  PARAMETER   :: SMALLNUM = 1D-20
+      REAL(fp),  PARAMETER   :: SMALLNUM = 1e-20_fp
 
       ! Arrays
-      INTEGER, ALLOCATABLE :: AN_Hg0(:,:)
-      INTEGER, ALLOCATABLE :: AN_Hg2(:,:)
-      INTEGER, ALLOCATABLE :: AN_HgP(:,:)
-      REAL*8,  ALLOCATABLE :: COSZM(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_an(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_can(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_usa(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_cam(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_sam(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_waf(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_eaf(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_saf(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_naf(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_eur(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_eeu(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_mde(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_sov(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_sas(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_eas(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_sea(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_jpn(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_oce(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_am(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_an(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_can(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_usa(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_cam(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_sam(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_waf(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_eaf(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_saf(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_naf(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_eur(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_eeu(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_mde(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_sov(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_sas(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_eas(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_sea(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_jpn(:,:)
-      REAL*8,  ALLOCATABLE :: EHg2_oce(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_an(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_can(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_usa(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_cam(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_sam(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_waf(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_eaf(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_saf(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_naf(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_eur(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_eeu(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_mde(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_sov(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_sas(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_eas(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_sea(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_jpn(:,:)
-      REAL*8,  ALLOCATABLE :: EHgP_oce(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_oc(:,:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_ln(:,:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_dist(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_geo(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_bb(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_vg(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_so(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_gtm(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_snow(:,:,:)
-      REAL*8,  ALLOCATABLE :: TCOSZ(:,:)
-      REAL*8,  ALLOCATABLE :: TTDAY(:,:)
-      REAL*8,  ALLOCATABLE :: ZERO_DVEL(:,:)
-      REAL*8,  ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) 
-      REAL*8,  ALLOCATABLE :: JNO2(:,:,:) 
+      INTEGER,  ALLOCATABLE :: AN_Hg0(:,:)
+      INTEGER,  ALLOCATABLE :: AN_Hg2(:,:)
+      INTEGER,  ALLOCATABLE :: AN_HgP(:,:)
+      REAL(fp), ALLOCATABLE :: COSZM(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_an(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_can(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_usa(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_cam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_waf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eaf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_saf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_naf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eur(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eeu(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_mde(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sov(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_eas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_sea(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_jpn(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_oce(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_am(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_an(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_can(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_usa(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_cam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sam(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_waf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eaf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_saf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_naf(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eur(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eeu(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_mde(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sov(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_eas(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_sea(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_jpn(:,:)
+      REAL(fp), ALLOCATABLE :: EHg2_oce(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_an(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_can(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_usa(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_cam(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sam(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_waf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eaf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_saf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_naf(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eur(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eeu(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_mde(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sov(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sas(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_eas(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_sea(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_jpn(:,:)
+      REAL(fp), ALLOCATABLE :: EHgP_oce(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_oc(:,:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_ln(:,:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_dist(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_geo(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_bb(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_vg(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_so(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_gtm(:,:)
+      REAL(fp), ALLOCATABLE :: EHg0_snow(:,:,:)
+      REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
+      REAL(fp), ALLOCATABLE :: TTDAY(:,:)
+      REAL(fp), ALLOCATABLE :: ZERO_DVEL(:,:)
+      REAL(fp), ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) 
 
       ! For now, we need an emission array for the HG simulation
       ! that can be passed to vdiff_mod.F90 since Trac_Tend does 
       ! not exist anymore (ckeller, 10/21/2014).
-      REAL*8,  ALLOCATABLE, PUBLIC :: HG_EMIS(:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: HG_EMIS(:,:,:)
+
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER :: O3  (:,:,:) => NULL()
+      REAL(f4), POINTER :: OH  (:,:,:) => NULL()
+      REAL(f4), POINTER :: JNO2(:,:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
       ! Henry's Law constant for Hg2 [mol /L /atm]
-      REAL*8, PARAMETER    :: HL = 1.4d6
+      REAL(fp), PARAMETER    :: HL = 1.4e+6_fp
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -327,16 +336,14 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HG2_DD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_DD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Br,  AD03_Hg2_OH
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR, ND03 
       USE DIAG03_MOD,         ONLY : AD03_Br
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE DRYDEP_MOD,         ONLY : DRYHg0
-      USE DRYDEP_MOD,         ONLY : DRYHg2
-      USE DRYDEP_MOD,         ONLY : DRYHgP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -344,8 +351,7 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
@@ -469,28 +475,31 @@
 !                              logical_mod.F and tracer_mod.F
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 
+      LOGICAL, SAVE   :: FIRST = .TRUE.
       INTEGER         :: I, J, L, K, N, MONTH, NSTEPS
-      REAL*8          :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
-      REAL*8          :: C_OH, C_O3, C_BR, C_BRO
-      REAL*8          :: K_OH, K_O3, K_BR, K_BRO
-      REAL*8          :: K_OX, K_RED, K_DEP0, K_DEP2G, K_DEP2P
-      REAL*8          :: DEP_Hg0, DEP_HG2G, DEP_HG2P
-      REAL*8          :: DEP_HG2G_DRY, DEP_HG2G_SALT, DEP_HG2P_DRY
-      REAL*8          :: GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3
-      REAL*8          :: GROSS_RED, NET_OX
-      REAL*8          :: F_PBL, FC, Faq, LWC
-      REAL*8          :: AREA_CM2, DEP_DRY_FLX
-      REAL*8          :: F_HG0_DEP
-      REAL*8          :: DTCHEM, DT
-      REAL*8          :: KMAX
-      REAL*8          :: A(9,9), Xold(9), Xnew(9)
-      REAL*8          :: s1(9), s2(9), s3(9), s4(9)
+      REAL(fp)        :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
+      REAL(fp)        :: C_OH, C_O3, C_BR, C_BRO
+      REAL(fp)        :: K_OH, K_O3, K_BR, K_BRO
+      REAL(fp)        :: K_OX, K_RED, K_DEP0, K_DEP2G, K_DEP2P
+      REAL(fp)        :: DEP_Hg0, DEP_HG2G, DEP_HG2P
+      REAL(fp)        :: DEP_HG2G_DRY, DEP_HG2G_SALT, DEP_HG2P_DRY
+      REAL(fp)        :: GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3
+      REAL(fp)        :: GROSS_RED, NET_OX
+      REAL(fp)        :: F_PBL, FC, Faq, LWC
+      REAL(fp)        :: AREA_CM2, DEP_DRY_FLX
+      REAL(fp)        :: F_HG0_DEP
+      REAL(fp)        :: DTCHEM, DT
+      REAL(fp)        :: KMAX
+      REAL(fp)        :: A(9,9), Xold(9), Xnew(9)
+      REAL(fp)        :: s1(9), s2(9), s3(9), s4(9)
 
       ! For values from Input_Opt
       LOGICAL         :: LDYNOCEAN
@@ -499,30 +508,33 @@
       LOGICAL         :: LPRT
       LOGICAL         :: LSPLIT
       INTEGER         :: N_TRACERS
-      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)        :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
-      REAL*8, POINTER :: STT(:,:,:,:)
-      REAL*8, POINTER :: T(:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: T(:,:,:)
+
+      ! Strings
+      CHARACTER(LEN=255) :: LOC = 'CHEMMERCURY (mercury_mod.F)'
 !
 ! !DEFINED PARAMETERS:
 !
       ! Gas constant [L atm /K /mol]
-      REAL*8, PARAMETER     :: R        = 8.2d-2
+      REAL(fp), PARAMETER     :: R        = 8.2e-2_fp
 
       ! K for reaction Hg0 + O3  [cm3 /molecule /s] (Source: Hall 1995)
-      REAL*8, PARAMETER     :: K_HG_O3  = 3.0d-20 !3.0d-20 (Gas phase)
+      REAL(fp), PARAMETER     :: K_HG_O3  = 3.0e-20_fp !3.0d-20 (Gas phase)
 
       ! K for reaction Hg0 + OH  [cm3 /molecule /s] (Source: Sommar 2001)
-      REAL*8, PARAMETER     :: K_HG_OH  = 8.7d-14 !8.7d-14 (Gas phase)
+      REAL(fp), PARAMETER     :: K_HG_OH  = 8.7e-14_fp !8.7d-14 (Gas phase)
 
       ! K for reaction Hg0 + BrO  [cm3 /molecule /s]
       ! (Source: Raofie and Ariya 2003; 2004)
-      REAL*8, PARAMETER     :: K_HG_BRO  = 1d-14 !1d-15 - 1d-14
+      REAL(fp), PARAMETER     :: K_HG_BRO  = 1e-14_fp !1d-15 - 1d-14
 
       ! K for reduction [cm3 /molecule /s] (Source: Selin 2007)
       ! This variable is unused if LREDJNO2 is TRUE
-      REAL*8, PARAMETER     :: K_RED_OH = 1d-10!4.2d-10 from Noelle
+      REAL(fp), PARAMETER     :: K_RED_OH = 1e-10_fp!4.2d-10 from Noelle
                                 !4d-10 works well for Hg+OH/O3
      
       ! K for reduction, using J_NO2, [unitless scale factor]
@@ -538,14 +550,14 @@
       !%%% nested grids at 0.25 x 0.3125 resolution (bmy, 6/3/13)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #if defined( GRID4x5 )
-      !REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5d-3 / 2d0 ! ref: Amos et al. (2011)
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4d-3 ! yzh, consider cloud fraction 
+      !REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5d-3 / 2e+0_fp ! ref: Amos et al. (2011)
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp ! yzh, consider cloud fraction 
 #elif defined( GRID2x25 )
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5e-3_fp/2e+0_fp
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4D-3 * 1.33 ! yzh
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
 #else
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4d-3        ! yzh, need tune 
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp        ! yzh, need tune 
 #endif   
 
       ! Set of Hg/Br rate constants to use
@@ -573,6 +585,15 @@
       STT      => State_Chm%Tracers
       T        => State_Met%T
 
+      ! Override the default value of LGCBROMINE and LRED_JNO2 depending 
+      ! on the settings in the HEMCO configuration file.  NOTE: This cannot
+      ! be done in INIT_MERCURY because at that time the HEMCO configuration 
+      ! file has not been read yet. (bmy, 3/12/15)
+      IF ( FIRST ) THEN
+         CALL SET_OPTIONS_FROM_HEMCO( RC )
+         FIRST = .FALSE.
+      ENDIF
+
       !=================================================================
       ! Read monthly mean Br, OH, O3, and J_NO2 fields
       !=================================================================
@@ -581,20 +602,26 @@
          ! Get the current month
          MONTH = GET_MONTH()
 
-         ! Read monthly mean OH and O3 from disk
-         CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, State_Met, MONTH, RC)
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_OH' )
+         ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+         ENDIF
 
-         CALL GET_GLOBAL_O3( am_I_Root, Input_Opt, MONTH, RC )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
+         ! Get a pointer to the monthly mean O3 from HEMCO (bmy, 3/11/15)
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_O3', O3,  RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
+         ENDIF
 
          CALL GET_GLOBAL_BR( am_I_Root, Input_Opt, State_Met, MONTH, RC)
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
-         IF (LRED_JNO2) THEN
-            CALL GET_GLOBAL_JNO2( am_I_Root, Input_Opt, MONTH, RC )
-            IF ( LPRT ) THEN
-               CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_JNO2' )
+         ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
+         IF ( LRED_JNO2 ) THEN
+            CALL HCO_GetPtr( am_I_Root, 'JNO2', JNO2,  RC )
+            IF ( RC /= GIGC_SUCCESS ) THEN
+               CALL ERROR_STOP ( 'Cannot get pointer to JNO2', LOC )
             ENDIF
          ENDIF
 
@@ -605,7 +632,7 @@
       !=================================================================
       
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
       ! Compute diurnal scaling for OH
       CALL OHNO3TIME
@@ -636,6 +663,7 @@
 !$OMP+PRIVATE( GROSS_RED, NET_OX )
 !$OMP+PRIVATE( AREA_CM2,  DEP_DRY_FLX )
 !$OMP+PRIVATE( F_HG0_DEP )
+!%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
       DO I=1, IIPAR
       DO J=1, JJPAR
       DO L=1, LLPAR
@@ -645,19 +673,21 @@
          !------------------------------------------------------
       
          ! Initialize
-         K_DRYD0  = 0D0
-         K_DRYD2G = 0D0
-         K_DRYD2P = 0D0
+         K_DRYD0  = 0e+0_fp
+         K_DRYD2G = 0e+0_fp
+         K_DRYD2P = 0e+0_fp
 
          ! Use calculated deposition velocity, as long as
          ! they are defined. If using non-local PBL mixing
          ! then drydep will happen in vdiff_mod and dry
          ! deposition here should be zero.
-         IF (.NOT. LNLPBL) THEN
-            IF (DRYHG0 > 0) K_DRYD0  = DEPSAV(I,J,DRYHG0)
-            IF (DRYHG2 > 0) K_DRYD2G = DEPSAV(I,J,DRYHG2)
-            IF (DRYHGP > 0) K_DRYD2P = DEPSAV(I,J,DRYHGP)
-         ENDIF
+         ! dry-deposition is now handled in mixing_mod.F90 
+         ! (ckeller, 3/5/15).
+!         IF (.NOT. LNLPBL) THEN
+!            IF (DRYHG0 > 0) K_DRYD0  = DEPSAV(I,J,DRYHG0)
+!            IF (DRYHG2 > 0) K_DRYD2G = DEPSAV(I,J,DRYHG2)
+!            IF (DRYHGP > 0) K_DRYD2P = DEPSAV(I,J,DRYHGP)
+!         ENDIF
 
          !------------------------------------------------------
          ! Sea-salt aerosol uptake
@@ -680,7 +710,7 @@
          !IF (IS_WATER(I,J)) THEN
          !   K_SALT = 3.8D-5
          !ELSE
-         !   K_SALT = 0D0
+         !   K_SALT = 0e+0_fp
          !ENDIF
             
          !------------------------------------------------------
@@ -695,11 +725,11 @@
          !------------------------------------------------------
 
          ! Area fraction of box with Hg0 dep. Default is dep everywhere
-         F_Hg0_Dep = 1d0
+         F_Hg0_Dep = 1e+0_fp
 #if   defined( MERRA ) || defined( GEOS_FP )
          ! Deposition occurs over areas that are not ocean, snow or ice
          ! (jaf, 4/26/11)
-         F_Hg0_Dep = 1d0 - MAX( 0d0, MIN( 1D0, 
+         F_Hg0_Dep = 1e+0_fp - MAX( 0e+0_fp, MIN( 1e+0_fp, 
      &        State_Met%FROCEAN(I,J) + 
      &        State_Met%FRSNO(I,J) + 
      &        State_Met%FRLANDIC(I,J) ) )
@@ -709,8 +739,8 @@
          IF ( (State_Met%LWI(I,J) == 0) .OR. 
      &        (IS_ICE(I,J, State_Met)) .OR. 
      &        (IS_LAND(I,J, State_Met) .AND.
-     &        State_Met%SNOMAS(I,J) > 10d0) ) THEN
-            F_Hg0_Dep = 0d0
+     &        State_Met%SNOMAS(I,J) > 10e+0_fp) ) THEN
+            F_Hg0_Dep = 0e+0_fp
          ENDIF
 #else
          ! Deposition disabled for entire box if it is ocean, ice
@@ -718,8 +748,8 @@
          IF ( (State_Met%LWI(I,J) == 0) .OR. 
      &        (IS_ICE(I,J, State_Met)) .OR. 
      &        (IS_LAND(I,J, State_Met) .AND. 
-     &        State_Met%SNOW(I,J) > 10d0) ) THEN
-            F_Hg0_Dep = 0d0
+     &        State_Met%SNOW(I,J) > 10e+0_fp) ) THEN
+            F_Hg0_Dep = 0e+0_fp
          ENDIF                 
 #endif 
 
@@ -731,14 +761,14 @@
          F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Do dry deposition only for the fraction of the box in the PBL
-         IF (F_PBL > 0.1d0) THEN
+         IF (F_PBL > 0.1e+0_fp) THEN
             K_DEP0  = F_PBL * ( K_DRYD0  * F_Hg0_Dep )
             K_DEP2G = F_PBL * ( K_DRYD2G + K_SALT ) 
             K_DEP2P = F_PBL *   K_DRYD2P 
          ELSE
-            K_DEP0  = 0d0
-            K_DEP2G = 0d0
-            K_DEP2P = 0d0
+            K_DEP0  = 0e+0_fp
+            K_DEP2G = 0e+0_fp
+            K_DEP2P = 0e+0_fp
          ENDIF
          
          !-------------------------------------------------
@@ -755,8 +785,8 @@
             K_O3 = K_HG_O3 * C_O3
             K_OH = K_HG_OH * C_OH
          ELSE
-            K_O3 = 0D0
-            K_OH = 0D0
+            K_O3 = 0e+0_fp
+            K_OH = 0e+0_fp
          ENDIF
 
          ! Oxidation rate by Br, 1/s (accounts for HgBr intermediate)
@@ -764,14 +794,14 @@
             K_BR = GET_HGBR_RATE( C_BR, T(I,J,L), 
      &           GET_PCENTER(I,J,L), C_OH, METHOD )
          ELSE
-            K_BR = 0d0
+            K_BR = 0e+0_fp
          ENDIF
 
          ! Oxidation rate by BrO
          IF (LBROCHEM) THEN
             K_BRO = K_HG_BRO * C_BRO
          ELSE
-            K_BRO = 0d0
+            K_BRO = 0e+0_fp
          ENDIF
          
          ! Total oxidation rate, 1/s
@@ -789,11 +819,11 @@
          !---------------------------------------------
 
          ! Get cloud fraction from met fields [unitless]
-         FC = State_Met%CLDF(L,I,J)
+         FC = State_Met%CLDF(I,J,L)
 
          ! Get grid-average liquid water content [m3 H2O/m3 air] from met
          ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
-         LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1D-3
+         LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp
 
          ! LWC is a grid-box averaged quantity. To improve representation 
          ! of sulfate chemistry, we divide LWC by the cloud fraction and 
@@ -802,7 +832,7 @@
          ! multiplying these quantities by FC AFTER computing the aqueous 
          ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
          ! Adopted for mercury chemistry (yzh, 11/9/2011)
-         LWC     = SAFE_DIV( LWC, FC, 0d0 )
+         LWC     = SAFE_DIV( LWC, FC, 0e+0_fp )
 
 #else
          !---------------------------------------------
@@ -817,20 +847,20 @@
          LWC         = GET_LWC( T(I,J,L) ) 
 
          ! There should be no liquid water when T < 258K 
-         IF ( T(I,J,L) < 258D0 )  LWC = 0D0
+         IF ( T(I,J,L) < 258e+0_fp )  LWC = 0e+0_fp
 
 #endif
 
          ! Define fraction of in-cloud Hg(II) which is in aqueous solution
          ! [dimensionless]
          Faq  = ( HL * R * T(I,J,L) * LWC )
-         Faq  = Faq / ( 1d0 + Faq )
+         Faq  = Faq / ( 1e+0_fp + Faq )
 
          ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
          IF (LRED_JNO2 .AND. (F_PBL >0.1) .AND. 
      &        IS_WATER(I,J, State_Met )) THEN
-            Faq = ( HL * 2D3 * R * T(I,J,L) * LWC )
-            Faq = Faq / ( 1d0 + Faq )
+            Faq = ( HL * 2e+3_fp * R * T(I,J,L) * LWC )
+            Faq = Faq / ( 1e+0_fp + Faq )
          ENDIF
          
          ! Fraction of all Hg(II) in the grid box which is in cloud water.
@@ -858,8 +888,8 @@
          
          ! Round very small K_OX, K_RED to prevent numerical errors
          ! (jaf, cdh, 11/17/11)
-         IF ( K_OX  < 1D-10 ) K_OX  = 0d0
-         IF ( K_RED < 1D-10 ) K_RED = 0d0
+         IF ( K_OX  < 1e-10_fp ) K_OX  = 0e+0_fp
+         IF ( K_RED < 1e-10_fp ) K_RED = 0e+0_fp
 
          !==============================================================
          ! CHEMICAL SOLVER
@@ -885,7 +915,7 @@
          ! Number of internal time steps
          ! Choose so there are 5 steps within the shortest timescale
          ! but not fewer than 1.
-         NSTEPS = MAX( CEILING( 5d0 * KMAX * DTCHEM ), 1 )
+         NSTEPS = MAX( CEILING( 5e+0_fp * KMAX * DTCHEM ), 1 )
             
          ! Internal timestep, s
          DT = DTCHEM / NSTEPS
@@ -895,7 +925,7 @@
          !------------------------------------------------
 
          ! Reset elements to zero
-         A(:,:) = 0d0
+         A(:,:) = 0e+0_fp
             
          ! Row 1: d(Hg0)/dt = -(K_OX+K_DEP0) * Hg0 + K_RED * (Hg2g+Hg2p)
          A(1,1) = -K_DEP0-K_OX
@@ -927,7 +957,7 @@
          DO N = 1, N_HG_CATS
 
             ! Load initial concentrations into vector, kg
-            Xold(:) = 0d0
+            Xold(:) = 0e+0_fp
             Xold(1)  = MAX( STT(I,J,L,ID_Hg0(N)), SMALLNUM )
             Xold(2) = MAX( STT(I,J,L,ID_Hg2(N)), SMALLNUM )   
             Xold(3) = MAX( STT(I,J,L,ID_HgP(N)), SMALLNUM )   
@@ -941,13 +971,13 @@
                ! Runge-Kutta equations
                !-----------------------------------------
                s1 = matmul(A,Xold)
-               s2 = matmul(A,Xold+DT/2d0*s1)
-               s3 = matmul(A,Xold+DT/2d0*s2)
+               s2 = matmul(A,Xold+DT/2e+0_fp*s1)
+               s3 = matmul(A,Xold+DT/2e+0_fp*s2)
                s4 = matmul(A,Xold+DT*s3)
-               Xnew = Xold + DT/6d0 * (s1 +2*s2 + 2*s3 + s4 )
+               Xnew = Xold + DT/6e+0_fp * (s1 +2*s2 + 2*s3 + s4 )
 
                ! Make sure concentrations are not negative
-               IF ( (Xnew(1) < 0d0) .or. (Xnew(2)<0) .or.
+               IF ( (Xnew(1) < 0e+0_fp) .or. (Xnew(2)<0) .or.
      &              (Xnew(3)<0) ) THEN
                   WRITE(6,101) I,J,L,K,NSTEPS, 
      &                 Xnew(1),Xnew(2),Xnew(3),
@@ -987,9 +1017,9 @@
             ! Apportion gross oxidation between O3 and OH [kg]
             IF ( (K_OX   < SMALLNUM) .OR. 
      &           (GROSS_OX < SMALLNUM) ) THEN
-               GROSS_OX_OH = 0D0
-               GROSS_OX_BR = 0D0
-               GROSS_OX_O3 = 0D0
+               GROSS_OX_OH = 0e+0_fp
+               GROSS_OX_BR = 0e+0_fp
+               GROSS_OX_O3 = 0e+0_fp
             ELSE
                GROSS_OX_OH = GROSS_OX * K_OH / K_OX
                GROSS_OX_BR = GROSS_OX * K_BR / K_OX
@@ -999,8 +1029,8 @@
             ! Apportion deposition between dry deposition and sea salt [kg]
             IF ( (K_DEP2G    < SMALLNUM) .OR. 
      &           (DEP_Hg2g  < SMALLNUM) ) THEN
-               DEP_HG2g_SALT = 0D0
-               DEP_HG2g_DRY  = 0D0
+               DEP_HG2g_SALT = 0e+0_fp
+               DEP_HG2g_DRY  = 0e+0_fp
             ELSE
                DEP_HG2g_DRY  = DEP_HG2g * K_DRYD2G / K_DEP2G
                DEP_HG2g_SALT = DEP_HG2g - DEP_HG2G_DRY 
@@ -1025,6 +1055,7 @@
      &              DEP_HG2g_DRY + DEP_Hg2p_DRY, State_Met )
             ENDIF           
 
+#if !defined( NO_BPCH )
             !=================================================================
             ! ND44 diagnostic: drydep flux of Hg(II) [molec/cm2/s]
             !=================================================================
@@ -1057,8 +1088,8 @@
                AD44(I,J,ID_HGP(N),1) = AD44(I,J,ID_HGP(N),1) +
      &              DEP_DRY_FLX
 
-
             ENDIF
+#endif
 
             !==============================================================
             ! ND03 diagnostic: Hg(II) production [kg]
@@ -1137,13 +1168,13 @@
       ! P      : Pressure [hPa]
       ! OH     : Concentration of OH [molec/cm3]
       ! METHOD : Set of rate constants to use in calculation
-      REAL*8,           INTENT(IN)  :: BR, OH, T, P
+      REAL(fp),           INTENT(IN)  :: BR, OH, T, P
       CHARACTER(LEN=*), INTENT(IN)  :: METHOD 
 !
 ! !RETURN VALUE:
 !
       ! K_HgBr : Effective 1st order loss rate of Hg(0) [1/s] 
-      REAL*8                        :: K_HGBR
+      REAL(fp)                        :: K_HGBR
 !
 ! !REMARKS:
 !  ============================================================================
@@ -1193,62 +1224,66 @@
 !
 ! !LOCAL VARIABLES:
 
-      REAL*8            :: k1,   k2, k2a, k3br, k3oh
-      REAL*8            :: k1G,  k2G
-      REAL*8            :: Nair, N0
+      REAL(fp)            :: k1,   k2, k2a, k3br, k3oh
+      REAL(fp)            :: k1G,  k2G
+      REAL(fp)            :: Nair, N0
 !
 ! !DEFINED PARAMETERS:
 !
       !molar gas constant
-      REAL*8, PARAMETER ::  R = 287d0
+      REAL(fp), PARAMETER ::  R = 287e+0_fp
 
       !=================================================================
       ! GET_HGBR_RATE begins here!
       !=================================================================
 
       !number density of air [molec/cm3]
-      Nair = P * 1d2 / (0.029d0 * R * T ) * 6.02d23 / 1d6
+      Nair = P * 1e+2_fp / (0.029e+0_fp * R * T ) * 6.02e+23_fp /
+     &   1e+6_fp
 
       !standard air density at STP: 1 atm, 273K [molec/cm3]
-      N0 = 1013d2 / (0.029d0 * R * 273d0 ) * 6.02d23 / 1d6
+      N0 = 1013e+2_fp / (0.029e+0_fp * R * 273e+0_fp ) * 6.02e+23_fp / 
+     &   1e+6_fp
 
       SELECT CASE( METHOD )
       CASE( 'Goodsite' )
          !All rates from Goodsite et al. 2004
          !No HgBr+OH reaction
-         k1   = 1.1d-12 * ( T / 298d0 ) ** ( -2.37d0 ) * ( Nair / N0 )
-         k2   = 1.2d10  * exp( -8357d0 / T )
-         k2a  = 0d0
-         k3br = 2.5d-10 * ( T / 298d0 ) ** ( -.57d0 ) 
-         k3oh = 0d0
+         k1   = 1.1e-12_fp * ( T / 298e+0_fp ) ** ( -2.37e+0_fp ) * 
+     &          ( Nair / N0 )
+         k2   = 1.2e+10_fp  * exp( -8357e+0_fp / T )
+         k2a  = 0e+0_fp
+         k3br = 2.5e-10_fp * ( T / 298e+0_fp ) ** ( -.57e+0_fp ) 
+         k3oh = 0e+0_fp
       
       CASE( 'GoodsiteY' )
          !All rates from Goodsite et al. 2004
          !Include HgBr+OH reaction
-         k1   = 1.1d-12 * ( T / 298d0 ) ** ( -2.37d0 ) * ( Nair / N0 )
-         k2   = 1.2d10  * exp( -8357d0 / T )
-         k2a  = 0d0
-         k3br = 2.5d-10 * ( T / 298d0 ) ** ( -.57d0 ) 
+         k1   = 1.1e-12_fp * ( T / 298e+0_fp ) ** ( -2.37e+0_fp ) * 
+     &          ( Nair / N0 )
+         k2   = 1.2e+10_fp  * exp( -8357e+0_fp / T )
+         k2a  = 0e+0_fp
+         k3br = 2.5e-10_fp * ( T / 298e+0_fp ) ** ( -.57e+0_fp ) 
          k3oh = k3br
       
       CASE( 'Donohoue' )
          !k1 from Donohoue et al. 2006
          !Other rates from Goodsite et al. 2004
          !No HgBr+OH reaction
-         k1   = 1.46d-32 * ( T / 298d0 ) ** ( -1.86d0 ) * Nair
-         k2   = 1.2d10  * exp( -8357d0 / T )
-         k2a  = 0d0
-         k3br = 2.5d-10 * ( T / 298d0 ) ** ( -.57d0 ) 
-         k3oh = 0d0
+         k1   = 1.46e-32_fp * ( T / 298e+0_fp ) ** (-1.86e+0_fp) * Nair
+         k2   = 1.2e+10_fp  * exp( -8357e+0_fp / T )
+         k2a  = 0e+0_fp
+         k3br = 2.5e-10_fp * ( T / 298e+0_fp ) ** ( -.57e+0_fp ) 
+         k3oh = 0e+0_fp
      
       CASE( 'DonohoueY' )
          !k1 from Donohoue et al. 2006
          !Other rates from Goodsite et al. 2004
          !Include HgBr+OH reaction
-         k1   = 1.46d-32 * ( T / 298d0 ) ** ( -1.86d0 ) * Nair
-         k2   = 1.2d10  * exp( -8357d0 / T )
-         k2a  = 0d0
-         k3br = 2.5d-10 * ( T / 298d0 ) ** ( -.57d0 ) 
+         k1   = 1.46e-32_fp * ( T / 298e+0_fp ) ** (-1.86e+0_fp) * Nair
+         k2   = 1.2e+10_fp  * exp( -8357e+0_fp / T )
+         k2a  = 0e+0_fp
+         k3br = 2.5e-10_fp * ( T / 298e+0_fp ) ** ( -.57e+0_fp ) 
          k3oh = k3br
      
       CASE( 'DonohoueYB' )
@@ -1259,23 +1294,25 @@
          !Include HgBr+OH reaction
 
          !Goodsite et al. 2004 rates
-         k1G  = 1.1d-12 * ( T / 298d0 ) ** ( -2.37d0 ) * ( Nair / N0 )
-         k2G  = 1.2d10  * exp(-8357d0/T)
+         k1G  = 1.1e-12_fp * ( T / 298e+0_fp ) ** ( -2.37e+0_fp ) * 
+     &          ( Nair / N0 )
+         k2G  = 1.2e+10_fp  * exp(-8357e+0_fp/T)
 
-         k1   = 1.46d-32 * ( T / 298d0 ) ** ( -1.86d0 ) * Nair 
+         k1   = 1.46e-32_fp * ( T / 298e+0_fp ) ** (-1.86e+0_fp) * Nair 
          k2   = k2G * k1 / k1G 
-         k2a  = 0d0
-         k3br = 2.5d-10 * ( T / 298d0 ) ** ( -.57d0 ) 
+         k2a  = 0e+0_fp
+         k3br = 2.5e-10_fp * ( T / 298e+0_fp ) ** ( -.57e+0_fp ) 
          k3oh = k3br
       
       CASE( 'Balabanov' )
          !k1, k2 from Goodsite et al. 2004
          !k2a from Balabanov et al. 2005
          !k3 from the zero pressure limit in Balabanov et al. 2005
-         k1   = 1.1d-12 * ( T / 298d0 ) ** ( -2.37d0 ) * ( Nair / N0 )
-         k2   = 1.2d10  * exp( -8357d0 / T )
-         k2a  = 3.9d-11
-         k3br = 3d-11 
+         k1   = 1.1e-12_fp * ( T / 298e+0_fp ) ** ( -2.37e+0_fp ) * 
+     &          ( Nair / N0 )
+         k2   = 1.2e+10_fp  * exp( -8357e+0_fp / T )
+         k2a  = 3.9e-11_fp
+         k3br = 3e-11_fp 
          k3oh = k3br
      
       CASE( 'KhalizovB' )
@@ -1286,13 +1323,14 @@
          !Include HgBr+OH reaction
 
          !Goodsite et al. 2004 rates
-         k1G  = 1.1d-12 * ( T / 298d0 ) ** ( -2.37d0 ) * ( Nair / N0 )
-         k2G  = 1.2d10  * exp( -8357d0 / T )
+         k1G  = 1.1e-12_fp * ( T / 298e+0_fp ) ** ( -2.37e+0_fp ) * 
+     &          ( Nair / N0 )
+         k2G  = 1.2e+10_fp  * exp( -8357e+0_fp / T )
 
-         k1   = 1.0d-12 * exp( 209d0 / T ) * ( Nair / N0 )
+         k1   = 1.0e-12_fp * exp( 209e+0_fp / T ) * ( Nair / N0 )
          k2   = k2G * k1 / k1G 
-         k2a  = 0d0
-         k3br = 2.5d-10 * ( T / 298d0 ) ** ( -.57d0 ) 
+         k2a  = 0e+0_fp
+         k3br = 2.5e-10_fp * ( T / 298e+0_fp ) ** ( -.57e+0_fp ) 
          k3oh = k3br
       
       CASE( 'AriyaB' )
@@ -1303,13 +1341,14 @@
          !Include HgBr+OH reaction
 
          !Goodsite et al. 2004 rates
-         k1G  = 1.1d-12 * ( T / 298d0 ) ** ( -2.37d0 ) * ( Nair / N0 )
-         k2G  = 1.2d10  * exp( -8357d0 / T )
+         k1G  = 1.1e-12_fp * ( T / 298e+0_fp ) ** ( -2.37e+0_fp ) * 
+     &          ( Nair / N0 )
+         k2G  = 1.2e+10_fp  * exp( -8357e+0_fp / T )
 
-         k1   = 3.2d-12 * ( Nair / N0 )
+         k1   = 3.2e-12_fp * ( Nair / N0 )
          k2   = k2G * k1 / k1G 
-         k2a  = 0d0
-         k3br = 2.5d-10 * ( T / 298d0 ) ** ( -.57d0 ) 
+         k2a  = 0e+0_fp
+         k3br = 2.5e-10_fp * ( T / 298e+0_fp ) ** ( -.57e+0_fp ) 
          k3oh = k3br
 
       CASE( 'DonohoueYBBalabanov' )
@@ -1321,13 +1360,14 @@
          !Include HgBr+OH reaction
 
          !Goodsite et al. 2004 rates
-         k1G  = 1.1d-12 * ( T / 298d0 ) ** ( -2.37d0 ) * ( Nair / N0 )
-         k2G  = 1.2d10  * exp(-8357d0/T)
+         k1G  = 1.1e-12_fp * ( T / 298e+0_fp ) ** ( -2.37e+0_fp ) * 
+     &          ( Nair / N0 )
+         k2G  = 1.2e+10_fp  * exp(-8357e+0_fp/T)
 
-         k1   = 1.46d-32 * ( T / 298d0 ) ** ( -1.86d0 ) * Nair
+         k1   = 1.46e-32_fp * ( T / 298e+0_fp ) ** (-1.86e+0_fp) * Nair
          k2   = k2G * k1 / k1G 
-         k2a  = 3.9d-11
-         k3br = 2.5d-10 * ( T / 298d0 ) ** ( -.57d0 ) 
+         k2a  = 3.9e-11_fp
+         k3br = 2.5e-10_fp * ( T / 298e+0_fp ) ** ( -.57e+0_fp ) 
          k3oh = k3br
       
       CASE( 'GoodsiteUpdate' )
@@ -1339,13 +1379,14 @@
          !Include HgBr+OH reaction
 
          !Goodsite et al. 2004 rates
-         k1G  = 3.7d-13 * ( T / 298d0 ) ** ( -2.76d0 ) * ( Nair / N0 )
-         k2G  = 4.0d9  * exp(-7292d0/T)
+         k1G  = 3.7e-13_fp * ( T / 298e+0_fp ) ** ( -2.76e+0_fp ) * 
+     &          ( Nair / N0 )
+         k2G  = 4.0e+9_fp  * exp(-7292e+0_fp/T)
 
-         k1   = 1.46d-32 * ( T / 298d0 ) ** ( -1.86d0 ) * Nair
+         k1   = 1.46e-32_fp * ( T / 298e+0_fp ) ** (-1.86e+0_fp) * Nair
          k2   = k2G * k1 / k1G
-         k2a  = 3.9d-11
-         k3br = 2.5d-10 * ( T / 298d0 ) ** ( -.57d0 )
+         k2a  = 3.9e-11_fp
+         k3br = 2.5e-10_fp * ( T / 298e+0_fp ) ** ( -.57e+0_fp )
          k3oh = k3br
 
       CASE DEFAULT
@@ -1506,7 +1547,7 @@
          
          ! Set to zero to clear emissions from previous time step
          ! (cdh, 4/30/09)
-         EHg0_oc = 0d0
+         EHg0_oc = 0e+0_fp
 
          CALL OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt, State_Met, 
      &                            State_Chm, EHg0_oc,   RC         )
@@ -1567,12 +1608,12 @@
      &           GET_YMID( I, J, 1 ) >  10  .AND.
      &           GET_YMID( I, J, 1 ) <  70 ) THEN
                
-               EHg0_An(I,J) = 0d0
-               EHg2_An(I,J) = 0d0
-               EHgP_An(I,J) = 0d0
+               EHg0_An(I,J) = 0e+0_fp
+               EHg2_An(I,J) = 0e+0_fp
+               EHgP_An(I,J) = 0e+0_fp
                
-               EHg0_bb(I,J) = 0d0
-               EHg0_am(I,J) = 0d0
+               EHg0_bb(I,J) = 0e+0_fp
+               EHg0_am(I,J) = 0e+0_fp
                
             ENDIF
 
@@ -1588,8 +1629,8 @@
       ! If we are using the non-local PBL mixing,
       ! we need to initialize the EMIS_SAVE array (cdh, 08/27/09)
       ! EMIS_SAVE is now HG_EMIS (ckeller, 10/21/2014)
-!      IF (LNLPBL) EMIS_SAVE = 0d0
-      IF ( LNLPBL ) HG_EMIS = 0.0d0
+!      IF (LNLPBL) EMIS_SAVE = 0e+0_fp
+      IF ( LNLPBL ) HG_EMIS = 0.0e+0_fp
 
       ! Add Hg(0) source into State_Chm%TRACERS [kg]
       CALL SRCHg0( am_I_Root, Input_Opt, State_Chm, RC )
@@ -1635,7 +1676,7 @@
 ! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN)    :: I, J, L, ID ! Grid boxes + tracer #
-      REAL*8,         INTENT(IN)    :: E_Hg        ! Hg emissions 
+      REAL(fp),         INTENT(IN)    :: E_Hg        ! Hg emissions 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1655,12 +1696,12 @@
       LOGICAL         :: LNLPBL
 
       ! Working variables
-      REAL*8          :: AM2, TS
+      REAL(fp)          :: AM2, TS
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! EMITHG begins here!
@@ -1676,19 +1717,19 @@
       ! EMIS_SAVE is now HG_EMIS array. Convert kg to kg/m2/s
       ! (ckeller, 09/23/2014)
       IF ( LNLPBL ) THEN
-!         EMIS_SAVE(I,J,ID) = EMIS_SAVE(I,J,ID) + MAX( E_HG, 0D0 )
+!         EMIS_SAVE(I,J,ID) = EMIS_SAVE(I,J,ID) + MAX( E_HG, 0e+0_fp )
           AM2 = GET_AREA_M2(I,J,1)
-          TS  = GET_TS_EMIS() * 60.0d0
+          TS  = GET_TS_EMIS() * 60.0e+0_fp
 !          State_Chm%Trac_Tend(I,J,1,ID) = State_Chm%Trac_Tend(I,J,1,ID)
           HG_EMIS(I,J,ID) = HG_EMIS(I,J,ID) 
-     &                    + ( MAX(E_HG,0d0) / AM2 / TS )
+     &                    + ( MAX(E_HG,0e+0_fp) / AM2 / TS )
       ELSE
 
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
          ! (mpayer, 12/6/12)
          STT => State_Chm%Tracers
 
-         STT(I,J,L,ID) = STT(I,J,L,ID) + MAX( E_HG, 0D0 )
+         STT(I,J,L,ID) = STT(I,J,L,ID) + MAX( E_HG, 0e+0_fp )
 
          ! Free pointer
          NULLIFY( STT )
@@ -1766,7 +1807,7 @@
 !
       INTEGER :: I,      J,    L,        N,    PBL_MAX
       INTEGER :: NN !eds 9/9/10 
-      REAL*8  :: DTSRCE, E_Hg, F_OF_PBL, T_Hg, T_Hg_An
+      REAL(fp)  :: DTSRCE, E_Hg, F_OF_PBL, T_Hg, T_Hg_An
 
       ! For fields from Input_Opt
       LOGICAL :: LSPLIT, LPREINDHG, LGTMM
@@ -1784,7 +1825,7 @@
       LGTMM     = Input_Opt%LGTMM
 
       ! Emission timestep [s]
-      DTSRCE    = GET_TS_EMIS() * 60d0
+      DTSRCE    = GET_TS_EMIS() * 60e+0_fp
 
       ! Maximum extent of the PBL [model levels]
       PBL_MAX   = GET_PBL_MAX_L() 
@@ -1799,10 +1840,10 @@
          IF ( LPREINDHG ) THEN  !eds
 
             ! Anthropogenic emissions
-            T_Hg_An = 0D0
+            T_Hg_An = 0e+0_fp
 
             ! No biomass burning emissions
-            EHg0_bb = 0D0
+            EHg0_bb = 0e+0_fp
 
          ELSE
 
@@ -1811,19 +1852,19 @@
 
             IF ( LAnthroHgOnly ) THEN
                ! No other emissions
-               EHg0_bb = 0D0
-               EHg0_oc = 0D0
+               EHg0_bb = 0e+0_fp
+               EHg0_oc = 0e+0_fp
 !- eds 8/31/10 ---------------------------------------------------------------
-!               EHg0_nt = 0D0
-               EHg0_geo = 0D0
+!               EHg0_nt = 0e+0_fp
+               EHg0_geo = 0e+0_fp
 !-----------------------------------------------------------------------------
-               EHg0_snow = 0D0
+               EHg0_snow = 0e+0_fp
                IF ( LGTMM ) THEN
-                  EHg0_gtm = 0D0
+                  EHg0_gtm = 0e+0_fp
                ELSE
-                  EHg0_ln = 0D0
-                  EHg0_vg = 0D0
-                  EHg0_so = 0D0
+                  EHg0_ln = 0e+0_fp
+                  EHg0_vg = 0e+0_fp
+                  EHg0_so = 0e+0_fp
                ENDIF
             ENDIF
             
@@ -2701,7 +2742,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I,      J,        L,    N,   PBL_MAX
-      REAL*8  :: DTSRCE, F_OF_PBL, E_Hg 
+      REAL(fp)  :: DTSRCE, F_OF_PBL, E_Hg 
 
       ! For values from Input_Opt
       LOGICAL :: LSPLIT, LPREINDHG
@@ -2718,7 +2759,7 @@
       LPREINDHG = Input_Opt%LPREINDHG
 
       ! Emission timestep [s]
-      DTSRCE    = GET_TS_EMIS() * 60d0
+      DTSRCE    = GET_TS_EMIS() * 60e+0_fp
 
       ! Maximum extent of the PBL [model levels]
       PBL_MAX   = GET_PBL_MAX_L()
@@ -2928,7 +2969,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I,      J,        L,    N,   PBL_MAX
-      REAL*8  :: DTSRCE, F_OF_PBL, E_Hg 
+      REAL(fp)  :: DTSRCE, F_OF_PBL, E_Hg 
 
       ! For values from Input_Opt
       LOGICAL :: LSPLIT, LPREINDHG
@@ -2945,7 +2986,7 @@
       LPREINDHG = Input_Opt%LPREINDHG
 
       ! Chemistry timestep [s]
-      DTSRCE    = GET_TS_EMIS() * 60d0
+      DTSRCE    = GET_TS_EMIS() * 60e+0_fp
       
       ! Maximum extent of the PBL [model levels]
       PBL_MAX   = GET_PBL_MAX_L()
@@ -3099,16 +3140,8 @@
 !
 ! !USES:
 !
-!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-!      USE BPCH2_MOD,          ONLY : GET_NAME_EXT    ! yzh, 11/01/2011
-!      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
-!      USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
-!      USE TIME_MOD,           ONLY : EXPAND_DATE
-!      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-!      USE GRID_MOD,           ONLY : GET_XMID,        GET_YMID
       USE ERROR_MOD,          ONLY : ERROR_STOP
 
       ! HEMCO update
@@ -3160,33 +3193,27 @@
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS
+!
+      REAL(fp), PARAMETER      :: SEC_PER_YR = 365.25e+0_fp*86400e+0_fp
+!
 ! !LOCAL VARIABLES:
 !
-!      INTEGER                 :: NYMD, I, J
-!      REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
-!      REAL*4                  :: ARRAY1(I1x1,J1x1-1,1)
-!      REAL*8, TARGET          :: GEN_1x1(I1x1,J1x1-1)
-!      REAL*8                  :: XTAU
-!      REAL*8                  :: X, Y
-      REAL*8, PARAMETER       :: SEC_PER_YR = 365.25d0 * 86400d0
-!      CHARACTER(LEN=255)      :: FILENAME
-!      CHARACTER(LEN=255)      :: LLFILENAME
-!      REAL*8, POINTER         :: INGRID(:,:) => NULL()
-
       ! For values from Input_Opt
-      LOGICAL                 :: LDYNOCEAN
-      LOGICAL                 :: LPREINDHG
-      LOGICAL                 :: LSPLIT
-      INTEGER                 :: ANTHRO_Hg_YEAR
-      CHARACTER(LEN=10)       :: SCENARIO
+      LOGICAL                  :: LDYNOCEAN
+      LOGICAL                  :: LPREINDHG
+      LOGICAL                  :: LSPLIT
+      INTEGER                  :: ANTHRO_Hg_YEAR
+      CHARACTER(LEN=10)        :: SCENARIO
 
       ! HEMCO update
-      CHARACTER(LEN= 63)       :: DgnName
-      REAL(hp), POINTER        :: Ptr2D(:,:) => NULL()  
+      CHARACTER(LEN=63)        :: DgnName
+      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()  
       TYPE(HCO_STATE), POINTER :: HcoState   => NULL()
 
-      CHARACTER(LEN=255) :: MSG
-      CHARACTER(LEN=255) :: LOC = 'MERCURY_READYR (mercury_mod.F)'
+      ! Strings
+      CHARACTER(LEN=255)       :: MSG
+      CHARACTER(LEN=255)       :: LOC = 'MERCURY_READYR (mercury_mod.F)'
 
       !=================================================================
       ! MERCURY_READYR begins here! 
@@ -3235,9 +3262,9 @@
       ! No anthropogenic emissions in preindustrial simulation
       IF ( LPREINDHG ) THEN
 
-         EHg0_an = 0D0  !eds
-         EHg2_an = 0D0
-         EHgP_an = 0D0
+         EHg0_an = 0e+0_fp  !eds
+         EHg2_an = 0e+0_fp
+         EHgP_an = 0e+0_fp
 
       ELSE
 
@@ -3284,2792 +3311,11 @@
       IF ( RC /= HCO_SUCCESS ) THEN
          CALL ERROR_STOP ( 'Cannot get pointer to HG0_SOILDIST', LOC )
       ENDIF
-      EHg0_dist = Ptr2D(:,:) 
+      EHg0_dist =  Ptr2D(:,:) 
       Ptr2D     => NULL()
 
       ! Free pointer
       HcoState => NULL()
-
-!===========================================================================
-! Orig emissions code follows below. Keep for now for testing/debugging
-! (ckeller, 09/24/2014)
-!===========================================================================
-
-!         !---------------------------
-!         ! Hg(0) emissions, except mining [kg/s]
-!         !---------------------------
-!
-!         ! File with lat/lon edges for regridding
-!         LLFILENAME = TRIM( Input_Opt%DATA_DIR_1x1) //
-!     &              'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
-!
-!         IF (LGCAPEMIS) THEN
-!            ! Use Bess' GCAP emissions from David Streets
-!
-!            !===========================================================
-!            ! Note: Emissions scenario must be selected in the mercury
-!            ! menu in input.geos:
-!            ! Use anthro Hg emiss for : 2006 or 2050
-!            ! Use future emissions?   : PRESENT, A1B, A2, B1, or B2
-!            !===========================================================
-!
-! 
-!!- eds 5/17/12 ---------------------------------------------------- 
-!            ! GEIA 2005 emissions are scaled to 2006 or 2050
-!             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-!             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-!
-!            ! Filename for anthropogenic mercury source
-!            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1) // 
-!     &           'mercury_201205/' // 
-!     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-!     &           '_Hg0.geos.1x1.YYYY'
-!!-----------------------------------------------------------------
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-! 100        FORMAT( '     - MERCURY_READYR: Reading ', a )
-!
-!            ! Read data in [kg/yr]
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                       XTAU,      I1x1,     J1x1-1,
-!     &                       1,         ARRAY1,   QUIET=.TRUE. )
-!
-!            ! Cast to REAL*8 before regridding
-!            GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!            ! Regrid from GENERIC 1x1 to the current grid
-!            INGRID  => GEN_1x1(:,:)
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg0_an, IS_MASS=1,
-!     &                          netCDF=.TRUE.                   )
-!
-!            ! Convert from [kg/yr] to [kg/s]
-!            EHg0_an = EHg0_an / SEC_PER_YR
-!
-!            ! Free pointer
-!            NULLIFY( INGRID )
-!
-!!- eds 8/31/10 ------------------------------------------------------
-!            !-------------------------------------
-!            ! Tagged anthro Hg0
-!            !-------------------------------------
-!            IF (LSPLIT) THEN
-!
-!               !- eds 5/17/12 -----------------------------------------
-!               ! GEIA 2005 emissions are scaled to 2006 or 2050
-!                NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-!                XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-!
-!
-!               !===========================
-!               ! Anthro Canada Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'     // TRIM( SCENARIO )  //
-!     &                    '_Hg0_CAN.geos.1x1.YYYY'
-!               !--------------------------------------------------------
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 101 ) TRIM( FILENAME )
-! 101           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_can, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_can = EHg0_can / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro United States Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_USA.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 102 ) TRIM( FILENAME )
-! 102           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_usa, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_usa = EHg0_usa / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Central America Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_CAM.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 103 ) TRIM( FILENAME )
-! 103           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_cam, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_cam = EHg0_cam / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro South America Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                     'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_SAM.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 104 ) TRIM( FILENAME )
-! 104           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sam, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_sam = EHg0_sam / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro West Africa Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_WAF.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 105 ) TRIM( FILENAME )
-! 105           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_waf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_waf = EHg0_waf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro East Africa Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_EAF.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 106 ) TRIM( FILENAME )
-! 106           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eaf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_eaf = EHg0_eaf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro South Africa Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_SAF.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 107 ) TRIM( FILENAME )
-! 107           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_saf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_saf = EHg0_saf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro North Africa Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_NAF.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 108 ) TRIM( FILENAME )
-! 108           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_naf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_naf = EHg0_naf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro OECD Europe Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_EUR.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 109 ) TRIM( FILENAME )
-! 109           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eur, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_eur = EHg0_eur / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Eastern Europe Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_EEU.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 110 ) TRIM( FILENAME )
-! 110           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eeu, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_eeu = EHg0_eeu / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Middle East Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_MDE.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 111 ) TRIM( FILENAME )
-! 111           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_mde, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_mde = EHg0_mde / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Former USSR Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_SOV.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 112 ) TRIM( FILENAME )
-! 112           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sov, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_sov = EHg0_sov / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro South Asia Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_SAS.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 113 ) TRIM( FILENAME )
-! 113           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sas, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_sas = EHg0_sas / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro East Asia Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_EAS.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 114 ) TRIM( FILENAME )
-! 114           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eas, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_eas = EHg0_eas / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Southeast Asia Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                     'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_SEA.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 115 ) TRIM( FILENAME )
-! 115           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sea, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_sea = EHg0_sea / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Japan Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_JPN.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 116 ) TRIM( FILENAME )
-! 116           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_jpn, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_jpn = EHg0_jpn / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Oceania Hg0
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg0_OCE.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 117 ) TRIM( FILENAME )
-! 117           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_oce, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg0_oce = EHg0_oce / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!            
-!            ENDIF ! LSPLIT
-!!----------------------------------------------------------------            
-!        
-!         ELSEIF (LGEIA05) THEN
-!            ! Use GEIA 2005 emissions inventory (eck, 10/19/11)
-!   
-!            ! Mercury data is for 2005
-!            NYMD     = ( 2005 * 10000 ) + 0101
-!            XTAU     = GET_TAU0( 1, 1, 2005 )
-!
-!            ! Filename for anthropogenic mercury source
-!#if defined( GRID05x0666 ) && defined( NESTED_NA )
-!            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
-!            FILENAME = TRIM( Input_Opt%DATA_DIR )           // 
-!     &           'mercury_201203/GEIA_Hg0.'       //
-!     &           GET_NAME_EXT()     // '.'        //
-!     &           GET_RES_EXT()      //  '.YYYY'
-!#else
-!            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 )       // 
-!     &           'mercury_201002/GEIA_Hg0.geos.1x1.YYYY'
-!#endif
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! Read data in [kg/yr]
-!#if defined( GRID05x0666 ) && defined( NESTED_NA )
-!            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     1, 
-!     &                       XTAU,      IIPAR,        JJPAR,    
-!     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!            CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_an )
-!#else
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
-!     &                       XTAU,      I1x1,     J1x1-1,
-!     &                       1,         ARRAY1,   QUIET=.TRUE. )
-!
-!            ! Cast to REAL*8 before regridding
-!            GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!            ! Regrid from GENERIC 1x1 to the current grid
-!            INGRID  => GEN_1x1(:,:)
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg0_an, IS_MASS=1,
-!     &                          netCDF=.TRUE.                   )
-!
-!            ! Free pointer
-!            NULLIFY( INGRID )
-!#endif
-!
-!            ! Convert from [kg/yr] to [kg/s]
-!            EHg0_an = EHg0_an / SEC_PER_YR    
-!
-!            ! For GEIA 2005, change Hg0:Hg2:HgP ratio
-!            ! from 50:40:10 to 86.5:9.9:3.6 for fossil fuel emissions.
-!            ! Fossil fuels make up ~47% of total global anthro emis
-!            ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
-!            ! Implemented 10/19/11 by eck
-!            IF (LInPlume) EHg0_an=1.24d0*EHg0_an
-!
-!         ELSE
-!            ! Otherwise use Selin et al. 2008 emissions
-!
-!            ! Mercury data is either for 1995 or 2000
-!            NYMD     = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-!            XTAU     = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-!
-!            ! Filename for anthropogenic mercury source
-!            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &           'mercury_200511/GEIA_Hg0.geos.1x1.YYYY'
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! Read data in [kg/yr]
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
-!     &                       XTAU,      I1x1,     J1x1-1,
-!     &                       1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!            ! Cast to REAL*8 before regridding
-!            GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!            ! Regrid from GENERIC 1x1 to the current grid
-!            INGRID  => GEN_1x1(:,:)
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg0_an, IS_MASS=1,
-!     &                          netCDF=.TRUE.                   )
-!
-!            ! Convert from [kg/yr] to [kg/s]
-!            EHg0_an = EHg0_an / SEC_PER_YR
-!
-!            ! Scale up the inventory, as explained in Selin et al., GBC 2008
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!
-!               ! Grid box longitude [degrees]
-!               X = GET_XMID( I, J, 1 )
-!
-!               ! Grid-box latitude [degrees]
-!               Y = GET_YMID( I, J, 1 )
-!
-!               ! Asian Anthro Hg increase 50%
-!               IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-!     &              ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
-!
-!                  EHg0_an(I,J) = EHg0_an(I,J) * 1.5d0
-!
-!               ELSE
-!
-!                  ! otherwise, 30% increase
-!                  EHg0_an(I,J) = EHg0_an(I,J) * 1.3d0
-!
-!               ENDIF 
-!
-!            ENDDO
-!            ENDDO 
-!
-!            ! Free pointer
-!            NULLIFY( INGRID )
-!
-!         ENDIF
-!
-!         ! Read the NEI2005 emission inventory, override in the NA region
-!         ! Y. Zhang, 11/1/2011
-!         IF (LNEI2005) THEN
-!            ! Use US EPA2005 and Canadian NPRI2005 emissions
-!
-!            ! Mercury data is for 2005
-!            NYMD     = ( 2005 * 10000 ) + 0101
-!            XTAU     = GET_TAU0( 1, 1, 2005 )
-!
-!            ! Filename for anthropogenic mercury source
-!            IF (LInPlume) THEN
-!               FILENAME = TRIM(Input_Opt% DATA_DIR) // 
-!     &              'mercury_201203/' //
-!     &              'NEI2005_NPRI2005_NewSpeciation_Hg0.'     //
-!     &              GET_NAME_EXT() // '.' // GET_RES_EXT()    //
-!     &              '.YYYY'
-!            ELSE
-!               FILENAME = TRIM( Input_Opt%DATA_DIR)   // 
-!     &              'mercury_201203/' //
-!     &              'NEI2005_NPRI2005_Hg0.' //
-!     &              GET_NAME_EXT() // '.'   // GET_RES_EXT()    //
-!     &              '.YYYY'
-!            ENDIF
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! Read data in [kg/yr]
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     1,
-!     &                       XTAU,      IIPAR,        JJPAR,
-!     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!            ! Replace the NA emission
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!
-!               ! Grid-box latitude [degrees]
-!               Y = GET_YMID( I, J, 1 )
-!
-!               ! Grid box longitude [degrees]
-!               X = GET_XMID( I, J, 1 )
-! 
-!               ! In the nested domain, use NEI2005 emission inventory
-!               IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
-!     &              Y .GE.   10.0 .AND. Y .LE.  70.0 ) THEN
-!                    EHg0_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
-!               ENDIF
-! 
-!            ENDDO
-!            ENDDO
-!
-!         ENDIF
-!
-!         !---------------------------
-!         ! Artisanal mining Hg(0) emissions [kg/s]
-!         !---------------------------
-!
-!         ! Read artisanal mining and add to anthropogenic
-!         ! Use "generic" year 1985 for TAU values
-!         XTAU     = GET_TAU0( 1, 1, 1985 )
-!
-!         ! Filename for artisanal mining emissions (4x5 only for now)
-!#if defined( GRID05x0666 ) && defined( NESTED_NA )
-!         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
-!     &              'mercury_201203/artisanal.' //
-!     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
-!#else
-!         FILENAME = TRIM(Input_Opt% DATA_DIR ) // 
-!     &        'mercury_201007/artisanal.bpch'
-!#endif
-!
-!         ! Echo info
-!         WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!         ! Read data in [kg/yr]
-!         CALL READ_BPCH2( FILENAME, 'HG-SRCE',     1,  
-!     &       XTAU,      IIPAR,        JJPAR,    
-!     &        1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!         ! Cast to REAL*8 and resize
-!         CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_am(:,:) )
-!     
-!         ! Convert from Mg/yr to kg/s; multiply by 50%
-!         ! need more source: try 75%
-!         EHg0_am = Ehg0_am * 1D3 / SEC_PER_YR * 0.75d0
-!
-!         !Artisanal mining is included in the 2006 Streets and 2005
-!         !GEIA emissions inventories. Here, we don't add it if those
-!         !flags are set. (eck, 10/19/11)
-!         IF (LGCAPEMIS) THEN
-!            EHg0_an = EHg0_an
-!         ELSEIF (LGEIA05) THEN
-!            EHg0_an = EHg0_an
-!         ELSE
-!         ! Add artisanal mining to anthropogenic
-!         EHg0_an = EHg0_an + EHg0_am
-!         ENDIF
-!
-!         !---------------------------
-!         ! Anthropogenic Hg(II) emissions [kg/s]
-!         !---------------------------
-!
-!         IF (LGCAPEMIS) THEN
-!            ! Use Bess' GCAP emissions
-!
-!            ! testing only
-!            write(*,*) 'Hg2: Use LGCAPEMIS'
-!
-!!- eds 5/17/12 ----------------------------------------------------
-!            ! GEIA 2005 emissions are scaled to 2006 or 2050
-!             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-!             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-!
-!            ! Filename for anthropogenic mercury source
-!!            FILENAME = '/home/cdh/GC/Archived-Br/' //
-!!     &           'GEIA_Streets_Hg2.geos.1x1.YYYY'
-!
-!            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1) // 
-!     &            'mercury_201205/' //
-!     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-!     &           '_Hg2.geos.1x1.YYYY'
-!!-----------------------------------------------------------------
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! Read data in [kg/yr]
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
-!     &                       XTAU,      I1x1,     J1x1-1,
-!     &                       1,         ARRAY1,   QUIET=.TRUE. )
-!
-!            ! Cast to REAL*8 before regridding
-!            GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!            ! Regrid from GENERIC 1x1 to the current grid
-!            INGRID  => GEN_1x1(:,:)
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg2_an, IS_MASS=1,
-!     &                          netCDF=.TRUE.                   )
-!
-!            ! Convert from [kg/yr] to [kg/s]
-!            EHg2_an = EHg2_an / SEC_PER_YR
-!
-!            ! Free pointer
-!            NULLIFY( INGRID )
-!
-!!- eds 8/31/10 ----------------------------------------------------
-!            !-------------------------------------
-!            ! Tagged anthro Hg2
-!            !-------------------------------------
-!            IF (LSPLIT) THEN
-!
-!!- eds 5/17/12 ----------------------------------------------------
-!               ! GEIA 2005 emissions are scaled to 2006 or 2050
-!               NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-!               XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-!!-----------------------------------------------------------------
-!
-!
-!               !===========================
-!               ! Anthro Canada Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_CAN.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 118 ) TRIM( FILENAME )
-! 118           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_can, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_can = EHg2_can / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro United States Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &              'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_USA.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 119 ) TRIM( FILENAME )
-! 119           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_usa, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_usa = EHg2_usa / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Central America Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_CAM.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 120 ) TRIM( FILENAME )
-! 120           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_cam, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_cam = EHg2_cam / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro South America Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_SAM.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 121 ) TRIM( FILENAME )
-! 121           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sam, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_sam = EHg2_sam / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro West Africa Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_WAF.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 122 ) TRIM( FILENAME )
-! 122           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_waf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_waf = EHg2_waf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro East Africa Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_EAF.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 123 ) TRIM( FILENAME )
-! 123           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eaf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_eaf = EHg2_eaf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro South Africa Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_SAF.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 124 ) TRIM( FILENAME )
-! 124           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_saf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_saf = EHg2_saf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro North Africa Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_NAF.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 125 ) TRIM( FILENAME )
-! 125           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_naf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_naf = EHg2_naf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro OECD Europe Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_EUR.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 126 ) TRIM( FILENAME )
-! 126           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eur, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_eur = EHg2_eur / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Eastern Europe Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_EEU.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 127 ) TRIM( FILENAME )
-! 127           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eeu, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_eeu = EHg2_eeu / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Middle East Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_MDE.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 128 ) TRIM( FILENAME )
-! 128           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_mde, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_mde = EHg2_mde / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Former USSR Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_SOV.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 129 ) TRIM( FILENAME )
-! 129           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sov, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_sov = EHg2_sov / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro South Asia Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_SAS.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 130 ) TRIM( FILENAME )
-! 130           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sas, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_sas = EHg2_sas / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro East Asia Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_EAS.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 131 ) TRIM( FILENAME )
-! 131           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eas, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_eas = EHg2_eas / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Southeast Asia Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_SEA.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 132 ) TRIM( FILENAME )
-! 132           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sea, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_sea = EHg2_sea / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Japan Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_JPN.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 133 ) TRIM( FILENAME )
-! 133           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_jpn, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_jpn = EHg2_jpn / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Oceania Hg2
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_Hg2_OCE.geos.1x1.YYYY'
-!            
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            
-!               ! Echo info
-!               WRITE( 6, 134 ) TRIM( FILENAME )
-! 134           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!            
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!            
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_oce, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!            
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHg2_oce = EHg2_oce / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!            
-!            ENDIF ! LSPLIT
-!!----------------------------------------------------------------
-!        
-!         ELSEIF (LGEIA05) THEN
-!            ! Use GEIA 2005 emissions (eck, 10/19/11)
-!
-!            ! testing only
-!            write(*,*) 'Hg2: Use LGEIA05'
-!
-!            ! Filename for anthropogenic mercury source
-!#if defined( GRID05x0666 ) && defined( NESTED_NA )
-!            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
-!            FILENAME = TRIM( Input_Opt%DATA_DIR )           // 
-!     &           'mercury_201203/GEIA_Hg2.'       //
-!     &           GET_NAME_EXT()     // '.'        //
-!     &           GET_RES_EXT()      // '.YYYY'
-!#else
-!            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 )               // 
-!     &           'mercury_201002/GEIA_Hg2.geos.1x1.YYYY'
-!#endif
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            XTAU     = GET_TAU0( 1, 1, 2005 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! Read data in [kg/yr]
-!#if defined( GRID05x0666 ) && defined( NESTED_NA )
-!            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     6, 
-!     &                       XTAU,      IIPAR,        JJPAR,    
-!     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!            CALL TRANSFER_2D( ARRAY(:,:,1), EHg2_an )
-!#else
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
-!     &                       XTAU,      I1x1,     J1x1-1,
-!     &                       1,         ARRAY1,   QUIET=.TRUE. )
-!
-!            ! Cast to REAL*8 before regridding
-!            GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!            ! Regrid from GENERIC 1x1 to the current grid
-!            INGRID  => GEN_1x1(:,:)
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg2_an, IS_MASS=1,
-!     &                          netCDF=.TRUE.                   )
-!
-!            ! Free pointer
-!            NULLIFY( INGRID )
-!#endif
-!
-!            ! Convert from [kg/yr] to [kg/s]
-!            EHg2_an = EHg2_an / SEC_PER_YR
-!
-!            ! For GEIA 2005, change Hg0:Hg2:HgP ratio
-!            ! from 50:40:10 to 86.5:9.9:3.6 for fossil fuel emissions.
-!            ! Fossil fuels make up ~47% of total global anthro emis
-!            ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
-!            ! Implemented 10/19/11 by eck
-!            IF (LInPlume) EHg2_an=0.45d0*EHg2_an
-!
-!         ELSE
-!            ! Otherwise use Selin et al. 2008 emissions
-!
-!            ! testing only
-!            write(*,*) 'Hg2: Use Selin et al. 2008'
-!
-!            ! Filename for anthropogenic mercury source
-!            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &           'mercury_200511/GEIA_Hg2.geos.1x1.YYYY'
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!            XTAU     = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! Read data in [kg/yr]
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
-!     &                       XTAU,      I1x1,     J1x1-1,
-!     &                       1,         ARRAY1,   QUIET=.TRUE. )
-!
-!            ! Cast to REAL*8 before regridding
-!            GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!            ! Regrid from GENERIC 1x1 to the current grid
-!            INGRID  => GEN_1x1(:,:)
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg2_an, IS_MASS=1,
-!     &                          netCDF=.TRUE.                   )
-!
-!            ! Convert from [kg/yr] to [kg/s]; increase Pacyna by 30%
-!            EHg2_an = EHg2_an * 1.3d0 / SEC_PER_YR
-!
-!            ! Free pointer
-!            NULLIFY( INGRID )
-!
-!         ENDIF
-!
-!         ! Read the NEI2005 emission inventory, override in the NA region
-!         ! Y. Zhang, 11/1/2011
-!         IF (LNEI2005) THEN
-!            ! Use US EPA2005 emissions
-!
-!            ! testing only
-!            write(*,*) 'Hg2: Use LNEI2005'
-!
-!            ! Mercury data is for 2005
-!            NYMD     = ( 2005 * 10000 ) + 0101
-!            XTAU     = GET_TAU0( 1, 1, 2005 )
-!
-!            ! Filename for anthropogenic mercury source
-!            IF (LInPlume) THEN
-!               FILENAME = TRIM( Input_Opt%DATA_DIR) // 
-!     &              'mercury_201203/' //
-!     &              'NEI2005_NPRI2005_NewSpeciation_Hg2.'      //
-!     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
-!     &              '.YYYY'
-!            ELSE
-!               FILENAME = TRIM( Input_Opt%DATA_DIR) // 
-!     &              'mercury_201203/' //
-!     &              'NEI2005_NPRI2005_Hg2.'                    //
-!     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
-!     &              '.YYYY'
-!            ENDIF
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! Read data in [kg/yr]
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-!     &           XTAU,      IIPAR,     JJPAR,
-!     &           1,     ARRAY(:,:,1),     QUIET=.TRUE. )
-!
-!            ! Replace the NA emission
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!
-!               ! Grid-box latitude [degrees]
-!               Y = GET_YMID( I, J, 1 )
-!
-!               ! Grid box longitude [degrees]
-!               X = GET_XMID( I, J, 1 )
-! 
-!               ! In the nested domain, use NEI2005 emission inventory
-!               IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
-!     &              Y .GE.   10.0 .AND. Y .LE.  70.0 ) THEN
-!                    EHg2_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
-!               ENDIF
-! 
-!            ENDDO
-!            ENDDO
-!
-!         ENDIF
-!
-!         !---------------------------
-!         ! HgP emissions [kg/s]
-!         !---------------------------
-!
-!         IF (LGCAPEMIS) THEN
-!            ! Use Bess' GCAP emissions
-!
-!            !- eds 5/17/12 -----------------------------------------
-!            ! GEIA 2005 emissions are scaled to 2006 or 2050
-!             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-!             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-!
-!
-!            ! Anthro HgP
-!            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1) // 
-!     &           'mercury_201205/' //
-!     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-!     &           '_HgP.geos.1x1.YYYY'
-!            !--------------------------------------------------------   
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! Read data in [kg/yr]
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
-!     &                       XTAU,      I1x1,     J1x1-1,
-!     &                       1,         ARRAY1,   QUIET=.TRUE. )
-!
-!            ! Cast to REAL*8 before regridding
-!            GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!            ! Regrid from GENERIC 1x1 to the current grid
-!            INGRID  => GEN_1x1(:,:)
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHgP_an, IS_MASS=1,
-!     &                          netCDF=.TRUE.                   )
-!
-!            ! Convert from [kg/yr] to [kg/s]
-!            EHgP_an = EHgP_an / SEC_PER_YR
-!
-!            ! Free pointer
-!            NULLIFY( INGRID )
-!
-!!- eds 8/31/10 ----------------------------------------------------
-!            !-------------------------------------
-!            ! Tagged anthro HgP
-!            !-------------------------------------
-!            IF (LSPLIT) THEN
-!
-!!- eds 5/17/12 ----------------------------------------------------
-!               ! GEIA 2005 emissions are scaled to 2006 or 2050
-!               NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-!               XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )   
-!!-----------------------------------------------------------------
-!
-!               !===========================
-!               ! Anthro Canada HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_CAN.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 135 ) TRIM( FILENAME )
-! 135           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_can, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_can = EHgP_can / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro United States HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_USA.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 136 ) TRIM( FILENAME )
-! 136           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_usa, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_usa = EHgP_usa / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Central America HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_CAM.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 137 ) TRIM( FILENAME )
-! 137           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_cam, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_cam = EHgP_cam / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro South America HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_SAM.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 138 ) TRIM( FILENAME )
-! 138           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sam, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_sam = EHgP_sam / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro West Africa HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_WAF.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 139 ) TRIM( FILENAME )
-! 139           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_waf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_waf = EHgP_waf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro East Africa HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_EAF.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 140 ) TRIM( FILENAME )
-! 140           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eaf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_eaf = EHgP_eaf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro South Africa HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_SAF.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 141 ) TRIM( FILENAME )
-! 141           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_saf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_saf = EHgP_saf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro North Africa HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_NAF.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 142 ) TRIM( FILENAME )
-! 142           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_naf, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_naf = EHgP_naf / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro OECD Europe HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_EUR.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 143 ) TRIM( FILENAME )
-! 143           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eur, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_eur = EHgP_eur / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Eastern Europe HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_EEU.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 144 ) TRIM( FILENAME )
-! 144           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eeu, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_eeu = EHgP_eeu / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               !Anthro Middle East HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_MDE.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 145 ) TRIM( FILENAME )
-! 145           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_mde, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_mde = EHgP_mde / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Former USSR HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_SOV.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 146 ) TRIM( FILENAME )
-! 146           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sov, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_sov = EHgP_sov / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro South Asia HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_SAS.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 147 ) TRIM( FILENAME )
-! 147           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sas, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_sas = EHgP_sas / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro East Asia HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_EAS.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 148 ) TRIM( FILENAME )
-! 148           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_eas, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_eas = EHgP_eas / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Southeast Asia HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_SEA.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 149 ) TRIM( FILENAME )
-! 149           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_sea, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_sea = EHgP_sea / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Japan HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_JPN.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 150 ) TRIM( FILENAME )
-! 150           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_jpn, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_jpn = EHgP_jpn / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!
-!
-!               !===========================
-!               ! Anthro Oceania HgP
-!               !===========================
-!               FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
-!     &                    'mercury_201205/' //
-!     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
-!     &                    '_HgP_OCE.geos.1x1.YYYY'
-!           
-!               ! Add year to the filename
-!               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!           
-!               ! Echo info
-!               WRITE( 6, 151 ) TRIM( FILENAME )
-! 151           FORMAT( '     - MERCURY_READYR: Reading ', a )
-!           
-!               ! Read data in [kg/yr]
-!               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                          XTAU,      I1x1,     J1x1-1,
-!     &                          1,         ARRAY1,   QUIET=.TRUE. )
-!           
-!               ! Cast to REAL*8 before regridding
-!               GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!               ! Regrid from GENERIC 1x1 to the current grid
-!               INGRID  => GEN_1x1(:,:)
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
-!     &                             INGRID,     EHg0_oce, IS_MASS=1,
-!     &                             netCDF=.TRUE.                   )
-!           
-!               ! Convert from [kg/yr] to [kg/s]
-!               EHgP_oce = EHgP_oce / SEC_PER_YR
-!
-!               ! Free pointer
-!               NULLIFY( INGRID )
-!           
-!            ENDIF ! LSPLIT
-!
-!!----------------------------------------------------------------
-!
-!         ELSEIF (LGEIA05) THEN
-!            ! Use GEIA 2005 emissions (eck, 10/19/11)
-!
-!            ! Filename for anthropogenic mercury source
-!#if defined( GRID05x0666 ) && defined( NESTED_NA )
-!            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
-!            FILENAME = TRIM( Input_Opt%DATA_DIR )           //
-!     &           'mercury_201203/GEIA_HgP.'       //
-!     &           GET_NAME_EXT()     // '.'        //
-!     &           GET_RES_EXT()      //'.YYYY'
-!#else
-!            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1)   //
-!     &           'mercury_201002/GEIA_HgP.geos.1x1.YYYY'
-!#endif
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! Read data in [kg/yr]
-!#if defined( GRID05x0666 ) && defined( NESTED_NA )
-!            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     9, 
-!     &                       XTAU,      IIPAR,        JJPAR,    
-!     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!            CALL TRANSFER_2D( ARRAY(:,:,1), EHgP_an )
-!#else
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                       XTAU,      I1x1,     J1x1-1,
-!     &                       1,         ARRAY1,   QUIET=.TRUE. )
-!
-!            ! Cast to REAL*8 before regridding
-!            GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!            ! Regrid from GENERIC 1x1 to the current grid
-!            INGRID  => GEN_1x1(:,:)
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHgP_an, IS_MASS=1,
-!     &                          netCDF=.TRUE.                   )
-!
-!            ! Free pointer
-!            NULLIFY( INGRID )
-!#endif
-!
-!            ! Convert from [kg/yr] to [kg/s]
-!            EHgP_an = EHgP_an / SEC_PER_YR
-!
-!            ! For GEIA 2005, change Hg0:Hg2:HgP ratio
-!            ! from 50:40:10 to 86.5:9.9:3.6 for fossil fuel emissions.
-!            ! Fossil fuels make up ~47% of total global anthro emis
-!            ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
-!            ! Implemented 10/19/11 by eck
-!            IF (LInPlume) EHgP_an=0.55d0*EHgP_an
-!
-!         ELSE
-!            ! Otherwise use Selin et al. 2008 emissions
-!
-!            ! Filename for anthropogenic mercury source
-!            FILENAME = TRIM( Input_Opt%DATA_DIR_1x1) //
-!     &           'mercury_200511/GEIA_HgP.geos.1x1.YYYY'
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! Read data in [kg/yr]
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &                       XTAU,      I1x1,     J1x1-1,
-!     &                       1,         ARRAY1,   QUIET=.TRUE. )
-!
-!            ! Cast to REAL*8 before regridding
-!            GEN_1x1(:,:) = ARRAY1(:,:,1)
-!
-!            ! Regrid from GENERIC 1x1 to the current grid
-!            INGRID  => GEN_1x1(:,:)
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHgP_an, IS_MASS=1,
-!     &                          netCDF=.TRUE.                   )
-!
-!            ! Convert from [kg/yr] to [kg/s];increase Pacyna by 30%
-!            EHgP_an = EHgP_an * 1.3D0 / SEC_PER_YR
-!
-!            ! Free pointer
-!            NULLIFY( INGRID )
-!
-!         ENDIF
-!
-!         ! Read the NEI2005 emission inventory, override in the NA region
-!         ! Y. Zhang, 11/1/2011
-!         IF (LNEI2005) THEN
-!            ! Use US EPA2005 emissions
-!
-!            ! Mercury data is for 2005
-!            NYMD     = ( 2005 * 10000 ) + 0101
-!            XTAU     = GET_TAU0( 1, 1, 2005 )
-!
-!            ! Filename for anthropogenic mercury source
-!            IF (LInPlume) THEN
-!               FILENAME = TRIM( Input_Opt%DATA_DIR) // 
-!     &              'mercury_201203/' //
-!     &              'NEI2005_NPRI2005_NewSpeciation_HgP.'      //
-!     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
-!     &              '.YYYY'
-!            ELSE
-!               FILENAME = TRIM( Input_Opt%DATA_DIR) // 
-!     &              'mercury_201203/' //
-!     &              'NEI2005_NPRI2005_HgP.'                    //
-!     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
-!     &              '.YYYY'
-!            ENDIF
-!
-!            ! Add year to the filename
-!            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-!
-!            ! Echo info
-!            WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!            ! Read data in [kg/yr]
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-!     &           XTAU,      IIPAR,     JJPAR,
-!     &           1,     ARRAY(:,:,1),     QUIET=.TRUE. )
-!
-!            ! Replace the NA emission
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!
-!               ! Grid-box latitude [degrees]
-!               Y = GET_YMID( I, J, 1 )
-!
-!               ! Grid box longitude [degrees]
-!               X = GET_XMID( I, J, 1 )
-! 
-!               ! In the nested domain, use NEI2005 emission inventory
-!               IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
-!     &              Y .GE.   10.0 .AND. Y .LE.  70.0 ) THEN
-!                    EHgP_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
-!               ENDIF
-! 
-!            ENDDO
-!            ENDDO
-!
-!        ENDIF
-!
-!      ENDIF
-! 
-!      ! Assume HgP is part of the pool of Hg2 
-!      ! available for gas-particle partitioning
-!
-!      ! testing only
-!      write(*,*) 'adding EHgP to EHg2: ', SUM(EHg2_an), SUM(EHgP_an)
-!
-!      EHg2_an = EHg2_an + EHgP_an
-!      EHgP_an = 0d0 * EHgP_an
-!
-!      ! testing only
-!      write(*,*) 'added EHg2: ', SUM(EHg2_an)
-!
-!      !=================================================================
-!      ! Read distribution of Hg on land.
-!      ! See explanation in Selin et al., GBC 2008 or the GEOS-Chem Hg
-!      !  wiki.
-!      !
-!      ! EHg0_dist is a dimensionless spatial scaling factor that distributes
-!      ! the soil Hg content according to deposition. It also accounts for
-!      ! the global anthropogenic enrichment in the present day.
-!      !=================================================================
-!
-!      ! Use "generic" year 1985 for TAU values
-!      XTAU     = GET_TAU0( 1, 1, 1985 )
-!
-!      IF ( LPREINDHG ) THEN
-!         !-----------------------
-!         ! Pre-industrial 
-!         !-----------------------
-!#if   defined( GEOS_5 ) && defined( GRID4x5 )
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )                       //
-!     &             'mercury_201203/soilhg.preind.v9-02c.' //
-!     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
-!#elif defined( GEOS_5 ) && defined( GRID2x25 )
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
-!     &             'mercury_201203/soilhg.preind.v9-02c.' //
-!     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
-!#elif defined( GEOS_4 ) && defined( GRID4x5 )
-!         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!         !%%%   KLUDGE: For unit-testing, use the GEOS-5 soil file!    %%%
-!         !%%%   Ask Team Hg to produce a new GEOS4 soil file later  .  %%%
-!         !%%%   (bmy, 9/6/13)                                          %%%
-!         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
-!     &             'mercury_201203/soilhg.preind.v9-02c.geos5.4x5'
-!#elif defined( MERRA ) && defined( GRID4x5 )
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
-!     &             'mercury_201110/soilHg.merra.preind.bpch'
-!#elif defined( GEOS_FP ) && defined( GRID4x5 )
-!         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!         !%%%   KLUDGE: For unit-testing, use the MERRA soil file!     %%%
-!         !%%%   Ask Team Hg to produce a new GEOS-FP soil file later.  %%%
-!         !%%%   (bmy, 9/6/13)                                          %%%
-!         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
-!     &             'mercury_201203/soilHg.merra.preind.bpch'
-!#elif defined( GRID05x0666 ) && defined( NESTED_NA )
-!         ! Need to read nested-grid files, yzh
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )           //
-!     &             'mercury_201203/soilhg.preind.v9-02c.' //
-!     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
-!#else
-!         ! Include a location for the error message (skim, 6/28/12)
-!         CALL ERROR_STOP( "You need to make a Hg soil file. ", 
-!     &                    "PREINDUSTRIAL MERCURY")
-!#endif
-!
-!      ELSE
-!         !-----------------------
-!         ! Present day
-!         !-----------------------
-!#if   defined( GEOS_5 ) && defined( GRID4x5 )
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )                 //
-!     &             'mercury_201203/soilhg.presentday.v9-02c.' //
-!     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
-!#elif defined( GEOS_5 ) && defined( GRID2x25 )
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )                 //
-!     &             'mercury_201203/soilhg.presentday.v9-02c.' //
-!     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
-!#elif defined( GEOS_4 ) && defined( GRID4x5 )
-!         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!         !%%%   KLUDGE: For unit-testing, use the GEOS-5 soil file!    %%%
-!         !%%%   Ask Team Hg to produce a new GEOS4 soil file later  .  %%%
-!         !%%%   (bmy, 9/6/13)                                          %%%
-!         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
-!     &             'mercury_201203/soilhg.presentday.v9-02c.geos5.4x5'
-!#elif defined( MERRA ) && defined( GRID4x5 )
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
-!     &             'mercury_201110/soilHg.merra.presentday.bpch'
-!#elif defined( GEOS_FP ) && defined( GRID4x5 )
-!         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!         !%%%   KLUDGE: For unit-testing, use the MERRA soil file!     %%%
-!         !%%%   Ask Team Hg to produce a new GEOS-FP soil file later.  %%%
-!         !%%%   (bmy, 9/6/13)                                          %%%
-!         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )            //
-!     &             'mercury_201110/soilHg.merra.presentday.bpch'
-!#elif defined( GRID05x0666 ) && defined( NESTED_NA )
-!         ! Need to read nested-grid files, yzh
-!         FILENAME= TRIM( Input_Opt%DATA_DIR )                 //
-!     &             'mercury_201203/soilhg.presentday.v9-02c.' //
-!     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
-!#else
-!         ! Include a location for the error message (skim, 6/28/12)
-!         CALL ERROR_STOP( "You need to make a Hg soil file. ", 
-!     &                    "PRESENT DAY MERCURY")
-!#endif
-!
-!      ENDIF
-!
-!      ! Echo info
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!      ! Read data in [kg/yr]
-!      CALL READ_BPCH2( FILENAME, 'HG-SRCE',     4,  
-!     &                 XTAU,      IIPAR,        JJPAR,    
-!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!      ! Cast to REAL*8 and resize
-!      CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_dist(:,:) )
-!
-!      !=================================================================
-!      ! Read annual emissions of Hg(0) from natural land sources [kg/s]
-!      !=================================================================
-!
-!      ! Use "generic" year 1985 for TAU values
-!      XTAU     = GET_TAU0( 1, 1, 1985 )
-!
-!      ! Filename for natural land-source mercury
-!#if defined( GRID05x0666 ) && defined( NESTED_NA )
-!      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!      FILENAME = TRIM( Input_Opt%DATA_DIR) // 'mercury_201203/' //
-!     &           'newnatural.'   // GET_NAME_EXT()    //
-!     &            '.'            // GET_RES_EXT()
-!#else
-!      FILENAME= TRIM( Input_Opt%DATA_DIR )            //
-!     &     'mercury_201007/newnatural.bpch'
-!#endif
-!
-!      ! Echo info
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!      ! TAU value corresponding to the data 
-!      XTAU   = GET_TAU0( 1, 1, 1995 )
-!      
-!      ! Read data in [kg/yr]
-!      CALL READ_BPCH2( FILENAME, 'HG-SRCE',     5, 
-!     &                 XTAU,      IIPAR,        JJPAR,    
-!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!      ! Cast to REAL*8 and resize
-!!- eds 8/31/10 ---------------------------------------------------------
-!!      CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_nt )
-!      CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_geo )
-!
-!      ! Convert from [kg/yr] to [kg/s]
-!      EHg0_geo = EHg0_geo / SEC_PER_YR 
-!
-!      !Recommended for v8-03-02 and later: 
-!      !Reduce Geogenic emissions by 50%
-!      !Ref: Soerensen et al., 2010
-!      EHg0_geo = EHg0_geo *0.5d0
-!
-!
-!      !=================================================================
-!      ! Read offline ocean Hg0 emissions (if LDYNOCEAN = .FALSE.)
-!      ! 
-!      ! Note from cdh (8/13/2008):
-!      ! These static ocean emissions were developed for GEOS-Chem before
-!      ! v7-04-06 and may not be useful any longer. They were
-!      ! tuned with older, lower emissions, and with different chemical rate
-!      ! constants.
-!      !=================================================================
-!      IF ( .not. LDYNOCEAN ) THEN
-!
-!         ! File name
-!         FILENAME = TRIM( Input_Opt%DATA_DIR_1x1 )            // 
-!     &              'mercury_200511/Hg_ocean.geos.' // GET_RES_EXT()    
-!
-!         ! Echo info
-!         WRITE( 6, 100 ) TRIM( FILENAME )
-! 100     FORMAT( '     - MERCURY_READYR: Reading ', a )
-!
-!         ! TAU value corresponding to the data 
-!         XTAU  = GET_TAU0( 1, 1, 1985 )
-!
-!         ! Read data in [kg/yr]
-!         CALL READ_BPCH2( FILENAME, 'HG-SRCE',     3,  
-!     &                    XTAU,      IIPAR,        JJPAR,    
-!     &                    1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!         ! Cast to REAL*8 and resize
-!         CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_oc(:,:,1) )
-!
-!         ! Convert from [kg/yr] to [kg/s]
-!         EHg0_oc = EHg0_oc / SEC_PER_YR
-!
-!      ENDIF
-!
-!===========================================================================
-! (ckeller, 09/24/2014)
-!===========================================================================
 
       !=================================================================
       ! Print totals to the screen in [Gg/yr]
@@ -6077,20 +3323,20 @@
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 210   )
       WRITE( 6, '(a)' )
-      WRITE( 6, 211   ) SUM( EHg0_an ) * SEC_PER_YR * 1d-6
-      WRITE( 6, 213   ) SUM( EHg0_ln ) * SEC_PER_YR * 1d-6
+      WRITE( 6, 211   ) SUM( EHg0_an ) * SEC_PER_YR * 1e-6_fp
+      WRITE( 6, 213   ) SUM( EHg0_ln ) * SEC_PER_YR * 1e-6_fp
 !- eds 8/31/10 ----------------------------------------------------------
-!      WRITE( 6, 114   ) SUM( EHg0_nt ) * SEC_PER_YR * 1d-6
-      WRITE( 6, 214   ) SUM( EHg0_geo ) * SEC_PER_YR * 1d-6
+!      WRITE( 6, 114   ) SUM( EHg0_nt ) * SEC_PER_YR * 1e-6_fp
+      WRITE( 6, 214   ) SUM( EHg0_geo ) * SEC_PER_YR * 1e-6_fp
 !------------------------------------------------------------------------
 
       ! Only write ocean total if we are doing offline ocean
       IF ( .not. LDYNOCEAN ) THEN
-         WRITE( 6, 217   ) SUM( EHg0_oc ) * SEC_PER_YR * 1d-6 
+         WRITE( 6, 217   ) SUM( EHg0_oc ) * SEC_PER_YR * 1e-6_fp 
       ENDIF
 
-      WRITE( 6, 215   ) SUM( EHg2_an ) * SEC_PER_YR * 1d-6
-      WRITE( 6, 216   ) SUM( EHgP_an ) * SEC_PER_YR * 1d-6
+      WRITE( 6, 215   ) SUM( EHg2_an ) * SEC_PER_YR * 1e-6_fp
+      WRITE( 6, 216   ) SUM( EHgP_an ) * SEC_PER_YR * 1e-6_fp
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
       ! FORMAT strings
@@ -6126,11 +3372,11 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: T     ! Temperature [K]
+      REAL(fp), INTENT(IN) :: T     ! Temperature [K]
 !
 ! !RETURN VALUE:
 !
-      REAL*8             :: LWC   ! Liquid water content [m3 H2O/m3 air]
+      REAL(fp)             :: LWC   ! Liquid water content [m3 H2O/m3 air]
 ! 
 ! !REVISION HISTORY: 
 !  31 Oct 2002 - R. Park     - Initial version
@@ -6143,22 +3389,22 @@
       !=================================================================
 
       ! Compute Liquid water content in [g/m3]
-      IF (T>293d0) THEN
-         LWC=0.2d0
-       ELSE IF ( T >= 280.d0 .AND. T <= 293.d0 ) THEN
-         LWC = 0.32d0 - 0.0060d0 * ( T - 273.D0 ) 
+      IF (T>293e+0_fp) THEN
+         LWC=0.2e+0_fp
+       ELSE IF ( T >= 280.e+0_fp .AND. T <= 293.e+0_fp ) THEN
+         LWC = 0.32e+0_fp - 0.0060e+0_fp * ( T - 273.e+0_fp ) 
  
-      ELSE IF ( T >= 248.d0 .AND. T < 280.d0 ) THEN
-         LWC = 0.23d0 + 0.0065d0 * ( T - 273.D0 )
+      ELSE IF ( T >= 248.e+0_fp .AND. T < 280.e+0_fp ) THEN
+         LWC = 0.23e+0_fp + 0.0065e+0_fp * ( T - 273.e+0_fp )
 
-      ELSE IF ( T < 248.d0 ) THEN
-         LWC = 0.07d0
+      ELSE IF ( T < 248.e+0_fp ) THEN
+         LWC = 0.07e+0_fp
 
       ENDIF
 
       ! Convert from [g/m3] to [m3/m3]
       ! Units: [g H2O/m3 air] * [1 kg H2O/1000g H2O] * [m3 H2O/1000kg H2O]
-      LWC = LWC * 1.D-6         
+      LWC = LWC * 1.e-6_fp         
 
       ! Return to calling program
       END FUNCTION GET_LWC
@@ -6193,7 +3439,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                      :: VCLDF       ! Volume cloud fraction
+      REAL(fp)                      :: VCLDF       ! Volume cloud fraction
 !
 ! !REMARKS:
 !  References:
@@ -6212,11 +3458,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8             :: PRES, PSFC, RH2, R0, B0
+      REAL(fp)             :: PRES, PSFC, RH2, R0, B0
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8,  PARAMETER :: ZRT = 0.60d0, ZRS = 0.99d0
+      REAL(fp),  PARAMETER :: ZRT = 0.60e+0_fp, ZRS = 0.99e+0_fp
 	
       !=================================================================
       ! GET_VCLDF begins here!
@@ -6230,18 +3476,18 @@
         
       ! RH (from "dao_mod.f") is relative humidity [%]
       ! Convert to fraction and store in RH2
-      RH2  = State_Met%RH(I,J,L) * 1.0d-2
+      RH2  = State_Met%RH(I,J,L) * 1.0e-2_fp
         
       ! Terms from Sundqvist ???
-      R0   = ZRT + ( ZRS - ZRT ) * EXP( 1d0 - ( PSFC / PRES )**2.5 )
-      B0   = ( RH2 - R0 ) / ( 1d0 - R0 )
+      R0   = ZRT + ( ZRS - ZRT ) * EXP( 1e+0_fp - ( PSFC / PRES )**2.5 )
+      B0   = ( RH2 - R0 ) / ( 1e+0_fp - R0 )
 	
       ! Force B0 into the range 0-1
-      IF ( RH2 < R0  ) B0 = 0d0
-      IF ( B0  > 1d0 ) B0 = 1d0
+      IF ( RH2 < R0  ) B0 = 0e+0_fp
+      IF ( B0  > 1e+0_fp ) B0 = 1e+0_fp
 
       ! Volume cloud fraction
-      VCLDF = 1d0 - SQRT( 1d0 - B0 )
+      VCLDF = 1e+0_fp - SQRT( 1e+0_fp - B0 )
 
       ! Return to calling program
       END FUNCTION GET_VCLDF
@@ -6265,7 +3511,6 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_O3_MOD,      ONLY : O3
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6276,7 +3521,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                      :: O3_MOLEC_CM3   ! O3 conc [molec/cm3]
+      REAL(fp)                    :: O3_MOLEC_CM3   ! O3 conc [molec/cm3]
 ! 
 ! !REVISION HISTORY: 
 !  06 Dec 2002 - R. Yantosca - Initial version
@@ -6285,24 +3530,25 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  11 Mar 2015 - R. Yantosca - Remove reference to GLOBAL_O3_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: BOXVL
+      REAL(fp) :: BOXVL
       
       !=================================================================
       ! GET_O3 begins here!
       !=================================================================
 
       ! Grid box volume [cm3]
-      BOXVL        = State_Met%AIRVOL(I,J,L) * 1d6
+      BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
       ! Get ozone [v/v] for this gridbox & month
       ! and convert to [molec/cm3] (eck, 12/2/04)
-      O3_MOLEC_CM3 = O3(I,J,L)           * ( 6.022d23 / 28.97d-3 ) * 
+      O3_MOLEC_CM3 = O3(I,J,L)       * ( 6.022e+23_fp / 28.97e-3_fp ) * 
      &               State_Met%AD(I,J,L) / BOXVL
 
       ! Return to calling program
@@ -6327,7 +3573,6 @@
 !
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : OH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -6339,12 +3584,14 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                      :: OH_MOLEC_CM3   ! OH conc [molec/cm3]
+      REAL(fp)                    :: OH_MOLEC_CM3   ! OH conc [molec/cm3]
 !
 ! !REVISION HISTORY: 
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  28 Nov 2012 - R. Yantosca - Now pass State_Met via the argument list
+!  11 Mar 2015 - R. Yantosca - Remove reference to GLOBAL_OH_MOD
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6361,20 +3608,21 @@
       JLOOP = ( (J-1) * IIPAR ) + I
 
       ! Test for sunlight...
-      IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+      IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and. 
+     &    TCOSZ(I,J) > 0e+0_fp ) THEN
 
          ! Impose a diurnal variation on OH during the day
-         OH_MOLEC_CM3 = OH(I,J,L)                                 *           
+         OH_MOLEC_CM3 = OH(I,J,L)                                 *    
      &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J)    ) *
-     &                  ( 1440d0                / GET_TS_CHEM() )
+     &                  ( 1440e+0_fp                / GET_TS_CHEM() )
 
          ! Make sure OH is not negative
-         OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
+         OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
                
       ELSE
 
          ! At night, OH goes to zero
-         OH_MOLEC_CM3 = 0d0
+         OH_MOLEC_CM3 = 0e+0_fp
 
       ENDIF
 
@@ -6421,12 +3669,12 @@
       INTEGER,        INTENT(IN)  :: I              ! Longitude index
       INTEGER,        INTENT(IN)  :: J              ! Latitude index
       INTEGER,        INTENT(IN)  :: L              ! Level index
-      REAL*8,         INTENT(OUT) :: BrO_MOLEC_CM3  ! BrO conc [molec/cm3]
+      REAL(fp),         INTENT(OUT) :: BrO_MOLEC_CM3  ! BrO conc [molec/cm3]
       TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      REAL*8                      :: BR_MOLEC_CM3   ! Br conc [molec/cm3]
+      REAL(fp)                      :: BR_MOLEC_CM3   ! Br conc [molec/cm3]
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2006 - C. Holmes   - Initial version
@@ -6443,35 +3691,35 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: JLOOP
-      REAL*8              :: BR_PPTV, BR_MBL, BR_FAC
-      REAL*8              :: LOCALTIME, HOUR, BRO_PPTV, FPBL
-      REAL*8              :: BOXVL           
+      REAL(fp)              :: BR_PPTV, BR_MBL, BR_FAC
+      REAL(fp)              :: LOCALTIME, HOUR, BRO_PPTV, FPBL
+      REAL(fp)              :: BOXVL           
 !
 ! !DEFINED PARAMETERS:
 !
       ! Constant concentration of BrO assumed for the marine boundary
       ! layer, based on finding from the Holmes et al.(2009) box model
       ! Use 0.5pptv for 24-hr mean, based on 1pptv in box model daytime
-      REAL*8, PARAMETER   :: BRO_MBL=0.5D0 ! pptv
+      REAL(fp), PARAMETER   :: BRO_MBL=0.5e+0_fp ! pptv
 
       ! Constant concentration of BrO assumed for the Polar boundary layer
       ! during springtime bromine explosion. Based on DOAS observations
       ! at Alert (Simpson et al. ACP 2007). This concentration applies
       ! only under stable atmospheric conditions.
-      !REAL*8, PARAMETER   :: BRO_POLAR=10D0
+      !REAL(fp), PARAMETER   :: BRO_POLAR=10e+0_fp
       ! Reduce concentration of BrO in Arctic during depletion events to 5 pptv
       ! Ref low end of uncertainty range in Holmes et al. 2010
       ! Ref low [BrO] observed Neuman et al 2010
-      REAL*8, PARAMETER   :: BRO_POLAR=5D0
+      REAL(fp), PARAMETER   :: BRO_POLAR=5e+0_fp
 
       ! Parameters for calculating Br/BrO photostationary state
       ! BrO J value, /s 
       ! Rate coefficient BrO + NO -> Br + NO2, cm3/molec/s
-      REAL*8, PARAMETER   :: K_BRO_NO = 2.1D-11
+      REAL(fp), PARAMETER   :: K_BRO_NO = 2.1e-11_fp
       ! Rate coefficient Br + O3 -> BrO + O2, cm3/molec/s
-      REAL*8, PARAMETER   :: K_BR_O3  = 1.2D-12
+      REAL(fp), PARAMETER   :: K_BR_O3  = 1.2e-12_fp
       ! Concentration of NO, based on 10pptv, molec/cm3
-      REAL*8, PARAMETER   :: C_NO     = 2.5D8
+      REAL(fp), PARAMETER   :: C_NO     = 2.5e+8_fp
 
       !=================================================================
       ! GET_BR begins here!
@@ -6486,7 +3734,7 @@
 
       ! Multiple stratospheric concentrations by Factor, if necessary
       IF ( (ITS_IN_THE_STRAT( I, J, L, State_Met )) .AND.
-     &     (ABS(STRAT_BR_FACTOR - 1d0) > 1d-2) )    THEN
+     &     (ABS(STRAT_BR_FACTOR - 1e+0_fp) > 1e-2_fp) )    THEN
 
          BR_PPTV  = BR_PPTV  * STRAT_BR_FACTOR
          BRO_PPTV = BRO_PPTV * STRAT_BR_FACTOR
@@ -6500,7 +3748,7 @@
       ! Fraction of grid box mass which is within the mixed layer
       FPBL = GET_FRAC_UNDER_PBLTOP(I,J,L)
 
-      IF ( IS_WATER( I, J, State_Met ) .AND. (FPBL > 0d0) ) THEN
+      IF ( IS_WATER( I, J, State_Met ) .AND. (FPBL > 0e+0_fp) ) THEN
 
          ! Convert BrO concentration to corresponding Br based on
          ! photochemical steady state, pptv
@@ -6528,21 +3776,21 @@
       ! 1-D grid box index for SUNCOS
       JLOOP = ( (J-1) * IIPAR ) + I
 
-      IF ( ( LPOLARBR ) .AND. ( FPBL >  0d0   ) .AND.
-     &     ( State_Met%SUNCOS(I,J)   >  0D0   ) .AND. 
-     &     ( State_Met%T(I,J,1)      <= 268D0 ) .AND.
+      IF ( ( LPOLARBR ) .AND. ( FPBL >  0e+0_fp   ) .AND.
+     &     ( State_Met%SUNCOS(I,J)   >  0e+0_fp   ) .AND. 
+     &     ( State_Met%T(I,J,1)      <= 268e+0_fp ) .AND.
      &     ( State_Met%LWI(I,J)      == 2     ) .AND. 
-     &       GET_OBK(I,J,State_Met)  >  0D0   ) THEN
+     &       GET_OBK(I,J,State_Met)  >  0e+0_fp   ) THEN
 
-         IF ( ( (GET_YMID(I,J,L) > 60D0) .AND. 
+         IF ( ( (GET_YMID(I,J,L) > 60e+0_fp) .AND. 
      &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
-     &        ( (GET_YMID(I,J,L) < -50D0) .AND. 
+     &        ( (GET_YMID(I,J,L) < -50e+0_fp) .AND. 
      &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
 
             ! Br concentration due to bromine explosion, pptv
             ! Assume [O3] is 2ppb during event
             BR_MBL = BRO_POLAR *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
-     &                          ( K_BR_O3 * 5D10 ) * FPBL
+     &                          ( K_BR_O3 * 5e+10_fp ) * FPBL
         
             BR_PPTV  = BR_PPTV  + BR_MBL
             BrO_PPTV = BrO_PPTV + BRO_POLAR * FPBL
@@ -6562,13 +3810,14 @@
       JLOOP = ( (J-1) * IIPAR ) + I
       
       ! Test for sunlight...
-      IF ( (State_Met%SUNCOS(I,J) > 0d0) .and. (TTDAY(I,J) > 0d0) ) THEN
+      IF ( (State_Met%SUNCOS(I,J) > 0e+0_fp) .and. 
+     &    (TTDAY(I,J) > 0e+0_fp) ) THEN
       
          ! Use a constant function if daylight is < 2 hours or > 22hours
-         IF ( ( TTDAY(I,J) < 120d0  ) .OR. 
-     &        ( TTDAY(I,J) > 1320d0 ) ) THEN
+         IF ( ( TTDAY(I,J) < 120e+0_fp  ) .OR. 
+     &        ( TTDAY(I,J) > 1320e+0_fp ) ) THEN
             
-            BR_FAC = SAFE_DIV( 1440d0, TTDAY(I,J), 0D0 )  
+            BR_FAC = SAFE_DIV( 1440e+0_fp, TTDAY(I,J), 0e+0_fp )  
             
          ELSE
 
@@ -6577,21 +3826,21 @@
       
             ! Interpolate the real hour to lie within an equinoctal day
             ! i.e. between 6-18
-            HOUR = 12D0 + ( LOCALTIME - 12D0 ) *
-     &           720D0 / ( TTDAY(I,J) ) 
+            HOUR = 12e+0_fp + ( LOCALTIME - 12e+0_fp ) *
+     &           720e+0_fp / ( TTDAY(I,J) ) 
 
             ! Multiplicative factor for the diurnal cycle 
-            BR_FAC = ( 1D6 - 1D2 * ( HOUR - 6D0 ) ** 4D0 + 
-     &           ( 18D0 - HOUR ) * 1D6 / 12D0 ) / 2D6
+            BR_FAC = (1e+6_fp - 1e+2_fp * (HOUR - 6e+0_fp) ** 4e+0_fp + 
+     &           ( 18e+0_fp - HOUR ) * 1e+6_fp / 12e+0_fp ) / 2e+6_fp
 
             ! Normalize the multiplicative factor to have a 24-h mean of 1
-            BR_FAC = SAFE_DIV( BR_FAC, ( 4D-4 * TTDAY(I,J) ), 0D0 )
+            BR_FAC = SAFE_DIV( BR_FAC, (4e-4_fp * TTDAY(I,J)), 0e+0_fp )
 
          ENDIF
 
 
          ! Make sure that diurnal scaling factor is non-negative
-         BR_FAC = MAX( BR_FAC, 0D0 )
+         BR_FAC = MAX( BR_FAC, 0e+0_fp )
 
          ! The instantaneous concentration is the 24-h mean times
          ! the time-varying factor from the diurnal cycle
@@ -6601,19 +3850,19 @@
       ELSE
 
          ! At night, BR goes to zero
-         BR_PPTV = 0D0
+         BR_PPTV = 0e+0_fp
 
       ENDIF
 
       ! Grid box volume [cm3]
-      BOXVL         = State_Met%AIRVOL(I,J,L) * 1d6
+      BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
       ! Convert pptv mixing ratio -> molec/cm3
-      BR_MOLEC_CM3  = BR_PPTV             * 1D-12      *
-     &                ( 6.022D23          / 28.97D-3 ) * 
+      BR_MOLEC_CM3  = BR_PPTV             * 1e-12_fp      *
+     &                ( 6.022e+23_fp      / 28.97e-3_fp ) * 
      &                State_Met%AD(I,J,L) / BOXVL
-      BRO_MOLEC_CM3 = BRO_PPTV            * 1D-12      *
-     &                ( 6.022D23          / 28.97D-3 ) * 
+      BRO_MOLEC_CM3 = BRO_PPTV            * 1e-12_fp      *
+     &                ( 6.022e+23_fp      / 28.97e-3_fp ) * 
      &                State_Met%AD(I,J,L) / BOXVL
 
       ! Return to calling program
@@ -6667,9 +3916,9 @@
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I, IJLOOP, J, L, N, NT, NDYSTEP
-      REAL*8        :: A0, A1, A2, A3, B1, B2, B3
-      REAL*8        :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL*8        :: SUNTMP(MAXIJ)
+      REAL(fp)        :: A0, A1, A2, A3, B1, B2, B3
+      REAL(fp)        :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+      REAL(fp)        :: SUNTMP(MAXIJ)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -6695,12 +3944,12 @@
       IF ( FIRST .or. GET_GMT() < 1e-5 ) THEN 
       
          ! Zero arrays
-         TTDAY(:,:) = 0d0
-         TCOSZ(:,:) = 0d0
-         COSZM(:,:) = 0d0
+         TTDAY(:,:) = 0e+0_fp
+         TCOSZ(:,:) = 0e+0_fp
+         COSZM(:,:) = 0e+0_fp
 
          ! NDYSTEP is # of chemistry time steps in this day
-         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()         
+         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()     
 
          ! NT is the elapsed time [s] since the beginning of the run
          NT = GET_ELAPSED_SEC()
@@ -6709,7 +3958,7 @@
          DO N = 1, NDYSTEP
             
             ! Zero SUNTMP array
-            SUNTMP(:) = 0d0
+            SUNTMP(:) = 0e+0_fp
 
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO
@@ -6755,14 +4004,14 @@
 
                ! TCOSZ is the sum of SUNTMP at location (I,J)
                ! Do not include negative values of SUNTMP
-               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(IJLOOP), 0d0 )
+               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(IJLOOP), 0e+0_fp )
 
                ! COSZM is the peak value of SUMTMP during a day at (I,J)
                ! (rjp, bmy, 3/30/04)
                COSZM(I,J) = MAX( COSZM(I,J), SUNTMP(IJLOOP) )
 
                ! TTDAY is the total daylight time at location (I,J)
-               IF ( SUNTMP(IJLOOP) > 0d0 ) THEN
+               IF ( SUNTMP(IJLOOP) > 0e+0_fp ) THEN
                   TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
                ENDIF
             ENDDO
@@ -6802,7 +4051,6 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_M
-      USE RNPBBE_MOD,         ONLY : SLQ
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6818,18 +4066,19 @@
 ! !REVISION HISTORY: 
 !  25 Nov 2009 - C. Holmes   - Initial version
 !  25 Jul 2014 - R. Yantosca - Remove reference to function SFCWINDSQR
+!  04 Dec 2014 - M. Yannetti - Remove reference to RNPBE_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
       ! Local variables
-      REAL*8                :: U10M, S
-      REAL*8                :: LOSS_FREQ
+      REAL(fp)                :: U10M, S
+      REAL(fp)                :: LOSS_FREQ
       INTEGER               :: I, J
-      REAL*8,SAVE           :: TABLE_S(21), TABLE_U10(20)
-      REAL*8,SAVE           :: TABLE_UPTAKE(21,20) 
-      REAL*8                :: SFCWINDSQR
+      REAL(fp),SAVE           :: TABLE_S(21), TABLE_U10(20)
+      REAL(fp),SAVE           :: TABLE_UPTAKE(21,20) 
+      REAL(fp)                :: SFCWINDSQR
 
       ! Flag for first call
       LOGICAL, SAVE         :: FIRST=.TRUE.
@@ -6849,20 +4098,13 @@
          IF ( IS_WATER( I, J, State_Met ) ) THEN
 
             ! Wind speed at 10m altitude [m/s]
-!----------------------------------------------------------------------------
-! Prior to 7/25/14:
-! Remove reference to function SFCWINDSQR (bmy, 7/25/14)
-!            U10M = SQRT( SFCWINDSQR( I, J,
-!     &                               State_Met%U10M,
-!     &                               State_Met%V10M ) )
-!----------------------------------------------------------------------------
             SFCWINDSQR = State_Met%U10M(I,J)**2 
      &                 + State_Met%V10M(I,J)**2
             U10M       = SQRT( SFCWINDSQR )
 
             ! Don't allow wind >20 m/s which is the limit of this 
             ! parameterization
-            U10M       = MAX( MIN( U10M, 20d0 ), 1D0 )
+            U10M       = MAX( MIN( U10M, 20e+0_fp ), 1e+0_fp )
 
             ! Relative humidity as a saturation ratio
             ! Use the relative humidity of the lowest layer, although this is 
@@ -6870,20 +4112,22 @@
             !
             ! Don't allow supersaturation, as [Cl-] is undefined for RH>=1 
             ! Cap RH at 99%, Don't allow RH < 75% as happens in coastal areas
-            S = MAX( MIN( State_Met%RH(I,J,1), 99D0 ), 75D0 ) * 1D-2
+            S = MAX( MIN( State_Met%RH(I,J,1), 99e+0_fp ), 75e+0_fp ) * 
+     &             1e-2_fp
             
-            LOSS_FREQ = 1D-10 * ( 1D0 - EXP( -57.758D0 * (1D0-S) ) ) *
-     &           EXP( -1.9351D0  * U10M + 
-     &                 9.0047D0  * SQRT( U10M ) + 
-     &                 0.14788D0 * U10M**1.5D0 ) 
+            LOSS_FREQ = 1e-10_fp * ( 1e+0_fp - EXP( -57.758e+0_fp * 
+     &           (1e+0_fp-S) ) ) *
+     &           EXP( -1.9351e+0_fp  * U10M + 
+     &                 9.0047e+0_fp  * SQRT( U10M ) + 
+     &                 0.14788e+0_fp * U10M**1.5e+0_fp ) 
             
             ! Loss frequency must be positive
-            LOSS_FREQ = MAX( LOSS_FREQ, 1D-10 ) 
+            LOSS_FREQ = MAX( LOSS_FREQ, 1e-10_fp ) 
 
          ELSE 
 
             ! No loss over land
-            LOSS_FREQ = 0D0
+            LOSS_FREQ = 0e+0_fp
             
          ENDIF
          
@@ -6896,113 +4140,6 @@
 
       ! Return to calling program
       END SUBROUTINE CALC_HG2_SEASALT_LOSSRATE
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_global_jno2 
-!
-! !DESCRIPTION: Subroutine GET\_GLOBAL\_JNO2 reads monthly mean JNO2 data 
-!  fields.  These are needed for Hg sim. (cdh, 11/25/09
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GET_GLOBAL_JNO2( am_I_Root, Input_Opt, THISMONTH, RC )
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
-      USE CMN_SIZE_MOD
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-
-      IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
-! 
-! !REMARKS:
-!  Binary punch file input is slated to be replaced by netCDF input soon.
-!
-! !REVISION HISTORY: 
-!  25 Nov 2009 - C. Holmes   - Initial version
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL*4             :: ARRAY2(IIPAR,JJPAR,LLPAR)
-      REAL*8             :: XTAU
-      CHARACTER(LEN=255) :: FILENAME
-
-      !=================================================================
-      ! GET_GLOBAL_JNO2 begins here!
-      !=================================================================
-
-      !CDH -WE EVENTUALLY NEED TO SUPPORT OTHER MODEL RESOLUTIONS
-      ! Filename for full-level GEOS5 model
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( Input_Opt%DATA_DIR )     // 
-     &           'mercury_201203/jvalues.noon.' //
-     &           GET_NAME_EXT()    // '.' // GET_RES_EXT()
-#else
-      FILENAME = 
-     &           TRIM( Input_Opt%DATA_DIR )     // 
-     &           'mercury_201007/jvalues.noon.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-#endif
-
-      ! Echo some information to the standard output
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 110 ) TRIM( FILENAME )
- 110     FORMAT( '     - GET_GLOBAL_JNO2: Reading ', a )
-      ENDIF
-
-      ! Get the TAU0 value for the start of the given month
-      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
-      XTAU = GET_TAU0( THISMONTH, 1, 2005 )
-
-#if   defined( GRIDREDUCED )
- 
-      ! Read O3 data (v/v) from the binary punch file (tracer #51)
-      CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 1,     
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable O3
-      CALL TRANSFER_3D( ARRAY, JNO2 )
-
-#else
-
-      ! Read O3 data (v/v) from the binary punch file (tracer #51)
-      CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 1,      
-     &                 XTAU,      IIPAR,     JJPAR,
-     &                 LLPAR,     ARRAY2,    QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable O3
-      ! (don't have to fold layers in the stratosphere)
-      JNO2 = ARRAY2
-
-#endif
-
-
-      ! Return to calling program
-      END SUBROUTINE GET_GLOBAL_JNO2
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -7036,7 +4173,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8                     :: JNO2_NOW    ! J(NO2) value [s-1]
+      REAL(fp)                     :: JNO2_NOW    ! J(NO2) value [s-1]
 !
 ! !REMARKS:
 !  Impose the diurnal variation of JNO2 found by Parrish et al. (1983) under 
@@ -7053,9 +4190,9 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: JLOOP, JDAY
-      REAL*8  :: CSZANOON
-      REAL*8  :: A0, A1, A2, A3, B1, B2, B3
-      REAL*8  :: R, DEC, YMID_R  
+      REAL(fp)  :: CSZANOON
+      REAL(fp)  :: A0, A1, A2, A3, B1, B2, B3
+      REAL(fp)  :: R, DEC, YMID_R  
  
       !=================================================================
       ! GET_JNO2 begins here!
@@ -7065,27 +4202,27 @@
       JLOOP = ( (J-1) * IIPAR ) + I
 
       ! Test for sunlight...
-      IF ( State_Met%SUNCOS(I,J) > TINY(1D0) ) THEN
+      IF ( State_Met%SUNCOS(I,J) > TINY(1e+0_fp) ) THEN
 
          ! Day of year
          JDAY = GET_DAY_OF_YEAR()
 
          ! Coefficients for solar declination angle
-         A0  = 0.006918d0
-         A1  = 0.399912d0
-         A2  = 0.006758d0
-         A3  = 0.002697d0
-         B1  = 0.070257d0
-         B2  = 0.000907d0
-         B3  = 0.000148d0
+         A0  = 0.006918e+0_fp
+         A1  = 0.399912e+0_fp
+         A2  = 0.006758e+0_fp
+         A3  = 0.002697e+0_fp
+         B1  = 0.070257e+0_fp
+         B2  = 0.000907e+0_fp
+         B3  = 0.000148e+0_fp
  
          ! Path length of earth's orbit traversed since Jan 1 [radians]
-         R   = ( 2d0 * PI / 365d0 ) * DBLE( JDAY - 1 ) 
+         R   = ( 2e+0_fp * PI / 365e+0_fp ) * DBLE( JDAY - 1 ) 
 
          ! Solar declination angle (low precision formula)
          DEC = A0 - A1*COS(     R ) + B1*SIN(     R )
-     &            - A2*COS( 2d0*R ) + B2*SIN( 2d0*R )
-     &            - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
+     &            - A2*COS( 2e+0_fp*R ) + B2*SIN( 2e+0_fp*R )
+     &            - A3*COS( 3e+0_fp*R ) + B3*SIN( 3e+0_fp*R )
 
          ! Latitude of grid box [radians]
          YMID_R = GET_YMID_R( I, J, L )
@@ -7105,15 +4242,16 @@
          ! because we already checked SUNCOS(JLOOP) and we know
          ! CSZANOON >= SUNCOS(JLOOP)
          JNO2_NOW = JNO2(I,J,L) * 
-     &     EXP( 0.36D0 * ( 1D0/CSZANOON - 1D0/State_Met%SUNCOS(I,J) ) )
+     &     EXP( 0.36e+0_fp * 
+     &        ( 1e+0_fp/CSZANOON - 1e+0_fp/State_Met%SUNCOS(I,J) ) )
 
          ! Make sure OH is not negative
-         JNO2_NOW= MAX( JNO2_NOW, 0d0 )
+         JNO2_NOW= MAX( JNO2_NOW, 0e+0_fp )
                
       ELSE
 
          ! At night, JNO2 goes to zero
-         JNO2_NOW = 0d0
+         JNO2_NOW = 0e+0_fp
 
       ENDIF
 
@@ -7144,8 +4282,10 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE OCEAN_MERCURY_MOD,  ONLY : Fp        , Fg
+      USE OCEAN_MERCURY_MOD,  ONLY : Fg
       USE TRACERID_MOD,       ONLY : ID_HG2,     ID_HGP, N_HG_CATS
+
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -7170,6 +4310,7 @@
 !                              actively partition between gas and aerosol, 
 !                              we no longer need to 'reverse' partition. 
 !  03 Jun 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  18 Nov 2014 - M. Yannetti - Took out OCEAN_MERCURY_MOD calling Fp
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7177,7 +4318,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: I, J, L, N
-      REAL*8            :: FGas, Hg2TOT
+      REAL(fp)          :: FGas, Hg2TOT
 
       ! For values from Input_Opt
       INTEGER           :: N_TRACERS
@@ -7185,7 +4326,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: STT(:,:,:,:)
 
       !=================================================================
       ! PARTITIONHG2 begins here!
@@ -7228,7 +4369,7 @@
             STT(I,J,L,ID_HG2(N)) = Hg2TOT * Fgas 
 
             ! Aerosol portion
-            STT(I,J,L,ID_HGP(N)) = Hg2TOT * (1d0 - Fgas)
+            STT(I,J,L,ID_HGP(N)) = Hg2TOT * (1e+0_fp - Fgas)
 
          ENDDO
 
@@ -7261,7 +4402,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER,INTENT(IN) :: I, J
-      REAL*8, INTENT(IN) :: E_plant
+      REAL(fp), INTENT(IN) :: E_plant
 ! 
 ! !REVISION HISTORY: 
 !  11 Jan 2011 - Y. Zhang    - Initial version
@@ -7271,13 +4412,13 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: E_deg
+      REAL(fp) :: E_deg
 !
 ! !DEFINED PARAMETERS:
 !
       ! The source species profile (0.2 Hg0)
       ! 0.78 Hg2, 0.02 HgP, Streets, 2005), we use 75%, very high end
-      REAL*8,  PARAMETER :: K_Red_InPlume = 7.5d-1
+      REAL(fp),  PARAMETER :: K_Red_InPlume = 7.5e-1_fp
 
       !=================================================================
       ! RED_INPLUME_GRID begins here!
@@ -7311,14 +4452,13 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
       IMPLICIT NONE
 !
@@ -7330,75 +4470,60 @@
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
-! !REMARKS:
-!  Bpch file input shall be replaced with netCDF file input shortly
-!
 ! !REVISION HISTORY: 
 !  11 Jan 2011 - Y. Zhang    - Initial version
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path'
+!  16 Mar 2015 - R. Yantosca - Remove bpch input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: NYMD, I, J
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8             :: E_ELECTRICITY_Hg2(IIPAR,JJPAR)
+      ! Scalars
+      INTEGER             :: I, J
+      REAL(fp)            :: E_plant
 
-      REAL*8             :: XTAU, rFACTOR
-      REAL*8             :: E_plant
+      ! Strings
+      CHARACTER(LEN=255)  :: LOC = 'DO_RED_INPLUME (mercury_mod.F)'
 
-      ! For filename
-      CHARACTER(LEN=255) :: FILENAME
+      ! Pointers
+      REAL(f4), POINTER   :: E_ELEC_Hg2(:,:) => NULL()
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8,  PARAMETER :: SEC_PER_YR = 365.25d0 * 86400d0
+      REAL(fp), PARAMETER :: SEC_PER_YR = 365.25e+0_fp * 86400e+0_fp
 
       !=================================================================
       ! DO_RED_INPLUME begins here!
       !=================================================================
-
-      ! Mercury data is for 2005
-      NYMD     = ( 2005 * 10000 ) + 0101
-      XTAU     = GET_TAU0( 1, 1, 2005 )
-
-      ! Read power plant emissions
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'mercury_201203/' //
-     &           'CFPP_NEI2005_NPRI2005_Hg2.'    //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
-     
-      ! Add year to the filename
-      CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-     
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 50 ) TRIM( FILENAME )
- 50      FORMAT( '     - RED_INPLUME: Reading ', a )
+      
+      ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
+      CALL HCO_GetPtr( am_I_Root, 'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 
+     &      'Cannot get pointer to CFPP_NEI2005_Hg2!', LOC )
       ENDIF
 
-      ! Read data in [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                 XTAU,      IIPAR,     JJPAR,
-     &                 1,     ARRAY(:,:,1),     QUIET=.TRUE. )
-     
-      ! Regrid to the current grid
-      CALL TRANSFER_2D( ARRAY(:,:,1), E_ELECTRICITY_Hg2 )
-
-      DO J=1,JJPAR
-      DO I=1,IIPAR
-
-         ! Transfer unit to kg/s
-         ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
-         E_plant = E_ELECTRICITY_Hg2(I,J) / SEC_PER_YR
+      ! Do the reduction
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
              
+         ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
+         ! Convert [kg/m2/s] --> [kg/s]
+         E_plant = E_ELEC_Hg2(I,J) * GET_AREA_M2(I,J,1)
+
          ! Reduce the Hg2 from plume
          CALL RED_INPLUME_GRID( I, J, E_plant )
 
       ENDDO
       ENDDO
+
+      ! Free npointer
+      E_ELEC_Hg2 => NULL()
 
       ! Return to calling program
       END SUBROUTINE DO_RED_INPLUME
@@ -7448,23 +4573,22 @@
 !  11 Apr 2012 - R. Yantosca - Now retire lai_mod.F; remove call to INIT_LAI
 !  11 Apr 2012 - R. Yantosca - Now move LAI initialization to main.F
 !  03 Jun 2013 - R. Yantosca - Now use fields from Input_Opt
+!  12 Mar 2015 - R. Yantosca - Now test if HEMCO_Collections are defined
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       LOGICAL, SAVE       :: IS_INIT = .FALSE. 
-      INTEGER             :: AS, N
-      CHARACTER(LEN=255)  :: LOCATION
-
-
-      ! For fields from Input_Opt
       LOGICAL             :: LSPLIT
       LOGICAL             :: LDRYD
       LOGICAL             :: LNLPBL
       LOGICAL             :: LGTMM
       INTEGER             :: N_TRACERS
+      INTEGER             :: AS, N
+      CHARACTER(LEN=255)  :: LOCATION
 
       !=================================================================
       ! INIT_MERCURY begins here!
@@ -7491,309 +4615,305 @@
       !=================================================================
       ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COSZM' )
-      COSZM = 0d0
+      COSZM = 0e+0_fp
 
       ALLOCATE( EHg0_an( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_an' )
-      EHg0_an = 0d0
+      EHg0_an = 0e+0_fp
 
 !- eds 8/31/10 ---------------------------------------------------------
       ALLOCATE( EHg0_can( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_can' )
-      EHg0_can = 0d0
+      EHg0_can = 0e+0_fp
 
       ALLOCATE( EHg0_usa( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_usa' )
-      EHg0_usa = 0d0
+      EHg0_usa = 0e+0_fp
 
       ALLOCATE( EHg0_cam( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_cam' )
-      EHg0_cam = 0d0
+      EHg0_cam = 0e+0_fp
 
       ALLOCATE( EHg0_sam( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sam' )
-      EHg0_sam = 0d0
+      EHg0_sam = 0e+0_fp
 
       ALLOCATE( EHg0_waf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_waf' )
-      EHg0_waf = 0d0
+      EHg0_waf = 0e+0_fp
 
       ALLOCATE( EHg0_eaf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eaf' )
-      EHg0_eaf = 0d0
+      EHg0_eaf = 0e+0_fp
 
       ALLOCATE( EHg0_saf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_saf' )
-      EHg0_saf = 0d0
+      EHg0_saf = 0e+0_fp
 
       ALLOCATE( EHg0_naf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_naf' )
-      EHg0_naf = 0d0
+      EHg0_naf = 0e+0_fp
 
       ALLOCATE( EHg0_eur( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eur' )
-      EHg0_eur = 0d0
+      EHg0_eur = 0e+0_fp
 
       ALLOCATE( EHg0_eeu( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eeu' )
-      EHg0_eeu = 0d0
+      EHg0_eeu = 0e+0_fp
 
       ALLOCATE( EHg0_mde( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_mde' )
-      EHg0_mde = 0d0
+      EHg0_mde = 0e+0_fp
 
       ALLOCATE( EHg0_sov( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sov' )
-      EHg0_sov = 0d0
+      EHg0_sov = 0e+0_fp
 
       ALLOCATE( EHg0_sas( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sas' )
-      EHg0_sas = 0d0
+      EHg0_sas = 0e+0_fp
 
       ALLOCATE( EHg0_eas( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eas' )
-      EHg0_eas = 0d0
+      EHg0_eas = 0e+0_fp
 
       ALLOCATE( EHg0_sea( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sea' )
-      EHg0_sea = 0d0
+      EHg0_sea = 0e+0_fp
 
       ALLOCATE( EHg0_jpn( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_jpn' )
-      EHg0_jpn = 0d0
+      EHg0_jpn = 0e+0_fp
 
       ALLOCATE( EHg0_oce( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oce' )
-      EHg0_oce = 0d0
+      EHg0_oce = 0e+0_fp
 
 !------------------------------------------------------
 
       ALLOCATE( EHg0_am( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_am' )
-      EHg0_am = 0d0
+      EHg0_am = 0e+0_fp
 
       ALLOCATE( EHg2_an( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_an' )
-      EHg2_an = 0d0
+      EHg2_an = 0e+0_fp
 
 
 !- eds 8/31/10 ---------------------------------------------------------
       ALLOCATE( EHg2_can( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_can' )
-      EHg2_can = 0d0
+      EHg2_can = 0e+0_fp
 
       ALLOCATE( EHg2_usa( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_usa' )
-      EHg2_usa = 0d0
+      EHg2_usa = 0e+0_fp
 
       ALLOCATE( EHg2_cam( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_cam' )
-      EHg2_cam = 0d0
+      EHg2_cam = 0e+0_fp
 
       ALLOCATE( EHg2_sam( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sam' )
-      EHg2_sam = 0d0
+      EHg2_sam = 0e+0_fp
 
       ALLOCATE( EHg2_waf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_waf' )
-      EHg2_waf = 0d0
+      EHg2_waf = 0e+0_fp
 
       ALLOCATE( EHg2_eaf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eaf' )
-      EHg2_eaf = 0d0
+      EHg2_eaf = 0e+0_fp
 
       ALLOCATE( EHg2_saf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_saf' )
-      EHg2_saf = 0d0
+      EHg2_saf = 0e+0_fp
 
       ALLOCATE( EHg2_naf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_naf' )
-      EHg2_naf = 0d0
+      EHg2_naf = 0e+0_fp
 
       ALLOCATE( EHg2_eur( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eur' )
-      EHg2_eur = 0d0
+      EHg2_eur = 0e+0_fp
 
       ALLOCATE( EHg2_eeu( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eeu' )
-      EHg2_eeu = 0d0
+      EHg2_eeu = 0e+0_fp
 
       ALLOCATE( EHg2_mde( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_mde' )
-      EHg2_mde = 0d0
+      EHg2_mde = 0e+0_fp
 
       ALLOCATE( EHg2_sov( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sov' )
-      EHg2_sov = 0d0
+      EHg2_sov = 0e+0_fp
 
       ALLOCATE( EHg2_sas( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sas' )
-      EHg2_sas = 0d0
+      EHg2_sas = 0e+0_fp
 
       ALLOCATE( EHg2_eas( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eas' )
-      EHg2_eas = 0d0
+      EHg2_eas = 0e+0_fp
 
       ALLOCATE( EHg2_sea( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sea' )
-      EHg2_sea = 0d0
+      EHg2_sea = 0e+0_fp
 
       ALLOCATE( EHg2_jpn( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_jpn' )
-      EHg2_jpn = 0d0
+      EHg2_jpn = 0e+0_fp
 
       ALLOCATE( EHg2_oce( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_oce' )
-      EHg2_oce = 0d0
+      EHg2_oce = 0e+0_fp
 
 !------------------------------------------------------
 
       ALLOCATE( EHgP_an( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_an' )
-      EHgP_an = 0d0
+      EHgP_an = 0e+0_fp
 
 !- eds 8/31/10 ---------------------------------------------------------
       ALLOCATE( EHgP_can( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_can' )
-      EHgP_can = 0d0
+      EHgP_can = 0e+0_fp
 
       ALLOCATE( EHgP_usa( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_usa' )
-      EHgP_usa = 0d0
+      EHgP_usa = 0e+0_fp
 
       ALLOCATE( EHgP_cam( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_cam' )
-      EHgP_cam = 0d0
+      EHgP_cam = 0e+0_fp
 
       ALLOCATE( EHgP_sam( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sam' )
-      EHgP_sam = 0d0
+      EHgP_sam = 0e+0_fp
 
       ALLOCATE( EHgP_waf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_waf' )
-      EHgP_waf = 0d0
+      EHgP_waf = 0e+0_fp
 
       ALLOCATE( EHgP_eaf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eaf' )
-      EHgP_eaf = 0d0
+      EHgP_eaf = 0e+0_fp
 
       ALLOCATE( EHgP_saf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_saf' )
-      EHgP_saf = 0d0
+      EHgP_saf = 0e+0_fp
 
       ALLOCATE( EHgP_naf( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_naf' )
-      EHgP_naf = 0d0
+      EHgP_naf = 0e+0_fp
 
       ALLOCATE( EHgP_eur( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eur' )
-      EHgP_eur = 0d0
+      EHgP_eur = 0e+0_fp
 
       ALLOCATE( EHgP_eeu( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eeu' )
-      EHgP_eeu = 0d0
+      EHgP_eeu = 0e+0_fp
 
       ALLOCATE( EHgP_mde( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_mde' )
-      EHgP_mde = 0d0
+      EHgP_mde = 0e+0_fp
 
       ALLOCATE( EHgP_sov( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sov' )
-      EHgP_sov = 0d0
+      EHgP_sov = 0e+0_fp
 
       ALLOCATE( EHgP_sas( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sas' )
-      EHgP_sas = 0d0
+      EHgP_sas = 0e+0_fp
 
       ALLOCATE( EHgP_eas( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eas' )
-      EHgP_eas = 0d0
+      EHgP_eas = 0e+0_fp
 
       ALLOCATE( EHgP_sea( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sea' )
-      EHgP_sea = 0d0
+      EHgP_sea = 0e+0_fp
 
       ALLOCATE( EHgP_jpn( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_jpn' )
-      EHgP_jpn = 0d0
+      EHgP_jpn = 0e+0_fp
 
       ALLOCATE( EHgP_oce( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_oce' )
-      EHgP_oce = 0d0
+      EHgP_oce = 0e+0_fp
 
 !------------------------------------------------------
 
       ALLOCATE( EHg0_oc( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oc' )
-      EHg0_oc = 0d0
+      EHg0_oc = 0e+0_fp
 
       ALLOCATE( EHg0_dist( IIPAR, JJPAR), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_dist' )
-      EHg0_dist = 0d0
+      EHg0_dist = 0e+0_fp
 
 !- eds 8/31/10 ------------------------------------------------
 !      ALLOCATE( EHg0_nt( IIPAR, JJPAR ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_nt' )
-!      EHg0_nt = 0d0
+!      EHg0_nt = 0e+0_fp
 
       ALLOCATE( EHg0_geo( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_geo' )
-      EHg0_geo = 0d0
+      EHg0_geo = 0e+0_fp
 !--------------------------------------------------------------
 
       ALLOCATE( EHg0_bb( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_bb' )
-      EHg0_bb = 0d0
+      EHg0_bb = 0e+0_fp
 
       ALLOCATE( EHg0_snow( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_snow' )
-      EHg0_snow = 0d0
+      EHg0_snow = 0e+0_fp
 
       IF ( LGTMM ) THEN
 
          ALLOCATE( EHg0_gtm( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_gtm' )
-         EHg0_gtm = 0d0
+         EHg0_gtm = 0e+0_fp
 
       ELSE
 
          ALLOCATE( EHg0_ln( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_ln' )
-         EHg0_ln = 0d0
+         EHg0_ln = 0e+0_fp
 
          ALLOCATE( EHg0_vg( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_vg' )
-         EHg0_vg = 0d0
+         EHg0_vg = 0e+0_fp
 
          ALLOCATE( EHg0_so( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_so' )
-         EHg0_so = 0d0
+         EHg0_so = 0e+0_fp
 
       ENDIF
 
       ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
-      TCOSZ = 0d0
+      TCOSZ = 0e+0_fp
 
       ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTDAY' )
-      TTDAY = 0d0
+      TTDAY = 0e+0_fp
  
       ! Allocate ZERO_DVEL if we use non-local PBL mixing or
       ! if drydep is turned off 
       IF ( LNLPBL .OR. (.not. LDRYD) ) THEN
          ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZERO_DVEL' )
-         ZERO_DVEL = 0d0
+         ZERO_DVEL = 0e+0_fp
       ENDIF
 
       ALLOCATE( HG2_SEASALT_LOSSRATE( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2_SEASALT_LOSSRATE' )
-      HG2_SEASALT_LOSSRATE = 0d0
-
-      ALLOCATE( JNO2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'JNO2' )
-      JNO2 = 0d0
+      HG2_SEASALT_LOSSRATE = 0e+0_fp
 
       !=================================================================
       ! Allocate & initialize arrays for tagged tracer indices
@@ -7803,15 +4923,15 @@
          ! Tracer indices for tagged anthro regions
          ALLOCATE( AN_Hg0( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_Hg0' )
-         AN_Hg0 = 0d0
+         AN_Hg0 = 0e+0_fp
 
          ALLOCATE( AN_Hg2( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_Hg2' )
-         AN_Hg2 = 0d0
+         AN_Hg2 = 0e+0_fp
 
          ALLOCATE( AN_HgP( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_HgP' )
-         AN_HgP = 0d0
+         AN_HgP = 0e+0_fp
 
          ! Define the tagged tracer indices 
 !         CALL DEFINE_TAGGED_Hg                    !eds
@@ -7821,7 +4941,7 @@
       ! HG_EMIS is needed for non-local PBL mixing 
       ALLOCATE ( HG_EMIS( IIPAR, JJPAR, N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG_EMIS' )
-      HG_EMIS = 0d0
+      HG_EMIS = 0e+0_fp
 
       !=================================================================
       ! Settings
@@ -7878,7 +4998,7 @@
       LHGSNOW = .TRUE.
 
       ! Multiplicative factor for increasing stratospheric Br and BrO
-      STRAT_BR_FACTOR = 1d0
+      STRAT_BR_FACTOR = 1e+0_fp
 
       ! Switch turns off all emissions except direct anthropogenic
       LAnthroHgOnly = .FALSE.
@@ -7895,6 +5015,127 @@
 
       ! Return to calling program
       END SUBROUTINE INIT_MERCURY
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_OPTIONS_FROM_HEMCO( RC )
+!
+! !USES:
+!
+      USE ERROR_MOD,       ONLY : ERROR_STOP
+      USE HCO_ERROR_MOD
+      USE HCO_ExtList_Mod, ONLY : GetExtOpt
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC   ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      LOGICAL :: LGC
+      LOGICAL :: LTOMCAT
+      LOGICAL :: FOUND
+
+      ! Strings
+      CHARACTER(LEN=255) :: LOC='SET_OPTIONS_FROM_HEMCO (mercury_mod.F)'
+
+      !-----------------------------------------------------------------
+      ! Set the value of LRED_JNO2 depending on whether or not
+      ! the HEMCO collection LRED_JNO2 is activated
+      !-----------------------------------------------------------------
+      CALL GetExtOpt( -999, 'LRED_JNO2',  OptValBool=LRED_JNO2, 
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LRED_JNO2', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LRED_JNO2 = .FALSE.
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Set the value of LGCBROMINE depending on the values of the
+      ! HEMCO collections BrOx_GC and BrOx_TOMCAT
+      !-----------------------------------------------------------------
+
+      ! First look for BrOx_GC
+      CALL GetExtOpt( -999, 'BrOx_GC',    OptValBool=LGC,
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt BrOx_GC', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LGC = .FALSE.
+      ENDIF
+
+      ! Set LGCBROMINE = .TRUE. if BrOx_GC is true
+      LGCBROMINE = LGC
+
+      ! Set BrOx_TOMCAT to be the opposite of LGCBROMINE
+      LTOMCAT   = ( .not. LGCBROMINE )
+
+      !-----------------------------------------------------------------
+      ! Set the value of LNEI2005 depending on whether or not
+      ! the HEMCO collection NEI2005 is activated
+      !-----------------------------------------------------------------
+      CALL GetExtOpt( -999, 'NEI2005',  OptValBool=LNEI2005,
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LNEI2005', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LNEI2005 = .FALSE.
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Set the value of LInPlume depending on whether or not
+      ! the HEMCO collection NEI2005 is activated
+      !-----------------------------------------------------------------
+      CALL GetExtOpt( -999, 'LRED_INPLUME',  OptValBool=LInPlume,
+     &                       FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LInPlume5', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LInPlume = .FALSE.
+      ENDIF
+
+
+      !-----------------------------------------------------------------
+      ! Echo output
+      !-----------------------------------------------------------------
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      WRITE( 6, 100   )
+      WRITE( 6, 110   ) LRED_JNO2
+      WRITE( 6, 120   ) LGCBROMINE
+      WRITE( 6, 130   ) LNEI2005
+      WRITE( 6, 140   ) LInPlume
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+ 100  FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
+ 110  FORMAT( 'LRED_JNO2  is set to ', L1                          )
+ 120  FORMAT( 'LGCBROMINE is set to ', L1                          )
+ 130  FORMAT( 'LNEI2005   is set to ', L1                          )
+ 140  FORMAT( 'LInPlume   is set to ', L1                          )
+      
+      END SUBROUTINE SET_OPTIONS_FROM_HEMCO
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -7995,9 +5236,13 @@
       IF ( ALLOCATED( ZERO_DVEL) ) DEALLOCATE( ZERO_DVEL )
       IF ( ALLOCATED( HG2_SEASALT_LOSSRATE ) ) 
      &     DEALLOCATE( HG2_SEASALT_LOSSRATE   ) 
-      IF ( ALLOCATED( JNO2      ) ) DEALLOCATE( JNO2      ) 
       IF ( ALLOCATED( HG_EMIS   ) ) DEALLOCATE( HG_EMIS   ) 
   
+      ! Free pointers to HEMCO fields
+      O3   => NULL()
+      OH   => NULL()
+      JNO2 => NULL()
+
       END SUBROUTINE CLEANUP_MERCURY
 !EOC
       END MODULE MERCURY_MOD

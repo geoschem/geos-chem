@@ -18,6 +18,7 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_FJX_MOD, ONLY : W_
+      USE PRECISION_MOD, ONLY : fpp => fp    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PUBLIC
@@ -120,7 +121,7 @@
       INTEGER, PARAMETER :: PD43=7  
       INTEGER, PARAMETER :: PD44=53      !jpp replaced 41
       INTEGER, PARAMETER :: PD45=NNPAR+1      
-      INTEGER, PARAMETER :: PD46=21
+      INTEGER, PARAMETER :: PD46=26
       INTEGER, PARAMETER :: PD47=NNPAR+1
       INTEGER, PARAMETER :: PD48=2            
       INTEGER, PARAMETER :: PD49=0                
@@ -230,8 +231,8 @@
       ! Move this here for now (bmy, 7/20/04)
       ! Removed HR1_NO and HR2_NO (mpayer, 11/8/13)
       !=================================================================
-      REAL*8  :: HR1_JV, HR2_JV
-      REAL*8  :: HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
+      REAL(fpp)  :: HR1_JV, HR2_JV
+      REAL(fpp)  :: HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -283,6 +284,7 @@
 !  08 Nov 2013 - M. Sulprizio- Remove HR1_NO and HR2_NO. They are no longer
 !                              needed for ND43 because NO, NO2, and NO3 are now
 !                              tracers.
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND72 to ND72 to
 !                              avoid conflicts with hourly max ppbv diagnostic.
 !EOP

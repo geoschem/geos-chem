@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -99,17 +99,17 @@ MODULE HCOX_DustGinoux_Mod
   REAL,    ALLOCATABLE :: DUSTREFF(:)       ! effective radius [um] 
 
   ! Source functions (get from HEMCO core) 
-  REAL(hp), POINTER    :: SRCE_SAND(:,:) => NULL()
-  REAL(hp), POINTER    :: SRCE_SILT(:,:) => NULL()
-  REAL(hp), POINTER    :: SRCE_CLAY(:,:) => NULL()
+  REAL(sp), POINTER    :: SRCE_SAND(:,:) => NULL()
+  REAL(sp), POINTER    :: SRCE_SILT(:,:) => NULL()
+  REAL(sp), POINTER    :: SRCE_CLAY(:,:) => NULL()
 
   ! Transfer coefficient (grid-dependent)
-  REAL*8               :: CH_DUST 
+  REAL(dp)             :: CH_DUST 
 
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -358,7 +358,7 @@ CONTAINS
           ! Eventually update diagnostics
           IF ( Diagn_AutoFillLevelDefined(2) ) THEN
              Arr2D => FLUX(:,:,N)
-             CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+             CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                                 Cat=-1, Hier=-1, HcoID=HcoIDs(N), &
                                 AutoFill=1, Array2D=Arr2D, RC=RC   )
              IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -373,7 +373,7 @@ CONTAINS
   END SUBROUTINE HcoX_DustGinoux_Run
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -389,7 +389,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_ExtList_Mod, ONLY : GetExtNr
+    USE HCO_ExtList_Mod, ONLY : GetExtNr, GetExtOpt
     USE HCO_State_Mod,   ONLY : HCO_GetExtHcoID
 !
 ! !INPUT PARAMETERS:
@@ -416,7 +416,8 @@ CONTAINS
     ! Scalars
     INTEGER                        :: N, nSpc
     CHARACTER(LEN=255)             :: MSG
-    REAL(dp)                       :: Mp, Rp
+    REAL(dp)                       :: Mp, Rp, TmpScal
+    LOGICAL                        :: FOUND
 
     ! Arrays
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
@@ -449,8 +450,25 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Get global mass flux tuning factor
-    CH_DUST = HcoX_DustGinoux_GetCHDust()
+    ! Set scale factor: first try to read from configuration file. If
+    ! not specified, call wrapper function which sets teh scale factor
+    ! based upon compiler switches.
+    CALL GetExtOpt ( ExtNr, 'Mass tuning factor', &
+                     OptValDp=TmpScal, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Set parameter FLX_MSS_FDG_FCT to specified tuning factor. Get from
+    ! wrapper routine if not defined in configuration file
+    IF ( FOUND ) THEN
+       CH_DUST = TmpScal
+    ELSE
+       ! Get global mass flux tuning factor
+       CH_DUST = HcoX_DustGinoux_GetCHDust()
+       IF ( CH_DUST < 0.0_dp ) THEN
+          RC = HCO_FAIL
+          RETURN
+       ENDIF
+    ENDIF
 
     ! Verbose mode
     IF ( am_I_Root ) THEN
@@ -645,7 +663,7 @@ CONTAINS
   END SUBROUTINE HcoX_DustGinoux_Init
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -683,7 +701,7 @@ CONTAINS
   END SUBROUTINE HcoX_DustGinoux_Final
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !

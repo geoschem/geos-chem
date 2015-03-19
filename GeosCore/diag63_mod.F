@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -41,6 +43,7 @@
 !  24 Feb 2012 - M. Payer    - Rename module from diag59_mod to diag63_mod.
 !                              Diag59 is used by TOMAS. Fix this throughout.
 !  06 Aug 2012 - R. Yantosca - Now make IU_ND63 a local module variable
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -132,8 +135,6 @@
       USE TRACERID_MOD,       ONLY : IDTNO
       USE HCO_DIAGN_MOD
       USE HCO_ERROR_MOD
-      USE HCO_STATE_MOD,    ONLY : HCO_STATE
-      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
 !
 ! !INPUT ARGUMENTS
 !
@@ -149,42 +150,39 @@
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
 !  11 Apr 2012 - R. Yantosca - Remove reference to lai_mod.F, it's not needed
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
-      INTEGER                  :: N,    R,     H,    W, X, Y
-      INTEGER                  :: NHMS, TS_DIAG
-      REAL*8                   :: TAU1, TAU0
-      REAL*8                   :: Q( ND63_NI, ND63_NJ, 1)
-      CHARACTER(LEN=16)        :: STAMP
-      CHARACTER(LEN=40)        :: CATEGORY
-      CHARACTER(LEN=40)        :: UNIT
-      CHARACTER(LEN=255)       :: FILENAME
+      INTEGER                       :: IOS,  GMTRC, GMNL, I, J, K, L 
+      INTEGER                       :: N,    R,     H,    W, X, Y
+      INTEGER                       :: NHMS, TS_DIAG
+      REAL(f8)                      :: TAU1, TAU0
+      REAL(fp)                      :: Q( ND63_NI, ND63_NJ, 1)
+      CHARACTER(LEN=16)             :: STAMP
+      CHARACTER(LEN=40)             :: CATEGORY
+      CHARACTER(LEN=40)             :: UNIT
+      CHARACTER(LEN=255)            :: FILENAME
 
       ! Connect to HEMCO diagnostics
-      INTEGER                  :: FLAG
-      INTEGER                  :: AF
-      CHARACTER(LEN= 63)       :: DiagnName
-      CHARACTER(LEN=255)       :: MSG
-      TYPE(DiagnCont), POINTER :: DiagnCnt => NULL()
-      TYPE(HCO_State), POINTER :: HcoState => NULL()      
-      REAL*8                   :: FACTOR
-      REAL*8, PARAMETER        :: CM2PERM2 = 10000d0
+      INTEGER                       :: FLAG
+      INTEGER                       :: AF
+      CHARACTER(LEN= 63)            :: DiagnName
+      CHARACTER(LEN=255)            :: MSG
+      TYPE(DiagnCont), POINTER      :: DiagnCnt => NULL()
+      REAL(f8)                      :: FACTOR
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(f8), PARAMETER           :: CM2PERM2 = 10000e+0_f8
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG63 (DIAG63_MOD.F)' 
 
       !=================================================================
       ! DIAG63 begins here!
       !=================================================================
-
-      ! Get pointer to HEMCO state
-      CALL GetHcoState ( HcoState )
-      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-         CALL ERROR_STOP ( 'HcoState not defined!', LOC )
-      ENDIF 
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
@@ -201,7 +199,7 @@
       ! Check if it's a new day for diagnostics, 
       ! or if the model run just started
       IF ( (NHMS == TS_DIAG) .OR. 
-     &     (GET_TAU() == ( GET_TAUb() + ND63_FREQ/60d0 )) ) THEN
+     &     (GET_TAU() == ( GET_TAUb() + ND63_FREQ/60e+0_fp )) ) THEN
 
          ! Find a free file LUN
          IU_ND63  = findFreeLUN()
@@ -231,13 +229,13 @@
       TAU1  = GET_TAU()
       
       ! Time for start of averaging period
-      TAU0  = TAU1 - (ND63_FREQ / 60d0) 
+      TAU0  = TAU1 - (ND63_FREQ / 60e+0_fp) 
 
       ! Loop over tracers
       DO W = 1, ND63_N_TRACERS
 
          ! Zero summing array
-         Q = 0d0
+         Q = 0e+0_fp
 
          !-------------------------------------
          ! SHIP-diagnostic tracers [unitless]
@@ -280,7 +278,7 @@
 
          ! Get diagnostics from HEMCO
          DiagnCnt => NULL()
-         CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt,
+         CALL Diagn_Get( am_I_Root, .FALSE., DiagnCnt,
      &                   FLAG,  RC, cName=TRIM(DiagnName),
      &                   AutoFill=AF, InclManual=.TRUE. )
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -330,7 +328,6 @@
 
       ! Return w/ success
       DiagnCnt => NULL()
-      HcoState => NULL()
       RC = GIGC_SUCCESS
 
       END SUBROUTINE DIAG63
@@ -366,14 +363,14 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: ITS_TIME
-      REAL*8  :: HR1
+      REAL(fp)  :: HR1
 
       !=================================================================
       ! ITS_TIME_TO_CLOSE_FILE begins here!
       !=================================================================
 
       ! Current hour
-      HR1      = GET_HOUR() + ( GET_MINUTE() / 60d0 )
+      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
 
 !--- Previous to (ccc, 8/12/09)
 !      ! Hour at the next dynamic timestep

@@ -24,6 +24,8 @@ MODULE Olson_LandMap_Mod
   USE GRID_MOD                          ! Horizontal grid definition
   USE MAPPING_MOD                       ! Mapping weights & areas
 
+  USE PRECISION_MOD                     ! For GEOS-Chem Precision (fp)
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -149,6 +151,7 @@ MODULE Olson_LandMap_Mod
 !  09 Apr 2012 - R. Yantosca - Removed reference to CMN_VEL_mod.F
 !  20 Mar 2014 - R. Yantosca - Speed up Olson computation by skipping boxes
 !  24 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -159,8 +162,8 @@ MODULE Olson_LandMap_Mod
   INTEGER              :: I_OLSON       ! # of lons (0.5 x 0.5)
   INTEGER              :: J_OLSON       ! # of lats (0.5 x 0.5)
   INTEGER              :: N_OLSON       ! Number of Olson land types 
-  REAL*8               :: D_LON         ! Delta longitude, Olson grid [degrees]
-  REAL*8               :: D_LAT         ! Delta latitude,  Olson grid [degrees]
+  REAL(fp)               :: D_LON         ! Delta longitude, Olson grid [degrees]
+  REAL(fp)               :: D_LAT         ! Delta latitude,  Olson grid [degrees]
 
   ! Arrays
   REAL*4,  ALLOCATABLE :: lon  (:    )  ! Lon centers, Olson grid [degrees]
@@ -261,7 +264,7 @@ CONTAINS
     INTEGER, POINTER :: IREG(:,:)
     INTEGER, POINTER :: ILAND(:,:,:)
     INTEGER, POINTER :: IUSE(:,:,:)
-    REAL*8,  POINTER :: FRCLND(:,:)
+    REAL(fp),  POINTER :: FRCLND(:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -270,11 +273,11 @@ CONTAINS
 ! the Olson computation by a factor of 100 or more!
 !
 #if defined( GRID05x0666 ) || defined( GRID025x03125 )
-    REAL*8, PARAMETER :: latThresh = 1d0   ! Lat threshold, nested grid
-    REAL*8, PARAMETER :: lonThresh = 1d0   ! Lon threshold, nested grid
+    REAL(fp), PARAMETER :: latThresh = 1e+0_fp   ! Lat threshold, nested grid
+    REAL(fp), PARAMETER :: lonThresh = 1e+0_fp   ! Lon threshold, nested grid
 #else
-    REAL*8, PARAMETER :: latThresh = 5d0   ! Lat threshold, global
-    REAL*8, PARAMETER :: lonThresh = 6d0   ! Lon threshold, global
+    REAL(fp), PARAMETER :: latThresh = 5e+0_fp   ! Lat threshold, global
+    REAL(fp), PARAMETER :: lonThresh = 6e+0_fp   ! Lon threshold, global
 #endif
 
     !======================================================================
@@ -283,14 +286,14 @@ CONTAINS
 
     ! Be lazy, construct lon edges from lon centers
     DO I = 1, I_OLSON
-       lonedge(I)      = DBLE( lon(I) ) - ( D_LON * 0.5d0 )
+       lonedge(I)      = DBLE( lon(I) ) - ( D_LON * 0.5e+0_fp )
        indLon(I)       = I
     ENDDO
     lonedge(I_OLSON+1) = lonedge(I_OLSON) + D_LON
     
     ! Be lazy, construct lat edges from lat centers
     DO J = 1, J_OLSON
-       latedge(J)      = DBLE( lat(J) ) - ( D_LAT * 0.5d0 )
+       latedge(J)      = DBLE( lat(J) ) - ( D_LAT * 0.5e+0_fp )
     ENDDO
     latedge(J_OLSON+1) = latedge(J_OLSON) + D_LAT
     
@@ -603,6 +606,7 @@ CONTAINS
 !  29 Nov 2012 - R. Yantosca - Add am_I_Root to the argument list
 !  26 Feb 2013 - M. Long     - Now pass DATA_DIR_1x1 via the argument list
 !  24 Jun 2014 - R. Yantosca - Now accept Input_Opt, RC via the arg list
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -641,8 +645,8 @@ CONTAINS
        I_OLSON = 1440                                     ! # lons (0.25x0.25)
        J_OLSON = 720                                      ! # lats (0.25x0.25)
        N_OLSON = 74                                       ! # of land types
-       D_LON   = 0.25d0                                   ! Delta lon [degrees]
-       D_LAT   = 0.25d0                                   ! Delta lat [degrees]
+       D_LON   = 0.25e+0_fp                                   ! Delta lon [degrees]
+       D_LAT   = 0.25e+0_fp                                   ! Delta lat [degrees]
        nc_file = 'Olson_2001_Land_Map.025x025.generic.nc' ! Input file name
 
     ELSE
@@ -653,8 +657,8 @@ CONTAINS
        I_OLSON = 720                                      ! # lons (0.5x0.5)
        J_OLSON = 360                                      ! # lats (0.5x0.5)
        N_OLSON = 74                                       ! # of land types
-       D_LON   = 0.5d0                                    ! Delta lon [degrees]
-       D_LAT   = 0.5d0                                    ! Delta lat [degrees]
+       D_LON   = 0.5e+0_fp                                    ! Delta lon [degrees]
+       D_LAT   = 0.5e+0_fp                                    ! Delta lat [degrees]
        nc_file = 'Olson_1992_Land_Map.05x05.generic.nc'   ! Input file name
 
     ENDIF
@@ -670,8 +674,8 @@ CONTAINS
     !======================================================================
 
     ! Construct file path from directory & file name
-    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
-    nc_path = TRIM( nc_dir )                 // TRIM( nc_file )
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'Olson_Land_Map_201203/'
+    nc_path = TRIM( nc_dir )                    // TRIM( nc_file )
 
     ! Open file for read
     CALL Ncop_Rd( fId, TRIM(nc_path) )

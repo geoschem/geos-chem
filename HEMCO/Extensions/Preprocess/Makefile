@@ -19,6 +19,8 @@
 #
 # !REVISION HISTORY: 
 #  11 Aug 2014 - R. Yantosca - Initial version
+#  26 Feb 2015 - R. Yantosca - Remove lightdist script, we now read CDF table
+#                              data from a file to reduce compilation time
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -35,18 +37,14 @@ SHELL     :=/bin/bash
 # Directories
 HCOX      :=..
 
-# Files for GFED3
-GFED3_IN  ?=$(HEMCO_DATA_ROOT)/GFED3/v2014-07/GFED3_emission_factors.txt
-GFED3_OUT ?=$(HCOX)/hcox_gfed3_include.H
+# Files for GFED
+GFED_IN  ?=$(HEMCO_DATA_ROOT)/GFED3/v2014-07/GFED3_emission_factors.txt
+GFED_OUT ?=$(HCOX)/hcox_gfed_include.H
 
 # Files for FINN
 FINN_CO2  ?=$(HEMCO_DATA_ROOT)/FINN/v2014-07/FINN_EFratios_CO2.csv
 FINN_VOC  ?=$(HEMCO_DATA_ROOT)/FINN/v2014-07/FINN_VOC_speciation.csv
 FINN_OUT  ?=$(HCOX)/hcox_finn_include.H
-
-# Files for Lightning CDF
-LDIST_IN  ?=$(HEMCO_DATA_ROOT)/LIGHTNOX/v2014-07/light_dist.ott2010.dat
-LDIST_OUT ?=$(HCOX)/lightning_cdf_include.H
 
 ###############################################################################
 ###                                                                         ###
@@ -56,24 +54,17 @@ LDIST_OUT ?=$(HCOX)/lightning_cdf_include.H
 
 .PHONY: all gfed finn lightdist paranox
 
-all: gfed3 finn lightdist paranox
+all: gfed finn lightdist paranox
 
-gfed3:
+gfed:
 	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	@echo "%%% GFED3.......creating '$(GFED3_OUT)'"
+	@echo "%%% GFED.......creating '$(GFED_OUT)'"
 	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	./gfed3.pl $(GFED3_IN) $(GFED3_OUT)
+	./gfed.pl $(GFED_IN) $(GFED_OUT)
 
 finn:
 	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 	@echo "%%% FINN........creating '$(FINN_OUT)'"
 	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 	./finn.pl $(FINN_CO2) $(FINN_VOC) $(FINN_OUT)
-
-lightdist:
-	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	@echo "%%% LIGHTDIST...creating '$(LDIST_OUT)'"
-	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	./lightdist.pl $(LDIST_IN) $(LDIST_OUT)
-
 #EOC

@@ -28,13 +28,17 @@
       USE COMODE_MOD,         ONLY : IYSAVE
       USE COMODE_MOD,         ONLY : T3
       USE COMODE_LOOP_MOD
+#IF DEFINED( USE_REAL8 )
       USE CHEMISTRY_MOD,      ONLY : GCKPP_DRIVER
       USE GCKPP_GLOBAL,       ONLY : NTT
+#ENDIF
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !
@@ -110,6 +114,10 @@
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid
 !  01 Mar 2013 - R. Yantosca - Now set RC to GIGC_SUCCESS for default
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  15 Dec 2014 - M. Yannetti - Added filtering for KPP
+!  08 Jan 2015 - M. Sulprizio- Now restrict KPP to REAL*8 to allow for KPP code
+!                              to compile properly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,11 +133,11 @@
       INTEGER IX,IY,IJWINDOW,KBLK2,NK
 
       INTEGER COUNTER,JGAS
-      REAL*8 S1CON,S2CON,ARGS,CONSTQ,SNOON,CONTEMP,DIFCONC,PLODYN
-      REAL*8 PR3,RIS,RST,TBEGIN,TFINISH,VALLOW,CLO1,CLO2,SUMFRACS
-      REAL*8 SUMRMS,SUMHI,SUMRMSH,CMOD,CGOOD,FRACDIF,FRACABS,AVGERR
-      REAL*8 RMSCUR,AVGHI,RMSCURH,FSTEPT,FITS,TSTEPIT,PHIDYN
-      REAL*8 GMU
+      REAL(fp) S1CON,S2CON,ARGS,CONSTQ,SNOON,CONTEMP,DIFCONC,PLODYN
+      REAL(fp) PR3,RIS,RST,TBEGIN,TFINISH,VALLOW,CLO1,CLO2,SUMFRACS
+      REAL(fp) SUMRMS,SUMHI,SUMRMSH,CMOD,CGOOD,FRACDIF,FRACABS,AVGERR
+      REAL(fp) RMSCUR,AVGHI,RMSCURH,FSTEPT,FITS,TSTEPIT,PHIDYN
+      REAL(fp) GMU
 
       INTEGER :: AS
       ! For LINUX fix (bmy, 9/29/03)
@@ -262,19 +270,19 @@
           !write(6,*) 'in physproc, iglobchem= ',iglobchem
           !write(6,*) 'val of ntloopuse= ',ntloopuse
 
-          NBLOCKUSE          = 1 + NTLOOPUSE / (KULOOP    + 0.0001d0)
-          IAVBLOK            = 1 + NTLOOPUSE / (NBLOCKUSE + 0.0001d0)
-          IAVGSIZE           = MIN0(IAVBLOK,KULOOP)
+          NBLOCKUSE         = 1 + NTLOOPUSE / (KULOOP    + 0.0001e+0_fp)
+          IAVBLOK           = 1 + NTLOOPUSE / (NBLOCKUSE + 0.0001e+0_fp)
+          IAVGSIZE          = MIN0(IAVBLOK,KULOOP)
 !
-          JLOOPLO            = 0
-          IREMAIN            = NTLOOPUSE
+          JLOOPLO           = 0
+          IREMAIN           = NTLOOPUSE
 !
-          DO 200 KBLK        = 1, NBLOCKUSE
-           IUSESIZE          = MIN(IAVGSIZE,MAX(IREMAIN,0))
-           JLOWVAR(KBLK)     = JLOOPLO
-           KTLPVAR(KBLK)     = IUSESIZE
-           IREMAIN           = IREMAIN - IUSESIZE
-           JLOOPLO           = JLOOPLO + IUSESIZE
+          DO 200 KBLK       = 1, NBLOCKUSE
+           IUSESIZE         = MIN(IAVGSIZE,MAX(IREMAIN,0))
+           JLOWVAR(KBLK)    = JLOOPLO
+           KTLPVAR(KBLK)    = IUSESIZE
+           IREMAIN          = IREMAIN - IUSESIZE
+           JLOOPLO          = JLOOPLO + IUSESIZE
  200      CONTINUE
 
           ! Added fix for small (1 to 3) KULOOP (10/5/07, phs)
@@ -313,8 +321,9 @@
 ! *********************************************************************
 !
 !--- Moved from chemdr.f (ccc, 12/9/09)
+#IF DEFINED ( USE_REAL8 )
           IF ( LKPP) NTT = NTTLOOP
-
+#ENDIF
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JLOOP,KLOOP,KBLK2,JNEW,JOLD)
@@ -362,12 +371,12 @@
 !    NSPEC(1) is the # of active species for urban chemistry.
 !    (ccc, 01/20/10)
           call CPU_TIME(start)
+#IF DEFINED ( USE_REAL8 )
           IF ( LKPP ) THEN
              CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
-
           ELSE
+#ENDIF
              CALL SMVGEAR( am_I_Root, Input_Opt, RC )
-          call CPU_TIME(finish)
 
 !
 ! *********************************************************************
@@ -389,10 +398,14 @@
                       CSPEC(JLOOP,JOLD) = MAX(CNEW(KLOOP,JNEW),SMAL2)
  620            CONTINUE
              ENDIF
+#IF DEFINED ( USE_REAL8 )
           ENDIF
+#ENDIF
+          call CPU_TIME(finish)
 !
           
  640      CONTINUE
+      
 !$OMP END PARALLEL DO
 
 !------------------------------------------------------------------------------
@@ -506,16 +519,16 @@
 !C
 !          DO 760 IT             = 1, 3 
 !           IF (IT.EQ.1) THEN
-!            IRADD               = 0.d0
-!            LVAL                = IRADD + NNORISE  * 0.5d0 + 1
+!            IRADD               = 0.e+0_fp
+!            LVAL                = IRADD + NNORISE  * 0.5e+0_fp + 1
 !            IRVAL               = IRADD + NNORISE
 !           ELSEIF (IT.EQ.2) THEN
 !            IRADD               = NNORISE 
-!            LVAL                = IRADD + NSUNRISE * 0.5d0 + 1
+!            LVAL                = IRADD + NSUNRISE * 0.5e+0_fp + 1
 !            IRVAL               = IRADD + NSUNRISE
 !           ELSEIF (IT.EQ.3) THEN
 !            IRADD               = NNORISE + NSUNRISE  
-!            LVAL                = IRADD + NSUNSET  * 0.5d0 + 1
+!            LVAL                = IRADD + NSUNSET  * 0.5e+0_fp + 1
 !            IRVAL               = IRADD + NSUNSET 
 !           ENDIF 
 !C
@@ -585,15 +598,15 @@
 !          DO 770 IT        = 1, 3
 !           IF (IT.EQ.1) THEN
 !            NCELLROW       = NNORISE
-!            NBLOCKROW      = 1 + NCELLROW / (KULOOP    + 0.0001d0)
+!            NBLOCKROW      = 1 + NCELLROW / (KULOOP    + 0.0001e+0_fp)
 !           ELSEIF (IT.EQ.2) THEN
 !            NCELLROW       = NSUNRISE
-!            !NBLOCKROW      = 1 + NCELLROW * 3./ (KULOOP  + 0.0001d0)
-!           NBLOCKROW      = 1 + NCELLROW / (KULOOP  + 0.0001d0)
+!            !NBLOCKROW      = 1 + NCELLROW * 3./ (KULOOP  + 0.0001e+0_fp)
+!           NBLOCKROW      = 1 + NCELLROW / (KULOOP  + 0.0001e+0_fp)
 !           ELSEIF (IT.EQ.3) THEN
 !            NCELLROW       = NSUNSET
-!            !NBLOCKROW      = 1 + NCELLROW * 3./ (KULOOP  + 0.0001d0)
-!           NBLOCKROW      = 1 + NCELLROW / (KULOOP  + 0.0001d0)
+!            !NBLOCKROW      = 1 + NCELLROW * 3./ (KULOOP  + 0.0001e+0_fp)
+!           NBLOCKROW      = 1 + NCELLROW / (KULOOP  + 0.0001e+0_fp)
 !           ENDIF
 !C
 !           NSUMBLOCK       = NSUMBLOCK + NBLOCKROW
@@ -608,7 +621,7 @@
 !           IF (NCELLROW.EQ.0) THEN
 !            NBLOCKROW      = 0
 !           ELSE
-!            IAVBLOK            = 1 + NCELLROW / (NBLOCKROW + 0.0001d0)
+!            IAVBLOK            = 1 + NCELLROW / (NBLOCKROW + 0.0001e+0_fp)
 !            IAVGSIZE           = MIN(IAVBLOK,KULOOP)
 !            IREMAIN            = NCELLROW
 !C

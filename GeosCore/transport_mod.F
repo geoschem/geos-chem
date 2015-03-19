@@ -16,6 +16,8 @@
 ! 
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -70,18 +72,19 @@
 !  21 Jun 2012 - R. Yantosca - Comment out GEOS-3 window subroutine
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed "GEOS57" to "GEOSFP" in routine names
+!  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! MODULE VARIABLES:
       !
-      ! (1 ) Ap     (REAL*8 ) : Vertical coordinate array for TPCORE
-      ! (2 ) A_M2   (REAL*8 ) : Grid box surface areas [m2]
-      ! (3 ) Bp     (REAL*8 ) : Vertical coordinate array for TPCORE
-      ! (4 ) IORD   (REAL*8 ) : TPCORE E/W option flag
-      ! (5 ) JORD   (REAL*8 ) : TPCORE N/S option flag
-      ! (6 ) KORD   (REAL*8 ) : TPCORE vertical option flag
+      ! (1 ) Ap     (REAL(fp) ) : Vertical coordinate array for TPCORE
+      ! (2 ) A_M2   (REAL(fp) ) : Grid box surface areas [m2]
+      ! (3 ) Bp     (REAL(fp) ) : Vertical coordinate array for TPCORE
+      ! (4 ) IORD   (REAL(fp) ) : TPCORE E/W option flag
+      ! (5 ) JORD   (REAL(fp) ) : TPCORE N/S option flag
+      ! (6 ) KORD   (REAL(fp) ) : TPCORE vertical option flag
       ! (7 ) JLAST  (INTEGER) : For fvDAS TPCORE
       ! (8 ) MG     (INTEGER) : For fvDAS TPCORE
       ! (9 ) NG     (INTEGER) : For fvDAS TPCORE
@@ -89,12 +92,12 @@
       !=================================================================
       INTEGER             :: IORD,  JORD, KORD, JFIRST 
       INTEGER             :: JLAST, NG,   MG,   N_ADJ
-      REAL*8, ALLOCATABLE :: Ap(:)
-      REAL*8, ALLOCATABLE :: A_M2(:)
-      REAL*8, ALLOCATABLE :: Bp(:)
+      REAL(fp), ALLOCATABLE :: Ap(:)
+      REAL(fp), ALLOCATABLE :: A_M2(:)
+      REAL(fp), ALLOCATABLE :: Bp(:)
 
       ! This seems to be obsolete ???
-      !REAL*8, ALLOCATABLE :: STT_BC2(:,:,:)
+      !REAL(fp), ALLOCATABLE :: STT_BC2(:,:,:)
 
       CONTAINS
 !EOC
@@ -305,39 +308,39 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER          :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL*8           :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8           :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8           :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8           :: P_TP1(IIPAR,JJPAR)
-      REAL*8           :: P_TP2(IIPAR,JJPAR)
-      REAL*8           :: P_TEMP(IIPAR,JJPAR)
-      REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
+      REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: P_TP1(IIPAR,JJPAR)
+      REAL(fp)           :: P_TP2(IIPAR,JJPAR)
+      REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
+      REAL(fp)           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
      &                         Input_Opt%N_TRACERS+N_APMTRA)  ! With APM
 #else
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
      &                         Input_Opt%N_TRACERS)           ! W/o APM
 #endif
-      REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
-      REAL*8,  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
+      REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
+      REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Pointers
-      REAL*8,  POINTER :: p_UWND (:,:,:  )
-      REAL*8,  POINTER :: p_VWND (:,:,:  )
-      REAL*8,  POINTER :: p_XMASS(:,:,:  )
-      REAL*8,  POINTER :: p_YMASS(:,:,:  )
-      REAL*8,  POINTER :: p_STT  (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
+      REAL(fp),  POINTER :: p_STT  (:,:,:,:)
 
       ! Variable to ensure mass conservation (ccc, 2/17/09)
-      REAL*8           :: SUMADA
+      REAL(fp)           :: SUMADA
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
-      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
@@ -484,7 +487,7 @@
       DO N = 1, N_TOT_TRC
 
          ! Zero summing variable
-         SUMADA = 0.d0
+         SUMADA = 0.e+0_fp
 
          DO L = 1, LLPAR
          DO J = 1, JJPAR
@@ -498,8 +501,8 @@
      &                  * AD_A(I,J,L)
      &                  / TCVV(N)
 
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or.
-     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
+     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
                SUMADA = SUMADA + AD_A(I,J,L)
             ENDIF
          ENDDO
@@ -510,21 +513,21 @@
          TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
 
          ! Convert from [kg] to [v/v]
-         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.d0 ) * TCVV(N)
+         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.e+0_fp ) * TCVV(N)
 
          ! Add mass difference [v/v] back to STT
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or.
-     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
+     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
                State_Chm%Tracers(I,J,L,N) =
      &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
             ENDIF
 
             State_Chm%Tracers(I,J,L,N) =
-     &           MAX( State_Chm%Tracers(I,J,L,N), 0d0 )
+     &           MAX( State_Chm%Tracers(I,J,L,N), 0e+0_fp )
 
          ENDDO
          ENDDO
@@ -609,40 +612,40 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER          :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL*8           :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8           :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8           :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8           :: P_TP1(IIPAR,JJPAR)
-      REAL*8           :: P_TP2(IIPAR,JJPAR)
-      REAL*8           :: P_TEMP(IIPAR,JJPAR)
-      REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
+      REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: P_TP1(IIPAR,JJPAR)
+      REAL(fp)           :: P_TP2(IIPAR,JJPAR)
+      REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
+      REAL(fp)           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
      &                         Input_Opt%N_TRACERS+N_APMTRA)
 #else                  
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
      &                         Input_Opt%N_TRACERS)
 #endif
-      REAL*8           :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
-      REAL*8,  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
+      REAL(fp)           :: VTMP(IIPAR,JJPAR,LLPAR)
+      REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
+      REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Pointers
-      REAL*8,  POINTER :: p_UWND (:,:,:  )
-      REAL*8,  POINTER :: p_VWND (:,:,:  )
-      REAL*8,  POINTER :: p_XMASS(:,:,:  )
-      REAL*8,  POINTER :: p_YMASS(:,:,:  )
-      REAL*8,  POINTER :: p_STT  (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
+      REAL(fp),  POINTER :: p_STT  (:,:,:,:)
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
-      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Variable to ensure mass conservation (ccc, 20/11/08)
-      REAL*8           :: SUMADA
+      REAL(fp)           :: SUMADA
 
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
@@ -794,7 +797,7 @@
       DO N = 1, N_TOT_TRC
 
          ! Zero summing variable
-         SUMADA = 0.d0
+         SUMADA = 0.e+0_fp
 
          DO L = 1, LLPAR
          DO J = 1, JJPAR
@@ -810,8 +813,8 @@
 
             ! We apply mass conservation only on cells with 
             ! nonzero tracer. (ccc, 11/20/08)
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or.
-     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or.
+     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
                SUMADA = SUMADA + AD_A(I,J,L)
             ENDIF
          ENDDO
@@ -822,21 +825,21 @@
          TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
 
          ! Convert from [kg] to [v/v]
-         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.d0 ) * TCVV(N)
+         TR_DIFF = SAFE_DIV( TR_DIFF, SUMADA, 0.e+0_fp ) * TCVV(N)
 
          ! Add mass difference [v/v] back to STT
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or. 
-     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.e+0_fp   .or. 
+     &           State_Chm%Tracers(I,J,L,N) < 0.e+0_fp ) THEN
                State_Chm%Tracers(I,J,L,N) =
      &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
             ENDIF
 
             State_Chm%Tracers(I,J,L,N) =
-     &           MAX( State_Chm%Tracers(I,J,L,N), 0d0 )
+     &           MAX( State_Chm%Tracers(I,J,L,N), 0e+0_fp )
          ENDDO
          ENDDO
          ENDDO
@@ -923,39 +926,39 @@
 !
       INTEGER          :: I0,J0
       INTEGER          :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL*8           :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8           :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8           :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8           :: P_TP1(IIPAR,JJPAR)
-      REAL*8           :: P_TP2(IIPAR,JJPAR)
-      REAL*8           :: P_TEMP(IIPAR,JJPAR)
-      REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
+      REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: P_TP1(IIPAR,JJPAR)
+      REAL(fp)           :: P_TP2(IIPAR,JJPAR)
+      REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
+      REAL(fp)           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
      &                         Input_Opt%N_TRACERS+N_APMTRA) 
 #else
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
      &                         Input_Opt%N_TRACERS)
 #endif
-      REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8,  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
+      REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
+      REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
 
       ! Pointers
-      REAL*8,  POINTER :: p_UWND (:,:,:  )
-      REAL*8,  POINTER :: p_VWND (:,:,:  )
-      REAL*8,  POINTER :: p_XMASS(:,:,:  )
-      REAL*8,  POINTER :: p_YMASS(:,:,:  )
-      REAL*8,  POINTER :: p_STT  (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
+      REAL(fp),  POINTER :: p_STT  (:,:,:,:)
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
-      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       ! Variable to ensure mass conservation (ccc, 20/11/08)
-      REAL*8           :: SUMADA
+      REAL(fp)           :: SUMADA
 
       !=================================================================
       ! DO_GEOS5_WINDOW_TRANSPORT begins here!
@@ -1053,8 +1056,8 @@
       ! masses XMASS and YMASS.  XMASS and YMASS need to be passed to
       ! TPCORE_FVDAS in order to ensure mass conservation.
       !=================================================================
-      XMASS = 0d0 !(dan)
-      YMASS = 0d0
+      XMASS = 0e+0_fp !(dan)
+      YMASS = 0e+0_fp
 
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!
       CALL DO_PJC_PFIX_GEOS5_WINDOW( D_DYN,
@@ -1181,36 +1184,36 @@
 !
       INTEGER          :: I0,J0
       INTEGER          :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL*8           :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8           :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8           :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8           :: P_TP1(IIPAR,JJPAR)
-      REAL*8           :: P_TP2(IIPAR,JJPAR)
-      REAL*8           :: P_TEMP(IIPAR,JJPAR)
-      REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: A_DIFF, D_DYN, TR_DIFF
+      REAL(fp)           :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL(fp)           :: P_TP1(IIPAR,JJPAR)
+      REAL(fp)           :: P_TP2(IIPAR,JJPAR)
+      REAL(fp)           :: P_TEMP(IIPAR,JJPAR)
+      REAL(fp)           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
      &                         Input_Opt%N_TRACERS+N_APMTRA)
 #else
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+      REAL(fp)           :: TR_B(IIPAR,JJPAR,LLPAR,
      &                         Input_Opt%N_TRACERS)
 #endif
-      REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8,  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
+      REAL(fp),  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
+      REAL(fp),  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
 
       ! Pointers
-      REAL*8,  POINTER :: p_UWND (:,:,:  )
-      REAL*8,  POINTER :: p_VWND (:,:,:  )
-      REAL*8,  POINTER :: p_XMASS(:,:,:  )
-      REAL*8,  POINTER :: p_YMASS(:,:,:  )
-      REAL*8,  POINTER :: p_STT  (:,:,:,:)
+      REAL(fp),  POINTER :: p_UWND (:,:,:  )
+      REAL(fp),  POINTER :: p_VWND (:,:,:  )
+      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
+      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
+      REAL(fp),  POINTER :: p_STT  (:,:,:,:)
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
       LOGICAL          :: LPRT
       LOGICAL          :: LWINDO
       INTEGER          :: N_TRACERS
-      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)           :: TCVV(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! DO_GEOSFP_FVDAS_WINDOW_TRANSPORT begins here!
@@ -1308,8 +1311,8 @@
       ! masses XMASS and YMASS.  XMASS and YMASS need to be passed to
       ! TPCORE_FVDAS in order to ensure mass conservation.
       !=================================================================
-      XMASS = 0d0 !(dan)
-      YMASS = 0d0
+      XMASS = 0e+0_fp !(dan)
+      YMASS = 0e+0_fp
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!  
       CALL DO_PJC_PFIX_GEOSFP_WINDOW( D_DYN,
      &                                P_TP1,        P_TP2,
@@ -1381,7 +1384,7 @@
 ! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: I, J, L   ! GEOS-Chem lon, lat, level indices
-      REAL*8,  INTENT(IN) :: P_SURF    ! Surface pressure [hPa] at (I,J,L=1)
+      REAL(fp),  INTENT(IN) :: P_SURF    ! Surface pressure [hPa] at (I,J,L=1)
 
 ! 
 ! !REVISION HISTORY: 
@@ -1394,7 +1397,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: L2
-      REAL*8  :: P_BOT, P_TOP, AIR_MASS
+      REAL(fp)  :: P_BOT, P_TOP, AIR_MASS
       
       !=================================================================
       ! GET_AIR_MASS begins here!
@@ -1499,6 +1502,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1506,7 +1510,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: J, K, L, N_DYN
-      REAL*8  :: YMID_R(JJPAR)
+      REAL(fp)  :: YMID_R(JJPAR)
+      REAL(fp)  :: REAL_N_DYN
 
       ! For fields from Input_Opt
       LOGICAL :: LTRAN
@@ -1580,9 +1585,11 @@
          YMID_R(J) = GET_YMID_R( 1, J, 1 )
       ENDDO
 
+      REAL_N_DYN = N_DYN
+
       ! Call INIT routine from "tpcore_fvdas_mod.f" 
       CALL INIT_TPCORE( IIPAR,  JJPAR, LLPAR,  JFIRST, JLAST, 
-     &                  NG, MG, DBLE( N_DYN ), Re,     YMID_R )
+     &                  NG, MG, REAL_N_DYN, Re,     YMID_R )
 
       END SUBROUTINE INIT_TRANSPORT
 !EOC
@@ -1638,6 +1645,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1645,7 +1653,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: J, K, L, N_DYN
-      REAL*8  :: YMID_R_W(0:JJPAR+1)
+      REAL(fp)  :: YMID_R_W(0:JJPAR+1)
+      REAL(fp)  :: REAL_N_DYN
 
       ! For fields from Input_Opt
       LOGICAL :: LTRAN
@@ -1716,9 +1725,11 @@
          YMID_R_W(J) = GET_YMID_R_W( 1, J, 1 )
       ENDDO
 
+      REAL_N_DYN = N_DYN
+
       ! Call INIT routine from "tpcore_geos5_fvdas_window_mod.f"
       CALL INIT_GEOS5_WINDOW( IIPAR, JJPAR,    LLPAR, JFIRST, 
-     &                        JLAST, NG,       MG,    DBLE( N_DYN ), 
+     &                        JLAST, NG,       MG,    REAL_N_DYN , 
      &                        Re,    YMID_R_W )
 
       END SUBROUTINE INIT_GEOS5_WINDOW_TRANSPORT
@@ -1777,6 +1788,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  26 Sep 2013 - R. Yantosca - Renamed to INIT_GEOSFP_WINDOW_TRANSPORT
+!  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1784,7 +1796,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: J, K, L, N_DYN
-      REAL*8  :: YMID_R_W(0:JJPAR+1)
+      REAL(fp)  :: YMID_R_W(0:JJPAR+1)
+      REAL(fp)  :: REAL_N_DYN
 
       ! For fields from Input_Opt
       LOGICAL :: LTRAN
@@ -1855,10 +1868,12 @@
          YMID_R_W(J) = GET_YMID_R_W( 1, J, 1 )
       ENDDO
 
+      REAL_N_DYN = N_DYN
+
       ! Call INIT routine from "tpcore_geosfp_fvdas_window_mod.f"
       ! subroutine "init_geosfp_windows" is in "tpcore_geosfp_window_mod.F90"
       CALL INIT_GEOSFP_WINDOW( IIPAR, JJPAR,    LLPAR, JFIRST, 
-     &                         JLAST, NG,       MG,    DBLE( N_DYN ),
+     &                         JLAST, NG,       MG,    REAL_N_DYN ,
      &                         Re,    YMID_R_W )
 
       END SUBROUTINE INIT_GEOSFP_WINDOW_TRANSPORT

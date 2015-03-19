@@ -117,19 +117,24 @@ help:
 CMN_DIAG_mod.o       : CMN_DIAG_mod.F           \
                        CMN_SIZE_mod.o           \
                        CMN_FJX_MOD.o            \
-                       gigc_errcode_mod.o
+                       gigc_errcode_mod.o       \
+                       precision_mod.o
 
-CMN_GCTM_mod.o       : CMN_GCTM_mod.F
+CMN_GCTM_mod.o       : CMN_GCTM_mod.F           \
+                       precision_mod.o
 
 CMN_FJX_MOD.o        : CMN_FJX_MOD.F            \
-                       CMN_SIZE_mod.o
+                       CMN_SIZE_mod.o           \
+                       precision_mod.o
 
 CMN_O3_mod.o         : CMN_O3_mod.F             \
                        CMN_SIZE_mod.o           \
-                       gigc_errcode_mod.o
+                       gigc_errcode_mod.o       \
+                       precision_mod.o
 
 CMN_SIZE_mod.o       : CMN_SIZE_mod.F           \
-                       gigc_errcode_mod.o
+                       gigc_errcode_mod.o       \
+                       precision_mod.o
 
 commsoil_mod.o       : commsoil_mod.F90         \
                        CMN_SIZE_mod.o           \
@@ -138,21 +143,25 @@ commsoil_mod.o       : commsoil_mod.F90         \
 comode_loop_mod.o    : comode_loop_mod.F        \
                        CMN_SIZE_mod.o           \
                        gigc_errcode_mod.o       \
-                       gigc_input_opt_mod.o
+                       gigc_input_opt_mod.o     \
+                       precision_mod.o
 
 gigc_errcode_mod.o   : gigc_errcode_mod.F90
 
 gigc_input_opt_mod.o : gigc_input_opt_mod.F90   \
                        gigc_errcode_mod.o       \
-                       CMN_SIZE_mod.o
-
+                       CMN_SIZE_mod.o           \
+                       precision_mod.o
 
 gigc_state_chm_mod.o : gigc_state_chm_mod.F90   \
                        gigc_errcode_mod.o       \
-                       gigc_input_opt_mod.o
+                       gigc_input_opt_mod.o     \
+		       comode_loop_mod.o        \
+                       precision_mod.o
 
 gigc_state_met_mod.o : gigc_state_met_mod.F90   \
                        gigc_errcode_mod.o       \
-                       CMN_SIZE_mod.o
+                       CMN_SIZE_mod.o           \
+                       precision_mod.o
 
 #EOC

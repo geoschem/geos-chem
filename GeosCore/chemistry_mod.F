@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -22,7 +24,9 @@
 !
       PUBLIC :: INIT_CHEMISTRY
       PUBLIC :: DO_CHEMISTRY
+#if defined( USE_REAL8 )
       PUBLIC :: GCKPP_DRIVER
+#endif
       PUBLIC :: RECOMPUTE_OD
 !
 ! !REVISION HISTORY: 
@@ -53,6 +57,9 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm to several routines
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  19 May 2014 - C. Keller   - Added INIT_CHEMISTRY
+!  15 Dec 2014 - M. Yannetti - KPP code is commented out unless compiling KPP
+!  08 Jan 2015 - M. Sulprizio- Now restrict KPP to REAL*8 to allow for KPP code
+!                              to compile properly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,16 +89,9 @@
       USE AEROSOL_MOD,        ONLY : SOILDUST
       USE C2H6_MOD,           ONLY : CHEMC2H6
       USE CARBON_MOD,         ONLY : CHEMCARBON
-!-----------------------------------------------------------------------------
-! These simulations are now obsolete.  You can can reactivate this if you want.
-!      USE CH3I_MOD,           ONLY : CHEMCH3I
-!      USE DRYDEP_MOD,         ONLY : DRYFLXH2HD
-!      USE H2_HD_MOD,          ONLY : CHEM_H2_HD
-!-----------------------------------------------------------------------------
       USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
       USE COMODE_LOOP_MOD     
-      USE DRYDEP_MOD,         ONLY : DRYFLX
       USE DRYDEP_MOD,         ONLY : DRYFLXRnPbBe
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
@@ -101,7 +101,6 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
-      USE HCN_CH3CN_MOD,      ONLY : CHEM_HCN_CH3CN
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
       USE MERCURY_MOD,        ONLY : CHEMMERCURY
       USE OPTDEPTH_MOD,       ONLY : OPTDEPTH
@@ -217,6 +216,7 @@
 !  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to DO_TOMAS
 !  19 May 2014 - C. Keller   - Removed call for acetone ocean sink - now done
 !                              in HEMCO.
+!  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,7 +258,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -318,6 +318,7 @@
       !=================================================================
       ! If LCHEM=T then call the chemistry subroutines
       !=================================================================
+
       IF ( LCHEM ) THEN
 
          !---------------------------------
@@ -397,9 +398,11 @@
             ! ND44 drydep fluxes
             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
             ! PBL is used ( Lin, 03/31/09) 
-            IF ( .not. LNLPBL ) THEN
-               CALL DRYFLX( am_I_Root, Input_Opt, RC )
-            ENDIF
+            ! Dry deposition diagnostics is now done in mixing_mod.F for 
+            ! cases where full-mixing is used (ckeller, 3/5/15).
+!            IF ( .not. LNLPBL ) THEN
+!               CALL DRYFLX( am_I_Root, Input_Opt, RC )
+!            ENDIF
 
             ! ND43 chemical production
             CALL DIAGOH
@@ -510,21 +513,21 @@
             ENDIF
 
 !-----------------------------------------------------------------------------
-! This simulation is now obsolete.  You can reactivate it if you want.
+! These simulations are now obsolete.  You can reactivate them if you want.
 !         !---------------------------------
 !         ! CH3I
 !         !---------------------------------
 !         ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
 !            CALL CHEMCH3I
 !     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+! 
+!         !---------------------------------            
+!         ! HCN
+!         !---------------------------------
+!         ELSE IF ( IT_IS_A_HCN_SIM ) THEN
+!            CALL CHEM_HCN_CH3CN
+!     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 !-----------------------------------------------------------------------------
- 
-         !---------------------------------            
-         ! HCN
-         !---------------------------------
-         ELSE IF ( IT_IS_A_HCN_SIM ) THEN
-            CALL CHEM_HCN_CH3CN
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
  
          !---------------------------------
          ! Tagged O3
@@ -626,6 +629,7 @@
     
       END SUBROUTINE DO_CHEMISTRY
 !EOC
+#if defined( USE_REAL8 )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -661,7 +665,7 @@
 !
       INTEGER, INTENT(IN) :: KTLOOP       ! Local loop index
       INTEGER, INTENT(IN) :: JLOOPLO      ! JLOOPLO + KLOOP = JLOOP
-      REAL*8,  INTENT(IN) :: R_KPP(:,:)   ! Array of reaction rates
+      REAL(fp),  INTENT(IN) :: R_KPP(:,:)   ! Array of reaction rates
       INTEGER, INTENT(IN) :: NSPEC_GC     ! # of active chemical species
 !
 ! !REMARKS:
@@ -724,7 +728,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8        :: T, TIN, TOUT
+      REAL(fp)        :: T, TIN, TOUT
       INTEGER       :: ICNTRL(20)
       REAL(kind=dp) :: RCNTRL(20)
       INTEGER       :: ISTATUS(20)
@@ -735,22 +739,22 @@
       
       !=================================================================
 
-      STEPMIN = 0.0d0
-      STEPMAX = 0.0d0
+      STEPMIN = 0.0e+0_fp
+      STEPMAX = 0.0e+0_fp
 
       ! Suggested tolerance for Rosenbrock solvers
       DO i=1,NVAR
 #if defined (UCX )
-         RTOL(i) = 2.d-2
+         RTOL(i) = 2.e-2_fp
 #else
-         RTOL(i) = 2.d-1
+         RTOL(i) = 2.e-1_fp
 #endif
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE: This update was made in the SEAC4RS code.  Leave here in case we
 !%%% need to restore this. (bmy, 9/25/13)
 !         RTOL(i) = 5.d-2
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         ATOL(i) = 1.d-2
+         ATOL(i) = 1.e-2_fp
       END DO
       
       ! for LSODE
@@ -763,7 +767,7 @@
       ! Set parameters to default. See comments in Integrator module for
       ! a list of the defaults.
       ICNTRL(:) = 0
-      RCNTRL(:) = 0.d0
+      RCNTRL(:) = 0.e+0_fp
 
       ! Change some parameters from the default to new values
       ICNTRL(1) = 1             ! Autonomous
@@ -783,17 +787,17 @@
 
       IF(FIRST)THEN
 
-         RSTATE(Nhexit) = 0d0
+         RSTATE(Nhexit) = 0e+0_fp
 
          FIRST = .FALSE. 
 
       ENDIF
 
       ! GET TS_CHEM and convert it to seconds. 
-      DT = GET_TS_CHEM() * 60d0
+      DT = GET_TS_CHEM() * 60e+0_fp
 
       ! Set time parameters. 
-      T = 0d0
+      T = 0e+0_fp
       TIN = T
       TOUT = T + DT
 
@@ -854,7 +858,7 @@
          
          ! Try another time if it failed
          IF ( IERR < 0 ) THEN
-#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
+#if defined( KPP_SOLVE_ALWAYS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% For KPP tolerance fix (mlong, 4/12/13) %%%
             !%%% Re-entry point for non-convergence     %%%
@@ -868,7 +872,7 @@
             write(6,*)  'JLOOP, I, J, L ', JLOOP, I, J, L
 
             ! Reset first time step and start concentrations
-            RCNTRL(3)  = 0d0
+            RCNTRL(3)  = 0e+0_fp
             CALL Initialize( )  ! v2.1 
 
             ! 1D grid box index in the KTLOOP subset.
@@ -879,19 +883,19 @@
             ! 1D grid box index on the global grid
             JLOOP = JLOOPLO+KLOOP
 
-#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
+#if defined( KPP_SOLVE_ALWAYS )
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
             !%%% Increase tolerances by factor of 2     %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
            !RTOL = 2d0 * RTOL    ! Relative
-            ATOL = 2d0 * ATOL    ! Absolute
+            ATOL = 2e+0_fp * ATOL    ! Absolute
 #endif
 
             call Integrate( TIN,    TOUT,    ICNTRL, 
      &                      RCNTRL, ISTATUS, RSTATE, IERR )
             IF ( IERR < 0 ) THEN 
-#if defined( DEVEL ) || defined( KPP_SOLVE_ALWAYS )
+#if defined( KPP_SOLVE_ALWAYS )
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
                !%%% Try to solve again; don't quit the run %%%
@@ -952,6 +956,7 @@
 
       ! Return to calling program
       END SUBROUTINE GCKPP_DRIVER
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1103,7 +1108,7 @@
       END SUBROUTINE RECOMPUTE_OD
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !

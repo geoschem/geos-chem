@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: grid_mod.F90
+! !MODULE: grid_mod
 !
 ! !DESCRIPTION: Module GRID\_MOD contains variables and routines which are 
 !  used to specify the parameters of a GEOS-Chem horizontal grid. Grid 
@@ -19,6 +19,8 @@ MODULE Grid_Mod
 !
   USE CMN_GCTM_Mod             ! Physical constants
   USE Error_Mod                ! Error-handling routines
+
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
   PRIVATE
@@ -45,9 +47,16 @@ MODULE Grid_Mod
   PUBLIC  :: Its_A_Nested_Grid
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
+  PUBLIC  :: SetGridFromCtr
+  PUBLIC  :: RoundOff
 
 ! Make some arrays public
   PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
+
+  INTERFACE RoundOff 
+     MODULE PROCEDURE RoundOff_F4
+     MODULE PROCEDURE RoundOff_F8 
+  END INTERFACE
 !
 ! Comment out for now (bmy, 12/11/12)
 !#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
@@ -63,6 +72,7 @@ MODULE Grid_Mod
 !                              connecting GEOS-Chem to the GEOS-5 GCM
 !  19 May 2013 - C. Keller   - Added wrapper routine DoGridComputation so that
 !                              module can also be used by HEMCO.
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -89,21 +99,21 @@ MODULE Grid_Mod
   INTEGER              :: J0
 
   ! Arrays
-  REAL*8,  ALLOCATABLE, TARGET :: XMID     (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: XEDGE    (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YMID     (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YEDGE    (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YSIN     (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YMID_R   (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YEDGE_R  (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YMID_R_W (:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: YEDGE_R_W(:,:,:)
-  REAL*8,  ALLOCATABLE, TARGET :: AREA_M2  (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: XMID     (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: XEDGE    (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YMID     (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YEDGE    (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YSIN     (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YMID_R   (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YEDGE_R  (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YMID_R_W (:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: YEDGE_R_W(:,:,:)
+  REAL(fp),  ALLOCATABLE, TARGET :: AREA_M2  (:,:,:)
 
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -132,8 +142,8 @@ CONTAINS
     INTEGER, INTENT(IN)  :: J1,  J2                       ! Local lat indices
     INTEGER, INTENT(IN)  :: JSP, JNP                      ! Polar lat indices
     INTEGER, INTENT(IN)  :: L1,  L2                       ! Local lev indices
-    REAL*8,  INTENT(IN)  :: DLON(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lon [deg]
-    REAL*8,  INTENT(IN)  :: DLAT(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lat [deg]
+    REAL(fp),  INTENT(IN)  :: DLON(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lon [deg]
+    REAL(fp),  INTENT(IN)  :: DLAT(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lat [deg]
 
     ! Variables with global CPU indices
     INTEGER, INTENT(IN)  :: I_LO                          ! Min global lon
@@ -175,7 +185,7 @@ CONTAINS
   END SUBROUTINE COMPUTE_GRID
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -206,8 +216,8 @@ CONTAINS
     INTEGER, INTENT(IN)  :: J1,  J2                       ! Local lat indices
     INTEGER, INTENT(IN)  :: JSP, JNP                      ! Polar lat indices
     INTEGER, INTENT(IN)  :: L1,  L2                       ! Local lev indices
-    REAL*8,  INTENT(IN)  :: DLON(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lon [deg]
-    REAL*8,  INTENT(IN)  :: DLAT(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lat [deg]
+    REAL(fp),  INTENT(IN)  :: DLON(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lon [deg]
+    REAL(fp),  INTENT(IN)  :: DLAT(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lat [deg]
 
     ! Variables with global CPU indices
     INTEGER, INTENT(IN)  :: I_LO                          ! Min global lon
@@ -218,16 +228,16 @@ CONTAINS
     INTEGER, INTENT(IN)  :: JOFF
 
     ! Arrays to be filled
-    REAL*8,  INTENT(OUT) :: XMD  (:,:,:) 
-    REAL*8,  INTENT(OUT) :: XDG  (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YMD  (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YDG  (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YSN  (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YMDR (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YDGR (:,:,:) 
-    REAL*8,  INTENT(OUT) :: YMDRW(:,:,:) 
-    REAL*8,  INTENT(OUT) :: YDGRW(:,:,:) 
-    REAL*8,  INTENT(OUT) :: AM2  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: XMD  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: XDG  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YMD  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YDG  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YSN  (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YMDR (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YDGR (:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YMDRW(:,:,:) 
+    REAL(fp),  INTENT(OUT) :: YDGRW(:,:,:) 
+    REAL(fp),  INTENT(OUT) :: AM2  (:,:,:) 
 !
 ! !OUTPUT PARAMETERS:
 !  
@@ -267,11 +277,11 @@ CONTAINS
 ! 
     ! Scalars
     INTEGER :: I,     J,     L,        IG, JG, LBND
-    REAL*8  :: SIN_N, SIN_S, SIN_DIFF, TMP
+    REAL(fp)  :: SIN_N, SIN_S, SIN_DIFF, TMP
 
     ! Arrays
-    REAL*8  :: IND_X( I1:I2+1 )
-    REAL*8  :: IND_Y( J1:J2+1 )
+    REAL(fp)  :: IND_X( I1:I2+1 )
+    REAL(fp)  :: IND_Y( J1:J2+1 )
 
     !======================================================================
     ! Initialization
@@ -279,12 +289,12 @@ CONTAINS
 
     ! Index array for longitudes
     DO I = I1, I2+1
-       IND_X(I) = ( ( I + IOFF - 1 ) * 1d0 ) + ( I_LO - 1 )
+       IND_X(I) = ( ( I + IOFF - 1 ) * 1e+0_fp ) + ( I_LO - 1 )
     ENDDO
 
     ! Index array for latitudes
     DO J = J1, J2+1
-       IND_Y(J) = ( ( J + JOFF - 1 ) * 1d0 ) + ( J_LO - 1 )
+       IND_Y(J) = ( ( J + JOFF - 1 ) * 1e+0_fp ) + ( J_LO - 1 )
     ENDDO
 
     ! Left bound of YMDRW. Since we now pass YMID_R_W as an argument to 
@@ -297,7 +307,8 @@ CONTAINS
     !======================================================================
     
     ! Loop over levels
-    DO L = L1, L2
+!    DO L = L1, L2
+    L = 1
        
        !-------------------------------------------------------------------
        ! Longitude center and edge arrays
@@ -310,10 +321,10 @@ CONTAINS
           DO I = I1, I2
 
              ! Longitude centers
-             XMD(I,J,L)  = ( DLON(I,J,L) * IND_X(I) ) - 180d0
+             XMD(I,J,L)  = ( DLON(I,J,L) * IND_X(I) ) - 180e+0_fp
           
              ! Longitude edges
-             XDG(I,J,L) = XMD(I,J,L) - ( DLON(I,J,L) * 0.5d0 )
+             XDG(I,J,L) = XMD(I,J,L) - ( DLON(I,J,L) * 0.5e+0_fp )
 
              ! Compute the last longitude edge
              IF ( I == I2 ) THEN
@@ -341,7 +352,7 @@ CONTAINS
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !             ! Lat centers (degrees)
-!             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
+!             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90e+0_fp
           
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
              !-------------------------------------------------------------
@@ -361,7 +372,7 @@ CONTAINS
              !-------------------------------------------------------------
 
              ! Lat centers (degrees)
-             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 88d0
+             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 88e+0_fp
 
 #else
 
@@ -376,12 +387,12 @@ CONTAINS
              !-------------------------------------------------------------
 
              ! Lat centers (degrees)
-             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
+             YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90e+0_fp
 
              IF ( JG == JSP ) THEN
-                YMD(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
+                YMD(I,J,L)  = -90e+0_fp + ( 0.5e+0_fp * DLAT(I,J,L) )   ! S pole
              ELSE IF ( JG == JNP ) THEN
-                YMD(I,J,L)  = +90d0 - ( 0.5d0 * DLAT(I,J,L) )   ! N pole
+                YMD(I,J,L)  = +90e+0_fp - ( 0.5e+0_fp * DLAT(I,J,L) )   ! N pole
              ENDIF
 
 # endif
@@ -414,7 +425,7 @@ CONTAINS
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
              ! Lat edges (degrees and radians)
-             YDG(I,J,L)    = YMD(I,J,L) - ( DLAT(I,J,L) * 0.5d0 )
+             YDG(I,J,L)    = YMD(I,J,L) - ( DLAT(I,J,L) * 0.5e+0_fp )
             
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
              !-----------------------------------------------------------
@@ -431,7 +442,7 @@ CONTAINS
              ! be -90 degrees latitude. (bmy, 3/21/13)
              !-----------------------------------------------------------
              IF ( JG == JSP ) THEN
-                YDG(I,J,L) = -90d0                             ! S pole
+                YDG(I,J,L) = -90e+0_fp                             ! S pole
              ENDIF
 #endif          
 
@@ -468,7 +479,7 @@ CONTAINS
              ! the northern edge of grid boxes along the NORTH POLE to
              ! be +90 degrees latitude. (bmy, 3/21/13)
              !-----------------------------------------------------------
-             YDG (I,J2+1,L)   = +90d0
+             YDG (I,J2+1,L)   = +90e+0_fp
 #endif
              YDGR(I,J2+1,L)   = YDG(I,J2+1,L) * PI_180
 
@@ -631,12 +642,12 @@ CONTAINS
 
              ! South pole kludge
              IF ( JG == JSP ) THEN
-                SIN_DIFF = 2d0 * ( SIN_N - ( -1d0 ) )
+                SIN_DIFF = 2e+0_fp * ( SIN_N - ( -1e+0_fp ) )
              ENDIF
 
              ! North pole kludge
              IF ( JG == JNP ) THEN
-                SIN_DIFF = 2d0 * ( 1d0 - SIN_S )
+                SIN_DIFF = 2e+0_fp * ( 1e+0_fp - SIN_S )
              ENDIF
 #endif
 
@@ -646,7 +657,7 @@ CONTAINS
           ENDDO
        ENDDO
 
-    ENDDO
+!    ENDDO !L
 
     ! Return successfully
     RC = GIGC_SUCCESS
@@ -672,10 +683,122 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE DoGridComputation 
-!
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SetGridFromCtr 
+!
+! !DESCRIPTION: Subroutine SetGridFromCtr sets the grid based upon the passed
+! mid-points. This routine is primarily intented to provide an interface to 
+! GEOS-5 in an ESMF-environment.
+!\\
+!\\
+! This routine does not update the grid box areas (AREA\_M2) of grid\_mod.F90.
+! These need to be updated manually. We cannot do this within this routine
+! since in GEOS-5, the grid box areas are not yet available during the 
+! initialization phase (they are imported from superdynamics).
+! !INTERFACE:
+!
+  SUBROUTINE SetGridFromCtr( am_I_Root, NX, NY, lonCtr, latCtr, RC ) 
+!
+! USES
+!
+    USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,  INTENT(IN)    :: am_I_Root      ! Root CPU?
+    INTEGER,  INTENT(IN)    :: NX             ! # of lons
+    INTEGER,  INTENT(IN)    :: NY             ! # of lats
+    REAL(f4), INTENT(IN)    :: lonCtr(NX,NY)  ! Lon ctrs [deg]
+    REAL(f4), INTENT(IN)    :: latCtr(NX,NY)  ! Lat ctrs [deg]
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT) :: RC 
+!
+! !REVISION HISTORY:
+!  02 Jan 2014 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I, J, L
+    INTEGER            :: NI, NJ, NL
+
+    CHARACTER(LEN=255) :: MSG
+
+    !======================================================================
+    ! SetGridFromCtr begins here! 
+    !======================================================================
+
+    ! Get array size
+    NI = SIZE(XMID,1)
+    NJ = SIZE(XMID,2)
+    NL = SIZE(XMID,3)
+
+    ! Horizontal dimensions must agree
+    IF ( NX /= NI .OR. NY /= NJ ) THEN
+       WRITE(MSG,*) 'Grid dimension mismatch: ',NX,'/=',NI,' and/or ',NY,'/=',NJ
+       CALL ERROR_STOP ( MSG, 'SetGridFromCtr (grid_mod.F90)' )
+       RC = GIGC_FAILURE
+       RETURN
+    ENDIF
+
+    ! Loop over all grid boxes
+    DO L = 1, NL 
+    DO J = 1, NJ
+    DO I = 1, NI
+
+       ! Mid points: get directly from passed value
+       XMID(I,J,L)      = RoundOff( lonCtr(I,J) / PI_180, 4 )
+       YMID(I,J,L)      = RoundOff( latCtr(I,J) / PI_180, 4 )
+       YMID_R(I,J,L)    = latCtr(I,J)
+       IF ( ALLOCATED(YMID_R_W) ) THEN
+          YMID_R_W(I,J,L)  = YMID_R(I,J,L)
+       ENDIF
+
+       ! Edges: approximate from neighboring mid points.
+       IF ( I == 1 ) THEN
+          XEDGE(I,J,L) = XMID(I,J,L) - ( ( XMID(I+1,J,L) - XMID(I,J,L) ) / 2.0_f4 )
+       ELSE
+          XEDGE(I,J,L) = ( XMID(I,J,L) + XMID(I-1,J,L) ) / 2.0_f4
+       ENDIF
+
+       IF ( J == 1 ) THEN
+          YEDGE(I,J,L) = YMID(I,J,L) - ( ( YMID(I,J+1,L) - YMID(I,J,L) ) / 2.0_f4 )
+       ELSE
+          YEDGE(I,J,L) = ( YMID(I,J,L) + YMID(I,J-1,L) ) / 2.0_f4
+       ENDIF
+
+       ! Special treatment at uppermost edge
+       IF ( I == NI ) THEN
+          XEDGE(I+1,J,L) = XMID(I,J,L) + ( ( XMID(I,J,L) - XMID(I-1,J,L) ) / 2.0_f4 )
+       ENDIF
+       IF ( J == NJ ) THEN
+          YEDGE(I,J+1,L) = YMID(I,J,L) + ( ( YMID(I,J,L) - YMID(I,J-1,L) ) / 2.0_f4 )
+       ENDIF
+
+       ! Special quantities directly derived from YEDGE
+       YEDGE_R(I,J,L)   = YEDGE(I,J,L) * PI_180
+       YSIN(I,J,L)      = SIN( YEDGE_R(I,J,L) )
+
+    ENDDO
+    ENDDO
+    ENDDO 
+
+    ! Return w/ success
+    RC = GIGC_SUCCESS
+
+  END SUBROUTINE SetGridFromCtr
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -703,7 +826,7 @@ CONTAINS
   END SUBROUTINE Set_xOffSet
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -732,7 +855,7 @@ CONTAINS
   END SUBROUTINE Set_yOffSet
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -778,7 +901,7 @@ CONTAINS
   END FUNCTION Get_xOffSet
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -824,7 +947,7 @@ CONTAINS
   END FUNCTION Get_yOffSet
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -846,19 +969,20 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: X   ! Corresponding lon value @ grid box ctr
+    REAL(fp)              :: X   ! Corresponding lon value @ grid box ctr
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    X = XMID(I,J,L)
+    !X = XMID(I,J,L)
+    X = XMID(I,J,1)
 
   END FUNCTION Get_xMid
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -880,7 +1004,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: X   ! Corresponding lon value @ W edge of grid box
+    REAL(fp)              :: X   ! Corresponding lon value @ W edge of grid box
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
@@ -888,12 +1012,13 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    X = XEDGE(I,J,L)
+    !X = XEDGE(I,J,L)
+    X = XEDGE(I,J,1)
 
   END FUNCTION Get_xEdge
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -915,19 +1040,20 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Latitude value at @ grid box ctr [degrees]
+    REAL(fp)              :: Y   ! Latitude value at @ grid box ctr [degrees]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    Y = YMID(I,J,L)
+    !Y = YMID(I,J,L)
+    Y = YMID(I,J,1)
       
   END FUNCTION Get_yMid
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -950,19 +1076,20 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Latitude value @ S edge of grid box [degrees]
+    REAL(fp)              :: Y   ! Latitude value @ S edge of grid box [degrees]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    Y = YEDGE(I,J,L)
+    !Y = YEDGE(I,J,L)
+    Y = YEDGE(I,J,1)
 
   END FUNCTION Get_yEdge
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -984,19 +1111,20 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Latitude value at @ grid box ctr [radians]
+    REAL(fp)              :: Y   ! Latitude value at @ grid box ctr [radians]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    Y = YMID_R(I,J,L)
+    !Y = YMID_R(I,J,L)
+    Y = YMID_R(I,J,1)
 
   END FUNCTION Get_yMid_R
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1018,7 +1146,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Latitude value at @ grid box ctr [radians]
+    REAL(fp)              :: Y   ! Latitude value at @ grid box ctr [radians]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
@@ -1031,19 +1159,20 @@ CONTAINS
 
     ! For nested grids, return the latitude center of the window
     ! region (in radians)
-    Y = YMID_R_W(I,J,L)
+    !Y = YMID_R_W(I,J,L)
+    Y = YMID_R_W(I,J,1)
 
 #else
 
     ! Otherwise return a fake value
-    Y = -1d0
+    Y = -1e+0_fp
 
 #endif
 
   END FUNCTION Get_yMid_R_W
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1065,7 +1194,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Latitude value @ S edge of grid box [radians]
+    REAL(fp)              :: Y   ! Latitude value @ S edge of grid box [radians]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
@@ -1073,12 +1202,13 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    Y = YEDGE_R(I,J,L)
+    !Y = YEDGE_R(I,J,L)
+    Y = YEDGE_R(I,J,1)
 
   END FUNCTION Get_yEdge_R
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1100,7 +1230,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: Y   ! Sine of Latitude value @ S edge of grid box
+    REAL(fp)              :: Y   ! Sine of Latitude value @ S edge of grid box
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - M. Payer    -  Initial version (M. Cooper)
@@ -1108,12 +1238,13 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-      Y = YSIN(I,J,L)
+      !Y = YSIN(I,J,L)
+      Y = YSIN(I,J,1)
 
       END FUNCTION Get_ySin
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1135,19 +1266,20 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: A   ! Grid box surface area [m2]
+    REAL(fp)              :: A   ! Grid box surface area [m2]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    A = AREA_M2(I,J,L)
+    !A = AREA_M2(I,J,L)
+    A = AREA_M2(I,J,1)
 
   END FUNCTION Get_Area_m2
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1169,19 +1301,20 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL*8              :: A  ! Grid box surface area [cm2]
+    REAL(fp)              :: A  ! Grid box surface area [cm2]
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    A = AREA_M2(I,J,L) * 1d4
+    !A = AREA_M2(I,J,L) * 1e+4_fp
+    A = AREA_M2(I,J,1) * 1e+4_fp
     
   END FUNCTION Get_Area_cm2
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1201,7 +1334,7 @@ CONTAINS
     INTEGER, INTENT(IN)  :: I1, I2      ! Lon indices
     INTEGER, INTENT(IN)  :: J1, J2      ! Lat indices
     INTEGER, INTENT(IN)  :: L
-    REAL*8,  INTENT(IN)  :: COORDS(4)   ! (/LON_LL, LAT_LL, LON_UR, LAT_UR/)
+    REAL(fp),  INTENT(IN)  :: COORDS(4)   ! (/LON_LL, LAT_LL, LON_UR, LAT_UR/)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -1240,12 +1373,12 @@ CONTAINS
     DO I = I1, I2
 
        ! Locate index corresponding to the lower-left longitude
-       IF ( COORDS(1) >  XEDGE(I,  J,L)   .and.          &
-            COORDS(1) <= XEDGE(I+1,J,L) ) INDICES(1) = I
+       IF ( COORDS(1) >  XEDGE(I,  J,1)   .and.          &
+            COORDS(1) <= XEDGE(I+1,J,1) ) INDICES(1) = I
 
          ! Locate index corresponding to upper-right longitude
-       IF ( COORDS(3) >  XEDGE(I,  J,L)   .and.          &
-            COORDS(3) <= XEDGE(I+1,J,L) ) INDICES(3) = I
+       IF ( COORDS(3) >  XEDGE(I,  J,1)   .and.          &
+            COORDS(3) <= XEDGE(I+1,J,1) ) INDICES(3) = I
 
     ENDDO
     ENDDO
@@ -1267,12 +1400,12 @@ CONTAINS
     DO I = 1,  1
 
        ! Locate index corresponding to the lower-left latitude
-       IF ( COORDS(2) >  YEDGE(I,J,  L)   .and.          &
-            COORDS(2) <= YEDGE(I,J+1,L) ) INDICES(2) = J
+       IF ( COORDS(2) >  YEDGE(I,J,  1)   .and.          &
+            COORDS(2) <= YEDGE(I,J+1,1) ) INDICES(2) = J
 
        ! Locate index corresponding to the upper-right latitude
-       IF ( COORDS(4) >  YEDGE(I,J,  L)   .and.          &
-            COORDS(4) <= YEDGE(I,J+1,L) ) INDICES(4) = J
+       IF ( COORDS(4) >  YEDGE(I,J,  1)   .and.          &
+            COORDS(4) <= YEDGE(I,J+1,1) ) INDICES(4) = J
 
     ENDDO
     ENDDO
@@ -1290,7 +1423,7 @@ CONTAINS
   END SUBROUTINE Get_Bounding_Box
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1321,7 +1454,7 @@ CONTAINS
 ! Prior to 12/4/12:
 ! Dimension arrays with 
 !!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!                  GEOS-Chem Global Chemical Transport Model                  !
 !!------------------------------------------------------------------------------
 !!BOP
 !!
@@ -1377,31 +1510,31 @@ CONTAINS
 !   !ALLOCATE( XEDGE( I1:I2+1, J1:J2, L1:L2 ), STAT=AS )
 !    ALLOCATE( XEDGE( I2-I1+2, J2-J1+1, L2-L1+1 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'XEDGE' )
-!    XEDGE = 0d0
+!    XEDGE = 0e+0_fp
 !    
 !    ALLOCATE( YMID( I1:I2, J1:J2, L1:L2 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID' )
-!    YMID = 0d0
+!    YMID = 0e+0_fp
 !    
 !    ALLOCATE( YEDGE( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
-!    YEDGE = 0d0
+!    YEDGE = 0e+0_fp
 !
 !    ALLOCATE( YSIN( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YSIN' )
-!    YSIN = 0d0
+!    YSIN = 0e+0_fp
 !
 !    ALLOCATE( YMID_R( I1:I2, J1:J2, L1:L2 ), STAT=AS )               
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
-!    YMID_R = 0d0
+!    YMID_R = 0e+0_fp
 !   
 !    ALLOCATE( YEDGE_R( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_R' )
-!    YEDGE_R = 0d0
+!    YEDGE_R = 0e+0_fp
 !
 !    ALLOCATE( AREA_M2( I1:I2, J1:J2, L1:L2 ), STAT=AS )
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
-!    AREA_M2 = 0d0
+!    AREA_M2 = 0e+0_fp
 !
 !#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
 !
@@ -1415,7 +1548,7 @@ CONTAINS
 !    ! Allocate nested-grid window array of lat centers (radians)
 !    ALLOCATE( YMID_R_W( I1:I2, 0:J2+1, L1:L2 ), STAT=AS ) 
 !    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
-!    YMID_R_W = 0d0
+!    YMID_R_W = 0e+0_fp
 !
 !#endif
 !
@@ -1426,7 +1559,7 @@ CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1467,7 +1600,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 ! 
-    INTEGER :: AS
+    INTEGER :: L, AS
 
     !======================================================================
     ! Initialize module variables
@@ -1479,37 +1612,41 @@ CONTAINS
     ! First assume that we are doing a global simulation
     IS_NESTED = .FALSE.
 
-    ALLOCATE( XMID   ( IM,   JM,   LM ), STAT=RC )
+    ! We only need one level (ckeller, 01/02/15).
+    !L = LM
+    L = 1
+
+    ALLOCATE( XMID   ( IM,   JM,   L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'XMID' )
-    XMID    = 0d0
+    XMID    = 0e+0_fp
     
-    ALLOCATE( XEDGE  ( IM+1, JM,   LM ), STAT=RC )
+    ALLOCATE( XEDGE  ( IM+1, JM,   L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'XEDGE' )
-    XEDGE   = 0d0
+    XEDGE   = 0e+0_fp
     
-    ALLOCATE( YMID   ( IM,   JM,   LM ), STAT=RC )
+    ALLOCATE( YMID   ( IM,   JM,   L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID' )
-    YMID    = 0d0
+    YMID    = 0e+0_fp
     
-    ALLOCATE( YEDGE  ( IM,   JM+1, LM ), STAT=RC )
+    ALLOCATE( YEDGE  ( IM,   JM+1, L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
-    YEDGE   = 0d0
+    YEDGE   = 0e+0_fp
 
-    ALLOCATE( YSIN   ( IM,   JM+1, LM ), STAT=RC )
+    ALLOCATE( YSIN   ( IM,   JM+1, L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YSIN' )
-    YSIN    = 0d0
+    YSIN    = 0e+0_fp
 
-    ALLOCATE( YMID_R ( IM,   JM,   LM ), STAT=RC )               
+    ALLOCATE( YMID_R ( IM,   JM,   L ), STAT=RC )               
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
-    YMID_R  = 0d0
+    YMID_R  = 0e+0_fp
    
-    ALLOCATE( YEDGE_R( IM,   JM+1, LM ), STAT=RC )
+    ALLOCATE( YEDGE_R( IM,   JM+1, L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YEDGE_R' )
-    YEDGE_R = 0d0
+    YEDGE_R = 0e+0_fp
 
-    ALLOCATE( AREA_M2( IM,   JM,   LM ), STAT=RC )
+    ALLOCATE( AREA_M2( IM,   JM,   L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
-    AREA_M2 = 0d0
+    AREA_M2 = 0e+0_fp
 
 #if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
 
@@ -1521,16 +1658,16 @@ CONTAINS
     IS_NESTED = .TRUE.
     
     ! Allocate nested-grid window array of lat centers (radians)
-    ALLOCATE( YMID_R_W( IM, 0:JM+1, LM ), STAT=AS ) 
+    ALLOCATE( YMID_R_W( IM, 0:JM+1, L ), STAT=AS ) 
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
-    YMID_R_W = 0d0
+    YMID_R_W = 0e+0_fp
 
 #endif
 
   END SUBROUTINE Init_Grid
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1559,5 +1696,109 @@ CONTAINS
     IF ( ALLOCATED( AREA_M2    ) ) DEALLOCATE( AREA_M2    )
     
   END SUBROUTINE Cleanup_Grid
+!EOC
+!------------------------------------------------------------------------------
+!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: RoundOff_f4
+!
+! !DESCRIPTION: Rounds a number X to N decimal places of precision.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION RoundOff_f4( X, N ) RESULT( Y )
+!
+! !INPUT PARAMETERS:
+! 
+    REAL(f4), INTENT(IN) :: X   ! Number to be rounded
+    INTEGER,  INTENT(IN) :: N   ! Number of decimal places to keep
+!
+! !RETURN VALUE:
+!
+    REAL(f4)             :: Y   ! Number rounded to N decimal places
+!
+! !REMARKS:
+!  The algorithm to round X to N decimal places is as follows:
+!  (1) Multiply X by 10**(N+1)
+!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
+!  (3) Round X to nearest integer
+!  (4) Divide X by 10**(N+1)
+!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
+!                                                                             .
+!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
+!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
+!                                                                             .
+!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
+!                                                                             .
+!  The two algorithms have been merged together for efficiency.
+!
+! !REVISION HISTORY:
+!  14 Jul 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    ! Round and truncate X to N decimal places
+    Y = INT( NINT( X*(10.0_f4**(N+1)) + SIGN( 5.0_f4, X ) ) / 10.0_f4 ) / (10.0_f4**N)
+
+  END FUNCTION RoundOff_f4
+!EOC
+!------------------------------------------------------------------------------
+!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: RoundOff_f8
+!
+! !DESCRIPTION: Rounds a number X to N decimal places of precision.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION RoundOff_f8( X, N ) RESULT( Y )
+!
+! !INPUT PARAMETERS:
+! 
+    REAL(f8), INTENT(IN) :: X   ! Number to be rounded
+    INTEGER,  INTENT(IN) :: N   ! Number of decimal places to keep
+!
+! !RETURN VALUE:
+!
+    REAL(f8)             :: Y   ! Number rounded to N decimal places
+!
+! !REMARKS:
+!  The algorithm to round X to N decimal places is as follows:
+!  (1) Multiply X by 10**(N+1)
+!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
+!  (3) Round X to nearest integer
+!  (4) Divide X by 10**(N+1)
+!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
+!                                                                             .
+!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
+!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
+!                                                                             .
+!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
+!                                                                             .
+!  The two algorithms have been merged together for efficiency.
+!
+! !REVISION HISTORY:
+!  14 Jul 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    ! Round and truncate X to N decimal places
+    Y = INT( NINT( X*(10.0_f8**(N+1)) + SIGN( 5.0_f8, X ) ) / 10.0_f8 ) / (10.0_f8**N)
+
+  END FUNCTION RoundOff_f8
 !EOC
 END MODULE Grid_Mod

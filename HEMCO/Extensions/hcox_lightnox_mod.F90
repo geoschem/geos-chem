@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -41,9 +41,8 @@ MODULE HCOX_LightNOx_Mod
 !
   USE HCO_Error_Mod
   USE HCO_Diagn_Mod
-  USE HCO_State_Mod,     ONLY : HCO_State
-  USE HCOX_State_MOD,    ONLY : Ext_State
-  USE Lightning_CDF_Mod 
+  USE HCO_State_Mod,  ONLY : HCO_State
+  USE HCOX_State_MOD, ONLY : Ext_State
 
   IMPLICIT NONE
   PRIVATE
@@ -133,43 +132,51 @@ MODULE HCOX_LightNOx_Mod
 !  22 Jul 2014 - R. Yantosca - Now hardwire the Lesley Ott et al CDF's in 
 !                              lightning_cdf_mod.F90.  This avoids having to
 !                              read an ASCII input in the ESMF environment.
+!  13 Jan 2015 - L. Murray   - Add most recent lightning updates to HEMCO version
+!  26 Feb 2015 - R. Yantosca - Restore reading the lightning CDF's from an
+!                              ASCII file into the PROFILE array.  This helps
+!                              to reduce compilation time.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-  REAL*8,  PARAMETER           :: RFLASH_MIDLAT = 3.011d26   ! 500 mol/flash
-  REAL*8,  PARAMETER           :: RFLASH_TROPIC = 1.566d26   ! 260 mol/flash
-  REAL*8,  PARAMETER           :: EAST_WEST_DIV = -30d0
-  REAL*8,  PARAMETER           :: WEST_NS_DIV   =  23d0
-  REAL*8,  PARAMETER           :: EAST_NS_DIV   =  35d0
-  REAL*8,  PARAMETER           :: T_NEG_BOT     = 273.0d0    !   0 C 
-  REAL*8,  PARAMETER           :: T_NEG_CTR     = 258.0d0    ! -15 C
-  REAL*8,  PARAMETER           :: T_NEG_TOP     = 233.0d0    ! -40 C
+  INTEGER, PARAMETER            :: NLTYPE        = 4
+  INTEGER, PARAMETER            :: NNLIGHT       = 3200
+  REAL*8,  PARAMETER            :: RFLASH_MIDLAT = 3.011d26   ! 500 mol/flash
+  REAL*8,  PARAMETER            :: RFLASH_TROPIC = 1.566d26   ! 260 mol/flash
+  REAL*8,  PARAMETER            :: EAST_WEST_DIV = -30d0
+  REAL*8,  PARAMETER            :: WEST_NS_DIV   =  23d0
+  REAL*8,  PARAMETER            :: EAST_NS_DIV   =  35d0
+  REAL*8,  PARAMETER            :: T_NEG_BOT     = 273.0d0    !   0 C 
+  REAL*8,  PARAMETER            :: T_NEG_CTR     = 258.0d0    ! -15 C
+  REAL*8,  PARAMETER            :: T_NEG_TOP     = 233.0d0    ! -40 C
                                
   ! testing only               
-  integer, parameter           :: ix = -1 !30 !19 
-  integer, parameter           :: iy = -1 !6  !33 
-  integer, parameter           :: iz = -1 !9  !9
+  integer, parameter            :: ix = -1 !30 !19 
+  integer, parameter            :: iy = -1 !6  !33 
+  integer, parameter            :: iz = -1 !9  !9
 !
 ! !PRIVATE TYPES:
 !
   ! Scalars
-  REAL*8                       :: AREA_30N
-  REAL*8                       :: OTD_LIS_SCALE
-  LOGICAL                      :: LOTDLOC   ! Use OTD-LIS distribution factors?
+  REAL*8                        :: AREA_30N
+  REAL*8                        :: OTD_LIS_SCALE
+  LOGICAL                       :: OTD_LIS_PRESC ! Is OTD_LIS_SCALE prescribed?
+  LOGICAL                       :: LOTDLOC       ! Use OTD-LIS dist factors?
 
   ! Arrays
-  REAL(hp),ALLOCATABLE, TARGET :: SLBASE(:,:,:)
+  REAL(dp), ALLOCATABLE, TARGET :: PROFILE(:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: SLBASE(:,:,:)
 
   ! OTD scale factors read through configuration file
-  REAL(hp), POINTER :: OTDLIS(:,:) => NULL()
+  REAL(sp), POINTER :: OTDLIS(:,:) => NULL()
 
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -187,8 +194,6 @@ CONTAINS
 ! !USES:
 !
     USE HCO_FluxArr_Mod,  ONLY : HCO_EmisAdd 
-    USE HCO_CLOCK_MOD,    ONLY : HcoClock_Get, HcoClock_NewMonth
-    USE HCO_ExtList_Mod,  ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -225,10 +230,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     REAL(hp), POINTER   :: Arr3D(:,:,:) => NULL()
-    REAL(dp)            :: TmpScale
     INTEGER             :: Yr, Mt
     LOGICAL             :: FOUND
-    LOGICAL,  SAVE      :: FIRST = .TRUE.
 
     !=================================================================
     ! HCOX_LIGHTNOX_RUN begins here!
@@ -240,39 +243,6 @@ CONTAINS
 
     ! Return if extension disabled 
     IF ( ExtNr <= 0 ) RETURN
-
-    ! Get scaling factor to match annual average global flash rate
-    ! (ltm, 09/24/07)
-    ! This factor may change after august 2008 due to a change in the
-    ! GEOS-5 met fields. So need to add a check here to make sure that
-    ! the scale factor is updated. Also, allow factor to be set in the
-    ! configuration file directly. This is required for the GEOS-5 
-    ! implementation (ckeller, 10/7/14)
-
-    ! Reset to first if we change to September 2008.
-    CALL HcoClock_Get ( cYYYY=Yr, cMM=Mt, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( Yr==2008 .AND. Mt==9 .AND. HcoClock_NewMonth() ) FIRST = .TRUE.
-
-    ! Get scale factor. 
-    IF ( FIRST ) THEN
-
-       ! Try to read from configuration file first.
-       CALL GetExtOpt ( ExtNr, 'OTD-LIS scaling', &
-                        OptValDp = TmpScale, FOUND=FOUND, RC=RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IF ( FOUND ) THEN
-          OTD_LIS_SCALE = TmpScale
-
-       ! Get according to compiler switches otherwise
-       ELSE
-          CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF
-
-       ! Reset first flag
-       FIRST = .FALSE.
-    ENDIF
 
     ! Update lightnox NOx emissions (fill SLBASE) 
     CALL LIGHTNOX ( am_I_Root, HcoState, ExtState, RC )
@@ -293,7 +263,7 @@ CONTAINS
        ! Eventually update diagnostics
        IF ( Diagn_AutoFillLevelDefined(2) ) THEN
           Arr3D => SLBASE
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
+          CALL Diagn_Update( am_I_Root, ExtNr=ExtNr, &
                              Cat=-1, Hier=-1, HcoID=IDTNO,     &
                              AutoFill=1, Array3D=Arr3D, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -307,7 +277,7 @@ CONTAINS
   END SUBROUTINE HCOX_LightNOx_Run
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -326,6 +296,7 @@ CONTAINS
     USE HCO_EmisList_Mod, ONLY : HCO_GetPtr      
     USE HCO_GeoTools_Mod, ONLY : HCO_LANDTYPE
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
+    USE HCO_ExtList_Mod,  ONLY : GetExtOpt
 !
 ! !INPUT PARAMETERS:
 !
@@ -362,6 +333,10 @@ CONTAINS
 !                              derived type object
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  06 Oct 2014 - C. Keller   - Now calculate pressure centers from edges.
+!  16 Jan 2015 - R. Yantosca - Bug fix: TmpScale should be REAL(dp)
+!  11 Mar 2015 - C. Keller   - Now determine LTOP from buoyancy for grid boxes
+!                              where convection is explicitly resolved. For now,
+!                              this will only work in an ESMF environment.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -370,7 +345,7 @@ CONTAINS
 !
     INTEGER           :: I,         J,           L,        LCHARGE
     INTEGER           :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
-    INTEGER           :: cMt 
+    INTEGER           :: cMt,       MTYPE 
     REAL*8            :: A_KM2,     A_M2,        CC,       DLNP     
     REAL*8            :: DZ,        FLASHRATE,   H0,       HBOTTOM
     REAL*8            :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
@@ -381,13 +356,18 @@ CONTAINS
     REAL*8            :: XMID
     REAL*8            :: VERTPROF(HcoState%NZ)
     INTEGER           :: LNDTYPE, SFCTYPE
+    INTEGER           :: DiagnID
     LOGICAL, SAVE     :: FIRST   = .TRUE.
     LOGICAL, SAVE     :: DoDiagn = .FALSE.
-    REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,3)
+    REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,4)
     REAL(hp), POINTER :: Arr2D(:,:) => NULL() 
-    CHARACTER(LEN=31) :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
     REAL(hp)          :: TROPP
+    REAL(dp)          :: TmpScale
+
+    ! 'Hybrid' cloud top height in an ESMF environment 
+    INTEGER           :: LTOPtmp
+    REAL(hp), TARGET  :: TOPDIAGN(HcoState%NX,HcoState%NY,3)
 
     !=================================================================
     ! LIGHTNOX begins here!
@@ -402,45 +382,59 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( FIRST ) THEN
 
-       ! See if we have to write out manual diagnostics
-       IF ( .NOT. DoDiagn ) THEN
-          DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-          TmpCnt => NULL()
-       ENDIF
-       IF ( .NOT. DoDiagn ) THEN
-          DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-          TmpCnt => NULL()
-       ENDIF
-       IF ( .NOT. DoDiagn ) THEN
-          DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
-          CALL DiagnCont_Find ( -1, -1, -1, -1, -1, DiagnName, 0, DoDiagn, TmpCnt )
-          TmpCnt => NULL()
-       ENDIF
+       ! See if we have to write out manual diagnostics. These are all
+       ! defined together, so check only for one diagnostics.
+       DiagnID = 56001
+       CALL DiagnCont_Find ( DiagnID, -1, -1, -1, -1, '', 0, DoDiagn, TmpCnt )
+       TmpCnt => NULL()
 
        ! Eventually get OTD-LIS local redistribution factors from HEMCO.
        IF ( LOTDLOC ) THEN
           CALL HCO_GetPtr( am_I_Root, 'LIGHTNOX_OTDLIS', OTDLIS, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
+
+       ! Get scale factor. 
+       ! - Try to read from configuration file first.
+       CALL GetExtOpt ( ExtNr, 'OTD-LIS scaling', &
+                        OptValDp = TmpScale, FOUND=OTD_LIS_PRESC, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( OTD_LIS_PRESC ) THEN
+          OTD_LIS_SCALE = TmpScale
+       ! - Get according to compiler switches otherwise
+       ELSE
+          CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       ! Update first flag
        FIRST = .FALSE.
     ENDIF
 
     ! Reset arrays 
     SLBASE = 0.0_hp
-    IF (DoDiagn) DIAGN = 0.0_hp
+    IF (DoDiagn) THEN
+       DIAGN    = 0.0_hp
+       TOPDIAGN = 0.0_hp
+    ENDIF
 
     ! LMAX: the highest L-level to look for lightnox (usually LLPAR-1)
     LMAX   = HcoState%NZ - 1
 
 #if defined( GEOS_5 ) 
+    ! Get scaling factor to match annual average global flash rate
+    ! (ltm, 09/24/07)
     ! Because of different convection in GEOS 5.1.0 and GEOS 5.2.0,
     ! this value is different before and after Sept 1, 2008. 
     ! So reset value at start of each month, just in case it's
     ! a 2008 simulation. (ltm,1/26/11)
-    CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Added option to prescribe OTD_LIS_SCALE in configuration file. 
+    ! In this case, never call GET_OTD_LIS_SCALE but always use the 
+    ! prescribed value. (ckeller,1/13/15)
+    IF ( .NOT. OTD_LIS_PRESC ) THEN
+       CALL GET_OTD_LIS_SCALE( OTD_LIS_SCALE, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 #endif
 
     ! Get current month (to be passed to LIGHTDIST)
@@ -461,6 +455,7 @@ CONTAINS
 !$OMP PRIVATE( IC_CG_RATIO, L_MFLUX,  MFLUX,    RAIN,   RATE      ) &
 !$OMP PRIVATE( X,           TOTAL_IC, TOTAL_CG, TOTAL,  REDIST    ) &
 !$OMP PRIVATE( RATE_SAVE,   VERTPROF, SFCTYPE,  LNDTYPE, TROPP    ) &
+!$OMP PRIVATE( MTYPE,       LTOPtmp                               ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes
@@ -621,22 +616,98 @@ CONTAINS
        ! unable to create the necessary dipole.  Therefore, if 
        ! T(I,J,LTOP) >= -40 C, go to the next (I,J) location. 
        !
-       ! (ltm, bmy, 5/10/06, 12/11/06)
-       !
        ! To be easily translatable to an ESMF environment, we now 
        ! use the convective cloud mass flux to determine LTOP.
        ! Use the same definition as used in GEOS-Chem.
-       ! (ckeller, 10/7/14)
+       !
+       ! (ltm, bmy, 5/10/06, 12/11/06)
+       !
+       ! GEOS-5 diagnoses the convective cloud top height directly.
+       ! If available, now use this parameter to determine LTOP.
+       ! The result is basically identical to the traditional 
+       ! definition of LTOP (ckeller, 3/11/15).
        !===========================================================
 
-       ! Cloud top level
-       LTOP = 1
-       DO L = HcoState%NZ, 1, -1
-          IF ( ExtState%CNV_MFC%Arr%Val(I,J,L) > 0.0_hp ) THEN
-             LTOP = L + 1
-             EXIT
+       ! To determine cloud top height from convective cloud
+       ! top height diagnostics.
+       IF ( ASSOCIATED( ExtState%CNV_TOPP%Arr%Val ) ) THEN
+          LTOP = 1
+          DO L = 1, HcoState%NZ
+             IF (  HcoState%Grid%PEDGE%Val(I,J,L+1) &
+                <= ExtState%CNV_TOPP%Arr%Val(I,J) ) THEN
+                LTOP = L + 1
+                EXIT
+             ENDIF
+          ENDDO
+
+       ! 'Traditional' definition
+       ELSE
+
+          ! Cloud top level
+          LTOP = 1
+          DO L = HcoState%NZ, 1, -1
+             IF ( ExtState%CNV_MFC%Arr%Val(I,J,L) > 0.0_hp ) THEN
+                LTOP = L + 1
+                EXIT
+             ENDIF
+          ENDDO 
+       ENDIF
+
+       ! Diagnose 'traditional' LTOP
+       IF ( DoDiagn .AND. LTOP >= LCHARGE ) THEN
+          TOPDIAGN(I,J,1) = MIN(LTOP,LMAX)
+       ENDIF
+
+       !------------------------------------------------------------------
+       ! Check for grid boxes where convection is not parameterized but
+       ! explicitly resolved. In these cases, the convective mass flux
+       ! is zero and LTOP won't be defined with the definition above.
+       ! Below, we check if this grid box explicitly resolves convection 
+       ! based on the RCCODE parameter (returned from the GEOS-5 moist 
+       ! component). If RCCODE is 7 in any layer, convection has been shut 
+       ! down for this grid box and the uppermost level of positive 
+       ! buoyancy is used to approximate the convective cloud top level. 
+       ! The buoyancy is defined throughout all grid boxes. Its uppermost 
+       ! positive level agrees very well with the highest level where 
+       ! convective mass flux is non-zero (ckeller, 3/11/15).
+       !
+       ! NOTE: At the moment, RCCODE and BYNCY are only defined within
+       ! GEOS-5, e.g. the code snipped below will only be in effect for
+       ! simulations within the GEOS-5 system. 
+       !-----------------------------------------------------------------
+
+       ! Top level with return code = 7, plus one
+       IF ( ASSOCIATED( ExtState%RCCODE%Arr%Val ) ) THEN
+          LTOPtmp = 0
+          DO L = HcoState%NZ, 1, -1
+             IF ( ExtState%RCCODE%Arr%Val(I,J,L) > 6.9_sp ) THEN 
+                LTOPtmp = L + 1
+                EXIT
+             ENDIF
+          ENDDO
+
+          IF ( LTOPtmp > 0 ) THEN
+             ! First level with positive buoyancy
+             IF ( ASSOCIATED( ExtState%BYNCY%Arr%Val ) ) THEN
+                LTOP = 0
+                DO L = HcoState%NZ, 1, -1
+                   IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN 
+                      LTOP = L + 1
+                      EXIT
+                   ENDIF
+                ENDDO
+     
+                ! Write to diagnostics
+                IF ( DoDiagn .AND. LTOP >= LCHARGE ) THEN
+                   TOPDIAGN(I,J,2) = MIN(LTOP,LMAX)
+                ENDIF
+             ENDIF
           ENDIF
-       ENDDO 
+       ENDIF
+ 
+       !----------------------------------------------------------------
+       ! Error checks for LTOP 
+       !----------------------------------------------------------------
 
        ! Error check LTOP
        IF ( LTOP == 0 ) CYCLE
@@ -645,11 +716,15 @@ CONTAINS
        IF ( LTOP        >  LMAX      ) LTOP = LMAX
        IF ( LTOP        <  LCHARGE   ) CYCLE
 
-#if    defined( GEOS_4 )
+       ! Diagnose used LTOP
+       IF ( DoDiagn ) THEN 
+          TOPDIAGN(I,J,3) = LTOP
+       ENDIF
 
        !--------------------------
        ! GEOS-4 only
        !--------------------------
+#if    defined( GEOS_4 )
        ! Shallow-cloud inhibition trap (see Murray et al. [2011])
        IF ( ExtState%TK%Arr%Val(I,J,LTOP) >= T_NEG_TOP ) CYCLE
 
@@ -765,7 +840,7 @@ CONTAINS
        ! eventually be used for separate vertical distributions
        ! when they become available.  (ltm, bmy, 12/11/06)
        !===========================================================
-			
+
        ! Get Inter-Cloud/Cloud-Ground flash ratio [unitless]
        IC_CG_RATIO = GET_IC_CG_RATIO( CC )
 
@@ -982,7 +1057,11 @@ CONTAINS
           ! Partition the column total NOx [molec/6h] from lightnox 
           ! into the vertical using Pickering PDF functions
           CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF, &
-                          ExtState, HcoState, SFCTYPE, cMt )
+                          ExtState, HcoState, SFCTYPE, cMt, MTYPE )
+
+          IF ( DoDiagn ) THEN
+             DIAGN(I,J,4) = MTYPE
+          ENDIF
 
           ! Add vertically partitioned NOx into SLBASE array
           DO L = 1, HcoState%NZ
@@ -1011,28 +1090,43 @@ CONTAINS
 
     ! Eventually add individual diagnostics. These go by names!
     IF ( DoDiagn ) THEN
-       DiagnName =  'LIGHTNING_TOTAL_FLASHRATE'
-       Arr2D     => DIAGN(:,:,1)
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       DiagnID =  56001
+       Arr2D   => DIAGN(:,:,1)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
-       ! Eventually add individual diagnostics. These go by names!
-       DiagnName =  'LIGHTNING_INTRACLOUD_FLASHRATE'
+       DiagnID =  56002
        Arr2D     => DIAGN(:,:,2)
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
-       ! Eventually add individual diagnostics. These go by names!
-       DiagnName =  'LIGHTNING_CLOUDGROUND_FLASHRATE'
+       DiagnID =  56003
        Arr2D     => DIAGN(:,:,3)
-       CALL Diagn_Update( am_I_Root, HcoState,   ExtNr=ExtNr, &
-                          cName=TRIM(DiagnName), Array2D=Arr2D, RC=RC)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
+
+       DiagnID =  56004
+       Arr2D     => TOPDIAGN(:,:,1)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+       
+       DiagnID =  56005
+       Arr2D     => TOPDIAGN(:,:,2)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
+                          
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+       
+       DiagnID =  56006
+       Arr2D     => TOPDIAGN(:,:,3)
+       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL() 
+
     ENDIF
 
     ! Return w/ success
@@ -1041,7 +1135,7 @@ CONTAINS
   END SUBROUTINE LightNOx
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1054,7 +1148,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE LightDist( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF, &
-                        ExtState, HcoState, SFCTYPE, cMt )
+                        ExtState, HcoState, SFCTYPE, cMt, MTYPE )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1072,7 +1166,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     REAL*8,          INTENT(OUT) :: VERTPROF(HcoState%NZ) ! Vertical profile 
-!                                                         !  of lightning NOx
+    INTEGER,         INTENT(OUT) :: MTYPE                 ! lightning type 
 !
 ! !REMARKS:
 !  References:
@@ -1119,7 +1213,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: MONTH, MTYPE, L
+    INTEGER :: L
     REAL*8  :: ZHEIGHT, YMID
     REAL*8  :: FRAC(HcoState%NZ)
 
@@ -1153,9 +1247,9 @@ CONTAINS
 
     ! Assign profile kind to grid box, following Allen et al. 
     ! [JGR, 2010] (ltm, 1/25,11)
-    MONTH = cMt
+!    MONTH = cMt
 
-    SELECT CASE (MONTH)
+    SELECT CASE (cMt)
 
        ! Southern Hemisphere Summer
        CASE ( 1,2,3,12 )
@@ -1237,7 +1331,7 @@ CONTAINS
   END SUBROUTINE LightDist
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1317,7 +1411,7 @@ CONTAINS
   END SUBROUTINE Flashes_CTH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1433,7 +1527,7 @@ CONTAINS
   END FUNCTION Get_IC_CG_Ratio
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1482,6 +1576,9 @@ CONTAINS
 !  02 Feb 2012 - R. Yantosca - Compute BETA for MERRA 2 x 2.5
 !  02 Feb 2012 - R. Yantosca - Compute BETA for GEOS-5.7.x
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
+!  04 Nov 2014 - Y. X. Wang  - Define BETA, ANN_AVG_FLASHRATE for the
+!                              GEOS-FP 025x03125 NESTED_CH grid
+!  14 Jan 2015 - L. Murray   - Updated GEOS-FP files through Oct 2014
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1507,6 +1604,8 @@ CONTAINS
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.7549280d0
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
+#elif defined( GRID025x03125 ) && defined( NESTED_CH )
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.6591586d0
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
 #endif
@@ -1566,11 +1665,12 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 11/07/13).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 82.003230d0
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2014-12-10).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 82.373293d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1580,11 +1680,12 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 01/15/14).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 257.93269d0
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2014-12-10).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 260.40253d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
@@ -1593,7 +1694,13 @@ CONTAINS
     ! GEOS-FP: Nested China simulation
     !---------------------------------------
 
-    ! ltm: Will need to be determined when met fields become available.
+    ! Constrained with simulated "climatology" for
+    ! Jan 2013 - Dec 2013. Will need to be updated as more
+    ! met fields become available (ltm, 2014-10-22).
+    IF ( ( cYr .eq. 2013 .and. cMt .ge. 1  )   .or. &
+         ( cYr .eq. 2013 .and. cMt .le. 12 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 1052.6366d0
+    ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
 
@@ -1602,11 +1709,12 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Sept 2013. Will need to be updated as more
-    ! met fields become available (ltm, 11/14/13).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4 ) .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 9 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 652.44105d0
+    ! April 2012 - Oct 2014. Will need to be updated as more
+    ! met fields become available (ltm, 2015-01-13).
+    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
+         ( cYr .eq. 2013                   ) .or. &
+         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
+       BETA = ANN_AVG_FLASHRATE / 720.10258d0
     ENDIF
 
 #elif defined( MERRA ) && defined( GRID2x25 )
@@ -1639,9 +1747,9 @@ CONTAINS
 
     ! Discourage users from using lightning outside the constraint period.
     ! You may comment out these lines, but should verify that lightning
-    ! doesn't become unreasonably high anywere in the domain. (ltm, 11/07/13)
-    IF (   cYr .ge. 2014 .or. &
-         ( cYr .eq. 2013 .and. cMt .gt. 5 ) ) BETA = 1d0
+    ! doesn't become unreasonably high anywere in the domain. (ltm, 2015-01-15)
+    IF (   cYr .gt. 2014 .or. &
+         ( cYr .eq. 2014 .and. cMt .gt. 10 ) ) BETA = 1d0
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_CH)
 
@@ -1728,7 +1836,7 @@ CONTAINS
   END SUBROUTINE Get_OTD_LIS_Scale
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1745,9 +1853,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_STATE_MOD,    ONLY : HCO_GetHcoID
-    USE HCO_STATE_MOD,    ONLY : HCO_GetExtHcoID
-    USE HCO_ExtList_Mod,  ONLY : GetExtNr, GetExtOpt
+    USE HCO_Chartools_Mod, ONLY : HCO_CharParse
+    USE HCO_ExtList_Mod,   ONLY : GetExtNr
+    USE HCO_ExtList_Mod,   ONLY : GetExtOpt
+    USE HCO_State_Mod,     ONLY : HCO_GetHcoID
+    USE HCO_State_Mod,     ONLY : HCO_GetExtHcoID
+    USE HCO_ReadList_Mod,  ONLY : ReadList_Remove
+    USE inquireMod,        ONLY : findfreeLUN
 !
 ! !INPUT PARAMETERS:
 !
@@ -1780,6 +1892,8 @@ CONTAINS
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Removed reference to GET_YEDGE
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
+!  26 Feb 2015 - R. Yantosca - Now re-introduce reading the CDF table from an
+!                              ASCII file (reduces compilation time)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1790,7 +1904,6 @@ CONTAINS
     INTEGER, ALLOCATABLE           :: HcoIDs(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
     CHARACTER(LEN=255)             :: MSG, LOC, FILENAME
-    LOGICAL                        :: verb
 
     !=======================================================================
     ! HCOX_LightNOX_Init begins here!
@@ -1803,7 +1916,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER( 'HCOX_LightNOx_Init (hcox_lightnox_mod.F90)', RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
 
     ! Read settings specified in configuration file
     ! Note: the specified strings have to match those in 
@@ -1811,13 +1923,22 @@ CONTAINS
     CALL GetExtOpt ( ExtNr, 'OTD-LIS factor', &
                      OptValBool=LOTDLOC, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If OTD-LIS factor are not being used, make sure that the corresponding
+    ! gridded data will be ignored (e.g. not read) by HEMCO.
+    IF ( .NOT. LOTDLOC ) THEN
+       CALL ReadList_Remove ( am_I_Root, 'LIGHTNOX_OTDLIS', RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    ! Note: the OTD-LIS scale factor will be determined during run time
+    ! as it requires the current time information.
  
-    ! Get global scale factor
     ! Get species ID
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( nSpc /= 1 ) THEN
-       MSG = 'Lightning NOx module must have only one species!' 
+       MSG = 'Lightning NOx module must have exactly one species!' 
        CALL HCO_ERROR ( MSG, RC )
        RETURN
     ENDIF
@@ -1831,9 +1952,21 @@ CONTAINS
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) 'Use OTD-LIS factors from file? ', LOTDLOC 
        CALL HCO_MSG(MSG)
-    ENDIF    
+    ENDIF
 
-    ! Allocate SLBASE
+    !-----------------
+    ! Allocate arrays
+    !-----------------
+
+    ! Allocate PROFILE (holds the CDF table)
+    ALLOCATE( PROFILE( NNLIGHT, NLTYPE ), STAT=AS )
+    IF( AS /= 0 ) THEN
+       CALL HCO_ERROR ( 'PROFILE', RC )
+       RETURN
+    ENDIF
+    PROFILE = 0d0
+
+    ! Allocate SLBASE (holds NO emissins from lightning)
     ALLOCATE( SLBASE(HcoState%NX,HcoState%NY,HcoState%NZ), STAT=AS )
     IF( AS /= 0 ) THEN
        CALL HCO_ERROR ( 'SLBASE', RC )
@@ -1845,14 +1978,56 @@ CONTAINS
     ! Obtain lightning CDF's from Ott et al [JGR, 2010]. (ltm, 1/25/11)
     !=======================================================================
 
-    ! Initialize the cumulative distribution functions (CDF's) that are 
-    ! used to partition the column LNOx emissions into the vertical.
-    ! We hardwire this now in include file "lightning_cdf_include.H",
-    ! which is inlined into lightning_cdf_mod.F90.  This lets us avoid 
-    ! reading an ASCII file in the ESMF/MAPL environment.  You can 
-    ! regenerate "lightning_cdf_include.H" with the Perl script
-    ! HEMCO/Extensions/Preprocess/lightdist.pl  (bmy, 8/14/14)
-    CALL Init_Lightning_CDF()
+    ! Get filename from configuration file
+    CALL GetExtOpt ( ExtNr, 'CDF table', OptValChar=FILENAME, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
+    ! There shouldn't be any date token in there ($YYYY, etc.), so just
+    ! provide some dummy variables here
+    CALL HCO_CharParse( FILENAME, -999, -1, -1, -1, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Echo info
+    IF ( am_I_Root ) THEN
+       WRITE( MSG, 100 ) TRIM( FILENAME )
+       CALL HCO_MSG(MSG)
+    ENDIF
+100 FORMAT( '     - INIT_LIGHTNOX: Reading ', a )
+
+    ! Find a free file LUN
+    IU_FILE = findFreeLUN()
+      
+    ! Open file containing lightnox PDF data
+    OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+    IF ( IOS /= 0 ) THEN
+       MSG = 'IOERROR: LightDist: 1'
+       CALL HCO_ERROR ( MSG, RC )
+       RETURN
+    ENDIF
+
+    ! Read 12 header lines
+    DO III = 1, 12
+       READ( IU_FILE, '(a)', IOSTAT=IOS ) 
+       IF ( IOS /= 0 ) THEN
+          MSG = 'IOERROR: LightDist: 2'
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
+       ENDIF
+    ENDDO
+         
+    ! Read NNLIGHT types of lightnox profiles
+    DO III = 1, NNLIGHT
+       READ( IU_FILE,*,IOSTAT=IOS) (PROFILE(III,JJJ),JJJ=1,NLTYPE)
+       IF ( IOS /= 0 ) THEN
+          MSG = 'IOERROR: LightDist: 3'
+          CALL HCO_ERROR ( MSG, RC )
+          RETURN
+       ENDIF
+    ENDDO
+         
+    ! Close file
+    CLOSE( IU_FILE )
 
     !=======================================================================
     ! Further HEMCO setup
@@ -1876,7 +2051,7 @@ CONTAINS
   END SUBROUTINE HCOX_LightNOx_Init
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1901,6 +2076,8 @@ CONTAINS
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
 !  22 Jul 2014 - R. Yantosca - PROFILE is now set in lightning_cdf_mod.F90
+!  26 Feb 2015 - R. Yantosca - Now re-introduce PROFILE, as we read the CDF
+!                              table from an ASCII file (reduces compile time)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1911,7 +2088,9 @@ CONTAINS
 
     ! Free pointer
     OTDLIS => NULL()
-    IF ( ALLOCATED( SLBASE ) ) DEALLOCATE( SLBASE )
+
+    IF ( ALLOCATED( PROFILE ) ) DEALLOCATE( PROFILE )
+    IF ( ALLOCATED( SLBASE  ) ) DEALLOCATE( SLBASE  )
 
   END SUBROUTINE HCOX_LightNOx_Final
 !EOC

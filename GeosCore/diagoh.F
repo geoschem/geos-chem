@@ -22,6 +22,8 @@
       USE CMN_O3_MOD    ! SAVEOH
       USE CMN_DIAG_MOD  ! Diagnostic switches & arrays
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 ! 
 ! !REVISION HISTORY: 
@@ -46,6 +48,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  15 Aug 2013 - S.D. Eastham- Added O1D (for strat-chem)
 !  29 Aug 2013 - S.D. Eastham- Added O3P (for strat-chem)
+!  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -53,8 +56,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER  :: I,  J,  L 
-      REAL*8   :: OH, HO2
-      REAL*8   :: O1D,O3P
+      REAL(fp)   :: OH, HO2
+      REAL(fp)   :: O1D,O3P
 
       !=================================================================
       ! DIAGOH begins here!

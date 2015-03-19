@@ -18,6 +18,8 @@
 !
       USE inquireMod, ONLY : findFreeLUN
 
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -81,6 +83,7 @@
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,8 +137,8 @@
       ! For specifying date/time
       INTEGER,           ALLOCATABLE :: PDATE(:)
       INTEGER,           ALLOCATABLE :: PTIME(:)
-      ! Change to REAL*8 for more precise times (skim, 7/24/13)              
-      REAL*8,            ALLOCATABLE :: PTAU(:)               
+      ! Change to REAL(fp) for more precise times (skim, 7/24/13)              
+      REAL(fp),            ALLOCATABLE :: PTAU(:)               
 
       ! For specifying lat/lon/alt and ID type
       REAL*4,            ALLOCATABLE :: PLAT(:)               
@@ -151,7 +154,7 @@
       ! For specifying SMVGEAR rxns to save at each flight point
       INTEGER                        :: NPREAC        
       INTEGER,           ALLOCATABLE :: PREAC(:) 
-      REAL*8,            ALLOCATABLE :: PRRATE(:,:) 
+      REAL(fp),            ALLOCATABLE :: PRRATE(:,:) 
 
       ! For specifying RO2 constituents at each flight point
       INTEGER                        :: NPRO2
@@ -1222,6 +1225,7 @@
 !
 ! !USES:
 !
+      USE BPCH2_MOD,          ONLY : GET_TAU0
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE COMODE_LOOP_MOD          ! CSPEC, etc.
@@ -1237,8 +1241,9 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
-      USE TIME_MOD,           ONLY : GET_TAU,        GET_TS_DIAG
-      USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !eds 10/27/11
+      USE TIME_MOD
+      USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
+      USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
 !
 ! !INPUT PARAMETERS:
 !
@@ -1282,6 +1287,8 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  19 Nov 2014 - M. Yannetti - Edited OCEAN_MERCURY_MOD Fp to OMMFP
+!  12 Jan 2015 - L. Schiferl - Allow for more precision in TAUE computation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1292,25 +1299,28 @@
       LOGICAL             :: PCHEM, LINTERP
       INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
       INTEGER             :: LL     !eds
-      INTEGER             :: LPLANE,IWV, ISPC, K
-      REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
-      REAL*8              :: VARI(NPVAR)
+      INTEGER             :: LPLANE, IWV, ISPC, K
+      REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
+      REAL(fp)            :: VARI(NPVAR)
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
-!
-! !DEFINED PARAMETERS:
-!
-      REAL*8,  PARAMETER  :: MISSING = -999.99999999d0  ! Missing data value
-      REAL*8,  PARAMETER  :: TINY    = 1.d-36           ! arbitary small # to 
-                                                        !  avoid faulty output
-      ! Expand from 4 to 5 for Fast-JX
-      INTEGER, PARAMETER  :: IND999  = 4
+
+      ! Allow for more accurate computation of TAU (L. Schiferl, 1/12/15)
+      INTEGER             :: YEAR, MONTH, DAY, HOUR, MINUTE 
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: STT(:,:,:,:)
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(fp), PARAMETER :: MISSING = -999.99999999e+0_fp  ! Missing data value
+      REAL(fp), PARAMETER :: TINY    = 1.e-36_fp           ! arbitary small # to 
+                                                        !  avoid faulty output
+      ! Expand from 4 to 5 for Fast-JX
+      INTEGER, PARAMETER  :: IND999  = 4
 
       !=================================================================
       ! PLANEFLIGHT begins here!
@@ -1321,6 +1331,13 @@
 
       ! Return if there is no flighttrack data for today
       IF ( .not. DO_PF ) RETURN
+
+      ! Get date & time values
+      YEAR   = GET_YEAR()
+      MONTH  = GET_MONTH()
+      DAY    = GET_DAY()
+      HOUR   = GET_HOUR()
+      MINUTE = GET_MINUTE()
 
       !Determine if optical properties need interpolating
       !The LUT wavelengths in IWVSELECT will match if no interpolation
@@ -1336,8 +1353,8 @@
       DO M = PPOINT, NPOINTS
 
          ! Starting & end times of chemistry interval
-         PTAUE = GET_TAU()
-         PTAUS = PTAUE - ( GET_TS_DIAG() / 60d0 )
+         PTAUE = GET_TAU0( MONTH, DAY, YEAR, HOUR, MINUTE, 0 )
+         PTAUS = PTAUE - ( GET_TS_DIAG() / 60e+0_fp )
 
          ! Initialize VARI to missing value for this point
          DO V = 1, NPVAR
@@ -1413,7 +1430,7 @@
 
                      ! Only archive where SMVGEAR chem is done
                      ! Sum all AN contributions, save as [v/v]
-                     VARI(V) = 0d0
+                     VARI(V) = 0e+0_fp
 
                      IF ( JLOOP /= 0 ) THEN 
                         DO N = 1, NPNOY
@@ -1431,7 +1448,7 @@
 
                      ! Only archive where SMVGEAR chem is done
                      ! Sum all AN contributions, save as [v/v]
-                     VARI(V) = 0d0
+                     VARI(V) = 0e+0_fp
                      IF ( JLOOP /= 0 ) THEN 
 
                         DO N = 1, NPAN
@@ -1448,7 +1465,7 @@
 
                      ! Only archive where SMVGEAR chem is done
                      ! Sum all RO2 contributions, save as [v/v]
-                     VARI(V) = 0d0
+                     VARI(V) = 0e+0_fp
                            
                         IF ( JLOOP /= 0 ) THEN
                            DO N = 1, NPRO2
@@ -1473,10 +1490,12 @@
                      ! Code skalooched from "calcrate.f"
                         IF ( JLOOP /= 0 ) THEN
                            TK       = T3(JLOOP)
-                           CONSEXP  = 17.2693882d0 * 
-     &                                (TK - 273.16d0) / (TK - 35.86d0)
+                           CONSEXP  = 17.2693882e+0_fp * 
+     &                                (TK - 273.16e+0_fp) / 
+     &                                (TK - 35.86e+0_fp)
                            
-                           VPRESH2O = CONSVAP * EXP(CONSEXP) * 1d0 / TK
+                           VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp 
+     &                              / TK
                            
                            VARI(V)  = ABSHUM(JLOOP) * 
      &                                VPRESH2O      / AIRDENS(JLOOP)
@@ -1488,7 +1507,7 @@
                   CASE ( 1003 )
 
                      ! Only archive where SMVGEAR chem is done
-                        VARI(V) = 0d0
+                        VARI(V) = 0e+0_fp
 
                         IF ( JLOOP /= 0 ) THEN
                            DO N = 1, NDUST + NAER
@@ -1567,7 +1586,7 @@
                    ! Only archive where SMVGEAR chem is done
                   
                    ! Remove MISSING flag
-                   VARI(V) = 0d0
+                   VARI(V) = 0e+0_fp
                   
                    ! Aerosol number
                    N = PVAR(V) - 2000
@@ -1633,7 +1652,7 @@
                    IF ( PCHEM ) THEN
 
                    ! Remove MISSING flag
-                   VARI(V) = 0d0
+                   VARI(V) = 0e+0_fp
                   
                    ! Aerosol number
                    N = PVAR(V) - 3000
@@ -1707,7 +1726,7 @@
                      VARI(V) = FG(I,J,LL) !L+1 sample 4/24/12
 
                   CASE ( 4002 )
-                     VARI(V) = FP(I,J,LL) !L+1 sample 4/24/12
+                     VARI(V) = OMMFP(I,J,LL) !L+1 sample 4/24/12
 
                   !--------------------------
                   ! SMVGEAR reaction rates
@@ -1736,7 +1755,7 @@
                      VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N) /
      &                         State_Met%AD(I,J,L)
 
-                     IF ( VARI(V) < TINY ) VARI(V) = 0.d0
+                     IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
                      ! Free pointer
                      NULLIFY( STT )
@@ -1858,13 +1877,15 @@
       J0 = GET_YOFFSET( GLOBAL=.TRUE. )
 
       ! Get I corresponding to PLON(IND)
-      I = INT( ( PLON(IND) + 180d0 - (I0 * DISIZE) ) / DISIZE + 1.5d0 )
+      I = INT( ( PLON(IND) + 180e+0_fp - (I0 * DISIZE) ) / DISIZE 
+     &     + 1.5e+0_fp )
 
       ! Handle date line correctly (bmy, 4/23/04)
       IF ( I > IIPAR ) I = I - IIPAR
 
       ! Get J corresponding to PLAT(IND)
-      J = INT( ( PLAT(IND) +  90d0 - (J0 * DJSIZE) ) / DJSIZE + 1.5d0 )
+      J = INT( ( PLAT(IND) +  90e+0_fp - (J0 * DJSIZE) ) / DJSIZE 
+     &     + 1.5e+0_fp )
 
       ! Get L corresponding to PRESS(IND)
       L = 1
@@ -1921,7 +1942,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: IND           ! # of the flight track point
-      REAL*8,  INTENT(IN) :: VARI(NPVAR)   ! Values to print to file
+      REAL(fp),  INTENT(IN) :: VARI(NPVAR)   ! Values to print to file
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -1998,8 +2019,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN)  :: JO1D(KBLOOP)  ! JO1D photolysis rate [1/s]
-      REAL*8, INTENT(IN)  :: N2O5(KBLOOP)  ! N2O5 hydrolysis rate [molec/cm3/s]
+      REAL(fp), INTENT(IN)  :: JO1D(KBLOOP)  ! JO1D photolysis rate [1/s]
+      REAL(fp), INTENT(IN)  :: N2O5(KBLOOP)  ! N2O5 hydrolysis rate [molec/cm3/s]
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -2021,7 +2042,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: KLOOP, JLOOP, V, R, I, J, L 
-      REAL*8             :: RATE
+      REAL(fp)             :: RATE
 !
 ! !DEFINED PARAMETERS:
 !

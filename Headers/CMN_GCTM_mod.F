@@ -15,43 +15,45 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PUBLIC
 !
 ! !DEFINED PARAMETERS: 
 !
       ! AIRMW : Molecular weight of air [28.97 g/mole]
-      REAL*8, PARAMETER :: AIRMW        = 28.97d0
+      REAL(fp), PARAMETER :: AIRMW    = 28.97e+0_fp
 
       ! Avogadro's # [#/mol]
-      REAL*8, PARAMETER :: AVO          = 6.022d23
+      REAL(fp), PARAMETER :: AVO      = 6.022e+23_fp
 
       ! g0    : Gravity at Surface of Earth [9.8 m/s^2]
-      REAL*8, PARAMETER :: g0           =   9.8d0                 
+      REAL(fp), PARAMETER :: g0       =   9.8e+0_fp                 
 
       ! g0_100 = 100.0 / g0
-      REAL*8, PARAMETER :: g0_100       = 100d0 / g0
+      REAL(fp), PARAMETER :: g0_100   = 100e+0_fp / g0
 
       ! PI    : Double-Precision value of PI          
-      REAL*8, PARAMETER :: PI           = 3.14159265358979323d0 
+      REAL(fp), PARAMETER :: PI       = 3.14159265358979323e+0_fp 
 
       ! PI_180 = PI    / 180.0
-      REAL*8, PARAMETER :: PI_180       = PI / 180d0
+      REAL(fp), PARAMETER :: PI_180   = PI / 180e+0_fp
 
       ! Re    : Radius of Earth [m] 
-      REAL*8, PARAMETER :: Re           = 6.375d6               
+      REAL(fp), PARAMETER :: Re       = 6.375e+6_fp               
 
       ! Rd    : Gas Constant (R) in Dry Air [287 J/K/kg] 
-      REAL*8, PARAMETER :: Rd           = 287.0d0                 
+      REAL(fp), PARAMETER :: Rd       = 287.0e+0_fp                 
 
       ! Rdg0   = Rd    / g0
-      REAL*8, PARAMETER :: Rdg0         = Rd / g0
+      REAL(fp), PARAMETER :: Rdg0     = Rd / g0
 
       ! Scale height of atmosphere (7.6 km = 7600m)
-      REAL*8, PARAMETER :: SCALE_HEIGHT = 7600d0
+      REAL(fp), PARAMETER :: SCALE_HEIGHT = 7600e+0_fp
 
       ! Von Karman's constant
-      REAL*8, PARAMETER :: VON_KARMAN   = 0.4d0
+      REAL(fp), PARAMETER :: VON_KARMAN   = 0.4e+0_fp
 !
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
@@ -59,6 +61,7 @@
 !  23 Jul 2014 - R. Yantosca - Add Von Karman's constant here
 !  23 Jul 2014 - R. Yantosca - Add Avogadro's number here
 !  23 Jul 2014 - R. Yantosca - List constants in alphabetical order
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC

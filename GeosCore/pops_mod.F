@@ -15,7 +15,7 @@
 ! 
 ! !USES:
 !
-      USE HCO_ERROR_MOD   ! For real precisions (hp)
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
 
       IMPLICIT NONE
       PRIVATE
@@ -36,15 +36,16 @@
 !  20 Sep 2010 - N.E. Selin    - Initial Version
 !  04 Jan 2011 - C.L. Friedman - Expansion on initial version
 !  21 Aug 2014 - M. Sulprizio  - Removed emissions routines now handled by HEMCO
+!  04 Mar 2015 - R. Yantosca   - Use REAL(f4) for pointer args to HCO_GetPtr 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8,  PARAMETER   :: XNUMOL_OH = 6.022d23 / 17d-3  ! molec OH / kg OH
-      REAL*8,  PARAMETER   :: CM3PERM3  = 1.d6
-      REAL*8,  PARAMETER   :: SMALLNUM  = 1D-20
+      REAL(fp), PARAMETER  :: XNUMOL_OH = 6.022e+23_fp / 17e-3_fp  ! molec OH / kg OH
+      REAL(fp), PARAMETER  :: CM3PERM3  = 1.e+6_fp
+      REAL(fp), PARAMETER  :: SMALLNUM  = 1e-20_fp
 
       !=================================================================
       ! MODULE VARIABLES
@@ -57,16 +58,17 @@
       ! ZERO_DVEL : Array with zero dry deposition velocity [cm/s]
       ! COSZM     : Max daily value of COS(S.Z. angle) [unitless]
       !=================================================================
-      REAL*8,  ALLOCATABLE :: TCOSZ(:,:)
-      REAL*8,  ALLOCATABLE :: TTDAY(:,:)
-      REAL*8,  ALLOCATABLE :: ZERO_DVEL(:,:)
-      REAL*8,  ALLOCATABLE :: COSZM(:,:)
+      REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
+      REAL(fp), ALLOCATABLE :: TTDAY(:,:)
+      REAL(fp), ALLOCATABLE :: ZERO_DVEL(:,:)
+      REAL(fp), ALLOCATABLE :: COSZM(:,:)
 
-      ! HEMCO pointers
-      REAL(hp), POINTER    :: C_OC(:,:,:) => NULL()
-      REAL(hp), POINTER    :: C_BC(:,:,:) => NULL()
-      REAL(hp), POINTER    :: O3(:,:,:)   => NULL()
-      REAL(hp), POINTER    :: OH(:,:,:)   => NULL()
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER     :: C_OC(:,:,:) => NULL()
+      REAL(f4), POINTER     :: C_BC(:,:,:) => NULL()
+      REAL(f4), POINTER     :: O3(:,:,:)   => NULL()
+      REAL(f4), POINTER     :: OH(:,:,:)   => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -92,8 +94,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE DRYDEP_MOD,         ONLY : DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -124,6 +124,7 @@
 !                              these fields are now read in HEMCO
 !  10 Sep 2014 - M. Sulprizio- Now get global concentrations of OH, O3, OC, and
 !                              BC from HEMCO
+!  03 Mar 2015 - C. Keller   - Now do dry-deposition always outside of chempops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,120 +196,12 @@
       !-------------------------
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMPOPS: b CHEM_GASPART' )
       
-
-      ! Add option for non-local PBL (cdh, 08/27/09)
-      IF ( LNLPBL ) THEN
-
-         ! Dry deposition occurs with PBL mixing,
-         ! pass zero deposition frequency
-         CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
-     &                    am_I_Root, Input_Opt, State_Met,
-     &                    State_Chm, RC )
+      ! Dry deposition occurs with PBL mixing,
+      ! pass zero deposition frequency
+      CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
+     &                 am_I_Root, Input_Opt, State_Met,
+     &                 State_Chm, RC )
          
-      ELSE
-
-         IF ( DRYPOPG    > 0   .and. DRYPOPP_OC > 0 .and.
-     &        DRYPOPP_BC > 0 ) THEN
-         
-            ! Dry deposition active for both POP-Gas and POP-Particle; 
-            ! pass drydep frequency to CHEM_POPGP (NOTE: DEPSAV has units 1/s)
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),   
-     &                       DEPSAV(:,:,DRYPOPP_OC),
-     &                       DEPSAV(:,:,DRYPOPP_BC),
-     &                       am_I_Root, 
-     &                       Input_Opt, 
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-
-         ELSEIF ( DRYPOPG > 0 .and. DRYPOPP_OC > 0 .and. 
-     &            DRYPOPP_BC  .le.  0 ) THEN
-
-            ! Only POPG and POPP_OC dry deposition are active
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
-     &                       DEPSAV(:,:,DRYPOPP_OC), 
-     &                       ZERO_DVEL,
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-
-         ELSEIF ( DRYPOPG    > 0   .and. DRYPOPP_OC .le. 0 .and. 
-     &            DRYPOPP_BC > 0 ) THEN
-
-            ! Only POPG and POPP_BC dry deposition are active
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
-     &                       ZERO_DVEL, 
-     &                       DEPSAV(:,:,DRYPOPP_BC),
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-         
-         ELSEIF ( DRYPOPG > 0 .and. DRYPOPP_OC .le. 0 .and. 
-     &            DRYPOPP_BC  .le.  0 ) THEN
-
-            ! Only POPG dry deposition is active
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
-     &                       ZERO_DVEL,
-     &                       ZERO_DVEL,
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-            
-         ELSEIF ( DRYPOPG   <= 0   .and. DRYPOPP_OC > 0 .and. 
-     &           DRYPOPP_BC >  0 ) THEN
-
-            ! Only POPP dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
-     &                       DEPSAV(:,:,DRYPOPP_OC), 
-     &                       DEPSAV(:,:,DRYPOPP_BC),
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-
-         ELSEIF ( DRYPOPG    <= 0   .and. DRYPOPP_OC > 0 .and. 
-     &            DRYPOPP_BC <= 0 ) THEN
-
-            ! Only POPP_OC dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
-     &                       DEPSAV(:,:,DRYPOPP_OC), 
-     &                       ZERO_DVEL,
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-
-         ELSEIF ( DRYPOPG    <= 0   .and. DRYPOPP_OC <= 0 .and. 
-     &            DRYPOPP_BC >  0 ) THEN
-
-            ! Only POPP_OC dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
-     &                       ZERO_DVEL, 
-     &                       DEPSAV(:,:,DRYPOPP_BC),
-     &                       am_I_Root, 
-     &                       Input_Opt,
-     &                       State_Met,
-     &                       State_Chm,
-     &                       RC )
-         ELSE
-
-            ! No dry deposition, pass zero deposition frequency
-            CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
-     &                       am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, RC )
-
-         ENDIF
-
-      ENDIF
-
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMPOPS: a CHEM_GASPART' )
    
       END SUBROUTINE CHEMPOPS
@@ -335,7 +228,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DIAG53_MOD,         ONLY : AD53_PG_OC_NEG
       USE DIAG53_MOD,         ONLY : AD53_PG_BC_NEG
       USE DIAG53_MOD,         ONLY : AD53_PG_OC_POS
@@ -358,13 +253,13 @@
 ! !INPUT PARAMETERS: 
 !
       ! Dry deposition frequency for gaseous POP [/s]
-      REAL*8, INTENT(IN)            :: V_DEP_G(IIPAR,JJPAR)
+      REAL(fp), INTENT(IN)            :: V_DEP_G(IIPAR,JJPAR)
 
       !  Dry deposition frequency for OC-POP [/s]
-      REAL*8, INTENT(IN)            :: V_DEP_P_OC(IIPAR,JJPAR)
+      REAL(fp), INTENT(IN)            :: V_DEP_P_OC(IIPAR,JJPAR)
 
       ! Dry deposition frequency for BC-POP [/s]
-      REAL*8, INTENT(IN)            :: V_DEP_P_BC(IIPAR,JJPAR)   
+      REAL(fp), INTENT(IN)            :: V_DEP_P_BC(IIPAR,JJPAR)   
 
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -397,61 +292,61 @@
 ! !DEFINED PARAMETERS:
 !
       ! R = universal gas constant for adjusting KOA for temp: 8.3145 [J/mol/K]
-      REAL*8, PARAMETER :: R          = 8.31d0  
+      REAL(fp), PARAMETER :: R          = 8.31e+0_fp  
 
       ! DENS_OCT = density of octanol, needed for partitioning into OC
       ! 820 [kg/m^3]
-      REAL*8, PARAMETER :: DENS_OCT   = 82d1
+      REAL(fp), PARAMETER :: DENS_OCT   = 82e+1_fp
 
       ! DENS_BC = density of BC, needed for partitioning onto BC
       ! 1 [kg/L] or 1000 [kg/m^3] 
       ! From Lohmann and Lammel, Environ. Sci. Technol., 2004, 38:3793-3803.
-      REAL*8, PARAMETER :: DENS_BC    = 1d3
+      REAL(fp), PARAMETER :: DENS_BC    = 1e+3_fp
 
 !
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: I, J, L
-      REAL*8            :: DTCHEM,       SUM_F
-      REAL*8            :: KOA_T,        KBC_T
-      REAL*8            :: KOC_BC_T,     KBC_OC_T
-      REAL*8            :: TK
-      REAL*8            :: AREA_CM2
-      REAL*8            :: F_PBL,        C_O3
-      REAL*8            :: C_OH,         C_OC_CHEM,   C_BC_CHEM
-      REAL*8            :: C_OC_CHEM1,   C_BC_CHEM1
-      REAL*8            :: K_OH,         AIR_VOL,     K_O3
-      REAL*8            :: K_OX
-      REAL*8            :: E_KOX_T,       E_KOX_T_P
-      REAL*8            :: K_DEPG,        K_DEPP_OC,   K_DEPP_BC
-      REAL*8            :: OLD_POPG,      OLD_POPP_OC, OLD_POPP_BC
-      REAL*8            :: NEW_POPG,      NEW_POPP_OC, NEW_POPP_BC
-      REAL*8            :: POPG_BL,       POPP_OC_BL,  POPP_BC_BL
-      REAL*8            :: POPG_FT,       POPP_OC_FT,  POPP_BC_FT
-      REAL*8            :: TMP_POPG,      TMP_OX
-      REAL*8            :: TMP_POPP_OC,   TMP_POPP_BC
-      REAL*8            :: GROSS_OX,      GROSS_OX_OH, NET_OX
-      REAL*8            :: GROSS_OX_OC,   GROSS_OX_BC
-      REAL*8            :: DEP_POPG,      DEP_POPP_OC, DEP_POPP_BC
-      REAL*8            :: DEP_POPG_DRY,  DEP_POPP_OC_DRY
-      REAL*8            :: DEP_POPP_BC_DRY
-      REAL*8            :: DEP_DRY_FLXG,  DEP_DRY_FLXP_OC
-      REAL*8            :: DEP_DRY_FLXP_BC
-      REAL*8            :: OLD_POP_T
-      REAL*8            :: VR_OC_AIR,     VR_BC_AIR
-      REAL*8            :: VR_OC_BC,      VR_BC_OC
-      REAL*8            :: F_POP_OC,      F_POP_BC
-      REAL*8            :: F_POP_G
-      REAL*8            :: MPOP_OC,       MPOP_BC,     MPOP_G
-      REAL*8            :: DIFF_G,        DIFF_OC,     DIFF_BC
-      REAL*8            :: OC_AIR_RATIO,  OC_BC_RATIO, BC_AIR_RATIO
-      REAL*8            :: BC_OC_RATIO,   SUM_DIFF
-      REAL*8            :: TMP_OX_P_OC,   TMP_OX_P_BC
-      REAL*8            :: NET_OX_OC,     NET_OX_BC
+      REAL(fp)            :: DTCHEM,       SUM_F
+      REAL(fp)            :: KOA_T,        KBC_T
+      REAL(fp)            :: KOC_BC_T,     KBC_OC_T
+      REAL(fp)            :: TK
+      REAL(fp)            :: AREA_CM2
+      REAL(fp)            :: F_PBL,        C_O3
+      REAL(fp)            :: C_OH,         C_OC_CHEM,   C_BC_CHEM
+      REAL(fp)            :: C_OC_CHEM1,   C_BC_CHEM1
+      REAL(fp)            :: K_OH,         AIR_VOL,     K_O3
+      REAL(fp)            :: K_OX
+      REAL(fp)            :: E_KOX_T,       E_KOX_T_P
+      REAL(fp)            :: K_DEPG,        K_DEPP_OC,   K_DEPP_BC
+      REAL(fp)            :: OLD_POPG,      OLD_POPP_OC, OLD_POPP_BC
+      REAL(fp)            :: NEW_POPG,      NEW_POPP_OC, NEW_POPP_BC
+      REAL(fp)            :: POPG_BL,       POPP_OC_BL,  POPP_BC_BL
+      REAL(fp)            :: POPG_FT,       POPP_OC_FT,  POPP_BC_FT
+      REAL(fp)            :: TMP_POPG,      TMP_OX
+      REAL(fp)            :: TMP_POPP_OC,   TMP_POPP_BC
+      REAL(fp)            :: GROSS_OX,      GROSS_OX_OH, NET_OX
+      REAL(fp)            :: GROSS_OX_OC,   GROSS_OX_BC
+      REAL(fp)            :: DEP_POPG,      DEP_POPP_OC, DEP_POPP_BC
+      REAL(fp)            :: DEP_POPG_DRY,  DEP_POPP_OC_DRY
+      REAL(fp)            :: DEP_POPP_BC_DRY
+      REAL(fp)            :: DEP_DRY_FLXG,  DEP_DRY_FLXP_OC
+      REAL(fp)            :: DEP_DRY_FLXP_BC
+      REAL(fp)            :: OLD_POP_T
+      REAL(fp)            :: VR_OC_AIR,     VR_BC_AIR
+      REAL(fp)            :: VR_OC_BC,      VR_BC_OC
+      REAL(fp)            :: F_POP_OC,      F_POP_BC
+      REAL(fp)            :: F_POP_G
+      REAL(fp)            :: MPOP_OC,       MPOP_BC,     MPOP_G
+      REAL(fp)            :: DIFF_G,        DIFF_OC,     DIFF_BC
+      REAL(fp)            :: OC_AIR_RATIO,  OC_BC_RATIO, BC_AIR_RATIO
+      REAL(fp)            :: BC_OC_RATIO,   SUM_DIFF
+      REAL(fp)            :: TMP_OX_P_OC,   TMP_OX_P_BC
+      REAL(fp)            :: NET_OX_OC,     NET_OX_BC
                         
-      REAL*8, SAVE      :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
-      REAL*8, SAVE      :: POP_K_POPP_O3A, POP_K_POPP_O3B
-      REAL*8, SAVE      :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL(fp), SAVE      :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
+      REAL(fp), SAVE      :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL(fp), SAVE      :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
 
       ! Delta H for POP [kJ/mol]. Delta H is enthalpy of phase transfer
       ! from gas phase to OC. For now we use Delta H for phase transfer 
@@ -468,7 +363,7 @@
       ! this is also taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
       ! Gschwend, Imboden, 2003, pg 452, Prob 11.1), or -110,000 [J/mol]
-      REAL*8            :: DEL_H
+      REAL(fp)            :: DEL_H
 
       ! KOA_298 for partitioning of gas phase POP to atmospheric OC
       ! KOA_298 = Cpop in octanol/Cpop in atmosphere at 298 K 
@@ -479,7 +374,7 @@
       ! For BENZO[a]PYRENE:
       ! log KOA_298 = 11.48, or 3.02*10^11 [unitless]
       ! (Ma et al., J. Chem. Eng. Data, 2010, 55:819-825).
-      REAL*8            :: KOA_298
+      REAL(fp)            :: KOA_298
 
       ! KBC_298 for partitioning of gas phase POP to atmospheric BC
       ! KBC_298 = Cpop in black carbon/Cpop in atmosphere at 298 K
@@ -490,7 +385,7 @@
       ! For BENZO[a]PYRENE:
       ! log KBC_298 = 13.9, or 7.94*10^13 [unitless]
       ! (Lohmann and Lammel, EST, 2004, 38:3793-3802)
-      REAL*8            :: KBC_298
+      REAL(fp)            :: KBC_298
 
       ! K for reaction POPG + OH  [cm3 /molecule /s]
       ! For PHENANTHRENE: 2.70d-11
@@ -499,7 +394,7 @@
       ! Calculated with AOPWIN
       ! For BENZO[a]PYRENE: 5.00d-11
       ! Calculated with AOPWIN 
-      REAL*8            :: K_POPG_OH !(Gas phase)
+      REAL(fp)            :: K_POPG_OH !(Gas phase)
 
       ! k for reaction POPP + O3 [/s] depends on fitting parameters A and B. 
       ! A represents the maximum number of surface sites available to O3, and B 
@@ -509,16 +404,16 @@
       ! For PHENANTHRENE: A = 0.5 x 10^-3 s^-1, B = 2.15 x 10^15 molec/cm3
       ! For PYRENE: A = 0.7 x 10^-3 s^-1, B = 3 x 10^15 molec/cm3
       ! for BaP: A = 5.5 x 10^-3 s^-1, B = 2.8 x 10^15 molec/cm3
-      REAL*8            :: AK  ! s^-1
-      REAL*8            :: BK  ! molec/cm3
+      REAL(fp)            :: AK  ! s^-1
+      REAL(fp)            :: BK  ! molec/cm3
 
       ! On-particle reaction scheme 3: According to Kwamena et al. (J. Phys.
       !  Chem. A 2004 108:11626), reaction will proceed with rate
       !  k = kmax(KO3)[O3]/(1+KO3[O3])
       ! For wet axelaic acid aerosols, kmax = 0.060 s^-1 and
       !  KO3 = 0.028 x 10^-13 cm3
-!      REAL*8, PARAMETER :: KMAX = 0.060 ! s^-1
-!      REAL*8, PARAMETER :: KO3 = 0.028d-13 ! cm^3
+!      REAL(fp), PARAMETER :: KMAX = 0.060 ! s^-1
+!      REAL(fp), PARAMETER :: KO3 = 0.028d-13 ! cm^3
 
       ! K for reaction POPP + NO3 could be added here someday
 
@@ -526,17 +421,17 @@
       INTEGER         :: N_TRACERS
       LOGICAL         :: LNLPBL
       LOGICAL         :: LGTMM
-      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
-      REAL*8          :: DENOM
+      REAL(fp)          :: DENOM
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       ! Grid box volume
-      REAL*8          :: BOXVL
+      REAL(fp)          :: BOXVL
 
       !=================================================================
       ! CHEM_POPGP begins here!
@@ -562,64 +457,64 @@
       STT => State_Chm%Tracers
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM = GET_TS_CHEM() * 60e+0_fp
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Zero concentrations in loop
-         MPOP_G          = 0d0
-         MPOP_OC         = 0d0
-         MPOP_BC         = 0d0
-         OLD_POPG        = 0d0
-         OLD_POPP_OC     = 0d0
-         OLD_POPP_BC     = 0d0
-         OLD_POP_T       = 0d0
-         NEW_POPG        = 0d0
-         NEW_POPP_OC     = 0d0
-         NEW_POPP_BC     = 0d0
-         POPG_BL         = 0d0
-         POPP_OC_BL      = 0d0
-         POPP_BC_BL      = 0d0
-         POPG_FT         = 0d0
-         POPP_OC_FT      = 0d0
-         POPP_BC_FT      = 0d0
-         DIFF_G          = 0d0
-         DIFF_OC         = 0d0
-         DIFF_BC         = 0d0
-         NET_OX          = 0d0 
-         TMP_POPG        = 0d0
-         TMP_OX          = 0d0      
-         GROSS_OX        = 0d0
-         GROSS_OX_OH     = 0d0 
-         DEP_POPG        = 0d0
-         DEP_POPP_OC     = 0d0
-         DEP_POPP_BC     = 0d0
-         DEP_POPG_DRY    = 0d0
-         DEP_POPP_OC_DRY = 0d0
-         DEP_POPP_BC_DRY = 0d0
-         DEP_DRY_FLXG    = 0d0
-         DEP_DRY_FLXP_OC = 0d0
-         DEP_DRY_FLXP_BC = 0d0
-         E_KOX_T         = 0d0
-         K_OX            = 0d0
-         K_O3            = 0d0
-         GROSS_OX_OC     = 0d0
-         GROSS_OX_BC     = 0d0
+         MPOP_G          = 0e+0_fp
+         MPOP_OC         = 0e+0_fp
+         MPOP_BC         = 0e+0_fp
+         OLD_POPG        = 0e+0_fp
+         OLD_POPP_OC     = 0e+0_fp
+         OLD_POPP_BC     = 0e+0_fp
+         OLD_POP_T       = 0e+0_fp
+         NEW_POPG        = 0e+0_fp
+         NEW_POPP_OC     = 0e+0_fp
+         NEW_POPP_BC     = 0e+0_fp
+         POPG_BL         = 0e+0_fp
+         POPP_OC_BL      = 0e+0_fp
+         POPP_BC_BL      = 0e+0_fp
+         POPG_FT         = 0e+0_fp
+         POPP_OC_FT      = 0e+0_fp
+         POPP_BC_FT      = 0e+0_fp
+         DIFF_G          = 0e+0_fp
+         DIFF_OC         = 0e+0_fp
+         DIFF_BC         = 0e+0_fp
+         NET_OX          = 0e+0_fp 
+         TMP_POPG        = 0e+0_fp
+         TMP_OX          = 0e+0_fp      
+         GROSS_OX        = 0e+0_fp
+         GROSS_OX_OH     = 0e+0_fp 
+         DEP_POPG        = 0e+0_fp
+         DEP_POPP_OC     = 0e+0_fp
+         DEP_POPP_BC     = 0e+0_fp
+         DEP_POPG_DRY    = 0e+0_fp
+         DEP_POPP_OC_DRY = 0e+0_fp
+         DEP_POPP_BC_DRY = 0e+0_fp
+         DEP_DRY_FLXG    = 0e+0_fp
+         DEP_DRY_FLXP_OC = 0e+0_fp
+         DEP_DRY_FLXP_BC = 0e+0_fp
+         E_KOX_T         = 0e+0_fp
+         K_OX            = 0e+0_fp
+         K_O3            = 0e+0_fp
+         GROSS_OX_OC     = 0e+0_fp
+         GROSS_OX_BC     = 0e+0_fp
 
          ! Save local temperature in TK for convenience [K]
          TK = State_Met%T(I,J,L)
 
          ! Grid box volume [cm3]
-         BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
+         BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
          ! Get monthly mean OH concentrations
          C_OH        = GET_OH( I, J, L, State_Met )
 
          ! Get monthly mean O3 concentrations
          ! O3 is in v/v (from HEMCO), convert to molec/cm3 (mps, 9/10/14)
-         C_O3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
+         C_O3 = O3(I,J,L) * ( 6.022e+23_fp / 28.97e-3_fp ) * 
      &          State_Met%AD(I,J,L)    /  BOXVL
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
@@ -668,26 +563,26 @@
          OLD_POP_T = OLD_POPG + OLD_POPP_OC + OLD_POPP_BC
 
          ! Define temperature-dependant partition coefficients:
-         KOA_T = KOA_298 * EXP((-DEL_H/R) * ((1d0/TK) - 
-     &                  (1d0/298d0))) 
+         KOA_T = KOA_298 * EXP((-DEL_H/R) * ((1e+0_fp/TK) - 
+     &                  (1e+0_fp/298e+0_fp))) 
 
          ! Define KBC_T, the BC-air partition coeff at temp T [unitless]
          ! TURN OFF TEMPERATURE DEPENDENCY FOR SENSITIVITY ANALYSIS
-         KBC_T = KBC_298 * EXP((-DEL_H/R) * ((1d0/TK) - 
-     &                  (1d0/298d0)))
+         KBC_T = KBC_298 * EXP((-DEL_H/R) * ((1e+0_fp/TK) - 
+     &                  (1e+0_fp/298e+0_fp)))
 
          ! Define KOC_BC_T, theoretical OC-BC part coeff at temp T [unitless]
          KOC_BC_T = KOA_T / KBC_T
 
          ! Define KBC_OC_T, theoretical BC_OC part coeff at temp T [unitless]
-         KBC_OC_T = 1d0 / KOC_BC_T
+         KBC_OC_T = 1e+0_fp / KOC_BC_T
 
          ! Get monthly mean OC and BC concentrations [kg/box] 
          C_OC_CHEM = C_OC(I,J,L)
          C_BC_CHEM = C_BC(I,J,L)
 
          ! Make sure OC is not negative
-         C_OC_CHEM = MAX( C_OC_CHEM, 0d0 )
+         C_OC_CHEM = MAX( C_OC_CHEM, 0e+0_fp )
 
          ! Convert to units of volume per box [m^3 OC or BC/box]
          C_OC_CHEM1 = C_OC_CHEM / DENS_OCT
@@ -701,44 +596,44 @@
          VR_OC_AIR     = C_OC_CHEM1 / AIR_VOL ! could be zero
 
          ! VR_OC_BC = volume ratio of OC to BC [unitless]
-         VR_OC_BC      = SAFE_DIV( C_OC_CHEM1, C_BC_CHEM1, 0d0 )
+         VR_OC_BC      = SAFE_DIV( C_OC_CHEM1, C_BC_CHEM1, 0e+0_fp )
 
          ! VR_BC_AIR = volume ratio of BC to air [unitless]
-         VR_BC_AIR     = SAFE_DIV( VR_OC_AIR,  VR_OC_BC,   0d0 )
+         VR_BC_AIR     = SAFE_DIV( VR_OC_AIR,  VR_OC_BC,   0e+0_fp )
 
          ! VR_BC_OC = volume ratio of BC to OC [unitless]
-         VR_BC_OC      = SAFE_DIV( 1d0,        VR_OC_BC,   0d0 ) 
+         VR_BC_OC      = SAFE_DIV( 1e+0_fp,        VR_OC_BC,   0e+0_fp )
 
          ! Redefine fractions of total POPs in box (I,J,L) that are OC-phase, 
          ! BC-phase, and gas phase with new time step (should only change if 
          ! temp changes or OC/BC concentrations change) 
          DENOM         = KOA_T * VR_OC_AIR
-         OC_AIR_RATIO  = SAFE_DIV( 1d0,        DENOM,      0d0 )
+         OC_AIR_RATIO  = SAFE_DIV( 1e+0_fp,        DENOM,      0e+0_fp )
 
          DENOM         = KOC_BC_T * VR_OC_BC
-         OC_BC_RATIO   = SAFE_DIV( 1d0,        DENOM,      0d0 )
+         OC_BC_RATIO   = SAFE_DIV( 1e+0_fp,        DENOM,      0e+0_fp )
 
          DENOM         = KBC_T * VR_BC_AIR
-         BC_AIR_RATIO  = SAFE_DIV( 1d0,        DENOM,      0d0 )
+         BC_AIR_RATIO  = SAFE_DIV( 1e+0_fp,        DENOM,      0e+0_fp )
 
          DENOM         = KBC_OC_T * VR_BC_OC
-         BC_OC_RATIO   = SAFE_DIV( 1d0,        DENOM,      0d0 )
+         BC_OC_RATIO   = SAFE_DIV( 1e+0_fp,        DENOM,      0e+0_fp )
 
          ! If there are zeros in OC or BC concentrations, make sure they
          ! don't cause problems with phase fractions
          IF ( C_OC_CHEM > SMALLNUM .and. C_BC_CHEM > SMALLNUM ) THEN
-            F_POP_OC  = 1d0 / (1d0 + OC_AIR_RATIO + OC_BC_RATIO) 
-            F_POP_BC  = 1d0 / (1d0 + BC_AIR_RATIO + BC_OC_RATIO)
+            F_POP_OC  = 1e+0_fp / (1e+0_fp + OC_AIR_RATIO + OC_BC_RATIO)
+            F_POP_BC  = 1e+0_fp / (1e+0_fp + BC_AIR_RATIO + BC_OC_RATIO)
          
          ELSE IF (C_OC_CHEM > SMALLNUM .and.
      &            C_BC_CHEM .le. SMALLNUM ) THEN
-            F_POP_OC  = 1d0 / (1d0 + OC_AIR_RATIO)
+            F_POP_OC  = 1e+0_fp / (1e+0_fp + OC_AIR_RATIO)
             F_POP_BC  = SMALLNUM           
 
          ELSE IF ( C_OC_CHEM .le. SMALLNUM .and.
      &             C_BC_CHEM > SMALLNUM ) THEN
             F_POP_OC  = SMALLNUM
-            F_POP_BC  = 1d0 / (1d0 + BC_AIR_RATIO)
+            F_POP_BC  = 1e+0_fp / (1e+0_fp + BC_AIR_RATIO)
 
          ELSE IF ( C_OC_CHEM .le. SMALLNUM .and. 
      &             C_BC_CHEM .le. SMALLNUM) THEN
@@ -747,7 +642,7 @@
          ENDIF
 
          ! Gas-phase:
-         F_POP_G   = 1d0 - F_POP_OC - F_POP_BC
+         F_POP_G   = 1e+0_fp - F_POP_OC - F_POP_BC
 
          ! Check that sum equals 1
          SUM_F = F_POP_OC + F_POP_BC + F_POP_G
@@ -814,7 +709,7 @@
          !==============================================================
          ! CHEMISTRY AND DEPOSITION REACTIONS
          !==============================================================
-         IF ( F_PBL < 0.05D0 .OR. K_DEPG < SMALLNUM ) THEN
+         IF ( F_PBL < 0.05e+0_fp .OR. K_DEPG < SMALLNUM ) THEN
 
             !==============================================================
             ! Entire box is in the free troposphere
@@ -836,12 +731,12 @@
 !            NEW_POPP_BC = MPOP_BC
 
             ! No deposition occurs [kg]
-            DEP_POPG = 0D0
-            DEP_POPP_OC = 0D0
-            DEP_POPP_BC = 0D0
+            DEP_POPG = 0e+0_fp
+            DEP_POPP_OC = 0e+0_fp
+            DEP_POPP_BC = 0e+0_fp
                
 
-         ELSE IF ( F_PBL > 0.95D0 ) THEN 
+         ELSE IF ( F_PBL > 0.95e+0_fp ) THEN 
 
             !==============================================================
             ! Entire box is in the boundary layer
@@ -906,7 +801,7 @@
             ! Do chemistry with deposition on BL fraction for gas phase
             CALL RXN_OX_WITHDEP( POPG_BL,  K_OX,
      &                           K_DEPG,   DTCHEM,   E_KOX_T,
-     &                           NEW_POPG, GROSS_OX, DEP_POPG )           
+     &                           NEW_POPG, GROSS_OX, DEP_POPG )         
 
             ! Do chemistry without deposition on the FT fraction for gas phase
             CALL RXN_OX_NODEP( POPG_FT, K_OX,
@@ -917,7 +812,7 @@
             ! Do chemistry with deposition on BL fraction for OC phase
             CALL RXN_OX_WITHDEP( POPP_OC_BL,  K_O3,
      &                           K_DEPP_OC,   DTCHEM,      E_KOX_T_P,
-     &                           NEW_POPP_OC, GROSS_OX_OC, DEP_POPP_OC ) 
+     &                           NEW_POPP_OC, GROSS_OX_OC, DEP_POPP_OC )
 
             ! Do chemistry without deposition on the FT fraction for OC phase
             CALL RXN_OX_NODEP( POPP_OC_FT, K_O3,
@@ -930,7 +825,7 @@
 
             ! Do chemistry without deposition on the FT fraction for BC phase
             CALL RXN_OX_NODEP( POPP_BC_FT, K_O3,
-     &                          E_KOX_T_P, TMP_POPP_BC, TMP_OX_P_BC )           
+     &                          E_KOX_T_P, TMP_POPP_BC, TMP_OX_P_BC )   
 
             ! Do deposition (no chemistry) on BL fraction for particulate phase
             ! No deposition (and no chem) on the FT fraction
@@ -971,14 +866,14 @@
          NET_OX_BC = MPOP_BC - NEW_POPP_BC - DEP_POPP_BC                
 
          ! Error check on gross oxidation [kg]
-         IF ( GROSS_OX < 0D0 .or. GROSS_OX_OC < 0d0 .or.
-     &        GROSS_OX_BC < 0d0 ) 
+         IF ( GROSS_OX < 0e+0_fp .or. GROSS_OX_OC < 0e+0_fp .or.
+     &        GROSS_OX_BC < 0e+0_fp ) 
      &        CALL DEBUG_MSG('CHEM_POPGP: negative gross oxidation')
 
          ! Apportion gross oxidation between OH and possibly
          ! NO3 someday [kg]
          IF ( (K_OX     < SMALLNUM) .OR. (GROSS_OX < SMALLNUM) ) THEN
-            GROSS_OX_OH = 0D0
+            GROSS_OX_OH = 0e+0_fp
 !            GROSS_OX_NO3 = 0D0
 
          ELSE
@@ -992,25 +887,26 @@
          ! will need to multiply DEP_POPG by the ratio 
          ! of K_DRYG (rate of dry dep) to K_DEPG (total dep rate).
          IF ( (K_DEPG  < SMALLNUM) .OR. (DEP_POPG < SMALLNUM) ) THEN
-            DEP_POPG_DRY  = 0D0
+            DEP_POPG_DRY  = 0e+0_fp
          ELSE 
             DEP_POPG_DRY  = DEP_POPG   
          ENDIF
 
          IF ( (K_DEPP_OC   < SMALLNUM)   .OR. 
      &        (DEP_POPP_OC < SMALLNUM) ) THEN
-            DEP_POPP_OC_DRY  = 0D0
+            DEP_POPP_OC_DRY  = 0e+0_fp
          ELSE
             DEP_POPP_OC_DRY  = DEP_POPP_OC
          ENDIF
 
          IF ( (K_DEPP_BC   < SMALLNUM)   .OR. 
      &        (DEP_POPP_BC < SMALLNUM) ) THEN
-            DEP_POPP_BC_DRY  = 0D0
+            DEP_POPP_BC_DRY  = 0e+0_fp
          ELSE
             DEP_POPP_BC_DRY  = DEP_POPP_BC 
          ENDIF
 
+#if !defined( NO_BPCH )
          !=================================================================
          ! ND44 diagnostic: drydep flux of POPG and POPP [molec/cm2/s]
          !=================================================================
@@ -1047,7 +943,7 @@
 
 
          ENDIF
-           
+#endif
 
          !==============================================================
          ! ND53 diagnostic: Oxidized POPG (OH-POPG) production [kg]
@@ -1092,13 +988,13 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN)  :: OLD_POPG
-      REAL*8,  INTENT(IN)  :: K_OX
-      REAL*8,  INTENT(IN)  :: E_KOX_T      
+      REAL(fp),  INTENT(IN)  :: OLD_POPG
+      REAL(fp),  INTENT(IN)  :: K_OX
+      REAL(fp),  INTENT(IN)  :: E_KOX_T      
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: NEW_POPG,  GROSS_OX
+      REAL(fp),  INTENT(OUT) :: NEW_POPG,  GROSS_OX
 !
 ! !REVISION HISTORY: 
 !  27 January 2011 - CL Friedman - Initial Version
@@ -1112,7 +1008,7 @@
       ! Oxidation
       IF (K_OX < SMALLNUM ) THEN
 
-         GROSS_OX = 0d0
+         GROSS_OX = 0e+0_fp
          NEW_POPG = OLD_POPG
 
       ELSE 
@@ -1122,7 +1018,7 @@
 
          ! Gross oxidation 
          GROSS_OX = OLD_POPG - NEW_POPG
-         GROSS_OX = MAX( GROSS_OX, 0D0 )
+         GROSS_OX = MAX( GROSS_OX, 0e+0_fp )
 
       ENDIF
 
@@ -1151,14 +1047,14 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN)  :: OLD_POPG,  DT
-      REAL*8,  INTENT(IN)  :: K_OX, K_DEPG
-      REAL*8,  INTENT(IN)  :: E_KOX_T
+      REAL(fp),  INTENT(IN)  :: OLD_POPG,  DT
+      REAL(fp),  INTENT(IN)  :: K_OX, K_DEPG
+      REAL(fp),  INTENT(IN)  :: E_KOX_T
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: NEW_POPG,  GROSS_OX
-      REAL*8,  INTENT(OUT) :: DEP_POPG
+      REAL(fp),  INTENT(OUT) :: NEW_POPG,  GROSS_OX
+      REAL(fp),  INTENT(OUT) :: DEP_POPG
 !
 ! !REVISION HISTORY: 
 !  27 January 2011 - CL Friedman - Initial Version
@@ -1168,9 +1064,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8               :: E_KDEPG_T
-      REAL*8               :: NEWPOPG_OX
-      REAL*8               :: NEWPOPG_DEP
+      REAL(fp)               :: E_KDEPG_T
+      REAL(fp)               :: NEWPOPG_OX
+      REAL(fp)               :: NEWPOPG_DEP
 
       !=================================================================
       ! RXN_OX_WITHDEP begins here!
@@ -1189,7 +1085,7 @@
          NEW_POPG = OLD_POPG * E_KDEPG_T
          
          ! Oxidation of POPG [kg]
-         GROSS_OX = 0D0
+         GROSS_OX = 0e+0_fp
 
          ! Deposited POPG [kg]
          DEP_POPG = OLD_POPG - NEW_POPG
@@ -1209,11 +1105,11 @@
 
          ! Gross oxidized gas phase mass [kg]
          GROSS_OX = ( OLD_POPG - NEW_POPG ) * K_OX / ( K_OX + K_DEPG )
-         GROSS_OX = MAX( GROSS_OX, 0D0 )
+         GROSS_OX = MAX( GROSS_OX, 0e+0_fp )
 
          ! POPG deposition [kg]
          DEP_POPG = ( OLD_POPG - NEW_POPG - GROSS_OX )       
-         DEP_POPG = MAX( DEP_POPG, 0D0 )
+         DEP_POPG = MAX( DEP_POPG, 0e+0_fp )
 
       ENDIF
 
@@ -1242,14 +1138,14 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN)  :: OLD_POPP
-      REAL*8,  INTENT(IN)  :: K_DEPP
-      REAL*8,  INTENT(IN)  :: DT
+      REAL(fp),  INTENT(IN)  :: OLD_POPP
+      REAL(fp),  INTENT(IN)  :: K_DEPP
+      REAL(fp),  INTENT(IN)  :: DT
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: NEW_POPP
-      REAL*8,  INTENT(OUT) :: DEP_POPP
+      REAL(fp),  INTENT(OUT) :: NEW_POPP
+      REAL(fp),  INTENT(OUT) :: DEP_POPP
 !
 ! !REVISION HISTORY: 
 !  9 February 2011 - CL Friedman - Initial Version
@@ -1259,7 +1155,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8               :: E_KDEPP_T
+      REAL(fp)               :: E_KDEPP_T
 
       !=================================================================
       ! NO_RXN_WITHDEP begins here!
@@ -1277,7 +1173,7 @@
 
       ! POPP deposition [kg]
       DEP_POPP = OLD_POPP - NEW_POPP
-      DEP_POPP = MAX( DEP_POPP, 0D0 )
+      DEP_POPP = MAX( DEP_POPP, 0e+0_fp )
 
 
       END SUBROUTINE NO_RXN_WITHDEP
@@ -1324,30 +1220,31 @@
 !
 ! !LOCAL VARIABLES:
 !
-       REAL*8        :: OH_MOLEC_CM3
+       REAL(fp)        :: OH_MOLEC_CM3
     
        !=================================================================
        ! GET_OH begins here!
        !=================================================================
 
        ! Test for sunlight...
-       IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp 
+     &    .and. TCOSZ(I,J) > 0e+0_fp ) THEN
 
          ! Impose a diurnal variation on OH during the day
          OH_MOLEC_CM3 = OH(I,J,L)                      *           
      &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
-     &                  ( 1440d0        / GET_TS_CHEM() )
+     &                  ( 1440e+0_fp        / GET_TS_CHEM() )
 
          ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/23/14)
          OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
 
          ! Make sure OH is not negative
-         OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
+         OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
                
        ELSE
 
          ! At night, OH goes to zero
-         OH_MOLEC_CM3 = 0d0
+         OH_MOLEC_CM3 = 0e+0_fp
 
        ENDIF
 
@@ -1389,9 +1286,9 @@
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
       INTEGER             :: I, IJLOOP, J, L, N, NT, NDYSTEP
-      REAL*8              :: A0, A1, A2, A3, B1, B2, B3
-      REAL*8              :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL*8              :: SUNTMP(MAXIJ)
+      REAL(fp)              :: A0, A1, A2, A3, B1, B2, B3
+      REAL(fp)              :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+      REAL(fp)              :: SUNTMP(MAXIJ)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -1417,12 +1314,12 @@
       IF ( FIRST .or. GET_GMT() < 1e-5 ) THEN 
       
          ! Zero arrays
-         TTDAY(:,:) = 0d0
-         TCOSZ(:,:) = 0d0
-         COSZM(:,:) = 0d0
+         TTDAY(:,:) = 0e+0_fp
+         TCOSZ(:,:) = 0e+0_fp
+         COSZM(:,:) = 0e+0_fp
 
          ! NDYSTEP is # of chemistry time steps in this day
-         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()         
+         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()      
 
          ! NT is the elapsed time [s] since the beginning of the run
          NT = GET_ELAPSED_SEC()
@@ -1431,7 +1328,7 @@
          DO N = 1, NDYSTEP
             
             ! Zero SUNTMP array
-            SUNTMP(:) = 0d0
+            SUNTMP(:) = 0e+0_fp
 
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO
@@ -1477,14 +1374,14 @@
 
                ! TCOSZ is the sum of SUNTMP at location (I,J)
                ! Do not include negative values of SUNTMP
-               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(IJLOOP), 0d0 )
+               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(IJLOOP), 0e+0_fp )
 
                ! COSZM is the peak value of SUMTMP during a day at (I,J)
                ! (rjp, bmy, 3/30/04)
                COSZM(I,J) = MAX( COSZM(I,J), SUNTMP(IJLOOP) )
 
                ! TTDAY is the total daylight time at location (I,J)
-               IF ( SUNTMP(IJLOOP) > 0d0 ) THEN
+               IF ( SUNTMP(IJLOOP) > 0e+0_fp ) THEN
                   TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
                ENDIF
             ENDDO
@@ -1538,6 +1435,7 @@
 !  25 Aug 2014 - M. Sulprizio- Now accept am_I_Root and RC arguments
 !  10 Sep 2014 - M. Sulprizio- Remove calls to GET_GLOBAL_OC and GET_GLOBAL_BC,
 !                              these fields are now read in HEMCO
+!  10 Mar 2015 - R. Yantosca - Now always allocate ZERO_DVEL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1566,23 +1464,22 @@
       !=================================================================
       ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COSZM' )
-      COSZM = 0d0
+      COSZM = 0e+0_fp
 
       ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
-      TCOSZ = 0d0
+      TCOSZ = 0e+0_fp
 
       ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTDAY' )
-      TTDAY = 0d0
+      TTDAY = 0e+0_fp
 
-      ! Allocate ZERO_DVEL if we use non-local PBL mixing or
-      ! if drydep is turned off 
-      IF ( LNLPBL .OR. (.not. LDRYD) ) THEN
-         ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZERO_DVEL' )
-         ZERO_DVEL = 0d0
-      ENDIF
+      ! Now always allocate ZERO_DVEL.  This is needed because the calls
+      ! to CHEM_POPGP have been modified in the CHEMPOPS routine above.
+      ! (bmy, 3/10/15)
+      ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZERO_DVEL' )
+      ZERO_DVEL = 0e+0_fp
 
       END SUBROUTINE INIT_POPS
 !EOC

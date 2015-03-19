@@ -293,13 +293,6 @@
       !=================================================================
       IF ( ND01 > 0 ) THEN 
          LD01 = MIN( ND01, LLPAR )
-
-!-----------------------------------------------------------------------------
-! Prior to 8/21/14:
-! AD01 is now only used for Pb.  Rn and Be7 are now tracked thru HEMCO.
-! (bmy, 8/21/14)
-!         ALLOCATE( AD01( IIPAR, JJPAR, LD01, N_TRACERS ), STAT=AS )
-!-----------------------------------------------------------------------------
          ALLOCATE( AD01( IIPAR, JJPAR, LD01 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
       ENDIF
@@ -389,29 +382,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD09_em' )
       ENDIF
 
-!------------------------------------------------------------------------------
-!%%% Prior to 8/18/14:
-!%%% THE H2/HD SIMULATION IS OBSOLETE.  YOU CAN RESTORE IT IF YOU WANT.
-!%%% UNTIL THEN, LEAVE THIS COMMENTED OUT. (bmy, 8/18/14)
-!      !=================================================================
-!      ! ND10: H2/HD prod, loss, sources
-!      !=================================================================
-!      IF ( ND10 > 0 ) THEN
-!
-!         ! number of emissions tracers
-!         NEMISS = 5
-!
-!         ! Accumulating diagnostic array
-!         ALLOCATE( AD10( IIPAR, JJPAR, LD10, (PD10-NEMISS) ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD10' )
-!
-!         ! Accumulating diagnostic array
-!         ALLOCATE( AD10em( IIPAR, JJPAR, NEMISS ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD10em' )
-!
-!      ENDIF
-!------------------------------------------------------------------------------
-      
       !=================================================================
       ! ND12: Distribution of emissions in boundary layer [fraction]
       !       --> uses AD12 array (allocatable)
@@ -836,6 +806,7 @@
 
       ENDIF
 
+#if !defined( NO_BPCH )
       !=================================================================
       ! ND44: Drydep fluxes [s-1] and drydep velocities [cm/s]
       !       --> uses AD44 arrays (allocatable)
@@ -870,11 +841,13 @@
          ALLOCATE( AD44( IIPAR, JJPAR, NMAX, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
       ENDIF
+#endif
       
       !=================================================================
       ! ND45: Tracer concentrations [v/v] between HR1_OTH and HR2_OTH
       !       --> uses AD45 array (allocatable)
       !=================================================================
+#if !defined(NO_BPCH)
       IF ( ND45 > 0 ) THEN
          LD45 = MIN( ND45,        LLPAR   )
          NMAX = MIN( N_TRC_TOT+1, NNPAR+1 )
@@ -893,6 +866,7 @@
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
 
       ENDIF
+#endif
 
       !=================================================================
       ! ND47: 24-h averaged tracer concentration [v/v]
@@ -1130,9 +1104,10 @@
       !=================================================================
       IF ( ND68 > 0 ) THEN
          LD68 = MIN( ND68, LLPAR )
-
+#if !defined(NO_BPCH)
          ALLOCATE( AD68( IIPAR, JJPAR, LD68, PD68 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD68' )
+#endif
       ENDIF
 
       !=================================================================

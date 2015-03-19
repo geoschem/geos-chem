@@ -58,6 +58,8 @@
       USE UCX_MOD,              ONLY : UCX_NOX ! SDE 07/17/13
       USE UCX_MOD,              ONLY : UCX_H2SO4PHOT ! SDE 08/17/13
 
+      USE PRECISION_MOD  ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -246,6 +248,7 @@
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
 !  23 Jul 2014 - R. Yantosca - Removed reference to obsolete CMN_NOX_mod.F
+!  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -271,7 +274,7 @@
 
       ! Local variables for quantities from Input_Opt
       INTEGER       :: N_TRACERS
-      REAL*8        :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)        :: XNUMOL(Input_Opt%N_TRACERS)
       LOGICAL       :: LCARB
       LOGICAL       :: LDUST
       LOGICAL       :: LPRT
@@ -285,7 +288,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEMDR begins here!
@@ -529,7 +532,7 @@
       ! to see if there are any plane flight points to be processed
       !=================================================================
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -742,15 +745,17 @@
 
       !=================================================================  
       ! Call SETEMIS which sets emission rates REMIS 
+      ! WARNING: As of Mar 5, emissions are now entirely done outside
+      ! of chemistry, i.e. all emission fluxes have already been added
+      ! to the tracers array (in mixing_mod.F90). The SETEMIS call is
+      ! therefore not needed anymore. It will just set REMIS to zero.
       !=================================================================
       CALL SETEMIS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!      CALL SETEMIS( EMISRR,    EMISRRN,   am_I_Root, 
-!     &              Input_Opt, State_Met, RC         )
-      
-      !### Debug
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
-      ENDIf
+!      
+!      !### Debug
+!      IF ( prtDebug ) THEN
+!         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
+!      ENDIf
 
       !================================================================
       ! Call chemistry routines
@@ -804,7 +809,7 @@
       !=================================================================
       ! Save quantities for computing mean OH lifetime
       !=================================================================
-      CALL DO_DIAG_OH
+      CALL DO_DIAG_OH()
       
       !### Debug
       IF ( prtDebug ) THEN

@@ -15,6 +15,8 @@
 ! 
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -35,6 +37,7 @@
 !  (4 ) Renamed arguments for clarity (bmy, 6/26/02)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX Headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC

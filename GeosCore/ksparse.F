@@ -10,6 +10,7 @@
 !        to deallocate all arrays and stop the run safely.  Now also force
 !        double-precision with "D" exponents. (bmy, 4/18/03)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !******************************************************************************
 !
       ! References to F90 modules
@@ -17,6 +18,8 @@
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
+
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 
@@ -254,15 +257,15 @@
          IF (IZIL.GT.0) THEN 
           IJTOT                   = IJTOT + 1
           NREMAIN                 = IZIL
-          NFIVE                   = (NREMAIN + 0.0001d0) / 5 
+          NFIVE                   = (NREMAIN + 0.0001e+0_fp) / 5 
           NREMAIN                 =  NREMAIN - NFIVE   * 5 
-          NFOUR                   = (NREMAIN + 0.0001d0) / 4 
+          NFOUR                   = (NREMAIN + 0.0001e+0_fp) / 4 
           NREMAIN                 =  NREMAIN - NFOUR   * 4
-          NTHREE                  = (NREMAIN + 0.0001d0) / 3  
+          NTHREE                  = (NREMAIN + 0.0001e+0_fp) / 3  
           NREMAIN                 =  NREMAIN - NTHREE  * 3 
-          NTWO                    = (NREMAIN + 0.0001d0) / 2   
+          NTWO                    = (NREMAIN + 0.0001e+0_fp) / 2   
           NREMAIN                 =  NREMAIN - NTWO    * 2  
-          NONE                    = (NREMAIN + 0.0001d0)  
+          NONE                    = (NREMAIN + 0.0001e+0_fp)  
           NREMAIN                 =  NREMAIN - NONE
 !
 
@@ -379,15 +382,15 @@
         IF (KZIL.GT.0) THEN 
          KZTOT              = KZTOT + 1
          NREMAIN            = KZIL
-         NFIVE              = (NREMAIN + 0.0001d0) / 5 
+         NFIVE              = (NREMAIN + 0.0001e+0_fp) / 5 
          NREMAIN            =  NREMAIN - NFIVE   * 5 
-         NFOUR              = (NREMAIN + 0.0001d0) / 4 
+         NFOUR              = (NREMAIN + 0.0001e+0_fp) / 4 
          NREMAIN            =  NREMAIN - NFOUR   * 4
-         NTHREE             = (NREMAIN + 0.0001d0) / 3  
+         NTHREE             = (NREMAIN + 0.0001e+0_fp) / 3  
          NREMAIN            =  NREMAIN - NTHREE  * 3 
-         NTWO               = (NREMAIN + 0.0001d0) / 2   
+         NTWO               = (NREMAIN + 0.0001e+0_fp) / 2   
          NREMAIN            =  NREMAIN - NTWO    * 2  
-         NONE               = (NREMAIN + 0.0001d0)  
+         NONE               = (NREMAIN + 0.0001e+0_fp)  
          NREMAIN            =  NREMAIN - NONE
 !
 
@@ -451,15 +454,15 @@
         IF (MZIL.GT.0) THEN 
          MZTOT              = MZTOT + 1
          NREMAIN            = MZIL
-         NFIVE              = (NREMAIN + 0.0001d0) / 5 
+         NFIVE              = (NREMAIN + 0.0001e+0_fp) / 5 
          NREMAIN            =  NREMAIN - NFIVE   * 5 
-         NFOUR              = (NREMAIN + 0.0001d0) / 4 
+         NFOUR              = (NREMAIN + 0.0001e+0_fp) / 4 
          NREMAIN            =  NREMAIN - NFOUR   * 4
-         NTHREE             = (NREMAIN + 0.0001d0) / 3  
+         NTHREE             = (NREMAIN + 0.0001e+0_fp) / 3  
          NREMAIN            =  NREMAIN - NTHREE  * 3 
-         NTWO               = (NREMAIN + 0.0001d0) / 2   
+         NTWO               = (NREMAIN + 0.0001e+0_fp) / 2   
          NREMAIN            =  NREMAIN - NTWO    * 2  
-         NONE               = (NREMAIN + 0.0001d0)  
+         NONE               = (NREMAIN + 0.0001e+0_fp)  
          NREMAIN            =  NREMAIN - NONE
 !
          IMZTOT(I,NCSP)     = MZTOT 
@@ -589,16 +592,19 @@
 ! TMP FIX FOR F77/F90 CONFLICT - MSL 8/5/11
        ! Now force double-precision with "D" exponents (bmy, 4/18/03)
        PERTST(:,1) = (/ 
-     &  2.0d0, 4.5d0, 7.333d0, 10.42d0,  13.7d0,   17.15d0,     1.0d0/)
+     &  2.0e+0_fp, 4.5e+0_fp, 7.333e+0_fp, 10.42e+0_fp,  13.7e+0_fp, 
+     &  17.15e+0_fp,     1.0e+0_fp/)
        PERTST(:,2) = (/ 
-     &  3.0d0, 6.0d0, 9.167d0, 12.5d0,   15.98d0,   1.0d0,      1.0d0/)
+     &  3.0e+0_fp, 6.0e+0_fp, 9.167e+0_fp, 12.5e+0_fp,   15.98e+0_fp, 
+     &  1.0e+0_fp,      1.0e+0_fp/)
        PERTST(:,3) = (/ 
-     &  1.0d0, 1.0d0, 0.5d0,   0.1667d0, 0.04133d0, 0.008267d0, 1.0d0/)
+     &  1.0e+0_fp, 1.0e+0_fp, 0.5e+0_fp,   0.1667e+0_fp, 0.04133e+0_fp,
+     &  0.008267e+0_fp, 1.0e+0_fp/)
 
 !       DATA PERTST / 
-!     1  2.0d0, 4.5d0, 7.333d0, 10.42d0,   13.7d0,    17.15d0,     1.0d0,
-!     3  3.0d0, 6.0d0, 9.167d0, 12.5d0,    15.98d0,    1.0d0,      1.0d0,
-!     5  1.0d0, 1.0d0, 0.5d0,    0.1667d0,  0.04133d0, 0.008267d0, 1.0d0/ 
+!     1  2.0e+0_fp, 4.5e+0_fp, 7.333e+0_fp, 10.42e+0_fp,   13.7e+0_fp,    17.15e+0_fp,     1.0e+0_fp,
+!     3  3.0e+0_fp, 6.0e+0_fp, 9.167e+0_fp, 12.5e+0_fp,    15.98e+0_fp,    1.0e+0_fp,      1.0e+0_fp,
+!     5  1.0e+0_fp, 1.0e+0_fp, 0.5e+0_fp,    0.1667e+0_fp,  0.04133e+0_fp, 0.008267e+0_fp, 1.0e+0_fp/ 
 
 !
 ! ADAMS-MOULTON COEFFICIENTS
@@ -613,47 +619,47 @@
        MBETWEEN       = 50
 !
        DO 800 NQQ     = 1, 7
-        ENQQ1(NQQ)    = 0.5d0 / FLOAT(NQQ    )
-        ENQQ2(NQQ)    = 0.5d0 / FLOAT(NQQ + 1) 
-        ENQQ3(NQQ)    = 0.5d0 / FLOAT(NQQ + 2)
-        CONPST(NQQ)   = 1.0d0 / (PERTST(NQQ,1) * ENQQ3(NQQ)) 
-        CONP15(NQQ)   = 1.5d0 * CONPST(NQQ)
+        ENQQ1(NQQ)    = 0.5e+0_fp / FLOAT(NQQ    )
+        ENQQ2(NQQ)    = 0.5e+0_fp / FLOAT(NQQ + 1) 
+        ENQQ3(NQQ)    = 0.5e+0_fp / FLOAT(NQQ + 2)
+        CONPST(NQQ)   = 1.0e+0_fp / (PERTST(NQQ,1) * ENQQ3(NQQ)) 
+        CONP15(NQQ)   = 1.5e+0_fp * CONPST(NQQ)
         PERTS2(NQQ,1) = PERTST(NQQ,1) * PERTST(NQQ,1)
         PERTS2(NQQ,2) = PERTST(NQQ,2) * PERTST(NQQ,2)
         PERTS2(NQQ,3) = PERTST(NQQ,3) * PERTST(NQQ,3)
  800   CONTINUE
 !
        DO 830 I2   = 1, 6 
-        ASET(I2,2) = 1.0d0
-        ASET(I2,8) = 0.d0
+        ASET(I2,2) = 1.0e+0_fp
+        ASET(I2,8) = 0.e+0_fp
  830   CONTINUE
 !
-       ASET(1,1)   = 1.0d0                                                    
+       ASET(1,1)   = 1.0e+0_fp                                          
 !
-       ASET(2,1)   = 2.0d0    /    3.0d0 
-       ASET(2,3)   = 1.0d0    /    3.0d0  
+       ASET(2,1)   = 2.0e+0_fp    /    3.0e+0_fp 
+       ASET(2,3)   = 1.0e+0_fp    /    3.0e+0_fp  
 !
-       ASET(3,1)   = 6.0d0    /   11.0d0
-       ASET(3,3)   = 6.0d0    /   11.0d0 
-       ASET(3,4)   = 1.0d0    /   11.0d0                                     
+       ASET(3,1)   = 6.0e+0_fp    /   11.0e+0_fp
+       ASET(3,3)   = 6.0e+0_fp    /   11.0e+0_fp 
+       ASET(3,4)   = 1.0e+0_fp    /   11.0e+0_fp                        
 !
-       ASET(4,1)   = 12.0d0   /   25.0d0                                      
-       ASET(4,3)   =   .70d0    
-       ASET(4,4)   =   .20d0   
-       ASET(4,5)   =   .020d0  
+       ASET(4,1)   = 12.0e+0_fp   /   25.0e+0_fp                        
+       ASET(4,3)   =   .70e+0_fp    
+       ASET(4,4)   =   .20e+0_fp   
+       ASET(4,5)   =   .020e+0_fp  
 !
-       ASET(5,1)   =   60.0d0 /  137.0d0
-       ASET(5,3)   =  225.0d0 /  274.0d0  
-       ASET(5,4)   =   85.0d0 /  274.0d0  
-       ASET(5,5)   =   15.0d0 /  274.0d0  
-       ASET(5,6)   =    1.0d0 /  274.0d0                                      
+       ASET(5,1)   =   60.0e+0_fp /  137.0e+0_fp
+       ASET(5,3)   =  225.0e+0_fp /  274.0e+0_fp  
+       ASET(5,4)   =   85.0e+0_fp /  274.0e+0_fp  
+       ASET(5,5)   =   15.0e+0_fp /  274.0e+0_fp  
+       ASET(5,6)   =    1.0e+0_fp /  274.0e+0_fp                        
 !
-       ASET(6,1)   =  180.0d0 /  441.0d0 
-       ASET(6,3)   =  406.0d0 /  441.0d0   
-       ASET(6,4)   =  735.0d0 / 1764.0d0  
-       ASET(6,5)   =  175.0d0 / 1764.0d0 
-       ASET(6,6)   =   21.0d0 / 1764.0d0  
-       ASET(6,7)   =    1.0d0 / 1764.0d0  
+       ASET(6,1)   =  180.0e+0_fp /  441.0e+0_fp 
+       ASET(6,3)   =  406.0e+0_fp /  441.0e+0_fp   
+       ASET(6,4)   =  735.0e+0_fp / 1764.0e+0_fp  
+       ASET(6,5)   =  175.0e+0_fp / 1764.0e+0_fp 
+       ASET(6,6)   =   21.0e+0_fp / 1764.0e+0_fp  
+       ASET(6,7)   =    1.0e+0_fp / 1764.0e+0_fp  
 !
       ENDIF
 !     ENDIF IFDID.EQ.0
@@ -662,5 +668,5 @@
 ! ********************** END OF SUBROUTINE KSPARSE ********************
 ! *********************************************************************
 !
-      RETURN                                                             
+      RETURN                                                            
       END SUBROUTINE KSPARSE

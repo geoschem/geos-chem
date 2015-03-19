@@ -15,13 +15,15 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
 !
       ! Array to store global monthly mean OH field [molec/cm3]
-      REAL*8, PUBLIC, ALLOCATABLE :: OH(:,:,:)
+      REAL(fp), PUBLIC, ALLOCATABLE :: OH(:,:,:)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -51,13 +53,14 @@
 !  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
       ! Sum of cosine of the solar zenith angle. Used to impose a
       ! diurnal variability on OH concentrations
-      REAL*8, ALLOCATABLE         :: SUMCOSZA(:,:)
+      REAL(fp), ALLOCATABLE         :: SUMCOSZA(:,:)
 
       ! Allocation status
       LOGICAL                     :: Arrays_Allocated = .FALSE.
@@ -113,7 +116,7 @@
 !        regridding code which will produce the appropriate OH files.
 !  (2 ) Now use version of GET_TAU0 with 3 arguments.  Now call READ_BPCH2
 !        with IIPAR,JJPAR,LGLOB.  Call TRANSFER_3D to cast from REAL*4 to
-!        REAL*8 and to regrid to 30 levels for GEOS-3 (if necessary).
+!        REAL(fp) and to regrid to 30 levels for GEOS-3 (if necessary).
 !        ARRAY should now be of size (IIPAR,JJPAR,LGLOB). (bmy, 1/11/02)
 !  (3 ) Now point to new OH files in the v4-26 subdirectory.  Also eliminated
 !        obsolete code from 11/01. (bmy, 2/27/02)
@@ -127,6 +130,8 @@
 !  23 Oct 2013 - R. Yantosca - Now accept Input_Opt argument
 !  29 Oct 2013 - R. Yantosca - Remove TRANSFER_3D_NOLUMP routine, we can just
 !                              instead do a direct cast assignment
+!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,8 +139,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, J, L
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL*8             :: XTAU
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LGLOB)
+      REAL(f8)           :: XTAU
       CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
@@ -203,7 +208,7 @@
       ! Note that peculiar units don't matter because we immediately
       ! convert back after regridding
       DO L=1, LGLOB
-         ARRAY(:,:,L) = ARRAY(:,:,L) / AIRDEN_FULLGRID(L,:,:)
+         ARRAY(:,:,L) = ARRAY(:,:,L) / AIRDEN_FULLGRID(:,:,L)
       ENDDO
          
       ! Assign data from ARRAY to the module variable OH
@@ -211,7 +216,7 @@
       
       ! convert mixing ratio (molec m3 kg-1 cm-3) -> molec/cm3
       DO L=1, LLPAR
-         OH(:,:,L) = OH(:,:,L) * State_Met%AIRDEN(L,:,:)
+         OH(:,:,L) = OH(:,:,L) * State_Met%AIRDEN(:,:,L)
       ENDDO
 
 #else
@@ -225,7 +230,7 @@
       END SUBROUTINE GET_GLOBAL_OH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -254,7 +259,7 @@
       TYPE(MetState), INTENT(IN) :: State_Met
 
       ! Local variables
-      REAL*8              :: FACT
+      REAL(fp)              :: FACT
 !
 ! !REVISION HISTORY: 
 ! 01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where these
@@ -278,24 +283,24 @@
       CALL CALC_SUMCOSZA
 
       ! Test for sunlight...
-      IF ( State_Met%SUNCOSmid(I,J) > 0d0  .AND. 
-     &     SUMCOSZA(I,J)            > 0d0 ) THEN
+      IF ( State_Met%SUNCOSmid(I,J) > 0e+0_fp  .AND. 
+     &     SUMCOSZA(I,J)            > 0e+0_fp ) THEN
 
          ! Impose a diurnal variation on OH during the day
          FACT = ( State_Met%SUNCOSmid(I,J) / SUMCOSZA(I,J) ) *
-     &          ( 1440d0                   / GET_TS_CHEM() )
+     &          ( 1440e+0_fp                   / GET_TS_CHEM() )
 
       ELSE
 
          ! At night, OH goes to zero
-         FACT = 0d0
+         FACT = 0e+0_fp
 
       ENDIF
 
       END FUNCTION GET_SZAFACT
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -330,8 +335,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      REAL*8              :: FACT
-      REAL*8              :: OH_MOLEC_CM3
+      REAL(fp)              :: FACT
+      REAL(fp)              :: OH_MOLEC_CM3
 
       !=================================================================
       ! GET_DIURNAL_OH begins here!
@@ -344,12 +349,12 @@
       OH_MOLEC_CM3 = OH(I,J,L) * FACT 
 
       ! Make sure OH is not negative
-      OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
+      OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
 
       END FUNCTION GET_DIURNAL_OH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -385,9 +390,9 @@
 !
       INTEGER, SAVE       :: SAVEDOY = -1
       INTEGER             :: I, IJLOOP, J, L, N, NT, NDYSTEP
-      REAL*8              :: A0, A1, A2, A3, B1, B2, B3
-      REAL*8              :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL*8              :: SUNTMP(MAXIJ)
+      REAL(fp)              :: A0, A1, A2, A3, B1, B2, B3
+      REAL(fp)              :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+      REAL(fp)              :: SUNTMP(MAXIJ)
 
       !=================================================================
       ! CALC_SUMCOSZA begins here!
@@ -413,10 +418,10 @@
       IF ( SAVEDOY /= GET_DAY_OF_YEAR() ) THEN 
 
          ! Zero arrays
-         SUMCOSZA(:,:) = 0d0
+         SUMCOSZA(:,:) = 0e+0_fp
 
          ! NDYSTEP is # of chemistry time steps in this day
-         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()         
+         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()      
 
          ! NT is the elapsed time [s] since the beginning of the run
          NT = GET_ELAPSED_SEC()
@@ -425,7 +430,7 @@
          DO N = 1, NDYSTEP
             
             ! Zero SUNTMP array
-            SUNTMP(:) = 0d0
+            SUNTMP(:) = 0e+0_fp
 
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO
@@ -471,7 +476,8 @@
 
                ! SUMCOSZA is the sum of SUNTMP at location (I,J)
                ! Do not include negative values of SUNTMP
-               SUMCOSZA(I,J) = SUMCOSZA(I,J) + MAX(SUNTMP(IJLOOP),0d0)
+               SUMCOSZA(I,J) = SUMCOSZA(I,J) + 
+     &                         MAX(SUNTMP(IJLOOP),0e+0_fp)
 
             ENDDO
             ENDDO
@@ -534,12 +540,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH' )
 
       ! Zero OH array
-      OH = 0d0
+      OH = 0e+0_fp
 
       ! Allocate SUMCOSZA array
       ALLOCATE( SUMCOSZA( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMCOSZA' )
-      SUMCOSZA = 0d0
+      SUMCOSZA = 0e+0_fp
 
       ! Arrays are now allocated
       Arrays_Allocated = .TRUE.

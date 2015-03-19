@@ -16,6 +16,7 @@
 ! !USES:
 !
       USE inquireMod, ONLY : findFreeLUN
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -23,7 +24,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CHEMDUST      
-      PUBLIC  :: DUSTMIX
+!      PUBLIC  :: DUSTMIX
 #if   defined( TOMAS )
       PUBLIC  :: SETTLEDUST
 #endif
@@ -66,6 +67,7 @@
 !                              which facilitates connection to GEOS-5 GCM
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
+!  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -73,8 +75,8 @@
 ! !PRIVATE TYPES:
 !
       INTEGER              :: DRYDST1, DRYDST2, DRYDST3, DRYDST4
-      REAL*8,  ALLOCATABLE :: FRAC_S(:)
-      REAL*8,  ALLOCATABLE :: SRCE_FUNC(:,:,:)
+      REAL(fp),  ALLOCATABLE :: FRAC_S(:)
+      REAL(fp),  ALLOCATABLE :: SRCE_FUNC(:,:,:)
 
       CONTAINS
 !EOC
@@ -154,7 +156,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEMDUST begins here!
@@ -207,163 +209,164 @@
 
       !----------------------
       ! Dust deposition
+      ! This is now done in mixing_mod.F90 (ckeller, 3/5/15)
       !----------------------
-      IF ( LDRYD ) THEN
-         CALL DRY_DEPOSITION( am_I_Root,                  Input_Opt, 
-     &                        STT(:,:,:,IDTDST1:IDTDST4), RC         )
+!      IF ( LDRYD ) THEN
+!         CALL DRY_DEPOSITION( am_I_Root,                  Input_Opt, 
+!     &                        STT(:,:,:,IDTDST1:IDTDST4), RC         )
 
-         ! Debug print
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMDUST: a DRY_DEPOSITION' )
-         ENDIF
-      ENDIF
+!         ! Debug print
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMDUST: a DRY_DEPOSITION' )
+!         ENDIF
+!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
 
       END SUBROUTINE CHEMDUST
 !EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: DustMix 
-!
-! !DESCRIPTION: Subroutine DustMix adds the HEMCO dust emissions directly
-! to the GEOS-Chem tracer array and resets HEMCO dust emissions to zero.
-! This ensures that dust is not mixed twice.
-!\\
-!\\
-! This routine also checks for dry deposition rates calculated by HEMCO
-! and applies them here if necessary. There shouldn't be any dust drydep
-! rates calculated by HEMCO as only air-sea exchange and PARANOX deposition
-! rates are covered by HEMCO.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DUSTMIX ( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
-!
-! !USES:
-!
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-      USE GIGC_State_Chm_Mod,    ONLY : ChmState
-      USE GIGC_State_Met_Mod,    ONLY : MetState
-      USE TRACERID_MOD,          ONLY : IDTDST1, IDTDST2
-      USE TRACERID_MOD,          ONLY : IDTDST3, IDTDST4
-      USE HCOI_GC_MAIN_MOD,      ONLY : GetHcoState, GetHcoID
-      USE HCO_STATE_MOD,         ONLY : HCO_STATE
-      USE HCO_ERROR_MOD
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Root CPU?
-      TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
-      TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
-      INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
-!
-! !REMARKS:
-!  For a detailed discussion of how emissions get added from HEMCO into
-!  GEOS-Chem (and how emissions are distributed throughout the boundary
-!  layer), please see this wiki page:
-!  http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: DustMix 
+!!
+!! !DESCRIPTION: Subroutine DustMix adds the HEMCO dust emissions directly
+!! to the GEOS-Chem tracer array and resets HEMCO dust emissions to zero.
+!! This ensures that dust is not mixed twice.
+!!\\
+!!\\
+!! This routine also checks for dry deposition rates calculated by HEMCO
+!! and applies them here if necessary. There shouldn't be any dust drydep
+!! rates calculated by HEMCO as only air-sea exchange and PARANOX deposition
+!! rates are covered by HEMCO.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE DUSTMIX ( am_I_Root, Input_Opt, 
+!     &                     State_Met, State_Chm, RC )
+!!
+!! !USES:
+!!
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod,    ONLY : OptInput
+!      USE GIGC_State_Chm_Mod,    ONLY : ChmState
+!      USE GIGC_State_Met_Mod,    ONLY : MetState
+!      USE TRACERID_MOD,          ONLY : IDTDST1, IDTDST2
+!      USE TRACERID_MOD,          ONLY : IDTDST3, IDTDST4
+!      USE HCOI_GC_MAIN_MOD,      ONLY : GetHcoState, GetHcoID
+!      USE HCO_STATE_MOD,         ONLY : HCO_STATE
+!      USE HCO_ERROR_MOD
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Root CPU?
+!      TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
+!      TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State object
+!      INTEGER,         INTENT(INOUT)  :: RC          ! Failure?
+!!
+!! !REMARKS:
+!!  For a detailed discussion of how emissions get added from HEMCO into
+!!  GEOS-Chem (and how emissions are distributed throughout the boundary
+!!  layer), please see this wiki page:
+!!  http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
+!!  
+!! !REVISION HISTORY:
+!!  21 Oct 2014 - C. Keller   - Initial Version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! LOCAL VARIABLES:
+!!
+!      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
+!      INTEGER                  :: I, L, TrcID, HcoID
 !  
-! !REVISION HISTORY:
-!  21 Oct 2014 - C. Keller   - Initial Version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      !=======================================================================
+!      ! DUSTMIX begins here
+!      !=======================================================================
+!  
+!      ! Assume success until otherwise
+!      RC = GIGC_SUCCESS
+! 
+!      ! Get pointer to HEMCO state object
+!      CALL GetHcoState ( HcoState )
+!      IF ( .NOT. ASSOCIATED(HcoState) ) RETURN
 !
-! LOCAL VARIABLES:
+!      ! Do for all four dust tracers
+!      DO I = 1, 4
+!  
+!         ! Select dust tracer
+!         SELECT CASE ( I )
+!            CASE ( 1 ) 
+!               HcoID = GetHcoID( TrcID=IDTDST1 )
+!               TrcID = IDTDST1
+!            CASE ( 2 ) 
+!               HcoID = GetHcoID( TrcID=IDTDST2 )
+!               TrcID = IDTDST2
+!            CASE ( 3 ) 
+!               HcoID = GetHcoID( TrcID=IDTDST3 )
+!               TrcID = IDTDST3
+!            CASE ( 4 ) 
+!               HcoID = GetHcoID( TrcID=IDTDST4 )
+!               TrcID = IDTDST4
+!            CASE DEFAULT
+!               HcoID = -1
+!               TrcID = -1 
+!         END SELECT
+!         IF ( HcoID <= 0 .OR. TrcID <= 0 ) CYCLE
+!  
+!         ! There shouldn't be any dry deposition values defined for dust, but check
+!         ! for safety's sake. If found, apply them here and set deposition rate to
+!         ! zero afterwards.
+!         ! Do this before emissions because we want to apply dry deposition on the 
+!         ! 'original' tracer concentration (before emissions applied to it).
+!         IF ( ASSOCIATED(HcoState%Spc(HcoID)%Depv%Val) ) THEN
+!  
+!            ! Deposition rates are in 1/s. Convert to kg. 
+!            State_Chm%Tracers(:,:,1,TrcID) 
+!     &      = State_Chm%Tracers(:,:,1,TrcID)
+!     &      * ( 1 - ( HcoState%Spc(HcoID)%Depv%Val(:,:)
+!     &              * HcoState%TS_EMIS ) )
 !
-      TYPE(HCO_STATE), POINTER :: HcoState => NULL()
-      INTEGER                  :: I, L, TrcID, HcoID
-  
-      !=======================================================================
-      ! DUSTMIX begins here
-      !=======================================================================
-  
-      ! Assume success until otherwise
-      RC = GIGC_SUCCESS
- 
-      ! Get pointer to HEMCO state object
-      CALL GetHcoState ( HcoState )
-      IF ( .NOT. ASSOCIATED(HcoState) ) RETURN
-
-      ! Do for all four dust tracers
-      DO I = 1, 4
-  
-         ! Select dust tracer
-         SELECT CASE ( I )
-            CASE ( 1 ) 
-               HcoID = GetHcoID( TrcID=IDTDST1 )
-               TrcID = IDTDST1
-            CASE ( 2 ) 
-               HcoID = GetHcoID( TrcID=IDTDST2 )
-               TrcID = IDTDST2
-            CASE ( 3 ) 
-               HcoID = GetHcoID( TrcID=IDTDST3 )
-               TrcID = IDTDST3
-            CASE ( 4 ) 
-               HcoID = GetHcoID( TrcID=IDTDST4 )
-               TrcID = IDTDST4
-            CASE DEFAULT
-               HcoID = -1
-               TrcID = -1 
-         END SELECT
-         IF ( HcoID <= 0 .OR. TrcID <= 0 ) CYCLE
-  
-         ! There shouldn't be any dry deposition values defined for dust, but check
-         ! for safety's sake. If found, apply them here and set deposition rate to
-         ! zero afterwards.
-         ! Do this before emissions because we want to apply dry deposition on the 
-         ! 'original' tracer concentration (before emissions applied to it).
-         IF ( ASSOCIATED(HcoState%Spc(HcoID)%Depv%Val) ) THEN
-  
-            ! Deposition rates are in 1/s. Convert to kg. 
-            State_Chm%Tracers(:,:,1,TrcID) 
-     &      = State_Chm%Tracers(:,:,1,TrcID)
-     &      * ( 1 - ( HcoState%Spc(HcoID)%Depv%Val(:,:)
-     &              * HcoState%TS_EMIS ) )
-
-            ! Make sure it's not negative          
-            WHERE( State_Chm%Tracers(:,:,:,TrcID) < 0.0d0 )
-     &         State_Chm%Tracers(:,:,:,TrcID) = 0.0d0
-  
-            ! Reset to zero
-            HcoState%Spc(HcoID)%Depv%Val = 0.0_hp
-         ENDIF
-  
-         ! If defined, add emissions to tracers array.
-         IF ( ASSOCIATED(HcoState%Spc(HcoID)%Emis%Val) ) THEN
-  
-            ! Emissions are in kg/m2/s. Convert to kg. 
-            ! Dust emissions are currently only emitted into the first level, so only
-            ! loop over the surface level...
-            DO L = 1, 1 !HcoState%NZ
-               State_Chm%Tracers(:,:,L,TrcID) 
-     &         = State_Chm%Tracers(:,:,L,TrcID)
-     &         + ( HcoState%Spc(HcoID)%Emis%Val(:,:,L)
-     &         *   HcoState%Grid%AREA_M2%Val(:,:)
-     &         *   HcoState%TS_EMIS
-     &           )
-            ENDDO
- 
-            ! Reset to zero
-            HcoState%Spc(HcoID)%Emis%Val = 0.0_hp
-         ENDIF
-  
-      ENDDO !I
-  
-      END SUBROUTINE DUSTMIX
-!EOC
+!            ! Make sure it's not negative          
+!            WHERE( State_Chm%Tracers(:,:,:,TrcID) < 0.0e+0_fp )
+!     &         State_Chm%Tracers(:,:,:,TrcID) = 0.0e+0_fp
+!  
+!            ! Reset to zero
+!            HcoState%Spc(HcoID)%Depv%Val = 0.0_hp
+!         ENDIF
+!  
+!         ! If defined, add emissions to tracers array.
+!         IF ( ASSOCIATED(HcoState%Spc(HcoID)%Emis%Val) ) THEN
+!  
+!            ! Emissions are in kg/m2/s. Convert to kg. 
+!            ! Dust emissions are currently only emitted into the first level, so only
+!            ! loop over the surface level...
+!            DO L = 1, 1 !HcoState%NZ
+!               State_Chm%Tracers(:,:,L,TrcID) 
+!     &         = State_Chm%Tracers(:,:,L,TrcID)
+!     &         + ( HcoState%Spc(HcoID)%Emis%Val(:,:,L)
+!     &         *   HcoState%Grid%AREA_M2%Val(:,:)
+!     &         *   HcoState%TS_EMIS
+!     &           )
+!            ENDDO
+! 
+!            ! Reset to zero
+!            HcoState%Spc(HcoID)%Emis%Val = 0.0_hp
+!         ENDIF
+!  
+!      ENDDO !I
+!  
+!      END SUBROUTINE DUSTMIX
+!!EOC
 #if   defined( TOMAS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -385,7 +388,9 @@
 !
 ! !USES:
 ! 
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : NUMDEP, NTRAIND
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -429,9 +434,9 @@
 
       ! Non-SAVEd scalars
       INTEGER       :: N, BIN, I, J, L, NN
-      REAL*8        :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL*8        :: DIF, FLUXN, FLUXD
-      REAL*8        :: DT_SETTL, AREA_CM2
+      REAL(fp)        :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp)        :: DIF, FLUXN, FLUXD
+      REAL(fp)        :: DT_SETTL, AREA_CM2
 
       !debug
       integer       :: ii, jj , ix, jx, bb
@@ -439,12 +444,12 @@
 
       ! For values from Input_Opt
       INTEGER         :: N_TRACERS
-      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: STT(:,:,:,:)
 
       !=================================================================
       ! SETTLEDUST begins here!
@@ -466,7 +471,7 @@
       !=================================================================
 
       ! Dust settling timestep [s]
-      DT_SETTL = GET_TS_CHEM() * 60d0
+      DT_SETTL = GET_TS_CHEM() * 60e+0_fp
 
       ! Save initial dust mass
       DO BIN = 1, IBINS
@@ -497,8 +502,8 @@
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
          
-            FLUXD = 0d0
-            FLUXN = 0d0
+            FLUXD = 0e+0_fp
+            FLUXN = 0e+0_fp
 !debug            if(i==ii .and. j==jj .and. bin==bb) 
 !     &          print *,'L    DU0(',I,J,L,BIN,')   DIF    ',
 !     &           'FLUXD  AD44' 
@@ -526,6 +531,7 @@
 !               endif
 !debug-----
             ENDDO
+#if !defined( NO_BPCH )
          !========================================================      
          ! ND44: Dry deposition diagnostic [#/cm2/s]
          !========================================================
@@ -534,7 +540,7 @@
      &         AD44(I,J,Input_Opt%IDDEP(BIN),1) + FLUXN
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
             ENDIF
-
+#endif
          ENDDO
       ENDDO
       ENDDO
@@ -623,12 +629,12 @@
       LOGICAL       :: LPRT
       LOGICAL       :: LINTERP 
       INTEGER       :: I, J, K                            !(win, 7/17/09)
-      REAL*8        :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
+      REAL(fp)        :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:) => NULL()
+      REAL(fp), POINTER :: STT(:,:,:,:) => NULL()
 
       !=================================================================
       ! EMISSDUST begins here!
@@ -700,7 +706,7 @@
             DO J = 1, JJPAR
             DO I = 1, IIPAR
                MEMIS = STT(I,J,1,IDTDUST1-1+K) - MINIT(I,J,1,K)
-               IF ( MEMIS == 0.d0 ) GOTO 10
+               IF ( MEMIS == 0.e+0_fp ) GOTO 10
 
                AD59_DUST(I,J,1,K) = AD59_DUST(I,J,1,K) + MEMIS ! kg ????
                STT(I,J,1,IDTNK1-1+K) = STT(I,J,1,IDTNK1-1+K) +
@@ -765,7 +771,9 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -782,7 +790,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8,        INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN) ! Dust [kg]
+      REAL(fp),        INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN) ! Dust [kg]
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -806,42 +814,42 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER               :: I, J, L, N, N_TRACERS
-      REAL*8                :: DT_SETTL, DELZ,  DELZ1
-      REAL*8                :: REFF,     DEN,   CONST   
-      REAL*8                :: NUM,      LAMDA, FLUX
-      REAL*8                :: AREA_CM2, TC0(LLPAR)
-      REAL*8                :: TOT1,     TOT2
+      REAL(fp)                :: DT_SETTL, DELZ,  DELZ1
+      REAL(fp)                :: REFF,     DEN,   CONST   
+      REAL(fp)                :: NUM,      LAMDA, FLUX
+      REAL(fp)                :: AREA_CM2, TC0(LLPAR)
+      REAL(fp)                :: TOT1,     TOT2
 
       ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa      
-      REAL*8                :: P 
+      REAL(fp)                :: P 
 
       ! Diameter of aerosol [um]
-      REAL*8                :: Dp
+      REAL(fp)                :: Dp
 
       ! Pressure * DP
-      REAL*8                :: PDp 
+      REAL(fp)                :: PDp 
 
       ! Temperature (K)    
-      REAL*8                :: TEMP        
+      REAL(fp)                :: TEMP        
 
       ! Slip correction factor
-      REAL*8                :: Slip        
+      REAL(fp)                :: Slip        
 
       ! Viscosity of air (Pa s)
-      REAL*8                :: Visc   
+      REAL(fp)                :: Visc   
 
       ! Settling velocity of particle (m/s)
-      REAL*8                :: VTS(LLPAR)  
+      REAL(fp)                :: VTS(LLPAR)  
 
       ! Molecules tracer / kg tracer, from Input Options
-      REAL*8                :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)                :: XNUMOL(Input_Opt%N_TRACERS)
 !
 ! !DEFINED PARAMETERS:
 !      
-      REAL*8,  PARAMETER    :: C1 =  0.7674D0
-      REAL*8,  PARAMETER    :: C2 =  3.079d0 
-      REAL*8,  PARAMETER    :: C3 =  2.573D-11
-      REAL*8,  PARAMETER    :: C4 = -1.424d0
+      REAL(fp),  PARAMETER    :: C1 =  0.7674e+0_fp
+      REAL(fp),  PARAMETER    :: C2 =  3.079e+0_fp 
+      REAL(fp),  PARAMETER    :: C3 =  2.573e-11_fp
+      REAL(fp),  PARAMETER    :: C4 = -1.424e+0_fp
 
       !=================================================================
       ! DRY_SETTLING begins here!
@@ -855,7 +863,7 @@
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Dust settling timestep [s]
-      DT_SETTL  = GET_TS_CHEM() * 60d0
+      DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -869,8 +877,8 @@
          ! Initialize
          DEN   = Input_Opt%DUSTDEN(N)
          REFF  = Input_Opt%DUSTREFF(N)
-         DP    = 2D0 * REFF * 1.D6              ! Dp [um] = particle diameter
-         CONST = 2D0 * DEN * REFF**2 * G0 / 9D0
+         DP    = 2e+0_fp * REFF * 1.e+6_fp              ! Dp [um] = particle diameter
+         CONST = 2e+0_fp * DEN * REFF**2 * G0 / 9e+0_fp
 
          ! Loop over latitudes
          DO J = 1, JJPAR
@@ -883,14 +891,14 @@
 
                ! Initialize settling velocity
                DO L = 1, LLPAR
-                  VTS(L) = 0d0
+                  VTS(L) = 0e+0_fp
                ENDDO
 
                ! Loop over levels
                DO L = 1, LLPAR
 
                   ! Get P [kPa], T [K], and P*DP
-                  P    = GET_PCENTER(I,J,L) * 0.1d0
+                  P    = GET_PCENTER(I,J,L) * 0.1e+0_fp
                   TEMP = State_Met%T(I,J,L)
                   PDP  = P * DP
 
@@ -912,8 +920,8 @@
                   !=====================================================
 
                   ! Slip correction factor as function of (P*dp)
-                  SLIP = 1d0 + 
-     &                   ( 15.60d0 + 7.0d0 * EXP(-0.059d0*PDP) ) / PDP
+                  SLIP = 1e+0_fp + ( 15.60e+0_fp + 7.0e+0_fp * 
+     &                   EXP(-0.059e+0_fp*PDP) ) / PDP
             
                   !=====================================================
                   ! NOTE, Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
@@ -922,7 +930,8 @@
                   !=====================================================
 
                   ! Viscosity [Pa s] of air as a function of temp (K)
-                  VISC = 1.458d-6 * (TEMP)**(1.5d0) / ( TEMP + 110.4d0 )
+                  VISC = 1.458e-6_fp * (TEMP)**(1.5e+0_fp) / 
+     &                 ( TEMP + 110.4e+0_fp )
 
                   ! Settling velocity [m/s]
                   VTS(L) = CONST * SLIP / VISC
@@ -939,13 +948,13 @@
                L           = LLCHEM
                DELZ        = State_Met%BXHEIGHT(I,J,L)
                TC(I,J,L,N) = TC(I,J,L,N) / 
-     &                       ( 1.d0 + DT_SETTL * VTS(L) / DELZ )
+     &                       ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
 
                DO L = LLCHEM-1, 1, -1
                   DELZ        = State_Met%BXHEIGHT(I,J,L)
                   DELZ1       = State_Met%BXHEIGHT(I,J,L+1)
-                  TC(I,J,L,N) = 1.d0 / 
-     &                          ( 1.d0 + DT_SETTL * VTS(L)   / DELZ )
+                  TC(I,J,L,N) = 1.e+0_fp / 
+     &                 ( 1.e+0_fp + DT_SETTL * VTS(L)   / DELZ )
      &                 * (TC(I,J,L,N)  + DT_SETTL * VTS(L+1) / DELZ1
      &                 *  TC(I,J,L+1,N) )
                ENDDO
@@ -956,8 +965,8 @@
                IF ( ND44 > 0 ) THEN
 
                   ! Initialize
-                  TOT1 = 0d0
-                  TOT2 = 0d0
+                  TOT1 = 0e+0_fp
+                  TOT2 = 0e+0_fp
             
                   ! Compute column totals of TCO(:) and TC(I,J,:,N)
                   DO L = 1, LLPAR
@@ -969,10 +978,13 @@
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
                   FLUX = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
 
+#if !defined( NO_BPCH )
                   ! Save in AD44
                   AD44(I,J,Input_Opt%IDDEP(N),1) = 
      &            AD44(I,J,Input_OPt%IDDEP(N),1) + FLUX
+#endif
                ENDIF
+
             ENDDO
          ENDDO
       ENDDO
@@ -999,7 +1011,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1014,7 +1028,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8,       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust [kg]
+      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust [kg]
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1035,10 +1049,10 @@
 !
       ! Scalars
       INTEGER :: I,   J,   L,      N,    N_TRACERS
-      REAL*8  :: OLD, NEW, DTCHEM, FLUX, AREA_CM2
+      REAL(fp)  :: OLD, NEW, DTCHEM, FLUX, AREA_CM2
 
       ! Arrays
-      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)  :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! DRY_DEPOSITION begins here!
@@ -1052,7 +1066,7 @@
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM    = Input_Opt%TS_CHEM * 60d0
+      DTCHEM    = Input_Opt%TS_CHEM * 60e+0_fp
 
       ! Loop over dust bins
 !$OMP PARALLEL DO
@@ -1088,9 +1102,11 @@
                   FLUX     = ( OLD - NEW ) / DTCHEM 
                   FLUX     = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
                
+#if !defined( NO_BPCH )
                   ! Store in AD44
                   AD44(I,J,Input_Opt%IDDEP(N),1) = 
      &            AD44(I,J,Input_Opt%IDDEP(N),1) + FLUX
+#endif
                ENDIF
 
                ! Save back into STT
@@ -1135,12 +1151,12 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS: 
 ! 
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-      REAL*8,         INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST) !Dust [kg/m3]
+      REAL(fp),       INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST) !Dust [kg/m3]
       INTEGER,        INTENT(IN)  :: ODSWITCH
 !
 ! !OUTPUT PARAMETERS:
@@ -1176,12 +1192,11 @@
       LOGICAL            :: LINTERP
       INTEGER            :: I, J, JLOOP, L, N, NOUT, W
       INTEGER            :: IWV, IIWV, NWVS, IDST
-      REAL*8             :: MSDENS(NDUST), XTAU
-
+      REAL(fp)           :: MSDENS(NDUST), XTAU
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
       ! (tmf, 3/6/09)
-      REAL*8             :: XRH
-      REAL*8             :: CRITRH      ! Critical RH [%], above which 
+      REAL(fp)           :: XRH
+      REAL(fp)           :: CRITRH      ! Critical RH [%], above which 
                                         !  heteorogeneous chem takes place
 
       !=================================================================
@@ -1190,23 +1205,24 @@
 
       ! Assume success
       RC        =  GIGC_SUCCESS
-      IDST = 6 !index for dust in ODAER and LUT arrays
 
+      ! Index for dust in ODAER and LUT arrays
+      IDST      = 6 
 #if defined( UCX )
-      IDST = 8
+      IDST      = 8
 #endif
 
       ! Dust density 
-      MSDENS(1) = 2500.0d0
-      MSDENS(2) = 2500.0d0
-      MSDENS(3) = 2500.0d0
-      MSDENS(4) = 2500.0d0
-      MSDENS(5) = 2650.0d0
-      MSDENS(6) = 2650.0d0
-      MSDENS(7) = 2650.0d0
+      MSDENS(1) = 2500.0e+0_fp
+      MSDENS(2) = 2500.0e+0_fp
+      MSDENS(3) = 2500.0e+0_fp
+      MSDENS(4) = 2500.0e+0_fp
+      MSDENS(5) = 2650.0e+0_fp
+      MSDENS(6) = 2650.0e+0_fp
+      MSDENS(7) = 2650.0e+0_fp
 
       ! Critical RH, above which heteorogeneous chem takes place (tmf, 6/14/07)
-      CRITRH = 35.0d0   ! [%]
+      CRITRH = 35.0e+0_fp   ! [%]
 
       !=================================================================     
       ! Convert concentration [kg/m3] to optical depth [unitless].
@@ -1280,9 +1296,10 @@
          DO I = 1, IIPAR
 
             ! dust stored in the 6th species bin of LUT variables
-            ODMDUST(I,J,L,IWV,N) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
+            ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp *
+     &                             State_Met%BXHEIGHT(I,J,L) * 
      &                             DUST(I,J,L,N) * QQAA(IWV,N,IDST)  / 
-     &                           ( MSDENS(N) * RDAA(N,IDST) * 1.0D-6 )
+     &                           ( MSDENS(N) * RDAA(N,IDST) * 1.0e-6_fp)
 
 #if defined ( RRTMG )
             !add dust optics to the RT code arrays
@@ -1327,16 +1344,16 @@
          J = IYSAVE(JLOOP)
          L = IZSAVE(JLOOP)
 
-         ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0D-4
+         ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0e-4_fp
 
-         TAREA(JLOOP,N)   = 3.D0 / ERADIUS(JLOOP,N) *
+         TAREA(JLOOP,N)   = 3.e+0_fp / ERADIUS(JLOOP,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
 
          ! Archive WTAREA and WERADIUS when RH > 35%  (tmf, 6/13/07) 
          ! Get RH  
          XRH                = State_Met%RH( I, J, L )  ! [%]
-         WTAREA(JLOOP, N)   = 0.d0
-         WERADIUS(JLOOP, N) = 0.d0
+         WTAREA(JLOOP, N)   = 0.e+0_fp
+         WERADIUS(JLOOP, N) = 0.e+0_fp
 
          IF ( XRH >= CRITRH ) THEN
             WTAREA(JLOOP, N)   = TAREA(JLOOP, N)
@@ -1503,6 +1520,13 @@
 !
       INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 !
+! !REMARKS:
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
 !  (2 ) Don't worry about rewinding the binary file...reading from
@@ -1512,11 +1536,11 @@
 !         header file "CMN_SETUP". (bmy, 9/30/00) 
 !  (4 ) Now selects proper GEOS-STRAT dust field for 1996 or 1997.
 !        Also need to pass THISYEAR thru the arg list. (rvm, bmy, 11/21/00)
-!  (5 ) CONC is now declared as REAL*8 (rvm, bmy, 12/15/00)
+!  (5 ) CONC is now declared as REAL(fp) (rvm, bmy, 12/15/00)
 !  (6 ) Removed obsolete code from 12/15/00 (bmy, 12/21/00)
 !  (7 ) CONC(IIPAR,JJPAR,LGLOB,NDUST) is now CONC(IIPAR,JJPAR,LLPAR,NDUST).
 !        Now use routine TRANSFER_3D from "transfer_mod.f" to cast from REAL*4
-!        to REAL*8 and also to convert from {IJL}GLOB to IIPAR,JJPAR,LLPAR 
+!        to REAL(fp) and also to convert from {IJL}GLOB to IIPAR,JJPAR,LLPAR 
 !        space.  Use 3 arguments in call to GET_TAU0.  Updated comments.
 !        (bmy, 9/26/01)
 !  (8 ) Removed obsolete code from 9/01 (bmy, 10/24/01)
@@ -1567,6 +1591,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1574,21 +1600,21 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: LINTERP
-
       INTEGER             :: I, J, JLOOP, L, N, NOUT, W
       INTEGER             :: IWV, IIWV, NWVS
       INTEGER, SAVE       :: MONTH_LAST = -999
       LOGICAL, SAVE       :: DO_DIAG = .FALSE.
-      REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
-      REAL*8              :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
-      REAL*8              :: MSDENS(NDUST), XTAU
+      REAL(f4)            :: TEMP(IIPAR,JJPAR,LGLOB)
+      REAL(fp)            :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
+      REAL(fp)            :: MSDENS(NDUST)
+      REAL(f8)            :: XTAU
       CHARACTER (LEN=255) :: FILENAME
 
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
       ! (tmf, 3/6/09)
-      REAL*8             :: XRH
-      REAL*8             :: CRITRH      ! Critical RH [%], above which 
-                                        !  heteorogeneous chem takes place
+      REAL(fp)            :: XRH
+      REAL(fp)            :: CRITRH      ! Critical RH [%], above which 
+                                         !  heteorogeneous chem takes place
 
       !=================================================================
       ! RDUST begins here!
@@ -1603,7 +1629,8 @@
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )
          
          ! Select proper dust file name for GEOS-1, GEOS-3, or GEOS-4
-         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 'dust_200203/dust.' //
+         FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
+     &              TRIM( Input_Opt%RES_DIR  ) // 'dust_200203/dust.' //
      &              GET_NAME_EXT()             // '.'                 // 
      &              GET_RES_EXT()
 
@@ -1640,16 +1667,16 @@
       ! NOTES: 
       ! (1) Do the calculation at QAA(IND999,:) (i.e. 999 nm).          
       !==============================================================
-      MSDENS(1) = 2500.0d0
-      MSDENS(2) = 2500.0d0
-      MSDENS(3) = 2500.0d0
-      MSDENS(4) = 2500.0d0
-      MSDENS(5) = 2650.0d0
-      MSDENS(6) = 2650.0d0
-      MSDENS(7) = 2650.0d0
+      MSDENS(1) = 2500.0e+0_fp
+      MSDENS(2) = 2500.0e+0_fp
+      MSDENS(3) = 2500.0e+0_fp
+      MSDENS(4) = 2500.0e+0_fp
+      MSDENS(5) = 2650.0e+0_fp
+      MSDENS(6) = 2650.0e+0_fp
+      MSDENS(7) = 2650.0e+0_fp
 
       ! Critical RH, above which heteorogeneous chem takes place (tmf, 6/14/07)
-      CRITRH = 35.0d0        ! [%]
+      CRITRH    = 35.0e+0_fp  ! [%]
 
       ! DAR 09/2013
       ! There are two ways RDUST_ can be called:
@@ -1712,9 +1739,10 @@
          DO I = 1, IIPAR
 
             ! dust stored in the 6th species bin of LUT variables
-            ODMDUST(I,J,L,IWV,N) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) *
+            ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp *
+     &                             State_Met%BXHEIGHT(I,J,L) *
      &                             DUST(I,J,L,N) * QQAA(IWV,N,6)  /
-     &                           ( MSDENS(N) * RDAA(N,6) * 1.0D-6 )
+     &                           ( MSDENS(N) * RDAA(N,6) * 1.0e-6_fp )
 
 #if defined ( RRTMG )
             !add dust optics to the RT code arrays
@@ -1765,16 +1793,16 @@
          J = IYSAVE(JLOOP)
          L = IZSAVE(JLOOP)
 
-         ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0D-4
+         ERADIUS(JLOOP,N) = RDAA(N,6) * 1.0e-4_fp
 
-         TAREA(JLOOP,N)   = 3.D0 / ERADIUS(JLOOP,N) *
+         TAREA(JLOOP,N)   = 3.e+0_fp / ERADIUS(JLOOP,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
 
          ! Archive WTAREA and WERADIUS when RH > 35% (tmf, 6/13/07) 
          ! Get RH  
          XRH                = State_Met%RH( I, J, L )  ! [%]
-         WTAREA(JLOOP, N)   = 0.d0
-         WERADIUS(JLOOP, N) = 0.d0
+         WTAREA(JLOOP, N)   = 0.e+0_fp
+         WERADIUS(JLOOP, N) = 0.e+0_fp
 
          IF ( XRH >= CRITRH ) THEN
             WTAREA(JLOOP, N)   = TAREA(JLOOP, N)
@@ -1955,7 +1983,7 @@
 #if   defined( TOMAS )
       INTEGER            :: I
       INTEGER            :: BIN
-      REAL*8,  PARAMETER :: PI = 3.14159265d0  !(win, 7/17/09)
+      REAL(fp),  PARAMETER :: PI = 3.14159265e+0_fp  !(win, 7/17/09)
 !------------------------------------------------------------------------------
 ! Prior to 9/29/14:
 ! This is now defined in hcox_dustginoux_mod.F90
@@ -1991,16 +2019,16 @@
       ! Set up dust density
       !-------------------------------
       IF ( NDSTBIN == 4 ) THEN
-         Input_Opt%DUSTDEN(1:4) = (/ 2500.d0, 2650.d0, 
-     &                               2650.d0, 2650.d0 /)
+         Input_Opt%DUSTDEN(1:4) = (/ 2500.e+0_fp, 2650.e+0_fp, 
+     &                               2650.e+0_fp, 2650.e+0_fp /)
 
       ELSE IF ( NDSTBIN == IBINS ) THEN
 
          DO I = 1, IBINS
-            IF (Xk(I) < 4.0D-15 ) THEN
-               Input_Opt%DUSTDEN(I)  = 2500.d0
+            IF (Xk(I) < 4.0e-15_fp ) THEN
+               Input_Opt%DUSTDEN(I)  = 2500.e+0_fp
             ELSE
-               Input_Opt%DUSTDEN(I)  = 2650.d0
+               Input_Opt%DUSTDEN(I)  = 2650.e+0_fp
             ENDIF
          ENDDO
 
@@ -2010,18 +2038,18 @@
       ! Set up dust effective radius
       !--------------------------------
       IF ( NDSTBIN == 4 ) THEN
-         Input_Opt%DUSTREFF(1) = 0.73d-6
-         Input_Opt%DUSTREFF(2) =  1.4d-6
-         Input_Opt%DUSTREFF(3) =  2.4d-6
-         Input_Opt%DUSTREFF(4) =  4.5d-6
+         Input_Opt%DUSTREFF(1) = 0.73e-6_fp
+         Input_Opt%DUSTREFF(2) =  1.4e-6_fp
+         Input_Opt%DUSTREFF(3) =  2.4e-6_fp
+         Input_Opt%DUSTREFF(4) =  4.5e-6_fp
 
       ELSE IF ( NDSTBIN == IBINS ) THEN
 
          ! TOMAS dust Reff (win, 7/17/09)
          DO I = 1, IBINS
             Input_Opt%DUSTREFF(I) = 
-     &           0.5d0 * ( SQRT(Xk(I) * Xk(I+1)) /
-     &           Input_Opt%DUSTDEN(I) * 6.d0/PI  )**( 0.333d0 )
+     &           0.5e+0_fp * ( SQRT(Xk(I) * Xk(I+1)) /
+     &           Input_Opt%DUSTDEN(I) * 6.e+0_fp/PI  )**( 0.333e+0_fp )
          ENDDO 
         
       ENDIF
@@ -2127,23 +2155,12 @@
       !=================================================================
 
       ! Dust radii
-      Input_Opt%DUSTREFF(1:NDSTBIN) = (/ 0.73d-6, 1.4d-6,  
-     &                                   2.4d-6,  4.5d-6  /)
+      Input_Opt%DUSTREFF(1:NDSTBIN) = (/ 0.73e-6_fp, 1.4e-6_fp,  
+     &                                   2.4e-6_fp,  4.5e-6_fp  /)
 
       ! Dust density
-      Input_Opt%DUSTDEN(1:NDSTBIN) = (/ 2500.d0, 2650.d0, 
-     &                                  2650.d0, 2650.d0 /)
-
-!-----------------------------------------------------------------------------
-! Prior to 9/29/14:
-! This is now defined in hcox_dustginoux_mod.F90 (bmy, 9/29/14)
-!      ! These only have to be allocated for the Ginoux source function
-!      IF ( .not. LDEAD ) THEN
-!         ALLOCATE( FRAC_S( NDSTBIN ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_S' )
-!         FRAC_S(1:NDSTBIN)   = (/ 0.095d0, 0.3d0, 0.3d0, 0.3d0 /)
-!      ENDIF
-!-----------------------------------------------------------------------------
+      Input_Opt%DUSTDEN(1:NDSTBIN) = (/ 2500.e+0_fp, 2650.e+0_fp, 
+     &                                  2650.e+0_fp, 2650.e+0_fp /)
 
       ! Find drydep species in DEPSAV
       IF( Input_Opt%LDRYD ) THEN
@@ -2170,11 +2187,11 @@
       ENDIF
 #endif 
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )
       ! EXPERIMENTAL: For archiving the dust source for GIGC
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
-      SRCE_FUNC = 0.d0
+      SRCE_FUNC = 0.e+0_fp
 #endif
 
       END SUBROUTINE INIT_DUST

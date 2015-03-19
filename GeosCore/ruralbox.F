@@ -26,6 +26,7 @@
       USE PRESSURE_MOD,       ONLY : GET_PCENTER,      GET_PEDGE
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! NPVERT
+      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 
@@ -72,6 +73,7 @@
 !                              derived type object
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -80,12 +82,12 @@
 !
       LOGICAL                 :: LDEBUG
       INTEGER                 :: I, J, L, JLOOP, IJLOOP
-#if defined( DEVEL )
-      INTEGER                 :: TMP_LEV
-#endif
+!#if defined( DEVEL )
+!      INTEGER                 :: TMP_LEV
+!#endif
 
       !! testing variables for variable tropopause
-      !real*8  :: temp(iipar,jjpar,llpar)
+      !real(fp)  :: temp(iipar,jjpar,llpar)
       !logical :: templ
       !temp = 0
 
@@ -99,16 +101,16 @@
       NTLOOPNCS = 0
 
       ! Loop over vertical levels (max = LLCHEM) 
-#if defined( DEVEL )
-      IF (NVERT .gt. LLPAR) THEN
-         TMP_LEV = LLPAR
-      ELSE
-         TMP_LEV = NVERT
-      ENDIF
-      DO L = 1, TMP_LEV
-#else
+!if defined( DEVEL )
+!      IF (NVERT .gt. LLPAR) THEN
+!         TMP_LEV = LLPAR
+!      ELSE
+!         TMP_LEV = NVERT
+!      ENDIF
+!      DO L = 1, TMP_LEV
+!#else
       DO L = 1, NVERT
-#endif
+!#endif
 
          ! Loop over surface grid boxes
          DO J = 1, NLAT
@@ -183,17 +185,17 @@
             IZSAVE(JLOOP)  = L                              
 
             ! get box volume [cm3]
-            VOLUME(JLOOP)  = State_Met%AIRVOL(I,J,L) * 1d6
+            VOLUME(JLOOP)  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! get air density in (molecs cm^-3)
-            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.d0 / 
+            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
      &                       VOLUME(JLOOP) * AVG / WTAIR
 
             ! get temperature
             T3(JLOOP)      = State_Met%T(I,J,L)
 
             ! PRESS3 = pressure in bar, multiply mb * 1000
-            PRESS3(JLOOP)  = GET_PCENTER(I,J,L) * 1000d0
+            PRESS3(JLOOP)  = GET_PCENTER(I,J,L) * 1000e+0_fp
 
             ! Get relative humidity (here is absolute #H2O/cc air)
             ! AVGW is the mixing ratio of water vapor [v/v]

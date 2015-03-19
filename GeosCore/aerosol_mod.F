@@ -17,6 +17,8 @@
 ! 
 ! !USES:
 !
+      USE PRECISION_MOD
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -62,6 +64,9 @@
 !  05 Mar 2013 - R. Yantosca - Now make INIT_AEROSOL a public routine
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !EOP
+!  05 Nov 2014 - M. Yannetti - PRECISION_MOD Changed REAL*8 to REAL(fp)
+!  05 Mar 2015 - R. Yantosca - Remove DO_READ_DATA option.  We can no longer
+!                              have binary punch input in HPC environments.
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -81,23 +86,23 @@
       ! SLA         : Stratospheric liquid aerosol       [kg/m3]
       ! SPA         : Stratospheric particulate aerosol  [kg/m3]
       !========================================================================
-      REAL*8, ALLOCATABLE :: BCPI(:,:,:)
-      REAL*8, ALLOCATABLE :: BCPO(:,:,:)
-      REAL*8, ALLOCATABLE :: OCPI(:,:,:)
-      REAL*8, ALLOCATABLE :: OCPO(:,:,:)
-      REAL*8, ALLOCATABLE :: SALA(:,:,:)
-      REAL*8, ALLOCATABLE :: SALC(:,:,:)
-      REAL*8, ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
-      REAL*8, ALLOCATABLE :: FRAC_SNA(:,:,:,:)
-      REAL*8, ALLOCATABLE :: SOILDUST(:,:,:,:)
-      REAL*8, ALLOCATABLE :: SLA(:,:,:)
-      REAL*8, ALLOCATABLE :: SPA(:,:,:)
+      REAL(fp), ALLOCATABLE :: BCPI(:,:,:)
+      REAL(fp), ALLOCATABLE :: BCPO(:,:,:)
+      REAL(fp), ALLOCATABLE :: OCPI(:,:,:)
+      REAL(fp), ALLOCATABLE :: OCPO(:,:,:)
+      REAL(fp), ALLOCATABLE :: SALA(:,:,:)
+      REAL(fp), ALLOCATABLE :: SALC(:,:,:)
+      REAL(fp), ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
+      REAL(fp), ALLOCATABLE :: FRAC_SNA(:,:,:,:)
+      REAL(fp), ALLOCATABLE :: SOILDUST(:,:,:,:)
+      REAL(fp), ALLOCATABLE :: SLA(:,:,:)
+      REAL(fp), ALLOCATABLE :: SPA(:,:,:)
 
       ! Mass of hydrophobic aerosol from Mian Chin
-      REAL*8, ALLOCATABLE, SAVE   :: DAERSL(:,:,:,:)
+      REAL(fp), ALLOCATABLE, SAVE   :: DAERSL(:,:,:,:)
 
       ! Mass of hydrophilic aerosol from Mian Chin
-      REAL*8, ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
+      REAL(fp), ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -169,8 +174,8 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER, SAVE :: N_CHEM_BOXES
       INTEGER       :: I, J, L, JLOOP
-      REAL*8        :: CONSEXP, TK, VPRESH2O
-      REAL*8        :: BOXVL
+      REAL(fp)        :: CONSEXP, TK, VPRESH2O
+      REAL(fp)        :: BOXVL
       
       !=================================================================
       ! AEROSOL_RURALBOX begins here!
@@ -289,10 +294,10 @@
 
 
             ! Grid box volume [cm3]
-            BOXVL          = State_Met%AIRVOL(I,J,L) * 1d6
+            BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
             ! Air density in [molec/cm3]
-            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.d0 / 
+            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.e+0_fp / 
      &                       BOXVL               * AVG  / WTAIR
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
@@ -302,8 +307,8 @@
             ! using the same algorithm as in "gasconc.f"
             TK             = State_Met%T(I,J,L)
 
-            CONSEXP        = 17.2693882d0      * 
-     &                       ( TK - 273.16d0 ) / ( TK - 35.86d0 )
+            CONSEXP        = 17.2693882e0_fp      * 
+     &                     ( TK - 273.16e+0_fp ) / ( TK - 35.86e+0_fp )
             VPRESH2O       = CONSVAP * EXP( CONSEXP ) / TK
             ABSHUM(JLOOP) = ABSHUM(JLOOP) / VPRESH2O
 
@@ -408,20 +413,20 @@
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
-      !REAL*8,  PARAMETER :: OCF     = 2.1d0
+      !REAL(fp),  PARAMETER :: OCF     = 2.1d0
       ! SOAupdate: semivolpoa: reduce OCF to 1.4 for POA (hotp 2/17/09)
-      REAL*8,  PARAMETER :: OCF     = 1.4d0
+      REAL(fp),  PARAMETER :: OCF     = 1.4e+0_fp
 
       ! SOAupdate: semivolpoa4opoa: add OPOA mass (hotp 3/17/09)
-      REAL*8,  PARAMETER :: OCFOPOA = 2.1d0  ! = 1.4*1.5
+      REAL(fp),  PARAMETER :: OCFOPOA = 2.1e+0_fp  ! = 1.4*1.5
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL*8,  PARAMETER :: OCFG = 1.d0
+      REAL(fp),  PARAMETER :: OCFG = 1.e+0_fp
 
       ! For SOAM, assume the total aerosol mass/methylglyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL*8,  PARAMETER :: OCFM = 1.d0
+      REAL(fp),  PARAMETER :: OCFM = 1.e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -437,8 +442,8 @@
       LOGICAL            :: LSULF
 
       ! Pointers
-      REAL*8, POINTER    :: STT(:,:,:,:)
-      REAL*8, POINTER    :: AIRVOL(:,:,:)
+      REAL(fp), POINTER    :: STT(:,:,:,:)
+      REAL(fp), POINTER    :: AIRVOL(:,:,:)
 
       !=================================================================
       ! AEROSOL_CONC begins here!
@@ -504,11 +509,11 @@
      &                                STT(I,J,L,IDTSO4s)   +
      &                                STT(I,J,L,IDTNITs) ) /
      &                                AIRVOL(I,J,L)
-               SLA(I,J,L) = 0d0
-               SPA(I,J,L) = 0d0
+               SLA(I,J,L) = 0e+0_fp
+               SPA(I,J,L) = 0e+0_fp
             ELSE
                ! Tropospheric sulfate is zero in stratosphere
-               SO4_NH4_NIT(I,J,L) = 0d0
+               SO4_NH4_NIT(I,J,L) = 0e+0_fp
                SLA(I,J,L) = KG_STRAT_AER(I,J,L,1) / AIRVOL(I,J,L)
                SPA(I,J,L) = KG_STRAT_AER(I,J,L,2) / AIRVOL(I,J,L)
             ENDIF
@@ -628,10 +633,10 @@
             ENDIF ! LSOA
 
             ! Now avoid division by zero (bmy, 4/20/04)
-            BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
-            OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
-            BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
-            OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
+            BCPI(I,J,L) = MAX( BCPI(I,J,L), 1e-35_fp )
+            OCPI(I,J,L) = MAX( OCPI(I,J,L), 1e-35_fp )
+            BCPO(I,J,L) = MAX( BCPO(I,J,L), 1e-35_fp )
+            OCPO(I,J,L) = MAX( OCPO(I,J,L), 1e-35_fp )
          
          ENDIF ! LCARB
             
@@ -665,44 +670,44 @@
          IF ( LDUST ) THEN
 
             ! Zero SOILDUST
-            SOILDUST(I,J,L,:) = 0.d0
+            SOILDUST(I,J,L,:) = 0.e0_fp
 
             ! Loop over the # of TOMAS dust bins
             DO K = 1, IBINS
 
                ! Bin #1
-               IF ( Input_Opt%DUSTREFF(K) < 0.2D-6 ) THEN
+               IF ( Input_Opt%DUSTREFF(K) < 0.2e-6_fp ) THEN
                   SOILDUST(I,J,L,1) = SOILDUST(I,J,L,1)
      &                              + STT(I,J,L,IDTDUST1+K-1)  
      &                              / AIRVOL(I,J,L)
 
 
                ! Bin #2
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.325D-6 ) THEN
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.325e-6_fp ) THEN
                   SOILDUST(I,J,L,2) = SOILDUST(I,J,L,2)
      &                              + STT(I,J,L,IDTDUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #3
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.6D-6 ) THEN
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 0.6e-6_fp ) THEN
                   SOILDUST(I,J,L,3) = SOILDUST(I,J,L,3)
      &                              + STT(I,J,L,IDTDUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #4
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 1.15D-6 ) THEN
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 1.15e-6_fp ) THEN
                   SOILDUST(I,J,L,4) = SOILDUST(I,J,L,4)
      &                              + STT(I,J,L,IDTDUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #5
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 2.0D-6 ) THEN
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 2.0e-6_fp ) THEN
                   SOILDUST(I,J,L,5) = SOILDUST(I,J,L,5)
      &                              + STT(I,J,L,IDTDUST1+K-1) 
      &                              / AIRVOL(I,J,L)
 
                ! Bin #6
-               ELSE IF ( Input_Opt%DUSTREFF(K) < 3.25D-6 ) THEN
+               ELSE IF ( Input_Opt%DUSTREFF(K) < 3.25e-6_fp ) THEN
                   SOILDUST(I,J,L,6) = SOILDUST(I,J,L,6)
      &                              + STT(I,J,L,IDTDUST1+K-1) 
      &                              / AIRVOL(I,J,L)
@@ -726,13 +731,13 @@
 
             ! Lump 1st dust tracer for het chem
             SOILDUST(I,J,L,1) = 
-     &            0.06d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.06e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,2) =
-     &            0.12d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.12e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,3) =
-     &            0.24d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.24e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
             SOILDUST(I,J,L,4) =
-     &            0.58d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+     &            0.58e+0_fp * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
 
             ! Other hetchem bins
             SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
@@ -757,8 +762,8 @@
             SALC(I,J,L) = STT(I,J,L,IDTSALC) / AIRVOL(I,J,L)
 
             ! Avoid division by zero
-            SALA(I,J,L) = MAX( SALA(I,J,L), 1d-35 )
-            SALC(I,J,L) = MAX( SALC(I,J,L), 1d-35 )
+            SALA(I,J,L) = MAX( SALA(I,J,L), 1e-35_fp )
+            SALC(I,J,L) = MAX( SALC(I,J,L), 1e-35_fp )
 
          ENDIF
 
@@ -886,6 +891,9 @@
 !                              derived type object
 !  27 Mar 2013 - S.D. Eastham- Upgraded from Fast-J to Fast-JX
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  05 Mar 2015 - R. Yantosca - Remove DO_READ_DATA option.  We can no longer
+!                              have binary punch input in HPC environments.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -893,17 +901,27 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: FIRST = .TRUE.
-      LOGICAL             :: IT_IS_A_FULLCHEM_SIM
-      LOGICAL             :: DO_READ_DATA, LINTERP
-      CHARACTER(LEN=255)  :: FILENAME
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!      LOGICAL             :: IT_IS_A_FULLCHEM_SIM
+!      LOGICAL             :: DO_READ_DATA
+!      CHARACTER(LEN=255)  :: FILENAME
+!      INTEGER             :: THISMONTH, THISYEAR
+!-----------------------------------------------------------------------------
+      LOGICAL             :: LINTERP
       CHARACTER(LEN=16)   :: STAMP
-      INTEGER             :: THISMONTH, THISYEAR
-      INTEGER             :: I, J, L, N, R, JLOOP, IRH, W, IRHN 
+      INTEGER             :: I, J, L, N, R, JLOOP, IRH, W, IRHN
       INTEGER             :: AA, IWV, IIWV, NWVS, IR, NRT
-      INTEGER, SAVE       :: MONTH_LAST = -999
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!      INTEGER, SAVE       :: MONTH_LAST = -999
+!-----------------------------------------------------------------------------
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
-      REAL*8              :: TEMP2(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: MSDENS(NAER), XTAU, DRYAREA
+      REAL(fp)            :: TEMP2(IIPAR,JJPAR,LLPAR)
+      REAL(fp)            :: MSDENS(NAER), DRYAREA
+      REAL(f8)            :: XTAU
 
       ! Variables for speed diagnostics
       INTEGER             :: ITIMEVALS(8)
@@ -911,49 +929,50 @@
       REAL*8              :: OLDSECST, NEWSECST
 
       ! Effective radius at RH bins read in from "jv_spec.dat"
-      REAL*8		  :: RW(NRH)	
+      REAL(fp)		  :: RW(NRH)	
 
       ! Effective radius at RH after interpolation
-      REAL*8		  :: REFF       
+      REAL(fp)		  :: REFF       
 
       ! Q at different RH bins read in from "jv_spec.dat"
-      REAL*8		  :: AW(NRH)
-      REAL*8		  :: QW(NRH)
-      REAL*8              :: SSW(NRH)
-      REAL*8              :: ASYW(NRH)	
-      REAL*8              :: AW0
-      REAL*8              :: QW0
-      REAL*8              :: SSW0
-      REAL*8              :: ASYW0
-      REAL*8              :: DENOM,NUMER
+      REAL(fp)            :: AW(NRH)
+      REAL(fp)            :: QW(NRH)	
+      REAL(fp)            :: SSW(NRH)
+      REAL(fp)            :: ASYW(NRH)	
+      REAL(fp)            :: AW0
+      REAL(fp)            :: QW0
+      REAL(fp)            :: SSW0
+      REAL(fp)            :: ASYW0
+      REAL(fp)            :: DENOM,NUMER
 
       ! Used to interpolate between sizes
-      REAL*8		  :: FRAC       
+      REAL(fp)		  :: FRAC       
  
       ! Change in Q (extinction efficiency)
-      REAL*8		  :: SCALEQ     
+      REAL(fp)		  :: SCALEQ     
 
       ! Change in Radius with RH
-      REAL*8		  :: SCALER
+      REAL(fp)		  :: SCALER     
 
       ! Change in SSA with RH
-      REAL*8              :: SCALESSA
+      REAL(fp)            :: SCALESSA
 
       ! Change in asym parameter with RH
-      REAL*8              :: SCALEASY
+      REAL(fp)            :: SCALEASY
 
       ! Chnge in Optical properties vs RH
-      REAL*8		  :: SCALEA
-      REAL*8		  :: SCALEOD 
+      REAL(fp)            :: SCALEA
+      REAL(fp)            :: SCALEOD 
 
       ! Change in Vol vs RH 
-      REAL*8		  :: SCALEVOL 
+      REAL(fp)            :: SCALEVOL 
 
       ! Relative Humidities
-      REAL*8,  SAVE       :: RH(NRH)   = (/0d0,0.5d0,0.7d0,0.8d0,0.9d0/)
+      REAL(fp),  SAVE     :: RH(NRH)   = (/0e+0_fp,0.5e+0_fp, 
+     &   0.7e+0_fp,0.8e+0_fp,0.9e+0_fp/)
 
       ! Temporary varaibles
-      REAL*8              :: RAER, SADSTRAT, RHOSTRAT, XSASTRAT
+      REAL(fp)            :: RAER, SADSTRAT, RHOSTRAT, XSASTRAT
       INTEGER             :: ISTRAT
 
       ! Index to aerosol types in jv_spec.dat
@@ -965,7 +984,11 @@
 #endif
 
       ! Local variables for quantities from Input_Opt
-      CHARACTER(LEN=255)  :: DATA_DIR
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!      CHARACTER(LEN=255)  :: DATA_DIR
+!-----------------------------------------------------------------------------
       LOGICAL             :: LCARB
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
@@ -973,7 +996,7 @@
       LOGICAL             :: LRAD
 
       ! Pointers
-      REAL*8, POINTER     :: BXHEIGHT(:,:,:)
+      REAL(fp), POINTER   :: BXHEIGHT(:,:,:)
 
       !=================================================================
       ! RDAER begins here!
@@ -988,8 +1011,12 @@
       RC                   = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      DATA_DIR             = Input_Opt%DATA_DIR
-      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!      DATA_DIR             = Input_Opt%DATA_DIR
+!      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+!-----------------------------------------------------------------------------
       LCARB                = Input_Opt%LCARB
       LSSALT               = Input_Opt%LSSALT
       LSULF                = Input_Opt%LSULF
@@ -999,37 +1026,41 @@
       ! Initialize pointers
       BXHEIGHT            => State_Met%BXHEIGHT
 
-      ! Copy MONTH argument to local variable THISMONTH
-      IF ( PRESENT( MONTH ) ) THEN
-         THISMONTH = MONTH
-      ELSE
-         THISMONTH = 0
-      ENDIF
-
-      ! Copy YEAR argument to local variable THISYEAR
-      IF ( PRESENT( YEAR ) ) THEN
-         THISYEAR = YEAR
-      ELSE
-         THISYEAR = 0
-      ENDIF
-
-      ! Set a logical flag if we have to read data from disk
-      ! (once per month, for full-chemistry simulations)
-      DO_READ_DATA = ( IT_IS_A_FULLCHEM_SIM .and. ITS_A_NEW_MONTH() )
-
-      !=================================================================
-      ! For full-chemistry runs w/ offline fields, define filename
-      !=================================================================
-      IF ( DO_READ_DATA ) THEN
-   
-         ! Filename
-         FILENAME = TRIM( DATA_DIR ) // 'aerosol_200106/aerosol.' // 
-     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
-
-         ! Use the "generic" year 1996
-         XTAU = GET_TAU0( THISMONTH, 1, 1996 )
-
-      ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!      ! Copy MONTH argument to local variable THISMONTH
+!      IF ( PRESENT( MONTH ) ) THEN
+!         THISMONTH = MONTH
+!      ELSE
+!         THISMONTH = 0
+!      ENDIF
+!
+!      ! Copy YEAR argument to local variable THISYEAR
+!      IF ( PRESENT( YEAR ) ) THEN
+!         THISYEAR = YEAR
+!      ELSE
+!         THISYEAR = 0
+!      ENDIF
+!
+!      ! Set a logical flag if we have to read data from disk
+!      ! (once per month, for full-chemistry simulations)
+!      DO_READ_DATA = ( IT_IS_A_FULLCHEM_SIM .and. ITS_A_NEW_MONTH() )
+!
+!      !=================================================================
+!      ! For full-chemistry runs w/ offline fields, define filename
+!      !=================================================================
+!      IF ( DO_READ_DATA ) THEN
+!   
+!         ! Filename
+!         FILENAME = TRIM( DATA_DIR ) // 'aerosol_200106/aerosol.' // 
+!     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
+!
+!         ! Use the "generic" year 1996
+!         XTAU = GET_TAU0( THISMONTH, 1, 1996 )
+!
+!      ENDIF
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! S U L F A T E   A E R O S O L S
@@ -1067,23 +1098,27 @@
 
       ELSE 
 
-         !-----------------------------------
-         ! Read from disk -- fullchem only
-         !-----------------------------------
-         IF ( DO_READ_DATA ) THEN
-            
-            ! Print filename
-            IF ( am_I_Root ) WRITE( 6, 105 ) TRIM( FILENAME )
- 105        FORMAT( '     - RDAER: Reading SULFATE from ', a )
-
-            ! Read data
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 1,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            ! Cast to REAL*8 and resize
-            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,1) )
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!         !-----------------------------------
+!         ! Read from disk -- fullchem only
+!         !-----------------------------------
+!         IF ( DO_READ_DATA ) THEN
+!            
+!            ! Print filename
+!            IF ( am_I_Root ) WRITE( 6, 105 ) TRIM( FILENAME )
+! 105        FORMAT( '     - RDAER: Reading SULFATE from ', a )
+!
+!            ! Read data
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 1,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            ! Cast to REAL(fp) and resize
+!            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,1) )
+!         ENDIF
+!-----------------------------------------------------------------------------
       ENDIF
 
       !=================================================================
@@ -1136,51 +1171,55 @@
 
       ELSE 
 
-         !-----------------------------------
-         ! Read from disk -- fullchem only
-         !-----------------------------------
-         IF ( DO_READ_DATA ) THEN
-
-            ! Print filename
-            IF ( am_I_Root ) WRITE( 6, 115 ) TRIM( FILENAME )
- 115        FORMAT( '     - RDAER: Reading BC and OC from ', a )
-
-            !--------------------------------
-            ! Read Hydrophobic BC
-            !--------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 2,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,1) )
-
-            !---------------------------------
-            ! Read Hydrophilic BC
-            !---------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 3,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,2) )
-
-            !---------------------------------
-            ! Read Hydrophobic OC
-            !---------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 4,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,2) )
-
-            !---------------------------------
-            ! Read Hydrophilic OC
-            !---------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 5,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,3) )
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!         !-----------------------------------
+!         ! Read from disk -- fullchem only
+!         !-----------------------------------
+!         IF ( DO_READ_DATA ) THEN
+!
+!            ! Print filename
+!            IF ( am_I_Root ) WRITE( 6, 115 ) TRIM( FILENAME )
+! 115        FORMAT( '     - RDAER: Reading BC and OC from ', a )
+!
+!            !--------------------------------
+!            ! Read Hydrophobic BC
+!            !--------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 2,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,1) )
+!
+!            !---------------------------------
+!            ! Read Hydrophilic BC
+!            !---------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 3,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,2) )
+!
+!            !---------------------------------
+!            ! Read Hydrophobic OC
+!            !---------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 4,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, DAERSL(:,:,:,2) )
+!
+!            !---------------------------------
+!            ! Read Hydrophilic OC
+!            !---------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 5,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,3) )
+!         ENDIF
+!-----------------------------------------------------------------------------
       ENDIF
 
       !=================================================================
@@ -1228,58 +1267,61 @@
 
       ELSE
             
-         !-----------------------------------
-         ! Read from disk -- fullchem only
-         !-----------------------------------
-         IF ( DO_READ_DATA ) THEN
-
-            ! Print filename
-            IF ( am_I_Root ) WRITE( 6, 125 ) TRIM( FILENAME )
- 125        FORMAT( '     - RDAER: Reading SEASALT from ', a )
-
-            !----------------------------------
-            ! Offline -- read Sea Salt (accum)
-            !----------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 6,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,4) )
-
-            !----------------------------------
-            ! Offline -- read Sea Salt (coarse)
-            !----------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 7,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,5) )
-
-            !----------------------------------
-            ! Offline -- read Sea Salt (coarse)
-            !----------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 8,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, TEMP2 )
-
-            ! Accumulate into one size bin
-            WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
-
-            !----------------------------------
-            ! Offline -- read Sea Salt (coarse)
-            !----------------------------------
-            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 9,     
-     &                       XTAU,      IIPAR,     JJPAR,     
-     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
-
-            CALL TRANSFER_3D( TEMP, TEMP2 )
-
-            ! Accumulate into one size bin
-            WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
-
-         ENDIF   
+!-----------------------------------------------------------------------------
+! Prior to 3/5/15:
+! Remove bpch input, which does not work in HPC environments (bmy, 3/5/15)
+!         !-----------------------------------
+!         ! Read from disk -- fullchem only
+!         !-----------------------------------
+!         IF ( DO_READ_DATA ) THEN
+!
+!            ! Print filename
+!            IF ( am_I_Root ) WRITE( 6, 125 ) TRIM( FILENAME )
+! 125        FORMAT( '     - RDAER: Reading SEASALT from ', a )
+!
+!            !----------------------------------
+!            ! Offline -- read Sea Salt (accum)
+!            !----------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 6,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,4) )
+!
+!            !----------------------------------
+!            ! Offline -- read Sea Salt (coarse)
+!            !----------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 7,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, WAERSL(:,:,:,5) )
+!
+!            !----------------------------------
+!            ! Offline -- read Sea Salt (coarse)
+!            !----------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 8,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, TEMP2 )
+!
+!            ! Accumulate into one size bin
+!            WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
+!
+!            !----------------------------------
+!            ! Offline -- read Sea Salt (coarse)
+!            !----------------------------------
+!            CALL READ_BPCH2( FILENAME, 'ARSL-L=$', 9,     
+!     &                       XTAU,      IIPAR,     JJPAR,     
+!     &                       LGLOB,     TEMP,      QUIET=.TRUE. )
+!
+!            CALL TRANSFER_3D( TEMP, TEMP2 )
+!
+!            ! Accumulate into one size bin
+!            WAERSL(:,:,:,5) = WAERSL(:,:,:,5) + TEMP2 
+!         ENDIF   
+!-----------------------------------------------------------------------------
       ENDIF 
 
 #if defined( UCX )
@@ -1313,20 +1355,20 @@
       !set default values for RH index array
       IRHARR(:,:,:)=1
 
-! DAR 09/2013
-! There are two ways RDAER can be called:
-! (1) When Fast-J requires aerosol optics at 1000nm (ODSWITCH=0)
-! (2) Before diags are accumulated, from RECOMPUTE_AOD (ODSWITCH=1) 
-! for (1) we just need the optics stored at a single wavelength
-!     not for all user specified wavelengths, hence NWVS=1, IWV=IWV1000
-! for (2) we need to determine if RRTMG is switched on
-!     if LRAD=true, calculation is over total minus standard wavelengths 
-!     in optics dat files (NWVAA-NWVAA0)
-!     if LRAD=false, calculation is for the wavelengths required for
-!     user-requested wavelength output. These are determined in CALC_AOD
-!     within RD_AOD.F and stored in IWVREQUIRED. The coefficients to 
-!     interpolate from the LUT wavelengths to the user-requested
-!     waveelenths (in CALC_AOD) are used here.
+      ! DAR 09/2013
+      ! There are two ways RDAER can be called:
+      ! (1) When Fast-J requires aerosol optics at 1000nm (ODSWITCH=0)
+      ! (2) Before diags are accumulated, from RECOMPUTE_AOD (ODSWITCH=1) 
+      ! for (1) we just need the optics stored at a single wavelength
+      !     not for all user specified wavelengths, hence NWVS=1, IWV=IWV1000
+      ! for (2) we need to determine if RRTMG is switched on
+      !     if LRAD=true, calculation is over total minus standard wavelengths 
+      !     in optics dat files (NWVAA-NWVAA0)
+      !     if LRAD=false, calculation is for the wavelengths required for
+      !     user-requested wavelength output. These are determined in CALC_AOD
+      !     within RD_AOD.F and stored in IWVREQUIRED. The coefficients to 
+      !     interpolate from the LUT wavelengths to the user-requested
+      !     waveelenths (in CALC_AOD) are used here.
 
       ! Select number of wavelengths required to loop over
       IF (ODSWITCH .EQ. 0) THEN !this is the call for Fast_JX at 1000nm
@@ -1806,8 +1848,8 @@
      &                   ODAER(I,J,L,IWVSELECT(2,W),N)))
                      ENDIF
                   ENDIF
-! Output number density for stratospheric aerosol
 #if defined( UCX )
+                 ! Output number density for stratospheric aerosol
                  IF (ISTRAT.GT.0) THEN
                   AD21(I,J,L,IOUT+2) = AD21(I,J,L,IOUT+2) +
      &                                 NDENS_AER(I,J,L,ISTRAT)*1.d-6

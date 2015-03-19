@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -89,23 +89,23 @@
       !---------------------------------------
 
       ! Time-invariant fields
-      REAL(hp), POINTER          :: ERD_FCT_GEO  (:,:) => NULL()
+      REAL(sp), POINTER          :: ERD_FCT_GEO  (:,:) => NULL()
 !      REAL,    POINTER          :: ERD_FCT_HYDRO(:,:,:,:)
 !      REAL,    POINTER          :: ERD_FCT_TOPO (:,:,:,:)
 !      REAL,    POINTER          :: ERD_FCT_UNITY(:,:,:,:)
 !      REAL,    POINTER          :: MBL_BSN_FCT  (:,:,:,:)
 
       ! GOCART source function (tdf, bmy, 1/25/07)
-      REAL(hp), POINTER          :: SRCE_FUNC(:,:) => NULL()
+      REAL(sp), POINTER          :: SRCE_FUNC(:,:) => NULL()
 
       ! Land surface that is not lake or wetland (by area)
-      REAL(hp), POINTER          :: LND_FRC_DRY  (:,:) => NULL()
-      REAL(hp), POINTER          :: MSS_FRC_CACO3(:,:) => NULL()
-      REAL(hp), POINTER          :: MSS_FRC_CLY  (:,:) => NULL()
-      REAL(hp), POINTER          :: MSS_FRC_SND  (:,:) => NULL()
-      REAL(hp), POINTER          :: SFC_TYP      (:,:) => NULL()
+      REAL(sp), POINTER          :: LND_FRC_DRY  (:,:) => NULL()
+      REAL(sp), POINTER          :: MSS_FRC_CACO3(:,:) => NULL()
+      REAL(sp), POINTER          :: MSS_FRC_CLY  (:,:) => NULL()
+      REAL(sp), POINTER          :: MSS_FRC_SND  (:,:) => NULL()
+      REAL(sp), POINTER          :: SFC_TYP      (:,:) => NULL()
 
-      REAL(hp), POINTER           :: VAI_DST(:,:) => NULL()
+      REAL(sp), POINTER           :: VAI_DST(:,:) => NULL()
 
       ! Fundamental physical constants
       REAL*8,  PARAMETER   :: GAS_CST_UNV      = 8.31441d0
@@ -166,7 +166,7 @@
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -456,7 +456,7 @@
             ! Eventually update diagnostics
             IF ( Diagn_AutoFillLevelDefined(2) ) THEN
                Arr2D => FLUX(:,:,N)
-               CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr,
+               CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,
      &                            Cat=-1, Hier=-1, HcoID=HcoIDs(N),
      &                            AutoFill=1, Array2D=Arr2D, RC=RC   )
                IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -471,7 +471,7 @@
       END SUBROUTINE HCOX_DustDead_Run
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -772,7 +772,7 @@
       ExtState%TK%DoUse      = .TRUE.
       ExtState%U10M%DoUse    = .TRUE.
       ExtState%V10M%DoUse    = .TRUE.
-      ExtState%TSURFK%DoUse  = .TRUE.
+      ExtState%T2M%DoUse     = .TRUE.
       ExtState%GWETTOP%DoUse = .TRUE.
       ExtState%SNOWHGT%DoUse = .TRUE.
       ExtState%USTAR%DoUse   = .TRUE.
@@ -790,7 +790,7 @@
       END SUBROUTINE HCOX_DustDead_Init
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -855,7 +855,7 @@
       END SUBROUTINE HCOX_DustDead_Final
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !
 !******************************************************************************
@@ -1152,7 +1152,7 @@
       CALL TPT_GND_SOI_GET(
      &    HcoState,              ! Hemco state object
      &    LAT_IDX,               ! I [idx] Latitude index!
-     &    ExtState%TSURFK%Arr%Val, ! I [K] Sfc temperature at 2m
+     &    ExtState%T2M%Arr%Val, ! I [K] Sfc temperature at 2m
      &    TPT_GND_SLICE,         ! O [K] Ground temperature
      &    TPT_SOI_SLICE )        ! O [K] Soil temperature
 
@@ -5449,11 +5449,12 @@ c Fix up for negative argument, erf, etc.
       FLX_MSS_FDG_FCT = -999.0d0
 
       ! Error 
-      IF ( am_I_Root ) THEN
-         MSG = 'Cannot assign mass flux tuning factor - ' //
-     &         'please set `mass tuning factor` in configuration file!'
+      MSG = 'Cannot assign mass flux tuning factor - ' //
+     &      'please explicitly set it by adding ' //
+     &      '` --> Mass tuning factor: XX.X` to the extension ' //
+     &      'options in your config. file.'
          CALL HCO_ERROR ( MSG, RC, THISLOC='HCOX_DustDead_GetFluxTun')
-      ENDIF
+      RETURN
 
 #endif
 

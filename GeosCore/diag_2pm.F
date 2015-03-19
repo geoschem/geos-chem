@@ -29,7 +29,10 @@
 !
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE DIAG_MOD,           ONLY : LTJV,  CTJV
-      USE DIAG_MOD,           ONLY : LTOH,  CTOH,  LTOTH, CTOTH
+      USE DIAG_MOD,           ONLY : LTOH,  CTOH
+#if !defined( NO_BPCH )
+      USE DIAG_MOD,           ONLY : LTOTH, CTOTH
+#endif
       USE DIAG_MOD,           ONLY : LTHO2, CTHO2
       USE DIAG_MOD,           ONLY : CTO3_24h
       USE DIAG_MOD,           ONLY : CTO1D,    LTO1D
@@ -49,6 +52,8 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! HR_OH1, HR_OH2, etc.
+
+      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !
@@ -85,6 +90,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  08 Nov 2013 - M. Sulprizio- Removed CTO3 and LTO3. They are no longer used
 !                              because O3 is now a tracer.
+!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,7 +102,7 @@
       LOGICAL :: IS_CHEM
       INTEGER :: I,       J,       L
       INTEGER :: PREV_TS
-      REAL*8  :: LT(IIPAR)
+      REAL(fp)  :: LT(IIPAR)
 
       !=================================================================
       ! DIAG_2PM begins here!
@@ -131,6 +137,7 @@
          !-----------------------------
          ! ND45 -- mixing ratios
          !-----------------------------
+#if !defined(NO_BPCH)
          IF ( IS_ND45 ) THEN
 
             ! Change initialization of LTOTH: only on timestep after saving
@@ -152,6 +159,7 @@
 
             ENDIF
          ENDIF
+#endif
 
          !-----------------------------
          ! ND47_O3 / ND65 -- "chemistry all day long" counter

@@ -18,6 +18,7 @@
 ! !USES:
 !
       USE HCO_ERROR_MOD
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
       PRIVATE
@@ -77,6 +78,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Jun 2014 - R. Yantosca - Remove code now made obsolete by HEMCO
 !  03 Nov 2014 - C. Keller   - Moved GET_ALK to sulfate_mod.F. 
+!  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -115,17 +117,17 @@
 
       ! Arrays
       INTEGER               :: IDDEP(NSALT)
-      REAL*8,   ALLOCATABLE :: SALT_V(:)
-      REAL*8,   ALLOCATABLE :: DMID(:)
-      REAL*8,   PARAMETER   :: SS_DEN(NSALT)   = (/ 2200.d0, 2200.d0 /)
+      REAL(fp),   ALLOCATABLE :: SALT_V(:)
+      REAL(fp),   ALLOCATABLE :: DMID(:)
+      REAL(fp), PARAMETER :: SS_DEN(NSALT)=(/2200.e+0_fp, 2200.e+0_fp/)
 
       ! Now obsolete
-!      REAL*8,   ALLOCATABLE :: REDGE(:,:)   
-!      REAL*8,   ALLOCATABLE :: RMID(:,:)
-!      REAL*8,   ALLOCATABLE :: SRC(:,:)   
-!      REAL*8,   ALLOCATABLE :: SRC_N(:,:)   
-!      REAL*8,   ALLOCATABLE :: ALK_EMIS(:,:,:,:)
-!      REAL*8,   ALLOCATABLE :: N_DENS(:,:,:,:)    
+!      REAL(fp),   ALLOCATABLE :: REDGE(:,:)   
+!      REAL(fp),   ALLOCATABLE :: RMID(:,:)
+!      REAL(fp),   ALLOCATABLE :: SRC(:,:)   
+!      REAL(fp),   ALLOCATABLE :: SRC_N(:,:)   
+!      REAL(fp),   ALLOCATABLE :: ALK_EMIS(:,:,:,:)
+!      REAL(fp),   ALLOCATABLE :: N_DENS(:,:,:,:)    
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -152,9 +154,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPNAME
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE DRYDEP_MOD,         ONLY : NUMDEP
+!      USE DRYDEP_MOD,         ONLY : DEPNAME
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -203,7 +205,7 @@
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEMSEASALT begins here!
@@ -240,16 +242,17 @@
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
       ENDIF
 
-      ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
-      ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
-      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
-         CALL DRY_DEPOSITION( am_I_Root,          Input_Opt, 
-     &                        STT(:,:,:,IDTSALA), 1,         RC )
-
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
-         ENDIF
-      ENDIF
+!      ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
+!      ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
+!      ! Now always do dry-deposition outside of seasalt_mod.F (ckeller, 3/5/15)
+!      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
+!         CALL DRY_DEPOSITION( am_I_Root,          Input_Opt, 
+!     &                        STT(:,:,:,IDTSALA), 1,         RC )
+!
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
+!         ENDIF
+!      ENDIF
 
       !-------------------
       ! Coarse mode
@@ -263,14 +266,15 @@
 
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
       ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
-      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
-         CALL DRY_DEPOSITION( am_I_Root,          Input_Opt,
-     &                        STT(:,:,:,IDTSALC), 2,         RC )
-
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
-         ENDIF
-      ENDIF
+      ! Now always do dry-deposition outside of seasalt_mod.F (ckeller, 3/5/15)
+!      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
+!         CALL DRY_DEPOSITION( am_I_Root,          Input_Opt,
+!     &                        STT(:,:,:,IDTSALC), 2,         RC )
+!
+!         IF ( prtDebug ) THEN
+!            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
+!         ENDIF
+!      ENDIF
 
       ! Free pointer
       NULLIFY( STT )
@@ -298,8 +302,10 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV
+#endif
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
@@ -321,7 +327,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
+      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -331,8 +337,8 @@
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
 !        (bmy, 7/20/04)
 !  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (3 ) Bug fix: DTCHEM has to be REAL*8, not integer. (bmy, 9/7/06)
-!  (4 ) Now limit relative humidity to [tiny(real*8),0.99] range for DLOG
+!  (3 ) Bug fix: DTCHEM has to be REAL(fp), not integer. (bmy, 9/7/06)
+!  (4 ) Now limit relative humidity to [tiny(real(fp)),0.99] range for DLOG
 !         argument (phs, 5/1/08)
 !  (5 ) Update sea salt density calculation using Tang et al. (1997) (bec,
 !       jaegle 5/11/11)
@@ -355,56 +361,65 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I,      J,     L,        N_TRACERS
-      REAL*8                 :: DELZ,   DELZ1, REFF,     DEN
-      REAL*8                 :: P,      DP,    PDP,      TEMP        
-      REAL*8                 :: CONST,  SLIP,  VISC,     FAC1
-      REAL*8                 :: FAC2,   FLUX,  AREA_CM2, RHB
+      INTEGER                  :: I,      J,     L,        N_TRACERS
+      REAL(fp)                 :: DELZ,   DELZ1, REFF,     DEN
+      REAL(fp)                 :: P,      DP,    PDP,      TEMP        
+      REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
+      REAL(fp)                 :: FAC2,   FLUX,  AREA_CM2, RHB
       ! replace RCM with RUM (radis in micron) jaegle 5/11/11
-      REAL*8                 :: RUM,    RWET,  RATIO_R,  RHO
-      REAL*8                 :: TOT1,   TOT2,  DTCHEM
-      REAL*8                 :: VTS(LLPAR)  
-      REAL*8                 :: TC0(LLPAR)
+      REAL(fp)                 :: RUM,    RWET,  RATIO_R
+      REAL(fp)                 :: TOT1,   TOT2,  DTCHEM
+      REAL(fp)                 :: VTS(LLPAR)  
+      REAL(fp)                 :: TC0(LLPAR)
       ! New variables (jaegle 5/11/11)
-      REAL*8                 :: SW
-      REAL*8                 :: R0,       R1, NR, DEDGE, SALT_MASS
-      REAL*8                 :: SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW
-      REAL*8                 :: WTP, RHO1 
-      INTEGER                :: ID
-      LOGICAL, SAVE          :: FIRST = .TRUE.
+      REAL(fp)                 :: SW
+      REAL(fp)                 :: R0,       R1, NR, DEDGE, SALT_MASS
+      REAL(fp)                 :: SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW
+      REAL(f8)                 :: WTP 
+      INTEGER                  :: ID
+      LOGICAL, SAVE            :: FIRST = .TRUE.
+      REAL(f8)                 :: RHO, RHO1
 ! !DEFINED PARAMETERS:
 !      
-      REAL*8,  PARAMETER     :: C1 =  0.7674d0 
-      REAL*8,  PARAMETER     :: C2 =  3.079d0 
-      REAL*8,  PARAMETER     :: C3 =  2.573d-11
-      REAL*8,  PARAMETER     :: C4 = -1.424d0
+      REAL(fp),  PARAMETER     :: C1 =  0.7674e+0_fp 
+      REAL(fp),  PARAMETER     :: C2 =  3.079e+0_fp 
+      REAL(fp),  PARAMETER     :: C3 =  2.573e-11_fp
+      REAL(fp),  PARAMETER     :: C4 = -1.424e+0_fp
       ! Parameters for polynomial coefficients to derive seawater
       ! density. From Tang et al. (1997) (jaegle 5/11/11)
-      REAL*8,  PARAMETER     :: A1 =  7.93d-3
-      REAL*8,  PARAMETER     :: A2 = -4.28d-5
-      REAL*8,  PARAMETER     :: A3 =  2.52d-6
-      REAL*8,  PARAMETER     :: A4 = -2.35d-8
+      REAL(fp),  PARAMETER     :: A1 =  7.93e-3_fp
+      REAL(fp),  PARAMETER     :: A2 = -4.28e-5_fp
+      REAL(fp),  PARAMETER     :: A3 =  2.52e-6_fp
+      REAL(fp),  PARAMETER     :: A4 = -2.35e-8_fp
       ! increment of radius for integration of settling velocity (um)
-      REAL*8, PARAMETER      :: DR    = 5.d-2
+      REAL(fp), PARAMETER      :: DR    = 5.e-2_fp
       ! parameter for convergence
-      REAL*8,  PARAMETER     :: EPSI = 1.0D-4
+      REAL(f8),  PARAMETER     :: EPSI = 1.0e-4_f8
       ! parameters for assumed size distribution of acc and coarse mode
       ! sea salt aerosols (jaegle 5/11/11)
       ! geometric dry mean diameters (microns)
-      REAL*8,  PARAMETER     ::   RG_A = 0.085d0
-      REAL*8,  PARAMETER     ::   RG_C = 0.4d0
+      REAL(fp),  PARAMETER     :: RG_A = 0.085e+0_fp
+      REAL(fp),  PARAMETER     :: RG_C = 0.4e+0_fp
       ! sigma of the size distribution
-      REAL*8,  PARAMETER     ::   SIG_A = 1.5d0
-      REAL*8,  PARAMETER     ::   SIG_C = 1.8d0
+      REAL(fp),  PARAMETER     :: SIG_A = 1.5e+0_fp
+      REAL(fp),  PARAMETER     :: SIG_C = 1.8e+0_fp
 
       ! Local variables for Input_Opt quantities
-      REAL*8                 :: SALA_REDGE_um(2)
-      REAL*8                 :: SALC_REDGE_um(2)
-      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)                 :: SALA_REDGE_um(2)
+      REAL(fp)                 :: SALC_REDGE_um(2)
+      REAL(fp)                 :: XNUMOL(Input_Opt%N_TRACERS)
+      ! Non-SAVEd variables
+      LOGICAL        :: prtDebug
+      LOGICAL        :: LPRT
 
       !=================================================================
       ! WET_SETTLING begins here!
       !=================================================================
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LPRT     = Input_Opt%LPRT
+
+      ! Do we have to print debug output?
+      prtDebug = ( LPRT .and. am_I_Root )
 
 
       ! Assume success
@@ -417,7 +432,7 @@
       XNUMOL        = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Chemistry timestep [s]
-      DTCHEM        = GET_TS_CHEM() * 60d0
+      DTCHEM        = GET_TS_CHEM() * 60e+0_fp
 
       ! Sea salt density [kg/m3]
       DEN            = SS_DEN( N )
@@ -428,13 +443,13 @@
          ! Accum mode
          ! add R0 and R1 = edges if the sea salt size bins (jaegle 5/11/11)
          CASE( 1 )
-            REFF = 0.5d-6 * ( SALA_REDGE_um(1) + SALA_REDGE_um(2) )
+            REFF = 0.5e-6_fp * ( SALA_REDGE_um(1) + SALA_REDGE_um(2) )
             R0 = SALA_REDGE_um(1)
             R1 = SALA_REDGE_um(2)
 
          ! Coarse mode
          CASE( 2 ) 
-            REFF = 0.5d-6 * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
+            REFF = 0.5e-6_fp * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
             R0 = SALC_REDGE_um(1)
             R1 = SALC_REDGE_um(2)
             
@@ -444,7 +459,7 @@
       ! mode) and largest radii (coarse mode) (jaegle 5/11/11)
       
       NR = INT( ( ( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR ) 
-     &                  + 0.5d0 )
+     &                  + 0.5e+0_fp )
 
       ! Error check
       IF ( NR > NR_MAX ) THEN
@@ -460,7 +475,7 @@
       IF ( FIRST) THEN
 
         ! Lower edge of 0th bin
-	DEDGE=SALA_REDGE_um(1) * 2d0
+	DEDGE=SALA_REDGE_um(1) * 2e+0_fp
 
 	! Loop over diameters
         DO ID = 1, NR
@@ -473,24 +488,25 @@
 	   ! The scaling factors 13. and 0.8 for acc and coarse mode 
            ! aerosols are chosen to obtain a realistic distribution  
 	   ! SALT_V (D) = dV/dln(D) [um3]
-	   SALT_V(ID) = PI / 6d0* (DMID(ID)**3) * (
-     &         13d0*exp(-0.5*( LOG(DMID(ID))-LOG(RG_A*2d0) )**2d0/
-     &                   LOG(SIG_A)**2d0 )
-     &         /( sqrt(2d0 * PI) * LOG(SIG_A) )  +
-     &         0.8d0*exp(-0.5*( LOG(DMID(ID))-LOG(RG_C*2d0) )**2d0/
-     &                   LOG(SIG_C)**2d0)
-     &         /( sqrt(2d0 * PI) * LOG(SIG_C) )  )
+	   SALT_V(ID) = PI / 6e+0_fp* (DMID(ID)**3) * (
+     &         13e+0_fp*exp(-0.5*( LOG(DMID(ID))-LOG(RG_A*2e+0_fp) )
+     &         **2e+0_fp/LOG(SIG_A)**2e+0_fp )
+     &         /( sqrt(2e+0_fp * PI) * LOG(SIG_A) )  +
+     &         0.8e+0_fp*exp(-0.5*( LOG(DMID(ID))-LOG(RG_C*2e+0_fp) )
+     &         **2e+0_fp/LOG(SIG_C)**2e+0_fp)
+     &         /( sqrt(2e+0_fp * PI) * LOG(SIG_C) )  )
 	   ! update the next edge
-	   DEDGE = DEDGE + DR*2d0
+	   DEDGE = DEDGE + DR*2e+0_fp
         ENDDO
 
         ! Reset after the first time
         IF ( FIRST ) FIRST = .FALSE.
       ENDIF
 
+      IF (LPRT) CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
 
       ! Sea salt radius [cm]
-      !RCM  = REFF * 100d0  
+      !RCM  = REFF * 100e+0_fp  
       ! The radius used in the Gerber formulation for hygroscopic growth
       ! of sea salt should be in microns (RUM) instead of cm (RCM). Replace RCM
       ! with RUM (jaegle 5/11/11)
@@ -517,44 +533,44 @@
 
          ! Initialize 
          DO L = 1, LLPAR
-            VTS(L) = 0d0
+            VTS(L) = 0e+0_fp
          ENDDO
 
          ! Loop over levels
          DO L = 1, LLPAR
 
             ! Pressure at center of the level [kPa]
-            P       = GET_PCENTER(I,J,L) * 0.1d0
+            P       = GET_PCENTER(I,J,L) * 0.1e+0_fp
 
             ! Temperature [K]
             TEMP    = State_Met%T(I,J,L)
 
             ! Cap RH at 0.99 
-            RHB     = MIN( 0.99d0, State_Met%RH(I,J,L) * 1d-2 )
+            RHB     = MIN( 0.99e+0_fp, State_Met%RH(I,J,L) * 1e-2_fp )
 
             ! Safety check (phs, 5/1/08)
             RHB     = MAX( TINY(RHB), RHB           )
 
             ! Aerosol growth with relative humidity in radius [m] 
             ! (Gerber, 1985)
-            !RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHB))+RCM**3.d0)**0.33d0
+            !RWET    = 0.01e+0_fp*(FAC1/(FAC2-DLOG(RHB))+RCM**3.e+0_fp)**0.33e+0_fp
 	    ! Fix bugs in the Gerber formula:  a log10 (instead of ln) 
             ! should be used and the dry radius should be expressed in 
             ! micrometers (instead of cm) also add more significant 
 	    ! digits to the exponent (should be 1/3) (jaegle 5/11/11)
-            !RWET    = 1d-6*(FAC1/(FAC2-LOG10(RHB))+RUM**3.d0)**0.33333d0
+            !RWET    = 1d-6*(FAC1/(FAC2-LOG10(RHB))+RUM**3.e+0_fp)**0.33333e+0_fp
 
             ! Use equation 5 in Lewis and Schwartz (2006) for sea 
             ! salt growth (bec, jaegle 5/11/11)
-            RWET = REFF * (4.d0 / 3.7d0) *
-     &              ( (2.d0 - RHB)/(1.d0 - RHB) )**(1.d0/3.d0)
+            RWET = REFF * (4.e+0_fp / 3.7e+0_fp) *
+     &       ( (2.e+0_fp - RHB)/(1.e+0_fp - RHB) )**(1.e+0_fp/3.e+0_fp)
 
 
             ! Ratio dry over wet radii at the cubic power
-            RATIO_R = ( REFF / RWET )**3.d0
+            RATIO_R = ( REFF / RWET )**3.e+0_fp
 
             ! Density of the wet aerosol (kg/m3)
-            RHO     = RATIO_R * DEN + ( 1.d0 - RATIO_R ) * 1000.d0
+            RHO = RATIO_R * DEN + ( 1.e+0_fp - RATIO_R ) * 1000.e+0_fp
 
             ! Above density calculation is chemically unsound because 
             ! it ignores chemical solvation.   Iteratively solve Tang et al., 
@@ -562,31 +578,34 @@
             ! (bec, jaegle 5/11/11)
             RATIO_R = ( REFF / RWET )
             ! Assume an initial density of 1000 kg/m3
-            RHO  = 1000.D0
-            RHO1 = 0.d0 !initialize (bec, 6/21/10)
+            RHO  = 1000.e+0_f8
+            RHO1 = 0.e+0_f8 !initialize (bec, 6/21/10)
             DO WHILE ( ABS( RHO1-RHO ) .gt. EPSI )
                 ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet) 
-                WTP    = 100.d0 * DEN/RHO * RATIO_R**3.d0
+                WTP    = 100.e+0_f8 * DEN/RHO * RATIO_R**3.e+0_f8
                 ! Then calculate density of wet aerosol using equation 5 
                 ! in Tang et al., 1997 [kg/m3]
-                RHO1   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2.d0) + 
-     $               (A3 * WTP**3.d0) + (A4 * WTP**4.d0) ) * 1000.d0
+                RHO1 = (0.9971e+0_f8 + (A1 * WTP) + (A2 * WTP**2.e+0_f8)
+     $               + (A3 * WTP**3.e+0_f8) + (A4 * WTP**4.e+0_f8) ) 
+     $               * 1000.e+0_f8
                 ! Now calculate new weight percent using above density 
                 ! calculation
-                WTP    = 100.d0 * DEN/RHO1 * RATIO_R**3.d0
+                WTP    = 100.e+0_f8 * DEN/RHO1 * RATIO_R**3.e+0_f8
                 ! Now recalculate new wet density [kg/m3]
-                RHO   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2.d0) + 
-     $              (A3 * WTP**3.d0) + (A4 * WTP**4.d0) ) * 1000.d0
+                RHO = (0.9971e+0_f8 + (A1 * WTP) + (A2 * WTP**2.e+0_f8)
+     $              + (A3 * WTP**3.e+0_f8) + (A4 * WTP**4.e+0_f8) ) 
+     $              * 1000.e+0_f8
             ENDDO
 
+
             ! Dp = particle diameter [um]
-            DP      = 2.d0 * RWET * 1.d6        
+            DP      = 2.e+0_fp * RWET * 1.e+6_fp        
 
             ! PdP = P * dP [hPa * um]
             PDp     = P * Dp
 
             ! Constant
-            CONST   = 2.d0 * RHO * RWET**2 * g0 / 9.d0
+            CONST   = 2.e+0_fp * RHO * RWET**2 * g0 / 9.e+0_fp
 
             !===========================================================
             ! NOTE: Slip correction factor calculations following 
@@ -609,10 +628,12 @@
             !===========================================================  
           
             ! Slip correction factor (as function of P*dp)
-            Slip = 1.d0+(15.60d0 + 7.0d0 * EXP(-0.059d0 * PDp)) / PDp
+            Slip = 1.e+0_fp+(15.60e+0_fp + 7.0e+0_fp 
+     &            * EXP(-0.059e+0_fp * PDp)) / PDp
 
             ! Viscosity [Pa*s] of air as a function of temperature 
-            VISC = 1.458d-6 * (Temp)**(1.5d0) / ( Temp + 110.4d0 )
+            VISC = 1.458e-6_fp * (Temp)**(1.5e+0_fp) 
+     &            / ( Temp + 110.4e+0_fp )
 
             ! Settling velocity [m/s]
             VTS(L) = CONST * Slip / VISC
@@ -627,8 +648,8 @@
 	    ! so VTS(k) = VTS * (RMID(k)/RWET)^2
             ! (jaegle 5/11/11)
 
-	    SALT_MASS_TOTAL = 0d0
-	    VTS_WEIGHT      = 0d0
+	    SALT_MASS_TOTAL = 0e+0_fp
+	    VTS_WEIGHT      = 0e+0_fp
 	    DO ID = 1, NR
 	       ! Calculate mass of wet aerosol (Dw = wet diameter, D = 
                ! dry diameter): dM/dlnDw = dV/dlnDw * RHO, we assume that 
@@ -639,14 +660,16 @@
                ! dM/dln(Dw)/Dw
 	       ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * RHO /Rw
 	       ! 
-	       IF (DMID(ID) .ge. R0*2d0 .and. DMID(ID) .le. R1*2d0 ) THEN
+	       IF (DMID(ID) .ge. R0*2e+0_fp .and. DMID(ID) .le. R1*2e+0_fp) 
+     &          THEN
 	         DMIDW = DMID(ID) * RWET/REFF  ! wet radius [um]
-	         SALT_MASS   = SALT_V(ID) * RWET/REFF * RHO / (DMIDW*0.5d0)
+	         SALT_MASS = SALT_V(ID) * RWET/REFF * RHO 
+     &                      / (DMIDW*0.5e+0_fp)
 	         VTS_WEIGHT  = VTS_WEIGHT + 
-     &              SALT_MASS * VTS(L) * (DMIDW/(RWET*1d6*2d0) )**2d0 *
-     &                            (2d0 * DR *  RWET/REFF)
+     &              SALT_MASS * VTS(L) * (DMIDW/(RWET*1d6*2e+0_fp) )
+     &              ** 2e+0_fp * (2e+0_fp * DR *  RWET/REFF)
 	         SALT_MASS_TOTAL=SALT_MASS_TOTAL+SALT_MASS *
-     &                            (2d0 * DR *  RWET/REFF)
+     &                            (2e+0_fp * DR *  RWET/REFF)
 	       ENDIF
 
             ENDDO
@@ -666,24 +689,25 @@
          L    = LLCHEM
          DELZ = State_Met%BXHEIGHT(I,J,L)
 
-         TC(I,J,L) = TC(I,J,L) / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
+         TC(I,J,L) = TC(I,J,L) / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
 
          DO L = LLCHEM-1, 1, -1
             DELZ  = State_Met%BXHEIGHT(I,J,L)
             DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-            TC(I,J,L) = 1.d0 / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
+            TC(I,J,L) = 1.e+0_fp / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
      &                * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1
      &                *  TC(I,J,L+1) )
          ENDDO
-         
+
+#if !defined( NO_BPCH )
          !==============================================================
          ! ND44 diagnostic: sea salt loss [molec/cm2/s]
          !==============================================================
          IF ( ND44 > 0 ) THEN
 
             ! Initialize
-            TOT1 = 0d0
-            TOT2 = 0d0
+            TOT1 = 0e+0_fp
+            TOT2 = 0e+0_fp
             
             ! Compute column totals of TCO(:) and TC(I,J,:,N)
             DO L = 1, LLPAR
@@ -701,10 +725,11 @@
             ! Store in AD44 array
             AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
          ENDIF
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
+      IF (LPRT) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
       END SUBROUTINE WET_SETTLING
 !EOC
 !------------------------------------------------------------------------------
@@ -727,7 +752,9 @@
       USE CMN_GCTM_MOD
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD44
+#endif
       USE DRYDEP_MOD,         ONLY : DEPSAV 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -746,7 +773,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
+      REAL(fp),         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -774,19 +801,19 @@
       ! Scalars
       INTEGER            :: N_TRACERS
       INTEGER            :: I,        J,     L,      DTCHEM
-      REAL*8             :: OLD,      NEW,   G,      REFF
-      REAL*8             :: DIAM,     U_TS0, REYNOL, ALPHA 
-      REAL*8             :: BETA,     GAMMA, DENS,   FLUX 
-      REAL*8             :: AREA_CM2, TOT1,  TOT2
-      REAL*8             :: F_UNDER_TOP, FREQ
+      REAL(fp)             :: OLD,      NEW,   G,      REFF
+      REAL(fp)             :: DIAM,     U_TS0, REYNOL, ALPHA 
+      REAL(fp)             :: BETA,     GAMMA, DENS,   FLUX 
+      REAL(fp)             :: AREA_CM2, TOT1,  TOT2
+      REAL(fp)             :: F_UNDER_TOP, FREQ
 
       ! Arrays
-      REAL*8             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      REAL*8             :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL(fp)             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      REAL(fp)             :: XNUMOL(Input_Opt%N_TRACERS)
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8,  PARAMETER :: RHOA = 1.25d-3
+      REAL(fp),  PARAMETER :: RHOA = 1.25e-3_fp
 
       !=================================================================
       ! DRY_DEPOSITION begins here!
@@ -800,10 +827,10 @@
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Chemistry timestep [s]
-      DTCHEM    = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
 
       ! Zero temporary array for drydep diagnostic
-      IF ( ND44 > 0 ) ND44_TMP = 0d0
+      IF ( ND44 > 0 ) ND44_TMP = 0e+0_fp
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -825,14 +852,14 @@
 	 F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Only apply drydep to boxes w/in the PBL
-         IF ( F_UNDER_TOP > 0d0 ) THEN
+         IF ( F_UNDER_TOP > 0e+0_fp ) THEN
 
             ! Sea salt dry deposition frequency [1/s] accounting
             ! for fraction of each grid box located beneath the PBL top
             FREQ = DEPSAV(I,J,IDDEP(N)) * F_UNDER_TOP
 
             ! Only apply drydep loss if FREQ is nonzero
-            IF ( FREQ > 0d0 ) THEN
+            IF ( FREQ > 0e+0_fp ) THEN
 
                ! Old tracer concentration [kg]
                OLD  = TC(I,J,L)
@@ -868,6 +895,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if !defined( NO_BPCH )
       !====================================================================
       ! ND44 diagnostic: save into AD44 array, summing in the vertical
       !====================================================================
@@ -883,6 +911,7 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+#endif
 
       END SUBROUTINE DRY_DEPOSITION
 !EOC
@@ -947,35 +976,35 @@
       ! Allocate arrays
 !      ALLOCATE( REDGE( 0:NR_MAX, NSALT ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REDGE' )
-!      REDGE = 0d0
+!      REDGE = 0e+0_fp
 
 !      ALLOCATE( RMID( NR_MAX, NSALT ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RMID' )
-!      RMID = 0d0
+!      RMID = 0e+0_fp
 
 !      ALLOCATE( SRC( NR_MAX, NSALT ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC' )
-!      SRC = 0d0
+!      SRC = 0e+0_fp
 
 !      ALLOCATE( SRC_N( NR_MAX, NSALT ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC_N' )
-!      SRC_N = 0d0
+!      SRC_N = 0e+0_fp
 
 !      ALLOCATE( ALK_EMIS( IIPAR, JJPAR, LLCHEM, NSALT ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALK_EMIS' )
-!      ALK_EMIS = 0d0
+!      ALK_EMIS = 0e+0_fp
 
 !      ALLOCATE( N_DENS( IIPAR, JJPAR, LLCHEM, NSALT ), STAT=AS )
 !      IF ( AS /= 0 ) CALL ALLOC_ERR( 'N_DENS' )
-!      N_DENS = 0d0
+!      N_DENS = 0e+0_fp
 
       ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )
-      SALT_V = 0d0
+      SALT_V = 0e+0_fp
 
       ALLOCATE( DMID( NR_MAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
-      DMID = 0d0
+      DMID = 0e+0_fp
 
       ! Zero the IDDEP array
       IDDEP = 0
@@ -1080,9 +1109,9 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       ! TC1 : Aerosol number tracer array [no.]
-      ! TC2 (REAL*8 ) : Sea salt tracer array [kg]
-      REAL*8,  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL*8,  INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS)
+      ! TC2 (REAL(fp) ) : Sea salt tracer array [kg]
+      REAL(fp),  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp),  INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS)
 ! 
 ! !AUTHOR:
 !  Contact: Win Trivitayanurak (win@cmu.edu)  
@@ -1115,19 +1144,19 @@
       INTEGER                :: I,      J,      L,     K
       INTEGER                :: NTOP
       REAL*4                 :: FOCEAN, W10M,   DTEMIS
-      REAL*8                 :: F100,   W,      NUM
-      REAL*8                 :: DBIN(IBINS),    A(IBINS)
-      REAL*8                 :: A_M2,           FEMIS
-      REAL*8                 :: SFCWINDSQR
+      REAL(fp)                 :: F100,   W,      NUM
+      REAL(fp)                 :: DBIN(IBINS),    A(IBINS)
+      REAL(fp)                 :: A_M2,           FEMIS
+      REAL(fp)                 :: SFCWINDSQR
 
       ! Coefficient to adjust emission in 1x1 grid (win, 4/27/08)
-      REAL*8                 :: COEF
+      REAL(fp)                 :: COEF
 
 #if  defined( TOMAS12 ) || defined( TOMAS15 )
 
       data Dbin /
 # if  defined( TOMAS15 )
-     & 0.0d0      , 0.0d0      ,  0.0d0      ,
+     & 0.0e+0_fp      , 0.0e+0_fp      ,  0.0e+0_fp      ,
 # endif
      & 9.68859E-09, 1.53797E-08, 2.44137E-08, 3.87544E-08,
      & 6.15187E-08, 9.76549E-08, 1.55017E-07, 2.46075E-07,
@@ -1135,7 +1164,7 @@
 
       data A /
 # if  defined( TOMAS15 )
-     &        0.0d0,       0.0d0,        0.0d0,
+     &        0.0e+0_fp,       0.0e+0_fp,        0.0e+0_fp,
 # endif
      &  4607513.229, 9309031.200, 12961629.010, 13602132.943,
      & 11441451.509, 9387934.311,  8559624.313,  7165322.549,
@@ -1146,8 +1175,8 @@
 
       DATA Dbin /
 # if  defined( TOMAS40 )
-     & 0.0d0      , 0.0d0      ,  0.0d0      ,  0.0d0      ,  0.0d0   ,
-     & 0.0d0      , 0.0d0      ,  0.0d0      ,  0.0d0      ,  0.0d0   ,
+     & 0.0e+0_fp, 0.0e+0_fp,  0.0e+0_fp,  0.0e+0_fp,  0.0e+0_fp,
+     & 0.0e+0_fp, 0.0e+0_fp,  0.0e+0_fp,  0.0e+0_fp,  0.0e+0_fp,
 # endif
      & 9.68859E-09, 1.22069E-08, 1.53797E-08, 1.93772E-08, 2.44137E-08,
      & 3.07594E-08, 3.87544E-08, 4.88274E-08, 6.15187E-08, 7.75087E-08,
@@ -1157,8 +1186,8 @@
      & 3.12496E-06, 3.93720E-06, 4.96056E-06, 6.24991E-06, 7.87440E-06/
       DATA A /
 # if  defined( TOMAS40 )
-     & 0.0d0      , 0.0d0      ,  0.0d0      ,  0.0d0      ,  0.0d0   ,
-     & 0.0d0      , 0.0d0      ,  0.0d0      ,  0.0d0      ,  0.0d0   ,
+     & 0.0e+0_fp, 0.0e+0_fp,  0.0e+0_fp,  0.0e+0_fp,  0.0e+0_fp,
+     & 0.0e+0_fp, 0.0e+0_fp,  0.0e+0_fp,  0.0e+0_fp,  0.0e+0_fp,
 # endif
      & 1719793.975, 2887719.254, 4086059.079, 5222972.121, 6172287.155,
      & 6789341.855, 6954290.435, 6647842.508, 6030292.470, 5411159.039,
@@ -1175,11 +1204,11 @@
 
       ! Depending on the grid resolution. 4x5 (default) doesn't need adjusting coeff
 #if   defined( GRID4x5  )
-      COEF = 1.d0
+      COEF = 1.e+0_fp
 #elif defined( GRID2x25 )
-      COEF = 1.d0
+      COEF = 1.e+0_fp
 #elif defined( GRID1x1  ) && defined( NESTED_CH )
-      COEF = 0.77d0
+      COEF = 0.77e+0_fp
       ! Note: monthly emission over the China nested-grid domain is about
       !       1.3 times higher compared to the same domain in 4x5 resolution
       !       Thus applying 1/1.30 = 0.77 factor to correct the emission.
@@ -1190,7 +1219,7 @@
 
 
       ! Emission timestep [s]
-      DTEMIS = GET_TS_EMIS() * 60d0
+      DTEMIS = GET_TS_EMIS() * 60e+0_fp
 
       ! Loop over grid cells
       DO J = 1, JJPAR
@@ -1202,12 +1231,12 @@
          ! Check if over ocean assuming only gridcells that are
          ! at least 50% water are oceans (J. Pierce, 3/10/14)
          IF ( IS_WATER( I, J, State_Met ) ) THEN
-            FOCEAN = 1d0 - State_Met%FRCLND(I,J)
+            FOCEAN = 1e+0_fp - State_Met%FRCLND(I,J)
          ELSE
-            FOCEAN = 0.d0
+            FOCEAN = 0.e+0_fp
          ENDIF
 
-         IF (FOCEAN > 0.5d0) THEN 
+         IF (FOCEAN > 0.5e+0_fp) THEN 
 
             ! Wind speed at 10 m altitude [m/s]
             SFCWINDSQR = State_Met%U10M(I,J)**2  

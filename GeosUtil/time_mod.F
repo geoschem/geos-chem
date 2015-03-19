@@ -15,6 +15,8 @@
 ! 
 ! !USES:
 !
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
       IMPLICIT NONE
 !
 ! !PRIVATE TYPES:
@@ -105,6 +107,7 @@
       PUBLIC  :: ITS_TIME_FOR_CONV
       PUBLIC  :: ITS_TIME_FOR_DYN
       PUBLIC  :: ITS_TIME_FOR_EMIS
+      PUBLIC  :: ITS_TIME_FOR_EXCH
       PUBLIC  :: ITS_TIME_FOR_UNIT
       PUBLIC  :: ITS_TIME_FOR_DIAG
       PUBLIC  :: ITS_TIME_FOR_RT
@@ -232,6 +235,9 @@
 !  14 Jun 2013 - R. Yantosca - Added comments to module variable declarations
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
+!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  17 Dec 2014 - R. Yantosca - Need to keep time variables as 8-byte precision
+!  06 Jan 2015 - R. Yantosca - Add ITS_TIME_FOR_EXCH function for 2-way nests
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -241,81 +247,82 @@
       !---------------------------------
       ! GMT dates @ start & end of run
       !---------------------------------
-      INTEGER           :: NYMDb          ! YYYY/MM/DD on which to start run
-      INTEGER           :: NHMSb          ! hh:mm:ss   on which to start run
-      REAL*8            :: TAUb           ! Hours since 1/1/1985 @ start of run
-      INTEGER           :: NYMDe          ! YYYY/MM/DD on which to end run
-      INTEGER           :: NHMSe          ! hh:mm:ss   on which to end run
-      REAL*8            :: TAUe           ! Hours since 1/1/1985 @ end of run
+      INTEGER             :: NYMDb        ! YYYY/MM/DD on which to start run
+      INTEGER             :: NHMSb        ! hh:mm:ss   on which to start run
+      REAL(f8)            :: TAUb         ! Hours since 1/1/1985 @ start of run
+
+      INTEGER             :: NYMDe        ! YYYY/MM/DD on which to end run
+      INTEGER             :: NHMSe        ! hh:mm:ss   on which to end run
+      REAL(f8)            :: TAUe         ! Hours since 1/1/1985 @ end of run
 
       !---------------------------------
       ! Current GMT date/time values
       !---------------------------------
-      INTEGER           :: NYMD           ! YYYY/MM/DD date
-      INTEGER           :: NHMS           ! hh:mm:ss time
-      INTEGER           :: MONTH          ! Month (1-12)
-      INTEGER           :: DAY            ! Day of month (1-31)
-      INTEGER           :: YEAR           ! Year (YYYY format)
-      INTEGER           :: HOUR           ! hour (0-23)
-      INTEGER           :: MINUTE         ! Minutes (0-59)
-      INTEGER           :: SECOND         ! Seconds (0-59)
-      INTEGER           :: NSEASON        ! Season (1=DJF,2=MAM,3=JJA,4=SON)
-      INTEGER           :: DAY_OF_YEAR    ! Day of year (0-365 or 0-366 if LY)
-      INTEGER           :: DAY_OF_WEEK    ! Day of week (0=Sun,1=Mon,.., 6=Sat)
-      REAL*8            :: TAU            ! Hours since 1/1/1985
-      REAL*8            :: GMT            ! Current GMT time [decimal hours]
+      INTEGER             :: NYMD         ! YYYY/MM/DD date
+      INTEGER             :: NHMS         ! hh:mm:ss time
+      INTEGER             :: MONTH        ! Month (1-12)
+      INTEGER             :: DAY          ! Day of month (1-31)
+      INTEGER             :: YEAR         ! Year (YYYY format)
+      INTEGER             :: HOUR         ! hour (0-23)
+      INTEGER             :: MINUTE       ! Minutes (0-59)
+      INTEGER             :: SECOND       ! Seconds (0-59)
+      INTEGER             :: NSEASON      ! Season (1=DJF,2=MAM,3=JJA,4=SON)
+      INTEGER             :: DAY_OF_YEAR  ! Day of year (0-365 or 0-366 if LY)
+      INTEGER             :: DAY_OF_WEEK  ! Day of week (0=Sun,1=Mon,.., 6=Sat)
+      REAL(f8)            :: TAU          ! Hours since 1/1/1985
+      REAL(f8)            :: GMT          ! Current GMT time [decimal hours]
 
       !---------------------------------
       ! Elapsed time values
       !---------------------------------
-      INTEGER           :: ELAPSED_MIN    ! # of minutes into the run
-      REAL*8            :: LEAP_YEAR_DAYS ! # of leap years since start of run
+      INTEGER             :: ELAPSED_MIN    ! # of minutes into the run
+      REAL(f8)            :: LEAP_YEAR_DAYS ! # of leap yrs since start of run
 
       !---------------------------------
       ! Diagnostic date/time values
       !---------------------------------
-      INTEGER           :: NDIAGTIME      ! Hour of day to write diag output
-      INTEGER           :: NYMD_DIAG      ! Diagnostic date for output
-      REAL*8            :: DIAGb          ! Start of diag averaging interval
-      REAL*8            :: DIAGe          ! End   of diag averaging interval
+      INTEGER             :: NDIAGTIME    ! Hour of day to write diag output
+      INTEGER             :: NYMD_DIAG    ! Diagnostic date for output
+      REAL(f8)            :: DIAGb        ! Start of diag averaging interval
+      REAL(f8)            :: DIAGe        ! End   of diag averaging interval
 
       !---------------------------------
       ! Timestep values
       !---------------------------------
-      INTEGER           :: TS_CHEM        ! Chemistry timestep       [min]
-      INTEGER           :: TS_CONV        ! Convection timestep      [min]
-      INTEGER           :: TS_DIAG        ! Diagnostic timestep      [min]
-      INTEGER           :: TS_DYN         ! Dynamic timestep         [min]
-      INTEGER           :: TS_EMIS        ! Emissions timestep       [min]
-      INTEGER           :: TS_UNIT        ! Unit conversion timestep [min]
-      INTEGER           :: TS_RAD         ! Radiation timestep       [min]
+      INTEGER             :: TS_CHEM      ! Chemistry timestep       [min]
+      INTEGER             :: TS_CONV      ! Convection timestep      [min]
+      INTEGER             :: TS_DIAG      ! Diagnostic timestep      [min]
+      INTEGER             :: TS_DYN       ! Dynamic timestep         [min]
+      INTEGER             :: TS_EMIS      ! Emissions timestep       [min]
+      INTEGER             :: TS_UNIT      ! Unit conversion timestep [min]
+      INTEGER             :: TS_RAD       ! Radiation timestep       [min]
 
       !---------------------------------
       ! Counter values
       !---------------------------------
-      INTEGER           :: CT_CHEM        ! # of elapsed chemistry timesteps
-      INTEGER           :: CT_CONV        ! # of elapsed convection timesteps
-      INTEGER           :: CT_DYN         ! # of elapsed dynamic timesteps
-      INTEGER           :: CT_EMIS        ! # of elapsed emission timesteps
-      INTEGER           :: CT_RAD         ! # of elapsed radiation timesteps
-      INTEGER           :: CT_A1          ! # of elapsed A1 met field reads
-      INTEGER           :: CT_A3          ! # of elapsed A3 met field reads
-      INTEGER           :: CT_A6          ! # of elapsed I6 met field reads
-      INTEGER           :: CT_I3          ! # of elapsed I3 met field reads
-      INTEGER           :: CT_I6          ! # of elapsed I6 met field reads
-      INTEGER           :: CT_XTRA        ! # of elapsed XTRA met field reads
-      INTEGER           :: CT_DIAG        ! # of elapsed diagnostic timesteps
-      INTEGER           :: Hg2_DIAG       ! # of elapsed Hg2 diag outputs
+      INTEGER             :: CT_CHEM      ! # of elapsed chemistry timesteps
+      INTEGER             :: CT_CONV      ! # of elapsed convection timesteps
+      INTEGER             :: CT_DYN       ! # of elapsed dynamic timesteps
+      INTEGER             :: CT_EMIS      ! # of elapsed emission timesteps
+      INTEGER             :: CT_RAD       ! # of elapsed radiation timesteps
+      INTEGER             :: CT_A1        ! # of elapsed A1 met field reads
+      INTEGER             :: CT_A3        ! # of elapsed A3 met field reads
+      INTEGER             :: CT_A6        ! # of elapsed I6 met field reads
+      INTEGER             :: CT_I3        ! # of elapsed I3 met field reads
+      INTEGER             :: CT_I6        ! # of elapsed I6 met field reads
+      INTEGER             :: CT_XTRA      ! # of elapsed XTRA met field reads
+      INTEGER             :: CT_DIAG      ! # of elapsed diagnostic timesteps
+      INTEGER             :: Hg2_DIAG     ! # of elapsed Hg2 diag outputs
 
       !---------------------------------
       ! For historical emissions
       !---------------------------------
-      INTEGER           :: HISTYRA        ! Year for historical emissions
+      INTEGER             :: HISTYRA      ! Year for historical emissions
 !
 ! !DEFINED PARAMETERS:
 !
       ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
-      REAL*8, PARAMETER :: JD85 = 2446066.5d0
+      REAL(f8), PARAMETER :: JD85 = 2446066.5e+0_f8
 
       CONTAINS
 !EOC
@@ -370,8 +377,8 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
-      REAL*4        :: TMP
-      REAL*8        :: A, B, JD, JD0, JD1, THISDAY
+      REAL(f4)      :: TMP
+      REAL(f8)      :: A, B, JD, JD0, JD1, THISDAY
 
       !=================================================================
       ! SET_CURRENT_TIME begins here!
@@ -379,7 +386,7 @@
 
       ! Initialize LEAP_YEAR_DAYS
       IF ( FIRST ) THEN 
-         LEAP_YEAR_DAYS = 0d0
+         LEAP_YEAR_DAYS = 0e+0_f8
          FIRST          = .FALSE.
       ENDIF
 
@@ -387,7 +394,7 @@
       JD0 = GET_JD( NYMDb, NHMSb )
 
       ! JD1: Astronomical Julian Date at current time
-      JD1 = JD0 + ( DBLE( ELAPSED_MIN ) / 1440d0 )
+      JD1 = JD0 + ( DBLE( ELAPSED_MIN ) / 1440e+0_f8 )
 
 #if   defined( GCAP ) 
       !-----------------------------------------------------------------
@@ -399,7 +406,7 @@
 #endif
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
-      CALL CALDATE( JD1, NYMD, NHMS )
+      CALL CALDATE( DBLE(JD1), NYMD, NHMS )
 
       ! Extract current year, month, day from NYMD
       CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
@@ -418,10 +425,10 @@
       IF ( MONTH == 2 .and. DAY == 29 .and. NHMS == 000000 ) THEN
 
          ! Increment the # of leap year days we have encountered so far
-         LEAP_YEAR_DAYS = LEAP_YEAR_DAYS + 1d0
+         LEAP_YEAR_DAYS = LEAP_YEAR_DAYS + 1e+0_f8
          
          ! JD1 is for Feb 29th, we need to skip ahead to Mar 1st
-         JD1            = JD1            + 1d0
+         JD1            = JD1            + 1e+0_f8
 
          ! Call CALDATE to recompute YYYYMMDD for Mar 1st
          CALL CALDATE( JD1, NYMD, NHMS )
@@ -445,16 +452,16 @@
       !=================================================================
 
       ! Current Greenwich Mean Time
-      GMT         = ( DBLE( HOUR )            ) + 
-     &              ( DBLE( MINUTE ) / 60d0   ) + 
-     &              ( DBLE( SECOND ) / 3600d0 )
+      GMT         = ( DBLE( HOUR )                ) + 
+     &              ( DBLE( MINUTE ) /   60e+0_f8 ) + 
+     &              ( DBLE( SECOND ) / 3600e+0_f8 )
 
       ! Days elapsed in this year (0-366)
-      DAY_OF_YEAR = JD1 - JULDAY( YEAR, 1, 0d0 )
+      DAY_OF_YEAR = JD1 - JULDAY( YEAR, 1, 0d0 ) ! has to be REAL*8
 
       ! TAU value (# of hours since 1 Jan 1985)
       ! NOTE: TMP is REAL*4 to prevent precision problems
-      TMP         = ( JD1 - JD85 ) * 24e0
+      TMP         = ( JD1 - JD85 ) * 24e+0_f4
       TAU         = DBLE( TMP )
 
       ! Season index (1=DJF, 2=MAM, 3=JJA, 4=SON)
@@ -475,21 +482,22 @@
       !=================================================================
 
       ! Get fractional GMT day
-      THISDAY     = DAY + ( GMT / 24d0 )
+      THISDAY     = DAY + ( GMT / 24e+0_f8 ) ! real*8
 
       ! Get current Julian date 
-      JD          = JULDAY( YEAR, MONTH, THISDAY )
+      JD          = JULDAY( YEAR, MONTH, DBLE(THISDAY) ) ! real*8
 
       ! Add 1.5 to JD and divide by 7
-      A           = ( JD + 1.5d0 ) / 7d0
+      A           = ( JD + 1.5e+0_f8 ) / 7e+0_f8
 
       ! Take fractional part and multiply by 7
-      B           = ( A - INT( A ) ) * 7d0
+      B           = ( A - INT( A ) ) * 7e+0_f8
 
       ! NOTE: This is not in the Duffett-Smith book, but when using
-      ! REAL*8, we have to round B to 4 decimal places in order
+      ! REAL(f8), we have to round B to 4 decimal places in order
       ! to avoid floating-point errors. (bmy, 6/13/13)
-      B           = INT( NINT( B*1d5 + SIGN( 5d0, B ) ) / 10d0 ) / 1d4
+      B           = INT( NINT( B*1e+5_f8 + SIGN( 5e+0_f8, B ) ) 
+     &            / 10e+0_f8 ) / 1e+4_f8
 
       ! Discard the fractional part of B
       DAY_OF_WEEK = INT( B )
@@ -532,7 +540,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4 :: TMP
+      REAL(f4) :: TMP
 
       !=================================================================
       ! SET_BEGIN_TIME begins here!
@@ -556,7 +564,7 @@
       NHMSb = THISNHMSb
 
       ! TAUb value (TMP is REAL*4 to prevent precision problems)
-      TMP   = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e0
+      TMP   = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e+0_f4
       TAUb  = DBLE( TMP )
 
       ! Also initialize ELAPSED_MIN
@@ -601,7 +609,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4 :: TMP
+      REAL(f4) :: TMP
 
       !=================================================================
       ! SET_END_TIME begins here!
@@ -625,7 +633,7 @@
       NHMSe = THISNHMSe
 
       ! TAUe value (TMP is REAL*4 to prevent precision problems)
-      TMP   = ( GET_JD( NYMDe, NHMSe ) - JD85 ) * 24e0
+      TMP   = ( GET_JD( NYMDe, NHMSe ) - JD85 ) * 24e+0_f4
       TAUe  = DBLE( TMP )
 
       ! Return to calling program
@@ -677,7 +685,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: THISDIAGb  ! Initial DIAGb value [hrs from 1/1/85]
+      REAL(f8), INTENT(IN) :: THISDIAGb  ! Initial DIAGb value [hrs from 1/1/85]
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -706,7 +714,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8, INTENT(IN) :: THISDIAGe  ! Initial DIAGe value [hrs from 1/1/85]
+      REAL(f8), INTENT(IN) :: THISDIAGe  ! Initial DIAGe value [hrs from 1/1/85]
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -1292,7 +1300,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8               :: THISJD     ! Output value
+      REAL(f8)             :: THISJD     ! Output value
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1303,8 +1311,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: Y, M, D, H, MI, S
-      REAL*8  :: DAY
+      INTEGER  :: Y, M, D, H, MI, S
+      REAL(f8) :: DAY
 
       !=================================================================
       ! GET_JD begins here!
@@ -1317,9 +1325,9 @@
       CALL YMD_EXTRACT( THISNHMS, H, MI, S )      
 
       ! Decimal day (including fractional part) 
-      DAY  = DBLE( D ) + ( DBLE( H  ) / 24d0    ) + 
-     &                   ( DBLE( MI ) / 1440d0  ) +
-     &                   ( DBLE( S  ) / 86400d0 ) 
+      DAY  = DBLE( D ) + ( DBLE( H  ) /    24e+0_f8 ) + 
+     &                   ( DBLE( MI ) /  1440e+0_f8 ) +
+     &                   ( DBLE( S  ) / 86400e+0_f8 ) 
      
       ! Compute astronomical Julian day at start of run
       THISJD = JULDAY( Y, M, DAY )
@@ -1627,18 +1635,18 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER :: THISYEAR, THISMONTH, THISDAY, TMP
-      REAL*8  :: JD
+      INTEGER  :: THISYEAR, THISMONTH, THISDAY, TMP
+      REAL(f8) :: JD
 
       !=================================================================
       ! GET_TIME_AHEAD begins here!
       !=================================================================
 
       ! Astronomical Julian Date at current time + N_MINS
-      JD = GET_JD( NYMD, NHMS ) + ( N_MINS / 1440d0 )
+      JD = GET_JD( NYMD, NHMS ) + ( N_MINS / 1440e+0_f8 )
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
-      CALL CALDATE( JD, DATE(1), DATE(2) )
+      CALL CALDATE( DBLE(JD), DATE(1), DATE(2) )
 
       ! Check to see if HHMMSS is 240000.  This may occur due to a
       ! roundoff error in CALDATE.  If this is the case, then add 1 
@@ -1654,7 +1662,7 @@
          JD  = GET_JD( TMP, 000000 ) + 1
 
          ! Convert to YYYY/MM/DD and hh:mm:ss
-         CALL CALDATE( JD, DATE(1), DATE(2) )
+         CALL CALDATE( DBLE(JD), DATE(1), DATE(2) )
       ENDIF
 
 #if   defined( GCAP )
@@ -2015,7 +2023,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: DOW_LOCAL, LOCAL_TIME
+      REAL(f8) :: DOW_LOCAL, LOCAL_TIME
 
       !=================================================================
       ! GET_DAY_OF_WEEK begins here!
@@ -2023,23 +2031,23 @@
 
       ! Get the local time [hrs] at grid box (I,J,L),
       ! but do not force it into the range of [0..24] hours.
-      LOCAL_TIME = GMT + ( GET_XMID( I, J, L ) / 15d0 )
+      LOCAL_TIME = GMT + ( GET_XMID( I, J, L ) / 15e+0_f8 )
 
       ! Add the local fraction of day elapsed to the day of week 
       ! obtained w/r/t the GREENWICH MEAN TIME.  This accounts for 
       ! the distance of grid box (I,J,L) from the Greenwich meridian.
-      DOW_LOCAL  = DBLE( DAY_OF_WEEK ) + ( LOCAL_TIME / 24d0 )
+      DOW_LOCAL  = DBLE( DAY_OF_WEEK ) + ( LOCAL_TIME / 24e+0_f8 )
 
       ! If DOW_LOCAL is negative, then we need to add 7.
       ! This means that the day of week w/r/t GMT is Sunday
       ! but that it is still Saturday at grid box (I,J,L).
-      IF ( DOW_LOCAL < 0d0 ) THEN
-         DOW_LOCAL = DOW_LOCAL + 7d0
+      IF ( DOW_LOCAL < 0e+0_f8 ) THEN
+         DOW_LOCAL = DOW_LOCAL + 7e+0_f8
       ENDIF
 
       ! Force the day of week w/r/t LOCAL TIME to fall 
       ! within the range 0 (Sunday) thru 6 (Saturday).
-      DOW_LOCAL  = MOD( DOW_LOCAL, 7d0 ) 
+      DOW_LOCAL  = MOD( DOW_LOCAL, 7e+0_f8 ) 
 
       ! Cast to integer and return result
       DAY_NUM    = INT( DOW_LOCAL )
@@ -2063,7 +2071,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8 :: THISGMT   ! Greenwich mean time [hrs]
+      REAL(f8) :: THISGMT   ! Greenwich mean time [hrs]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -2093,7 +2101,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8 :: THISTAU  ! TAUb [hrs since 1/1/1985]
+      REAL(f8) :: THISTAU  ! TAUb [hrs since 1/1/1985]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -2122,7 +2130,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8 :: THISTAUb  ! TAUb [hrs since 1/1/1985]
+      REAL(f8) :: THISTAUb  ! TAUb [hrs since 1/1/1985]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -2151,7 +2159,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8 :: THISTAUe  ! TAUe [hrs since 1/1/1985]
+      REAL(f8) :: THISTAUe  ! TAUe [hrs since 1/1/1985]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -2180,12 +2188,12 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8 :: THISDIAGb   ! DIAGb [hrs sincd 1/1/1985]
+      REAL(f8) :: THISDIAGb   ! DIAGb [hrs sincd 1/1/1985]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGb needs to be REAL*8
+!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGb needs to be REAL(fp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2210,12 +2218,12 @@
 !
 ! !RETURN VALUE:
 !
-      REAL*8 :: THISDIAGe   ! DIAGe [hrs sincd 1/1/1985]
+      REAL(f8) :: THISDIAGe   ! DIAGe [hrs sincd 1/1/1985]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGe needs to be REAL*8
+!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGe needs to be REAL(fp)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2244,14 +2252,14 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)           :: I              ! Longitude index
-      INTEGER, INTENT(IN)           :: J              ! Latitude index
-      INTEGER, INTENT(IN)           :: L              ! Level index
-      REAL*8,  INTENT(IN), OPTIONAL :: GMT            ! GMT time of day [hrs]
+      INTEGER,  INTENT(IN)           :: I              ! Longitude index
+      INTEGER,  INTENT(IN)           :: J              ! Latitude index
+      INTEGER,  INTENT(IN)           :: L              ! Level index
+      REAL(f8), INTENT(IN), OPTIONAL :: GMT            ! GMT time of day [hrs]
 !
 ! !RETURN VALUE:
 !
-      REAL*8                        :: THISLOCALTIME  ! Local time [hrs]
+      REAL(f8)                       :: THISLOCALTIME  ! Local time [hrs]
 ! 
 ! !REMARKS:
 !  Local Time = GMT + ( longitude / 15 ) since each hour of time
@@ -2273,7 +2281,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: GMT_HRS
+      REAL(f8) :: GMT_HRS
 
       ! Save the value of the argument GMT in a local variable
       ! If not passed, then use the current GMT time from time_mod.f
@@ -2283,12 +2291,12 @@
          GMT_HRS = GET_GMT()
       ENDIF
 
-      ! Local time  = GMT time [hrs] +   longitude           / 15
-      THISLOCALTIME = GMT_HRS        + ( GET_XMID( I, J, L ) / 15d0 ) 
+      ! Local time  = GMT time [hrs] + longitude / 15
+      THISLOCALTIME = GMT_HRS + ( GET_XMID( I, J, L ) / 15e+0_f8 ) 
 
       ! Make sure that THISLOCALTIME is in the range 0-24 hours
-      IF ( THISLOCALTIME > 24 ) THISLOCALTIME = THISLOCALTIME - 24d0 
-      IF ( THISLOCALTIME < 0  ) THISLOCALTIME = THISLOCALTIME + 24d0
+      IF ( THISLOCALTIME > 24 ) THISLOCALTIME = THISLOCALTIME - 24e+0_f8
+      IF ( THISLOCALTIME < 0  ) THISLOCALTIME = THISLOCALTIME + 24e+0_f8
 
       ! Return to calling program
       END FUNCTION GET_LOCALTIME
@@ -3662,8 +3670,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -3685,6 +3691,52 @@
       FLAG = ( MOD( ELAPSED_MIN, TS_EMIS ) == (M-1)*TS_DYN )
 
       END FUNCTION ITS_TIME_FOR_EMIS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_exch
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_EXCH returns TRUE if it is time to do
+!  exchange for two-way coupled simulation, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_EXCH() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
+!  30 Mar 2014 - Y.Y. Yan - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! changes for proper chemistry time (lzh, ccc, 3/20/10)
+      INTEGER :: M
+
+      !=================================================================
+      ! ITS_TIME_FOR_CHEM begins here!
+      !=================================================================
+
+      ! Get multiplier between transport and chemistry:
+      M = TS_CHEM/TS_DYN
+
+      ! Divide by 2 (get middle). KEEP INTEGERS!!!!
+      M = MAX( M/2, 1 )
+
+      ! Is it time for exchange?
+      ! Chemistry time step is now in the center of transport time steps
+      FLAG = ( MOD( ELAPSED_MIN, 180 ) == 0 )
+
+      END FUNCTION ITS_TIME_FOR_EXCH
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4358,9 +4410,9 @@
 !
 ! !LOCAL VARIABLES
 !
-      LOGICAL :: NO_CENTRAL
-      INTEGER :: HH,     MM,   SS
-      REAL*8  :: GMTb,   TS
+      LOGICAL  :: NO_CENTRAL
+      INTEGER  :: HH,     MM,   SS
+      REAL(f8) :: GMTb,   TS
 
       !==============================================================
       ! Initialization
@@ -4374,7 +4426,7 @@
       ENDIF
 
       ! Emissions timestep [hours]
-      TS = DBLE( TS_EMIS ) / 60d0
+      TS = DBLE( TS_EMIS ) / 60e+0_f8
      
       !==============================================================
       ! FOR JANUARY 1st OF THE YEAR
@@ -4417,7 +4469,7 @@
             CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
 
             ! Compute GMT at the start of the simulation
-            GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60d0 )
+            GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
             
             ! Here, we are using the central chemistry timestep option.
             ! Therefore, the first data read of the year will occur not 
@@ -4497,9 +4549,9 @@
 !
 ! !LOCAL VARIABLES
 !
-      LOGICAL :: NO_CENTRAL
-      INTEGER :: HH,   MM,  SS
-      REAL*8  :: GMTb, TS
+      LOGICAL  :: NO_CENTRAL
+      INTEGER  :: HH,   MM,  SS
+      REAL(f8) :: GMTb, TS
 
       !==============================================================
       ! Initialization
@@ -4513,7 +4565,7 @@
       ENDIF
 
       ! Emissions timestep [hours]
-      TS = DBLE( TS_EMIS ) / 60d0
+      TS = DBLE( TS_EMIS ) / 60e+0_f8
      
       IF ( DAY == 1 .and. HOUR == 0 ) THEN
 
@@ -4556,7 +4608,7 @@
             CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
 
             ! Compute GMT at the start of the simulation
-            GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60d0 )
+            GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
             
             ! Here, we are using the central chemistry timestep option.
             ! Therefore, the first data read of the month will occur not at 
@@ -4668,9 +4720,9 @@
 !
 ! !LOCAL VARIABLES
 !
-      LOGICAL :: NO_CENTRAL
-      INTEGER :: HH,     MM,   SS
-      REAL*8  :: GMTb,   TS
+      LOGICAL  :: NO_CENTRAL
+      INTEGER  :: HH,     MM,   SS
+      REAL(f8) :: GMTb,   TS
 
       !==============================================================
       ! Initialization
@@ -4684,7 +4736,7 @@
       ENDIF
 
       ! Emissions timestep [hours]
-      TS = DBLE( TS_EMIS ) / 60d0
+      TS = DBLE( TS_EMIS ) / 60e+0_f8
      
       IF ( NYMD == NYMDb ) THEN
 
@@ -4705,7 +4757,7 @@
             CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
 
             ! Compute GMT at the start of the simulation
-            GMTb       = DBLE( HH ) + ( DBLE( MM ) / 60d0 )
+            GMTb       = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
             
             ! Here, we are using the central chemistry timestep option.
             ! Therefore, the first data read of the day will occur not at 
@@ -4857,10 +4909,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4 :: E_HOURS
+      REAL(f4) :: E_HOURS
 
       ! Hours since start of run
-      E_HOURS = REAL( ELAPSED_MIN ) / 60e0 
+      E_HOURS = REAL( ELAPSED_MIN ) / 60e+0_f4
 
       ! Write quantities
       WRITE( 6, 100 ) YEAR, MONTH, DAY, HOUR, MINUTE, E_HOURS
@@ -4985,17 +5037,17 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: REM
+      REAL(f8) :: REM
 
       ! Extract YYYY from YYYYMMDD 
-      Y = INT( DBLE( NYMD ) / 1d4 )
+      Y = INT( DBLE( NYMD ) / 1e+4_f8 )
 
       ! Extract MM from YYYYMMDD
-      REM = DBLE( NYMD ) - ( DBLE( Y ) * 1d4 )
-      M   = INT( REM / 1d2 )
+      REM = DBLE( NYMD ) - ( DBLE( Y ) * 1e+4_f8 )
+      M   = INT( REM / 1e+2_f8 )
 
       ! Extract DD from YYYYMMDD
-      REM = REM - ( DBLE( M ) * 1d2 )
+      REM = REM - ( DBLE( M ) * 1e+2_f8 )
       D   = INT( REM )
 
       ! Return to calling program
@@ -5287,26 +5339,26 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
-      INTEGER, OPTIONAL    :: value_NYMDb     ! YYYY/MM/DD @ start of run
-      INTEGER, OPTIONAL    :: value_NYMDe     ! YYYY/MM/DD @ end of run
-      INTEGER, OPTIONAL    :: value_NYMD      ! YYYY/MM/DD @ current time
-      INTEGER, OPTIONAL    :: value_NHMSb     ! hh:mm:ss   @ start of run
-      INTEGER, OPTIONAL    :: value_NHMSe     ! hh:mm:ss   @ end of run
-      INTEGER, OPTIONAL    :: value_NHMS      ! hh:mm:ss   @ current time
-      INTEGER, OPTIONAL    :: value_YEAR      ! UTC year 
-      INTEGER, OPTIONAL    :: value_MONTH     ! UTC month
-      INTEGER, OPTIONAL    :: value_DAY       ! UTC day
-      INTEGER, OPTIONAL    :: value_DAYOFYR   ! UTC day of year
-      INTEGER, OPTIONAL    :: value_HOUR      ! UTC hour
-      INTEGER, OPTIONAL    :: value_MINUTE    ! UTC minute
-      INTEGER, OPTIONAL    :: value_SECOND    ! UTC second
-      REAL*4,  OPTIONAL    :: value_UTC       ! UTC time [hrs]
-      REAL*4,  OPTIONAL    :: value_HELAPSED  ! Elapsed hours
-      INTEGER, OPTIONAL    :: value_TS_CHEM   ! Chemistry  timestep [min]
-      INTEGER, OPTIONAL    :: value_TS_CONV   ! Convection timestep [min]
-      INTEGER, OPTIONAL    :: value_TS_DYN    ! Dynamic    timestep [min]
-      INTEGER, OPTIONAL    :: value_TS_EMIS   ! Emissions  timestep [min]
+      LOGICAL,  INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
+      INTEGER,  OPTIONAL    :: value_NYMDb     ! YYYY/MM/DD @ start of run
+      INTEGER,  OPTIONAL    :: value_NYMDe     ! YYYY/MM/DD @ end of run
+      INTEGER,  OPTIONAL    :: value_NYMD      ! YYYY/MM/DD @ current time
+      INTEGER,  OPTIONAL    :: value_NHMSb     ! hh:mm:ss   @ start of run
+      INTEGER,  OPTIONAL    :: value_NHMSe     ! hh:mm:ss   @ end of run
+      INTEGER,  OPTIONAL    :: value_NHMS      ! hh:mm:ss   @ current time
+      INTEGER,  OPTIONAL    :: value_YEAR      ! UTC year 
+      INTEGER,  OPTIONAL    :: value_MONTH     ! UTC month
+      INTEGER,  OPTIONAL    :: value_DAY       ! UTC day
+      INTEGER,  OPTIONAL    :: value_DAYOFYR   ! UTC day of year
+      INTEGER,  OPTIONAL    :: value_HOUR      ! UTC hour
+      INTEGER,  OPTIONAL    :: value_MINUTE    ! UTC minute
+      INTEGER,  OPTIONAL    :: value_SECOND    ! UTC second
+      REAL(f4), OPTIONAL    :: value_UTC       ! UTC time [hrs]
+      REAL(f4), OPTIONAL    :: value_HELAPSED  ! Elapsed hours
+      INTEGER,  OPTIONAL    :: value_TS_CHEM   ! Chemistry  timestep [min]
+      INTEGER,  OPTIONAL    :: value_TS_CONV   ! Convection timestep [min]
+      INTEGER,  OPTIONAL    :: value_TS_DYN    ! Dynamic    timestep [min]
+      INTEGER,  OPTIONAL    :: value_TS_EMIS   ! Emissions  timestep [min]
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -5327,7 +5379,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: A, B, JD, THISDAY, TMP
+      REAL(f8) :: A, B, JD, THISDAY, TMP
 
       !=================================================================
       ! Set time/date values of time_mod.F from the ESMF inputs 
@@ -5367,19 +5419,19 @@
 
       ! TAUb (hours since 0 UTC on 01 Jan 1985) @ start of simulation
       IF ( PRESENT( value_NYMDb ) .and. PRESENT( value_NHMSb ) ) THEN
-         TMP  = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e0
+         TMP  = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e+0_f8
          TAUb = DBLE( TMP )
       ENDIF
 
       ! TAUe (hours since 0 UTC on 01 Jan 1985) @ end of simulation
       IF ( PRESENT( value_NYMDe ) .and. PRESENT( value_NHMSe ) ) THEN
-         TMP  = ( GET_JD( NYMDe, NHMSe ) - JD85 ) * 24e0
+         TMP  = ( GET_JD( NYMDe, NHMSe ) - JD85 ) * 24e+0_f8
          TAUe = DBLE( TMP )
       ENDIF
 
       ! TAU value ( hours since 0 UTC on 01 Jan 1985)
       IF ( PRESENT( value_NYMD ) .and. PRESENT( value_NHMS ) ) THEN
-         TMP  = ( GET_JD( NYMD, NHMS ) - JD85 ) * 24e0
+         TMP  = ( GET_JD( NYMD, NHMS ) - JD85 ) * 24e+0_f8
          TAU  = DBLE( TMP )
       ENDIF
 
@@ -5397,11 +5449,12 @@
 
       ! Day of week w/r/t the GMT date  
       ! Use same algorithm as in routine SET_CURRENT_TIME
-      THISDAY     = DAY + ( GMT / 24d0 )
+      THISDAY     = DAY + ( GMT / 24e+0_f8 )
       JD          = JULDAY( YEAR, MONTH, THISDAY )
-      A           = ( JD + 1.5d0 ) / 7d0
-      B           = ( A - INT( A ) ) * 7d0
-      B           = INT( NINT( B*1d5 + SIGN( 5d0, B ) ) / 10d0 ) / 1d4
+      A           = ( JD + 1.5e+0_f8 ) / 7e+0_f8
+      B           = ( A - INT( A ) ) * 7e+0_f8
+      B           = INT( NINT( B*1e+5_f8 + SIGN( 5e+0_f8, B ) ) 
+     &            / 10e+0_f8 ) / 1e+4_f8
       DAY_OF_WEEK = INT( B )
 
       ! Return successfully
