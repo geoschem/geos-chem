@@ -200,7 +200,6 @@ CONTAINS
     REAL,             POINTER  :: Ptr3D(:,:,:)   => NULL() 
     REAL,             POINTER  :: Ptr2D(:,:)     => NULL() 
     TYPE(ESMF_State), POINTER  :: IMPORT         => NULL()
-    LOGICAL                    :: verb
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam
@@ -219,8 +218,7 @@ CONTAINS
     ASSERT_(ASSOCIATED(IMPORT))
 
     ! Verbose?
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(2) ) THEN
        MSG = 'Reading from ExtData: ' // TRIM(Lct%Dct%Dta%ncFile)
        CALL HCO_MSG(MSG)
     ENDIF
@@ -420,7 +418,6 @@ CONTAINS
     REAL(hp), POINTER             :: LonEdge  (:)     => NULL()
     REAL(hp), POINTER             :: LatEdge  (:)     => NULL()
     LOGICAL                       :: FOUND
-    LOGICAL                       :: verb
     LOGICAL                       :: IsModelLevel
     INTEGER                       :: UnitTolerance
     INTEGER                       :: AreaFlag, TimeFlag 
@@ -437,9 +434,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ('HCOIO_DATAREAD (hcoio_dataread_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    
-    ! Check for verbose mode
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
 
     ! Get unit tolerance set in configuration file
     UnitTolerance = HCO_UnitTolerance()
@@ -475,7 +469,7 @@ CONTAINS
     ENDIF
 
     ! Verbose mode
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(2) ) THEN
        Write(MSG,*) '- Reading file ', TRIM(srcFile)
        CALL HCO_MSG(MSG)
     ENDIF
@@ -725,7 +719,7 @@ CONTAINS
           ncArr = (wgt1 * ncArr) + (wgt2 * ncArr2)
 
           ! Verbose
-          IF ( verb ) THEN
+          IF ( HCO_IsVerb(3) ) THEN
              MSG = 'Interpolated data between two files:'
              CALL HCO_MSG(MSG)
              MSG = '- File 1: ' // TRIM(srcFile)
@@ -969,7 +963,7 @@ CONTAINS
     ! Use MESSy regridding
     !-----------------------------------------------------------------
     IF ( UseMESSy ) THEN
-       IF ( verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) '  ==> Use MESSy regridding (NCREGRID)'
           CALL HCO_MSG(MSG)
        ENDIF
@@ -1049,7 +1043,7 @@ CONTAINS
     ! Use map_a2a regridding
     !-----------------------------------------------------------------
     ELSE
-       IF ( verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) '  ==> Use map_a2a regridding'
           CALL HCO_MSG(MSG)
        ENDIF
@@ -1165,7 +1159,7 @@ CONTAINS
     ! Init 
     CALL HCO_ENTER ('GET_TIMEIDX (hco_dataread_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    verb = HCO_VERBOSE_CHECK() 
+    verb = HCO_IsVerb(3)
 
     ! Initialize
     wgt1  = -1.0_sp
@@ -1953,7 +1947,7 @@ CONTAINS
     !=================================================================
 
     ! Verbose mode?
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb(3) 
 
     ! If the originally wanted datetime was below the available data
     ! range, set all weights to the first index. 
@@ -2383,7 +2377,7 @@ CONTAINS
     !======================================================================
    
     ! verbose mode? 
-    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
+    Verb = HCO_IsVerb(2) 
    
     ! Verbose
     IF ( Verb ) THEN
@@ -2438,7 +2432,7 @@ CONTAINS
           CIDS = NINT(CNTR)
 
           ! Verbose
-          IF ( Verb ) THEN
+          IF ( HCO_IsVerb(3) ) THEN
              MSG = '- Use ID mask ' // TRIM(LINE)
              CALL HCO_MSG(MSG)
           ENDIF
@@ -2497,7 +2491,7 @@ CONTAINS
        ENDDO
 
        ! Verbose
-       IF ( verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) '- Obtained values for ',TRIM(CNT),' ==> ID:', CID
           CALL HCO_MSG(MSG)
        ENDIF
@@ -2597,11 +2591,8 @@ CONTAINS
     ! HCOIO_ReadFromConfig begins here
     !======================================================================
    
-    ! verbose mode? 
-    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
-   
     ! Verbose
-    IF ( Verb ) THEN
+    IF ( HCO_IsVerb(2) ) THEN
        WRITE(MSG, *) 'Read from config file: ', TRIM(Lct%Dct%cName)
        CALL HCO_MSG(MSG)
     ENDIF
@@ -2720,16 +2711,13 @@ CONTAINS
     INTEGER            :: prefYr, prefMt, prefDy, prefHr
     REAL(hp)           :: FileVals(100)
     REAL(hp), POINTER  :: FileArr(:,:,:,:) => NULL()
-    LOGICAL            :: Verb, IsPerArea
+    LOGICAL            :: IsPerArea
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'GetDataVals (hcoio_dataread_mod.F90)'
 
     !======================================================================
     ! GetDataVals begins here
     !======================================================================
-   
-    ! verbose mode? 
-    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
    
     ! Shadow molecular weights and molec. ratio (needed for
     ! unit conversion during file read)

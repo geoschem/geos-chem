@@ -1982,6 +1982,7 @@ contains
     ! For HEMCO diagnostics
 #if defined( DEVEL )
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp)           :: Total
     INTEGER            :: cID, HCRC
 #endif
 
@@ -2516,9 +2517,12 @@ contains
           cID = GetHcoID ( TrcID=N )
           IF ( cID > 0 ) THEN
              cID = 10000 + cID
+             ! Total in kg
+             Total = SUM(Ptr3D(:,:,1) * State_Met%AREA_M2(:,:,1)) * dtime 
              CALL Diagn_Update( am_I_Root,                           &
                                 cID     = cID,                       &
                                 Array3D = Ptr3D,                     &
+                                Total   = Total,                     &
                                 COL     = Input_Opt%DIAG_COLLECTION, &
                                 RC      = HCRC                        )
              Ptr3D = 0.0_fp

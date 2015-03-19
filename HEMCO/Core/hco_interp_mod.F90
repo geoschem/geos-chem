@@ -177,7 +177,7 @@ CONTAINS
     !=================================================================
 
     ! Check for verbose mode
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+    verb = HCO_IsVerb( 3 )
 
     ! To convert from deg to rad
     PI_180 = HcoState%Phys%PI / 180.0_dp
@@ -510,7 +510,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check for verbose mode
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
+    verb = HCO_IsVerb( 3 ) 
     IF ( verb ) THEN
        MSG = 'Vertically interpolate model levels: '//TRIM(Lct%Dct%cName)
        CALL HCO_MSG(MSG)

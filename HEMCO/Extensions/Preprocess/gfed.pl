@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: gfed3.pl
+# !MODULE: gfed.pl
 #
 # !DESCRIPTION: Reads the GFED3_emission_factors.txt file and converts 
 #  the data in the file to hardwired F90 commands for inlining into
@@ -30,7 +30,7 @@ use strict;          # IMPLICIT NONE style syntax
 #  the $HEMCO_DATA_ROOT environment variable accordingly.
 #  
 # !CALLING SEQUENCE:
-#  gfed3.pl
+#  gfed.pl
 #
 # !REVISION HISTORY:
 #  11 Aug 2014 - R. Yantosca - Initial version
@@ -65,21 +65,21 @@ sub getProTeXHeader() {
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_gfed3_include.H
+! !IROUTINE: hcox_gfed_include.H
 !
-! !DESCRIPTION: Include file with GFED3 emission factor data that was 
-!  originally contained in file GFED3\_emission\_factors.txt.  We have now
+! !DESCRIPTION: Include file with GFED emission factor data that was 
+!  originally contained in file GFED\_emission\_factors.txt.  We have now
 !  transformed this file into hardwired F90 commands in order to avoid reading
 !  an ASCII file in the ESMF environment.
 !
 ! !REMARKS:
 !  ABOUT THIS FILE:
 !  ----------------
-!  This file was created by script HEMCO/Extensions/Preprocess/gfed3.pl.
+!  This file was created by script HEMCO/Extensions/Preprocess/gfed.pl.
 !  This script can be executed with the following command:
 !
 !    cd HEMCO/Extensions/Preprocess
-!    make gfed3
+!    make gfed
 !
 !  This will regenerate this include file from the original data and 
 !  automatically place it in the HEMCO/Extensions directory.
@@ -90,13 +90,13 @@ sub getProTeXHeader() {
 !
 !  DATA:
 !  -----
-!  The GFED3_EMFAC array contains emission factors in kg/kgDM or kgC/kgDM
-!  GFED3_EMFAC(N,1) = Agricultural Waste   Emission Factor for species N
-!  GFED3_EMFAC(N,1) = Deforestation        Emission Factor for species N
-!  GFED3_EMFAC(N,1) = Extratropical Forest Emission Factor for species N
-!  GFED3_EMFAC(N,1) = Peat                 Emission Factor for species N
-!  GFED3_EMFAC(N,1) = Savanna              Emission Factor for species N       
-!  GFED3_EMFAC(N,1) = Woodland             Emission Factor for species N
+!  The GFED_EMFAC array contains emission factors in kg/kgDM or kgC/kgDM
+!  GFED_EMFAC(N,1) = Agricultural Waste   Emission Factor for species N
+!  GFED_EMFAC(N,1) = Deforestation        Emission Factor for species N
+!  GFED_EMFAC(N,1) = Extratropical Forest Emission Factor for species N
+!  GFED_EMFAC(N,1) = Peat                 Emission Factor for species N
+!  GFED_EMFAC(N,1) = Savanna              Emission Factor for species N       
+!  GFED_EMFAC(N,1) = Woodland             Emission Factor for species N
 ! 
 ! !REVISION HISTORY: 
 !  08 Aug 2014 - R. Yantosca - Initial version
@@ -116,7 +116,7 @@ EOF
 #
 # !IROUTINE: makeGfed3Include
 #
-# !DESCRIPTION: Reads the GFED3_emission_factors.txt and writes out
+# !DESCRIPTION: Reads the GFED_emission_factors.txt and writes out
 #  equivalent F90 assignment statements commands.
 #\\
 #\\
@@ -194,13 +194,13 @@ sub makeGfed3Include($$) {
 
       # Write out the F90 commands to initialize the arrays
       print O "\n! $result[1]\n";
-      print O "GFED3_SPEC_NAME($n)=\"$result[1]\"\n";
-      print O "GFED3_EMFAC($n,1)=$result[2]_hp\n";
-      print O "GFED3_EMFAC($n,2)=$result[3]_hp\n";
-      print O "GFED3_EMFAC($n,3)=$result[4]_hp\n";
-      print O "GFED3_EMFAC($n,4)=$result[5]_hp\n";
-      print O "GFED3_EMFAC($n,5)=$result[6]_hp\n";
-      print O "GFED3_EMFAC($n,6)=$result[7]_hp\n";
+      print O "GFED_SPEC_NAME($n)=\"$result[1]\"\n";
+      print O "GFED_EMFAC($n,1)=$result[2]_hp\n";
+      print O "GFED_EMFAC($n,2)=$result[3]_hp\n";
+      print O "GFED_EMFAC($n,3)=$result[4]_hp\n";
+      print O "GFED_EMFAC($n,4)=$result[5]_hp\n";
+      print O "GFED_EMFAC($n,5)=$result[6]_hp\n";
+      print O "GFED_EMFAC($n,6)=$result[7]_hp\n";
 
     }
   }
@@ -227,8 +227,8 @@ sub makeGfed3Include($$) {
 #
 # !IROUTINE: main
 #
-# !DESCRIPTION: Driver program for gfed3.pl.  Gets arguments from the command
-#  line and starts the process of creating the GFED3 include file.
+# !DESCRIPTION: Driver program for gfed.pl.  Gets arguments from the command
+#  line and starts the process of creating the GFED include file.
 #\\
 #\\
 # !INTERFACE:
@@ -243,11 +243,11 @@ sub main() {
 
   # Exit w/ error
   if ( scalar( @ARGV ) != 2 ) {
-    print "USAGE: gfed3.pl INFILE OUTFILE\n";
+    print "USAGE: gfed.pl INFILE OUTFILE\n";
     exit(1);
   }
 
-  # Create the GFED3 include file
+  # Create the GFED include file
   &makeGfed3Include( @ARGV );
 
   # Return status

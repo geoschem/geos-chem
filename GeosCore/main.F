@@ -102,7 +102,6 @@
       ! GEOS-Chem emissions modules
       !-----------------------------------------------------------------
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
-!      USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
       USE EMISSIONS_MOD         ! For interfacing with HEMCO emissions
       USE MIXING_MOD            ! performs tracer mixing
 
@@ -606,18 +605,10 @@
       CALL Compute_Olson_Landmap( am_I_Root, mapping,   State_Met )
       CALL Cleanup_Olson_Landmap( am_I_Root                       )
 
-!      ! Initialize PBL quantities but do not do mixing
-!      ! Add option for non-local PBL (Lin, 03/31/09) 
+       ! Initialize PBL quantities but do not do mixing
+       ! Add option for non-local PBL (Lin, 03/31/09) 
        CALL INIT_MIXING ( am_I_Root, Input_Opt, 
      &                    State_Met, State_Chm, RC ) 
-!      IF ( .NOT. LNLPBL ) THEN
-!         CALL DO_PBL_MIX  ( .FALSE., Input_Opt, State_Met, State_Chm )
-!         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
-!      ELSE
-!         CALL DO_PBL_MIX_2( am_I_Root, .FALSE.,   Input_Opt,
-!     &                      State_Met, State_Chm, RC )
-!         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
-!      ENDIF
  
       ! Initialize chemistry
       ! Moved here (from chemistry_mod.F and chemdr.F) because some
@@ -813,13 +804,6 @@
      &            ( am_I_Root, Input_Opt, NYMD,      NHMS,     
      &              TAU,       State_Met, State_Chm, RC    )
                   
-               ! Make soil restart file
-!               IF ( LSOILNOX ) THEN
-!                  CALL MAKE_SOILNOx_RESTART
-!     &               ( am_I_Root, Input_Opt, NYMD, 
-!     &                 NHMS,      TAU,       RC    )
-!               ENDIF
-
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
                   CALL MAKE_OCEAN_Hg_RESTART
@@ -831,12 +815,6 @@
                   CALL MAKE_CSPEC_FILE( am_I_Root, Input_Opt, NYMD, 
      &                                  NHMS,      State_Chm, RC    )
                ENDIF 
-
-! This is now done through HEMCO diagnostics (ckeller, 1/14/2015).
-!#if defined( UCX )
-!               ! Write PSC data
-!               CALL MAKE_PSC_FILE( NYMD, NHMS, Input_Opt )
-!#endif
 
                !### Debug
                IF ( prtDebug ) THEN
@@ -932,27 +910,10 @@
      &           ITS_AN_AEROSOL_SIM   .or.
      &           ITS_A_CH3I_SIM     ) THEN
 
-               ! Read TOMS overhead O3 columns for FAST-J
-               CALL READ_TOMS( am_I_Root, Input_Opt, MONTH, YEAR, RC )
+                  ! Read TOMS overhead O3 columns for FAST-J
+               CALL READ_TOMS( am_I_Root, Input_Opt, RC )
             ENDIF
          ENDIF
-
-!-----------------------------------------------------------------------------
-! Prior to 3/12/15:
-! This has to be moved after the HEMCO run call, so that the Configuration
-! file will be read (bmy, 3/12/15)
-!         ! Read data required for Hg2 gas-particle partitioning 
-!         ! (H Amos, 25 Oct 2011)
-!         ! NOTE: Renamed to READ_Hg2_Partitioning (cdh, 6/3/13)
-!         IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
-!     &        ITS_A_NEW_MONTH()           ) THEN
-!            CALL READ_Hg2_PARTITIONING
-!     &         ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
-!            IF ( prtDebug ) THEN
-!               CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONGING')
-!            ENDIF
-!         ENDIF
-!-----------------------------------------------------------------------------
 
          !==============================================================
          !              ***** D A I L Y   D A T A *****

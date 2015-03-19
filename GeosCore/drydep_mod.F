@@ -549,7 +549,10 @@
 
 #if defined( DEVEL )
             ! Need to save dep velocity into 2-D array for netCDF diags
-            SAVE_DEPVEL(I,J,N) = DVZ
+            ! Now save out frequency instead of velocity. We can change
+            ! that if needed (ckeller, 3/11/15).
+            ! SAVE_DEPVEL(I,J,N) = DVZ
+            SAVE_DEPVEL(I,J,N) = DEPSAV(I,J,N) 
 #endif
 
 #if !defined( NO_BPCH )
@@ -2482,6 +2485,7 @@
 !                              land map (skim, 1/27/14)
 !  18 Dec 2014 - R. Yantosca - Now read DRYCOEFF at REAL*8 precision and
 !                              then cast to flexible precision
+!  13 Mar 2015 - R. Yantosca - Replace DATA_DIR_1x1 w/ CHEM_INPUTS_DIR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2519,7 +2523,7 @@
       ENDIF
 
       ! Open file for reading (construct full data path)
-      nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 
+      nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 
      &          'Olson_Land_Map_201203/'
       nc_path = TRIM( nc_dir ) // TRIM( nc_file )
       CALL Ncop_Rd( fId, TRIM(nc_path) )

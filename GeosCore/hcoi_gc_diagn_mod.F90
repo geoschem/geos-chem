@@ -1412,10 +1412,10 @@ CONTAINS
     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) RETURN
     IF ( Input_Opt%ITS_A_TAGOX_SIM  ) RETURN
 
-    ! First test if GFED3 is used.  If not, then test if FINN is used.
+    ! First test if GFED is used.  If not, then test if FINN is used.
     ! If not, then use extension # 0 and the default biomass category.
     Cat   = -1
-    ExtNr = GetExtNr( 'GFED3' )
+    ExtNr = GetExtNr( 'GFED' )
     IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN
        ExtNr = 0
@@ -3304,10 +3304,14 @@ CONTAINS
                 DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
           END SELECT
 
+          ! Define diagnostics ID
+          N = 56000 + I
+
           ! Create diagnostic container
           CALL Diagn_Create( am_I_Root,                     & 
                              HcoState  = HcoState,          &
                              cName     = TRIM( DiagnName ), &
+                             cID       = N,                 &
                              ExtNr     = ExtNr,             &
                              Cat       = -1,                &
                              Hier      = -1,                &
@@ -3322,89 +3326,52 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDDO
  
-       ! ------------------------------------------------------ 
-       ! Some more diagnostics
-       ! ------------------------------------------------------ 
+       ! ---------------------------------------------------------- 
+       ! Diagnostics for convective cloud top height.
+       ! LIGHTNING_TRAD_TOP is the traditional cloud top height
+       ! calculated from the convective mass flux. 
+       ! LIGHTNING_NOCONV_TOP is the cloud top height approximated
+       ! from the buoyancy in grid boxes where convection is not
+       ! parameterized any more.
+       ! LIGHTNING_MERGED_TOP is the merged product of the first
+       ! two cloud top heights. This is the value used for lightning
+       ! NOx calculation.
+       ! ---------------------------------------------------------- 
 
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = 'RCCODE_TOP',      & 
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = '1',               &
-                          OutOper   = 'Instantaneous',   &
-                          WriteFreq = TRIM(WriteFreq),   &
-                          AutoFill  = 0,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Loop over lighthing flash quantities
+       DO I = 1, 3
 
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = 'BYNCY_TOP',       & 
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = '1',               &
-                          OutOper   = 'Instantaneous',   &
-                          WriteFreq = TRIM(WriteFreq),   &
-                          AutoFill  = 0,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Pick the proper diagnostic name
+          SELECT CASE( I )
+             CASE( 1 )
+                DiagnName = 'LIGHTNING_TRAD_TOP'
+             CASE( 2 )
+                DiagnName = 'LIGHTNING_NOCONV_TOP'
+             CASE( 3 )
+                DiagnName = 'LIGHTNING_MERGED_TOP'
+          END SELECT
 
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = 'CNV_TOP',         & 
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = '1',               &
-                          OutOper   = 'Instantaneous',   &
-                          WriteFreq = TRIM(WriteFreq),   &
-                          AutoFill  = 0,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Define diagnostics ID
+          N = 56000 + I + 3
 
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = 'TRAD_TOP',        & 
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = '1',               &
-                          OutOper   = 'Instantaneous',   &
-                          WriteFreq = TRIM(WriteFreq),   &
-                          AutoFill  = 0,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = 'TRAD_BYNCY_TOP',  & 
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = '1',               &
-                          OutOper   = 'Instantaneous',   &
-                          WriteFreq = TRIM(WriteFreq),   &
-                          AutoFill  = 0,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Create diagnostic container
+          CALL Diagn_Create( am_I_Root,                     & 
+                             HcoState  = HcoState,          &
+                             cName     = TRIM( DiagnName ), &
+                             cID       = N,                 & 
+                             ExtNr     = ExtNr,             &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  = 2,                 &
+                             LevIDx    = -1,                &
+                             OutUnit   = '1',               &
+                             OutOper   = 'Instantaneous',   &
+                             WriteFreq = TRIM(WriteFreq),   &
+                             AutoFill  = 0,                 &
+                             RC        = RC                  ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDDO
 
     ENDIF ! ND56 
 
@@ -4102,7 +4069,7 @@ CONTAINS
     !--------------------------------------------------------------------------
 
     ! HEMCO extension # for wetland ch4 
-    ExtNr = GetExtNr( 'GFED3' )
+    ExtNr = GetExtNr( 'GFED' )
     IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN
        IF ( am_I_Root ) THEN

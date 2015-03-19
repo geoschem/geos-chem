@@ -300,7 +300,8 @@ CONTAINS
     USE HCO_FluxArr_mod,  ONLY : HCO_EmisAdd
     USE HCO_FluxArr_mod,  ONLY : HCO_DepvAdd
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
-    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr
+    USE HCO_Restart_Mod,  ONLY : HCO_RestartGet
+    USE HCO_Calc_Mod,     ONLY : HCO_CheckDepv
 !
 ! !INPUT PARAMETERS:
 !
@@ -331,42 +332,41 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L
-    LOGICAL            :: verb
-    LOGICAL            :: ERR
-    LOGICAL            :: FOUND 
-    LOGICAL, SAVE      :: FIRST = .TRUE.
-    REAL(hp)           :: iFlx, TMP
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: DgnName 
-    CHARACTER(LEN=1)   :: CHAR1
+    INTEGER                  :: I, J, L
+    LOGICAL                  :: ERR
+    LOGICAL                  :: FOUND 
+    LOGICAL, SAVE            :: FIRST = .TRUE.
+    REAL(hp)                 :: iFlx, TMP
+    CHARACTER(LEN=255)       :: MSG
+    CHARACTER(LEN=255)       :: DgnName 
+    CHARACTER(LEN=1)         :: CHAR1
 
     ! Arrays
-    REAL(hp), TARGET   :: FLUXNO  (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: FLUXNO2 (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: FLUXHNO3(HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: FLUXO3  (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: DEPO3   (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: DEPHNO3 (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: FLUXNO  (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: FLUXNO2 (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: FLUXHNO3(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: FLUXO3  (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: DEPO3   (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET         :: DEPHNO3 (HcoState%NX,HcoState%NY)
 
     ! Pointers
-    REAL(hp), POINTER  :: Arr2D(:,:) => NULL()
-    REAL(sp), POINTER  :: Ptr2D(:,:) => NULL()
+    REAL(hp), POINTER        :: Arr2D(:,:) => NULL()
 
     ! For diagnostics
-    REAL(hp), TARGET   :: DIAGN   (HcoState%NX,HcoState%NY,4)
-    LOGICAL, SAVE      :: DODIAGN = .FALSE.
-    CHARACTER(LEN=31)  :: DiagnName
+    REAL(hp), TARGET         :: DIAGN   (HcoState%NX,HcoState%NY,4)
+    LOGICAL, SAVE            :: DODIAGN = .FALSE.
+    CHARACTER(LEN=31)        :: DiagnName
     TYPE(DiagnCont), POINTER :: TmpCnt => NULL()
 
     ! For internal SC5 array
-    INTEGER            :: HH
-    INTEGER, SAVE      :: lastHH = -1
+    INTEGER                  :: HH
+    INTEGER, SAVE            :: lastHH = -1
 
     ! Paranox update
-    REAL(dp)           :: SHIP_FNOx, SHIP_DNOx, SHIP_OPE, SHIP_MOE
-    REAL(dp)           :: FNO_NOx
-    REAL(hp)           :: iMass
+    REAL(dp)                 :: SHIP_FNOx, SHIP_DNOx, SHIP_OPE, SHIP_MOE
+    REAL(dp)                 :: FNO_NOx
+    REAL(hp)                 :: iMass
+    REAL(hp)                 :: ExpVal 
 
 !------------------------------------------------------------------------------
 !### DEBUG -- COMMENT OUT FOR NOW
@@ -391,14 +391,13 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! verbose mode?
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
-
     ! Get simulation month
     CALL HcoClock_Get( cH=HH, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! On first call, see if we need to write internal diagnostics
+    ! ------------------------------------------------------------------
+    ! First call: check for diagnostics to write and fill restart values
+    ! ------------------------------------------------------------------
     IF ( FIRST ) THEN
        ! See if we have to write out manual diagnostics
        IF ( .NOT. DoDiagn ) THEN
@@ -422,40 +421,21 @@ CONTAINS
           TmpCnt => NULL()
        ENDIF  
 
-       ! Also make sure that the SC5 array holds values. First check if the values
-       ! were provided in the HEMCO configuration file. If not, initialize them to 
-       ! current one until we have gone through an entire 5-hour simulation cycle.
+       ! Get SUNCOS restart values
        DO I=1,5
-
           ! Get diagnostics name
           WRITE(CHAR1,'(I1)') I
           DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
 
-          ! Get diagnostics array
-          CALL HCO_GetPtr( am_I_Root, TRIM(DiagnName), Ptr2D, RC, FOUND=FOUND )
+          ! Get restart value
+          CALL HCO_RestartGet( am_I_Root,       HcoState,         & 
+                               TRIM(DiagnName), SC5(:,:,I+1), RC, &
+                               FOUND=FOUND ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN   
 
-          ! fill SC5 slice if array exists ...
-          IF ( FOUND ) THEN
-             SC5(:,:,I+1) = Ptr2D(:,:)
-             Ptr2D => NULL()
-
-             ! verbose mode
-             IF ( verb ) THEN
-                MSG = '- Variable read from restart: ' // TRIM(DiagnName)
-                CALL HCO_MSG(MSG)
-             ENDIF 
-
-          ! ... use current value otherwise
-          ELSE
-             SC5(:,:,I+1) = ExtState%SUNCOSmid%Arr%Val(:,:)
-
-             ! verbose mode
-             IF ( verb ) THEN
-                MSG = '- Variable set to current value: ' // TRIM(DiagnName)
-                CALL HCO_MSG(MSG)
-             ENDIF 
-          ENDIF 
-
+          IF ( .NOT. FOUND ) THEN
+             SC5(:,:,I+1) = ExtState%SUNCOSmid%Arr%Val
+          ENDIF
        ENDDO !I
 
        ! First slice is always current one
@@ -464,6 +444,9 @@ CONTAINS
     ENDIF
     IF ( DoDiagn ) DIAGN(:,:,:) = 0.0_hp
 
+    ! ------------------------------------------------------------------
+    ! Update SC5
+    ! ------------------------------------------------------------------
     ! SC5 holds the SUNCOSmid values of the past 5 hours. Slice 1 helds 
     ! current hour (CH), slice 2 CH-1, ... slice 6 CH-5.
     IF ( HH /= lastHH .AND. .NOT. FIRST ) THEN
@@ -563,9 +546,13 @@ CONTAINS
                         * ( MW_HNO3 / MW_NO )
        ENDIF
 
-       !---------------------------
+       !--------------------------------------------------------------------
        ! NOy deposition (as HNO3) from the sub-grid plume. 
-       !---------------------------
+       ! The calculated deposition flux is in kg/m2/s, which has to be 
+       ! converted to 1/s. The species mass is either the species mass in 
+       ! the first grid box or of the entire PBL column, depending on the
+       ! HEMCO setting 'PBL_DRYDEP'. 
+       !--------------------------------------------------------------------
        IF ( (IDTHNO3 > 0) .AND. (SHIP_DNOx > 0.0_dp) ) THEN 
 
           ! Deposition flux in kg/m2/s.
@@ -585,10 +572,6 @@ CONTAINS
           ENDIF
 
           ! Calculate deposition velocity (1/s) from flux
-          ! NOTE: the calculated deposition flux is in kg/m2/s,
-          ! which has to be converted to 1/s. Use here the HNO3 conc.
-          ! [kg] of the entire tropospheric column (PARANOx values are
-          ! for the entire column).
           ! Now avoid div-zero error (ckeller, 11/10/2014).
           IF ( iMass > TINY(1.0_hp) ) THEN
              TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
@@ -598,15 +581,8 @@ CONTAINS
                 DEPHNO3(I,J) = TMP / iMass
              ENDIF
 
-             ! Sanity check: if deposition velocity is above 10, the tracer
-             ! concentration is probably very low. Restrict value to 10. 
-             ! This is completely arbitrarily.
-             IF ( DEPHNO3(I,J) > 10.0_hp ) THEN
-                WRITE(MSG,*) 'HNO3 deposition velocity > 10., set to zero', &
-                   I, J, DEPHNO3(I,J), TMP, ABS(iFlx), iMass 
-                CALL HCO_WARNING(MSG, RC)
-                DEPHNO3(I,J) = 10.0_hp
-             ENDIF
+             ! Check deposition velocity 
+             CALL HCO_CheckDepv( am_I_Root, HcoState, DEPHNO3(I,J), RC )
           ENDIF
 
        ENDIF
@@ -629,7 +605,7 @@ CONTAINS
 
           ! For negative fluxes, calculate deposition velocity based
           ! on current surface O3 concentration and pass to deposition
-          ! array
+          ! array. See comment on dry dep calculation of HNO3 above.
           ELSE
 
              ! Get mass of species. This can either be the total PBL
@@ -646,9 +622,6 @@ CONTAINS
              ENDIF
 
              ! Calculate deposition velocity (1/s) from flux
-             ! NOTE: the calculated deposition flux is in kg/m2/s,
-             ! which has to be converted to 1/s. Use here the O3 conc.
-             ! [kg] of the lowest model box.
              ! Now avoid div-zero error (ckeller, 11/10/2014).
              IF ( iMass > TINY(1.0_hp) ) THEN
                 TMP = ABS(iFlx) * HcoState%Grid%AREA_M2%Val(I,J)
@@ -658,15 +631,8 @@ CONTAINS
                    DEPO3(I,J) = TMP / iMass 
                 ENDIF
 
-                ! Sanity check: if deposition velocity is above 10, the tracer
-                ! concentration is probably very low. Restrict value to 10. 
-                ! This is completely arbitrarily.
-                IF ( DEPO3(I,J) > 10.0_hp ) THEN
-                   WRITE(MSG,*) 'O3 deposition velocity > 10., set to zero', &
-                      I, J, DEPO3(I,J), TMP, ABS(iFlx), iMass 
-                   CALL HCO_WARNING(MSG, RC)
-                   DEPO3(I,J) = 10.0_hp
-                ENDIF
+                ! Check deposition velocity 
+                CALL HCO_CheckDepv( am_I_Root, HcoState, DEPO3(I,J), RC )
              ENDIF
 
           ENDIF
@@ -767,6 +733,14 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! TODO: Add deposition diagnostics
+       Arr2D => DEPHNO3
+       CALL Diagn_Update( am_I_Root,               &
+                          cName   = 'DEPVEL_HNO3', &
+                          Array2D = Arr2D,         &
+                          COL     = -1,            &
+                          RC      = RC              ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+       Arr2D => NULL()
     ENDIF
 
     ! O3 
@@ -793,7 +767,12 @@ CONTAINS
        CALL HCO_DepvAdd( HcoState, DEPO3, IDTO3, RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
-       ! TODO: Add deposition diagnostics
+       ! Eventually add to diagnostics
+       CALL Diagn_Update( am_I_Root,               &
+                          cName   = 'DEPVEL_O3',   &
+                          Array2D = Arr2D,         &
+                          COL     = -1,            &
+                          RC      = RC              ) 
     ENDIF
 
 
@@ -861,6 +840,7 @@ CONTAINS
    USE HCO_State_MOD,     ONLY : HCO_GetExtHcoID
    USE HCO_ExtList_Mod,   ONLY : GetExtNr
    USE HCO_ExtList_Mod,   ONLY : GetExtOpt
+   USE HCO_Restart_Mod,   ONLY : HCO_RestartDefine
 !   USE ParaNOx_Util_Mod,  ONLY : Read_ParaNOx_LUT
 !
 ! !INPUT PARAMETERS:
@@ -896,7 +876,6 @@ CONTAINS
    CHARACTER(LEN=31)              :: DiagnName
    CHARACTER(LEN=255)             :: MSG, LOC
    CHARACTER(LEN= 1)              :: CHAR1 
-   REAL(sp), POINTER              :: Trgt2D(:,:) => NULL()
 
    !========================================================================
    ! HCOX_PARANOX_INIT begins here!
@@ -1239,29 +1218,13 @@ CONTAINS
    ! Do for the last 5 hours:
    DO I = 1, 5
 
-      ! This slice
-      Trgt2D => SC5(:,:,I+1)
-
       ! Construct name
       WRITE(CHAR1,'(I1)') I
       DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
 
-      ! Add diagnostics
-      CALL Diagn_Create ( am_I_Root,                  &
-                          HcoState = HcoState,        &
-                          cName    = TRIM(DiagnName), &
-                          ExtNr    = ExtNr,           &
-                          Cat      = -1,              &
-                          Hier     = -1,              &
-                          HcoID    = -1,              &
-                          SpaceDim = 2,               &
-                          OutUnit  = '1',             &
-                          WriteFreq= 'End',           &
-                          Trgt2D   = Trgt2D,          &
-                          AutoFill = 0,               &
-                          RC       = RC                )
-      IF ( RC /= HCO_SUCCESS ) RETURN
-      Trgt2D => NULL()
+      ! Define as restart variable
+      CALL HCO_RestartDefine ( am_I_Root, HcoState, TRIM(DiagnName), &
+                               SC5(:,:,I+1), '1',   RC )
    ENDDO
 
    !------------------------------------------------------------------------ 
@@ -1311,7 +1274,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE HCOX_ParaNOx_Final()
+ SUBROUTINE HCOX_ParaNOx_Final( am_I_Root, HcoState, RC )
+!
+! !USES:
+!
+    USE HCO_Restart_Mod,    ONLY : HCO_RestartWrite
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root     ! Root CPU?
+    TYPE(HCO_State), POINTER        :: HcoState      ! HEMCO State obj
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT)  :: RC 
 !
 ! !REVISION HISTORY:
 !  06 Aug 2013 - C. Keller - Initial Version
@@ -1319,11 +1295,30 @@ CONTAINS
 !  06 Jun 2014 - R. Yantosca - Now indended with F90 free-format
 !EOP
 !------------------------------------------------------------------------------
-!BOC
+!BOC 
+!
+! LOCAL VARIABLES:
+!
+   INTEGER            :: I
+   CHARACTER(LEN=255) :: DiagnName
+   CHARACTER(LEN=  1) :: CHAR1
 
    !=================================================================
    ! HCOX_PARANOX_FINAL begins here!
    !=================================================================
+
+   ! Eventually copy internal values to internal state object.
+   ! This is only of relevance in an ESMF environment. 
+   DO I=1,5
+      ! Diagnostics name
+      WRITE(CHAR1,'(I1)') I
+      DiagnName = 'PARANOX_SUNCOS'//TRIM(CHAR1)
+  
+      ! Write diagnostics
+      CALL HCO_RestartWrite( am_I_Root,       HcoState,       &
+                             TRIM(DiagnName), SC5(:,:,I+1), RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+   ENDDO
 
    IF ( ALLOCATED(ShipNO) ) DEALLOCATE ( ShipNO )
    IF ( ALLOCATED(SC5   ) ) DEALLOCATE ( SC5    )
@@ -1351,6 +1346,9 @@ CONTAINS
    IF ( ALLOCATED( DNOx_LUT10    ) ) DEALLOCATE( DNOx_LUT10    )
    IF ( ALLOCATED( DNOx_LUT14    ) ) DEALLOCATE( DNOx_LUT14    )
    IF ( ALLOCATED( DNOx_LUT18    ) ) DEALLOCATE( DNOx_LUT18    )
+
+   ! Return w/ success
+   RC = HCO_SUCCESS
 
  END SUBROUTINE HCOX_ParaNOx_Final
 !EOC

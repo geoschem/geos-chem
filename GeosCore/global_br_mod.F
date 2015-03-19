@@ -282,53 +282,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !----------------------------------------------------------------
-      ! OLD VERSION (cdh, 3/4/09)
-      ! Previously switched at the tropopause, but pTOMCAT includes
-      ! short-lived source gases that continue to dominate Br-x in 
-      ! the lower stratosphere. So we want to use pTOMCAT in the lower
-      ! strat
-      !----------------------------------------------------------------
-      !!-----------------------------------------------------------------
-      !! Switch between COMBO and pTOMCAT at either the instantaneous
-      !! tropopause or at the monthly-mean tropopause
-      !!-----------------------------------------------------------------
-      !
-      !IF ( .NOT. LVARTROP ) THEN
-      !   
-      !   ! Read the monthly mean tropopause level
-      !   ! Filename
-      !   FILENAME = TRIM( BR_DIR ) // 'TPause.' // GET_NAME_EXT() // 
-      ! &        '.'           // GET_RES_EXT()
-      !
-      !   ! Echo some information to the standard output
-      !   WRITE( 6, 120 ) TRIM( FILENAME )
-      !
-      !
-      !   ! Read BR data from the binary punch file
-      !   CALL READ_BPCH2( FILENAME, 'TR-PAUSE', 1,     
-      ! &        XTAU,      IIPAR,     JJPAR,      
-      ! &        1,         TPAUSE,    QUIET=.TRUE. )
-      !
-      !
-      !   ! Merge GMI above the tropopause with TOMCAT below it
-      !   BR_MERGE = BR_TROP
-      !   
-      !   DO I=1, IIPAR
-      !   DO J=1, JJPAR
-      !
-      !      ! First layer in the stratosphere
-      !      TPL = INT( CEILING( TPAUSE(I,J) ) )
-      !
-      !      BR_MERGE( I, J, TPL:LLPAR ) = BR_STRAT( I, J, TPL:LLPAR )
-      !
-      !   ENDDO
-      !   ENDDO
-      !   
-      !ENDIF
-      !
-      !----------------------------------------------------------------
-
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, 'JBrO', JBrO, RC )
       IF ( RC /= GIGC_SUCCESS ) THEN

@@ -79,6 +79,7 @@ MODULE Regrid_A2A_Mod
 !
 ! !PRIVATE TYPES:
 !
+
   !---------------------------------------------------------------------------
   ! These are now kept locally, to "shadow" variables from other parts of
   ! GEOS-Chem.  This avoids depending on GEOS-Chem code within the core
