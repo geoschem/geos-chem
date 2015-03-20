@@ -311,6 +311,7 @@ CONTAINS
           IF(ASSOCIATED(Dct%Scal_cID)) DEALLOCATE(Dct%Scal_cID)
           DEALLOCATE ( Dct )
        ENDIF
+
     ENDIF
 
   END SUBROUTINE DataCont_Cleanup

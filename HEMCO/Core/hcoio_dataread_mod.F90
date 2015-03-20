@@ -454,11 +454,10 @@ CONTAINS
     ! select to range. In that case, just make sure that array is empty.
     IF ( .NOT. FOUND ) THEN 
        IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
-          CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
-          MSG = 'Simulation time is outside of time range provided for '//&
-               TRIM(Lct%Dct%cName) // ' - no file selected and data is ignored!'
+          CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
+          MSG = 'No valid file found for current simulation time - data '// &
+                'will be ignored - ' // TRIM(Lct%Dct%cName) 
           CALL HCO_WARNING ( MSG, RC )
-          CALL NC_CLOSE ( ncLun ) 
           CALL HCO_LEAVE ( RC ) 
           RETURN
        ELSE

@@ -338,6 +338,7 @@ CONTAINS
     USE HCOIO_DataRead_Mod, ONLY : HCOIO_DataRead
     USE HCOIO_DataRead_Mod, ONLY : HCOIO_ReadOther
     USE HCO_FileData_Mod,   ONLY : FileData_ArrIsDefined
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrIsTouched
     USE HCO_EmisList_Mod,   ONLY : EmisList_Pass
     USE HCO_DataCont_Mod,   ONLY : DataCont_Cleanup
     USE HCO_TIDX_MOD,       ONLY : tIDx_Assign 
@@ -389,7 +390,7 @@ CONTAINS
     Lct => ReadList
     DO WHILE ( ASSOCIATED ( Lct ) ) 
 
-       ! Check if data has already been read. Multiple data
+       ! Check if data has already been touched. Multiple data
        ! containers can have the same file data object, and we
        ! only need to read it once. For each file data object,
        ! we assign a 'home container'. Reading will only be
@@ -401,7 +402,8 @@ CONTAINS
        ! flag to 0 (not home), but make sure that the DoShare flag
        ! of the corresponding data file object is enabled.
        IF ( Lct%Dct%DtaHome < 0 ) THEN
-          IF ( FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
+          !IF ( FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
+          IF ( FileData_ArrIsTouched(Lct%Dct%Dta) ) THEN
              Lct%Dct%DtaHome     = 0
              Lct%Dct%Dta%DoShare = .TRUE.
           ELSE
@@ -423,6 +425,10 @@ CONTAINS
              IF ( RC /= HCO_SUCCESS ) RETURN
 
           ENDIF
+
+          ! We now have touched this data container
+          Lct%Dct%Dta%IsTouched = .TRUE.
+
        ENDIF
 
        ! Pass container to EmisList (only if array is defined)

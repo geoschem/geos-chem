@@ -286,7 +286,8 @@
       !=================================================================
 
       ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
+!      LLFILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
+      LLFILENAME = '/as/data/geos/GEOS_1x1/' // 
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       !-----------------------------
