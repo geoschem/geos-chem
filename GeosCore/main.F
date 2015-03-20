@@ -950,21 +950,6 @@
 #endif
 
          !==============================================================
-         ! ***** M O N T H L Y   O R   S E A S O N A L   D A T A *****
-         !==============================================================
-         IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
-
-            ! Quantities for FAST-J photolysis
-            IF ( ITS_A_FULLCHEM_SIM   .or.
-     &           ITS_AN_AEROSOL_SIM   .or.
-     &           ITS_A_CH3I_SIM     ) THEN
-
-                  ! Read TOMS overhead O3 columns for FAST-J
-               CALL READ_TOMS( am_I_Root, Input_Opt, RC )
-            ENDIF
-         ENDIF
-
-         !==============================================================
          !              ***** D A I L Y   D A T A *****
          !==============================================================
          laiMM = -1
@@ -1206,7 +1191,6 @@
          ! (ckeller, 3/5/15)
          !--------------------------------------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
-!         IF ( LNLPBL .AND. ITS_TIME_FOR_EMIS() ) THEN
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV,
@@ -1240,29 +1224,46 @@
             CALL EMISSIONS_RUN( am_I_Root, Input_Opt, 
      &                          State_Met, State_Chm, RC )
 
-            ! Copy UV Albedo data (for photolysis) into State_Met%UVALBEDO
-            ! NOTE: This has to be done after the HEMCO run method!
-            IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
-               CALL GET_UVALBEDO( am_I_Root, Input_Opt, State_Met, RC )
-            ENDIF
-
-            ! Read data required for Hg2 gas-particle partitioning 
-            ! (H Amos, 25 Oct 2011)
-            ! NOTE: This has to be done after the HEMCO run method!
-            IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
-     &           ITS_A_NEW_MONTH()           ) THEN
-               CALL READ_Hg2_PARTITIONING
-     &              ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
-               IF ( prtDebug ) THEN
-                  CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONGING')
-               ENDIF
-            ENDIF
-
             ! Stop the run if the HEMCO run sequence dies w/ an error
             IF ( RC /= GIGC_SUCCESS ) THEN
                CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
             ENDIF
 
+            !----------------------------------------------------------
+            ! %%% GET SOME NON-EMISSIONS DATA FIELDS VIA HEMCO %%%
+            !
+            ! HEMCO can track non-emission data fields for chemistry
+            ! simulations.  Put these subroutine calls after the 
+            ! call to EMISSIONS_RUN, so that the HEMCO data structure
+            ! will be initialized. (bmy, 3/20/15)
+            !----------------------------------------------------------
+            IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
+ 
+               ! The following only apply when photolysis is used,
+               ! that is for fullchem or aerosol simulations.
+               IF ( ITS_A_FULLCHEM_SIM  .or. ITS_AN_AEROSOL_SIM ) THEN
+
+                  ! Copy UV Albedo data (for photolysis) into the
+                  ! State_Met%UVALBEDO field. (bmy, 3/20/15)
+                  CALL GET_UVALBEDO(am_I_Root, Input_Opt, State_Met, RC)
+
+                  ! Get TOMS overhead O3 columns for photolysis from
+                  ! the HEMCO data structure (bmy, 3/20/15)
+                  CALL READ_TOMS( am_I_Root, Input_Opt, RC )
+               ENDIF
+
+               ! Read data required for Hg2 gas-particle partitioning 
+               ! (H Amos, 25 Oct 2011)
+               IF ( ITS_A_MERCURY_SIM ) THEN 
+                  CALL READ_Hg2_PARTITIONING
+     &               ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
+                  IF ( prtDebug ) THEN
+                    CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONING')
+                  ENDIF
+               ENDIF
+            ENDIF
+
+            ! Unit conversion
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
      &                             State_Met%AD, STT ) ! kg -> v/v
@@ -1295,22 +1296,6 @@
                CALL ERROR_STOP( 'Error in MIX_TRACERS!', 'main.F' )
             ENDIF
 
-!            ! Add option for non-local PBL. (Lin, 03/31/09)
-!            ! Note that some emission arrays are initialized with chemistry 
-!            ! (due to legacy code), so there are *no emissions* on the first
-!            ! mixing and convection timestep when using non-local mixing
-!            ! scheme (LNLPBL), although this is not reflected in the 
-!            ! diagnostics. The instant mixing scheme is unaffected by this
-!            ! bug since emissions then occur with chemistry. (cdh, 5/1/2013)
-!            IF ( .NOT. LNLPBL ) THEN
-!               CALL DO_PBL_MIX( LTURB, Input_Opt, State_Met, State_Chm )
-!               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
-!            ELSE
-!               CALL DO_PBL_MIX_2( am_I_Root, LTURB,     Input_Opt,
-!     &                            State_Met, State_Chm, RC         )
-!               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
-!            ENDIF
- 
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
 
             !===========================================================
@@ -1341,73 +1326,6 @@
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
             ENDIF
          ENDIF
-
-!         !-------------------------------
-!         ! Test for emission timestep
-!         !-------------------------------
-!         IF ( ( .NOT. LNLPBL ) .AND. ITS_TIME_FOR_EMIS() ) THEN
-!
-!            ! Increment emission counter
-!            CALL SET_CT_EMIS( INCREMENT=.TRUE. )
-!
-!            !===========================================================
-!            !         ***** D R Y   D E P O S I T I O N *****
-!            !===========================================================
-!            IF ( LDRYD ) THEN
-!               CALL DO_DRYDEP
-!     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!            ENDIF
-!
-!            !===========================================================
-!            !             ***** E M I S S I O N S *****
-!            !===========================================================
-!!            IF ( LEMIS ) THEN
-!               
-!               ! Call the HEMCO emissions modules
-!               ! Always call HEMCO, even if LEMIS is set to FALSE. 
-!               ! This is to make sure that HEMCO can still be used to read
-!               ! non-emission data such as stratospheric Bry fields. 
-!               ! (ckeller, 1/12/15).
-!               CALL EMISSIONS_RUN ( am_I_Root, Input_Opt, 
-!     &                              State_Met, State_Chm, RC )
-!
-!               ! Return upon error in HEMCO
-!               IF ( RC /= GIGC_SUCCESS ) THEN
-!                  CALL ERROR_STOP( 'Error in EMISSIONS_RUN!', 'main.F' )
-!               ENDIF
-!
-!               !### Debug
-!               IF ( prtDebug ) THEN 
-!                  CALL DEBUG_MSG( '### MAIN: a DO_EMISSIONS' )
-!               ENDIF
-!!            ENDIF
-
-             ! --> now set in EMISSIONS_RUN (ckeller, 3/4/15)
-!            IF ( ITS_A_FULLCHEM_SIM ) THEN
-!               !========================================================
-!               !jpp, 2/12/08: putting a call to SET_CH3Br
-!               !              which is in bromocarb_mod.f
-!               !       ***** Fix CH3Br Concentration in PBL *****
-!               ! Kludge: eventually I want to keep the concentration
-!               !         entirely fixed! Ask around on how to...
-!               !========================================================
-!               IF ( LEMIS .and. ( IDTCH3Br > 0 ) ) THEN
-!                  CALL SET_CH3Br( am_I_Root, Input_Opt, State_Met, 
-!     &                            .FALSE.,   State_Chm, RC         )
-!
-!               ENDIF
-!
-!               ! ----------------------------------------------------
-!               ! If selected in input.geos, then set the MBL
-!               ! concentration of BrO equal to 1 pptv during daytime.
-!               ! ----------------------------------------------------
-!               IF ( LEMIS .and. ( IDTBrO > 0 ) ) THEN
-!                  CALL SET_BrO( am_I_Root, Input_Opt, State_Met, 
-!     &                          .FALSE.,   State_Chm, RC  )
-!               ENDIF
-!            ENDIF
-!
-!         ENDIF
 
          !==============================================================
          !               ***** C H E M I S T R Y *****
