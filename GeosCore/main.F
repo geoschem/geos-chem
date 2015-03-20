@@ -1045,9 +1045,6 @@
          ! (ccc, 12/9/08)
          CALL DIAG_2PM( State_Met )
 
-         ! Get the overhead column O3 for use with FAST-J
-         CALL GET_OVERHEAD_O3_FOR_FASTJ( am_I_Root )
-
          !==============================================================
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
@@ -1205,6 +1202,7 @@
                   ! Get TOMS overhead O3 columns for photolysis from
                   ! the HEMCO data structure (bmy, 3/20/15)
                   CALL READ_TOMS( am_I_Root, Input_Opt, RC )
+
                ENDIF
 
                ! Read data required for Hg2 gas-particle partitioning 
@@ -1217,7 +1215,7 @@
                   ENDIF
                ENDIF
             ENDIF
-
+            
             ! Unit conversion
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
@@ -1286,6 +1284,11 @@
          !               ***** C H E M I S T R Y *****
          !============================================================== 
 
+         ! Get the overhead column O3 for use with FAST-J
+         ! NOTE: Move to CHEMISTRY section.  This now has to come after
+         ! the call to HEMCO emissions driver EMISSIONS_RUN. (bmy, 3/20/15)
+         CALL GET_OVERHEAD_O3_FOR_FASTJ( am_I_Root )
+         
          ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
          IF ( ITS_A_CH4_SIM ) CALL CH4_AVGTP( State_Met )
 
@@ -2126,10 +2129,6 @@
          ! Open and read A-6 fields
          CALL OPEN_MERRA_A3_FIELDS ( D(1), D(2), Input_Opt            )
          CALL GET_MERRA_A3_FIELDS  ( D(1), D(2), Input_Opt, State_Met )
-
-         ! Since CLDTOPS is an A-3 field, update the
-         ! lightning NOx emissions [molec/box/6h]
-!         IF ( Input_Opt%LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !==============================================================
