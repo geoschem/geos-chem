@@ -598,10 +598,10 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) ::  ND
-      REAL(fp), INTENT(IN)  ::  POMEGA(M2_,N_,W_),FZ(N_,W_),ZTAU(N_,W_)
-     &                       ,PM(M_,M2_),PM0(M2_)
-     &                       ,RFL(W_),ZFLUX(W_)
+      INTEGER, INTENT(IN)   ::  ND
+      REAL(fp), INTENT(IN)  ::  POMEGA(M2_,N_,W_),FZ(N_,W_),ZTAU(N_,W_),
+     &                          PM(M_,M2_),PM0(M2_),
+     &                          RFL(W_),ZFLUX(W_)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -622,7 +622,7 @@
       REAL(fp), DIMENSION(M_,N_,W_)    ::  A,C,H,   RR
 
       REAL(fp), DIMENSION(M_,M_,N_,W_) ::  B,AA,CC,  DD
-      REAL(fp), DIMENSION(M_,M_) ::  E
+      REAL(fp), DIMENSION(M_,M_)       ::  E
       REAL(fp)  SUMB,SUMBX,SUMT
       INTEGER I, J, K, L
 
@@ -893,7 +893,7 @@ c---SUMBX = flux from Lambert reflected I+
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) ::  ND
+      INTEGER, INTENT(IN)   ::  ND
       REAL(fp), INTENT(IN)  ::  POMEGA(M2_,N_),PM(M_,M2_),PM0(M2_)
       REAL(fp), INTENT(IN)  ::  ZFLUX,RFL
       REAL(fp), INTENT(IN),DIMENSION(N_) :: FZ,ZTAU
@@ -901,7 +901,7 @@ c---SUMBX = flux from Lambert reflected I+
 ! !OUTPUT PARAMETERS:
 !
       REAL(fp), INTENT(OUT),DIMENSION(M_,M_,N_) ::  B,AA,CC
-      REAL(fp), INTENT(OUT),DIMENSION(M_,N_) ::  A,C,H
+      REAL(fp), INTENT(OUT),DIMENSION(M_,N_)    ::  A,C,H
 
 !
 ! !REVISION HISTORY: 
@@ -1158,7 +1158,7 @@ C------------lower boundary, 2nd-order, A-matrix is full (AA)
 !
 ! !INPUT PARAMETERS:
 !
-      integer, intent(in)   :: LCTM,LCHEM,NJXU
+      integer, intent(in)     :: LCTM,LCHEM,NJXU
       real(fp), intent(in)    ::  PPJ(JXL1_+1),TTJ(JXL1_+1)
       real(fp), intent(inout) ::  FFF(W_,LCTM)
 !
@@ -1279,12 +1279,12 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(fp), INTENT(IN)::  TINT,T1,T2,T3, X1,X2,X3
-      INTEGER,INTENT(IN)::  L123
+      REAL(fp), INTENT(IN)  ::  TINT,T1,T2,T3, X1,X2,X3
+      INTEGER,  INTENT(IN)  ::  L123
 !
 ! !OUTPUT VARIABLES:
 !
-      REAL(fp),INTENT(OUT)::  XINT
+      REAL(fp), INTENT(OUT) ::  XINT
 !
 ! !REMARKS:
 ! 
@@ -1339,7 +1339,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) ::   L1U, LJX1U
+      INTEGER, INTENT(IN)   ::   L1U, LJX1U
       REAL(fp), INTENT(IN)  ::   U0,ZHL(L1U+1)
 !
 ! !OUTPUT VARIABLES:
@@ -1494,8 +1494,8 @@ c  Lowest level intersected by emergent beam
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) ::  L1X,L2X         !index of cloud/aerosol
-      integer, intent(in) ::  NX              !Mie scattering array size
+      INTEGER, INTENT(IN)   ::  L1X,L2X         !index of cloud/aerosol
+      integer, intent(in)   ::  NX              !Mie scattering array size
       real(fp),  intent(in) ::  DTAUX(L1X)      !cloud+3aerosol OD in each layer
 !
 ! !OUTPUT VARIABLES:
@@ -3915,9 +3915,9 @@ C---Always does PL(2) = P[1]
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(fp), INTENT(IN)         :: YLAT              ! Latitude (degrees)
-      INTEGER,INTENT(IN)         :: MONTH             ! Month
-      INTEGER,INTENT(IN)         :: DAY               ! Day *of month*
+      REAL(fp), INTENT(IN)       :: YLAT              ! Latitude (degrees)
+      INTEGER,  INTENT(IN)       :: MONTH             ! Month
+      INTEGER,  INTENT(IN)       :: DAY               ! Day *of month*
       REAL(fp), INTENT(IN)       :: T_CTM(L1_)        ! CTM temperatures (K)
       REAL(fp), INTENT(IN)       :: O3_TOMS           ! O3 column (DU)
       REAL(fp), INTENT(IN)       :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
@@ -3945,7 +3945,7 @@ C---Always does PL(2) = P[1]
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, K, L, M, N, LCTM
+      INTEGER                  :: I, K, L, M, N, LCTM
       REAL(fp)                 :: DLOGP,F0,T0,B0,PB,PC,XC,MASFAC,SCALEH
       REAL(fp)                 :: PSTD(52),OREF2(51),TREF2(51)
       REAL(fp)                 :: PROFCOL, ODSUM
@@ -3998,7 +3998,7 @@ C---Always does PL(2) = P[1]
       PSTD(52) = 0.e+0_fp
 
       ! Mass factor - delta-Pressure [hPa] to delta-Column [molec/cm2]
-      MASFAC = 100.e+0_fp * 6.022d+23 / 
+      MASFAC = 100.e+0_fp * 6.022e+23_fp / 
      &        ( 28.97e+0_fp * 9.8e+0_fp * 10.e+0_fp )
 
       ! Select appropriate monthly and latitudinal profiles

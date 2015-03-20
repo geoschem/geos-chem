@@ -1,5 +1,5 @@
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -24,50 +24,33 @@
 !
       USE CMN_FJX_MOD            
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(IN)         :: YLAT              ! Latitude (degrees)
-      INTEGER,INTENT(IN)         :: MONTH             ! Month
-      INTEGER,INTENT(IN)         :: DAY               ! Day *of month*
-      REAL*8, INTENT(IN)         :: T_CTM(L1_)        ! CTM temperatures (K)
-      REAL*8, INTENT(IN)         :: O3_TOMS           ! O3 column (DU)
-      REAL*8, INTENT(IN)         :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
-      REAL*8, INTENT(IN)         :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
+      REAL(fp), INTENT(IN)       :: YLAT              ! Latitude (degrees)
+      INTEGER,  INTENT(IN)       :: MONTH             ! Month
+      INTEGER,  INTENT(IN)       :: DAY               ! Day *of month*
+      REAL(fp), INTENT(IN)       :: T_CTM(L1_)        ! CTM temperatures (K)
+      REAL(fp), INTENT(IN)       :: O3_TOMS           ! O3 column (DU)
+      REAL(fp), INTENT(IN)       :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
+      REAL(fp), INTENT(IN)       :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
       TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
 !
 ! !OUTPUT VARIABLES:
 !
-      REAL*8, INTENT(OUT)        :: T_CLIM(L1_)       ! Clim. temperatures (K)
-      REAL*8, INTENT(OUT)        :: Z_CLIM(L1_+1)     ! Edge altitudes (cm)
-      REAL*8, INTENT(OUT)        :: O3_CLIM(L1_)      ! O3 column depth (#/cm2)
-      REAL*8, INTENT(OUT)        :: AIR_CLIM(L1_)     ! O3 column depth (#/cm2)
+      REAL(fp), INTENT(OUT)      :: T_CLIM(L1_)       ! Clim. temperatures (K)
+      REAL(fp), INTENT(OUT)      :: Z_CLIM(L1_+1)     ! Edge altitudes (cm)
+      REAL(fp), INTENT(OUT)      :: O3_CLIM(L1_)      ! O3 column depth (#/cm2)
+      REAL(fp), INTENT(OUT)      :: AIR_CLIM(L1_)     ! O3 column depth (#/cm2)
 !
 !
 ! !AUTHOR:
 !  Oliver Wild & Michael Prather
 !
 ! !REMARKS:
-!  References:
-!  ============================================================================
-!  TOMS/SBUV MERGED TOTAL OZONE DATA, Version 8, Revision 3.
-!  Resolution:  5 x 10 deg.
-!                                                                             .
-!  Source: http://code916.gsfc.nasa.gov/Data_services/merged/index.html
-!                                                                             .
-!  Contact person for the merged data product:
-!  Stacey Hollandsworth Frith (smh@hyperion.gsfc.nasa.gov)
-!                                                                             .
-!  Important module variables:
-!  ============================================================================
-!  (1 ) PJ     :  Pressure at boundaries of model levels [hPa]
-!  (2 ) Z      :  Altitude of boundaries of model levels [cm]
-!  (4 ) MASFAC :  Conversion factor for pressure to column density
-!  (5 ) TJ     :  Temperature profile on model grid
-!  (6 ) DM     :  Air column for each model level [molecules/cm2])
-!  (7 ) DO3    :  Ozone column for each model level [molecules/cm2]
 !
 ! !REVISION HISTORY: 
 !  01 Jun 1996 - M. Prather & O. Wild - Initial version
@@ -86,18 +69,19 @@
 !        i.e. after 2008. (ccc, 7/13/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  15 Dec 2014 - M. Sulprizio- Modified for Fast-JX. Now consistent with
-!                              subroutine RD_AOD in fast_jx_mod.F.
+!                              subroutine SET_PROF in fast_jx_mod.F.
+!  20 Mar 2015 - M. Sulprizio- Modified for flexible precision
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, K, L, M, N, LCTM
-      REAL*8                 :: DLOGP,F0,T0,B0,PB,PC,XC,MASFAC,SCALEH
-      REAL*8                 :: PSTD(52),OREF2(51),TREF2(51)
-      REAL*8                 :: PROFCOL
-      REAL*8, PARAMETER      :: ODMAX = 200.0d0
+      INTEGER                  :: I, K, L, M, N, LCTM
+      REAL(fp)                 :: DLOGP,F0,T0,B0,PB,PC,XC,MASFAC,SCALEH
+      REAL(fp)                 :: PSTD(52),OREF2(51),TREF2(51)
+      REAL(fp)                 :: PROFCOL
+      REAL(fp), PARAMETER      :: ODMAX = 200.0e+0_fp
 
       ! Local variables for quantities from Input_Opt
       LOGICAL :: LO3FJX
@@ -114,18 +98,19 @@
       ! given for each 2 km z* level applies from 1 km below to 1 km 
       ! above, so select pressures at these boundaries. Surface level 
       ! values at 1000 mb are assumed to extend down to the actual 
-      ! P(nslon,nslat).
+      ! surface pressure for this lat/lon.
       !=================================================================      
-      PSTD(1)  = MAX(P_CTM(1),1000.d0)
-      PSTD(2)  = 1000.d0 * 10.d0 ** (-1.d0/16.d0)
-      DLOGP    = 10.d0**(-2.d0/16.d0)
+      PSTD(1)  = MAX(P_CTM(1),1000.e+0_fp)
+      PSTD(2)  = 1000.e+0_fp * 10.e+0_fp ** (-1.e+0_fp/16.e+0_fp)
+      DLOGP    = 10.e+0_fp**(-2.e+0_fp/16.e+0_fp)
       DO I=3,51
          PSTD(I) = PSTD(I-1) * DLOGP
       ENDDO
-      PSTD(52) = 0.d0
+      PSTD(52) = 0.e+0_fp
 
       ! Mass factor - delta-Pressure [hPa] to delta-Column [molec/cm2]
-      MASFAC = 100.d0 * 6.022d+23 / ( 28.97d0 * 9.8d0 * 10.d0 )
+      MASFAC = 100.e+0_fp * 6.022e+23_fp / 
+     &        ( 28.97e+0_fp * 9.8e+0_fp * 10.e+0_fp )
 
       ! Select appropriate monthly and latitudinal profiles
       ! Now use YLAT instead of Oliver's YDGRD(NSLAT) (bmy, 9/13/99) 
@@ -143,8 +128,8 @@
       ! temperature half a layer on either side of the point supplied.
 
       DO I = 1, L1_  
-         F0 = 0.D0
-         T0 = 0.D0
+         F0 = 0.e+0_fp
+         T0 = 0.e+0_fp
          DO K = 1, 51
             PC = MIN( P_CTM(I),   PSTD(K)   )
             PB = MAX( P_CTM(I+1), PSTD(K+1) )
@@ -155,15 +140,15 @@
             ENDIF
          ENDDO
          T_CLIM(I)  = T0
-         O3_CLIM(I) = F0 * 1.D-6
+         O3_CLIM(I) = F0 * 1.e-6_fp
       ENDDO
 
       !=================================================================
       ! Calculate effective altitudes using scale height at each level
       !=================================================================
-      Z_CLIM(1) = 0.D0
+      Z_CLIM(1) = 0.e+0_fp
       DO I = 1, L_   
-         SCALEH = 1.3806D-19 * MASFAC * T_CLIM(I)
+         SCALEH = 1.3806e-19_fp * MASFAC * T_CLIM(I)
          Z_CLIM(I+1) = Z_CLIM(I) - 
      &        ( LOG( P_CTM(I+1) / P_CTM(I) ) * SCALEH )
       ENDDO
@@ -173,7 +158,7 @@
       ! Calculate column quantities for for RRTMG (which will only use
       ! tropospheric values)
       !=================================================================
-      PROFCOL = 0d0
+      PROFCOL = 0e+0_fp
 
       DO I = 1, L1_   
 
@@ -184,7 +169,7 @@
          O3_CLIM(I) = O3_CLIM(I) * AIR_CLIM(I)
     
          ! Monthly mean O3 column [DU] 
-         PROFCOL = PROFCOL + ( O3_CLIM(I) / 2.69d16 )
+         PROFCOL = PROFCOL + ( O3_CLIM(I) / 2.69e+16_fp )
       ENDDO
 
       !! Top values are special (do not exist in CTM data)
@@ -250,10 +235,11 @@
 
       ! Scale monthly O3 profile to the daily O3 profile (if available)
       DO I = 1, L1_
-         IF ((LO3FJX) .and. (I.le.LLCHEM) .and. (O3_CTM(I) > 0d0)) THEN
+         IF ((LO3FJX) .and. (I.le.LLCHEM) 
+     &       .and. (O3_CTM(I) > 0e+0_fp)) THEN
             ! Convert from molec/cm3 to molec/cm2
             O3_CLIM(I) = O3_CTM(I) * (Z_CLIM(I+1)-Z_CLIM(I))
-         ELSEIF (O3_TOMS > 0d0) THEN
+         ELSEIF (O3_TOMS > 0e+0_fp) THEN
             O3_CLIM(I) = O3_CLIM(I) * ( O3_TOMS / PROFCOL )
          ENDIF
       ENDDO
