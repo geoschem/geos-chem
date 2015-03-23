@@ -405,7 +405,7 @@
 !  18 Jun 2014 - S. D. Eastham - Now read data for individual NOx species
 !  24 Nov 2014 - C. Keller     - Update for stratospheric NOy (as suggested by 
 !                                Seb Eastham)
-!  16 Mar 2015 - E. Lundgren   - Update tracer units to kg/kg from kg
+!  16 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -462,7 +462,7 @@
 
       ! Set module variable
 
-      ! Initialize GEOS-Chem tracer array [kg/kg] (ewl, 3/16/15)
+      ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
 
       IF ( am_I_Root ) THEN
@@ -1777,6 +1777,7 @@
 !  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
 !                                air pressure, with State_Met%PMID_DRY and
 !                                remove dependency on PRESSURE_MOD.
+!  19 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1815,7 +1816,7 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV = Input_Opt%TCVV(1:N_TRACERS)
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
 
       ! Filename
@@ -1967,8 +1968,11 @@
                ENDIF
                ! Send to STT (currently kg/box)
                IF (SET_CELL) THEN
-                  ! Convert from [ppbv] to [kg]
-                  TRACMASS = SCALEFAC * TRACMR * State_Met%AD(I,J,L) /
+!                  ! Convert from [ppbv] to [kg]
+!                  TRACMASS = SCALEFAC * TRACMR * State_Met%AD(I,J,L) /
+!     &                       TCVV(TRAC_IDX)
+                  ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
+                  TRACMASS = SCALEFAC * TRACMR /
      &                       TCVV(TRAC_IDX)
                   IF (TRAC_ADD) THEN
                      STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMASS

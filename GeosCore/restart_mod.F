@@ -229,7 +229,7 @@
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
       J0 = GET_YOFFSET( GLOBAL=.TRUE. )
 
-      ! Initialize pointer for Chemistry State object [kg/kg] (ewl, 2/17/15)
+      ! Initialize pointer for Chemistry State object [kg/kg]
       STT => State_Chm%Tracers
 
       !=================================================================
@@ -255,11 +255,6 @@
       ! Write each tracer to the restart file
       !=================================================================
 
-!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!      !  New Units (ewl, 2/17/15)
-!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!      CALL Convert_MMR_to_VR( N_TRACERS, TCVV, STT )
-
       DO N = 1, N_TRACERS
 
 !$OMP PARALLEL DO
@@ -269,14 +264,10 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! Old units - Convert STT from [kg] to [v/v] mixing ratio 
-            ! and store in temporary variable TRACER
-            TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
-
-!             ! Convert from mass mixing ratio [kg tracer / kg dry air] to 
-!             ! molar mixing ratio [vol tracer / vol dry air] and store in 
-!             ! the local TRACER array (elundgren, 2/17/15)
-!             TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N)
+             ! Convert from mass mixing ratio [kg tracer / kg dry air] to 
+             ! molar mixing ratio [vol tracer / vol dry air] and store in 
+             ! the local TRACER array (elundgren, 2/17/15)
+             TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N)
             
          ENDDO
          ENDDO

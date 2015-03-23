@@ -1169,8 +1169,7 @@ CONTAINS
     IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
     TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
 
-    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-    ! (mpayer, 12/6/12)
+    ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
     STT => State_Chm%Tracers
 
     ! Initialize counters, initial times, mapping arrays
@@ -1355,7 +1354,7 @@ CONTAINS
 
     ! Array to hold initial state of atmosphere at the beginning
     ! of the period over which to estimate STE. Populate with
-    ! initial atm. conditions from restart file [kg].
+    ! initial atm. conditions from restart file converted to [kg/kg].
     ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, N_TRACERS ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
     MInit = STT

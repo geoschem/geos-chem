@@ -658,20 +658,27 @@
          CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
       ENDIF
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! TEMPORARY - ewl, 2/17/15
-      ! Convert from kg/kg to kg to return to traditional GC units.
-      ! All code before this expects tracer conc in kg/kg.
-      ! All code after this expects kg, until conversion to v/v.
-      ! Note: This conversion currently depends on AREA_M2 through AIRQNT.
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!     ! TEMPORARY - ewl, 3/19/15
+!     ! Convert from kg/kg to kg to return to traditional GC units
+!     ! for INIT_STRAT_CHEM. This ensures allocatable array MInit
+!     ! used for later strat chem remains in kg for the time being.
       CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
      &                        State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
       IF ( LSCHEM ) THEN
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! TEMPORARY - ewl, 3/19/15
+      ! Convert back to kg/kg for continued step-by-step conversion
+      ! from kg to kg/kg
+      CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Read ocean Hg initial conditions (if necessary)
       IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
@@ -685,8 +692,6 @@
       IF ( LSTDRUN ) THEN 
          CALL STDRUN( Input_Opt, State_Chm, LBEGIN=.TRUE. )
       ENDIF
-
-! ewl - end here (for now)
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
@@ -757,10 +762,27 @@
       ! Get dynamic timestep in seconds
       N_DYN  = 60e+0_fpp * GET_TS_DYN()
 
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! TEMPORARY - ewl, 3/19/15
+      ! Convert MMR to kg in preparation for working in dynamic 
+      ! timestep loop
+         CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! TEMPORARY - ewl, 3/19/15
+      ! Immediately convert to MMR in dynamic timestep
+      ! loop in order to systematically change rest of code within loop
+         CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
          ! Compute & print time quantities at start of dyn step
          CALL SET_CURRENT_TIME
@@ -789,7 +811,7 @@
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
          !==============================================================
          IF ( ITS_TIME_FOR_BPCH() ) THEN
-            
+
             ! Set time at end of diagnostic timestep
             CALL SET_DIAGe( TAU )
 
@@ -806,10 +828,29 @@
             !===========================================================
             IF ( LSVGLB ) THEN
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               ! TEMPORARY - ewl, 3/19/15
+               ! Convert MMR to kg to return to traditional GC units for
+               ! CALC_STE, which is a routine in strat_chem_mod.
+               ! More generally, deal with strat_chem_mod routines later,
+               ! as they all depend on a global array in the module that
+               ! is set to the initial state of the atm in kg (STT after
+               ! reading in restart file and converting units).
+               CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
                ! Determine and print STE fluxes (ltm, 06/10/12)
                IF ( LSCHEM ) THEN
                   CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, RC )
                ENDIF
+               
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               ! TEMPORARY - ewl, 3/19/15
+               ! Convert kg to MMR
+               CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                ! Make atmospheric restart file
                CALL MAKE_RESTART_FILE
@@ -846,6 +887,14 @@
             CALL INITIALIZE( am_I_Root, Input_Opt, 3, RC )  ! Zero counters
 
          ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! TEMPORARY - ewl, 3/19/15
+         ! Convert MMR to kg to return to traditional GC units
+         CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
          !=============================================================
          !   ***** W R I T E   MERCURY RESTART  F I L E *****
