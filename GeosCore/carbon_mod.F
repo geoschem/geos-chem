@@ -6540,7 +6540,7 @@ ccc
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CMN_GCTM_MOD        ONLY : XNUMOLAIR
+      USE CMN_GCTM_MOD,       ONLY : XNUMOLAIR
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput

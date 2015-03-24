@@ -26,7 +26,9 @@
       PUBLIC :: CHECK_STT
       PUBLIC :: CHECK_STT_05x0666
       PUBLIC :: CHECK_STT_025x03125
+#if   defined( APM )
       PUBLIC :: INIT_TRACER
+#endif
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -54,6 +56,7 @@
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  24 Mar 2015 - E. Lundgren - Move param XNUMOLAIR to CMN_GCTM_mod.F
 !  24 Mar 2015 - E. Lundgren - Remove shadow copy of Input_Opt%N_TRACERS
+!  24 Mar 2015 - E. Lundgren - Put init_tracer within APM ifdef block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -438,6 +441,7 @@
 
       END SUBROUTINE CHECK_STT_025x03125
 !EOC
+#if   defined( APM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -514,4 +518,5 @@
 
       END SUBROUTINE INIT_TRACER
 !EOC
+#endif
       END MODULE TRACER_MOD
