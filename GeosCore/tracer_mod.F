@@ -26,13 +26,9 @@
       PUBLIC :: CHECK_STT
       PUBLIC :: CHECK_STT_05x0666
       PUBLIC :: CHECK_STT_025x03125
+#if   defined( APM )
       PUBLIC :: INIT_TRACER
-!
-! !DEFINED PARAMETERS:
-!
-      ! Conversion factor: molec air / kg air
-      REAL(fp), PUBLIC, PARAMETER :: XNUMOLAIR = 
-     &                        6.022e+23_fp / 28.9644e-3_fp
+#endif
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -40,11 +36,6 @@
       ! # of APM tracers
       INTEGER, PUBLIC           :: N_APMTRA   ! # of APM tracers
 #endif
-!
-! !PRIVATE TYPES:
-
-      ! Shadow copy: stores Input_Opt%N_TRACERS locally
-      INTEGER, PRIVATE          :: N_TRACERS
 !
 ! !REMARKS:
 !  Most of the functionality of this module has been superseded by
@@ -63,6 +54,9 @@
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
 !  04 Apr 2013 - R. Yantosca - Removed STT (now in State_Chm)
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  24 Mar 2015 - E. Lundgren - Move param XNUMOLAIR to CMN_GCTM_mod.F
+!  24 Mar 2015 - E. Lundgren - Remove shadow copy of Input_Opt%N_TRACERS
+!  24 Mar 2015 - E. Lundgren - Put init_tracer within APM ifdef block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -83,7 +77,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_STT( State_Chm, LOCATION )
+      SUBROUTINE CHECK_STT( State_Chm, Input_Opt, LOCATION )
 !
 ! !USES:
 !
@@ -92,6 +86,7 @@
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE ERROR_MOD,          ONLY : IT_IS_FINITE
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
@@ -100,6 +95,7 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(ChmState),   INTENT(IN) :: State_Chm   ! Chemistry State object
+      TYPE(OptInput),   INTENT(IN) :: Input_Opt   ! Input Options object
 ! 
 ! !REVISION HISTORY:
 !  (1 ) CHECK_STT uses the interfaces defined above -- these will do the
@@ -133,9 +129,11 @@
 
       ! Pick the proper # of tracers
 #if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+      ! G-C advected tracers + APM tracers
+      N_TOT_TRC = Input_Opt%N_TRACERS + N_APMTRA   
 #else
-      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+      ! G-C advected tracers only
+      N_TOT_TRC = Input_Opt%N_TRACERS       
 #endif
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
@@ -226,7 +224,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_STT_05x0666( State_Chm, LOCATION )
+      SUBROUTINE CHECK_STT_05x0666( State_Chm, Input_Opt, LOCATION )
 !
 ! !USES:
 !
@@ -234,10 +232,12 @@
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE ERROR_MOD,          ONLY : IT_IS_FINITE
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -272,7 +272,7 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TRACERS
+      DO N = 1, Input_Opt%N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -339,7 +339,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_STT_025x03125( State_Chm, LOCATION )
+      SUBROUTINE CHECK_STT_025x03125( State_Chm, Input_Opt, LOCATION )
 !
 ! !USES:
 !
@@ -347,10 +347,12 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE ERROR_MOD,          ONLY : IT_IS_FINITE
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -386,7 +388,7 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TRACERS
+      DO N = 1, Input_Opt%N_TRACERS
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -439,6 +441,7 @@
 
       END SUBROUTINE CHECK_STT_025x03125
 !EOC
+#if   defined( APM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -481,6 +484,9 @@
 !  07 Mar 2013 - R. Yantosca - Now assign RC=GIGC_SUCCESS outside of APM block
 !  04 Apr 2013 - R. Yantosca - Removed STT (now in State_Chm)
 !  25 Jun 2014 - R. Yantosca - Now is just used to set N_TRACERS & N_APMTRA
+!  24 Mar 2015 - E. Lundgren - Remove module copy of Input_Opt%N_TRACERS
+!  24 Mar 2015 - E. Lundgren - Move #if defined(APM) to input_mod.F so that
+!                              init_tracer only called if APM defined
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -488,9 +494,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS, N_TOT_TRC
-
-#if   defined( APM ) 
       INTEGER :: N_APMTRAC1
+      INTEGER :: N_TRACERS
 
       !=================================================================
       ! We are using APM microphysics!
@@ -502,27 +507,16 @@
       ! (bmy, 2/17/11)
       LAPM      = .TRUE.
 
-      ! Keep a shadow copy of Input_Opt%N_TRACERS
       N_TRACERS = Input_Opt%N_TRACERS
 
       ! Add additional tracers for APM
-      CALL APM_NTRACERS( Input_Opt%N_TRACERS, N_APMTRAC1 )
+      CALL APM_NTRACERS( N_TRACERS, N_APMTRAC1 )
       N_APMTRA  = N_APMTRAC1  
  
-#else
-
-      !=================================================================
-      ! We are not using APM microphysics
-      !=================================================================
-
-      ! Keep a shadow copy of Input_Opt%N_TRACERS
-      N_TRACERS = Input_Opt%N_TRACERS
-
-#endif
-
       ! Assume success
       RC        = GIGC_SUCCESS
 
       END SUBROUTINE INIT_TRACER
 !EOC
+#endif
       END MODULE TRACER_MOD

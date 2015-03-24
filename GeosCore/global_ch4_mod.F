@@ -1554,6 +1554,7 @@
 !                              derived type object
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root and RC
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1697,7 +1698,8 @@
 !      FIRSTCHEM = .FALSE.
 
       ! Check STT for negatives and NaN
-      CALL CHECK_STT( State_Chm, 'IN global_ch4_mod.F: CH4_STRAT' )
+      CALL CHECK_STT( State_Chm, Input_Opt,
+     &                'IN global_ch4_mod.F: CH4_STRAT' )
 
       ! Free pointer
       NULLIFY( STT )

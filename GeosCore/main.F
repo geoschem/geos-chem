@@ -255,6 +255,7 @@
 !  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers
 !  25 Feb 2015 - E. Lundgren - Remove MAKE-RH call since now in AIRQNT.
 !  16 Mar 2015 - E. Lundgren - Change tracer main units from kg to kg/kg
+!  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1385,11 +1386,12 @@
 
          ! Check State_Chm tracers (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-         CALL CHECK_STT_05x0666( State_Chm, 
+         CALL CHECK_STT_05x0666( State_Chm, Input_Opt, 
      &                           'end of chem section, before wetdep' )
 #endif 
 #if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
+         CALL CHECK_STT_025x03125( State_Chm, Input_Opt,
+     &                             'after chemistry' )
 #endif 
 
          !==============================================================
@@ -1565,14 +1567,17 @@
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_STT (yxw)
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-            CALL CHECK_STT_05x0666( State_Chm, 'after dynamics step' )
+            CALL CHECK_STT_05x0666( State_Chm, Input_Opt,
+     &                              'after dynamics step' )
 #endif
 #if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, 'after dynamics step' )
+         CALL CHECK_STT_025x03125( State_Chm, Input_Opt,
+     &                             'after dynamics step' )
 #endif 
 
 
-            CALL CHECK_STT( State_Chm, 'End of Dynamic Loop' )
+            CALL CHECK_STT( State_Chm, Input_Opt, 
+     &                      'End of Dynamic Loop' )
          ENDIF
           
       ENDDO

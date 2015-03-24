@@ -22,8 +22,8 @@
 !
 ! !DEFINED PARAMETERS: 
 !
-      ! AIRMW : Molecular weight of air [g/mol]
-      REAL(fp), PARAMETER :: AIRMW    = 28.97e+0_fp
+      ! AIRMW : Molecular weight of air [28.9644 g/mole]
+      REAL(fp), PARAMETER :: AIRMW    = 28.9644e+0_fp
 
       ! H2OMW : Molecular weight of water [g/mol]
       REAL(fp), PARAMETER :: H2OMW   = 18.016e+0_fp
@@ -60,6 +60,9 @@
 
       ! RSTARG : Universal gas constant [J/K/mol] 
       REAL(fp), PARAMETER :: RSTARG   = 8.31450e+0_fp
+      
+      ! Molecules dry air per kg dry air
+      REAL(fp), PARAMETER :: XNUMOLAIR = AVO / ( AIRMW * 1e-3_fp )
 
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
@@ -69,6 +72,8 @@
 !  23 Jul 2014 - R. Yantosca - List constants in alphabetical order
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2014 - E. Lundgren - Added constants and clarified comments
+!  24 Mar 2015 - E. Lundgren - Add xnumolair, previously in tracer_mod
+!  24 Mar 2015 - E. Lundgren - Increase precision of AIRMW to match
 !EOP
 !------------------------------------------------------------------------------
 !BOC

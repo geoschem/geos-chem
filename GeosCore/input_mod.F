@@ -1290,7 +1290,9 @@
       USE CHARPAK_MOD,        ONLY : ISDIGIT
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
+#if defined( APM )
       USE TRACER_MOD,         ONLY : INIT_TRACER
+#endif
       USE TRACERID_MOD,       ONLY : TRACERID
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
@@ -1327,6 +1329,7 @@
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  21 Aug 2014 - R. Yantosca - Bug fix: add ITS_A_RnPbBe_SIM to the test
 !                              that defines the ITS_A_SPECIALTY_SIM flag
+!  24 Mar 2015 - E. Lundgren - Move init_tracer to within APM ifdef block 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1669,8 +1672,10 @@
       ! Set up tracer flags
       CALL TRACERID( am_I_Root, Input_Opt, RC )
 
-      ! Store the # of tracers internally in tracer_mod.F
+#if defined( APM ) 
+      ! Store the # of APM tracers in tracer_mod.F
       CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
+#endif
 
       ! Set counter
       CT1 = CT1 + 1

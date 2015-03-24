@@ -2662,7 +2662,6 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_MONTH 
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TRACERID_MOD,       ONLY : IDTSO2
@@ -2723,6 +2722,8 @@
 !                              derived type object
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  18 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sim from HEMCO
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
+!                              XNUMOLAIR now defined in CMN_GTCM_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6425,11 +6426,11 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_MOd, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
 !
 ! !INPUT PARAMETERS: 
@@ -6449,6 +6450,8 @@
 !  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
 !                              Input_Opt%ITS_AN_AEROSOL_SIM
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  24 Mar 2015 - E. Lundgren - Replace dependency on tracer_mod with
+!                              CMN_GTCM_MOD to get XNUMOLAIR.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

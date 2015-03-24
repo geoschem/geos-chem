@@ -496,7 +496,6 @@
 !
       USE ERROR_MOD
       USE COMODE_MOD
-      USE TRACER_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
 !
@@ -507,6 +506,7 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Now only print output on the root CPU
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  24 Mar 2015 - E. Lundgren - Remove tracer_mod dependency since unused
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -897,7 +897,6 @@
 ! !USES:
 !
       USE ERROR_MOD
-      USE TRACER_MOD
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! Allocatable arrays for SMVGEAR solver
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -923,6 +922,7 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Now get LPRT from Input_Opt
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
+!  24 Mar 2015 - E. Lundgren - Remove tracer_mod dependency since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC

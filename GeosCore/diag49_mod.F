@@ -201,14 +201,13 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
 
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_O3_MOD	           ! SAVEOH
-      USE CMN_GCTM_MOD             ! XTRA2
+      USE CMN_GCTM_MOD             ! XTRA2, XNUMOLAIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -264,7 +263,7 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!                              Remove dependency on pressure_mod.
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
 !EOP
 !------------------------------------------------------------------------------
 !BOC

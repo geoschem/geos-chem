@@ -172,6 +172,8 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
+!                              XNUMOLAIR now defined in CMN_GTCM_MOD
 !******************************************************************************
 !
       ! References to F90 modules
@@ -186,7 +188,6 @@
       USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
       USE TIME_MOD,           ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
@@ -194,7 +195,7 @@
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST
       USE CMN_FJX_MOD,        ONLY : NRH, NDUST
       USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
-      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT, XNUMOLAIR
 !
 ! !INPUT PARAMETERS:
 !

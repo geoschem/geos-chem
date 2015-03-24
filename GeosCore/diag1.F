@@ -35,7 +35,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTO3
       USE TRACERID_MOD,       ONLY : ID_HG2, ID_HGP, ID_Hg_TOT
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
@@ -139,7 +138,7 @@
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  20 Jan 2015 - R. Yantosca - Added new netCDF diagnostics
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE and
-!                              GET_PCENTER with State_Met%PMID.
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
