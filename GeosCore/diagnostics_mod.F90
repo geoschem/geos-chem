@@ -1003,7 +1003,7 @@ CONTAINS
                              Cat       = -1,                &
                              Hier      = -1,                &
                              HcoID     = -1,                &
-                             SpaceDim  =  3,                &
+                             SpaceDim  =  2,                &
                              LevIDx    = -1,                &
                              OutUnit   = 'kg/s',            &
                              OutOper   = TRIM( OutOper   ), &

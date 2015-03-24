@@ -365,6 +365,8 @@ CONTAINS
 !  02 Feb 2015 - C. Keller - Now call tIDx_Assign here instead of in 
 !                            hco_emislist_mod. This way, hco_emislist_mod 
 !                            can also be used by hco_clock_mod.
+!  24 Mar 2015 - C. Keller - Now avoid closing/reopening the same file all
+!                            the time. 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -372,8 +374,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     TYPE(ListCont), POINTER  :: Lct => NULL()
+    INTEGER                  :: LUN
+    LOGICAL                  :: CLS
     LOGICAL                  :: verb
     CHARACTER(LEN=255)       :: MSG
+  
+    ! To manage file open/close
+    INTEGER, PARAMETER       :: MaxFileOpen = 5 ! Max. # of open streams
+    INTEGER                  :: I, ILUN
+    INTEGER                  :: FileLuns (MaxFileOpen) = -1
+    CHARACTER(LEN=255)       :: FileNames(MaxFileOpen) = ''
+    TYPE(ListCont), POINTER  :: TmpLct => NULL()
 
     ! ================================================================
     ! ReadList_Fill begins here
@@ -421,9 +432,90 @@ CONTAINS
 
           ! Read from netCDF file otherwise
           ELSE
-             CALL HCOIO_DATAREAD ( am_I_Root, HcoState, Lct, RC )
+
+             ! Check if this file stream has already been opened, and if
+             ! we need to close the file after reading. Default is open
+             ! file from scratch and close it afterwards.
+             LUN = -1
+             CLS = .TRUE.
+
+             ! Check if there is a file coming up in this ReadList that
+             ! has the same file but a different variable. In this case,
+             ! keep the file open. Don't count containers with same file 
+             ! and variable name, as those are likely to be just pointers
+             ! to the same data file! 
+             TmpLct => Lct%NextCont
+
+             ! Loop over all upcoming containers
+             DO WHILE ( ASSOCIATED(TmpLct) )
+                ! Same file ...
+                IF ( TRIM(Lct%Dct%Dta%ncFile) == TRIM(TmpLct%Dct%Dta%ncFile) ) THEN
+                   ! ... not the same variable 
+                   IF ( ( TRIM(Lct%Dct%Dta%ncPara)  == TRIM(TmpLct%Dct%Dta%ncPara)  ) .AND. &
+                        (      Lct%Dct%Dta%ncYrs(2) ==      TmpLct%Dct%Dta%ncYrs(2) ) .AND. & 
+                        (      Lct%Dct%Dta%ncMts(2) ==      TmpLct%Dct%Dta%ncMts(2) ) .AND. & 
+                        (      Lct%Dct%Dta%ncDys(2) ==      TmpLct%Dct%Dta%ncDys(2) ) .AND. & 
+                        (      Lct%Dct%Dta%ncHrs(2) ==      TmpLct%Dct%Dta%ncHrs(2) )       & 
+                      ) THEN
+                      ! ... do close ...
+                   ELSE
+                      ! ... don't close:
+                      CLS = .FALSE.
+                      EXIT
+                   ENDIF
+                ENDIF
+                ! Get next container in list
+                TmpLct => TmpLct%NextCont
+             ENDDO
+             TmpLct => NULL()
+
+             ! Check if this file has been opened previously. In this case, just
+             ! pass the LUN.
+             ! Loop over all entries
+             DO I = 1, MaxFileOpen
+                ! Same file?
+                IF ( TRIM(FileNames(I)) == TRIM(Lct%Dct%Dta%ncFile) ) THEN
+                   ! Sanity check: LUN must be valid
+                   IF ( FileLuns(I) > 0 ) THEN
+                      LUN = FileLuns(I)
+                   ENDIF
+
+                   ! If file will be closed, update LUN to -1. This is to make
+                   ! sure that this slot is made available for another file.
+                   IF ( CLS ) THEN
+                      FileLuns(I) = -1
+                   ENDIF
+
+                   ! Can leave here
+                   EXIT
+                ENDIF
+             ENDDO
+
+             ! Store input LUN in local variable. Needed below.
+             ILUN = LUN
+
+             ! Read data
+             CALL HCOIO_DATAREAD ( am_I_Root, HcoState, Lct, CLS, LUN, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
+             ! Eventually save out LUN for later usage. Need to do this only
+             ! for files that have not been closed and that are not an element
+             ! of FileNames and FileLuns already. In case of the latter, LUN
+             ! has been passed to HCOIO_DATAREAD (it's -1 otherwise).
+             IF ( .NOT. CLS .AND. ( LUN /= ILUN ) ) THEN
+                DO I = 1, MaxFileOpen
+                   IF ( FileLuns(I) == -1 ) THEN
+                      FileLuns(I)  = LUN
+                      FileNames(I) = Lct%Dct%Dta%ncFile
+                      EXIT
+                   ENDIF
+
+                   ! If we get here, MaxFileOpen is too small
+                   MSG = 'Too many file streams open! Cannot keep file in ' // &
+                         'memory: ' // TRIM(Lct%Dct%Dta%ncFile)
+                   CALL HCO_MSG(MSG) 
+                ENDDO
+             ENDIF
           ENDIF
 
           ! We now have touched this data container

@@ -165,7 +165,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
   !
-  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, RC ) 
+  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, CloseFile, LUN, RC ) 
 !
 ! !USES:
 !
@@ -180,9 +180,11 @@ CONTAINS
     LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State),  POINTER        :: HcoState
     TYPE(ListCont),   POINTER        :: Lct 
+    LOGICAL,          INTENT(IN   )  :: CloseFile  ! Close file after reading?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    INTEGER,          INTENT(INOUT)  :: LUN
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
@@ -212,6 +214,9 @@ CONTAINS
     Iam = LOC
     CALL HCO_ENTER ( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Initialize output values
+    LUN = -1
 
     ! Point to ESMF IMPORT object
     IMPORT => HcoState%IMPORT
@@ -340,9 +345,17 @@ CONTAINS
 ! ModelLev\_Interpolate. 
 !\\
 !\\
+! Argument CloseFile can be set to false to avoid closing the file. 
+! Argument LUN can be used to read data from a previously opened stream. If
+! the input value of LUN is greater than zero, the source file associated
+! with the passed list container Lct is not being opened but the data is 
+! read from stream LUN. The returned LUN value is equal to the LUN of the 
+! file just being used if CloseFile is set to .FALSE., and to -1 otherwise. 
+!\\
+!\\  
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, RC ) 
+  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, CloseFile, LUN, RC ) 
 !
 ! !USES:
 !
@@ -371,9 +384,11 @@ CONTAINS
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
     TYPE(ListCont),   POINTER        :: Lct        ! HEMCO list container
+    LOGICAL,          INTENT(IN   )  :: CloseFile  ! Close file after reading?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    INTEGER,          INTENT(INOUT)  :: LUN        ! LUN of file.
     INTEGER,          INTENT(INOUT)  :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
@@ -388,6 +403,7 @@ CONTAINS
 !  15 Jan 2015 - C. Keller   - Now allow model level interpolation in combination
 !                              with MESSy (horizontal) regridding.
 !  03 Feb 2015 - C. Keller   - Moved map_a2a regridding to hco_interp_mod.F90.
+!  24 Mar 2015 - C. Keller   - Added arguments LUN and CloseFile.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -467,16 +483,30 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Verbose mode
-    IF ( HCO_IsVerb(2) ) THEN
-       Write(MSG,*) '- Reading file ', TRIM(srcFile)
-       CALL HCO_MSG(MSG)
-    ENDIF
-
     ! ----------------------------------------------------------------
     ! Open netCDF
     ! ----------------------------------------------------------------
-    CALL NC_OPEN ( TRIM(srcFile), ncLun )
+    IF ( LUN > 0 ) THEN
+       ncLun = LUN
+
+       ! Verbose mode
+       IF ( HCO_IsVerb(2) ) THEN
+          WRITE(MSG,*) '- Reading from existing stream: ', TRIM(srcFile)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+    ELSE
+       CALL NC_OPEN ( TRIM(srcFile), ncLun )
+
+       ! Verbose mode
+       IF ( HCO_IsVerb(1) ) THEN
+          WRITE(MSG,*) '- Opening file: ', TRIM(srcFile)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+       ! Also write to standard output
+       WRITE(*,*) 'HEMCO: Opening ', TRIM(srcFile)
+    ENDIF
 
     ! ----------------------------------------------------------------
     ! Extract time slice information
@@ -521,7 +551,12 @@ CONTAINS
           MSG = 'Simulation time is outside of time range provided for '//&
                TRIM(Lct%Dct%cName) // ' - data is ignored!'
           CALL HCO_WARNING ( MSG, RC )
-          CALL NC_CLOSE ( ncLun ) 
+          IF ( CloseFile ) THEN
+             CALL NC_CLOSE ( ncLun )
+             LUN = -1
+          ELSE
+             LUN = ncLUN
+          ENDIF
           CALL HCO_LEAVE ( RC ) 
           RETURN
        ENDIF
@@ -1056,8 +1091,13 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Close netCDF
     ! ----------------------------------------------------------------
-    CALL NC_CLOSE ( ncLun )
-      
+    IF ( CloseFile ) THEN
+       CALL NC_CLOSE ( ncLun )
+       LUN = -1
+    ELSE
+       LUN = ncLun
+    ENDIF      
+
     !-----------------------------------------------------------------
     ! Cleanup and leave 
     !-----------------------------------------------------------------

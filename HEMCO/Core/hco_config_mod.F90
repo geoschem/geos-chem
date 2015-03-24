@@ -807,6 +807,7 @@ CONTAINS
              Dta%CycleFlag = HCO_CFLAG_CYCLE
           ELSE
              MSG = 'Invalid time cycling attribute: ' // &
+                   TRIM(TmCycle) // ' - in ' // TRIM(cName)
              CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
