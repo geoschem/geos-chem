@@ -4679,6 +4679,10 @@
       ENDIF
       CALL SET_TINDEX( am_I_Root, 38, ND38, SUBSTRS(2:N), N-1, N_TMP )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND38_OUTPUT_FREQ = 'Daily'   ! Note, can change later
+      Input_Opt%ND38_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND39: Wet scav losses
       !--------------------------
@@ -4687,6 +4691,10 @@
       READ( SUBSTRS(1), * ) ND39
       IF ( .not. Input_Opt%LWETD ) ND39 = 0
       CALL SET_TINDEX( am_I_Root, 39, ND39, SUBSTRS(2:N), N-1, N_TMP )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND39_OUTPUT_FREQ = 'Daily'   ! Note, can change later
+      Input_Opt%ND39_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND41: Afternoon PBL ht
