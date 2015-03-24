@@ -252,7 +252,6 @@
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
@@ -260,7 +259,7 @@
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE COMODE_LOOP_MOD          ! NPVERT
       USE CMN_O3_MOD               ! SAVEOH
-      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT, XNUMOLAIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -312,6 +311,8 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
+!                              XNUMOLAIR now defined in CMN_GTCM_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC

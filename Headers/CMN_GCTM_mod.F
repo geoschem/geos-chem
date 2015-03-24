@@ -22,8 +22,8 @@
 !
 ! !DEFINED PARAMETERS: 
 !
-      ! AIRMW : Molecular weight of air [28.97 g/mole]
-      REAL(fp), PARAMETER :: AIRMW    = 28.97e+0_fp
+      ! AIRMW : Molecular weight of air [28.9644 g/mole]
+      REAL(fp), PARAMETER :: AIRMW    = 28.9644e+0_fp
 
       ! Avogadro's # [#/mol]
       REAL(fp), PARAMETER :: AVO      = 6.022e+23_fp
@@ -54,6 +54,10 @@
 
       ! Von Karman's constant
       REAL(fp), PARAMETER :: VON_KARMAN   = 0.4e+0_fp
+      
+      ! Molecules dry air per kg dry air
+      REAL(fp), PARAMETER :: XNUMOLAIR = AVO / ( AIRMW * 1e-3_fp )
+
 !
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
@@ -62,6 +66,9 @@
 !  23 Jul 2014 - R. Yantosca - Add Avogadro's number here
 !  23 Jul 2014 - R. Yantosca - List constants in alphabetical order
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
+!  24 Mar 2015 - E. Lundgren - Add xnumolair, previously in tracer_mod
+!  24 Mar 2015 - E. Lundgren - Increase precision of AIRMW to match
+!                              what previously was in tracer_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC

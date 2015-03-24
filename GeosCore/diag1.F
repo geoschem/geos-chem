@@ -37,7 +37,6 @@
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTO3
       USE TRACERID_MOD,       ONLY : ID_HG2, ID_HGP, ID_Hg_TOT
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
@@ -140,6 +139,8 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  20 Jan 2015 - R. Yantosca - Added new netCDF diagnostics
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
+!                              XNUMOLAIR now defined in CMN_GTCM_MOD
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:

@@ -28,12 +28,6 @@
       PUBLIC :: CHECK_STT_025x03125
       PUBLIC :: INIT_TRACER
 !
-! !DEFINED PARAMETERS:
-!
-      ! Conversion factor: molec air / kg air
-      REAL(fp), PUBLIC, PARAMETER :: XNUMOLAIR = 
-     &                        6.022e+23_fp / 28.9644e-3_fp
-!
 ! !PUBLIC DATA MEMBERS:
 !
 #if   defined( APM )
@@ -63,6 +57,7 @@
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
 !  04 Apr 2013 - R. Yantosca - Removed STT (now in State_Chm)
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  24 Mar 2015 - E. Lundgren - Move param XNUMOLAIR to CMN_GCTM_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
