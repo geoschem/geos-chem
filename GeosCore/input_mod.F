@@ -153,6 +153,7 @@
 !  23 Jun 2014 - R. Yantosca - Removed INIT_INPUT routine
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  24 Nov 2014 - C. Keller   - Updates on timestep handling in ESMF environment
+!  24 Mar 2015 - E. Lundgren - Move init_tracer to within APM ifdef block 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1669,8 +1670,10 @@
       ! Set up tracer flags
       CALL TRACERID( am_I_Root, Input_Opt, RC )
 
-      ! Store the # of tracers internally in tracer_mod.F
+#if defined( APM ) 
+      ! Store the # of APM tracers in tracer_mod.F
       CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
+#endif
 
       ! Set counter
       CT1 = CT1 + 1

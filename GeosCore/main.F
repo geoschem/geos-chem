@@ -251,6 +251,7 @@
 !  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
 !  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
+!  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1312,11 +1313,12 @@
 
          ! Check STT (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-         CALL CHECK_STT_05x0666( State_Chm, 
+         CALL CHECK_STT_05x0666( State_Chm, Input_Opt, 
      &                           'end of chem section, before wetdep' )
 #endif 
 #if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
+         CALL CHECK_STT_025x03125( State_Chm, Input_Opt,
+     &                             'after chemistry' )
 #endif 
 
 
@@ -1492,14 +1494,17 @@
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_STT (yxw)
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-            CALL CHECK_STT_05x0666( State_Chm, 'after dynamics step' )
+            CALL CHECK_STT_05x0666( State_Chm, Input_Opt,
+     &                              'after dynamics step' )
 #endif
 #if   defined( GEOS_FP) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( State_Chm, 'after dynamics step' )
+         CALL CHECK_STT_025x03125( State_Chm, Input_Opt,
+     &                             'after dynamics step' )
 #endif 
 
 
-            CALL CHECK_STT( State_Chm, 'End of Dynamic Loop' )
+            CALL CHECK_STT( State_Chm, Input_Opt, 
+     &                      'End of Dynamic Loop' )
          ENDIF
           
       ENDDO
