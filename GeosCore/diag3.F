@@ -3235,6 +3235,9 @@
          ENDDO
       ENDIF
 !
+
+#if !defined( NO_BPCH )
+
 !******************************************************************************
 !  ND38: Rainout loss of tracer in convective updrafts
 !
@@ -3330,6 +3333,8 @@
          ENDDO
 
       ENDIF
+
+#endif
 !
 !******************************************************************************
 !  ND41: Afternoon boundary layer heights

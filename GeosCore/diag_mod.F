@@ -114,11 +114,13 @@
       ! For ND37 -- Fraction of tracer scavenged in cloud updrafts
       REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)      
 
+#if !defined(NO_BPCH)
       ! For ND38 -- Rainout in moist convection diagnostic
       REAL*4,  ALLOCATABLE :: AD38(:,:,:,:)      
 
       ! For ND39 -- Washout in aerosol wet deposition diagnostic
       REAL*4,  ALLOCATABLE :: AD39(:,:,:,:)      
+#endif
 
       ! For ND43 -- OH and HO2 chemical diagnostics
       REAL*4,  ALLOCATABLE :: AD43(:,:,:,:)      
@@ -374,8 +376,10 @@
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
+#if !defined( NO_BPCH )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )
+#endif
       IF ( ALLOCATED( AD43        ) ) DEALLOCATE( AD43        )
 #if !defined( NO_BPCH )
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )

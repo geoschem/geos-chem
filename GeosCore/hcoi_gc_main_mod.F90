@@ -602,7 +602,6 @@ CONTAINS
 
     ! We are now back in GEOS-Chem environment, hence set 
     ! return flag accordingly! 
-    !      first = .false.
     RC = GIGC_SUCCESS
 
   END SUBROUTINE HCOI_GC_Run

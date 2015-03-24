@@ -650,6 +650,7 @@
          ENDIF
       ENDIF
 
+#if !defined(NO_BPCH)
       !=================================================================
       ! ND38: Rainout of tracer (nfcldmx.f) 
       !       --> uses AD38 array (allocatable)
@@ -691,6 +692,7 @@
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD39' )
          ENDIF
       ENDIF
+#endif
 
       !=================================================================
       ! ND42: SOA concentration

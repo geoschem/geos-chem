@@ -535,7 +535,8 @@ diagnostics_mod.o           : diagnostics_mod.F90                            \
                               hcoi_gc_main_mod.o                             \
                               tracer_mod.o                                   \
                               tracerid_mod.o                                 \
-                              ucx_mod.o
+                              ucx_mod.o                                      \
+                              wetscav_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
                               chemgrid_mod.o          diag_mod.o

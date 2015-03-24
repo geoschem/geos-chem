@@ -71,6 +71,8 @@
 !       by multiple data containers. For internal use only. 
 ! \item IsInList: will be set to True if this file data object is part
 !       of the emissions list EmisList. For internal use only.
+! \item IsTouched: will be set to True as soon as the container becomes 
+!       touched for the first time. For internal use only.
 ! \end{itemize}
 !
 ! !INTERFACE: 
@@ -91,6 +93,7 @@ MODULE HCO_FileData_Mod
   PUBLIC  :: FileData_Cleanup 
   PUBLIC  :: FileData_ArrCheck
   PUBLIC  :: FileData_ArrIsDefined
+  PUBLIC  :: FileData_ArrIsTouched
   PUBLIC  :: FileData_ArrInit
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -134,6 +137,7 @@ MODULE HCO_FileData_Mod
      LOGICAL                     :: IsConc    ! concentration data?
      LOGICAL                     :: DoShare   ! shared object?
      LOGICAL                     :: IsInList  ! is in emissions list? 
+     LOGICAL                     :: IsTouched ! Has container been touched yet? 
   END TYPE FileData
 
   !-------------------------------------------------------------------------
@@ -217,6 +221,7 @@ CONTAINS
     NewFDta%IsConc       = .FALSE.
     NewFDta%DoShare      = .FALSE.
     NewFDta%IsInList     = .FALSE.
+    NewFDta%IsTouched    = .FALSE.
 
     ! Return
     FileDta => NewFDta
@@ -441,6 +446,9 @@ CONTAINS
     ! Init
     IsDefined = .FALSE.
 
+    ! Return here if passed FileDta object is not defined
+    IF ( .NOT. ASSOCIATED( FileDta ) ) RETURN
+
     ! nt must be larger than zero! 
     IF ( FileDta%nt <= 0 ) Return 
 
@@ -455,6 +463,54 @@ CONTAINS
     ENDIF
 
   END FUNCTION FileData_ArrIsDefined
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FileData_ArrIsTouched
+!
+! !DESCRIPTION: Function FileData\_ArrIsTouched returns true if the data 
+! array of the given file data object has already been touched, e.g. if 
+! the data has already been read (or at least attempted to being read). 
+! This information is mostly important for file data objects that are shared 
+! by multiple data containers. See ReadList\_Fill in hco\_readlist\_mod.F90
+! for more details. 
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION FileData_ArrIsTouched( FileDta ) RESULT( IsTouched )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(FileData), POINTER :: FileDta  ! Container
+!
+! !RETURN VALUE:
+!
+    LOGICAL                 :: IsTouched
+!
+! !REVISION HISTORY:
+!  17 Mar 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! ================================================================
+    ! FileData_ArrIsTouched begins here
+    ! ================================================================
+     
+    ! Init
+    IsTouched = .FALSE.
+
+    ! Return touched flag
+    IF ( ASSOCIATED( FileDta ) ) THEN
+       IsTouched = FileDta%IsTouched
+    ENDIF
+
+
+  END FUNCTION FileData_ArrIsTouched
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

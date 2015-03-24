@@ -186,8 +186,10 @@
          IF ( ND33 > 0 ) AD33     = 0e0
          IF ( ND35 > 0 ) AD35     = 0e0
          IF ( ND37 > 0 ) AD37     = 0e0
+#if !defined( NO_BPCH )
          IF ( ND38 > 0 ) AD38     = 0e0
          IF ( ND39 > 0 ) AD39     = 0e0
+#endif
          IF ( ND43 > 0 ) AD43     = 0e0
 #if !defined( NO_BPCH )
          IF ( ND44 > 0 ) AD44     = 0e0
