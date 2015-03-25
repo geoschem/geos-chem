@@ -3328,50 +3328,29 @@ CONTAINS
  
        ! ---------------------------------------------------------- 
        ! Diagnostics for convective cloud top height.
-       ! LIGHTNING_TRAD_TOP is the traditional cloud top height
-       ! calculated from the convective mass flux. 
-       ! LIGHTNING_NOCONV_TOP is the cloud top height approximated
-       ! from the buoyancy in grid boxes where convection is not
-       ! parameterized any more.
-       ! LIGHTNING_MERGED_TOP is the merged product of the first
-       ! two cloud top heights. This is the value used for lightning
-       ! NOx calculation.
        ! ---------------------------------------------------------- 
 
-       ! Loop over lighthing flash quantities
-       DO I = 1, 3
+       ! Define diagnostics name and ID
+       DiagnName = 'LIGHTNING_CLOUD_TOP'
+       N         = 56004 
 
-          ! Pick the proper diagnostic name
-          SELECT CASE( I )
-             CASE( 1 )
-                DiagnName = 'LIGHTNING_TRAD_TOP'
-             CASE( 2 )
-                DiagnName = 'LIGHTNING_NOCONV_TOP'
-             CASE( 3 )
-                DiagnName = 'LIGHTNING_MERGED_TOP'
-          END SELECT
-
-          ! Define diagnostics ID
-          N = 56000 + I + 3
-
-          ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             cID       = N,                 & 
-                             ExtNr     = ExtNr,             &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = '1',               &
-                             OutOper   = 'Instantaneous',   &
-                             WriteFreq = TRIM(WriteFreq),   &
-                             AutoFill  = 0,                 &
-                             RC        = RC                  ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDDO
+       ! Create diagnostic container
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          cID       = N,                 & 
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = '1',               &
+                          OutOper   = 'Mean',            &
+                          WriteFreq = TRIM(WriteFreq),   &
+                          AutoFill  = 0,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDIF ! ND56 
 
