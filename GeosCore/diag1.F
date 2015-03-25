@@ -137,8 +137,9 @@
 !  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  20 Jan 2015 - R. Yantosca - Added new netCDF diagnostics
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE and
-!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod since
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE
+!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
+!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -206,9 +207,13 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+!            STT_VV(I,J,L,N) = 
+!     &         MAX( State_Chm%Tracers(I,J,L,N) * TCVV(N) /
+!     &              State_Met%AD(I,J,L), 0e+0_fp )
             STT_VV(I,J,L,N) = 
-     &         MAX( State_Chm%Tracers(I,J,L,N) * TCVV(N) /
-     &              State_Met%AD(I,J,L), 0e+0_fp )
+     &         MAX( State_Chm%Tracers(I,J,L,N) * TCVV(N),
+     &              0e+0_fp )
+
          ENDDO
          ENDDO
          ENDDO
@@ -232,16 +237,22 @@
         DO I = 1, IIPAR
 
           ! Reactive gaseous mercury, RGM
+!          AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
+!     &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
+!     &                      TCVV(ID_Hg2(ID_Hg_tot)) /
+!     &                      State_Met%AD(I,J,L) *1e+12_fp
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
      &                      State_Chm%Tracers(I,J,L,ID_Hg2(ID_Hg_tot)) *
-     &                      TCVV(ID_Hg2(ID_Hg_tot)) /
-     &                      State_Met%AD(I,J,L) *1e+12_fp
+     &                      TCVV(ID_Hg2(ID_Hg_tot)) * 1e+12_fp
 
           ! Reactive particulate mercury, PBM
+!          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
+!     &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
+!     &                      TCVV(ID_HgP(ID_Hg_tot)) / 
+!     &                      State_Met%AD(I,J,L) *1e+12_fp
           AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
      &                      State_Chm%Tracers(I,J,L,ID_HgP(ID_Hg_tot)) *
-     &                      TCVV(ID_HgP(ID_Hg_tot)) / 
-     &                      State_Met%AD(I,J,L) *1e+12_fp
+     &                      TCVV(ID_HgP(ID_Hg_tot)) * 1e+12_fp
                                                        
         ENDDO
         ENDDO

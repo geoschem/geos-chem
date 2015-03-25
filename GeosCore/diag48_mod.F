@@ -79,6 +79,8 @@
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE calls with State_Met%PEDGE. 
 !                              Remove dependency on pressure_mod.
+!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg and
+!                              remove AD pointer
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -233,7 +235,7 @@
 
       ! Pointers
       REAL(fp), POINTER :: STT(:,:,:,:)
-      REAL(fp), POINTER :: AD(:,:,:)
+!      REAL(fp), POINTER :: AD(:,:,:)
 
       !=================================================================
       ! DIAG48 begins here!
@@ -249,7 +251,7 @@
 
       ! Initialize pointers
       STT          => State_Chm%Tracers
-      AD           => State_Met%AD
+!      AD           => State_Met%AD
 
       ! Get grid offsets
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
@@ -317,7 +319,8 @@
             GMTRC    = N
 
             DO L = 1, K
-               Q(L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+!               Q(L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+               Q(L) = STT(I,J,L,N) * TCVV(N)
             ENDDO
 
          ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
@@ -347,50 +350,86 @@
                ! Initialize
                Q(L) = 0e+0_fp
 
+!               ! NO
+!               Q(L) = Q(L) + ( TCVV(IDTNO)         * 
+!     &                         STT(I,J,L,IDTNO)    / 
+!     &                         AD(I,J,L) )
+!
+!               ! NO2
+!               Q(L) = Q(L) + ( TCVV(IDTNO2)        * 
+!     &                         STT(I,J,L,IDTNO2)   / 
+!     &                         AD(I,J,L) )
+!
+!               ! PAN
+!               Q(L) = Q(L) + ( TCVV(IDTPAN)        * 
+!     &                         STT(I,J,L,IDTPAN)   / 
+!     &                         AD(I,J,L) )
+!
+!               ! HNO3
+!               Q(L) = Q(L) + ( TCVV(IDTHNO3)       *
+!     &                         STT(I,J,L,IDTHNO3)  / 
+!     &                         AD(I,J,L) )
+!            
+!               ! PMN
+!               Q(L) = Q(L) + ( TCVV(IDTPMN)        *
+!     &                         STT(I,J,L,IDTPMN)   / 
+!     &                         AD(I,J,L) )
+!
+!               ! PPN
+!               Q(L) = Q(L) + ( TCVV(IDTPPN)        * 
+!     &                         STT(I,J,L,IDTPPN)   / 
+!     &                         AD(I,J,L) )
+! 
+!               ! R4N2
+!               Q(L) = Q(L) + ( TCVV(IDTR4N2)       *
+!     &                         STT(I,J,L,IDTR4N2)  / 
+!     &                         AD(I,J,L) )
+!            
+!               ! N2O5
+!               Q(L) = Q(L) + ( 2d0 * TCVV(IDTN2O5) *
+!     &                         STT(I,J,L,IDTN2O5)  / 
+!     &                         AD(I,J,L) )
+!                        
+!               ! HNO4
+!               Q(L) = Q(L) + ( TCVV(IDTHNO4)       *
+!     &                         STT(I,J,L,IDTHNO4)  / 
+!     &                         AD(I,J,L) )
+
                ! NO
                Q(L) = Q(L) + ( TCVV(IDTNO)         * 
-     &                         STT(I,J,L,IDTNO)    / 
-     &                         AD(I,J,L) )
+     &                         STT(I,J,L,IDTNO) )
 
                ! NO2
                Q(L) = Q(L) + ( TCVV(IDTNO2)        * 
-     &                         STT(I,J,L,IDTNO2)   / 
-     &                         AD(I,J,L) )
+     &                         STT(I,J,L,IDTNO2) )
 
                ! PAN
                Q(L) = Q(L) + ( TCVV(IDTPAN)        * 
-     &                         STT(I,J,L,IDTPAN)   / 
-     &                         AD(I,J,L) )
+     &                         STT(I,J,L,IDTPAN) )
 
                ! HNO3
                Q(L) = Q(L) + ( TCVV(IDTHNO3)       *
-     &                         STT(I,J,L,IDTHNO3)  / 
-     &                         AD(I,J,L) )
+     &                         STT(I,J,L,IDTHNO3) )
             
                ! PMN
                Q(L) = Q(L) + ( TCVV(IDTPMN)        *
-     &                         STT(I,J,L,IDTPMN)   / 
-     &                         AD(I,J,L) )
+     &                         STT(I,J,L,IDTPMN) )
 
                ! PPN
                Q(L) = Q(L) + ( TCVV(IDTPPN)        * 
-     &                         STT(I,J,L,IDTPPN)   / 
-     &                         AD(I,J,L) )
+     &                         STT(I,J,L,IDTPPN) )
  
                ! R4N2
                Q(L) = Q(L) + ( TCVV(IDTR4N2)       *
-     &                         STT(I,J,L,IDTR4N2)  / 
-     &                         AD(I,J,L) )
+     &                         STT(I,J,L,IDTR4N2) )
             
                ! N2O5
                Q(L) = Q(L) + ( 2d0 * TCVV(IDTN2O5) *
-     &                         STT(I,J,L,IDTN2O5)  / 
-     &                         AD(I,J,L) )
+     &                         STT(I,J,L,IDTN2O5) )
                         
                ! HNO4
                Q(L) = Q(L) + ( TCVV(IDTHNO4)       *
-     &                         STT(I,J,L,IDTHNO4)  / 
-     &                         AD(I,J,L) )
+     &                         STT(I,J,L,IDTHNO4) )
             ENDDO
 
          ELSE IF ( N == 153 ) THEN 
@@ -466,8 +505,10 @@
             GMTRC    = 8
 
             DO L = 1, K
+!               Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
+!     &                  TCVV(IDTSALA)      / AD(I,J,L) 
                Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                  TCVV(IDTSALA)      / AD(I,J,L) 
+     &                  TCVV(IDTSALA)
             ENDDO
 
          ELSE IF ( N == 159 ) THEN
@@ -768,7 +809,7 @@
 
       ! Free pointers
       NULLIFY( STT )
-      NULLIFY( AD  )
+!      NULLIFY( AD  )
 
       ! Return to calling program
       END SUBROUTINE DIAG48
