@@ -53,7 +53,7 @@ MODULE HCOI_GC_Diagn_Mod
 #include "hcoi_gc_diagn_include.H"
 
   ! Define default output frequency. 
-  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Hourly"
+  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Daily"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -233,7 +233,7 @@ CONTAINS
 
     ! This is for testing only. Only activate if needed.
     !IF ( .TRUE. ) THEN     ! Activated
-    IF ( .FALSE. ) THEN     ! Deactivated
+    IF ( .TRUE. ) THEN     ! Deactivated
 
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 
@@ -3263,7 +3263,7 @@ CONTAINS
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=31)  :: WriteFreq = 'Manual'
+    CHARACTER(LEN=31)  :: WriteFreq = 'Daily'
     CHARACTER(LEN=255) :: LOC       = 'DIAGN_LFLASH (hcoi_gc_diagn_mod.F90)'
 
     !=======================================================================
