@@ -5570,8 +5570,9 @@
 !  14 Feb 2014 - R. Yantosca   - Reordered DO loop for efficiency
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
 !                                objects via the arg list
-!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID and
-!                                remove dependency on PRESSURE_MOD.
+!  24 Feb 2015 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID and
+!                                remove dependency on PRESSURE_MOD
+!  24 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5600,7 +5601,7 @@
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-      ! Initialize GEOS-Chem tracer array [kg]
+      ! Initialize GEOS-Chem tracer array [kg/kg]
       STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO
@@ -5613,12 +5614,10 @@
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
          IF ( READ_SPHU ) THEN
-            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp *
-     &                          State_Met%AD(I,J,L)
+            STT(I,J,L,IDTH2O) = State_Met%SPHU(I,J,L) * 1.e-3_fp
          ELSE
             ! Set specific humidity to transported H2O
-            State_Met%SPHU(I,J,L) = STT(I,J,L,IDTH2O) * 1.e+3_fp /
-     &                              State_Met%AD(I,J,L)
+            State_Met%SPHU(I,J,L) = STT(I,J,L,IDTH2O) * 1.e+3_fp
 
             ! Pressure at midpoint of box (I,J,L)
             PRES = State_Met%PMID(I,J,L)

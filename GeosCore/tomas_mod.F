@@ -6618,6 +6618,9 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !  Note: This subroutine is created for supplying diameter and density for 
 !        dry dep velocity calculation in DEPVEL.  Did not want to add much 
 !        to DEPVEL.
+!
+!  REVISION HISTORY:
+!  24 Mar 2015 - E.Lundgren - Change tracer units from kg to kg/kg.
 !******************************************************************************
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6655,11 +6658,10 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       ! AERO_DIADEN begins here!
       !========================================================================
       
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       STT => State_Chm%Tracers
 
-      ! Initialize mass
+      ! Initialize mass mixing ratios
       MSO4  = 0e+0_fp
       MNACL = 0e+0_fp
       MH2O  = 0e+0_fp
@@ -6694,7 +6696,8 @@ c         print *, "wid=", WID, "ICOMP=", ICOMP, "IBINS=", IBINS
          DIA(IJLOOP,BIN) = GETDP( I,      J,         LEV, 
      &                            TRACID, State_Met, State_Chm )
          
-         ! Prepare the mass to call external function for density
+         ! Prepare the mass mixing ratio to call external function 
+         ! for density
          MH2O = STT(I,J,1,WID         )
 c         IF ( LSULF30 ) MSO4  = STT(I,J,LEV,IDTSF1-1+BIN)
          IF ( IDTSF1 > 0 ) MSO4  = STT(I,J,LEV,IDTSF1-1+BIN)

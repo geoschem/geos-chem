@@ -57,6 +57,7 @@
 !  24 Mar 2015 - E. Lundgren - Move param XNUMOLAIR to CMN_GCTM_mod.F
 !  24 Mar 2015 - E. Lundgren - Remove shadow copy of Input_Opt%N_TRACERS
 !  24 Mar 2015 - E. Lundgren - Put init_tracer within APM ifdef block
+!  24 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,7 +137,7 @@
       N_TOT_TRC = Input_Opt%N_TRACERS       
 #endif
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -264,7 +265,7 @@
       ! CHECK_STT_05x0666 begins here!
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
@@ -380,8 +381,8 @@
       ! CHECK_STT_05x0666 begins here!
       !=================================================================
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
+      ! Initialize GEOS-Chem tracer array [kg/kg] from Chemistry State 
+      ! object (mpayer, 12/6/12)
       STT => State_Chm%Tracers
 
       ! Loop over grid boxes
