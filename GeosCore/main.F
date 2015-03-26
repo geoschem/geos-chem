@@ -2348,9 +2348,9 @@
       CHARACTER(LEN=255) :: DIR
 
       ! Arrays
-      REAL(fpp)             :: LONEDG(IIPAR+1       ) ! W longitude edges [deg]
-      REAL(fpp)             :: LATSIN(       JJPAR+1) ! SIN(Lat edges)    [1  ]
-      REAL(fpp)             :: AREAS (IIPAR, JJPAR  ) ! Surface Areas     [m2 ]
+      REAL(fpp)          :: LONEDG(IIPAR+1       )  ! W longitude edges [deg]
+      REAL(fpp)          :: LATSIN(       JJPAR+1)  ! SIN(Lat edges)    [1  ]
+      REAL(fpp)          :: AREAS (IIPAR, JJPAR  )  ! Surface Areas     [m2 ]
 
       !================================================================
       ! Initialize_Regridding begins here!
