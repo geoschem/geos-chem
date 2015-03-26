@@ -77,7 +77,7 @@ CONTAINS
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE GRID_MOD,           ONLY : AREA_M2
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE UCX_MOD,            ONLY : DIAGINIT_UCX
+!    USE UCX_MOD,            ONLY : DIAGINIT_UCX
 !
 ! !INPUT PARAMETERS:
 !
@@ -95,6 +95,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version 
+!  25 Mar 2015 - C. Keller   - Moved UCX initialization to UCX_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -142,13 +143,18 @@ CONTAINS
     ! we may want to add more (i.e. hourly, instantaneous, monthly, etc.)
     !-----------------------------------------------------------------------
 
-    ! UCX diagnostics
-    IF ( Input_Opt%LUCX ) THEN
-       CALL DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Error in DIAGINIT_UCX', LOC ) 
-       ENDIF
-    ENDIF
+    ! UCX diagnostics are now initialized in ucx_mod.F. The UCX diagnostics
+    ! currently only include the PSC state, which is written into the HEMCO
+    ! restart file for now. Initialize this outside this module to make sure
+    ! that this field is also diagnosed if we are not using the DEVEL compiler
+    ! switch (ckeller, 3/25/2015). 
+!    ! UCX diagnostics
+!    IF ( Input_Opt%LUCX ) THEN
+!       CALL DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
+!       IF ( RC /= GIGC_SUCCESS ) THEN
+!          CALL ERROR_STOP( 'Error in DIAGINIT_UCX', LOC ) 
+!       ENDIF
+!    ENDIF
 
     ! Convective scavenging loss (ND38)
     CALL DIAGINIT_CONV_LOSS( am_I_Root, Input_Opt, State_Met, RC )

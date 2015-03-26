@@ -1933,6 +1933,7 @@ CONTAINS
 !                              data from the settings in input.geos
 !  16 Mar 2015 - R. Yantosca - Now also toggle TOMS_SBUV_O3 based on
 !                              met field type and input.geos settings
+!  25 Mar 2015 - C. Keller   - Added switch for STATE_PSC (for UCX)
 !EOP
 !------------------------------------------------------------------------------
 
@@ -2013,7 +2014,35 @@ CONTAINS
     ENDIF 
 
     !-----------------------------------------------------------------------
-    ! NON-EMISSIONS DATA #2: GMI linear stratospheric chemistry
+    ! NON-EMISSIONS DATA #2: PSC STATE (for UCX) 
+    !-----------------------------------------------------------------------
+    CALL GetExtOpt( -999, '+STATE_PSC+', OptValBool=LTMP, &
+                           FOUND=FOUND,     RC=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'GetExtOpt +STATE_PSC+', LOC )
+    ENDIF
+    IF ( FOUND ) THEN
+       IF ( Input_Opt%LUCX /= LTMP ) THEN
+          WRITE(*,*) ' '
+          WRITE(*,*) 'Setting +STATE_PSC+ in the HEMCO configuration'
+          WRITE(*,*) 'file does not agree with stratospheric chemistry'
+          WRITE(*,*) 'settings in input.geos. This may be inefficient' 
+          WRITE(*,*) 'and/or yield to wrong results!' 
+       ENDIF
+    ELSE
+       IF ( Input_Opt%LUCX ) THEN
+          OptName = '+STATE_PSC+ : true'
+       ELSE
+          OptName = '+STATE_PSC+ : false'
+       ENDIF
+       CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'AddExtOpt +STATE_PSC+', LOC )
+       ENDIF
+    ENDIF 
+
+    !-----------------------------------------------------------------------
+    ! NON-EMISSIONS DATA #3: GMI linear stratospheric chemistry
     !
     ! Set stratospheric chemistry toggle according to options in the
     ! input.geos file.  This will enable/disable all fields in the HEMCO 

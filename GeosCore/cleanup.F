@@ -234,6 +234,7 @@
 !  11 Mar 2015 - R. Yantosca - Remove call to CLEANUP_GLOBAL_OH
 !  11 Mar 2015 - R. Yantosca - Remove call to CLEANUP_GLOBAL_NOX
 !  16 Mar 2015 - R. Yantosca - Remove call to CLEANUP_HCN_CH3CN
+!  25 Mar 2015 - C. Keller   - Now cleanup UCX before emissisions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,17 +246,20 @@
       WRITE( 6, 100 ) 
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
+      ! UCX needs to be cleaned up before emissions, because the UCX 
+      ! restart variables needs to be passed to the HEMCO diagnostics
+      ! first.
+      CALL CLEANUP_UCX( am_I_Root )
+
 #if defined( DEVEL )
       ! Cleanup the new netCDF diagnostics structure
       CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
 #endif
 
-      ! Cleanup HEMCO 
-!#if !defined(ESMF_) 
+      ! Cleanup HEMCO
       IF ( Input_Opt%LEMIS ) THEN
          CALL EMISSIONS_FINAL ( am_I_Root )
       ENDIF
-!#endif
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()
@@ -300,13 +304,11 @@
       CALL CLEANUP_TRANSPORT()
 #endif
       CALL CLEANUP_TOMS()
-      CALL CLEANUP_UCX()
       CALL CLEANUP_WETSCAV()
 
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN()  ! Cleanup arrays for APM wet scavenging
 #endif
-
 
 #if   defined( TOMAS )
       CALL CLEANUP_TOMAS()
