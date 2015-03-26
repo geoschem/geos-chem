@@ -302,6 +302,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -407,7 +408,8 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+
+         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
       ENDDO
       ENDDO
       ENDDO
@@ -495,7 +497,7 @@
          DO I = 1, IIPAR
 
             ! Air mass [kg] after transport
-            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
+            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J), State_Met )
          
             ! Tracer mass [kg] after transport
             TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
@@ -607,6 +609,7 @@
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !  04 Sep 2014 - R. Yantosca - Avoid div-by-zero errors in division w/ SUMADA
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -718,7 +721,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
       ENDDO
       ENDDO
       ENDDO
@@ -806,7 +809,7 @@
          DO I = 1, IIPAR
 
             ! Air mass [kg] after transport
-            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
+            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J), State_Met )
          
             ! Tracer mass [kg] after transport
             TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
@@ -920,6 +923,7 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1030,7 +1034,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
       ENDDO
       ENDDO
       ENDDO
@@ -1285,7 +1289,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
       ENDDO
       ENDDO
       ENDDO
@@ -1376,22 +1380,26 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_AIR_MASS( I, J, L, P_SURF ) RESULT( AIR_MASS )
+      FUNCTION GET_AIR_MASS( I, J, L, P_SURF, State_Met ) 
+     &                       RESULT( AIR_MASS )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_GCTM_MOD               ! g0_100
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: I, J, L   ! GEOS-Chem lon, lat, level indices
       REAL(fp),  INTENT(IN) :: P_SURF    ! Surface pressure [hPa] at (I,J,L=1)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
 ! 
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - R. Yantosca - Initial version
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  26 Mar 2015 - E. Lundgren - Calculate dry rather than moist air mass
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1413,6 +1421,7 @@
       P_BOT    = Ap(L2)   + ( Bp(L2)   * P_SURF )
       P_TOP    = Ap(L2-1) + ( Bp(L2-1) * P_SURF )
       AIR_MASS = ( P_BOT - P_TOP ) * G0_100 * A_M2(J)
+     &             * State_Met%AIRDEN(I,J,L) / State_Met%MAIRDEN(I,J,L)
 
       END FUNCTION GET_AIR_MASS
 !EOC
