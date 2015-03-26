@@ -5382,8 +5382,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
-!                              Remove dependency on pressure_mod.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
+!                              remove dependency on pressure_mod.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5510,7 +5510,7 @@
 
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
          TEMP    = State_Met%T(I,J,L)
-         PRES    = State_Met%PMID_DRY(i,j,l)*100.0 ! in Pa
+         PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
 
          PDBUG = .FALSE.
 !temp debug
