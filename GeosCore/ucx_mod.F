@@ -3384,7 +3384,7 @@
       REAL(fp)             :: GF_PP,GF_PVAP,GF_DIFF
 
       INTEGER            :: I, J, L
-      REAL(fp)             :: PCENTER, PCENTER_P, TCENTER, H2SO4SUM, 
+      REAL(fp)             :: PCENTER, PCENTER_P, TCENTER, H2SO4SUM 
       REAL(fp)             :: INVAIR
 
       ! Local variables for quantities from Input_Opt
