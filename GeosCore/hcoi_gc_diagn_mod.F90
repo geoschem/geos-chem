@@ -233,7 +233,7 @@ CONTAINS
 
     ! This is for testing only. Only activate if needed.
     !IF ( .TRUE. ) THEN     ! Activated
-    IF ( .TRUE. ) THEN     ! Deactivated
+    IF ( .FALSE. ) THEN     ! Deactivated
 
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 
