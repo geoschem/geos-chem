@@ -180,7 +180,7 @@ CONTAINS
     REAL*8                 :: BR2_NR, SALT_NR 
 
     ! Error handling
-    LOGICAL                :: verbose, ERR
+    LOGICAL                :: ERR
 
     !=================================================================
     ! HCOX_SeaSalt_Run begins here!
@@ -192,9 +192,6 @@ CONTAINS
     ! Enter 
     CALL HCO_ENTER ( 'HCOX_SeaSalt_Run (hcox_seasalt_mod.F90)', RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Verbose?
-    verbose = am_I_Root .AND. HCO_VERBOSE_CHECK() 
 
     ! Exit status
     ERR = .FALSE.

@@ -1,4 +1,3 @@
-! $Id: hcn_ch3cn_mod.f,v 1.2 2010/03/15 19:33:23 ccarouge Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
@@ -80,6 +79,7 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  11 Mar 2015 - R. Yantosca - Now get OH from the HEMCO list
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -97,7 +97,6 @@
       ! ... except these routines
       PUBLIC :: CHEM_HCN_CH3CN
       PUBLIC :: CLEANUP_HCN_CH3CN
-!      PUBLIC :: EMISS_HCN_CH3CN
       PUBLIC :: INIT_HCN_CH3CN
 
       !=================================================================
@@ -105,27 +104,31 @@
       !=================================================================
 
       ! Scalars
-      REAL(fp),  PARAMETER   :: MAIR         = 28.96e-3_fp           ! kg/mol
-      REAL(fp),  PARAMETER   :: MHCN         = 27e-3_fp              ! kg/mol
-      REAL(fp),  PARAMETER   :: MCH3CN       = 41e-3_fp              ! kg/mol
-      REAL(fp),  PARAMETER   :: XNUMOL_AIR   = 6.022e+23_fp / MAIR    ! molec/kg
-      REAL(fp),  PARAMETER   :: XNUMOL_HCN   = 6.022e+23_fp / MHCN    ! molec/kg
-      REAL(fp),  PARAMETER   :: XNUMOL_CH3CN = 6.022e+23_fp / MCH3CN  ! molec/kg
+      REAL(fp), PARAMETER   :: MAIR         = 28.96e-3_fp           ! kg/mol
+      REAL(fp), PARAMETER   :: MHCN         = 27e-3_fp              ! kg/mol
+      REAL(fp), PARAMETER   :: MCH3CN       = 41e-3_fp              ! kg/mol
+      REAL(fp), PARAMETER   :: XNUMOL_AIR   = 6.022e+23_fp / MAIR    ! molec/kg
+      REAL(fp), PARAMETER   :: XNUMOL_HCN   = 6.022e+23_fp / MHCN    ! molec/kg
+      REAL(fp), PARAMETER   :: XNUMOL_CH3CN = 6.022e+23_fp / MCH3CN  ! molec/kg
 
       ! Allocatable arrays
-      INTEGER, ALLOCATABLE :: HCN_REG_bb(:,:)
-      INTEGER, ALLOCATABLE :: HCN_REG_df(:,:)
-      INTEGER, ALLOCATABLE :: CH3CN_REG_bb(:,:)
-      INTEGER, ALLOCATABLE :: CH3CN_REG_df(:,:)
-      REAL(fp),  ALLOCATABLE :: EMIS_CO_df(:,:)
+      INTEGER,  ALLOCATABLE :: HCN_REG_bb(:,:)
+      INTEGER,  ALLOCATABLE :: HCN_REG_df(:,:)
+      INTEGER,  ALLOCATABLE :: CH3CN_REG_bb(:,:)
+      INTEGER,  ALLOCATABLE :: CH3CN_REG_df(:,:)
+      REAL(fp), ALLOCATABLE :: EMIS_CO_df(:,:)
 
       ! Fixed-size arrays
-      INTEGER              :: HCN_INDEX(5)
-      INTEGER              :: CH3CN_INDEX(5)
-      REAL(fp)               :: SCNR89(3,3)
-      REAL(fp)               :: TODH(6)
-      REAL(fp)               :: TODN(6)
-      REAL(fp)               :: TODB(6)
+      INTEGER               :: HCN_INDEX(5)
+      INTEGER               :: CH3CN_INDEX(5)
+      REAL(fp)              :: SCNR89(3,3)
+      REAL(fp)              :: TODH(6)
+      REAL(fp)              :: TODN(6)
+      REAL(fp)              :: TODB(6)
+
+      ! Pointers to fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(f4), POINTER     :: OH(:,:,:)   => NULL()
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -270,241 +273,6 @@
 
 !------------------------------------------------------------------------------
 
-!      SUBROUTINE EMISS_HCN_CH3CN( am_I_Root, Input_Opt,
-!     &                            State_Met, State_Chm, RC )
-!!
-!!******************************************************************************
-!!  Subroutine EMISS_HCN_CH3CN reads in CO emissions and scale them to get
-!!  HCN/CH3CN emissions for the tagged HCN/CH3CN run. (bmy, 8/16/05, 9/27/06)
-!!
-!!  Arguments as Input:
-!!  ============================================================================
-!!  (1 ) N_TRACERS (INTEGER) : Number of tracers
-!!  (2 ) STT       (REAL(fp) ) : Tracer array [kg]
-!!
-!!  NOTES:
-!!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!  (2 ) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
-!!  (3 ) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
-!!        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
-!!  (4 ) IDBCO is now defined in TRACERID_MOD. (fp, 6/2009)
-!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!!  11 Apr 2014 - R. Yantosca - Remove call to INIT_HCN_CH3CN
-!!******************************************************************************
-!!
-!! !USES:
-!!
-!      USE CMN_DIAG_MOD
-!      USE CMN_SIZE_MOD
-!!      USE BIOMASS_MOD,   ONLY : BIOMASS!,         IDBCO
-!      USE TRACERID_MOD,  ONLY : IDBCO
-!!      USE GEIA_MOD,      ONLY : GET_DAY_INDEX,   GET_IHOUR
-!      USE GIGC_ErrCode_Mod
-!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE GIGC_State_Chm_Mod, ONLY : ChmState
-!      USE GIGC_State_Met_Mod, ONLY : MetState
-!      USE GRID_MOD,      ONLY : GET_AREA_CM2
-!      USE DIAG_MOD,      ONLY : AD09_em
-!      USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
-!      USE TIME_MOD,      ONLY : GET_MONTH,       GET_TS_CHEM,  GET_TAU 
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!!
-!! !LOCAL VARIABLES:
-!!
-!      LOGICAL, SAVE          :: FIRST = .TRUE.
-!      INTEGER                :: I,      J,      L,        N, NTAU
-!      INTEGER                :: IHOUR,  INDEX,  MONTH,    PBL_MAX 
-!      REAL(fp)                 :: ACM2,   E_CObb, E_COdf,   SFAC89 
-!      REAL(fp)                 :: HCN_bb, HCN_df, CH3CN_bb, CH3CN_df
-!      REAL(fp)                 :: DTSRCE, FRAC
-!
-!      ! Emission ratios for HCN/CH3CN from biomass burning 
-!      ! and domestic fossil fuel
-!      REAL(fp),  PARAMETER     :: EHCN_bb   = 0.27d-2
-!      REAL(fp),  PARAMETER     :: EHCN_df   = 1.60d-2
-!      REAL(fp),  PARAMETER     :: ECH3CN_bb = 0.20d-2
-!      REAL(fp),  PARAMETER     :: ECH3CN_df = 0.25d-2
-!
-!      ! For fields from Input_Opt
-!      LOGICAL                :: LSPLIT
-!
-!      ! Pointers
-!      ! We need to define local arrays to hold corresponding values 
-!      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-!      REAL(fp), POINTER :: STT(:,:,:,:)
-!
-!      !=================================================================
-!      ! EMISS_TAGGED_HCN_CH3CN begins here!
-!      !=================================================================
-!
-!      ! Assume success
-!      RC      = GIGC_SUCCESS
-!
-!      ! Copy values from Input_Opt
-!      LSPLIT  = Input_Opt%LSPLIT
-!
-!      ! DTSRCE is the number of seconds per emission timestep
-!      DTSRCE  = GET_TS_CHEM() * 60e+0_fp
-!
-!      ! Get the highest extent of the PBL [levels]
-!      PBL_MAX = GET_PBL_MAX_L()
-!
-!      ! Get the current month
-!      MONTH   = GET_MONTH()
-!
-!      ! Current TAU value (integer)
-!      NTAU    = GET_TAU()
-!
-!      !=================================================================
-!      ! Process biomass burning/domestic fossil fuel HCN/CH3CN emissions
-!      !=================================================================
-!
-!      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-!      ! (mpayer, 12/6/12)
-!      STT => State_Chm%Tracers
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,     J, ACM2, E_CObb, INDEX,  SFAC89,   E_COdf   )
-!!$OMP+PRIVATE( IHOUR, N, L,    HCN_bb, HCN_df, CH3CN_bb, CH3CN_df )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Grid area in [cm2]
-!         ACM2 = GET_AREA_CM2( I, J, 1 )
-!
-!         !-----------------------------------------------------------------
-!         ! (1) Process biomass burning HCN/CH3CN emissions
-!         !-----------------------------------------------------------------
-!
-!         ! Get CO biomass burning [molec CO/cm2/s]
-!         E_CObb = BIOMASS(I,J,IDBCO)
-!
-!         ! ND09: biomass burning HCN/CH3CN emissions [molec/cm2/s]
-!         IF ( ND09 > 0 ) THEN
-!            AD09_em(I,J,1) = AD09_em(I,J,1) + ( EHCN_bb   * E_CObb )
-!            AD09_em(I,J,2) = AD09_em(I,J,2) + ( ECH3CN_bb * E_CObb )
-!         ENDIF
-!
-!         ! Convert [molec CO/cm2/s] to [mole/grid box]: 1/6.022d23 = 1.66d-24
-!         E_CObb = E_CObb * 1.66d-24 * ACM2 * DTSRCE
-!
-!         !-----------------------------------------------------------------
-!         ! (2) Process domestic fossil fuel HCN/CH3CN emissions
-!         !-----------------------------------------------------------------
-!
-!         ! SFAC89 is the Weekday/Saturday/Sunday scale factor
-!         INDEX     = GET_DAY_INDEX( NTAU )
-!         SFAC89    = SCNR89( 2, INDEX ) 
-!
-!         ! E_COdf is DF CO emissions in [molec CO/cm2/s]
-!         ! Scale E_COdf by the day-of-week scale factor SFAC89
-!         E_COdf    = EMIS_CO_df(I,J) * SFAC89
-!
-!         ! Scale E_COdf by the time-of-day scale factor TODH
-!         ! IHOUR is the index for the time-of-day scale factor TODH
-!         IHOUR     = GET_IHOUR( I )
-!         E_COdf    = E_COdf * TODH(IHOUR)
-!
-!         ! Enhance E_COdf by 18.5% to account for oxidation 
-!         ! from anthropogenic VOC's (bnd, bmy, 6/8/01)
-!         E_COdf    = E_COdf * 1.185e+0_fp
-!            
-!         ! Get HCN domestic fossil fuel region # (either =5 or =6)
-!         N         = HCN_REG_df(I,J)
-!
-!         ! To achieve the best fit to the observed HCN-CH3CN-CO correlations 
-!         ! in the boundary layer, we have to double the residential coal 
-!         ! burning source from Asia. This leads us to reduce the residential 
-!         ! coal burning source from the rest of the world by a factor of eight
-!         ! to achieve a best fit to the observed vertical distributions of HCN
-!         ! and CH3CN. [According to Li et al 2003.] (xyp, 6/22/05)
-!         IF ( N == 5 ) THEN
-!            E_COdf = E_COdf * 2.1e+0_fp   ! Asian domestic fossil fuel
-!         ELSE
-!            E_COdf = E_COdf / 8.0e+0_fp   ! Elsewhere domestic fossil fuel
-!         ENDIF
-!
-!         ! ND09: domestic fossil fuel HCN/CH3CN emissions [molec/cm2/s]
-!         IF ( ND09 > 0 ) THEN
-!            AD09_em(I,J,3) = AD09_em(I,J,3) + ( EHCN_df   * E_COdf )
-!            AD09_em(I,J,4) = AD09_em(I,J,4) + ( ECH3CN_df * E_COdf )
-!         ENDIF
-!
-!         ! Convert [molec CO/cm2/s] to [mole/grid box]: 1/6.022d23 = 1.66d-24
-!         E_COdf    = E_COdf * 1.66d-24 * ACM2 * DTSRCE       
-!
-!         !-----------------------------------------------------------------
-!         ! (3) Partition emissions throughout the boundary layer
-!         !-----------------------------------------------------------------
-!
-!         ! Loop up to the highest PBL level
-!         DO L = 1, PBL_MAX
-!            
-!            ! Fraction of the PBL occupied by this layer
-!            FRAC            = GET_FRAC_OF_PBL( I, J, L )
-!
-!            ! HCN biomass and domestic fossil fuel emissions
-!            HCN_bb          = FRAC * MHCN * EHCN_bb * E_CObb
-!            HCN_df          = FRAC * MHCN * EHCN_df * E_COdf
-!
-!            ! CH3CN biomass and domestic fossil fuel emissions
-!            CH3CN_bb        = FRAC * MCH3CN * ECH3CN_bb * E_CObb
-!            CH3CN_df        = FRAC * MCH3CN * ECH3CN_df * E_COdf
-!
-!            ! Add total HCN emissions (BB+DF) into STT
-!            STT(I,J,L,1)    = STT(I,J,L,1) + ( HCN_bb   + HCN_df  )
-!
-!            ! Add total CH3CN emissions (BB+DF) into STT
-!            STT(I,J,L,2)    = STT(I,J,L,2) + ( CH3CN_bb + CH3CN_df )
-!
-!            ! If we are using tagged tracers ...
-!            IF ( LSPLIT ) THEN
-!               
-!               ! Add emissions into tagged HCN biomass tracers
-!               N            = HCN_REG_bb(I,J)
-!               STT(I,J,L,N) = STT(I,J,L,N) + HCN_bb
-!
-!               ! Add emissions into tagged HCN dom. fossil tracers
-!               N            = HCN_REG_df(I,J)
-!               STT(I,J,L,N) = STT(I,J,L,N) + HCN_df
-!
-!               ! Add emissions into tagged CH3CN biomass tracers
-!               N            = CH3CN_REG_bb(I,J)
-!               STT(I,J,L,N) = STT(I,J,L,N) + CH3CN_bb
-!
-!               ! Add emissions into tagged CH3CN dom. fossil tracers
-!               N            = CH3CN_REG_df(I,J)
-!               STT(I,J,L,N) = STT(I,J,L,N) + CH3CN_df
-!
-!            ENDIF
-!         ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!      ! Free pointer
-!      NULLIFY( STT )
-!
-!      ! Return to calling program
-!      END SUBROUTINE EMISS_HCN_CH3CN
-
-!------------------------------------------------------------------------------
-
       SUBROUTINE CHEM_HCN_CH3CN( am_I_Root, Input_Opt,
      &                           State_Met, State_Chm, RC )
 !
@@ -532,11 +300,12 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD09, AD09_em
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : OH, GET_GLOBAL_OH
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
@@ -587,7 +356,9 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER        :: STT(:,:,:,:)
 
-     
+      ! Strings
+      CHARACTER(LEN=255) :: LOC = 'CHEM_HCN_CH3CN (hcn_ch3cn_mod.F)'
+
       !=================================================================
       ! CHEM_HCN_CH3CN begins here! 
       !=================================================================
@@ -595,11 +366,12 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Read offline OH fields once per month
+      ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
       IF ( ITS_A_NEW_MONTH() ) THEN 
-         CALL GET_GLOBAL_OH( am_I_Root, Input_Opt, 
-     &                       State_Met, GET_MONTH(), RC )
-
+         CALL HCO_GetPtr( am_I_Root, 'GLOBAL_OH', OH,   RC )
+         IF ( RC /= GIGC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+         ENDIF
       ENDIF
      
       ! Compute number of tracers to process
@@ -852,62 +624,6 @@
 
 !------------------------------------------------------------------------------
 
-!      SUBROUTINE READ_EMISSIONS
-!!
-!!******************************************************************************
-!!  Subroutine READ_EMISSIONS reads the domestic fossil fuel emissions from
-!!  disk. (bmy, 6/29/05, 10/3/05)
-!!
-!!  Arguments as Output:
-!!  ============================================================================
-!!  (1 ) E_CO   (REAL*4) : GEIA anthro CO   (no seasonality, 1 level )
-!!
-!!  NOTES:
-!!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!!******************************************************************************
-!!
-!      ! References to F90 modules
-!      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-!      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-!      USE DIRECTORY_MOD, ONLY : DATA_DIR
-!      USE GEIA_MOD,      ONLY : READ_TODX
-!      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-!
-!      USE CMN_SIZE_MOD   ! Size parameters
-!
-!      ! Local variables
-!      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-!      CHARACTER(LEN=255)  :: FILENAME
-!
-!      !=================================================================
-!      ! READ_EMISSIONS begins here!
-!      !=================================================================
-!
-!      ! Define the binary punch file name
-!      FILENAME = TRIM( DATA_DIR )                         //
-!     &           'HCN_200507/domfos_CO_for_TRACEP.'       // 
-!     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
-!      
-!      ! Write file name to stdout
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-! 100  FORMAT( 'READ_EMISSIONS: Reading ', a )
-!
-!      ! Read time-of-day and day-of-week scale factors for GEIA emissions
-!      CALL READ_TODX( TODN, TODH, TODB, SCNR89 )
-!
-!      ! Read CO (tracer #4): aseasonal
-!      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    4,  
-!     &                 0e+0_fp,       IIPAR,        JJPAR,     
-!     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-!
-!      ! Cast to REAL(fp) and resize if necessary
-!      CALL TRANSFER_2D( ARRAY(:,:,1), EMIS_CO_df )
-!
-!      ! Return to calling program
-!      END SUBROUTINE READ_EMISSIONS
-
-!------------------------------------------------------------------------------
-
       SUBROUTINE INIT_HCN_CH3CN( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
@@ -994,6 +710,9 @@
       IF ( ALLOCATED( CH3CN_REG_bb  ) ) DEALLOCATE( CH3CN_REG_bb )
       IF ( ALLOCATED( CH3CN_REG_df  ) ) DEALLOCATE( CH3CN_REG_df )
       IF ( ALLOCATED( EMIS_CO_df    ) ) DEALLOCATE( EMIS_CO_df   )
+
+      ! Free the OH pointer
+      OH => NULL()
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_HCN_CH3CN

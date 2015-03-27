@@ -1128,12 +1128,6 @@
       NMONTHS_LINOZ  = Input_Opt%LINOZ_NMONTHS
 
       ! Filename
-!-----------------------------------------------------------------------------
-! Prior to 3/5/15:
-! Now reference the Linoz data from the CHEM_INPUTS directory (bmy, 3/5/15)
-!      FILENAME       = TRIM( Input_Opt%DATA_DIR_1x1 ) //
-!     &                 'Linoz_200910/Linoz_March2007.dat'
-!-----------------------------------------------------------------------------
       FILENAME       = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
      &                 'Linoz_200910/Linoz_March2007.dat'
 

@@ -5336,7 +5336,10 @@
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
-      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+      USE HCO_ERROR_MOD
+      USE HCO_RESTART_MOD,    ONLY : HCO_RestartGet
+      USE HCO_STATE_MOD,      ONLY : HCO_State
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5349,6 +5352,7 @@
 !  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
 !  14 Jan 2015 - C. Keller     - Now read from HEMCO
 !   4 Mar 2015 - R. Yantosca   - Declare pointer args to HCO_GetPtr w/ REAL(f4)
+!  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5357,34 +5361,32 @@
 !     
       ! Scalars
       LOGICAL            :: IT_EXISTS 
-      LOGICAL            :: LPRT
       INTEGER            :: RC
 
       ! Strings
       CHARACTER(LEN=255) :: MSG
-      CHARACTER(LEN=255) :: cName 
- 
-      ! Pointer to fields in the HEMCO data structure.
-      ! Declare this with REAL(f4), aka REAL*4. (bmy, 3/4/15)
-      REAL(f4), POINTER  :: Ptr3D(:,:,:) => NULL()
+     
+      ! Pointer to HEMCO state obj.
+      TYPE(HCO_State), POINTER  :: HcoState => NULL()
 
       !=================================================================
       ! READ_PSC_FILE begins here!
       !=================================================================
 
-      ! Now read restart file through HEMCO
-      cName = 'STATE_PSC'
-      CALL HCO_GetPtr( am_I_Root, TRIM(cName), Ptr3D, RC, 
-     &                 FOUND=IT_EXISTS )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         MSG = 'Cannot read PSC initial state: '//TRIM(cName)
+      ! Get HEMCO state obj.
+      CALL GetHcoState( HcoState )
+
+      ! Get restart variable
+      CALL HCO_RestartGet( am_I_Root, HcoState, 
+     &                     'STATE_PSC', STATE_PSC, RC, FOUND=IT_EXISTS )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         MSG = 'Cannot get PSC restart variable'
          CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
       ENDIF
 
       ! If restart exists, point to this field. Eventually deallocate
       ! pointer first.
       IF ( IT_EXISTS ) THEN
-         STATE_PSC(:,:,:) = Ptr3D(:,:,:)
          IF (am_I_Root ) THEN
             WRITE(6,*) '    - UCX: Initialize PSC from restart' 
          ENDIF
@@ -5396,12 +5398,10 @@
       ENDIF
 
       ! Cleanup
-      Ptr3D => NULL()
+      HcoState => NULL()
 
       ! Update flag
       GOT_STATE_PSC = .TRUE.
-
-      IF ( LPRT ) CALL DEBUG_MSG( '### READ_PSC_FILE: read file' )
 
       END SUBROUTINE READ_PSC_FILE
 !EOC
@@ -6515,6 +6515,9 @@
       LOGICAL :: LSETN2O
 !      LOGICAL :: LBASICEMIS
 
+      ! Return code
+      INTEGER :: RC
+
       !=================================================================
       ! INIT_UCX begins here!
       !=================================================================
@@ -6577,18 +6580,6 @@
          CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
        RETURN
 #endif
-!------------------------------------------------------------------------------
-! Prior to 3/5/15:
-!         WRITE( AVG_FILE_ROOT,'(a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1),
-!     &      'UCX_201403/Init2D/DiurnalAvg.nc'
-!         WRITE( NOON_FILE_ROOT,'(a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1), 
-!     &        'UCX_201403/Init2D/Noontime.nc'
-!         WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1), 
-!     &        'UCX_201403/Init1D/Montreal.nc'
-!------------------------------------------------------------------------------
          WRITE( AVG_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
      &      'UCX_201403/Init2D/DiurnalAvg.nc'
@@ -6610,18 +6601,6 @@
 #else
          GRIDSPEC = 'Grid2x25/InitCFC_'
 #endif
-!------------------------------------------------------------------------------
-! Prior to 3/5/15:
-!         WRITE( AVG_FILE_ROOT,'(a,a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1),
-!     &      'UCX_201403/DiurnalAvg/', TRIM(GRIDSPEC)
-!         WRITE(   NOON_FILE_ROOT,'(a,a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1), 
-!     &        'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
-!         WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
-!     &        TRIM(Input_Opt%DATA_DIR_1x1), 
-!     &      'UCX_201403/Montreal/'
-!------------------------------------------------------------------------------
          WRITE( AVG_FILE_ROOT,'(a,a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
      &      'UCX_201403/DiurnalAvg/', TRIM(GRIDSPEC)
@@ -6943,6 +6922,9 @@
          CALL NOXCOEFF_INIT( am_I_Root, Input_Opt ) 
       ENDIF
 
+      ! Initialize diagnostics
+      CALL DIAGINIT_UCX ( am_I_Root, Input_Opt, RC )
+
       END SUBROUTINE INIT_UCX
 !EOC
 !------------------------------------------------------------------------------
@@ -6964,51 +6946,43 @@
 !
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_RESTART_MOD,    ONLY : HCO_RestartDefine
+      USE HCO_STATE_MOD,      ONLY : HCO_STATE
+      USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState
       USE HCO_ERROR_MOD
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  14 Jan 2015 - C. Keller     - Initial version
+!  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      INTEGER            :: N
-      CHARACTER(LEN= 63) :: DiagnName 
-      CHARACTER(LEN=255) :: MSG
-      CHARACTER(LEN=255) :: LOC = 'DIAGINIT_DRYDEP (drydep_mod.F)' 
+      TYPE(HCO_State), POINTER :: HcoState => NULL()
+      CHARACTER(LEN=255)       :: MSG
+      CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_UCX (ucx_mod.F)' 
 
       !=================================================================
       ! DIAGINIT_UCX begins here!
       !=================================================================
-      
-      ! Add diagnostics
-      DiagnName = 'STATE_PSC'
-      CALL Diagn_Create ( am_I_Root, 
-     &                    cName     = TRIM(DiagnName), 
-     &                    ExtNr     = -1, 
-     &                    Cat       = -1, 
-     &                    Hier      = -1, 
-     &                    HcoID     = -1, 
-     &                    SpaceDim  =  3, 
-     &                    AutoFill  =  0, 
-     &                    OutUnit   = 'count',
-     &                    OutOper   = 'Instantaneous',
-     &                    Trgt3D    = STATE_PSC,
-     &                    WriteFreq = 'End',
-     &                    RC        = RC,
-     &                    COL       = Input_Opt%DIAG_COLLECTION )
+
+      ! Define restart quantity    
+      CALL GetHcoState( HcoState ) 
+      CALL HCO_RestartDefine ( am_I_Root, HcoState, 
+     &                       'STATE_PSC', STATE_PSC, 'count', RC )
+      HcoState => NULL() 
+
       IF ( RC /= HCO_SUCCESS ) THEN
-         MSG = 'Cannot created diagnostics: ' // TRIM(DiagnName)
+         MSG = 'Cannot define STATE_PSC restart'
          CALL ERROR_STOP ( MSG, LOC ) 
       ENDIF
 
@@ -7029,19 +7003,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_UCX
+      SUBROUTINE CLEANUP_UCX ( am_I_Root )
+!
+! !USES:
+!
+      USE HCO_RESTART_MOD,  ONLY : HCO_RestartWrite
+      USE HCO_STATE_MOD,    ONLY : HCO_STATE
+      USE HCOI_GC_MAIN_MOD, ONLY : GetHcoState
+! 
+! !INPUT ARGUMENTS:
+!
+      LOGICAL, INTENT(IN)     :: am_I_Root
 !
 ! !REVISION HISTORY: 
 !  04 Apr 2013 - S. D. Eastham - Initial version
 !  13 Apr 2013 - S. D. Eastham - Added PSC arrays
+!  25 Mar 2015 - C. Keller     - Now call HCO_RestartWrite. This is only 
+!                                of relevance in an ESMF environment.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      INTEGER :: N
+      TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
+      INTEGER                   :: RC, N
 
       !=================================================================
       ! CLEANUP_UCX begins here!
       !=================================================================
+
+      ! Eventually write PSC_STATE to restart. 
+      CALL GetHcoState ( HcoState )
+      CALL HCO_RestartWrite( am_I_Root, HcoState, 
+     &                       'STATE_PSC', STATE_PSC, RC )
+      HcoState => NULL()
 
       IF ( ALLOCATED( GRID_EMIT  ) ) DEALLOCATE( GRID_EMIT  )
       IF ( ALLOCATED( RAD_AER    ) ) DEALLOCATE( RAD_AER    )

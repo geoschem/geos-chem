@@ -674,11 +674,6 @@ CONTAINS
     !======================================================================
 
     ! Construct file path from directory & file name
-!------------------------------------------------------------------------------
-! Prior to 3/5/15:
-! Now read data w/r/t ExtData/CHEM_INPUTS path (bmy, 3/5/15)
-!    nc_dir  = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
-!------------------------------------------------------------------------------
     nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'Olson_Land_Map_201203/'
     nc_path = TRIM( nc_dir )                    // TRIM( nc_file )
 

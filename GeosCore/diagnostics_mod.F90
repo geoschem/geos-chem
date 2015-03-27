@@ -18,7 +18,12 @@ MODULE Diagnostics_Mod
   USE Precision_Mod
   USE HCO_Error_Mod
   USE HCO_Diagn_Mod
- 
+  USE GIGC_ErrCode_Mod
+  USE Error_Mod,          ONLY : Error_Stop
+  USE GIGC_Input_Opt_Mod, ONLY : OptInput
+  USE GIGC_State_Met_Mod, ONLY : MetState
+  USE GIGC_State_Chm_Mod, ONLY : ChmState
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -31,6 +36,8 @@ MODULE Diagnostics_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: DiagInit_Drydep
+  PRIVATE :: DiagInit_Conv_Loss
+  PRIVATE :: DiagInit_Wetdep_Loss
   PRIVATE :: DiagInit_Tracer_Conc
   PRIVATE :: DiagInit_Tracer_Emis
   PRIVATE :: DiagInit_GridBox
@@ -68,14 +75,9 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GRID_MOD,           ONLY : AREA_M2
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE UCX_MOD,            ONLY : DIAGINIT_UCX
+!    USE UCX_MOD,            ONLY : DIAGINIT_UCX
 !
 ! !INPUT PARAMETERS:
 !
@@ -93,6 +95,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  09 Jan 2015 - C. Keller   - Initial version 
+!  25 Mar 2015 - C. Keller   - Moved UCX initialization to UCX_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,12 +143,29 @@ CONTAINS
     ! we may want to add more (i.e. hourly, instantaneous, monthly, etc.)
     !-----------------------------------------------------------------------
 
-    ! UCX diagnostics
-    IF ( Input_Opt%LUCX ) THEN
-       CALL DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
-       IF ( RC /= GIGC_SUCCESS ) THEN
-          CALL ERROR_STOP( 'Error in DIAGINIT_UCX', LOC ) 
-       ENDIF
+    ! UCX diagnostics are now initialized in ucx_mod.F. The UCX diagnostics
+    ! currently only include the PSC state, which is written into the HEMCO
+    ! restart file for now. Initialize this outside this module to make sure
+    ! that this field is also diagnosed if we are not using the DEVEL compiler
+    ! switch (ckeller, 3/25/2015). 
+!    ! UCX diagnostics
+!    IF ( Input_Opt%LUCX ) THEN
+!       CALL DIAGINIT_UCX( am_I_Root, Input_Opt, RC )
+!       IF ( RC /= GIGC_SUCCESS ) THEN
+!          CALL ERROR_STOP( 'Error in DIAGINIT_UCX', LOC ) 
+!       ENDIF
+!    ENDIF
+
+    ! Convective scavenging loss (ND38)
+    CALL DIAGINIT_CONV_LOSS( am_I_Root, Input_Opt, State_Met, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_CONV_LOSS', LOC ) 
+    ENDIF
+
+    ! Wetdeposition scavenging loss (ND39)
+    CALL DIAGINIT_WETDEP_LOSS( am_I_Root, Input_Opt, State_Met, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       CALL ERROR_STOP( 'Error in DIAGINIT_WETDEP_LOSS', LOC ) 
     ENDIF
 
     ! Drydep diagnostic (ND44)
@@ -198,9 +218,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_STATE_MOD,      ONLY : HCO_STATE
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoState, SetHcoTime
     USE HCOIO_Diagn_Mod,    ONLY : HCOIO_Diagn_WriteOut
@@ -239,6 +256,14 @@ CONTAINS
     CALL GetHcoState( HcoState )
     IF ( .NOT. ASSOCIATED(HcoState) ) THEN
        CALL ERROR_STOP( 'Cannot get HEMCO state object', LOC )
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Eventually write out emission totals to GEOS-Chem logfile
+    !-----------------------------------------------------------------------
+    CALL TotalsToLogfile( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN 
+       CALL ERROR_STOP ('Error in TotalsToLogfile', LOC ) 
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -300,8 +325,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -344,11 +367,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_DIAGN_MOD,      ONLY : Diagn_Create
-    USE HCO_ERROR_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -476,11 +494,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Error_Mod,          ONLY : Error_Stop
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE HCO_Error_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -577,12 +590,6 @@ CONTAINS
 ! !USES:
 !
     USE TRACER_MOD,         ONLY : XNUMOLAIR
-    USE Error_Mod,          ONLY : Error_Stop
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
-    USE HCO_Error_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -693,13 +700,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_ErrCode_Mod
-    USE HCO_Error_Mod
-    USE Error_Mod,          ONLY : Error_Stop
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Met_Mod, ONLY : MetState
     USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
-    USE HCO_Diagn_Mod,      ONLY : Diagn_Create
     USE TRACERID_MOD
 !
 ! !INPUT PARAMETERS:
@@ -771,7 +772,7 @@ CONTAINS
        IF ( ID > 0 ) THEN 
 
           !----------------------------------------------------------------
-          ! Create container for emission flux (m/s) 
+          ! Create container for emission flux (kg/s) 
           !----------------------------------------------------------------
 
           ! Diagnostic name
@@ -792,7 +793,7 @@ CONTAINS
                              HcoID     = ID,                &
                              SpaceDim  =  3,                &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',         &
+                             OutUnit   = 'kg/s',            &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
                              RC        = RC                  )
@@ -805,6 +806,338 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE DiagInit_Tracer_Emis
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_conv_loss
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_CONV\_LOSS initializes the convective 
+!  scavenging loss diagnostic (aka ND38). For now, this is a 2D column 
+!  diagnostics, i.e. we only write out the loss due to convection of the
+!  entire column.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DIAGINIT_CONV_LOSS( am_I_Root, Input_Opt, State_Met, RC )
+!
+! !USES:
+!
+    USE WETSCAV_MOD,    ONLY : GET_WETDEP_NSOL, GET_WETDEP_IDWETD
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(MetState), INTENT(IN   ) :: State_Met  ! Met state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  20 Mar 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: N, NN, M
+    INTEGER            :: cId, Collection
+    CHARACTER(LEN=15)  :: OutOper, OutUnit, WriteFreq
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_CONV_LOSS (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_CONV_LOSS begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND39 diagnostic is turned off
+    IF ( Input_Opt%ND38 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    ! Use same output frequency and operations as for tracer concentrations.
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND38_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND38_OUTPUT_FREQ
+
+    ! Get number of soluble species
+    M = GET_WETDEP_NSOL()
+
+    ! Loop over # of species 
+    DO N = 1, M
+
+       ! Get GEOS-Chem tracer number
+       NN = GET_WETDEP_IDWETD( N )
+
+       ! Check if this is a species asked in input.geos
+       IF ( ANY( Input_Opt%TINDEX(38,:) == NN ) ) THEN
+
+          !----------------------------------------------------------------
+          ! Create container for convective loss (kg/s) 
+          !----------------------------------------------------------------
+
+          ! Diagnostic name
+          DiagnName = 'CONV_LOSS_' // TRIM( Input_Opt%TRACER_NAME(NN) )
+
+          ! Define diagnostics ID
+          cID = 38000 + NN
+
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             cID       = cID,               &
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  2,                & ! 2D for now!!
+                             LevIDx    = -1,                & ! sum over all vert. levels
+                             OutUnit   = 'kg/s',            &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             RC        = RC                  )
+
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO !N
+
+  END SUBROUTINE DIAGINIT_CONV_LOSS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diaginit_wetdep_loss
+!
+! !DESCRIPTION: Subroutine DIAGINIT\_WETDEP\_LOSS initializes the wet 
+!  deposition scavenging loss diagnostic (aka ND39).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DIAGINIT_WETDEP_LOSS( am_I_Root, Input_Opt, State_Met, RC )
+!
+! !USES:
+!
+    USE WETSCAV_MOD,    ONLY : GET_WETDEP_NSOL, GET_WETDEP_IDWETD
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(MetState), INTENT(IN   ) :: State_Met  ! Met state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  20 Mar 2015 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: N, NN, M
+    INTEGER            :: cId, Collection
+    CHARACTER(LEN=15)  :: OutOper, OutUnit, WriteFreq
+    CHARACTER(LEN=60)  :: DiagnName
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGINIT_WETDEP_LOSS (diagnostics_mod.F90)' 
+
+    !=======================================================================
+    ! DIAGINIT_WETDEP_LOSS begins here!
+    !=======================================================================
+      
+    ! Assume successful return
+    RC = GIGC_SUCCESS
+
+    ! Skip if ND39 diagnostic is turned off
+    IF ( Input_Opt%ND39 <= 0 ) RETURN
+
+    ! Get diagnostic parameters from the Input_Opt object
+    ! Use same output frequency and operations as for tracer concentrations.
+    Collection = Input_Opt%DIAG_COLLECTION
+    OutOper    = Input_Opt%ND39_OUTPUT_TYPE
+    WriteFreq  = Input_Opt%ND39_OUTPUT_FREQ
+
+    ! Get number of soluble species
+    M = GET_WETDEP_NSOL()
+
+    ! Loop over # of species 
+    DO N = 1, M 
+
+       ! Get GEOS-Chem tracer number
+       NN = GET_WETDEP_IDWETD( N )
+
+       ! Check if this is a species asked in input.geos
+       IF ( ANY( Input_Opt%TINDEX(39,:) == NN ) ) THEN
+
+          !----------------------------------------------------------------
+          ! Create container for wetdep loss (kg/s) 
+          !----------------------------------------------------------------
+
+          ! Diagnostic name
+          DiagnName = 'WETDEP_LOSS_' // TRIM( Input_Opt%TRACER_NAME(NN) )
+
+          ! Define diagnostics ID
+          cID = 39000 + NN
+
+          ! Create container
+          CALL Diagn_Create( am_I_Root,                     &
+                             Col       = Collection,        & 
+                             cID       = cID,               &
+                             cName     = TRIM( DiagnName ), &
+                             AutoFill  = 0,                 &
+                             ExtNr     = -1,                &
+                             Cat       = -1,                &
+                             Hier      = -1,                &
+                             HcoID     = -1,                &
+                             SpaceDim  =  2,                &
+                             LevIDx    = -1,                &
+                             OutUnit   = 'kg/s',            &
+                             OutOper   = TRIM( OutOper   ), &
+                             WriteFreq = TRIM( WriteFreq ), &
+                             RC        = RC                  )
+
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+             CALL ERROR_STOP( MSG, LOC ) 
+          ENDIF
+       ENDIF
+    ENDDO !N
+
+  END SUBROUTINE DIAGINIT_WETDEP_LOSS
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: TotalsToLogfile 
+!
+! !DESCRIPTION: Subroutine TotalsToLogfile is a helper routine to print the 
+! monthly emission totals to the GEOS-Chem logfile.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE TotalsToLogfile( am_I_Root, Input_Opt, RC ) 
+!
+! !USES:
+!
+    USE HCO_ERROR_MOD
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
+    USE HCOI_GC_MAIN_MOD,   ONLY : GetHcoID
+    USE HCO_DIAGN_MOD,      ONLY : Diagn_TotalGet
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input opts
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REVISION HISTORY: 
+!  15 Mar 2015 - C. Keller    - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER       :: I, cID, HCRC
+    INTEGER       :: YEAR, MONTH 
+    INTEGER, SAVE :: SAVEMONTH = -999
+    REAL(sp)      :: TOTAL
+    LOGICAL       :: FOUND
+
+    !=================================================================
+    ! TotalsToLogfile begins here!
+    !=================================================================
+
+    ! Assume success
+    RC = GIGC_SUCCESS
+
+    ! Don't do anything if not root
+    IF ( .NOT. Am_I_Root ) RETURN
+
+    ! Get this month
+    MONTH = GET_MONTH()
+
+    ! Print totals if it's a new month, but not on first call
+    IF ( (SAVEMONTH /= MONTH) .AND. (SAVEMONTH > 0) ) THEN 
+
+       ! Get year/month of previous month
+       YEAR = GET_YEAR()
+       IF ( MONTH == 1 ) THEN
+          YEAR  = YEAR -1
+          MONTH = 12
+       ELSE
+          MONTH = MONTH - 1
+       ENDIF
+
+       ! Print header
+       WRITE(6,*    ) ''
+       WRITE(6,'(a)') REPEAT( '-', 79 )
+       WRITE(6,100  ) MONTH, YEAR
+
+       ! Loop over all tracers
+       DO I = 1, Input_Opt%N_TRACERS
+
+          ! Only if it's a HEMCO species...
+          cID = GetHcoID( TrcID=I )
+          IF ( cID <= 0 ) CYCLE
+          
+          ! Define diagnostics ID
+          cID = 10000 + cID
+
+          ! Get the total [kg] 
+          CALL Diagn_TotalGet( am_I_Root,                         & 
+                             cID     = cID,                       &
+                             Found   = Found,                     &
+                             Total   = Total,                     &
+                             COL     = Input_Opt%DIAG_COLLECTION, &
+                             Reset   = .TRUE.,                    &
+                             RC      = HCRC                        )
+          IF ( .NOT. FOUND ) CYCLE
+
+          ! Only if there have been any emissions...
+          IF ( Total == 0.0_fp ) CYCLE
+   
+          ! Convert total from kg to Mg
+          Total = Total / 1000.0_fp
+
+          ! Write out
+          WRITE(6,101) TRIM(Input_Opt%TRACER_NAME(I)), Total
+       ENDDO
+    ENDIF
+    
+    ! Update month counter
+    SAVEMONTH = MONTH
+
+100 FORMAT( 'Emissions in month ', i2, ' of year ', i4, ':')
+101 FORMAT( a9, ': ', e11.3, ' Mg/month')
+
+  END SUBROUTINE TotalsToLogfile 
 !EOC
 END MODULE Diagnostics_Mod
 #endif

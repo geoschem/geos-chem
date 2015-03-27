@@ -53,7 +53,7 @@ MODULE HCOI_GC_Diagn_Mod
 #include "hcoi_gc_diagn_include.H"
 
   ! Define default output frequency. 
-  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Hourly"
+  CHARACTER(LEN=16), PARAMETER :: Default_WriteFreq = "Daily"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -1412,10 +1412,10 @@ CONTAINS
     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) RETURN
     IF ( Input_Opt%ITS_A_TAGOX_SIM  ) RETURN
 
-    ! First test if GFED3 is used.  If not, then test if FINN is used.
+    ! First test if GFED is used.  If not, then test if FINN is used.
     ! If not, then use extension # 0 and the default biomass category.
     Cat   = -1
-    ExtNr = GetExtNr( 'GFED3' )
+    ExtNr = GetExtNr( 'GFED' )
     IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN
        ExtNr = 0
@@ -2700,6 +2700,7 @@ CONTAINS
 !  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use MEGAN
 !  18 Feb 2015 - M. Sulprizio- Add manual diagnostics for individual MEGAN
 !                              species (MBOX, APIN, BPIN, etc.)
+!  10 Mar 2015 - R. Yantosca - Remove double-definition of BIOGENIC_LIMO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3158,119 +3159,6 @@ CONTAINS
     ENDIF ! Megan mono
 
     !=======================================================================
-    ! These diagnostics use the MEGAN SOA extension
-    !=======================================================================
-    IF ( Input_Opt%LSOA .AND. ( ND46 > 0 .OR. ND07 > 0 ) ) THEN
-
-       ! Extension # of MEGAN SOA
-       ExtNr = GetExtNr('MEGAN_SOA')
-       IF ( ExtNr < 0 ) THEN
-          MSG = 'MEGAN SOA emissions are not turned on!'
-          CALL HCO_Error( MSG, RC, THISLOC=LOC )
-          RETURN      
-       ENDIF
-         
-       !----------------------------------------
-       ! %%%%% Biogenic MTPA %%%%%
-       !----------------------------------------
-
-       ! HEMCO species ID
-       HcoID = HCO_GetHcoID( 'MTPA', HcoState )
-
-       IF ( HcoID > 0 ) THEN
-          ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                    & 
-                             HcoState  = HcoState,         &
-                             cName     = 'BIOGENIC_MTPA',  &
-                             ExtNr     = ExtNr,            &
-                             Cat       = -1,               &
-                             Hier      = -1,               &
-                             HcoID     = HcoID,            &
-                             SpaceDim  = 2,                &
-                             LevIDx    = -1,               &
-                             OutUnit   = 'kg/m2/s',        &
-                             WriteFreq = 'Manual',         &
-                             AutoFill  = 1,                &
-                             RC        = RC                 ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-       ENDIF
-
-       !----------------------------------------
-       ! %%%%% Biogenic MTPO %%%%%
-       !----------------------------------------
-
-       ! HEMCO species ID
-       HcoID = HCO_GetHcoId( 'MTPO', HcoState )
-
-       IF ( HcoID > 0 ) THEN
-          ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                    & 
-                             HcoState  = HcoState,         &
-                             cName     = 'BIOGENIC_MTPO',  &
-                             ExtNr     = ExtNr,            &
-                             Cat       = -1,               &
-                             Hier      = -1,               &
-                             HcoID     = HcoID,            &
-                             SpaceDim  = 2,                &
-                             LevIDx    = -1,               &
-                             OutUnit   = 'kg/m2/s',        &
-                             WriteFreq = 'Manual',         &
-                             AutoFill  = 1,                &
-                             RC        = RC                 ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-       ENDIF
-       !----------------------------------------
-       ! %%%%% Biogenic LIMO %%%%%
-       !----------------------------------------
-
-       ! HEMCO species ID
-       HcoID = HCO_GetHcoId( 'LIMO', HcoState )
-
-       IF ( HcoID > 0 ) THEN
-          ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                    & 
-                             HcoState  = HcoState,         &
-                             cName     = 'BIOGENIC_LIMO',  &
-                             ExtNr     = ExtNr,            &
-                             Cat       = -1,               &
-                             Hier      = -1,               &
-                             HcoID     = HcoID,            &
-                             SpaceDim  = 2,                &
-                             LevIDx    = -1,               &
-                             OutUnit   = 'kg/m2/s',        &
-                             WriteFreq = 'Manual',         &
-                             AutoFill  = 1,                &
-                             RC        = RC                 ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-       ENDIF
-
-       !----------------------------------------
-       ! %%%%% Biogenic C2H6 %%%%%
-       !----------------------------------------
-
-       ! HEMCO species ID
-       HcoID = HCO_GetHcoID( 'SESQ', HcoState ) 
-
-       IF ( HcoID > 0 ) THEN
-          ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                    & 
-                             HcoState  = HcoState,         &
-                             cName     = 'BIOGENIC_SESQ',  &
-                             ExtNr     = ExtNr,            &
-                             Cat       = -1,               &
-                             Hier      = -1,               &
-                             HcoID     = HcoID,            &
-                             SpaceDim  = 2,                &
-                             LevIDx    = -1,               &
-                             OutUnit   = 'kg/m2/s',        &
-                             WriteFreq = 'Manual',         &
-                             AutoFill  = 1,                &
-                             RC        = RC                 ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-       ENDIF
-    ENDIF ! SOA simulation
-
-    !=======================================================================
     ! These diagnostics use the SeaSalt extension
     !=======================================================================
     IF ( ND46 > 0 ) THEN
@@ -3376,7 +3264,7 @@ CONTAINS
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=31)  :: WriteFreq = 'Manual'
+    CHARACTER(LEN=31)  :: WriteFreq = 'Daily'
     CHARACTER(LEN=255) :: LOC       = 'DIAGN_LFLASH (hcoi_gc_diagn_mod.F90)'
 
     !=======================================================================
@@ -3420,10 +3308,14 @@ CONTAINS
                 DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
           END SELECT
 
+          ! Define diagnostics ID
+          N = 56000 + I
+
           ! Create diagnostic container
           CALL Diagn_Create( am_I_Root,                     & 
                              HcoState  = HcoState,          &
                              cName     = TRIM( DiagnName ), &
+                             cID       = N,                 &
                              ExtNr     = ExtNr,             &
                              Cat       = -1,                &
                              Hier      = -1,                &
@@ -3438,13 +3330,19 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDDO
  
-       ! ------------------------------------------------------ 
-       ! Some more diagnostics
-       ! ------------------------------------------------------ 
+       ! ---------------------------------------------------------- 
+       ! Diagnostics for convective cloud top height.
+       ! ---------------------------------------------------------- 
 
+       ! Define diagnostics name and ID
+       DiagnName = 'LIGHTNING_CLOUD_TOP'
+       N         = 56004 
+
+       ! Create diagnostic container
        CALL Diagn_Create( am_I_Root,                     & 
                           HcoState  = HcoState,          &
-                          cName     = 'RCCODE_TOP',      & 
+                          cName     = TRIM( DiagnName ), &
+                          cID       = N,                 & 
                           ExtNr     = ExtNr,             &
                           Cat       = -1,                &
                           Hier      = -1,                &
@@ -3452,71 +3350,7 @@ CONTAINS
                           SpaceDim  = 2,                 &
                           LevIDx    = -1,                &
                           OutUnit   = '1',               &
-                          OutOper   = 'Instantaneous',   &
-                          WriteFreq = TRIM(WriteFreq),   &
-                          AutoFill  = 0,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = 'BYNCY_TOP',       & 
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = '1',               &
-                          OutOper   = 'Instantaneous',   &
-                          WriteFreq = TRIM(WriteFreq),   &
-                          AutoFill  = 0,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = 'CNV_TOP',         & 
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = '1',               &
-                          OutOper   = 'Instantaneous',   &
-                          WriteFreq = TRIM(WriteFreq),   &
-                          AutoFill  = 0,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = 'TRAD_TOP',        & 
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = '1',               &
-                          OutOper   = 'Instantaneous',   &
-                          WriteFreq = TRIM(WriteFreq),   &
-                          AutoFill  = 0,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = 'TRAD_BYNCY_TOP',  & 
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = -1,                &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = '1',               &
-                          OutOper   = 'Instantaneous',   &
+                          OutOper   = 'Mean',            &
                           WriteFreq = TRIM(WriteFreq),   &
                           AutoFill  = 0,                 &
                           RC        = RC                  ) 
@@ -4218,7 +4052,7 @@ CONTAINS
     !--------------------------------------------------------------------------
 
     ! HEMCO extension # for wetland ch4 
-    ExtNr = GetExtNr( 'GFED3' )
+    ExtNr = GetExtNr( 'GFED' )
     IF ( ExtNr <= 0 ) ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN
        IF ( am_I_Root ) THEN

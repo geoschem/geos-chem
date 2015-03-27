@@ -775,6 +775,12 @@
 ! !REMARKS:
 !  DIAG20 assumes that ND65 (P-L diagnostics) have been turned on.
 !
+!  ##########################################################################
+!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!  ##########################################################################
+!
 ! !REVISION HISTORY:
 !  09 Jun 1999 - I. Bey      - Initial version
 !  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
@@ -933,8 +939,14 @@
          FILENAME = 'rate.YYYYMMDD'
          CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
-         ! Then prefix FILENAME w/ the data directory name
-         FILENAME = TRIM( Input_Opt%O3PL_DIR ) // FILENAME
+!-----------------------------------------------------------------------------
+! Prior to 3/13/15:
+! Now remove reference to Input_Opt%O3PL_DIR.  BPCH output is going to
+! be removed very shortly anyway. (bmy, 3/13/15)
+!         ! Then prefix FILENAME w/ the data directory name
+!         FILENAME = TRIM( Input_Opt%O3PL_DIR ) // FILENAME
+!-----------------------------------------------------------------------------
+
 
          ! Echo info
          IF ( am_I_Root ) WRITE( 6, 110 ) TRIM( FILENAME )

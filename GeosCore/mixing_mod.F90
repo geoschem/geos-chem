@@ -24,10 +24,9 @@ MODULE MIXING_MOD
 !
   PUBLIC :: INIT_MIXING 
   PUBLIC :: DO_MIXING 
+  PUBLIC :: DO_TEND 
 !
 ! !PRIVATE MEMBER FUNCTIONS:
-!
-  PRIVATE :: DO_TEND 
 !
 ! !REVISION HISTORY:
 !  04 Mar 2015 - C. Keller   - Initial version. 
@@ -292,6 +291,7 @@ CONTAINS
     INTEGER            :: cID, HCRC
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
     REAL(fp), TARGET   :: EMIS(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) 
+    REAL(fp)           :: TOTFLUX(Input_Opt%N_TRACERS)
 #endif
 
     !=================================================================
@@ -319,7 +319,8 @@ CONTAINS
 
     ! Init diagnostics
 #if defined( DEVEL )
-    EMIS = 0.0_fp
+    EMIS    = 0.0_fp
+    TOTFLUX = 0.0_fp
 #endif
 
     ! Do for every tracer and grid box
@@ -526,7 +527,8 @@ CONTAINS
 
                    ! Update diagnostics
 #if defined( DEVEL )
-                   EMIS(I,J,L,N) = TMP 
+                   EMIS(I,J,L,N) = TMP
+                   TOTFLUX(N)    = TOTFLUX(N) + FLUX 
 #endif
                 ENDIF
              ENDIF
@@ -561,6 +563,7 @@ CONTAINS
        CALL Diagn_Update( am_I_Root,                           &
                           cID     = cID,                       &
                           Array3D = Ptr3D,                     &
+                          Total   = TOTFLUX(N),                &
                           COL     = Input_Opt%DIAG_COLLECTION, &
                           RC      = HCRC                        )
 

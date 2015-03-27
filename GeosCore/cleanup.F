@@ -37,10 +37,7 @@
       USE ERROR_MOD,               ONLY : DEBUG_MSG
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
-      USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
-      USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
       USE GRID_MOD,                ONLY : CLEANUP_GRID
-      USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
@@ -234,6 +231,10 @@
 !  23 Sep 2014 - M. Sulprizio- Remove references to global_hno3_mod.F and
 !                              global_no3_mod.F
 !  12 Jan 2015 - R. Yantosca - Remove CLEANUP_UVALBEDO routine
+!  11 Mar 2015 - R. Yantosca - Remove call to CLEANUP_GLOBAL_OH
+!  11 Mar 2015 - R. Yantosca - Remove call to CLEANUP_GLOBAL_NOX
+!  16 Mar 2015 - R. Yantosca - Remove call to CLEANUP_HCN_CH3CN
+!  25 Mar 2015 - C. Keller   - Now cleanup UCX before emissisions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,17 +246,20 @@
       WRITE( 6, 100 ) 
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
+      ! UCX needs to be cleaned up before emissions, because the UCX 
+      ! restart variables needs to be passed to the HEMCO diagnostics
+      ! first.
+      CALL CLEANUP_UCX( am_I_Root )
+
 #if defined( DEVEL )
       ! Cleanup the new netCDF diagnostics structure
       CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
 #endif
 
-      ! Cleanup HEMCO 
-!#if !defined(ESMF_) 
+      ! Cleanup HEMCO
       IF ( Input_Opt%LEMIS ) THEN
          CALL EMISSIONS_FINAL ( am_I_Root )
       ENDIF
-!#endif
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()
@@ -278,10 +282,7 @@
       CALL CLEANUP_DRYDEP()
       CALL CLEANUP_DUST()
       CALL CLEANUP_GLOBAL_CH4()
-      CALL CLEANUP_GLOBAL_NOX()
-      CALL CLEANUP_GLOBAL_OH()
       CALL CLEANUP_GRID()
-      CALL CLEANUP_HCN_CH3CN()
       CALL CLEANUP_HDF()
       CALL CLEANUP_ISOROPIAII()
       CALL CLEANUP_LINOZ()
@@ -303,13 +304,11 @@
       CALL CLEANUP_TRANSPORT()
 #endif
       CALL CLEANUP_TOMS()
-      CALL CLEANUP_UCX()
       CALL CLEANUP_WETSCAV()
 
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN()  ! Cleanup arrays for APM wet scavenging
 #endif
-
 
 #if   defined( TOMAS )
       CALL CLEANUP_TOMAS()

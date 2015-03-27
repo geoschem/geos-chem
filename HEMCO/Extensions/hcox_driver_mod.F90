@@ -103,7 +103,7 @@ CONTAINS
     USE HCOX_DustDead_Mod,      ONLY : HCOX_DustDead_Init
     USE HCOX_DustGinoux_Mod,    ONLY : HCOX_DustGinoux_Init
     USE HCOX_SeaSalt_Mod,       ONLY : HCOX_SeaSalt_Init
-    USE HCOX_GFED3_Mod,         ONLY : HCOX_GFED3_Init
+    USE HCOX_GFED_Mod,          ONLY : HCOX_GFED_Init
     USE HCOX_MEGAN_Mod,         ONLY : HCOX_MEGAN_Init
     USE HCOX_Finn_Mod,          ONLY : HCOX_FINN_Init
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Init
@@ -215,9 +215,9 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------------
-    ! GFED3 extension
+    ! GFED extension
     !-----------------------------------------------------------------------
-    CALL HCOX_GFED3_Init( amIRoot, HcoState, 'GFED3', ExtState, RC ) 
+    CALL HCOX_GFED_Init( amIRoot, HcoState, 'GFED', ExtState, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------------
@@ -313,7 +313,7 @@ CONTAINS
     USE HCOX_DustGinoux_Mod,    ONLY : HCOX_DustGinoux_Run 
     USE HCOX_SeaSalt_Mod,       ONLY : HCOX_SeaSalt_Run 
     USE HCOX_Megan_Mod,         ONLY : HCOX_Megan_Run 
-    USE HCOX_GFED3_Mod,         ONLY : HCOX_GFED3_Run 
+    USE HCOX_GFED_Mod,          ONLY : HCOX_GFED_Run 
     USE HcoX_FINN_Mod,          ONLY : HcoX_FINN_Run 
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Run
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Run
@@ -443,10 +443,10 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! GFED3 biomass burning emissions 
+    ! GFED biomass burning emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%GFED3 ) THEN
-       CALL HCOX_GFED3_Run( amIRoot, ExtState, HcoState, RC )
+    IF ( ExtState%GFED ) THEN
+       CALL HCOX_GFED_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
@@ -524,7 +524,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Final( ExtState )
+  SUBROUTINE HCOX_Final( am_I_Root, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -538,7 +538,7 @@ CONTAINS
     USE HCOX_DustGinoux_Mod,    ONLY : HCOX_DustGinoux_Final
     USE HCOX_SeaSalt_Mod,       ONLY : HCOX_SeaSalt_Final
     USE HCOX_MEGAN_Mod,         ONLY : HCOX_MEGAN_Final
-    USE HCOX_GFED3_Mod,         ONLY : HCOX_GFED3_Final
+    USE HCOX_GFED_Mod,          ONLY : HCOX_GFED_Final
     USE HcoX_FINN_Mod,          ONLY : HcoX_FINN_Final
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Final
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Final
@@ -547,15 +547,23 @@ CONTAINS
     USE HCOX_TOMAS_SeaSalt_Mod, ONLY : HCOX_TOMAS_SeaSalt_Final
 #endif
 !
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
+!
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(Ext_State),  POINTER :: ExtState     ! Extension options object 
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object 
+    TYPE(Ext_State),  POINTER        :: ExtState   ! Extension options object 
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
 !  07 Jul 2014 - R. Yantosca - Now finalize GEOS-Chem Rn-Pb-Be emissions pkg
 !  20 Aug 2014 - M. Sulprizio- Now finalize GEOS-Chen POPs emissions module
 !  01 Oct 2014 - R. Yantosca - Now finalize TOMAS sea salt emissions module
+!  09 Mar 2015 - C. Keller   - Now pass HcoState since it is needed by some
+!                              finalization calls.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -575,14 +583,14 @@ CONTAINS
        ! Call individual cleanup routines
        IF ( ExtState%Custom        ) CALL HCOX_Custom_Final()
        IF ( ExtState%SeaFlux       ) CALL HCOX_SeaFlux_Final()
-       IF ( ExtState%ParaNOx       ) CALL HCOX_PARANOX_Final()
+       IF ( ExtState%ParaNOx       ) CALL HCOX_PARANOX_Final(am_I_Root,HcoState,RC)
        IF ( ExtState%LightNOx      ) CALL HCOX_LIGHTNOX_Final()
        IF ( ExtState%DustDead      ) CALL HCOX_DustDead_Final()
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
        IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
-       IF ( ExtState%Megan         ) CALL HCOX_Megan_Final()
-       IF ( ExtState%GFED3         ) CALL HCOX_GFED3_Final()
-       IF ( ExtState%SoilNOx       ) CALL HCOX_SoilNox_Final()  
+       IF ( ExtState%Megan         ) CALL HCOX_Megan_Final(am_I_Root,HcoState,RC)
+       IF ( ExtState%GFED          ) CALL HCOX_GFED_Final()
+       IF ( ExtState%SoilNOx       ) CALL HCOX_SoilNox_Final(am_I_Root,HcoState,RC)
        IF ( ExtState%FINN          ) CALL HcoX_FINN_Final
        IF ( ExtState%GC_RnPbBe     ) CALL HCOX_GC_RnPbBe_Final()
        IF ( ExtState%GC_POPs       ) CALL HCOX_GC_POPs_Final()

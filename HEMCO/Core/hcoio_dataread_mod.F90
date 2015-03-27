@@ -165,7 +165,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
   !
-  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, RC ) 
+  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, CloseFile, LUN, RC ) 
 !
 ! !USES:
 !
@@ -180,9 +180,11 @@ CONTAINS
     LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State),  POINTER        :: HcoState
     TYPE(ListCont),   POINTER        :: Lct 
+    LOGICAL,          INTENT(IN   )  :: CloseFile  ! Close file after reading?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    INTEGER,          INTENT(INOUT)  :: LUN
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
@@ -200,7 +202,6 @@ CONTAINS
     REAL,             POINTER  :: Ptr3D(:,:,:)   => NULL() 
     REAL,             POINTER  :: Ptr2D(:,:)     => NULL() 
     TYPE(ESMF_State), POINTER  :: IMPORT         => NULL()
-    LOGICAL                    :: verb
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_DATAREAD (hcoi_dataread_mod.F90)'
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam
@@ -214,13 +215,15 @@ CONTAINS
     CALL HCO_ENTER ( LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Initialize output values
+    LUN = -1
+
     ! Point to ESMF IMPORT object
     IMPORT => HcoState%IMPORT
     ASSERT_(ASSOCIATED(IMPORT))
 
     ! Verbose?
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(2) ) THEN
        MSG = 'Reading from ExtData: ' // TRIM(Lct%Dct%Dta%ncFile)
        CALL HCO_MSG(MSG)
     ENDIF
@@ -342,9 +345,17 @@ CONTAINS
 ! ModelLev\_Interpolate. 
 !\\
 !\\
+! Argument CloseFile can be set to false to avoid closing the file. 
+! Argument LUN can be used to read data from a previously opened stream. If
+! the input value of LUN is greater than zero, the source file associated
+! with the passed list container Lct is not being opened but the data is 
+! read from stream LUN. The returned LUN value is equal to the LUN of the 
+! file just being used if CloseFile is set to .FALSE., and to -1 otherwise. 
+!\\
+!\\  
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, RC ) 
+  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, CloseFile, LUN, RC ) 
 !
 ! !USES:
 !
@@ -373,9 +384,11 @@ CONTAINS
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
     TYPE(ListCont),   POINTER        :: Lct        ! HEMCO list container
+    LOGICAL,          INTENT(IN   )  :: CloseFile  ! Close file after reading?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    INTEGER,          INTENT(INOUT)  :: LUN        ! LUN of file.
     INTEGER,          INTENT(INOUT)  :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
@@ -390,6 +403,7 @@ CONTAINS
 !  15 Jan 2015 - C. Keller   - Now allow model level interpolation in combination
 !                              with MESSy (horizontal) regridding.
 !  03 Feb 2015 - C. Keller   - Moved map_a2a regridding to hco_interp_mod.F90.
+!  24 Mar 2015 - C. Keller   - Added arguments LUN and CloseFile.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -420,7 +434,6 @@ CONTAINS
     REAL(hp), POINTER             :: LonEdge  (:)     => NULL()
     REAL(hp), POINTER             :: LatEdge  (:)     => NULL()
     LOGICAL                       :: FOUND
-    LOGICAL                       :: verb
     LOGICAL                       :: IsModelLevel
     INTEGER                       :: UnitTolerance
     INTEGER                       :: AreaFlag, TimeFlag 
@@ -437,9 +450,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ('HCOIO_DATAREAD (hcoio_dataread_mod.F90)' , RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    
-    ! Check for verbose mode
-    verb = HCO_VERBOSE_CHECK() .AND. am_I_Root
 
     ! Get unit tolerance set in configuration file
     UnitTolerance = HCO_UnitTolerance()
@@ -460,11 +470,10 @@ CONTAINS
     ! select to range. In that case, just make sure that array is empty.
     IF ( .NOT. FOUND ) THEN 
        IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
-          CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
-          MSG = 'Simulation time is outside of time range provided for '//&
-               TRIM(Lct%Dct%cName) // ' - no file selected and data is ignored!'
+          CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
+          MSG = 'No valid file found for current simulation time - data '// &
+                'will be ignored - ' // TRIM(Lct%Dct%cName) 
           CALL HCO_WARNING ( MSG, RC )
-          CALL NC_CLOSE ( ncLun ) 
           CALL HCO_LEAVE ( RC ) 
           RETURN
        ELSE
@@ -474,16 +483,30 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Verbose mode
-    IF ( verb ) THEN
-       Write(MSG,*) '- Reading file ', TRIM(srcFile)
-       CALL HCO_MSG(MSG)
-    ENDIF
-
     ! ----------------------------------------------------------------
     ! Open netCDF
     ! ----------------------------------------------------------------
-    CALL NC_OPEN ( TRIM(srcFile), ncLun )
+    IF ( LUN > 0 ) THEN
+       ncLun = LUN
+
+       ! Verbose mode
+       IF ( HCO_IsVerb(2) ) THEN
+          WRITE(MSG,*) '- Reading from existing stream: ', TRIM(srcFile)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+    ELSE
+       CALL NC_OPEN ( TRIM(srcFile), ncLun )
+
+       ! Verbose mode
+       IF ( HCO_IsVerb(1) ) THEN
+          WRITE(MSG,*) '- Opening file: ', TRIM(srcFile)
+          CALL HCO_MSG(MSG)
+       ENDIF
+
+       ! Also write to standard output
+       WRITE(*,*) 'HEMCO: Opening ', TRIM(srcFile)
+    ENDIF
 
     ! ----------------------------------------------------------------
     ! Extract time slice information
@@ -528,7 +551,12 @@ CONTAINS
           MSG = 'Simulation time is outside of time range provided for '//&
                TRIM(Lct%Dct%cName) // ' - data is ignored!'
           CALL HCO_WARNING ( MSG, RC )
-          CALL NC_CLOSE ( ncLun ) 
+          IF ( CloseFile ) THEN
+             CALL NC_CLOSE ( ncLun )
+             LUN = -1
+          ELSE
+             LUN = ncLUN
+          ENDIF
           CALL HCO_LEAVE ( RC ) 
           RETURN
        ENDIF
@@ -725,7 +753,7 @@ CONTAINS
           ncArr = (wgt1 * ncArr) + (wgt2 * ncArr2)
 
           ! Verbose
-          IF ( verb ) THEN
+          IF ( HCO_IsVerb(3) ) THEN
              MSG = 'Interpolated data between two files:'
              CALL HCO_MSG(MSG)
              MSG = '- File 1: ' // TRIM(srcFile)
@@ -969,7 +997,7 @@ CONTAINS
     ! Use MESSy regridding
     !-----------------------------------------------------------------
     IF ( UseMESSy ) THEN
-       IF ( verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) '  ==> Use MESSy regridding (NCREGRID)'
           CALL HCO_MSG(MSG)
        ENDIF
@@ -1049,7 +1077,7 @@ CONTAINS
     ! Use map_a2a regridding
     !-----------------------------------------------------------------
     ELSE
-       IF ( verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) '  ==> Use map_a2a regridding'
           CALL HCO_MSG(MSG)
        ENDIF
@@ -1063,8 +1091,13 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Close netCDF
     ! ----------------------------------------------------------------
-    CALL NC_CLOSE ( ncLun )
-      
+    IF ( CloseFile ) THEN
+       CALL NC_CLOSE ( ncLun )
+       LUN = -1
+    ELSE
+       LUN = ncLun
+    ENDIF      
+
     !-----------------------------------------------------------------
     ! Cleanup and leave 
     !-----------------------------------------------------------------
@@ -1165,7 +1198,7 @@ CONTAINS
     ! Init 
     CALL HCO_ENTER ('GET_TIMEIDX (hco_dataread_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    verb = HCO_VERBOSE_CHECK() 
+    verb = HCO_IsVerb(3)
 
     ! Initialize
     wgt1  = -1.0_sp
@@ -1953,7 +1986,7 @@ CONTAINS
     !=================================================================
 
     ! Verbose mode?
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb(3) 
 
     ! If the originally wanted datetime was below the available data
     ! range, set all weights to the first index. 
@@ -2383,7 +2416,7 @@ CONTAINS
     !======================================================================
    
     ! verbose mode? 
-    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
+    Verb = HCO_IsVerb(2) 
    
     ! Verbose
     IF ( Verb ) THEN
@@ -2438,7 +2471,7 @@ CONTAINS
           CIDS = NINT(CNTR)
 
           ! Verbose
-          IF ( Verb ) THEN
+          IF ( HCO_IsVerb(3) ) THEN
              MSG = '- Use ID mask ' // TRIM(LINE)
              CALL HCO_MSG(MSG)
           ENDIF
@@ -2497,7 +2530,7 @@ CONTAINS
        ENDDO
 
        ! Verbose
-       IF ( verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) '- Obtained values for ',TRIM(CNT),' ==> ID:', CID
           CALL HCO_MSG(MSG)
        ENDIF
@@ -2597,11 +2630,8 @@ CONTAINS
     ! HCOIO_ReadFromConfig begins here
     !======================================================================
    
-    ! verbose mode? 
-    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
-   
     ! Verbose
-    IF ( Verb ) THEN
+    IF ( HCO_IsVerb(2) ) THEN
        WRITE(MSG, *) 'Read from config file: ', TRIM(Lct%Dct%cName)
        CALL HCO_MSG(MSG)
     ENDIF
@@ -2720,16 +2750,13 @@ CONTAINS
     INTEGER            :: prefYr, prefMt, prefDy, prefHr
     REAL(hp)           :: FileVals(100)
     REAL(hp), POINTER  :: FileArr(:,:,:,:) => NULL()
-    LOGICAL            :: Verb, IsPerArea
+    LOGICAL            :: IsPerArea
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'GetDataVals (hcoio_dataread_mod.F90)'
 
     !======================================================================
     ! GetDataVals begins here
     !======================================================================
-   
-    ! verbose mode? 
-    Verb = HCO_VERBOSE_CHECK() .and. am_I_Root
    
     ! Shadow molecular weights and molec. ratio (needed for
     ! unit conversion during file read)

@@ -37,9 +37,9 @@ SHELL     :=/bin/bash
 # Directories
 HCOX      :=..
 
-# Files for GFED3
-GFED3_IN  ?=$(HEMCO_DATA_ROOT)/GFED3/v2014-07/GFED3_emission_factors.txt
-GFED3_OUT ?=$(HCOX)/hcox_gfed3_include.H
+# Files for GFED
+GFED_IN  ?=$(HEMCO_DATA_ROOT)/GFED3/v2014-07/GFED3_emission_factors.txt
+GFED_OUT ?=$(HCOX)/hcox_gfed_include.H
 
 # Files for FINN
 FINN_CO2  ?=$(HEMCO_DATA_ROOT)/FINN/v2014-07/FINN_EFratios_CO2.csv
@@ -54,13 +54,13 @@ FINN_OUT  ?=$(HCOX)/hcox_finn_include.H
 
 .PHONY: all gfed finn lightdist paranox
 
-all: gfed3 finn lightdist paranox
+all: gfed finn lightdist paranox
 
-gfed3:
+gfed:
 	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	@echo "%%% GFED3.......creating '$(GFED3_OUT)'"
+	@echo "%%% GFED.......creating '$(GFED_OUT)'"
 	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-	./gfed3.pl $(GFED3_IN) $(GFED3_OUT)
+	./gfed.pl $(GFED_IN) $(GFED_OUT)
 
 finn:
 	@echo "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"

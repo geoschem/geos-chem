@@ -29,6 +29,7 @@ MODULE HCOI_GC_Main_Mod
   USE HCO_Error_Mod
   USE HCOX_State_Mod, ONLY : Ext_State 
   USE HCO_State_Mod,  ONLY : HCO_State
+  USE Precision_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -46,8 +47,10 @@ MODULE HCOI_GC_Main_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+  PRIVATE :: Calc_SumCosZa
   PRIVATE :: ExtState_SetPointers
   PRIVATE :: ExtState_UpdtPointers
+  PRIVATE :: Get_SzaFact
   PRIVATE :: GridEdge_Set
   PRIVATE :: Set_Grid
   PRIVATE :: CheckSettings
@@ -69,6 +72,9 @@ MODULE HCOI_GC_Main_Mod
 !  18 Feb 2015 - C. Keller   - Added routine CheckSettings.
 !  04 Mar 2015 - C. Keller   - Now register all GEOS-Chem species as HEMCO
 !                              species. 
+!  11 Mar 2015 - R. Yantosca - Now move computation of SUMCOSZA here from 
+!                              the obsolete global_oh_mod.F.  Add routines
+!                              GET_SZAFACT and CALC_SUMCOSA.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -100,11 +106,15 @@ MODULE HCOI_GC_Main_Mod
 
   ! Sigma coordinate (temporary)
   REAL(hp), ALLOCATABLE, TARGET :: ZSIGMA(:,:,:)
+
+  ! Sum of cosine of the solar zenith angle. Used to impose a
+  ! diurnal variability on OH concentrations
+  REAL(fp), ALLOCATABLE         :: SUMCOSZA(:,:)
 !
 ! !DEFINED PARAMETERS:
 !
   ! Temporary toggle for diagnostics
-  LOGICAL,            PARAMETER :: DoDiagn = .TRUE.
+  LOGICAL,  PARAMETER           :: DoDiagn = .TRUE.
 
 CONTAINS
 !EOC
@@ -218,9 +228,6 @@ CONTAINS
     IF ( am_I_Root ) THEN
        CALL HCO_LOGFILE_OPEN( RC=HMRC ) 
        IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'Open Logfile', LOC )
-    ELSE
-       ! If this is not the root CPU, always disable verbose mode.
-       CALL HCO_VERBOSE_SET ( .FALSE. )
     ENDIF
 
     !=================================================================
@@ -361,7 +368,7 @@ CONTAINS
     ! Here, we need to make sure that these pointers are properly 
     ! connected.
     !-----------------------------------------------------------------
-    CALL ExtState_SetPointers( State_Met, State_Chm, RC )
+    CALL ExtState_SetPointers( am_I_Root, State_Met, State_Chm, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -558,7 +565,7 @@ CONTAINS
     ! just in case that some ExtState variables are defined using data from
     ! the HEMCO configuration file (which becomes only updated in HCO_RUN).
     !=======================================================================
-    CALL ExtState_UpdtPointers ( State_Met, State_Chm, HMRC )
+    CALL ExtState_UpdtPointers ( am_I_Root, State_Met, State_Chm, HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP('ExtState_UpdtPointers', LOC )
        RETURN 
@@ -595,7 +602,6 @@ CONTAINS
 
     ! We are now back in GEOS-Chem environment, hence set 
     ! return flag accordingly! 
-    !      first = .false.
     RC = GIGC_SUCCESS
 
   END SUBROUTINE HCOI_GC_Run
@@ -676,18 +682,19 @@ CONTAINS
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
-    CALL HCOX_FINAL ( ExtState ) 
+    CALL HCOX_FINAL ( am_I_Root, HcoState, ExtState, HMRC ) 
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOX_FINAL', LOC )
 
     ! Cleanup HcoState object 
     CALL HcoState_Final ( HcoState ) 
 
     ! Module variables
-    IF ( ALLOCATED  ( ZSIGMA          ) ) DEALLOCATE ( ZSIGMA          )
-    IF ( ALLOCATED  ( HCO_FRAC_OF_PBL ) ) DEALLOCATE ( HCO_FRAC_OF_PBL )
-    IF ( ALLOCATED  ( HCO_SZAFACT     ) ) DEALLOCATE ( HCO_SZAFACT     )
-    IF ( ALLOCATED  ( JNO2            ) ) DEALLOCATE ( JNO2            )
-    IF ( ALLOCATED  ( JO1D            ) ) DEALLOCATE ( JO1D            )
-!    IF ( ASSOCIATED ( M2HID           ) ) DEALLOCATE ( M2HID           )
+    IF ( ALLOCATED ( ZSIGMA          ) ) DEALLOCATE( ZSIGMA          )
+    IF ( ALLOCATED ( HCO_FRAC_OF_PBL ) ) DEALLOCATE( HCO_FRAC_OF_PBL )
+    IF ( ALLOCATED ( HCO_SZAFACT     ) ) DEALLOCATE( HCO_SZAFACT     )
+    IF ( ALLOCATED ( JNO2            ) ) DEALLOCATE( JNO2            )
+    IF ( ALLOCATED ( JO1D            ) ) DEALLOCATE( JO1D            )
+    IF ( ALLOCATED ( SUMCOSZA        ) ) DEALLOCATE( SUMCOSZA        ) 
 
   END SUBROUTINE HCOI_GC_Final
 !EOC
@@ -768,7 +775,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetPointers( State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtState_SetPointers( am_I_Root, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
@@ -790,14 +797,10 @@ CONTAINS
 #if !defined(ESMF_)
     USE MODIS_LAI_MOD,      ONLY : GC_LAI
 #endif
-
-#if defined(ESMF_) 
-    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
-#endif
-
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
 !
@@ -811,6 +814,8 @@ CONTAINS
 !  02 Oct 2014 - C. Keller    - PEDGE is now in HcoState%Grid
 !  16 Oct 2014 - C. Keller    - Removed SUNCOSmid5. This is now calculated
 !                               internally in Paranox.
+!  12 Mar 2015 - R. Yantosca  - Allocate SUMCOSZA array for SZAFACT
+!  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -831,25 +836,29 @@ CONTAINS
     LOC = 'ExtState_SetPointers (hcoi_gc_main_mod.F90)'
 
     ! ----------------------------------------------------------------
-    ! HCO_SZAFACT aren't defined as 3D 
-    ! arrays in Met_State. Hence need to construct here so that we 
-    ! can point to them.
+    ! HCO_SZAFACT aren't defined as 3D arrays in Met_State.  Hence 
+    ! need to construct here so that we can point to them.
     !
     ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
     ! simulation (mps, 8/20/14)
     ! ----------------------------------------------------------------
-
     IF ( ExtState%SZAFACT%DoUse ) THEN 
-       ALLOCATE(HCO_SZAFACT(IIPAR,JJPAR      ),STAT=AS)
+
+       ALLOCATE( SUMCOSZA( IIPAR, JJPAR ), STAT=AS )
+       IF ( AS/=0 ) CALL ERROR_STOP ( 'SUMCOSZA', LOC )
+       SUMCOSZA = 0.0e0_fp
+
+       ALLOCATE( HCO_SZAFACT( IIPAR, JJPAR      ),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_SZAFACT', LOC )
-       HCO_SZAFACT = 0d0
+       HCO_SZAFACT = 0e0_hp
+
        ExtState%SZAFACT%Arr%Val => HCO_SZAFACT
     ENDIF
 
     IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN 
        ALLOCATE(HCO_FRAC_OF_PBL(IIPAR,JJPAR,LLPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_FRAC_OF_PBL', LOC )
-       HCO_FRAC_OF_PBL = 0d0
+       HCO_FRAC_OF_PBL = 0.0_hp
        ExtState%FRAC_OF_PBL%Arr%Val => HCO_FRAC_OF_PBL
     ENDIF
 
@@ -863,14 +872,14 @@ CONTAINS
     IF ( ExtState%JNO2%DoUse ) THEN 
        ALLOCATE( JNO2(IIPAR,JJPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'JNO2', LOC )
-       JNO2 = 0d0
+       JNO2 = 0.0e0_hp
        ExtState%JNO2%Arr%Val => JNO2 
     ENDIF
 
     IF ( ExtState%JO1D%DoUse ) THEN 
        ALLOCATE( JO1D(IIPAR,JJPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'JO1D', LOC )
-       JO1D = 0d0
+       JO1D = 0.0e0_hp
        ExtState%JO1D%Arr%Val => JO1D 
     ENDIF
 
@@ -1032,16 +1041,6 @@ CONTAINS
     ENDIF
     IF ( DoDryCoeff ) ExtState%DRYCOEFF => DRYCOEFF
 
-    ! ----------------------------------------------------------------
-    ! ESMF environment: get pointers to some additional variables 
-    ! ----------------------------------------------------------------
-#if defined( ESMF )
-    CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
-    ENDIF
-#endif
-
     ! Leave with success
     RC = GIGC_SUCCESS
 
@@ -1061,16 +1060,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdtPointers( State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtState_UpdtPointers( am_I_Root, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+    USE ERROR_MOD,             ONLY : ERROR_STOP
     USE GIGC_State_Met_Mod,    ONLY : MetState
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE CMN_SIZE_MOD,          ONLY : IIPAR, JJPAR, LLPAR
 
-    USE GLOBAL_OH_MOD,         ONLY : GET_SZAFACT
     USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
 
     USE FAST_JX_MOD,           ONLY : FJXFUNC
@@ -1078,11 +1077,12 @@ CONTAINS
     USE COMODE_LOOP_MOD,       ONLY : NAMEGAS, IRM
 
 #if defined(ESMF_) 
-!    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
+    USE HCOI_ESMF_MOD,      ONLY : HCO_SetExtState_ESMF
 #endif
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
 !
@@ -1094,6 +1094,7 @@ CONTAINS
 !  23 Oct 2012 - C. Keller   - Initial Version
 !  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
 !  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
+!  11 Mar 2015 - R. Yantosca - Now call GET_SZAFACT in this module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1109,12 +1110,24 @@ CONTAINS
     CHARACTER(LEN=255), PARAMETER :: &
        LOC = 'ExtState_UpdtPointers (hcoi_gc_main_mod.F90)'
 
+    ! Is this the first time?
+    LOGICAL, SAVE                 :: FIRST = .TRUE.
+
     !=================================================================
     ! ExtState_UpdtPointers begins here
     !=================================================================
 
     ! Init
     RC = GIGC_SUCCESS
+
+    ! If we need to use the SZAFACT scale factor (i.e. to put a diurnal
+    ! variation on monthly mean OH concentrations), then call CALC_SUMCOSZA
+    ! here.  CALC_SUMCOSZA computes the sum of cosine of the solar zenith
+    ! angle over a 24 hour day, as well as the total length of daylight.
+    ! This information is required by GET_SZAFACT. (bmy, 3/11/15)
+    IF ( ExtState%SZAFACT%DoUse ) THEN
+       CALL Calc_SumCosZa()
+    ENDIF
 
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
@@ -1124,7 +1137,9 @@ CONTAINS
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
-       ! current SZA divided by total daily SZA (2D field only)
+       ! Current SZA divided by total daily SZA (2D field only)
+       ! (This is mostly needed for offline simulations where a diurnal
+       ! scale factor has to be imposed on monthly mean OH concentrations.)
        IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
           HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
        ENDIF
@@ -1182,15 +1197,23 @@ CONTAINS
     ENDDO
 !$OMP END PARALLEL DO
 
-!    ! ----------------------------------------------------------------
-!    ! ESMF environment: get pointers to some additional variables 
-!    ! ----------------------------------------------------------------
-#if defined( ESMF )
-!    CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
-!    IF ( RC /= HCO_SUCCESS ) THEN
-!       CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
-!    ENDIF
+    ! ----------------------------------------------------------------
+    ! ESMF environment: add some additional variables to ExtState.
+    ! These values must be defined here and not in the initialization
+    ! because it seems like the IMPORT state is not yet properly
+    ! defined during initialization. 
+    ! ----------------------------------------------------------------
+#if defined( ESMF_ )
+    IF ( FIRST ) THEN
+       CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
+       ENDIF
+    ENDIF
 #endif
+
+    ! Not first time any more
+    FIRST = .FALSE.
 
   END SUBROUTINE ExtState_UpdtPointers
 !EOC
@@ -1908,6 +1931,9 @@ CONTAINS
 !  18 Feb 2015 - C. Keller   - Initial Version
 !  04 Mar 2015 - R. Yantosca - Now determine if we need to read UV albedo
 !                              data from the settings in input.geos
+!  16 Mar 2015 - R. Yantosca - Now also toggle TOMS_SBUV_O3 based on
+!                              met field type and input.geos settings
+!  25 Mar 2015 - C. Keller   - Added switch for STATE_PSC (for UCX)
 !EOP
 !------------------------------------------------------------------------------
 
@@ -1950,17 +1976,26 @@ CONTAINS
     CALL GetExtOpt( -999, '+UValbedo+',  OptValBool=LTMP, &
                             FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL ERROR_STOP( 'GetExtOpt +UvAlbedo+', LOC )
+       CALL ERROR_STOP( 'GetExtOpt +UValbedo+', LOC )
     ENDIF
+
     IF ( FOUND ) THEN
-       IF ( Input_Opt%LSCHEM /= LTMP ) THEN
-          WRITE(6,'(a)')  ' '
-          WRITE(6,'(a)') 'Setting +UValbedo+ in the HEMCO configuration'
-          WRITE(6,'(a)') 'file does not agree with the chemistry settings'
-          WRITE(6,'(a)') 'in input.geos. This may be inefficient and/or'
-          WRITE(6,'(a)') 'yield incorrect results!' 
+
+       ! Stop the run if this collection is defined in the HEMCO config
+       ! file, but is set to an value inconsistent with input.geos file.
+       IF ( Input_Opt%LCHEM .AND. ( .NOT. LTMP ) ) THEN
+          MSG = 'Setting +UValbedo+ in the HEMCO configuration file ' // &
+                'must not be disabled if chemistry is turned on. '    // &
+                'If you don`t set that setting explicitly, it will '  // &
+                'be set automatically during run-time (recommended)'
+          CALL ERROR_STOP( MSG, LOC ) 
        ENDIF
+
     ELSE
+
+       ! If this collection is not found in the HEMCO config file, then
+       ! activate it for those simulations requiring photolysis (i.e. 
+       ! fullchem or aerosols), and only if chemistry is turned on.
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
             Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
           IF ( Input_Opt%LCHEM ) THEN
@@ -1973,12 +2008,41 @@ CONTAINS
        ENDIF
        CALL AddExtOpt( TRIM(OptName), CoreNr, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP( 'AddExtOpt +Uvalbedo+', LOC )
+          CALL ERROR_STOP( 'AddExtOpt +UValbedo+', LOC )
+       ENDIF
+
+    ENDIF 
+
+    !-----------------------------------------------------------------------
+    ! NON-EMISSIONS DATA #2: PSC STATE (for UCX) 
+    !-----------------------------------------------------------------------
+    CALL GetExtOpt( -999, '+STATE_PSC+', OptValBool=LTMP, &
+                           FOUND=FOUND,     RC=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'GetExtOpt +STATE_PSC+', LOC )
+    ENDIF
+    IF ( FOUND ) THEN
+       IF ( Input_Opt%LUCX /= LTMP ) THEN
+          WRITE(*,*) ' '
+          WRITE(*,*) 'Setting +STATE_PSC+ in the HEMCO configuration'
+          WRITE(*,*) 'file does not agree with stratospheric chemistry'
+          WRITE(*,*) 'settings in input.geos. This may be inefficient' 
+          WRITE(*,*) 'and/or yield to wrong results!' 
+       ENDIF
+    ELSE
+       IF ( Input_Opt%LUCX ) THEN
+          OptName = '+STATE_PSC+ : true'
+       ELSE
+          OptName = '+STATE_PSC+ : false'
+       ENDIF
+       CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'AddExtOpt +STATE_PSC+', LOC )
        ENDIF
     ENDIF 
 
     !-----------------------------------------------------------------------
-    ! NON-EMISSIONS DATA #2: GMI linear stratospheric chemistry
+    ! NON-EMISSIONS DATA #3: GMI linear stratospheric chemistry
     !
     ! Set stratospheric chemistry toggle according to options in the
     ! input.geos file.  This will enable/disable all fields in the HEMCO 
@@ -1992,15 +2056,24 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP( 'GetExtOpt +LinStratChem+', LOC )
     ENDIF
+
     IF ( FOUND ) THEN
+
+       ! Print a warning if this collection is defined in the HEMCO config
+       ! file, but is set to an value inconsistent with input.geos file.
        IF ( Input_Opt%LSCHEM /= LTMP ) THEN
           WRITE(*,*) ' '
           WRITE(*,*) 'Setting +LinStratChem+ in the HEMCO configuration'
           WRITE(*,*) 'file does not agree with stratospheric chemistry'
           WRITE(*,*) 'settings in input.geos. This may be inefficient' 
-          WRITE(*,*) 'and/or yield to wrong results!' 
+          WRITE(*,*) 'and/or may yield wrong results!' 
        ENDIF
+
     ELSE
+
+       ! If this collection is not found in the HEMCO config file, then
+       ! activate it only if stratospheric chemistry is turned on in
+       ! the input.geos file.
        IF ( Input_Opt%LSCHEM ) THEN
           OptName = '+LinStratChem+ : true'
        ELSE
@@ -2010,7 +2083,76 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL ERROR_STOP( 'AddExtOpt +LinStratChem+', LOC )
        ENDIF
+
     ENDIF 
+
+    !-----------------------------------------------------------------------
+    ! NON-EMISSIONS DATA #3: TOMS/SBUV overhead O3 columns
+    !
+    ! If we are using the GEOS-FP met fields, then we will not read in 
+    ! the TOMS/SBUV O3 columns.  We will instead use the O3 columns from
+    ! the GEOS-FP met fields.  In this case, we will toggle the 
+    ! +TOMS_SBUV_O3+ collection OFF.
+    !
+    ! All other met fields use the TOMS/SBUV data in one way or another,
+    ! so we will have to read these data from netCDF files.  In this
+    ! case, toggle the +TOMS_SBUV_O3+ collection ON if wphotolysis is
+    ! required (i.e. for fullchem/aerosol simulations w/ chemistry on).
+    !-----------------------------------------------------------------------
+    CALL GetExtOpt( -999, '+TOMS_SBUV_O3+', OptValBool=LTMP, &
+                           FOUND=FOUND,     RC=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'GetExtOpt +TOMS_SBUV_O3+', LOC )
+    ENDIF
+
+#if defined( GEOS_FP )
+    
+    ! Disable for GEOS-FP met fields, no matter what it is set to
+    ! in the HEMCO configuration file.
+    IF ( FOUND ) THEN
+       OptName = '+TOMS_SBUV_O3+ : false'
+       CALL AddExtOpt( TRIM(OptName), CoreNr, RC ) 
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'AddExtOpt GEOS-FP +TOMS_SBUV_O3+', LOC )
+       ENDIF
+    ENDIF
+
+#else
+
+    IF ( FOUND ) THEN
+
+       ! Print a warning if this collection is defined in the HEMCO config
+       ! file, but is set to an value inconsistent with input.geos file.
+       IF ( Input_Opt%LCHEM /= LTMP ) THEN
+          WRITE(*,*) ' '
+          WRITE(*,*) 'Setting +TOMS_SBUV_O3+ in the HEMCO configuration'
+          WRITE(*,*) 'file does not agree with the chemistry settings'
+          WRITE(*,*) 'in input.geos. This may be inefficient and/or' 
+          WRITE(*,*) 'may yield wrong results!' 
+       ENDIF
+
+    ELSE
+
+       ! If this collection is not found in the HEMCO config file, then
+       ! activate it only for those simulations that use photolysis 
+       ! (e.g. fullchem or aerosol) and only when chemistry is turned on.
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
+            Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+          IF ( Input_Opt%LCHEM ) THEN
+             OptName = '+TOMS_SBUV_O3+ : true'
+          ELSE
+             OptName = '+TOMS_SBUV_O3+ : false'
+          ENDIF
+       ELSE
+          OptName = '+TOMS_SBUV_O3+ : false'
+       ENDIF
+       CALL AddExtOpt( TRIM(OptName), CoreNr, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'AddExtOpt +Uvalbedo+', LOC )
+       ENDIF
+    ENDIF 
+
+#endif
 
     !-----------------------------------------------------------------
     ! Make sure that the SHIPNO_BASE toggle is disabled if PARANOx is
@@ -2035,7 +2177,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Make sure that BOND_BIOMASS toggle is disabled if GFED3 or FINN
+    ! Make sure that BOND_BIOMASS toggle is disabled if GFED or FINN
     ! are being used. This is to avoid double-counting of biomass
     ! burning emissions. Search through all extensions (--> ExtNr = 
     ! -999).
@@ -2047,13 +2189,13 @@ CONTAINS
     ENDIF
     ExtNr = GetExtNr( 'FINN' )
     IF ( ExtNr <= 0 ) THEN
-       ExtNr = GetExtNr( 'GFED3' )
+       ExtNr = GetExtNr( 'GFED' )
     ENDIF
 
     ! Error check
     IF ( FOUND ) THEN
        IF ( ExtNr > 0 .AND. LTMP ) THEN
-          MSG = 'Cannot use BOND_BIOMASS together with GFED3 or FINN:' // &
+          MSG = 'Cannot use BOND_BIOMASS together with GFED or FINN:' // &
           'This would double-count biomass burning emissions!'
           CALL ERROR_STOP( MSG, LOC ) 
        ENDIF
@@ -2063,5 +2205,213 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE CheckSettings 
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_szafact
+!
+! !DESCRIPTION:
+!  Subroutine GET\_SZAFACT returns diurnal scale factors from dividing
+!  the sza by the sum of the total sza per day. These factors are mainly
+!  imposed to the monthly OH climatology. 
+!  However, the same scale factors are dimensionless and can hence be 
+!  applied to other compounds too (e.g. O3).
+!\\
+! !INTERFACE:
+!
+  FUNCTION Get_SzaFact( I, J, State_Met ) RESULT( FACT )
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Time_Mod,           ONLY : Get_TS_Chem
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN) :: I, J
+    TYPE(MetState), INTENT(IN) :: State_Met
+!
+! !RETURN VALUE:
+!
+    REAL(fp)                   :: FACT
+!
+! !REMARKS:
+!  Moved here from the obsolete global_oh_mod.F.
+!
+! !REVISION HISTORY: 
+!  01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where these
+!                            calculations are done w/in GET_OH
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=======================================================================
+    ! GET_SZAFACT begins here!
+    !=======================================================================
+
+    ! Test for sunlight...
+    IF ( State_Met%SUNCOSmid(I,J) > 0e+0_fp  .AND. & 
+         SUMCOSZA(I,J)            > 0e+0_fp ) THEN
+
+       ! Impose a diurnal variation on OH during the day
+       FACT = ( State_Met%SUNCOSmid(I,J) / SUMCOSZA(I,J) ) &
+            *  ( 1440e+0_fp              / GET_TS_CHEM() )
+
+    ELSE
+
+       ! At night, OH goes to zero
+       FACT = 0e+0_fp
+
+    ENDIF
+
+  END FUNCTION Get_SzaFact
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_sumcosza
+!
+! !DESCRIPTION:
+!  Subroutine CALC\_SUMCOSZA computes the sum of cosine of the solar zenith
+!  angle over a 24 hour day, as well as the total length of daylight. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Calc_SumCosZa
+!
+! !USES:
+!
+    USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
+    USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+    USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+
+    USE CMN_SIZE_MOD  ! Size parameters
+    USE CMN_GCTM_MOD
+!
+! !REMARKS:
+!  Moved here from the obsolete global_oh_mod.F.
+!
+! !REVISION HISTORY: 
+! 01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where it's
+! called OHNO3TIME
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER, SAVE :: SAVEDOY = -1
+    INTEGER       :: I, IJLOOP, J, L, N, NT, NDYSTEP
+    REAL(fp)      :: A0, A1, A2, A3, B1, B2, B3
+    REAL(fp)      :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
+    REAL(fp)      :: SUNTMP(MAXIJ)
+
+    !=======================================================================
+    ! CALC_SUMCOSZA begins here!
+    !=======================================================================
+
+    !  Solar declination angle (low precision formula, good enough for us):
+    A0 = 0.006918
+    A1 = 0.399912
+    A2 = 0.006758
+    A3 = 0.002697
+    B1 = 0.070257
+    B2 = 0.000907
+    B3 = 0.000148
+    R  = 2.* PI * float( GET_DAY_OF_YEAR() - 1 ) / 365.
+
+    DEC = A0 - A1*cos(  R) + B1*sin(  R) & 
+             - A2*cos(2*R) + B2*sin(2*R) &
+             - A3*cos(3*R) + B3*sin(3*R)
+
+    LHR0 = int(float( GET_NHMSb() )/10000.)
+
+    ! Only do the following at the start of a new day
+    IF ( SAVEDOY /= GET_DAY_OF_YEAR() ) THEN 
+
+       ! Zero arrays
+       SUMCOSZA(:,:) = 0e+0_fp
+
+       ! NDYSTEP is # of chemistry time steps in this day
+       NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()      
+
+       ! NT is the elapsed time [s] since the beginning of the run
+       NT = GET_ELAPSED_SEC()
+
+       ! Loop forward through NDYSTEP "fake" timesteps for this day 
+       DO N = 1, NDYSTEP
+            
+          ! Zero SUNTMP array
+          SUNTMP(:) = 0e+0_fp
+
+          ! Loop over surface grid boxes
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+
+             ! Grid box latitude center [radians]
+             YMID_R = GET_YMID_R( I, J, 1 )
+
+             ! Increment IJLOOP
+             IJLOOP = ( (J-1) * IIPAR ) + I
+             TIMLOC = real(LHR0) + real(NT)/3600.0 + &
+                      GET_XMID( I, J, 1 ) / 15.0
+         
+             DO WHILE (TIMLOC .lt. 0)
+                TIMLOC = TIMLOC + 24.0
+             ENDDO
+
+             DO WHILE (TIMLOC .gt. 24.0)
+                TIMLOC = TIMLOC - 24.0
+             ENDDO
+
+             AHR = abs(TIMLOC - 12.) * 15.0 * PI_180
+
+             !===========================================================
+             ! The cosine of the solar zenith angle (SZA) is given by:
+             !     
+             !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+             !                   
+             ! where LAT = the latitude angle, 
+             !       DEC = the solar declination angle,  
+             !       AHR = the hour angle, all in radians. 
+             !
+             ! If SUNCOS < 0, then the sun is below the horizon, and 
+             ! therefore does not contribute to any solar heating.  
+             !===========================================================
+
+             ! Compute Cos(SZA)
+             SUNTMP(IJLOOP) = sin(YMID_R) * sin(DEC) +          &
+                              cos(YMID_R) * cos(DEC) * cos(AHR)
+
+             ! SUMCOSZA is the sum of SUNTMP at location (I,J)
+             ! Do not include negative values of SUNTMP
+             SUMCOSZA(I,J) = SUMCOSZA(I,J) +             &
+                             MAX(SUNTMP(IJLOOP),0e+0_fp)
+
+         ENDDO
+         ENDDO
+!!$OMP END PARALLEL DO
+
+         ! Increment elapsed time [sec]
+         NT = NT + ( GET_TS_CHEM() * 60 )             
+      ENDDO
+
+      ! Set saved day of year to current day of year 
+      SAVEDOY = GET_DAY_OF_YEAR()
+
+   ENDIF
+
+   ! Return to calling program
+ END SUBROUTINE Calc_SumCosZa
 !EOC
 END MODULE HCOI_GC_MAIN_MOD

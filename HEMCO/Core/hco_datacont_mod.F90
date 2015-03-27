@@ -311,6 +311,7 @@ CONTAINS
           IF(ASSOCIATED(Dct%Scal_cID)) DEALLOCATE(Dct%Scal_cID)
           DEALLOCATE ( Dct )
        ENDIF
+
     ENDIF
 
   END SUBROUTINE DataCont_Cleanup
@@ -457,7 +458,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set verbose flag
-    verbose = HCO_VERBOSE_CHECK() .AND. am_I_Root
+    verbose = HCO_IsVerb ( 3 ) 
 
     ! Eventually cleanup the list
     IF ( ASSOCIATED ( cIDList ) ) THEN

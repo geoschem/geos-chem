@@ -53,8 +53,12 @@
       PRIVATE :: READ_PROD_LOSS_MENU 
       PRIVATE :: READ_UNIX_CMDS_MENU
       PRIVATE :: READ_NESTED_GRID_MENU
-      PRIVATE :: READ_ARCHIVED_OH_MENU
-      PRIVATE :: READ_O3PL_MENU
+!----------------------------------------------------------------------------
+! Prior to 3/13/15:
+! HEMCO has made these routines obsolete (bmy, 3/13/15)
+!      PRIVATE :: READ_ARCHIVED_OH_MENU
+!      PRIVATE :: READ_O3PL_MENU
+!----------------------------------------------------------------------------
       PRIVATE :: READ_BENCHMARK_MENU  
       PRIVATE :: READ_CH4_MENU
       PRIVATE :: VALIDATE_DIRECTORIES  
@@ -386,11 +390,15 @@
          ELSE IF ( INDEX( LINE, 'NESTED GRID MENU' ) > 0 ) THEN 
             CALL READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
 
-         ELSE IF ( INDEX( LINE, 'ARCHIVED OH MENU' ) > 0 ) THEN 
-            CALL READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC  )
-
-         ELSE IF ( INDEX( LINE, 'O3 P/L MENU'      ) > 0 ) THEN 
-            CALL READ_O3PL_MENU( am_I_Root, Input_Opt, RC  )
+!------------------------------------------------------------------------------
+! Prior to 3/13/15:
+! HEMCO has made these menus obsolete (bmy, 3/13/15)
+!         ELSE IF ( INDEX( LINE, 'ARCHIVED OH MENU' ) > 0 ) THEN 
+!            CALL READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC  )
+!
+!         ELSE IF ( INDEX( LINE, 'O3 P/L MENU'      ) > 0 ) THEN 
+!            CALL READ_O3PL_MENU( am_I_Root, Input_Opt, RC  )
+!------------------------------------------------------------------------------
 
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
             CALL READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC  )
@@ -719,6 +727,9 @@
       INTEGER            :: NYMDe,   NHMSe
       INTEGER            :: C
 
+      ! Strings
+      CHARACTER(LEN=255) :: TMP_CHAR
+
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
@@ -776,15 +787,18 @@
 
       ! 1x1  dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR_1x1
+!      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR_1x1
+      READ( SUBSTRS(1:N), '(a)' ) TMP_CHAR
 
 !##############################################################################
-!### Modifications to facilitate high-performance GEOS-Chem (bmy, 3/5/15)
+!### Modifications to facilitate high-performance GEOS-Chem (bmy, 3/13/15)
 !### 
 !### (1) DATA_DIR now poings to the ExtData directory 
 !### (2) ExtData/HEMCO is where the HEMCO data files are located
 !### (3) ExtData/CHEM_INPUTS is where non-HEMCO chemistry files are located
 !### (4) Resolution-dependent files are now in ExtData/GEOS_4x5, etc.
+!### (5) DATA_DIR_1x1 is now obsolete.  We'll keep it for backwards
+!###      compatibility.  Define it w/r/t ExtData.
       
       !-----------------------------------------------------------------
       ! Make sure DATA-DIR ends with a "/" character
@@ -799,6 +813,13 @@
       !-----------------------------------------------------------------
       Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) // 
      &                            'CHEM_INPUTS/'
+
+      !-----------------------------------------------------------------
+      ! For now, define the DATA_DIR_1x1 w/r/t ExtData.  
+      ! This is going to be eventually removed from the code.
+      !-----------------------------------------------------------------    
+      Input_Opt%DATA_DIR_1x1 = TRIM( Input_Opt%DATA_DIR ) // 
+     &                         'GEOS_NATIVE/'
 
       !-----------------------------------------------------------------
       ! Define resolution-specific directory name RES_DIR
@@ -4658,6 +4679,10 @@
       ENDIF
       CALL SET_TINDEX( am_I_Root, 38, ND38, SUBSTRS(2:N), N-1, N_TMP )
 
+      ! For netCDF diagnostics
+      Input_Opt%ND38_OUTPUT_FREQ = 'Daily'   ! Note, can change later
+      Input_Opt%ND38_OUTPUT_TYPE = 'Mean'
+
       !--------------------------
       ! ND39: Wet scav losses
       !--------------------------
@@ -4666,6 +4691,10 @@
       READ( SUBSTRS(1), * ) ND39
       IF ( .not. Input_Opt%LWETD ) ND39 = 0
       CALL SET_TINDEX( am_I_Root, 39, ND39, SUBSTRS(2:N), N-1, N_TMP )
+
+      ! For netCDF diagnostics
+      Input_Opt%ND39_OUTPUT_FREQ = 'Daily'   ! Note, can change later
+      Input_Opt%ND39_OUTPUT_TYPE = 'Mean'
 
       !--------------------------
       ! ND41: Afternoon PBL ht
@@ -6936,155 +6965,159 @@
     
       END SUBROUTINE READ_BENCHMARK_MENU
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!##############################################################################
+!### Prior to 3/13/15:
+!### HEMCO has made these subroutines and directories obsolete (bmy, 3/13/15)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_archived_oh_menu( am_I_Root )
+!!
+!! !DESCRIPTION: Subroutine READ\_ARCHIVED\_OH\_MENU reads the ARCHIVED OH MENU 
+!!  section of the GEOS-Chem input file.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!! 
+!! !REVISION HISTORY: 
+!!  20 Jul 2004 - R. Yantosca - Initial version
+!!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!!                              running with the traditional driver main.F
+!!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER            :: N
+!      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 !
-! !IROUTINE: read_archived_oh_menu( am_I_Root )
+!      !=================================================================
+!      ! READ_ARCHIVED_OH_MENU begins here!
+!      !=================================================================
 !
-! !DESCRIPTION: Subroutine READ\_ARCHIVED\_OH\_MENU reads the ARCHIVED OH MENU 
-!  section of the GEOS-Chem input file.
-!\\
-!\\
-! !INTERFACE:
+!      ! Directory where offline OH files are stored
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
+!      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%OH_DIR
 !
-      SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC )
+!      ! Separator line
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
 !
-! !USES:
+!      ! Return success
+!      RC = GIGC_SUCCESS
 !
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      !=================================================================
+!      ! Print to screen
+!      !=================================================================
+!      IF ( am_I_Root ) THEN
+!         WRITE( 6, '(/,a)' ) 'ARCHIVED OH MENU'
+!         WRITE( 6, '(  a)' ) '-----------------'          
+!         WRITE( 6, 100 ) 'Dir w/ archived OH files    : ', 
+!     &        TRIM( Input_Opt%OH_DIR )
+!      ENDIF
 !
-! !INPUT PARAMETERS:
+!      ! FORMAT statements
+! 100  FORMAT( A, A )
+!    
+!      END SUBROUTINE READ_ARCHIVED_OH_MENU
+!!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: read_o3pl_menu
+!!
+!! !DESCRIPTION: Subroutine READ\_O3PL\_MENU reads the O3 P/L MENU section 
+!!  of the GEOS-Chem input file.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE READ_O3PL_MENU( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!      USE GIGC_ErrCode_Mod
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!! 
+!! !REVISION HISTORY: 
+!!  20 Jul 2004 - R. Yantosca - Initial version
+!!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER            :: N
+!      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!      !=================================================================
+!      ! READ_O3PL_MENU begins here!
+!      !=================================================================
 !
-! !INPUT/OUTPUT PARAMETERS:
+!      ! Directory where archived P(O3) and L(O3) files are stored
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
+!      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%O3PL_DIR
 !
-      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!      ! Separator line
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:2' )
 !
-! !OUTPUT PARAMETERS:
+!      ! Return success
+!      RC = GIGC_SUCCESS
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      !=================================================================
+!      ! Print to screen
+!      !=================================================================
+!      IF ( am_I_Root ) THEN
+!         WRITE( 6, '(/,a)' ) 'ARCHIVED O3PL MENU'
+!         WRITE( 6, '(  a)' ) '-------------------'          
+!         WRITE( 6, 100     ) 'Dir w/ archived O3 P/L files: ', 
+!     &                       TRIM( Input_Opt%O3PL_DIR )
+!      ENDIF
 !
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-
-      !=================================================================
-      ! READ_ARCHIVED_OH_MENU begins here!
-      !=================================================================
-
-      ! Directory where offline OH files are stored
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%OH_DIR
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
-
-      ! Return success
-      RC = GIGC_SUCCESS
-
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 'ARCHIVED OH MENU'
-         WRITE( 6, '(  a)' ) '-----------------'          
-         WRITE( 6, 100 ) 'Dir w/ archived OH files    : ', 
-     &        TRIM( Input_Opt%OH_DIR )
-      ENDIF
-
-      ! FORMAT statements
- 100  FORMAT( A, A )
-    
-      END SUBROUTINE READ_ARCHIVED_OH_MENU
+!      ! FORMAT statements
+! 100  FORMAT( A, A )
+!    
+!      END SUBROUTINE READ_O3PL_MENU
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_o3pl_menu
-!
-! !DESCRIPTION: Subroutine READ\_O3PL\_MENU reads the O3 P/L MENU section 
-!  of the GEOS-Chem input file.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_O3PL_MENU( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-
-      !=================================================================
-      ! READ_O3PL_MENU begins here!
-      !=================================================================
-
-      ! Directory where archived P(O3) and L(O3) files are stored
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%O3PL_DIR
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:2' )
-
-      ! Return success
-      RC = GIGC_SUCCESS
-
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 'ARCHIVED O3PL MENU'
-         WRITE( 6, '(  a)' ) '-------------------'          
-         WRITE( 6, 100     ) 'Dir w/ archived O3 P/L files: ', 
-     &                       TRIM( Input_Opt%O3PL_DIR )
-      ENDIF
-
-      ! FORMAT statements
- 100  FORMAT( A, A )
-    
-      END SUBROUTINE READ_O3PL_MENU
-!EOC
+!##############################################################################
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -7783,8 +7816,12 @@
       CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR_1x1    )
       CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%CHEM_INPUTS_DIR )
       CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%RUN_DIR         )
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%OH_DIR          )
-      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%O3PL_DIR        )
+!------------------------------------------------------------------------------
+! Prior to 3/13/15:
+! HEMCO has made these directories obsolete (bmy, 3/13/15)
+!      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%OH_DIR          )
+!      CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%O3PL_DIR        )
+!------------------------------------------------------------------------------
 
       ! Only validate the TEMP_DIR if we are unzipping met fields
       IF ( Input_Opt%LUNZIP ) THEN
@@ -8262,7 +8299,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
-      USE HCN_CH3CN_Mod,      ONLY : Init_HCN_CH3CN
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
       USE POPs_Mod,           ONLY : Init_POPs
@@ -8270,6 +8306,7 @@
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
       USE Tagged_Ox_Mod,      ONLY : Init_Tagged_Ox
+      USE Toms_Mod,           ONLY : Init_Toms
       USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
 !
 ! !INPUT PARAMETERS:
@@ -8307,6 +8344,7 @@
 !  25 Jun 2014 - R. Yantosca - Now call INIT_MODIS_LAI      
 !  25 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES (vdiff_pre_mod.F90)
 !  25 Aug 2014 - M. Sulprizio- Now call INIT_POPS
+!  16 Mar 2015 - R. Yantosca - Now call INIT_TOMS here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8326,16 +8364,14 @@
       prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
 
       ! Initialize the MODIS leaf area index module
-      CALL INIT_MODIS_LAI( am_I_Root, Input_Opt, RC )
+      CALL Init_Modis_LAI( am_I_Root, Input_Opt, RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
       ! Call SET_VDIFF_VALUES so that we can pass several values from 
       ! Input_Opt to the vdiff_mod.F90.  This replaces the funcitionality
       ! of logical_mod.F and tracer_mod.F..  This has to be called
       ! after the input.geos file has been read from disk.
-      CALL Set_VDIFF_VALUES( am_I_Root, Input_Opt, RC )
-
-      !%%% NOTE: Should call INIT_PBL_MIX etc from here %%%
+      CALL Set_Vdiff_Values( am_I_Root, Input_Opt, RC )
 
       ! Initialize "carbon_mod.F"
       IF ( Input_Opt%LCARB ) THEN
@@ -8375,13 +8411,17 @@
 
       ! Initialize "linoz_mod.F"
       IF ( Input_Opt%LLINOZ ) THEN
-         CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
+         CALL Init_Linoz( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
       ENDIF
 
       ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
-      CALL INIT_CHEMGRID( am_I_Root, Input_Opt, RC )
+      CALL Init_ChemGrid( am_I_Root, Input_Opt, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CHEMGRID' )
+
+      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
+      CALL Init_Toms( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_TOMS' )
 
       !-----------------------------------------------------------------
       ! Also initialize specialty simulation modules here
@@ -8393,32 +8433,27 @@
       ! Initialize "c2h6_mod.F"
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. 
      &     Input_Opt%ITS_A_C2H6_SIM     ) THEN
-         CALL INIT_C2H6( am_I_Root, Input_Opt, RC )
+         CALL Init_C2H6( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Initialize "global_ch4_mod.F"
       IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-         CALL INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
-      ENDIF
-
-      ! Initialize "hcn_ch3cn_mod.F"
-      IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
-         CALL INIT_HCN_CH3CN( am_I_Root, Input_Opt, RC )
+         CALL Init_Global_Ch4( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Initialize "tagged_co_mod.F"
       IF ( Input_Opt%ITS_A_TAGCO_SIM   .or.
      &     Input_Opt%ITS_A_H2HD_SIM  ) THEN
-         CALL INIT_TAGGED_CO( am_I_Root, Input_Opt, RC )
+         CALL Init_Tagged_CO( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Initialize "tagged_ox_mod.F"
       IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-         CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
+         CALL Init_Tagged_Ox( am_I_Root, Input_Opt, RC )
       ENDIF
 
       IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-         CALL INIT_POPS( am_I_Root, Input_Opt, RC )
+         CALL Init_POPs( am_I_Root, Input_Opt, RC )
       ENDIF
 
       END SUBROUTINE GIGC_Init_Extra

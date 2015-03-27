@@ -160,7 +160,7 @@ MODULE HCOIO_MESSY_MOD
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! verbose?
-    verb = am_I_Root .AND. HCO_VERBOSE_CHECK()
+    verb = HCO_IsVerb(3) 
 
     ! Horizontal dimension of input data
     NXIN = SIZE(NcArr,1)

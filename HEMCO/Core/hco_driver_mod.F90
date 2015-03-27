@@ -133,7 +133,7 @@ CONTAINS
     ! file has to be read in its entirety before the timezone data
     ! is loaded into a data container. (bmy, 2/23/15)
     IF ( FIRST ) THEN
-       CALL HcoClock_InitTzPtr( RC )
+       CALL HcoClock_InitTzPtr( am_I_Root, RC )
        FIRST = .FALSE.
     ENDIF
 
@@ -299,13 +299,13 @@ CONTAINS
     CALL ReadList_Cleanup ( .FALSE. )
     CALL Config_Cleanup   ( .TRUE.  )
     CALL Reset_nnDataCont
-
+ 
     ! Cleanup the extension list object
     CALL ExtFinal         (         )
 
     ! Close the logfile and cleanup error object. 
     CALL HCO_Error_Final  (         )
-
+ 
   END SUBROUTINE HCO_Final
 !EOC
 END MODULE HCO_Driver_Mod
