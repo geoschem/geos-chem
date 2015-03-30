@@ -177,7 +177,7 @@ CONTAINS
     ! HCO_UNIT_CHANGE_SP begins here
     !=================================================================
 
-    CALL HCO_Unit_Factor( UNITS,    MW_IN,    MW_OUT, MOLEC_RATIO, YYYY, MW, &
+    CALL HCO_Unit_Factor( UNITS,    MW_IN,    MW_OUT, MOLEC_RATIO, YYYY, MM, &
                           AreaFlag, TimeFlag, Factor, RC, KeepSpec=KeepSpec   )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -247,7 +247,7 @@ CONTAINS
     ! HCO_UNIT_CHANGE_DP begins here
     !=================================================================
 
-    CALL HCO_Unit_Factor( UNITS,    MW_IN,    MW_OUT, MOLEC_RATIO, YYYY, MW, &
+    CALL HCO_Unit_Factor( UNITS,    MW_IN,    MW_OUT, MOLEC_RATIO, YYYY, MM, &
                           AreaFlag, TimeFlag, Factor, RC, KeepSpec=KeepSpec   )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
