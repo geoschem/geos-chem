@@ -67,10 +67,10 @@ include $(ROOTDIR)/Makefile_header.mk
 #=============================================================================
 
 # List of source files
-SRC = $(wildcard *.f90)
+SRC = $(wildcard *.F90)
 
 # Replace .F and .F90 extensions with *.o
-OBJ = $(SRC:.f90=.o)
+OBJ = $(SRC:.F90=.o)
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -101,133 +101,138 @@ debug:
 # correct order of compilation (so we don't have to do that ourselves!)
 #=============================================================================
 
-mcica_random_numbers.o               : mcica_random_numbers.f90      \
-                                       parkind.o
+mcica_random_numbers.o   : mcica_random_numbers.F90                          \
+                           parkind.o
 	$(F90) $(R8) -c $(OPT) $<
 
-mcica_subcol_gen_lw.o                : mcica_subcol_gen_lw.f90  mcica_random_numbers.o  \
-                                       parkind.o   parrrtm.o rrlw_con.o  rrlw_wvn.o  rrlw_vsn.o
-	$(F90) $(R8) -c $(OPT) $<
-
-
-mcica_subcol_gen_sw.o                : mcica_subcol_gen_sw.f90  mcica_random_numbers.o \
-                                       parkind.o   parrrsw.o rrsw_con.o  rrsw_wvn.o  rrsw_vsn.o
-	$(F90) $(R8) -c $(OPT) $<
-
-parkind.o                : parkind.f90 
+mcica_subcol_gen_lw.o    : mcica_subcol_gen_lw.F90  mcica_random_numbers.o   \
+                           parkind.o                parrrtm.o                \
+                           rrlw_con.o               rrlw_wvn.o               \
+                           rrlw_vsn.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-parrrtm.o                : parrrtm.f90             parkind.o 
+mcica_subcol_gen_sw.o    : mcica_subcol_gen_sw.F90  mcica_random_numbers.o   \
+                           parkind.o                parrrsw.o                \
+                           rrsw_con.o               rrsw_wvn.o               \
+                           rrsw_vsn.o
+	$(F90) $(R8) -c $(OPT) $<
+
+parkind.o                : parkind.F90 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-#rad_driver.o             : rad_driver.f90                                    \
+parrrtm.o                : parrrtm.F90             parkind.o 
+	$(F90) $(R8) -c $(OPT) $<
+
+
+#rad_driver.o            : rad_driver.F90                                    \
                            parkind.o               parrrtm.o                 \
                            parrrsw.o               rrlw_con.o                \
                            rrtmg_lw_rad.o          rrtmg_sw_rad.o
 #	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_cld.o               : rrlw_cld.f90            parkind.o 
+rrlw_cld.o               : rrlw_cld.F90            parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_con.o               : rrlw_con.f90            parkind.o 
+rrlw_con.o               : rrlw_con.F90            parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg01.o              : rrlw_kg01.f90           parkind.o 
+rrlw_kg01.o              : rrlw_kg01.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg02.o              : rrlw_kg02.f90           parkind.o 
+rrlw_kg02.o              : rrlw_kg02.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg03.o              : rrlw_kg03.f90           parkind.o 
+rrlw_kg03.o              : rrlw_kg03.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg04.o              : rrlw_kg04.f90           parkind.o 
+rrlw_kg04.o              : rrlw_kg04.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg05.o               : rrlw_kg05.f90          parkind.o 
+rrlw_kg05.o               : rrlw_kg05.F90          parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg06.o               : rrlw_kg06.f90          parkind.o 
+rrlw_kg06.o               : rrlw_kg06.F90          parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg07.o               : rrlw_kg07.f90          parkind.o 
+rrlw_kg07.o               : rrlw_kg07.F90          parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg08.o              : rrlw_kg08.f90           parkind.o 
+rrlw_kg08.o              : rrlw_kg08.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg09.o              : rrlw_kg09.f90           parkind.o 
+rrlw_kg09.o              : rrlw_kg09.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg10.o              : rrlw_kg10.f90           parkind.o 
+rrlw_kg10.o              : rrlw_kg10.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg11.o              : rrlw_kg11.f90           parkind.o 
+rrlw_kg11.o              : rrlw_kg11.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg12.o              : rrlw_kg12.f90           parkind.o 
+rrlw_kg12.o              : rrlw_kg12.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg13.o              : rrlw_kg13.f90           parkind.o 
+rrlw_kg13.o              : rrlw_kg13.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg14.o              : rrlw_kg14.f90           parkind.o 
+rrlw_kg14.o              : rrlw_kg14.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg15.o              : rrlw_kg15.f90           parkind.o 
+rrlw_kg15.o              : rrlw_kg15.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_kg16.o              : rrlw_kg16.f90           parkind.o 
+rrlw_kg16.o              : rrlw_kg16.F90           parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_ncpar.o             : rrlw_ncpar.f90          parkind.o 
+rrlw_ncpar.o             : rrlw_ncpar.F90          parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
-rrlw_ref.o               : rrlw_ref.f90            parkind.o 
-	$(F90) $(R8) -c $(OPT) $<
-
-
-rrlw_tbl.o               : rrlw_tbl.f90            parkind.o 
+rrlw_ref.o               : rrlw_ref.F90            parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_vsn.o               : rrlw_vsn.f90 
+rrlw_tbl.o               : rrlw_tbl.F90            parkind.o 
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrlw_wvn.o               : rrlw_wvn.f90                                      \
+rrlw_vsn.o               : rrlw_vsn.F90 
+	$(F90) $(R8) -c $(OPT) $<
+
+
+rrlw_wvn.o               : rrlw_wvn.F90                                      \
                            parkind.o               parrrtm.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_lw_cldprmc.o       : rrtmg_lw_cldprmc.f90                              \
+rrtmg_lw_cldprmc.o       : rrtmg_lw_cldprmc.F90                              \
                            parkind.o               parrrtm.o                 \
-                           rrlw_cld.o              rrlw_vsn.o
+                           rrlw_cld.o              rrlw_wvn.o                \
+                           rrlw_vsn.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_lw_init.o          : rrtmg_lw_init.f90                                 \
+rrtmg_lw_init.o          : rrtmg_lw_init.F90                                 \
                            parkind.o               parrrtm.o                 \
                            rrlw_cld.o              rrlw_vsn.o                \
                            rrlw_wvn.o              rrlw_tbl.o                \
@@ -243,7 +248,7 @@ rrtmg_lw_init.o          : rrtmg_lw_init.f90                                 \
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_lw_k_g.o           : rrtmg_lw_k_g.f90                                  \
+rrtmg_lw_k_g.o           : rrtmg_lw_k_g.F90                                  \
                            parkind.o               rrlw_vsn.o                \
                            rrlw_kg01.o             rrlw_kg02.o               \
                            rrlw_kg03.o             rrlw_kg04.o               \
@@ -258,7 +263,7 @@ rrtmg_lw_k_g.o           : rrtmg_lw_k_g.f90                                  \
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_lw_rad.o           : rrtmg_lw_rad.f90                          \
+rrtmg_lw_rad.o           : rrtmg_lw_rad.F90                                  \
                            parkind.o               parrrtm.o                 \
                            rrlw_cld.o              rrlw_vsn.o                \
                            rrlw_wvn.o              rrlw_tbl.o                \
@@ -269,21 +274,21 @@ rrtmg_lw_rad.o           : rrtmg_lw_rad.f90                          \
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_lw_rtrnmc.o        : rrtmg_lw_rtrnmc.f90                               \
+rrtmg_lw_rtrnmc.o        : rrtmg_lw_rtrnmc.F90                               \
                            parkind.o               parrrtm.o                 \
                            rrlw_vsn.o              rrlw_wvn.o                \
                            rrlw_tbl.o              rrlw_con.o   
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_lw_setcoef.o       : rrtmg_lw_setcoef.f90                              \
+rrtmg_lw_setcoef.o       : rrtmg_lw_setcoef.F90                              \
                            parkind.o               parrrtm.o                 \
                            rrlw_vsn.o              rrlw_wvn.o                \
                            rrlw_ref.o     
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_lw_taumol.o        : rrtmg_lw_taumol.f90                               \
+rrtmg_lw_taumol.o        : rrtmg_lw_taumol.F90                               \
                            parkind.o               rrlw_vsn.o                \
                            rrlw_vsn.o              rrlw_wvn.o                \
                            rrlw_con.o              rrlw_ref.o                \
@@ -298,119 +303,119 @@ rrtmg_lw_taumol.o        : rrtmg_lw_taumol.f90                               \
 	$(F90) $(R8) -c $(OPT) $<
 
 
-parrrsw.o                : parrrsw.f90             parkind.o
+parrrsw.o                : parrrsw.F90             parkind.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_aer.o               : rrsw_aer.f90                                      \
+rrsw_aer.o               : rrsw_aer.F90                                      \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_cld.o               : rrsw_cld.f90            parkind.o
+rrsw_cld.o               : rrsw_cld.F90            parkind.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
 
-rrsw_con.o               : rrsw_con.f90            parkind.o
+rrsw_con.o               : rrsw_con.F90            parkind.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg16.o              : rrsw_kg16.f90                                     \
+rrsw_kg16.o              : rrsw_kg16.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg17.o              : rrsw_kg17.f90                                     \
+rrsw_kg17.o              : rrsw_kg17.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg18.o              : rrsw_kg18.f90                                     \
+rrsw_kg18.o              : rrsw_kg18.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg19.o              : rrsw_kg19.f90                                     \
+rrsw_kg19.o              : rrsw_kg19.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg20.o              : rrsw_kg20.f90                                     \
+rrsw_kg20.o              : rrsw_kg20.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg21.o              : rrsw_kg21.f90                                     \
+rrsw_kg21.o              : rrsw_kg21.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg22.o              : rrsw_kg22.f90                                     \
+rrsw_kg22.o              : rrsw_kg22.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg23.o              : rrsw_kg23.f90                                     \
+rrsw_kg23.o              : rrsw_kg23.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg24.o              : rrsw_kg24.f90                                     \
+rrsw_kg24.o              : rrsw_kg24.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg25.o              : rrsw_kg25.f90                                     \
+rrsw_kg25.o              : rrsw_kg25.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg26.o              : rrsw_kg26.f90                                     \
+rrsw_kg26.o              : rrsw_kg26.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg27.o              : rrsw_kg27.f90           parkind.o                 \
+rrsw_kg27.o              : rrsw_kg27.F90           parkind.o                 \
                            parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg28.o              : rrsw_kg28.f90                                     \
+rrsw_kg28.o              : rrsw_kg28.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_kg29.o              : rrsw_kg29.f90                                     \
+rrsw_kg29.o              : rrsw_kg29.F90                                     \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_ref.o               : rrsw_ref.f90            parkind.o
+rrsw_ref.o               : rrsw_ref.F90            parkind.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_tbl.o               : rrsw_tbl.f90            parkind.o
+rrsw_tbl.o               : rrsw_tbl.F90            parkind.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_vsn.o               : rrsw_vsn.f90
+rrsw_vsn.o               : rrsw_vsn.F90
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrsw_wvn.o               : rrsw_wvn.f90                                      \
+rrsw_wvn.o               : rrsw_wvn.F90                                      \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_sw_cldprmc.o       : rrtmg_sw_cldprmc.f90                              \
+rrtmg_sw_cldprmc.o       : rrtmg_sw_cldprmc.F90                              \
                            parkind.o               parrrsw.o                 \
                            rrsw_cld.o              rrsw_wvn.o                \
                            rrsw_vsn.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_sw_init.o          : rrtmg_sw_init.f90                                 \
+rrtmg_sw_init.o          : rrtmg_sw_init.F90                                 \
                            parkind.o               parrrsw.o                 \
                            rrsw_cld.o              rrsw_wvn.o                \
                            rrsw_vsn.o              rrsw_tbl.o                \
@@ -426,7 +431,7 @@ rrtmg_sw_init.o          : rrtmg_sw_init.f90                                 \
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_sw_k_g.o           : rrtmg_sw_k_g.f90                                  \
+rrtmg_sw_k_g.o           : rrtmg_sw_k_g.F90                                  \
                            parkind.o               rrsw_kg16.o               \
                            rrsw_kg17.o             rrsw_kg18.o               \
                            rrsw_kg19.o             rrsw_kg20.o               \
@@ -438,7 +443,7 @@ rrtmg_sw_k_g.o           : rrtmg_sw_k_g.f90                                  \
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_sw_rad.o           : rrtmg_sw_rad.f90                          \
+rrtmg_sw_rad.o           : rrtmg_sw_rad.F90                                  \
                            parkind.o               parrrsw.o                 \
                            rrsw_wvn.o              rrsw_vsn.o                \
                            rrsw_con.o              rrsw_aer.o                \
@@ -448,20 +453,20 @@ rrtmg_sw_rad.o           : rrtmg_sw_rad.f90                          \
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_sw_reftra.o        : rrtmg_sw_reftra.f90                               \
+rrtmg_sw_reftra.o        : rrtmg_sw_reftra.F90                               \
                            parkind.o               rrsw_vsn.o                \
                            rrsw_tbl.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_sw_setcoef.o       : rrtmg_sw_setcoef.f90                              \
+rrtmg_sw_setcoef.o       : rrtmg_sw_setcoef.F90                              \
                            parkind.o               rrsw_vsn.o                \
                            rrsw_tbl.o              parrrsw.o                 \
                            rrsw_ref.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_sw_spcvmc.o        : rrtmg_sw_spcvmc.f90                               \
+rrtmg_sw_spcvmc.o        : rrtmg_sw_spcvmc.F90                               \
                            parkind.o               parrrsw.o                 \
                            rrsw_wvn.o              rrsw_vsn.o                \
                            rrsw_tbl.o              rrtmg_sw_reftra.o         \
@@ -469,7 +474,7 @@ rrtmg_sw_spcvmc.o        : rrtmg_sw_spcvmc.f90                               \
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_sw_taumol.o        : rrtmg_sw_taumol.f90                               \
+rrtmg_sw_taumol.o        : rrtmg_sw_taumol.F90                               \
                            parkind.o               parrrsw.o                 \
                            rrsw_con.o              rrsw_wvn.o                \
                            rrsw_vsn.o              rrsw_kg16.o               \
@@ -483,7 +488,7 @@ rrtmg_sw_taumol.o        : rrtmg_sw_taumol.f90                               \
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rrtmg_sw_vrtqdr.o        : rrtmg_sw_vrtqdr.f90                               \
+rrtmg_sw_vrtqdr.o        : rrtmg_sw_vrtqdr.F90                               \
                            parkind.o               parrrsw.o
 	$(F90) $(R8) -c $(OPT) $<
 
