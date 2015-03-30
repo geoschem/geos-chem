@@ -128,8 +128,7 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, NN )
-!!$OMP+PRIVATE( REEMFRAC, SNOW_HT )  
+!$OMP+PRIVATE( I,              J,                NN                 )
 !$OMP+PRIVATE( REEMFRAC,       FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND )  
 !$OMP+PRIVATE( IS_SNOW_OR_ICE, IS_LAND_OR_ICE                       )
       DO J  = 1, JJPAR
@@ -142,7 +141,7 @@
          ! Assume here default of land box with no snow. We will reset
          ! fractions for MERRA here and for prior versions snow/ice boxes
          ! below (jaf, 4/26/11)
-         FRAC_SNOW_OR_ICE = 0e+0_fp
+         FRAC_SNOW_OR_ICE    = 0e+0_fp
          FRAC_SNOWFREE_LAND  = 1e+0_fp
 
 #if   defined( MERRA ) || defined( GEOS_FP )
@@ -239,8 +238,6 @@
       USE CMN_DIAG_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!      USE GRID_MOD,           ONLY : GET_AREA_CM2
-!      USE TIME_MOD,           ONLY : GET_TS_EMIS
 
       ! HEMCO update
       USE HCO_ERROR_MOD
@@ -313,12 +310,8 @@
       ! BIOMASSHG begins here!
       !=================================================================
 
-      ! DTSRCE is the number of seconds per emission timestep
-!      DTSRCE = GET_TS_EMIS() * 60e+0_fp
-
       ! Do biomass Hg emissions if biomass burning is on and it is a 
       ! present-day simulation (i.e. not preindustrial)
-!      IF ( LBIOMASS .AND. ( .NOT. LPREINDHG ) ) THEN
       IF ( .NOT. Input_Opt%LPREINDHG ) THEN
        
          CALL GetHcoState ( HcoState )
@@ -334,28 +327,6 @@
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
          EHg0_bb = Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
-
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-! 
-!!            ! Grid box surface area, cm2
-!!            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-!
-!!            ! Convert molec CO /cm3 /s -> mol CO /gridbox /s 
-!!            E_CO = ( BIOMASS(I,J,IDBCO) / 6.022D23 ) * AREA_CM2
-!
-!            ! Convert mol CO /gridbox /s to kg Hg /gridbox /s
-!!            EHg0_bb(I,J) = E_CO * BBRatio_Hg_CO * FMOL_HG 
-!
-!            ! kg/m2/s to kg/gridbox/s
-!            EHg0_bb(I,J) = Ptr2D(I,J) * HcoState%Grid%AREA_M2%Val(I,J)
-!        
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
 
       ELSE
 
@@ -622,12 +593,12 @@
 ! 
 ! !LOCAL VARIABLES:
 !     
-      REAL(fp)             :: SOIL_EMIS, DIMLIGHT, TAUZ, LIGHTFRAC
-      REAL(fp)             :: AREA_M2, DRYSOIL_HG
-      INTEGER            :: I, J, JLOOP
-      REAL(fp)             :: SUNCOSVALUE
-      REAL(fp)             :: FRAC_SNOWFREE_LAND 
-      LOGICAL            :: IS_SNOWFREE_LAND 
+      LOGICAL             :: IS_SNOWFREE_LAND 
+      INTEGER             :: I, J, JLOOP
+      REAL(fp)            :: SOIL_EMIS, DIMLIGHT, TAUZ, LIGHTFRAC
+      REAL(fp)            :: AREA_M2, DRYSOIL_HG
+      REAL(fp)            :: SUNCOSVALUE
+      REAL(fp)            :: FRAC_SNOWFREE_LAND 
 !
 ! !DEFINED PARAMETERS:
 !
@@ -642,9 +613,8 @@
       ! This parameter is tuned in the preindustrial simulation 
       ! so that total deposition to soil equals total emission from soil,
       ! while also requiring global mean soil Hg concentration of 45 ng/g 
-!      REAL(fp), PARAMETER  :: SOIL_EMIS_FAC = 3.3D13
 #if defined (GRID4x5)
-      REAL(fp), PARAMETER  :: SOIL_EMIS_FAC = 1.6e-2_fp ! for sunlight function, yzh
+      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp ! for sunlight function, yzh
 #elif defined(GRID2x25)
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC=1.6e-2_fp
 #elif defined(GRID05x0666)
@@ -662,7 +632,7 @@
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC = -9.0e+99_fp
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #else  ! This sets a default value for GCM & ESMF COUPLING
-      REAL(fp), PARAMETER ::SOIL_EMIS_FAC = 2.4e-2_fp*.5742e+0_fp ! for sunlight function
+      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 2.4e-2_fp*.5742e+0_fp ! for sunlight function
 #endif
 
       !=================================================================
@@ -671,8 +641,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, SOIL_EMIS, JLOOP,      SNOW_HT              ) 
-!$OMP+PRIVATE( I,          J,    SOIL_EMIS, JLOOP                ) 
+!$OMP+PRIVATE( I,          J,    SOIL_EMIS                       ) 
 !$OMP+PRIVATE( DRYSOIL_HG, TAUZ, LIGHTFRAC, AREA_M2, SUNCOSVALUE ) 
 !$OMP+PRIVATE( IS_SNOWFREE_LAND, FRAC_SNOWFREE_LAND              )
       DO J=1, JJPAR
@@ -700,9 +669,6 @@
 
          IF ( IS_SNOWFREE_LAND ) THEN
 
-            ! 1-D grid box index for SUNCOS
-            JLOOP = ( (J-1) * IIPAR ) + I
-         
             ! attenuate solar radiation based on function of leaf area index
             ! Jacob and Wofsy 1990 equations 8 & 9
             TAUZ = ISOLAI(I,J) * 0.5e+0_fp
@@ -746,116 +712,6 @@
 
       END SUBROUTINE SOILEMIS
 !EOC
-!##############################################################################
-!### Prior to 3/16/15:
-!### The data read by this subroutine is obsolete.  Remove code from GEOS-Chem
-!### rather than to convert obsolete data files from bpch to netCDF.
-!### (bmy, 3/16/15)
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_nasa_transp
-!!
-!! !DESCRIPTION: Subroutine READ\_NASA\_TRANSP reads monthly average 
-!!  transpiration [m/s] from NASA:
-!!  for input into the vegetation emissions.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_NASA_TRANSP( am_I_Root, Input_Opt, RC )
-!!
-!! !USES:
-!!
-!      USE BPCH2_MOD,      ONLY : GET_TAU0,   READ_BPCH2
-!      USE BPCH2_MOD,      ONLY : GET_RES_EXT
-!      USE TIME_MOD,       ONLY : GET_MONTH,  ITS_A_NEW_MONTH
-!      USE CMN_SIZE_MOD
-!      USE GIGC_ErrCode_Mod
-!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
-!! !REMARKS:
-!!  Data source:
-!!   http://gcmd.nasa.gov/records/GCMD_MINTZ_WALKER_SOIL_AND_EVAPO.html
-!!
-!!  References:
-!!  -----------
-!!  Mintz, Y and G.K. Walker (1993). "Global fields of soil moisture
-!!   and land surface evapotranspiration derived from observed
-!!   precipitation and surface air temperature." J. Appl. Meteorol. 32 (8), 
-!!  1305-1334. 
-!!
-!!  ##########################################################################
-!!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!!  ##########################################################################
-!! 
-!! !REVISION HISTORY: 
-!!  15 Sep 2006 - N. E. Selin - Initial version
-!!  30 Aug 2010 - R. Yantosca - Added ProTeX headers
-!!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER             :: I, J, L, MONTH, N
-!      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-!      REAL(f8)            :: XTAU
-!      CHARACTER(LEN=255)  :: FILENAME
-!      CHARACTER(LEN=2)    :: CMONTH(12) = (/ '01','02','03','04',
-!     &                                       '05','06','07','08',
-!     &                                       '09','10','11','12'/)
-!  
-!      !=================================================================
-!      ! READ_NASA_TRANSP begins here!
-!      !=================================================================
-!
-!      ! Assume success
-!      RC        =  GIGC_SUCCESS
-!
-!      ! Get the current month
-!      MONTH = GET_MONTH() 
-!     
-!      FILENAME = TRIM( Input_Opt%DATA_DIR ) // 
-!     &           TRIM( Input_Opt%RES_DIR  ) //
-!     &           'mercury_201007/nasatransp_' 
-!     &           // GET_RES_EXT() // '.'// CMONTH(MONTH) // '.bpch'
-!
-!      XTAU     = GET_TAU0(MONTH, 1, 1995 )
-!
-!      ! Echo info
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-! 100  FORMAT( '     - TRANSP_NASA: Reading ', a )     
-! 
-!      CALL READ_BPCH2( FILENAME, 'TRANSP-$', 1, 
-!     &                 XTAU,      IIPAR,     JJPAR,    
-!     &                 1,         ARRAY,   QUIET=.TRUE. )
-!
-!      ! Cast
-!      TRANSP = ARRAY(:,:,1)
-!      
-!      ! convert from mm/month to m/s
-!      TRANSP = TRANSP * 1e-3_fp * 12e+0_fp / ( 365e+0_fp * 24e+0_fp * 
-!     &          60e+0_fp * 60e+0_fp )
-!      
-!      END SUBROUTINE READ_NASA_TRANSP
-!!EOC
-!##############################################################################
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -906,15 +762,15 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  30 Mar 2015 - R. Yantosca - Remove obsolete variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER       :: I, J, NN, JLOOP
-      LOGICAL, SAVE :: FIRST
-      REAL(fp)        :: DTSRCE, SNOW_HG_NEW, K_EMIT
+      INTEGER  :: I, J, NN, JLOOP
+      REAL(fp) :: DTSRCE, SNOW_HG_NEW, K_EMIT
 
       !=================================================================
       ! SNOWPACK_MERCURY_FLUX begins here!
@@ -936,13 +792,9 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, NN )
-!$OMP+PRIVATE( SNOW_HG_NEW, JLOOP, K_EMIT )
+!$OMP+PRIVATE( I, J, NN, SNOW_HG_NEW, K_EMIT )
       DO J  = 1, JJPAR
       DO I  = 1, IIPAR
-
-         ! 1-D grid box index for SUNCOS
-         JLOOP = ( (J-1) * IIPAR ) + I
 
          ! If the sun is set, then no emissions, go to next box
          IF ( State_Met%SUNCOS(I,J) < 0e+0_fp ) CYCLE 
@@ -1272,15 +1124,6 @@
       ! INIT_MERCURY begins here!
       !=================================================================
 
-!##############################################################################
-!### Prior to 3/16/15:
-!### This array is no longer needed, the data is obsolete (bmy, 3/16/15)
-!      ! Allocate arrays
-!      ALLOCATE( TRANSP( IIPAR, JJPAR ), STAT=RC )
-!      IF ( RC /= 0 ) CALL ALLOC_ERR( 'TRANSP' )
-!      TRANSP = 0e+0_fp
-!##############################################################################
-
       END SUBROUTINE INIT_LAND_MERCURY
 !EOC
 !------------------------------------------------------------------------------
@@ -1303,13 +1146,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-!##############################################################################
-!### Prior to 3/16/15:
-!### This array is no longer needed, the data is obsolete (bmy, 3/16/15)
-!      ! Deallocate arrays
-!      IF ( ALLOCATED( TRANSP      ) ) DEALLOCATE( TRANSP      )
-!##############################################################################
 
       END SUBROUTINE CLEANUP_LAND_MERCURY
 !EOC

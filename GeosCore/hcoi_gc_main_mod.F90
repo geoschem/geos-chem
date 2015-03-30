@@ -2227,7 +2227,7 @@ CONTAINS
     ENDIF 
 
     !-----------------------------------------------------------------------
-    ! NON-EMISSIONS DATA #3: TOMS/SBUV overhead O3 columns
+    ! NON-EMISSIONS DATA #4: TOMS/SBUV overhead O3 columns
     !
     ! If we are using the GEOS-FP met fields, then we will not read in 
     ! the TOMS/SBUV O3 columns.  We will instead use the O3 columns from
@@ -2293,6 +2293,52 @@ CONTAINS
     ENDIF 
 
 #endif
+
+    !-----------------------------------------------------------------
+    ! NON-EMISSIONS DATA #5: Ocean Hg input data (for Hg sims only)
+    !
+    ! If we have turned on the Ocean Mercury simulation in the
+    ! input.geos file, then we will also toggle the +OCEAN_Hg+ 
+    ! collection so that HEMCO reads the appropriate data.
+    !-----------------------------------------------------------------
+    CALL GetExtOpt( -999, '+OCEAN_Hg+', OptValBool=LTMP, &
+                            FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL ERROR_STOP( 'GetExtOpt +OCEAN_Hg+', LOC )
+    ENDIF
+
+    IF ( FOUND ) THEN
+       
+       ! Stop the run if this collection is defined in the HEMCO config
+       ! file, but is set to an value inconsistent with input.geos file.
+       IF ( Input_Opt%LDYNOCEAN .AND. ( .NOT. LTMP ) ) THEN
+          MSG = 'Setting +UValbedo+ in the HEMCO configuration file ' // &
+                'must not be disabled if chemistry is turned on. '    // &
+                'If you don`t set that setting explicitly, it will '  // &
+                'be set automatically during run-time (recommended)'
+          CALL ERROR_STOP( MSG, LOC ) 
+       ENDIF
+       
+    ELSE
+
+       ! If this collection is not found in the HEMCO config file, then
+       ! activate it for those simulations requiring photolysis (i.e. 
+       ! fullchem or aerosols), and only if chemistry is turned on.
+       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+          IF ( Input_Opt%LDYNOCEAN ) THEN
+             OptName = '+OCEAN_Hg+ : true'
+          ELSE
+             OptName = '+OCEAN_Hg+ : false'
+          ENDIF
+       ELSE
+          OptName = '+OCEAN_Hg+ : false'
+       ENDIF
+       CALL AddExtOpt( TRIM(OptName), CoreNr, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP( 'AddExtOpt +OCEAN_Hg+', LOC )
+       ENDIF
+
+    ENDIF 
 
     !-----------------------------------------------------------------
     ! Make sure that the SHIPNO_BASE toggle is disabled if PARANOx is

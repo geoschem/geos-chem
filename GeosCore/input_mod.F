@@ -7482,14 +7482,10 @@
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
 
          ! Initialize Mercury simulation routines
-         CALL INIT_MERCURY     ( am_I_Root, Input_Opt, RC )
-         CALL INIT_LAND_MERCURY( am_I_Root, Input_Opt, RC )
-         CALL INIT_DEPO_MERCURY( am_I_Root, Input_Opt, RC )
-
-         ! Initialize "ocean_mercury_mod.f"
-         IF ( LDYNOCEAN ) THEN
-            CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
-         ENDIF
+         CALL INIT_MERCURY      ( am_I_Root, Input_Opt, RC )
+         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt, RC )
+         CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, RC )
+         CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
 
       ENDIF
 
