@@ -232,8 +232,11 @@ CONTAINS
     !=======================================================================
 
     ! This is for testing only. Only activate if needed.
-    !IF ( .TRUE. ) THEN     ! Activated
-    IF ( .FALSE. ) THEN     ! Deactivated
+#if defined( DEVEL )
+    IF ( .TRUE. ) THEN     ! Activated
+#else
+    IF ( .FALSE. ) THEN    ! Deactivated
+#endif
 
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 

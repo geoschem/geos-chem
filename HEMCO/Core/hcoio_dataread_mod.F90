@@ -435,6 +435,8 @@ CONTAINS
     REAL(hp), POINTER             :: LevMid   (:)     => NULL()
     REAL(hp), POINTER             :: LonEdge  (:)     => NULL()
     REAL(hp), POINTER             :: LatEdge  (:)     => NULL()
+    REAL(hp)                      :: UnitFactor
+    LOGICAL                       :: KeepSpec
     LOGICAL                       :: FOUND
     LOGICAL                       :: IsModelLevel
     INTEGER                       :: UnitTolerance
@@ -475,7 +477,7 @@ CONTAINS
           CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
           MSG = 'No valid file found for current simulation time - data '// &
                 'will be ignored - ' // TRIM(Lct%Dct%cName) 
-          CALL HCO_WARNING ( MSG, RC )
+          CALL HCO_WARNING ( MSG, RC, WARNLEV=1 )
           CALL HCO_LEAVE ( RC ) 
           RETURN
        ELSE
@@ -559,7 +561,7 @@ CONTAINS
           CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
           MSG = 'Simulation time is outside of time range provided for '//&
                TRIM(Lct%Dct%cName) // ' - data is ignored!'
-          CALL HCO_WARNING ( MSG, RC )
+          CALL HCO_WARNING ( MSG, RC, WARNLEV=1 )
           IF ( CloseFile ) THEN
              CALL NC_CLOSE ( ncLun )
              LUN = -1
@@ -660,6 +662,12 @@ CONTAINS
     ! ----------------------------------------------------------------
     ! Read data
     ! ----------------------------------------------------------------
+
+    ! Verbose mode
+    IF ( HCO_IsVerb(2) ) THEN
+       WRITE(MSG,*) 'Reading variable ', TRIM(Lct%Dct%Dta%ncPara)
+       CALL HCO_MSG(MSG)
+    ENDIF
 
     CALL NC_READ_ARR( fID     = ncLun,              &
                       ncVar   = Lct%Dct%Dta%ncPara, &
@@ -762,7 +770,7 @@ CONTAINS
           ncArr = (wgt1 * ncArr) + (wgt2 * ncArr2)
 
           ! Verbose
-          IF ( HCO_IsVerb(3) ) THEN
+          IF ( HCO_IsVerb(2) ) THEN
              MSG = 'Interpolated data between two files:'
              CALL HCO_MSG(MSG)
              MSG = '- File 1: ' // TRIM(srcFile)
@@ -789,12 +797,41 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Convert to HEMCO units 
+    ! HEMCO data are all in kg/m2/s for fluxes and kg/m3 for 
+    ! concentrations. Unit conversion is performed based on the
+    ! unit on the input file and the srcUnit attribute given in the
+    ! configuration file. By default, HEMCO will attempt to convert
+    ! the units found in the input file to the standard quantities
+    ! for mass (kg), area (m2 or m3), and time (s). For instance,
+    ! g/cm2/hr will be converted to kg/m2/s. The exceptions to this
+    ! rule are:
+    ! 1. If srcUnit is set to '1', the input data are expected to
+    !    be unitless. If the units string on the input file is none 
+    !    of the units recognized by HEMCO as unitless, an error is
+    !    returned if the unit tolerance setting is set to zero, or 
+    !    a warning is prompted if unit tolerance is greater than zero. 
+    ! 2. If srcUnit is set to 'count', no unit conversion is performed
+    !    and data will be treated as 'index' data, e.g. regridding will
+    !    preserve the absolute values.
+    !
+    ! Special attention needs to be paid to species that are emitted
+    ! in quantities other than species molecules, e.g. molecules 
+    ! carbon. For these species, the species MW differs from the 
+    ! 'emitted MW', and the molecular ratio determines how many 
+    ! molecules are being emitted per molecule species. By default, 
+    ! HEMCO will attempt to convert all input data to kg emitted 
+    ! species. If a species is emitted as kgC/m2/s and the input data 
+    ! is in kg/m2/s, the mass will be adjusted based on the molecular 
+    ! ratio and the ratio of emitted MW / species MW. Only input data
+    ! that is already in kgC/m2/s will not be converted!
+    ! This behavior can be avoided by explicitly setting the srcUnit
+    ! to the same value as the input data unit. In this case, HEMCO 
+    ! will not convert between species MW and emitted MW. 
+    ! This is useful for cases where the input data does not
+    ! contain data of the actual species, e.g. if VOC emissions are 
+    ! calculated from scaled CO emissions. The scale factors then
+    ! must include the conversion from CO to the VOC of interest! 
     !-----------------------------------------------------------------
-
-    ! Convert to HEMCO units. This is kg/m2/s for fluxes and kg/m3 
-    ! for concentrations.
-    ! The srcUnit attribute of the configuration file determines to
-    ! which fields unit conversion is applied:
 
     ! If OrigUnit is set to wildcard character: use unit from source file
     IF ( TRIM(Lct%Dct%Dta%OrigUnit) == HCO_WCD() ) THEN
@@ -824,17 +861,24 @@ CONTAINS
 
        ! Prompt a warning if thisUnit is not recognized as unitless.
        IF ( Flag /= 0 ) THEN 
-          MSG = 'Data does not appear to be unitless: ' // &
-                TRIM(thisUnit) // '. File: ' // TRIM(srcFile)
-          CALL HCO_WARNING( MSG, RC )
+          MSG = 'Data is treated as unitless, but file attribute suggests ' // &
+                'it is not: ' // TRIM(thisUnit) // '. File: ' // TRIM(srcFile)
+          CALL HCO_WARNING( MSG, RC, WARNLEV=1 )
+       ENDIF
+
+       ! Verbose mode
+       IF ( HCO_IsVerb(2) ) THEN
+          WRITE(MSG,*) 'Based on srcUnit attribute, no unit conversion is ', &
+                       'performed: ', TRIM(Lct%Dct%Dta%OrigUnit)
+          CALL HCO_MSG(MSG)
        ENDIF
 
     ! Convert to HEMCO units in all other cases. 
     ELSE
 
        ! For zero unit tolerance, make sure that thisUnit matches 
-       ! with unit set in configuration file!
-       ! Otherwise, prompt at least a warning.
+       ! with unit set in configuration file. For higher unit
+       ! tolerances, prompt a level 3 warning. 
        IF ( TRIM(Lct%Dct%Dta%OrigUnit) /= TRIM(thisUnit) ) THEN
           MSG = 'File units do not match: ' // TRIM(thisUnit) // &
                 ' vs. ' // TRIM(Lct%Dct%Dta%OrigUnit)    // &
@@ -844,28 +888,63 @@ CONTAINS
              CALL HCO_ERROR( MSG, RC )
              RETURN
           ELSE
-             CALL HCO_WARNING( MSG, RC )
+             CALL HCO_WARNING( MSG, RC, WARNLEV=3 )
           ENDIF
        ENDIF 
 
        ! Mirror species properties needed for unit conversion
        HcoID = Lct%Dct%HcoID
        IF ( HcoID > 0 ) THEN
-          MW_g       = HcoState%Spc(HcoID)%MW_g
+
+          ! Emitted species molecular weight
           EmMW_g     = HcoState%Spc(HcoID)%EmMW_g
+          MW_g       = HcoState%Spc(HcoID)%MW_g
           MolecRatio = HcoState%Spc(HcoID)%MolecRatio
+
+          ! Species molecular weight and molecular ratio to be
+          ! applied. Set to 1.0 if source unit matches input units.
+          IF ( TRIM(Lct%Dct%Dta%OrigUnit) == TRIM(thisUnit) ) THEN
+             !MW_g       = EmMW_g
+             !MolecRatio = 1.0_hp
+             KeepSpec    = .TRUE.
+          ELSE
+             !MW_g       = HcoState%Spc(HcoID)%MW_g
+             !MolecRatio = HcoState%Spc(HcoID)%MolecRatio
+             KeepSpec    = .FALSE.
+          ENDIF
+
+       ! If there is no species associated with this container, 
+       ! it won't be possible to do unit conversion of mass. 
+       ! This will cause an error if the input data is not in 
+       ! units of kg already!
        ELSE
           MW_g       = -999.0_hp
           EmMW_g     = -999.0_hp
           MolecRatio = -999.0_hp
        ENDIF
 
-       ! Now convert to HEMCO units. This only attempts to convert
-       ! mass, area/volume and time to HEMCO standards (kg, m2/m3, s).
+       ! Now convert to HEMCO units. This attempts to convert mass, 
+       ! area/volume and time to HEMCO standards (kg, m2/m3, s).
        ncYr  = FLOOR( MOD(oYMDh1,10000000000) / 1.0d6 )
        ncMt  = FLOOR( MOD(oYMDh1,1000000)     / 1.0d4 )
        IF ( ncYr == 0 ) CALL HcoClock_Get( cYYYY = ncYr, RC=RC ) 
        IF ( ncMt == 0 ) CALL HcoClock_Get( cMM   = ncMt, RC=RC ) 
+
+       ! Verbose mode
+       IF ( HCO_IsVerb(3) ) THEN
+          WRITE(MSG,*) 'Unit conversion settings: ' 
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) '- Species MW         : ', MW_g
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) '- emitted compound MW: ', EmMW_g
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) '- molecular ratio    : ', MolecRatio 
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) '- keep input species : ', KeepSpec 
+          CALL HCO_MSG(MSG)
+          WRITE(MSG,*) '- Year, month        : ', ncYr, ncMt 
+          CALL HCO_MSG(MSG)
+       ENDIF
 
        CALL HCO_UNIT_CHANGE(                &
             Array         = ncArr,          &
@@ -873,15 +952,33 @@ CONTAINS
             MW_IN         = MW_g,           & 
             MW_OUT        = EmMW_g,         & 
             MOLEC_RATIO   = MolecRatio,     & 
+            KeepSpec      = KeepSpec,       & 
             YYYY          = ncYr,           &
             MM            = ncMt,           &
             AreaFlag      = AreaFlag,       &
             TimeFlag      = TimeFlag,       &
+            FACT          = UnitFactor,     &
             RC            = RC               )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'Cannot convert units for ' // TRIM(Lct%Dct%cName)
           CALL HCO_ERROR( MSG , RC )
           RETURN 
+       ENDIF
+
+       ! Verbose mode
+       IF ( UnitFactor /= 1.0_hp ) THEN
+          IF ( HCO_IsVerb(1) ) THEN
+             WRITE(MSG,*) 'Data was in units of ', TRIM(thisUnit), &
+                          ' - converted to HEMCO units by applying ', &
+                          'scale factor ', UnitFactor
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ELSE
+          IF ( HCO_IsVerb(2) ) THEN
+             WRITE(MSG,*) 'Data was in units of ', TRIM(thisUnit), &
+                          ' - unit conversion factor is ', UnitFactor 
+             CALL HCO_MSG(MSG)
+          ENDIF
        ENDIF
 
        ! Check for valid unit combinations, i.e. emissions must be kg/m2/s, 
@@ -900,7 +997,7 @@ CONTAINS
           ncArr = ncArr * HcoState%TS_EMIS
           MSG = 'Data converted from kg/m3/s to kg/m3: ' // &
                 TRIM(Lct%Dct%cName) // ': ' // TRIM(thisUnit)
-          CALL HCO_WARNING( MSG, RC )
+          CALL HCO_WARNING( MSG, RC, WARNLEV=1 )
  
        ! Unitless data
        ELSEIF ( AreaFlag == -1 .AND. TimeFlag == -1 ) THEN
@@ -915,7 +1012,7 @@ CONTAINS
           ncArr = ncArr / HcoState%TS_EMIS
           MSG = 'Data converted from kg/m2 to kg/m2/s: ' // &
                 TRIM(Lct%Dct%cName) // ': ' // TRIM(thisUnit)
-          CALL HCO_WARNING( MSG, RC )
+          CALL HCO_WARNING( MSG, RC, WARNLEV=1 )
 
        ! Emission data that is not per area (i.e. kg/s) needs to be converted
        ! to per area manually.
@@ -1006,7 +1103,7 @@ CONTAINS
     ! Use MESSy regridding
     !-----------------------------------------------------------------
     IF ( UseMESSy ) THEN
-       IF ( HCO_IsVerb(3) ) THEN
+       IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) '  ==> Use MESSy regridding (NCREGRID)'
           CALL HCO_MSG(MSG)
        ENDIF
@@ -1086,7 +1183,7 @@ CONTAINS
     ! Use map_a2a regridding
     !-----------------------------------------------------------------
     ELSE
-       IF ( HCO_IsVerb(3) ) THEN
+       IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) '  ==> Use map_a2a regridding'
           CALL HCO_MSG(MSG)
        ENDIF
@@ -1232,7 +1329,7 @@ CONTAINS
     IF ( (refYear <= 1900) .AND. (nTime > 0) ) THEN
        MSG = 'ncdf reference year is prior to 1901 - ' // &
             'time stamps may be wrong!'
-       CALL HCO_WARNING ( MSG, RC )
+       CALL HCO_WARNING ( MSG, RC, WARNLEV=1 )
     ENDIF
 
     ! verbose mode 
@@ -2107,7 +2204,7 @@ CONTAINS
                 'slice. Interpolation will be performed from ',           &
                 availYMDh(tidx1), ' to ', availYMDh(tidx2), '. Data ',    &
                 'container: ', TRIM(Lct%Dct%cName)
-          CALL HCO_WARNING(MSG,RC,THISLOC=LOC)
+          CALL HCO_WARNING(MSG, RC, WARNLEV=1, THISLOC=LOC)
        ENDIF
        
        ! Calculate weights wgt1 and wgt2 to be given to slice 1 and 
@@ -2291,7 +2388,7 @@ CONTAINS
 
     ! Prompt a warning
     WRITE(MSG,*) 'No area unit found in ' // TRIM(FN) // ' - convert to m-2!'
-    CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+    CALL HCO_WARNING ( MSG, RC, WARNLEV=1, THISLOC=LOC )
 
     ! Leave w/ success
     RC = HCO_SUCCESS
@@ -2563,7 +2660,7 @@ CONTAINS
        Lct%Dct%Dta%IsLocTime = .TRUE.
        MSG = 'Data assigned to mask regions will be treated in local time: '//&
               TRIM(Lct%Dct%cName)
-       CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+       CALL HCO_WARNING( MSG, RC, WARNLEV=2, THISLOC=LOC )
     ENDIF
 
     ! Cleanup
@@ -2606,10 +2703,6 @@ CONTAINS
 ! !USES:
 !
     USE HCO_FILEDATA_MOD,   ONLY : FileData_ArrCheck
-    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_CharSplit
-    USE HCO_CHARTOOLS_MOD,  ONLY : HCO_WCD, HCO_SEP
-    USE HCO_UNIT_MOD,       ONLY : HCO_Unit_Change
-    USE HCO_tIdx_Mod,       ONLY : HCO_GetPrefTimeAttr
 !
 ! !INPUT PARAMTERS:
 !
@@ -2629,9 +2722,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, I1, I2, J1, J2, NT
+    INTEGER            :: I, NT
     REAL(hp), POINTER  :: Vals(:) => NULL()
-    LOGICAL            :: Verb
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'HCOIO_ReadFromConfig (hcoio_dataread_mod.F90)'
 
@@ -2690,7 +2782,7 @@ CONTAINS
           Lct%Dct%Dta%IsLocTime = .TRUE.
           MSG = 'Scale factors read from file are treated as local time: '// &
                  TRIM(Lct%Dct%cName)
-          CALL HCO_WARNING( MSG, RC, THISLOC=LOC )
+          CALL HCO_WARNING( MSG, RC, WARNLEV=2, THISLOC=LOC )
        ENDIF
 
     ENDIF
@@ -2757,6 +2849,7 @@ CONTAINS
     INTEGER            :: IDX1, IDX2
     INTEGER            :: AreaFlag, TimeFlag, Check
     INTEGER            :: prefYr, prefMt, prefDy, prefHr
+    REAL(hp)           :: UnitFactor 
     REAL(hp)           :: FileVals(100)
     REAL(hp), POINTER  :: FileArr(:,:,:,:) => NULL()
     LOGICAL            :: IsPerArea
@@ -2910,10 +3003,17 @@ CONTAINS
        ! (and no time cycling enabled). In this case, make sure that
        ! scale factor is set to zero.
        IF ( IDX1 < 0 ) THEN
-          FileArr(1,1,1,:) = 0.0_hp
-          MSG = 'Scale factor outside of range - set to zero: ' // &
-                TRIM(Lct%Dct%cName)
-          CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+          IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
+             FileArr(1,1,1,:) = 0.0_hp
+             MSG = 'Base field outside of range - set to zero: ' // &
+                   TRIM(Lct%Dct%cName)
+             CALL HCO_WARNING ( MSG, RC, WARNLEV=1, THISLOC=LOC )
+          ELSE
+             FileArr(1,1,1,:) = 1.0_hp
+             MSG = 'Scale factor outside of range - set to one: ' // &
+                   TRIM(Lct%Dct%cName)
+             CALL HCO_WARNING ( MSG, RC, WARNLEV=1, THISLOC=LOC )
+          ENDIF
        ELSE
           FileArr(1,1,1,:) = FileVals(IDX1:IDX2)
        ENDIF
@@ -2921,18 +3021,43 @@ CONTAINS
        ! ---------------------------------------------------------------- 
        ! Convert data to HEMCO units 
        ! ---------------------------------------------------------------- 
-       CALL HCO_Unit_Change( Array       = FileArr,                    &
-                             Units       = TRIM(Lct%Dct%Dta%OrigUnit), &
-                             MW_IN       = MW_g,                       &
-                             MW_OUT      = EmMW_g,                     &
-                             MOLEC_RATIO = MolecRatio,                 &
-                             YYYY        = -999,                       &
-                             MM          = -999,                       &
-                             AreaFlag    = AreaFlag,                   &
-                             TimeFlag    = TimeFlag,                   &
-                             RC          = RC                           )
+       CALL HCO_UNIT_CHANGE( Array         = FileArr,                    &
+                             Units         = TRIM(Lct%Dct%Dta%OrigUnit), &
+                             MW_IN         = MW_g,                       &
+                             MW_OUT        = EmMW_g,                     &
+                             MOLEC_RATIO   = MolecRatio,                 &
+                             YYYY          = -999,                       &
+                             MM            = -999,                       &
+                             AreaFlag      = AreaFlag,                   &
+                             TimeFlag      = TimeFlag,                   &
+                             FACT          = UnitFactor,                 &
+                             RC            = RC                           )
        IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
+       ! testing only
+       IF ( UnitFactor /= 1.0_hp ) THEN
+             WRITE(MSG,*) 'Data was in units of ', TRIM(Lct%Dct%Dta%OrigUnit), &
+                          ' - converted to HEMCO units by applying ', &
+                          'scale factor ', UnitFactor
+             write(*,*) TRIM(MSG) 
+       ENDIF
+ 
+       ! Verbose mode
+       IF ( UnitFactor /= 1.0_hp ) THEN
+          IF ( HCO_IsVerb(1) ) THEN
+             WRITE(MSG,*) 'Data was in units of ', TRIM(Lct%Dct%Dta%OrigUnit), &
+                          ' - converted to HEMCO units by applying ', &
+                          'scale factor ', UnitFactor
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ELSE
+          IF ( HCO_IsVerb(2) ) THEN
+             WRITE(MSG,*) 'Data was in units of ', TRIM(Lct%Dct%Dta%OrigUnit), &
+                          ' - unit conversion factor is ', UnitFactor 
+             CALL HCO_MSG(MSG)
+          ENDIF
+       ENDIF
+ 
        ! Data must be ... 
        ! ... concentration ...
        IF ( AreaFlag == 3 .AND. TimeFlag == 0 ) THEN
@@ -2943,7 +3068,7 @@ CONTAINS
           FileArr = FileArr * HcoState%TS_EMIS
           MSG = 'Data converted from kg/m3/s to kg/m3: ' // &
                 TRIM(Lct%Dct%cName) // ': ' // TRIM(Lct%Dct%Dta%OrigUnit)
-          CALL HCO_WARNING ( MSG, RC, THISLOC=LOC )
+          CALL HCO_WARNING ( MSG, RC, WARNLEV=1, THISLOC=LOC )
    
        ! ... emissions or unitless ...
        ELSEIF ( (AreaFlag == -1 .AND. TimeFlag == -1) .OR. &

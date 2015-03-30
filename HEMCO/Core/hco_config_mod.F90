@@ -1471,7 +1471,7 @@ CONTAINS
 !
     INTEGER               :: I, N, POS
     INTEGER               :: verb
-    LOGICAL               :: warn
+    INTEGER               :: warn
     CHARACTER(LEN=255)    :: LINE, LOC
     CHARACTER(LEN=255)    :: LogFile
     CHARACTER(LEN=255)    :: DiagnPrefix
@@ -1486,7 +1486,7 @@ CONTAINS
     ! Defaults
     LogFile   = 'HEMCO.log'
     verb      = -1
-    warn      = .TRUE.
+    warn      =  1
 
     !-----------------------------------------------------------------------
     ! Read settings and add them as options to core extensions
@@ -1530,7 +1530,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Prompt warnings to logfile? 
-    CALL GetExtOpt( CoreNr, 'Show warnings', OptValBool=warn, RC=RC  )
+    CALL GetExtOpt( CoreNr, 'Warnings', OptValInt=warn, RC=RC  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If LogFile is equal to wildcard character, set LogFile to asterik 
@@ -1669,7 +1669,6 @@ CONTAINS
     INTEGER                      :: lon1, lon2, lat1, lat2
     INTEGER                      :: cpux1, cpux2, cpuy1, cpuy2
     CHARACTER(LEN=255)           :: MSG
-    LOGICAL                      :: verb
 
     !=================================================================
     ! RegisterPrepare begins here!
@@ -1678,9 +1677,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ( 'RegisterPrepare', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN 
-
-    ! Check for verbose flag
-    verb = HCO_IsVerb ( 1 ) 
 
     ! Grid boundaries on this CPU. Will be needed to calculate 
     ! coverages. 
@@ -1693,7 +1689,7 @@ CONTAINS
     cpuy2 = CEILING(MAXVAL(HcoState%Grid%YMID%Val))
 
     ! verbose
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(1) ) THEN
        WRITE(MSG,*) 'Start to prepare fields for registering!'
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) 'This CPU x-range: ', cpux1, cpux2
@@ -1714,7 +1710,7 @@ CONTAINS
        ENDIF
 
        ! verbose
-       IF ( verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) 'Prepare ', TRIM(Lct%Dct%cName) 
           CALL HCO_MSG(MSG)
        ENDIF
@@ -1732,7 +1728,7 @@ CONTAINS
              Lct%Dct%HcoID = ThisHcoID
 
              ! verbose
-             IF ( verb ) THEN
+             IF ( HCO_IsVerb(3) ) THEN
                 WRITE(MSG,*) 'Assigned HEMCO species ID: ', Lct%Dct%HcoID
                 CALL HCO_MSG(MSG)
              ENDIF
@@ -1763,7 +1759,7 @@ CONTAINS
           Lct%Dct%Dta%ncYrs(:) = -999
           Lct%Dct%Dta%ncMts(:) = -999
 
-          IF ( verb ) THEN
+          IF ( HCO_IsVerb(3) ) THEN
              WRITE(MSG,*) 'Coverage: ', Lct%Dct%Dta%Cover
              CALL HCO_MSG(MSG)
           ENDIF
@@ -1825,7 +1821,7 @@ CONTAINS
     ! Scalars
     INTEGER               :: N, cID, HcoID
     INTEGER               :: targetID, FLAG
-    LOGICAL               :: Ignore, Add, Verb
+    LOGICAL               :: Ignore, Add
     CHARACTER(LEN=255)    :: MSG
 
     !======================================================================
@@ -1835,7 +1831,6 @@ CONTAINS
       ! Enter
     CALL HCO_ENTER ( 'Register_Base (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    Verb = HCO_IsVerb( 1 ) 
 
     ! Point to next (first) line in ConfigList 
     CALL GetNextCont ( Lct, FLAG )
@@ -1873,7 +1868,7 @@ CONTAINS
        ENDIF
 
        IF ( Ignore ) THEN
-          IF ( Verb ) THEN
+          IF ( HCO_IsVerb(1) ) THEN
              WRITE(MSG,*) &
                   'Register_Base: Ignore (and remove) base field ', &
                   TRIM(Lct%Dct%cName)
@@ -1887,7 +1882,7 @@ CONTAINS
        ENDIF
 
        ! Verbose mode 
-       IF ( Verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) 'Register_Base: Checking ', TRIM(Lct%Dct%cName)
           CALL HCO_MSG(MSG)
        ENDIF
@@ -1926,7 +1921,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! verbose 
-       IF ( Verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) 'Container ID     : ', Lct%Dct%cID
           CALL HCO_MSG(MSG)
           WRITE(MSG,*) 'Assigned targetID: ', targetID
@@ -1954,7 +1949,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Print some information if verbose mode is on 
-       IF ( Verb ) THEN
+       IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) 'Base field registered: ', TRIM(Lct%Dct%cName)
           CALL HCO_MSG(MSG)
        ENDIF
@@ -2016,7 +2011,6 @@ CONTAINS
     CHARACTER(LEN=255)        :: MSG
     CHARACTER(LEN=  5)        :: strID
     INTEGER                   :: ThisScalID
-    LOGICAL                   :: Verb
   
     !======================================================================
     ! Register_Scal begins here
@@ -2025,7 +2019,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ( 'Register_Scal (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    Verb = HCO_IsVerb( 1 )
 
     ! Loop over all scale factor ids
     TmpScalIDCont => ScalIDList
@@ -2095,7 +2088,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Print some information if verbose mode is on 
-       IF ( Verb ) THEN
+       IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) 'Scale field registered: ', TRIM(Lct%Dct%cName)
           CALL HCO_MSG(MSG)
        ENDIF
@@ -2179,7 +2172,7 @@ CONTAINS
     INTEGER                   :: HcoID, Cat, Hier, Scal, ExtNr, cID
     INTEGER                   :: tmpID
     INTEGER                   :: I, J, FLAG1, tmpCov
-    LOGICAL                   :: found, verb, sameCont
+    LOGICAL                   :: found, sameCont
     CHARACTER(LEN=255)        :: MSG
     CHARACTER(LEN=  7)        :: strID
 
@@ -2190,9 +2183,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER ( 'Get_targetID (hco_config_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Get verbose flag from HCO_State
-    verb = HCO_IsVerb( 1 )
 
     ! Get Tracer ID, category and hierarchy of entry to be checked
     cID   = Lct%Dct%cID
@@ -2253,7 +2243,7 @@ CONTAINS
        IF ( (mskLct%Dct%DctType  == HCO_DCTTYPE_MASK ) .AND. &
             (mskLct%Dct%Dta%Cover == 0 )        ) THEN 
           targetID = -999 
-          IF ( verb ) THEN 
+          IF ( HCO_IsVerb(1) ) THEN 
              WRITE(MSG,*) 'Data not defined over this CPU, skip ' // &
                   TRIM(Lct%Dct%cName)
              CALL HCO_MSG(MSG)
@@ -2331,7 +2321,7 @@ CONTAINS
 
           ! Error if container not found
           IF ( .NOT. FOUND ) THEN
-             MSG = 'No container with cID: ' // TRIM(tmpLct%Dct%cName)
+             WRITE(MSG,*) 'No scale factor with ID: ', tmpID
              CALL HCO_ERROR ( MSG, RC)
              RETURN
           ENDIF
@@ -2365,7 +2355,7 @@ CONTAINS
          ! replace all values of Lct. Hence, set targetID to -999
          ! (= ignore container) and return here.
        IF ( (tmpLct%Dct%Hier > Hier) .AND. (tmpCov==1) ) THEN
-          IF ( verb ) THEN
+          IF ( HCO_IsVerb(1) ) THEN
              WRITE(MSG,*) 'Skip container ', TRIM(Lct%Dct%cName), &
                           ' because of ', TRIM(tmpLct%Dct%cName)
              CALL HCO_MSG(MSG)
