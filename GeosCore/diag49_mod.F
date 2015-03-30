@@ -867,7 +867,8 @@
          ELSE IF ( N == 167 ) THEN
 
             !--------------------------------------
-            ! SULFATE AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! SULFATE AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -921,7 +922,8 @@
          ELSE IF ( N == 168 ) THEN
 
             !--------------------------------------
-            ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! BLACK CARBON AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -975,7 +977,8 @@
          ELSE IF ( N == 169 ) THEN
 
             !--------------------------------------
-            ! ORGANIC CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! ORGANIC CARBON AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -1029,7 +1032,8 @@
          ELSE IF ( N == 170 ) THEN
             
             !--------------------------------------
-            ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! ACCUM SEASALT AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -1083,7 +1087,8 @@
          ELSE IF ( N == 171 ) THEN
 
             !--------------------------------------
-            ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! COARSE SEASALT AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -1138,6 +1143,7 @@
 
             !--------------------------------------
             ! TOTAL DUST OPT DEPTH [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
@@ -1193,7 +1199,9 @@
          ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
 
             !--------------------------------------
-            ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
+            ! DUST OPTD BINS1-7 [unitless]
+            ! for wavelengths set in Radiation Menu
+            !
             ! NOTE: Only archive at chem timestep
             !--------------------------------------
             CATEGORY  = 'OD-MAP-$'

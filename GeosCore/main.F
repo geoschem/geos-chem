@@ -1379,8 +1379,8 @@
          !==============================================================
          !      ***** U P D A T E  O P T I C A L  D E P T H *****          
          !==============================================================
-         ! Recalculate the optical depth at the wavelength specified by
-         ! jv_spec_aod.dat This must be done before the call to any
+         ! Recalculate the optical depth at the wavelength(s) specified
+         ! in the Radiation Menu. This must be done before the call to any
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN

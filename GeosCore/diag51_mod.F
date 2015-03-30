@@ -841,7 +841,9 @@
             ELSE IF ( N == 167 ) THEN
 
                !--------------------------------------
-               ! SULFATE AOD @ jv_spec_aod.dat wavelength [unitless]
+               ! SULFATE AOD [unitless]
+               ! for wavelengths set in Radiation Menu
+               !
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                ISPC = 1 !sulfate
@@ -866,7 +868,9 @@
             ELSE IF ( N == 168 ) THEN
 
                !--------------------------------------
-               ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
+               ! BLACK CARBON AOD [unitless]
+               ! for wavelengths set in Radiation Menu
+               !
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                ISPC = 2 !BC
@@ -891,7 +895,9 @@
             ELSE IF ( N == 169 ) THEN
 
                !--------------------------------------
-               ! ORG CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
+               ! ORG CARBON AOD [unitless]
+               ! for wavelengths set in Radiation Menu
+               !
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                ISPC = 3 !OC
@@ -916,7 +922,9 @@
             ELSE IF ( N == 170 ) THEN
 
                !--------------------------------------
-               ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
+               ! ACCUM SEASALT AOD [unitless]
+               ! for wavelengths set in Radiation Menu
+               !
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                ISPC = 4 !SSa
@@ -941,7 +949,9 @@
             ELSE IF ( N == 171 ) THEN
 
                !--------------------------------------
-               ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
+               ! COARSE SEASALT AOD [unitless]
+               ! for wavelengths set in Radiation Menu
+               !
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                ISPC = 5 !SSc
@@ -966,7 +976,9 @@
             ELSE IF ( N == 172 ) THEN               
 
                !--------------------------------------
-               ! TOTAL DUST OPTD @ jv_spec_aod.dat wavelength [unitless]
+               ! TOTAL DUST OPTD [unitless]
+               ! for wavelengths set in Radiation Menu
+               !
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NDUST 
@@ -995,7 +1007,9 @@
             ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN               
 
                !--------------------------------------
-               ! DUST BINS 1-7 OPTD @ jv_spec_aod.dat wavelength [unitless]
+               ! DUST BINS 1-7 OPTD [unitless]
+               ! for wavelengths set in Radiation Menu
+               !
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                R = N - 172

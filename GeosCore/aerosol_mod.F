@@ -840,8 +840,8 @@
                                                    !  = 0: AOD computed 
                                                    !       at 999 nm
                                                    !  = 1: AOD computed 
-                                                   !       at wavelength 
-                                                   !       in jv_spec_aod.dat
+                                                   !       at wavelength set 
+                                                   !       in Radiation Menu
       TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
 !
 ! !OUTPUT PARAMETERS:                             
@@ -928,13 +928,13 @@
       REAL*8              :: OLDSECS, NEWSECS
       REAL*8              :: OLDSECST, NEWSECST
 
-      ! Effective radius at RH bins read in from "jv_spec.dat"
+      ! Effective radius at RH bins read in from "FJX_spec.dat"
       REAL(fp)		  :: RW(NRH)	
 
       ! Effective radius at RH after interpolation
       REAL(fp)		  :: REFF       
 
-      ! Q at different RH bins read in from "jv_spec.dat"
+      ! Q at different RH bins read in from "FJX_spec.dat"
       REAL(fp)            :: AW(NRH)
       REAL(fp)            :: QW(NRH)	
       REAL(fp)            :: SSW(NRH)
@@ -975,7 +975,7 @@
       REAL(fp)            :: RAER, SADSTRAT, RHOSTRAT, XSASTRAT
       INTEGER             :: ISTRAT
 
-      ! Index to aerosol types in jv_spec.dat
+      ! Index to aerosol types in FJX_spec.dat
       ! The following are ordered according to the mass densities below
 #if defined( UCX )
       INTEGER, SAVE       :: IND(NAER) = (/22, 29, 36, 43, 50, 4, 14/)
@@ -1455,7 +1455,7 @@
          ! Loop over relative humidity bins
          DO R = 1, NRH
 
-            ! Wet radius in "jv_spec_aod.dat"
+            ! Wet radius in aerosol LUT files
             RW(R) = REAA(R,N)
 
             ! Extinction efficiency for Q for each RH bin
@@ -1499,7 +1499,7 @@
 
             ! save the index of the relative humidity into array that is
             ! used by the photolysis to pull the right optics
-            ! information from the jv_spec.dat
+            ! information from the FJX_spec.dat
             ! Previously the ODAER was organized by aerosol species and
             ! each RH bin, but this leaves a lot of the array redundant
             ! because only one RH bin is used at once

@@ -1736,20 +1736,26 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root)
 
+!------------------------------------------------------------------------------
+! Prior to 3/30/15:
+! Now get AOD data from LUT files for each aerosol type (mps, 3/30/15)
+!      ! Read in AOD data
+!      FILENAME = 'jv_spec_aod.dat'
+!
+!#if defined( ESMF_ )
+!      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
+!      FILENAME = TRIM( FILENAME ) // '.rc'
+!#endif
+!
+!      ! Echo info
+!      IF ( am_I_Root ) THEN
+!         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
+!      ENDIF
+!
+!      call RD_AOD(JXUNIT,TRIM( FILENAME ), am_I_Root)
+!------------------------------------------------------------------------------
       ! Read in AOD data
-      FILENAME = 'jv_spec_aod.dat'
-
-#if defined( ESMF_ )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '.rc'
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
-      ENDIF
-
-      call RD_AOD(JXUNIT,TRIM( FILENAME ), am_I_Root)
+      call RD_AOD(JXUNIT, am_I_Root)
 
       ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
       call SET_AER(am_I_Root)
@@ -2164,7 +2170,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_AOD( NJ1, NAMFIL, am_I_Root )
+!------------------------------------------------------------------------------
+! Prior to 3/30/15:
+!      SUBROUTINE RD_AOD( NJ1, NAMFIL, am_I_Root )
+!------------------------------------------------------------------------------
+      SUBROUTINE RD_AOD( NJ1, am_I_Root )
 !
 ! !USES:
 !
@@ -2176,7 +2186,10 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !INPUT PARAMETERS:
 !     
       INTEGER,          INTENT(IN) :: NJ1         ! Unit # of file to open
-      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL      ! Name of file to open
+!------------------------------------------------------------------------------
+! Prior to 3/30/15:
+!      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL      ! Name of file to open
+!------------------------------------------------------------------------------
       LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -2187,7 +2200,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  at multiple wavelengths to be used in the online calculation of the aerosol 
 !  optical depth diagnostics. 
 !  These properties have been calculated using the same size and optical 
-!  properties as the jv_spec.dat file used for the FAST-J photolysis 
+!  properties as the FJX_spec.dat file used for the FAST-J photolysis 
 !  calculations (which is now redundant for aerosols, the values in the .dat 
 !  files here are now used). The file currently contains 11 wavelengths
 !  for Fast-J and other commonly used wavelengths for satellite and
@@ -2200,34 +2213,24 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !     -- Colette L. Heald, 05/10/10)
 !     -- David A. Ridley, 05/10/13 (update for new optics files)
 !
-!  Important variables:
-!                                                                             .
-!     NAMFIL       Name of spectral data file (jv_spec_aod.dat)
-!     NJ1          Channel number for reading data file
-!     NAA2         Number of categories for scattering phase functions
-!     QAA_AOD      Aerosol scattering phase functions
-!     WAA_AOD      Wavelengths for the NK supplied phase functions
-!     PAA_AOD      Phase function: first 8 terms of expansion
-!     RAA_AOD      Effective radius associated with aerosol type
-!     SAA_AOD      Single scattering albedo
-!
 ! !REVISION HISTORY: 
-!  10 May 2010 - C. Heald    - Initial version
-!  06 Aug 2010 - C. Carouge  - Add an error check when opening the file
-!  01 Aug 2012 - R. Yantosca - Now restore NJ1 to INTENT(IN) status
+!  10 May 2010 - C. Heald      - Initial version
+!  06 Aug 2010 - C. Carouge    - Add an error check when opening the file
+!  01 Aug 2012 - R. Yantosca   - Now restore NJ1 to INTENT(IN) status
 !  31 Mar 2013 - S. D. Eastham - Added to Fast-JX v7.0 implementation
+!  30 Mar 2015 - M. Sulprizio  - Removed NAMFIL argument. Now specify filenames
+!                                for aerosol LUT files in this routine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER      :: I, J, K, N, NAA2, NWV, NR
-      INTEGER      :: IOS, NSPEC
+      INTEGER      :: I, J, K, N
+      INTEGER      :: IOS
       CHARACTER*30 :: SPECFIL(8)
 
       CHARACTER*78 TITLE0
-      CHARACTER*20 TITLEA(NAA)   ! TITLEAA: Title for scattering data
 
       !================================================================
       ! RD_AOD begins here!
@@ -2237,8 +2240,8 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! extra two LUT dat files for strat H2SO4 and NAT particles
       DATA SPECFIL /"so4.dat","soot.dat","org.dat","ssa.dat","ssc.dat",
 #if defined( UCX )
-! add in dummy optics LUT tables for now
-! needs to be H2SO4 and something ice-like for NAT (DAR 03/2015)
+      ! add in dummy optics LUT tables for now
+      ! needs to be H2SO4 and something ice-like for NAT (DAR 03/2015)
      &              "so4.dat","so4.dat",
 #endif
      &              "dust.dat"/

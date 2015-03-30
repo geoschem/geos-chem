@@ -3662,16 +3662,16 @@
       !=================================================================
       WRITE( 6, '(/,a)' ) 'RADIATION MENU'
       WRITE( 6, '(  a)' ) '--------------'
-      WRITE( 6, 100     ) 'Turn on radiation?          : ', LRAD
-      WRITE( 6, 100     ) 'Consider LW                 : ', LLWRAD
-      WRITE( 6, 100     ) 'Consider SW                 : ', LSWRAD
-      WRITE( 6, 110     ) 'Radiation timestep [min]    : ', TS_RAD
       DO N=1, NWVSELECT
       WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', WVSELECT(N)
       ENDDO
-      WRITE( 6, 120     ) 'Flux output selection       : ', LSPECRADMENU
+      WRITE( 6, 100     ) 'Turn on radiation?          : ', LRAD
+      WRITE( 6, 100     ) 'Consider LW                 : ', LLWRAD
+      WRITE( 6, 100     ) 'Consider SW                 : ', LSWRAD
       WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
      &                    LSKYRAD(1),'/',LSKYRAD(2)
+      WRITE( 6, 110     ) 'Radiation timestep [min]    : ', TS_RAD
+      WRITE( 6, 120     ) 'Flux output selection       : ', LSPECRADMENU
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
