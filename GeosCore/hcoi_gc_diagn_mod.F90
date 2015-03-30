@@ -2700,6 +2700,7 @@ CONTAINS
 !  18 Feb 2015 - M. Sulprizio- Add manual diagnostics for individual MEGAN
 !                              species (MBOX, APIN, BPIN, etc.)
 !  10 Mar 2015 - R. Yantosca - Remove double-definition of BIOGENIC_LIMO
+!  30 Mar 2015 - R. Yantosca - Bug fix: Now test if Br2 is a HEMCO species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3186,20 +3187,22 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Create diagnostic container
-       CALL Diagn_Create( am_I_Root,                    & 
-                          HcoState  = HcoState,         &
-                          cName     = 'SEASALT_BR2',    &
-                          ExtNr     = ExtNr,            &
-                          Cat       = -1,               &
-                          Hier      = -1,               &
-                          HcoID     = HcoID,            &
-                          SpaceDim  = 2,                &
-                          LevIDx    = -1,               &
-                          OutUnit   = 'kg/m2/s',        &
-                          WriteFreq = 'Manual',         &
-                          AutoFill  = 1,                &
-                          RC        = RC                 ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( HcoId > 0 ) THEN
+          CALL Diagn_Create( am_I_Root,                    & 
+                             HcoState  = HcoState,         &
+                             cName     = 'SEASALT_BR2',    &
+                             ExtNr     = ExtNr,            &
+                             Cat       = -1,               &
+                             Hier      = -1,               &
+                             HcoID     = HcoID,            &
+                             SpaceDim  = 2,                &
+                             LevIDx    = -1,               &
+                             OutUnit   = 'kg/m2/s',        &
+                             WriteFreq = 'Manual',         &
+                             AutoFill  = 1,                &
+                             RC        = RC                 ) 
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF
     ENDIF
 
   END SUBROUTINE Diagn_Biogenic
