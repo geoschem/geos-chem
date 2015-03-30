@@ -1832,7 +1832,7 @@
                DO I = 1, IIPAR
 
                   ! Optical Depths
-                  IF (LINTERP.EQ..FALSE.) THEN
+                  IF ( .not. LINTERP ) THEN
                      AD21(I,J,L,IOUT) = AD21(I,J,L,IOUT) +
      &                                  ODAER(I,J,L,IWVSELECT(1,W),N)
                   ELSE

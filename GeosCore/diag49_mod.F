@@ -876,7 +876,7 @@
             GMTRC    = 6
 
             ISPC     = 1 !sulfate
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -931,7 +931,7 @@
             GMTRC    = 9
 
             ISPC     = 2 !BC
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -986,7 +986,7 @@
             GMTRC    = 12
 
             ISPC     = 3 !OC
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -1041,7 +1041,7 @@
             GMTRC    = 15
 
             ISPC     = 4 !SSa
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -1096,7 +1096,7 @@
             GMTRC    = 18
 
             ISPC     = 5 !SSc
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -1152,7 +1152,7 @@
 
             DO ISPC = 1, NDUST
 
-               IF (LINTERP.EQ..FALSE.) THEN
+               IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -1210,7 +1210,7 @@
             GMTRC     = 21+(N-173)
 
             ISPC = N - 172
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )

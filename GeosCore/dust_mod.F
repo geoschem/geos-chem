@@ -1380,7 +1380,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT )
+!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT, LINTERP )
          DO N=1, NDUST
          DO W = 1, NWVSELECT !loop over required number of wavelengths
             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
@@ -1403,7 +1403,7 @@
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
-               IF(LINTERP.EQ..FALSE.) THEN
+               IF ( .not. LINTERP ) THEN
 
                   !--------------------------------------
                   ! ND21 tracer #4: Dust optical depths (clh)
@@ -1826,7 +1826,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT )
+!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT, LINTERP )
          DO N=1, NDUST
          DO W = 1, NWVSELECT !different to NWVSELECT if interp
             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
@@ -1848,7 +1848,7 @@
             DO L = 1, LD21
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               IF(LINTERP.EQ..FALSE.) THEN
+               IF ( .not. LINTERP ) THEN
 
                   !--------------------------------------
                   ! ND21 tracer #4: Dust optical depths (clh, dar)

@@ -1593,7 +1593,7 @@
                   
                    ! Loop over RH bins
                    DO  ISPC= 1, NAER
-                    IF (LINTERP.EQ..FALSE.) THEN
+                    IF ( .not. LINTERP ) THEN
                      DO LL = 1, LLPAR
                       ! Accumulate
                       VARI(V) = VARI(V) +
@@ -1617,7 +1617,7 @@
                    ENDDO
 
                    !now add in the dust
-                   IF (LINTERP.EQ..FALSE.) THEN
+                   IF ( .not. LINTERP ) THEN
                     DO LL = 1, LLPAR
                      DO ISPC = 1, NDUST
                       ! Accumulate
@@ -1667,7 +1667,7 @@
                    ! Loop over RH bins
                    DO  ISPC= 1, NAER
 
-                    IF (LINTERP.EQ..FALSE.) THEN
+                    IF ( .not. LINTERP ) THEN
                      DO LL = 1, LPLANE
                       ! Accumulate
                       VARI(V) = VARI(V) +
@@ -1691,7 +1691,7 @@
                    ENDDO
 
                    !now add in the dust
-                   IF (LINTERP.EQ..FALSE.) THEN
+                   IF ( .not. LINTERP ) THEN
                     DO LL = 1, LPLANE
                      DO ISPC = 1, NDUST
                       ! Accumulate

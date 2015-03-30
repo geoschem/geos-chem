@@ -5108,7 +5108,7 @@
 
       !If LRAD is on then ND72 must be on (so the diagnostic is
       !available to write into). Check for this
-      IF ((Input_Opt%LRAD.eq..TRUE.).AND.(ND72.EQ.0)) THEN
+      IF ( (Input_Opt%LRAD) .AND. (ND72.EQ.0) ) THEN
        MSG = 'If LRAD is true then ND72 diagnostic must be switched on'
        CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
       ENDIF

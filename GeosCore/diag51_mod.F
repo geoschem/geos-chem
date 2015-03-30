@@ -847,7 +847,7 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                ISPC = 1 !sulfate
-               IF (LINTERP.EQ..FALSE.) THEN
+               IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
      &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
@@ -874,7 +874,7 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                ISPC = 2 !BC
-               IF (LINTERP.EQ..FALSE.) THEN
+               IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
      &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
@@ -901,7 +901,7 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                ISPC = 3 !OC
-               IF (LINTERP.EQ..FALSE.) THEN
+               IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
      &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
@@ -928,7 +928,7 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                ISPC = 4 !SSa
-               IF (LINTERP.EQ..FALSE.) THEN
+               IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
      &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
@@ -955,7 +955,7 @@
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                ISPC = 5 !SSc
-               IF (LINTERP.EQ..FALSE.) THEN
+               IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
      &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
@@ -983,7 +983,7 @@
                !--------------------------------------
                DO R = 1, NDUST 
 
-                  IF(LINTERP.EQ..FALSE.) THEN
+                  IF ( .not. LINTERP ) THEN
                      Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X) *
      &                            ODMDUST(I,J,L,IWVSELECT(1,1),R)
                   ELSE
@@ -1015,7 +1015,7 @@
                R = N - 172
 
                ! Accumulate
-               IF(LINTERP.EQ..FALSE.) THEN
+               IF ( .not. LINTERP ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X) *
      &                         ODMDUST(I,J,L,IWVSELECT(1,1),R)
                ELSE

@@ -593,7 +593,7 @@
             GMTRC    = 6
 
             ISPC     = 1 !sulfate
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
                DO L = 1, K
                   ! Accumulate
                   Q(L) = Q(L) + ODAER(I,J,L,IWVSELECT(1,1),ISPC)
@@ -625,7 +625,7 @@
             GMTRC    = 9            
 
             ISPC     = 2 !BC
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
                DO L = 1, K
                   ! Accumulate
                   Q(L) = Q(L) + ODAER(I,J,L,IWVSELECT(1,1),ISPC)
@@ -657,7 +657,7 @@
             GMTRC    = 12
 
             ISPC     = 3 !OC
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
                DO L = 1, K
                   ! Accumulate
                   Q(L) = Q(L) + ODAER(I,J,L,IWVSELECT(1,1),ISPC)
@@ -689,7 +689,7 @@
             GMTRC    = 15
 
             ISPC     = 4 !SSa
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
                DO L = 1, K
                   ! Accumulate
                   Q(L) = Q(L) + ODAER(I,J,L,IWVSELECT(1,1),ISPC)
@@ -721,7 +721,7 @@
             GMTRC    = 18
 
             ISPC     = 5 !SSc
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
                DO L = 1, K
                   ! Accumulate
                   Q(L) = Q(L) + ODAER(I,J,L,IWVSELECT(1,1),ISPC)
@@ -754,7 +754,7 @@
 
             DO R = 1, NDUST
 
-               IF (LINTERP.EQ..FALSE.) THEN
+               IF ( .not. LINTERP ) THEN
                   DO L = 1, K
                      ! Accumulate
                      Q(L) = Q(L) + ODMDUST(I,J,L,IWVSELECT(1,1),R)
@@ -789,7 +789,7 @@
 
             R = N - 172
 
-            IF (LINTERP.EQ..FALSE.) THEN
+            IF ( .not. LINTERP ) THEN
                DO L = 1, K
                   ! Accumulate
                   Q(L) = Q(L) + ODMDUST(I,J,L,IWVSELECT(1,1),R)
