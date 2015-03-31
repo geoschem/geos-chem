@@ -910,7 +910,8 @@ transport_mod.o             : transport_mod.F                                \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geosfp_window_mod.o                     \
                               pjc_pfix_geos5_window_mod.o                    \
-                              pjc_pfix_geosfp_window_mod.o
+                              pjc_pfix_geosfp_window_mod.o                   \
+                              dao_mod.o
 
 update.o                    : update.F
 
