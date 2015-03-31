@@ -894,6 +894,7 @@
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  05 Mar 2015 - R. Yantosca - Remove DO_READ_DATA option.  We can no longer
 !                              have binary punch input in HPC environments.
+!  31 Mar 2015 - R. Yantosca - Bug fix: Declare LINTERP as !$OMP PRIVATE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1797,7 +1798,7 @@
          ! Loop over aerosol types (dust handled in dust_mod.f)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, W, IOUT, ISTRAT)
+!$OMP+PRIVATE( I, J, JLOOP, L, N, W, LINTERP, IOUT, ISTRAT )
 !$OMP+SCHEDULE( DYNAMIC )
          DO N = 1, NAER 
             ISTRAT = N - NRHAER
