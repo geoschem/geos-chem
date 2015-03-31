@@ -430,7 +430,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD38, CONVFLUP
+#if !defined ( NO_BPCH )
+      USE DIAG_MOD,     ONLY : AD38
+#endif
+      USE DIAG_MOD,     ONLY : CONVFLUP
       USE GRID_MOD,     ONLY : GET_AREA_M2
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -708,6 +711,7 @@
                !==================================================
                NN = INDEXSOL(M)
 
+#if !defined ( NO_BPCH )
                IF ( ND38 > 0 .and. NN > 0 ) THEN
  
                   ! Grid box indices 
@@ -725,6 +729,7 @@
      &                 -  TOTALMD(I,K) * AREA_M2 / GRAV * CMIX(I,KP1) 
      &                 * (1-FISG(I,K)) / TCVV(M) / FLOAT(NSTEP)
                ENDIF
+#endif
 
                IF ( ND14 > 0 ) THEN 
                   II = IDEEP(I)

@@ -189,8 +189,7 @@
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jul 2014 - R. Yantosca - Removed reference to commsoil_mod.F
 !  12 Nov 2014 - M. Yannetti - Added PRECISION_MOD, changed REAL*8 to REAL(fp)
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE_DRY.
-!                              Remove dependency on pressure_mod.
+!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE
 !  03 Mar 2015 - C. Keller   - Disabled DRYFLX. Now done in mixing_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -817,8 +816,8 @@
          CZ1(IJLOOP)    = THIK / 2.0e+0_f8
 
          ! Local surface pressure [hPa] (mpayer, 1/10/12)
-         ! Now using dry air partial pressure [hPa] (ewl, 3/2/15)
-         SP             = State_Met%PEDGE_DRY(I,J,1)
+         ! Use moist air pressure for mean free path  (ewl, 3/2/15)
+         SP             = State_Met%PEDGE(I,J,1)
 
          ! Convert from hPa to Pa for SFCPRESS
          PRESSU(IJLOOP) = SP * 1.e+2_f8
@@ -4422,7 +4421,7 @@
             XMW(NUMDEP)     = 58e-3_f8
             AIROSOL(NUMDEP) = .FALSE.
 
-         ! PMN (uses same dep vel as PAN)
+         ! N (uses same dep vel as PAN)
          ELSE IF ( N == IDTPMN ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTPMN

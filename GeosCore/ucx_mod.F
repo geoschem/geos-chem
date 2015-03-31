@@ -45,8 +45,8 @@
       CHARACTER(LEN=255), PUBLIC :: NOON_FILE_ROOT ! Directory for noontime data
       CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data 
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
-      REAL(fp),             PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
-      REAL(fp),             PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
+      REAL(fp),           PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
+      REAL(fp),           PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
                           PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
                           PUBLIC :: NDENS_AER ! See below
       INTEGER,            PUBLIC :: CFCYEAR ! Year for CFC emissions
@@ -2668,12 +2668,10 @@
 !  07 Feb 2014 - R. Yantosca - Cosmetic changes
 !  21 Feb 2014 - M. Sulprizio- Now pass Input_Opt, State_Met, and State_Chm 
 !                              objects via the arg list
-!  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE, which 
-!                              retrieve wet air pressure, with State_Met
-!                              vars PMID and PEDGE and remove
-!                              dependency on PRESSURE_MOD. In some cases,
-!                              use State_Met%DELP in place of difference of
-!                              adjacent level PEDGE.
+!  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with 
+!                              State_Met%PMID and State_Met%PEDGE
+!  24 Feb 2014 - E. Lundgren - Remove dependency on PRESSURE_MOD
+!  24 Feb 2014 - E. Lundgren - Use State_Met%DELP in place of PEDGE difference
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2848,8 +2846,8 @@
             TEMP    = State_Met%T(I,J,L)
  
             ! Pressure at center of the level [kPa]
-            ! Now using dry air partial pressure (ewl, 3/2/15)
-            P       = State_Met%PMID_DRY(I,J,L)  * 0.1e+0_fp
+            ! Use moist air pressure for mean free path (ewl, 3/2/15)
+            P       = State_Met%PMID(I,J,L)  * 0.1e+0_fp
 
             RUNCALC = ITS_IN_THE_STRATMESO(I,J,L,State_Met)
 
@@ -3381,9 +3379,9 @@
 !                                which is the most efficient configuration
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
-!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
-!                                air pressure, with State_Met%PMID_DRY and
-!                                remove dependency on PRESSURE_MOD.
+!  24 Feb 2015 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID_DRY
+!  24 Feb 2015 - E. Lundgren   - Remove dependency on PRESSURE_MOD
+!  26 Mar 2015 - E. Lundgren   - Now use moist and dry air partial pressures
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3405,7 +3403,8 @@
       REAL(fp)             :: GF_PP,GF_PVAP,GF_DIFF
 
       INTEGER            :: I, J, L
-      REAL(fp)             :: PCENTER, TCENTER, H2SO4SUM, INVAIR
+      REAL(fp)             :: PCENTER, PCENTER_P, TCENTER, H2SO4SUM 
+      REAL(fp)             :: INVAIR
 
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
@@ -3439,7 +3438,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( J,          I,              L       )
-!$OMP+PRIVATE( PCENTER,    TCENTER,        INVAIR  )
+!$OMP+PRIVATE( PCENTER,    PCENTER_P,      TCENTER )
+!$OMP+PRIVATE( INVAIR )
 !$OMP+PRIVATE( H2SO4SUM,   GF_PP,          GF_INVT )
 !$OMP+PRIVATE( GF_CFACTOR, GF_LOGPSULFATE, GF_PVAP )
 !$OMP+PRIVATE( GF_DIFF                             )
@@ -3449,8 +3449,12 @@
       DO I = 1, IIPAR
          ! Only interested in low-pressure boxes
          TCENTER = State_Met%T(I,J,L)
-         ! Now using dry air partial pressure (ewl, 3/2/15)
-         PCENTER = State_Met%PMID_DRY(I,J,L)
+
+         ! Use moist air pressure thresholding (ewl, 3/26/15)
+         PCENTER = State_Met%PMID(I,J,L)
+         ! Use dry air partial pressure for part. P calc (ewl, 3/26/15)
+         PCENTER_P = State_Met%PMID_DRY(I,J,L)
+
          INVAIR  = AIRMW / State_Met%AD(I,J,L)
          IF (PCENTER.ge.1.e+2_fp) THEN
             AERFRAC(I,J,L,1) = 1e+0_fp
@@ -3460,7 +3464,8 @@
          ELSE
             H2SO4SUM = STT(I,J,L,IDTSO4  )*INVAIR/TRACER_MW_G(IDTSO4  )
             ! Use approximation from Kumala (1990)
-            GF_PP = H2SO4SUM*PCENTER
+            ! Use dry air partial pressure (ewl, 3/26/15)
+            GF_PP = H2SO4SUM*PCENTER_P
             GF_INVT = 1./TCENTER
             GF_CFACTOR = 1.e+0_fp+(LOG(GF_T0*GF_INVT))-(GF_T0*GF_INVT)
             GF_LOGPSULFATE = GF_LOGP0 + (GF_DELTAHBYR*(GF_INVT0 -

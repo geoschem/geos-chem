@@ -73,6 +73,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed "GEOS57" to "GEOSFP" in routine names
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  31 Mar 2015 - E. Lundgren - Modifications to change moist air mass to dry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -132,11 +133,11 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -157,6 +158,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  17 Feb 2015 - E. Lundgren - Expect kg/kg rather than kg tracer units. 
+!  31 Mar 2015 - E. Lundgren - Make State_Met INTENT(INOUT) for AIRQNT calls
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -277,6 +279,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
       USE PRESSURE_MOD,       ONLY : SET_FLOATING_PRESSURE
+      USE DAO_MOD,            ONLY : AIRQNT
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,      ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
@@ -292,11 +295,11 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -318,6 +321,8 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
+!  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -423,7 +428,8 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+
+         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
       ENDDO
       ENDDO
       ENDDO
@@ -495,6 +501,10 @@
       ! surface pressure at the end of the dynamic timestep.
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
+      ! Update State_Met air quantities with new pressure prior to updating 
+      ! tracer concentrations (ewl, 3/31/15)
+      CALL AIRQNT( am_I_Root, State_Met, RC )
+
       ! Adjust tracer to correct residual non-conservation of mass
       ! This was changed to be applied only for cells with tracer 
       ! concentration. (ccc, 11/20/08) 
@@ -511,7 +521,7 @@
          DO I = 1, IIPAR
 
             ! Air mass [kg] after transport
-            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
+            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J), State_Met )
          
             ! Tracer mass [kg] after transport
             TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
@@ -583,6 +593,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
       USE PRESSURE_MOD,       ONLY : SET_FLOATING_PRESSURE
+      USE DAO_MOD,            ONLY : AIRQNT
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
 #if   defined( APM )
@@ -597,11 +608,11 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -623,6 +634,8 @@
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !  04 Sep 2014 - R. Yantosca - Avoid div-by-zero errors in division w/ SUMADA
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
+!  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -734,7 +747,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
       ENDDO
       ENDDO
       ENDDO
@@ -806,6 +819,10 @@
       ! surface pressure at the end of the dynamic timestep.
       CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
 
+      ! Update State_Met air quantities with new pressure prior to updating 
+      ! tracer concentrations (ewl, 3/31/15)
+      CALL AIRQNT( am_I_Root, State_Met, RC )
+
       ! Adjust tracer to correct residual non-conservation of mass
       ! This was changed to be applied only for cells with tracer 
       ! concentration. (ccc, 11/20/08) 
@@ -822,7 +839,7 @@
          DO I = 1, IIPAR
 
             ! Air mass [kg] after transport
-            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
+            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J), State_Met )
          
             ! Tracer mass [kg] after transport
             TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
@@ -897,6 +914,7 @@
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET 
       USE PJC_PFIX_GEOS5_WINDOW_MOD, ONLY : DO_PJC_PFIX_GEOS5_WINDOW
       USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
+      USE DAO_MOD,                   ONLY : AIRQNT
       USE TIME_MOD,                  ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
@@ -914,11 +932,11 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -936,6 +954,8 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!  26 Mar 2015 - E. Lundgren - Pass State_Met to get_air_mass for dry mass calc
+!  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1046,7 +1066,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
       ENDDO
       ENDDO
       ENDDO
@@ -1125,6 +1145,9 @@
       ! surface pressure at the end of the dynamic timestep.
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
+      ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
+      CALL AIRQNT( am_I_Root, State_Met, RC )
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
 
@@ -1158,6 +1181,7 @@
       USE GIGC_State_Met_Mod,        ONLY : MetState
       USE PJC_PFIX_GEOSFP_WINDOW_MOD,ONLY : DO_PJC_PFIX_GEOSFP_WINDOW
       USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
+      USE DAO_MOD,                   ONLY : AIRQNT
       USE TIME_MOD,                  ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
@@ -1175,11 +1199,11 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1194,6 +1218,7 @@
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
 !  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
+!  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1301,7 +1326,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J) )
+         AD_B(I,J,L) = GET_AIR_MASS( I, J, L, P_TP1(I,J), State_Met )
       ENDDO
       ENDDO
       ENDDO
@@ -1373,6 +1398,9 @@
       ! surface pressure at the end of the dynamic timestep.
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
+      ! Update State_Met air quantities with new pressure (ewl, 3/31/15)
+      CALL AIRQNT( am_I_Root, State_Met, RC )
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
 
@@ -1392,22 +1420,26 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_AIR_MASS( I, J, L, P_SURF ) RESULT( AIR_MASS )
+      FUNCTION GET_AIR_MASS( I, J, L, P_SURF, State_Met ) 
+     &                       RESULT( AIR_MASS )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_GCTM_MOD               ! g0_100
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: I, J, L   ! GEOS-Chem lon, lat, level indices
       REAL(fp),  INTENT(IN) :: P_SURF    ! Surface pressure [hPa] at (I,J,L=1)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
 ! 
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - R. Yantosca - Initial version
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  26 Mar 2015 - E. Lundgren - Calculate dry rather than moist air mass
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1429,6 +1461,7 @@
       P_BOT    = Ap(L2)   + ( Bp(L2)   * P_SURF )
       P_TOP    = Ap(L2-1) + ( Bp(L2-1) * P_SURF )
       AIR_MASS = ( P_BOT - P_TOP ) * G0_100 * A_M2(J)
+     &             * State_Met%AIRDEN(I,J,L) / State_Met%MAIRDEN(I,J,L)
 
       END FUNCTION GET_AIR_MASS
 !EOC

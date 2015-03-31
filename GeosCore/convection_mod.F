@@ -92,7 +92,9 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : CONVFLUP
+#if   !defined( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD38
+#endif
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -107,6 +109,13 @@
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
+
+#if   defined ( DEVEL )
+      USE HCO_ERROR_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
+#endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -185,7 +194,66 @@
       REAL(fp), POINTER :: STT(:,:,:,:)
 
       !=================================================================
+      ! MERRA or GEOS-FP met fields definitions
+      !=================================================================
+#if defined( MERRA ) || defined( GEOS_FP )
+
+      
+      ! Scalars          
+      INTEGER         :: I, J, L, N, NN, TS_DYN
+      REAL(fp)          :: AREA_M2, DT
+      LOGICAL         :: DO_ND14
+      LOGICAL         :: DO_ND38
+      
+      ! Arrays        
+      REAL(fp)          :: PEDGE  (LLPAR+1)
+#if defined( APM )
+      INTEGER         :: ISOL   (      Input_Opt%N_TRACERS+N_APMTRA)
+      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
+      REAL(fp), TARGET  :: FSOL   ( IIPAR, JJPAR, LLPAR,   
+     &                                 Input_Opt%N_TRACERS+N_APMTRA)
+#else
+      INTEGER         :: ISOL   (      Input_Opt%N_TRACERS )
+      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS )
+      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS )
+      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS )
+      REAL(fp), TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,
+     &                                 Input_Opt%N_TRACERS )
+#endif
+
+      ! Pointers
+      REAL(fp), POINTER :: p_FSOL (:,:,:)
+#endif
+
+#if   defined ( DEVEL )
+      ! For new diagnostics
+      INTEGER                :: IT, cID, HCRC
+      REAL(fp), ALLOCATABLE  :: BEFORE(:,:,:,:)
+      REAL(fp), POINTER      :: TMP(:,:,:) => NULL()
+      REAL(fp)               :: DTIME
+#endif
+
+      !=================================================================
       ! DO_CONVECT begins here!
+      !=================================================================
+
+      ! For new diagnostics, archive old species concentration. At the 
+      ! moment, the new ND38 diagnostics only returns the total column 
+      ! loss due to convection. For these values, we don't need to 
+      ! write the diagnostics within the convection schemes but can
+      ! simply take the difference between the original and updated 
+      ! tracer field column.
+#if   defined( DEVEL )
+      IF ( Input_Opt%ND38 > 0 ) THEN
+         ALLOCATE( BEFORE(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) )
+         BEFORE = State_Chm%Tracers
+      ENDIF
+#endif
+
+      !=================================================================
+      ! Call met field specific convection routines 
       !=================================================================
 
 #if   defined( GCAP ) 
@@ -248,37 +316,6 @@
       !=================================================================
       ! MERRA or GEOS-FP met fields
       !=================================================================
-      
-      ! Scalars          
-      INTEGER         :: I, J, L, N, NN, TS_DYN
-      REAL(fp)          :: AREA_M2, DT
-      LOGICAL         :: DO_ND14
-      LOGICAL         :: DO_ND38
-      
-      ! Arrays        
-      REAL(fp)          :: PEDGE  (LLPAR+1)
-#if defined( APM )
-      INTEGER         :: ISOL   (      Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS+N_APMTRA)
-      REAL(fp), TARGET  :: FSOL   ( IIPAR, JJPAR, LLPAR,   
-     &                                 Input_Opt%N_TRACERS+N_APMTRA)
-#else
-      INTEGER         :: ISOL   (      Input_Opt%N_TRACERS )
-      REAL(fp)          :: DIAG14 (LLPAR,Input_Opt%N_TRACERS )
-      REAL(fp)          :: DIAG38 (LLPAR,Input_Opt%N_TRACERS )
-      REAL(fp)          :: F      (LLPAR,Input_Opt%N_TRACERS )
-      REAL(fp), TARGET  :: FSOL   (IIPAR,JJPAR,LLPAR,
-     &                                 Input_Opt%N_TRACERS )
-#endif
-
-      ! Pointers
-      REAL(fp), POINTER :: p_FSOL (:,:,:)
-
-      !-----------------------------------------------------------------
-      ! Initialization
-      !-----------------------------------------------------------------
 
       ! Initialize
       RC        =  GIGC_SUCCESS                   ! Assume success
@@ -368,6 +405,7 @@
             ENDDO
          ENDIF
 
+#if !defined(NO_BPCH)
          !--------------------------
          ! ND38 diagnostic [kg/s]
          !--------------------------
@@ -385,10 +423,64 @@
                ENDIF
             ENDDO
          ENDIF
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
+#endif
+
+
+      !-----------------------------------------------------------------
+      ! New diagnostics (ND38)
+      ! Write out the column mass difference before and after 
+      ! convection.
+      ! Note: The ND38 diagnostics is defined as a 2D diagnostics
+      ! (--> diagnostics_mod.F90). We pass here a 3D array to the
+      ! diagnostics, which will automatically be collapsed to a 2D
+      ! array within the diagnostics module (the vertical sum is taken).
+      !-----------------------------------------------------------------
+#if   defined( DEVEL )
+      IF ( Input_Opt%ND38 > 0 ) THEN
+
+         ! Time step
+         DTIME = GET_TS_DYN() * 60e+0_fp
+
+         ! Allocate temporary pointer
+         ALLOCATE(TMP(IIPAR,JJPAR,LLPAR))
+        
+         ! Loop over all tracers
+         DO IT = 1, Input_Opt%N_TRACERS
+
+            ! Is this a tracer selected for diagnostics?
+            IF ( ANY( Input_Opt%TINDEX(38,:) == IT ) ) THEN
+
+               ! Loss rate (v/v/s)
+               TMP = ( BEFORE(:,:,:,IT) - State_Chm%Tracers(:,:,:,IT) )
+     &             / DTIME 
+
+               ! Convert to kg/s:
+               TMP = TMP * State_Met%AD / Input_Opt%TCVV(IT) 
+
+               ! Update diagnostics. Pass 3D array. Will be collapsed to
+               ! column total in Diagn_Update.
+               cID = 38000 + IT
+               CALL Diagn_Update ( am_I_Root,
+     &                             cID     = cID,
+     &                             Array3D = TMP,
+     &                             COL     = Input_Opt%DIAG_COLLECTION,
+     &                             RC      = HCRC )
+               IF ( HCRC /= HCO_SUCCESS ) THEN
+                  CALL ERROR_STOP ( 'Error updating conv loss diagn ' //
+     &               'for species ' // TRIM(Input_Opt%TRACER_NAME(IT)), 
+     &               'DO_CONVECTION (convection_mod.F)' )
+               ENDIF
+            ENDIF
+         ENDDO
+
+         ! Cleanup
+         DEALLOCATE( BEFORE, TMP )
+      ENDIF
 #endif
 
       END SUBROUTINE DO_CONVECTION
@@ -996,7 +1088,9 @@
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE DIAG_MOD,           ONLY : AD37
+#if   !defined ( NO_BPCH )
       USE DIAG_MOD,           ONLY : AD38
+#endif
       USE DIAG_MOD,           ONLY : CONVFLUP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1677,6 +1771,7 @@
      &                       (-T2-T3) * AREA_M2 / TCVV(IC)  
                      ENDIF
 
+#if !defined(NO_BPCH)
                      !==================================================
                      ! ND38 Diagnostic: loss of soluble tracer to wet
                      ! scavenging in cloud updrafts [kg/s].  We must 
@@ -1692,6 +1787,7 @@
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) +
      &                       ( T0 * AREA_M2 / ( TCVV(IC) * DNS ) )
                      ENDIF
+#endif
   
                      !=================================================
                      ! Pass the amount of Hg2 and HgP lost in wet 
