@@ -290,7 +290,9 @@ CONTAINS
 #if defined( DEVEL )
     INTEGER            :: cID, HCRC
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
     REAL(fp), TARGET   :: EMIS(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) 
+    REAL(fp), TARGET   :: DEP (IIPAR,JJPAR,      Input_Opt%N_TRACERS) 
     REAL(fp)           :: TOTFLUX(Input_Opt%N_TRACERS)
 #endif
 
@@ -319,6 +321,7 @@ CONTAINS
 
     ! Init diagnostics
 #if defined( DEVEL )
+    DEP     = 0.0_fp
     EMIS    = 0.0_fp
     TOTFLUX = 0.0_fp
 #endif
@@ -486,9 +489,16 @@ CONTAINS
                    ! Apply dry deposition
                    State_Chm%Tracers(I,J,L,N) = FRAC * State_Chm%Tracers(I,J,L,N)
 
+                   ! Loss in kg
+                   FLUX = ( 1.0_fp - FRAC ) * State_Chm%Tracers(I,J,L,N) 
+
+#if defined( DEVEL )
+                   ! Archive deposition flux in kg/m2/s
+                   DEP(I,J,N) = DEP(I,J,N) + ( FLUX / AREA_M2 / TS )
+#endif
+
                    ! Loss in [molec/cm2/s]
-                   FLUX = ( 1.0_fp - FRAC ) * State_Chm%Tracers(I,J,L,N)     ! kg
-                   FLUX = FLUX / MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp ) ! molec/cm2/s
+                   FLUX = FLUX / MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp ) 
 
                    ! Diagnostics. These are the same as DRYFLX.
                    ! Diagnostics are in molec/cm2/s.
@@ -551,30 +561,43 @@ CONTAINS
 
        ! Only if HEMCO tracer is defined
        cID = GetHcoID( TrcID=N )
-       IF ( cID <= 0 ) CYCLE
+       IF ( cID > 0 ) THEN 
 
-       ! Define diagnostics name
-       cID = 10000 + cID
+          ! Define diagnostics name
+          cID = 10000 + cID
 
-       ! Point to species slice 
-       Ptr3D => EMIS(:,:,:,N)
+          ! Point to species slice 
+          Ptr3D => EMIS(:,:,:,N)
 
-       ! Update the emissions diagnostics
-       CALL Diagn_Update( am_I_Root,                           &
-                          cID     = cID,                       &
-                          Array3D = Ptr3D,                     &
-                          Total   = TOTFLUX(N),                &
-                          COL     = Input_Opt%DIAG_COLLECTION, &
-                          RC      = HCRC                        )
+          ! Update the emissions diagnostics
+          CALL Diagn_Update( am_I_Root,                           &
+                             cID     = cID,                       &
+                             Array3D = Ptr3D,                     &
+                             Total   = TOTFLUX(N),                &
+                             COL     = Input_Opt%DIAG_COLLECTION, &
+                             RC      = HCRC                        )
 
-       ! Free pointer
-       Ptr3D => NULL()
+          ! Free pointer
+          Ptr3D => NULL()
 
-       ! Error check
-       IF ( HCRC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ('Error updating diagnostics: '// &
-                           'TRACER_EMIS_'//TRIM(Input_Opt%TRACER_NAME(N)), &
-                           'DO_TEND (mixing_mod.F90)' )
+          ! Error check
+          IF ( HCRC /= HCO_SUCCESS ) THEN
+             CALL ERROR_STOP ('Error updating diagnostics: '// &
+                              'TRACER_EMIS_'//TRIM(Input_Opt%TRACER_NAME(N)), &
+                              'DO_TEND (mixing_mod.F90)' )
+          ENDIF
+       ENDIF
+
+       ! Drydep fluxes
+       IF ( ND44>0 ) THEN
+          Ptr2D => DEP(:,:,N)
+          cID = 44500 + N
+          CALL Diagn_Update( am_I_Root,                           &
+                             cID     = cID,                       &
+                             Array2D = Ptr2D,                     &
+                             COL     = Input_Opt%DIAG_COLLECTION, &
+                             RC      = HCRC                        )
+          Ptr2D => NULL()
        ENDIF
     ENDDO
 #endif

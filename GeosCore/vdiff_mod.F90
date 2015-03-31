@@ -1967,6 +1967,7 @@ contains
     ! For HEMCO diagnostics
 #if defined( DEVEL )
     REAL(fp), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(fp), POINTER  :: Ptr2D(:,:)   => NULL()
     REAL(fp)           :: Total
     INTEGER            :: cID, HCRC
 #endif
@@ -2496,6 +2497,8 @@ contains
     Ptr3D = 0.0_fp
 
     DO N = 1, N_TRACERS
+
+       ! Emission fluxes
        IF ( ANY(eflx(:,:,N) > 0.0_fp ) ) THEN
           Ptr3D(:,:,1) = eflx(:,:,N)
           cID = GetHcoID ( TrcID=N )
@@ -2511,6 +2514,18 @@ contains
                                 RC      = HCRC                        )
              Ptr3D = 0.0_fp
           ENDIF
+       ENDIF
+
+       ! Drydep fluxes
+       IF ( (ND44>0) .AND. (ANY(dflx(:,:,N) > 0.0_fp) ) ) THEN
+          Ptr2D => dflx(:,:,N)
+          cID = 44500 + N
+          CALL Diagn_Update( am_I_Root,                           &
+                             cID     = cID,                       &
+                             Array2D = Ptr2D,                     &
+                             COL     = Input_Opt%DIAG_COLLECTION, &
+                             RC      = HCRC                        )
+          Ptr2D => NULL()
        ENDIF
     ENDDO
 

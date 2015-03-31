@@ -441,7 +441,7 @@
 #if defined( DEVEL )
       ! Variables for netCDF diagnostics routines
       INTEGER           :: HCRC
-      CHARACTER(LEN=30) :: DiagnName
+      INTEGER           :: cID
       REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,Input_Opt%NUMDEP)
       REAL(hp), POINTER :: Ptr2D(:,:) => NULL()
 #endif
@@ -582,15 +582,15 @@
             ! then archive the latest depvel data into the diagnostic structure
             IF ( ANY( Input_Opt%TINDEX(44,:) == NN ) ) THEN
 
-               ! Construct diagnostic name
-               DiagnName = 'DEPVEL_' // TRIM( Input_Opt%DEPNAME(N) )
+               ! Construct diagnostic ID
+               cID = 44000 + NN
             
                ! Point to the proper slice of the DEPSAV array
                Ptr2D => SAVE_DEPVEL(:,:,N)
 
                ! Update the deposition velocity diagostics 
                CALL Diagn_Update( am_I_Root,
-     &                            cName   = TRIM( DiagnName ),
+     &                            cID     = cID,               
      &                            Array2D = Ptr2D,
      &                            COL     = Input_Opt%DIAG_COLLECTION,
      &                            RC      = HCRC )

@@ -386,7 +386,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: cId,      Collection, D, N
+    INTEGER            :: cID,      Collection, D, N
     CHARACTER(LEN=15)  :: OutOper,  WriteFreq
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
@@ -422,11 +422,13 @@ CONTAINS
           !----------------------------------------------------------------
 
           ! Diagnostic name
-          DiagnName = 'DEPVEL_' // TRIM( Input_Opt%DEPNAME(D) )
+          DiagnName = 'DEPVEL_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          cID       = 44000 + N
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
                              Col       = Collection,        & 
+                             cID       = cID,               &
                              cName     = TRIM( DiagnName ), &
                              AutoFill  = 0,                 &
                              ExtNr     = -1,                &
@@ -438,6 +440,7 @@ CONTAINS
                              OutUnit   = 's-1',             &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
+                             OkIfExist = .TRUE.,            &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -446,15 +449,17 @@ CONTAINS
           ENDIF
           
           !----------------------------------------------------------------
-          ! Create containers for drydep flux [molec/cm2/s]
+          ! Create containers for drydep flux [kg/m2/s]
           !----------------------------------------------------------------
 
           ! Diagnostic name
-          DiagnName = 'DEPFLUX_' // TRIM( Input_Opt%DEPNAME(D) )
+          DiagnName = 'DEPFLUX_' // TRIM( Input_Opt%TRACER_NAME(N) )
+          cID       = 44500 + N
 
           ! Create container
           CALL Diagn_Create( am_I_Root,                     &
                              Col       = Collection,        &
+                             cID       = cID,               &
                              cName     = TRIM( DiagnName ), &
                              AutoFill  = 0,                 &
                              ExtNr     = -1,                &
@@ -463,9 +468,10 @@ CONTAINS
                              HcoID     = -1,                &
                              SpaceDim  =  2,                &
                              LevIDx    = -1,                &
-                             OutUnit   = 'cm-2 s-1',        &
+                             OutUnit   = 'kg m-2 s-1',      &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
+                             OkIfExist = .TRUE.,            &
                              RC        = RC )
 
           IF ( RC /= HCO_SUCCESS ) THEN
@@ -611,7 +617,7 @@ CONTAINS
 !
     INTEGER            :: cId, Collection, N
     REAL(hp)           :: ScaleFact
-    CHARACTER(LEN=15)  :: OutOper, OutUnit, WriteFreq
+    CHARACTER(LEN=31)  :: OutOper, OutUnit, WriteFreq
     CHARACTER(LEN=60)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGINIT_GRIDBOX (diagnostics_mod.F90)' 
@@ -903,7 +909,7 @@ CONTAINS
                              HcoID     = -1,                &
                              SpaceDim  =  2,                & ! 2D for now!!
                              LevIDx    = -1,                & ! sum over all vert. levels
-                             OutUnit   = 'kg/s',            &
+                             OutUnit   = 'kg/m2/s',         &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
                              RC        = RC                  )
@@ -1011,7 +1017,7 @@ CONTAINS
                              HcoID     = -1,                &
                              SpaceDim  =  2,                &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/s',            &
+                             OutUnit   = 'kg/m2/s',         &
                              OutOper   = TRIM( OutOper   ), &
                              WriteFreq = TRIM( WriteFreq ), &
                              RC        = RC                  )
