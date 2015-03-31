@@ -208,6 +208,7 @@
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
 
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
+      USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD	           ! SAVEOH
       USE CMN_GCTM_MOD             ! XTRA2
 !
@@ -274,9 +275,11 @@
       LOGICAL, SAVE            :: IS_FULLCHEM
       LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
       LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
+      LOGICAL                  :: LINTERP
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NHMS, TS_DIAG
+      INTEGER                  :: ISPC
       REAL(f8)                 :: TAU
       REAL(fp)                 :: TMP, SCALEAODnm
       REAL(fp)                 :: Q( ND49_NI, ND49_NJ, ND49_NL )
@@ -292,11 +295,11 @@
       LOGICAL                  :: LSOILNOX
       LOGICAL                  :: DO_DIAG_WRITE
       INTEGER                  :: N_TRACERS
-      REAL(fp)                   :: TCVV(Input_Opt%N_TRACERS)
+      REAL(fp)                 :: TCVV(Input_Opt%N_TRACERS)
  
       ! Pointers
-      REAL(fp), POINTER          :: STT(:,:,:,:)
-      REAL(fp), POINTER          :: AD(:,:,:)
+      REAL(fp), POINTER        :: STT(:,:,:,:)
+      REAL(fp), POINTER        :: AD(:,:,:)
 
       !=================================================================
       ! DIAG49 begins here!
@@ -375,6 +378,16 @@
 
       ! Time for BPCH file
       TAU  = GET_TAU()
+
+      !Determine if optical properties need interpolating
+      !The LUT wavelengths in IWVSELECT will match if no interpolation
+      !is needed. (output is only for the first requested wavelength)
+      !(DAR 10/2013)
+      IF(IWVSELECT(1,1).EQ.IWVSELECT(2,1)) THEN
+         LINTERP=.FALSE.
+      ELSE
+         LINTERP=.TRUE.
+      ENDIF
 
       ! Loop over tracers
       DO W = 1, ND49_N_TRACERS
@@ -854,20 +867,16 @@
          ELSE IF ( N == 167 ) THEN
 
             !--------------------------------------
-            ! SULFATE AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! SULFATE AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 6
 
-            DO R = 1, NRH
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(IND999,IND(1)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
-               
+            ISPC     = 1 !sulfate
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -877,34 +886,52 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,R) * SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-
-            ENDDO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) + 
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
 
          ELSE IF ( N == 168 ) THEN
 
             !--------------------------------------
-            ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! BLACK CARBON AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 9
 
-            DO R = 1, NRH
-               
-               ! Index for ODAER
-               H          = NRH + R
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(IND999,IND(2)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0 
-
+            ISPC     = 2 !BC
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -914,33 +941,52 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-            ENDDO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
 
          ELSE IF ( N == 169 ) THEN
 
             !--------------------------------------
-            ! ORGANIC CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! ORGANIC CARBON AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 12
 
-            DO R = 1, NRH
-
-               ! Index for ODAER
-               H          = 2*NRH + R
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(IND999,IND(3)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
-
+            ISPC     = 3 !OC
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -950,33 +996,52 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-            ENDDO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
 
          ELSE IF ( N == 170 ) THEN
             
             !--------------------------------------
-            ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! ACCUM SEASALT AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 15
 
-            DO R = 1, NRH
-
-               ! Index for ODAER
-               H          = 3*NRH + R
-  
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(IND999,IND(4)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
-    
+            ISPC     = 4 !SSa
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -986,66 +1051,52 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-            ENDDO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
 
          ELSE IF ( N == 171 ) THEN
 
             !--------------------------------------
-            ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
+            ! COARSE SEASALT AOD [unitless]
+            ! for wavelengths set in Radiation Menu
             !--------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 18
 
-            DO R = 1, NRH
-
-               ! Index for ODAER
-               H          = 4*NRH + R
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(IND999,IND(5)+R-1)
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, R, X, Y, K )
-               DO K = 1, ND49_NL
-                  L = LOFF + K
-               DO Y = 1, ND49_NJ
-                  J = JOFF + Y
-               DO X = 1, ND49_NI
-                  I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
-               ENDDO
-               ENDDO
-               ENDDO
-!$OMP END PARALLEL DO
-            ENDDO
-
-         ELSE IF ( N == 172 ) THEN
-
-            !--------------------------------------
-            ! TOTAL DUST OPT DEPTH [unitless]
-            !--------------------------------------
-            CATEGORY  = 'OD-MAP-$'
-            UNIT      = 'unitless'
-            GMNL      = ND49_NL
-            GMTRC     = 4
-
-            DO R = 1, NDUST
-
-               ! Scaling factor for AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(IND999,IND(6)+R-1)    
-               ! We no longer need to scale by wavelength (skim, 02/03/11)
-               SCALEAODnm = 1.0  
-
+            ISPC     = 5 !SSc
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -1055,17 +1106,102 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALEAODnm
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
+     &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
+
+         ELSE IF ( N == 172 ) THEN
+
+            !--------------------------------------
+            ! TOTAL DUST OPT DEPTH [unitless]
+            ! for wavelengths set in Radiation Menu
+            !--------------------------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND49_NL
+            GMTRC     = 4
+
+            DO ISPC = 1, NDUST
+
+               IF ( .not. LINTERP ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+                  DO K = 1, ND49_NL
+                     L = LOFF + K
+                  DO Y = 1, ND49_NJ
+                     J = JOFF + Y
+                  DO X = 1, ND49_NI
+                     I = GET_I( X )
+                     Q(X,Y,K) = Q(X,Y,K) +
+     $                          ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)
+                  ENDDO
+                  ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+               ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+                  DO K = 1, ND49_NL
+                     L = LOFF + K
+                  DO Y = 1, ND49_NJ
+                     J = JOFF + Y
+                  DO X = 1, ND49_NI
+                     I = GET_I( X )
+                   ! Interpolated using angstrom exponent between
+                   ! Closest available wavelengths
+                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                   !catch any zero values before interpolation
+                   IF ((ODMDUST(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                 (ODMDUST(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODMDUST(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)/
+     &              ODMDUST(I,J,L,IWVSELECT(2,1),ISPC))))
+                   ENDIF
+                  ENDDO
+                  ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+               ENDIF
             ENDDO
 
          ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
 
             !--------------------------------------
-            ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
+            ! DUST OPTD BINS1-7 [unitless]
+            ! for wavelengths set in Radiation Menu
+            !
             ! NOTE: Only archive at chem timestep
             !--------------------------------------
             CATEGORY  = 'OD-MAP-$'
@@ -1073,13 +1209,8 @@
             GMNL      = ND49_NL
             GMTRC     = 21+(N-173)
 
-            R = N - 172
-
-            ! Scaling factor for AOD wavelength (clh, 05/09)
-            ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(IND999,IND(6)+R-1)
-            ! We no longer need to scale by wavelength (skim, 02/03/11)
-            SCALEAODnm = 1.0
-
+            ISPC = N - 172
+            IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -1089,11 +1220,38 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALEAODnm
+                  Q(X,Y,K) = Q(X,Y,K) +
+     $                       ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
+            ELSE
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  ! Interpolated using angstrom exponent between
+                  ! Closest available wavelengths
+                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                  !catch any zero values before interpolation
+                  IF ((ODMDUST(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
+     &                 (ODMDUST(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
+                    Q(X,Y,K) = Q(X,Y,K) +
+     &              (ODMDUST(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
+     &              (BCOEF_WV(1)*LOG(ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)/
+     &               ODMDUST(I,J,L,IWVSELECT(2,1),ISPC))))
+                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+            ENDIF
 
          ELSE IF ( N == 180 ) THEN
 

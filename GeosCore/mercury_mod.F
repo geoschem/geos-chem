@@ -5021,9 +5021,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: set_options_from_hemco
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Overrides some of the Hg simulation settings depending on
+!  the inputs that are specified in the HEMCO configuration file.
 !\\
 !\\
 ! !INTERFACE:
@@ -5086,24 +5087,11 @@
          LGC = .FALSE.
       ENDIF
 
-      ! Then look for BrOx_TOMCAT
-      CALL GetExtOpt( -999, 'BrOx_TOMCAT', OptValBool=LTOMCAT,
-     &                       FOUND=FOUND,  RC=RC )
-      IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt BrOx_TOMCAT', LOC )
-      ENDIF
-      IF ( .not. FOUND ) THEN
-         LTOMCAT = .FALSE.
-      ENDIF
-      
-      ! Cannot have both BrOx_GC and BrOx_TOMCAT on at the same time
-      IF ( LGC .eqv. LTOMCAT ) THEN
-         CALL ERROR_STOP( 
-     &    'BrOx_GC and BrOx_TOMCAT cannot be both turned on!', LOC )
-      ENDIF
-         
       ! Set LGCBROMINE = .TRUE. if BrOx_GC is true
       LGCBROMINE = LGC
+
+      ! Set BrOx_TOMCAT to be the opposite of LGCBROMINE
+      LTOMCAT   = ( .not. LGCBROMINE )
 
       !-----------------------------------------------------------------
       ! Set the value of LNEI2005 depending on whether or not
@@ -5130,7 +5118,6 @@
       IF ( .not. FOUND ) THEN
          LInPlume = .FALSE.
       ENDIF
-
 
       !-----------------------------------------------------------------
       ! Echo output

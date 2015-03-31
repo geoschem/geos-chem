@@ -39,6 +39,7 @@
       PRIVATE :: READ_EMISSIONS_MENU
       PRIVATE :: READ_FUTURE_MENU
       PRIVATE :: READ_CHEMISTRY_MENU
+      PRIVATE :: READ_RADIATION_MENU
       PRIVATE :: READ_TRANSPORT_MENU
       PRIVATE :: READ_CONVECTION_MENU
       PRIVATE :: READ_DEPOSITION_MENU
@@ -347,6 +348,9 @@
                                              
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
             CALL READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )             
+
+         ELSE IF ( INDEX( LINE, 'RADIATION MENU'   ) > 0 ) THEN
+            CALL READ_RADIATION_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
             CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
@@ -3497,6 +3501,192 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: read_radiation_menu
+!
+! !DESCRIPTION: Subroutine READ\_RADIATION\_MENU reads the RADIATION
+! MENU section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_RADIATION_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE CMN_FJX_MOD              ! Fast-JX flux diagnostics
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : SET_CT_RAD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  18 Jun 2013 - D. Ridley   - Initial version
+!  03 Dec 2014 - M. Sulprizio- Now save fields to the Input_Opt object
+!  10 Dec 2014 - M. Sulprizio- Add error checks for RRTMG switches
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: LRAD, LLWRAD, LSWRAD, LSKYRAD(2)
+      INTEGER            :: N
+      INTEGER            :: TS_RAD
+      CHARACTER(LEN=255) :: MSG, LOCATION
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_RADIATION_MENU begins here!
+      !=================================================================
+
+      ! Location for err msg
+      LOCATION = 'READ_RADIATION_MENU ("input_mod.f")'
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN
+         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         CALL ERROR_STOP( MSG, 'READ_RADIATION_MENU ("input_mod.f")' )
+      ENDIF
+
+      ! AOD wavelength selection?
+      CALL SPLIT_ONE_LINE( SUBSTRS, NWVSELECT,
+     &                     -1, 'read_radiation_menu:1' )
+      STRWVSELECT(1)=''
+      STRWVSELECT(2)=''
+      STRWVSELECT(3)=''
+
+      DO N = 1, NWVSELECT
+         READ( SUBSTRS(N), * ) WVSELECT(N)
+         ! save the string version also
+         STRWVSELECT(N) = TRIM(SUBSTRS(N))
+      ENDDO
+
+      ! Turn on RRTMG?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:2' )
+      READ( SUBSTRS(1:N), * ) LRAD
+
+      ! Turn on LW radiation calculation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:3' )
+      READ( SUBSTRS(1:N), * ) LLWRAD
+
+      ! Turn on SW radiation calculation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:4' )
+      READ( SUBSTRS(1:N), * ) LSWRAD
+
+      ! Calculate for clear-sky?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:5' )
+      READ( SUBSTRS(1:N), * ) LSKYRAD(1)
+
+      ! Calculate for all-sky?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:6' )
+      READ( SUBSTRS(1:N), * ) LSKYRAD(2)
+
+      ! Radiation timestep?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:7' )
+      READ( SUBSTRS(1:N), * ) TS_RAD
+
+      ! Selection of species flux changes
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, NSPECRADMENU,
+     &                     'read_radiation_menu:8' )
+      DO N = 1, NSPECRADMENU
+       READ( SUBSTRS(N), * ) LSPECRADMENU(N)
+      ENDDO
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:9' )
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:11' )
+
+      !=================================================================
+      ! Error check settings
+      !=================================================================       
+
+      ! Use of RRTMG necessitates recompilation 
+#if !defined( RRTMG )
+      IF ( LRAD ) THEN
+         MSG = 'LRAD=T but RRTMG not defined at compile time!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+#else
+      IF ( .not. LRAD ) THEN
+         MSG = 'LRAD=F but RRTMG defined at compile time!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+#endif
+
+      ! Make sure radiation switches are turned off if RRTMG is off
+      IF ( ( .not. LRAD ) .and. LLWRAD ) THEN
+         MSG = 'Cannot have LW fluxes turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSWRAD ) THEN
+         MSG = 'Cannot have SW fluxes turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSKYRAD(1) ) THEN
+         MSG = 'Cannot have clear-sky flux turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( ( .not. LRAD ) .and. LSKYRAD(2) ) THEN
+         MSG = 'Cannot have all-sky flux turned on without RRTMG'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LRAD       = LRAD
+      Input_Opt%LLWRAD     = LLWRAD
+      Input_Opt%LSWRAD     = LSWRAD
+      Input_Opt%LSKYRAD(1) = LSKYRAD(1)
+      Input_Opt%LSKYRAD(2) = LSKYRAD(2)
+      Input_Opt%TS_RAD     = TS_RAD
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'RADIATION MENU'
+      WRITE( 6, '(  a)' ) '--------------'
+      DO N=1, NWVSELECT
+      WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', WVSELECT(N)
+      ENDDO
+      WRITE( 6, 100     ) 'Turn on radiation?          : ', LRAD
+      WRITE( 6, 100     ) 'Consider LW                 : ', LLWRAD
+      WRITE( 6, 100     ) 'Consider SW                 : ', LSWRAD
+      WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
+     &                    LSKYRAD(1),'/',LSKYRAD(2)
+      WRITE( 6, 110     ) 'Radiation timestep [min]    : ', TS_RAD
+      WRITE( 6, 120     ) 'Flux output selection       : ', LSPECRADMENU
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5  )
+ 110  FORMAT( A, I5  )
+ 115  FORMAT( A, F7.1)
+ 120  FORMAT( A, 10I1 )
+ 125  FORMAT( A,L5,A,L5 )
+
+      END SUBROUTINE READ_RADIATION_MENU
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: read_transport_menu
 !
 ! !DESCRIPTION: Subroutine READ\_TRANSPORT\_MENU reads the TRANSPORT MENU 
@@ -4355,8 +4545,9 @@
 !  23 Jun 2014 - R. Yantosca - Now pass Input_Opt, RC to INIT_DIAG_OH
 !  24 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
-!  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION
- 
+!  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
+!                              avoid conflicts with hourly max ppbv diagnostic.
+!  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4904,8 +5095,26 @@
       CALL SET_TINDEX( am_I_Root, 
      &                 71, ND71, SUBSTRS(2:N), N-1, N_TRACERS )
 
+      !--------------------------
+      ! ND72: Radiation output
+      !--------------------------
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:70' )
+      READ( SUBSTRS(1), * ) ND72
+
+      !output fields are nspecies*nradfields but user can only specify
+      !rad fields (e.g. SW TOA ALL-SKY) so we set the max to the total
+      !divided by number of allowed species (PD72R)
+      CALL SET_TINDEX( am_I_Root, 72, ND72, SUBSTRS(2:N), N-1, PD72R )
+
+      !If LRAD is on then ND72 must be on (so the diagnostic is
+      !available to write into). Check for this
+      IF ( (Input_Opt%LRAD) .AND. (ND72.EQ.0) ) THEN
+       MSG = 'If LRAD is true then ND72 diagnostic must be switched on'
+       CALL ERROR_STOP( MSG, 'READ_DIAGNOSTIC_MENU ("input_mod.f")' )
+      ENDIF
+
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:70' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:71' )
 
       !=================================================================
       ! Call other setup routines
@@ -4979,6 +5188,8 @@
       Input_Opt%ND68               = ND68
       Input_Opt%ND69               = ND69
       Input_Opt%ND70               = ND70
+      Input_Opt%ND71               = ND71
+      Input_Opt%ND72               = ND72
       Input_Opt%LPRT               = ( ND70 > 0 )
 
       ! Loop over # of diagnostics
@@ -7271,14 +7482,10 @@
       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN 
 
          ! Initialize Mercury simulation routines
-         CALL INIT_MERCURY     ( am_I_Root, Input_Opt, RC )
-         CALL INIT_LAND_MERCURY( am_I_Root, Input_Opt, RC )
-         CALL INIT_DEPO_MERCURY( am_I_Root, Input_Opt, RC )
-
-         ! Initialize "ocean_mercury_mod.f"
-         IF ( LDYNOCEAN ) THEN
-            CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
-         ENDIF
+         CALL INIT_MERCURY      ( am_I_Root, Input_Opt, RC )
+         CALL INIT_LAND_MERCURY ( am_I_Root, Input_Opt, RC )
+         CALL INIT_DEPO_MERCURY ( am_I_Root, Input_Opt, RC )
+         CALL INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, RC )
 
       ENDIF
 
@@ -8055,7 +8262,7 @@
       LOGICAL :: LEMIS, LTRAN,       LTURB 
       INTEGER :: I,     J,           K 
       INTEGER :: L,     TS_SMALLEST, TS_DIAG
-      INTEGER :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN, TS_UNIT
+      INTEGER :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN, TS_UNIT, TS_RAD
 
       !=================================================================
       ! CHECK_TIME_STEPS begins here!
@@ -8073,6 +8280,7 @@
       TS_EMIS = Input_Opt%TS_EMIS
       TS_CONV = Input_Opt%TS_CONV
       TS_DYN  = Input_Opt%TS_DYN 
+      TS_RAD  = Input_Opt%TS_RAD
  
       ! NUNIT is time step in minutes for unit conversion
       TS_UNIT = -1
@@ -8195,7 +8403,8 @@
       CALL SET_TIMESTEPS( am_I_Root,
      &                    CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
      &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
-     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG)
+     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG,
+     &                    RADIATION  = TS_RAD )
 
  100  FORMAT( A, ' time step must be a multiple of the smallest one:',
      &        i5, i5 )
@@ -8299,11 +8508,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE Global_CH4_Mod,     ONLY : Init_Global_CH4
-!------------------------------------------------------------------------------
-! Prior to 3/16/15:
-! This module has been moved to the obsolete directory. (bmy, 3/16/15)
-!      USE HCN_CH3CN_Mod,      ONLY : Init_HCN_CH3CN
-!------------------------------------------------------------------------------
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
       USE POPs_Mod,           ONLY : Init_POPs
@@ -8311,6 +8515,7 @@
       USE Sulfate_Mod,        ONLY : Init_Sulfate
       USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
       USE Tagged_Ox_Mod,      ONLY : Init_Tagged_Ox
+      USE Toms_Mod,           ONLY : Init_Toms
       USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
 !
 ! !INPUT PARAMETERS:
@@ -8348,6 +8553,7 @@
 !  25 Jun 2014 - R. Yantosca - Now call INIT_MODIS_LAI      
 !  25 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES (vdiff_pre_mod.F90)
 !  25 Aug 2014 - M. Sulprizio- Now call INIT_POPS
+!  16 Mar 2015 - R. Yantosca - Now call INIT_TOMS here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8367,16 +8573,14 @@
       prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
 
       ! Initialize the MODIS leaf area index module
-      CALL INIT_MODIS_LAI( am_I_Root, Input_Opt, RC )
+      CALL Init_Modis_LAI( am_I_Root, Input_Opt, RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
       ! Call SET_VDIFF_VALUES so that we can pass several values from 
       ! Input_Opt to the vdiff_mod.F90.  This replaces the funcitionality
       ! of logical_mod.F and tracer_mod.F..  This has to be called
       ! after the input.geos file has been read from disk.
-      CALL Set_VDIFF_VALUES( am_I_Root, Input_Opt, RC )
-
-      !%%% NOTE: Should call INIT_PBL_MIX etc from here %%%
+      CALL Set_Vdiff_Values( am_I_Root, Input_Opt, RC )
 
       ! Initialize "carbon_mod.F"
       IF ( Input_Opt%LCARB ) THEN
@@ -8416,13 +8620,17 @@
 
       ! Initialize "linoz_mod.F"
       IF ( Input_Opt%LLINOZ ) THEN
-         CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
+         CALL Init_Linoz( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
       ENDIF
 
       ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
-      CALL INIT_CHEMGRID( am_I_Root, Input_Opt, RC )
+      CALL Init_ChemGrid( am_I_Root, Input_Opt, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CHEMGRID' )
+
+      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
+      CALL Init_Toms( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_TOMS' )
 
       !-----------------------------------------------------------------
       ! Also initialize specialty simulation modules here
@@ -8434,36 +8642,27 @@
       ! Initialize "c2h6_mod.F"
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. 
      &     Input_Opt%ITS_A_C2H6_SIM     ) THEN
-         CALL INIT_C2H6( am_I_Root, Input_Opt, RC )
+         CALL Init_C2H6( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Initialize "global_ch4_mod.F"
       IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-         CALL INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
+         CALL Init_Global_Ch4( am_I_Root, Input_Opt, RC )
       ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 3/16/15:
-! This module has been moved to the obsolete directory. (bmy, 3/16/15)
-!      ! Initialize "hcn_ch3cn_mod.F"
-!      IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
-!         CALL INIT_HCN_CH3CN( am_I_Root, Input_Opt, RC )
-!      ENDIF
-!------------------------------------------------------------------------------
 
       ! Initialize "tagged_co_mod.F"
       IF ( Input_Opt%ITS_A_TAGCO_SIM   .or.
      &     Input_Opt%ITS_A_H2HD_SIM  ) THEN
-         CALL INIT_TAGGED_CO( am_I_Root, Input_Opt, RC )
+         CALL Init_Tagged_CO( am_I_Root, Input_Opt, RC )
       ENDIF
 
       ! Initialize "tagged_ox_mod.F"
       IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
-         CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
+         CALL Init_Tagged_Ox( am_I_Root, Input_Opt, RC )
       ENDIF
 
       IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-         CALL INIT_POPS( am_I_Root, Input_Opt, RC )
+         CALL Init_POPs( am_I_Root, Input_Opt, RC )
       ENDIF
 
       END SUBROUTINE GIGC_Init_Extra

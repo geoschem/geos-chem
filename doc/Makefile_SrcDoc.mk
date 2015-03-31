@@ -84,7 +84,8 @@
 #  08 Jul 2014 - R. Yantosca - Removed obsolete routines from the list
 #  06 Jan 2015 - M. Sulprizio- Remove additional routines made obsolete by HEMCO
 #  07 Jan 2015 - R. Yantosca - Added exchange_mod (i.e. 2-way nesting)
-#  04 Mar 2015 - R. Yantosca - Add uvalbedo_mod.
+#  15 Jan 2015 - M. Sulprizio- Added rrtmg_rad_transfer_mod.F and set_prof_o3.F
+#  04 Mar 2015 - R. Yantosca - Add uvalbedo_mod.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -162,6 +163,7 @@ $(CORE)/pjc_pfix_mod.F                \
 $(CORE)/planeflight_mod.F             \
 $(CORE)/pops_mod.F                    \
 $(CORE)/RnPbBe_mod.F                  \
+$(CORE)/rrtmg_rad_transfer_mod.F      \
 $(CORE)/strat_chem_mod.F90            \
 $(CORE)/sulfate_mod.F                 \
 $(CORE)/tagged_co_mod.F               \
@@ -189,6 +191,7 @@ $(CORE)/ndxx_setup.F                  \
 $(CORE)/ohsave.F                      \
 $(CORE)/partition.F                   \
 $(CORE)/physproc.F                    \
+$(CORE)/set_prof_o3.F                 \
 $(CORE)/setemdep.F                    \
 $(CORE)/ruralbox.F                    \
 $(CORE)/setemis.F
