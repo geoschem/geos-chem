@@ -1092,32 +1092,11 @@
 #endif
 !-----------------------------------------------------------------------------
 
-            ! DEBUGGING (ewl, 3/31/15)
-            PRINT *, " "
-            PRINT *, "PMID(25,25,1) before transport:"
-            PRINT *, State_Met%PMID(25,25,1)
-            PRINT *, "PEDGE(25,25,1) before transport:"
-            PRINT *, State_Met%PEDGE(25,25,1)
-            PRINT *, " "
-            ! END DEBUGGING
-
             ! Call the appropriate version of TPCORE
             IF ( LTRAN ) THEN 
                CALL DO_TRANSPORT
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
-
-            ! DEBUGGING (ewl, 3/31/15)
-            PRINT *, " "
-            PRINT *, "PMID(25,25,1) after transport:"
-            PRINT *, State_Met%PMID(25,25,1)
-            PRINT *, "PEDGE(25,25,1) after transport:"
-            PRINT *, State_Met%PEDGE(25,25,1)
-            PRINT *, " "
-            ! END DEBUGGING
-
-!            ! Reset State_Met air mass quantities (moved to transport)
-!            CALL AIRQNT( am_I_root, State_Met, RC )
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
