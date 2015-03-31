@@ -365,19 +365,6 @@
       REAL(fp)  :: EsatA, EsatB, EsatC, EsatD, EsatE 
       REAL(fp)  :: AREA_M2, SPHU_kgkg, AVGW_moist
 
-      ! DEBUGGING (ewl, 3/27/15)
-      REAL(fp)  :: AVGW_fclegacy, Esat_g4legacy 
-      REAL(fp)  :: RH_g4legacy, RH_g4update  
-      REAL(fp)  :: Ev_g4legacy, Ev_g4update 
-      REAL(fp)  :: AD_legacy, bxheight_legacy  
-      REAL(fp)  :: airvol_legacy, airden_legacy 
-      REAL(fp)  :: dryP_diff, ADleg_over_AIRVOLleg, ADup_over_AIRVOLup 
-      REAL(fp)  :: ADleg_over_AIRVOLup, MAIRDEN_over_AIRDEN 
-      REAL(fp)  :: ADup_over_AIRVOLleg, ADleg_over_ADup
-      REAL(fp)  :: inverse_sphu_complement, perc
-
-      ! END DEBUGGING
-
       ! Conversion factors
       REAL(fp), PARAMETER   :: TOFFSET = -2.7315e+2_fp   ! K -> deg C
       REAL(fp), PARAMETER   :: PCONV   = 1.00e+2_fp      ! hPa -> Pa 
@@ -400,12 +387,6 @@
       REAL(fp), PARAMETER   :: ESATP8  = -3.03998e-2_fp
       REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
 
-      ! DEBUGGING (ewl, 3/27/15)
-      REAL(fp), PARAMETER   :: A =   23.5518e+0_fp
-      REAL(fp), PARAMETER   :: B = 2937.4e+0_fp
-      REAL(fp), PARAMETER   :: C =   -4.9283e+0_fp
-      ! END DEBUGGING
-
       !=================================================================
       ! AIRQNT begins here! 
       !=================================================================
@@ -419,15 +400,6 @@
 !$OMP+PRIVATE( PEdge_Top, Esat, Ev_mid, Ev_edge )
 !$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD, EsatE )
 !$OMP+PRIVATE( AREA_M2, SPHU_kgkg, AVGW_moist )
-!$OMP+PRIVATE( Ev_g4legacy, Ev_g4update, Esat_g4legacy )
-!$OMP+PRIVATE( AVGW_fclegacy, RH_g4legacy, RH_g4update )
-!$OMP+PRIVATE( AD_legacy, bxheight_legacy )
-!$OMP+PRIVATE( airden_legacy, airvol_legacy )
-!$OMP+PRIVATE( dryP_diff, ADleg_over_AIRVOLleg, ADup_over_AIRVOLup )
-!$OMP+PRIVATE( ADleg_over_AIRVOLup, MAIRDEN_over_AIRDEN )
-!$OMP+PRIVATE( ADup_over_AIRVOLleg, ADleg_over_ADup )
-!$OMP+PRIVATE( inverse_sphu_complement, perc )
-
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -530,97 +502,6 @@
          !============================================================= 
          Ev_mid = State_Met%RH( I,J,L ) * RHCONV * Esat
 #endif
-
-         ! DEBUGGING (ewl, 3/27/2015)
-
-         ! Calculate legacy values for print comparison
-         AVGW_fclegacy = SPHU_kgkg * AIRMW / H2OMW
-         Esat_g4legacy = ( 10e+0_fp**( A - ( B / State_Met%T(I,J,L)))) 
-     &                 * ( State_Met%T(I,J,L)**C )
-         Ev_g4legacy =  State_Met%SPHU(I,J,L) * 1.6072e-3_fp 
-     &                 * State_Met%PMID(I,J,L)
-         RH_g4legacy = Ev_g4legacy / Esat_g4legacy * 100e+0_fp 
-
-         ! Calculation values in pre-processor block to print
-         AVGW_moist = SPHU_kgkg * AIRMW 
-     &        / ( SPHU_kgkg * AIRMW + ( 1 - SPHU_kgkg ) * H2OMW )
-         Ev_g4update = State_Met%PMID(I,J,L) * AVGW_moist
-         RH_g4update = ( Ev_g4update / Esat ) * 100e+0_fp
-
-         If (I == 25 .and. J == 25 .and. L == 1) THEN
-            PRINT *, " "
-            PRINT *, "-------------------------------------"
-            PRINT *, "DAOMOD air quantities for grid box (25,25,1):"
-            PRINT *, " "
-            PRINT *, "  AVGW_moist = mol H2O / mol moist air"
-            PRINT *, "    AVGW_moist (g4/gcap, from SPHU): ",
-     &               AVGW_moist
-            PRINT *, " "
-            PRINT *, "  SPHU = mass H2O / mass moist air "
-            PRINT *, "    Met SPHU_kgkg (all): ",
-     &               SPHU_kgkg
-            PRINT *, " " 
-            PRINT *, "  AVGW = mol H2O / mol dry air"
-            PRINT *, "    Legacy AVGW (fullchem, from SPHU): ",
-     &               AVGW_fclegacy
-            PRINT *, "    Updated AVGW (fullchem, from SPHU): ",
-     &               State_Met%AVGW(I,J,L)
-            perc = ( State_Met%AVGW(I,J,L) - AVGW_fclegacy )
-     &               / AVGW_fclegacy
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent change: ", perc
-            PRINT *, " "
-            PRINT *, "  Water vapor saturation pressure [hPa]",
-     &               " (GEOS-4/GCAP)"
-            PRINT *, "    NOTE: Method of calculating Esat changed",
-     &               " between legacy and update. "
-            PRINT *, "    Now using method in Nordquist, 1973."
-            PRINT *, "    Legacy Esat (from T): ",
-     &               Esat_g4legacy
-            PRINT *, "    Updated Esat (from T): ",
-     &               Esat
-            perc = ( Esat - Esat_g4legacy ) / Esat_g4legacy
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent change: ", perc
-            PRINT *, " "
-            PRINT *, "  Water vapor saturation pressure [hPa]",
-     &               " (GEOS-5/GEOS-FP/MERRA)"
-            PRINT *, "    Esat not used in legacy code for these MET"
-            PRINT *, "    Updated Esat (from T): ",
-     &               Esat
-            PRINT *, " "
-            PRINT *, "  Water vapor partial pressure [hPa] ",
-     &               "(GEOS-4/GCAP)"
-            PRINT *, "    Legacy Ev (from SPHU and P): ",
-     &               Ev_g4legacy
-            PRINT *, "    Updated Ev (from SPHU and P): ",
-     &               Ev_g4update
-            perc = (Ev_g4update - Ev_g4legacy ) / Ev_g4legacy
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent change: ", perc
-            PRINT *, " "
-            PRINT *, "  Water vapor partial pressure [hPa] ",
-     &               "(GEOS-5/GEOS-FP/MERRA)"
-            PRINT *, "    Ev not used in legacy code for these MET"
-            PRINT *, "    Updated Ev (from RH and Esat)",
-     &               ": ", Ev_mid
-            PRINT *, " "
-            PRINT *, "  Relative humidity [%] (GEOS-4/GCAP)"
-            PRINT *, "    Legacy RH (from SPHU, P, and Esat)",
-     &               ": ", RH_g4legacy
-            PRINT *, "    Updated RH (from SPHU, P, and Esat)",
-     &               ": ", RH_g4update
-            perc = (RH_g4update - RH_g4legacy ) / RH_g4legacy
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent change: ", perc
-            PRINT *, " "
-            PRINT *, "  Relative humidity [%] (GEOS-5/GEOS-FP/MERRA)"
-            PRINT *, "    Met RH used for both legacy and update: ",
-     &               State_Met%RH(I,J,L)
-            PRINT *, " "
-         ENDIF
-         ! END DEBUGGING
-
 
          ! NOTE: Calculating the partial pressure of water vapor using
          ! met-field RH and met-field specific humidity may yield different
@@ -784,187 +665,6 @@
          State_Met%AD(I,J,L) = State_Met%DELP(I,J,L) * G0_100 * AREA_M2
      &                         * State_Met%AIRDEN(I,J,L) 
      &                         / State_Met%MAIRDEN(I,J,L)
-
-         ! DEBUGGING (ewl, 3/27/2015)
-         If (I == 25 .and. J == 25 .and. L == 1) THEN
-
-            ! Calculate legacy values for print comparison
-            AD_legacy = State_Met%DELP(I,J,L) 
-     &                       * G0_100 
-     &                       * AREA_M2
-            bxheight_legacy = Rdg0 * State_Met%T(I,J,L) 
-     &                             * LOG( State_Met%PEDGE(I,J,L) 
-     &                             / PEdge_Top )
-            airvol_legacy = bxheight_legacy * AREA_M2
-            airden_legacy = AD_legacy / airvol_legacy
-
-            ! Other temp calculations for printing
-            dryP_diff            = State_Met%PEDGE_DRY(I,J,L) 
-     &                             - ( PEdge_Top - Ev_edge )
-            ADleg_over_AIRVOLleg = AD_legacy / airvol_legacy
-            ADup_over_AIRVOLup   = State_Met%AD(I,J,L) /
-     &                              State_Met%AIRVOL(I,J,L)
-            ADleg_over_AIRVOLup  = AD_legacy / State_Met%AIRVOL(I,J,L)
-            ADup_over_AIRVOLleg  = State_Met%AD(I,J,L) / airvol_legacy
-            ADleg_over_ADup      = AD_legacy / State_Met%AD(I,J,L)
-            MAIRDEN_over_AIRDEN  = State_Met%MAIRDEN(I,J,L) 
-     &                             / State_Met%AIRDEN(I,J,L)
-            inverse_sphu_complement = 1.0e+0_fp
-     &                             / ( 1.0e+0_fp - SPHU_kgkg )
-
-            PRINT *, "  Grid box center pressures [hPa]"
-            PRINT *, "    Moist air pressure: ",
-     &               State_Met%PMID(I,J,L)
-            PRINT *, "    Dry air partial pressure: ",
-     &               State_Met%PMID_DRY(I,J,L)
-            perc = (State_Met%PMID_DRY(I,J,L) - 
-     &              State_Met%PMID(I,J,L) ) / State_Met%PMID(I,J,L) 
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent change: ", perc
-
-            PRINT *, " "
-            PRINT *, "  Grid box lower edge pressures [hPa]"
-            PRINT *, "    Moist air pressure: ",
-     &               State_Met%PEDGE(I,J,L)
-            PRINT *, "    Dry air partial pressure: ",
-     &               State_Met%PEDGE_DRY(I,J,L)
-            perc = (State_Met%PEDGE_DRY(I,J,L) - 
-     &              State_Met%PEDGE(I,J,L) ) / State_Met%PEDGE(I,J,L)
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent change: ", perc
-
-            PRINT *, " "
-            PRINT *, "  Pressure differences across grid box [hPa]"
-            PRINT *, "    Grid box moist air pressure difference: ",
-     &               State_Met%DELP(I,J,L)
-            PRINT *, "    Grid box dry air pressure difference: ",
-     &               dryP_diff
-            perc = (State_Met%DELP(I,J,L) - dryP_diff ) 
-     &              / State_Met%DELP(I,J,L) 
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent difference: ", perc
-
-            PRINT *, " "
-            PRINT *, "  Air mass in grid box [kg]"
-            PRINT *, "  NOTE: used for vol/vol <-> kg conversions in",
-     &               " legacy code"
-            PRINT *, "    Legacy air mass (moist): ",
-     &               AD_legacy
-            PRINT *, "    Updated air mass (dry): ",
-     &               State_Met%AD(I,J,L)
-            perc = (State_Met%AD(I,J,L) - 
-     &              AD_legacy ) / AD_legacy
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent change: ", perc
-
-            PRINT *, " "
-            PRINT *, "  Temperature [K]"
-            PRINT *, "    Met temperature:",
-     &               State_Met%T(I,J,L)
-            PRINT *, "    New virtual temperature for box height calc",
-     &               ": ", State_Met%TV(I,J,L)
-            perc = (State_Met%TV(I,J,L) - 
-     &              State_Met%T(I,J,L) ) / State_Met%T(I,J,L)
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent change: ", perc
-
-            PRINT *, " "
-            PRINT *, "  Box height [m]"
-            PRINT *, "    Legacy box height (from T and P): ",
-     &               bxheight_legacy
-            PRINT *, "    Updated box height (from P and virtual T): ",
-     &               State_Met%BXHEIGHT(I,J,L)
-            perc = (State_Met%BXHEIGHT(I,J,L) - 
-     &              bxheight_legacy ) / bxheight_legacy
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent change: ", perc
-
-            PRINT *, " "
-            PRINT *, "  Grid box volume [m3]"
-            PRINT *, "    Legacy grid box volume: ",
-     &               airvol_legacy
-            PRINT *, "    Updated grid box volume: ",
-     &               State_Met%AIRVOL(I,J,L)
-            perc = (State_Met%AIRVOL(I,J,L) - 
-     &              airvol_legacy ) / airvol_legacy
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent change: ", perc
-
-            PRINT *, " "
-            PRINT *, "  Moist air density [kg/m3]"
-            PRINT *, "    Legacy AD divided by legacy AIRVOL (used for "
-     &               "number density <-> "
-            PRINT *, "    mass conversions in legacy code): ",
-     &               ADleg_over_AIRVOLleg
-            PRINT *, "    Updated moist air density (ideal gas law): ",
-     &               State_Met%MAIRDEN(I,J,L)
-            perc = (State_Met%MAIRDEN(I,J,L) - 
-     &              airden_legacy ) / airden_legacy
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent change: ", perc
-
-            PRINT *, " "
-            PRINT *, "  Moist air density sanity check"
-            PRINT *, "    Legacy AD divided by updated AIRVOL: ",
-     &               ADleg_over_AIRVOLup
-            perc = ( ADleg_over_AIRVOLup - State_Met%MAIRDEN(I,J,L) ) 
-     &               / State_Met%MAIRDEN(I,J,L)
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent difference from MAIRDEN: ", perc
-
-            PRINT *, " "
-            PRINT *, "  Dry air density [kg/m3]"
-            PRINT *, "    Updated dry air density (ideal gas law): ",
-     &               State_Met%AIRDEN(I,J,L)
-            perc = ( State_Met%AIRDEN(I,J,L) - 
-     &               State_Met%MAIRDEN(I,J,L) ) 
-     &               / State_Met%MAIRDEN(I,J,L)
-            PRINT *, "    Percent difference from MAIRDEN: ", perc
-            perc = ( State_Met%AIRDEN(I,J,L) - ADleg_over_AIRVOLleg ) 
-     &               / ADleg_over_AIRVOLleg
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent difference from legacy air density: ", 
-     &               perc
-
-            PRINT *, " "
-            PRINT *, "  Dry air density sanity check"
-            PRINT *, "    Updated AD divided by updated AIRVOL: ",
-     &               ADup_over_AIRVOLup
-            perc = ( ADup_over_AIRVOLup - State_Met%AIRDEN(I,J,L) ) 
-     &               / State_Met%AIRDEN(I,J,L)
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent difference from AIRDEN: ", perc
-
-            PRINT *, " "
-            PRINT *, "  Isolated impacts on dry air density"
-            PRINT *, "    Updated AD divided by legacy AIRVOL: ",
-     &               ADup_over_AIRVOLleg
-            perc = ( ADup_over_AIRVOLleg - ADleg_over_AIRVOLleg ) 
-     &               / ADleg_over_AIRVOLleg
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent difference due to AD change: ", perc
-            perc = ( State_Met%AIRDEN(I,J,L) - ADup_over_AIRVOLleg ) 
-     &               / ADup_over_AIRVOLleg
-     &              * 1.0e+2_fp
-            PRINT *, "    Percent difference due to box height "
-     &               "change: ", perc
-
-
-            PRINT *, " "
-            PRINT *, "  Mass ratio sanity checks"
-            PRINT *, "    Legacy air mass AD (moist) to"
-            PRINT *, "     updated air mass AD (dry): ", 
-     &               ADleg_over_ADup
-            PRINT *, "    Updated moist air density to "
-            PRINT *, "     dry air density: ",
-     &               MAIRDEN_over_AIRDEN
-            PRINT *, "    Moist air mass to dry air mass from SPHU"
-            PRINT *, "    ( 1 / ( 1 - specific humidity [kg/kg] ) ): ",
-     &               inverse_sphu_complement
-            PRINT *, " " 
-         ENDIF
-         ! END DEBUGGING
-
 
       ENDDO
       ENDDO
