@@ -536,6 +536,7 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! NESTED GRID MENU fields
      !----------------------------------------
+     LOGICAL                     :: ITS_A_NESTED_GRID
      LOGICAL                     :: LWINDO
      LOGICAL                     :: LWINDO2x25
      LOGICAL                     :: LWINDO_NA
@@ -555,6 +556,8 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: NESTED_J2
      INTEGER                     :: NESTED_I0W
      INTEGER                     :: NESTED_J0W
+     INTEGER                     :: NESTED_I0E
+     INTEGER                     :: NESTED_J0E
 
      !----------------------------------------
      ! BENCHMARK MENU fields
@@ -562,20 +565,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSTDRUN
      CHARACTER(LEN=255)          :: STDRUN_INIT_FILE
      CHARACTER(LEN=255)          :: STDRUN_FINAL_FILE
-
-!------------------------------------------------------------------------------
-! Prior to 3/13/15:
-! HEMCO has made these directories obsolete (bmy, 3/13/15)
-!     !----------------------------------------
-!     ! ARCHIVED OH MENU fields
-!     !----------------------------------------
-!     CHARACTER(LEN=255)          :: OH_DIR
-!
-!     !----------------------------------------
-!     ! O3PL MENU fields
-!     !----------------------------------------
-!     CHARACTER(LEN=255)          :: O3PL_DIR
-!------------------------------------------------------------------------------
 
      !----------------------------------------
      ! MERCURY MENU fields
@@ -705,6 +694,7 @@ MODULE GIGC_Input_Opt_Mod
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  03 Dec 2014 - M. Sulprizio- Add fields for Radiation Menu
 !  16 Dec 2014 - R. Yantosca - Removed JLOP, JLOP_PREV; these are in State_Chm
+!  01 Apr 2015 - R. Yantosca - Add extra nested-grid fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -780,6 +770,7 @@ CONTAINS
 !  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  05 Mar 2015 - R. Yantosca - Added RES_DIR, CHEM_INPUTS_DIR fields
 !  06 Mar 2015 - R. Yantosca - Now initialize directory names with './'
+!  01 Apr 2015 - R. Yantosca - Now initialize extra nested-grid fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1335,6 +1326,7 @@ CONTAINS
     !----------------------------------------
     ! NESTED GRID MENU fields
     !----------------------------------------
+    Input_Opt%ITS_A_NESTED_GRID      = .FALSE.
     Input_Opt%LWINDO                 = .FALSE.
     Input_Opt%LWINDO2x25             = .FALSE.
     Input_Opt%LWINDO_NA              = .FALSE.
@@ -1354,6 +1346,8 @@ CONTAINS
     Input_Opt%NESTED_J2              = 0
     Input_Opt%NESTED_I0W             = 0
     Input_Opt%NESTED_J0W             = 0 
+    Input_Opt%NESTED_I0E             = 0
+    Input_Opt%NESTED_J0E             = 0 
 
     !----------------------------------------
     ! BENCHMARK MENU fields
@@ -1361,20 +1355,6 @@ CONTAINS
     Input_Opt%LSTDRUN                = .FALSE.
     Input_Opt%STDRUN_INIT_FILE       = ''
     Input_Opt%STDRUN_FINAL_FILE      =''
-
-!------------------------------------------------------------------------------
-! Prior to 3/13/15:
-! HEMCO has now made these directories obsolete (bmy, 3/13/15)
-!    !----------------------------------------
-!    ! ARCHIVED OH MENU fields
-!    !----------------------------------------
-!    Input_Opt%OH_DIR                 = './'
-!
-!    !----------------------------------------
-!    ! O3PL MENU fields
-!    !----------------------------------------
-!    Input_Opt%O3PL_DIR               = './'
-!------------------------------------------------------------------------------
 
     !----------------------------------------
     ! MERCURY MENU fields
