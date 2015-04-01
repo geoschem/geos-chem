@@ -400,10 +400,12 @@ CONTAINS
 !                              on GEOS-Chem levels. 
 !  31 Dec 2014 - C. Keller   - Now call ModelLev_Interpolate for model remapping
 !                              of model levels.
-!  15 Jan 2015 - C. Keller   - Now allow model level interpolation in combination
-!                              with MESSy (horizontal) regridding.
+!  15 Jan 2015 - C. Keller   - Now allow model level interpolation in 
+!                              combination with MESSy (horizontal) regridding.
 !  03 Feb 2015 - C. Keller   - Moved map_a2a regridding to hco_interp_mod.F90.
 !  24 Mar 2015 - C. Keller   - Added arguments LUN and CloseFile.
+!  27 Mar 2015 - R. Yantosca - Now use a FORMAT statement when printing the
+!                              filename to the Unix stdout.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -505,7 +507,14 @@ CONTAINS
        ENDIF
 
        ! Also write to standard output
-       WRITE(*,*) 'HEMCO: Opening ', TRIM(srcFile)
+!-----------------------------------------------------------------------------
+! Prior to 3/27/15:
+! Now use a FORMAT statement for better formatted output (bmy, 3/27/15)
+!       WRITE(*,*) 'HEMCO: Opening ', TRIM(srcFile)
+!-----------------------------------------------------------------------------
+       WRITE( 6, 100 ) TRIM( srcFile )
+ 100   FORMAT( 'HEMCO: Opening ', a )
+
     ENDIF
 
     ! ----------------------------------------------------------------
