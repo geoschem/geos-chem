@@ -199,6 +199,7 @@
 !  17 Sep 2014 - C. Keller   - Removed legacy code (unused variables).
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod
+!  01 Apr 2015 - E. Lundgren - Change State_Met%PMID to State_Met%PMID_DRY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -288,7 +289,7 @@
       DO I = 1, IIPAR
                   
          ! Archive pressure
-         Pavg(I,J,L) = Pavg(I,J,L) + State_Met%PMID(I,J,L)
+         Pavg(I,J,L) = Pavg(I,J,L) + State_Met%PMID_DRY(I,J,L)
 
          ! Archive temperature
          Tavg(I,J,L) = Tavg(I,J,L) + State_Met%T(I,J,L)
