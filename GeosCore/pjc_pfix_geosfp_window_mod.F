@@ -1876,7 +1876,11 @@ c     --------------------------------------
       ! Latitude edge at south pole [radians]
 !      ELAT_FV(1) = -0.5e+0_fp * PI 
 ! for nested NA or EA (lzh, 07/20/2010) 
+#if defined( GRID025x03125 )
+      ELAT_FV(1) = CLAT_FV(1) - 0.125e+0_fp * PI/DBLE(180)
+#else
       ELAT_FV(1) = CLAT_FV(1) - 0.25e+0_fp * PI/DBLE(180)
+#endif
 
       ! SIN and COS of lat edge at south pole [unitless]
 !      SINE_FV(1) = -1.e+0_fp
@@ -1894,8 +1898,12 @@ c     --------------------------------------
 
       ! Latitude edge at North Pole [radians]
 !      ELAT_FV(J2_GL+1) = 0.5e+0_fp * PI
-! for nested NA or EA (lzh, 07/20/2010) 
+#if defined( GRID025x03125 )
+      ! for nested NA or EA (lzh, 07/20/2010) 
+      ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.125e+0_fp* PI/DBLE(180)
+#else
       ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.25e+0_fp* PI/DBLE(180)
+#endif
 
       ! SIN of lat edge at North Pole
 !      SINE_FV(J2_GL+1) = 1.e+0_fp

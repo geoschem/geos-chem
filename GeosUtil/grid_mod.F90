@@ -1480,29 +1480,32 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Grid( am_I_Root, IM, JM, LM, RC )
+  SUBROUTINE Init_Grid( am_I_Root, Input_Opt, IM, JM, LM, RC )
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU 
-    INTEGER, INTENT(IN)  :: IM          ! # of longitudes on this CPU
-    INTEGER, INTENT(IN)  :: JM          ! # of latitudes  on this CPU
-    INTEGER, INTENT(IN)  :: LM          ! # of levels     on this CPU
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU 
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+    INTEGER,        INTENT(IN)  :: IM          ! # of longitudes on this CPU
+    INTEGER,        INTENT(IN)  :: JM          ! # of latitudes  on this CPU
+    INTEGER,        INTENT(IN)  :: LM          ! # of levels     on this CPU
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !  01 Mar 2012 - R. Yantosca - Now define IS_NESTED based on Cpp flags
 !  03 Dec 2012 - R. Yantosca - Add am_I_Root, RC to argument list
 !  04 Dec 2012 - R. Yantosca - Now dimension arrays with IM, JM, LM instead 
-!                              of I1, J1, L1, I2, J2, L2.  
+!                              of I1, J1, L1, I2, J2, L2. 
+!  01 Apr 2015 - R. Yantosca - Now accept Input_Opt as an argument 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1518,11 +1521,16 @@ CONTAINS
     ! Assume success
     RC        = GIGC_SUCCESS
 
-    ! First assume that we are doing a global simulation
-    IS_NESTED = .FALSE.
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+!    ! First assume that we are doing a global simulation
+!    IS_NESTED = .FALSE.
+!-----------------------------------------------------------------------------
+    ! IS_NESTED is now a local shadow variable (bmy, 4/1/15)
+    IS_NESTED = Input_Opt%ITS_A_NESTED_GRID
 
     ! We only need one level (ckeller, 01/02/15).
-    L = 1
+    L         = 1
 
     ALLOCATE( XMID   ( IM,   JM,   L ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'XMID' )
@@ -1556,21 +1564,37 @@ CONTAINS
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
     AREA_M2 = 0e+0_fp
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+! Now use the value of Input_Opt%ITS_A_NESTED_GRID, which is set in 
+! input_mod.F. (bmy, 4/1/15)
+!#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
+!
+!    !======================================================================
+!    ! Special settings for nested-grid simulations only
+!    !======================================================================
+!
+!    ! Denote that this is a nested-grid simulation
+!    IS_NESTED = .TRUE.
+!    
+!    ! Allocate nested-grid window array of lat centers (radians)
+!    ALLOCATE( YMID_R_W( IM, 0:JM+1, L ), STAT=AS ) 
+!    IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
+!    YMID_R_W = 0e+0_fp
+!
+!#endif
+!-----------------------------------------------------------------------------
 
     !======================================================================
     ! Special settings for nested-grid simulations only
     !======================================================================
 
-    ! Denote that this is a nested-grid simulation
-    IS_NESTED = .TRUE.
-    
     ! Allocate nested-grid window array of lat centers (radians)
-    ALLOCATE( YMID_R_W( IM, 0:JM+1, L ), STAT=AS ) 
-    IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
-    YMID_R_W = 0e+0_fp
-
-#endif
+    IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
+       ALLOCATE( YMID_R_W( IM, 0:JM+1, L ), STAT=AS ) 
+       IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
+       YMID_R_W = 0e+0_fp
+    ENDIF
 
   END SUBROUTINE Init_Grid
 !EOC
@@ -1593,15 +1617,15 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    IF ( ALLOCATED( XMID       ) ) DEALLOCATE( XMID       )
-    IF ( ALLOCATED( XEDGE      ) ) DEALLOCATE( XEDGE      )
-    IF ( ALLOCATED( YMID       ) ) DEALLOCATE( YMID       )
-    IF ( ALLOCATED( YEDGE      ) ) DEALLOCATE( YEDGE      )
-    IF ( ALLOCATED( YSIN       ) ) DEALLOCATE( YSIN       )
-    IF ( ALLOCATED( YMID_R     ) ) DEALLOCATE( YMID_R     )
-    IF ( ALLOCATED( YMID_R_W   ) ) DEALLOCATE( YMID_R_W   )  
-    IF ( ALLOCATED( YEDGE_R    ) ) DEALLOCATE( YEDGE_R    )
-    IF ( ALLOCATED( AREA_M2    ) ) DEALLOCATE( AREA_M2    )
+    IF ( ALLOCATED( XMID     ) ) DEALLOCATE( XMID     )
+    IF ( ALLOCATED( XEDGE    ) ) DEALLOCATE( XEDGE    )
+    IF ( ALLOCATED( YMID     ) ) DEALLOCATE( YMID     )
+    IF ( ALLOCATED( YEDGE    ) ) DEALLOCATE( YEDGE    )
+    IF ( ALLOCATED( YSIN     ) ) DEALLOCATE( YSIN     )
+    IF ( ALLOCATED( YMID_R   ) ) DEALLOCATE( YMID_R   )
+    IF ( ALLOCATED( YMID_R_W ) ) DEALLOCATE( YMID_R_W )  
+    IF ( ALLOCATED( YEDGE_R  ) ) DEALLOCATE( YEDGE_R  )
+    IF ( ALLOCATED( AREA_M2  ) ) DEALLOCATE( AREA_M2  )
     
   END SUBROUTINE Cleanup_Grid
 !EOC

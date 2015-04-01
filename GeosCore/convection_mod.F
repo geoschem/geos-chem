@@ -116,7 +116,6 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
 #endif
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -182,8 +181,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER         :: N_TOT_TRC             ! # of tracers to convect
-      INTEGER         :: N_TRACERS
+      INTEGER           :: N_TOT_TRC             ! # of tracers to convect
+      INTEGER           :: N_TRACERS
       REAL(fp)          :: TCVV(Input_Opt%N_TRACERS)
       REAL(fp)          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
@@ -355,6 +354,14 @@
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Skip buffer zone for nested grids (lzh, 4/1/15)
+         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
+            IF ( J <=         Input_Opt%NESTED_J0W  ) CYCLE
+            IF ( J >  JJPAR - Input_Opt%NESTED_J0E  ) CYCLE
+            IF ( I <=         Input_Opt%NESTED_I0W  ) CYCLE
+            IF ( I >  IIPAR - Input_Opt%NESTED_I0E  ) CYCLE
+         ENDIF
 
          ! Grid box surface area [m2]
          AREA_M2     =  GET_AREA_M2( I, J, 1 ) 

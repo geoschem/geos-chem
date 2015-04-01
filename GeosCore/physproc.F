@@ -371,11 +371,17 @@
 !    NSPEC(1) is the # of active species for urban chemistry.
 !    (ccc, 01/20/10)
           call CPU_TIME(start)
-#IF DEFINED ( USE_REAL8 )
+#if defined( USE_REAL8 )
           IF ( LKPP ) THEN
-             CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+! Now pass Input_Opt To GCKPP_DRIVER (bmy, 4/1/15)
+!             CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
+!-----------------------------------------------------------------------------
+             CALL GCKPP_DRIVER( KTLOOP, JLOOPLO, RRATE_FOR_KPP, 
+     &                          NSPEC(1), Input_Opt )
           ELSE
-#ENDIF
+#endif
              CALL SMVGEAR( am_I_Root, Input_Opt, RC )
 
 !
@@ -398,9 +404,9 @@
                       CSPEC(JLOOP,JOLD) = MAX(CNEW(KLOOP,JNEW),SMAL2)
  620            CONTINUE
              ENDIF
-#IF DEFINED ( USE_REAL8 )
+#if defined( USE_REAL8 )
           ENDIF
-#ENDIF
+#endif
           call CPU_TIME(finish)
 !
           
