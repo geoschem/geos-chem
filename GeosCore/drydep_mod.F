@@ -4454,12 +4454,13 @@
             XMW(NUMDEP)     = 0e+0_f8
             AIROSOL(NUMDEP) = .FALSE.
 
-         ! ISN2 (uses same dep vel as HNO3)
-         ELSE IF ( N == IDTISN2 ) THEN
+         ! ISN1 (uses same dep vel as HNO3)
+         ! This should be ISN1, krt (3/31/15)
+         ELSE IF ( N == IDTISN1 ) THEN
             NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTISN2
+            NTRAIND(NUMDEP) = IDTISN1
             NDVZIND(NUMDEP) = DRYDHNO3
-            DEPNAME(NUMDEP) = 'ISN2'
+            DEPNAME(NUMDEP) = 'ISN1'
             HSTAR(NUMDEP)   = 0e+0_f8
             F0(NUMDEP)      = 0e+0_f8
             XMW(NUMDEP)     = 0e+0_f8
