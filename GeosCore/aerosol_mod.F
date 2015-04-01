@@ -165,6 +165,7 @@
 !  08 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
+!  01 Apr 2015 - R. Yantosca - Bug fix: BOXVL needs to be !$OMP PRIVATE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,7 +279,7 @@
       ! Loop over grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP, TK, CONSEXP, VPRESH2O )
+!$OMP+PRIVATE( I, J, L, JLOOP, BOXVL, TK, CONSEXP, VPRESH2O )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, NVERT
       DO J = 1, NLAT
@@ -291,7 +292,6 @@
          ! Only process tropospheric boxes
          !----------------------------------
          IF ( JLOOP > 0 ) THEN
-
 
             ! Grid box volume [cm3]
             BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -413,37 +413,37 @@
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
-      !REAL(fp),  PARAMETER :: OCF     = 2.1d0
+      !REAL(fp), PARAMETER :: OCF     = 2.1d0
       ! SOAupdate: semivolpoa: reduce OCF to 1.4 for POA (hotp 2/17/09)
-      REAL(fp),  PARAMETER :: OCF     = 1.4e+0_fp
+      REAL(fp), PARAMETER :: OCF     = 1.4e+0_fp
 
       ! SOAupdate: semivolpoa4opoa: add OPOA mass (hotp 3/17/09)
-      REAL(fp),  PARAMETER :: OCFOPOA = 2.1e+0_fp  ! = 1.4*1.5
+      REAL(fp), PARAMETER :: OCFOPOA = 2.1e+0_fp  ! = 1.4*1.5
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL(fp),  PARAMETER :: OCFG = 1.e+0_fp
+      REAL(fp), PARAMETER :: OCFG = 1.e+0_fp
 
       ! For SOAM, assume the total aerosol mass/methylglyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL(fp),  PARAMETER :: OCFM = 1.e+0_fp
+      REAL(fp), PARAMETER :: OCFM = 1.e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
       ! SAVEd variables
-      LOGICAL, SAVE      :: FIRST = .TRUE. 
+      LOGICAL, SAVE       :: FIRST = .TRUE. 
 
       ! Non-SAVEd variables
-      INTEGER            :: I, J, L, N, K
-      LOGICAL            :: LCARB
-      LOGICAL            :: LDUST
-      LOGICAL            :: LSOA
-      LOGICAL            :: LSSALT
-      LOGICAL            :: LSULF
+      INTEGER             :: I, J, L, N, K
+      LOGICAL             :: LCARB
+      LOGICAL             :: LDUST
+      LOGICAL             :: LSOA
+      LOGICAL             :: LSSALT
+      LOGICAL             :: LSULF
 
       ! Pointers
-      REAL(fp), POINTER    :: STT(:,:,:,:)
-      REAL(fp), POINTER    :: AIRVOL(:,:,:)
+      REAL(fp), POINTER   :: STT(:,:,:,:)
+      REAL(fp), POINTER   :: AIRVOL(:,:,:)
 
       !=================================================================
       ! AEROSOL_CONC begins here!
@@ -1468,14 +1468,32 @@
          ENDDO
 
          ! Loop over SMVGEAR grid boxes
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IRH, JLOOP, SCALEQ, SCALER, REFF, FRAC )
-!$OMP+PRIVATE( SCALEOD, SCALESSA, SCALEASY, SCALEVOL, DRYAREA )
+!-----------------------------------------------------------------------------
+! Prior to 4/1/15:
+! Rewrite parallel DO declaration to add several missing PRIVATE variables
+! (bmy, 4/1/15)
+!!$OMP PARALLEL DO 
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, IRH, JLOOP, SCALEQ, SCALER, REFF, FRAC )
+!!$OMP+PRIVATE( SCALEOD, SCALESSA, SCALEASY, SCALEVOL, DRYAREA )
+!#if defined( UCX )
+!!$OMP+PRIVATE( RHOSTRAT, RAER, SADSTRAT, XSASTRAT )
+!#endif
+!!$OMP+SCHEDULE( DYNAMIC )
+!-----------------------------------------------------------------------------
+!$OMP PARALLEL DO
+!$OMP+PRIVATE( JLOOP,    I,       J,        L,        IRH       )
+!$OMP+PRIVATE( AW0,      QW0,     SSW0,     ASYW0,    REFF      )
+!$OMP+PRIVATE( SCALEA,   SCALEQ,  SCALESSA, SCALEASY, FRAC      )
+!$OMP+PRIVATE( SCALER,   SCALEOD, SCALEVOL, DRYAREA             )
+#if defined( RRTMG )
+!$OMP+PRIVATE( IR                                               )
+#endif
 #if defined( UCX )
-!$OMP+PRIVATE( RHOSTRAT, RAER, SADSTRAT, XSASTRAT )
+!$OMP+PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            )
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
+
          DO JLOOP = 1, NTLOOP
 
             ! Get 3-D grid box indices
