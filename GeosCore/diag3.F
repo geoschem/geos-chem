@@ -250,6 +250,9 @@
 !                              avoid conflicts with hourly max ppbv diagnostic.
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
 !  23 Feb 2015 - C. Keller   - Split volcano SO2 into eruptive & degassing
+!  02 Apr 2015 - M. Sulprizio- Now write out LIGHTNING_CLOUD_TOP diagnostic from
+!                              HEMCO to the ctm.bpch file. Otherwise, if will
+!                              save out to the HEMCO restart file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4715,9 +4718,16 @@
              END SELECT
 
              CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                       UNIT,   N, 1, -1,   .TRUE.,     FACTOR, RC)
+     &                       UNIT,  N,  -1, -1,   .TRUE.,    FACTOR,
+     &                       RC)
              IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDDO
+
+         DiagnName = 'LIGHTNING_CLOUD_TOP'
+         N         = 4
+         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                   UNIT,  N,  -1, -1,   .TRUE.,    FACTOR, RC )
+         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)   
 
       ENDIF
 !

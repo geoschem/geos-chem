@@ -31,7 +31,7 @@
 !
       ! Scalars
       INTEGER,              PUBLIC :: ND56
-      INTEGER, PARAMETER,   PUBLIC :: PD56 = 3
+      INTEGER, PARAMETER,   PUBLIC :: PD56 = 4
 
       ! Arrays
       REAL*4,  ALLOCATABLE, PUBLIC :: AD56(:,:,:)
@@ -44,6 +44,8 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  02 Apr 2015 - M. Sulprizio- Increase PD56 from 3 to 4 so we can save out the
+!                              lightning cloud top heights from HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

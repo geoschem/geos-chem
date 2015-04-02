@@ -912,7 +912,7 @@
       ENDIF
 
       !=================================================================
-      ! ND53: Free diagnostics
+      ! ND53: POPs emissions
       !
       ! ND54 - Time spend in the troposphere
       !        --> uses AD54 array (allocatable)
@@ -934,7 +934,7 @@
       ENDIF
 
       !=================================================================
-      ! ND56: Free diagnostic
+      ! ND56: Lightning flash rate diagnostics
       !=================================================================
 
       !FP_ISOP (6/2009)
