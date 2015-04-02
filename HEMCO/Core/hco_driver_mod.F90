@@ -63,7 +63,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Run( am_I_Root, HcoState, RC ) 
+  SUBROUTINE HCO_Run( am_I_Root, HcoState, Phase, RC ) 
 !
 ! !USES:
 !
@@ -75,6 +75,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   ) :: am_I_Root   ! root CPU?
+    INTEGER,         INTENT(IN   ) :: Phase       ! Run phase (1 or 2) 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -90,6 +91,7 @@ CONTAINS
 !  23 Feb 2015 - R. Yantosca - Now call HcoClock_InitTzPtr on the first
 !                              emissions timestep to initialize the pointer 
 !                              to the timezones data (i.e. hours from UTC)
+!  01 Apr 2015 - C. Keller   - Added run phases
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,20 +123,23 @@ CONTAINS
     !--------------------------------------------------------------
 
     ! Update data, as specified in ReadList.
-    CALL ReadList_Read( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( Phase /= 2 ) THEN
+       CALL ReadList_Read( am_I_Root, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! If we are reading timezone data (i.e. offsets from UTC in hours)
-    ! from a file, then we need to initialize the TIMEZONES pointer 
-    ! variable in hco_clock_mod.F90.  This has to be done only on the
-    ! very first emissions timestep, after the call to READLIST_READ.
-    ! We must leave this call here (instead of in the more customary
-    ! initialization routine HCO_INIT) because the HEMCO configuration
-    ! file has to be read in its entirety before the timezone data
-    ! is loaded into a data container. (bmy, 2/23/15)
-    IF ( FIRST ) THEN
-       CALL HcoClock_InitTzPtr( am_I_Root, RC )
-       FIRST = .FALSE.
+       ! If we are reading timezone data (i.e. offsets from UTC in hours)
+       ! from a file, then we need to initialize the TIMEZONES pointer 
+       ! variable in hco_clock_mod.F90.  This has to be done only on the
+       ! very first emissions timestep, after the call to READLIST_READ.
+       ! We must leave this call here (instead of in the more customary
+       ! initialization routine HCO_INIT) because the HEMCO configuration
+       ! file has to be read in its entirety before the timezone data
+       ! is loaded into a data container. (bmy, 2/23/15)
+       IF ( FIRST ) THEN
+          CALL HcoClock_InitTzPtr( am_I_Root, RC )
+          FIRST = .FALSE.
+       ENDIF
+
     ENDIF
 
     !-----------------------------------------------------------------
@@ -142,7 +147,7 @@ CONTAINS
     ! content of EmisList. Emissions become written into HcoState.
     ! Do this only if it's time for emissions. 
     !-----------------------------------------------------------------
-    IF ( IsEmisTime ) THEN
+    IF ( IsEmisTime .AND. Phase /= 1 ) THEN
 
        ! Use emission data only
        CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC ) 
@@ -178,12 +183,12 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_Diagn_Mod
     USE HCO_tIdx_Mod,     ONLY : tIDx_Init
     USE HCO_Clock_Mod,    ONLY : HcoClock_Init
     USE HCO_ReadList_Mod, ONLY : ReadList_Init
     USE HCO_ReadList_Mod, ONLY : ReadList_Read
     USE HCO_Config_Mod,   ONLY : SetReadList 
-    USE HCO_Diagn_Mod,    ONLY : DiagnCollection_Create
 !
 ! !INPUT PARAMETERS:
 !
@@ -203,6 +208,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=15)   :: WriteFreq
+
     !=================================================================
     ! HCO_INIT begins here!
     !=================================================================
@@ -219,19 +229,72 @@ CONTAINS
     CALL HcoClock_Init( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Initialize the HEMCO emissions diagnostics collection. Collection
-    ! will be placed at position 1 (default position). The empty
-    ! prefix will make sure that the prefix is obtained from the 
-    ! HEMCO configuration file settings.
-    CALL DiagnCollection_Create( am_I_Root,                          &
-                                 NX     = HcoState%NX,               &
-                                 NY     = HcoState%NY,               &
-                                 NZ     = HcoState%NZ,               &
-                                 TS     = HcoState%TS_EMIS,          &
-                                 AM2    = HcoState%Grid%AREA_M2%Val, &
-                                 PREFIX = '',                        & 
-                                 RC     = RC                          )
+    ! ------------------------------------------------------------------
+    ! Initialize the HEMCO emissions diagnostics collections. 
+    ! The empty prefix will make sure that the prefix is obtained 
+    ! from the HEMCO configuration file settings.
+    ! In an ESMF environment, set output frequency to 'Always' to 
+    ! ensure that diagnostics are passed to ExtData on every time 
+    ! step (if a corresponding export field exists). MAPL history
+    ! will take care of all the data output/averaging.
+    ! ------------------------------------------------------------------
+
+    ! Default diagnostics
+#if defined ( ESMF_ )
+    WriteFreq = 'Always'
+#else
+    WriteFreq = 'Hourly'
+#endif
+    CALL DiagnCollection_Create( am_I_Root,                             &
+                                 NX        = HcoState%NX,               &
+                                 NY        = HcoState%NY,               &
+                                 NZ        = HcoState%NZ,               &
+                                 TS        = HcoState%TS_EMIS,          &
+                                 AM2       = HcoState%Grid%AREA_M2%Val, &
+                                 COL       = HcoDiagnIDDefault,         & 
+                                 PREFIX    = '',                        &
+                                 WriteFreq = TRIM(WriteFreq),           & 
+                                 RC        = RC                          )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! HEMCO restart 
+#if defined ( ESMF_ )
+    WriteFreq = 'Always'
+#else
+    WriteFreq = 'End'
+#endif
+    CALL DiagnCollection_Create( am_I_Root,                             &
+                                 NX        = HcoState%NX,               &
+                                 NY        = HcoState%NY,               &
+                                 NZ        = HcoState%NZ,               &
+                                 TS        = HcoState%TS_EMIS,          &
+                                 AM2       = HcoState%Grid%AREA_M2%Val, &
+                                 COL       = HcoDiagnIDRestart,         & 
+                                 PREFIX    = 'HEMCO_restart',           &
+                                 WriteFreq = TRIM(WriteFreq),           & 
+                                 RC        = RC                          )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Manual diagnostics
+#if defined ( ESMF_ )
+    WriteFreq = 'Always'
+#else
+    WriteFreq = 'Manual'
+#endif
+    CALL DiagnCollection_Create( am_I_Root,                             &
+                                 NX        = HcoState%NX,               &
+                                 NY        = HcoState%NY,               &
+                                 NZ        = HcoState%NZ,               &
+                                 TS        = HcoState%TS_EMIS,          &
+                                 AM2       = HcoState%Grid%AREA_M2%Val, &
+                                 COL       = HcoDiagnIDManual,          & 
+                                 PREFIX    = 'HEMCO_manual',            &
+                                 WriteFreq = TRIM(WriteFreq),           & 
+                                 RC        = RC                          )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+ 
+    ! Initialize the HEMCO ReadList. This has to be done before
+    ! the call to SetReadList below. 
  
     ! Initialize the HEMCO ReadList. This has to be done before
     ! the call to SetReadList below. 

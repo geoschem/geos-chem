@@ -472,7 +472,7 @@ CONTAINS
        ! Emissions will be written into the corresponding flux arrays 
        ! in HcoState. 
        ! ================================================================
-       CALL HCO_Run( am_I_Root, HcoState, RC )
+       CALL HCO_Run( am_I_Root, HcoState, -1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
    
        ! ================================================================
@@ -1175,8 +1175,8 @@ CONTAINS
                            SpaceDim  = 2,                     &
                            LevIDx    = -1,                    &
                            OutUnit   = 'kg/m2/s',             &
-                           WriteFreq = 'Monthly',             &
                            AutoFill  = 1,                     &
+                           COL       = HcoDiagnIDDefault,     &
                            RC        = RC                      )
        IF ( RC /= HCO_SUCCESS ) RETURN
 

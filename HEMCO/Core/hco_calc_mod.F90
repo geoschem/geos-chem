@@ -332,7 +332,7 @@ CONTAINS
              Diag3D => CatFlx
              CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
                                 Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                                AutoFill=1,  Array3D=Diag3D, RC=RC     ) 
+                                AutoFill=1,  Array3D=Diag3D, COL=-1, RC=RC ) 
              IF ( RC /= HCO_SUCCESS ) RETURN
              Diag3D => NULL() 
           ENDIF
@@ -394,7 +394,7 @@ CONTAINS
                 Diag3D => SpcFlx
                 CALL Diagn_Update(am_I_Root, ExtNr=ExtNr,             &
                                   Cat=-1,    Hier=-1,  HcoID=PrevSpc, &
-                                  AutoFill=1,Array3D=Diag3D, RC=RC     ) 
+                                  AutoFill=1,Array3D=Diag3D, COL=-1, RC=RC ) 
                 IF ( RC /= HCO_SUCCESS ) RETURN
                 Diag3D => NULL()
              ENDIF
@@ -543,7 +543,7 @@ CONTAINS
           CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=ThisCat,Hier=ThisHir,   HcoID=ThisSpc, &
                              AutoFill=1, Array3D=Diag3D, PosOnly=.TRUE.,&
-                             RC=RC ) 
+                             COL=-1, RC=RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
           Diag3D => NULL()
        ENDIF
@@ -584,7 +584,7 @@ CONTAINS
           Diag3D => CatFlx
           CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
                              Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                             AutoFill=1,  Array3D=Diag3D, RC = RC   ) 
+                             AutoFill=1,  Array3D=Diag3D, COL=-1, RC=RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
           Diag3D => NULL() 
        ENDIF
@@ -594,7 +594,7 @@ CONTAINS
           Diag3D => SpcFlx
           CALL Diagn_Update( am_I_Root,  ExtNr=ExtNr,                   &
                              Cat=-1,     Hier=-1,        HcoID=PrevSpc, &
-                             AutoFill=1, Array3D=Diag3D, RC=RC           )
+                             AutoFill=1, Array3D=Diag3D, COL=-1, RC=RC   )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Diag3D => NULL()
        ENDIF

@@ -4036,6 +4036,7 @@
 #endif
 
       ! Return success
+    
       RC = GIGC_SUCCESS
 
       !=================================================================
@@ -4562,9 +4563,13 @@
       !=================================================================
 
       ! Define collection number for netCDF diagnostics
-      ! (this number can be between 2 and 5)
       !%%% NOTE, hardwire this for now, but eventually read from file
-      Input_Opt%DIAG_COLLECTION = 2
+      !
+      ! VERY IMPORTANT: this number must be equal or less than parameter
+      ! MaxCollections in hco_diagn_mod.F90, and must not be any of the
+      ! pre-defined HEMCO collection IDs (also defined in 
+      ! hco_diagn_mod.F90).
+      Input_Opt%DIAG_COLLECTION = 4
 
       ! Get fields from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS

@@ -681,7 +681,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -715,7 +716,8 @@
                DiagnCnt  => NULL()
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -818,7 +820,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -842,7 +845,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -866,7 +870,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -890,7 +895,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -942,7 +948,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -966,7 +973,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -990,7 +998,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -1029,7 +1038,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -1053,7 +1063,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -1077,7 +1088,8 @@
                ! Get diagnostics from HEMCO
                CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                         FLAG, RC,   cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
                IF ( RC /= HCO_SUCCESS ) THEN
                   MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                   CALL ERROR_STOP ( MSG, LOC ) 
@@ -2406,7 +2418,8 @@
          DiagnName = 'BIOMASS_BCPI'
          CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                   FLAG, RC,   cName=TRIM(DiagnName), 
-     &                   AutoFill=1, InclManual=.TRUE. )
+     &                   AutoFill=1, 
+     &                   COL=HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC ) 
@@ -2427,7 +2440,8 @@
          DiagnCnt  => NULL()
          CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC ) 
@@ -2475,7 +2489,8 @@
             DiagnName = 'BIOMASS_OCPI'
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -2496,7 +2511,8 @@
             DiagnCnt  => NULL()
             CALL Diagn_Get( am_I_Root,   .FALSE., DiagnCnt, 
      &                         FLAG, RC, cName=TRIM(DiagnName), 
-     &                         AutoFill=1, InclManual=.TRUE. )
+     &                         AutoFill=1, 
+     &                         COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -2707,7 +2723,8 @@
          ! Get diagnostics from HEMCO
          CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                   FLAG, RC,   cName=TRIM(DiagnName), 
-     &                   AutoFill=1, InclManual=.TRUE. )
+     &                   AutoFill=1, 
+     &                   COL=HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC ) 
@@ -2729,7 +2746,8 @@
          ! Get diagnostics from HEMCO
          CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                   FLAG, RC,   cName=TRIM(DiagnName), 
-     &                   AutoFill=1, InclManual=.TRUE. )
+     &                   AutoFill=1, 
+     &                   COL=HcoDiagnIDManual )
          IF ( RC /= HCO_SUCCESS ) THEN
             MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
             CALL ERROR_STOP ( MSG, LOC ) 
@@ -3959,7 +3977,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -3982,7 +4001,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4305,7 +4325,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=0, InclManual=.TRUE. )
+     &                      AutoFill=0, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4328,7 +4349,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=0, InclManual=.TRUE. )
+     &                      AutoFill=0, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4351,7 +4373,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=0, InclManual=.TRUE. )
+     &                      AutoFill=0, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4487,7 +4510,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4511,7 +4535,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root, .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4535,7 +4560,8 @@
             ! Get diagnostics from HEMCO
             CALL Diagn_Get( am_I_Root,  .FALSE., DiagnCnt, 
      &                      FLAG, RC,   cName=TRIM(DiagnName), 
-     &                      AutoFill=1, InclManual=.TRUE. )
+     &                      AutoFill=1, 
+     &                      COL=HcoDiagnIDManual )
             IF ( RC /= HCO_SUCCESS ) THEN
                MSG = 'Cannot find diagnostics ' // TRIM(DiagnName)
                CALL ERROR_STOP ( MSG, LOC ) 
@@ -4715,7 +4741,7 @@
              END SELECT
 
              CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                       UNIT,   N, 1, -1,   .TRUE.,     FACTOR, RC)
+     &                       UNIT,   N, -1, -1,   .TRUE.,    FACTOR, RC)
              IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDDO
 
@@ -5946,7 +5972,7 @@
       DgnCont => NULL()
       CALL Diagn_Get( air,   .FALSE., DgnCont, 
      &                FLG,   ERR,     cName=TRIM(dname), 
-     &                AutoFill=dAF,   InclManual=.TRUE. )
+     &                AutoFill=dAF,   COL=HcoDiagnIDManual )
 
       ! If diagnostic not found, write error message
       IF ( ERR /= HCO_SUCCESS ) THEN

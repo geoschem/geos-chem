@@ -589,7 +589,7 @@ CONTAINS
        ENDIF
 
        ! Drydep fluxes
-       IF ( ND44>0 ) THEN
+       IF ( Input_Opt%ND44 > 0 ) THEN
           Ptr2D => DEP(:,:,N)
           cID = 44500 + N
           CALL Diagn_Update( am_I_Root,                           &

@@ -99,6 +99,7 @@ MODULE HCO_Clock_Mod
   INTEGER, PARAMETER, PUBLIC  :: ResetFlagMonthly  =  10
   INTEGER, PARAMETER, PUBLIC  :: ResetFlagDaily    =  100
   INTEGER, PARAMETER, PUBLIC  :: ResetFlagHourly   =  1000
+  INTEGER, PARAMETER, PUBLIC  :: ResetFlagAlways   =  10000
 !
 ! !PRIVATE TYPES:
 !
@@ -170,7 +171,7 @@ MODULE HCO_Clock_Mod
   ! every time step. If we enter a new month, for instance, it will
   ! be set to ResetFlagMonthly, so that all diagnostics with a reset
   ! flag equal or higher than this value will be written to disk.
-  INTEGER                     :: CurrMinResetFlag  = ResetFlagHourly + 1
+  INTEGER                     :: CurrMinResetFlag  = ResetFlagAlways + 1
 
   ! Midmonth days for a regular year.
   ! These can be used to obtain the mid-month day of the current month.
@@ -1101,7 +1102,7 @@ CONTAINS
     HcoClock => NULL()
 
     ! Reset current minimum reset flag to default (initial) value
-    CurrMinResetFlag  = ResetFlagHourly + 1
+    CurrMinResetFlag  = ResetFlagAlways + 1
 
     ! Make sure TIMEZONES array does not point to any content any more.
     TIMEZONES => NULL()
@@ -1259,7 +1260,7 @@ CONTAINS
     ! HCOCLOCK_SETMINRESETFLAG begins here! 
     !-----------------------------------
 
-    MinResetFlag = ResetFlagHourly + 1
+    MinResetFlag = ResetFlagAlways
 
     ! MinResetFlag is the smallest ResetFlag number that has to
     ! be considered for the current time stamp. ResetFlag increases

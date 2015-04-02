@@ -10,9 +10,18 @@
 ! consist of a flexible suite of diagnostics container organized 
 ! in list DiagnList. Each diagnostics container contains information 
 ! about the diagnostics type (extension number, emission category / 
-! hierarchy, species ID), data structure (Scalar, 2D, 3D), output
-! units (mass, area, time), and output frequency (every hour / day / 
-! month / year).
+! hierarchy, species ID), data structure (Scalar, 2D, 3D), and output
+! units (mass, area, time).
+!\\
+!\\
+! The HEMCO diagnostics module can store multiple, independent 
+! diagnostics `collections`, identifiable through the assigned 
+! collection number. Each collection has an output frequency assigned
+! to it, as well as an output file name (prefix). All containers of
+! the same collection will have the same output frequency. Currently,
+! the following output frequencies are defined: 'Hourly', 'Daily',
+! 'Monthly', 'Annualy', 'End', 'Manual'. Diagnostic collections can
+! be written out using routine hcoio\_diagn\_mod.F90.
 !\\
 !\\
 ! Diagnostics container are created at the beginning of a simulation
@@ -39,18 +48,16 @@
 ! automatically and all update calls (Diagn\_Update) have to be set
 ! manually.
 !\\
+!\\!\\
+! Individual diagnostics are identified by its name and/or container ID.
+! Both are specified when creating the diagnostics (Diagn\_Create). 
 !\\
-! The HEMCO diagnostics module can store multiple, independent diagnostics 
-! `collections`, identifiable through the assigned collection number. 
+!\\
 ! Before adding diagnostics to a collection, the collection needs to be 
 ! created using subroutine DiagnCollection\_Create. The collection number 
 ! argument (COL) should always be specified when creating, editing or 
-! obtaining a diagnostics. If this argument is omitted, the collection
-! number is set to 1.
-!\\
-!\\
-! Individual diagnostics are identified by its name and/or container ID.
-! Both are specified when creating the diagnostics (Diagn\_Create). 
+! obtaining a diagnostics. If this argument is omitted, the default HEMCO
+! collection (HcoDiagnIDDefault) is taken. 
 !\\
 !\\
 ! !INTERFACE: 
@@ -74,12 +81,12 @@ MODULE HCO_Diagn_Mod
   PUBLIC  :: Diagn_Get
   PUBLIC  :: Diagn_TotalGet
   PUBLIC  :: Diagn_AutoFillLevelDefined
-  PUBLIC  :: Diagn_GetMaxResetFlag
-  PUBLIC  :: Diagn_GetDiagnPrefix
+!  PUBLIC  :: Diagn_GetMaxResetFlag
   PUBLIC  :: Diagn_Print
   PUBLIC  :: DiagnCont_Find
   PUBLIC  :: DiagnCollection_Create
   PUBLIC  :: DiagnCollection_Cleanup
+  PUBLIC  :: DiagnCollection_Get
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -89,6 +96,7 @@ MODULE HCO_Diagn_Mod
   PRIVATE :: DiagnCont_Link_2D
   PRIVATE :: DiagnCont_Link_3D
   PRIVATE :: DiagnCont_Cleanup
+  PRIVATE :: DiagnCollection_DefineID 
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller   - Initialization
@@ -131,10 +139,11 @@ MODULE HCO_Diagn_Mod
                                                    ! last output
      INTEGER                     :: AvgFlag        ! Averaging flag for 
                                                    !  non-standard units
-     INTEGER                     :: ResetFlag      ! Diagn. output frequency
+!     INTEGER                     :: ResetFlag      ! Diagn. output frequency
      INTEGER                     :: LastUpdateID   ! Last update time
      INTEGER                     :: nnGetCalls     ! # of Diagn_Get calls w/o update 
      LOGICAL                     :: IsOutFormat    ! Data is in output format?
+     INTEGER                     :: CollectionID   ! Collection diagnostics belongs to
      TYPE(DiagnCont),    POINTER :: NextCont       ! Ptr to next item in list
   END TYPE DiagnCont
 
@@ -158,10 +167,12 @@ MODULE HCO_Diagn_Mod
   TYPE DiagnCollection
      TYPE(DiagnCont),    POINTER :: DiagnList          => NULL()
      INTEGER                     :: nnDiagn            =  0
-     INTEGER                     :: MaxResetFlag       =  ResetFlagManually
+!     INTEGER                     :: MaxResetFlag       =  ResetFlagManually
      LOGICAL                     :: AF_LevelDefined(4) =  .FALSE.
      LOGICAL                     :: InUse              =  .FALSE.
      CHARACTER(LEN=255)          :: PREFIX             =  ''
+     CHARACTER(LEN=31)           :: WriteFreq          = ''
+     INTEGER                     :: ResetFlag          =  ResetFlagManually 
      INTEGER                     :: NX                 =  0
      INTEGER                     :: NY                 =  0
      INTEGER                     :: NZ                 =  0
@@ -186,7 +197,12 @@ MODULE HCO_Diagn_Mod
   INTEGER, PARAMETER             :: AvgFlagInst    = 4
 
   ! Maximum number of diagnostics collections
-  INTEGER, PARAMETER             :: MaxCollections = 3
+  INTEGER, PARAMETER             :: MaxCollections = 6
+
+  ! HEMCO collection IDs
+  INTEGER, PARAMETER, PUBLIC     :: HcoDiagnIDDefault = 1
+  INTEGER, PARAMETER, PUBLIC     :: HcoDiagnIDRestart = 2
+  INTEGER, PARAMETER, PUBLIC     :: HcoDiagnIDManual  = 3
 
 CONTAINS
 !EOC
@@ -262,6 +278,7 @@ CONTAINS
                                 HcoID    = I,         &
                                 AutoFill = 1,         &
                                 Array3D  = Arr3D,     &
+                                COL      = -1,        &
                                 RC       = RC          ) 
              IF ( RC/= HCO_SUCCESS ) RETURN 
              Arr3D => NULL() 
@@ -296,12 +313,6 @@ CONTAINS
 !      Conversion factors will be determined using the HEMCO unit
 !      module (see HCO\_UNITS\_Mod.F90). No unit conversions will be
 !      performed if the argument OutOper is set (see below). 
-!\item WriteFreq: output frequency. Can be one of 'Hourly', 'Daily',
-!      'Monthly', 'Annualy', 'End', 'Manual'.
-!      Manual diagnostics are expected to be manually received and 
-!      written out. These diagnostics may or may not be written out 
-!      at the end of the simulation run, depending on the corresponding
-!      attribute set in Diagn\_Get.
 !\item HcoState: HEMCO state object. Used to determine the species
 !      properties if any of arguments MW\_g, EmMW\_g or MolecRatio
 !      is missing.
@@ -344,11 +355,10 @@ CONTAINS
   SUBROUTINE Diagn_Create( am_I_Root, cName,      HcoState,   &
                            ExtNr,     Cat,        Hier,       &
                            HcoID,     SpaceDim,   OutUnit,    &  
-                           WriteFreq, OutOper,    LevIdx,     &
-                           AutoFill,  Trgt2D,     Trgt3D,     &
-                           MW_g,      EmMW_g,     MolecRatio, &
-                           ScaleFact, cID,        RC,         &
-                           COL,       OkIfExist                )
+                           OutOper,   LevIdx,     AutoFill,   &
+                           Trgt2D,    Trgt3D,     MW_g,       &
+                           EmMW_g,    MolecRatio, ScaleFact,  &
+                           cID,       RC,    COL, OkIfExist    )
 !
 ! !USES:
 !
@@ -370,8 +380,6 @@ CONTAINS
     INTEGER,          INTENT(IN   )           :: SpaceDim      ! Spatial 
                                                                !  dimension 
     CHARACTER(LEN=*), INTENT(IN   )           :: OutUnit       ! Output units
-    CHARACTER(LEN=*), INTENT(IN   )           :: WriteFreq     ! Write out 
-                                                               !  frequency
     TYPE(HCO_State),  POINTER,       OPTIONAL :: HcoState      ! HEMCO state obj.
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: OutOper       ! Output 
                                                                !  operation 
@@ -420,18 +428,8 @@ CONTAINS
 
     ! Init
     LOC = 'Diagn_Create (hco_diagn_mod.F90)'
-
-    ! Get collection position
-    PS = 1
-    IF ( PRESENT(COL) ) PS = COL
-    IF ( .NOT. Collections(PS)%InUse ) THEN
-       WRITE(MSG,*) 'Diagnostics collection not defined, cannot add ',  &
-                    'diagnostcs ', TRIM(cName), ' to collection ', PS,  &
-                    '. Please call DiagnCollection_Create before ',     &
-                    'adding diagnostics to that collection.'
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
+    CALL DiagnCollection_DefineID( PS, RC, COL=COL )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !----------------------------------------------------------------------
     ! Check if diagnostics already exists 
@@ -495,42 +493,43 @@ CONTAINS
     ! Determine output frequency. This is the frequency with which the
     ! diagnostics will be written into output. 
     !----------------------------------------------------------------------
-
-    ! Write out every Year
-    IF ( TRIM(WriteFreq) == 'Annually' ) THEN
-       ThisDiagn%ResetFlag = ResetFlagAnnually 
-
-    ! Write out every month
-    ELSEIF ( TRIM(WriteFreq) == 'Monthly' ) THEN
-       ThisDiagn%ResetFlag = ResetFlagMonthly
-         
-    ! Write out every day
-    ELSEIF ( TRIM(WriteFreq) == 'Daily' ) THEN
-       ThisDiagn%ResetFlag = ResetFlagDaily
-
-    ! Write out every hour
-    ELSEIF ( TRIM(WriteFreq) == 'Hourly' ) THEN
-       ThisDiagn%ResetFlag = ResetFlagHourly
-
-    ! Write out only at end of simulation
-    ELSEIF ( TRIM(WriteFreq) == 'End' ) THEN
-       ThisDiagn%ResetFlag = ResetFlagEnd
-
-    ! Manually write out.
-    ELSEIF ( TRIM(WriteFreq) == 'Manual' ) THEN
-       ThisDiagn%ResetFlag = ResetFlagManually
-
-    ! Error otherwise
-    ELSE
-       MSG = 'Illegal averaging interval: ' // TRIM(WriteFreq)
-       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-
-    ! Update module variable MaxResetFlag. This variable defines the 
-    ! highest reset flag used by any of the diagnostics container.
-    Collections(PS)%MaxResetFlag = &
-       MAX( Collections(PS)%MaxResetFlag, ThisDiagn%ResetFlag )
+!    ThisDiagn%ResetFlag = Collections(PS)%ResetFlag 
+    
+!    ! Write out every Year
+!    IF ( TRIM(WriteFreq) == 'Annually' ) THEN
+!       ThisDiagn%ResetFlag = ResetFlagAnnually 
+!
+!    ! Write out every month
+!    ELSEIF ( TRIM(WriteFreq) == 'Monthly' ) THEN
+!       ThisDiagn%ResetFlag = ResetFlagMonthly
+!         
+!    ! Write out every day
+!    ELSEIF ( TRIM(WriteFreq) == 'Daily' ) THEN
+!       ThisDiagn%ResetFlag = ResetFlagDaily
+!
+!    ! Write out every hour
+!    ELSEIF ( TRIM(WriteFreq) == 'Hourly' ) THEN
+!       ThisDiagn%ResetFlag = ResetFlagHourly
+!
+!    ! Write out only at end of simulation
+!    ELSEIF ( TRIM(WriteFreq) == 'End' ) THEN
+!       ThisDiagn%ResetFlag = ResetFlagEnd
+!
+!    ! Manually write out.
+!    ELSEIF ( TRIM(WriteFreq) == 'Manual' ) THEN
+!       ThisDiagn%ResetFlag = ResetFlagManually
+!
+!    ! Error otherwise
+!    ELSE
+!       MSG = 'Illegal averaging interval: ' // TRIM(WriteFreq)
+!       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+!       RETURN
+!    ENDIF
+ 
+!    ! Update module variable MaxResetFlag. This variable defines the 
+!    ! highest reset flag used by any of the diagnostics container.
+!    Collections(PS)%MaxResetFlag = &
+!       MAX( Collections(PS)%MaxResetFlag, ThisDiagn%ResetFlag )
 
     ! Update module variable AF_LevelDefined. For all AutoFill diagnostics,
     ! we store whether or not there is (at least one) diagnostics container
@@ -751,6 +750,9 @@ CONTAINS
     ENDIF
     Collections(PS)%DiagnList => ThisDiagn
 
+    ! This diagnostics is now part of this collections
+    ThisDiagn%CollectionID = PS
+
     ! Increase diagnostics counter and set container ID accordingly.
     Collections(PS)%nnDiagn = Collections(PS)%nnDiagn + 1
 
@@ -879,7 +881,7 @@ CONTAINS
     INTEGER                  :: AutoFlag
     INTEGER                  :: PS, lPS, uPS, CNT
     LOGICAL                  :: Found, OnlyPos, VertSum, IsAssoc, IsNewTS
-    LOGICAL                  :: SearchAll
+    LOGICAL                  :: InUse, SearchAll
 
     !======================================================================
     ! Diagn_Update begins here!
@@ -889,15 +891,11 @@ CONTAINS
     LOC = 'Diagn_Update (hco_diagn_mod.F90)'
     RC  = HCO_SUCCESS
 
-    ! Get collection number
-    PS = 1
-    IF ( PRESENT(COL) ) PS = COL
-    IF ( PS > MaxCollections ) THEN
-       WRITE(MSG,*) 'Illegal diagnostics collection number:', PS
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
-
+    ! Get collection number. 
+    CALL DiagnCollection_DefineID( PS, RC, COL=COL, DEF=-1, &
+                                   NegativeOK=.TRUE., InUse=InUse )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+ 
     ! Check if we need to scan through all collections. This is only the
     ! case if PS is set to -1
     IF ( PS == -1 ) THEN
@@ -911,8 +909,8 @@ CONTAINS
     ENDIF
 
     ! Nothing to do if this collection is empty
-    IF ( .NOT. SearchAll ) THEN
-       IF ( .NOT. Collections(PS)%InUse ) RETURN 
+    IF ( .NOT. SearchAll .AND. .NOT. InUse ) THEN
+       RETURN 
     ENDIF
 
     !----------------------------------------------------------------------
@@ -948,13 +946,16 @@ CONTAINS
     !-----------------------------------------------------------------
     DO PS = lPS, uPS
 
+       ! Reset Diagnostics
+       ThisDiagn => NULL()
+
        !-----------------------------------------------------------------
        ! Do for every container in the diagnostics list that matches the 
        ! specified arguments (ID, ExtNr, etc.). This can be more than one
        ! container (ckeller, 09/25/2014).
        !-----------------------------------------------------------------
        DO
-   
+  
           ! Search for diagnostics that matches the given arguments.
           ! If ThisDiagn is empty (first call), the search will start
           ! at the first diagnostics container. Otherwise, the search
@@ -991,7 +992,8 @@ CONTAINS
           ! never been passed to the output yet (via routine Diagn\_Get) and 
           ! will thus be lost!
           !----------------------------------------------------------------------
-          IF ( (ThisDiagn%ResetFlag >= MinResetFlag) &
+          !IF ( (ThisDiagn%ResetFlag >= MinResetFlag) &
+          IF ( (Collections(PS)%ResetFlag >= MinResetFlag) &
                .AND. .NOT. ThisDiagn%IsOutFormat     &
                .AND.      (ThisDiagn%Counter > 0)    &
                .AND.       IsNewTS                    ) THEN
@@ -1266,6 +1268,8 @@ CONTAINS
              CALL HCO_MSG ( MSG )
           ENDIF
 
+          ! Exit this loop
+          EXIT
        ENDDO ! loop over containers in collection
     ENDDO ! loop over collections
 
@@ -1325,9 +1329,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_Get( am_I_Root, EndOfIntvOnly, DgnCont,       &
-                        FLAG,      RC,            cName,         &
-                        cID,       AutoFill,      InclManual, COL )
+  SUBROUTINE Diagn_Get( am_I_Root, EndOfIntvOnly, DgnCont, &
+                        FLAG,      RC,            cName,   &
+                        cID,       AutoFill,      COL       )
 !
 ! !INPUT PARAMETERS::
 !
@@ -1339,7 +1343,6 @@ CONTAINS
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! container ID
     INTEGER,          INTENT(IN   ), OPTIONAL :: AutoFill       ! 0=no; 1=yes; 
                                                                 ! -1=either
-    LOGICAL,          INTENT(IN   ), OPTIONAL :: InclManual     ! Include manual cont.? 
     INTEGER,          INTENT(IN   ), OPTIONAL :: COL            ! Collection Nr. 
 !
 ! !OUTPUT PARAMETERS:
@@ -1363,7 +1366,7 @@ CONTAINS
 !
     INTEGER  :: MinResetFlag
     INTEGER  :: PS, AF
-    LOGICAL  :: FOUND, CF, Manual 
+    LOGICAL  :: FOUND, CF
 
     !======================================================================
     ! Diagn_Get begins here!
@@ -1373,34 +1376,20 @@ CONTAINS
     FLAG   = HCO_FAIL
     RC     = HCO_SUCCESS
     CF     = .FALSE.
-    Manual = .FALSE.
 
     ! Get collection number
-    PS = 1
-    IF ( PRESENT(COL) ) PS = COL
-    IF ( PS > MaxCollections ) THEN
-       DgnCont => NULL()
-       RETURN
-    ENDIF 
-    IF ( .NOT. Collections(PS)%InUse ) THEN
-       DgnCont => NULL()
-       RETURN
-    ENDIF
+    CALL DiagnCollection_DefineID( PS, RC, COL=COL )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set AutoFill flag
     AF = -1
     IF ( PRESENT(AutoFill  ) ) AF     = AutoFill
-    IF ( PRESENT(InclManual) ) Manual = InclManual
 
     ! Get minimum reset flag for current time. Set reset flag to -1 if
     ! EndOFIntvOnly flag is disabled. This will make sure that all 
     ! diagnostics are considered.
     IF ( .NOT. EndOfIntvOnly ) THEN
-       IF ( Manual ) THEN
-          MinResetFlag = ResetFlagManually
-       ELSE
-          MinResetFlag = ResetFlagEnd
-       ENDIF
+       MinResetFlag = ResetFlagManually
     ELSE
        MinResetFlag = HcoClock_GetMinResetFlag()
     ENDIF
@@ -1409,7 +1398,7 @@ CONTAINS
     ! there is no diagnostics container in the list with a reset flag 
     ! smaller or equal to MinResetFlag - there will be no matching 
     ! container whatsoever. Can leave right here.
-    IF ( MinResetFlag > Collections(PS)%MaxResetFlag ) THEN
+    IF ( MinResetFlag > Collections(PS)%ResetFlag ) THEN
        DgnCont => NULL()
        RETURN
     ENDIF
@@ -1423,12 +1412,16 @@ CONTAINS
        IF ( .NOT. FOUND ) THEN
           DgnCont => NULL()
        ELSE
-          ! Don't consider container if not at the desired
-          ! time interval or if counter is zero.
-          IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
-               DgnCont%Counter   == 0                  ) THEN
+          ! Don't consider container if counter is zero. 
+          IF ( DgnCont%Counter == 0 ) THEN
              DgnCont => NULL()
           ENDIF
+!          ! Don't consider container if not at the desired
+!          ! time interval or if counter is zero.
+!          IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
+!               DgnCont%Counter   == 0                  ) THEN
+!             DgnCont => NULL()
+!          ENDIF
        ENDIF
        CF = .TRUE.
 
@@ -1442,12 +1435,16 @@ CONTAINS
        IF ( .NOT. FOUND ) THEN
           DgnCont => NULL()
        ELSE
-          ! Don't consider container if not at the desired
-          ! time interval or if counter is zero.
-          IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
-               DgnCont%Counter   == 0                  ) THEN
+          ! Don't consider container if counter is zero. 
+          IF ( DgnCont%Counter == 0 ) THEN
              DgnCont => NULL()
           ENDIF
+!          ! Don't consider container if not at the desired
+!          ! time interval or if counter is zero.
+!          IF ( DgnCont%ResetFlag <  MinResetFlag .OR. &
+!               DgnCont%Counter   == 0                  ) THEN
+!             DgnCont => NULL()
+!          ENDIF
        ENDIF
        CF = .TRUE.
     ENDIF
@@ -1473,8 +1470,9 @@ CONTAINS
           ! ResetFlag equal or larger than MinResetFlag and where
           ! updates since last output (counter) is not zero.
           DO WHILE ( ASSOCIATED ( DgnCont ) ) 
-             IF ( DgnCont%ResetFlag >= MinResetFlag .AND. &
-                  DgnCont%Counter   >  0                   ) EXIT
+             IF ( DgnCont%Counter > 0 ) EXIT
+!             IF ( DgnCont%ResetFlag >= MinResetFlag .AND. &
+!                  DgnCont%Counter   >  0                   ) EXIT
              DgnCont => DgnCont%NextCont
           ENDDO
    
@@ -1552,14 +1550,8 @@ CONTAINS
     ENDIF
 
     ! Get collection number
-    PS = 1
-    IF ( PRESENT(COL) ) PS = COL
-    IF ( PS > MaxCollections ) THEN
-       RETURN
-    ENDIF 
-    IF ( .NOT. Collections(PS)%InUse ) THEN
-       RETURN
-    ENDIF
+    CALL DiagnCollection_DefineID( PS, RC, COL=COL )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If container name is given, search for diagnostics with 
     ! the given name. 
@@ -1686,80 +1678,90 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    INTEGER :: PS
+    INTEGER :: I, RC, PS
+    LOGICAL :: InUse
 
     ! Initialize
     IsDefined = .FALSE.
 
     ! Get collection number
-    PS = 1
-    IF ( PRESENT(COL) ) PS = COL
-    IF ( PS > MaxCollections         ) RETURN
-    IF ( .NOT. Collections(PS)%InUse ) RETURN 
+    CALL DiagnCollection_DefineID( PS, RC, COL=COL, DEF=-1, NegativeOK=.TRUE., InUse=InUse )
+    IF ( RC /= HCO_SUCCESS ) RETURN 
 
-    IsDefined = Collections(PS)%AF_LevelDefined( Level )
+    IF ( .NOT. InUse ) RETURN
 
+    IF ( PS == -1 ) THEN
+       DO I = 1, MaxCollections
+          IF ( Collections(I)%InUse ) THEN
+             IsDefined = Collections(I)%AF_LevelDefined( Level )
+             IF ( IsDefined ) EXIT
+          ENDIF
+       ENDDO
+    ELSE
+       IsDefined = Collections(PS)%AF_LevelDefined( Level )
+    ENDIF
+ 
   END FUNCTION Diagn_AutoFillLevelDefined
 !EOC
+!!------------------------------------------------------------------------------
+!!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: Diagn_GetMaxResetFlag
+!!
+!! !DESCRIPTION: Function Diagn\_GetMaxResetFlag returns the highest reset
+!! flag used by any of the containers in the diagnostics list. 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  FUNCTION Diagn_GetMaxResetFlag ( COL ) RESULT ( MaxRF )
+!!
+!! !INPUT PARAMETERS:
+!!
+!    INTEGER, INTENT(IN), OPTIONAL :: COL       ! Collection Nr.
+!!
+!! !RETURN VALUE:
+!!
+!    INTEGER                       :: MaxRF !Maximum reset flag 
+!!
+!! !REVISION HISTORY:
+!!  19 Dec 2013 - C. Keller: Initialization
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!    INTEGER :: PS
+!
+!    ! Begins here
+!
+!    ! Initialize
+!    MaxRF = ResetFlagManually 
+!
+!    ! Get collection number
+!    PS = HcoDiagnIDDefault 
+!    IF ( PRESENT(COL) ) PS = COL
+!    IF ( PS > MaxCollections         ) RETURN
+!    IF ( .NOT. Collections(PS)%InUse ) RETURN 
+!
+!    MaxRF = Collections(PS)%MaxResetFlag 
+! 
+!  END FUNCTION Diagn_GetMaxResetFlag
+!!EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Diagn_GetMaxResetFlag
+! !ROUTINE: DiagnCollection_Get
 !
-! !DESCRIPTION: Function Diagn\_GetMaxResetFlag returns the highest reset
-! flag used by any of the containers in the diagnostics list. 
+! !DESCRIPTION: Subroutine DiagnCollection\_Get returns variables assigned to
+! a given diagnostics collection. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Diagn_GetMaxResetFlag ( COL ) RESULT ( MaxRF )
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER, INTENT(IN), OPTIONAL :: COL       ! Collection Nr.
-!
-! !RETURN VALUE:
-!
-    INTEGER                       :: MaxRF !Maximum reset flag 
-!
-! !REVISION HISTORY:
-!  19 Dec 2013 - C. Keller: Initialization
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    INTEGER :: PS
-
-    ! Begins here
-
-    ! Initialize
-    MaxRF = ResetFlagManually 
-
-    ! Get collection number
-    PS = 1
-    IF ( PRESENT(COL) ) PS = COL
-    IF ( PS > MaxCollections         ) RETURN
-    IF ( .NOT. Collections(PS)%InUse ) RETURN 
-
-    MaxRF = Collections(PS)%MaxResetFlag 
- 
-  END FUNCTION Diagn_GetMaxResetFlag
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: Diagn_GetDiagnPrefix
-!
-! !DESCRIPTION: Subroutine Diagn\_GetDiagnPrefix returns the HEMCO diagnostics
-! file prefix as set in the HEMCO configuration file. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Diagn_GetDiagnPrefix( Prefix, RC, COL )
+  SUBROUTINE DiagnCollection_Get( COL, Prefix, WriteFreq, ResetFlag, RC )
 !
 ! !INPUT ARGUMENTS:
 !
@@ -1767,8 +1769,13 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(OUT)          :: Prefix
-    INTEGER,          INTENT(OUT)          :: RC
+    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: Prefix
+    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: WriteFreq 
+    INTEGER,          INTENT(OUT), OPTIONAL :: ResetFlag 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)           :: RC
 !
 ! !REVISION HISTORY:
 !  19 Dec 2013 - C. Keller: Initialization
@@ -1779,33 +1786,32 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     INTEGER            :: PS
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'Diagn_GetDiagnPrefix (hco_diagn_mod.F90)'
 
     !======================================================================
     ! Diagn_GetDiagnPrefix begins here!
     !======================================================================
 
     ! Get collection number
-    PS = 1
-    IF ( PRESENT(COL) ) PS = COL
-    IF ( PS > MaxCollections ) THEN
-       CALL HCO_ERROR ( 'PS > MaxCollections!', RC, THISLOC=LOC )
-       RETURN
-    ENDIF 
-    IF ( .NOT. Collections(PS)%InUse ) THEN
-       WRITE(MSG,*) 'Collection not defined: ', PS
-       CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
+    CALL DiagnCollection_DefineID( PS, RC, COL=COL )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get prefix from collection
-    Prefix = Collections(PS)%PREFIX
+    IF ( PRESENT(Prefix) ) THEN
+       Prefix = Collections(PS)%PREFIX
+    ENDIF
+
+    IF ( PRESENT(WriteFreq) ) THEN
+       WriteFreq = Collections(PS)%WriteFreq
+    ENDIF
+
+    IF ( PRESENT(ResetFlag) ) THEN
+       ResetFlag = Collections(PS)%ResetFlag
+    ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS
  
-  END SUBROUTINE Diagn_GetDiagnPrefix
+  END SUBROUTINE DiagnCollection_Get
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1870,8 +1876,9 @@ CONTAINS
     DgnCont%IsOutFormat = .FALSE.
     DgnCont%nnGetCalls  = 0
 
-    ! Default container ID 
-    DgnCont%cID         = -1 ! 0
+    ! Default container ID and collection 
+    DgnCont%cID          = -1
+    DgnCont%CollectionID = -1
 
     ! Pass to output container
     OutCont => DgnCont
@@ -2200,9 +2207,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                            :: PS
+    INTEGER                            :: RC, PS
     TYPE(DiagnCont),   POINTER         :: CurrCnt => NULL() 
-    LOGICAL                            :: IsMatch, Rsm
+    LOGICAL                            :: IsMatch, InUse, Rsm
  
     !======================================================================
     ! DiagnCont_Find begins here!
@@ -2211,12 +2218,14 @@ CONTAINS
     ! Initialize
     FOUND  = .FALSE.
 
-    ! Collection position
-    PS = 1
-    IF ( PRESENT(COL) ) PS = COL 
-    IF ( PS > MaxCollections ) RETURN
-    IF ( .NOT. Collections(PS)%InUse ) RETURN
+    ! Get collection number
+    CALL DiagnCollection_DefineID( PS, RC, COL=COL, InUse=InUse )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Leave if collection not in use
+    IF ( .NOT. InUse ) RETURN
+
+    ! Resume from OutCnt
     IF ( PRESENT(Resume) ) THEN
        RSM = Resume
     ELSE
@@ -2528,22 +2537,25 @@ CONTAINS
     IF ( HCO_IsVerb( VerbNr ) ) THEN
 
        ! Write frequency
-       SELECT CASE ( Dgn%ResetFlag )
-          CASE ( ResetFlagAnnually )
-             WriteFreq = 'Annually' 
-          CASE ( ResetFlagMonthly  )
-             WriteFreq = 'Monthly'
-          CASE ( ResetFlagDaily    )
-             WriteFreq = 'Daily'
-          CASE ( ResetFlagHourly   )
-             WriteFreq = 'Hourly'
-          CASE ( ResetFlagEnd      )
-             WriteFreq = 'End'
-          CASE ( ResetFlagManually )
-             WriteFreq = 'Manual'
-       END SELECT
+       WriteFreq = Collections(Dgn%CollectionID)%WriteFreq
+!       SELECT CASE ( Dgn%ResetFlag )
+!          CASE ( ResetFlagAnnually )
+!             WriteFreq = 'Annually' 
+!          CASE ( ResetFlagMonthly  )
+!             WriteFreq = 'Monthly'
+!          CASE ( ResetFlagDaily    )
+!             WriteFreq = 'Daily'
+!          CASE ( ResetFlagHourly   )
+!             WriteFreq = 'Hourly'
+!          CASE ( ResetFlagEnd      )
+!             WriteFreq = 'End'
+!          CASE ( ResetFlagManually )
+!             WriteFreq = 'Manual'
+!       END SELECT
 
        ! General information
+       WRITE(MSG,*) '   --> Collection         : ', Dgn%CollectionID
+       CALL HCO_MSG(MSG)
        WRITE(MSG,*) '   --> Diagn ID           : ', Dgn%cID
        CALL HCO_MSG(MSG)
        WRITE(MSG,*) '   --> Extension Nr       : ', Dgn%ExtNr
@@ -2591,9 +2603,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Create ( am_I_Root, NX,     NY, NZ,  &
-                                      TS,   AM2, PREFIX, RC, COL, & 
-                                      Overwrite )
+  SUBROUTINE DiagnCollection_Create ( am_I_Root, NX,     NY, NZ,    &
+                                      TS,   AM2, PREFIX, WriteFreq, &
+                                      RC,   COL, Overwrite           )
 !
 ! !USES:
 !
@@ -2608,7 +2620,8 @@ CONTAINS
     REAL(sp),           INTENT(IN)           :: TS         ! timestep [s] 
     REAL(hp),           POINTER              :: AM2(:,:)   ! grid box areas [m2]
     CHARACTER(LEN=*),   INTENT(IN)           :: PREFIX     ! Output prefix
-    INTEGER,            INTENT(IN), OPTIONAL :: COL        ! Collection Nr. 
+    CHARACTER(LEN=*),   INTENT(IN)           :: WriteFreq  ! Output frequency 
+    INTEGER,            INTENT(IN)           :: COL        ! Collection Nr. 
     LOGICAL,            INTENT(IN), OPTIONAL :: OVERWRITE  ! OverWrite existing? 
 !
 ! !INPUT/OUTPUT ARGUMENTS:
@@ -2634,8 +2647,7 @@ CONTAINS
     ! ================================================================
 
     ! Set POSITION
-    PS = 1
-    IF ( PRESENT(COL) ) PS = COL
+    PS = COL
 
     ! OverWrite existing?
     OW = .FALSE.
@@ -2692,6 +2704,43 @@ CONTAINS
        Collections(PS)%PREFIX = TRIM(PREFIX)
     ENDIF
 
+    ! Determine output frequency
+    IF ( TRIM(WriteFreq) == 'Annually' ) THEN
+       Collections(PS)%ResetFlag = ResetFlagAnnually 
+
+    ! Write out every month
+    ELSEIF ( TRIM(WriteFreq) == 'Monthly' ) THEN
+       Collections(PS)%ResetFlag = ResetFlagMonthly
+         
+    ! Write out every day
+    ELSEIF ( TRIM(WriteFreq) == 'Daily' ) THEN
+       Collections(PS)%ResetFlag = ResetFlagDaily
+
+    ! Write out every hour
+    ELSEIF ( TRIM(WriteFreq) == 'Hourly' ) THEN
+       Collections(PS)%ResetFlag = ResetFlagHourly
+
+    ! Write out all the time 
+    ELSEIF ( TRIM(WriteFreq) == 'Always' ) THEN
+       Collections(PS)%ResetFlag = ResetFlagAlways
+
+    ! Write out only at end of simulation
+    ELSEIF ( TRIM(WriteFreq) == 'End' ) THEN
+       Collections(PS)%ResetFlag = ResetFlagEnd
+
+    ! Manually write out.
+    ELSEIF ( TRIM(WriteFreq) == 'Manual' ) THEN
+       Collections(PS)%ResetFlag = ResetFlagManually
+
+    ! Error otherwise
+    ELSE
+       MSG = 'Illegal averaging interval: ' // TRIM(WriteFreq) // &
+             ' - cannot create diagnostics ' // TRIM(Collections(PS)%PREFIX)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+    Collections(PS)%WriteFreq = TRIM(WriteFreq)
+
     ! This collection is now in use
     Collections(PS)%InUse = .TRUE.
 
@@ -2744,7 +2793,7 @@ CONTAINS
     ! ================================================================
 
     ! Set POSITION
-    PS = 1
+    PS = HcoDiagnIDDefault 
     IF ( PRESENT(COL) ) PS = COL
     IF ( PS > MaxCollections ) RETURN
 
@@ -2757,5 +2806,102 @@ CONTAINS
     ENDIF 
 
   END SUBROUTINE DiagnCollection_Cleanup
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: DiagnCollection_DefineID 
+!
+! !DESCRIPTION: Subroutine DiagnCollection_DefineID is a helper routine to 
+! return the collection ID. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagnCollection_DefineID ( PS, RC, COL, DEF, NegativeOk, InUse ) 
+!
+! !INPUT ARGUMENTS:
+!
+    INTEGER,         INTENT(IN   ), OPTIONAL :: COL        ! desired collection number 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: DEF        ! default collection number 
+    LOGICAL,         INTENT(IN   ), OPTIONAL :: NegativeOk ! Ok if negative 
+!
+! !INPUT/OUTPUT ARGUMENTS:
+!
+    INTEGER,         INTENT(INOUT)           :: PS         ! Assigned collection number 
+    INTEGER,         INTENT(INOUT)           :: RC         ! Return code 
+    LOGICAL,         INTENT(  OUT), OPTIONAL :: InUse      ! Is this in use? 
+!
+! !REVISION HISTORY:
+!  01 Apr 2015 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !ARGUMENTS:
+!
+    LOGICAL                       :: NegOk
+    CHARACTER(LEN=255)            :: MSG
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'DiagnCollection_DefineID (hco_diagn_mod.F90)'
+
+    ! ================================================================
+    ! DiagnCollection_DefineID begins here
+    ! ================================================================
+
+    ! Check if it's negative
+    NegOK = .FALSE.
+    IF ( PRESENT(NegativeOk) ) NegOK = NegativeOK 
+
+    ! Get collection position
+    IF ( PRESENT(DEF) ) THEN
+       PS = DEF
+    ELSE
+       PS = HcoDiagnIDDefault
+    ENDIF 
+    IF ( PRESENT(COL) ) PS = COL
+
+    ! Init   
+    IF ( PRESENT(InUse) ) InUse = .FALSE. 
+ 
+    ! Check if it's negative
+    IF ( PS <= 0 ) THEN
+       IF ( NegOK ) THEN
+          IF ( PRESENT(InUse) ) InUse = .TRUE.
+          RC = HCO_SUCCESS
+          RETURN
+       ELSE
+          WRITE(MSG,*) 'Illegal collection ID ', PS
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+    ! If it's positive
+    ELSE
+
+       ! Must not exceed max. number of collections
+       IF ( PS > MaxCollections ) THEN
+          WRITE(MSG,*) 'Collection ID exceeds defined maximum of ', &
+                       MaxCollections, ': ', PS 
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+
+       ! Eventually fill argumnet
+       IF ( PRESENT(InUse) ) THEN
+          InUse = Collections(PS)%InUse
+
+       ELSEIF ( .NOT. Collections(PS)%InUse ) THEN
+          WRITE(MSG,*) 'Diagnostics collection not defined: ', PS
+          CALL HCO_ERROR ( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE DiagnCollection_DefineID 
 !EOC
 END MODULE HCO_Diagn_Mod
