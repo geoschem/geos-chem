@@ -1405,6 +1405,14 @@
      &                             'after chemistry' )
 #endif 
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               ! TEMPORARY - ewl, 3/25/15
+               ! Use mass mixing ratio for wet dep
+               CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
@@ -1415,6 +1423,15 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
          ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! TEMPORARY - ewl, 3/24/15
+         ! Go back to legacy units [kg] for more chemistry
+         ! (waiting for FlexChem for chemistry unit conversion work)
+            CALL Convert_MMR_to_KG( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
          !==============================================================
          !      ***** U P D A T E  O P T I C A L  D E P T H *****          
@@ -1427,6 +1444,13 @@
             CALL RECOMPUTE_OD
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               ! TEMPORARY - ewl, 3/25/15
+               ! Last Unit Conversion!!!
+               CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
@@ -1459,14 +1483,6 @@
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
          ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               ! TEMPORARY - ewl, 3/25/15
-               ! Last Unit Conversion!!!
-               CALL Convert_KG_to_MMR( N_TRACERS, State_Met%AD, 
-     &                        State_Chm%TRACERS )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
          !==============================================================
          !       ***** A R C H I V E   D I A G N O S T I C S *****

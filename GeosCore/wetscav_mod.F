@@ -278,6 +278,7 @@
 !  02 Jul 2013 - R. Yantosca - Bug fix: add State_Chm to WETDEP calls for
 !                              met other than MERRA, GEOS-5.7 or GEOS-5
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  02 Apr 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -400,7 +401,7 @@
             ! Is this a tracer selected for diagnostics?
             IF ( ANY( Input_Opt%TINDEX(39,:) == N ) ) THEN
 
-               ! Loss rate (kg/s)
+               ! Loss rate (kg/kg/s)
                TMP = ( BEFORE(:,:,:,N) - State_Chm%Tracers(:,:,:,N) ) 
      &             / DT 
 
@@ -5423,6 +5424,7 @@
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5599,6 +5601,8 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  02 Apr 2015 - E. Lundgren - Move tracer unit conversion from kg/kg to kg
+!                              to within this routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5636,6 +5640,13 @@
 
       ! Is this a mercury simulation with dynamic online ocean?
       IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! TEMPORARY - ewl, 4/2/15
+      ! Convert tracer concentration from kg/kg to kg for wetdep
+      CALL Convert_MMR_to_KG( Input_Opt%N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6000,6 +6011,13 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! TEMPORARY - ewl, 4/2/15
+      ! Convert tracer concentration from kg to kg/kg
+      CALL Convert_KG_to_MMR( Input_Opt%N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       ! Free pointer
       NULLIFY( STT )
 
@@ -6037,6 +6055,7 @@
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6163,6 +6182,8 @@
 !  31-Dec-2010 - H. Amos     - Added comments
 !  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !  25 Aug 2014 - M. Sulprizio- Now accept Input_Opt as an argument
+!  02 Apr 2015 - E. Lundgren - Move tracer unit conversion from kg/kg to kg
+!                              to within this routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6200,6 +6221,13 @@
 
       ! Is this a mercury simulation with dynamic online ocean?
       IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! TEMPORARY - ewl, 4/2/15
+      ! Convert tracer concentration from kg/kg to kg for wetdep
+      CALL Convert_MMR_to_KG( Input_Opt%N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -6517,6 +6545,13 @@
       ENDDO	
       ENDDO	
 !$OMP END PARALLEL DO
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! TEMPORARY - ewl, 4/2/15
+      ! Convert tracer concentration from kg to kg/kg
+      CALL Convert_KG_to_MMR( Input_Opt%N_TRACERS, State_Met%AD, 
+     &                        State_Chm%TRACERS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Free pointer
       NULLIFY( STT )
