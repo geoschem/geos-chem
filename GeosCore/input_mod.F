@@ -849,13 +849,13 @@
 #elif defined( GRID05x0666 ) && defined( NESTED_SE )
       Input_Opt%RES_DIR = 'GEOS_0.5x0.666_SE/'
 #elif defined( GRID025x03125 ) && defined( NESTED_CH ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH'
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH/'
 #elif defined( GRID025x03125 ) && defined( NESTED_EU ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_EU'
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_EU/'
 #elif defined( GRID025x03125 ) && defined( NESTED_NA ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA'
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA/'
 #elif defined( GRID025x03125 ) && defined( NESTED_SE ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_SE'
+      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_SE/'
 #endif
 
       !-----------------------------------------------------------------
