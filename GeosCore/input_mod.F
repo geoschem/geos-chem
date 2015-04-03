@@ -3657,6 +3657,9 @@
       Input_Opt%LSKYRAD(2) = LSKYRAD(2)
       Input_Opt%TS_RAD     = TS_RAD
 
+      ! Return success
+      RC                   = GIGC_SUCCESS
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3902,6 +3905,9 @@
       ! Pass parameters to "transport_mod.f"
       CALL SET_TRANSPORT( IORD, JORD, KORD )
 #endif
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       END SUBROUTINE READ_TRANSPORT_MENU
 !EOC

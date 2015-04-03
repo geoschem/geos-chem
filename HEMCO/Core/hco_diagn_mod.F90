@@ -597,15 +597,15 @@ CONTAINS
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
           ENDIF
 
-          ! In an ESMF/MAPL environment, treat all data as instantaneous.
-          ! The HEMCO diagnostics are expected to be passed to the MAPL
-          ! history component on every time step and we should only pass
-          ! the instantaneous values so that the history component can 
-          ! properly perform its own data operations (based on the settings
-          ! in HISTORY.rc). 
-#if defined(ESMF_)
-          ThisDiagn%AvgFlag = AvgFlagInst
-#endif
+!          ! In an ESMF/MAPL environment, treat all data as instantaneous.
+!          ! The HEMCO diagnostics are expected to be passed to the MAPL
+!          ! history component on every time step and we should only pass
+!          ! the instantaneous values so that the history component can 
+!          ! properly perform its own data operations (based on the settings
+!          ! in HISTORY.rc). 
+!#if defined(ESMF_)
+!          ThisDiagn%AvgFlag = AvgFlagInst
+!#endif
  
        ! If OutOper is not set, determine scale factors from output unit:
        ELSE

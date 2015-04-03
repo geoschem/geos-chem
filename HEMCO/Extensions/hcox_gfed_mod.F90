@@ -190,7 +190,10 @@ CONTAINS
     INTEGER,         INTENT(INOUT)  :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  15 Dec 2013 - C. Keller   - Now a HEMCO extension 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  15 Dec 2013 - C. Keller     - Now a HEMCO extension 
+!  03 Apr 2015 - C. Keller     - Humid tropical forest mask is not binary 
+!                                any more but fraction (0.0 - 1.0).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -235,6 +238,11 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        CALL HCO_GetPtr ( am_I_Root, 'GFED_HUMTROP', HUMTROP, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Make sure HUMTROP does not exceed one
+       WHERE ( HUMTROP > 1.0_sp ) 
+          HUMTROP = 1.0_sp
+       END WHERE
 
        ! Also point to scale factors if needed
        IF ( DoDay ) THEN
@@ -291,14 +299,18 @@ CONTAINS
           ! per type are in kgDM/m2/s, and the GFED_EMFAC scale factors
           ! are in kg/kgDM (or kgC/kgDM for VOCs). This gives us TypArr
           ! in kg/m2/s.
-          TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),M)
-
           ! Use woodland emission factors for 'deforestation' outside
-          ! humid tropical forest
+          ! humid tropical forest. 
+          ! Now use weighted sum of woodland and deforestation, based 
+          ! on humid tropical forest mask. (ckeller, 4/3/15)
           IF ( M == 2 ) THEN
-             WHERE ( HUMTROP == 0.0_hp ) 
-                TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),6)
-             END WHERE
+!             WHERE ( HUMTROP == 0.0_hp ) 
+!                TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),6)
+!             END WHERE
+             TypArr = TmpPtr *         HUMTROP  * GFED_EMFAC(GfedIDs(N),M) &
+                    + TmpPtr * (1.0_sp-HUMTROP) * GFED_EMFAC(GfedIDs(N),6)
+          ELSE
+             TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),M)
           ENDIF
 
           ! Eventually add daily / 3-hourly scale factors. These scale
@@ -403,10 +415,11 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC          ! Return status
 !
 ! !REVISION HISTORY:
-!  15 Dec 2013 - C. Keller   - Initial version
-!  08 Aug 2014 - R. Yantosca - Now include hcox_gfed_include.H, which defines
-!                              GFED_SPEC_NAME and GFED_EMFAC arrays
-!  11 Nov 2014 - C. Keller   - Now get hydrophilic fractions through config file
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  15 Dec 2013 - C. Keller     - Now a HEMCO extension 
+!  08 Aug 2014 - R. Yantosca   - Now include hcox_gfed_include.H, which defines
+!                                GFED_SPEC_NAME and GFED_EMFAC arrays
+!  11 Nov 2014 - C. Keller     - Now get hydrophilic fractions through config file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -689,7 +702,8 @@ CONTAINS
   SUBROUTINE HCOX_GFED_Final
 !
 ! !REVISION HISTORY:
-!  15 Dec 2013 - C. Keller - Initial version
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  15 Dec 2013 - C. Keller     - Now a HEMCO extension 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
