@@ -1641,7 +1641,7 @@ CONTAINS
        BETA = ANN_AVG_FLASHRATE / 260.40253d0
     ENDIF
 
-#elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
 
     !---------------------------------------
     ! GEOS-FP: Nested China simulation
