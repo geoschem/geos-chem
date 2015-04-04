@@ -4568,15 +4568,6 @@
       ! READ_DIAGNOSTIC_MENU begins here!
       !=================================================================
 
-      ! Define collection number for netCDF diagnostics
-      !%%% NOTE, hardwire this for now, but eventually read from file
-      !
-      ! VERY IMPORTANT: this number must be equal or less than parameter
-      ! MaxCollections in hco_diagn_mod.F90, and must not be any of the
-      ! pre-defined HEMCO collection IDs (also defined in 
-      ! hco_diagn_mod.F90).
-      Input_Opt%DIAG_COLLECTION = 4
-
       ! Get fields from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS
       

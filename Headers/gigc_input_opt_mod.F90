@@ -1033,6 +1033,7 @@ CONTAINS
     !----------------------------------------
     ! DIAGNOSTIC MENU fields
     !----------------------------------------
+    Input_Opt%DIAG_COLLECTION        = -999
     Input_Opt%TS_DIAG                = 0
     ALLOCATE( Input_Opt%TINDEX( MAX_DIAG, MAX_TRCS ), STAT=RC )
     ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG           ), STAT=RC )

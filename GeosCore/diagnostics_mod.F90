@@ -104,6 +104,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: CollectionID
     REAL(sp)           :: TS
     REAL(fp), POINTER  :: AM2(:,:) => NULL()
     CHARACTER(LEN=15)  :: WriteFreq
@@ -130,16 +131,15 @@ CONTAINS
     WriteFreq = 'Hourly' 
 #endif
 
-    CALL DiagnCollection_Create( am_I_Root,                             &
-                                 NX        = IIPAR,                     &
-                                 NY        = JJPAR,                     &
-                                 NZ        = LLPAR,                     &
-                                 TS        = TS,                        &
-                                 AM2       = AM2,                       &
-                                 PREFIX    = DGN,                       &
-                                 WriteFreq = TRIM(WriteFreq),           &
-                                 COL       = Input_Opt%DIAG_COLLECTION, &
-                                 OVERWRITE = .FALSE.,                   & 
+    CALL DiagnCollection_Create( am_I_Root,                   &
+                                 NX        = IIPAR,           &
+                                 NY        = JJPAR,           &
+                                 NZ        = LLPAR,           &
+                                 TS        = TS,              &
+                                 AM2       = AM2,             &
+                                 PREFIX    = DGN,             &
+                                 WriteFreq = TRIM(WriteFreq), &
+                                 COL       = CollectionID,    &
                                  RC        = RC         )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL ERROR_STOP( 'Error in creating diagnostics collection '//TRIM(DGN), LOC ) 
@@ -147,6 +147,10 @@ CONTAINS
 
     ! Cleanup
     AM2 => NULL()
+
+    ! Save collection ID in Input_Opt%DIAG_COLLECTION for easy future 
+    ! reference
+    Input_Opt%DIAG_COLLECTION = CollectionID
 
     !-----------------------------------------------------------------------
     ! Add diagnostics to collection 
@@ -243,8 +247,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    ! Finalize diagnostics
-    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
+!    ! Finalize diagnostics
+!    CALL DiagnCollection_Cleanup( COL = Input_Opt%DIAG_COLLECTION )
 
     ! Return with success
     RC = GIGC_SUCCESS

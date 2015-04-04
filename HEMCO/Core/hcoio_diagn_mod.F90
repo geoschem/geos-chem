@@ -8,8 +8,14 @@
 !
 ! !DESCRIPTION: Module HCOIO\_Diagn\_Mod.F90 is the data interface module
 ! for the HEMCO diagnostics. It contains routines to write out diagnostics
-! into a netCDF file. 
-! \\
+! into a netCDF file.
+!\\
+!\\
+! In an ESMF/MAPL environment, the HEMCO diagnostics are not directly 
+! written to disk but passed to the gridded component export state, where 
+! they can be picked up by the MAPL HISTORY component.
+!\\
+!\\
 ! !INTERFACE:
 !
 MODULE HCOIO_DIAGN_MOD
@@ -24,6 +30,7 @@ MODULE HCOIO_DIAGN_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC :: HcoDiagn_Write 
   PUBLIC :: HCOIO_DIAGN_WRITEOUT
 !
 ! !REMARKS:
@@ -37,6 +44,7 @@ MODULE HCOIO_DIAGN_MOD
 !  28 Jul 2014 - C. Keller   - Removed GC specific initialization calls and
 !                              moved to HEMCO core.
 !  05 Aug 2014 - C. Keller   - Added dummy interface for ESMF.
+!  03 Apr 2015 - C. Keller   - Added HcoDiagn_Write
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -48,6 +56,103 @@ MODULE HCOIO_DIAGN_MOD
   REAL(sp), PARAMETER :: FillValue = HCO_MISSVAL 
 
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HcoDiagn_Write
+!
+! !DESCRIPTION: Subroutine HcoDiagn_Write is the wrapper routine to write out
+! the content of the built-in HEMCO diagnostics. If input argument Restart is
+! set to TRUE, only the restart collection will be written out. Otherwise,
+! the default collection
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HcoDiagn_Write( am_I_Root, HcoState, Restart, RC )
+!
+! !USES:
+!
+    USE HCO_State_Mod,       ONLY : HCO_State
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )    :: am_I_Root    ! Root CPU?
+    TYPE(HCO_State), POINTER          :: HcoState     ! HEMCO state object 
+    LOGICAL,         INTENT(IN   )    :: Restart      ! write restart (enforced)?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT)    :: RC           ! Return code
+!
+! !REVISION HISTORY: 
+!  03 Apr 2015 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I, COL
+    CHARACTER(LEN=255) :: MSG, LOC
+
+    !=================================================================
+    ! HcoDiagn_Write begins here!
+    !=================================================================
+
+    ! Init
+    LOC = 'HcoDiagn_Write (hcoi_diagn_mod.F90)'
+
+    ! To write restart (enforced)
+    IF ( RESTART ) THEN
+       CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root,                       &
+                                   HcoState,                        &
+                                   ForceWrite  = .TRUE.,            &
+                                   UsePrevTime = .FALSE.,           &
+                                   COL         = HcoDiagnIDRestart, &
+                                   RC          = RC                  )
+       IF( RC /= HCO_SUCCESS) RETURN 
+
+    ! Write all HEMCO diagnostics
+    ELSE
+
+       ! Loop over all collections that shall be written out.
+       ! HCOIO_DIAGN_WRITEOUT will determine whether it is time to
+       ! write a collection or not.
+       DO I = 1, 3 
+
+          ! Define collection ID
+          SELECT CASE ( I ) 
+             CASE ( 1 ) 
+                COL = HcoDiagnIDDefault
+             CASE ( 2 ) 
+                COL = HcoDiagnIDRestart
+             CASE ( 3 ) 
+                COL = HcoDiagnIDManual
+          END SELECT
+  
+          ! If not ESMF environment, never write the manual diagnostics
+          ! to disk. Instead, the content of the manual diagnostics needs
+          ! to be fetched explicitly.
+#if       !defined ( ESMF_ ) 
+          IF ( I == 3 ) CYCLE
+#endif
+ 
+          ! Restart file 
+          CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root,                       &
+                                      HcoState,                        &
+                                      ForceWrite  = .FALSE.,           &
+                                      UsePrevTime = .FALSE.,           &
+                                      COL         = COL,               &
+                                      RC          = RC                  )
+          IF(RC /= HCO_SUCCESS) RETURN 
+       ENDDO
+    ENDIF
+
+  END SUBROUTINE HcoDiagn_Write 
 !EOC
 # if !defined(ESMF_)
 !------------------------------------------------------------------------------
@@ -88,8 +193,7 @@ CONTAINS
     USE Ncdf_Mod,            ONLY : NC_Var_Write
     USE HCO_State_Mod,       ONLY : HCO_State
     USE JulDay_Mod,          ONLY : JulDay
-    USE HCO_Clock_Mod,       ONLY : HcoClock_Get
-    USE HCO_Clock_Mod,       ONLY : HcoClock_GetMinResetFlag
+    USE HCO_Clock_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -98,7 +202,6 @@ CONTAINS
     LOGICAL,                    INTENT(IN   ) :: ForceWrite  ! Write all diagnostics? 
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: UsePrevTime ! Use previous time 
-!    LOGICAL,          OPTIONAL, INTENT(IN   ) :: InclManual  ! Get manual diagn. too? 
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: OnlyIfFirst ! Only write if nnDiagn is 1
     INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr. 
 !
@@ -136,7 +239,7 @@ CONTAINS
     CHARACTER(LEN=255)        :: MSG 
     CHARACTER(LEN=4 )         :: Yrs
     CHARACTER(LEN=2 )         :: Mts, Dys, hrs, mns 
-    CHARACTER(LEN=31)         :: timeunit, myName, myUnit
+    CHARACTER(LEN=31)         :: timeunit, myName, myUnit, OutOper
     INTEGER                   :: fId, lonId, latId, levId, TimeId
     INTEGER                   :: VarCt
     INTEGER                   :: nLon, nLat, nLev, nTime 
@@ -335,8 +438,12 @@ CONTAINS
 
        ! Additional tracer attributes: long_name and _FillValue
        CALL NcBegin_Def( fID ) ! Reopen netCDF define mode
-       CALL NcDef_var_attributes( fID, VarCt, "long_name",  TRIM(myName) )
-       CALL NcDef_var_attributes( fID, VarCt, "_FillValue", FillValue    )
+       CALL NcDef_var_attributes( fID, VarCt, "long_name",        &
+            TRIM(ThisDiagn%long_name) )
+       CALL NcDef_var_attributes( fID, VarCt, "averaging_method", &
+            TRIM(ThisDiagn%AvgName  ) )
+       CALL NcDef_var_attributes( fID, VarCt, "_FillValue",       &
+            FillValue )
        CALL NcEnd_Def( fID )   ! Close netCDF define mode
 
        ! Mirror data and write to file. The mirroring is required in

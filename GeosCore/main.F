@@ -679,6 +679,9 @@
       ! non-emission data such as stratospheric Bry fields. If LEMIS
       ! is set to FALSE, the emissions driver routines will make sure
       ! that HEMCO does not calculate any emissions (ckeller, 1/12/15).
+      ! 
+      ! This call will also initialize the three built-in HEMCO 
+      ! diagnostics (default, manual, restart).
       CALL EMISSIONS_INIT( am_I_Root, Input_Opt,
      &                     State_Met, State_Chm, RC )
 
@@ -756,7 +759,8 @@
       !=================================================================      
 
 #if defined( DEVEL )
-      ! Initialize all diagnostics (ckeller, 1/13/15).
+      ! Initialize diagnostics other than the default HEMCO diagnostics
+      ! initialized above (ckeller, 1/13/15).
       CALL Diagnostics_Init( am_I_Root, Input_Opt, 
      &                       State_Met, State_Chm, RC )
 #endif 

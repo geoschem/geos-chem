@@ -180,7 +180,6 @@ CONTAINS
     LOGICAL             :: Found, DoDiagn
 
     ! For error handling & verbose mode
-    LOGICAL             :: verb
     CHARACTER(LEN=255)  :: MSG
 
     ! testing / debugging
@@ -197,9 +196,6 @@ CONTAINS
     ! Enter routine 
     CALL HCO_ENTER ('HCO_CalcEmis (HCO_CALC_MOD.F90)', RC )
     IF(RC /= HCO_SUCCESS) RETURN
-
-    ! verb mode? 
-    verb = HCO_IsVerb( 1 )
 
     !-----------------------------------------------------------------
     ! Initialize variables 
@@ -227,7 +223,7 @@ CONTAINS
     DoDiagn = HcoState%Options%AutoFillDiagn !Write AutoFill diagnostics?
 
     ! Verbose mode 
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(2) ) THEN
        WRITE (MSG, *) 'Run HEMCO calculation w/ following options:'
        CALL HCO_MSG ( MSG )
        WRITE (MSG, "(A20,I5)")    'Extension number:', ExtNr 
@@ -338,7 +334,7 @@ CONTAINS
           ENDIF
 
           ! verbose 
-          IF ( verb ) THEN
+          IF ( HCO_IsVerb(3) ) THEN
              WRITE(MSG,*) 'Added category emissions to species array: '
              CALL HCO_MSG(MSG)
              WRITE(MSG,*) 'Species       : ', PrevSpc
@@ -376,7 +372,7 @@ CONTAINS
              OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
 
              ! testing only
-             IF ( verb ) THEN
+             IF ( HCO_IsVerb(3) ) THEN
                 WRITE(MSG,*) 'Added total emissions to output array: '
                 CALL HCO_MSG(MSG)
                 WRITE(MSG,*) 'Species: ', PrevSpc
@@ -459,8 +455,8 @@ CONTAINS
           ENDIF
 
           ! verbose mode
-          IF ( verb ) THEN
-             write(MSG,*) 'Now calculating emissions for species ', &
+          IF ( HCO_IsVerb(2) ) THEN
+             WRITE(MSG,*) 'Calculating emissions for species ', &
                            TRIM(HcoState%Spc(ThisSpc)%SpcName)
              CALL HCO_MSG( MSG, SEP1='-', SEP2='-' )
           ENDIF
@@ -566,7 +562,7 @@ CONTAINS
        OutArr(:,:,:) = OutArr(:,:,:) + SpcFlx(:,:,:)
 
        ! verbose mode 
-       IF ( verb ) THEN
+       IF ( HCO_IsVerb(3) ) THEN
           WRITE(MSG,*) 'Added category emissions to species array: '
           CALL HCO_MSG(MSG)
           WRITE(MSG,*) 'Species       : ', PrevSpc
@@ -599,8 +595,8 @@ CONTAINS
           Diag3D => NULL()
        ENDIF
 
-       ! testing only
-       IF ( verb ) THEN
+       ! Verbose mode 
+       IF ( Hco_IsVerb(3) ) THEN
           WRITE(MSG,*) 'Added total emissions to output array: '
           CALL HCO_MSG(MSG)
           WRITE(MSG,*) 'Species: ', PrevSpc
@@ -619,7 +615,7 @@ CONTAINS
     OutArr => NULL()
 
     ! verbose
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(1) ) THEN
        WRITE (MSG, *) 'HEMCO emissions successfully calculated!'
        CALL HCO_MSG ( MSG )
     ENDIF
@@ -766,7 +762,6 @@ CONTAINS
  
     ! testing only
     INTEGER                 :: IX, IY
-    LOGICAL                 :: verb
 
     !=================================================================
     ! GET_CURRENT_EMISSIONS begins here
@@ -775,9 +770,6 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER('GET_CURRENT_EMISSIONS', RC )
     IF(RC /= HCO_SUCCESS) RETURN
-
-    ! Verbose mode 
-    verb = HCO_IsVerb( 1 ) 
 
     ! testing only:
     IX = 25 !-1 
@@ -794,7 +786,7 @@ CONTAINS
     MASK(:,:,:) = 1
 
     ! Verbose 
-    IF ( verb ) THEN
+    IF ( HCO_IsVerb(3) ) THEN
        write(MSG,*) '--> GET EMISSIONS FOR ', TRIM(BaseDct%cName)
        CALL HCO_MSG(MSG)
     ENDIF
@@ -902,7 +894,7 @@ CONTAINS
        ! if scale factors are only defined for a given time range and
        ! the simulation datetime is outside of this range.
        IF ( .NOT. FileData_ArrIsDefined(ScalDct%Dta) ) THEN
-          IF ( verb ) THEN
+          IF ( HCO_IsVerb(2) ) THEN
              MSG = 'Skip scale factor '//TRIM(ScalDct%cName)// &
                    ' because it is not defined for this datetime.'
              CALL HCO_MSG( MSG )
@@ -990,7 +982,7 @@ CONTAINS
              IF ( TMPVAL < MASK_THRESHOLD ) MASK(I,J,:) = 0
 
              ! testing only
-             IF ( verb .AND. I==1 .AND. J==1 ) THEN
+             IF ( HCO_IsVerb(2) .AND. I==1 .AND. J==1 ) THEN
                 write(MSG,*) 'Mask field ', TRIM(ScalDct%cName),   &
                      ' found and added to temporary mask.'
                 CALL HCO_MSG( MSG ) 
@@ -1079,8 +1071,8 @@ CONTAINS
 
           ENDDO !LL
 
-          ! testing only
-          if ( verb .and. i == ix .and. j == iy ) then
+          ! Verbose mode
+          if ( HCO_IsVerb(3) .and. i == ix .and. j == iy ) then
              write(MSG,*) 'Scale field ', TRIM(ScalDct%cName)
              CALL HCO_MSG( MSG )
              write(MSG,*) 'Time slice: ', tIdx

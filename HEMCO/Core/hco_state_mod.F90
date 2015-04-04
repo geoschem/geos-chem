@@ -116,22 +116,25 @@ MODULE HCO_State_Mod
   ! HcoOpt: Derived type for HEMCO run options
   !=========================================================================
   TYPE :: HcoOpt
-     INTEGER  :: ExtNr         ! ExtNr to be used 
-     INTEGER  :: SpcMin        ! Smallest HEMCO species ID to be considered 
-     INTEGER  :: SpcMax        ! Highest HEMCO species ID to be considered
-     INTEGER  :: CatMin        ! Smallest category to be considered
-     INTEGER  :: CatMax        ! Highest category to be considered
-     LOGICAL  :: AutoFillDiagn ! Write into AutoFill diagnostics?
-     LOGICAL  :: FillBuffer    ! Write calculated emissions into buffer
-                              ! instead of emission array? 
-     INTEGER  :: NegFlag       ! Negative value flag (from configfile):
-                              ! 2 = allow negative values
-                              ! 1 = set neg. values to zero and prompt warning 
-                              ! 0 = return w/ error if neg. value
-     LOGICAL  :: PBL_DRYDEP    ! If true, dry deposition frequencies will
-                              ! be calculated over the full PBL. If false, 
-                              ! they are calculated over the first layer only.
-     REAL(hp) :: MaxDepExp    ! Maximum value of deposition freq. x time step.
+     INTEGER  :: ExtNr          ! ExtNr to be used 
+     INTEGER  :: SpcMin         ! Smallest HEMCO species ID to be considered 
+     INTEGER  :: SpcMax         ! Highest HEMCO species ID to be considered
+     INTEGER  :: CatMin         ! Smallest category to be considered
+     INTEGER  :: CatMax         ! Highest category to be considered
+     LOGICAL  :: HcoWritesDiagn ! If set to .TRUE., HEMCO will schedule the
+                                ! output of the default HEMCO diagnostics 
+                                ! (in hco_driver_mod.F90).
+     LOGICAL  :: AutoFillDiagn  ! Write into AutoFill diagnostics?
+     LOGICAL  :: FillBuffer     ! Write calculated emissions into buffer
+                                ! instead of emission array? 
+     INTEGER  :: NegFlag        ! Negative value flag (from configfile):
+                                ! 2 = allow negative values
+                                ! 1 = set neg. values to zero and prompt warning 
+                                ! 0 = return w/ error if neg. value
+     LOGICAL  :: PBL_DRYDEP     ! If true, dry deposition frequencies will
+                                ! be calculated over the full PBL. If false, 
+                                ! they are calculated over the first layer only.
+     REAL(hp) :: MaxDepExp      ! Maximum value of deposition freq. x time step.
   END TYPE HcoOpt
 
   !=========================================================================
@@ -366,13 +369,14 @@ CONTAINS
     ! Default HEMCO options
     ! ==> execute HEMCO core; use all species and categories
     ALLOCATE( HcoState%Options )
-    HcoState%Options%ExtNr         =  0
-    HcoState%Options%SpcMin        =  1
-    HcoState%Options%SpcMax        = -1
-    HcoState%Options%CatMin        =  1
-    HcoState%Options%CatMax        = -1
-    HcoState%Options%AutoFillDiagn = .TRUE.
-    HcoState%Options%FillBuffer    = .FALSE.
+    HcoState%Options%ExtNr          =  0
+    HcoState%Options%SpcMin         =  1
+    HcoState%Options%SpcMax         = -1
+    HcoState%Options%CatMin         =  1
+    HcoState%Options%CatMax         = -1
+    HcoState%Options%AutoFillDiagn  = .TRUE.
+    HcoState%Options%HcoWritesDiagn = .FALSE.
+    HcoState%Options%FillBuffer     = .FALSE.
 
     ! Get negative flag value from configuration file. If not found, set to 0. 
     CALL GetExtOpt ( CoreNr, 'Negative values', &

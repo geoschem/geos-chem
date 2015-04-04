@@ -422,11 +422,10 @@ CONTAINS
     ! HEMCO routines 
     USE HCO_CLOCK_MOD,         ONLY : HcoClock_Get
     USE HCO_CLOCK_MOD,         ONLY : HcoClock_EmissionsDone
-    USE HCO_DIAGN_MOD,         ONLY : HCO_DIAGN_AUTOUPDATE
+    USE HCO_DIAGN_MOD,         ONLY : HcoDiagn_AutoUpdate
     USE HCO_FLUXARR_MOD,       ONLY : HCO_FluxarrReset 
     USE HCO_DRIVER_MOD,        ONLY : HCO_RUN
     USE HCOX_DRIVER_MOD,       ONLY : HCOX_RUN
-    USE HCOIO_DIAGN_MOD,       ONLY : HCOIO_DIAGN_WRITEOUT
 
     ! For soilnox
     USE GET_NDEP_MOD,          ONLY : RESET_DEP_N
@@ -497,15 +496,6 @@ CONTAINS
     ! been calculated for that time step.
     !=======================================================================
     CALL HcoClock_Get( IsEmisTime=IsEmisTime, RC=HMRC )
-
-!    !=======================================================================
-!    ! Output diagnostics 
-!    !=======================================================================
-!    IF ( DoDiagn ) THEN
-!       CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, WriteAll=.FALSE., & 
-!                                   RC=HMRC,   UsePrevTime=.FALSE. ) 
-!       IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_WRITEOUT', LOC )
-!    ENDIF
 
     ! ======================================================================
     ! Reset all emission and deposition values. Do this only if it is time
@@ -583,10 +573,13 @@ CONTAINS
        ENDIF
    
        !=======================================================================
-       ! Update diagnostics 
+       ! Update all 'AutoFill' diagnostics. This makes sure that all 
+       ! diagnostics fields with the 'AutoFill' flag are up-to-date. The
+       ! AutoFill flag is specified when creating a diagnostics container
+       ! (Diagn_Create).
        !=======================================================================
        IF ( DoDiagn ) THEN
-          CALL HCO_DIAGN_AUTOUPDATE ( am_I_Root, HcoState, HMRC )
+          CALL HcoDiagn_AutoUpdate ( am_I_Root, HcoState, HMRC )
           IF( HMRC /= HCO_SUCCESS) CALL ERROR_STOP ( 'DIAGN_UPDATE', LOC )
        ENDIF
    
@@ -633,7 +626,6 @@ CONTAINS
     USE HCO_Driver_Mod,      ONLY : HCO_Final
     USE HCO_Diagn_Mod,       ONLY : DiagnCollection_Cleanup
     USE HCO_State_Mod,       ONLY : HcoState_Final
-    USE HCOIO_Diagn_Mod,     ONLY : HCOIO_Diagn_WriteOut
     USE HCOX_Driver_Mod,     ONLY : HCOX_Final
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -652,9 +644,6 @@ CONTAINS
     INTEGER :: HMRC
     CHARACTER(LEN=255) :: LOC
 
-!    ! File prefix for restart file
-!    CHARACTER(LEN= 31), PARAMETER :: RST = 'HEMCO_restart'
-
     !=================================================================
     ! HCOI_GC_FINAL begins here!
     !=================================================================
@@ -662,26 +651,9 @@ CONTAINS
     ! Init
     LOC = 'HCOI_GC_Final (hcoi_gc_main_mod.F90)'
 
-!    ! Set HcoClock to current time. This is to make sure that the 
-!    ! diagnostics are properly written.
-!    CALL SetHcoTime ( am_I_Root, .FALSE., HMRC )
-!    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'SetHcoTime', LOC )
-
-!    ! Write out 'standard' diagnostics. Use previous time.
-!    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState,    &
-!                                WriteAll=.FALSE., RC=HMRC, &
-!                                UsePrevTime=.FALSE. )
-!    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL A', LOC )
- 
-!    ! Also write all other diagnostics into restart file. Use current time.
-!    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, WriteAll=.TRUE., &
-!                                RC=HMRC, UsePrevTime=.FALSE., &
-!                                OnlyIfFirst=.TRUE., PREFIX=RST )
-!    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOI_DIAGN_FINAL B', LOC )
-
-    ! Cleanup HCO core. this will also clean up the HEMCO emissions 
-    ! diagnostics collection.
-    CALL HCO_FINAL()
+    ! Cleanup HCO core. 
+    CALL HCO_FINAL( am_I_Root, HcoState, HMRC )
+    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCO_FINAL', LOC )
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
@@ -690,6 +662,9 @@ CONTAINS
 
     ! Cleanup HcoState object 
     CALL HcoState_Final ( HcoState ) 
+
+    ! Cleanup all diagnostics
+    CALL DiagnCollection_Cleanup
 
     ! Module variables
     IF ( ALLOCATED ( ZSIGMA          ) ) DEALLOCATE( ZSIGMA          )
@@ -722,8 +697,7 @@ CONTAINS
     USE GIGC_ErrCode_Mod
     USE Error_Mod,           ONLY : Error_Stop
     USE GIGC_Input_Opt_Mod,  ONLY : OptInput
-    USE HCOIO_Diagn_Mod,     ONLY : HCOIO_Diagn_WriteOut
-    USE HCO_DIAGN_MOD
+    USE HCOIO_Diagn_Mod,     ONLY : HcoDiagn_Write 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -743,7 +717,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, COL, HMRC
+    INTEGER            :: HMRC
     CHARACTER(LEN=255) :: MSG, LOC
 
     !=================================================================
@@ -757,57 +731,15 @@ CONTAINS
     CALL SetHcoTime ( am_I_Root, .FALSE., HMRC )
     IF( HMRC /= HCO_SUCCESS) CALL ERROR_STOP ( 'SetHcoTime', LOC )
 
-    ! To write restart (enforced)
-    IF ( RESTART ) THEN
-       CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root,                       &
-                                   HcoState,                        &
-                                   ForceWrite  = .TRUE.,            &
-                                   UsePrevTime = .FALSE.,           &
-                                   COL         = HcoDiagnIDRestart, &
-                                   RC          = HMRC                )
-       IF(HMRC/=HCO_SUCCESS) THEN
-          WRITE(MSG,*) 'Error writing diagnostics collection ', COL
-          CALL ERROR_STOP ( MSG, LOC )
-       ENDIF
-
-    ! Write all HEMCO diagnostics
-    ELSE
-
-       ! Loop over all collections that shall be written out.
-       ! HCOIO_DIAGN_WRITEOUT will determine whether it is time to
-       ! write a collection or not.
-       DO I = 1, 3 
-
-          ! Define collection ID
-          SELECT CASE ( I ) 
-             CASE ( 1 ) 
-                COL = HcoDiagnIDDefault
-             CASE ( 2 ) 
-                COL = HcoDiagnIDRestart
-             CASE ( 3 ) 
-                COL = HcoDiagnIDManual
-          END SELECT
-  
-          ! If not ESMF environment, never write the manual diagnostics
-          ! to disk. Instead, the content of the manual diagnostics needs
-          ! to be fetched explicitly.
-#if       !defined ( ESMF_ ) 
-          IF ( I == 3 ) CYCLE
-#endif
- 
-          ! Restart file 
-          CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root,                       &
-                                      HcoState,                        &
-                                      ForceWrite  = .FALSE.,           &
-                                      UsePrevTime = .FALSE.,           &
-                                      COL         = COL,               &
-                                      RC          = HMRC                )
-          IF(HMRC/=HCO_SUCCESS) THEN
-             WRITE(MSG,*) 'Error writing diagnostics collection ', COL
-             CALL ERROR_STOP ( MSG, LOC )
-          ENDIF
-       ENDDO
+    ! Write diagnostics
+    CALL HcoDiagn_Write( am_I_Root, HcoState, RESTART, HMRC )
+    IF(HMRC/=HCO_SUCCESS) THEN
+       WRITE(MSG,*) 'Error writing HEMCO diagnostics' 
+       CALL ERROR_STOP ( MSG, LOC )
     ENDIF
+
+    ! Return w/ success
+    RC = GIGC_SUCCESS
 
   END SUBROUTINE HCOI_GC_WriteDiagn
 !EOC

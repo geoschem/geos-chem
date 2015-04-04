@@ -71,6 +71,7 @@ CONTAINS
     USE HCO_ReadList_Mod, ONLY : ReadList_Read 
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
     USE HCO_Clock_Mod,    ONLY : HcoClock_InitTzPtr
+    USE HCOIO_DIAGN_MOD,  ONLY : HcoDiagn_Write
 !
 ! !INPUT PARAMETERS:
 !
@@ -116,7 +117,17 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !--------------------------------------------------------------
-    ! 2. Read/update data
+    ! 2. Write HEMCO diagnostics. Do this only if the corresponding
+    ! option is enabled. Otherwise, let the user decide when to 
+    ! call HcoDiagn_Write. 
+    !--------------------------------------------------------------
+    IF ( HcoState%Options%HcoWritesDiagn ) THEN
+       CALL HcoDiagn_Write( am_I_Root, HcoState, .FALSE., RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------------------------
+    ! 3. Read/update data
     ! Check if there are any data files that need to be read or 
     ! updated, e.g. on the first call of HEMCO or if we enter a new
     ! month, year, etc. 
@@ -143,7 +154,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! 3. Calculate the emissions for current time stamp based on the
+    ! 4. Calculate the emissions for current time stamp based on the
     ! content of EmisList. Emissions become written into HcoState.
     ! Do this only if it's time for emissions. 
     !-----------------------------------------------------------------
@@ -183,7 +194,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_Diagn_Mod
+    USE HCO_Diagn_Mod,    ONLY : HcoDiagn_Init
     USE HCO_tIdx_Mod,     ONLY : tIDx_Init
     USE HCO_Clock_Mod,    ONLY : HcoClock_Init
     USE HCO_ReadList_Mod, ONLY : ReadList_Init
@@ -211,8 +222,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=15)   :: WriteFreq
-
     !=================================================================
     ! HCO_INIT begins here!
     !=================================================================
@@ -229,72 +238,8 @@ CONTAINS
     CALL HcoClock_Init( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! ------------------------------------------------------------------
-    ! Initialize the HEMCO emissions diagnostics collections. 
-    ! The empty prefix will make sure that the prefix is obtained 
-    ! from the HEMCO configuration file settings.
-    ! In an ESMF environment, set output frequency to 'Always' to 
-    ! ensure that diagnostics are passed to ExtData on every time 
-    ! step (if a corresponding export field exists). MAPL history
-    ! will take care of all the data output/averaging.
-    ! ------------------------------------------------------------------
-
-    ! Default diagnostics
-#if defined ( ESMF_ )
-    WriteFreq = 'Always'
-#else
-    WriteFreq = 'Hourly'
-#endif
-    CALL DiagnCollection_Create( am_I_Root,                             &
-                                 NX        = HcoState%NX,               &
-                                 NY        = HcoState%NY,               &
-                                 NZ        = HcoState%NZ,               &
-                                 TS        = HcoState%TS_EMIS,          &
-                                 AM2       = HcoState%Grid%AREA_M2%Val, &
-                                 COL       = HcoDiagnIDDefault,         & 
-                                 PREFIX    = '',                        &
-                                 WriteFreq = TRIM(WriteFreq),           & 
-                                 RC        = RC                          )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! HEMCO restart 
-#if defined ( ESMF_ )
-    WriteFreq = 'Always'
-#else
-    WriteFreq = 'End'
-#endif
-    CALL DiagnCollection_Create( am_I_Root,                             &
-                                 NX        = HcoState%NX,               &
-                                 NY        = HcoState%NY,               &
-                                 NZ        = HcoState%NZ,               &
-                                 TS        = HcoState%TS_EMIS,          &
-                                 AM2       = HcoState%Grid%AREA_M2%Val, &
-                                 COL       = HcoDiagnIDRestart,         & 
-                                 PREFIX    = 'HEMCO_restart',           &
-                                 WriteFreq = TRIM(WriteFreq),           & 
-                                 RC        = RC                          )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Manual diagnostics
-#if defined ( ESMF_ )
-    WriteFreq = 'Always'
-#else
-    WriteFreq = 'Manual'
-#endif
-    CALL DiagnCollection_Create( am_I_Root,                             &
-                                 NX        = HcoState%NX,               &
-                                 NY        = HcoState%NY,               &
-                                 NZ        = HcoState%NZ,               &
-                                 TS        = HcoState%TS_EMIS,          &
-                                 AM2       = HcoState%Grid%AREA_M2%Val, &
-                                 COL       = HcoDiagnIDManual,          & 
-                                 PREFIX    = 'HEMCO_manual',            &
-                                 WriteFreq = TRIM(WriteFreq),           & 
-                                 RC        = RC                          )
-    IF ( RC /= HCO_SUCCESS ) RETURN
- 
-    ! Initialize the HEMCO ReadList. This has to be done before
-    ! the call to SetReadList below. 
+    ! Initialize the HEMCO diagnostics
+    CALL HcoDiagn_Init( am_I_Root, HcoState, RC )
  
     ! Initialize the HEMCO ReadList. This has to be done before
     ! the call to SetReadList below. 
@@ -321,7 +266,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Final() 
+  SUBROUTINE HCO_Final( am_I_Root, HcoState, RC ) 
 !
 ! !USES:
 !
@@ -333,7 +278,16 @@ CONTAINS
     USE HCO_DataCont_Mod,  ONLY : cIDList_Cleanup
     USE HCO_DataCont_Mod,  ONLY : Reset_nnDataCont
     USE HCO_ExtList_Mod,   ONLY : ExtFinal
-    USE HCO_Diagn_Mod,     ONLY : DiagnCollection_Cleanup
+    USE HCOIO_DIAGN_MOD,   ONLY : HcoDiagn_Write
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HCO_State),  POINTER       :: HcoState   ! HcoState object
+    INTEGER,          INTENT(INOUT) :: RC         ! Failure or success
 !
 ! !REMARKS:
 !  (1) ConfigFile_Cleanup also cleans up the data containers, while routine
@@ -354,7 +308,11 @@ CONTAINS
     ! HCO_FINAL begins here 
     !=================================================================
 
-    CALL DiagnCollection_Cleanup()
+    ! Write diagnostics if needed
+    IF ( HcoState%Options%HcoWritesDiagn ) THEN
+       CALL  HcoDiagn_Write( am_I_Root, HcoState, .TRUE., RC )
+    ENDIF
+
     CALL cIDList_Cleanup  (         ) 
     CALL HcoClock_Cleanup (         )
     CALL tIDx_Cleanup     (         )

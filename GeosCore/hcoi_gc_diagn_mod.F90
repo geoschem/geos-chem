@@ -235,14 +235,14 @@ CONTAINS
     IF ( .FALSE. ) THEN    ! Deactivated
 #endif
 
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
+!       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 
           !-------------------------------------
           ! Hourly emissions
           !-------------------------------------
 
           ! Do for all emission species
-          DO I = 1,37
+          DO I = 1,38
 
              ! Get species name
              SELECT CASE ( I )
@@ -320,6 +320,8 @@ CONTAINS
                    SpcName = 'Br2'
                 CASE ( 37 )
                    SpcName = 'ISOP'
+                CASE ( 38 )
+                   SpcName = 'Rn'
                 CASE DEFAULT
                    SpcName = 'DUMMY'
              END SELECT
@@ -402,7 +404,7 @@ CONTAINS
                 ENDDO ! J
              ENDIF    ! NO
           ENDDO       ! I
-       ENDIF          ! fullchem
+!       ENDIF          ! fullchem
     ENDIF             ! testing toggle
 
     ! Leave w/ success

@@ -866,7 +866,7 @@ CONTAINS
        MSG = 'HEMCO FINISHED'
        CALL HCO_MSG ( MSG, SEP1='-' )
  
-       WRITE(MSG,'(A16,I3,A12,I6)') &
+       WRITE(MSG,'(A16,I1,A12,I6)') &
           'Warnings (level ', Err%Warnings, ' or lower): ', Err%nWarnings
        CALL HCO_MSG ( MSG, SEP2='-' )
     ENDIF

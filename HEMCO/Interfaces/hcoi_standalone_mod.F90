@@ -299,6 +299,9 @@ CONTAINS
     ! HEMCO configuration file
     HcoState%ConfigFile = ConfigFile
 
+    ! Let HEMCO schedule the diagnostics
+    HcoState%Options%HcoWritesDiagn = .TRUE.
+
     !=================================================================
     ! Initialize HEMCO internal lists and variables. All data
     ! information is written into internal lists (ReadList) and 
@@ -437,12 +440,6 @@ CONTAINS
 100    FORMAT( 'Calculate emissions at ', i4,'-',i2.2,'-',i2.2,' ', &
                  i2.2,':',i2.2,':',i2.2 )
        CALL HCO_MSG(MSG)
-
-       !=================================================================
-       ! Output diagnostics 
-       !=================================================================
-       CALL HCOIO_Diagn_WriteOut ( am_I_Root, HcoState, .FALSE., RC )
-       IF ( RC /= HCO_SUCCESS) RETURN 
     
        ! ================================================================
        ! Reset all emission and deposition values
@@ -543,19 +540,10 @@ CONTAINS
 
     ! Init
     LOC = 'HCOI_SA_FINAL (hco_standalone_mod.F90)'
-
-    ! Write out all diagnostics: first 'regular' diagnostics, then
-    ! also restart values.
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .FALSE., RC, &
-                                UsePrevTime=.TRUE. )
-    IF (RC /= HCO_SUCCESS) RETURN 
-
-    CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root, HcoState, .TRUE.,  RC, &
-                                UsePrevTime=.FALSE., PREFIX=RST )
-    IF (RC /= HCO_SUCCESS) RETURN 
  
     ! Cleanup HCO core
-    CALL HCO_FINAL()
+    CALL HCO_FINAL( am_I_Root, HcoState, RC )
+    IF (RC /= HCO_SUCCESS) RETURN 
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 

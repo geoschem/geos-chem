@@ -300,9 +300,11 @@ CONTAINS
           ! are in kg/kgDM (or kgC/kgDM for VOCs). This gives us TypArr
           ! in kg/m2/s.
           ! Use woodland emission factors for 'deforestation' outside
-          ! humid tropical forest. 
-          ! Now use weighted sum of woodland and deforestation, based 
-          ! on humid tropical forest mask. (ckeller, 4/3/15)
+          ! humid tropical forest.
+          ! Deforestation emissions now use the weighted sum of 
+          ! deforestation and woodland scale factors, based on the value
+          ! of the humid tropical forest mask. This makes the calculation
+          ! less dependent on model resolution. (ckeller, 4/3/15) 
           IF ( M == 2 ) THEN
 !             WHERE ( HUMTROP == 0.0_hp ) 
 !                TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),6)
