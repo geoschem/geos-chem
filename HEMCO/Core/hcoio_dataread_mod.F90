@@ -496,7 +496,7 @@ CONTAINS
        ! Verbose mode
        IF ( HCO_IsVerb(2) ) THEN
           WRITE(MSG,*) '- Reading from existing stream: ', TRIM(srcFile)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(MSG,SEP1='-')
        ENDIF
 
     ELSE
@@ -505,7 +505,7 @@ CONTAINS
        ! Verbose mode
        IF ( HCO_IsVerb(1) ) THEN
           WRITE(MSG,*) '- Opening file: ', TRIM(srcFile)
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(MSG,SEP1='-')
        ENDIF
 
        ! Also write to standard output

@@ -326,6 +326,9 @@ CONTAINS
 
     ! Close the logfile and cleanup error object. 
     CALL HCO_Error_Final  (         )
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
  
   END SUBROUTINE HCO_Final
 !EOC

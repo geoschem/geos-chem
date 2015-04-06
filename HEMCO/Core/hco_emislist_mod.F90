@@ -149,7 +149,7 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( VERBOSE ) THEN
        MSG = 'Container added to EmisList:'
-       CALL HCO_MSG(MSG,SEP1='-')
+       CALL HCO_MSG(MSG)
        CALL HCO_PrintDataCont( Lct%Dct, 3 )
     ENDIF
 

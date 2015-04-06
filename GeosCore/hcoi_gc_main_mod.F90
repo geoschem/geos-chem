@@ -49,8 +49,9 @@ MODULE HCOI_GC_Main_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: Calc_SumCosZa
-  PRIVATE :: ExtState_SetPointers
-  PRIVATE :: ExtState_UpdtPointers
+  PRIVATE :: ExtState_InitTargets
+  PRIVATE :: ExtState_SetFields
+  PRIVATE :: ExtState_UpdateFields
   PRIVATE :: Get_SzaFact
   PRIVATE :: GridEdge_Set
   PRIVATE :: Set_Grid
@@ -362,14 +363,14 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Set pointers to met fields.
+    ! Initialize ExtState target arrays. 
     ! Extensions typically depend on environmental dependent met. 
     ! variables such as wind speed, surface temp., etc. Pointers 
     ! to these (2D or 3D) fields are defined in the extension object. 
     ! Here, we need to make sure that these pointers are properly 
     ! connected.
     !-----------------------------------------------------------------
-    CALL ExtState_SetPointers( am_I_Root, State_Met, State_Chm, RC )
+    CALL ExtState_InitTargets( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -433,13 +434,13 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input options
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Meteo state 
     LOGICAL,          INTENT(IN   )  :: EmisTime   ! Is this an emission time step? 
     INTEGER,          INTENT(IN   )  :: Phase      ! Run phase: 1, 2, -1 (all) 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input options
+    TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Meteo state 
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
@@ -551,16 +552,22 @@ CONTAINS
     !=======================================================================
     IF ( Phase /= 1 .AND. IsEmisTime ) THEN 
 
-       !=======================================================================
-       ! Update shadow variables used in ExtState. Should be done after HCO_RUN
-       ! just in case that some ExtState variables are defined using data from
-       ! the HEMCO configuration file (which becomes only updated in HCO_RUN).
-       !=======================================================================
-       CALL ExtState_UpdtPointers ( am_I_Root, State_Met, State_Chm, HMRC )
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP('ExtState_UpdtPointers', LOC )
+       !-----------------------------------------------------------------
+       ! Set / update ExtState fields.
+       ! Extensions typically depend on environmental dependent met. 
+       ! variables such as wind speed, surface temp., etc. Pointers 
+       ! to these (2D or 3D) fields are defined in the extension object. 
+       ! Here, we need to make sure that these pointers are properly 
+       ! connected.
+       !-----------------------------------------------------------------
+       CALL ExtState_SetFields( am_I_Root, State_Met, State_Chm, RC )
+       IF ( RC /= GIGC_SUCCESS ) THEN
+          CALL ERROR_STOP('ExtState_SetFields', LOC )
           RETURN 
-       ENDIF
+       ENDIF 
+   
+       CALL ExtState_UpdateFields( am_I_Root, State_Met, State_Chm, RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
    
        !=======================================================================
        ! Run HCO extensions. Emissions will be added to corresponding
@@ -653,12 +660,10 @@ CONTAINS
 
     ! Cleanup HCO core. 
     CALL HCO_FINAL( am_I_Root, HcoState, HMRC )
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCO_FINAL', LOC )
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields. 
     CALL HCOX_FINAL ( am_I_Root, HcoState, ExtState, HMRC ) 
-    IF(HMRC/=HCO_SUCCESS) CALL ERROR_STOP ( 'HCOX_FINAL', LOC )
 
     ! Cleanup HcoState object 
     CALL HcoState_Final ( HcoState ) 
@@ -808,10 +813,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ExtState_SetPointers
+! !IROUTINE: ExtState_InitTargets
 !
-! !DESCRIPTION: SUBROUTINE ExtState\_SetPointers sets the extension object data
-! pointers. 
+! !DESCRIPTION: SUBROUTINE ExtState\_InitTargets allocates some local arrays
+! that act as targets for the ExtState object.
 !\\
 ! Note that for now, this explicitly assumes that the HEMCO emissions grid is 
 ! the same as the GEOS-Chem simulation grid. To support other grids, the met 
@@ -820,34 +825,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetPointers( am_I_Root, State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtState_InitTargets( am_I_Root, RC ) 
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE GIGC_State_Met_Mod, ONLY : MetState
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
 
     USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
-
-    ! For ParaNOx
-    USE TRACERID_MOD,       ONLY : IDTO3, IDTNO, IDTNO2, IDTHNO3
-
-    ! For SoilNox
-    USE Drydep_Mod,         ONLY : DRYCOEFF
-    USE Get_Ndep_Mod,       ONLY : DRY_TOTN
-    USE Get_Ndep_Mod,       ONLY : WET_TOTN
-
-#if !defined(ESMF_)
-    USE MODIS_LAI_MOD,      ONLY : GC_LAI
-#endif
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -867,18 +856,15 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    LOGICAL :: DoDryCoeff
-    INTEGER :: AS
-    CHARACTER(LEN=255) :: LOC
+    INTEGER            :: AS
+    CHARACTER(LEN=255) :: LOC = 'ExtState_InitTargets (hcoi_gc_main_mod.F90)'
 
     !=================================================================
-    ! ExtState_SetPointers begins here
+    ! ExtState_InitTargets begins here
     !=================================================================
 
     ! Init
     RC = GIGC_SUCCESS
-
-    LOC = 'ExtState_SetPointers (hcoi_gc_main_mod.F90)'
 
     ! ----------------------------------------------------------------
     ! HCO_SZAFACT aren't defined as 3D arrays in Met_State.  Hence 
@@ -896,19 +882,16 @@ CONTAINS
        ALLOCATE( HCO_SZAFACT( IIPAR, JJPAR      ),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_SZAFACT', LOC )
        HCO_SZAFACT = 0e0_hp
-
-       ExtState%SZAFACT%Arr%Val => HCO_SZAFACT
     ENDIF
 
     IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN 
        ALLOCATE(HCO_FRAC_OF_PBL(IIPAR,JJPAR,LLPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'HCO_FRAC_OF_PBL', LOC )
        HCO_FRAC_OF_PBL = 0.0_hp
-       ExtState%FRAC_OF_PBL%Arr%Val => HCO_FRAC_OF_PBL
     ENDIF
 
+    ! Initialize max. PBL
     HCO_PBL_MAX = 0
-    ExtState%PBL_MAX => HCO_PBL_MAX
 
     ! ----------------------------------------------------------------
     ! The J-Values for NO2 and O3 are not defined in Met_State. We
@@ -918,194 +901,355 @@ CONTAINS
        ALLOCATE( JNO2(IIPAR,JJPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'JNO2', LOC )
        JNO2 = 0.0e0_hp
-       ExtState%JNO2%Arr%Val => JNO2 
     ENDIF
 
     IF ( ExtState%JO1D%DoUse ) THEN 
        ALLOCATE( JO1D(IIPAR,JJPAR),STAT=AS)
        IF ( AS/=0 ) CALL ERROR_STOP ( 'JO1D', LOC )
        JO1D = 0.0e0_hp
-       ExtState%JO1D%Arr%Val => JO1D 
     ENDIF
-
-    ! ----------------------------------------------------------------
-    ! All other met fields: point to corresponding state-met field
-    ! ----------------------------------------------------------------
-
-    ! ----------------------------------------------------------------
-    ! 2D fields
-    IF ( ExtState%U10M%DoUse ) THEN
-       ExtState%U10M%Arr%Val => State_Met%U10M
-    ENDIF
-    IF ( ExtState%V10M%DoUse ) THEN
-       ExtState%V10M%Arr%Val => State_Met%V10M
-    ENDIF
-    IF ( ExtState%ALBD%DoUse ) THEN
-       ExtState%ALBD%Arr%Val => State_Met%ALBD
-    ENDIF
-    IF ( ExtState%WLI%DoUse ) THEN
-       ExtState%WLI%Arr%Val => State_Met%LWI
-    ENDIF
-    IF ( ExtState%T2M%DoUse ) THEN
-       ExtState%T2M%Arr%Val => State_Met%TS
-    ENDIF
-    IF ( ExtState%TSKIN%DoUse ) THEN
-       ExtState%TSKIN%Arr%Val => State_Met%TSKIN
-    ENDIF
-    IF ( ExtState%GWETROOT%DoUse ) THEN
-       ExtState%GWETROOT%Arr%Val => State_Met%GWETROOT
-    ENDIF
-    IF ( ExtState%GWETTOP%DoUse ) THEN
-       ExtState%GWETTOP%Arr%Val => State_Met%GWETTOP
-    ENDIF
-    IF ( ExtState%USTAR%DoUse ) THEN
-       ExtState%USTAR%Arr%Val => State_Met%USTAR
-    ENDIF
-    IF ( ExtState%Z0%DoUse ) THEN
-       ExtState%Z0%Arr%Val => State_Met%Z0
-    ENDIF
-    IF ( ExtState%TROPP%DoUse ) THEN
-       ExtState%TROPP%Arr%Val => State_Met%TROPP
-    ENDIF
-    IF ( ExtState%SUNCOSmid%DoUse ) THEN
-       ExtState%SUNCOSmid%Arr%Val => State_Met%SUNCOSmid
-    ENDIF
-    IF ( ExtState%PARDR%DoUse ) THEN
-       ExtState%PARDR%Arr%Val => State_Met%PARDR
-    ENDIF
-    IF ( ExtState%PARDF%DoUse ) THEN
-       ExtState%PARDF%Arr%Val => State_Met%PARDF
-    ENDIF
-    IF ( ExtState%RADSWG%DoUse ) THEN
-       ExtState%RADSWG%Arr%Val => State_Met%RADSWG
-    ENDIF
-    IF ( ExtState%FRCLND%DoUse ) THEN
-       ExtState%FRCLND%Arr%Val => State_Met%FRCLND
-    ENDIF
-    IF ( ExtState%CLDFRC%DoUse ) THEN
-       ExtState%CLDFRC%Arr%Val => State_Met%CLDFRC
-    ENDIF
-    IF ( ExtState%CNV_MFC%DoUse ) THEN
-       ExtState%CNV_MFC%Arr%Val => State_Met%CMFMC
-    ENDIF
-    IF ( ExtState%SNOWHGT%DoUse ) THEN
-#if   defined( GEOS_4 ) 
-       ExtState%SNOWHGT%Arr%Val => State_Met%SNOW
-#else
-       ExtState%SNOWHGT%Arr%Val => State_Met%SNOMAS
-#endif
-    ENDIF
-    IF ( ExtState%SNODP%DoUse ) THEN
-#if   defined( GEOS_4 ) 
-       ExtState%SNODP%Arr%Val => State_Met%SNOW
-#else
-       ExtState%SNODP%Arr%Val => State_Met%SNODP
-#endif
-    ENDIF
-    IF ( ExtState%FRLAND%DoUse ) THEN
-       ExtState%FRLAND%Arr%Val => State_Met%FRLAND
-    ENDIF
-    IF ( ExtState%FROCEAN%DoUse ) THEN
-       ExtState%FROCEAN%Arr%Val => State_Met%FROCEAN
-    ENDIF
-    IF ( ExtState%FRLAKE%DoUse ) THEN
-       ExtState%FRLAKE%Arr%Val => State_Met%FRLAKE
-    ENDIF
-    IF ( ExtState%FRLANDIC%DoUse ) THEN
-       ExtState%FRLANDIC%Arr%Val => State_Met%FRLANDIC
-    ENDIF
-
-    ! ----------------------------------------------------------------
-    ! Modis LAI parameter
-    IF ( ExtState%GC_LAI%DoUse ) THEN
-#if defined(ESMF_)
-       ExtState%GC_LAI%Arr%Val => State_Met%LAI
-#else
-       ExtState%GC_LAI%Arr%Val => GC_LAI
-
-       ! testing only
-!       ExtState%GC_LAI%Arr%Val => State_Met%LAI
-#endif
-    ENDIF
-    
-    ! 3D fields
-    IF ( ExtState%SPHU%DoUse ) THEN
-       ExtState%SPHU%Arr%Val => State_Met%SPHU
-    ENDIF
-    IF ( ExtState%TK%DoUse ) THEN
-       ExtState%TK%Arr%Val => State_Met%T
-    ENDIF
-    IF ( ExtState%AIR%DoUse ) THEN
-       ExtState%AIR%Arr%Val => State_Met%AD
-    ENDIF
-    IF ( ExtState%AIRVOL%DoUse ) THEN
-       ExtState%AIRVOL%Arr%Val => State_Met%AIRVOL
-    ENDIF
-    
-    ! ----------------------------------------------------------------
-    ! Tracer fields
-    IF ( ExtState%O3%DoUse ) THEN
-       IF ( IDTO3 <= 0 ) THEN
-          CALL ERROR_STOP ( 'IDTO3 need to be positive!', LOC )
-       ELSE
-          ExtState%O3%Arr%Val => State_Chm%Tracers(:,:,:,IDTO3)
-       ENDIF
-    ENDIF
-    IF ( ExtState%NO2%DoUse ) THEN
-       IF ( IDTNO2 <= 0 ) THEN
-          CALL ERROR_STOP ( 'IDTNO2 need to be positive!', LOC )
-       ELSE
-          ExtState%NO2%Arr%Val => State_Chm%Tracers(:,:,:,IDTNO2)
-       ENDIF
-    ENDIF
-    IF ( ExtState%NO%DoUse ) THEN
-       IF ( IDTNO <= 0 ) THEN
-          CALL ERROR_STOP ( 'IDTNO need to be positive!', LOC )
-       ELSE
-          ExtState%NO%Arr%Val => State_Chm%Tracers(:,:,:,IDTNO)
-       ENDIF
-    ENDIF
-    IF ( ExtState%HNO3%DoUse ) THEN
-       IF ( IDTHNO3 <= 0 ) THEN
-          CALL ERROR_STOP ( 'IDTHNO3 need to be positive!', LOC )
-       ELSE
-          ExtState%HNO3%Arr%Val => State_Chm%Tracers(:,:,:,IDTHNO3)
-       ENDIF
-    ENDIF
-
-    ! ----------------------------------------------------------------
-    ! Deposition parameter
-    DoDryCoeff = .FALSE.
-    IF ( ExtState%DRY_TOTN%DoUse ) THEN
-       ExtState%DRY_TOTN%Arr%Val => DRY_TOTN 
-       DoDryCoeff = .TRUE.
-    ENDIF
-    IF ( ExtState%WET_TOTN%DoUse ) THEN
-       ExtState%WET_TOTN%Arr%Val => WET_TOTN
-       DoDryCoeff = .TRUE.
-    ENDIF
-    IF ( DoDryCoeff ) ExtState%DRYCOEFF => DRYCOEFF
 
     ! Leave with success
     RC = GIGC_SUCCESS
 
-  END SUBROUTINE ExtState_SetPointers
+  END SUBROUTINE ExtState_InitTargets
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ExtState_UpdtPointers
+! !IROUTINE: ExtState_SetFields
 !
-! !DESCRIPTION: SUBROUTINE ExtState\_UpdtPointers updates the extension 
+! !DESCRIPTION: SUBROUTINE ExtState\_SetFields connects the ExtState fields 
+! of the HEMCO ExtState object to its target data. This can be a field in
+! State_Met, State_Chm, or any other 2D/3D field defined within GEOS-Chem or
+! even explicitly calculated in this module. All these fields are expected 
+! to be of the same type as the corresponding ExtState object, and a pointer 
+! link is established between the two fields on the first call.
+!\\
+!\\
+! The ExtState object fields can also be linked to data fields read through
+! the HEMCO configuration file. In this case, the data fields will be copied
+! from the HEMCO data list into the ExtState object every time this routine
+! is called. The field name of the HEMCO field must match the field name 
+! passed to ExtState\_Set. 
+!\\
+!\\
+! Fields from the HEMCO data list are given priority over the target fields
+! from Met_State, Chm_State, etc. For example, if the HEMCO data list contains 
+! a field named 'U10M', this field will be used in ExtState%U10M in lieu of
+! State_Met%U10M. 
+!\\  
+!\\
+! Note that for now, this explicitly assumes that the HEMCO emissions grid is 
+! the same as the GEOS-Chem simulation grid. To support other grids, the met 
+! data has to be regridded explicitly at every time step!
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ExtState_SetFields( am_I_Root, State_Met, State_Chm, RC ) 
+!
+! !USES:
+!
+    USE HCOX_STATE_MOD,        ONLY : ExtDat_Set
+
+    USE GIGC_ErrCode_Mod
+    USE ERROR_MOD,             ONLY : ERROR_STOP
+    USE GIGC_State_Met_Mod,    ONLY : MetState
+    USE GIGC_State_Chm_Mod,    ONLY : ChmState
+
+    ! For ParaNOx
+    USE TRACERID_MOD,          ONLY : IDTO3, IDTNO, IDTNO2, IDTHNO3
+
+    ! For SoilNox
+    USE Drydep_Mod,            ONLY : DRYCOEFF
+    USE Get_Ndep_Mod,          ONLY : DRY_TOTN
+    USE Get_Ndep_Mod,          ONLY : WET_TOTN
+
+#if !defined(ESMF_)
+    USE MODIS_LAI_MOD,         ONLY : GC_LAI
+#endif
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
+    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state 
+    INTEGER,          INTENT(INOUT)  :: RC         ! Return code
+!
+! !REVISION HISTORY:
+!  23 Oct 2012 - C. Keller    - Initial Version
+!  20 Aug 2014 - M. Sulprizio - Add PBL_MAX and FRAC_OF_PBL for POPs simulation
+!  02 Oct 2014 - C. Keller    - PEDGE is now in HcoState%Grid
+!  16 Oct 2014 - C. Keller    - Removed SUNCOSmid5. This is now calculated
+!                               internally in Paranox.
+!  12 Mar 2015 - R. Yantosca  - Allocate SUMCOSZA array for SZAFACT
+!  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
+!  03 Apr 2015 - C. Keller    - Now call down to ExtDat_Set for all fields
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    LOGICAL, SAVE      :: FIRST = .TRUE.
+    INTEGER            :: HCRC
+    CHARACTER(LEN=255) :: LOC = 'ExtState_SetFields (hcoi_gc_main_mod.F90)'
+
+    !=================================================================
+    ! ExtState_SetFields begins here
+    !=================================================================
+
+    ! Init
+    RC = GIGC_FAILURE
+
+    ! ----------------------------------------------------------------
+    ! Pointers to local module arrays 
+    ! ----------------------------------------------------------------
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SZAFACT, & 
+          'SZAFACT', HCRC,      FIRST,    HCO_SZAFACT        )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%JNO2, &
+            'JNO2',  HCRC,      FIRST,    JNO2            )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%JO1D, &
+            'JO1D',  HCRC,      FIRST,    JO1D            )  
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRAC_OF_PBL, &
+     'FRAC_OF_PBL',  HCRC,      FIRST,    HCO_FRAC_OF_PBL )  
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    ! ----------------------------------------------------------------
+    ! 2D fields 
+    ! ----------------------------------------------------------------
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%U10M, &
+            'U10M',  HCRC,      FIRST,    State_Met%U10M )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%V10M, &
+            'V10M',  HCRC,      FIRST,    State_Met%V10M )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%ALBD, &
+            'ALBD',  HCRC,      FIRST,    State_Met%ALBD )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%WLI, &
+             'WLI',  HCRC,      FIRST,    State_Met%LWI  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%T2M, &
+             'T2M',  HCRC,      FIRST,    State_Met%TS   )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%TSKIN, &
+           'TSKIN',  HCRC,      FIRST,    State_Met%TSKIN  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%GWETROOT, &
+         'GWETROOT', HCRC,      FIRST,    State_Met%GWETROOT  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%GWETTOP, &
+          'GWETTOP', HCRC,      FIRST,    State_Met%GWETTOP  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%USTAR, &
+            'USTAR', HCRC,      FIRST,    State_Met%USTAR  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%Z0, &
+               'Z0', HCRC,      FIRST,    State_Met%Z0  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%TROPP, &
+            'TROPP', HCRC,      FIRST,    State_Met%TROPP  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SUNCOSmid, &
+        'SUNCOSmid', HCRC,      FIRST,    State_Met%SUNCOSmid  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PARDR, &
+            'PARDR', HCRC,      FIRST,    State_Met%PARDR  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%PARDF, &
+            'PARDF', HCRC,      FIRST,    State_Met%PARDF  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%RADSWG, &
+           'RADSWG', HCRC,      FIRST,    State_Met%RADSWG  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRCLND, &
+           'FRCLND', HCRC,      FIRST,    State_Met%FRCLND  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CLDFRC, &
+            'CLDFRC', HCRC,      FIRST,    State_Met%CLDFRC  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+#if   defined( GEOS_4 ) 
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
+          'SNOWHGT', HCRC,      FIRST,    State_Met%SNOW     )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
+            'SNODP', HCRC,      FIRST,    State_Met%SNOW   )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+#else
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNOWHGT, &
+          'SNOWHGT', HCRC,      FIRST,    State_Met%SNOMAS   )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SNODP, &
+            'SNODP', HCRC,      FIRST,    State_Met%SNODP  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+#endif
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRLAND, &
+           'FRLAND', HCRC,      FIRST,    State_Met%FRLAND  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FROCEAN, &
+          'FROCEAN', HCRC,      FIRST,    State_Met%FROCEAN  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRLAKE, &
+           'FRLAKE', HCRC,      FIRST,    State_Met%FRLAKE  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%FRLANDIC, &
+         'FRLANDIC', HCRC,      FIRST,    State_Met%FRLANDIC  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    ! Use 'offline' LAI in standard GEOS-Chem
+#if defined(ESMF_)
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%GC_LAI, &
+           'GC_LAI', HCRC,      FIRST,    State_Met%LAI     )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+#else
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%GC_LAI, &
+           'GC_LAI', HCRC,      FIRST,    GC_LAI            )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+#endif
+
+    ! ----------------------------------------------------------------
+    ! 3D fields 
+    ! ----------------------------------------------------------------
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%CNV_MFC, &
+          'CNV_MFC', HCRC,      FIRST,    State_Met%CMFMC  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%SPHU, &
+             'SPHU', HCRC,      FIRST,    State_Met%SPHU  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%TK, &
+               'TK', HCRC,      FIRST,    State_Met%T   )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%AIR, &
+              'AIR', HCRC,      FIRST,    State_Met%AD   )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%AIRVOL, &
+           'AIRVOL', HCRC,      FIRST,    State_Met%AIRVOL  )
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+ 
+    ! ----------------------------------------------------------------
+    ! Tracer fields
+    ! ----------------------------------------------------------------
+    IF ( IDTO3 > 0 ) THEN
+       CALL ExtDat_Set( am_I_Root, HcoState, ExtState%O3, &
+            'HEMCO_O3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTO3))
+       IF ( HCRC /= HCO_SUCCESS ) RETURN
+    ENDIF
+    IF ( IDTNO2 > 0 ) THEN
+       CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO2, &
+           'HEMCO_NO2', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTNO2))
+       IF ( HCRC /= HCO_SUCCESS ) RETURN
+    ENDIF
+    IF ( IDTNO > 0 ) THEN
+       CALL ExtDat_Set( am_I_Root, HcoState, ExtState%NO, &
+            'HEMCO_NO', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTNO))
+       IF ( HCRC /= HCO_SUCCESS ) RETURN
+    ENDIF
+    IF ( IDTHNO3 > 0 ) THEN
+       CALL ExtDat_Set( am_I_Root, HcoState, ExtState%HNO3, &
+          'HEMCO_HNO3', HCRC,      FIRST,    State_Chm%Tracers(:,:,:,IDTHNO3))
+       IF ( HCRC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    ! ----------------------------------------------------------------
+    ! Deposition parameter
+    ! ----------------------------------------------------------------
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%DRY_TOTN, &
+         'DRY_TOTN', HCRC,      FIRST,    DRY_TOTN            ) 
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%WET_TOTN, &
+         'WET_TOTN', HCRC,      FIRST,    WET_TOTN            ) 
+    IF ( HCRC /= HCO_SUCCESS ) RETURN
+
+    ! ----------------------------------------------------------------
+    ! Other pointers to be set on first call
+    ! ----------------------------------------------------------------
+    IF ( FIRST ) THEN
+       IF ( ExtState%WET_TOTN%DoUse .OR. ExtState%DRY_TOTN%DoUse ) THEN
+          ExtState%DRYCOEFF => DRYCOEFF
+       ENDIF
+
+       ExtState%PBL_MAX => HCO_PBL_MAX
+    ENDIF
+
+    ! ----------------------------------------------------------------
+    ! ESMF environment: add some additional variables to ExtState.
+    ! These values must be defined here and not in the initialization
+    ! because it seems like the IMPORT state is not yet properly
+    ! defined during initialization. 
+    ! ----------------------------------------------------------------
+#if defined( ESMF_ )
+    IF ( FIRST ) THEN
+       CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
+       ENDIF
+    ENDIF
+#endif
+
+    ! Not first call any more
+    FIRST = .FALSE.
+
+    ! Leave with success
+    RC = GIGC_SUCCESS
+
+  END SUBROUTINE ExtState_SetFields
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ExtState_UpdateFields
+!
+! !DESCRIPTION: SUBROUTINE ExtState\_UpdateFields updates the extension 
 ! object data pointers. Updates are only required for the shadow arrays
 ! defined in this module, such as J-values, SZAFACT, etc.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdtPointers( am_I_Root, State_Met, State_Chm, RC ) 
+  SUBROUTINE ExtState_UpdateFields( am_I_Root, State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
@@ -1153,13 +1297,10 @@ CONTAINS
     CHARACTER(LEN=  8)            :: SPECNAME
 
     CHARACTER(LEN=255), PARAMETER :: &
-       LOC = 'ExtState_UpdtPointers (hcoi_gc_main_mod.F90)'
-
-    ! Is this the first time?
-    LOGICAL, SAVE                 :: FIRST = .TRUE.
+       LOC = 'ExtState_UpdateFields (hcoi_gc_main_mod.F90)'
 
     !=================================================================
-    ! ExtState_UpdtPointers begins here
+    ! ExtState_UpdateFields begins here
     !=================================================================
 
     ! Init
@@ -1242,25 +1383,7 @@ CONTAINS
     ENDDO
 !$OMP END PARALLEL DO
 
-    ! ----------------------------------------------------------------
-    ! ESMF environment: add some additional variables to ExtState.
-    ! These values must be defined here and not in the initialization
-    ! because it seems like the IMPORT state is not yet properly
-    ! defined during initialization. 
-    ! ----------------------------------------------------------------
-#if defined( ESMF_ )
-    IF ( FIRST ) THEN
-       CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ( 'Error in HCO_SetExtState!', LOC )
-       ENDIF
-    ENDIF
-#endif
-
-    ! Not first time any more
-    FIRST = .FALSE.
-
-  END SUBROUTINE ExtState_UpdtPointers
+  END SUBROUTINE ExtState_UpdateFields
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

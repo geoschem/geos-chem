@@ -79,6 +79,8 @@ MODULE HCOI_StandAlone_Mod
   PRIVATE :: Get_nnMatch 
   PRIVATE :: Register_Species
   PRIVATE :: Read_Time
+  PRIVATE :: ExtState_SetFields
+  PRIVATE :: ExtState_UpdateFields
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Initial version. 
@@ -133,10 +135,6 @@ MODULE HCOI_StandAlone_Mod
 !
 ! !MODULE INTERFACES:
 !
-  INTERFACE SetExtPtr
-     MODULE PROCEDURE SetExtPtr_2R
-     MODULE PROCEDURE SetExtPtr_3R
-  END INTERFACE SetExtPtr
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -299,7 +297,7 @@ CONTAINS
     ! HEMCO configuration file
     HcoState%ConfigFile = ConfigFile
 
-    ! Let HEMCO schedule the diagnostics
+    ! Let HEMCO schedule the diagnostics output
     HcoState%Options%HcoWritesDiagn = .TRUE.
 
     !=================================================================
@@ -319,11 +317,11 @@ CONTAINS
     CALL HCOX_Init( am_I_Root, HcoState, ExtState, RC )
     IF(RC /= HCO_SUCCESS) RETURN 
 
-    !-----------------------------------------------------------------
-    ! Set pointers to met fields. Also get pointer for pressure edges
-    !-----------------------------------------------------------------
-    CALL ExtOpt_SetPointers( am_I_Root, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+!    !-----------------------------------------------------------------
+!    ! Set pointers to met fields. Also get pointer for pressure edges
+!    !-----------------------------------------------------------------
+!    CALL ExtOpt_SetPointers( am_I_Root, RC )
+!    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
     ! Leave 
@@ -476,8 +474,12 @@ CONTAINS
        ! Run HCO extensions
        ! ================================================================
    
-       ! Eventually update local variables.
-       CALL ExtState_Update ( am_I_Root, RC )
+       ! Set / update ExtState fields 
+       CALL ExtState_SetFields ( am_I_Root, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       CALL ExtState_UpdateFields( am_I_Root, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
  
        ! Execute all enabled emission extensions. Emissions will be 
        ! added to corresponding flux arrays in HcoState.
@@ -992,7 +994,7 @@ CONTAINS
     HcoState%Grid%YSIN%Val       => YSIN   (:,:,1)
     HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
 
-    ! The pressure edges are obtained from an external file in ExtOpt_SetPointers.
+    ! The pressure edges are obtained from an external file in ExtState_SetFields
     HcoState%Grid%PEDGE%Val      => NULL()
 
     ! Cleanup variables that are not needed by HEMCO.
@@ -1317,28 +1319,20 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ExtOpt_SetPointers 
+! !IROUTINE: ExtState_SetFields
 !
-! !DESCRIPTION: Subroutine ExtOpt\_SetPointers sets the extension object data
-! pointers. For the standalone model, all external data must be passed through
-! the configuration file. It is expected that the field names set in the
-! configuration file match the data names of the ExtState object.
+! !DESCRIPTION: Subroutine ExtState\_SetFields fills the ExtState data fields
+! with data read through the HEMCO configuration file.
 !\\
-! The following ExtState objects cannot be passed through the HEMCO 
-! configuration file: 
-! \begin{itemize}
-! \item DRYCOEFF: Baldocci drydep coeff. vector (used in 
-!       hcox\_soilnox\_mod.F90). This variable should be provided in section 
-!       soil NOx extension settings (DRYCOEFF: xx.x/xx.x/xx.x/...). It is
-!       read in hcox\_soilnox\_mod.F90.
-! \end{itemize}
+!\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtOpt_SetPointers ( am_I_Root, RC )
+  SUBROUTINE ExtState_SetFields ( am_I_Root, RC )
 !
 ! !USES:
 !
-    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
+    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+    USE HCOX_STATE_MOD,     ONLY : ExtDat_Set
 !
 ! !INPUT PARAMETERS:
 !
@@ -1357,13 +1351,14 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER                       :: AS
-    LOGICAL                       :: FOUND
     REAL(sp), POINTER             :: Ptr3D(:,:,:) => NULL()
-    CHARACTER(LEN=255), PARAMETER :: LOC = 'ExtOpt_SetPointers (hcoi_standalone_mod.F90)'
+    CHARACTER(LEN=255)            :: MSG
+    LOGICAL                       :: FOUND
+    LOGICAL, SAVE                 :: FIRST = .TRUE.
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'ExtState_SetFields (hcoi_standalone_mod.F90)'
 
     !=================================================================
-    ! ExtOpt_SetPointers begins here
+    ! ExtState_SetFields begins here
     !=================================================================
 
     ! Enter
@@ -1373,118 +1368,147 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Try to get pressure edges from external file.
     !-----------------------------------------------------------------
-
     CALL HCO_GetPtr( am_I_Root, 'PEDGE', Ptr3D, RC, FOUND=FOUND )
     IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! If found, copy to pressure edge array
     IF ( FOUND ) THEN
        HcoState%Grid%PEDGE%Val = Ptr3D
        Ptr3D => NULL()
-    ENDIF
 
-    ! Set pointers for all used ext. state object.
+    ! If not found, prompt a warning on the first call.
+    ELSE
+       IF ( FIRST ) THEN
+          MSG = 'PEDGE is not a field in HEMCO configuration file '     // &
+                '- cannot fill pressure edges. This may lead to wrong ' // &
+                'results for some of the extensions!'
+          CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
+       ENDIF
+    ENDIF
 
     !-----------------------------------------------------------------
     ! 2D fields 
     !-----------------------------------------------------------------
 
-    CALL SetExtPtr ( am_I_Root, ExtState%U10M, 'U10M', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%U10M, 'U10M', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%V10M, 'V10M', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%V10M, 'V10M', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%ALBD, 'ALBD', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%ALBD, 'ALBD', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%WLI, 'WLI', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%WLI, 'WLI', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%T2M, 'T2M', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%T2M, 'T2M', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%TSKIN, 'TSKIN', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%TSKIN, 'TSKIN', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%GWETTOP, 'GWETTOP', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%GWETROOT, 'GWETROOT', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%SNOWHGT, 'SNOWHGT', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%GWETTOP, 'GWETTOP', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%USTAR, 'USTAR', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SNOWHGT, 'SNOWHGT', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%Z0, 'Z0', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SNODP, 'SNODP', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%TROPP, 'TROPP', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%USTAR, 'USTAR', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%SUNCOSmid, 'SUNCOSmid', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%Z0, 'Z0', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%SZAFACT, 'SZAFACT', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%TROPP, 'TROPP', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%PARDR, 'PARDR', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SUNCOSmid, 'SUNCOSmid', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%PARDF, 'PARDF', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SZAFACT, 'SZAFACT', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%RADSWG, 'RADSWG', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%PARDR, 'PARDR', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%FRCLND, 'FRCLND', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%PARDF, 'PARDF', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%CLDFRC, 'CLDFRC', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%RADSWG, 'RADSWG', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%GC_LAI, 'GC_LAI', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FRCLND, 'FRCLND', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%JNO2, 'JNO2', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%CLDFRC, 'CLDFRC', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%JO1D, 'JO1D', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%GC_LAI, 'GC_LAI', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%JNO2, 'JNO2', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%JO1D, 'JO1D', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FRLAND, 'FRLAND', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FROCEAN, 'FROCEAN', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FRLAKE, 'FRLAKE', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FRLANDIC, 'FRLANDIC', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
     ! 3D fields 
     !-----------------------------------------------------------------
 
-    CALL SetExtPtr ( am_I_Root, ExtState%CNV_MFC, 'CNV_MFC', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%CNV_MFC, 'CNV_MFC', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%SPHU, 'SPHU', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%SPHU, 'SPHU', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%TK, 'TK', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%TK, 'TK', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%AIR, 'AIR', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%AIR, 'AIR', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%AIRVOL, 'AIRVOL', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%AIRVOL, 'AIRVOL', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%O3, 'O3', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%O3, 'O3', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%NO, 'NO', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%NO, 'NO', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%NO2, 'NO2', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%NO2, 'NO2', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%HNO3, 'HNO3', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%HNO3, 'HNO3', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%DRY_TOTN, 'DRY_TOTN', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%DRY_TOTN, 'DRY_TOTN', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL SetExtPtr ( am_I_Root, ExtState%WET_TOTN, 'WET_TOTN', RC )
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%WET_TOTN, 'WET_TOTN', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -1492,143 +1516,34 @@ CONTAINS
     !     hcox_soilnox_mod.F90. 
     !-----------------------------------------------------------------
 
+    ! Not first call any more
+    FIRST = .FALSE.
+
     ! Leave w/ success
     CALL HCO_LEAVE( RC )
 
-  END SUBROUTINE ExtOpt_SetPointers
+  END SUBROUTINE ExtState_SetFields
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SetExtPtr_2R
+! !IROUTINE: ExtState_UpdateFields 
 !
-! !DESCRIPTION: Subroutine SetExtPtr\_2R is the wrapper routine to pass a 2D
-! met. object read through the config. file to the ExtState object.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE SetExtPtr_2R ( am_I_Root, ExtDat, FldName, RC )
-!
-! !USES:
-!
-    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
-    USE HCOX_State_Mod,    ONLY : ExtDat_2R
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
-    CHARACTER(LEN=*), INTENT(IN   ) :: FldName     ! Name of met field obj.
-!
-! !INPUT/OUTPUT PARAMETERS
-!
-    TYPE(ExtDat_2R),  POINTER       :: ExtDat      ! Ext data object
-    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  28 Jul 2014 - C. Keller - Initial Version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-!
-    REAL(sp), POINTER             :: Ptr2D(:,:)   => NULL()
-
-    !=================================================================
-    ! SetExtPtr_2R begins here
-    !=================================================================
-
-    IF ( ExtDat%DoUse ) THEN
-       CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC )
-       IF ( RC /= 0 ) RETURN
-       ExtDat%Arr%Val = Ptr2D
-       Ptr2D => NULL()
-    ENDIF
-
-    ! Return w/ success
-    RC = HCO_SUCCESS
-
-  END SUBROUTINE SetExtPtr_2R
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: SetExtPtr_3R
-!
-! !DESCRIPTION: Subroutine SetExtPtr\_3R is the wrapper routine to pass a 3D
-! met. object read through the config. file to the ExtState object.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE SetExtPtr_3R ( am_I_Root, ExtDat, FldName, RC )
-!
-! !USES:
-!
-    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
-    USE HCOX_State_Mod,    ONLY : ExtDat_3R
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
-    CHARACTER(LEN=*), INTENT(IN   ) :: FldName     ! Name of met field obj.
-!
-! !INPUT/OUTPUT PARAMETERS
-!
-    TYPE(ExtDat_3R),  POINTER       :: ExtDat      ! Ext data object
-    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  28 Jul 2014 - C. Keller - Initial Version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-!
-    REAL(sp), POINTER             :: Ptr3D(:,:,:)   => NULL()
-
-    !=================================================================
-    ! SetExtPtr_3R begins here
-    !=================================================================
-
-    IF ( ExtDat%DoUse ) THEN
-       CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr3D, RC )
-       IF ( RC /= 0 ) RETURN
-       ExtDat%Arr%Val = Ptr3D
-       Ptr3D => NULL()
-    ENDIF
-
-    ! Return w/ success
-    RC = HCO_SUCCESS
-
-  END SUBROUTINE SetExtPtr_3R
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: ExtState_Update 
-!
-! !DESCRIPTION: Subroutine ExtState\_Update makes sure that all local variables
-! that ExtState is pointing to are up to date. For the moment, this is just a 
-! placeholder routine. Content can be added to it if there are variables that
+! !DESCRIPTION: Subroutine ExtState\_UpdateFields makes sure that all local 
+! variables that ExtState is pointing to are up to date. For the moment, this 
+! is just a placeholder routine as none of the ExtState fields is filled by 
+! local module fields. Content can be added to it if there are variables that
 ! need to be updated manually, e.g. not through netCDF input data.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_Update ( am_I_Root, RC )
+  SUBROUTINE ExtState_UpdateFields ( am_I_Root, RC )
 !
 ! !USES:
 !
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
 !
 ! !INPUT PARAMETERS:
 !
@@ -1648,18 +1563,13 @@ CONTAINS
 !
 
     !=================================================================
-    ! ExtState_Update begins here
+    ! ExtState_UpdateFields begins here
     !=================================================================
-
-    ! Data is copied, so need to call ExtOpt_SetPointers every time
-    ! to make sure that all data is up-to-date.
-    CALL ExtOpt_SetPointers( am_I_Root, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE ExtState_Update 
+  END SUBROUTINE ExtState_UpdateFields
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

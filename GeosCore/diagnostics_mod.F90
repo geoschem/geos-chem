@@ -55,10 +55,12 @@ MODULE Diagnostics_Mod
 !
 ! !REVISION HISTORY:
 !  09 Jan 2015 - C. Keller   - Initial version. 
+#endif
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+#if defined( DEVEL )
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------

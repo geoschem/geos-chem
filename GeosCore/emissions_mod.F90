@@ -133,12 +133,12 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
     LOGICAL,          INTENT(IN   )  :: EmisTime   ! Emissions in this time step? 
     INTEGER,          INTENT(IN   )  :: Phase      ! Run phase 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state 
     TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
