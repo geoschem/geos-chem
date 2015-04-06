@@ -827,6 +827,7 @@
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
+      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE 
       USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
@@ -885,6 +886,9 @@
       REAL(fp)           :: XRH
       REAL(fp)           :: CRITRH      ! Critical RH [%], above which 
                                         !  heteorogeneous chem takes place
+
+      INTEGER            :: IWV1,  IWV2
+      REAL(fp)           :: ACOEF, BCOEF, LOGTERM
 
       !=================================================================
       ! RDUST_ONLINE begins here!
@@ -1065,9 +1069,18 @@
       !==============================================================
       IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT, LINTERP )
+!#############################################################################
+!### Prior to 4/6/15
+!### NOTE: Activating this parallel loop causes differences in the ND21
+!### diagnostic outputs for some reason.  We have not been able to diagnose
+!### this.  The cheap solution is to disable the parallelization, and then
+!### we get identical results between single and multiprocessor runs.
+!### (bmy, 4/6/15)
+!###
+!###!$OMP PARALLEL DO
+!###!$OMP+DEFAULT( SHARED )
+!###!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT, LINTERP )
+!#############################################################################
          DO N=1, NDUST
          DO W = 1, NWVSELECT !loop over required number of wavelengths
             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
@@ -1136,7 +1149,7 @@
                ! ND21 tracer #5: Dust surface areas
                !--------------------------------------
                IF ( L <= LLCHEM ) THEN
-               
+              
                   ! Convert 3-D indices to 1-D index
                   ! JLOP is only defined in the tropopause
                   JLOOP = JLOP(I,J,L)
@@ -1152,7 +1165,17 @@
             ENDDO
          ENDDO
          ENDDO
-!$OMP END PARALLEL DO
+!#############################################################################
+!### Prior to 4/6/15
+!### NOTE: Activating this parallel loop causes differences in the ND21
+!### diagnostic outputs for some reason.  We have not been able to diagnose
+!### this.  The cheap solution is to disable the parallelization, and then
+!### we get identical results between single and multiprocessor runs.
+!### (bmy, 4/6/15)
+!###
+!###!$OMP END PARALLEL DO
+!#############################################################################
+
       ENDIF 
 
       END SUBROUTINE RDUST_ONLINE

@@ -1468,19 +1468,6 @@
          ENDDO
 
          ! Loop over SMVGEAR grid boxes
-!-----------------------------------------------------------------------------
-! Prior to 4/1/15:
-! Rewrite parallel DO declaration to add several missing PRIVATE variables
-! (bmy, 4/1/15)
-!!$OMP PARALLEL DO 
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, IRH, JLOOP, SCALEQ, SCALER, REFF, FRAC )
-!!$OMP+PRIVATE( SCALEOD, SCALESSA, SCALEASY, SCALEVOL, DRYAREA )
-!#if defined( UCX )
-!!$OMP+PRIVATE( RHOSTRAT, RAER, SADSTRAT, XSASTRAT )
-!#endif
-!!$OMP+SCHEDULE( DYNAMIC )
-!-----------------------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( JLOOP,    I,       J,        L,        IRH       )
 !$OMP+PRIVATE( AW0,      QW0,     SSW0,     ASYW0,    REFF      )
