@@ -402,8 +402,8 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
 !                              semivolatile POA simulations (H. Pye)
-!  17 Jun 2014 - J. Pierce   - Now allow bulk dust in TOMAS simulatoins
-
+!  17 Jun 2014 - J. Pierce   - Now allow bulk dust in TOMAS simulations
+!  07 Apr 2015 - R. Yantosca - Add check to prevent div-by-zero errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -531,15 +531,36 @@
      &                             STT(I,J,L,IDTNITs) ) /
      &                             AIRVOL(I,J,L)
 #endif
+            
+            ! Add error check for safe division (bmy, 4/7/15)
+            IF ( SO4_NH4_NIT(I,J,L) > 0e+0_fp ) THEN
 
-            ! Save these fractions for partitioning of optics
-            ! until later when these may be treated independently
-            FRAC_SNA(I,J,L,1) = ((STT(I,J,L,IDTSO4)+STT(I,J,L,IDTSO4s))
-     &                           / AIRVOL(I,J,L))/SO4_NH4_NIT(I,J,L)
-            FRAC_SNA(I,J,L,2) = ((STT(I,J,L,IDTNIT)+STT(I,J,L,IDTNITs))
-     &                           / AIRVOL(I,J,L))/SO4_NH4_NIT(I,J,L)
-            FRAC_SNA(I,J,L,3) = (STT(I,J,L,IDTNH4)/AIRVOL(I,J,L))/
-     &                           SO4_NH4_NIT(I,J,L)
+               ! Save these fractions for partitioning of optics
+               ! until later when these may be treated independently
+               FRAC_SNA(I,J,L,1) = ( ( STT(I,J,L,IDTSO4 ) 
+     &                           +     STT(I,J,L,IDTSO4s) )
+     &                           /   AIRVOL(I,J,L)          )
+     &                           / SO4_NH4_NIT(I,J,L)
+
+               FRAC_SNA(I,J,L,2) = ( ( STT(I,J,L,IDTNIT )
+     &                           +     STT(I,J,L,IDTNITs) )
+     &                           /   AIRVOL(I,J,L)          )
+     &                           / SO4_NH4_NIT(I,J,L)
+
+               FRAC_SNA(I,J,L,3) = ( STT(I,J,L,IDTNH4)
+     &                           /   AIRVOL(I,J,L)        ) 
+     &                           / SO4_NH4_NIT(I,J,L)
+               
+            ELSE
+               
+               ! If SO4_NH4_NIT(I,J,L) is zero, then avoid a div-by-zero
+               ! error.  Set all of these to zero because the division
+               ! cannot be done.
+               FRAC_SNA(I,J,L,1) = 0e+0_fp
+               FRAC_SNA(I,J,L,2) = 0e+0_fp
+               FRAC_SNA(I,J,L,3) = 0e+0_fp
+
+            ENDIF
 
          ENDIF
 
