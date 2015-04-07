@@ -916,6 +916,8 @@
 !  05 Mar 2015 - R. Yantosca - Remove DO_READ_DATA option.  We can no longer
 !                              have binary punch input in HPC environments.
 !  31 Mar 2015 - R. Yantosca - Bug fix: Declare LINTERP as !$OMP PRIVATE
+!  07 Apr 2015 - R. Yantosca - Bug fix: Add error check to JLOOP do-loop
+!                              so that we cycle if JLOOP <= 0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1502,7 +1504,12 @@
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
 
+         ! 1-D grid box index for SMVGEAR arrays
          DO JLOOP = 1, NTLOOP
+
+            ! Add error check to prevent out-of-bounds or
+            ! div-by-zero errors (bmy, 4/7/15)
+            IF ( JLOOP <= 0 ) CYCLE
 
             ! Get 3-D grid box indices
             I = IXSAVE(JLOOP)
