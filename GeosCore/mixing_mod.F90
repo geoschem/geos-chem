@@ -294,6 +294,7 @@ CONTAINS
     REAL(fp), TARGET   :: EMIS(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS) 
     REAL(fp), TARGET   :: DEP (IIPAR,JJPAR,      Input_Opt%N_TRACERS) 
     REAL(fp)           :: TOTFLUX(Input_Opt%N_TRACERS)
+    REAL(fp)           :: TOTDEP (Input_Opt%N_TRACERS)
 #endif
 
     !=================================================================
@@ -324,6 +325,7 @@ CONTAINS
     DEP     = 0.0_fp
     EMIS    = 0.0_fp
     TOTFLUX = 0.0_fp
+    TOTDEP  = 0.0_fp
 #endif
 
     ! Do for every tracer and grid box
@@ -363,7 +365,7 @@ CONTAINS
        ENDIF
 
        !----------------------------------------------------------------
-       ! Check if we need to do emisisons for this species 
+       ! Check if we need to do emissions for this species 
        !----------------------------------------------------------------
        IF ( LEMIS ) THEN
           CALL GetHcoVal ( N, 1, 1, 1, EmisSpec, emis = TMP )
@@ -495,6 +497,7 @@ CONTAINS
 #if defined( DEVEL )
                    ! Archive deposition flux in kg/m2/s
                    DEP(I,J,N) = DEP(I,J,N) + ( FLUX / AREA_M2 / TS )
+                   TOTDEP(N)  = TOTDEP(N) + FLUX
 #endif
 
                    ! Loss in [molec/cm2/s]
@@ -558,6 +561,9 @@ CONTAINS
     ! but in the future this will replace the bpch diagnostics!
     !-------------------------------------------------------------------
     DO N = 1, Input_Opt%N_TRACERS
+ 
+       ! Skip if there are no emissions
+       IF ( TOTFLUX(N) == 0.0_fp ) CYCLE
 
        ! Only if HEMCO tracer is defined
        cID = GetHcoID( TrcID=N )
@@ -589,7 +595,7 @@ CONTAINS
        ENDIF
 
        ! Drydep fluxes
-       IF ( Input_Opt%ND44 > 0 ) THEN
+       IF ( Input_Opt%ND44 > 0 .AND. ( TOTDEP(N) > 0,0_fp ) ) THEN
           Ptr2D => DEP(:,:,N)
           cID = 44500 + N
           CALL Diagn_Update( am_I_Root,                           &

@@ -232,6 +232,8 @@ CONTAINS
        CALL HCO_MSG ( MSG )
        WRITE (MSG, "(A20,I5,I5)") 'Category range:', CatMin, CatMax
        CALL HCO_MSG ( MSG )
+       WRITE (MSG, *) 'Auto diagnostics: ', DoDiagn
+       CALL HCO_MSG ( MSG )
     ENDIF
 
     !=================================================================
@@ -322,17 +324,6 @@ CONTAINS
           ! the species array SpcFlx.
           SpcFlx(:,:,:) = SpcFlx(:,:,:) + CatFlx(:,:,:)
 
-          ! Add category emissions to diagnostics at category level
-          ! (only if defined in the diagnostics list).
-          IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
-             Diag3D => CatFlx
-             CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
-                                Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
-                                AutoFill=1,  Array3D=Diag3D, COL=-1, RC=RC ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN
-             Diag3D => NULL() 
-          ENDIF
-
           ! verbose 
           IF ( HCO_IsVerb(3) ) THEN
              WRITE(MSG,*) 'Added category emissions to species array: '
@@ -345,6 +336,17 @@ CONTAINS
              CALL HCO_MSG(MSG)
              WRITE(MSG,*) 'Spc. emissions: ', SUM(SpcFlx) 
              CALL HCO_MSG(MSG)
+          ENDIF
+
+          ! Add category emissions to diagnostics at category level
+          ! (only if defined in the diagnostics list).
+          IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
+             Diag3D => CatFlx
+             CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
+                                Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
+                                AutoFill=1,  Array3D=Diag3D, COL=-1, RC=RC ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN
+             Diag3D => NULL() 
           ENDIF
 
           ! Reset CatFlx array and the previously used hierarchy 
@@ -576,7 +578,7 @@ CONTAINS
        ENDIF
 
        ! Diagnostics at category level
-       IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN 
+       IF ( Diagn_AutoFillLevelDefined(3) .AND. DoDiagn ) THEN
           Diag3D => CatFlx
           CALL Diagn_Update( am_I_Root,   ExtNr=ExtNr,             &
                              Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &

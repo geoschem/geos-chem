@@ -506,10 +506,11 @@
             CALL CHEMRnPbBe 
      &         (  am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-            ! Modified for non-local PBL mixing (jintai, bmy, 8/1/13)
-            IF ( .not. Input_Opt%LNLPBL ) THEN
-               CALL DRYFLXRnPbBe
-     &            ( am_I_Root, Input_Opt, State_Chm, RC )
+!            ! Modified for non-local PBL mixing (jintai, bmy, 8/1/13)
+             ! This is now done in mixing_mod.F90 (ckeller, 3/5/15)
+!            IF ( .not. Input_Opt%LNLPBL ) THEN
+!               CALL DRYFLXRnPbBe
+!     &            ( am_I_Root, Input_Opt, State_Chm, RC )
             ENDIF
 
 !-----------------------------------------------------------------------------

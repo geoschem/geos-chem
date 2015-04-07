@@ -149,7 +149,8 @@ hco_driver_mod.o       : hco_driver_mod.F90      \
                          hco_extlist_mod.o       \
                          hco_readlist_mod.o      \
                          hco_state_mod.o         \
-                         hco_tidx_mod.o
+                         hco_tidx_mod.o          \
+                         hcoio_diagn_mod.o
 
 hco_emislist_mod.o     : hco_emislist_mod.F90    \
                          hco_datacont_mod.o      \

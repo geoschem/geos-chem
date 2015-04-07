@@ -617,6 +617,9 @@ CONTAINS
     IF ( ALLOCATED( DGN_ALBD     ) ) DEALLOCATE( DGN_ALBD     )
     IF ( ALLOCATED( DGN_WLI      ) ) DEALLOCATE( DGN_WLI      )
     IF ( ALLOCATED( DGN_TROPP    ) ) DEALLOCATE( DGN_TROPP    )
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
  
   END SUBROUTINE HCOX_Final
 !EOC

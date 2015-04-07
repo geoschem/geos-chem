@@ -899,16 +899,18 @@ CONTAINS
     LOGICAL :: First
 !
 ! !REVISION HISTORY:
-!  29 Dec 2012 - C. Keller - Initialization
+!  29 Dec 2012 - C. Keller   - Initialization
 !  12 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  12 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
+!  06 Apr 2015 - C. Keller   - Now use nEmisSteps and nSteps instead of 
+!                              previous years.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
     IF ( EmisTime ) THEN
-       First = ( HcoClock%PrevEYear < 0 )      
+       First = ( HcoClock%nEmisSteps == 1 )      
     ELSE
-       First = ( HcoClock%PrevYear  < 0 )      
+       First = ( HcoClock%nSteps     == 1 )
     ENDIF
 
   END FUNCTION HcoClock_First
