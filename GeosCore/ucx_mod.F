@@ -4336,23 +4336,28 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,INTENT(IN)          :: I,J,L      ! Grid indices
-      INTEGER,INTENT(IN)          :: IAER       ! Aerosol index
-                                                ! 1 = Liquid aerosols
-                                                ! 2 = Solid PSC
+      INTEGER,  INTENT(IN)  :: I, J, L    ! Grid indices
+      INTEGER,  INTENT(IN)  :: IAER       ! Aerosol index
+                                          ! 1 = Liquid aerosols
+                                          ! 2 = Solid PSC
 !
 ! !OUTPUT VARIABLES:
 !
-      REAL(fp), INTENT(OUT)         :: REFF       ! Effective radius (cm)
-      REAL(fp), INTENT(OUT)         :: RAER       ! Physical radius (cm)
-      REAL(fp), INTENT(OUT)         :: SAD        ! Surface area density (cm2/cm3)
-      REAL(fp), INTENT(OUT)         :: XSA        ! X-S area density (m2/m3)
+      REAL(fp), INTENT(OUT) :: REFF       ! Effective radius (cm)
+      REAL(fp), INTENT(OUT) :: RAER       ! Physical radius (cm)
+      REAL(fp), INTENT(OUT) :: SAD        ! Surface area density (cm2/cm3)
+      REAL(fp), INTENT(OUT) :: XSA        ! X-S area density (m2/m3)
 !
 ! !REMARKS:
-! (1) A remark
+!  Seb Eastham writes: "I would edit GET_STRAT_OPT so that, when SAD is less
+!  than some small value (say 1 nm2/cm3,  which is a vanishingly small surface
+!  area), it returns SADSTRAT=XSASTRAT=0.d0 and RAER=REFF=0.1d0 for safety's
+!  sake. I think that will prevent code blow-up later on."
 ! 
 ! !REVISION HISTORY: 
 !  17 Apr 2013 - S. D. Eastham - Initial version
+!  07 Apr 2015 - R. Yantosca   - Add error check to prevent div-by-zero errors
+!                                in other areas of GEOS-Chem caused by low SAD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4361,18 +4366,40 @@
       ! GET_STRAT_OPT begins here!
       !=================================================================
 
+      ! Surface area density [cm2/cm3]
       SAD  = SAD_AER(I,J,L,IAER)
-      ! For SLA, convert liquid radius to effective optical radius
-      RAER = RAD_AER(I,J,L,IAER)
-      IF (IAER.eq.I_SLA) THEN
-         REFF = RAER/SLA_RR
-      ELSE
-         REFF = RAER
-      ENDIF
+      
+      ! Add error check: threshold is 1e-14 cm2/cm3 (bmy, 4/7/15)
+      IF ( SAD < 1e-14_fp ) THEN
 
-      ! Standard log-normal distribution approach
-      ! Probably OK for PSCs too? Note cm2/cm3 to m2/m3 = x100
-      XSA = 0.25e+2_fp*SAD
+         !--------------------------------------------------------------
+         ! FOR SAFETY'S SAKE: Set outputs to "safe" values and 
+         ! exit if very small SAD is encountered. (bmy, 4/7/15)
+         !--------------------------------------------------------------
+         SAD  = 0.0e+0_fp
+         XSA  = 0.0e+0_fp
+         RAER = 0.1e+0_fp
+         REFF = 0.1e+0_fp
+         
+      ELSE 
+
+         !--------------------------------------------------------------
+         ! Otherwise, compute RAER, REFF, XSA normally
+         !--------------------------------------------------------------
+
+         ! For SLA, convert liquid radius to effective optical radius
+         RAER = RAD_AER(I,J,L,IAER)
+         IF (IAER.eq.I_SLA) THEN
+            REFF = RAER/SLA_RR
+         ELSE
+            REFF = RAER
+         ENDIF
+
+         ! Standard log-normal distribution approach
+         ! Probably OK for PSCs too? Note cm2/cm3 to m2/m3 = x100
+         XSA = 0.25e+2_fp*SAD
+
+      ENDIF
 
       END SUBROUTINE GET_STRAT_OPT
 !EOC
