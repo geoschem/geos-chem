@@ -209,6 +209,7 @@ MODULE HCOX_STATE_MOD
 !  10 Mar 2015 - C. Keller   - Fields can now be in HEMCO precision or single
 !                              precision. Single precision is useful for 
 !                              fields used in ESMF setting. 
+!  03 Apr 2015 - C. Keller   - Added ExtDat_Set.
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
