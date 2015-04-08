@@ -174,7 +174,7 @@ MOD   :=$(ROOT)/mod
 NCDF  :=$(ROOT)/NcdfUtil
 RAD   :=$(ROOT)/GeosRad
 UTIL  :=$(ROOT)/GeosUtil
-DYN   := $(GIGC)/FVdycoreCubed_GridComp
+DYN   :=$(GIGC)/FVdycoreCubed_GridComp
 
 # Executables
 EXE   :=geos
