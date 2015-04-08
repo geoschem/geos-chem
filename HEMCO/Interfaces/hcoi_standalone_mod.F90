@@ -78,6 +78,7 @@ MODULE HCOI_StandAlone_Mod
   PRIVATE :: Set_Grid
   PRIVATE :: Get_nnMatch 
   PRIVATE :: Register_Species
+  PRIVATE :: Define_Diagnostics 
   PRIVATE :: Read_Time
   PRIVATE :: ExtState_SetFields
   PRIVATE :: ExtState_UpdateFields
@@ -317,11 +318,11 @@ CONTAINS
     CALL HCOX_Init( am_I_Root, HcoState, ExtState, RC )
     IF(RC /= HCO_SUCCESS) RETURN 
 
-!    !-----------------------------------------------------------------
-!    ! Set pointers to met fields. Also get pointer for pressure edges
-!    !-----------------------------------------------------------------
-!    CALL ExtOpt_SetPointers( am_I_Root, RC )
-!    IF ( RC /= HCO_SUCCESS ) RETURN
+    !=================================================================
+    ! Define diagnostics
+    !=================================================================
+    CALL Define_Diagnostics( am_I_Root, RC )
+    IF( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------
     ! Leave 
@@ -359,8 +360,7 @@ CONTAINS
   SUBROUTINE HCOI_SA_RUN( am_I_Root, RC )
 !
 ! !USES:
-    !
-    ! HEMCO routines 
+!
     USE HCO_FluxArr_Mod,       ONLY : HCO_FluxarrReset 
     USE HCO_Clock_Mod,         ONLY : HcoClock_Set
     USE HCO_Clock_Mod,         ONLY : HcoClock_Get
@@ -489,7 +489,7 @@ CONTAINS
        !=================================================================
        ! Update all autofill diagnostics 
        !=================================================================
-       CALL HCO_Diagn_AutoUpdate ( am_I_Root, HcoState, RC )
+       CALL HcoDiagn_AutoUpdate ( am_I_Root, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDDO 
@@ -1154,22 +1154,6 @@ CONTAINS
        HcoState%Spc(cnt)%HenryCR  = ModelSpecCR(IDX)
        HcoState%Spc(cnt)%HenryPKA = ModelSpecPKA(IDX)
 
-       ! Register for output (through diagnostics)
-       CALL Diagn_Create ( am_I_Root,                         &
-                           HcoState  = HcoState,              &
-                           cName     = TRIM(HcoSpecNames(I)), &
-                           ExtNr     = -1,                    &
-                           Cat       = -1,                    &
-                           Hier      = -1,                    &
-                           HcoID     = CNT,                   &
-                           SpaceDim  = 2,                     &
-                           LevIDx    = -1,                    &
-                           OutUnit   = 'kg/m2/s',             &
-                           AutoFill  = 1,                     &
-                           COL       = HcoDiagnIDDefault,     &
-                           RC        = RC                      )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
        ! Logfile I/O
        CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
 
@@ -1180,6 +1164,78 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE Register_Species
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Define_Diagnostics 
+!
+! !DESCRIPTION: Subroutine Define\_Diagnostics defines all diagnostics to be
+!  used in this simulation. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Define_Diagnostics( am_I_Root, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT) :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  13 Sep 2013 - C. Keller - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER           :: I, HcoID
+    CHARACTER(LEN=31) :: DiagnName
+
+    !=================================================================
+    ! DEFINE_DIAGNOSTICS begins here
+    !=================================================================
+
+    ! Loop over all HEMCO species
+    DO I = 1, HcoState%nSpc 
+
+       ! Get HEMCO ID
+       HcoID = HcoState%Spc(I)%HcoID
+       IF ( HcoID <= 0 ) CYCLE
+
+       ! Create diagnostics
+       DiagnName = 'EMIS_' // TRIM(HcoState%Spc(I)%SpcName) 
+       CALL Diagn_Create ( am_I_Root,                         &
+                           HcoState  = HcoState,              &
+                           cName     = DiagnName,             &
+                           ExtNr     = -1,                    &
+                           Cat       = -1,                    &
+                           Hier      = -1,                    &
+                           HcoID     = HcoID,                 &
+                           SpaceDim  = 2,                     &
+                           LevIDx    = -1,                    &
+                           OutUnit   = 'kg/m2/s',             &
+                           AutoFill  = 1,                     &
+                           COL       = HcoDiagnIDDefault,     &
+                           RC        = RC                      )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ENDDO !I
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE Define_Diagnostics 
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -1379,9 +1435,9 @@ CONTAINS
     ! If not found, prompt a warning on the first call.
     ELSE
        IF ( FIRST ) THEN
-          MSG = 'PEDGE is not a field in HEMCO configuration file '     // &
-                '- cannot fill pressure edges. This may lead to wrong ' // &
-                'results for some of the extensions!'
+          MSG = 'PEDGE is not a field in HEMCO configuration file '      // &
+                '- cannot fill pressure edges. This may cause problems ' // &
+                'in vertical interpolation and/or some of the extensions!'
           CALL HCO_WARNING ( MSG, RC, WarnLev=1 )
        ENDIF
     ENDIF

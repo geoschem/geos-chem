@@ -390,7 +390,7 @@ CONTAINS
                      FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
-       DiagnPrefix = 'Daily'
+       WriteFreq = 'Daily'
     ENDIF
 
     ! Force to 'Always' in ESMF environment to make sure that

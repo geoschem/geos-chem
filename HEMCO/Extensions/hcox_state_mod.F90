@@ -1005,10 +1005,6 @@ CONTAINS
        FRST = .FALSE.
     ENDIF
 
-    ! Nothing to do if this is not the first time and data is not from
-    ! list
-    IF ( .NOT. FRST .AND. .NOT. ExtDat%FromList ) RETURN
-
     ! On first call or if data is flagged as being read from list, get data
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
@@ -1016,69 +1012,74 @@ CONTAINS
        ! Try to get data from list
        CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN     
-    ENDIF 
 
-    ! On first call, need to make additional checks
-    IF ( FRST ) THEN
-
-       ! If read from list
-       IF ( FOUND ) THEN
-          ExtDat%FromList = .TRUE.
-
-          ! Make sure array is allocated
-          CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-
-          ! Verbose
-          IF ( HCO_IsVerb(2) ) THEN
-             MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
-             CALL HCO_MSG(MSG)
+       ! On first call, need to make additional checks
+       IF ( FRST ) THEN
+   
+          ! If read from list
+          IF ( FOUND ) THEN
+             ExtDat%FromList = .TRUE.
+   
+             ! Make sure array is allocated
+             CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+   
+             ! Verbose
+             IF ( HCO_IsVerb(2) ) THEN
+                MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
+                CALL HCO_MSG(MSG)
+             ENDIF
+   
+          ! Target to data
+          ELSE
+   
+             ! Target array must be present
+             IF ( .NOT. PRESENT(Trgt) ) THEN
+                MSG = 'Cannot fill extension field ' // TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+   
+             ! Link data to target
+             ExtDat%Arr%Val => Trgt
+   
+             ! Make sure it's not from list
+             ExtDat%FromList = .FALSE.
+   
+             ! Verbose
+             IF ( HCO_IsVerb(2) ) THEN
+                MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
+                CALL HCO_MSG(MSG)
+             ENDIF
           ENDIF
-
-       ! Target to data
-       ELSE
-
-          ! Target array must be present
-          IF ( .NOT. PRESENT(Trgt) ) THEN
-             MSG = 'Cannot fill extension field ' // TRIM(FldName)
+       ENDIF ! FIRST
+   
+       ! Eventually copy field from HEMCO list to ExtState. We need to
+       ! make a copy and cannot just set a pointer because ExtState fields
+       ! are in HEMCO precision but the EmisList fields are in single 
+       ! precisions.
+       IF ( ExtDat%FromList ) THEN
+          IF ( .NOT. FOUND ) THEN
+             MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
-
-          ! Link data to target
-          ExtDat%Arr%Val => Trgt
-
-          ! Make sure it's not from list
-          ExtDat%FromList = .FALSE.
-
-          ! Verbose
-          IF ( HCO_IsVerb(2) ) THEN
-             MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-             CALL HCO_MSG(MSG)
+   
+          ! Copy values
+          IF ( SIZE(Ptr2D,1) == 1 ) THEN
+             ExtDat%Arr%Val(:,:) = Ptr2D(1,1)
+          ELSE
+             ExtDat%Arr%Val(:,:) = Ptr2D(:,:)
           ENDIF
-       ENDIF
- 
-    ENDIF ! FIRST
+       ENDIF ! FromList
+    ENDIF  
 
-    ! Eventually copy field from HEMCO list to ExtState. We need to
-    ! make a copy and cannot just set a pointer because ExtState fields
-    ! are in HEMCO precision but the EmisList fields are in single 
-    ! precisions.
-    IF ( ExtDat%FromList ) THEN
-       IF ( .NOT. FOUND ) THEN
-          MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       ! Copy values
-       IF ( SIZE(Ptr2D,1) == 1 ) THEN
-          ExtDat%Arr%Val(:,:) = Ptr2D(1,1)
-       ELSE
-          ExtDat%Arr%Val(:,:) = Ptr2D(:,:)
-       ENDIF
+    ! Make sure array exists
+    IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
+       MSG = 'ExtState array not filled: ' // TRIM(FldName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
-
+ 
     ! Return w/ success
     RC = HCO_SUCCESS  
 
@@ -1147,10 +1148,6 @@ CONTAINS
        FRST = .FALSE.
     ENDIF
 
-    ! Nothing to do if this is not the first time and data is not from
-    ! list
-    IF ( .NOT. FRST .AND. .NOT. ExtDat%FromList ) RETURN
-
     ! On first call or if data is flagged as being read from list, get data
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
@@ -1158,86 +1155,92 @@ CONTAINS
        ! Try to get data from list
        CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN     
-    ENDIF 
 
-    ! On first call, need to make additional checks
-    IF ( FRST ) THEN
-
-       ! If read from list
-       IF ( FOUND ) THEN
-
-          ! Check if input data is of same size. In this case, we can set
-          ! a pointer
-          IF ( SIZE(Ptr2D,1) == HcoState%NX .AND. &
-               SIZE(Ptr2D,2) == HcoState%NY        ) THEN
-
-             ExtDat%Arr%Val => Ptr2D
-             ExtDat%FromList = .FALSE.
-
-             ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
-                MSG = 'Set extension field pointer to HEMCO data list field ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+       ! On first call, need to make additional checks
+       IF ( FRST ) THEN
+   
+          ! If read from list
+          IF ( FOUND ) THEN
+   
+             ! Check if input data is of same size. In this case, we can set
+             ! a pointer
+             IF ( SIZE(Ptr2D,1) == HcoState%NX .AND. &
+                  SIZE(Ptr2D,2) == HcoState%NY        ) THEN
+   
+                ExtDat%Arr%Val => Ptr2D
+                ExtDat%FromList = .FALSE.
+   
+                ! Verbose
+                IF ( HCO_IsVerb(2) ) THEN
+                   MSG = 'Set extension field pointer to HEMCO data list field ' // TRIM(FldName)
+                   CALL HCO_MSG(MSG)
+                ENDIF
+   
+             ELSE
+                ExtDat%FromList = .TRUE.
+   
+                ! Make sure array is allocated
+                CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
+                IF ( RC /= HCO_SUCCESS ) RETURN
+   
+                ! Verbose
+                IF ( HCO_IsVerb(2) ) THEN
+                   MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
+                   CALL HCO_MSG(MSG)
+                ENDIF
              ENDIF
-
+   
+          ! Target to data
           ELSE
-             ExtDat%FromList = .TRUE.
-
-             ! Make sure array is allocated
-             CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
-
+   
+             ! Target array must be present
+             IF ( .NOT. PRESENT(Trgt) ) THEN
+                MSG = 'Cannot fill extension field ' // TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+   
+             ! Link data to target
+             ExtDat%Arr%Val => Trgt
+   
+             ! Make sure it's not from list
+             ExtDat%FromList = .FALSE.
+   
              ! Verbose
              IF ( HCO_IsVerb(2) ) THEN
-                MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
+                MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
                 CALL HCO_MSG(MSG)
              ENDIF
           ENDIF
-
-       ! Target to data
-       ELSE
-
-          ! Target array must be present
-          IF ( .NOT. PRESENT(Trgt) ) THEN
-             MSG = 'Cannot fill extension field ' // TRIM(FldName)
+    
+       ENDIF ! FIRST
+   
+       ! Eventually copy field from HEMCO list to ExtState. We need to
+       ! make a copy and cannot just set a pointer because ExtState fields
+       ! are in HEMCO precision but the EmisList fields are in single 
+       ! precisions.
+       IF ( ExtDat%FromList ) THEN
+          IF ( .NOT. FOUND ) THEN
+             MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
-
-          ! Link data to target
-          ExtDat%Arr%Val => Trgt
-
-          ! Make sure it's not from list
-          ExtDat%FromList = .FALSE.
-
-          ! Verbose
-          IF ( HCO_IsVerb(2) ) THEN
-             MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-             CALL HCO_MSG(MSG)
+   
+          ! Copy values
+          IF ( SIZE(Ptr2D,1) == 1 ) THEN
+             ExtDat%Arr%Val(:,:) = Ptr2D(1,1)
+          ELSE
+             ExtDat%Arr%Val(:,:) = Ptr2D(:,:)
           ENDIF
-       ENDIF
- 
-    ENDIF ! FIRST
-
-    ! Eventually copy field from HEMCO list to ExtState. We need to
-    ! make a copy and cannot just set a pointer because ExtState fields
-    ! are in HEMCO precision but the EmisList fields are in single 
-    ! precisions.
-    IF ( ExtDat%FromList ) THEN
-       IF ( .NOT. FOUND ) THEN
-          MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       ! Copy values
-       IF ( SIZE(Ptr2D,1) == 1 ) THEN
-          ExtDat%Arr%Val(:,:) = Ptr2D(1,1)
-       ELSE
-          ExtDat%Arr%Val(:,:) = Ptr2D(:,:)
-       ENDIF
+       ENDIF !FromList
     ENDIF
 
+    ! Make sure array exists
+    IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
+       MSG = 'ExtState array not filled: ' // TRIM(FldName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+    ENDIF
+ 
     ! Return w/ success
     RC = HCO_SUCCESS  
 
@@ -1306,10 +1309,6 @@ CONTAINS
        FRST = .FALSE.
     ENDIF
 
-    ! Nothing to do if this is not the first time and data is not from
-    ! list
-    IF ( .NOT. FRST .AND. .NOT. ExtDat%FromList ) RETURN
-
     ! On first call or if data is flagged as being read from list, get data
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
@@ -1317,69 +1316,75 @@ CONTAINS
        ! Try to get data from list
        CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN     
-    ENDIF 
 
-    ! On first call, need to make additional checks
-    IF ( FRST ) THEN
-
-       ! If read from list
-       IF ( FOUND ) THEN
-          ExtDat%FromList = .TRUE.
-
-          ! Make sure array is allocated
-          CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-
-          ! Verbose
-          IF ( HCO_IsVerb(2) ) THEN
-             MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
-             CALL HCO_MSG(MSG)
+       ! On first call, need to make additional checks
+       IF ( FRST ) THEN
+   
+          ! If read from list
+          IF ( FOUND ) THEN
+             ExtDat%FromList = .TRUE.
+   
+             ! Make sure array is allocated
+             CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+   
+             ! Verbose
+             IF ( HCO_IsVerb(2) ) THEN
+                MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
+                CALL HCO_MSG(MSG)
+             ENDIF
+   
+          ! Target to data
+          ELSE
+   
+             ! Target array must be present
+             IF ( .NOT. PRESENT(Trgt) ) THEN
+                MSG = 'Cannot fill extension field ' // TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+   
+             ! Link data to target
+             ExtDat%Arr%Val => Trgt
+   
+             ! Make sure it's not from list
+             ExtDat%FromList = .FALSE.
+   
+             ! Verbose
+             IF ( HCO_IsVerb(2) ) THEN
+                MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
+                CALL HCO_MSG(MSG)
+             ENDIF
           ENDIF
-
-       ! Target to data
-       ELSE
-
-          ! Target array must be present
-          IF ( .NOT. PRESENT(Trgt) ) THEN
-             MSG = 'Cannot fill extension field ' // TRIM(FldName)
+    
+       ENDIF ! FIRST
+   
+       ! Eventually copy field from HEMCO list to ExtState. We need to
+       ! make a copy and cannot just set a pointer because ExtState fields
+       ! are in HEMCO precision but the EmisList fields are in single 
+       ! precisions.
+       IF ( ExtDat%FromList ) THEN
+          IF ( .NOT. FOUND ) THEN
+             MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
-
-          ! Link data to target
-          ExtDat%Arr%Val => Trgt
-
-          ! Make sure it's not from list
-          ExtDat%FromList = .FALSE.
-
-          ! Verbose
-          IF ( HCO_IsVerb(2) ) THEN
-             MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-             CALL HCO_MSG(MSG)
+   
+          ! Copy values
+          IF ( SIZE(Ptr2D,1) == 1 ) THEN
+             ExtDat%Arr%Val(:,:) = Ptr2D(1,1)
+          ELSE
+             ExtDat%Arr%Val(:,:) = Ptr2D(:,:)
           ENDIF
-       ENDIF
- 
-    ENDIF ! FIRST
-
-    ! Eventually copy field from HEMCO list to ExtState. We need to
-    ! make a copy and cannot just set a pointer because ExtState fields
-    ! are in HEMCO precision but the EmisList fields are in single 
-    ! precisions.
-    IF ( ExtDat%FromList ) THEN
-       IF ( .NOT. FOUND ) THEN
-          MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       ! Copy values
-       IF ( SIZE(Ptr2D,1) == 1 ) THEN
-          ExtDat%Arr%Val(:,:) = Ptr2D(1,1)
-       ELSE
-          ExtDat%Arr%Val(:,:) = Ptr2D(:,:)
-       ENDIF
+       ENDIF !FromList
+    ENDIF 
+   
+    ! Make sure array exists
+    IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
+       MSG = 'ExtState array not filled: ' // TRIM(FldName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
-
+ 
     ! Return w/ success
     RC = HCO_SUCCESS  
 
@@ -1450,10 +1455,6 @@ CONTAINS
        FRST = .FALSE.
     ENDIF
 
-    ! Nothing to do if this is not the first time and data is not from
-    ! list
-    IF ( .NOT. FRST .AND. .NOT. ExtDat%FromList ) RETURN
-
     ! On first call or if data is flagged as being read from list, get data
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
@@ -1467,78 +1468,83 @@ CONTAINS
           CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC, FOUND=FOUND )
           IF ( RC /= HCO_SUCCESS ) RETURN     
        ENDIF 
-    ENDIF 
 
-    ! On first call, need to make additional checks
-    IF ( FRST ) THEN
-
-       ! If read from list
-       IF ( FOUND ) THEN
-          ExtDat%FromList = .TRUE.
-
-          ! Make sure array is allocated
-          CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, HcoState%NZ, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-
-          ! Verbose
-          IF ( HCO_IsVerb(2) ) THEN
-             MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
-             CALL HCO_MSG(MSG)
+       ! On first call, need to make additional checks
+       IF ( FRST ) THEN
+   
+          ! If read from list
+          IF ( FOUND ) THEN
+             ExtDat%FromList = .TRUE.
+   
+             ! Make sure array is allocated
+             CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, HcoState%NZ, RC )
+             IF ( RC /= HCO_SUCCESS ) RETURN
+   
+             ! Verbose
+             IF ( HCO_IsVerb(2) ) THEN
+                MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
+                CALL HCO_MSG(MSG)
+             ENDIF
+   
+          ! Target to data
+          ELSE
+   
+             ! Target array must be present
+             IF ( .NOT. PRESENT(Trgt) ) THEN
+                MSG = 'Cannot fill extension field ' // TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+   
+             ! Link data to target
+             ExtDat%Arr%Val => Trgt
+   
+             ! Make sure it's not from list
+             ExtDat%FromList = .FALSE.
+   
+             ! Verbose
+             IF ( HCO_IsVerb(2) ) THEN
+                MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
+                CALL HCO_MSG(MSG)
+             ENDIF
           ENDIF
-
-       ! Target to data
-       ELSE
-
-          ! Target array must be present
-          IF ( .NOT. PRESENT(Trgt) ) THEN
-             MSG = 'Cannot fill extension field ' // TRIM(FldName)
+    
+       ENDIF ! FIRST
+   
+       ! Eventually copy field from HEMCO list to ExtState. We need to
+       ! make a copy and cannot just set a pointer because ExtState fields
+       ! are in HEMCO precision but the EmisList fields are in single 
+       ! precisions.
+       IF ( ExtDat%FromList ) THEN
+          IF ( .NOT. FOUND ) THEN
+             MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
-
-          ! Link data to target
-          ExtDat%Arr%Val => Trgt
-
-          ! Make sure it's not from list
-          ExtDat%FromList = .FALSE.
-
-          ! Verbose
-          IF ( HCO_IsVerb(2) ) THEN
-             MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-             CALL HCO_MSG(MSG)
+   
+          ! If it's a 3D array...
+          IF ( ASSOCIATED(Ptr3D) ) THEN
+             ExtDat%Arr%Val(:,:,:) = Ptr3D(:,:,:)
+   
+          ! If it's a 2D array...
+          ELSEIF ( ASSOCIATED(Ptr2D) ) THEN
+             IF ( SIZE(Ptr2D,1) == 1 ) THEN
+                ExtDat%Arr%Val(:,:,:) = Ptr2D(1,1)
+             ELSE
+                DO L = 1, HcoState%NZ
+                   ExtDat%Arr%Val(:,:,L) = Ptr2D(:,:)
+                ENDDO
+             ENDIF
           ENDIF
-       ENDIF
- 
-    ENDIF ! FIRST
+       ENDIF !FromList
+    ENDIF 
 
-    ! Eventually copy field from HEMCO list to ExtState. We need to
-    ! make a copy and cannot just set a pointer because ExtState fields
-    ! are in HEMCO precision but the EmisList fields are in single 
-    ! precisions.
-    IF ( ExtDat%FromList ) THEN
-       IF ( .NOT. FOUND ) THEN
-          MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       ! If it's a 3D array...
-       IF ( ASSOCIATED(Ptr3D) ) THEN
-          ExtDat%Arr%Val(:,:,:) = Ptr3D(:,:,:)
-
-       ! If it's a 2D array...
-       ELSEIF ( ASSOCIATED(Ptr2D) ) THEN
-          IF ( SIZE(Ptr2D,1) == 1 ) THEN
-             ExtDat%Arr%Val(:,:,:) = Ptr2D(1,1)
-          ELSE
-             DO L = 1, HcoState%NZ
-                ExtDat%Arr%Val(:,:,L) = Ptr2D(:,:)
-             ENDDO
-          ENDIF
-       ENDIF
-
+    ! Make sure array exists
+    IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
+       MSG = 'ExtState array not filled: ' // TRIM(FldName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
-
+ 
     ! Return w/ success
     RC = HCO_SUCCESS  
 
@@ -1609,10 +1615,6 @@ CONTAINS
        FRST = .FALSE.
     ENDIF
 
-    ! Nothing to do if this is not the first time and data is not from
-    ! list
-    IF ( .NOT. FRST .AND. .NOT. ExtDat%FromList ) RETURN
-
     ! On first call or if data is flagged as being read from list, get data
     ! from emissions list 
     IF ( FRST .OR. ExtDat%FromList ) THEN
@@ -1626,92 +1628,96 @@ CONTAINS
           CALL HCO_GetPtr( am_I_Root, TRIM(FldName), Ptr2D, RC, FOUND=FOUND )
           IF ( RC /= HCO_SUCCESS ) RETURN     
        ENDIF 
-    ENDIF 
 
-    ! On first call, need to make additional checks
-    IF ( FRST ) THEN
-
-       ! If read from list
-       IF ( FOUND ) THEN
-
-          ! Set pointer to 3D field
-          IF ( ASSOCIATED(Ptr3D) ) THEN
-             ExtDat%Arr%Val  => Ptr3D
-             ExtDat%FromList = .FALSE.
-
-             ! Verbose
-             IF ( HCO_IsVerb(2) ) THEN
-                MSG = 'Set extension field pointer to HEMCO data list field ' // TRIM(FldName)
-                CALL HCO_MSG(MSG)
+       ! On first call, need to make additional checks
+       IF ( FRST ) THEN
+   
+          ! If read from list
+          IF ( FOUND ) THEN
+   
+             ! Set pointer to 3D field
+             IF ( ASSOCIATED(Ptr3D) ) THEN
+                ExtDat%Arr%Val  => Ptr3D
+                ExtDat%FromList = .FALSE.
+   
+                ! Verbose
+                IF ( HCO_IsVerb(2) ) THEN
+                   MSG = 'Set extension field pointer to HEMCO data list field ' // TRIM(FldName)
+                   CALL HCO_MSG(MSG)
+                ENDIF
+   
+             ELSE
+                ExtDat%FromList = .TRUE.
+   
+                ! Make sure array is allocated
+                CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, HcoState%NZ, RC )
+                IF ( RC /= HCO_SUCCESS ) RETURN
+   
+                ! Verbose
+                IF ( HCO_IsVerb(2) ) THEN
+                   MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
+                   CALL HCO_MSG(MSG)
+                ENDIF
              ENDIF
-
+   
+          ! Target to data
           ELSE
-             ExtDat%FromList = .TRUE.
-
-             ! Make sure array is allocated
-             CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, HcoState%NZ, RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
-
+   
+             ! Target array must be present
+             IF ( .NOT. PRESENT(Trgt) ) THEN
+                MSG = 'Cannot fill extension field ' // TRIM(FldName)
+                CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+   
+             ! Link data to target
+             ExtDat%Arr%Val => Trgt
+   
+             ! Make sure it's not from list
+             ExtDat%FromList = .FALSE.
+   
              ! Verbose
              IF ( HCO_IsVerb(2) ) THEN
-                MSG = 'Will fill extension field from HEMCO data list field ' // TRIM(FldName)
+                MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
                 CALL HCO_MSG(MSG)
              ENDIF
-          ENDIF
-
-       ! Target to data
-       ELSE
-
-          ! Target array must be present
-          IF ( .NOT. PRESENT(Trgt) ) THEN
-             MSG = 'Cannot fill extension field ' // TRIM(FldName)
+          ENDIF 
+       ENDIF ! FIRST
+   
+       ! Eventually copy field from HEMCO list to ExtState. We need to
+       ! make a copy and cannot just set a pointer because ExtState fields
+       ! are in HEMCO precision but the EmisList fields are in single 
+       ! precisions.
+       IF ( ExtDat%FromList ) THEN
+          IF ( .NOT. FOUND ) THEN
+             MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
              CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
              RETURN
           ENDIF
-
-          ! Link data to target
-          ExtDat%Arr%Val => Trgt
-
-          ! Make sure it's not from list
-          ExtDat%FromList = .FALSE.
-
-          ! Verbose
-          IF ( HCO_IsVerb(2) ) THEN
-             MSG = 'Set extension field pointer to external data: ' // TRIM(FldName)
-             CALL HCO_MSG(MSG)
+   
+          ! If it's a 3D array...
+          IF ( ASSOCIATED(Ptr3D) ) THEN
+             ExtDat%Arr%Val(:,:,:) = Ptr3D(:,:,:)
+   
+          ! If it's a 2D array...
+          ELSEIF ( ASSOCIATED(Ptr2D) ) THEN
+             IF ( SIZE(Ptr2D,1) == 1 ) THEN
+                ExtDat%Arr%Val(:,:,:) = Ptr2D(1,1)
+             ELSE
+                DO L = 1, HcoState%NZ
+                   ExtDat%Arr%Val(:,:,L) = Ptr2D(:,:)
+                ENDDO
+             ENDIF
           ENDIF
-       ENDIF
+       ENDIF ! FromList
+    ENDIF  
  
-    ENDIF ! FIRST
-
-    ! Eventually copy field from HEMCO list to ExtState. We need to
-    ! make a copy and cannot just set a pointer because ExtState fields
-    ! are in HEMCO precision but the EmisList fields are in single 
-    ! precisions.
-    IF ( ExtDat%FromList ) THEN
-       IF ( .NOT. FOUND ) THEN
-          MSG = 'Cannot find extension field in HEMCO data list: ' // TRIM(FldName)
-          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
-
-       ! If it's a 3D array...
-       IF ( ASSOCIATED(Ptr3D) ) THEN
-          ExtDat%Arr%Val(:,:,:) = Ptr3D(:,:,:)
-
-       ! If it's a 2D array...
-       ELSEIF ( ASSOCIATED(Ptr2D) ) THEN
-          IF ( SIZE(Ptr2D,1) == 1 ) THEN
-             ExtDat%Arr%Val(:,:,:) = Ptr2D(1,1)
-          ELSE
-             DO L = 1, HcoState%NZ
-                ExtDat%Arr%Val(:,:,L) = Ptr2D(:,:)
-             ENDDO
-          ENDIF
-       ENDIF
-
+    ! Make sure array exists
+    IF ( .NOT. ASSOCIATED(ExtDat%Arr%Val) ) THEN
+       MSG = 'ExtState array not filled: ' // TRIM(FldName)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
     ENDIF
-
+ 
     ! Return w/ success
     RC = HCO_SUCCESS  
 
