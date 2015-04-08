@@ -511,7 +511,7 @@
 !            IF ( .not. Input_Opt%LNLPBL ) THEN
 !               CALL DRYFLXRnPbBe
 !     &            ( am_I_Root, Input_Opt, State_Chm, RC )
-            ENDIF
+!            ENDIF
 
 !-----------------------------------------------------------------------------
 ! These simulations are now obsolete.  You can reactivate them if you want.

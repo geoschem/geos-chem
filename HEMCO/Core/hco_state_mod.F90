@@ -135,6 +135,9 @@ MODULE HCO_State_Mod
                                 ! be calculated over the full PBL. If false, 
                                 ! they are calculated over the first layer only.
      REAL(hp) :: MaxDepExp      ! Maximum value of deposition freq. x time step.
+     LOGICAL  :: MaskIsBinary   ! If TRUE, masks are treated as binary, e.g.  
+                                ! grid boxes are 100% inside or outside of a
+                                ! mask. 
   END TYPE HcoOpt
 
   !=========================================================================
@@ -184,6 +187,7 @@ MODULE HCO_State_Mod
 !                              gigc_state_chm_mod.F90
 !  07 Jul 2014 - R. Yantosca - Cosmetic changes
 !  30 Sep 2014 - R. Yantosca - Add HcoMicroPhys derived type to HcoState
+!  08 Apr 2015 - C. Keller   - Added MaskIsBinary to HcoState options.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,15 +282,12 @@ CONTAINS
        ! will just create a pointer to the data array (XX%Val). 
        ! Will specify the arrays in HEMCO-model interface routine 
        ! or when writing to them for the first time.
-!       HcoState%Spc(I)%Emis => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Emis, 0, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-!       HcoState%Spc(I)%Conc => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Conc, 0, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-!       HcoState%Spc(I)%Depv => NULL()
        CALL Hco_ArrInit( HcoState%Spc(I)%Depv, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDDO !I
@@ -397,6 +398,13 @@ CONTAINS
                      OptValHp=HcoState%Options%MaxDepExp, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%MaxDepExp = 20.0_hp 
+
+    ! Get binary mask flag from configuration file. If not found, set to default
+    ! value of TRUE. 
+    CALL GetExtOpt ( CoreNr, 'Binary mask', &
+                     OptValBool=HcoState%Options%MaskIsBinary, Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%MaskIsBinary = .TRUE. 
 
     ! Make sure ESMF pointers are not dangling around
 #if defined(ESMF_)
