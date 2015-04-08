@@ -771,7 +771,7 @@ CONTAINS
                          AdjFact = 1.0_dp / MW_CO2
                       ELSE
                          AdjFact = 1.0_dp / MW_CO2 * &
-                                   HcoState%Spc(HcoIDs(L))%MW_g
+                                   HcoState%Spc(HcoIDs(L))%EmMW_g
                       ENDIF
                       FINN_EMFAC(N,:) = AdjFact / EMFAC_IN(M,:)
                       IF ( am_I_Root ) THEN
@@ -815,7 +815,7 @@ CONTAINS
                 IF ( IS_NMOC ) THEN
                    DO M = 1, N_EMFAC
                       C_MOLEC         = HcoState%Spc(HcoIDs(L))%MolecRatio
-                      AdjFact         = HcoState%Spc(HcoIDs(L))%MW_g
+                      AdjFact         = HcoState%Spc(HcoIDs(L))%EmMW_g
                       FINN_EMFAC(N,M) = NMOC_EMFAC(M)             * &
                                         ( NMOC_RATIO(M) * C_MOLEC ) * &
                                         ( AdjFact       * 1e-3_hp )

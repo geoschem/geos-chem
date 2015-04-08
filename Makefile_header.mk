@@ -113,6 +113,7 @@
 #  09 May 2012 - R. Yantosca - Now try to get the proper linking sequence 
 #                              for netCDF etc w/ nf-config and nc-config.
 #  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
+#  17 Aug 2012 - R. Yantosca - Now add RRTMG=yes option for RRTMG rad transfer
 #  07 Sep 2012 - R. Yantosca - Now add OPT variable to set global opt levels
 #  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compiler
 #  17 Apr 2013 - R. Yantosca - Add switch to set -DKPP_SOLVE_ALWAYS, which 
@@ -152,6 +153,7 @@
 #  21 Nov 2014 - R. Yantosca - Add special compilation command for ISORROPIA
 #  21 Nov 2014 - R. Yantosca - Add cosmetic changes and indentation 
 #  06 Jan 2015 - R. Yantosca - Add two-way nesting options from Y. Y. Yan
+#  09 Jan 2015 - M. Sulprizio- Now properly link to the RRTMG directory
 #  13 Jan 2015 - R. Yantosca - Add fix for GEOS-Chem-Libraries library path
 #EOP
 #------------------------------------------------------------------------------
@@ -304,6 +306,18 @@ ifeq ($(shell [[ "$(UCX)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DUCX
   NO_REDUCED         :=yes
   CHEM               :=UCX
+endif
+
+#------------------------------------------------------------------------------
+# RRTMG radiative transfer model settings
+#------------------------------------------------------------------------------
+
+# %%%%% RRTMG %%%%%
+RRTMG_NEEDED         :=0
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
+  RRTMG_NEEDED       :=1
+  USER_DEFS          += -DRRTMG
 endif
 
 #------------------------------------------------------------------------------
@@ -705,7 +719,11 @@ NCL                  := $(NC_LINK_CMD)
 ifeq ($(GTMM_NEEDED),1)
   LINK               :=-L$(LIB) -lHg
 else
+ifeq ($(RRTMG_NEEDED),1)
+  LINK               :=-L$(LIB) -lrad
+else
   LINK               :=-L$(LIB)
+endif
 endif
 LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
 LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)

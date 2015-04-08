@@ -457,14 +457,15 @@
          OPEN( UNIT   = IU_A3,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
-               
-         IF ( IOS /= 0 ) THEN
-            CALL IOERROR( IOS, IU_A3, 'open_a3_fields:1' )
-         ENDIF
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( PATH ), IU_A3
  100     FORMAT( '     - Opening: ', a,  ' on unit ', i4 )
+          
+         IF ( IOS /= 0 ) THEN
+            CALL IOERROR( IOS, IU_A3, 'open_a3_fields:1' )
+         ENDIF
+
          
          ! Skip past the ident string
          READ( IU_A3, IOSTAT=IOS ) IDENT
@@ -1486,6 +1487,17 @@
 
       ! Convert GEOS-5 PRECCON from [kg/m2/s] to [mm/day]
       IF ( PRESENT( PRECON ) ) PRECON = PRECON * 86400d0
+#endif
+      ! PBLH must be greater than a minimum mechanical mixing depth,
+      ! defined as 700*friction velocity (Koracin and Berkowicz, 1988;
+      ! Lin and McElroy, 2010)
+      ! (lds implemented fix for GEOS5.2.0 from Dalhousie, 10/29/13)
+#if   defined( GEOS_5 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PBL(I,J) = max( PBL(I,J), 700d0*USTAR(I,J) )
+      ENDDO
+      ENDDO
 
       ! Correction for GEOS_5 PBLH:
       ! PBLH must be greater than a minimum mechanical mixing depth,

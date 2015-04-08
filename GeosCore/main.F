@@ -121,6 +121,28 @@
       USE EXCHANGE_MOD          ! For two-way coupled simulations
 #endif
 
+#if defined( RRTMG )
+      !-----------------------------------------------------------------
+      ! Radiation modules
+      !-----------------------------------------------------------------
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY: DO_RRTMG_RAD_TRANSFER,
+     &                                  LW_UFLUX, LW_DFLUX,
+     &                                  SW_UFLUX, SW_DFLUX,
+     &                                  LW_UFLUXC, LW_DFLUXC,
+     &                                  SW_UFLUXC, SW_DFLUXC,
+     &                                  INIT_SURFACE_RAD,
+     &                                  READ_SURFACE_RAD,
+     &                                  INIT_STRAT_CLIM,
+     &                                  READ_STRAT_CLIM,
+     &                                  INIT_MCICA_CLOUDS,
+     &                                  SET_SPECMASK
+      USE CMN_FJX_MOD,            ONLY: NSPECRADMENU,
+     &                                  LSPECRADMENU
+      USE rrtmg_lw_init,  ONLY : rrtmg_lw_ini
+      USE rrtmg_sw_init,  ONLY : rrtmg_sw_ini
+
+#endif
+
       !-----------------------------------------------------------------
       ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
       !-----------------------------------------------------------------
@@ -274,8 +296,15 @@
       REAL(f8)                 :: TAU,           TAUb         
       CHARACTER(LEN=255)       :: ZTYPE
 
+      ! Set cloud flag for RRTMG
+      INTEGER                   :: ICLD=0,ISEED=10
+      INTEGER                   :: RR
+
       ! Arrays
       INTEGER                  :: DATE(2)
+!      INTEGER                  :: ITIMEVALS(8)
+!      REAL*8                   :: OLDSECS, NEWSECS
+!      REAL*8                   :: OLDSECST, NEWSECST
 
       ! Derived type objects
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
@@ -534,6 +563,22 @@
       State_Met%AREA_M2 =  AREA_M2
       !
       !-----------------------------------------------------------------
+
+#if   defined( RRTMG )
+      ! Initialize surface rad fields
+      ! from rrtmg_rad_transfer_mod.F
+      !WRITE(6,*) 'Calling INIT_SURFACE_RAD'
+      CALL INIT_SURFACE_RAD
+      !WRITE(6,*) 'Calling INIT_STRAT_CLIM'
+      CALL INIT_STRAT_CLIM
+      CALL READ_STRAT_CLIM( Input_Opt )
+      CALL INIT_MCICA_CLOUDS
+
+      ! Initialization
+       CALL RRTMG_LW_INI
+       CALL RRTMG_SW_INI
+
+#endif
 
       ! Initialize diagnostic arrays and counters
       CALL INITIALIZE( am_I_Root, Input_Opt, 2, RC )
@@ -1401,14 +1446,63 @@
          !==============================================================
          !      ***** U P D A T E  O P T I C A L  D E P T H *****          
          !==============================================================
-         ! Recalculate the optical depth at the wavelength specified by
-         ! jv_spec_aod.dat This must be done before the call to any
+         ! Recalculate the optical depth at the wavelength(s) specified
+         ! in the Radiation Menu. This must be done before the call to any
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
             CALL RECOMPUTE_OD
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF
+
+#if   defined( RRTMG )
+         !==============================================================
+         !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
+         !==============================================================
+         IF ( Input_opt%LRAD ) THEN 
+            IF ( ITS_TIME_FOR_RT() ) THEN
+               WRITE(6,*) 'CALLING RRTMG...'
+               iseed=iseed+15
+
+               !clear-sky is output with all-sky, so we just need to run once 
+               !regardless of whether both are required or just one
+               IF ( Input_Opt%LSKYRAD(2) ) THEN
+                  !Determine if we are doing CLEAR-SKY (1) or ALL-SKY (2)
+                  ICLD=1
+               ELSE
+                  ICLD=0 !clouds are on
+               ENDIF
+
+               !set all values to one for baseline RT calc
+               CALL SET_SPECMASK(0)
+
+               !First call for baseline (all aerosol and ozone)
+               CALL DO_RRTMG_RAD_TRANSFER( DAY, MONTH, ICLD, 0, ISEED,
+     &                                     Input_Opt, State_Met,
+     &                                     State_Chm)
+
+               !Second call with aerosols or ozone if requested
+               DO N = 1, NSPECRADMENU
+                  IF (LSPECRADMENU(N).EQ.1) THEN
+                     !generate mask for species in RT
+                     CALL SET_SPECMASK(N)
+                     CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD,
+     &                                          N,   ISEED, Input_Opt,
+     &                                          State_Met, State_Chm )
+                  ENDIF
+               ENDDO
+
+               ! Increment radiation timestep counter
+               CALL SET_CT_RAD( INCREMENT=.TRUE. )
+
+               !### Debug
+               IF ( prtDebug ) THEN 
+                  CALL DEBUG_MSG( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
+               ENDIF
+
+            ENDIF
+         ENDIF
+#endif
 
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
@@ -1441,6 +1535,19 @@
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
          ENDIF
+
+         ! Plane following diagnostic, moved here to be consistent
+         ! with species array and not be biased by emissions, kyu 30
+         ! jan 2015
+         IF ( ND40 > 0 ) THEN 
+            ! Archive data along the flight track
+            CALL PLANEFLIGHT
+     &           ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ENDIF
+
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
+
+
 
          !==============================================================
          !       ***** A R C H I V E   D I A G N O S T I C S *****
@@ -1475,16 +1582,7 @@
             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
             CALL SET_CT_DIAG( INCREMENT=.TRUE. )
 
-            ! Plane following diagnostic
-            IF ( ND40 > 0 ) THEN 
-               
-               print*, 'Call planeflight'
-               ! Archive data along the flight track
-               CALL PLANEFLIGHT
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            ENDIF
-            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
-
+            ! Planeflight diagnostic moved to be after chemistry, kyu
             !### Debug
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
          ENDIF
@@ -1933,6 +2031,7 @@
       !
       !    Handle GEOS-FP met fields separately from other met 
       !=================================================================
+
 #if   defined( GEOS_FP )
 
       ! Read time-invariant data
@@ -2087,6 +2186,19 @@
 
 #endif
 
+#endif
+
+#if defined( RRTMG )
+      !  Adding the call to retrieve MODIS-derived surface
+      !  albedo and emissivity here.
+      !  There is a check within READ_SURFACE_RAD to make
+      !  sure we dont re-read the same files
+      WRITE(6,*) 'IN INITIAL_MET_FIELDS'
+      !  Start day may not be one of the 8-day values
+      !  Therefore we pass the init flag to ensure
+      !  the closest date to the current day is read
+      !  rather than nothing at all
+      CALL READ_SURFACE_RAD( Input_Opt, FORCEREAD =.TRUE. )
 #endif
 
       END SUBROUTINE READ_INITIAL_MET_FIELDS
@@ -2309,6 +2421,17 @@
 
       ENDIF
 
+#endif
+
+#if defined( RRTMG )
+      !  Adding the call to retrieve MODIS-derived surface
+      !  albedo and emissivity here.
+      !  There is a check within READ_SURFACE_RAD to make
+      !  sure we dont re-read the same files
+      IF ( ITS_TIME_FOR_SURFACE_RAD() ) THEN
+!         WRITE(6,*) 'ITS TIME FOR SURFACE RAD'
+         CALL READ_SURFACE_RAD( Input_Opt )
+      ENDIF
 #endif
 
       END SUBROUTINE READ_MET_FIELDS

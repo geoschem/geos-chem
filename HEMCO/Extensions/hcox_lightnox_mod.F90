@@ -1043,7 +1043,7 @@ CONTAINS
                 ! [molec/6h/box] * [6h/21600s] * [area/AREA_M2 m2] /
                 ! [MW/(g/mol)] / [Avgrd/(molec/mol)] * [1kg/1000g] = [kg/m2/s]
                 SLBASE(I,J,L) = SLBASE(I,J,L)                                 &
-                              / (21600.d0*HcoState%Grid%AREA_M2%Val(I,J)) &
+                              / (21600.d0*HcoState%Grid%AREA_M2%Val(I,J))     &
                               * HcoState%Spc(IDTNO)%EmMW_g                    &
                               / HcoState%Phys%Avgdr / 1000.0d0
              ENDIF
@@ -1641,7 +1641,7 @@ CONTAINS
        BETA = ANN_AVG_FLASHRATE / 260.40253d0
     ENDIF
 
-#elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
 
     !---------------------------------------
     ! GEOS-FP: Nested China simulation

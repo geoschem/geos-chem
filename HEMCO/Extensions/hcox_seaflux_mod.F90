@@ -427,6 +427,10 @@ CONTAINS
           P = HcoState%Grid%PEDGE%Val(I,J,L)
 
           ! molecular weight [g/mol]
+          ! Use real species molecular weight and not the emitted 
+          ! molecular weight. The molecular weight is only needed to
+          ! calculate the air-side Schmidt number, which should be 
+          ! using the actual species MW.
           MW = HcoState%Spc(HcoID)%MW_g
 
           ! Liquid molar volume at boiling point [cm3/mol]

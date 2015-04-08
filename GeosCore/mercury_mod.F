@@ -5021,9 +5021,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: set_options_from_hemco
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Overrides some of the Hg simulation settings depending on
+!  the inputs that are specified in the HEMCO configuration file.
 !\\
 !\\
 ! !INTERFACE:
@@ -5117,7 +5118,6 @@
       IF ( .not. FOUND ) THEN
          LInPlume = .FALSE.
       ENDIF
-
 
       !-----------------------------------------------------------------
       ! Echo output
