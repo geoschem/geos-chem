@@ -1,4 +1,4 @@
-#IF   DEFINED( RRTMG )
+#if defined( RRTMG )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2015,4 +2015,4 @@
       END SUBROUTINE CLEANUP_MCICA_CLOUDS
 !EOC
       END MODULE RRTMG_RAD_TRANSFER_MOD
-#ENDIF
+#endif

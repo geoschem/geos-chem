@@ -155,6 +155,7 @@
 #  06 Jan 2015 - R. Yantosca - Add two-way nesting options from Y. Y. Yan
 #  09 Jan 2015 - M. Sulprizio- Now properly link to the RRTMG directory
 #  13 Jan 2015 - R. Yantosca - Add fix for GEOS-Chem-Libraries library path
+#  08 Apr 2015 - R. Yantosca - Bug fix: set RRTMG=yes if it passes the regexp
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -317,6 +318,7 @@ RRTMG_NEEDED         :=0
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
   RRTMG_NEEDED       :=1
+  RRTMG              :=yes
   USER_DEFS          += -DRRTMG
 endif
 
