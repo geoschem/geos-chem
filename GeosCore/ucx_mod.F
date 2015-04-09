@@ -2934,7 +2934,7 @@
                IF (L .lt. (LLPAR-1)) THEN
                   INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+1)
                   !IF (STATE_PSC(I,J,L+1).lt.2) THEN
-                  IF (STATE_PSC(I,J,L+1) < 2.0_f4 ) THEN
+                  IF (STATE_PSC(I,J,L+1) < 2.0e+0_f4 ) THEN
                      XNO3_ABOVE = 0e+0_fp
                      XNAT_ABOVE = 0e+0_fp
                      XICE_ABOVE = 0e+0_fp
@@ -2988,7 +2988,7 @@
                   IF (L.lt.(LLPAR-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
                      !IF (STATE_PSC(I,J,L+2).ge.2) THEN
-                     IF (STATE_PSC(I,J,L+2) >= 2.0_f4 ) THEN
+                     IF (STATE_PSC(I,J,L+2) >= 2.0e+0_f4 ) THEN
                         XNO3_ABOVE = STT(I,J,L+2,IDTNIT)*INVAIR_ABOVE/ 
      &                                TRACER_MW_G(IDTNIT)
                         XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
@@ -6743,7 +6743,7 @@
       ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
       !STATE_PSC = 0e+0_fp
-      STATE_PSC     = 0.0_f4
+      STATE_PSC     = 0.0e+0_f4
       
       ! Mass fraction of tracers contained in liquid aerosol
       ! Indices: 1 - SO4
@@ -6942,6 +6942,7 @@
 !BOC
       TYPE(HCO_STATE), POINTER  :: HcoState => NULL()
       INTEGER                   :: RC, N
+      integer :: i,j,l
 
       !=================================================================
       ! CLEANUP_UCX begins here!
@@ -6949,6 +6950,7 @@
 
       ! Eventually write PSC_STATE to restart. 
       CALL GetHcoState ( HcoState )
+
       CALL HCO_RestartWrite( am_I_Root, HcoState, 
      &                       'STATE_PSC', STATE_PSC, RC )
       HcoState => NULL()
