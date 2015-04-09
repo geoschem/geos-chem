@@ -365,9 +365,9 @@ CONTAINS
     REAL(hp)          :: TROPP
     REAL(dp)          :: TmpScale
 
-    ! 'Hybrid' cloud top height in an ESMF environment 
+    ! Cloud top height
     INTEGER           :: LTOPtmp
-    REAL(hp), TARGET  :: TOPDIAGN(HcoState%NX,HcoState%NY,3)
+    REAL(hp), TARGET  :: TOPDIAGN(HcoState%NX,HcoState%NY)
 
     !=================================================================
     ! LIGHTNOX begins here!
@@ -625,12 +625,30 @@ CONTAINS
        ! GEOS-5 diagnoses the convective cloud top height directly.
        ! If available, now use this parameter to determine LTOP.
        ! The result is basically identical to the traditional 
-       ! definition of LTOP (ckeller, 3/11/15).
+       ! definition of LTOP.
+       ! GEOS-5 also diagnoses the buoyancy. Unlike the convective
+       ! parameter, buoyancy is defined in all grid boxes, e.g. 
+       ! also in those where vertical transport is explicitly 
+       ! resolved and convective parameterization is turned off.
+       ! If available, determine cloud top height from buoyancy. 
+       ! Define it as the level above the highest level with
+       ! non-negative buoyancy (ckeller, 3/25/15).
        !===========================================================
+
+       ! To determine cloud top height from buoyancy (level above
+       ! highest level with positive bouyancy).
+       IF ( ASSOCIATED( ExtState%BYNCY%Arr%Val ) ) THEN
+          LTOP = 0
+          DO L = HcoState%NZ, 1, -1
+             IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN 
+                LTOP = L + 1
+                EXIT
+             ENDIF
+          ENDDO
 
        ! To determine cloud top height from convective cloud
        ! top height diagnostics.
-       IF ( ASSOCIATED( ExtState%CNV_TOPP%Arr%Val ) ) THEN
+       ELSEIF ( ASSOCIATED( ExtState%CNV_TOPP%Arr%Val ) ) THEN
           LTOP = 1
           DO L = 1, HcoState%NZ
              IF (  HcoState%Grid%PEDGE%Val(I,J,L+1) &
@@ -653,58 +671,6 @@ CONTAINS
           ENDDO 
        ENDIF
 
-       ! Diagnose 'traditional' LTOP
-       IF ( DoDiagn .AND. LTOP >= LCHARGE ) THEN
-          TOPDIAGN(I,J,1) = MIN(LTOP,LMAX)
-       ENDIF
-
-       !------------------------------------------------------------------
-       ! Check for grid boxes where convection is not parameterized but
-       ! explicitly resolved. In these cases, the convective mass flux
-       ! is zero and LTOP won't be defined with the definition above.
-       ! Below, we check if this grid box explicitly resolves convection 
-       ! based on the RCCODE parameter (returned from the GEOS-5 moist 
-       ! component). If RCCODE is 7 in any layer, convection has been shut 
-       ! down for this grid box and the uppermost level of positive 
-       ! buoyancy is used to approximate the convective cloud top level. 
-       ! The buoyancy is defined throughout all grid boxes. Its uppermost 
-       ! positive level agrees very well with the highest level where 
-       ! convective mass flux is non-zero (ckeller, 3/11/15).
-       !
-       ! NOTE: At the moment, RCCODE and BYNCY are only defined within
-       ! GEOS-5, e.g. the code snipped below will only be in effect for
-       ! simulations within the GEOS-5 system. 
-       !-----------------------------------------------------------------
-
-       ! Top level with return code = 7, plus one
-       IF ( ASSOCIATED( ExtState%RCCODE%Arr%Val ) ) THEN
-          LTOPtmp = 0
-          DO L = HcoState%NZ, 1, -1
-             IF ( ExtState%RCCODE%Arr%Val(I,J,L) > 6.9_sp ) THEN 
-                LTOPtmp = L + 1
-                EXIT
-             ENDIF
-          ENDDO
-
-          IF ( LTOPtmp > 0 ) THEN
-             ! First level with positive buoyancy
-             IF ( ASSOCIATED( ExtState%BYNCY%Arr%Val ) ) THEN
-                LTOP = 0
-                DO L = HcoState%NZ, 1, -1
-                   IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN 
-                      LTOP = L + 1
-                      EXIT
-                   ENDIF
-                ENDDO
-     
-                ! Write to diagnostics
-                IF ( DoDiagn .AND. LTOP >= LCHARGE ) THEN
-                   TOPDIAGN(I,J,2) = MIN(LTOP,LMAX)
-                ENDIF
-             ENDIF
-          ENDIF
-       ENDIF
- 
        !----------------------------------------------------------------
        ! Error checks for LTOP 
        !----------------------------------------------------------------
@@ -718,7 +684,7 @@ CONTAINS
 
        ! Diagnose used LTOP
        IF ( DoDiagn ) THEN 
-          TOPDIAGN(I,J,3) = LTOP
+          TOPDIAGN(I,J) = LTOP
        ENDIF
 
        !--------------------------
@@ -1077,7 +1043,7 @@ CONTAINS
                 ! [molec/6h/box] * [6h/21600s] * [area/AREA_M2 m2] /
                 ! [MW/(g/mol)] / [Avgrd/(molec/mol)] * [1kg/1000g] = [kg/m2/s]
                 SLBASE(I,J,L) = SLBASE(I,J,L)                                 &
-                              / (21600.d0*HcoState%Grid%AREA_M2%Val(I,J)) &
+                              / (21600.d0*HcoState%Grid%AREA_M2%Val(I,J))     &
                               * HcoState%Spc(IDTNO)%EmMW_g                    &
                               / HcoState%Phys%Avgdr / 1000.0d0
              ENDIF
@@ -1109,20 +1075,7 @@ CONTAINS
        Arr2D => NULL() 
 
        DiagnID =  56004
-       Arr2D     => TOPDIAGN(:,:,1)
-       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
-       
-       DiagnID =  56005
-       Arr2D     => TOPDIAGN(:,:,2)
-       CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
-                          
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
-       
-       DiagnID =  56006
-       Arr2D     => TOPDIAGN(:,:,3)
+       Arr2D     => TOPDIAGN(:,:)
        CALL Diagn_Update( am_I_Root, ExtNr=ExtNr,cID=DiagnID, Array2D=Arr2D, RC=RC) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
@@ -1688,7 +1641,7 @@ CONTAINS
        BETA = ANN_AVG_FLASHRATE / 260.40253d0
     ENDIF
 
-#elif defined( GEOS_FP ) && defined( GRID025x0325 ) && defined( NESTED_CH )
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
 
     !---------------------------------------
     ! GEOS-FP: Nested China simulation

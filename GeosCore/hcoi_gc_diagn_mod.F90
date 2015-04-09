@@ -232,8 +232,11 @@ CONTAINS
     !=======================================================================
 
     ! This is for testing only. Only activate if needed.
-    !IF ( .TRUE. ) THEN     ! Activated
-    IF ( .TRUE. ) THEN     ! Deactivated
+#if defined( DEVEL )
+    IF ( .TRUE. ) THEN     ! Activated
+#else
+    IF ( .FALSE. ) THEN    ! Deactivated
+#endif
 
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
 
@@ -2700,6 +2703,7 @@ CONTAINS
 !  18 Feb 2015 - M. Sulprizio- Add manual diagnostics for individual MEGAN
 !                              species (MBOX, APIN, BPIN, etc.)
 !  10 Mar 2015 - R. Yantosca - Remove double-definition of BIOGENIC_LIMO
+!  30 Mar 2015 - R. Yantosca - Bug fix: Now test if Br2 is a HEMCO species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3172,34 +3176,47 @@ CONTAINS
        ! Find out if SeaSalt Br2 is enabled
        CALL GetExtOpt ( ExtNr, 'Emit Br2', OptValBool=YesOrNo, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       IF ( YesOrNo == .FALSE. ) THEN
-          CALL HCO_Error ( 'SeaSalt Br2 not enabled', RC, THISLOC=LOC )
-          RETURN      
+
+       ! Only save out SeaSalt Br2 diagnostic if the Br2 option is enabled
+       IF ( YesOrNo ) THEN 
+!----------------------------------------------------------------------------  
+! Prior to 3/30/15:
+! Do not stop the run if seasalt Br2 is not enabled.  Also move the
+! call to Diagn_Create inside this IF statement so that it won't be called
+! if seasalt Br2 is turned off.  This will prevent errors in the aerosol-only
+! simulations. (bmy, 3/30/15)
+!       IF ( YesOrNo == .FALSE. ) THEN
+!          CALL HCO_Error ( 'SeaSalt Br2 not enabled', RC, THISLOC=LOC )
+!          RETURN      
+!       ENDIF
+!----------------------------------------------------------------------------  
+
+          !----------------------------------------
+          ! %%%%% Biogenic Br2 %%%%%
+          !----------------------------------------
+
+          ! HEMCO species ID
+          HcoID = GetHemcoId( 'Br2', HcoState, LOC, RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Create diagnostic container
+          IF ( HcoID > 0 ) THEN
+             CALL Diagn_Create( am_I_Root,                    & 
+                                HcoState  = HcoState,         &
+                                cName     = 'SEASALT_BR2',    &
+                                ExtNr     = ExtNr,            &
+                                Cat       = -1,               &
+                                Hier      = -1,               &
+                                HcoID     = HcoID,            &
+                                SpaceDim  = 2,                &
+                                LevIDx    = -1,               &
+                                OutUnit   = 'kg/m2/s',        &
+                                WriteFreq = 'Manual',         &
+                                AutoFill  = 1,                &
+                                RC        = RC                 ) 
+             IF ( RC /= HCO_SUCCESS ) RETURN 
+          ENDIF
        ENDIF
-
-       !----------------------------------------
-       ! %%%%% Biogenic Br2 %%%%%
-       !----------------------------------------
-
-       ! HEMCO species ID
-       HcoID = GetHemcoId( 'Br2', HcoState, LOC, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ! Create diagnostic container
-       CALL Diagn_Create( am_I_Root,                    & 
-                          HcoState  = HcoState,         &
-                          cName     = 'SEASALT_BR2',    &
-                          ExtNr     = ExtNr,            &
-                          Cat       = -1,               &
-                          Hier      = -1,               &
-                          HcoID     = HcoID,            &
-                          SpaceDim  = 2,                &
-                          LevIDx    = -1,               &
-                          OutUnit   = 'kg/m2/s',        &
-                          WriteFreq = 'Manual',         &
-                          AutoFill  = 1,                &
-                          RC        = RC                 ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
   END SUBROUTINE Diagn_Biogenic
@@ -3328,50 +3345,29 @@ CONTAINS
  
        ! ---------------------------------------------------------- 
        ! Diagnostics for convective cloud top height.
-       ! LIGHTNING_TRAD_TOP is the traditional cloud top height
-       ! calculated from the convective mass flux. 
-       ! LIGHTNING_NOCONV_TOP is the cloud top height approximated
-       ! from the buoyancy in grid boxes where convection is not
-       ! parameterized any more.
-       ! LIGHTNING_MERGED_TOP is the merged product of the first
-       ! two cloud top heights. This is the value used for lightning
-       ! NOx calculation.
        ! ---------------------------------------------------------- 
 
-       ! Loop over lighthing flash quantities
-       DO I = 1, 3
+       ! Define diagnostics name and ID
+       DiagnName = 'LIGHTNING_CLOUD_TOP'
+       N         = 56004 
 
-          ! Pick the proper diagnostic name
-          SELECT CASE( I )
-             CASE( 1 )
-                DiagnName = 'LIGHTNING_TRAD_TOP'
-             CASE( 2 )
-                DiagnName = 'LIGHTNING_NOCONV_TOP'
-             CASE( 3 )
-                DiagnName = 'LIGHTNING_MERGED_TOP'
-          END SELECT
-
-          ! Define diagnostics ID
-          N = 56000 + I + 3
-
-          ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             cID       = N,                 & 
-                             ExtNr     = ExtNr,             &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = '1',               &
-                             OutOper   = 'Instantaneous',   &
-                             WriteFreq = TRIM(WriteFreq),   &
-                             AutoFill  = 0,                 &
-                             RC        = RC                  ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDDO
+       ! Create diagnostic container
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          cID       = N,                 & 
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = -1,                &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = '1',               &
+                          OutOper   = 'Mean',            &
+                          WriteFreq = TRIM(WriteFreq),   &
+                          AutoFill  = 0,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDIF ! ND56 
 
