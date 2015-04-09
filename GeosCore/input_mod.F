@@ -1763,8 +1763,9 @@
 !  16 Apr 2014 - M. Sulprizio- Now read path for PSC restart file
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
-!  09 Apr 2015 - M. Sulprizio- Removed options for DEAD dust emissions and
-!                              PSC restart file. These options are now handled
+!  09 Apr 2015 - M. Sulprizio- Removed options for DEAD dust emissions, NAP
+!                              emissions, POA emissions scale, and the PSC
+!                              restart file. These options are now handled
 !                              by HEMCO.
 !EOP
 !------------------------------------------------------------------------------
@@ -1816,16 +1817,6 @@
       ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:5' )
       READ( SUBSTRS(1:N), * ) LSVPOA
-
-      ! SOAupdate: Add NAP/IVOC surrogate emissions (hotp 8/9/09)
-      ! SOAupdate: set NAP emissions (in Tg/yr)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
-      READ( SUBSTRS(1:N), * ) Input_Opt%NAPEMISS
-
-      ! SOAupdate: Add scaling for POA emiss (hotp 9/21/09)
-      ! Fractional scaling, recommended value: 1.27
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
-      READ( SUBSTRS(1:N), * ) Input_Opt%POAEMISSSCALE
 
       ! Use online dust aerosols 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
@@ -2137,10 +2128,6 @@
          WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
          WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
-         WRITE( 6, 105     ) 'Annual NAP emiss [TgC/yr]   : ',
-     &                        Input_Opt%NAPEMISS
-         WRITE( 6, 105     ) 'POA emission scale [dimless]: ', 
-     &                        Input_Opt%POAEMISSSCALE
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
          WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
